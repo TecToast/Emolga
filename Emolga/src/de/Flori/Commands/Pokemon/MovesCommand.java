@@ -1,0 +1,84 @@
+package de.Flori.Commands.Pokemon;
+
+import de.Flori.Commands.Command;
+import de.Flori.Commands.CommandCategory;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Collections;
+
+public class MovesCommand extends Command {
+    public MovesCommand() {
+        super("moves", "`!moves [Alola|Galar] <Pokemon> [--phys|--spez|--status] [--feuer|...]` Zeigt die möglichen Attacken des Pokemon an (Entweder alle oder nur die physischen etc.)", CommandCategory.Pokemon);
+        aliases.add("moves5");
+    }
+
+
+    @Override
+    public void process(GuildMessageReceivedEvent e) {
+        TextChannel tco = e.getChannel();
+        Message m = e.getMessage();
+        String msg = m.getContentDisplay();
+        Member member = e.getMember();
+        String[] args = msg.split(" ");
+        if (args.length > 1) {
+            String pokemon;
+            String form = "Normal";
+            if (args[1].toLowerCase().contains("alola")) {
+                pokemon = args[2];
+                form = "Alola";
+            } else if (args[1].toLowerCase().contains("galar")) {
+                pokemon = args[2];
+                form = "Galar";
+            } else {
+                pokemon = args[1];
+            }
+            String string = getGerName(pokemon);
+            if (!string.split(";")[0].equals("pkmn")) {
+                tco.sendMessage("Das ist kein Pokemon!").queue();
+                return;
+            }
+            pokemon = string.split(";")[1];
+            System.out.println(pokemon);
+            try {
+                ArrayList<String> attacks;
+                int gen = e.getGuild().getId().equals("747357029714231299") || args[0].equalsIgnoreCase("!moves5") ? 5 : 8;
+                //System.out.println("args[0] = " + args[0]);
+                //System.out.println("gen = " + gen);
+                attacks = getAttacksFrom(pokemon, msg, form, gen);
+                Collections.sort(attacks);
+                if (attacks.size() == 0) {
+                    tco.sendMessage(pokemon + " kann keine " + (msg.toLowerCase().contains("--phys") ? "physische " : (msg.toLowerCase().contains("--spez") ? "spezielle " : (msg.toLowerCase().contains("--status") ? "Status-" : ""))) + (msg.toLowerCase().contains("--prio") ? "Prio-" : "") + "Attacke " + (getType(msg).equals("") ? "" : ("vom Typ " + getType(msg) + " ")) + "erlernen!").queue();
+                } else {
+                    if (attacks.size() == 1) if (attacks.get(0).equals("ERROR")) {
+                        tco.sendMessage("Dieses Pokemon hat keine " + form + "-Form!").queue();
+                        return;
+                    }
+                    EmbedBuilder builder = new EmbedBuilder();
+                    String prefix = form.equals("Normal") ? "" : form + "-";
+                    builder.setTitle("Attacken von " + prefix + pokemon).setColor(new Color(0, 255, 255));
+                    StringBuilder str = new StringBuilder();
+                    for (String o : attacks) {
+                        str.append(o).append("\n");
+                        if (str.length() > 1900) {
+                            tco.sendMessage(builder.setDescription(str.toString()).build()).queue();
+                            builder = new EmbedBuilder();
+                            builder.setTitle("Attacken von " + prefix + pokemon).setColor(new Color(0, 255, 255));
+                            str = new StringBuilder();
+                        }
+                    }
+                    builder.setDescription(str.toString());
+                    tco.sendMessage(builder.build()).queue();
+                }
+            } catch (Exception ioException) {
+                tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
+                ioException.printStackTrace();
+            }
+        } else tco.sendMessage("Syntax: !moves <Pokemon>").queue();
+    }
+}

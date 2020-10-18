@@ -1457,7 +1457,7 @@ public abstract class Command {
     }
 
     public static long calculateASLTimer() {
-        return calculateTimer(10, 22, 120);
+        return calculateTimer(12, 22, 120);
     }
 
     public static long calculateTimer(int from, int to, int delayinmins) {

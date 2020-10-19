@@ -287,8 +287,13 @@ public class Draft {
             round++;
             tc.sendMessage("Runde " + round + "!").queue();
         }
-        tc.sendMessage(getMention(current) + " war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran!").queue();
+        String msg = getMention(current) + " war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran! ";
         current = order.get(round).remove(0);
+        if (isPointBased)
+            msg += "(" + points.get(current) + " mögliche Punkte)";
+        else
+            msg += "(Mögliche Tiers: " + getPossibleTiersAsString(current) + ")";
+        tc.sendMessage(msg).queue();
         cooldown = new Timer();
         JSONObject json = getEmolgaJSON();
         if (isPointBased && points.get(current) < 20) {

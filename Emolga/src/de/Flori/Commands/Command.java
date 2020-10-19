@@ -24,6 +24,7 @@ import de.Flori.Commands.Pokemon.*;
 import de.Flori.Emolga.EmolgaMain;
 import de.Flori.utils.Google;
 import de.Flori.utils.Music.GuildMusicManager;
+import de.Flori.utils.ReplayAnalyser;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
@@ -48,7 +49,6 @@ public abstract class Command {
 
     public static final String NOPERM = "Dafür hast du keine Berechtigung!";
     public static final File emolgadata = new File("./emolgadata.json");
-    protected static String tradesid;
     //protected static final String tradesid = "1KGpou63t5_V-9nZaIPt_LDKzBwsw-lDSOrn-p7QjbtY";
     public static ArrayList<Command> commands = new ArrayList<>();
     public static ArrayList<String> hazards = new ArrayList<>();
@@ -82,6 +82,8 @@ public abstract class Command {
     public static HashMap<String, Long> latestExp = new HashMap<>();
     public static boolean expEdited = false;
     public static HashMap<String, Double> expmultiplicator = new HashMap<>();
+    public static HashMap<String, ReplayAnalyser> sdAnalyser = new HashMap<>();
+    protected static String tradesid;
     protected static List<String> balls;
     protected static List<String> mons;
     public List<String> allowedGuilds;
@@ -230,9 +232,9 @@ public abstract class Command {
 
     public static int getGameDay(JSONObject league, String uid1, String uid2) {
         JSONObject battleorder = league.getJSONObject("battleorder");
-        for (int i = 1; i <= 9; i++) {
-            String str = battleorder.getString(String.valueOf(i));
-            if (str.contains(uid1 + ":" + uid2) || str.contains(uid2 + ":" + uid1)) return i;
+        for (String s : battleorder.keySet()) {
+            String str = battleorder.getString(s);
+            if (str.contains(uid1 + ":" + uid2) || str.contains(uid2 + ":" + uid1)) return Integer.parseInt(s);
         }
         return -1;
     }
@@ -470,6 +472,15 @@ public abstract class Command {
         builder.setDescription("**Grund:** " + reason);
         tco.sendMessage(builder.build()).queue();
         saveEmolgaJSON();
+    }
+
+    public static String getMonIfPresent(HashMap<String, String> map, String pick) {
+        for (String s : map.keySet()) {
+            if (s.equals(pick) || s.equals(pick.substring(2))) {
+                return pick;
+            }
+        }
+        return "";
     }
 
     public static String getNumber(HashMap<String, String> map, String pick) {
@@ -1094,6 +1105,234 @@ public abstract class Command {
         emolgachannel.put("694256540642705408", new ArrayList<>(Collections.singletonList("695157832072560651")));
         emolgachannel.put("747357029714231299", new ArrayList<>(Arrays.asList("752802115096674306", "762411109859852298")));
         loadJSONFiles();
+        sdAnalyser.put("518008523653775366", (game, uid1, uid2, kills, deaths) -> {
+            JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7");
+            String leaguename = asl.keySet().stream().filter(s -> s.startsWith("PK") || s.equals("Coach")).filter(s -> Arrays.asList(asl.getJSONObject(s).getString("table").split(",")).contains(uid1)).collect(Collectors.joining(""));
+            JSONObject league = asl.getJSONObject(leaguename);
+            String table = league.getString("table");
+            JSONArray teamsarray = asl.getJSONArray("teams");
+            String t1 = teamsarray.getString(table.indexOf(uid1));
+            String t2 = teamsarray.getString(table.indexOf(uid2));
+            int pk = leaguename.equals("Coach") ? 0 : Integer.parseInt(leaguename.substring(2));
+            String sid = league.getString("sid");
+            int gameday = getGameDay(league, t1, t2);
+            if (gameday == -1) {
+                System.out.println("GAMEDAY -1");
+                return;
+            }
+            ArrayList<String> userids = new ArrayList<>(Arrays.asList(uid1, uid2));
+            ArrayList<String> teams = new ArrayList<>(Arrays.asList(t1, t2));
+
+            for (int i = 0; i < 2; i++) {
+                String uid = userids.get(i);
+                String team = teams.get(i);
+                ArrayList<String> picks = new ArrayList<>(Arrays.asList(league.getJSONObject("picks").getString(uid).split(",")));
+                List<List<Object>> list = new ArrayList<>();
+                for (String pick : picks) {
+                    list.add(Arrays.asList(getMonIfPresent(kills, pick), getNumber(kills, pick), getNumber(deaths, pick)));
+                }
+                List<List<Object>> get;
+                try {
+                    get = Google.get(sid, team + "!O" + (pk + 4) + ":Q" + (pk + 4), false, false);
+                } catch (IllegalArgumentException IllegalArgumentException) {
+                    IllegalArgumentException.printStackTrace();
+                    return;
+                }
+                int win = Integer.parseInt((String) get.get(0).get(0));
+                int loose = Integer.parseInt((String) get.get(0).get(1));
+                if (game[i].isWinner()) {
+                    win++;
+                    /*if (!league.has("results"))
+                        league.put("results", new JSONObject());
+                    league.getJSONObject("results").put(uid1 + ":" + uid2, uid);*/
+                } else loose++;
+                try {
+                    Google.updateRequest(sid, team + "!" + getAsXCoord(gameday * 3 + 8), list, false, false);
+                    Google.updateRequest(sid, team + "!O" + (pk + 4), Collections.singletonList(Arrays.asList(win, "", loose)), false, false);
+                } catch (IllegalArgumentException IllegalArgumentException) {
+                    IllegalArgumentException.printStackTrace();
+                }
+
+            }
+            saveEmolgaJSON();
+            sortASL();
+        });
+        sdAnalyser.put("709877545708945438", (game, uid1, uid2, kills, deaths) -> {
+            Guild guild = EmolgaMain.jda.getGuildById("709877545708945438");
+            Emote love = guild.getEmoteById("710842233712017478");
+            Emote beep = guild.getEmoteById("745355018676469844");
+            JSONObject json = getEmolgaJSON();
+            JSONObject league = json.getJSONObject("drafts").getJSONObject("Wooloo Cup");
+            if (!league.has("doc")) return;
+            String sid = league.getJSONObject("doc").getString("sid");
+            Message message = guild.getTextChannelById("749194448507764766").sendMessage(uid1 + " (" + love.getAsMention() + ") oder " + uid2 + " (" + beep.getAsMention() + ")?").complete();
+            message.addReaction(love).queue();
+            message.addReaction(beep).queue();
+            if (!json.has("style")) json.put("style", new JSONArray());
+            JSONArray style = json.getJSONArray("style");
+            JSONObject obj = new JSONObject();
+            obj.put("uid1", uid1);
+            obj.put("uid2", uid2);
+            obj.put("mid", message.getId());
+            obj.put("timer", System.currentTimeMillis() + 86400000 + "");
+            style.put(obj);
+            new Timer().schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    JSONObject json = getEmolgaJSON();
+                    JSONArray style = json.getJSONArray("style");
+                    JSONObject league = json.getJSONObject("drafts").getJSONObject("Wooloo Cup");
+                    int p1 = -1;
+                    int p2 = -1;
+                    for (MessageReaction reaction : message.getReactions()) {
+                        if (reaction.getReactionEmote().isEmoji()) continue;
+                        Emote emote = reaction.getReactionEmote().getEmote();
+                        List<Member> list = reaction.retrieveUsers().stream().map(u -> guild.retrieveMember(u).complete()).filter(mem -> mem.getRoles().contains(guild.getRoleById("742650292004454483"))).collect(Collectors.toList());
+                        if (emote.getId().equals(love.getId())) {
+                            p1 = list.size();
+                        } else if (emote.getId().equals(beep.getId())) {
+                            p2 = list.size();
+                        }
+                    }
+                    String uid;
+                    if (p1 > p2) {
+                        uid = uid1;
+                    } else if (p1 < p2) {
+                        uid = uid2;
+                    } else {
+                        uid = new Random().nextInt(2) == 0 ? uid1 : uid2;
+                    }
+                    Google.updateRequest(sid,
+                            "Tabelle!D" + (Arrays.asList(league.getString("table").split(",")).indexOf(uid) + 51),
+                            Collections.singletonList(Collections.singletonList(
+                                    Integer.parseInt((String) Google.get(sid, "Tabelle!D" + (Arrays.asList(league.getString("table").split(",")).indexOf(uid1) + 51), false, false).get(0).get(0) + 1)
+                            )), false, false);
+                    int index = -1;
+                    for (int i = 0; i < style.length(); i++) {
+                        JSONObject obj = style.getJSONObject(i);
+                        if (obj.getString("mid").equals(message.getId())) {
+                            index = i;
+                            break;
+                        }
+                    }
+                    if (index != -1)
+                        style.remove(index);
+                    saveEmolgaJSON();
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException interruptedException) {
+                        interruptedException.printStackTrace();
+                    }
+                    sortWooloo(sid, league);
+                }
+            }, 86400000);
+            saveEmolgaJSON();
+            ArrayList<String> users = new ArrayList<>(Arrays.asList(uid1, uid2));
+            int i = 0;
+            for (String uid : users) {
+                int index = Arrays.asList(league.getString("table").split(",")).indexOf(uid);
+                String range = "Teamübersicht!"
+                        + (index < 4 ? (char) (index * 6 + 68) : (index > 7 ? (char) ((index - 6) * 6 + 68) : (char) ((index - 4) * 6 + 68)))
+                        + (index < 4 ? 7 : (index > 7 ? 41 : 24))
+                        + ":"
+                        + (index < 4 ? (char) (index * 6 + 69) : (index > 7 ? (char) ((index - 6) * 6 + 69) : (char) ((index - 4) * 6 + 69)))
+                        + (index < 4 ? 18 : (index > 7 ? 52 : 35));
+                //boolean console = msg.contains("--console");
+                ArrayList<String> picks = new ArrayList<>(Arrays.asList(league.getJSONObject("picks").getString(uid).split(",")));
+                List<List<Object>> list = new ArrayList<>();
+                List<List<Object>> get = Google.get(sid, range, false, false);
+                int x = 0;
+                for (String pick : picks) {
+                    String kill = getNumber(kills, pick);
+                    String death = getNumber(deaths, pick);
+                    list.add(Arrays.asList((kill.equals("") ? 0 : Integer.parseInt(kill)) + Integer.parseInt((String) get.get(x).get(0)), (death.equals("") ? 0 : Integer.parseInt(death)) + Integer.parseInt((String) get.get(x).get(1))));
+                    x++;
+                }
+                //List<List<Object>> get = Google.get(sid, "Spielplan [erweitert]!D" + (index * 14 + 1) + ":E" + (index * 14 + 1));
+                List<List<Object>> slist = Google.get(sid, "Teamübersicht!C" + (index + 40) + ":D" + (index + 40), false, false);
+                //System.out.println(uid);
+                //System.out.println("slist = " + slist);
+                int win = Integer.parseInt((String) slist.get(0).get(0));
+                int loose = Integer.parseInt((String) slist.get(0).get(1));
+                if (!league.has("results")) league.put("results", new JSONObject());
+                if (game[i].isWinner()) {
+                    win++;
+                    league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
+                    //System.out.println("win = " + win);
+                } else {
+                    loose++;
+                    //System.out.println("loose = " + loose);
+                }
+                saveEmolgaJSON();
+                String urange = range.split(":")[0];
+                Google.updateRequest(sid, urange, list, false, false);
+                Google.updateRequest(sid, "Teamübersicht!C" + (index + 40), Collections.singletonList(Arrays.asList(win, loose)), true, false);
+                i++;
+            }
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException interruptedException) {
+                interruptedException.printStackTrace();
+            }
+            sortWooloo(sid, league);
+        });
+        sdAnalyser.put("747357029714231299", (game, uid1, uid2, kills, deaths) -> {
+            JSONObject league;
+            JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
+            int l;
+            if (drafts.getJSONObject("ZBSL1").getString("table").contains(uid1)) l = 1;
+            else l = 2;
+            league = drafts.getJSONObject("ZBSL" + l);
+            String sid = league.getJSONObject("doc").getString("sid");
+            int gameday = getGameDay(league, uid1, uid2);
+            if (gameday == -1) {
+                System.out.println("GAMEDAY -1");
+                return;
+            }
+            ArrayList<String> users = new ArrayList<>(Arrays.asList(uid1, uid2));
+            int i = 0;
+            for (String uid : users) {
+                int index = Arrays.asList(league.getString("table").split(",")).indexOf(uid);
+                //System.out.println("Range: " + range + ":" + c + (index * 14 + 14));
+                //System.out.println("Gameday: " + gameday);
+                //System.out.println("check = " + check);
+                ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
+                List<List<Object>> get = Google.get(sid, "Liga " + l + "!B" + (index * 11 + 200) + ":D" + (index * 11 + 210), false, false);
+                List<List<Object>> list = new ArrayList<>();
+                int x = 0;
+                for (String pick : picks) {
+                    String kill = getNumber(kills, pick);
+                    String death = getNumber(deaths, pick);
+                    list.add(Arrays.asList((kill.equals("") ? 0 : Integer.parseInt(kill)) + Integer.parseInt((String) get.get(x).get(0)), (death.equals("") ? 0 : Integer.parseInt(death)) + Integer.parseInt((String) get.get(x).get(1)), Integer.parseInt((String) get.get(x).get(2)) + 1));
+                    x++;
+                }
+                List<List<Object>> getvic;
+                try {
+                    getvic = Google.get(sid, "Liga " + l + "!I" + (index + 3) + ":K" + (index + 3), false, false);
+                } catch (IllegalArgumentException IllegalArgumentException) {
+                    IllegalArgumentException.printStackTrace();
+                    return;
+                }
+                int win = Integer.parseInt((String) getvic.get(0).get(0));
+                int loose = Integer.parseInt((String) getvic.get(0).get(2));
+                if (game[i].isWinner()) {
+                    win++;
+                    if (!league.has("results"))
+                        league.put("results", new JSONObject());
+                    league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
+                } else loose++;
+                try {
+                    Google.updateRequest(sid, "Liga " + l + "!B" + (index * 11 + 200), list, false, false);
+                    Google.updateRequest(sid, "Liga " + l + "!I" + (index + 3), Collections.singletonList(Arrays.asList(win, getvic.get(0).get(1), loose)), false, false);
+                } catch (IllegalArgumentException IllegalArgumentException) {
+                    IllegalArgumentException.printStackTrace();
+
+                }
+                i++;
+            }
+            sortZBS(sid, "Liga " + l, league);
+            saveEmolgaJSON();
+        });
     }
 
     public static void loadJSONFiles() {
@@ -1505,6 +1744,43 @@ public abstract class Command {
             level += 1;
         }
         return level;
+    }
+
+    public static void sortASL() {
+        String sid = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7").getString("sid");
+        List<List<Object>> formula = Google.get(sid, "Tabelle!B3:J14", true, false);
+        List<List<Object>> points = Google.get(sid, "Tabelle!C3:J14", false, false);
+        List<List<Object>> orig = new ArrayList<>(points);
+        points.sort((o1, o2) -> compareColumns(o1, o2, 1, 7, 5));
+        Collections.reverse(points);
+        Spreadsheet s = Google.getSheetData(sid, "Tabelle!B3:B14", false);
+        ArrayList<com.google.api.services.sheets.v4.model.Color> formats = new ArrayList<>();
+        for (RowData rowDatum : s.getSheets().get(0).getData().get(0).getRowData()) {
+            formats.add(rowDatum.getValues().get(0).getEffectiveFormat().getBackgroundColor());
+        }
+        HashMap<Integer, List<Object>> valmap = new HashMap<>();
+        HashMap<Integer, com.google.api.services.sheets.v4.model.Color> formap = new HashMap<>();
+        int i = 0;
+        for (List<Object> objects : orig) {
+            int index = points.indexOf(objects);
+            valmap.put(index, formula.get(i));
+            System.out.println("index = " + index);
+            System.out.println("formula.get(i) = " + formula.get(i));
+            formap.put(index, formats.get(i));
+            i++;
+        }
+        List<List<Object>> senddata = new ArrayList<>();
+        //List<List<Object>> sendname = new ArrayList<>();
+        ArrayList<RowData> rowData = new ArrayList<>();
+        for (int j = 0; j < 12; j++) {
+            senddata.add(valmap.get(j));
+            rowData.add(new RowData().setValues(Collections.singletonList(new CellData().setUserEnteredFormat(new CellFormat().setBackgroundColor(formap.get(j))))));
+        }
+        System.out.println(senddata);
+        Google.updateRequest(sid, "Tabelle!B3", senddata, false, false);
+        Google.batchUpdateRequest(sid, new Request().setUpdateCells(new UpdateCellsRequest().setRows(rowData)
+                .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(765460930).setStartRowIndex(2).setEndRowIndex(14).setStartColumnIndex(1).setEndColumnIndex(2))), false);
+        System.out.println("Done!");
     }
 
     public static void sortBST() {

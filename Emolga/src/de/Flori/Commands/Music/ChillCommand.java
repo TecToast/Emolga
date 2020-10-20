@@ -34,33 +34,7 @@ public class ChillCommand extends Command {
         if (!chill.contains(g)) {
             String url = "https://www.youtube.com/playlist?list=PLPHBmr2YEhHS17xvYqjt0AgIReBuyAYc2";
             chill.add(g);
-            playerManager.loadItemOrdered(musicManager, url, new AudioLoadResultHandler() {
-
-                @Override
-                public void trackLoaded(AudioTrack track) {
-
-                }
-
-                @Override
-                public void playlistLoaded(AudioPlaylist playlist) {
-                    ArrayList<AudioTrack> list = new ArrayList<>(playlist.getTracks());
-                    while (list.size() > 0) {
-                        play(g, musicManager, list.remove(new Random().nextInt(list.size())), member, tco);
-                    }
-                }
-
-                @Override
-                public void noMatches() {
-
-                }
-
-                @Override
-                public void loadFailed(FriendlyException exception) {
-                    tco.sendMessage("Der Track konnte nicht abgespielt werden: " + exception.getMessage()).queue();
-                    exception.printStackTrace();
-                }
-            });
-            tco.sendMessage(":^)").queue();
+            loadPlaylist(tco, url, member, ":^)");
         } else {
             chill.remove(g);
             musicManager.player.stopTrack();

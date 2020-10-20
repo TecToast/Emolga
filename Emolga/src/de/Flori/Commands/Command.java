@@ -113,6 +113,38 @@ public abstract class Command {
         categorys.get(category).add(this);
     }
 
+    public static void loadPlaylist(final TextChannel channel, final String track, Member mem, String cm) {
+        GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
+        System.out.println(track);
+        playerManager.loadItemOrdered(musicManager, track, new AudioLoadResultHandler() {
+
+
+            @Override
+            public void trackLoaded(AudioTrack track) {
+
+            }
+
+            @Override
+            public void playlistLoaded(AudioPlaylist playlist) {
+                for (AudioTrack playlistTrack : playlist.getTracks()) {
+                    play(channel.getGuild(), musicManager, playlistTrack, mem, channel);
+                }
+                channel.sendMessage(cm == null ? "Loaded playlist!" : cm).queue();
+            }
+
+            @Override
+            public void noMatches() {
+                channel.sendMessage("Es wurde unter `" + track + "` nichts gefunden!").queue();
+            }
+
+            @Override
+            public void loadFailed(FriendlyException exception) {
+                exception.printStackTrace();
+                channel.sendMessage("Der Track konnte nicht abgespielt werden: " + exception.getMessage()).queue();
+            }
+        });
+    }
+
     public static void loadAndPlay(final TextChannel channel, final String track, Member mem, String cm) throws IllegalArgumentException {
         GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
         System.out.println(track);
@@ -2112,9 +2144,10 @@ public abstract class Command {
 
     public static boolean allowsCategory(Guild g, CommandCategory c) {
         String gid = g.getId();
+        if(gid.equals("447357526997073930")) return true;
         if (c == CommandCategory.Music && !(gid.equals("700504340368064562") || gid.equals("712035338846994502") || gid.equals("673833176036147210")))
             return false;
-        return c != CommandCategory.BS || gid.equals("712035338846994502") || gid.equals("447357526997073930");
+        return c != CommandCategory.BS || gid.equals("712035338846994502");
     }
 
     private boolean checkPrefix(String msg) {

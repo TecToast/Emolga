@@ -30,12 +30,12 @@ public class CombinationCommand extends Command {
         return l.size() == 0;
     }
 
-    public static boolean containsAll(JSONArray arr, ArrayList<String> list) {
+    public static boolean containsNotAll(JSONArray arr, ArrayList<String> list) {
         List<String> l = arr.toList().stream().map(o -> (String) o).collect(Collectors.toList());
         for (String s : list) {
-            if (!l.contains(s)) return true;
+            if (!l.contains(s)) return false;
         }
-        return false;
+        return true;
     }
 
     public static boolean containsAll(Set<String> set, ArrayList<String> list) {
@@ -60,7 +60,7 @@ public class CombinationCommand extends Command {
         for (String s : args.split(",")) {
             String str = getGerName(s);
             if (str.equals("") || str.startsWith("pkmn")) {
-                tco.sendMessage(s + " ist weder eine Attacke noch eine Fähigkeit!").queue();
+                tco.sendMessage("**" + s + "** ist kein valides Argument!").queue();
                 return;
             }
             if (str.startsWith("atk")) atks.add(str.split(";")[1]);
@@ -74,8 +74,8 @@ public class CombinationCommand extends Command {
         for (String s : data.keySet()) {
             JSONObject mon = data.getJSONObject(s);
             if (!containsAll(mon.getJSONObject("abilities"), abis)) continue;
-            if (containsAll(mon.getJSONArray("types"), types)) continue;
-            if (containsAll(mon.getJSONArray("eggGroups"), egg)) continue;
+            if (containsNotAll(mon.getJSONArray("types"), types)) continue;
+            if (containsNotAll(mon.getJSONArray("eggGroups"), egg)) continue;
             String string;
             if (mon.has("baseSpecies")) string = mon.getString("baseSpecies").toLowerCase();
             else string = s.toLowerCase();

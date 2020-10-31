@@ -3,7 +3,6 @@ package de.Flori.Commands.Pokemon;
 
 import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
-import de.Flori.Emolga.EmolgaListener;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -190,7 +189,9 @@ public class DataCommand extends Command {
                                     } else abi.append(s).append(" (").append(String.join(", ", l)).append(")\n");
                                 }
                             }
-                        builder.addField("Fähigkeiten", abi.toString(), false);
+                            String str = abi.toString();
+                            if(!str.contains("Alola VF") && !str.contains("Galar VF")) str = str.replace("Normal VF", "VF");
+                            builder.addField("Fähigkeiten", str, false);
                     }
                     if (monname.equalsIgnoreCase("amigento") || monname.equalsIgnoreCase("arceus")) {
                         builder.addField(monname.equalsIgnoreCase("amigento") ? "Amigento" : "Arceus", monname.equalsIgnoreCase("amigento") ? "KP: 95\n" + "Atk: 95\n" + "Def: 95\n" + "SpAtk: 95\n" + "SpDef: 95\n" + "Init: 95\n" + "Summe: 570"
@@ -207,14 +208,18 @@ public class DataCommand extends Command {
                             int spe = stats.getInt("spe");
                             String str = "KP: " + kp + "\nAtk: " + atk + "\nDef: " + def + "\nSpAtk: " + spa
                                     + "\nSpDef: " + spd + "\nInit: " + spe + "\nSumme: " + (kp + atk + def + spa + spd + spe);
-                            if (stat.containsKey(str)) stat.get(str).add(obj.getString("name"));
-                            else stat.put(str, new ArrayList<>(Collections.singletonList(obj.getString("name"))));
+                            String toadd = obj.getString("name");
+                            if(toadd.endsWith("-Alola")) toadd = "Alola-" + toadd.substring(0, toadd.length() - 6);
+                            if(toadd.endsWith("-Galar")) toadd = "Galar-" + toadd.substring(0, toadd.length() - 6);
+                            if (stat.containsKey(str)) stat.get(str).add(toadd);
+                            else stat.put(str, new ArrayList<>(Collections.singletonList(toadd)));
                         }
-                        for (String s : stat.keySet().stream().sorted(Comparator.comparing(o -> stat.get(o).get(0))).collect(Collectors.toList())) {
+                        for (String s : stat.keySet().stream().sorted(Comparator.comparing(o -> stat.get(o).get(0).length())).collect(Collectors.toList())) {
                             builder.addField(String.join(", ", stat.get(s)), s, true);
                         }
                     }
-                    if(msg.toLowerCase().contains("shiny")) builder.setImage(getShinySpriteJSON().getString(String.valueOf(mon.getInt("num"))));
+                    if (msg.toLowerCase().contains("shiny"))
+                        builder.setImage(getShinySpriteJSON().getString(String.valueOf(mon.getInt("num"))));
                     else builder.setImage(getSpriteJSON().getString(String.valueOf(mon.getInt("num"))));
                     builder.setTitle(monname);
                     builder.setColor(Color.CYAN);

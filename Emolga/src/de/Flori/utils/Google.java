@@ -50,7 +50,7 @@ public class Google {
             if (recursive) throw new IllegalArgumentException("Fehler bei get");
             generateAccessToken();
             return get(spreadsheetId, range, formula, true);
-        } catch (GeneralSecurityException | IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         System.out.println("NULL");
@@ -65,7 +65,7 @@ public class Google {
             if (recursive) throw new IllegalArgumentException("Fehler bei updateRequest");
             generateAccessToken();
             updateRequest(spreadsheetId, range, values, raw, true);
-        } catch (GeneralSecurityException | IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -78,7 +78,7 @@ public class Google {
             if (recursive) throw new IllegalArgumentException("Fehler bei getSheetData");
             generateAccessToken();
             return getSheetData(spreadsheetId, range, true);
-        } catch (GeneralSecurityException | IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return null;
@@ -93,15 +93,20 @@ public class Google {
             if (recursive) throw new IllegalArgumentException("Fehler bei batchUpdateRequest");
             generateAccessToken();
             batchUpdateRequest(spreadsheetId, request, true);
-        } catch (GeneralSecurityException | IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private static Sheets getSheetsService() throws GeneralSecurityException, IOException {
-        return new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), new Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(accesstoken))
-                .setApplicationName("Emolga")
-                .build();
+    public static Sheets getSheetsService() {
+        try {
+            return new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), new Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(accesstoken))
+                    .setApplicationName("Emolga")
+                    .build();
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private static YouTube getYouTubeService() throws GeneralSecurityException, IOException {
@@ -110,7 +115,7 @@ public class Google {
                 .build();
     }
 
-    private static void generateAccessToken() {
+    public static void generateAccessToken() {
         try {
             accesstoken = new GoogleRefreshTokenRequest(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), REFRESHTOKEN, CLIENTID, CLIENTSECRET).execute().getAccessToken();
         } catch (IOException | GeneralSecurityException e) {

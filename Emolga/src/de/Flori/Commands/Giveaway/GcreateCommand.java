@@ -29,7 +29,6 @@ public class GcreateCommand extends Command {
 
     public GcreateCommand() {
         super("gcreate", "`!gcreate` Startet ein Giveaway", CommandCategory.Verschiedenes, "712035338846994502", "756239772665511947", "518008523653775366", "673833176036147210");
-        overrideChannel.put("712035338846994502", new ArrayList<>(Arrays.asList("754239958574694411", "735076688144105493")));
     }
 
 
@@ -51,7 +50,11 @@ public class GcreateCommand extends Command {
 
         // get started
         current.add(tco.getId());
-
+        if(e.getGuild().getId().equals("712035338846994502")) {
+            tco.sendMessage("Wie lange soll das Giveaway laufen?" + TIME).queue();
+            waitForTime(e, e.getGuild().getTextChannelById("754239871870042202"));
+            return;
+        }
         tco.sendMessage("Es geht los! Zuerst, in welchem Channel soll das Giveaway stattfinden?" + CHANNEL).queue();
         waitForChannel(e);
     }

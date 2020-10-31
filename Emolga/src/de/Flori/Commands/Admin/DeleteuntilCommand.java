@@ -14,7 +14,7 @@ public class DeleteuntilCommand extends Command {
         TextChannel tco = e.getChannel();
         String mid = msg.substring(13);
         try {
-            tco.retrieveMessageById(mid).queue();
+            tco.retrieveMessageById(mid).complete();
         } catch (Exception ex) {
             tco.sendMessage("In diesem Channel gibt es keine Nachricht mit dieser ID!").queue();
             return;

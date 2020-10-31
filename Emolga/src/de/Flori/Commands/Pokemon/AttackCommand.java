@@ -35,6 +35,7 @@ public class AttackCommand extends Command {
         }
         String atk = str.split(";")[1];
         for (String s : json.keySet()) {
+            System.out.println("s = " + s);
             if (json.getJSONObject(s).getJSONObject("learnset").keySet().contains(atk)) {
                 mons.add(json.getJSONObject(s).getString("name"));
             }

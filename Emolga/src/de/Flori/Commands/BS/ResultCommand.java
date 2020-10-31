@@ -2,7 +2,6 @@ package de.Flori.Commands.BS;
 
 import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
-import de.Flori.Emolga.EmolgaListener;
 import de.Flori.Emolga.EmolgaMain;
 import de.Flori.utils.Result;
 import net.dv8tion.jda.api.entities.Member;
@@ -14,7 +13,6 @@ import org.json.JSONObject;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static de.Flori.Emolga.EmolgaListener.as;
 import static de.Flori.Emolga.EmolgaListener.checkBST;
 
 public class ResultCommand extends Command {
@@ -36,7 +34,7 @@ public class ResultCommand extends Command {
         Member member = e.getMember();
         String p1 = member.getId();
         String p2;
-        if(!checkBST) {
+        if (!checkBST) {
             Optional<String> op = gdl.stream().filter(str -> str.contains(p1)).findFirst();
             if (!op.isPresent()) {
                 sendToUser(member, "Du spielst nicht in dieser Liga mit!");
@@ -122,7 +120,7 @@ public class ResultCommand extends Command {
         wait(u, e -> {
             String msg = e.getMessage().getContentDisplay();
             String mon = getBSTGerName(msg);
-            if(mon.equals("ONLYWITHFORM")) {
+            if (mon.equals("ONLYWITHFORM")) {
                 sendToUser(u, "Du musst bei Wulaosu -Unlicht oder -Wasser hinterschreiben!");
                 waitForMon(u, r);
                 return;
@@ -272,13 +270,11 @@ public class ResultCommand extends Command {
                 e -> e.getAuthor().getId().equals(u.getId()),
                 e ->
                 {
-                    // manual cancel
                     if (CANCEL_WORDS.contains(e.getMessage().getContentRaw().toLowerCase())) {
                         sendToUser(u, "Die Ergebnisaufnahme wurde abgebrochen.");
                         current.remove(u.getId());
                         return;
                     }
-                    // run action
                     action.accept(e);
                 });
     }

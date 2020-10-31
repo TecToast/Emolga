@@ -28,10 +28,12 @@ public class NpCommand extends Command {
         GuildMusicManager manager = getGuildAudioPlayer(tco.getGuild());
         if (manager.player == null) {
             tco.sendMessage("Derzeit läuft kein Track!").queue();
+            return;
         }
         AudioPlayer player = manager.player;
         if (player.getPlayingTrack() == null) {
             tco.sendMessage("Derzeit läuft kein Track!").queue();
+            return;
         }
         AudioTrack t = player.getPlayingTrack();
         long p = t.getPosition();

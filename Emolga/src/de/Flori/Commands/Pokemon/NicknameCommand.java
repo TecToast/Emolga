@@ -12,7 +12,7 @@ import org.json.JSONObject;
 
 public class NicknameCommand extends Command {
     public NicknameCommand() {
-        super("nickname", "`!nickname <Neuer Name>` Ändert deinen Nickname (funktioniert nur 1x pro Woche)", CommandCategory.Pokemon, "712035338846994502", "518008523653775366");
+        super("nickname", "`!nickname <Neuer Name>` Ändert deinen Nickname (funktioniert nur 1x pro Woche)", CommandCategory.Verschiedenes, "712035338846994502", "518008523653775366");
     }
 
     @Override

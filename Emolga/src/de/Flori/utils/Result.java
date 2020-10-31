@@ -32,8 +32,8 @@ public class Result {
     public String name1;
     public String name2;
     public ArrayList<Integer> wins1 = new ArrayList<>();
-    public int k1sum;
-    public int d1sum;
+    //public int k1sum;
+    //public int d1sum;
 
     public Result(String u1, String u2) {
         this.u1 = u1;
@@ -87,10 +87,8 @@ public class Result {
                 deaths.put(integer, deaths.getOrDefault(integer, 0) + 1);
             }
         }
-        k1sum = kills.values().stream().mapToInt(i -> i).sum();
-        d1sum = deaths.values().stream().mapToInt(i -> i).sum();
         for (int i = 0; i < gamecount; i++) {
-            int x = kills.get(i + 1) - deaths.get(i + 1);
+            int x = kills.getOrDefault(i + 1, 0) - deaths.getOrDefault(i + 1, 0);
             if (x > 0) {
                 results.add(x + ":0");
                 wins1.add(i + 1);

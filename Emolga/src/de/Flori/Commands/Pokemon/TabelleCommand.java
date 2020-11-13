@@ -60,7 +60,6 @@ public class TabelleCommand extends Command {
         } else if (gid.equals("518008523653775366")) {
             List<List<Object>> list = Google.get("1uVLF4_O-qop80CU6mNJucADn2_XeaJ4oCaU1z46QWtM", "Tabelle!C3:J14", false, false);
             StringBuilder str = new StringBuilder("```");
-            ArrayList<String> send = new ArrayList<>();
             ArrayList<Integer> name = new ArrayList<>();
             ArrayList<Integer> points = new ArrayList<>();
             ArrayList<Integer> kills = new ArrayList<>();
@@ -90,12 +89,5 @@ public class TabelleCommand extends Command {
             //str.append(i + 1).append(". ").append(l.get(0)).append(" - ").append(l.get(2)).append(" S. - ").append(l.get(4)).append(" K. - ").append(l.get(5)).append(" D. - ").append(l.get(6)).append(" Dif.\n");
             tco.sendMessage(str.append("```").toString()).queue();
         }
-    }
-
-    private String expandTo(String str, int i) {
-        StringBuilder strBuilder = new StringBuilder(str);
-        while (strBuilder.length() < i) strBuilder.append(" ");
-        //System.out.println("'" + strBuilder.toString() + "'");
-        return strBuilder.toString();
     }
 }

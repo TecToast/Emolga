@@ -83,7 +83,7 @@ public class CheckCommand extends Command {
         } else {
             String range = "VFs und Ballmons!D" + (mons.indexOf(mon) + 3) + ":AA" + (mons.indexOf(mon) + 3);
             List<List<Object>> get = Google.get(tradesid, range, false, false);
-            if(get == null) {
+            if (get == null) {
                 tco.sendMessage("Niemand hat ein " + mon + "!").queue();
                 return;
             }
@@ -91,14 +91,14 @@ public class CheckCommand extends Command {
             HashMap<String, String> map = new HashMap<>();
             for (int i = 0; i < list.size(); i++) {
                 String s = (String) list.get(i);
-                if(s.equals("")) continue;
+                if (s.equals("")) continue;
                 ArrayList<Integer> l = Arrays.stream(s.split(";")).map(Integer::parseInt).sorted().collect(Collectors.toCollection(ArrayList::new));
                 ArrayList<String> owns = l.stream().map(j -> EmolgaMain.jda.getGuildById("712035338846994502").retrieveMemberById(names.getString(String.valueOf(j))).complete().getEffectiveName()).collect(Collectors.toCollection(ArrayList::new));
                 map.put(balls.get(i), "**" + String.join("**, **", owns) + "**");
             }
             StringBuilder builder = new StringBuilder(mon + ":\n");
             for (String s : balls) {
-                if(map.containsKey(s)) {
+                if (map.containsKey(s)) {
                     builder.append(s).append(": ").append(map.get(s)).append("\n");
                 }
             }

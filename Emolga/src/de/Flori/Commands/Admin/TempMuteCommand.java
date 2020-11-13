@@ -2,21 +2,10 @@ package de.Flori.Commands.Admin;
 
 import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
-import de.Flori.Commands.Giveaway.GcreateCommand;
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.awt.*;
-import java.util.ArrayList;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import static de.Flori.Commands.Giveaway.GcreateCommand.secondsToTime;
 
 public class TempMuteCommand extends Command {
     public TempMuteCommand() {
@@ -38,8 +27,8 @@ public class TempMuteCommand extends Command {
         StringBuilder reasonbuilder = new StringBuilder();
         int time = 0;
         for (int i = 2; i < splitarr.length; i++) {
-            if (GcreateCommand.parseShortTime(splitarr[i]) != -1) {
-                time += GcreateCommand.parseShortTime(splitarr[i]);
+            if (parseShortTime(splitarr[i]) != -1) {
+                time += parseShortTime(splitarr[i]);
             } else reasonbuilder.append(splitarr[i]).append(" ");
         }
         String reason = reasonbuilder.toString().trim().equals("") ? "Nicht angegeben" : reasonbuilder.toString().trim();

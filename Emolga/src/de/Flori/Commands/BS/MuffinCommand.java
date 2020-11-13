@@ -6,7 +6,7 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class MuffinCommand extends Command {
     public MuffinCommand() {
-        super("muffin", "`!muffin` ITS MUFFIN TIME!", CommandCategory.BS);
+        super("muffin", "`!muffin` ITS MUFFIN TIME!", CommandCategory.Music);
     }
 
     @Override

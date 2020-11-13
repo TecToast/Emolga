@@ -13,6 +13,7 @@ import java.net.URI;
  * @author Benjamin Erb
  *
  */
+@SuppressWarnings("JavaDoc")
 public interface Subscriber
 {
     /**

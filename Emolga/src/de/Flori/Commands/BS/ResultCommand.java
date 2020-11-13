@@ -16,8 +16,8 @@ import java.util.function.Consumer;
 import static de.Flori.Emolga.EmolgaListener.checkBST;
 
 public class ResultCommand extends Command {
-    HashSet<String> current = new HashSet<>();
-    ArrayList<String> CANCEL_WORDS = new ArrayList<>(Collections.singletonList("cancel"));
+    final HashSet<String> current = new HashSet<>();
+    final ArrayList<String> CANCEL_WORDS = new ArrayList<>(Collections.singletonList("cancel"));
 
     public ResultCommand() {
         super("result", "`!result` Startet die interaktive Ergebniseingabe", CommandCategory.BS);
@@ -82,39 +82,6 @@ public class ResultCommand extends Command {
             waitForMon(e.getAuthor(), r);
         });
     }
-
-    /*private void waitForResult(User u, Result r) {
-        wait(u, e -> {
-            String msg = e.getMessage().getContentDisplay();
-            String[] split = msg.split(":");
-            if(split.length != 2) {
-                sendToUser(u, "Du musst ein Ergebnis angeben, z.B. 0:1!");
-                waitForResult(u, r);
-                return;
-            }
-            int e1;
-            int e2;
-            try {
-                e1 = Integer.parseInt(split[0]);
-                e2 = Integer.parseInt(split[1]);
-            } catch (NumberFormatException numberFormatException) {
-                sendToUser(u, "Du musst ein Ergebnis angeben, z.B. 0:1!");
-                waitForResult(u, r);
-                return;
-            }
-            if(e1 > 4 || e1 < 0 || e2 < 0 || e2 > 4) {
-                sendToUser(u, "Die Zahlen dürfen nicht kleiner als 0 und größer als 4 sein!");
-                waitForResult(u, r);
-                return;
-            }
-            r.results.add(e1 + ":" + e2);
-            if(e1 > 0) r.wins1.add(r.currgamecount);
-            r.curruser = r.u1;
-            r.currname = r.name1;
-            sendToUser(u, "Welches war das erste Pokemon von " + r.name1 + "?");
-
-        });
-    }*/
 
     private void waitForMon(User u, Result r) {
         wait(u, e -> {

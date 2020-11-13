@@ -228,7 +228,7 @@ public class PickCommand extends Command {
                 y = 2;
             } else y++;
         }
-        if(found) {
+        if (found) {
             Request request = new Request();
             request.setUpdateCells(new UpdateCellsRequest().setRows(Collections.singletonList(new RowData()
                     .setValues(Collections.singletonList(new CellData()

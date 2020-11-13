@@ -9,9 +9,14 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 
 public class PlayCommand extends Command {
+    public PlayCommand() {
+        super("p", "`e!p <Link|Suchbegriff>` Fügt das Lied der Queue hinzu", CommandCategory.Music);
+        aliases.add("play");
+        overrideChannel.put("712035338846994502", new ArrayList<>(Arrays.asList("716221567079546983", "735076688144105493")));
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         TextChannel tco = e.getChannel();
@@ -28,11 +33,5 @@ public class PlayCommand extends Command {
         } catch (IllegalArgumentException IllegalArgumentException) {
             IllegalArgumentException.printStackTrace();
         }
-    }
-
-    public PlayCommand() {
-        super("p", "`e!p <Link|Suchbegriff>` Fügt das Lied der Queue hinzu", CommandCategory.Music);
-        aliases.add("play");
-        overrideChannel.put("712035338846994502", new ArrayList<>(Arrays.asList("716221567079546983", "735076688144105493")));
     }
 }

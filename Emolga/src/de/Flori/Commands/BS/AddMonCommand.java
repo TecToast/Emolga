@@ -5,7 +5,6 @@ import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
 import de.Flori.utils.Google;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
@@ -35,7 +34,7 @@ public class AddMonCommand extends Command {
         String ball = optball.get();
         String mon;
         Optional<String> optmon = mons.stream().filter(pokemon::equalsIgnoreCase).findFirst();
-        if(optmon.isPresent()) {
+        if (optmon.isPresent()) {
             mon = optmon.get();
         } else {
             if (pokemon.toLowerCase().startsWith("a-")) mon = "A-" + getGerName(pokemon.substring(2));
@@ -72,7 +71,7 @@ public class AddMonCommand extends Command {
         String range = "VFs und Ballmons!" + (ball.equals("Ultraball") ? "AA" : (char) (balls.indexOf(ball) + 68)) + (mons.indexOf(mon) + 3);
         List<List<Object>> list = Google.get(tradesid, range, false, false);
         ArrayList<Integer> l = list == null ? new ArrayList<>() : Arrays.stream(((String) list.get(0).get(0)).split(";")).map(Integer::parseInt).sorted().collect(Collectors.toCollection(ArrayList::new));
-        if(l.contains(Integer.parseInt(id))) {
+        if (l.contains(Integer.parseInt(id))) {
             tco.sendMessage("Du besitzt im Tauschdokument bereits ein " + mon + " in einem " + ball + "!").queue();
             return;
         }

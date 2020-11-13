@@ -10,6 +10,10 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
 
 public class UpdateorderfromfileCommand extends Command {
+    public UpdateorderfromfileCommand() {
+        super("updateorderfromfile", "`!updateorderfromfile <MID> <Name>", CommandCategory.Flo);
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         TextChannel tco = e.getChannel();
@@ -58,9 +62,5 @@ public class UpdateorderfromfileCommand extends Command {
             tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
             ex.printStackTrace();
         }
-    }
-
-    public UpdateorderfromfileCommand() {
-        super("updateorderfromfile","`!updateorderfromfile <MID> <Name>", CommandCategory.Flo);
     }
 }

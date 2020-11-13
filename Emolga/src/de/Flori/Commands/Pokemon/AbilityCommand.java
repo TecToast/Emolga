@@ -34,7 +34,8 @@ public class AbilityCommand extends Command {
         }
         String abi = str.split(";")[1];
         for (String s : json.keySet()) {
-            if (json.getJSONObject(s).getJSONObject("abilities").keySet().stream().map(string -> json.getJSONObject(s).getJSONObject("abilities").getString(string)).anyMatch(string -> string.equalsIgnoreCase(abi))) mons.add(json.getJSONObject(s).getString("name"));
+            if (json.getJSONObject(s).getJSONObject("abilities").keySet().stream().map(string -> json.getJSONObject(s).getJSONObject("abilities").getString(string)).anyMatch(string -> string.equalsIgnoreCase(abi)))
+                mons.add(json.getJSONObject(s).getString("name"));
         }
         Collections.sort(mons);
         StringBuilder s = new StringBuilder();

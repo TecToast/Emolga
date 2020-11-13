@@ -23,7 +23,7 @@ public class SetBirthdayCommand extends Command {
         int month = Integer.parseInt(bd[1]);
         int year = Integer.parseInt(bd[2]);
         JSONObject json = getEmolgaJSON();
-        if(!json.has("birthdays")) json.put("birthdays", new JSONObject());
+        if (!json.has("birthdays")) json.put("birthdays", new JSONObject());
         JSONObject obj = new JSONObject();
         obj.put("day", day);
         obj.put("month", month);

@@ -9,6 +9,7 @@ import java.net.URI;
  *
  * @author Benjamin Erb
  */
+@SuppressWarnings("JavaDoc")
 public interface Subscription {
     /**
      * Returns the internal id of this subscription.

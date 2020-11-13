@@ -13,6 +13,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class QlCommand extends Command {
+    public QlCommand() {
+        super("ql", "`e!ql` Zeigt die Länge der Queue an", CommandCategory.Music);
+        overrideChannel.put("712035338846994502", new ArrayList<>(Arrays.asList("716221567079546983", "735076688144105493")));
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         TextChannel tco = e.getChannel();
@@ -29,10 +34,5 @@ public class QlCommand extends Command {
         str += minutes + "m ";
         str += seconds + "s";
         tco.sendMessage(str).queue();
-    }
-
-    public QlCommand() {
-        super("ql", "`e!ql` Zeigt die Länge der Queue an", CommandCategory.Music);
-        overrideChannel.put("712035338846994502", new ArrayList<>(Arrays.asList("716221567079546983", "735076688144105493")));
     }
 }

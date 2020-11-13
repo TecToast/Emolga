@@ -8,18 +8,19 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class CountuntilCommand extends Command {
     public CountuntilCommand() {
-        super("countuntil", "`!countuntil <Message-ID>` Zählt die Nachrichten bis zur angegebenen Nachricht", CommandCategory.Admin);
+        super("countuntil", "`!countuntil [Text-Channel] <Message-ID>` Zählt die Nachrichten bis zur angegebenen Nachricht", CommandCategory.Admin);
     }
 
     @Override
     public void process(GuildMessageReceivedEvent e) {
-        String msg = e.getMessage().getContentDisplay();
+        Message m = e.getMessage();
+        String msg = m.getContentRaw();
         String[] split = msg.split(" ");
         TextChannel tco = e.getChannel();
         TextChannel tc;
         String mid;
         if (split.length == 3) {
-            tc = e.getJDA().getTextChannelById(split[1]);
+            tc = m.getMentionedChannels().get(0);
             mid = split[2];
         } else {
             tc = tco;

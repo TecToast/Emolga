@@ -2,19 +2,14 @@ package de.Flori.Commands.Admin;
 
 import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.awt.*;
 
 public class BanCommand extends Command {
     public BanCommand() {
-        super("warn", "`!ban <User> <Grund>` Bannt den User", CommandCategory.Admin, "712035338846994502");
+        super("ban", "`!ban <User> <Grund>` Bannt den User", CommandCategory.Admin, "712035338846994502");
     }
 
     @Override
@@ -27,11 +22,11 @@ public class BanCommand extends Command {
             return;
         }
         Member mem = m.getMentionedMembers().get(0);
-        String reason = "Nicht angegeben";
+        String reason;
         try {
             reason = raw.substring(raw.indexOf(">") + 2);
         } catch (Exception ignored) {
-
+            reason = "Nicht angegeben";
         }
         ban(tco, mem, reason);
     }

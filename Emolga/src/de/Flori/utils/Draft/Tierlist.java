@@ -7,13 +7,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class Tierlist {
-    public static ArrayList<Tierlist> list = new ArrayList<>();
-    public HashMap<String, ArrayList<String>> tierlist = new HashMap<>();
-    public HashMap<String, Integer> prices = new HashMap<>();
-    public String guild;
-    public ArrayList<String> tiercolumns = new ArrayList<>();
+    public static final ArrayList<Tierlist> list = new ArrayList<>();
+    public final HashMap<String, ArrayList<String>> tierlist = new HashMap<>();
+    public final HashMap<String, Integer> prices = new HashMap<>();
+    public final String guild;
+    public final ArrayList<String> tiercolumns = new ArrayList<>();
     public boolean isPointBased;
-    public ArrayList<String> order = new ArrayList<>();
+    public final ArrayList<String> order = new ArrayList<>();
 
     public static void setup() {
         list.clear();

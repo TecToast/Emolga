@@ -17,6 +17,7 @@ import java.security.NoSuchAlgorithmException;
  *
  * @author Benjamin Erb
  */
+@SuppressWarnings("JavaDoc")
 public class SubscriptionImpl implements Subscription {
     private final URI feedUri;
     private final URI hubUri;

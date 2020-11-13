@@ -4,11 +4,14 @@ import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
 import de.Flori.utils.DexQuiz;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class TipCommand extends Command {
+    public TipCommand() {
+        super("tip", "`!tip` Zeigt einen Tipp für den derzeitigen Eintrag", CommandCategory.Dexquiz);
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         TextChannel tco = e.getChannel();
@@ -21,9 +24,5 @@ public class TipCommand extends Command {
         } else {
             tco.sendMessage("In diesem Channel wurde kein DexQuiz erstellt!").queue();
         }
-    }
-
-    public TipCommand() {
-        super("tip", "`!tip` Zeigt einen Tipp für den derzeitigen Eintrag", CommandCategory.Dexquiz);
     }
 }

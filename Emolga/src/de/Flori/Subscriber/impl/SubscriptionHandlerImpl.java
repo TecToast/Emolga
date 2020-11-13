@@ -2,13 +2,11 @@ package de.Flori.Subscriber.impl;
 
 
 import de.Flori.Subscriber.Subscriber;
-
 import de.Flori.Subscriber.Subscription;
 import de.Flori.Subscriber.SubscriptionHandler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
@@ -23,6 +21,7 @@ import java.net.URI;
  *
  * @author Benjamin Erb
  */
+@SuppressWarnings("JavaDoc")
 public class SubscriptionHandlerImpl extends AbstractHandler implements SubscriptionHandler {
     private final Subscriber subscriber;
 
@@ -36,7 +35,7 @@ public class SubscriptionHandlerImpl extends AbstractHandler implements Subscrip
     }
 
     @Override
-    public void handleNotify(HttpServletRequest request, HttpServletResponse response, final Subscription subscription) throws IOException, ServletException {
+    public void handleNotify(HttpServletRequest request, HttpServletResponse response, final Subscription subscription) {
         InputStream in = null;
         try {
             in = request.getInputStream();
@@ -109,7 +108,7 @@ public class SubscriptionHandlerImpl extends AbstractHandler implements Subscrip
     }
 
     @Override
-    public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+    public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
         Subscription subscription = subscriber.getSubscriptionById(target.substring(1));
         if (null != subscription) {
             if (request.getMethod().equals("GET")) {

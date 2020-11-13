@@ -1,8 +1,9 @@
-package de.Flori.Commands.Giveaway;
+package de.Flori.Commands.Various;
 
 import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
 import de.Flori.Emolga.EmolgaMain;
+import de.Flori.utils.Giveaway;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -10,9 +11,11 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -28,9 +31,8 @@ public class GcreateCommand extends Command {
     private final Set<String> current = new HashSet<>();
 
     public GcreateCommand() {
-        super("gcreate", "`!gcreate` Startet ein Giveaway", CommandCategory.Verschiedenes, "712035338846994502", "756239772665511947", "518008523653775366", "673833176036147210");
+        super("gcreate", "`!gcreate` Startet ein Giveaway", CommandCategory.Various, "712035338846994502", "756239772665511947", "518008523653775366", "673833176036147210");
     }
-
 
 
     @Override
@@ -50,7 +52,7 @@ public class GcreateCommand extends Command {
 
         // get started
         current.add(tco.getId());
-        if(e.getGuild().getId().equals("712035338846994502")) {
+        if (e.getGuild().getId().equals("712035338846994502")) {
             tco.sendMessage("Wie lange soll das Giveaway laufen?" + TIME).queue();
             waitForTime(e, e.getGuild().getTextChannelById("754239871870042202"));
             return;
@@ -118,10 +120,10 @@ public class GcreateCommand extends Command {
             Giveaway g = new Giveaway(tchan.getId(), event.getAuthor().getId(), end, winners, prize);
             Message message = g.render(now);
             tchan.sendMessage(message).queue(m -> {
-                m.addReaction("\uD83C\uDF89").queue();
+                m.addReaction(e.getJDA().getGuildById("712035338846994502").getEmoteById("772191611487780934")).queue();
                 g.messageId = m.getId();
                 JSONObject json = getEmolgaJSON();
-                if(!json.has("giveaways")) json.put("giveaways", new JSONArray());
+                if (!json.has("giveaways")) json.put("giveaways", new JSONArray());
                 JSONArray arr = json.getJSONArray("giveaways");
                 JSONObject obj = new JSONObject();
                 obj.put("tcid", tchan.getId());
@@ -155,6 +157,7 @@ public class GcreateCommand extends Command {
     private class Timeout implements Runnable {
         private final GuildMessageReceivedEvent event;
         private boolean ran = false;
+
         private Timeout(GuildMessageReceivedEvent event) {
             this.event = event;
         }

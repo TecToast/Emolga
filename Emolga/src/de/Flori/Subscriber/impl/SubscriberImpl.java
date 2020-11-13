@@ -9,13 +9,14 @@ import de.Flori.Subscriber.Subscription;
 import de.Flori.Subscriber.SubscriptionHandler;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.eclipse.jetty.server.Server;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -91,7 +92,7 @@ public class SubscriberImpl implements Subscriber {
         subscriptions.put(subscription.getInternalId(), subscription);
 
         //subscribe to hub
-        HttpClient client = new DefaultHttpClient();
+        CloseableHttpClient client = HttpClientBuilder.create().build();
         HttpPost post = new HttpPost(hubUri);
         post.addHeader("Content-Type", "application/x-www-form-urlencoded");
         List<NameValuePair> params = new ArrayList<>();
@@ -112,11 +113,15 @@ public class SubscriberImpl implements Subscriber {
                 throw new RuntimeException();
             }
         } catch (Exception e) {
-            subscriptions.remove(subscription);
+            subscriptions.remove(subscription.getInternalId());
             post.abort();
             throw new RuntimeException(e);
         } finally {
-            client.getConnectionManager().shutdown();
+            try {
+                client.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         return subscription;
     }
@@ -134,7 +139,7 @@ public class SubscriberImpl implements Subscriber {
         removeSubscribeIntent(subscription.getFeedTopicUri(), subscription.getVerifyToken());
         addUnsubscribeIntent(subscription.getFeedTopicUri(), subscription.getVerifyToken());
 
-        HttpClient client = new DefaultHttpClient();
+        CloseableHttpClient client = HttpClientBuilder.create().build();
         HttpPost post = new HttpPost(subscription.getHubUri());
         post.addHeader("Content-Type", "application/x-www-form-urlencoded");
         List<NameValuePair> params = new ArrayList<>();
@@ -144,10 +149,14 @@ public class SubscriberImpl implements Subscriber {
             HttpResponse response = client.execute(post);
             System.out.println(response.getStatusLine().getStatusCode());
         } catch (Exception e) {
-            subscriptions.remove(subscription);
+            subscriptions.remove(subscription.getInternalId());
             post.abort();
         } finally {
-            client.getConnectionManager().shutdown();
+            try {
+                client.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             subscriptions.remove(subscription.getInternalId());
         }
     }

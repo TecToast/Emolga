@@ -10,9 +10,13 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 
 public class DcCommand extends Command {
+    public DcCommand() {
+        super("dc", "`e!dc` Lässt den Bot disconnecten", CommandCategory.Music);
+        overrideChannel.put("712035338846994502", new ArrayList<>(Arrays.asList("716221567079546983", "735076688144105493")));
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         TextChannel tco = e.getChannel();
@@ -24,10 +28,5 @@ public class DcCommand extends Command {
             return;
         }
         tco.getGuild().getAudioManager().closeAudioConnection();
-    }
-
-    public DcCommand() {
-        super("dc", "`e!dc` Lässt den Bot disconnecten", CommandCategory.Music);
-        overrideChannel.put("712035338846994502", new ArrayList<>(Arrays.asList("716221567079546983", "735076688144105493")));
     }
 }

@@ -15,11 +15,15 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 public class CreatedraftCommand extends Command {
+    public CreatedraftCommand() {
+        super("createdraft", "`!createdraft <Name> <Rolle>` Erstellt einen Draft mit dem Namen und generiert die Draftreihenfolge mit allen Usern, die die Rolle haben", CommandCategory.Draft, true);
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
-        if(m.getMentionedRoles().size() != 1) {
+        if (m.getMentionedRoles().size() != 1) {
             tco.sendMessage("Du musst eine Rolle angeben!").queue();
             return;
         }
@@ -27,7 +31,7 @@ public class CreatedraftCommand extends Command {
         Member member = e.getMember();
         String name = msg.substring(13, msg.indexOf("@") - 1);
         tco.getGuild().findMembers(mem -> mem.getRoles().contains(m.getMentionedRoles().get(0))).onSuccess(members -> {
-            if(members.size() == 0) {
+            if (members.size() == 0) {
                 tco.sendMessage("Niemand hat diese Rolle!").queue();
                 return;
             }
@@ -71,9 +75,5 @@ public class CreatedraftCommand extends Command {
             drafts.put(name, o);
             saveEmolgaJSON();
         });
-    }
-
-    public CreatedraftCommand() {
-        super("createdraft", "`!createdraft <Name> <Rolle>` Erstellt einen Draft mit dem Namen und generiert die Draftreihenfolge mit allen Usern, die die Rolle haben", CommandCategory.Draft, true);
     }
 }

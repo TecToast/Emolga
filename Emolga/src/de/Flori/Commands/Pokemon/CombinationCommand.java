@@ -22,27 +22,27 @@ public class CombinationCommand extends Command {
         super("combination", "`!combination [Attacke|Fähigkeit],[Attacke|Fähigkeit] ...` Zeigt, welche Pokemon die angegeben Attacken lernen bzw. die Fähigkeiten haben können", CommandCategory.Pokemon);
     }
 
-    public static boolean containsAll(JSONObject mon, ArrayList<String> list) {
+    public static boolean containsNotAll(JSONObject mon, ArrayList<String> list) {
         ArrayList<String> l = new ArrayList<>(list);
         for (String s : mon.keySet()) {
             l.remove(mon.getString(s));
         }
-        return l.size() == 0;
+        return l.size() != 0;
     }
 
     public static boolean containsNotAll(JSONArray arr, ArrayList<String> list) {
         List<String> l = arr.toList().stream().map(o -> (String) o).collect(Collectors.toList());
         for (String s : list) {
-            if (!l.contains(s)) return false;
+            if (!l.contains(s)) return true;
         }
-        return true;
+        return false;
     }
 
-    public static boolean containsAll(Set<String> set, ArrayList<String> list) {
+    public static boolean containsNotAll(Set<String> set, ArrayList<String> list) {
         for (String s : list) {
-            if (!set.contains(s)) return false;
+            if (!set.contains(s)) return true;
         }
-        return true;
+        return false;
     }
 
     @Override
@@ -58,7 +58,7 @@ public class CombinationCommand extends Command {
         ArrayList<String> types = new ArrayList<>();
         ArrayList<String> egg = new ArrayList<>();
         for (String s : args.split(",")) {
-            String str = getGerName(s);
+            String str = getGerName(s.trim());
             if (str.equals("") || str.startsWith("pkmn")) {
                 tco.sendMessage("**" + s + "** ist kein valides Argument!").queue();
                 return;
@@ -71,15 +71,15 @@ public class CombinationCommand extends Command {
         JSONObject data = getDataJSON();
         JSONObject moves = getMovesJSON();
         ArrayList<String> mons = new ArrayList<>();
-        for (String s : data.keySet()) {
+        for (String s : getMonList()) {
             JSONObject mon = data.getJSONObject(s);
-            if (!containsAll(mon.getJSONObject("abilities"), abis)) continue;
-            if (containsNotAll(mon.getJSONArray("types"), types)) continue;
-            if (containsNotAll(mon.getJSONArray("eggGroups"), egg)) continue;
+            if (abis.size() > 0 && containsNotAll(mon.getJSONObject("abilities"), abis)) continue;
+            if (types.size() > 0 && containsNotAll(mon.getJSONArray("types"), types)) continue;
+            if (egg.size() > 0 && containsNotAll(mon.getJSONArray("eggGroups"), egg)) continue;
             String string;
             if (mon.has("baseSpecies")) string = mon.getString("baseSpecies").toLowerCase();
             else string = s.toLowerCase();
-            if (!containsAll(moves.getJSONObject(string.replace("-", "")).getJSONObject("learnset").keySet(), atks))
+            if (atks.size() > 0 && containsNotAll(moves.getJSONObject(string.replace("-", "")).getJSONObject("learnset").keySet(), atks))
                 continue;
             mons.add(mon.getString("name"));
             /*

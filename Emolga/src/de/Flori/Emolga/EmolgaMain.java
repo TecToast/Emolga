@@ -1,13 +1,14 @@
 package de.Flori.Emolga;
 
 import de.Flori.Commands.Command;
-import de.Flori.Commands.Giveaway.Giveaway;
-import de.Flori.Commands.Giveaway.MessageWaiter;
 import de.Flori.Subscriber.NotificationCallback;
 import de.Flori.Subscriber.Subscriber;
 import de.Flori.Subscriber.impl.SubscriberImpl;
+import de.Flori.utils.Giveaway;
+import de.Flori.utils.MessageWaiter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.json.JSONArray;
@@ -18,15 +19,14 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.*;
 
-import static de.Flori.Commands.Command.getEmolgaJSON;
-import static de.Flori.Commands.Command.saveEmolgaJSON;
+import static de.Flori.Commands.Command.*;
 
 public class EmolgaMain {
 
+    public static final MessageWaiter messageWaiter = new MessageWaiter();
+    public static final ArrayList<Giveaway> todel = new ArrayList<>();
     public static JDA jda;
-    public static MessageWaiter messageWaiter = new MessageWaiter();
-    public static ArrayList<Giveaway> todel = new ArrayList<>();
-    public static NotificationCallback parseYT = XML -> {
+    public static final NotificationCallback parseYT = XML -> {
 
         System.out.println("XML = " + XML);
         if (XML.contains("at:deleted-entry")) {
@@ -130,8 +130,12 @@ public class EmolgaMain {
                         if (giveaway.end.toEpochMilli() - System.currentTimeMillis() <= 10000 || i >= 5) {
                             jda.getTextChannelById(giveaway.channelId).editMessageById(giveaway.messageId, giveaway.render(Instant.now())).complete();
                         }
-                    } catch (Exception ex) {
-                        todel.add(giveaway);
+                    } catch (ErrorResponseException ex) {
+                        ex.printStackTrace();
+                        if (ex.getErrorCode() == 10008) {
+                            sendToMe("GIVEAWAY DELETED!");
+                            todel.add(giveaway);
+                        }
                     }
                 });
                 if (i >= 5) i = 0;

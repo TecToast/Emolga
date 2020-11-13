@@ -1,7 +1,6 @@
 package de.Flori.Commands.Pokemon;
 
 import de.Flori.Commands.Command;
-
 import de.Flori.Commands.CommandCategory;
 import de.Flori.utils.Draft.Tierlist;
 import net.dv8tion.jda.api.entities.Member;

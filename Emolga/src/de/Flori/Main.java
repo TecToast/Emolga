@@ -4,7 +4,6 @@ import de.Flori.Commands.Command;
 import de.Flori.Emolga.EmolgaMain;
 
 import javax.security.auth.login.LoginException;
-import java.io.IOException;
 
 public class Main {
 

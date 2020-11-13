@@ -1,7 +1,6 @@
 package de.Flori.Commands.Pokemon;
 
 import de.Flori.Commands.Command;
-
 import de.Flori.Commands.CommandCategory;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;

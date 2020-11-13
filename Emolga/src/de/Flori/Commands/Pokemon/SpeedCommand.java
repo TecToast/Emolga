@@ -1,7 +1,6 @@
 package de.Flori.Commands.Pokemon;
 
 import de.Flori.Commands.Command;
-
 import de.Flori.Commands.CommandCategory;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -48,8 +47,8 @@ public class SpeedCommand extends Command {
                     }
                     ger = st.split(";")[1];
                     JSONObject stats = getWikiJSON().getJSONObject("pkmndata").getJSONObject(ger).getJSONObject("stats");
-                    if(stats.has("Alola-" + ger))
-                    bs = stats.getJSONObject("Alola-" + ger).getInt("init");
+                    if (stats.has("Alola-" + ger))
+                        bs = stats.getJSONObject("Alola-" + ger).getInt("init");
                     else bs = stats.getJSONObject(ger).getInt("init");
                 } else if (mon.startsWith("G-")) {
                     String string = getGerName(mon.substring(2));
@@ -59,7 +58,7 @@ public class SpeedCommand extends Command {
                     }
                     ger = string.split(";")[1];
                     JSONObject stats = getWikiJSON().getJSONObject("pkmndata").getJSONObject(ger).getJSONObject("stats");
-                    if(stats.has("Galar-" + ger))
+                    if (stats.has("Galar-" + ger))
                         bs = stats.getJSONObject("Galar-" + ger).getInt("init");
                     else bs = stats.getJSONObject(ger).getInt("init");
                 } else {

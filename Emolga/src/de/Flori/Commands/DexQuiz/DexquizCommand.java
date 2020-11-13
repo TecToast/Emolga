@@ -2,10 +2,7 @@ package de.Flori.Commands.DexQuiz;
 
 import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
-import de.Flori.Emolga.EmolgaListener;
 import de.Flori.utils.DexQuiz;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.jsoup.Jsoup;

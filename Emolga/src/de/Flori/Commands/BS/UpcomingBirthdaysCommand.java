@@ -12,11 +12,15 @@ import java.util.HashMap;
 import java.util.stream.Collectors;
 
 public class UpcomingBirthdaysCommand extends Command {
+    public UpcomingBirthdaysCommand() {
+        super("upcomingbirthdays", "`!upcomingbirthdays` Zeigt die naheliegende Geburtstage an", CommandCategory.BS);
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         JSONObject json = getEmolgaJSON();
         TextChannel tco = e.getChannel();
-        if(!json.has("birthdays")) {
+        if (!json.has("birthdays")) {
             tco.sendMessage("Es wurde bisher kein Geburtstag eingetragen!").queue();
             return;
         }
@@ -36,11 +40,11 @@ public class UpcomingBirthdaysCommand extends Command {
             c.set(Calendar.MINUTE, 0);
             c.set(Calendar.SECOND, 0);
             long dif = c.getTimeInMillis() - curr.getTimeInMillis();
-            if(dif <= 864000000 && dif >= -432000000) {
+            if (dif <= 864000000 && dif >= -432000000) {
                 map.put(s, c);
             }
         }
-        if(map.isEmpty()) {
+        if (map.isEmpty()) {
             tco.sendMessage("Es gibt keine nahegelegenen Geburtstage!").queue();
             return;
         }
@@ -55,9 +59,5 @@ public class UpcomingBirthdaysCommand extends Command {
             Calendar c2 = map.get(s2);
             return Long.compare(c1.getTimeInMillis(), c2.getTimeInMillis());
         }*/
-    }
-
-    public UpcomingBirthdaysCommand() {
-        super("upcomingbirthdays", "`!upcomingbirthdays` Zeigt die naheliegende Geburtstage an", CommandCategory.BS);
     }
 }

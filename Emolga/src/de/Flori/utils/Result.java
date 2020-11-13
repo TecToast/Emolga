@@ -1,14 +1,8 @@
 package de.Flori.utils;
 
-import com.google.api.services.sheets.v4.model.ValueRange;
-import de.Flori.Commands.Command;
 import de.Flori.Emolga.EmolgaMain;
-import org.json.JSONObject;
 
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static de.Flori.Commands.Command.*;
 
 public class Result {
     public int gameday = -1;
@@ -18,20 +12,20 @@ public class Result {
     public String currname;
     public String currmon = "";
     public int currmoncount = 1;
-    public String u1;
-    public String u2;
-    public ArrayList<String> mons1 = new ArrayList<>();
-    public ArrayList<String> mons2 = new ArrayList<>();
-    public ArrayList<String> results = new ArrayList<>();
-    public HashMap<String, ArrayList<Integer>> uses1 = new HashMap<>();
-    public HashMap<String, ArrayList<Integer>> uses2 = new HashMap<>();
-    public HashMap<String, HashMap<Integer, Integer>> kills1 = new HashMap<>();
-    public HashMap<String, HashMap<Integer, Integer>> kills2 = new HashMap<>();
-    public HashMap<String, ArrayList<Integer>> deaths1 = new HashMap<>();
-    public HashMap<String, ArrayList<Integer>> deaths2 = new HashMap<>();
-    public String name1;
-    public String name2;
-    public ArrayList<Integer> wins1 = new ArrayList<>();
+    public final String u1;
+    public final String u2;
+    public final ArrayList<String> mons1 = new ArrayList<>();
+    public final ArrayList<String> mons2 = new ArrayList<>();
+    public final ArrayList<String> results = new ArrayList<>();
+    public final HashMap<String, ArrayList<Integer>> uses1 = new HashMap<>();
+    public final HashMap<String, ArrayList<Integer>> uses2 = new HashMap<>();
+    public final HashMap<String, HashMap<Integer, Integer>> kills1 = new HashMap<>();
+    public final HashMap<String, HashMap<Integer, Integer>> kills2 = new HashMap<>();
+    public final HashMap<String, ArrayList<Integer>> deaths1 = new HashMap<>();
+    public final HashMap<String, ArrayList<Integer>> deaths2 = new HashMap<>();
+    public final String name1;
+    public final String name2;
+    public final ArrayList<Integer> wins1 = new ArrayList<>();
     //public int k1sum;
     //public int d1sum;
 

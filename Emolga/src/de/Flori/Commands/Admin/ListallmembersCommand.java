@@ -3,7 +3,6 @@ package de.Flori.Commands.Admin;
 import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 

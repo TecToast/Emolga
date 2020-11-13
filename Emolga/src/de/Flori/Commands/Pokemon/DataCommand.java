@@ -67,7 +67,8 @@ public class DataCommand extends Command {
                             System.out.println(obj);
                             String type = obj.getJSONArray("types").toList().stream().map(o -> (String) o).collect(Collectors.joining(" "));
 
-                            if (types.containsKey(type)) types.get(type).add(obj.getString("forme"));
+                            if (types.containsKey(type))
+                                types.get(type).add(obj.has("forme") ? obj.getString("forme") : "Normal");
                             else
                                 types.put(type, new ArrayList<>(Collections.singletonList(obj.has("forme") ? obj.getString("forme") : "Normal")));
                         }
@@ -189,9 +190,10 @@ public class DataCommand extends Command {
                                     } else abi.append(s).append(" (").append(String.join(", ", l)).append(")\n");
                                 }
                             }
-                            String str = abi.toString();
-                            if(!str.contains("Alola VF") && !str.contains("Galar VF")) str = str.replace("Normal VF", "VF");
-                            builder.addField("Fähigkeiten", str, false);
+                        String str = abi.toString();
+                        if (!str.contains("Alola VF") && !str.contains("Galar VF"))
+                            str = str.replace("Normal VF", "VF");
+                        builder.addField("Fähigkeiten", str, false);
                     }
                     if (monname.equalsIgnoreCase("amigento") || monname.equalsIgnoreCase("arceus")) {
                         builder.addField(monname.equalsIgnoreCase("amigento") ? "Amigento" : "Arceus", monname.equalsIgnoreCase("amigento") ? "KP: 95\n" + "Atk: 95\n" + "Def: 95\n" + "SpAtk: 95\n" + "SpDef: 95\n" + "Init: 95\n" + "Summe: 570"
@@ -209,8 +211,9 @@ public class DataCommand extends Command {
                             String str = "KP: " + kp + "\nAtk: " + atk + "\nDef: " + def + "\nSpAtk: " + spa
                                     + "\nSpDef: " + spd + "\nInit: " + spe + "\nSumme: " + (kp + atk + def + spa + spd + spe);
                             String toadd = obj.getString("name");
-                            if(toadd.endsWith("-Alola")) toadd = "Alola-" + toadd.substring(0, toadd.length() - 6);
-                            if(toadd.endsWith("-Galar")) toadd = "Galar-" + toadd.substring(0, toadd.length() - 6);
+                            if (toadd.contains("-Alola")) toadd = "Alola-" + toadd.replace("-Alola", "");
+                            if (toadd.contains("-Galar")) toadd = "Galar-" + toadd.replace("-Galar", "");
+                            if (toadd.contains("-Mega")) toadd = "Mega-" + toadd.replace("-Mega", "");
                             if (stat.containsKey(str)) stat.get(str).add(toadd);
                             else stat.put(str, new ArrayList<>(Collections.singletonList(toadd)));
                         }
@@ -218,7 +221,7 @@ public class DataCommand extends Command {
                             builder.addField(String.join(", ", stat.get(s)), s, true);
                         }
                     }
-                    if (msg.toLowerCase().contains("shiny"))
+                    if (msg.toLowerCase().contains("shiny") || msg.toLowerCase().contains("gummibärchen"))
                         builder.setImage(getShinySpriteJSON().getString(String.valueOf(mon.getInt("num"))));
                     else builder.setImage(getSpriteJSON().getString(String.valueOf(mon.getInt("num"))));
                     builder.setTitle(monname);

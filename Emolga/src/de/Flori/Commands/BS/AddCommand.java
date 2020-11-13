@@ -1,11 +1,9 @@
 package de.Flori.Commands.BS;
 
-import com.google.api.services.sheets.v4.model.ValueRange;
 import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
 import de.Flori.utils.Google;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
@@ -23,11 +21,11 @@ public class AddCommand extends Command {
         String msg = e.getMessage().getContentDisplay();
         Member member = e.getMember();
         JSONObject json = getEmolgaJSON();
-        if(!json.has("tradedoc")) json.put("tradedoc", new JSONObject());
+        if (!json.has("tradedoc")) json.put("tradedoc", new JSONObject());
         JSONObject obj = json.getJSONObject("tradedoc");
         String id = null;
         for (String s : obj.keySet()) {
-            if(obj.getString(s).equals(member.getId())) id = s;
+            if (obj.getString(s).equals(member.getId())) id = s;
         }
         if (id != null) {
             tco.sendMessage("Du bist bereits unter der ID " + id + " registriert!").queue();
@@ -35,19 +33,19 @@ public class AddCommand extends Command {
         }
         int x = -1;
         for (int i = 1; i <= 100; i++) {
-            if(obj.has(String.valueOf(i))) continue;
+            if (obj.has(String.valueOf(i))) continue;
             x = i;
             break;
         }
-        if(x == -1) {
+        if (x == -1) {
             tco.sendMessage("Es sind zu viele Benutzer registriert!").queue();
             return;
         }
         obj.put(String.valueOf(x), member.getId());
         tco.sendMessage("Du wurdest erfolgreich mit der ID " + x + " registriert!").queue();
         saveEmolgaJSON();
-        if(x <= 8)
-        Google.updateRequest(tradesid, "VFs und Ballmons!" + (char) (x * 3 + 65) + "1", Collections.singletonList(Collections.singletonList(member.getEffectiveName() + " (" + x + ")")), false, false);
+        if (x <= 8)
+            Google.updateRequest(tradesid, "VFs und Ballmons!" + (char) (x * 3 + 65) + "1", Collections.singletonList(Collections.singletonList(member.getEffectiveName() + " (" + x + ")")), false, false);
 
     }
 }

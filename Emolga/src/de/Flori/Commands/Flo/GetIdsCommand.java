@@ -11,6 +11,10 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import java.util.stream.Collectors;
 
 public class GetIdsCommand extends Command {
+    public GetIdsCommand() {
+        super("getids", "`!getids` <Rolle>`", CommandCategory.Flo);
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         Message m = e.getMessage();
@@ -35,9 +39,5 @@ public class GetIdsCommand extends Command {
             t.printStackTrace();
             tco.sendMessage("Es ist ein Fehler beim Laden der Member aufgetreten!").queue();
         });
-    }
-
-    public GetIdsCommand() {
-        super("getids", "`!getids` <Rolle>`", CommandCategory.Flo);
     }
 }

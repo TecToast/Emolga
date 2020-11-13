@@ -17,11 +17,12 @@ import de.Flori.Commands.DexQuiz.TipCommand;
 import de.Flori.Commands.Draft.*;
 import de.Flori.Commands.Flo.GetIdsCommand;
 import de.Flori.Commands.Flo.GiveMeAdminPermissionsCommand;
-import de.Flori.Commands.Flo.GoinCommand;
-import de.Flori.Commands.Giveaway.GcreateCommand;
 import de.Flori.Commands.Music.*;
 import de.Flori.Commands.Pokemon.*;
+import de.Flori.Commands.Various.GcreateCommand;
+import de.Flori.Commands.Various.NicknameCommand;
 import de.Flori.Emolga.EmolgaMain;
+import de.Flori.utils.Constants;
 import de.Flori.utils.Google;
 import de.Flori.utils.Music.GuildMusicManager;
 import de.Flori.utils.ReplayAnalyser;
@@ -43,9 +44,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
-import java.util.List;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public abstract class Command {
@@ -53,12 +54,23 @@ public abstract class Command {
     public static final String NOPERM = "Dafür hast du keine Berechtigung!";
     public static final File emolgadata = new File("./emolgadata.json");
     //protected static final String tradesid = "1KGpou63t5_V-9nZaIPt_LDKzBwsw-lDSOrn-p7QjbtY";
-    public static ArrayList<Command> commands = new ArrayList<>();
-    public static ArrayList<String> hazards = new ArrayList<>();
-    public static ArrayList<String> recovery = new ArrayList<>();
-    public static ArrayList<String> setup = new ArrayList<>();
-    public static ArrayList<String> momentum = new ArrayList<>();
-    public static ArrayList<String> flinch = new ArrayList<>();
+    public static final ArrayList<Command> commands = new ArrayList<>();
+    public static final ArrayList<String> hazards = new ArrayList<>();
+    public static final ArrayList<String> recovery = new ArrayList<>();
+    public static final ArrayList<String> setup = new ArrayList<>();
+    public static final ArrayList<String> momentum = new ArrayList<>();
+    public static final ArrayList<String> flinch = new ArrayList<>();
+    public static final ArrayList<Guild> chill = new ArrayList<>();
+    public static final ArrayList<Guild> deep = new ArrayList<>();
+    public static final ArrayList<Guild> music = new ArrayList<>();
+    public static final HashMap<CommandCategory, List<Command>> categorys = new HashMap<>();
+    public static final HashSet<Message> helps = new HashSet<>();
+    public static final HashMap<String, List<String>> emolgachannel = new HashMap<>();
+    public static final HashMap<String, String> serebiiex = new HashMap<>();
+    public static final HashMap<String, String> sdex = new HashMap<>();
+    public static final HashMap<String, Long> latestExp = new HashMap<>();
+    public static final HashMap<String, Double> expmultiplicator = new HashMap<>();
+    public static final HashMap<String, ReplayAnalyser> sdAnalyser = new HashMap<>();
     public static JSONObject wikijson;
     public static JSONObject datajson;
     public static JSONObject movejson;
@@ -73,32 +85,22 @@ public abstract class Command {
     public static AudioPlayerManager playerManager;
     //public static ArrayList<String> todel = new ArrayList<>();
     public static Map<Long, GuildMusicManager> musicManagers;
-    public static ArrayList<Guild> chill = new ArrayList<>();
-    public static ArrayList<Guild> deep = new ArrayList<>();
-    public static ArrayList<Guild> music = new ArrayList<>();
     public static ConcurrentLinkedQueue<byte[]> bytes = new ConcurrentLinkedQueue<>();
-    public static HashMap<CommandCategory, List<Command>> categorys = new HashMap<>();
-    public static HashSet<Message> helps = new HashSet<>();
-    public static HashMap<String, List<String>> emolgachannel = new HashMap<>();
-    public static HashMap<String, String> serebiiex = new HashMap<>();
-    public static HashMap<String, String> sdex = new HashMap<>();
-    public static HashMap<String, Long> latestExp = new HashMap<>();
     public static boolean expEdited = false;
-    public static HashMap<String, Double> expmultiplicator = new HashMap<>();
-    public static HashMap<String, ReplayAnalyser> sdAnalyser = new HashMap<>();
     protected static String tradesid;
     protected static List<String> balls;
     protected static List<String> mons;
-    public List<String> allowedGuilds;
+    public final List<String> allowedGuilds;
+    public final HashSet<String> aliases = new HashSet<>();
+    public final HashMap<String, String> overrideHelp = new HashMap<>();
+    public final HashMap<String, List<String>> overrideChannel = new HashMap<>();
+    protected final String name;
+    protected final String help;
+    protected final CommandCategory category;
     public boolean onlyAdmin = false;
-    public HashSet<String> aliases = new HashSet<>();
-    public HashMap<String, String> overrideHelp = new HashMap<>();
-    public HashMap<String, List<String>> overrideChannel = new HashMap<>();
     protected boolean wip = false;
-    protected String name;
-    protected String help;
-    protected CommandCategory category;
     protected boolean everywhere = false;
+    protected Predicate<Member> isAllowed = m -> true;
 
     public Command(String name, String help, CommandCategory category, boolean onlyAdmin, String... guilds) {
         this(name, help, category, guilds);
@@ -199,7 +201,7 @@ public abstract class Command {
 
             @Override
             public void loadFailed(FriendlyException exception) {
-                //exception.printStackTrace();
+                exception.printStackTrace();
                 channel.sendMessage("Der Track konnte nicht abgespielt werden: " + exception.getMessage()).queue();
             }
         });
@@ -288,7 +290,7 @@ public abstract class Command {
             tco.sendMessage(builder.build()).queue();
             return;
         }
-        if (g.getId().equals("712035338846994502"))
+        if (g.getId().equals(Constants.BSID))
             g.addRoleToMember(mem, g.getRoleById("717297533294215258")).queue();
         else if (g.getId().equals("447357526997073930"))
             g.addRoleToMember(mem, g.getRoleById("761723664273899580")).queue();
@@ -330,7 +332,7 @@ public abstract class Command {
                 saveEmolgaJSON();
                 System.out.println("Unmuted!");
                 if (success) {
-                    if (g.getId().equals("712035338846994502"))
+                    if (g.getId().equals(Constants.BSID))
                         g.removeRoleFromMember(mem, g.getRoleById("717297533294215258")).queue();
                     else if (g.getId().equals("447357526997073930"))
                         g.removeRoleFromMember(mem, g.getRoleById("761723664273899580")).queue();
@@ -382,7 +384,7 @@ public abstract class Command {
             tco.sendMessage(builder.build()).queue();
             return;
         }
-        if (g.getId().equals("712035338846994502"))
+        if (g.getId().equals(Constants.BSID))
             g.addRoleToMember(mem, g.getRoleById("717297533294215258")).queue();
         else if (g.getId().equals("447357526997073930"))
             g.addRoleToMember(mem, g.getRoleById("761723664273899580")).queue();
@@ -406,7 +408,7 @@ public abstract class Command {
     public static void unmute(TextChannel tco, Member mem) {
         JSONObject json = getEmolgaJSON();
         Guild g = tco.getGuild();
-        if (g.getId().equals("712035338846994502"))
+        if (g.getId().equals(Constants.BSID))
             g.removeRoleFromMember(mem, g.getRoleById("717297533294215258")).queue();
         else if (g.getId().equals("447357526997073930"))
             g.removeRoleFromMember(mem, g.getRoleById("761723664273899580")).queue();
@@ -494,9 +496,10 @@ public abstract class Command {
             tco.sendMessage(builder.build()).queue();
             return;
         }
-        JSONObject json = getEmolgaJSON();
-        if (!json.has("warns")) json.put("warns", new JSONArray());
-        JSONArray arr = json.getJSONArray("warns");
+        JSONObject json = getEmolgaJSON().getJSONObject("warns");
+        String gid = tco.getGuild().getId();
+        if (!json.has(gid)) json.put(gid, new JSONArray());
+        JSONArray arr = json.getJSONArray(tco.getGuild().getId());
         JSONObject obj = new JSONObject();
         obj.put("mod", mod.getId());
         obj.put("user", mem.getId());
@@ -511,6 +514,7 @@ public abstract class Command {
     }
 
     public static String getMonIfPresent(HashMap<String, String> map, String pick, int pk, int index) {
+        if (pick.contains("Amigento") && map.containsKey("Amigento")) return "=C" + (pk * 19 + index + 18);
         for (String s : map.keySet()) {
             if (s.equals(pick) || s.equals(pick.substring(2))) {
                 return "=C" + (pk * 19 + index + 18);
@@ -557,8 +561,10 @@ public abstract class Command {
 
     private static int compareColumns(List<Object> o1, List<Object> o2, int... columns) {
         for (int column : columns) {
-            if (Integer.parseInt((String) o1.get(column)) != Integer.parseInt((String) o2.get(column))) {
-                return Integer.compare(Integer.parseInt((String) o1.get(column)), Integer.parseInt((String) o2.get(column)));
+            int i1 = o1.get(column) instanceof Integer ? (int) o1.get(column) : Integer.parseInt((String) o1.get(column));
+            int i2 = o2.get(column) instanceof Integer ? (int) o2.get(column) : Integer.parseInt((String) o2.get(column));
+            if (i1 != i2) {
+                return Integer.compare(i1, i2);
             }
         }
         return 0;
@@ -900,7 +906,7 @@ public abstract class Command {
         new QueueClearCommand();
         new DcCommand();
         new DeepCommand();
-        new GoinCommand();
+        //new GoinCommand();
         new MusicCommand();
         new NpCommand();
         new PlayCommand();
@@ -1136,14 +1142,14 @@ public abstract class Command {
         sdex.put("Voltolos-I", "");
         sdex.put("Zygarde-50%", "");
         sdex.put("Zygarde-10%", "-10");
-        emolgachannel.put("518008523653775366", new ArrayList<>(Arrays.asList("728680506098712579", "736501675447025704")));
-        emolgachannel.put("712035338846994502", new ArrayList<>(Arrays.asList("732545253344804914", "735076688144105493")));
+        emolgachannel.put(Constants.ASLID, new ArrayList<>(Arrays.asList("728680506098712579", "736501675447025704")));
+        emolgachannel.put(Constants.BSID, new ArrayList<>(Arrays.asList("732545253344804914", "735076688144105493")));
         emolgachannel.put("709877545708945438", new ArrayList<>(Collections.singletonList("738893933462945832")));
         emolgachannel.put("677229415629062180", new ArrayList<>(Collections.singletonList("731455491527540777")));
         emolgachannel.put("694256540642705408", new ArrayList<>(Collections.singletonList("695157832072560651")));
         emolgachannel.put("747357029714231299", new ArrayList<>(Arrays.asList("752802115096674306", "762411109859852298")));
         loadJSONFiles();
-        sdAnalyser.put("518008523653775366", (game, uid1, uid2, kills, deaths, args) -> {
+        sdAnalyser.put(Constants.ASLID, (game, uid1, uid2, kills, deaths, args) -> {
             JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7");
             String checkUid;
             if (uid1.equals("LSD")) checkUid = uid2;
@@ -1160,10 +1166,10 @@ public abstract class Command {
             String lsd = null;
             if (uid1.equals("LSD")) {
                 uid1 = table.get(teamsarray.toList().indexOf("Lauras Sterndu"));
-                lsd = EmolgaMain.jda.getGuildById("518008523653775366").retrieveMemberById(uid1).complete().getEffectiveName();
+                lsd = EmolgaMain.jda.getGuildById(Constants.ASLID).retrieveMemberById(uid1).complete().getEffectiveName();
             } else if (uid2.equals("LSD")) {
                 uid2 = table.get(teamsarray.toList().indexOf("Lauras Sterndu"));
-                lsd = EmolgaMain.jda.getGuildById("518008523653775366").retrieveMemberById(uid2).complete().getEffectiveName();
+                lsd = EmolgaMain.jda.getGuildById(Constants.ASLID).retrieveMemberById(uid2).complete().getEffectiveName();
             }
             int tin1 = table.indexOf(uid1);
             int tin2 = table.indexOf(uid2);
@@ -1178,7 +1184,7 @@ public abstract class Command {
                 System.out.println("GAMEDAY -1");
                 return;
             }
-            EmolgaMain.jda.getTextChannelById((String) args[1]).sendMessage("Spieltag " + gameday + "\nPreisklasse " + (pk == 0 ? "Coach" : pk) + "\n" + t1 + " vs " + t2+ "\n\n" + (lsd != null ? ((String) args[0]).replace("REPLACELSD", lsd) : args[0] + "")).queue();
+            EmolgaMain.jda.getTextChannelById((String) args[1]).sendMessage("Spieltag " + gameday + "\nPreisklasse " + (pk == 0 ? "Coach" : pk) + "\n" + t1 + " vs " + t2 + "\n\n" + (lsd != null ? ((String) args[0]).replace("REPLACELSD", lsd) : args[0] + "")).queue();
             ArrayList<String> userids = new ArrayList<>(Arrays.asList(uid1, uid2));
             ArrayList<String> teams = new ArrayList<>(Arrays.asList(t1, t2));
             RequestBuilder b = new RequestBuilder(sid);
@@ -1262,51 +1268,7 @@ public abstract class Command {
             new Timer().schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    JSONObject json = getEmolgaJSON();
-                    JSONArray style = json.getJSONArray("style");
-                    JSONObject league = json.getJSONObject("drafts").getJSONObject("Wooloo Cup");
-                    int p1 = -1;
-                    int p2 = -1;
-                    for (MessageReaction reaction : message.getReactions()) {
-                        if (reaction.getReactionEmote().isEmoji()) continue;
-                        Emote emote = reaction.getReactionEmote().getEmote();
-                        List<Member> list = reaction.retrieveUsers().stream().map(u -> guild.retrieveMember(u).complete()).filter(mem -> mem.getRoles().contains(guild.getRoleById("742650292004454483"))).collect(Collectors.toList());
-                        if (emote.getId().equals(love.getId())) {
-                            p1 = list.size();
-                        } else if (emote.getId().equals(beep.getId())) {
-                            p2 = list.size();
-                        }
-                    }
-                    String uid;
-                    if (p1 > p2) {
-                        uid = uid1;
-                    } else if (p1 < p2) {
-                        uid = uid2;
-                    } else {
-                        uid = new Random().nextInt(2) == 0 ? uid1 : uid2;
-                    }
-                    Google.updateRequest(sid,
-                            "Tabelle!D" + (Arrays.asList(league.getString("table").split(",")).indexOf(uid) + 51),
-                            Collections.singletonList(Collections.singletonList(
-                                    Integer.parseInt((String) Google.get(sid, "Tabelle!D" + (Arrays.asList(league.getString("table").split(",")).indexOf(uid1) + 51), false, false).get(0).get(0) + 1)
-                            )), false, false);
-                    int index = -1;
-                    for (int i = 0; i < style.length(); i++) {
-                        JSONObject obj = style.getJSONObject(i);
-                        if (obj.getString("mid").equals(message.getId())) {
-                            index = i;
-                            break;
-                        }
-                    }
-                    if (index != -1)
-                        style.remove(index);
-                    saveEmolgaJSON();
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException interruptedException) {
-                        interruptedException.printStackTrace();
-                    }
-                    sortWooloo(sid, league);
+                    woolooStyle(sid, message, uid1, uid2);
                 }
             }, 86400000);
             saveEmolgaJSON();
@@ -1450,6 +1412,54 @@ public abstract class Command {
         }
     }
 
+    public static List<String> getMonList() {
+        return getDataJSON().keySet().stream().filter(s -> !s.endsWith("gmax")).collect(Collectors.toList());
+    }
+
+    public static void woolooStyle(String sid, Message message, String uid1, String uid2) {
+        Guild guild = EmolgaMain.jda.getGuildById("709877545708945438");
+        Emote love = guild.getEmoteById("710842233712017478");
+        Emote beep = guild.getEmoteById("745355018676469844");
+        JSONObject json = getEmolgaJSON();
+        JSONArray style = json.getJSONArray("style");
+        JSONObject league = json.getJSONObject("drafts").getJSONObject("Wooloo Cup");
+        int p1 = -1;
+        int p2 = -1;
+        for (MessageReaction reaction : message.getReactions()) {
+            if (reaction.getReactionEmote().isEmoji()) continue;
+            Emote emote = reaction.getReactionEmote().getEmote();
+            List<Member> list = reaction.retrieveUsers().stream().map(u -> guild.retrieveMember(u).complete()).filter(mem -> mem.getRoles().contains(guild.getRoleById("742650292004454483"))).collect(Collectors.toList());
+            if (emote.getId().equals(love.getId())) {
+                p1 = list.size();
+            } else if (emote.getId().equals(beep.getId())) {
+                p2 = list.size();
+            }
+        }
+        String uid;
+        if (p1 > p2) {
+            uid = uid1;
+        } else if (p1 < p2) {
+            uid = uid2;
+        } else {
+            uid = new Random().nextInt(2) == 0 ? uid1 : uid2;
+        }
+        new RequestBuilder(sid).addSingle("Tabelle!D" + (Arrays.asList(league.getString("table").split(",")).indexOf(uid) + 51),
+                Integer.parseInt((String) Google.get(sid, "Tabelle!D" + (Arrays.asList(league.getString("table").split(",")).indexOf(uid) + 51), false, false).get(0).get(0)) + 1)
+                .execute();
+        int index = -1;
+        for (int i = 0; i < style.length(); i++) {
+            JSONObject obj = style.getJSONObject(i);
+            if (obj.getString("mid").equals(message.getId())) {
+                index = i;
+                break;
+            }
+        }
+        if (index != -1)
+            style.remove(index);
+        saveEmolgaJSON();
+        sortWooloo(sid, league);
+    }
+
     private static String getZBSGameplanCoords(int gameday, int index) {
         if (gameday < 4) return "C" + (gameday * 5 + index - 2);
         if (gameday < 7) return "F" + ((gameday - 3) * 5 + index - 2);
@@ -1486,29 +1496,25 @@ public abstract class Command {
     }
 
     public static List<Command> getWithCategory(CommandCategory category, Guild g, Member mem) {
-        return commands.stream().filter(c -> c.category == category && c.allowsGuild(g) && (mem.hasPermission(Permission.ADMINISTRATOR) || !c.onlyAdmin)).collect(Collectors.toCollection(ArrayList::new));
+        return commands.stream().filter(c -> c.category == category && category.allowsGuild(g) && (mem.hasPermission(Permission.ADMINISTRATOR) || !c.onlyAdmin)).collect(Collectors.toCollection(ArrayList::new));
     }
 
+
     public static String getHelpDescripion(Guild g, Member mem) {
-        return (allowsCategory(g, CommandCategory.Pokemon) ? "\uD83C\uDDF5 Pokemon\n" : "") +
-                (allowsCategory(g, CommandCategory.Music) ? "\uD83C\uDDF2 Music\n" : "") +
-                (allowsCategory(g, CommandCategory.Draft) ? "\uD83C\uDDE9 Draft\n" : "") +
-                (allowsCategory(g, CommandCategory.Dexquiz) ? "\uD83C\uDDF6 DexQuiz\n" : "") +
-                (allowsCategory(g, CommandCategory.BS) ? "\uD83C\uDDE7 Blazing Strikers\n" : "") +
-                (allowsCategory(g, CommandCategory.Verschiedenes) ? "\uD83C\uDDFB Verschiedenes\n" : "") +
-                (allowsCategory(g, CommandCategory.Admin) && mem.hasPermission(Permission.ADMINISTRATOR) ? "\uD83C\uDDE6 Admin\n" : "") +
-                "\u25c0\ufe0f Zurück zur Übersicht";
+        StringBuilder s = new StringBuilder();
+        for (CommandCategory cat : CommandCategory.getOrder()) {
+            if (cat.allowsGuild(g) && cat.allowsMember(mem) && getWithCategory(cat, g, mem).size() > 0)
+                s.append(cat.emoji).append(" ").append(cat.name).append("\n");
+        }
+        s.append("\u25c0\ufe0f Zurück zur Übersicht");
+        return s.toString();
     }
 
     public static void addReactions(Message m, Member mem) {
         Guild g = m.getGuild();
-        if (allowsCategory(g, CommandCategory.Pokemon)) m.addReaction("\uD83C\uDDF5").queue();
-        if (allowsCategory(g, CommandCategory.Music)) m.addReaction("\uD83C\uDDF2").queue();
-        if (allowsCategory(g, CommandCategory.Draft)) m.addReaction("\uD83C\uDDE9").queue();
-        if (allowsCategory(g, CommandCategory.Dexquiz)) m.addReaction("\uD83C\uDDF6").queue();
-        if (allowsCategory(g, CommandCategory.BS)) m.addReaction("\uD83C\uDDE7").queue();
-        if (allowsCategory(g, CommandCategory.Verschiedenes)) m.addReaction("\uD83C\uDDFB").queue();
-        if (allowsCategory(g, CommandCategory.Admin)) m.addReaction("\uD83C\uDDE6").queue();
+        for (CommandCategory cat : CommandCategory.getOrder()) {
+            if (cat.allowsGuild(g) && cat.allowsMember(mem)) m.addReaction(cat.emoji).queue();
+        }
         m.addReaction("\u25c0\ufe0f").queue();
     }
 
@@ -1528,10 +1534,15 @@ public abstract class Command {
         TextChannel tco = e.getChannel();
         String gid = e.getGuild().getId();
         for (Command command : commands) {
-            if (command.category == CommandCategory.Flo && !mem.getId().equals("175910318608744448")) continue;
+            if (command.category == CommandCategory.Flo && !mem.getId().equals(Constants.FLOID)) continue;
             if (command.checkPrefix(msg)) {
-                if (!command.allowsGuild(tco.getGuild())) return;
-                if (command.wip && !mem.getId().equals("175910318608744448")) {
+                if (command.category == CommandCategory.Music) {
+                    tco.sendMessage("Die Musikfunktionen wurden aufgrund einer Fehlfunktion komplett deaktiviert!").queue();
+                    return;
+                }
+                if (!command.category.allowsGuild(tco.getGuild())) return;
+                if (!command.allowedGuilds.isEmpty() && !command.allowedGuilds.contains(gid)) return;
+                if (command.wip && !mem.getId().equals(Constants.FLOID)) {
                     tco.sendMessage("Diese Funktion ist derzeit noch in Entwicklung und ist noch nicht einsatzbereit!").queue();
                     return;
                 }
@@ -1612,8 +1623,8 @@ public abstract class Command {
     public static List<JSONObject> getAllForms(String monname) {
         JSONObject json = getDataJSON();
         JSONObject mon = json.getJSONObject(monname.toLowerCase());
-        if(!mon.has("formeOrder")) return Collections.singletonList(mon);
-        return mon.getJSONArray("formeOrder").toList().stream().map(o -> json.getJSONObject(((String) o).toLowerCase().replace("-", ""))).collect(Collectors.toList());
+        if (!mon.has("formeOrder")) return Collections.singletonList(mon);
+        return mon.getJSONArray("formeOrder").toList().stream().map(o -> json.getJSONObject(((String) o).toLowerCase().replace("-", "").replace("%", ""))).collect(Collectors.toList());
         //return json.keySet().stream().filter(s -> s.startsWith(monname.toLowerCase()) && !s.endsWith("gmax") && (s.equalsIgnoreCase(monname) || json.getJSONObject(s).has("forme"))).sorted(Comparator.comparingInt(String::length)).map(json::getJSONObject).collect(Collectors.toList());
     }
 
@@ -1699,7 +1710,7 @@ public abstract class Command {
     }
 
     public static void sendToMe(String msg) {
-        sendToUser("175910318608744448", msg);
+        sendToUser(Constants.FLOID, msg);
     }
 
     public static void sendToUser(Member mem, String msg) {
@@ -1731,6 +1742,83 @@ public abstract class Command {
             x++;
         }
         return (x > 0 ? (char) (x + 64) : "") + "" + (char) (i + 64);
+    }
+
+    public static List<List<Object>> getBlitzTable(boolean asIds) {
+        List<List<Object>> list = new ArrayList<>();
+        JSONObject json = getEmolgaJSON().getJSONObject("BlitzS1");
+        ArrayList<String> players = new ArrayList<>(Arrays.asList(json.getString("players").split(",")));
+        HashMap<String, String> names = new HashMap<>();
+        if (!asIds)
+            EmolgaMain.jda.getGuildById(Constants.BSID).retrieveMembersByIds(players.toArray(new String[0])).get().forEach(mem -> names.put(mem.getId(), mem.getEffectiveName()));
+        JSONObject playerstats = json.getJSONObject("playerstats");
+        for (String player : players) {
+            List<Object> l = new ArrayList<>();
+            l.add(asIds ? player : names.get(player));
+            JSONObject stats = playerstats.has(player) ? playerstats.getJSONObject(player) : new JSONObject();
+            int wins = stats.optInt("wins", 0);
+            int looses = stats.optInt("looses", 0);
+            int bo3wins = stats.optInt("bo3wins", 0);
+            int bo3looses = stats.optInt("bo3looses", 0);
+            int kills = stats.optInt("kills", 0);
+            int deaths = stats.optInt("deaths", 0);
+            l.add(wins + looses);
+            l.add(wins);
+            l.add(looses);
+            l.add(bo3wins);
+            l.add(bo3looses);
+            l.add(bo3wins - bo3looses);
+            l.add(kills);
+            l.add(deaths);
+            l.add(kills - deaths);
+            list.add(l);
+        }
+        list.sort((o1, o2) -> compareColumns(o1, o2, 2, 6, 9));
+        Collections.reverse(list);
+        return list;
+    }
+
+    public static void updateTable(JSONObject json, TextChannel tc) {
+        new Thread(() -> {
+            StringBuilder str = new StringBuilder("```");
+            List<List<Object>> list = getBlitzTable(false);
+            ArrayList<String> send = new ArrayList<>();
+            ArrayList<Integer> name = new ArrayList<>();
+            ArrayList<Integer> vic = new ArrayList<>();
+            ArrayList<Integer> bo3dif = new ArrayList<>();
+            //ArrayList<Integer> deaths = new ArrayList<>();
+            ArrayList<Integer> dif = new ArrayList<>();
+            for (int i = 0; i < list.size(); i++) {
+                List<Object> l = list.get(i);
+                String s = (i + 1) + ". " + (i < 9 ? " " : "") + l.get(0);
+                name.add(s.length());
+                vic.add((String.valueOf(l.get(2))).length());
+                bo3dif.add((String.valueOf(l.get(4))).length());
+                //deaths.add(((String) l.get(5)).length());
+                dif.add((String.valueOf(l.get(6))).length());
+            }
+            int maxname = Collections.max(name);
+            //System.out.println("maxname = " + maxname);
+            int maxvic = Collections.max(vic);
+            int maxkills = Collections.max(bo3dif);
+            //int maxdeaths = Collections.max(deaths);
+            int maxdif = Collections.max(dif);
+            int maxbo3dif = Collections.max(bo3dif);
+            String seperator = "   ";
+            for (int i = 0; i < list.size(); i++) {
+                List<Object> l = list.get(i);
+                str.append(expandTo((i + 1) + ". " + (i < 9 ? " " : "") + l.get(0), maxname)).append(seperator).append(expandTo(String.valueOf(l.get(2)), maxvic)).append(" S.").append(seperator).append(expandTo(String.valueOf(l.get(6)), maxbo3dif)).append(" BO3 Dif.").append(seperator).append(expandTo(String.valueOf(l.get(9)), maxdif)).append(" Dif.\n");
+                //System.out.println();
+            }
+            tc.editMessageById(tc.getLatestMessageId(), str.append("```").toString()).queue();
+        }).start();
+    }
+
+    public static String expandTo(String str, int i) {
+        StringBuilder strBuilder = new StringBuilder(str);
+        while (strBuilder.length() < i) strBuilder.append(" ");
+        //System.out.println("'" + strBuilder.toString() + "'");
+        return strBuilder.toString();
     }
 
     public static String getGen5Sprite(String str) {
@@ -2171,6 +2259,8 @@ public abstract class Command {
                     return "Psiaugon-W";
             }
         }
+        if (s.equals("Greninja-Ash")) return "Ash-Quajutsu";
+        if (s.contains("Furfrou")) return "Coiffwaff";
         if (s.equals("Wormadam")) return "Burmadame-Pflz";
         if (s.equals("Wormadam-Sandy")) return "Burmadame-Sand";
         if (s.equals("Wormadam-Trash")) return "Burmadame-Lumpen";
@@ -2182,7 +2272,7 @@ public abstract class Command {
         if (s.contains("Gastrodon")) return "Gastrodon";
         if (s.contains("Eiscue")) return "Kubuin";
         if (s.contains("Oricorio")) return "Choreogel";
-        if (gid.equals("518008523653775366") && s.contains("Urshifu")) return "Wulaosu-Wasser";
+        if (gid.equals(Constants.ASLID) && s.contains("Urshifu")) return "Wulaosu-Wasser";
         if (s.contains("Urshifu")) return "Wulaosu";
         if (s.contains("Gourgeist")) return "Pumpdjinn";
         if (s.contains("Pikachu")) return "Pikachu";
@@ -2244,13 +2334,6 @@ public abstract class Command {
         return Arrays.stream(translations.split(";")).filter(str -> str.split(":")[0].toLowerCase().equalsIgnoreCase(s.toLowerCase()) || str.split(":")[1].toLowerCase().equalsIgnoreCase(s.toLowerCase())).collect(Collectors.joining("")).split(":")[1];
     }*/
 
-    public static boolean allowsCategory(Guild g, CommandCategory c) {
-        String gid = g.getId();
-        if (gid.equals("447357526997073930")) return true;
-        if (c == CommandCategory.Music && !(gid.equals("700504340368064562") || gid.equals("712035338846994502") || gid.equals("673833176036147210")))
-            return false;
-        return c != CommandCategory.BS || gid.equals("712035338846994502");
-    }
 
     private boolean checkPrefix(String msg) {
         if (category == CommandCategory.Music) {
@@ -2259,11 +2342,6 @@ public abstract class Command {
         }
         return msg.toLowerCase().startsWith("!" + name.toLowerCase() + " ") || aliases.stream().anyMatch(s -> msg.toLowerCase().startsWith("!" + s.toLowerCase() + " "))
                 || msg.equalsIgnoreCase("!" + name.toLowerCase()) || aliases.stream().anyMatch(s -> msg.equalsIgnoreCase("!" + s));
-    }
-
-    public boolean allowsGuild(Guild g) {
-        if (!allowsCategory(g, category)) return false;
-        return (allowedGuilds.size() == 0 || allowedGuilds.contains(g.getId()) || g.getId().equals("447357526997073930"));
     }
 
     public abstract void process(GuildMessageReceivedEvent e);

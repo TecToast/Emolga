@@ -71,7 +71,8 @@ public class UpdatedatafromfileCommand extends Command {
         }
         try {
             d.cooldown.cancel();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         d.cooldown = new Timer();
         d.cooldown.schedule(new TimerTask() {
             @Override

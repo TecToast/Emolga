@@ -1,4 +1,4 @@
-package de.Flori.Commands.Giveaway;
+package de.Flori.utils;
 
 import de.Flori.Emolga.EmolgaMain;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -17,18 +17,20 @@ import java.util.stream.Collectors;
 
 import static de.Flori.Commands.Command.getEmolgaJSON;
 import static de.Flori.Commands.Command.saveEmolgaJSON;
-import static de.Flori.Commands.Giveaway.GcreateCommand.secondsToTime;
+import static de.Flori.Commands.Various.GcreateCommand.secondsToTime;
 
 public class Giveaway {
 
 
-    public static Set<Giveaway> giveaways = new HashSet<>();
-    public static Set<Giveaway> toadd = new HashSet<>();
+    public static final Set<Giveaway> giveaways = new HashSet<>();
+    public static final Set<Giveaway> toadd = new HashSet<>();
     public final Instant end;
     public final int winners;
     public final String prize;
-    public String messageId = null, channelId, userId;
-    public Timer timer = new Timer();
+    public String messageId = null;
+    public final String channelId;
+    public final String userId;
+    public final Timer timer = new Timer();
 
     public Giveaway(String channelId, String userId, Instant end, int winners, String prize) {
         this.channelId = channelId;

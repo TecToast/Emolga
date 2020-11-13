@@ -7,13 +7,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class DexQuiz {
-    public static ArrayList<DexQuiz> list = new ArrayList<>();
-    TextChannel tc;
+    public static final ArrayList<DexQuiz> list = new ArrayList<>();
+    final TextChannel tc;
     public String gerName;
     public String englName;
-    public int cr;
+    public final int cr;
     public int round = 1;
-    public HashMap<Member, Integer> points = new HashMap<>();
+    public final HashMap<Member, Integer> points = new HashMap<>();
 
     public DexQuiz(TextChannel tc, String gerName, String englName, int rounds) {
         this.tc = tc;

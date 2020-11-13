@@ -11,6 +11,10 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import java.util.ArrayList;
 
 public class StopdraftCommand extends Command {
+    public StopdraftCommand() {
+        super("stopdraft", "`!stopdraft <Name>` Beendet den Draft", CommandCategory.Draft, true);
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         TextChannel tco = e.getChannel();
@@ -30,9 +34,5 @@ public class StopdraftCommand extends Command {
             }
             tco.sendMessage("Dieser Draft wurde beendet!").queue();
         }
-    }
-
-    public StopdraftCommand() {
-        super("stopdraft", "`!stopdraft <Name>` Beendet den Draft", CommandCategory.Draft, true);
     }
 }

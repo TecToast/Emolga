@@ -9,6 +9,11 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
 
 public class ReplayCommand extends Command {
+    public ReplayCommand() {
+        super("replay", "`!replay <Channel>` Schickt von nun an die Ergebnisse aller Replays, die hier rein geschickt werden, in den angegebenen Channel", CommandCategory.Pokemon);
+        everywhere = true;
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         TextChannel tco = e.getChannel();
@@ -24,10 +29,5 @@ public class ReplayCommand extends Command {
         json.getJSONObject("analyse").put(tco.getId(), tc.getId());
         saveEmolgaJSON();
         tco.sendMessage("Die Analyse aus dem Channel " + tco.getAsMention() + " in den Channel " + tc.getAsMention() + " wurde aktiviert!").queue();
-    }
-
-    public ReplayCommand() {
-        super("replay", "`!replay <Channel>` Schickt von nun an die Ergebnisse aller Replays, die hier rein geschickt werden, in den angegebenen Channel", CommandCategory.Pokemon);
-        everywhere = true;
     }
 }

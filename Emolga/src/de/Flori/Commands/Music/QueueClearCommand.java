@@ -12,6 +12,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class QueueClearCommand extends Command {
+    public QueueClearCommand() {
+        super("c", "`e!c` Cleart die Queue", CommandCategory.Music);
+        overrideChannel.put("712035338846994502", new ArrayList<>(Arrays.asList("716221567079546983", "735076688144105493")));
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         TextChannel tco = e.getChannel();
@@ -21,10 +26,5 @@ public class QueueClearCommand extends Command {
         GuildMusicManager musicManager = getGuildAudioPlayer(tco.getGuild());
         musicManager.scheduler.queue.clear();
         tco.sendMessage("Die Queue wurde geleert!").queue();
-    }
-
-    public QueueClearCommand() {
-        super("c", "`e!c` Cleart die Queue", CommandCategory.Music);
-        overrideChannel.put("712035338846994502", new ArrayList<>(Arrays.asList("716221567079546983", "735076688144105493")));
     }
 }

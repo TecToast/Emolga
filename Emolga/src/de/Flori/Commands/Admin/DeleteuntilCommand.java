@@ -2,31 +2,40 @@ package de.Flori.Commands.Admin;
 
 import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
+import java.util.ArrayList;
+
 public class DeleteuntilCommand extends Command {
+    public DeleteuntilCommand() {
+        super("deleteuntil", "`!deleteuntil [Text-Channel] <Message-ID>` Löscht alle Nachrichten bis zur angegebenen ID", CommandCategory.Admin);
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
-        String msg = e.getMessage().getId();
+        Message m = e.getMessage();
+        String msg = e.getMessage().getContentRaw();
+        System.out.println("msg = " + msg);
         TextChannel tco = e.getChannel();
-        String mid = msg.substring(13);
+        String[] split = msg.split(" ");
+        TextChannel tc;
+        if (m.getMentionedChannels().size() > 0) tc = m.getMentionedChannels().get(0);
+        else tc = tco;
+        String mid = split.length == 3 ? split[2] : split[1];
         try {
-            tco.retrieveMessageById(mid).complete();
+            tc.retrieveMessageById(mid).complete();
         } catch (Exception ex) {
             tco.sendMessage("In diesem Channel gibt es keine Nachricht mit dieser ID!").queue();
             return;
         }
-        for (Message message : tco.getIterableHistory()) {
+        ArrayList<Message> todel = new ArrayList<>();
+        for (Message message : tc.getIterableHistory()) {
             if (message.getId().equals(mid)) break;
-            message.delete().queue();
+            todel.add(message);
         }
+        tc.deleteMessages(todel).queue();
         tco.sendMessage("Success!").queue();
-    }
-
-    public DeleteuntilCommand() {
-        super("deleteuntil", "`!deleteuntil <Message-ID>` Löscht alle Nachrichten bis zur angegebenen ID", CommandCategory.Admin);
     }
 }

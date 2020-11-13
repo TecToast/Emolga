@@ -13,8 +13,8 @@ import java.util.Random;
 
 public class HuntCommand extends Command {
 
-    ArrayList<String> games = new ArrayList<>(Arrays.asList("Gold", "Silber", "Kristall", "Rubin", "Saphir", "Smaragd", "Feuerrot", "Blattgrün", "Diamant", "Perl", "Platin", "HeartGold", "SoulSilver", "Schwarz", "Weiß", "Schwarz2", "Weiß2", "X", "Y", "Omega Rubin", "Alpha Saphir ", "Sonne", "Mond", "UltraSonne", "UltraMond", "LGP", "LGE", "Schwert", "Schild"));
-    ArrayList<String> methods = new ArrayList<>(Arrays.asList("Random Encounter", "Fishing Encounter", "Soft Resets", "Pokeradar", "Breeden", "DexNav", "Horden", "Kontaktsafari", "SOS", "Inselscanner", "Ultrapforten"));
+    final ArrayList<String> games = new ArrayList<>(Arrays.asList("Gold", "Silber", "Kristall", "Rubin", "Saphir", "Smaragd", "Feuerrot", "Blattgrün", "Diamant", "Perl", "Platin", "HeartGold", "SoulSilver", "Schwarz", "Weiß", "Schwarz2", "Weiß2", "X", "Y", "Omega Rubin", "Alpha Saphir ", "Sonne", "Mond", "UltraSonne", "UltraMond", "LGP", "LGE", "Schwert", "Schild"));
+    final ArrayList<String> methods = new ArrayList<>(Arrays.asList("Random Encounter", "Fishing Encounter", "Soft Resets", "Pokeradar", "Breeden", "DexNav", "Horden", "Kontaktsafari", "SOS", "Inselscanner", "Ultrapforten"));
 
     public HuntCommand() {
         super("hunt", "`!hunt <help|Spiel> <Methode>` Generiert ein Pokemon, welches in dem Spiel mit der Methode gehuntet werden kann oder zeigt die möglichen Spiele/Methoden an", CommandCategory.BS);
@@ -32,19 +32,19 @@ public class HuntCommand extends Command {
             return;
         }
         Optional<String> opgame = games.stream().filter(s -> s.equalsIgnoreCase(split[1])).findFirst();
-        if(!opgame.isPresent()) {
+        if (!opgame.isPresent()) {
             tco.sendMessage("Das ist kein valides Spiel!").queue();
             return;
         }
         String game = opgame.get();
         Optional<String> opmethod = games.stream().filter(s -> s.equalsIgnoreCase(split[1])).findFirst();
-        if(!opmethod.isPresent()) {
+        if (!opmethod.isPresent()) {
             tco.sendMessage("Das ist keine valide Methode!").queue();
             return;
         }
         String method = opmethod.get();
         JSONObject obj = huntjson.getJSONObject(game);
-        if(!obj.has(method)) {
+        if (!obj.has(method)) {
             tco.sendMessage("Diese Methode gibt es in " + game + " nicht!").queue();
             return;
         }

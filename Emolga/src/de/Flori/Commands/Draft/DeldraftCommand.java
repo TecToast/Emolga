@@ -9,6 +9,10 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
 
 public class DeldraftCommand extends Command {
+    public DeldraftCommand() {
+        super("deldraft", "`!deldraft <Name>` Löscht den Draft mit dem angegebenen Namen", CommandCategory.Draft, true);
+    }
+
     @Override
     public void process(GuildMessageReceivedEvent e) {
         TextChannel tco = e.getChannel();
@@ -29,9 +33,5 @@ public class DeldraftCommand extends Command {
         } else {
             tco.sendMessage("Es wurde noch kein Draft erstellt!").queue();
         }
-    }
-
-    public DeldraftCommand() {
-        super("deldraft", "`!deldraft <Name>` Löscht den Draft mit dem angegebenen Namen", CommandCategory.Draft, true);
     }
 }

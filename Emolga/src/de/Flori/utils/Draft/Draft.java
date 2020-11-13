@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 import static de.Flori.Commands.Command.*;
 
 public class Draft {
-    public static ArrayList<Draft> drafts = new ArrayList<>();
+    public static final ArrayList<Draft> drafts = new ArrayList<>();
     public static HashMap<String, Integer> already = new HashMap<>();
     //public static Timer write;
     /*public static ArrayList<String> stier;
@@ -22,18 +22,18 @@ public class Draft {
     public static ArrayList<String> ctier;
     public static ArrayList<String> dtier;*/
     //public HashMap<Member, Message> messages = new HashMap<>();
-    public HashMap<Member, ArrayList<DraftPokemon>> picks = new HashMap<>();
-    public HashMap<Integer, ArrayList<Member>> order = new HashMap<>();
+    public final HashMap<Member, ArrayList<DraftPokemon>> picks = new HashMap<>();
+    public final HashMap<Integer, ArrayList<Member>> order = new HashMap<>();
     public ArrayList<Member> members;
     public Member current;
     public int round = 0;
-    public HashMap<Member, Integer> points = new HashMap<>();
-    public TextChannel tc;
-    public String name;
+    public final HashMap<Member, Integer> points = new HashMap<>();
+    public final TextChannel tc;
+    public final String name;
     public Timer cooldown = new Timer();
     public TextChannel ts;
-    public String guild;
-    public boolean isPointBased;
+    public final String guild;
+    public final boolean isPointBased;
 
     public Tierlist getTierlist() {
         return Tierlist.getByGuild(guild);
@@ -244,6 +244,7 @@ public class Draft {
         return picks.get(mem).stream().anyMatch(mon -> mon.name.startsWith("M-"));
     }
 
+    @SuppressWarnings("SameReturnValue")
     public boolean hasInAnotherForm(Member mem, String pokemon) {
         /*String[] split = pokemon.split("-");
         if (split.length == 1) return false;*/

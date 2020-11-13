@@ -5,7 +5,6 @@ import de.Flori.Commands.Command;
 import de.Flori.Commands.CommandCategory;
 import de.Flori.utils.Google;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
@@ -35,7 +34,7 @@ public class DelMonCommand extends Command {
         String ball = opt.get();
         String mon;
         Optional<String> optmon = mons.stream().filter(pokemon::equalsIgnoreCase).findFirst();
-        if(optmon.isPresent()) {
+        if (optmon.isPresent()) {
             mon = optmon.get();
         } else {
             if (pokemon.toLowerCase().startsWith("a-")) mon = "A-" + getGerName(pokemon.substring(2));

@@ -10,7 +10,7 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class SetupfromfileCommand extends Command {
     public SetupfromfileCommand() {
-        super("setupfromfile", "`!setupfromfile <Name> <TCID>`", CommandCategory.Flo,true);
+        super("setupfromfile", "`!setupfromfile <Name> <TCID>`", CommandCategory.Flo, true);
     }
 
     @Override

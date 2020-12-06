@@ -8,12 +8,12 @@ import java.util.HashMap;
 
 public class DexQuiz {
     public static final ArrayList<DexQuiz> list = new ArrayList<>();
+    public final int cr;
+    public final HashMap<Member, Integer> points = new HashMap<>();
     final TextChannel tc;
     public String gerName;
     public String englName;
-    public final int cr;
     public int round = 1;
-    public final HashMap<Member, Integer> points = new HashMap<>();
 
     public DexQuiz(TextChannel tc, String gerName, String englName, int rounds) {
         this.tc = tc;

@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import de.tectoast.jdautilities.managers.ReactionManager;
 
 import javax.security.auth.login.LoginException;
 import java.net.URI;
@@ -75,6 +76,11 @@ public class EmolgaMain {
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
         jda.awaitReady();
+        ReactionManager manager = new ReactionManager(jda);
+        manager
+                .registerReaction("715249205186265178", "759407279094628383", "715932914554110065", "719928482544484352")
+                .registerReaction("715249205186265178", "759407279094628383", "715932816910712923", "719928323731357696")
+                .registerReaction("715249205186265178", "759407279094628383", "750666078828363888", "719928663935680644");
         ArrayList<String> youtube = new ArrayList<>(Arrays.asList("UCYoTO-akZCsiusTe4rBxfhA", "UCMqmTa_6_wE7r9jQ6b8yqjQ", "UCUkb-7kNR03r4ldj_fm_BhA"));
         Subscriber subscriber = new SubscriberImpl(Command.tokens.getJSONObject("subscriber").getString("host"), Command.tokens.getJSONObject("subscriber").getInt("port"));
         for (String s : youtube) {
@@ -126,6 +132,8 @@ public class EmolgaMain {
                 Giveaway.toadd.clear();
                 Giveaway.giveaways.forEach(giveaway -> {
                     //System.out.println("giveaway.messageId = " + giveaway.messageId);
+                    if(giveaway.messageId == null) return;
+                    if(giveaway.isEnded) return;
                     try {
                         if (giveaway.end.toEpochMilli() - System.currentTimeMillis() <= 10000 || i >= 5) {
                             jda.getTextChannelById(giveaway.channelId).editMessageById(giveaway.messageId, giveaway.render(Instant.now())).complete();

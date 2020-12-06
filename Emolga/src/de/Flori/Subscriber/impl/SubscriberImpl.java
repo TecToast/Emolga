@@ -37,12 +37,6 @@ public class SubscriberImpl implements Subscriber {
     private final Set<Map.Entry<URI, String>> unsubscribeIntents = new HashSet<>();
     private final ExecutorService executors = Executors.newFixedThreadPool(16);
 
-    /**
-     * Creates a new subscriber.
-     *
-     * @param host The external hostname of this subscriber
-     * @param port The port this subscriber is listening to.
-     */
     public SubscriberImpl(String host, int port) {
         this.host = host;
         this.port = port;

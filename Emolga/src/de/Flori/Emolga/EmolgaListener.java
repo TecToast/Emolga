@@ -1,18 +1,15 @@
 package de.Flori.Emolga;
 
 import de.Flori.Commands.CommandCategory;
-import de.Flori.Commands.Draft.PickCommand;
+import de.Flori.Commands.PrivateCommands;
 import de.Flori.utils.*;
 import de.Flori.utils.Draft.Draft;
-import de.Flori.utils.Draft.Tierlist;
 import de.Flori.utils.Music.GuildMusicManager;
 import de.Flori.utils.Showdown.Analysis;
 import de.Flori.utils.Showdown.Player;
 import de.Flori.utils.Showdown.SDPokemon;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.audio.AudioSendHandler;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.channel.text.TextChannelCreateEvent;
@@ -22,7 +19,6 @@ import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceMoveEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionAddEvent;
-import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionRemoveEvent;
 import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.api.events.role.RoleCreateEvent;
 import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent;
@@ -35,10 +31,9 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.net.URL;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -54,8 +49,6 @@ public class EmolgaListener extends ListenerAdapter {
     public static boolean leon = false;
     public static boolean pizza = false;
     //public static byte[] bytes;
-    public static Member as = null;
-    public static boolean checkBST = false;
 
     @Override
     public void onGuildVoiceJoin(@Nonnull GuildVoiceJoinEvent e) {
@@ -99,253 +92,7 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onPrivateMessageReceived(PrivateMessageReceivedEvent e) {
         if (e.getAuthor().getId().equals(Constants.FLOID)) {
-            String msg = e.getMessage().getContentDisplay();
-            JSONObject json = getEmolgaJSON();
-            String[] split = msg.split(" ");
-            if (msg.startsWith("!timer")) {
-                String name = msg.substring(7);
-                List<Draft> list = Draft.drafts.stream().filter(d -> d.name.equals(name)).collect(Collectors.toList());
-                if (list.size() == 0) {
-                    sendToMe("Dieser Draft existiert nicht!");
-                    return;
-                }
-                Draft d = list.get(0);
-                d.cooldown = new Timer();
-                long delay = calculateASLTimer();
-                JSONObject league = json.getJSONObject("drafts").getJSONObject(d.name);
-                league.put("cooldown", System.currentTimeMillis() + delay);
-                d.cooldown.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        d.timer();
-                    }
-                }, delay);
-                json.getJSONObject("drafts").getJSONObject(name).put("timer", true);
-                saveEmolgaJSON();
-                sendToMe("Der Timer bei " + name + " wurde aktiviert!");
-            } else if (msg.startsWith("!updatetierlist")) {
-                Tierlist.setup();
-                sendToMe("Die Tierliste wurde aktualisiert!");
-            } else if (msg.startsWith("!skip")) {
-                Draft.drafts.stream().filter(draft -> draft.name.equals(msg.substring(6))).collect(Collectors.toList()).get(0).timer();
-            } else if (msg.startsWith("!send")) {
-                System.out.println(e.getMessage().getContentRaw());
-                String s = e.getMessage().getContentRaw().substring(24).replaceAll("\\\\", "");
-                TextChannel tc = e.getJDA().getTextChannelById(split[1]);
-                Guild g = tc.getGuild();
-                for (ListedEmote emote : g.retrieveEmotes().complete()) {
-                    s = s.replaceAll("<<" + emote.getName() + ">>", emote.getAsMention());
-                }
-                tc.sendMessage(s).queue();
-            } else if (msg.startsWith("!doit")) {
-                System.out.println(e.getJDA().getGuildById("709877545708945438").getRoles().stream().map(Role::getName).collect(Collectors.joining("\n")));
-            } else if (msg.startsWith("!react")) {
-                String s = msg.substring(45);
-                TextChannel tc = e.getJDA().getTextChannelById(split[1]);
-                Message m = tc.retrieveMessageById(split[2]).complete();
-                assert (m != null);
-                if (s.contains("<")) {
-                    s = s.substring(1);
-                    System.out.println("s = " + s);
-                    for (ListedEmote emote : tc.getGuild().retrieveEmotes().complete()) {
-                        System.out.println("emote.getName() = " + emote.getName());
-                        if (s.equalsIgnoreCase(emote.getName())) {
-                            m.addReaction(emote).queue();
-                            break;
-                        }
-                    }
-                } else {
-                    m.addReaction(s).queue();
-                }
-                //System.out.println(m.getContentDisplay());
-            } else if (msg.startsWith("!join")) {
-                Guild g = e.getJDA().getGuildById(split[1]);
-                g.getAudioManager().openAudioConnection(g.getVoiceChannelById(split[2]));
-                g.getAudioManager().setSendingHandler(new AudioSendHandler() {
-                    @Override
-                    public boolean canProvide() {
-                        return true;
-                    }
-
-                    @Nullable
-                    @Override
-                    public ByteBuffer provide20MsAudio() {
-                        return ByteBuffer.allocate(3840);
-                    }
-                });
-            } else if (msg.equalsIgnoreCase("!test")) {
-                for (int y = 7; y <= 24; y += 17) {
-                    for (int x = 68; x <= 86; x += 6) {
-                        List<List<Object>> list = new ArrayList<>();
-                        for (int i = 0; i < 12; i++) {
-                            list.add(Arrays.asList(0, 0));
-                        }
-                        String str = "Teamübersicht!" + ((char) x) + y;
-                        System.out.println(str);
-                        System.out.println(list);
-                        System.out.println();
-                    }
-                }
-            } else if (msg.equals("!leon")) {
-                leon = !leon;
-                sendToMe(leon + "");
-            } else if (msg.equalsIgnoreCase("!pizza")) {
-                pizza = !pizza;
-                sendToMe(pizza + "");
-            } else if (msg.equalsIgnoreCase("!shutdown")) {
-                e.getJDA().shutdownNow();
-            } else if (msg.equalsIgnoreCase("!disablesort")) {
-                disablesort = true;
-                sendToMe("Done!");
-            } else if (msg.equalsIgnoreCase("!disablestrike")) {
-                PickCommand.isEnabled = false;
-                sendToMe("Done!");
-            } else if (msg.startsWith("!ban ")) {
-                Guild g = e.getJDA().getGuildById(msg.split(" ")[1]);
-                g.ban(msg.split(" ")[2], 0).queue();
-            } else if (msg.equalsIgnoreCase("!updatedatabase")) {
-                loadJSONFiles();
-                sendToMe("Done!");
-            } else if (msg.equalsIgnoreCase("!ej")) {
-                emolgajson = load("./emolgadata.json");
-                sendToMe("Done!");
-            } else if (msg.equalsIgnoreCase("!updatestats")) {
-                ArrayList<String> statorder = new ArrayList<>();
-                JSONObject obj = getStatisticsJSON();
-                if (!obj.getString("order").equals(""))
-                    statorder.addAll(Arrays.asList(obj.getString("order").split(",")));
-                int games = obj.getInt("games");
-                JSONObject bst = getEmolgaJSON().getJSONObject("BST");
-                String sid = bst.getString("sid");
-                List<List<Object>> statsend = new ArrayList<>();
-                int i = 3;
-                for (String s : statorder) {
-                    JSONObject o = obj.getJSONObject(s);
-                    int urate = o.getInt("usagerate");
-                    int winrate = o.getInt("winrate");
-                    int kills = o.getInt("kills");
-                    int deaths = o.getInt("deaths");
-                    System.out.println("s = " + s);
-                    statsend.add(Arrays.asList(
-                            urate,
-                            "=RUNDEN(C" + i + " / A1; 4)",
-                            winrate,
-                            "=WENN(C" + i + " = 0; 0; RUNDEN(E" + i + " / C" + i + "; 4))",
-                            kills,
-                            "=WENN(C" + i + " = 0; 0; RUNDEN(G" + i + " / C" + i + "; 2))",
-                            deaths,
-                            "=WENN(C" + i + " = 0; 0; RUNDEN(I" + i + " / C" + i + "; 2))"));
-                    i++;
-                }
-                new RequestBuilder(sid).addAll("Statistiken!C3", statsend).addSingle("Statistiken!A1", games).execute();
-            } else if (msg.equalsIgnoreCase("!updategiveaways")) {
-                Giveaway.giveaways.clear();
-                if (emolgajson.has("giveaways")) {
-                    JSONArray arr = emolgajson.getJSONArray("giveaways");
-                    for (Object o : arr) {
-                        JSONObject obj = (JSONObject) o;
-                        new Giveaway(obj.getString("tcid"), obj.getString("author"), new Date(obj.getLong("end")).toInstant(), obj.getInt("winners"), obj.getString("prize"), obj.getString("mid"));
-                    }
-                }
-                sendToMe("Done!");
-            } else if (msg.equalsIgnoreCase("!sortbst")) {
-                sortBST();
-                sendToMe("Done!");
-            } else if (msg.startsWith("!style")) {
-                Guild guild = e.getJDA().getGuildById("709877545708945438");
-                Emote love = guild.getEmoteById("710842233712017478");
-                Emote beep = guild.getEmoteById("745355018676469844");
-                JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("Wooloo Cup");
-                if (!league.has("doc")) return;
-                String sid = league.getJSONObject("doc").getString("sid");
-                Message message = guild.getTextChannelById("749194448507764766").sendMessage(split[2] + " (" + love.getAsMention() + ") oder " + split[4] + " (" + beep.getAsMention() + ")?").complete();
-                message.addReaction(love).queue();
-                message.addReaction(beep).queue();
-                if (!json.has("style")) json.put("style", new JSONArray());
-                JSONArray style = json.getJSONArray("style");
-                JSONObject obj = new JSONObject();
-                obj.put("uid1", split[1]);
-                obj.put("uid2", split[3]);
-                obj.put("mid", message.getId());
-                obj.put("timer", System.currentTimeMillis() + 86400000 + "");
-                style.put(obj);
-                new Timer().schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        woolooStyle(sid, message, split[1], split[3]);
-                    }
-                }, 86400000);
-                saveEmolgaJSON();
-            } else if (msg.startsWith("!del")) {
-                e.getJDA().getTextChannelById(split[1]).deleteMessageById(split[2]).queue();
-            } else if (msg.startsWith("!as")) {
-                as = e.getJDA().getGuildById(split[1]).retrieveMemberById(split[2]).complete();
-                sendToMe("Done! **As** is now " + as.getAsMention());
-            } else if (msg.equalsIgnoreCase("!checkbst")) {
-                checkBST = !checkBST;
-                sendToMe("CheckBST: " + checkBST);
-            } else if (msg.startsWith("!sortzbs")) {
-                JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ZBSL" + split[1]);
-                sortZBS(league.getJSONObject("doc").getString("sid"), "Liga " + split[1], league);
-            } else if (msg.startsWith("!sortwooloo")) {
-                JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("Wooloo Cup");
-                sortWooloo(league.getJSONObject("doc").getString("sid"), league);
-            } else if (msg.equalsIgnoreCase("!initdrafts")) {
-                JDA jda = e.getJDA();
-                new Draft(jda.getTextChannelById("765218911800918026"), "Coach", "765235829756002335", true);
-                new Draft(jda.getTextChannelById("765219001176424539"), "PK1", "765235875252535316", true);
-                new Draft(jda.getTextChannelById("765219049142878228"), "PK2", "765235910513000530", true);
-                new Draft(jda.getTextChannelById("765219098216759317"), "PK3", "765235944437448704", true);
-            } else if (msg.startsWith("!troll")) {
-                Category category = e.getJDA().getCategoryById(split[1]);
-                Guild g = category.getGuild();
-                Member user = g.retrieveMemberById(split[2]).complete();
-                ArrayList<VoiceChannel> list = new ArrayList<>(category.getVoiceChannels());
-                Collections.shuffle(list);
-                VoiceChannel old = user.getVoiceState().getChannel();
-                list.remove(old);
-                for (VoiceChannel voiceChannel : list) {
-                    g.moveVoiceMember(user, voiceChannel).queue();
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException interruptedException) {
-                        interruptedException.printStackTrace();
-                    }
-                }
-                g.moveVoiceMember(user, old).queue();
-            } else if (msg.startsWith("!updatetable")) {
-                updateTable(getEmolgaJSON().getJSONObject("BlitzS1"), e.getJDA().getTextChannelById("771403849029386270"));
-            } else if (msg.equalsIgnoreCase("!nextround")) {
-                new Thread(() -> {
-                    JSONObject b = json.getJSONObject("BlitzS1");
-                    JSONObject bo = b.getJSONObject("battleorder");
-                    ArrayList<String> already = bo.keySet().stream().map(bo::getString).flatMap(s -> Arrays.stream(s.split(";"))).collect(Collectors.toCollection(ArrayList::new));
-                    ArrayList<String> order = new ArrayList<>();
-                    ArrayList<String> names = getBlitzTable(true).stream().map(l -> (String) l.get(0)).collect(Collectors.toCollection(ArrayList::new));
-                    for (int i = 0; i < names.size(); i++) {
-                        String s = names.get(i);
-                        if (order.stream().anyMatch(str -> str.contains(s))) continue;
-                        for (int j = i + 1; j < names.size(); j++) {
-                            String str = names.get(j);
-                            if (already.contains(str + ":" + s) || already.contains(s + ":" + str) || order.stream().anyMatch(string -> string.contains(str)))
-                                continue;
-                            order.add(s + ":" + str);
-                            break;
-                        }
-                    }
-                    HashMap<String, String> namesmap = new HashMap<>();
-                    EmolgaMain.jda.getGuildById(Constants.BSID).retrieveMembersByIds(names.toArray(new String[0])).get().forEach(mem -> namesmap.put(mem.getId(), mem.getEffectiveName()));
-                    StringBuilder str = new StringBuilder();
-                    for (String s : order) {
-                        str.append(namesmap.get(s.split(":")[0])).append(" vs ").append(namesmap.get(s.split(":")[1])).append("\n");
-                    }
-                    sendToMe(str.toString());
-                    b.put("gameday", b.getInt("gameday") + 1);
-                    bo.put(String.valueOf(b.getInt("gameday")), String.join(";", order));
-                    saveEmolgaJSON();
-                }).start();
-            }
-
+            PrivateCommands.fromPrivate(e);
         } /*else if (e.getAuthor().getId().equals("574949229668335636")) {
             e.getJDA().getTextChannelById("743471003220443226").sendMessage(e.getMessage().getContentDisplay()).queue();
         }*/
@@ -367,7 +114,7 @@ public class EmolgaListener extends ListenerAdapter {
             JSONArray arr = emolgajson.getJSONArray("giveaways");
             for (Object o : arr) {
                 JSONObject obj = (JSONObject) o;
-                new Giveaway(obj.getString("tcid"), obj.getString("author"), new Date(obj.getLong("end")).toInstant(), obj.getInt("winners"), obj.getString("prize"), obj.getString("mid"));
+                new Giveaway(obj.getString("tcid"), obj.getString("author"), new Date(obj.getLong("end")).toInstant(), obj.getInt("winners"), obj.getString("prize"), obj.getString("mid"), obj.has("role"));
             }
         }
         if (emolgajson.has("mutes")) {
@@ -467,37 +214,21 @@ public class EmolgaListener extends ListenerAdapter {
             e.getJDA().getTextChannelById("728675253924003870").sendMessage(e.getOldName() + " hat sich auf ganz Discord in " + e.getNewName() + " umbenannt!").queue();
     }
 
-    @Override
-    public void onGuildMessageReactionRemove(@NotNull GuildMessageReactionRemoveEvent e) {
-        if (e.getMessageId().equals("759407279094628383")) {
-            if (e.getReaction().getReactionEmote().isEmoji()) return;
-            String id = e.getReaction().getReactionEmote().getEmote().getId();
-            Member mem = e.getMember();
-            Guild g = e.getGuild();
-            if (id.equalsIgnoreCase("715932914554110065")) {
-                g.removeRoleFromMember(mem, g.getRoleById("719928482544484352")).queue();
-            } else if (id.equalsIgnoreCase("715932816910712923")) {
-                g.removeRoleFromMember(mem, g.getRoleById("719928323731357696")).queue();
-            } else if (id.equalsIgnoreCase("750666078828363888")) {
-                g.removeRoleFromMember(mem, g.getRoleById("719928663935680644")).queue();
-            }
-        }
-    }
 
     @Override
     public void onGuildMessageReactionAdd(GuildMessageReactionAddEvent e) {
         if (e.getUser().isBot()) return;
         Member mem = e.getMember();
         Guild g = e.getGuild();
-        if (e.getMessageId().equals("759407279094628383")) {
-            if (e.getReaction().getReactionEmote().isEmoji()) return;
-            String id = e.getReaction().getReactionEmote().getEmote().getId();
-            if (id.equalsIgnoreCase("715932914554110065")) {
-                g.addRoleToMember(mem, g.getRoleById("719928482544484352")).queue();
-            } else if (id.equalsIgnoreCase("715932816910712923")) {
-                g.addRoleToMember(mem, g.getRoleById("719928323731357696")).queue();
-            } else if (id.equalsIgnoreCase("750666078828363888")) {
-                g.addRoleToMember(mem, g.getRoleById("719928663935680644")).queue();
+        if (e.getMessageId().equals("778380596413464676") && e.getReactionEmote().isEmote()) {
+            String eid = e.getReactionEmote().getEmote().getId();
+            JSONObject counter = shinycountjson.getJSONObject("counter");
+            Optional<String> mop = counter.keySet().stream().filter(s -> counter.getJSONObject(s).getString("emote").equals(eid)).findFirst();
+            if (mop.isPresent()) {
+                String method = mop.get();
+                counter.getJSONObject(method).put(mem.getId(), counter.getJSONObject(method).optInt(mem.getId(), 0) + 1);
+                e.getJDA().getTextChannelById("778380440078647296").removeReactionById("778380596413464676", e.getReactionEmote().getEmote(), e.getUser()).queue();
+                updateShinyCounts();
             }
         }
         if (e.getMessageId().equals("755331617970454558")) {
@@ -508,7 +239,7 @@ public class EmolgaListener extends ListenerAdapter {
             e.getReaction().removeReaction(e.getUser()).queue();
             Message m = op.get();
             String emoji = e.getReactionEmote().getEmoji();
-            if (emoji.equals("U+25c0U+fe0f")) {
+            if (emoji.equals("◀️")) {
                 EmbedBuilder builder = new EmbedBuilder();
                 builder.setTitle("Commands").setColor(java.awt.Color.CYAN);
                 builder.setDescription(getHelpDescripion(g, mem));
@@ -573,10 +304,11 @@ public class EmolgaListener extends ListenerAdapter {
                     expEdited = true;
                 }
             }
-            /*if(tco.getId().equals("771350676876951552") || tco.getId().equals("774661698074050581")) {
+            if (tco.getId().equals("771350676876951552") || tco.getId().equals("774661698074050581")) {
                 List<String> list = Arrays.asList(msg.split("\n"));
-                JSONObject json = getEmolgaJSON().getJSONObject("BlitzS1");
+                JSONObject json = getEmolgaJSON().getJSONObject("BlitzTurnier");
                 int gameday = json.getInt("gameday");
+                if(gameday == -1) return;
                 String p1 = member.getId();
                 Optional<String> op = Arrays.stream(json.getJSONObject("battleorder").getString(String.valueOf(gameday)).split(";")).filter(str -> str.contains(p1)).findFirst();
                 if (!op.isPresent()) {
@@ -593,7 +325,7 @@ public class EmolgaListener extends ListenerAdapter {
                     k1 += 4 - Integer.parseInt(list.get(i).split(":")[1].trim());
                     int d = Integer.parseInt(list.get(i).split(":")[0].trim());
                     d1 += 4 - d;
-                    if(d < 4) p1wins++;
+                    if (d > 0) p1wins++;
                     gamecount++;
                 }
                 boolean p1win = p1wins > (gamecount - p1wins);
@@ -627,17 +359,19 @@ public class EmolgaListener extends ListenerAdapter {
                 JSONObject rg = results.has(String.valueOf(gameday)) ? results.getJSONObject(String.valueOf(gameday)) : new JSONObject();
                 rg.put(p1 + ":" + p2, p1win ? p1 : p2);
                 results.put(String.valueOf(gameday), rg);
-
                 updateTable(json, e.getJDA().getTextChannelById("771403849029386270"));
-                if(rg.length() == 5) {
+                if (rg.length() == 4) {
+                    if (json.getInt("gameday") == 4) {
+                        sendToMe("Mach die drecks POs du knecht!");
+                        json.put("gameday", -1);
+                        saveEmolgaJSON();
+                        return;
+                    }
                     new Thread(() -> {
-                        JSONObject b = json.getJSONObject("BlitzS1");
-                        JSONObject bo = b.getJSONObject("battleorder");
+                        JSONObject bo = json.getJSONObject("battleorder");
                         ArrayList<String> already = bo.keySet().stream().map(bo::getString).flatMap(s -> Arrays.stream(s.split(";"))).collect(Collectors.toCollection(ArrayList::new));
                         ArrayList<String> order = new ArrayList<>();
                         ArrayList<String> names = getBlitzTable(true).stream().map(l -> (String) l.get(0)).collect(Collectors.toCollection(ArrayList::new));
-                        String withPnuma = "";
-                        String oppPnuma = "";
                         HashMap<String, String> namesmap = new HashMap<>();
                         EmolgaMain.jda.getGuildById(Constants.BSID).retrieveMembersByIds(names.toArray(new String[0])).get().forEach(mem -> namesmap.put(mem.getId(), mem.getEffectiveName()));
                         for (int i = 0; i < names.size(); i++) {
@@ -648,30 +382,21 @@ public class EmolgaListener extends ListenerAdapter {
                                 if (already.contains(str + ":" + s) || already.contains(s + ":" + str) || order.stream().anyMatch(string -> string.contains(str)))
                                     continue;
                                 order.add(s + ":" + str);
-                                if(s.equals("280825853401628674") || str.equals("280825853401628674")) {
-                                    withPnuma = s + ":" + str;
-                                    oppPnuma = s.equals("280825853401628674") ? str : s;
-                                }
                                 break;
                             }
                         }
-                        StringBuilder str = new StringBuilder();
+                        json.put("gameday", json.getInt("gameday") + 1);
+                        StringBuilder str = new StringBuilder("Runde " + json.getInt("gameday") + ":\n");
                         for (String s : order) {
                             str.append(namesmap.get(s.split(":")[0])).append(" vs ").append(namesmap.get(s.split(":")[1])).append("\n");
                         }
                         e.getJDA().getTextChannelById("771403897130450995").sendMessage(str.toString()).queue();
-                        e.getJDA().getTextChannelById("771350676876951552").sendMessage(namesmap.get(oppPnuma) + " bekommt einen Freewin!").queue();
-                        JSONObject ob = playerstats.getJSONObject(oppPnuma);
-                        ob.put("wins", ob.getInt("wins") + 1);
-                        ob.put("kills", ob.getInt("kills") + 8);
-                        b.put("gameday", b.getInt("gameday") + 1);
-                        b.getJSONObject("results").getJSONObject(String.valueOf(b.getInt("gameday"))).put(withPnuma, oppPnuma);
-                        bo.put(String.valueOf(b.getInt("gameday")), String.join(";", order));
+                        bo.put(String.valueOf(json.getInt("gameday")), String.join(";", order));
                         saveEmolgaJSON();
                     }).start();
                 }
                 saveEmolgaJSON();
-            }*/
+            }
             if (tco.getId().equals("759712094223728650") || tco.getId().equals("759734608773775360")) {
                 JSONObject bst = getEmolgaJSON().getJSONObject("BST");
                 String raw = m.getContentRaw();
@@ -953,26 +678,15 @@ public class EmolgaListener extends ListenerAdapter {
                 b.addRow("Teilnehmer!" + getAsXCoord(x1 + 5) + (y1 + gameday + 3), Arrays.asList(k1sum, d1sum))
                         .addRow("Teilnehmer!" + getAsXCoord(x2 + 5) + (y2 + gameday + 3), Arrays.asList(d1sum, k1sum));
                 int ip = gdl.indexOf(gdl.stream().filter(s -> s.contains(p1)).collect(Collectors.joining("")));
-                if (r1.size() == 3) r1.add(Collections.emptyList());
-                if (r2.size() == 3) r2.add(Collections.emptyList());
-                r1.add(Collections.emptyList());
-                r1.add(Collections.singletonList(k1sum));
-                r1.add(Collections.singletonList(d1sum));
-                r2.add(Collections.emptyList());
-                r2.add(Collections.singletonList(d1sum));
-                r2.add(Collections.singletonList(k1sum));
+                int yy = gameday == 9 ? (ip * 8 + 4) : gameday == 10 ? (ip * 16 + 8) : 16;
                 if (gdl.get(ip).split(":")[0].equals(p1)) {
                     b
-                            .addSingle("Vorrunde!" + getAsXCoord(gameday * 5 - 4) + (ip * 8 + 7), stat1.getInt("wins") + "-" + stat1.getInt("looses"))
-                            .addSingle("Vorrunde!" + getAsXCoord(gameday * 5) + (ip * 8 + 7), stat2.getInt("wins") + "-" + stat2.getInt("looses"))
-                            .addAll("Vorrunde!" + getAsXCoord(gameday * 5 - 3) + (ip * 8 + 3), r1)
-                            .addAll("Vorrunde!" + getAsXCoord(gameday * 5 - 1) + (ip * 8 + 3), r2);
+                            .addAll("Vorrunde!" + getAsXCoord((gameday - 8) * 7 - 4) + yy, r1)
+                            .addAll("Vorrunde!" + getAsXCoord((gameday - 8) * 7 - 2) + yy, r2);
                 } else {
                     b
-                            .addSingle("Vorrunde!" + getAsXCoord(gameday * 5 - 4) + (ip * 8 + 7), stat2.getInt("wins") + "-" + stat2.getInt("looses"))
-                            .addSingle("Vorrunde!" + getAsXCoord(gameday * 5) + (ip * 8 + 7), stat1.getInt("wins") + "-" + stat1.getInt("looses"))
-                            .addAll("Vorrunde!" + getAsXCoord(gameday * 5 - 3) + (ip * 8 + 3), r2)
-                            .addAll("Vorrunde!" + getAsXCoord(gameday * 5 - 1) + (ip * 8 + 3), r1);
+                            .addAll("Vorrunde!" + getAsXCoord((gameday - 8) * 7 - 4) + yy, r2)
+                            .addAll("Vorrunde!" + getAsXCoord((gameday - 8) * 7 - 2) + yy, r1);
                 }
                 List<Object> get1 = Google.get(sid, "Teilnehmer!" + getAsXCoord(x1 - 1) + (y1 + 2) + ":" + getAsXCoord(x1) + (y1 + 2), false, false).get(0);
                 List<Object> get2 = Google.get(sid, "Teilnehmer!" + getAsXCoord(x2 - 1) + (y2 + 2) + ":" + getAsXCoord(x2) + (y2 + 2), false, false).get(0);
@@ -1023,238 +737,7 @@ public class EmolgaListener extends ListenerAdapter {
             }
             check(e);
             if (gid.equals("447357526997073930")) {
-                JSONObject json = getEmolgaJSON();
-                String[] split = msg.split(" ");
-                if (msg.startsWith("!timer")) {
-                    String name = msg.substring(7);
-                    List<Draft> list = Draft.drafts.stream().filter(d -> d.name.equals(name)).collect(Collectors.toList());
-                    if (list.size() == 0) {
-                        sendToMe("Dieser Draft existiert nicht!");
-                        return;
-                    }
-                    Draft d = list.get(0);
-                    d.cooldown = new Timer();
-                    long delay = calculateASLTimer();
-                    JSONObject league = json.getJSONObject("drafts").getJSONObject(d.name);
-                    league.put("cooldown", System.currentTimeMillis() + delay);
-                    d.cooldown.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            d.timer();
-                        }
-                    }, delay);
-                    json.getJSONObject("drafts").getJSONObject(name).put("timer", true);
-                    saveEmolgaJSON();
-                    sendToMe("Der Timer bei " + name + " wurde aktiviert!");
-                } else if (msg.startsWith("!updatetierlist")) {
-                    Tierlist.setup();
-                    sendToMe("Die Tierliste wurde aktualisiert!");
-                } else if (msg.startsWith("!skip")) {
-                    Draft.drafts.stream().filter(draft -> draft.name.equals(msg.substring(6))).collect(Collectors.toList()).get(0).timer();
-                } else if (msg.startsWith("!send")) {
-                    System.out.println(e.getMessage().getContentRaw());
-                    String s = e.getMessage().getContentRaw().substring(24).replaceAll("\\\\", "");
-                    TextChannel tc = e.getJDA().getTextChannelById(split[1]);
-                    Guild guild = tc.getGuild();
-                    for (ListedEmote emote : guild.retrieveEmotes().complete()) {
-                        s = s.replaceAll("<<" + emote.getName() + ">>", emote.getAsMention());
-                    }
-                    tc.sendMessage(s).queue();
-                } else if (msg.startsWith("!doit")) {
-                    System.out.println(e.getJDA().getGuildById("709877545708945438").getRoles().stream().map(Role::getName).collect(Collectors.joining("\n")));
-                } else if (msg.startsWith("!react")) {
-                    String s = msg.substring(45);
-                    TextChannel tc = e.getJDA().getTextChannelById(split[1]);
-                    Message message = tc.retrieveMessageById(split[2]).complete();
-                    assert (message != null);
-                    if (s.contains("<")) {
-                        s = s.substring(1);
-                        System.out.println("s = " + s);
-                        for (ListedEmote emote : tc.getGuild().retrieveEmotes().complete()) {
-                            System.out.println("emote.getName() = " + emote.getName());
-                            if (s.equalsIgnoreCase(emote.getName())) {
-                                message.addReaction(emote).queue();
-                                break;
-                            }
-                        }
-                    } else {
-                        message.addReaction(s).queue();
-                    }
-                    //System.out.println(m.getContentDisplay());
-                } else if (msg.startsWith("!join")) {
-                    Guild guild = e.getJDA().getGuildById(split[1]);
-                    guild.getAudioManager().openAudioConnection(guild.getVoiceChannelById(split[2]));
-                    guild.getAudioManager().setSendingHandler(new AudioSendHandler() {
-                        @Override
-                        public boolean canProvide() {
-                            return true;
-                        }
-
-                        @Nullable
-                        @Override
-                        public ByteBuffer provide20MsAudio() {
-                            return ByteBuffer.allocate(3840);
-                        }
-                    });
-                } else if (msg.equalsIgnoreCase("!test")) {
-                    for (int y = 7; y <= 24; y += 17) {
-                        for (int x = 68; x <= 86; x += 6) {
-                            List<List<Object>> list = new ArrayList<>();
-                            for (int i = 0; i < 12; i++) {
-                                list.add(Arrays.asList(0, 0));
-                            }
-                            String str = "Teamübersicht!" + ((char) x) + y;
-                            System.out.println(str);
-                            System.out.println(list);
-                            System.out.println();
-                        }
-                    }
-                } else if (msg.equals("!leon")) {
-                    leon = !leon;
-                    sendToMe(leon + "");
-                } else if (msg.equalsIgnoreCase("!pizza")) {
-                    pizza = !pizza;
-                    sendToMe(pizza + "");
-                } else if (msg.equalsIgnoreCase("!shutdown")) {
-                    e.getJDA().shutdownNow();
-                } else if (msg.equalsIgnoreCase("!disablesort")) {
-                    disablesort = true;
-                    sendToMe("Done!");
-                } else if (msg.equalsIgnoreCase("!disablestrike")) {
-                    PickCommand.isEnabled = false;
-                    sendToMe("Done!");
-                } else if (msg.startsWith("!ban ")) {
-                    e.getJDA().getGuildById(msg.split(" ")[1]).ban(msg.split(" ")[2], 0).queue();
-                } else if (msg.equalsIgnoreCase("!updatedatabase")) {
-                    loadJSONFiles();
-                    sendToMe("Done!");
-                } else if (msg.equalsIgnoreCase("!ej")) {
-                    emolgajson = load("./emolgadata.json");
-                    sendToMe("Done!");
-                } else if (msg.equalsIgnoreCase("!updatestats")) {
-                    ArrayList<String> statorder = new ArrayList<>();
-                    JSONObject obj = getStatisticsJSON();
-                    if (!obj.getString("order").equals(""))
-                        statorder.addAll(Arrays.asList(obj.getString("order").split(",")));
-                    int games = obj.getInt("games");
-                    JSONObject bst = getEmolgaJSON().getJSONObject("BST");
-                    String sid = bst.getString("sid");
-                    List<List<Object>> statsend = new ArrayList<>();
-                    int i = 3;
-                    for (String s : statorder) {
-                        JSONObject o = obj.getJSONObject(s);
-                        int urate = o.getInt("usagerate");
-                        int winrate = o.getInt("winrate");
-                        int kills = o.getInt("kills");
-                        int deaths = o.getInt("deaths");
-                        System.out.println("s = " + s);
-                        statsend.add(Arrays.asList(
-                                urate,
-                                "=RUNDEN(C" + i + " / A1; 4)",
-                                winrate,
-                                "=WENN(C" + i + " = 0; 0; RUNDEN(E" + i + " / C" + i + "; 4))",
-                                kills,
-                                "=WENN(C" + i + " = 0; 0; RUNDEN(G" + i + " / C" + i + "; 2))",
-                                deaths,
-                                "=WENN(C" + i + " = 0; 0; RUNDEN(I" + i + " / C" + i + "; 2))"));
-                        i++;
-                    }
-                    new RequestBuilder(sid).addAll("Statistiken!C3", statsend).addSingle("Statistiken!A1", games).execute();
-                } else if (msg.equalsIgnoreCase("!updategiveaways")) {
-                    Giveaway.giveaways.clear();
-                    if (emolgajson.has("giveaways")) {
-                        JSONArray arr = emolgajson.getJSONArray("giveaways");
-                        for (Object o : arr) {
-                            JSONObject obj = (JSONObject) o;
-                            new Giveaway(obj.getString("tcid"), obj.getString("author"), new Date(obj.getLong("end")).toInstant(), obj.getInt("winners"), obj.getString("prize"), obj.getString("mid"));
-                        }
-                    }
-                    sendToMe("Done!");
-                } else if (msg.equalsIgnoreCase("!sortbst")) {
-                    sortBST();
-                    sendToMe("Done!");
-                } else if (msg.startsWith("!style")) {
-                    Guild guild = e.getJDA().getGuildById("709877545708945438");
-                    Emote love = guild.getEmoteById("710842233712017478");
-                    Emote beep = guild.getEmoteById("745355018676469844");
-                    JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("Wooloo Cup");
-                    if (!league.has("doc")) return;
-                    String sid = league.getJSONObject("doc").getString("sid");
-                    Message message = guild.getTextChannelById("749194448507764766").sendMessage(split[1] + " (" + love.getAsMention() + ") oder " + split[2] + " (" + beep.getAsMention() + ")?").complete();
-                    message.addReaction(love).queue();
-                    message.addReaction(beep).queue();
-                    if (!json.has("style")) json.put("style", new JSONArray());
-                    JSONArray style = json.getJSONArray("style");
-                    JSONObject obj = new JSONObject();
-                    obj.put("uid1", split[1]);
-                    obj.put("uid2", split[2]);
-                    obj.put("mid", message.getId());
-                    obj.put("timer", System.currentTimeMillis() + 86400000 + "");
-                    style.put(obj);
-                    new Timer().schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            woolooStyle(sid, message, split[1], split[2]);
-                        }
-                    }, 86400000);
-                    saveEmolgaJSON();
-                } else if (msg.startsWith("!del ")) {
-                    e.getJDA().getTextChannelById(split[1]).deleteMessageById(split[2]).queue();
-                } else if (msg.startsWith("!as")) {
-                    as = e.getJDA().getGuildById(split[1]).retrieveMemberById(split[2]).complete();
-                    sendToMe("Done! **As** is now " + as.getAsMention());
-                } else if (msg.equalsIgnoreCase("!checkbst")) {
-                    checkBST = !checkBST;
-                    sendToMe("CheckBST: " + checkBST);
-                } else if (msg.startsWith("!sortzbs")) {
-                    JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ZBSL" + split[1]);
-                    sortZBS(league.getJSONObject("doc").getString("sid"), "Liga " + split[1], league);
-                } else if (msg.equalsIgnoreCase("!initdrafts")) {
-                    JDA jda = e.getJDA();
-                    new Draft(jda.getTextChannelById("765218911800918026"), "Coach", "765235829756002335", true);
-                    new Draft(jda.getTextChannelById("765219001176424539"), "PK1", "765235875252535316", true);
-                    new Draft(jda.getTextChannelById("765219049142878228"), "PK2", "765235910513000530", true);
-                    new Draft(jda.getTextChannelById("765219098216759317"), "PK3", "765235944437448704", true);
-                } else if (msg.startsWith("!troll ")) {
-                    Category category = e.getJDA().getCategoryById(split[1]);
-                    Guild guild = category.getGuild();
-                    Member user = guild.retrieveMemberById(split[2]).complete();
-                    ArrayList<VoiceChannel> list = new ArrayList<>(category.getVoiceChannels());
-                    Collections.shuffle(list);
-                    VoiceChannel old = user.getVoiceState().getChannel();
-                    list.remove(old);
-                    for (VoiceChannel voiceChannel : list) {
-                        guild.moveVoiceMember(user, voiceChannel).queue();
-                        try {
-                            Thread.sleep(500);
-                        } catch (InterruptedException interruptedException) {
-                            interruptedException.printStackTrace();
-                        }
-                    }
-                    guild.moveVoiceMember(user, old).queue();
-                } else if (msg.startsWith("!trollall")) {
-                    Category category = e.getJDA().getCategoryById(split[1]);
-                    Guild guild = category.getGuild();
-                    Member user = guild.retrieveMemberById(split[2]).complete();
-                    VoiceChannel old = user.getVoiceState().getChannel();
-                    List<Member> members = guild.getVoiceStates().stream().filter(st -> st.inVoiceChannel() && st.getChannel().getId().equals(old.getId())).map(GuildVoiceState::getMember).collect(Collectors.toList());
-                    for (Member mem : members) {
-                        new Thread(() -> {
-                            ArrayList<VoiceChannel> list = new ArrayList<>(category.getVoiceChannels());
-                            Collections.shuffle(list);
-                            list.remove(old);
-                            for (VoiceChannel voiceChannel : list) {
-                                guild.moveVoiceMember(mem, voiceChannel).queue();
-                                try {
-                                    Thread.sleep(500);
-                                } catch (InterruptedException interruptedException) {
-                                    interruptedException.printStackTrace();
-                                }
-                            }
-                            guild.moveVoiceMember(mem, old).queue();
-                        }).start();
-                    }
-                }
+                PrivateCommands.fromGuild(e);
             }
             if (tco.getId().equals("758198459563114516")) {
                 g.addRoleToMember(member, g.getRoleById("758254829885456404")).queue();
@@ -1266,6 +749,38 @@ public class EmolgaListener extends ListenerAdapter {
             }
             if ((tco.getId().equals("712612442622001162") || tco.getId().equals("724034089891397692")) && m.getAttachments().size() > 0) {
                 tco.sendMessage("Gz!").queue();
+            }
+            if (emotesteal.contains(tco.getId())) {
+                List<Emote> l = m.getEmotes();
+                for (Emote emote : l) {
+                    try {
+                        g.createEmote(emote.getName(), Icon.from(new URL(emote.getImageUrl()).openStream())).queue();
+                    } catch (IOException ioException) {
+                        ioException.printStackTrace();
+                    }
+                }
+            }
+            if (tco.getId().equals("778380440078647296")) {
+                String[] split = msg.split(" ");
+                JSONObject counter = shinycountjson.getJSONObject("counter");
+                if (m.getEmotes().size() == 0) return;
+                String eid = m.getEmotes().get(0).getId();
+                Optional<String> mop = counter.keySet().stream().filter(s -> counter.getJSONObject(s).getString("emote").equals(eid)).findFirst();
+                if (mop.isPresent()) {
+                    JSONObject o = shinycountjson.getJSONObject("counter").getJSONObject(mop.get());
+                    boolean isCmd = true;
+                    if (msg.startsWith("!set ")) {
+                        o.put(member.getId(), Integer.parseInt(split[1]));
+                    } else if (msg.startsWith("!reset ")) {
+                        o.put(member.getId(), 0);
+                    } else if (msg.startsWith("!add ")) {
+                        o.put(member.getId(), o.optInt(member.getId(), 0) + Integer.parseInt(split[1]));
+                    } else isCmd = false;
+                    if (isCmd) {
+                        m.delete().queue();
+                        updateShinyCounts();
+                    }
+                }
             }
             if (meid.equals("159985870458322944") && g.getId().equals("712035338846994502")) {
                 if (msg.contains(", du erreichst Level ")) {
@@ -1363,22 +878,17 @@ public class EmolgaListener extends ListenerAdapter {
                 }
             }
             JSONObject json = getEmolgaJSON();
-            JSONObject analyse = json.getJSONObject("analyse");
-            if (analyse.keySet().contains(tco.getId())) {
+            JSONObject analysis = json.getJSONObject("analyse");
+            if (analysis.keySet().contains(tco.getId())) {
                 if (msg.contains("https://")) {
-                    String url = null;
-                    for (String s : msg.split("\n")) {
-                        //System.out.println("s = " + s);
-                        if (!s.contains("https://replay.pokemonshowdown.com")) continue;
-                        url = s.substring(s.indexOf("https://"), s.indexOf(" ", s.indexOf("https://") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("https://") + 1));
-                        break;
-                    }
-                    if (url != null) {
+                    Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com")).map(s -> s.substring(s.indexOf("https://"), s.indexOf(" ", s.indexOf("https://") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("https://") + 1))).findFirst();
+                    if (urlop.isPresent()) {
+                        String url = urlop.get();
                         System.out.println(url);
                         Player[] game = Analysis.analyse(url);
                         System.out.println("Analysed!");
                         if (game == null) {
-                            tco.getGuild().getTextChannelById(analyse.getString(tco.getId())).sendMessage("Da in einem der beiden Teams ein Zoroark ist, kann ich das Ergebnis nicht bestimmen! Trage die Ergebnisse bitte selber ein!").queue();
+                            tco.getGuild().getTextChannelById(analysis.getString(tco.getId())).sendMessage("Da in einem der beiden Teams ein Zoroark ist, kann ich das Ergebnis nicht bestimmen! Trage die Ergebnisse bitte selber ein!").queue();
                             return;
                         }
                         int aliveP1 = 0;
@@ -1448,7 +958,7 @@ public class EmolgaListener extends ListenerAdapter {
                                     + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2.toString();
                         }
                         if (!gid.equals("518008523653775366")) {
-                            tco.getGuild().getTextChannelById(analyse.getString(tco.getId())).sendMessage(str).queue();
+                            tco.getGuild().getTextChannelById(analysis.getString(tco.getId())).sendMessage(str).queue();
                             System.out.println("In Emolga Listener!");
                         }
                         if (!gid.equals("518008523653775366") && !gid.equals("447357526997073930") && !gid.equals("709877545708945438") && !gid.equals("747357029714231299"))

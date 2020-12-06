@@ -93,7 +93,7 @@ public class DataCommand extends Command {
                     HashMap<Double, ArrayList<String>> heights = new HashMap<>();
                     for (JSONObject obj : list) {
                         double d = obj.getDouble("heightm");
-                        if (heights.containsKey(d)) heights.get(d).add(obj.getString("forme"));
+                        if (heights.containsKey(d)) heights.get(d).add(obj.has("forme") ? obj.getString("forme") : "Normal");
                         else
                             heights.put(d, new ArrayList<>(Collections.singletonList(obj.has("forme") ? obj.getString("forme") : "Normal")));
                     }
@@ -119,7 +119,7 @@ public class DataCommand extends Command {
                     HashMap<Double, ArrayList<String>> weights = new HashMap<>();
                     for (JSONObject obj : list) {
                         double d = obj.getDouble("weightkg");
-                        if (weights.containsKey(d)) weights.get(d).add(obj.getString("forme"));
+                        if (weights.containsKey(d)) weights.get(d).add(obj.has("forme") ? obj.getString("forme") : "Normal");
                         else
                             weights.put(d, new ArrayList<>(Collections.singletonList(obj.has("forme") ? obj.getString("forme") : "Normal")));
                     }

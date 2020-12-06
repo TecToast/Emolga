@@ -53,7 +53,7 @@ public class MovesCommand extends Command {
                 attacks = getAttacksFrom(pokemon, msg, form, gen);
                 Collections.sort(attacks);
                 if (attacks.size() == 0) {
-                    tco.sendMessage(pokemon + " kann keine " + (msg.toLowerCase().contains("--phys") ? "physische " : (msg.toLowerCase().contains("--spez") ? "spezielle " : (msg.toLowerCase().contains("--status") ? "Status-" : ""))) + (msg.toLowerCase().contains("--prio") ? "Prio-" : "") + "Attacke " + (getType(msg).equals("") ? "" : ("vom Typ " + getType(msg) + " ")) + "erlernen!").queue();
+                    tco.sendMessage(pokemon + " kann keine Attacken mit den angegebenen Spezifikationen erlernen!").queue();
                 } else {
                     if (attacks.size() == 1) if (attacks.get(0).equals("ERROR")) {
                         tco.sendMessage("Dieses Pokemon hat keine " + form + "-Form!").queue();
@@ -61,14 +61,14 @@ public class MovesCommand extends Command {
                     }
                     EmbedBuilder builder = new EmbedBuilder();
                     String prefix = form.equals("Normal") ? "" : form + "-";
-                    builder.setTitle("Attacken von " + prefix + pokemon).setColor(new Color(0, 255, 255));
+                    builder.setTitle("Attacken von " + prefix + pokemon).setColor(Color.CYAN);
                     StringBuilder str = new StringBuilder();
                     for (String o : attacks) {
                         str.append(o).append("\n");
                         if (str.length() > 1900) {
                             tco.sendMessage(builder.setDescription(str.toString()).build()).queue();
                             builder = new EmbedBuilder();
-                            builder.setTitle("Attacken von " + prefix + pokemon).setColor(new Color(0, 255, 255));
+                            builder.setTitle("Attacken von " + prefix + pokemon).setColor(Color.CYAN);
                             str = new StringBuilder();
                         }
                     }

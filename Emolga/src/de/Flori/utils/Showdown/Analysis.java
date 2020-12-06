@@ -32,13 +32,13 @@ public class Analysis {
             //Welche Commands sind dabei?
             if (s.contains("|poke|p1")) {
                 String str = s.split("\\|")[3].split(",")[0];
-                if(str.contains("Zoroark") || str.contains("Zorua")) return null;
+                if (str.contains("Zoroark") || str.contains("Zorua")) return null;
                 if (str.contains("Urshifu")) str = "Urshifu-Rapid-Strike";
                 p1.getMons().add(new SDPokemon(str));
             }
             if (s.contains("|poke|p2")) {
                 String str = s.split("\\|")[3].split(",")[0];
-                if(str.contains("Zoroark") || str.contains("Zorua")) return null;
+                if (str.contains("Zoroark") || str.contains("Zorua")) return null;
                 if (str.contains("Urshifu")) str = "Urshifu-Rapid-Strike";
                 p2.getMons().add(new SDPokemon(str));
             }
@@ -74,6 +74,9 @@ public class Analysis {
                 }
                 if (s.split("\\|")[3].split(",")[0].contains("Gourgeist") && p1.indexOfName("Gourgeist-*") != -1) {//Genesect-Problem
                     p1.getMons().get(p1.indexOfName("Gourgeist-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                }
+                if (s.split("\\|")[3].split(",")[0].contains("Urshifu") && p1.indexOfName("Urshifu-*") != -1) {//Genesect-Problem
+                    p1.getMons().get(p1.indexOfName("Urshifu-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
                 }//Hier
                 try {
                     String mon = s.split("\\|")[3].split(",")[0];
@@ -114,7 +117,6 @@ public class Analysis {
              * LastMove abspeichern
              */
             if (s.contains("|move|p1")) {
-                System.out.println(s.split("\\|")[2].substring(5));
                 lastMove = p1.getMons().get(p1.indexOfNick(s.split("\\|")[2].substring(5)));
             }
             if (s.contains("|move|p2")) {
@@ -213,7 +215,7 @@ public class Analysis {
                         activeP1.setLastDmgBy(activeP1.getBindedBy());
                     }
                 }
-                if (b) {
+                if ((s.contains("|-damage|p2")) && (s.split("\\|").length == 6)) {
                     if (s.contains("0 fnt")) {
                         activeP2.setDead(true);
                         activeP2.getBindedBy().killsPlus1();

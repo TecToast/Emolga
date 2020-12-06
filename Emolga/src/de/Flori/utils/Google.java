@@ -16,18 +16,26 @@ import com.google.api.services.youtube.model.SearchResult;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 
 public class Google {
 
-    public static String REFRESHTOKEN;
-    public static String CLIENTID;
-    public static String CLIENTSECRET;
+    private static String REFRESHTOKEN;
+    private static String CLIENTID;
+    private static String CLIENTSECRET;
     private static String accesstoken;
 
+    public static void setCredentials(String refreshToken, String clientID, String clientSecret) {
+        REFRESHTOKEN = refreshToken;
+        CLIENTID = clientID;
+        CLIENTSECRET = clientSecret;
+    }
+
     public static SearchResult getVid(String vid, boolean recursive) throws IllegalArgumentException {
+        refreshTokenIfNotPresent();
         try {
             return getYouTubeService().search().list(Collections.singletonList("snippet")).setQ(vid).setMaxResults((long) 1).execute().getItems().get(0);
         } catch (GoogleJsonResponseException ex) {
@@ -43,6 +51,7 @@ public class Google {
     }
 
     public static List<List<Object>> get(String spreadsheetId, String range, boolean formula, boolean recursive) throws IllegalArgumentException {
+        refreshTokenIfNotPresent();
         try {
             return getSheetsService().spreadsheets().values().get(spreadsheetId, range).setValueRenderOption(formula ? "FORMULA" : "FORMATTED_VALUE").execute().getValues();
         } catch (GoogleJsonResponseException ex) {
@@ -58,6 +67,7 @@ public class Google {
     }
 
     public static void updateRequest(String spreadsheetId, String range, List<List<Object>> values, boolean raw, boolean recursive) throws IllegalArgumentException {
+        refreshTokenIfNotPresent();
         try {
             getSheetsService().spreadsheets().values().update(spreadsheetId, range, new ValueRange().setValues(values)).setValueInputOption(raw ? "RAW" : "USER_ENTERED").execute();
         } catch (GoogleJsonResponseException ex) {
@@ -70,21 +80,44 @@ public class Google {
         }
     }
 
-    public static Spreadsheet getSheetData(String spreadsheetId, String range, boolean recursive) throws IllegalArgumentException {
+    public static Spreadsheet getSheetData(String spreadsheetId, boolean recursive, String... range) throws IllegalArgumentException {
+        refreshTokenIfNotPresent();
         try {
-            return getSheetsService().spreadsheets().get(spreadsheetId).setIncludeGridData(true).setRanges(Collections.singletonList(range)).execute();
+            System.out.println(1);
+            Sheets.Spreadsheets.Get get = getSheetsService().spreadsheets().get(spreadsheetId).setIncludeGridData(true);
+            System.out.println(2);
+            if (range != null) get.setRanges(Arrays.asList(range));
+            System.out.println(3);
+            return get.execute();
         } catch (GoogleJsonResponseException ex) {
             ex.printStackTrace();
             if (recursive) throw new IllegalArgumentException("Fehler bei getSheetData");
             generateAccessToken();
-            return getSheetData(spreadsheetId, range, true);
+            return getSheetData(spreadsheetId, true, range);
         } catch (IOException e) {
             e.printStackTrace();
         }
         return null;
     }
 
+    public static List<ValueRange> batchGet(String spreadsheetId, List<String> range, boolean formula, boolean recursive) throws IllegalArgumentException {
+        refreshTokenIfNotPresent();
+        try {
+            return getSheetsService().spreadsheets().values().batchGet(spreadsheetId).setRanges(range).setValueRenderOption(formula ? "FORMULA" : "FORMATTED_VALUE").execute().getValueRanges();
+        } catch (GoogleJsonResponseException ex) {
+            ex.printStackTrace();
+            if (recursive) throw new IllegalArgumentException("Fehler bei get");
+            generateAccessToken();
+            return batchGet(spreadsheetId, range, formula, true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println("NULL");
+        return null;
+    }
+
     public static void batchUpdateRequest(String spreadsheetId, Request request, boolean recursive) throws IllegalArgumentException {
+        refreshTokenIfNotPresent();
         try {
             getSheetsService().spreadsheets().batchUpdate(spreadsheetId, new BatchUpdateSpreadsheetRequest()
                     .setRequests(Collections.singletonList(request))).execute();
@@ -99,6 +132,7 @@ public class Google {
     }
 
     public static Sheets getSheetsService() {
+        refreshTokenIfNotPresent();
         try {
             return new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), new Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(accesstoken))
                     .setApplicationName("Emolga")
@@ -110,9 +144,14 @@ public class Google {
     }
 
     private static YouTube getYouTubeService() throws GeneralSecurityException, IOException {
+        refreshTokenIfNotPresent();
         return new YouTube.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), new Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(accesstoken))
                 .setApplicationName("Emolga")
                 .build();
+    }
+
+    public static void refreshTokenIfNotPresent() {
+        if(accesstoken == null) generateAccessToken();
     }
 
     public static void generateAccessToken() {

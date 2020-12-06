@@ -13,7 +13,6 @@ import org.json.JSONObject;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static de.Flori.Emolga.EmolgaListener.checkBST;
 
 public class ResultCommand extends Command {
     final HashSet<String> current = new HashSet<>();

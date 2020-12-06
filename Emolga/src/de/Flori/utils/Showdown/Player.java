@@ -4,10 +4,9 @@ import java.util.ArrayList;
 
 public class Player {
 
+    private final ArrayList<SDPokemon> mons = new ArrayList<>();
     //Hazards, die auf der eigenen Seite liegen
     private SDPokemon spikesBy, tSpikesBy, rocksBy;
-
-    private final ArrayList<SDPokemon> mons = new ArrayList<>();
     private String nickname;
     private boolean winner = false;
 

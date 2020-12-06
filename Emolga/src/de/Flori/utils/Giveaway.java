@@ -27,10 +27,12 @@ public class Giveaway {
     public final Instant end;
     public final int winners;
     public final String prize;
-    public String messageId = null;
     public final String channelId;
     public final String userId;
     public final Timer timer = new Timer();
+    public String messageId = null;
+    public boolean isEnded = false;
+    public boolean isRole = false;
 
     public Giveaway(String channelId, String userId, Instant end, int winners, String prize) {
         this.channelId = channelId;
@@ -51,10 +53,11 @@ public class Giveaway {
         System.out.println(end.toEpochMilli() - System.currentTimeMillis());
     }
 
-    public Giveaway(String channelId, String userId, Instant end, int winners, String prize, String mid) {
+    public Giveaway(String channelId, String userId, Instant end, int winners, String prize, String mid, boolean isRole) {
         this.messageId = mid;
         this.channelId = channelId;
         this.userId = userId;
+        this.isRole = isRole;
         this.end = end;
         this.winners = winners;
         this.prize = prize == null ? null : prize.isEmpty() ? null : prize;
@@ -79,9 +82,9 @@ public class Giveaway {
         eb.setColor(Color.CYAN);
         eb.setFooter((winners == 1 ? "" : winners + " Gewinner | ") + "Endet", null);
         eb.setTimestamp(end);
-        eb.setDescription("Reagiere mit " + "\uD83C\uDF89" + " um dem Giveaway beizutreten!"
+        eb.setDescription("Reagiere mit " + Constants.APFELKUCHENMENTION + " um dem Giveaway beizutreten!"
                 + "\nVerbleibende Zeit: " + secondsToTime(now.until(end, ChronoUnit.SECONDS))
-                + "\nGehostet von: <@" + userId + ">");
+                + "\nGehostet von: <@" + (isRole ? "&" : "") + userId + ">");
         if (prize != null)
             eb.setAuthor(prize, null, null);
         if (close)
@@ -95,6 +98,7 @@ public class Giveaway {
     }
 
     public void end() {
+        isEnded = true;
         JSONObject json = getEmolgaJSON();
         if (json.has("giveaways")) {
             JSONArray arr = json.getJSONArray("giveaways");
@@ -120,7 +124,12 @@ public class Giveaway {
             eb.setAuthor(prize, null, null);
         try {
 
-            Optional<MessageReaction> opt = EmolgaMain.jda.getTextChannelById(channelId).retrieveMessageById(messageId).complete().getReactions().stream().filter(mr -> mr.getReactionEmote().isEmoji() && mr.getReactionEmote().getEmoji().equals("\uD83C\uDF89")).findFirst();
+            Optional<MessageReaction> opt;
+            if(messageId.equals("775761399737352222")) {
+                opt = EmolgaMain.jda.getTextChannelById(channelId).retrieveMessageById(messageId).complete().getReactions().stream().filter(mr -> mr.getReactionEmote().isEmoji() && mr.getReactionEmote().getEmoji().equals("\uD83C\uDF89")).findFirst();
+            } else {
+                opt = EmolgaMain.jda.getTextChannelById(channelId).retrieveMessageById(messageId).complete().getReactions().stream().filter(mr -> mr.getReactionEmote().isEmote() && mr.getReactionEmote().getEmote().getId().equals("772191611487780934")).findFirst();
+            }
             ArrayList<Member> members = new ArrayList<>();
             opt.ifPresent(mr -> mr.retrieveUsers().complete().stream().filter(u -> !u.isBot() && !u.getId().equals(userId)).forEach(u -> members.add(EmolgaMain.jda.getTextChannelById(channelId).getGuild().retrieveMember(u).complete())));
             ArrayList<Member> wins = new ArrayList<>();
@@ -144,15 +153,14 @@ public class Giveaway {
                 toSend = "Herzlichen Glückwunsch " + wins.stream().map(Member::getAsMention).collect(Collectors.joining(", "));
                 toSend += "! Ihr habt" + (prize == null ? "" : " **" + prize + "**") + " gewonnen!";
             }
-            mb.setEmbed(eb.appendDescription("\nGehostet von: <@" + userId + ">").build());
+            mb.setEmbed(eb.appendDescription("\nGehostet von: <@" + (isRole ? "&" : "") + userId + ">").build());
             EmolgaMain.todel.add(this);
             EmolgaMain.jda.getTextChannelById(channelId).editMessageById(messageId, mb.build()).queue();
             EmolgaMain.jda.getTextChannelById(channelId).sendMessage(toSend).queue();
-            //});
 
         } catch (Exception e) {
             e.printStackTrace();
-            mb.setEmbed(eb.setDescription("Es konnte kein Gewinner festgestellt werden!\nGehostet von: <@" + userId + ">").build());
+            mb.setEmbed(eb.setDescription("Es konnte kein Gewinner festgestellt werden!\nGehostet von: <@" + (isRole ? "&" : "") + userId + ">").build());
             EmolgaMain.jda.getTextChannelById(channelId).editMessageById(messageId, mb.build()).queue();
             EmolgaMain.jda.getTextChannelById(channelId).sendMessage("Es konnte kein Gewinner festgestellt werden!").queue();
         }

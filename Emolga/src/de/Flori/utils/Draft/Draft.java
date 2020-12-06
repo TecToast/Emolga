@@ -24,20 +24,16 @@ public class Draft {
     //public HashMap<Member, Message> messages = new HashMap<>();
     public final HashMap<Member, ArrayList<DraftPokemon>> picks = new HashMap<>();
     public final HashMap<Integer, ArrayList<Member>> order = new HashMap<>();
-    public ArrayList<Member> members;
-    public Member current;
-    public int round = 0;
     public final HashMap<Member, Integer> points = new HashMap<>();
     public final TextChannel tc;
     public final String name;
-    public Timer cooldown = new Timer();
-    public TextChannel ts;
     public final String guild;
     public final boolean isPointBased;
-
-    public Tierlist getTierlist() {
-        return Tierlist.getByGuild(guild);
-    }
+    public ArrayList<Member> members;
+    public Member current;
+    public int round = 0;
+    public Timer cooldown = new Timer();
+    public TextChannel ts;
 
     public Draft(TextChannel tc, String name, String tcid, boolean fromFile) {
         this.tc = tc;
@@ -145,11 +141,6 @@ public class Draft {
         }).start();
     }
 
-    /*public static boolean isDraftIn(TextChannel tc) {
-        List<String> list = drafts.stream().map(draft -> draft.tc.getId()).collect(Collectors.toList());
-        return list.contains(tc.getId());
-    }*/
-
     public static void init() {
         Tierlist.setup();
         /*JSONObject json = getEmolgaJSON();
@@ -204,6 +195,11 @@ public class Draft {
         }*/
     }
 
+    /*public static boolean isDraftIn(TextChannel tc) {
+        List<String> list = drafts.stream().map(draft -> draft.tc.getId()).collect(Collectors.toList());
+        return list.contains(tc.getId());
+    }*/
+
     public static Draft getDraftByMember(Member member, TextChannel tco) {
         JSONObject json = getEmolgaJSON();
         JSONObject drafts = json.getJSONObject("drafts").getJSONObject("ASLS7");
@@ -212,7 +208,8 @@ public class Draft {
             System.out.println(draft.members.stream().map(mem -> mem.getId() + ":" + mem.getEffectiveName()).collect(Collectors.joining("\n")));
             if (!draft.tc.getId().equals(tco.getId())) continue;
             ArrayList<String> mates = getTeamMates(member.getId());
-            if (draft.members.stream().anyMatch(mem -> mem.getId().equals(member.getId()) || mates.contains(mem.getId()))) return draft;
+            if (draft.members.stream().anyMatch(mem -> mem.getId().equals(member.getId()) || mates.contains(mem.getId())))
+                return draft;
             JSONObject league = drafts.getJSONObject(draft.name);
             if (league.has("allowed")) {
                 JSONObject allowed = league.getJSONObject("allowed");
@@ -221,6 +218,10 @@ public class Draft {
         }
 
         return null;
+    }
+
+    public Tierlist getTierlist() {
+        return Tierlist.getByGuild(guild);
     }
 
     public String getMention(Member mem) {

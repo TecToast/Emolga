@@ -31,7 +31,7 @@ public class GcreateCommand extends Command {
     private final Set<String> current = new HashSet<>();
 
     public GcreateCommand() {
-        super("gcreate", "`!gcreate` Startet ein Giveaway", CommandCategory.Various, "712035338846994502", "756239772665511947", "518008523653775366", "673833176036147210");
+        super("gcreate", "`!gcreate` Startet ein Giveaway", CommandCategory.Various, "712035338846994502", "756239772665511947", "518008523653775366", "673833176036147210", "745934535748747364");
     }
 
 
@@ -52,7 +52,7 @@ public class GcreateCommand extends Command {
 
         // get started
         current.add(tco.getId());
-        if (e.getGuild().getId().equals("712035338846994502")) {
+        if (e.getGuild().getId().equals("712035338846994502") && !tco.getId().equals("735076688144105493")) {
             tco.sendMessage("Wie lange soll das Giveaway laufen?" + TIME).queue();
             waitForTime(e, e.getGuild().getTextChannelById("754239871870042202"));
             return;

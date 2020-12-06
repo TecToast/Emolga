@@ -48,7 +48,7 @@ public class UpcomingBirthdaysCommand extends Command {
             tco.sendMessage("Es gibt keine nahegelegenen Geburtstage!").queue();
             return;
         }
-        StringBuilder str = new StringBuilder("Kommende und vergangende Geburtstage:\n\n");
+        StringBuilder str = new StringBuilder("Naheliegende Geburtstage:\n\n");
         for (String s : map.keySet().stream().sorted(Comparator.comparing(s -> map.get(s).getTimeInMillis())).collect(Collectors.toList())) {
             Calendar c = map.get(s);
             str.append("`").append(getWithZeros(c.get(Calendar.DAY_OF_MONTH), 2)).append(".").append(getWithZeros(c.get(Calendar.MONTH) + 1, 2)).append(".").append("`: ").append(e.getGuild().retrieveMemberById(s).complete().getEffectiveName()).append("\n");

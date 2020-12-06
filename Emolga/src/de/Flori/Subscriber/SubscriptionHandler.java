@@ -13,27 +13,10 @@ import java.io.IOException;
  *
  * @author Benjamin Erb
  */
-@SuppressWarnings("JavaDoc")
+
 public interface SubscriptionHandler extends Handler {
-    /**
-     * Process a verification request by the hub.
-     *
-     * @param request Request
-     * @param response Response
-     * @param subscription Subscription
-     * @throws IOException
-     * @throws ServletException
-     */
+
     void handleVerify(HttpServletRequest request, HttpServletResponse response, Subscription subscription);
 
-    /**
-     * Process a notification request by the hub.
-     *
-     * @param request Request
-     * @param response Response
-     * @param subscription Subscription
-     * @throws IOException
-     * @throws ServletException
-     */
     void handleNotify(HttpServletRequest request, HttpServletResponse response, Subscription subscription);
 }

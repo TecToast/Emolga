@@ -22,6 +22,14 @@ public class NicknameCommand extends Command {
         String msg = m.getContentDisplay();
         Member member = e.getMember();
         String nickname = msg.substring(10);
+        if (!e.getGuild().getSelfMember().canInteract(member)) {
+            tco.sendMessage("Ich kann deinen Nickname nicht modifizieren!").queue();
+            return;
+        }
+        if (nickname.length() > 32) {
+            tco.sendMessage("Dieser Nickname ist zu lang! (Er darf maximal 32 Zeichen enthalten)").queue();
+            return;
+        }
         try {
             JSONObject json = getEmolgaJSON();
             Guild g = tco.getGuild();
@@ -43,16 +51,12 @@ public class NicknameCommand extends Command {
                 }
             }
             String oldname = member.getEffectiveName();
-            try {
-                member.modifyNickname(nickname).complete();
-                if (g.getId().equals("518008523653775366"))
-                    EmolgaMain.jda.getGuildById("518008523653775366").getTextChannelById("728675253924003870").sendMessage(oldname + " hat sich in " + nickname + " umbenannt!").queue();
-                tco.sendMessage(member.getAsMention() + " Dein Nickname wurde erfolgreich geändert!").queue();
-                json.getJSONObject("cooldowns").getJSONObject(g.getId()).put(member.getId(), Long.toString(System.currentTimeMillis()));
-                saveEmolgaJSON();
-            } catch (Exception ex) {
-                tco.sendMessage("Ich kann deinen Nickname nicht modifizieren!").queue();
-            }
+            member.modifyNickname(nickname).complete();
+            if (g.getId().equals("518008523653775366"))
+                EmolgaMain.jda.getGuildById("518008523653775366").getTextChannelById("728675253924003870").sendMessage(oldname + " hat sich in " + nickname + " umbenannt!").queue();
+            tco.sendMessage(member.getAsMention() + " Dein Nickname wurde erfolgreich geändert!").queue();
+            json.getJSONObject("cooldowns").getJSONObject(g.getId()).put(member.getId(), Long.toString(System.currentTimeMillis()));
+            saveEmolgaJSON();
         } catch (Exception ex) {
             ex.printStackTrace();
         }

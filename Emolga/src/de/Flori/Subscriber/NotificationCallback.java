@@ -11,11 +11,5 @@ import com.sun.syndication.feed.synd.SyndFeed;
  */
 public interface NotificationCallback
 {
-    /**
-     * The handle method is executed each time the original feed provides
-     * updates. The parameter contains a {@link SyndFeed} with all new entries.
-     *
-     * @param xml The XML String
-     */
     void handle(String xml);
 }

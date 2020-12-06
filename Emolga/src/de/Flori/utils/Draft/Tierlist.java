@@ -12,8 +12,32 @@ public class Tierlist {
     public final HashMap<String, Integer> prices = new HashMap<>();
     public final String guild;
     public final ArrayList<String> tiercolumns = new ArrayList<>();
-    public boolean isPointBased;
     public final ArrayList<String> order = new ArrayList<>();
+    public boolean isPointBased;
+
+    public Tierlist(String guild) {
+        this.guild = guild;
+        File dir = new File("./Tierlists/" + guild + "/");
+        for (File file : dir.listFiles()) {
+            try {
+                List<String> lines = Files.readAllLines(file.toPath());
+                String name = file.getName().substring(0, file.getName().length() - 4);
+                if (name.equals("data")) {
+                    isPointBased = lines.get(0).equalsIgnoreCase("points");
+                    order.addAll(Arrays.asList(lines.get(1).split(",")));
+                } else if (name.equals("tiercolumns")) {
+                    tiercolumns.addAll(lines);
+                } else {
+                    prices.put(name, Integer.parseInt(lines.remove(0)));
+                    tierlist.put(name, new ArrayList<>(lines));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+        list.add(this);
+    }
 
     public static void setup() {
         list.clear();
@@ -47,33 +71,8 @@ public class Tierlist {
     public String getNameOf(String s) {
         for (Map.Entry<String, ArrayList<String>> en : tierlist.entrySet()) {
             String str = en.getValue().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining(""));
-            if(!str.equals("")) return str;
+            if (!str.equals("")) return str;
         }
         return "";
-    }
-
-    public Tierlist(String guild) {
-        this.guild = guild;
-        File dir = new File("./Tierlists/" + guild + "/");
-        for (File file : dir.listFiles()) {
-            try {
-                List<String> lines = Files.readAllLines(file.toPath());
-                String name = file.getName().substring(0, file.getName().length() - 4);
-                if(name.equals("data")) {
-                    isPointBased = lines.get(0).equalsIgnoreCase("points");
-                    order.addAll(Arrays.asList(lines.get(1).split(",")));
-                }
-                else if (name.equals("tiercolumns")) {
-                    tiercolumns.addAll(lines);
-                } else {
-                    prices.put(name, Integer.parseInt(lines.remove(0)));
-                    tierlist.put(name, new ArrayList<>(lines));
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        }
-        list.add(this);
     }
 }

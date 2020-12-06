@@ -21,15 +21,9 @@ import java.net.URI;
  *
  * @author Benjamin Erb
  */
-@SuppressWarnings("JavaDoc")
 public class SubscriptionHandlerImpl extends AbstractHandler implements SubscriptionHandler {
     private final Subscriber subscriber;
 
-    /**
-     * Creates a new {@link SubscriptionHandler}.
-     *
-     * @param subscriber
-     */
     public SubscriptionHandlerImpl(Subscriber subscriber) {
         this.subscriber = subscriber;
     }

@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 public class UpdatepicksCommand extends Command {
     public UpdatepicksCommand() {
-        super("updatepicks", "`!updatepicks <TID> <Name>", CommandCategory.Flo);
+        super("updatepicks", "`!updatepicks <Text-Channel> <Name>", CommandCategory.Flo);
     }
 
     @Override

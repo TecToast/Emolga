@@ -20,5 +20,6 @@
     <orderEntry type="library" name="org.eclipse.jetty:jetty-util:7.0.1.v20091125" level="project" />
     <orderEntry type="library" name="rome:rome:1.0" level="project" />
     <orderEntry type="library" name="Google Docs" level="project" />
+    <orderEntry type="library" name="JDAUtilities" level="project" />
   </component>
 </module>

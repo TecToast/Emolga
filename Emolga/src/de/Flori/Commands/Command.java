@@ -15,6 +15,7 @@ import de.Flori.Commands.DexQuiz.DexquizCommand;
 import de.Flori.Commands.DexQuiz.SolutionCommand;
 import de.Flori.Commands.DexQuiz.TipCommand;
 import de.Flori.Commands.Draft.*;
+import de.Flori.Commands.Flo.EmoteStealCommand;
 import de.Flori.Commands.Flo.GetIdsCommand;
 import de.Flori.Commands.Flo.GiveMeAdminPermissionsCommand;
 import de.Flori.Commands.Music.*;
@@ -44,8 +45,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -53,13 +57,14 @@ public abstract class Command {
 
     public static final String NOPERM = "Dafür hast du keine Berechtigung!";
     public static final File emolgadata = new File("./emolgadata.json");
-    //protected static final String tradesid = "1KGpou63t5_V-9nZaIPt_LDKzBwsw-lDSOrn-p7QjbtY";
     public static final ArrayList<Command> commands = new ArrayList<>();
     public static final ArrayList<String> hazards = new ArrayList<>();
     public static final ArrayList<String> recovery = new ArrayList<>();
     public static final ArrayList<String> setup = new ArrayList<>();
     public static final ArrayList<String> momentum = new ArrayList<>();
     public static final ArrayList<String> flinch = new ArrayList<>();
+    public static final ArrayList<String> boom = new ArrayList<>();
+    public static final ArrayList<String> trap = new ArrayList<>();
     public static final ArrayList<Guild> chill = new ArrayList<>();
     public static final ArrayList<Guild> deep = new ArrayList<>();
     public static final ArrayList<Guild> music = new ArrayList<>();
@@ -71,6 +76,7 @@ public abstract class Command {
     public static final HashMap<String, Long> latestExp = new HashMap<>();
     public static final HashMap<String, Double> expmultiplicator = new HashMap<>();
     public static final HashMap<String, ReplayAnalyser> sdAnalyser = new HashMap<>();
+    public static final ArrayList<String> emotesteal = new ArrayList<>();
     public static JSONObject wikijson;
     public static JSONObject datajson;
     public static JSONObject movejson;
@@ -81,12 +87,14 @@ public abstract class Command {
     public static JSONObject statisticsjson;
     public static JSONObject ytjson;
     public static JSONObject leveljson;
+    public static JSONObject shinycountjson;
     public static JSONObject tokens;
     public static AudioPlayerManager playerManager;
-    //public static ArrayList<String> todel = new ArrayList<>();
     public static Map<Long, GuildMusicManager> musicManagers;
     public static ConcurrentLinkedQueue<byte[]> bytes = new ConcurrentLinkedQueue<>();
     public static boolean expEdited = false;
+    public static Member as = null;
+    public static boolean checkBST = false;
     protected static String tradesid;
     protected static List<String> balls;
     protected static List<String> mons;
@@ -570,6 +578,81 @@ public abstract class Command {
         return 0;
     }
 
+    public static void updateShinyCounts() {
+        StringBuilder b = new StringBuilder();
+        JSONObject counter = shinycountjson.getJSONObject("counter");
+        JSONObject names = shinycountjson.getJSONObject("names");
+        for (String method : shinycountjson.getString("methodorder").split(",")) {
+            JSONObject m = counter.getJSONObject(method);
+            b.append(method).append(": ").append(EmolgaMain.jda.getGuildById("745934535748747364").getEmoteById(m.getString("emote")).getAsMention()).append("\n");
+            for (String s : shinycountjson.getString("userorder").split(",")) {
+                b.append(names.getString(s)).append(": ").append(m.optInt(s, 0)).append("\n");
+            }
+            b.append("\n");
+        }
+        EmolgaMain.jda.getTextChannelById("778380440078647296").editMessageById("778380596413464676", b.toString()).queue();
+        save(shinycountjson, "shinycount.json");
+    }
+
+    //static Comparator<List<Object>> c = (Comparator) (o1, o2) -> 0;
+    public static void sortTablesPerDay() {
+        String sid = "18D3R5rX8kPpPU0BmdO79tWhWOlwLzoagmGlm3qVMAwg";
+        RequestBuilder b = new RequestBuilder(sid);
+        List<Request> l = new ArrayList<>();
+        ArrayList<String> sheetranges = new ArrayList<>();
+        ArrayList<String> pointsranges = new ArrayList<>();
+        ArrayList<String> formularanges = new ArrayList<>();
+        for (int gd = 1; gd <= 11; gd++) {
+            sheetranges.add("Spieltag " + gd + "!B3:B14");
+            formularanges.add("Spieltag " + gd + "!B3:J14");
+            pointsranges.add("Spieltag " + gd + "!C3:J14");
+        }
+        Google.generateAccessToken();
+        List<Sheet> sheets = Google.getSheetData(sid, false, sheetranges.toArray(new String[0])).getSheets();
+        List<ValueRange> getformula = Google.batchGet(sid, formularanges, true, false);
+        List<ValueRange> getpoints = Google.batchGet(sid, pointsranges, false, false);
+        HashMap<Integer, Sheet> gdsheets = new HashMap<>();
+        for (Sheet sheet : sheets) {
+            gdsheets.put(Integer.valueOf(sheet.getProperties().getTitle().split(" ")[1]), sheet);
+        }
+        for (int gd = 1; gd <= 11; gd++) {
+            List<List<Object>> formula = getformula.remove(0).getValues();
+            List<List<Object>> points = getpoints.remove(0).getValues();
+            List<List<Object>> orig = new ArrayList<>(points);
+            points.sort((o1, o2) -> compareColumns(o1, o2, 1, 7, 5));
+            Collections.reverse(points);
+            Sheet sh = gdsheets.get(gd);
+            ArrayList<com.google.api.services.sheets.v4.model.Color> formats = new ArrayList<>();
+            for (RowData rowDatum : sh.getData().get(0).getRowData()) {
+                formats.add(rowDatum.getValues().get(0).getEffectiveFormat().getBackgroundColor());
+            }
+            HashMap<Integer, List<Object>> valmap = new HashMap<>();
+            HashMap<Integer, com.google.api.services.sheets.v4.model.Color> formap = new HashMap<>();
+            int i = 0;
+            for (List<Object> objects : orig) {
+                int index = points.indexOf(objects);
+                valmap.put(index, formula.get(i));
+                formap.put(index, formats.get(i));
+                i++;
+            }
+            List<List<Object>> senddata = new ArrayList<>();
+            //List<List<Object>> sendname = new ArrayList<>();
+            ArrayList<RowData> rowData = new ArrayList<>();
+            for (int j = 0; j < 12; j++) {
+                senddata.add(valmap.get(j));
+                rowData.add(new RowData().setValues(Collections.singletonList(new CellData().setUserEnteredFormat(new CellFormat().setBackgroundColor(formap.get(j))))));
+            }
+            b.addAll("Spieltag " + gd + "!B3", senddata);
+            l.add(new Request().setUpdateCells(new UpdateCellsRequest().setRows(rowData)
+                    .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(sh.getProperties().getSheetId()).setStartRowIndex(2).setEndRowIndex(14).setStartColumnIndex(1).setEndColumnIndex(2))));
+        }
+        b.execute();
+        try {
+            Google.getSheetsService().spreadsheets().batchUpdate(sid, new BatchUpdateSpreadsheetRequest().setRequests(l)).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     public static void sortZBS(String sid, String tablename, JSONObject league) {
         List<List<Object>> formula = Google.get(sid, tablename + "!F13:M19", true, false);
         List<List<Object>> points = Google.get(sid, tablename + "!F13:M19", false, false);
@@ -643,7 +726,7 @@ public abstract class Command {
         HashMap<Integer, List<Object>> valmap = new HashMap<>();
         HashMap<Integer, List<Object>> namap = new HashMap<>();
         i = 0;
-        Spreadsheet s = Google.getSheetData(sid, "Tabelle!E3:E39", false);
+        Spreadsheet s = Google.getSheetData(sid, false, "Tabelle!E3:E39");
         Sheet sheet = s.getSheets().get(0);
         ArrayList<CellFormat> formats = new ArrayList<>();
         for (RowData rowDatum : sheet.getData().get(0).getRowData()) {
@@ -759,7 +842,7 @@ public abstract class Command {
     }
 
     public static synchronized GuildMusicManager getGuildAudioPlayer(Guild guild) {
-        long guildId = Long.parseLong(guild.getId());
+        long guildId = guild.getIdLong();
         GuildMusicManager musicManager = musicManagers.get(guildId);
 
         if (musicManager == null) {
@@ -939,6 +1022,7 @@ public abstract class Command {
         new MuffinCommand();
         new ShinyCommand();
         new CheckMonsCommand();
+        new EmoteStealCommand();
     }
 
     public static void awaitNextDay() {
@@ -1003,6 +1087,17 @@ public abstract class Command {
                 "Steinhagel\n" +
                 "Windhose\n" +
                 "Zen-Kopfstoß").split("\n")));
+        boom.addAll(Arrays.asList("Explosion,Finale,Nebelexplosion,Knallkopf".split(",")));
+        trap.addAll(Arrays.asList(("Blitzgefängnis\n" +
+                "Fangeisen\n" +
+                "Feuerwirbel\n" +
+                "Klammergriff\n" +
+                "Lavasturm\n" +
+                "Plage\n" +
+                "Sandgrab\n" +
+                "Schnapper\n" +
+                "Whirlpool\n" +
+                "Wickel").split("\n")));
         recovery.addAll(Arrays.asList(("Ableithieb\n" +
                 "Absorber\n" +
                 "Blubbsauger\n" +
@@ -1197,24 +1292,9 @@ public abstract class Command {
                     String pick = picks.get(j);
                     list.add(Arrays.asList(getMonIfPresent(kills, pick, pk, j), getNumber(kills, pick), getNumber(deaths, pick)));
                 }
-                List<List<Object>> get;
-                try {
-                    get = Google.get(sid, team + "!O" + (pk + 4) + ":Q" + (pk + 4), false, false);
-                } catch (IllegalArgumentException IllegalArgumentException) {
-                    IllegalArgumentException.printStackTrace();
-                    return;
-                }
-                int win = Integer.parseInt((String) get.get(0).get(0));
-                int loose = Integer.parseInt((String) get.get(0).get(2));
-                if (game[i].isWinner()) {
-                    win++;
-                    /*if (!league.has("results"))
-                        league.put("results", new JSONObject());
-                    league.getJSONObject("results").put(uid1 + ":" + uid2, uid);*/
-                } else loose++;
                 try {
                     b.addAll(team + "!" + getAsXCoord(gameday * 3 + 8) + (pk * 19 + 18), list)
-                            .addRow(team + "!O" + (pk + 4), Arrays.asList(win, "", loose));
+                            .addRow(team + "!" + getAsXCoord(gameday * 3 + 9) + (pk * 19 + 30), Arrays.asList(game[i].isWinner() ? 1 : 0, game[1 - i].isWinner() ? 1 : 0));
                 } catch (IllegalArgumentException IllegalArgumentException) {
                     IllegalArgumentException.printStackTrace();
                 }
@@ -1487,10 +1567,10 @@ public abstract class Command {
         statisticsjson = load("./statistics.json");
         ytjson = load("./yt.json");
         leveljson = load("./levels.json");
+        shinycountjson = load("./shinycount.json");
         tokens = load("./tokens.json");
-        Google.REFRESHTOKEN = tokens.getJSONObject("google").getString("refreshtoken");
-        Google.CLIENTID = tokens.getJSONObject("google").getString("clientid");
-        Google.CLIENTSECRET = tokens.getJSONObject("google").getString("clientsecret");
+        JSONObject google = tokens.getJSONObject("google");
+        Google.setCredentials(google.getString("refreshtoken"), google.getString("clientid"), google.getString("clientsecret"));
         tradesid = tokens.getString("tradedoc");
         Google.generateAccessToken();
     }
@@ -1541,7 +1621,8 @@ public abstract class Command {
                     return;
                 }
                 if (!command.category.allowsGuild(tco.getGuild())) return;
-                if (!command.allowedGuilds.isEmpty() && !command.allowedGuilds.contains(gid)) return;
+                if (!command.allowedGuilds.isEmpty() && !command.allowedGuilds.contains(gid) && !gid.equals("447357526997073930"))
+                    return;
                 if (command.wip && !mem.getId().equals(Constants.FLOID)) {
                     tco.sendMessage("Diese Funktion ist derzeit noch in Entwicklung und ist noch nicht einsatzbereit!").queue();
                     return;
@@ -1571,7 +1652,7 @@ public abstract class Command {
                     command.process(e);
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\n" + command.getHelp(e.getGuild())).queue();
+                    tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo/TecToast.\n" + command.getHelp(e.getGuild()) + (mem.getId().equals(Constants.FLOID) ? "\nJa, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
                 }
             }
         }
@@ -1643,8 +1724,9 @@ public abstract class Command {
         boolean setup = !msg.toLowerCase().contains("--setup");
         boolean momentum = !msg.toLowerCase().contains("--momentum");
         boolean flinch = !msg.toLowerCase().contains("--flinch");
+        boolean boom = !msg.toLowerCase().contains("--boom");
+        boolean trap = !msg.toLowerCase().contains("--trap");
         //boolean gen = !msg.contains("--gen");
-        //boolean how = !msg.contains("--flinch");
 
 
         /*try {
@@ -1673,6 +1755,8 @@ public abstract class Command {
                             (setup || Command.setup.contains(move)) &&
                             (momentum || Command.momentum.contains(move)) &&
                             (flinch || Command.flinch.contains(move)) &&
+                            (boom || Command.boom.contains(move)) &&
+                            (trap || Command.trap.contains(move)) &&
                             (containsGen(learnset, move, maxgen)) &&
                             !already.contains(move)) {
                         already.add(move);
@@ -1746,7 +1830,7 @@ public abstract class Command {
 
     public static List<List<Object>> getBlitzTable(boolean asIds) {
         List<List<Object>> list = new ArrayList<>();
-        JSONObject json = getEmolgaJSON().getJSONObject("BlitzS1");
+        JSONObject json = getEmolgaJSON().getJSONObject("BlitzTurnier");
         ArrayList<String> players = new ArrayList<>(Arrays.asList(json.getString("players").split(",")));
         HashMap<String, String> names = new HashMap<>();
         if (!asIds)
@@ -1969,6 +2053,61 @@ public abstract class Command {
         return level;
     }
 
+    public static void sortGamedayList() throws IOException {
+        String sid = "18D3R5rX8kPpPU0BmdO79tWhWOlwLzoagmGlm3qVMAwg";
+        RequestBuilder b = new RequestBuilder(sid);
+        List<Request> l = new ArrayList<>();
+        ArrayList<String> sheetranges = new ArrayList<>();
+        ArrayList<String> pointsranges = new ArrayList<>();
+        ArrayList<String> formularanges = new ArrayList<>();
+        for (int gd = 1; gd <= 11; gd++) {
+            sheetranges.add("Spieltag " + gd + "!B3:B14");
+            formularanges.add("Spieltag " + gd + "!B3:J14");
+            pointsranges.add("Spieltag " + gd + "!C3:J14");
+        }
+        Google.generateAccessToken();
+        List<Sheet> sheets = Google.getSheetData(sid, false, sheetranges.toArray(new String[0])).getSheets();
+        List<ValueRange> getformula = Google.batchGet(sid, formularanges, true, false);
+        List<ValueRange> getpoints = Google.batchGet(sid, pointsranges, false, false);
+        HashMap<Integer, Sheet> gdsheets = new HashMap<>();
+        for (Sheet sheet : sheets) {
+            gdsheets.put(Integer.valueOf(sheet.getProperties().getTitle().split(" ")[1]), sheet);
+        }
+        for (int gd = 1; gd <= 11; gd++) {
+            List<List<Object>> formula = getformula.remove(0).getValues();
+            List<List<Object>> points = getpoints.remove(0).getValues();
+            List<List<Object>> orig = new ArrayList<>(points);
+            points.sort((o1, o2) -> compareColumns(o1, o2, 1, 7, 5));
+            Collections.reverse(points);
+            Sheet sh = gdsheets.get(gd);
+            ArrayList<com.google.api.services.sheets.v4.model.Color> formats = new ArrayList<>();
+            for (RowData rowDatum : sh.getData().get(0).getRowData()) {
+                formats.add(rowDatum.getValues().get(0).getEffectiveFormat().getBackgroundColor());
+            }
+            HashMap<Integer, List<Object>> valmap = new HashMap<>();
+            HashMap<Integer, com.google.api.services.sheets.v4.model.Color> formap = new HashMap<>();
+            int i = 0;
+            for (List<Object> objects : orig) {
+                int index = points.indexOf(objects);
+                valmap.put(index, formula.get(i));
+                formap.put(index, formats.get(i));
+                i++;
+            }
+            List<List<Object>> senddata = new ArrayList<>();
+            //List<List<Object>> sendname = new ArrayList<>();
+            ArrayList<RowData> rowData = new ArrayList<>();
+            for (int j = 0; j < 12; j++) {
+                senddata.add(valmap.get(j));
+                rowData.add(new RowData().setValues(Collections.singletonList(new CellData().setUserEnteredFormat(new CellFormat().setBackgroundColor(formap.get(j))))));
+            }
+            b.addAll("Spieltag " + gd + "!B3", senddata);
+            l.add(new Request().setUpdateCells(new UpdateCellsRequest().setRows(rowData)
+                    .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(sh.getProperties().getSheetId()).setStartRowIndex(2).setEndRowIndex(14).setStartColumnIndex(1).setEndColumnIndex(2))));
+        }
+        b.execute();
+        Google.getSheetsService().spreadsheets().batchUpdate(sid, new BatchUpdateSpreadsheetRequest().setRequests(l)).execute();
+    }
+
     public static void sortASL() {
         String sid = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7").getString("sid");
         List<List<Object>> formula = Google.get(sid, "Tabelle!B3:J14", true, false);
@@ -1976,7 +2115,7 @@ public abstract class Command {
         List<List<Object>> orig = new ArrayList<>(points);
         points.sort((o1, o2) -> compareColumns(o1, o2, 1, 7, 5));
         Collections.reverse(points);
-        Spreadsheet s = Google.getSheetData(sid, "Tabelle!B3:B14", false);
+        Spreadsheet s = Google.getSheetData(sid, false, "Tabelle!B3:B14");
         ArrayList<com.google.api.services.sheets.v4.model.Color> formats = new ArrayList<>();
         for (RowData rowDatum : s.getSheets().get(0).getData().get(0).getRowData()) {
             formats.add(rowDatum.getValues().get(0).getEffectiveFormat().getBackgroundColor());
@@ -2001,6 +2140,7 @@ public abstract class Command {
         Google.batchUpdateRequest(sid, new Request().setUpdateCells(new UpdateCellsRequest().setRows(rowData)
                 .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(765460930).setStartRowIndex(2).setEndRowIndex(14).setStartColumnIndex(1).setEndColumnIndex(2))), false);
         System.out.println("Done!");
+        sortTablesPerDay();
     }
 
     public static void sortBST() {
@@ -2026,7 +2166,7 @@ public abstract class Command {
         });
         Collections.reverse(points);
         //System.out.println(points);
-        Spreadsheet s = Google.getSheetData(sid, "Tabelle!C3:C20", false);
+        Spreadsheet s = Google.getSheetData(sid, false, "Tabelle!C3:C20");
         Sheet sheet = s.getSheets().get(0);
         ArrayList<com.google.api.services.sheets.v4.model.Color> formats = new ArrayList<>();
         for (RowData rowDatum : sheet.getData().get(0).getRowData()) {
@@ -2066,19 +2206,6 @@ public abstract class Command {
                 .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(1702581801).setStartRowIndex(2).setEndRowIndex(20).setStartColumnIndex(2).setEndColumnIndex(3)));
         Google.batchUpdateRequest(sid, request, false);
         System.out.println("Done!");
-    }
-
-    public static String divAndRound(int x, int y, boolean percent) {
-        String str = String.valueOf(((double) x / (double) y) * (percent ? 100 : 1));
-        //System.out.println(prozent + " str1 = " + str);
-        if (str.length() <= 5) return str.equalsIgnoreCase("NaN") ? "0.0" : str;
-        str = str.substring(0, str.indexOf(".") + 4);
-        //System.out.println("str2 = " + str);
-        double d = Double.parseDouble(str.substring(0, str.length() - 1));
-        int i = Integer.parseInt(str.substring(str.length() - 1));
-        //System.out.println("i = " + i);
-        if (i >= 5) d += 0.01;
-        return Double.toString(d).equalsIgnoreCase("NaN") ? "0.0" : Double.toString(d);
     }
 
     public static String getBSTGerName(String s) {
@@ -2161,38 +2288,19 @@ public abstract class Command {
         if (check != null) return check;
         System.out.println("getGerName s = " + s);
         if (serebiiex.keySet().stream().anyMatch(s::equalsIgnoreCase)) {
-            String ex = serebiiex.keySet().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining(""));
-            System.out.println("ex = " + ex);
-            String ret = getGerName(ex.split("-")[0]) + "-" + ex.split("-")[1];
-            System.out.println("getGerName ret = " + ret);
-            return ret;
+            String[] ex = serebiiex.keySet().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining("")).split("-");
+            return getGerName(ex[0]) + "-" + ex[1];
         }
         if (s.equalsIgnoreCase("typ:null")) return "pkmn;Typ:Null";
-        JSONObject json = getWikiJSON();
-        String str = null;
-        for (String translations : json.getJSONObject("translations").keySet()) {
-            if (s.equalsIgnoreCase(translations)) {
-                str = translations;
-                break;
-            }
-        }
-        if (str == null) return "";
-        return json.getJSONObject("translations").getJSONObject(str).getString("type") + ";" + json.getJSONObject("translations").getJSONObject(str).getString("ger");
+        JSONObject t = getWikiJSON().getJSONObject("translations");
+        return t.keySet().stream().filter(s::equalsIgnoreCase).findFirst().map(value -> t.getJSONObject(value).getString("type") + ";" + t.getJSONObject(value).getString("ger")).orElse("");
     }
 
     public static String getEnglName(String s) {
         String check = checkShortcuts(s);
         if (check != null) s = check.split(";")[1];
-        JSONObject json = getWikiJSON();
-        String str = null;
-        for (String translations : json.getJSONObject("translations").keySet()) {
-            if (s.equalsIgnoreCase(translations)) {
-                str = translations;
-                break;
-            }
-        }
-        if (str == null) return "";
-        return json.getJSONObject("translations").getJSONObject(str).getString("engl");
+        JSONObject json = getWikiJSON().getJSONObject("translations");
+        return json.keySet().stream().filter(s::equalsIgnoreCase).findFirst().map(value -> json.getJSONObject(value).getString("engl")).orElse("");
     }
 
     public static boolean canLearn(String pokemon, String form, String atk, String msg, int maxgen) {
@@ -2223,9 +2331,7 @@ public abstract class Command {
     }*/
 
     public static String checkShortcuts(String s) {
-        JSONObject json = getWikiJSON().getJSONObject("shortcuts");
-        if (json.has(s.toLowerCase())) return json.getString(s.toLowerCase());
-        return null;
+        return getWikiJSON().getJSONObject("shortcuts").optString(s.toLowerCase(), null);
     }
 
     public static String getMonName(String s, String gid) {
@@ -2355,7 +2461,6 @@ public abstract class Command {
     }
 
     public String getHelp(Guild g) {
-        if (overrideHelp.containsKey(g.getId())) return overrideHelp.get(g.getId()) + (wip ? " (W.I.P.)" : "");
-        return help + (wip ? " (W.I.P.)" : "");
+        return overrideHelp.getOrDefault(g.getId(), help) + (wip ? " (W.I.P.)" : "");
     }
 }

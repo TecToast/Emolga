@@ -50,18 +50,14 @@ public class SmogonCommand extends Command {
             }
         }
         JSONObject json = new JSONObject(d.select("script").first().html().substring(14));
-        int x = 0;
         tco.sendMessage("Format: " + json.getJSONArray("injectRpcs").getJSONArray(2).getJSONObject(1).getJSONArray("strategies").getJSONObject(0).getString("format")).queue();
-        while (true) {
+        for (int x = 0; ; x++) {
             try {
                 JSONObject ms = json.getJSONArray("injectRpcs").getJSONArray(2).getJSONObject(1).getJSONArray("strategies").getJSONObject(0).getJSONArray("movesets").getJSONObject(x);
-                x++;
                 StringBuilder abilities = new StringBuilder();
-                int i = 0;
-                while (true) {
+                for (int i = 0; ; i++) {
                     try {
                         abilities.append(ms.getJSONArray("abilities").getString(i)).append(" / ");
-                        i++;
                     } catch (Exception ex) {
                         abilities = new StringBuilder(abilities.substring(0, abilities.length() - 3));
                         break;
@@ -69,12 +65,10 @@ public class SmogonCommand extends Command {
                 }
                 JSONArray moveslots = ms.getJSONArray("moveslots");
                 StringBuilder moves = new StringBuilder("- ");
-                for (i = 0; i < 4; i++) {
-                    int j = 0;
-                    while (true) {
+                for (int i = 0; i < 4; i++) {
+                    for(int j = 0; ; j++) {
                         try {
                             moves.append(moveslots.getJSONArray(i).getJSONObject(j).getString("move")).append(" / ");
-                            j++;
                         } catch (Exception ex) {
                             moves = new StringBuilder(moves.substring(0, moves.length() - 3));
                             moves.append("\n- ");
@@ -83,23 +77,19 @@ public class SmogonCommand extends Command {
                     }
                 }
                 moves = new StringBuilder(moves.substring(0, moves.length() - 3));
-                i = 0;
                 StringBuilder nature = new StringBuilder();
-                while (true) {
+                for (int i = 0; ; i++) {
                     try {
                         nature.append(ms.getJSONArray("natures").getString(i)).append(" / ");
-                        i++;
                     } catch (Exception ex) {
                         nature = new StringBuilder(nature.substring(0, nature.length() - 3));
                         break;
                     }
                 }
                 StringBuilder items = new StringBuilder();
-                i = 0;
-                while (true) {
+                for (int i = 0; ; i++) {
                     try {
                         items.append(ms.getJSONArray("items").getString(i)).append(" / ");
-                        i++;
                     } catch (Exception ex) {
                         items = new StringBuilder(items.substring(0, items.length() - 3));
                         break;

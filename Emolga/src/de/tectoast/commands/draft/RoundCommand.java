@@ -2,7 +2,7 @@ package de.tectoast.commands.draft;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
-import de.tectoast.utils.Draft.Draft;
+import de.tectoast.utils.draft.Draft;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 

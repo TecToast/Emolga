@@ -2,7 +2,7 @@ package de.tectoast.commands.music;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
-import de.tectoast.utils.Music.GuildMusicManager;
+import de.tectoast.utils.music.GuildMusicManager;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;

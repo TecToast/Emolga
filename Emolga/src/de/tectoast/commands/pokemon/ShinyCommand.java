@@ -7,7 +7,7 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class ShinyCommand extends Command {
     public ShinyCommand() {
-        super("shiny", "`!shiny <pokemon>` Zeigt das Shiny des Pokemons an", CommandCategory.Pokemon);
+        super("shiny", "`!shiny <Pokemon>` Zeigt das Shiny des Pokemons an", CommandCategory.Pokemon);
     }
 
     @Override
@@ -16,9 +16,9 @@ public class ShinyCommand extends Command {
         String msg = e.getMessage().getContentDisplay();
         String mon = getGerName(msg.substring(7));
         if (!mon.startsWith("pkmn;")) {
-            tco.sendMessage("Das ist kein pokemon!").queue();
+            tco.sendMessage("Das ist kein Pokemon!").queue();
             return;
         }
-        tco.sendMessage(getShinySpriteJSON().getString(String.valueOf(getDataJSON().getJSONObject(mon.substring(5).toLowerCase()).getInt("num")))).queue();
+        tco.sendMessage(getShinySpriteJSON().getString(String.valueOf(getDataJSON().getJSONObject(getSDName(mon.substring(5))).getInt("num")))).queue();
     }
 }

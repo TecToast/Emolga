@@ -1,4 +1,4 @@
-package de.tectoast.utils.Draft;
+package de.tectoast.utils.draft;
 
 public class DraftPokemon {
 

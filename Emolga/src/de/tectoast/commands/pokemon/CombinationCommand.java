@@ -63,10 +63,10 @@ public class CombinationCommand extends Command {
                 tco.sendMessage("**" + s + "** ist kein valides Argument!").queue();
                 return;
             }
-            if (str.startsWith("atk")) atks.add(str.split(";")[1]);
-            else if (str.startsWith("abi")) abis.add(str.split(";")[1]);
-            else if (str.startsWith("type")) types.add(str.split(";")[1]);
-            else if (str.startsWith("egg")) egg.add(str.split(";")[1]);
+            if (str.startsWith("atk")) atks.add(getEnglName(str.split(";")[1]));
+            else if (str.startsWith("abi")) abis.add(getEnglName(str.split(";")[1]));
+            else if (str.startsWith("type")) types.add(getEnglName(str.split(";")[1]));
+            else if (str.startsWith("egg")) egg.add(getEnglName(str.split(";")[1]));
         }
         JSONObject data = getDataJSON();
         JSONObject moves = getMovesJSON();

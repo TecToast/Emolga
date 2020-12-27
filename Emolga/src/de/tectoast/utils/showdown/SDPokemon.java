@@ -1,4 +1,4 @@
-package de.tectoast.utils.Showdown;
+package de.tectoast.utils.showdown;
 
 
 public class SDPokemon {

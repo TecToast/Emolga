@@ -1,4 +1,4 @@
-package de.tectoast.utils.Draft;
+package de.tectoast.utils.draft;
 
 import java.io.File;
 import java.io.IOException;

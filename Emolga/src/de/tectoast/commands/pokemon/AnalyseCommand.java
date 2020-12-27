@@ -2,9 +2,9 @@ package de.tectoast.commands.pokemon;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
-import de.tectoast.utils.Showdown.Analysis;
-import de.tectoast.utils.Showdown.Player;
-import de.tectoast.utils.Showdown.SDPokemon;
+import de.tectoast.utils.showdown.Analysis;
+import de.tectoast.utils.showdown.Player;
+import de.tectoast.utils.showdown.SDPokemon;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;

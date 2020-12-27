@@ -1,6 +1,6 @@
 package de.tectoast.utils;
 
-import de.tectoast.utils.Showdown.Player;
+import de.tectoast.utils.showdown.Player;
 
 import java.util.HashMap;
 

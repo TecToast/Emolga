@@ -1,4 +1,4 @@
-package de.tectoast.utils.Draft;
+package de.tectoast.utils.draft;
 
 
 import net.dv8tion.jda.api.entities.Member;

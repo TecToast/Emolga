@@ -3,6 +3,8 @@ package de.tectoast.commands.various;
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
 import de.tectoast.emolga.EmolgaMain;
+import de.tectoast.jdautilities.interactive.ErrorMessage;
+import de.tectoast.jdautilities.interactive.InteractiveTemplate;
 import de.tectoast.utils.Giveaway;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -30,8 +32,68 @@ public class GcreateCommand extends Command {
 
     private final Set<String> current = new HashSet<>();
 
+    private final InteractiveTemplate template;
+
+    //GuildMessageReceivedEvent event, TextChannel tchan, int seconds, int winners
     public GcreateCommand() {
         super("gcreate", "`!gcreate` Startet ein Giveaway", CommandCategory.Various, "712035338846994502", "756239772665511947", "518008523653775366", "673833176036147210", "745934535748747364");
+        template = new InteractiveTemplate((u, tco, l) -> {
+            current.remove(tco.getId());
+            TextChannel tchan = (TextChannel) l.get("channel");
+            int seconds = (int) l.get("seconds");
+            int winners = (int) l.get("winners");
+            String prize = (String) l.get("prize");
+            Instant now = Instant.now();
+            Instant end = now.plusSeconds(seconds);
+            Giveaway g = new Giveaway(tchan.getId(), u.getId(), end, winners, prize);
+            Message message = g.render(now);
+            tchan.sendMessage(message).queue(m -> {
+                m.addReaction(tco.getJDA().getGuildById("712035338846994502").getEmoteById("772191611487780934")).queue();
+                g.messageId = m.getId();
+                JSONObject json = getEmolgaJSON();
+                if (!json.has("giveaways")) json.put("giveaways", new JSONArray());
+                JSONArray arr = json.getJSONArray("giveaways");
+                JSONObject obj = new JSONObject();
+                obj.put("tcid", tchan.getId());
+                obj.put("mid", m.getId());
+                obj.put("author", u.getId());
+                obj.put("end", end.toEpochMilli());
+                obj.put("winners", winners);
+                obj.put("prize", prize);
+                arr.put(obj);
+                saveEmolgaJSON();
+                tco.sendMessage("Das Giveaway wurde erstellt!").queue();
+            });
+        }, "Die Giveawayerstellung wurde abgebrochen.")
+                .addLayer("channel", "Es geht los! Zuerst, in welchem Channel soll das Giveaway stattfinden?" + CHANNEL, m -> {
+                    if (m.getMentionedChannels().size() != 1) {
+                        return new ErrorMessage("Du musst einen Channel taggen!");
+                    }
+                    return m.getMentionedChannels().get(0);
+                }, o -> ((TextChannel) o).getAsMention())
+                .addLayer("seconds", "Das Giveaway wird in {channel} stattfinden! Wie lange soll das Giveaway laufen?" + TIME, m -> {
+                    int seconds = parseShortTime(m.getContentRaw());
+                    if (seconds == -1) {
+                        return new ErrorMessage("Das ist keine valide Zeitangabe!");
+                    }
+                    return seconds;
+                }, o -> secondsToTime((Integer) o))
+                .addLayer("winners", "Okay! Das Giveaway dauert {seconds}! Wieviele Gewinner soll es geben?" + WINNERS, m -> {
+                    try {
+                        return Integer.parseInt(m.getContentRaw().trim());
+                    } catch (NumberFormatException ex) {
+                        return new ErrorMessage("Das ist keine valide Zahl.");
+                    }
+                })
+                .addLayer("prize", "Okay! {winners} Gewinner! Zum Schluss: Was möchtest du giveawayen?" + PRIZE, m -> {
+                    String prize = m.getContentRaw();
+                    if (prize.length() > 250) {
+                        return new ErrorMessage("Der Preis ist zu lang! Bitte wähle einen kürzeren aus!" + PRIZE);
+                    }
+                    return prize;
+                });
+        CANCEL_WORDS.forEach(template::addCancelCommand);
+        template.setTimer(2, TimeUnit.MINUTES, "Du hast länger als 2 Minuten für eine Antwort gebraucht, deshalb wurde das Giveaway gelöscht.");
     }
 
 
@@ -52,13 +114,14 @@ public class GcreateCommand extends Command {
 
         // get started
         current.add(tco.getId());
-        if (e.getGuild().getId().equals("712035338846994502") && !tco.getId().equals("735076688144105493")) {
+        /*if (e.getGuild().getId().equals("712035338846994502") && !tco.getId().equals("735076688144105493")) {
             tco.sendMessage("Wie lange soll das Giveaway laufen?" + TIME).queue();
             waitForTime(e, e.getGuild().getTextChannelById("754239871870042202"));
             return;
         }
         tco.sendMessage("Es geht los! Zuerst, in welchem Channel soll das Giveaway stattfinden?" + CHANNEL).queue();
-        waitForChannel(e);
+        waitForChannel(e);*/
+        template.createInteractive(e.getAuthor(), tco);
     }
 
     private void waitForChannel(GuildMessageReceivedEvent event) {

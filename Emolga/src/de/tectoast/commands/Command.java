@@ -25,11 +25,11 @@ import de.tectoast.commands.various.NicknameCommand;
 import de.tectoast.emolga.EmolgaMain;
 import de.tectoast.utils.Constants;
 import de.tectoast.utils.Google;
-import de.tectoast.utils.Music.GuildMusicManager;
 import de.tectoast.utils.ReplayAnalyser;
 import de.tectoast.utils.RequestBuilder;
-import de.tectoast.utils.Showdown.Player;
-import de.tectoast.utils.Showdown.SDPokemon;
+import de.tectoast.utils.music.GuildMusicManager;
+import de.tectoast.utils.showdown.Player;
+import de.tectoast.utils.showdown.SDPokemon;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
@@ -75,6 +75,7 @@ public abstract class Command {
     public static final HashMap<String, Double> expmultiplicator = new HashMap<>();
     public static final HashMap<String, ReplayAnalyser> sdAnalyser = new HashMap<>();
     public static final ArrayList<String> emotesteal = new ArrayList<>();
+    private static final String SDPATH = "./ShowdownData/";
     public static JSONObject wikijson;
     public static JSONObject datajson;
     public static JSONObject movejson;
@@ -651,6 +652,7 @@ public abstract class Command {
             e.printStackTrace();
         }
     }
+
     public static void sortZBS(String sid, String tablename, JSONObject league) {
         List<List<Object>> formula = Google.get(sid, tablename + "!F13:M19", true, false);
         List<List<Object>> points = Google.get(sid, tablename + "!F13:M19", false, false);
@@ -884,6 +886,27 @@ public abstract class Command {
         return null;
     }
 
+    public static JSONObject loadSD(String path, int sub) {
+        try {
+            File f = new File(SDPATH + path);
+            List<String> l = Files.readAllLines(f.toPath());
+            int i = 0;
+            StringBuilder b = new StringBuilder();
+            for (String s : l) {
+                String str;
+                if (i == 0) str = s.substring(sub);
+                else if (i == l.size() - 1) str = s.substring(0, s.length() - 1);
+                else str = s;
+                b.append(str);
+                i++;
+            }
+            return new JSONObject(b.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public static JSONObject getDataJSON() {
         return datajson;
     }
@@ -907,7 +930,6 @@ public abstract class Command {
     public static JSONObject getLevelJSON() {
         return leveljson;
     }
-
 
     public static void saveStatisticsJSON() {
         save(statisticsjson, "statistics.json");
@@ -937,7 +959,6 @@ public abstract class Command {
             ioException.printStackTrace();
         }
     }
-
 
     public static JSONObject getShinySpriteJSON() {
         return shinyspritejson;
@@ -1557,8 +1578,8 @@ public abstract class Command {
     public static void loadJSONFiles() {
         emolgajson = load("./emolgadata.json");
         wikijson = load("./wikidata.json");
-        datajson = load("./pkmndata.json");
-        movejson = load("./moves.json");
+        datajson = loadSD("pokedex.ts", 59);
+        movejson = loadSD("learnsets.ts", 62);
         spritejson = load("./sprites.json");
         shinyspritejson = load("./shinysprites.json");
         huntjson = load("./hunt.json");
@@ -1650,7 +1671,7 @@ public abstract class Command {
                     command.process(e);
                 } catch (Exception ex) {
                     ex.printStackTrace();
-                    tco.sendMessage("Es ist ein Fehler beim Ausführen des commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei flo/TecToast.\n" + command.getHelp(e.getGuild()) + (mem.getId().equals(Constants.FLOID) ? "\nJa, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
+                    tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo/TecToast.\n" + command.getHelp(e.getGuild()) + (mem.getId().equals(Constants.FLOID) ? "\nJa, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
                 }
             }
         }
@@ -1701,9 +1722,9 @@ public abstract class Command {
 
     public static List<JSONObject> getAllForms(String monname) {
         JSONObject json = getDataJSON();
-        JSONObject mon = json.getJSONObject(monname.toLowerCase());
+        JSONObject mon = json.getJSONObject(getSDName(monname));
         if (!mon.has("formeOrder")) return Collections.singletonList(mon);
-        return mon.getJSONArray("formeOrder").toList().stream().map(o -> json.getJSONObject(((String) o).toLowerCase().replace("-", "").replace("%", ""))).collect(Collectors.toList());
+        return mon.getJSONArray("formeOrder").toList().stream().map(o -> ((String) o).toLowerCase().replace("-", "").replace("%", "")).filter(json::has).map(json::getJSONObject).collect(Collectors.toList());
         //return json.keySet().stream().filter(s -> s.startsWith(monname.toLowerCase()) && !s.endsWith("gmax") && (s.equalsIgnoreCase(monname) || json.getJSONObject(s).has("forme"))).sorted(Comparator.comparingInt(String::length)).map(json::getJSONObject).collect(Collectors.toList());
     }
 
@@ -1741,10 +1762,12 @@ public abstract class Command {
         try {
             String str = pokemon.toLowerCase() + (form.equals("Normal") ? "" : form.toLowerCase());
             while (str != null) {
-                JSONObject learnset = movejson.getJSONObject(str.replace("-", "")).getJSONObject("learnset");
+                JSONObject learnset = movejson.getJSONObject(getSDName(str)).getJSONObject("learnset");
                 ArrayList<String> moves = new ArrayList<>(learnset.keySet());
-                for (String move : moves) {
-                    if (move.startsWith("Crypto")) continue;
+                for (String moveengl : moves) {
+                    //System.out.println("moveengl = " + moveengl);
+                    String move = getGerNameNoCheck(moveengl);
+                    //System.out.println("move = " + move);
                     if ((type.equals("") || atkdata.getJSONObject(move).getString("type").equals(type)) &&
                             (dmgclass.equals("") || atkdata.getJSONObject(move).getString("category").equals(dmgclass)) &&
                             (prio || atkdata.getJSONObject(move).getString("prio").contains("+")) &&
@@ -1755,12 +1778,12 @@ public abstract class Command {
                             (flinch || Command.flinch.contains(move)) &&
                             (boom || Command.boom.contains(move)) &&
                             (trap || Command.trap.contains(move)) &&
-                            (containsGen(learnset, move, maxgen)) &&
+                            (containsGen(learnset, moveengl, maxgen)) &&
                             !already.contains(move)) {
                         already.add(move);
                     }
                 }
-                JSONObject mon = data.getJSONObject(str);
+                JSONObject mon = data.getJSONObject(getSDName(str));
                 if (mon.has("prevo")) {
                     String s = mon.getString("prevo");
                     if (s.endsWith("-Alola") || s.endsWith("-Galar")) str = s.replaceAll("-", "").toLowerCase();
@@ -1905,7 +1928,6 @@ public abstract class Command {
 
     public static String getGen5Sprite(String str) {
         String gitname;
-        JSONObject data = getDataJSON();
         Optional<String> op = sdex.keySet().stream().filter(str::equalsIgnoreCase).findFirst();
         if (op.isPresent()) {
             String ex = op.get();
@@ -1949,24 +1971,21 @@ public abstract class Command {
         String gitname;
         JSONObject data = getDataJSON();
         if (str.toLowerCase().startsWith("a-")) {
-            String gername = getGerName(str.substring(2));
-            if (!gername.startsWith("pkmn;")) return "";
-            gername = gername.substring(5);
-            gitname = getWithZeros(data.getJSONObject(gername.toLowerCase()).getInt("num"), 3) + "-a";
+            String sdName = getSDName(str.substring(2));
+            if (sdName.equals("")) return "";
+            gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + "-a";
         } else if (str.toLowerCase().startsWith("g-")) {
-            String gername = getGerName(str.substring(2));
-            if (!gername.startsWith("pkmn;")) return "";
-            gername = gername.substring(5);
-            gitname = getWithZeros(data.getJSONObject(gername.toLowerCase()).getInt("num"), 3) + "-g";
+            String sdName = getSDName(str.substring(2));
+            if (sdName.equals("")) return "";
+            gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + "-g";
         } else if (serebiiex.keySet().stream().anyMatch(str::equalsIgnoreCase)) {
             String ex = serebiiex.keySet().stream().filter(str::equalsIgnoreCase).collect(Collectors.joining(""));
-            String gername = getGerName(ex.split("-")[0]).substring(5);
-            gitname = getWithZeros(data.getJSONObject(gername.toLowerCase()).getInt("num"), 3) + serebiiex.get(str);
+            String sdName = getSDName(ex.split("-")[0]).substring(5);
+            gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + serebiiex.get(str);
         } else {
-            String gername = getGerName(str);
-            if (!gername.startsWith("pkmn;")) return "";
-            gername = gername.substring(5);
-            gitname = getWithZeros(data.getJSONObject(gername.toLowerCase()).getInt("num"), 3) + "";
+            String sdName = getSDName(str);
+            if (sdName.equals("")) return "";
+            gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + "";
         }
         String url = "https://www.serebii.net/pokedex-swsh/icon/" + gitname.toLowerCase() + ".png";
         System.out.println("url = " + url);
@@ -1989,13 +2008,13 @@ public abstract class Command {
         String gitname;
         JSONObject data = getDataJSON();
         if (str.startsWith("A-")) {
-            gitname = getWithZeros(data.getJSONObject(str.substring(2).toLowerCase()).getInt("num"), 3) + "-a";
+            gitname = getWithZeros(data.getJSONObject(getSDName(str.substring(2))).getInt("num"), 3) + "-a";
         } else if (str.startsWith("G-")) {
-            gitname = getWithZeros(data.getJSONObject(str.substring(2).toLowerCase()).getInt("num"), 3) + "-g";
+            gitname = getWithZeros(data.getJSONObject(getSDName(str.substring(2))).getInt("num"), 3) + "-g";
         } else if (serebiiex.containsKey(str)) {
-            gitname = getWithZeros(data.getJSONObject(str.split("-")[0].toLowerCase()).getInt("num"), 3) + serebiiex.get(str);
+            gitname = getWithZeros(data.getJSONObject(getSDName(str.split("-")[0])).getInt("num"), 3) + serebiiex.get(str);
         } else {
-            gitname = getWithZeros(data.getJSONObject(str.toLowerCase()).getInt("num"), 3) + "";
+            gitname = getWithZeros(data.getJSONObject(getSDName(str)).getInt("num"), 3) + "";
         }
         return "https://www.serebii.net/swordshield/pokemon/" + gitname.toLowerCase() + ".png";
     }
@@ -2289,17 +2308,40 @@ public abstract class Command {
             String[] ex = serebiiex.keySet().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining("")).split("-");
             return getGerName(ex[0]) + "-" + ex[1];
         }
-        if (s.equalsIgnoreCase("typ:null")) return "pkmn;Typ:Null";
-        JSONObject t = getWikiJSON().getJSONObject("translations");
-        return t.keySet().stream().filter(s::equalsIgnoreCase).findFirst().map(value -> t.getJSONObject(value).getString("type") + ";" + t.getJSONObject(value).getString("ger")).orElse("");
+        JSONObject o = getWikiJSON().getJSONObject("translations").optJSONObject(toSDName(s));
+        if(o == null) return "";
+        return o.getString("type") + ";" + o.getString("ger");
+    }
+
+    public static String getGerNameNoCheck(String s) {
+        //System.out.println("NoCheckGerName s = " + s);
+        return getWikiJSON().getJSONObject("translations").getJSONObject(toSDName(s)).getString("ger");
     }
 
     public static String getEnglName(String s) {
         String check = checkShortcuts(s);
         if (check != null) s = check.split(";")[1];
-        JSONObject json = getWikiJSON().getJSONObject("translations");
-        return json.keySet().stream().filter(s::equalsIgnoreCase).findFirst().map(value -> json.getJSONObject(value).getString("engl")).orElse("");
+        return getWikiJSON().getJSONObject("translations").getJSONObject(toSDName(s)).getString("engl");
     }
+
+    public static String getEnglNameWithType(String s) {
+        String check = checkShortcuts(s);
+        if (check != null) return check;
+        JSONObject o = getWikiJSON().getJSONObject("translations").optJSONObject(toSDName(s));
+        if(o == null) return "";
+        return o.getString("type") + ";" + o.getString("engl");
+    }
+
+    public static String getSDName(String s) {
+        String engl = getEnglNameWithType(s);
+        if (engl.equals("")) return "";
+        return engl.split(";")[1].toLowerCase().replaceAll("/[^a-z0-9äöüÄÖÜß]+/g", "");
+    }
+
+    public static String toSDName(String s) {
+        return s.toLowerCase().replaceAll("[^a-zA-Z0-9äöüÄÖÜß]+", "");
+    }
+
 
     public static boolean canLearn(String pokemon, String form, String atk, String msg, int maxgen) {
         return getAttacksFrom(pokemon, msg, form, maxgen).contains(atk);

@@ -2,8 +2,8 @@ package de.tectoast.commands.draft;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
-import de.tectoast.utils.Draft.Draft;
-import de.tectoast.utils.Draft.DraftPokemon;
+import de.tectoast.utils.draft.Draft;
+import de.tectoast.utils.draft.DraftPokemon;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;

@@ -2,7 +2,7 @@ package de.tectoast.commands.pokemon;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
-import de.tectoast.utils.Draft.Tierlist;
+import de.tectoast.utils.draft.Tierlist;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;

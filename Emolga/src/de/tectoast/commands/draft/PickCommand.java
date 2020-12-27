@@ -3,9 +3,9 @@ package de.tectoast.commands.draft;
 import com.google.api.services.sheets.v4.model.*;
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
-import de.tectoast.utils.Draft.Draft;
-import de.tectoast.utils.Draft.DraftPokemon;
-import de.tectoast.utils.Draft.Tierlist;
+import de.tectoast.utils.draft.Draft;
+import de.tectoast.utils.draft.DraftPokemon;
+import de.tectoast.utils.draft.Tierlist;
 import de.tectoast.utils.Google;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -254,7 +254,7 @@ public class PickCommand extends Command {
             else if (pokemon.endsWith("-Y")) dbname = sub.substring(0, sub.length() - 2) + "megay";
             else dbname = sub + "mega";
         } else dbname = pokemon;
-        Google.updateRequest(sid, asl.getJSONArray("teams").getString(user) + "!I" + row, Collections.singletonList(Collections.singletonList(getDataJSON().getJSONObject(dbname.toLowerCase()).getJSONObject("baseStats").getInt("spe"))), false, false);
+        Google.updateRequest(sid, asl.getJSONArray("teams").getString(user) + "!I" + row, Collections.singletonList(Collections.singletonList(getDataJSON().getJSONObject(toSDName(dbname)).getJSONObject("baseStats").getInt("spe"))), false, false);
     }
 
     private void zbsdoc(Tierlist tierlist, String pokemon, Draft d, Member mem, String tier, int num) {

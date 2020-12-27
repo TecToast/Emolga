@@ -27,15 +27,19 @@ public class AbilityCommand extends Command {
         Member member = e.getMember();
         JSONObject json = getDataJSON();
         ArrayList<String> mons = new ArrayList<>();
-        String str = getGerName(msg.substring(9));
+        String str = getSDName(msg.substring(9));
         if (!str.split(";")[0].equals("abi")) {
             tco.sendMessage("Das ist keine Fähigkeit!").queue();
             return;
         }
         String abi = str.split(";")[1];
         for (String s : json.keySet()) {
-            if (json.getJSONObject(s).getJSONObject("abilities").keySet().stream().map(string -> json.getJSONObject(s).getJSONObject("abilities").getString(string)).anyMatch(string -> string.equalsIgnoreCase(abi)))
-                mons.add(json.getJSONObject(s).getString("name"));
+            if (json.getJSONObject(s).getJSONObject("abilities").keySet().stream().map(string -> json.getJSONObject(s).getJSONObject("abilities").getString(string)).anyMatch(string -> string.equalsIgnoreCase(abi))) {
+                String name = json.getJSONObject(s).getString("name");
+                String[] split = name.split("-");
+                if(split.length > 1) mons.add(getGerName(split[0]) + "-" + split[1]);
+                else mons.add(getGerName(name).substring(5));
+            }
         }
         Collections.sort(mons);
         StringBuilder s = new StringBuilder();

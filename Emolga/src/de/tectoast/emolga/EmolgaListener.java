@@ -3,11 +3,11 @@ package de.tectoast.emolga;
 import de.tectoast.commands.CommandCategory;
 import de.tectoast.commands.PrivateCommands;
 import de.tectoast.utils.*;
-import de.tectoast.utils.Draft.Draft;
-import de.tectoast.utils.Music.GuildMusicManager;
-import de.tectoast.utils.Showdown.Analysis;
-import de.tectoast.utils.Showdown.Player;
-import de.tectoast.utils.Showdown.SDPokemon;
+import de.tectoast.utils.draft.Draft;
+import de.tectoast.utils.music.GuildMusicManager;
+import de.tectoast.utils.showdown.Analysis;
+import de.tectoast.utils.showdown.Player;
+import de.tectoast.utils.showdown.SDPokemon;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
@@ -681,12 +681,12 @@ public class EmolgaListener extends ListenerAdapter {
                 int yy = gameday == 9 ? (ip * 8 + 4) : gameday == 10 ? (ip * 16 + 8) : 16;
                 if (gdl.get(ip).split(":")[0].equals(p1)) {
                     b
-                            .addAll("Vorrunde!" + getAsXCoord((gameday - 8) * 7 - 4) + yy, r1)
-                            .addAll("Vorrunde!" + getAsXCoord((gameday - 8) * 7 - 2) + yy, r2);
+                            .addAll("Playoffs!" + getAsXCoord((gameday - 8) * 7 - 4) + yy, r1)
+                            .addAll("Playoffs!" + getAsXCoord((gameday - 8) * 7 - 2) + yy, r2);
                 } else {
                     b
-                            .addAll("Vorrunde!" + getAsXCoord((gameday - 8) * 7 - 4) + yy, r2)
-                            .addAll("Vorrunde!" + getAsXCoord((gameday - 8) * 7 - 2) + yy, r1);
+                            .addAll("Playoffs!" + getAsXCoord((gameday - 8) * 7 - 4) + yy, r2)
+                            .addAll("Playoffs!" + getAsXCoord((gameday - 8) * 7 - 2) + yy, r1);
                 }
                 List<Object> get1 = Google.get(sid, "Teilnehmer!" + getAsXCoord(x1 - 1) + (y1 + 2) + ":" + getAsXCoord(x1) + (y1 + 2), false, false).get(0);
                 List<Object> get2 = Google.get(sid, "Teilnehmer!" + getAsXCoord(x2 - 1) + (y2 + 2) + ":" + getAsXCoord(x2) + (y2 + 2), false, false).get(0);

@@ -13,9 +13,10 @@ import org.jsoup.nodes.Element;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 public class SolutionCommand extends Command {
     public SolutionCommand() {
@@ -35,8 +36,9 @@ public class SolutionCommand extends Command {
             quiz.points.put(member, quiz.points.get(member) + 1);
             if (quiz.round > quiz.cr) {
                 StringBuilder builder = new StringBuilder("Punkte:\n");
-                for (Map.Entry<Member, Integer> en : quiz.points.entrySet()) {
-                    builder.append(en.getKey().getAsMention()).append(": ").append(en.getValue()).append("\n");
+                //noinspection SuspiciousMethodCalls
+                for (Member mem : quiz.points.keySet().stream().sorted(Comparator.comparing(quiz.points::get).reversed()).collect(Collectors.toList())) {
+                    builder.append(mem.getAsMention()).append(": ").append(quiz.points.get(mem)).append("\n");
                 }
                 tco.sendMessage(builder.toString()).queue();
                 DexQuiz.list.remove(quiz);
@@ -51,7 +53,7 @@ public class SolutionCommand extends Command {
                 Element table = d.select("table[class=\"round centered\"]").get(0);
                 Element element = table.select("td").get(new Random().nextInt(table.select("td").size()));
                 quiz.gerName = pokemon;
-                sendToMe(pokemon);
+                sendToMe(tco.getAsMention() + pokemon);
                 quiz.englName = englName;
                 //� = %C3%B6
                 tco.sendMessage(trim(element.text(), pokemon) + "\nZu welchem pokemon gehört dieser Dex-Eintrag?").queue();

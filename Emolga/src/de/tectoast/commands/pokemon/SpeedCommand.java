@@ -26,41 +26,37 @@ public class SpeedCommand extends Command {
             if (!s.contains("\n"))
                 mons = s.split(" ");
             else mons = s.split("\n");
-            StringBuilder str = new StringBuilder();
+            StringBuilder str = new StringBuilder();//
+            JSONObject datajson = getDataJSON(getModByGuild(e));
             for (String mon : mons) {
+                mon = mon.trim();
                 System.out.println("mon = " + mon);
                 int bs;
                 String ger;
                 if (mon.startsWith("M-")) {
                     String st = getGerName(mon.substring(2));
                     if (st.equals("") || !st.startsWith("pkmn")) {
-                        tco.sendMessage(mon.substring(2) + " ist kein pokemon!").queue();
+                        tco.sendMessage(mon.substring(2) + " ist kein Pokemon!").queue();
                         return;
                     }
                     ger = st.split(";")[1];
-                    bs = getWikiJSON().getJSONObject("pkmndata").getJSONObject(ger).getJSONObject("stats").getJSONObject("Mega-" + ger).getInt("init");
+                    bs = datajson.getJSONObject(getSDName(ger) + "mega").getJSONObject("baseStats").getInt("spe");
                 } else if (mon.startsWith("A-")) {
                     String st = getGerName(mon.substring(2));
                     if (st.equals("") || !st.startsWith("pkmn")) {
-                        tco.sendMessage(mon.substring(2) + " ist kein pokemon!").queue();
+                        tco.sendMessage(mon.substring(2) + " ist kein Pokemon!").queue();
                         return;
                     }
                     ger = st.split(";")[1];
-                    JSONObject stats = getWikiJSON().getJSONObject("pkmndata").getJSONObject(ger).getJSONObject("stats");
-                    if (stats.has("Alola-" + ger))
-                        bs = stats.getJSONObject("Alola-" + ger).getInt("init");
-                    else bs = stats.getJSONObject(ger).getInt("init");
+                    bs = datajson.getJSONObject(getSDName(ger) + "alola").getJSONObject("baseStats").getInt("spe");
                 } else if (mon.startsWith("G-")) {
                     String string = getGerName(mon.substring(2));
                     if (string.equals("") || !string.startsWith("pkmn")) {
-                        tco.sendMessage(mon.substring(2) + " ist kein pokemon!").queue();
+                        tco.sendMessage(mon.substring(2) + " ist kein Pokemon!").queue();
                         return;
                     }
                     ger = string.split(";")[1];
-                    JSONObject stats = getWikiJSON().getJSONObject("pkmndata").getJSONObject(ger).getJSONObject("stats");
-                    if (stats.has("Galar-" + ger))
-                        bs = stats.getJSONObject("Galar-" + ger).getInt("init");
-                    else bs = stats.getJSONObject(ger).getInt("init");
+                    bs = datajson.getJSONObject(getSDName(ger) + "galar").getJSONObject("baseStats").getInt("spe");
                 } else {
                     if (mon.startsWith("Amigento") || mon.startsWith("Silvally")) {
                         str.append(mon).append(": 95 -> 317\n");
@@ -72,26 +68,11 @@ public class SpeedCommand extends Command {
                     }
                     String string = getGerName(mon);
                     if (string.equals("") || !string.startsWith("pkmn")) {
-                        tco.sendMessage(mon + " ist kein pokemon!").queue();
+                        tco.sendMessage(mon + " ist kein Pokemon!").queue();
                         return;
                     }
                     ger = string.split(";")[1];
-                    JSONObject stats = getWikiJSON().getJSONObject("pkmndata").getJSONObject(ger).getJSONObject("stats");
-                    if (stats.has(ger)) {
-                        str.append(ger).append(": ").append(stats.getJSONObject(ger).getInt("init")).append(" -> ").append((int) ((2 * stats.getJSONObject(ger).getInt("init") + 99) * 1.1)).append("\n");
-                        continue;
-                    }
-                    if (stats.keySet().size() > 1) {
-                        for (String st : stats.keySet()) {
-                            if (st.equalsIgnoreCase(ger)) {
-                                str.append(ger).append(": ").append(stats.getJSONObject(st).getInt("init")).append(" -> ").append((int) ((2 * stats.getJSONObject(st).getInt("init") + 99) * 1.1)).append("\n");
-                                continue;
-                            } else if (st.startsWith("Mega-")) continue;
-                            str.append(ger).append(" ").append(st).append(": ").append(stats.getJSONObject(st).getInt("init")).append(" -> ").append((int) ((2 * stats.getJSONObject(st).getInt("init") + 99) * 1.1)).append("\n");
-                        }
-                        continue;
-                    }
-                    bs = stats.getJSONObject(ger).getInt("init");
+                    bs = getDataJSON(getModByGuild(e)).getJSONObject(getSDName(ger)).getJSONObject("baseStats").getInt("spe");
                 }
                 int speed = (int) ((2 * bs + 99) * 1.1);
                 String prefix = "";

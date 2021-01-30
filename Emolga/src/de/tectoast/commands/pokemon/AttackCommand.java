@@ -25,18 +25,38 @@ public class AttackCommand extends Command {
         Message m = e.getMessage();
         String msg = m.getContentDisplay();
         Member member = e.getMember();
-        JSONObject json = getMovesJSON();
+        JSONObject json = getLearnsetJSON(getModByGuild(e));
         ArrayList<String> mons = new ArrayList<>();
-        String str = getGerName(msg.substring(8));
+        String str = getEnglNameWithType(msg.substring(8), getModByGuild(e));
         if (!str.split(";")[0].equals("atk")) {
             tco.sendMessage("Das ist keine Attacke!").queue();
             return;
         }
         String atk = str.split(";")[1];
         for (String s : json.keySet()) {
-            System.out.println("s = " + s);
-            if (json.getJSONObject(s).getJSONObject("learnset").keySet().contains(atk)) {
-                mons.add(json.getJSONObject(s).getString("name"));
+            if(!json.getJSONObject(s).has("learnset")) continue;
+            if (json.getJSONObject(s).getJSONObject("learnset").keySet().contains(toSDName(atk))) {
+                String name = s;
+                if(s.endsWith("alola")) name = getGerNameNoCheck(s.substring(0,s.length() - 5)) + "-Alola";
+                else if(s.endsWith("galar")) name = getGerNameNoCheck(s.substring(0,s.length() - 5)) + "-Galar";
+                else if(s.endsWith("unova")) name = getGerNameNoCheck(s.substring(0,s.length() - 5)) + "-Unova";
+                else {
+                    String gerName = getGerName(s);
+                    if(!gerName.equals("")) name = gerName.substring(5);
+                    else {
+                        for (int i = 1; i <= s.length(); i++) {
+                            String sub = s.substring(0, i);
+                            gerName = getGerName(sub);
+                            if(!gerName.equals("")) {
+                                name = gerName.substring(5);
+                                break;
+                            }
+                        }
+                    }
+                }
+                String[] split = name.split("-");
+                if(split.length > 1) mons.add(getGerNameNoCheck(split[0]) + "-" + split[1]);
+                else mons.add(getGerNameNoCheck(name));
             }
         }
         Collections.sort(mons);
@@ -44,10 +64,10 @@ public class AttackCommand extends Command {
         for (String mon : mons) {
             s.append(mon).append("\n");
             if (s.length() > 1900) {
-                tco.sendMessage(new EmbedBuilder().setColor(Color.CYAN).setTitle(atk + " können:").setDescription(s).build()).queue();
+                tco.sendMessage(new EmbedBuilder().setColor(Color.CYAN).setTitle(getGerNameNoCheck(atk) + " können:").setDescription(s).build()).queue();
                 s = new StringBuilder();
             }
         }
-        tco.sendMessage(new EmbedBuilder().setColor(Color.CYAN).setTitle(atk + " können:").setDescription(s).build()).queue();
+        tco.sendMessage(new EmbedBuilder().setColor(Color.CYAN).setTitle(getGerNameNoCheck(atk) + " können:").setDescription(s).build()).queue();
     }
 }

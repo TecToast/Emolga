@@ -1,4 +1,4 @@
-package de.tectoast.commands.admin;
+package de.tectoast.commands.moderator;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
@@ -16,23 +16,24 @@ public class WarnsCommand extends Command {
 
 
     public WarnsCommand() {
-        super("warns", "`!warns <User>` Zeigt alle Verwarnungen des Users an", CommandCategory.Admin, "712035338846994502");
+        super("warns", "`!warns <User>` Zeigt alle Verwarnungen des Users an", CommandCategory.Moderator);
     }
 
     @Override
     public void process(GuildMessageReceivedEvent e) {
         Message m = e.getMessage();
         TextChannel tco = e.getChannel();
-        JSONObject json = getEmolgaJSON();
+        JSONObject json = getEmolgaJSON().getJSONObject("warns");
+        String gid = e.getGuild().getId();
         if (m.getMentionedMembers().size() != 1) {
             tco.sendMessage("Du musst einen User taggen!").queue();
             return;
         }
         Member mem = m.getMentionedMembers().get(0);
-        if (!json.has("warns")) json.put("warns", new JSONArray());
-        JSONArray arr = json.getJSONArray("warns");
+        if (!json.has(gid)) json.put(gid, new JSONArray());
+        JSONArray arr = json.getJSONArray(gid);
         if (arr.length() == 0) {
-            tco.sendMessage("Es wurde bisher niemand verwarnt!").queue();
+            tco.sendMessage("Es wurde bisher niemand auf diesem Server verwarnt!").queue();
             return;
         }
         StringBuilder str = new StringBuilder();

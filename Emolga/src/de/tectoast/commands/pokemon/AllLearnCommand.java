@@ -24,11 +24,11 @@ public class AllLearnCommand extends Command {
             StringBuilder str = new StringBuilder();
             if (st.contains("\n")) {
                 for (String s : st.split(":")[1].split("\n")) {
-                    str.append(Command.canLearn(s.startsWith("A-") || s.startsWith("G-") || s.startsWith("M-") ? s.substring(2) : s, s.startsWith("A-") ? "" : (s.startsWith("G-") ? "Galar" : "Normal"), atk, msg, e.getGuild().getId().equals("747357029714231299") ? 5 : 8) ? s + "\n" : "");
+                    str.append(Command.canLearn(s.startsWith("A-") || s.startsWith("G-") || s.startsWith("M-") ? s.substring(2) : s, s.startsWith("A-") ? "" : (s.startsWith("G-") ? "Galar" : "Normal"), atk, msg, e.getGuild().getId().equals("747357029714231299") ? 5 : 8, getModByGuild(e)) ? s + "\n" : "");
                 }
             } else {
                 for (String s : st.split(":")[1].split(" ")) {
-                    str.append(Command.canLearn(s.startsWith("A-") || s.startsWith("G-") || s.startsWith("M-") ? s.substring(2) : s, s.startsWith("A-") ? "" : (s.startsWith("G-") ? "Galar" : "Normal"), atk, msg, e.getGuild().getId().equals("747357029714231299") ? 5 : 8) ? s + "\n" : "");
+                    str.append(Command.canLearn(s.startsWith("A-") || s.startsWith("G-") || s.startsWith("M-") ? s.substring(2) : s, s.startsWith("A-") ? "" : (s.startsWith("G-") ? "Galar" : "Normal"), atk, msg, e.getGuild().getId().equals("747357029714231299") ? 5 : 8, getModByGuild(e)) ? s + "\n" : "");
                 }
             }
             if (str.toString().equals("")) str.append("Kein pokemon kann diese Attacke erlernen!");

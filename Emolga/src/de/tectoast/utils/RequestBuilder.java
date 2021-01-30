@@ -37,6 +37,7 @@ public class RequestBuilder {
      * @param raw   optional argument, which makes the request raw (if true) or user entered (if false)
      * @return this RequestBuilder
      */
+    @SuppressWarnings("UnusedReturnValue")
     public RequestBuilder addRow(String range, List<Object> body, boolean... raw) {
         requests.add(new Request().setRange(range).setSend(Collections.singletonList(body)).setValueInputOption(raw.length == 0 || !raw[0] ? "USER_ENTERED" : "RAW"));
         return this;

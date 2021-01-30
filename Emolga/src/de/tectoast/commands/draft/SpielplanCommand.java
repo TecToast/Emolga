@@ -32,7 +32,7 @@ public class SpielplanCommand extends Command {
             JSONObject json = getEmolgaJSON();
             JSONObject drafts = json.getJSONObject("drafts");
             if (!drafts.has(name)) {
-                tco.sendMessage("Dieser draft existiert nicht!").queue();
+                tco.sendMessage("Dieser Draft existiert nicht!").queue();
                 return;
             }
             JSONObject league = drafts.getJSONObject(name);

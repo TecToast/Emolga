@@ -14,6 +14,7 @@ public class DexQuiz {
     public String gerName;
     public String englName;
     public int round = 1;
+    public boolean block = false;
 
     public DexQuiz(TextChannel tc, String gerName, String englName, int rounds) {
         this.tc = tc;

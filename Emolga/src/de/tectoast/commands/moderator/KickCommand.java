@@ -1,4 +1,4 @@
-package de.tectoast.commands.admin;
+package de.tectoast.commands.moderator;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
@@ -10,7 +10,7 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class KickCommand extends Command {
     public KickCommand() {
-        super("kick", "`!kick <User> <Grund>` Kickt den User", CommandCategory.Admin, "712035338846994502");
+        super("kick", "`!kick <User> <Grund>` Kickt den User", CommandCategory.Moderator);
     }
 
     @Override

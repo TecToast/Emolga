@@ -32,13 +32,13 @@ public class Analysis {
             //Welche commands sind dabei?
             if (s.contains("|poke|p1")) {
                 String str = s.split("\\|")[3].split(",")[0];
-                if (str.contains("Zoroark") || str.contains("Zorua")) return null;
+                //if (str.contains("Zoroark") || str.contains("Zorua")) return null;
                 if (str.contains("Urshifu")) str = "Urshifu-Rapid-Strike";
                 p1.getMons().add(new SDPokemon(str));
             }
             if (s.contains("|poke|p2")) {
                 String str = s.split("\\|")[3].split(",")[0];
-                if (str.contains("Zoroark") || str.contains("Zorua")) return null;
+                //if (str.contains("Zoroark") || str.contains("Zorua")) return null;
                 if (str.contains("Urshifu")) str = "Urshifu-Rapid-Strike";
                 p2.getMons().add(new SDPokemon(str));
             }

@@ -55,7 +55,7 @@ public class UpdatepicksCommand extends Command {
                 return new DraftPokemon((String) obj.get("name"), (String) obj.get("tier"));
             }).collect(Collectors.toCollection(ArrayList::new));
             StringBuilder mes = new StringBuilder("**" + g.retrieveMemberById(p).complete().getEffectiveName() + ":**\n");
-            for (String o : Tierlist.getByGuild(g.getId()).order) {
+            for (String o : Tierlist.getByGuild("747357029714231299").order) {
                 ArrayList<DraftPokemon> mons = list.stream().filter(s -> s.tier.equals(o)).sorted(Comparator.comparing(pkmn -> pkmn.name)).collect(Collectors.toCollection(ArrayList::new));
                 for (DraftPokemon mon : mons) {
                     mes.append(o).append(": ").append(mon.name).append("\n");

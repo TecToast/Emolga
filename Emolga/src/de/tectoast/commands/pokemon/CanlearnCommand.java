@@ -33,24 +33,28 @@ public class CanlearnCommand extends Command {
                 pokemon = args[2];
                 atk = msg.substring(pokemon.length() + 17);
                 form = "Galar";
+            } else if (args[1].toLowerCase().contains("unova") && getModByGuild(e).equals("nml")) {
+                pokemon = args[2];
+                atk = msg.substring(pokemon.length() + 17);
+                form = "Unova";
             } else {
                 pokemon = args[1];
                 atk = msg.substring(pokemon.length() + 11);
             }
-            pokemon = getGerName(pokemon);
+            pokemon = getGerName(pokemon, getModByGuild(e));
             if (!pokemon.startsWith("pkmn;")) {
                 tco.sendMessage("Das ist kein pokemon!").queue();
                 return;
             }
             pokemon = pokemon.substring(5);
-            String str = getGerName(atk);
+            String str = getGerName(atk, getModByGuild(e));
             if (!str.split(";")[0].equals("atk")) {
                 tco.sendMessage("Das ist keine Attacke!").queue();
                 return;
             }
             atk = str.split(";")[1];
             try {
-                tco.sendMessage((form.equals("Normal") ? "" : form + "-") + pokemon + " kann " + atk + (canLearn(pokemon, form, atk, msg, e.getGuild().getId().equals("747357029714231299") || args[0].equalsIgnoreCase("!canlearn5") ? 5 : 8) ? "" : " nicht") + " erlernen!").queue();
+                tco.sendMessage((form.equals("Normal") ? "" : form + "-") + pokemon + " kann " + atk + (canLearn(pokemon, form, atk, msg, e.getGuild().getId().equals("747357029714231299") || args[0].equalsIgnoreCase("!canlearn5") ? 5 : 8, getModByGuild(e)) ? "" : " nicht") + " erlernen!").queue();
             } catch (Exception ex) {
                 ex.printStackTrace();
             }

@@ -19,6 +19,6 @@ public class ShinyCommand extends Command {
             tco.sendMessage("Das ist kein Pokemon!").queue();
             return;
         }
-        tco.sendMessage(getShinySpriteJSON().getString(String.valueOf(getDataJSON().getJSONObject(getSDName(mon.substring(5))).getInt("num")))).queue();
+        tco.sendMessage(getShinySpriteJSON().getString(String.valueOf(getDataJSON(getModByGuild(e)).getJSONObject(getSDName(mon.substring(5))).getInt("num")))).queue();
     }
 }

@@ -8,14 +8,12 @@ import de.tectoast.utils.draft.DraftPokemon;
 import de.tectoast.utils.draft.Tierlist;
 import de.tectoast.utils.Google;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class PickCommand extends Command {
     public static boolean isEnabled = true;
@@ -26,25 +24,24 @@ public class PickCommand extends Command {
 
     @Override
     public void process(GuildMessageReceivedEvent e) {
-        TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
+        exec(e.getChannel(), e.getMessage().getContentDisplay(), e.getMember(), false);
+    }
+    public static void exec(TextChannel tco, String msg, Member member, boolean isRandom) {
         try {
             Draft d = Draft.getDraftByMember(member, tco);
             if (d == null) {
-                tco.sendMessage(member.getAsMention() + " Du bist in keinem draft drin!").queue();
+                tco.sendMessage(member.getAsMention() + " Du bist in keinem Draft drin!").queue();
                 return;
             }
             if (!d.tc.getId().equals(tco.getId())) return;
-            if (!d.isCurrent(member)) {
+            if (d.isCurrent(member)) {
                 tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue();
                 return;
             }
             Member mem;
             JSONObject json = getEmolgaJSON();
-            //JSONObject league = json.getJSONObject("drafts").getJSONObject(d.name);
-            JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7");
+            JSONObject league = json.getJSONObject("drafts").getJSONObject(d.name);
+            //JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ZBSL2");
             /*if (asl.has("allowed")) {
                 JSONObject allowed = asl.getJSONObject("allowed");
                 if (allowed.has(member.getId())) {
@@ -53,19 +50,9 @@ public class PickCommand extends Command {
             } else mem = member;*/
             if (d.current.getId().equals(member.getId())) mem = member;
             else {
-                ArrayList<String> mates = getTeamMates(member.getId());
-                Optional<Member> op = d.members.stream().filter(me -> mates.contains(me.getId())).findFirst();
-                if (!op.isPresent()) {
-                    tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
-                    System.out.println("NO OPTIONAL");
-                    return;
-                }
-                mem = op.get();
+                mem = tco.getGuild().retrieveMemberById(league.getJSONObject("allowed").getString(member.getId())).complete();
             }
             Member finalMem = mem;
-            String leaguename = asl.keySet().stream().filter(s -> s.startsWith("PK") || s.equals("Coach")).filter(s -> Arrays.asList(asl.getJSONObject(s).getString("table").split(",")).contains(finalMem.getId())).collect(Collectors.joining(""));
-            JSONObject league = asl.getJSONObject(leaguename);
-            int pk = leaguename.equals("Coach") ? 0 : Integer.parseInt(leaguename.substring(2));
             String[] split = msg.substring(6).split(" ");
             String tier;
             String pokemon;
@@ -73,7 +60,7 @@ public class PickCommand extends Command {
             if (split.length == 2) {
                 pokemon = getDraftGerName(split[0]);
                 if (!pokemon.startsWith("pkmn;")) {
-                    tco.sendMessage("Das ist kein pokemon!").queue();
+                    tco.sendMessage("Das ist kein Pokemon!").queue();
                     return;
                 }
                 pokemon = pokemon.substring(5);
@@ -81,26 +68,26 @@ public class PickCommand extends Command {
             } else {
                 pokemon = getDraftGerName(split[0]);
                 if (!pokemon.startsWith("pkmn;")) {
-                    tco.sendMessage("Das ist kein pokemon!").queue();
+                    tco.sendMessage("Das ist kein Pokemon!").queue();
                     return;
                 }
                 pokemon = pokemon.substring(5);
                 tier = tierlist.getTierOf(pokemon);
             }
             if (d.isPicked(pokemon)) {
-                tco.sendMessage(member.getAsMention() + " Dieses pokemon wurde bereits gepickt!").queue();
+                tco.sendMessage(member.getAsMention() + " Dieses Pokemon wurde bereits gepickt!").queue();
                 return;
             }
             int needed = tierlist.getPointsNeeded(pokemon);
             if (d.isPointBased) {
                 if (needed == -1) {
-                    tco.sendMessage(member.getAsMention() + " Das ist kein pokemon!").queue();
+                    tco.sendMessage(member.getAsMention() + " Das ist kein Pokemon!").queue();
                     return;
                 }
             } else {
                 String origtier = tierlist.getTierOf(pokemon);
                 if (origtier.equals("")) {
-                    tco.sendMessage(member.getAsMention() + " Das ist kein pokemon!").queue();
+                    tco.sendMessage(member.getAsMention() + " Das ist kein Pokemon!").queue();
                     return;
                 }
                 if (tierlist.order.indexOf(origtier) < tierlist.order.indexOf(tier)) {
@@ -114,10 +101,10 @@ public class PickCommand extends Command {
                 }
                 if (map.get(tier) == 0) {
                     if (tierlist.prices.get(tier) == 0) {
-                        tco.sendMessage("Ein pokemon aus dem " + tier + "-Tier musst du in ein anderes Tier hochdraften!").queue();
+                        tco.sendMessage("Ein Pokemon aus dem " + tier + "-Tier musst du in ein anderes Tier hochdraften!").queue();
                         return;
                     }
-                    tco.sendMessage("Du kannst dir kein " + tier + "-pokemon mehr picken!").queue();
+                    tco.sendMessage("Du kannst dir kein " + tier + "-Pokemon mehr picken!").queue();
                     return;
                 }
             }
@@ -141,7 +128,7 @@ public class PickCommand extends Command {
                 league.put("picks", new JSONObject());
             if (!league.getJSONObject("picks").has(mem.getId()))
                 league.getJSONObject("picks").put(mem.getId(), new JSONArray());
-            if (!league.has("points") && d.isPointBased)
+            if (d.isPointBased && !league.has("points"))
                 league.put("points", new JSONObject());
             if (!league.getJSONObject("picks").has(mem.getId()) && d.isPointBased)
                 league.getJSONObject("points").put(mem.getId(), 1000);
@@ -150,15 +137,19 @@ public class PickCommand extends Command {
                 league.getJSONObject("points").put(mem.getId(), d.points.get(mem));
             //m.delete().queue();
             d.update(mem);
+            if(isRandom) {
+                tco.sendMessage("**" + mem.getEffectiveName() + "** hat aus dem " + tier + "-Tier ein " + pokemon + " bekommen!").queue();
+            }
             try {
                 d.cooldown.cancel();
             } catch (Exception ignored) {
 
             }
+            int num = 8 - d.order.get(d.round).size();
+            int round = d.round;
             if (d.order.get(d.round).size() == 0) {
-                doc(tierlist, pokemon, d, mem, tier, league, pk);
-                if (d.round == 12) {
-                    tco.sendMessage("Der draft ist vorbei!").queue();
+                if (d.round == 11) {
+                    tco.sendMessage("Der Draft ist vorbei!").queue();
                     saveEmolgaJSON();
                     Draft.drafts.remove(d);
                     return;
@@ -169,7 +160,7 @@ public class PickCommand extends Command {
             }
             d.current = d.order.get(d.round).remove(0);
             league.put("current", d.current.getId());
-            if (d.points.get(d.current) < 20 && d.isPointBased) {
+            if (d.isPointBased && d.points.get(d.current) < 20) {
                 ArrayList<DraftPokemon> picks = d.picks.get(d.current);
                 DraftPokemon p = null;
                 int price = 0;
@@ -180,7 +171,7 @@ public class PickCommand extends Command {
                         p = pick;
                     }
                 }
-                tco.sendMessage("Du hast nicht mehr genug Punkte um ein weiteres pokemon zu draften! Deshalb verlierst du " + p + " und erhältst dafür " + price / 2 + " Punkte!").queue();
+                tco.sendMessage("Du hast nicht mehr genug Punkte um ein weiteres Pokemon zu draften! Deshalb verlierst du " + p + " und erhältst dafür " + price / 2 + " Punkte!").queue();
                 d.points.put(d.current, d.points.get(d.current) + price / 2);
                 d.picks.get(d.current).remove(p);
                 league.getJSONObject("picks").put(d.current.getId(), d.getTeamAsArray(d.current));
@@ -199,17 +190,17 @@ public class PickCommand extends Command {
                 }
             }, delay);
             saveEmolgaJSON();
-            doc(tierlist, pokemon, d, mem, tier, league, pk);
+            zbsdoc(tierlist, pokemon, d, mem, tier, num, round);
         } catch (Exception ex) {
             tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
             ex.printStackTrace();
         }
     }
 
-    public void doc(Tierlist tierlist, String pokemon, Draft d, Member mem, String tier, JSONObject league, int pk) {
-        //zbsdoc(tierlist, pokemon, d, mem, tier, num);
-        asldoc(tierlist, pokemon, d, mem, tier, league, pk);
-    }
+    /*public void doc(Tierlist tierlist, String pokemon, Draft d, Member mem, String tier, JSONObject league, int pk) {
+        zbsdoc(tierlist, pokemon, d, mem, tier, num);
+        //asldoc(tierlist, pokemon, d, mem, tier, league, pk);
+    }*/
 
     private void asldoc(Tierlist tierlist, String pokemon, Draft d, Member mem, String tier, JSONObject league, int pk) {
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7");
@@ -257,10 +248,10 @@ public class PickCommand extends Command {
         Google.updateRequest(sid, asl.getJSONArray("teams").getString(user) + "!I" + row, Collections.singletonList(Collections.singletonList(getDataJSON().getJSONObject(toSDName(dbname)).getJSONObject("baseStats").getInt("spe"))), false, false);
     }
 
-    private void zbsdoc(Tierlist tierlist, String pokemon, Draft d, Member mem, String tier, int num) {
+    private static void zbsdoc(Tierlist tierlist, String pokemon, Draft d, Member mem, String tier, int num, int round) {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
-        if (league.has("doc")) {
-            String doc = league.getJSONObject("doc").getString("sid");
+        if (league.has("sid")) {
+            String doc = league.getString("sid");
             int x = 1;
             int y = 2;
             for (String s : tierlist.tiercolumns) {
@@ -271,13 +262,14 @@ public class PickCommand extends Command {
                     y = 2;
                 } else y++;
             }
+            System.out.println("num = " + num);
 
             Request request = new Request();
             request.setUpdateCells(new UpdateCellsRequest().setRows(Collections.singletonList(new RowData()
                     .setValues(Collections.singletonList(new CellData()
                             .setUserEnteredFormat(new CellFormat()
                                     .setTextFormat(new TextFormat().setStrikethrough(true)))))))
-                    .setFields("userEnteredFormat.textFormat.strikethrough").setRange(new GridRange().setSheetId(2074309359).setStartRowIndex(y - 1).setEndRowIndex(y).setStartColumnIndex(x * 2).setEndColumnIndex(x * 2 + 1)));
+                    .setFields("userEnteredFormat.textFormat.strikethrough").setRange(new GridRange().setSheetId(2048730181).setStartRowIndex(y - 1).setEndRowIndex(y).setStartColumnIndex(x * 2).setEndColumnIndex(x * 2 + 1)));
             Request req = new Request();
             //System.out.println(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
 
@@ -285,7 +277,7 @@ public class PickCommand extends Command {
                     .setValues(Collections.singletonList(new CellData()
                             .setUserEnteredFormat(new CellFormat()
                                     .setTextFormat(new TextFormat().setStrikethrough(true)))))))
-                    .setFields("userEnteredFormat.textFormat.strikethrough").setRange(new GridRange().setSheetId(856868721).setStartRowIndex(num - 1).setEndRowIndex(num).setStartColumnIndex(d.round + 1).setEndColumnIndex(d.round + 2)));
+                    .setFields("userEnteredFormat.textFormat.strikethrough").setRange(new GridRange().setSheetId(856868721).setStartRowIndex(num + 13).setEndRowIndex(num + 14).setStartColumnIndex(d.round + 1).setEndColumnIndex(d.round + 2)));
             int user = Arrays.asList(league.getString("table").split(",")).indexOf(mem.getId());
             String range = "Liga 2!" + (char) (tier.equals("OU") ? (76 + d.picks.get(mem).stream().filter(p -> p.tier.equals("OU")).count()) : (tierlist.order.indexOf(tier) * 3 + 75 + d.picks.get(mem).stream().filter(p -> p.tier.equals(tier)).count())) + (user + 3);
             System.out.println("range = " + range);
@@ -293,7 +285,7 @@ public class PickCommand extends Command {
             System.out.println("d.members.size() = " + d.members.size());
             System.out.println("d.order.size() = " + d.order.get(d.round).size());
             System.out.println("d.members.size() - d.order.size() = " + (d.members.size() - d.order.get(d.round).size()));
-            if (d.members.size() - d.order.get(d.round).size() != 1 && isEnabled)
+            //if (d.members.size() - d.order.get(d.round).size() != 1 && isEnabled)
                 Google.batchUpdateRequest(doc, req, false);
             Google.updateRequest(doc, range, Collections.singletonList(Collections.singletonList(getGen5Sprite(pokemon))), false, false);
         }

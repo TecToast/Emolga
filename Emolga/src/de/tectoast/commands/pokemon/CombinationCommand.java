@@ -11,10 +11,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class CombinationCommand extends Command {
@@ -57,31 +55,48 @@ public class CombinationCommand extends Command {
         ArrayList<String> abis = new ArrayList<>();
         ArrayList<String> types = new ArrayList<>();
         ArrayList<String> egg = new ArrayList<>();
+        String modByGuild = getModByGuild(e);
         for (String s : args.split(",")) {
-            String str = getGerName(s.trim());
+            String str = getGerName(s.trim(), modByGuild);
             if (str.equals("") || str.startsWith("pkmn")) {
                 tco.sendMessage("**" + s + "** ist kein valides Argument!").queue();
                 return;
             }
-            if (str.startsWith("atk")) atks.add(getEnglName(str.split(";")[1]));
-            else if (str.startsWith("abi")) abis.add(getEnglName(str.split(";")[1]));
-            else if (str.startsWith("type")) types.add(getEnglName(str.split(";")[1]));
-            else if (str.startsWith("egg")) egg.add(getEnglName(str.split(";")[1]));
+            if (str.startsWith("atk")) atks.add(getSDName(str.split(";")[1], modByGuild));
+            else if (str.startsWith("abi")) abis.add(getEnglName(str.split(";")[1], modByGuild));
+            else if (str.startsWith("type")) types.add(getEnglName(str.split(";")[1], modByGuild));
+            else if (str.startsWith("egg")) egg.add(getEnglName(str.split(";")[1], modByGuild));
         }
-        JSONObject data = getDataJSON();
-        JSONObject moves = getMovesJSON();
+        JSONObject data = getDataJSON(modByGuild);
+        JSONObject moves = getLearnsetJSON(modByGuild);
         ArrayList<String> mons = new ArrayList<>();
-        for (String s : getMonList()) {
+        for (String s : getMonList(modByGuild)) {
             JSONObject mon = data.getJSONObject(s);
             if (abis.size() > 0 && containsNotAll(mon.getJSONObject("abilities"), abis)) continue;
             if (types.size() > 0 && containsNotAll(mon.getJSONArray("types"), types)) continue;
             if (egg.size() > 0 && containsNotAll(mon.getJSONArray("eggGroups"), egg)) continue;
-            String string;
-            if (mon.has("baseSpecies")) string = mon.getString("baseSpecies").toLowerCase();
-            else string = s.toLowerCase();
-            if (atks.size() > 0 && containsNotAll(moves.getJSONObject(string.replace("-", "")).getJSONObject("learnset").keySet(), atks))
+            //System.out.println("s = " + s);
+            String string = null;
+            boolean isRegion = false;
+            for (String form : Arrays.asList("alola", "galar", "unova")) {
+                if (mon.optString("forme", "").toLowerCase().contains(form)) isRegion = true;
+            }
+            if(!isRegion) {
+                if (mon.has("baseSpecies")) string = mon.getString("baseSpecies");
+            }
+            if(string == null) string = s;
+
+            if (atks.size() > 0) {
+                if(!moves.has(toSDName(string))) continue;
+                if(!moves.getJSONObject(toSDName(string)).has("learnset")) continue;
+                if(containsNotAll(moves.getJSONObject(toSDName(string)).getJSONObject("learnset").keySet(), atks))
                 continue;
-            mons.add(mon.getString("name"));
+            }
+            if(mon.getInt("num") < 0) continue;
+            String name = data.getJSONObject(s).getString("name");
+            String[] split = name.split("-");
+            if(split.length > 1) mons.add(getGerNameNoCheck(split[0]) + "-" + split[1]);
+            else mons.add(getGerNameNoCheck(name));
             /*
             JSONObject mon = data.getJSONObject(s);
             if (!containsAll(mon.getString("abilities"), abis)) continue;
@@ -93,7 +108,7 @@ public class CombinationCommand extends Command {
             }*/
         }
         if (mons.size() == 0) {
-            tco.sendMessage("Kein pokemon hat diese Kombination an Attacken/Fähigkeiten/Typen!").queue();
+            tco.sendMessage("Kein Pokemon hat diese Kombination an Attacken/Fähigkeiten/Typen!").queue();
         } else {
             Collections.sort(mons);
             EmbedBuilder builder = new EmbedBuilder();

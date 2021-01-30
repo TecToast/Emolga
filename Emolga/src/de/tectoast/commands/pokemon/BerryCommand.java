@@ -95,6 +95,10 @@ public class BerryCommand extends Command {
                 g = "Latchibeere";
                 err = "Chilan Berry";
                 break;
+            case "Fee":
+                g = "Hibisbeere";
+                err = "Roseli Berry";
+                break;
         }
         tco.sendMessage("Deutsch: " + g + "\nEnglisch: " + err).queue();
     }

@@ -207,7 +207,7 @@ public class PrivateCommands {
             tco.sendMessage("CheckBST: " + checkBST).queue();
         } else if (msg.startsWith("!sortzbs")) {
             JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ZBSL" + split[1]);
-            sortZBS(league.getJSONObject("doc").getString("sid"), "Liga " + split[1], league);
+            sortZBS(league.getString("sid"), "Liga " + split[1], league);
         } else if (msg.startsWith("!sortwooloo")) {
             JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("Wooloo Cup");
             sortWooloo(league.getJSONObject("doc").getString("sid"), league);

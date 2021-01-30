@@ -2,7 +2,9 @@ package de.tectoast.emolga;
 
 import de.tectoast.commands.CommandCategory;
 import de.tectoast.commands.PrivateCommands;
-import de.tectoast.utils.*;
+import de.tectoast.utils.Constants;
+import de.tectoast.utils.DexQuiz;
+import de.tectoast.utils.Giveaway;
 import de.tectoast.utils.draft.Draft;
 import de.tectoast.utils.music.GuildMusicManager;
 import de.tectoast.utils.showdown.Analysis;
@@ -14,9 +16,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.channel.text.TextChannelCreateEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
-import net.dv8tion.jda.api.events.guild.voice.GuildVoiceJoinEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent;
-import net.dv8tion.jda.api.events.guild.voice.GuildVoiceMoveEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
@@ -46,29 +46,8 @@ public class EmolgaListener extends ListenerAdapter {
     public static final List<String> allowsCaps = Arrays.asList("712612442622001162", "752230819644440708", "732545253344804914");
     public static boolean disablesort = false;
     public static File file = new File("./debug.txt");
-    public static boolean leon = false;
-    public static boolean pizza = false;
     //public static byte[] bytes;
 
-    @Override
-    public void onGuildVoiceJoin(@Nonnull GuildVoiceJoinEvent e) {
-        String id = e.getChannelJoined().getId();
-        Member mem = e.getMember();
-        if (id.equals("712035339321081989") && mem.getId().equals("574949229668335636") && leon)
-            e.getGuild().moveVoiceMember(mem, e.getGuild().getVoiceChannelById("722844712939159552")).queue();
-        if (id.equals("712035339321081989") && pizza && !mem.getEffectiveName().toLowerCase().contains("pizza"))
-            e.getGuild().moveVoiceMember(mem, e.getGuild().getVoiceChannelById("745957605146624024")).queue();
-    }
-
-    @Override
-    public void onGuildVoiceMove(@Nonnull GuildVoiceMoveEvent e) {
-        String id = e.getChannelJoined().getId();
-        Member mem = e.getMember();
-        if (id.equals("712035339321081989") && mem.getId().equals("574949229668335636") && leon)
-            e.getGuild().moveVoiceMember(mem, e.getGuild().getVoiceChannelById("722844712939159552")).queue();
-        if (id.equals("712035339321081989") && pizza && !mem.getEffectiveName().toLowerCase().contains("pizza"))
-            e.getGuild().moveVoiceMember(mem, e.getGuild().getVoiceChannelById("745957605146624024")).queue();
-    }
 
     @Override
     public void onGuildMemberJoin(@Nonnull GuildMemberJoinEvent e) {
@@ -183,9 +162,6 @@ public class EmolgaListener extends ListenerAdapter {
         Guild g = e.getJDA().getGuildById("712035338846994502");
         TextChannel channel = e.getJDA().getTextChannelById("715249205186265178");
         //channel.retrieveMessageById("758397956637720596").queue(helps::add);
-        channel.addReactionById("759407279094628383", g.getEmoteById("715932914554110065")).queue();
-        channel.addReactionById("759407279094628383", g.getEmoteById("715932816910712923")).queue();
-        channel.addReactionById("759407279094628383", g.getEmoteById("750666078828363888")).queue();
         JSONObject json = getEmolgaJSON();
         if (!json.has("style")) return;
         JSONArray style = json.getJSONArray("style");
@@ -265,6 +241,7 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onGuildMessageReceived(@NotNull GuildMessageReceivedEvent e) {
         new Thread(() -> {
+            if (e.isWebhookMessage()) return;
             Message m = e.getMessage();
             String msg = m.getContentDisplay();
             TextChannel tco = e.getChannel();
@@ -276,6 +253,7 @@ public class EmolgaListener extends ListenerAdapter {
                 if (msg.contains("518008523653775366")) gid = "518008523653775366";
                 if (msg.contains("709877545708945438")) gid = "709877545708945438";
                 if (msg.contains("747357029714231299")) gid = "747357029714231299";
+                if (msg.contains("736555250118295622")) gid = "736555250118295622";
             }
             if (gid.equals("712035338846994502")) {
                 if (g.getSelfMember().canInteract(member) && !allowsCaps.contains(tco.getId())) {
@@ -308,7 +286,7 @@ public class EmolgaListener extends ListenerAdapter {
                 List<String> list = Arrays.asList(msg.split("\n"));
                 JSONObject json = getEmolgaJSON().getJSONObject("BlitzTurnier");
                 int gameday = json.getInt("gameday");
-                if(gameday == -1) return;
+                if (gameday == -1) return;
                 String p1 = member.getId();
                 Optional<String> op = Arrays.stream(json.getJSONObject("battleorder").getString(String.valueOf(gameday)).split(";")).filter(str -> str.contains(p1)).findFirst();
                 if (!op.isPresent()) {
@@ -397,7 +375,7 @@ public class EmolgaListener extends ListenerAdapter {
                 }
                 saveEmolgaJSON();
             }
-            if (tco.getId().equals("759712094223728650") || tco.getId().equals("759734608773775360")) {
+            /*if (tco.getId().equals("759712094223728650") || tco.getId().equals("759734608773775360")) {
                 JSONObject bst = getEmolgaJSON().getJSONObject("BST");
                 String raw = m.getContentRaw();
                 System.out.println("raw = " + raw);
@@ -730,7 +708,7 @@ public class EmolgaListener extends ListenerAdapter {
                 System.out.println("Updating...");
                 sortBST();
                 return;
-            }
+            }*/
             if (tco.getId().equals("743471003220443226") && !member.getUser().isBot()) {
                 e.getJDA().retrieveUserById("574949229668335636").complete().openPrivateChannel().complete().sendMessage(msg).queue();
                 return;
@@ -840,19 +818,21 @@ public class EmolgaListener extends ListenerAdapter {
                 return;
             }
             DexQuiz quiz = DexQuiz.getByTC(tco);
-            if (quiz != null) {
+            if (quiz != null && !quiz.block) {
                 String mon = quiz.gerName;
                 String name = getGerName(msg);
                 if (name.startsWith("pkmn;")) name = name.split(";")[1];
                 if (name.equalsIgnoreCase(mon) || name.equalsIgnoreCase(quiz.englName)) {
-                    tco.sendMessage(member.getAsMention() + " hat das pokemon erraten! Es war " + mon + "!").queue();
+                    quiz.block = true;
+                    tco.sendMessage(member.getAsMention() + " hat das Pokemon erraten! Es war " + mon + "!").queue();
                     quiz.round++;
                     if (!quiz.points.containsKey(member)) quiz.points.put(member, 0);
                     quiz.points.put(member, quiz.points.get(member) + 1);
                     if (quiz.round > quiz.cr) {
                         StringBuilder builder = new StringBuilder("Punkte:\n");
-                        for (Map.Entry<Member, Integer> en : quiz.points.entrySet()) {
-                            builder.append(en.getKey().getAsMention()).append(": ").append(en.getValue()).append("\n");
+                        //noinspection SuspiciousMethodCalls
+                        for (Member mem : quiz.points.keySet().stream().sorted(Comparator.comparing(quiz.points::get).reversed()).collect(Collectors.toList())) {
+                            builder.append(mem.getAsMention()).append(": ").append(quiz.points.get(mem)).append("\n");
                         }
                         tco.sendMessage(builder.toString()).queue();
                         DexQuiz.list.remove(quiz);
@@ -867,11 +847,12 @@ public class EmolgaListener extends ListenerAdapter {
                         Element table = d.select("table[class=\"round centered\"]").get(0);
                         Element element = table.select("td").get(new Random().nextInt(table.select("td").size()));
                         quiz.gerName = pokemon;
-                        sendToMe(pokemon);
+                        sendToMe(tco.getAsMention() + pokemon);
                         quiz.englName = englName;
                         //ü = %C3%B6
+                        quiz.block = false;
                         Thread.sleep(3000);
-                        tco.sendMessage(trim(element.text(), pokemon) + "\nZu welchem pokemon gehört dieser Dex-Eintrag?").queue();
+                        tco.sendMessage(trim(element.text(), pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queue();
                     } catch (IOException | InterruptedException ioException) {
                         ioException.printStackTrace();
                     }
@@ -895,11 +876,14 @@ public class EmolgaListener extends ListenerAdapter {
                         int aliveP2 = 0;
                         StringBuilder t1 = new StringBuilder();
                         StringBuilder t2 = new StringBuilder();
+
                         for (SDPokemon p : game[0].getMons()) {
                             if (!p.isDead()) aliveP1++;
+
                         }
                         for (SDPokemon p : game[1].getMons()) {
                             if (!p.isDead()) aliveP2++;
+
                         }
                         String winloose = aliveP1 + ":" + aliveP2;
                         boolean p1wins = game[0].isWinner();
@@ -958,15 +942,20 @@ public class EmolgaListener extends ListenerAdapter {
                                     + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2.toString();
                         }
                         if (!gid.equals("518008523653775366")) {
-                            tco.getGuild().getTextChannelById(analysis.getString(tco.getId())).sendMessage(str).queue();
+                            TextChannel t = tco.getGuild().getTextChannelById(analysis.getString(tco.getId()));
+                            t.sendMessage(str).queue();
+                            for (int i = 0; i < 2; i++) {
+                                if (game[i].getMons().stream().anyMatch(mon -> mon.getPokemon().equals("Zoroark") || mon.getPokemon().equals("Zorua")))
+                                    t.sendMessage("Im Team von " + game[i].getNickname() + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!").queue();
+                            }
                             System.out.println("In emolga Listener!");
                         }
-                        if (!gid.equals("518008523653775366") && !gid.equals("447357526997073930") && !gid.equals("709877545708945438") && !gid.equals("747357029714231299"))
+                        if (!gid.equals("518008523653775366") && !gid.equals("447357526997073930") && !gid.equals("709877545708945438") && !gid.equals("736555250118295622"))
                             return;
                         if (!json.getJSONObject("showdown").has(gid)) return;
                         if (uid1 == null || uid2 == null) return;
                         if (sdAnalyser.containsKey(gid)) {
-                            sdAnalyser.get(gid).analyse(game, uid1, uid2, kills, deaths, str, e.getGuild().getId().equals("447357526997073930") ? "447357526997073932" : "766733920309477398");
+                            sdAnalyser.get(gid).analyse(game, uid1, uid2, kills, deaths, str, url);
                         }
                     }
                 }

@@ -32,7 +32,7 @@ public class DexquizCommand extends Command {
             try {
                 List<String> list = Files.readAllLines(file.toPath());
                 String pokemon = list.get(new Random().nextInt(list.size()));
-                sendToMe(pokemon);
+                sendToMe(tco.getAsMention() + pokemon);
                 Document d = Jsoup.connect("https://www.pokewiki.de/" + pokemon).get();
                 String englName = getEnglName(pokemon);
                 Element table = d.select("table[class=\"round centered\"]").get(0);

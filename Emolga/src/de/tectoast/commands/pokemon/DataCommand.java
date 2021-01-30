@@ -37,15 +37,19 @@ public class DataCommand extends Command {
             if (msg.toLowerCase().contains("shiny")) {
                 name = name.substring(6);
             }
-            String gerName = getGerName(name);
+            String mod = getModByGuild(e);
+            String gerName = getGerName(name, mod);
             String objtype = gerName.split(";")[0];
             switch (objtype) {
                 case "pkmn":
                     try {
-                        JSONObject json = getDataJSON();
+                        JSONObject json = getDataJSON(mod);
                         String monname = gerName.split(";")[1];
                         EmbedBuilder builder = new EmbedBuilder();
-                        JSONObject mon = json.getJSONObject(getSDName(monname));
+                        String sdname = getSDName(monname);
+                        System.out.println("sdname = " + sdname);
+                        JSONObject mon = json.getJSONObject(sdname);
+                        System.out.println("mon = " + mon.toString(4));
                         builder.addField("Englisch", Command.getEnglName(monname), true);
                         builder.addField("Dex", String.valueOf(mon.getInt("num")), true);
                         String gender;
@@ -56,14 +60,19 @@ public class DataCommand extends Command {
                             gender = mon.getString("gender").equals("M") ? "100% ♂" : (mon.getString("gender").equals("F") ? "100% ♀" : "Unbekannt");
                         } else gender = "50% ♂ 50% ♀";
                         builder.addField("Geschlecht", gender, true);
-                        List<JSONObject> list = getAllForms(monname);
+                        List<JSONObject> list = getAllForms(monname, mod);
+                        ArrayList<String> formeNames = list.stream().map(o -> toSDName(o.getString("name"))).collect(Collectors.toCollection(ArrayList::new));
+                        //list.forEach(j -> System.out.println(j.toString(4)));
                         if (monname.equalsIgnoreCase("amigento") || monname.equalsIgnoreCase("arceus")) {
                             builder.addField("Typen", "Normal", false);
                         } else {
                             HashMap<String, ArrayList<String>> types = new HashMap<>();
                             for (JSONObject obj : list) {
                                 System.out.println(obj);
-                                String type = obj.getJSONArray("types").toList().stream().map(o -> getGerNameNoCheck((String) o)).collect(Collectors.joining(" "));
+                                String type = obj.getJSONArray("types").toList().stream().map(o -> {
+                                    if (o.equals("Psychic")) return "Psycho";
+                                    return getGerNameNoCheck((String) o);
+                                }).collect(Collectors.joining(" "));
 
                                 if (types.containsKey(type))
                                     types.get(type).add(obj.has("forme") ? obj.getString("forme") : "Normal");
@@ -201,6 +210,7 @@ public class DataCommand extends Command {
                                     : "KP: 120\n" + "Atk: 120\n" + "Def: 120\n" + "SpAtk: 120\n" + "SpDef: 120\n" + "Init: 120\n" + "Summe: 720", false);
                         } else {
                             HashMap<String, ArrayList<String>> stat = new HashMap<>();
+                            HashMap<String, String> origname = new HashMap<>();
                             for (JSONObject obj : list) {
                                 JSONObject stats = obj.getJSONObject("baseStats");
                                 int kp = stats.getInt("hp");
@@ -222,14 +232,11 @@ public class DataCommand extends Command {
                                 else if (split.size() > 1) {
                                     toadd = getGerNameNoCheck(split.remove(0)) + "-" + String.join("-", split);
                                 } else toadd = getGerNameNoCheck(toadd);
+                                origname.put(toadd, toSDName(obj.getString("name")));
                                 if (stat.containsKey(str)) stat.get(str).add(toadd);
                                 else stat.put(str, new ArrayList<>(Collections.singletonList(toadd)));
                             }
-                            //noinspection SuspiciousMethodCalls
-                            for (String s : stat.keySet().stream().sorted(Comparator.comparing(o -> {
-                                String[] split = ((String) o).split(":");
-                                return Integer.parseInt(split[split.length - 1].trim());
-                            }).thenComparing(o -> stat.get(o).get(0))).collect(Collectors.toList())) {
+                            for (String s : stat.keySet().stream().sorted(Comparator.comparing(o -> stat.get(o).stream().mapToInt(str -> formeNames.indexOf(origname.get(str))).min().orElse(0))).collect(Collectors.toList())) {
                                 builder.addField(String.join(", ", stat.get(s)), s, true);
                             }
                         }
@@ -246,22 +253,145 @@ public class DataCommand extends Command {
                     break;
                 case "atk":
                     name = gerName.split(";")[1];
-                    JSONObject data = getWikiJSON().getJSONObject("atkdata").getJSONObject(name);
-                    String p = data.getString("power");
+                    System.out.println(getMovesJSON(mod).toString(4));
+                    JSONObject data = getMovesJSON(mod).getJSONObject(getSDName(name, mod));
+                    String type = data.getString("type");
+                    if (type.equals("Psychic")) type = "Psycho";
+                    else type = getGerNameNoCheck(type);
+                    String p;
+                    int maxPower;
+                    if (data.has("ohko")) {
+                        p = "K.O.";
+                        maxPower = 130;
+                    } else {
+                        int bp = data.getInt("basePower");
+                        p = String.valueOf(bp);
+                        if (Arrays.asList("Gift", "Kampf").contains(type)) {
+                            if (bp >= 150) {
+                                maxPower = 100;
+                            } else if (bp >= 110) {
+                                maxPower = 95;
+                            } else if (bp >= 75) {
+                                maxPower = 90;
+                            } else if (bp >= 65) {
+                                maxPower = 85;
+                            } else if (bp >= 55) {
+                                maxPower = 80;
+                            } else if (bp >= 45) {
+                                maxPower = 75;
+                            } else {
+                                maxPower = 70;
+                            }
+                        } else {
+                            if (bp >= 150) {
+                                maxPower = 150;
+                            } else if (bp >= 110) {
+                                maxPower = 140;
+                            } else if (bp >= 75) {
+                                maxPower = 130;
+                            } else if (bp >= 65) {
+                                maxPower = 120;
+                            } else if (bp >= 55) {
+                                maxPower = 110;
+                            } else if (bp >= 45) {
+                                maxPower = 100;
+                            } else {
+                                maxPower = 90;
+                            }
+                        }
+                    }
+                    String accuracy;
+                    Object acc = data.get("accuracy");
+                    if (acc instanceof Boolean) accuracy = "-";
+                    else accuracy = acc + "%";
+                    String cat = data.getString("category");
+                    String category;
+                    switch (cat) {
+                        case "Physical":
+                            category = "Physisch";
+                            break;
+                        case "Special":
+                            category = "Speziell";
+                            break;
+                        case "Status":
+                            category = "Status";
+                            break;
+                        default:
+                            category = "ERROR";
+                            break;
+                    }
+                    int ppc = data.getInt("pp");
+                    String pp = ppc + " (max. " + (ppc * 8 / 5) + ")";
                     EmbedBuilder builder = new EmbedBuilder();
                     builder.setTitle(name)
-                            .addField("English", getEnglName(name), true)
+                            .addField("English", getEnglName(name, mod), true)
                             .addField("Power", p, true)
-                            .addField("Dyna-Power", data.getString("dynapower"), true)
-                            .addField("Accuracy", data.getString("accuracy"), true)
-                            .addField("Category", data.getString("category"), true)
-                            .addField("AP", data.getString("ap"), true)
-                            .addField("Type", data.getString("type"), true)
-                            .addField("Priority", data.getString("prio"), true)
+                            .addField("Dyna-Power", String.valueOf(maxPower), true)
+                            .addField("Accuracy", accuracy, true)
+                            .addField("Category", category, true)
+                            .addField("AP", pp, true)
+                            .addField("Type", type, true)
+                            .addField("Priority", String.valueOf(data.getInt("priority")), true)
                             .setColor(Color.CYAN)
-                            .setDescription(data.getString("description"));
+                            .setDescription(getWikiJSON().getJSONObject("atkdata").getString(toSDName(getGerNameNoCheck(name))));
                     if (data.getString("category").equals("Status")) {
-                        builder.addField("Z-Effect", data.has("zpower") ? data.getString("zpower") : "Nichts", true);
+                        String text;
+                        JSONObject eff = data.getJSONObject("zMove");
+                        if (eff.has("effect")) {
+                            switch (eff.getString("effect")) {
+                                case "clearnegativeboost":
+                                    text = "Negative Statusveränderungen werden zurückgesetzt";
+                                    break;
+                                case "crit2":
+                                    text = "Critchance +2";
+                                    break;
+                                case "heal":
+                                    text = "Volle Heilung";
+                                    break;
+                                case "curse":
+                                    text = "Volle Heilung beim Geist Typ, sonst Atk +1";
+                                    break;
+                                case "redirect":
+                                    text = "Spotlight";
+                                    break;
+                                case "healreplacement":
+                                    text = "Heilt eingewechseltes Mon voll";
+                                    break;
+                                default:
+                                    text = "Error";
+                                    System.out.println(eff.toString(4));
+                                    break;
+                            }
+                        } else {
+                            JSONObject boosts = eff.getJSONObject("boost");
+                            String stat = boosts.keys().next();
+                            switch (stat) {
+                                case "atk":
+                                    text = "Atk +" + boosts.getInt(stat);
+                                    break;
+                                case "def":
+                                    text = "Def +" + boosts.getInt(stat);
+                                    break;
+                                case "spa":
+                                    text = "SpAtk +" + boosts.getInt(stat);
+                                    break;
+                                case "spd":
+                                    text = "SpDef +" + boosts.getInt(stat);
+                                    break;
+                                case "spe":
+                                    text = "Init +" + boosts.getInt(stat);
+                                    break;
+                                case "accuracy":
+                                    text = "Genauigkeit +" + boosts.getInt(stat);
+                                    break;
+                                case "evasion":
+                                    text = "Ausweichwert +" + boosts.getInt(stat);
+                                    break;
+                                default:
+                                    text = "Error";
+                            }
+                        }
+                        builder.addField("Z-Effect", text, true);
                     } else {
                         String zpower = null;
                         if (data.has("zpower")) zpower = String.valueOf(data.getInt("zpower"));

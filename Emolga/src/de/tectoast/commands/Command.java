@@ -18,15 +18,13 @@ import de.tectoast.commands.draft.*;
 import de.tectoast.commands.flo.EmoteStealCommand;
 import de.tectoast.commands.flo.GetIdsCommand;
 import de.tectoast.commands.flo.GiveMeAdminPermissionsCommand;
+import de.tectoast.commands.moderator.*;
 import de.tectoast.commands.music.*;
 import de.tectoast.commands.pokemon.*;
 import de.tectoast.commands.various.GcreateCommand;
 import de.tectoast.commands.various.NicknameCommand;
 import de.tectoast.emolga.EmolgaMain;
-import de.tectoast.utils.Constants;
-import de.tectoast.utils.Google;
-import de.tectoast.utils.ReplayAnalyser;
-import de.tectoast.utils.RequestBuilder;
+import de.tectoast.utils.*;
 import de.tectoast.utils.music.GuildMusicManager;
 import de.tectoast.utils.showdown.Player;
 import de.tectoast.utils.showdown.SDPokemon;
@@ -45,7 +43,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
-import java.util.List;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Predicate;
@@ -77,8 +74,8 @@ public abstract class Command {
     public static final ArrayList<String> emotesteal = new ArrayList<>();
     private static final String SDPATH = "./ShowdownData/";
     public static JSONObject wikijson;
-    public static JSONObject datajson;
-    public static JSONObject movejson;
+    //public static JSONObject datajson;
+    //public static JSONObject movejson;
     public static JSONObject spritejson;
     public static JSONObject shinyspritejson;
     public static JSONObject emolgajson;
@@ -94,6 +91,7 @@ public abstract class Command {
     public static boolean expEdited = false;
     public static Member as = null;
     public static boolean checkBST = false;
+    public static final HashMap<String, String> moderatorGuilds = new HashMap<>();
     protected static String tradesid;
     protected static List<String> balls;
     protected static List<String> mons;
@@ -119,7 +117,7 @@ public abstract class Command {
         this.help = help;
         this.category = category;
         if (category == CommandCategory.Admin) onlyAdmin = true;
-        allowedGuilds = guilds == null ? new ArrayList<>() : new ArrayList<>(Arrays.asList(guilds));
+        allowedGuilds = guilds.length == 0 ? (category == CommandCategory.Moderator ? new ArrayList<>(moderatorGuilds.keySet()) : new ArrayList<>()) : new ArrayList<>(Arrays.asList(guilds));
         commands.add(this);
         if (!categorys.containsKey(category)) categorys.put(category, new ArrayList<>());
         categorys.get(category).add(this);
@@ -384,6 +382,7 @@ public abstract class Command {
 
     public static void mute(TextChannel tco, Member mod, Member mem, String reason) {
         Guild g = tco.getGuild();
+        String gid = g.getId();
         if (!g.getSelfMember().canInteract(mem)) {
             EmbedBuilder builder = new EmbedBuilder();
             builder.setColor(Color.RED);
@@ -391,12 +390,10 @@ public abstract class Command {
             tco.sendMessage(builder.build()).queue();
             return;
         }
-        if (g.getId().equals(Constants.BSID))
-            g.addRoleToMember(mem, g.getRoleById("717297533294215258")).queue();
-        else if (g.getId().equals("447357526997073930"))
-            g.addRoleToMember(mem, g.getRoleById("761723664273899580")).queue();
+        if (moderatorGuilds.containsKey(gid)) {
+            g.addRoleToMember(mem, g.getRoleById(moderatorGuilds.get(gid))).queue();
+        }
         JSONObject json = getEmolgaJSON();
-        if (!json.has("mutes")) json.put("mutes", new JSONArray());
         JSONArray arr = json.getJSONArray("mutes");
         JSONObject obj = new JSONObject();
         obj.put("mod", mod.getId());
@@ -413,13 +410,12 @@ public abstract class Command {
     }
 
     public static void unmute(TextChannel tco, Member mem) {
-        JSONObject json = getEmolgaJSON();
+        JSONObject json = getEmolgaJSON().getJSONObject("mutes");
         Guild g = tco.getGuild();
-        if (g.getId().equals(Constants.BSID))
-            g.removeRoleFromMember(mem, g.getRoleById("717297533294215258")).queue();
-        else if (g.getId().equals("447357526997073930"))
-            g.removeRoleFromMember(mem, g.getRoleById("761723664273899580")).queue();
-        if (!json.has("mutes")) json.put("mutes", new JSONArray());
+        String gid = g.getId();
+        if (moderatorGuilds.containsKey(gid)) {
+            g.removeRoleFromMember(mem, g.getRoleById(moderatorGuilds.get(gid))).queue();
+        }
         JSONArray arr = json.getJSONArray("mutes");
         ArrayList<Integer> indexes = new ArrayList<>();
         for (int i = 0; i < arr.length(); i++) {
@@ -499,7 +495,7 @@ public abstract class Command {
         if (!g.getSelfMember().canInteract(mem)) {
             EmbedBuilder builder = new EmbedBuilder();
             builder.setColor(Color.RED);
-            builder.setTitle("Ich kann diesen User nicht muten!");
+            builder.setTitle("Ich kann diesen User nicht warnen!");
             tco.sendMessage(builder.build()).queue();
             return;
         }
@@ -654,8 +650,8 @@ public abstract class Command {
     }
 
     public static void sortZBS(String sid, String tablename, JSONObject league) {
-        List<List<Object>> formula = Google.get(sid, tablename + "!F13:M19", true, false);
-        List<List<Object>> points = Google.get(sid, tablename + "!F13:M19", false, false);
+        List<List<Object>> formula = Google.get(sid, tablename + "!F14:M21", true, false);
+        List<List<Object>> points = Google.get(sid, tablename + "!F14:M21", false, false);
         List<List<Object>> orig = new ArrayList<>(points);
         JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
         points.sort((o1, o2) -> {
@@ -679,10 +675,11 @@ public abstract class Command {
             i++;
         }
         List<List<Object>> sendname = new ArrayList<>();
-        for (int j = 0; j < 18; j++) {
+        for (int j = 0; j < 8; j++) {
             sendname.add(namap.get(j));
         }
-        Google.updateRequest(sid, tablename + "!F13", sendname, false, false);
+        System.out.println(sendname);
+        Google.updateRequest(sid, tablename + "!F14", sendname, false, false);
         System.out.println("Done!");
     }
 
@@ -888,17 +885,39 @@ public abstract class Command {
 
     public static JSONObject loadSD(String path, int sub) {
         try {
-            File f = new File(SDPATH + path);
+            File f = new File(path);
+            System.out.println("path = " + path);
             List<String> l = Files.readAllLines(f.toPath());
             int i = 0;
             StringBuilder b = new StringBuilder();
+            boolean func = false;
+            //int braces = 0;
             for (String s : l) {
                 String str;
-                if (i == 0) str = s.substring(sub);
+                if (i == 0)
+                    str = s.substring(sub);
                 else if (i == l.size() - 1) str = s.substring(0, s.length() - 1);
                 else str = s;
-                b.append(str);
+                if (path.endsWith("moves.ts")) {
+                    /*if ((str.contains("{") && str.contains("(") && str.contains(")") && !str.contains(":")) || str.equals("\t\tcondition: {") || str.equals("\t\tsecondary: {")) {
+                        func = true;
+                    }*/
+                    if (str.startsWith("\t\t") && (str.endsWith("{") || str.endsWith("["))) func = true;
+                    if (str.equals("\t\t},") && func) {
+                        func = false;
+                    } else if (!str.startsWith("\t\t\t") && !func) b.append(str).append("\n");
+                } else {
+                    b.append(str).append("\n");
+                }
                 i++;
+            }
+            if (path.endsWith("moves.ts")) {
+                //BufferedWriter writer = new BufferedWriter(new FileWriter("ichbineinwirklichtollertest.json"));
+                BufferedWriter writer2 = new BufferedWriter(new FileWriter("ichbineinbesserertest.txt"));
+                //writer.write(object.toString(4));
+                writer2.write(b.toString());
+                //writer.close();
+                writer2.close();
             }
             return new JSONObject(b.toString());
         } catch (IOException e) {
@@ -907,12 +926,28 @@ public abstract class Command {
         return null;
     }
 
-    public static JSONObject getDataJSON() {
-        return datajson;
+    public static JSONObject getDataJSON(String mod) {
+        return ModManager.getByName(mod).getDex();
     }
 
-    public static JSONObject getMovesJSON() {
-        return movejson;
+    public static JSONObject getDataJSON() {
+        return getDataJSON("default");
+    }
+
+    public static JSONObject getLearnsetJSON(String mod) {
+        return ModManager.getByName(mod).getLearnsets();
+    }
+
+    public static JSONObject getMovesJSON(String mod) {
+        return ModManager.getByName(mod).getMoves();
+    }
+
+    public static String getModByGuild(GuildMessageReceivedEvent e) {
+        String gid = e.getGuild().getId();
+        if ("447357526997073930".equals(gid) || "786351922029527130".equals(gid)) {
+            return "nml";
+        }
+        return "default";
     }
 
     public static JSONObject getWikiJSON() {
@@ -1042,6 +1077,7 @@ public abstract class Command {
         new ShinyCommand();
         new CheckMonsCommand();
         new EmoteStealCommand();
+        new RandomPickCommand();
     }
 
     public static void awaitNextDay() {
@@ -1062,6 +1098,11 @@ public abstract class Command {
     }
 
     public static void init() {
+        loadJSONFiles();
+        JSONObject mod = emolgajson.getJSONObject("moderator");
+        for (String s : mod.keySet()) {
+            moderatorGuilds.put(s, mod.getString(s));
+        }
         registerCommands();
         try {
             balls = Files.readAllLines(Paths.get("./balls.txt"));
@@ -1262,7 +1303,6 @@ public abstract class Command {
         emolgachannel.put("677229415629062180", new ArrayList<>(Collections.singletonList("731455491527540777")));
         emolgachannel.put("694256540642705408", new ArrayList<>(Collections.singletonList("695157832072560651")));
         emolgachannel.put("747357029714231299", new ArrayList<>(Arrays.asList("752802115096674306", "762411109859852298")));
-        loadJSONFiles();
         sdAnalyser.put(Constants.ASLID, (game, uid1, uid2, kills, deaths, args) -> {
             JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7");
             String checkUid;
@@ -1418,14 +1458,15 @@ public abstract class Command {
             b.execute();
             sortWooloo(sid, league);
         });
-        sdAnalyser.put("747357029714231299", (game, uid1, uid2, kills, deaths, args) -> {
+        sdAnalyser.put("736555250118295622", (game, uid1, uid2, kills, deaths, args) -> {
+            // ZBS
             JSONObject league;
             JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
             int l;
             if (drafts.getJSONObject("ZBSL1").getString("table").contains(uid1)) l = 1;
             else l = 2;
             league = drafts.getJSONObject("ZBSL" + l);
-            String sid = league.getJSONObject("doc").getString("sid");
+            String sid = league.getString("sid");
             int gameday = getGameDay(league, uid1, uid2);
             if (gameday == -1) {
                 System.out.println("GAMEDAY -1");
@@ -1443,7 +1484,7 @@ public abstract class Command {
                 for (String pick : picks) {
                     String kill = getNumber(kills, pick);
                     String death = getNumber(deaths, pick);
-                    list.add(Arrays.asList((kill.equals("") ? 0 : Integer.parseInt(kill)) + Integer.parseInt((String) get.get(x).get(0)), (death.equals("") ? 0 : Integer.parseInt(death)) + Integer.parseInt((String) get.get(x).get(1)), Integer.parseInt((String) get.get(x).get(2)) + 1));
+                    list.add(Arrays.asList((kill.equals("") ? 0 : Integer.parseInt(kill)) + Integer.parseInt((String) get.get(x).get(0)), (death.equals("") ? 0 : Integer.parseInt(death)) + Integer.parseInt((String) get.get(x).get(1)), Integer.parseInt((String) get.get(x).get(2)) + (death.equals("") ? 0 : 1)));
                     x++;
                 }
                 List<List<Object>> getvic;
@@ -1469,14 +1510,14 @@ public abstract class Command {
                 }
                 i++;
             }
-            generateResult(b, game, league, gameday, uid1, "Spielplan Liga " + l, "ZBS");
+            generateResult(b, game, league, gameday, uid1, "Spielplan Liga " + l, "ZBS", (String) args[0]);
             b.execute();
             sortZBS(sid, "Liga " + l, league);
             saveEmolgaJSON();
         });
     }
 
-    public static void generateResult(RequestBuilder b, Player[] game, JSONObject league, int gameday, String uid1, String sheet, String leaguename) {
+    public static void generateResult(RequestBuilder b, Player[] game, JSONObject league, int gameday, String uid1, String sheet, String leaguename, String replay) {
         int aliveP1 = 0;
         int aliveP2 = 0;
         for (SDPokemon p : game[0].getMons()) {
@@ -1505,14 +1546,16 @@ public abstract class Command {
                 break;
         }
         if (str.split(":")[0].equals(uid1)) {
+            //b.addSingle(sheet + "!" + coords, "=HYPERLINK(\"" + replay + "\"; \"" + aliveP1 + ":" + aliveP2 + "\")");
             b.addSingle(sheet + "!" + coords, aliveP1 + ":" + aliveP2);
         } else {
+            //b.addSingle(sheet + "!" + coords, "=HYPERLINK(\"" + replay + "\"; \"" + aliveP2 + ":" + aliveP1 + "\")");
             b.addSingle(sheet + "!" + coords, aliveP2 + ":" + aliveP1);
         }
     }
 
-    public static List<String> getMonList() {
-        return getDataJSON().keySet().stream().filter(s -> !s.endsWith("gmax")).collect(Collectors.toList());
+    public static List<String> getMonList(String mod) {
+        return getDataJSON(mod).keySet().stream().filter(s -> !s.endsWith("gmax")).collect(Collectors.toList());
     }
 
     public static void woolooStyle(String sid, Message message, String uid1, String uid2) {
@@ -1578,8 +1621,8 @@ public abstract class Command {
     public static void loadJSONFiles() {
         emolgajson = load("./emolgadata.json");
         wikijson = load("./wikidata.json");
-        datajson = loadSD("pokedex.ts", 59);
-        movejson = loadSD("learnsets.ts", 62);
+        //datajson = loadSD("pokedex.ts", 59);
+        //movejson = loadSD("learnsets.ts", 62);
         spritejson = load("./sprites.json");
         shinyspritejson = load("./shinysprites.json");
         huntjson = load("./hunt.json");
@@ -1619,7 +1662,7 @@ public abstract class Command {
 
     public static void help(TextChannel tco, Member mem) {
         EmbedBuilder builder = new EmbedBuilder();
-        builder.setTitle("commands").setColor(Color.CYAN);
+        builder.setTitle("Commands").setColor(Color.CYAN);
         builder.setDescription(getHelpDescripion(tco.getGuild(), mem));
         tco.sendMessage(builder.build()).queue(m -> {
             helps.add(m);
@@ -1650,7 +1693,7 @@ public abstract class Command {
                     tco.sendMessage(NOPERM).queue();
                     return;
                 }
-                if (command.category != CommandCategory.Draft && command.category != CommandCategory.Flo && command.category != CommandCategory.Admin && !command.everywhere) {
+                if (command.category != CommandCategory.Draft && command.category != CommandCategory.Flo && command.category != CommandCategory.Admin && !command.everywhere && command.category != CommandCategory.Moderator) {
                     if (command.overrideChannel.containsKey(gid)) {
                         List<String> l = command.overrideChannel.get(gid);
                         if (!l.contains(e.getChannel().getId())) {
@@ -1714,29 +1757,30 @@ public abstract class Command {
 
     public static String getClass(String str) {
         String s = str.toLowerCase();
-        if (s.contains("--phys")) return "Physisch";
-        else if (s.contains("--spez")) return "Spezial";
+        if (s.contains("--phys")) return "Physical";
+        else if (s.contains("--spez")) return "Special";
         else if (s.contains("--status")) return "Status";
         return "";
     }
 
-    public static List<JSONObject> getAllForms(String monname) {
-        JSONObject json = getDataJSON();
+    public static List<JSONObject> getAllForms(String monname, String mod) {
+        JSONObject json = getDataJSON(mod);
         JSONObject mon = json.getJSONObject(getSDName(monname));
+        //System.out.println("getAllForms mon = " + mon.toString(4));
         if (!mon.has("formeOrder")) return Collections.singletonList(mon);
-        return mon.getJSONArray("formeOrder").toList().stream().map(o -> ((String) o).toLowerCase().replace("-", "").replace("%", "")).filter(json::has).map(json::getJSONObject).collect(Collectors.toList());
+        return mon.getJSONArray("formeOrder").toList().stream().map(o -> toSDName((String) o)).filter(json::has).map(json::getJSONObject).collect(Collectors.toList());
         //return json.keySet().stream().filter(s -> s.startsWith(monname.toLowerCase()) && !s.endsWith("gmax") && (s.equalsIgnoreCase(monname) || json.getJSONObject(s).has("forme"))).sorted(Comparator.comparingInt(String::length)).map(json::getJSONObject).collect(Collectors.toList());
     }
 
-    public static ArrayList<String> getAttacksFrom(String pokemon, String msg, String form) {
-        return getAttacksFrom(pokemon, msg, form, 8);
+    public static ArrayList<String> getAttacksFrom(String pokemon, String msg, String form, String mod) {
+        return getAttacksFrom(pokemon, msg, form, 8, mod);
     }
 
-    public static ArrayList<String> getAttacksFrom(String pokemon, String msg, String form, int maxgen) {
+    public static ArrayList<String> getAttacksFrom(String pokemon, String msg, String form, int maxgen, String mod) {
         ArrayList<String> already = new ArrayList<>();
         String type = getType(msg);
         String dmgclass = getClass(msg);
-        JSONObject movejson = getMovesJSON();
+        JSONObject movejson = getLearnsetJSON(mod);
         boolean prio = !msg.toLowerCase().contains("--prio");
         boolean hazard = !msg.toLowerCase().contains("--hazards");
         boolean recover = !msg.toLowerCase().contains("--recovery");
@@ -1757,20 +1801,20 @@ public abstract class Command {
         //if (type.equals("") && dmgclass.equals("") && prio && hazard && recover && setup && momentum && flinch)
         //     return moves;
         JSONObject json = getWikiJSON();
-        JSONObject atkdata = json.getJSONObject("atkdata");
-        JSONObject data = getDataJSON();
+        JSONObject atkdata = getMovesJSON(mod);
+        JSONObject data = getDataJSON(mod);
         try {
-            String str = pokemon.toLowerCase() + (form.equals("Normal") ? "" : form.toLowerCase());
+            String str = getSDName(pokemon) + (form.equals("Normal") ? "" : form.toLowerCase());
             while (str != null) {
-                JSONObject learnset = movejson.getJSONObject(getSDName(str)).getJSONObject("learnset");
+                JSONObject learnset = movejson.getJSONObject(str).getJSONObject("learnset");
                 ArrayList<String> moves = new ArrayList<>(learnset.keySet());
                 for (String moveengl : moves) {
                     //System.out.println("moveengl = " + moveengl);
                     String move = getGerNameNoCheck(moveengl);
                     //System.out.println("move = " + move);
-                    if ((type.equals("") || atkdata.getJSONObject(move).getString("type").equals(type)) &&
-                            (dmgclass.equals("") || atkdata.getJSONObject(move).getString("category").equals(dmgclass)) &&
-                            (prio || atkdata.getJSONObject(move).getString("prio").contains("+")) &&
+                    if ((type.equals("") || atkdata.getJSONObject(moveengl).getString("type").equals(getEnglName(type))) &&
+                            (dmgclass.equals("") || atkdata.getJSONObject(moveengl).getString("category").equals(dmgclass)) &&
+                            (prio || atkdata.getJSONObject(moveengl).getInt("priority") > 0) &&
                             (hazard || Command.hazards.contains(move)) &&
                             (recover || Command.recovery.contains(move)) &&
                             (setup || Command.setup.contains(move)) &&
@@ -1783,10 +1827,11 @@ public abstract class Command {
                         already.add(move);
                     }
                 }
-                JSONObject mon = data.getJSONObject(getSDName(str));
+                JSONObject mon = data.getJSONObject(str);
                 if (mon.has("prevo")) {
                     String s = mon.getString("prevo");
-                    if (s.endsWith("-Alola") || s.endsWith("-Galar")) str = s.replaceAll("-", "").toLowerCase();
+                    if (s.endsWith("-Alola") || s.endsWith("-Galar") || s.endsWith("-Unova"))
+                        str = s.replaceAll("-", "").toLowerCase();
                     else str = s.toLowerCase();
                 } else str = null;
             }
@@ -2301,6 +2346,10 @@ public abstract class Command {
     }
 
     public static String getGerName(String s) {
+        return getGerName(s, "default");
+    }
+
+    public static String getGerName(String s, String mod) {
         String check = checkShortcuts(s);
         if (check != null) return check;
         System.out.println("getGerName s = " + s);
@@ -2309,33 +2358,60 @@ public abstract class Command {
             return getGerName(ex[0]) + "-" + ex[1];
         }
         JSONObject o = getWikiJSON().getJSONObject("translations").optJSONObject(toSDName(s));
-        if(o == null) return "";
+        JSONObject modt = getWikiJSON().optJSONObject("translations" + mod);
+        if (o == null) {
+            if (modt != null && modt.has(toSDName(s)))
+                o = modt.getJSONObject(toSDName(s));
+            else
+                return "";
+        }
         return o.getString("type") + ";" + o.getString("ger");
     }
 
     public static String getGerNameNoCheck(String s) {
         //System.out.println("NoCheckGerName s = " + s);
-        return getWikiJSON().getJSONObject("translations").getJSONObject(toSDName(s)).getString("ger");
+        if (getWikiJSON().getJSONObject("translations").has(toSDName(s)))
+            return getWikiJSON().getJSONObject("translations").getJSONObject(toSDName(s)).getString("ger");
+        return getWikiJSON().getJSONObject("translationsnml").getJSONObject(toSDName(s)).getString("ger");
     }
 
     public static String getEnglName(String s) {
-        String check = checkShortcuts(s);
-        if (check != null) s = check.split(";")[1];
-        return getWikiJSON().getJSONObject("translations").getJSONObject(toSDName(s)).getString("engl");
+        return getEnglName(s, "default");
+    }
+
+    public static String getEnglName(String s, String mod) {
+        String str = getEnglNameWithType(s, mod);
+        if (str.equals("")) return "";
+        return str.split(";")[1];
     }
 
     public static String getEnglNameWithType(String s) {
+        return getEnglNameWithType(s, "default");
+    }
+
+    public static String getEnglNameWithType(String s, String mod) {
         String check = checkShortcuts(s);
         if (check != null) return check;
         JSONObject o = getWikiJSON().getJSONObject("translations").optJSONObject(toSDName(s));
-        if(o == null) return "";
+        JSONObject modt = getWikiJSON().optJSONObject("translations" + mod);
+        if (o == null) {
+            if (modt != null && modt.has(toSDName(s)))
+                o = modt.getJSONObject(toSDName(s));
+            else
+                return "";
+        }
         return o.getString("type") + ";" + o.getString("engl");
     }
 
     public static String getSDName(String s) {
-        String engl = getEnglNameWithType(s);
+        return getSDName(s, "default");
+    }
+
+    public static String getSDName(String s, String mod) {
+        System.out.println("getSDName s = " + s);
+        String engl = getEnglNameWithType(s, mod);
         if (engl.equals("")) return "";
-        return engl.split(";")[1].toLowerCase().replaceAll("/[^a-z0-9äöüÄÖÜß]+/g", "");
+        return engl.split(";")[1].toLowerCase().replaceAll("[^a-zA-Z0-9äöüÄÖÜß]+", "");
     }
 
     public static String toSDName(String s) {
@@ -2343,8 +2419,8 @@ public abstract class Command {
     }
 
 
-    public static boolean canLearn(String pokemon, String form, String atk, String msg, int maxgen) {
-        return getAttacksFrom(pokemon, msg, form, maxgen).contains(atk);
+    public static boolean canLearn(String pokemon, String form, String atk, String msg, int maxgen, String mod) {
+        return getAttacksFrom(pokemon, msg, form, maxgen, mod).contains(atk);
     }
 
     /*public static String getGerName(String s) {

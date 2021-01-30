@@ -27,6 +27,7 @@ public class Google {
     private static String CLIENTID;
     private static String CLIENTSECRET;
     private static String accesstoken;
+    private static long lastUpdate = -1;
 
     public static void setCredentials(String refreshToken, String clientID, String clientSecret) {
         REFRESHTOKEN = refreshToken;
@@ -151,12 +152,13 @@ public class Google {
     }
 
     public static void refreshTokenIfNotPresent() {
-        if(accesstoken == null) generateAccessToken();
+        if(accesstoken == null || System.currentTimeMillis() - lastUpdate > 3500000) generateAccessToken();
     }
 
     public static void generateAccessToken() {
         try {
             accesstoken = new GoogleRefreshTokenRequest(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), REFRESHTOKEN, CLIENTID, CLIENTSECRET).execute().getAccessToken();
+            lastUpdate = System.currentTimeMillis();
         } catch (IOException | GeneralSecurityException e) {
             e.printStackTrace();
         }

@@ -1,4 +1,4 @@
-package de.tectoast.commands.admin;
+package de.tectoast.commands.moderator;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
@@ -7,16 +7,16 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
-public class MuteCommand extends Command {
-    public MuteCommand() {
-        super("mute", "`!mute <User> <Grund>` Mutet den User wegen des angegebenen Grundes", CommandCategory.Admin, "712035338846994502");
+public class BanCommand extends Command {
+    public BanCommand() {
+        super("ban", "`!ban <User> <Grund>` Bannt den User", CommandCategory.Moderator);
     }
 
     @Override
     public void process(GuildMessageReceivedEvent e) {
         Message m = e.getMessage();
-        String raw = m.getContentRaw();
         TextChannel tco = e.getChannel();
+        String raw = m.getContentRaw();
         if (m.getMentionedMembers().size() != 1) {
             //tco.sendMessage("Du musst einen Spieler taggen!").queue();
             return;
@@ -28,6 +28,6 @@ public class MuteCommand extends Command {
         } catch (Exception ignored) {
             reason = "Nicht angegeben";
         }
-        mute(tco, e.getMember(), mem, reason);
+        ban(tco, mem, reason);
     }
 }

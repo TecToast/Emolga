@@ -37,19 +37,19 @@ public class Draft {
 
     public Draft(TextChannel tc, String name, String tcid, boolean fromFile) {
         this.tc = tc;
-        this.guild = tc.getGuild().getId();
+        this.guild = "747357029714231299";
         this.name = name;
         isPointBased = getTierlist().isPointBased;
         JSONObject json = getEmolgaJSON();
         if (drafts.stream().map(draft -> draft.name).anyMatch(name::equals)) {
-            tc.sendMessage("Dieser draft läuft bereits!").queue();
+            tc.sendMessage("Dieser Draft läuft bereits!").queue();
             return;
         }
         if (!json.has("drafts")) {
             tc.sendMessage("Es wurde noch keine Draftliga erstellt!").queue();
             return;
         }
-        JSONObject league = json.getJSONObject("drafts").getJSONObject("ASLS7").getJSONObject(name);
+        JSONObject league = json.getJSONObject("drafts").getJSONObject(name);
         JSONObject o = league.getJSONObject("order");
         if (!league.has("points"))
             league.put("points", new JSONObject());
@@ -58,7 +58,7 @@ public class Draft {
         new Thread(() -> {
             List<Member> memberlist = tc.getGuild().retrieveMembersByIds(o.getString("1").split(",")).get();
             memberlist.forEach(mem -> map.put(mem.getId(), mem));
-            for (int i = 1; i <= 12; i++) {
+            for (int i = 1; i <= 11; i++) {
                 order.put(i, Arrays.stream(o.getString(Integer.toString(i)).split(",")).map(map::get).collect(Collectors.toCollection(ArrayList::new)));
             }
             this.members = new ArrayList<>(order.get(1));
@@ -202,15 +202,13 @@ public class Draft {
 
     public static Draft getDraftByMember(Member member, TextChannel tco) {
         JSONObject json = getEmolgaJSON();
-        JSONObject drafts = json.getJSONObject("drafts").getJSONObject("ASLS7");
         System.out.println("member.getId() = " + member.getId());
         for (Draft draft : Draft.drafts) {
             System.out.println(draft.members.stream().map(mem -> mem.getId() + ":" + mem.getEffectiveName()).collect(Collectors.joining("\n")));
             if (!draft.tc.getId().equals(tco.getId())) continue;
-            ArrayList<String> mates = getTeamMates(member.getId());
-            if (draft.members.stream().anyMatch(mem -> mem.getId().equals(member.getId()) || mates.contains(mem.getId())))
+            if (draft.members.stream().anyMatch(mem -> mem.getId().equals(member.getId())))
                 return draft;
-            JSONObject league = drafts.getJSONObject(draft.name);
+            JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(draft.name);
             if (league.has("allowed")) {
                 JSONObject allowed = league.getJSONObject("allowed");
                 if (allowed.has(member.getId())) return draft;
@@ -225,7 +223,7 @@ public class Draft {
     }
 
     public String getMention(Member mem) {
-        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7").getJSONObject(name);
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(name);
         if (league.has("mentions")) {
             JSONObject mentions = league.getJSONObject("mentions");
             if (mentions.has(mem.getId()))
@@ -235,9 +233,9 @@ public class Draft {
     }
 
     public boolean isCurrent(Member mem) {
-        if (current.getId().equals(mem.getId())) return true;
-        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7").getJSONObject(name);
-        return getTeamMates(mem.getId()).contains(current.getId());
+        if (current.getId().equals(mem.getId())) return false;
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(name);
+        return !league.getJSONObject("allowed").optString(mem.getId(), "").equals(current.getId());
     }
 
 
@@ -247,9 +245,9 @@ public class Draft {
 
     @SuppressWarnings("SameReturnValue")
     public boolean hasInAnotherForm(Member mem, String pokemon) {
-        /*String[] split = pokemon.split("-");
-        if (split.length == 1) return false;*/
-        return false;
+        String[] split = pokemon.split("-");
+
+        return picks.get(mem).stream().anyMatch(str -> split[0].equals(str.name.split("-")[0]) && !(split[0].equals("Porygon") && str.name.split("-")[0].equals("Porygon")));
     }
 
     public boolean isPicked(String pokemon) {
@@ -312,7 +310,7 @@ public class Draft {
             tc.sendMessage("Du hast nicht mehr genug Punkte um ein weiteres commands zu draften! Deshalb verlierst du " + p + " und erhältst dafür " + price / 2 + " Punkte!").queue();
             points.put(current, points.get(current) + price / 2);
             this.picks.get(current).remove(p);
-            json.getJSONObject("drafts").getJSONObject("ASLS7").getJSONObject(name).getJSONObject("picks").put(current.getId(), getTeamAsArray(current));
+            json.getJSONObject("drafts").getJSONObject(name).getJSONObject("picks").put(current.getId(), getTeamAsArray(current));
         }
         long delay = calculateASLTimer();
         cooldown.schedule(new TimerTask() {

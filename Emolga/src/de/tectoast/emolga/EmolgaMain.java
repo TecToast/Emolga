@@ -1,11 +1,12 @@
 package de.tectoast.emolga;
 
 import de.tectoast.commands.Command;
+import de.tectoast.utils.Giveaway;
+import de.tectoast.utils.MessageWaiter;
+import de.tectoast.utils.ModManager;
 import de.tectoast.ytsubscriber.NotificationCallback;
 import de.tectoast.ytsubscriber.Subscriber;
 import de.tectoast.ytsubscriber.impl.SubscriberImpl;
-import de.tectoast.utils.Giveaway;
-import de.tectoast.utils.MessageWaiter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -13,9 +14,13 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import de.tectoast.jdautilities.managers.ReactionManager;
 
 import javax.security.auth.login.LoginException;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.URI;
 import java.time.Instant;
 import java.util.*;
@@ -76,16 +81,32 @@ public class EmolgaMain {
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
         jda.awaitReady();
-        ReactionManager manager = new ReactionManager(jda);
-        manager
-                .registerReaction("715249205186265178", "759407279094628383", "715932914554110065", "719928482544484352")
-                .registerReaction("715249205186265178", "759407279094628383", "715932816910712923", "719928323731357696")
-                .registerReaction("715249205186265178", "759407279094628383", "750666078828363888", "719928663935680644");
+        new ModManager("default", "./ShowdownData/");
+        new ModManager("nml", "../Showdown/sspserver/data/");
         ArrayList<String> youtube = new ArrayList<>(Arrays.asList("UCYoTO-akZCsiusTe4rBxfhA", "UCMqmTa_6_wE7r9jQ6b8yqjQ", "UCUkb-7kNR03r4ldj_fm_BhA"));
         Subscriber subscriber = new SubscriberImpl(Command.tokens.getJSONObject("subscriber").getString("host"), Command.tokens.getJSONObject("subscriber").getInt("port"));
-        for (String s : youtube) {
-            subscriber.subscribe(URI.create("https://www.youtube.com/xml/feeds/videos.xml?channel_id=" + s)).setNotificationCallback(parseYT);
-        }
+        new Thread(() -> {
+            for (String s : youtube) {
+                subscriber.subscribe(URI.create("https://www.youtube.com/xml/feeds/videos.xml?channel_id=" + s)).setNotificationCallback(parseYT);
+            }
+        }).start();
+        new Thread(() -> {
+            try {
+                ServerSocket server = new ServerSocket(2535);
+                System.out.println("Startet SocketServer!");
+                while (true) {
+                    System.out.println("Waiting for client...");
+                    Socket client = server.accept();
+                    System.out.println("Found Client!");
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
+                    System.out.println("reader.readLine() = " + reader.readLine());
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+
 
         /*new Timer().scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -132,8 +153,8 @@ public class EmolgaMain {
                 Giveaway.toadd.clear();
                 Giveaway.giveaways.forEach(giveaway -> {
                     //System.out.println("giveaway.messageId = " + giveaway.messageId);
-                    if(giveaway.messageId == null) return;
-                    if(giveaway.isEnded) return;
+                    if (giveaway.messageId == null) return;
+                    if (giveaway.isEnded) return;
                     try {
                         if (giveaway.end.toEpochMilli() - System.currentTimeMillis() <= 10000 || i >= 5) {
                             jda.getTextChannelById(giveaway.channelId).editMessageById(giveaway.messageId, giveaway.render(Instant.now())).complete();

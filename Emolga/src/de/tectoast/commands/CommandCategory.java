@@ -6,10 +6,14 @@ import net.dv8tion.jda.api.entities.Member;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Predicate;
 
 public enum CommandCategory {
+
     Admin("\uD83C\uDDE6"),
+    Moderator("\uD83C\uDDF2", "Moderator"),
     Draft("\uD83C\uDDE9"),
     Flo("\uD83C\uDDEB"),
     Dexquiz("\uD83C\uDDF6"),
@@ -18,10 +22,12 @@ public enum CommandCategory {
     BS("\uD83C\uDDE7", "Blazing Strikers"),
     Various("\uD83C\uDDFB", "Verschiedenes");
 
-    private static final ArrayList<CommandCategory> order = new ArrayList<>(Arrays.asList(Pokemon, Music, Draft, Dexquiz, BS, Various, Admin));
+    private static final ArrayList<CommandCategory> order = new ArrayList<>(Arrays.asList(Pokemon, Music, Draft, Dexquiz, BS, Various, Admin, Moderator));
 
     static {
+        List<String> l = Collections.singletonList("540908578777726976");
         Admin.allowsMember = m -> m.hasPermission(Permission.ADMINISTRATOR);
+        Moderator.allowsMember = m -> Admin.allowsMember(m) || m.getRoles().stream().anyMatch(r -> l.contains(r.getId()));
         BS.allowsGuild = g -> g.getId().equals("712035338846994502");
         Music.allowsGuild = g -> g.getId().equals("700504340368064562") || g.getId().equals("712035338846994502") || g.getId().equals("673833176036147210");
     }

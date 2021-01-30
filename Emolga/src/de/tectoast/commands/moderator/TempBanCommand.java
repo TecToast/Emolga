@@ -1,4 +1,4 @@
-package de.tectoast.commands.admin;
+package de.tectoast.commands.moderator;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class TempBanCommand extends Command {
     public TempBanCommand() {
-        super("tempban", "`!tempban <User> <Zeit> <Grund>` Tempbannt den User", CommandCategory.Admin, "712035338846994502");
+        super("tempban", "`!tempban <User> <Zeit> <Grund>` Tempbannt den User", CommandCategory.Moderator);
     }
 
     @Override

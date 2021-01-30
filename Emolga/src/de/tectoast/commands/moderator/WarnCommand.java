@@ -1,4 +1,4 @@
-package de.tectoast.commands.admin;
+package de.tectoast.commands.moderator;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
@@ -7,9 +7,9 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
-public class BanCommand extends Command {
-    public BanCommand() {
-        super("ban", "`!ban <User> <Grund>` Bannt den User", CommandCategory.Admin, "712035338846994502");
+public class WarnCommand extends Command {
+    public WarnCommand() {
+        super("warn", "`!warn <User> <Grund>` Verwarnt den User", CommandCategory.Moderator);
     }
 
     @Override
@@ -22,12 +22,12 @@ public class BanCommand extends Command {
             return;
         }
         Member mem = m.getMentionedMembers().get(0);
-        String reason;
+        String reason = "Nicht angegeben";
         try {
             reason = raw.substring(raw.indexOf(">") + 2);
         } catch (Exception ignored) {
-            reason = "Nicht angegeben";
+
         }
-        ban(tco, mem, reason);
+        warn(tco, e.getMember(), mem, reason);
     }
 }

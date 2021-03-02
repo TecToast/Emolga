@@ -1,6 +1,5 @@
 package de.tectoast.ytsubscriber.impl;
 
-
 import de.tectoast.ytsubscriber.NotificationCallback;
 import de.tectoast.ytsubscriber.Subscriber;
 import de.tectoast.ytsubscriber.Subscription;
@@ -17,7 +16,6 @@ import java.security.NoSuchAlgorithmException;
  *
  * @author Benjamin Erb
  */
-
 public class SubscriptionImpl implements Subscription {
     private final URI feedUri;
     private final URI hubUri;
@@ -26,6 +24,13 @@ public class SubscriptionImpl implements Subscription {
     private final String verifyToken;
     private NotificationCallback notificationCallback;
 
+    /**
+     * Creates a new subscription.
+     *
+     * @param feedUri feedUri
+     * @param hubUri hubUri
+     * @param subscriber subscriber
+     */
     public SubscriptionImpl(URI feedUri, URI hubUri, Subscriber subscriber) {
         this.feedUri = feedUri;
         this.hubUri = hubUri;

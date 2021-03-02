@@ -15,12 +15,15 @@ import de.tectoast.commands.dexquiz.DexquizCommand;
 import de.tectoast.commands.dexquiz.SolutionCommand;
 import de.tectoast.commands.dexquiz.TipCommand;
 import de.tectoast.commands.draft.*;
-import de.tectoast.commands.flo.EmoteStealCommand;
-import de.tectoast.commands.flo.GetIdsCommand;
-import de.tectoast.commands.flo.GiveMeAdminPermissionsCommand;
+import de.tectoast.commands.flo.*;
 import de.tectoast.commands.moderator.*;
 import de.tectoast.commands.music.*;
 import de.tectoast.commands.pokemon.*;
+import de.tectoast.commands.showdown.AnalyseCommand;
+import de.tectoast.commands.showdown.ReplayCommand;
+import de.tectoast.commands.showdown.SearchReplaysCommand;
+import de.tectoast.commands.showdown.SpoilerTagsCommand;
+import de.tectoast.commands.various.CalcCommand;
 import de.tectoast.commands.various.GcreateCommand;
 import de.tectoast.commands.various.NicknameCommand;
 import de.tectoast.emolga.EmolgaMain;
@@ -29,7 +32,6 @@ import de.tectoast.utils.music.GuildMusicManager;
 import de.tectoast.utils.showdown.Player;
 import de.tectoast.utils.showdown.SDPokemon;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.managers.AudioManager;
@@ -43,8 +45,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -53,17 +55,9 @@ public abstract class Command {
     public static final String NOPERM = "Dafür hast du keine Berechtigung!";
     public static final File emolgadata = new File("./emolgadata.json");
     public static final ArrayList<Command> commands = new ArrayList<>();
-    public static final ArrayList<String> hazards = new ArrayList<>();
-    public static final ArrayList<String> recovery = new ArrayList<>();
-    public static final ArrayList<String> setup = new ArrayList<>();
-    public static final ArrayList<String> momentum = new ArrayList<>();
-    public static final ArrayList<String> flinch = new ArrayList<>();
-    public static final ArrayList<String> boom = new ArrayList<>();
-    public static final ArrayList<String> trap = new ArrayList<>();
     public static final ArrayList<Guild> chill = new ArrayList<>();
     public static final ArrayList<Guild> deep = new ArrayList<>();
     public static final ArrayList<Guild> music = new ArrayList<>();
-    public static final HashMap<CommandCategory, List<Command>> categorys = new HashMap<>();
     public static final HashSet<Message> helps = new HashSet<>();
     public static final HashMap<String, List<String>> emolgachannel = new HashMap<>();
     public static final HashMap<String, String> serebiiex = new HashMap<>();
@@ -72,10 +66,10 @@ public abstract class Command {
     public static final HashMap<String, Double> expmultiplicator = new HashMap<>();
     public static final HashMap<String, ReplayAnalyser> sdAnalyser = new HashMap<>();
     public static final ArrayList<String> emotesteal = new ArrayList<>();
+    public static final HashMap<String, String> mutedRoles = new HashMap<>();
+    public static final HashMap<String, String> moderatorRoles = new HashMap<>();
     private static final String SDPATH = "./ShowdownData/";
     public static JSONObject wikijson;
-    //public static JSONObject datajson;
-    //public static JSONObject movejson;
     public static JSONObject spritejson;
     public static JSONObject shinyspritejson;
     public static JSONObject emolgajson;
@@ -87,40 +81,38 @@ public abstract class Command {
     public static JSONObject tokens;
     public static AudioPlayerManager playerManager;
     public static Map<Long, GuildMusicManager> musicManagers;
-    public static ConcurrentLinkedQueue<byte[]> bytes = new ConcurrentLinkedQueue<>();
     public static boolean expEdited = false;
-    public static Member as = null;
     public static boolean checkBST = false;
-    public static final HashMap<String, String> moderatorGuilds = new HashMap<>();
     protected static String tradesid;
     protected static List<String> balls;
     protected static List<String> mons;
-    public final List<String> allowedGuilds;
-    public final HashSet<String> aliases = new HashSet<>();
-    public final HashMap<String, String> overrideHelp = new HashMap<>();
-    public final HashMap<String, List<String>> overrideChannel = new HashMap<>();
+    protected final List<String> allowedGuilds;
+    protected final HashSet<String> aliases = new HashSet<>();
+    protected final HashMap<String, String> overrideHelp = new HashMap<>();
+    protected final HashMap<String, List<String>> overrideChannel = new HashMap<>();
     protected final String name;
     protected final String help;
     protected final CommandCategory category;
-    public boolean onlyAdmin = false;
     protected boolean wip = false;
     protected boolean everywhere = false;
-    protected Predicate<Member> isAllowed = m -> true;
+    @SuppressWarnings("CanBeFinal")
+    protected Predicate<Member> allowsMember = m -> false;
 
-    public Command(String name, String help, CommandCategory category, boolean onlyAdmin, String... guilds) {
-        this(name, help, category, guilds);
-        this.onlyAdmin = onlyAdmin;
-    }
 
     public Command(String name, String help, CommandCategory category, String... guilds) {
         this.name = name;
         this.help = help;
         this.category = category;
-        if (category == CommandCategory.Admin) onlyAdmin = true;
-        allowedGuilds = guilds.length == 0 ? (category == CommandCategory.Moderator ? new ArrayList<>(moderatorGuilds.keySet()) : new ArrayList<>()) : new ArrayList<>(Arrays.asList(guilds));
+        allowedGuilds = guilds.length == 0 ? new ArrayList<>() : new ArrayList<>(Arrays.asList(guilds));
         commands.add(this);
-        if (!categorys.containsKey(category)) categorys.put(category, new ArrayList<>());
-        categorys.get(category).add(this);
+    }
+
+    public Command(String name, String help, CommandCategory category, List<String> guilds) {
+        this(name, help, category, guilds.toArray(new String[0]));
+    }
+
+    public Command(String name, String help, CommandCategory category, Command guildBase) {
+        this(name, help, category, guildBase.allowedGuilds);
     }
 
     public static void loadPlaylist(final TextChannel channel, final String track, Member mem, String cm) {
@@ -153,6 +145,10 @@ public abstract class Command {
                 channel.sendMessage("Der Track konnte nicht abgespielt werden: " + exception.getMessage()).queue();
             }
         });
+    }
+
+    public static Command byName(String name) {
+        return commands.stream().filter(c -> c.name.equals(name)).findFirst().orElse(null);
     }
 
     public static void loadAndPlay(final TextChannel channel, final String track, Member mem, String cm) throws IllegalArgumentException {
@@ -390,8 +386,8 @@ public abstract class Command {
             tco.sendMessage(builder.build()).queue();
             return;
         }
-        if (moderatorGuilds.containsKey(gid)) {
-            g.addRoleToMember(mem, g.getRoleById(moderatorGuilds.get(gid))).queue();
+        if (mutedRoles.containsKey(gid)) {
+            g.addRoleToMember(mem, g.getRoleById(mutedRoles.get(gid))).queue();
         }
         JSONObject json = getEmolgaJSON();
         JSONArray arr = json.getJSONArray("mutes");
@@ -413,8 +409,8 @@ public abstract class Command {
         JSONObject json = getEmolgaJSON().getJSONObject("mutes");
         Guild g = tco.getGuild();
         String gid = g.getId();
-        if (moderatorGuilds.containsKey(gid)) {
-            g.removeRoleFromMember(mem, g.getRoleById(moderatorGuilds.get(gid))).queue();
+        if (mutedRoles.containsKey(gid)) {
+            g.removeRoleFromMember(mem, g.getRoleById(mutedRoles.get(gid))).queue();
         }
         JSONArray arr = json.getJSONArray("mutes");
         ArrayList<Integer> indexes = new ArrayList<>();
@@ -679,7 +675,7 @@ public abstract class Command {
             sendname.add(namap.get(j));
         }
         System.out.println(sendname);
-        Google.updateRequest(sid, tablename + "!F14", sendname, false, false);
+        RequestBuilder.updateAll(sid, tablename + "!F14", sendname, false);
         System.out.println("Done!");
     }
 
@@ -763,17 +759,19 @@ public abstract class Command {
                 sendstyle.add(Collections.emptyList());
             }
         }
-        Google.updateRequest(sid, "Tabelle!K3", senddata, false, false);
-        Google.updateRequest(sid, "Tabelle!D3", sendname, false, false);
-        Google.updateRequest(sid, "Tabelle!H3", sendstyle, false, false);
+        RequestBuilder b = new RequestBuilder(sid);
+        b.addAll("Tabelle!K3", senddata);
+        b.addAll("Tabelle!D3", sendname);
+        b.addAll("Tabelle!H3", sendstyle);
         for (int j = 0; j < 10; j++) {
             Request request = new Request();
             CellData cellData = new CellData().setUserEnteredFormat(new CellFormat().setTextFormat(new TextFormat().setFontSize(formap.get(j).getTextFormat().getFontSize())));
             request.setUpdateCells(new UpdateCellsRequest().setRows(Collections.singletonList(new RowData()
                     .setValues(Collections.singletonList(cellData))))
                     .setFields("userEnteredFormat.textFormat.fontSize").setRange(new GridRange().setSheetId(1102442612).setStartRowIndex(j * 4 + 2).setEndRowIndex(j * 4 + 3).setStartColumnIndex(4).setEndColumnIndex(5)));
-            Google.batchUpdateRequest(sid, request, false);
+            b.addBatch(request);
         }
+        b.execute();
     }
 
     public static void loadAndPlay(final TextChannel channel, final String trackUrl, VoiceChannel vc) {
@@ -870,8 +868,7 @@ public abstract class Command {
     public static JSONObject load(String filename) {
         try {
             File f = new File(filename);
-            if (!f.exists()) {//noinspection ResultOfMethodCallIgnored
-                f.createNewFile();
+            if (f.createNewFile()) {
                 BufferedWriter writer = new BufferedWriter(new FileWriter(f));
                 writer.write("{}");
                 writer.close();
@@ -1043,14 +1040,12 @@ public abstract class Command {
         new QueueClearCommand();
         new DcCommand();
         new DeepCommand();
-        //new GoinCommand();
         new MusicCommand();
         new NpCommand();
         new PlayCommand();
         new QlCommand();
         new QueueCommand();
         new SkipCommand();
-        new AnalyseCommand();
         new ReplayCommand();
         new TabelleCommand();
         new AddCommand();
@@ -1078,6 +1073,15 @@ public abstract class Command {
         new CheckMonsCommand();
         new EmoteStealCommand();
         new RandomPickCommand();
+        new CalcCommand();
+        new LeaderboardCommand();
+        new InviteCommand();
+        new MuffinRevolutionCommand();
+        new ResetMuffinCommand();
+        new ResetCooldownCommand();
+        new SpoilerTagsCommand();
+        new AnalyseCommand();
+        new SearchReplaysCommand();
     }
 
     public static void awaitNextDay() {
@@ -1099,9 +1103,13 @@ public abstract class Command {
 
     public static void init() {
         loadJSONFiles();
-        JSONObject mod = emolgajson.getJSONObject("moderator");
+        JSONObject mute = emolgajson.getJSONObject("mutedroles");
+        for (String s : mute.keySet()) {
+            mutedRoles.put(s, mute.getString(s));
+        }
+        JSONObject mod = emolgajson.getJSONObject("moderatorroles");
         for (String s : mod.keySet()) {
-            moderatorGuilds.put(s, mod.getString(s));
+            moderatorRoles.put(s, mod.getString(s));
         }
         registerCommands();
         try {
@@ -1114,141 +1122,6 @@ public abstract class Command {
         playerManager = new DefaultAudioPlayerManager();
         AudioSourceManagers.registerRemoteSources(playerManager);
         AudioSourceManagers.registerLocalSource(playerManager);
-        hazards.addAll(Arrays.asList("Tarnsteine", "Stachler", "Giftspitzen", "Klebenetz"));
-        momentum.addAll(Arrays.asList("Voltwechsel", "Rollwende", "Teleport", "Stafette", "Abgangstirade", "Kehrtwende"));
-        flinch.addAll(Arrays.asList(("Biss\n" +
-                "Donnerzahn\n" +
-                "Drachenstoß\n" +
-                "Eisenschädel\n" +
-                "Eiszahn\n" +
-                "Eiszapfhagel\n" +
-                "Elektropikser\n" +
-                "Erstauner\n" +
-                "Fegekick\n" +
-                "Feuerzahn\n" +
-                "Finsteraura\n" +
-                "Fußkick\n" +
-                "Herzstempel\n" +
-                "Himmelsfeger\n" +
-                "Hyperzahn\n" +
-                "Kaskade\n" +
-                "Knochenkeule\n" +
-                "Kopfnuss\n" +
-                "Luftschnitt\n" +
-                "Mogelhieb\n" +
-                "Nietenranke\n" +
-                "Panzerfäuste\n" +
-                "Quetschwalze\n" +
-                "Schleuder\n" +
-                "Schnarcher\n" +
-                "Schwebesturz\n" +
-                "Sondersensor\n" +
-                "Stampfer\n" +
-                "Steinhagel\n" +
-                "Windhose\n" +
-                "Zen-Kopfstoß").split("\n")));
-        boom.addAll(Arrays.asList("Explosion,Finale,Nebelexplosion,Knallkopf".split(",")));
-        trap.addAll(Arrays.asList(("Blitzgefängnis\n" +
-                "Fangeisen\n" +
-                "Feuerwirbel\n" +
-                "Klammergriff\n" +
-                "Lavasturm\n" +
-                "Plage\n" +
-                "Sandgrab\n" +
-                "Schnapper\n" +
-                "Whirlpool\n" +
-                "Wickel").split("\n")));
-        recovery.addAll(Arrays.asList(("Ableithieb\n" +
-                "Absorber\n" +
-                "Blubbsauger\n" +
-                "Blutsauger\n" +
-                "Diebeskuss\n" +
-                "Dschungelheilung\n" +
-                "Egelsamen\n" +
-                "Erholung\n" +
-                "Florakur\n" +
-                "Genesung\n" +
-                "Gigasauger\n" +
-                "Heilbefehl\n" +
-                "Heilopfer\n" +
-                "Heilwoge\n" +
-                "Holzgeweih\n" +
-                "Kraftabsorber\n" +
-                "Lebenstropfen\n" +
-                "Leidteiler\n" +
-                "Lunartanz\n" +
-                "Läuterung\n" +
-                "Megasauger\n" +
-                "Milchgetränk\n" +
-                "Mondschein\n" +
-                "Morgengrauen\n" +
-                "Parabolladung\n" +
-                "Pollenknödel\n" +
-                "Ruheort\n" +
-                "Sandsammler\n" +
-                "Synthese\n" +
-                "Tagedieb\n" +
-                "Traumfresser\n" +
-                "Unheilsschwingen\n" +
-                "Verwurzler\n" +
-                "Verzehrer\n" +
-                "Wasserring\n" +
-                "Weichei\n" +
-                "Wunschtraum").split("\n")));
-        setup.addAll(Arrays.asList((
-                "Agilität\n" +
-                        "Akupressur\n" +
-                        "Amnesie\n" +
-                        "Aura-Rad\n" +
-                        "Autotomie\n" +
-                        "Backenstopfer\n" +
-                        "Barriere\n" +
-                        "Bauchtrommel\n" +
-                        "Blockbefehl\n" +
-                        "Coaching\n" +
-                        "Doppelteam\n" +
-                        "Drachentanz\n" +
-                        "Einigler\n" +
-                        "Einrollen\n" +
-                        "Eisenabwehr\n" +
-                        "Falterreigen\n" +
-                        "Finalformation\n" +
-                        "Fluch\n" +
-                        "Gangwechsel\n" +
-                        "Gedankengut\n" +
-                        "Hausbruch\n" +
-                        "Hilfsmechanik\n" +
-                        "Horter\n" +
-                        "Härtner\n" +
-                        "Jauler\n" +
-                        "Klauenwetzer\n" +
-                        "Komprimator\n" +
-                        "Kosmik-Kraft\n" +
-                        "Kraftschub\n" +
-                        "Ladevorgang\n" +
-                        "Meditation\n" +
-                        "Meteorstrahl\n" +
-                        "Nitroladung\n" +
-                        "Panzerschutz\n" +
-                        "Protzer\n" +
-                        "Ränkeschmied\n" +
-                        "Rückenwind\n" +
-                        "Schuppenschuss\n" +
-                        "Schwerttanz\n" +
-                        "Schädelwumme\n" +
-                        "Schärfer\n" +
-                        "Seelentanz\n" +
-                        "Steinpolitur\n" +
-                        "Säurepanzer\n" +
-                        "Turbodreher\n" +
-                        "Verzierung\n" +
-                        "Wachstum\n" +
-                        "Watteschild\n" +
-                        "Sonnentag\n" +
-                        "Regentanz\n" +
-                        "Hagelsturm\n" +
-                        "Sandsturm\n"
-        ).split("\n")));
         serebiiex.put("Barschuft-B", "b");
         serebiiex.put("Riffex-H", "");
         serebiiex.put("Riffex-T", "-l");
@@ -1638,9 +1511,8 @@ public abstract class Command {
     }
 
     public static List<Command> getWithCategory(CommandCategory category, Guild g, Member mem) {
-        return commands.stream().filter(c -> c.category == category && category.allowsGuild(g) && (mem.hasPermission(Permission.ADMINISTRATOR) || !c.onlyAdmin)).collect(Collectors.toCollection(ArrayList::new));
+        return commands.stream().filter(c -> c.category == category && category.allowsGuild(g) && category.allowsMember(mem) && c.allowsGuild(g)).collect(Collectors.toCollection(ArrayList::new));
     }
-
 
     public static String getHelpDescripion(Guild g, Member mem) {
         StringBuilder s = new StringBuilder();
@@ -1677,46 +1549,46 @@ public abstract class Command {
         String gid = e.getGuild().getId();
         for (Command command : commands) {
             if (command.category == CommandCategory.Flo && !mem.getId().equals(Constants.FLOID)) continue;
-            if (command.checkPrefix(msg)) {
-                if (command.category == CommandCategory.Music) {
-                    tco.sendMessage("Die Musikfunktionen wurden aufgrund einer Fehlfunktion komplett deaktiviert!").queue();
-                    return;
-                }
-                if (!command.category.allowsGuild(tco.getGuild())) return;
-                if (!command.allowedGuilds.isEmpty() && !command.allowedGuilds.contains(gid) && !gid.equals("447357526997073930"))
-                    return;
-                if (command.wip && !mem.getId().equals(Constants.FLOID)) {
-                    tco.sendMessage("Diese Funktion ist derzeit noch in Entwicklung und ist noch nicht einsatzbereit!").queue();
-                    return;
-                }
-                if (command.onlyAdmin && !mem.hasPermission(Permission.ADMINISTRATOR)) {
-                    tco.sendMessage(NOPERM).queue();
-                    return;
-                }
-                if (command.category != CommandCategory.Draft && command.category != CommandCategory.Flo && command.category != CommandCategory.Admin && !command.everywhere && command.category != CommandCategory.Moderator) {
-                    if (command.overrideChannel.containsKey(gid)) {
-                        List<String> l = command.overrideChannel.get(gid);
+            if (!command.checkPrefix(msg)) continue;
+            if (command.category == CommandCategory.Music) {
+                tco.sendMessage("Die Musikfunktionen wurden aufgrund einer Fehlfunktion komplett deaktiviert!").queue();
+                return;
+            }
+            if (command.wip && !mem.getId().equals(Constants.FLOID)) {
+                tco.sendMessage("Diese Funktion ist derzeit noch in Entwicklung und ist noch nicht einsatzbereit!").queue();
+                return;
+            }
+            Optional<String> op = command.checkPermissions(gid, mem);
+            if (!op.isPresent()) break;
+            String message = op.get();
+            if (!message.equals("SUCCESS")) {
+                tco.sendMessage(message).queue();
+                break;
+            }
+            if (!command.everywhere && !command.category.isEverywhere()) {
+                if (command.overrideChannel.containsKey(gid)) {
+                    List<String> l = command.overrideChannel.get(gid);
+                    if (!l.contains(e.getChannel().getId())) {
+                        e.getChannel().sendMessage("<#" + l.get(0) + ">").queue();
+                        return;
+                    }
+                } else {
+                    if (emolgachannel.containsKey(gid)) {
+                        List<String> l = emolgachannel.get(gid);
                         if (!l.contains(e.getChannel().getId())) {
                             e.getChannel().sendMessage("<#" + l.get(0) + ">").queue();
                             return;
                         }
-                    } else {
-                        if (emolgachannel.containsKey(gid)) {
-                            List<String> l = emolgachannel.get(gid);
-                            if (!l.contains(e.getChannel().getId())) {
-                                e.getChannel().sendMessage("<#" + l.get(0) + ">").queue();
-                                return;
-                            }
-                        }
                     }
                 }
-                try {
-                    command.process(e);
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo/TecToast.\n" + command.getHelp(e.getGuild()) + (mem.getId().equals(Constants.FLOID) ? "\nJa, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
-                }
             }
+            try {
+                command.process(e);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo/TecToast.\n" + command.getHelp(e.getGuild()) + (mem.getId().equals(Constants.FLOID) ? "\nJa, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
+            }
+
         }
     }
 
@@ -1776,30 +1648,20 @@ public abstract class Command {
         return getAttacksFrom(pokemon, msg, form, 8, mod);
     }
 
+
+    public static boolean moveFilter(String msg, String move) {
+        JSONObject o = getWikiJSON().getJSONObject("movefilter");
+        for (String s : o.keySet()) {
+            if (msg.toLowerCase().contains("--" + s) && !o.getJSONArray(s).toList().contains(move)) return false;
+        }
+        return true;
+    }
+
     public static ArrayList<String> getAttacksFrom(String pokemon, String msg, String form, int maxgen, String mod) {
         ArrayList<String> already = new ArrayList<>();
         String type = getType(msg);
         String dmgclass = getClass(msg);
         JSONObject movejson = getLearnsetJSON(mod);
-        boolean prio = !msg.toLowerCase().contains("--prio");
-        boolean hazard = !msg.toLowerCase().contains("--hazards");
-        boolean recover = !msg.toLowerCase().contains("--recovery");
-        boolean setup = !msg.toLowerCase().contains("--setup");
-        boolean momentum = !msg.toLowerCase().contains("--momentum");
-        boolean flinch = !msg.toLowerCase().contains("--flinch");
-        boolean boom = !msg.toLowerCase().contains("--boom");
-        boolean trap = !msg.toLowerCase().contains("--trap");
-        //boolean gen = !msg.contains("--gen");
-
-
-        /*try {
-            moves = new ArrayList<>(Arrays.asList(json.getJSONObject("pkmndata").getJSONObject(pokemon).getJSONObject("moves").getString(form).split(",")));
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            return new ArrayList<>(Collections.singletonList("ERROR"));
-        }*/
-        //if (type.equals("") && dmgclass.equals("") && prio && hazard && recover && setup && momentum && flinch)
-        //     return moves;
         JSONObject json = getWikiJSON();
         JSONObject atkdata = getMovesJSON(mod);
         JSONObject data = getDataJSON(mod);
@@ -1814,15 +1676,9 @@ public abstract class Command {
                     //System.out.println("move = " + move);
                     if ((type.equals("") || atkdata.getJSONObject(moveengl).getString("type").equals(getEnglName(type))) &&
                             (dmgclass.equals("") || atkdata.getJSONObject(moveengl).getString("category").equals(dmgclass)) &&
-                            (prio || atkdata.getJSONObject(moveengl).getInt("priority") > 0) &&
-                            (hazard || Command.hazards.contains(move)) &&
-                            (recover || Command.recovery.contains(move)) &&
-                            (setup || Command.setup.contains(move)) &&
-                            (momentum || Command.momentum.contains(move)) &&
-                            (flinch || Command.flinch.contains(move)) &&
-                            (boom || Command.boom.contains(move)) &&
-                            (trap || Command.trap.contains(move)) &&
+                            (!msg.toLowerCase().contains("--prio") || atkdata.getJSONObject(moveengl).getInt("priority") > 0) &&
                             (containsGen(learnset, moveengl, maxgen)) &&
+                            moveFilter(msg, move) &&
                             !already.contains(move)) {
                         already.add(move);
                     }
@@ -1863,16 +1719,22 @@ public abstract class Command {
         sendToUser(Constants.FLOID, msg);
     }
 
+    public static void sendStacktraceToMe(Throwable t) {
+        StringWriter sw = new StringWriter();
+        t.printStackTrace(new PrintWriter(sw));
+        Command.sendToMe(sw.toString());
+    }
+
     public static void sendToUser(Member mem, String msg) {
         sendToUser(mem.getUser(), msg);
     }
 
     public static void sendToUser(User user, String msg) {
-        user.openPrivateChannel().queue(pc -> pc.sendMessage(msg).queue());
+        user.openPrivateChannel().submit().thenAccept(pc -> pc.sendMessage(msg).queue());
     }
 
     public static void sendToUser(String id, String msg) {
-        sendToUser(EmolgaMain.jda.retrieveUserById(id).complete(), msg);
+        EmolgaMain.jda.retrieveUserById(id).submit().thenCompose(u -> u.openPrivateChannel().submit()).thenAccept(pc -> pc.sendMessage(msg).queue());
     }
 
     private static boolean containsGen(JSONObject learnset, String move, int gen) {
@@ -1997,7 +1859,6 @@ public abstract class Command {
         return "=IMAGE(\"http://play.pokemonshowdown.com/sprites/gen5/" + gitname.toLowerCase().replace(" ", "") + ".png\"; 1)";
     }
 
-
     public static ArrayList<String> getTeamMates(String user) {
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7");
         String leaguename = asl.keySet().stream().filter(s -> s.startsWith("PK") || s.equals("Coach")).filter(s -> Arrays.asList(asl.getJSONObject(s).getString("table").split(",")).contains(user)).collect(Collectors.joining(""));
@@ -2086,27 +1947,16 @@ public abstract class Command {
         } else return delayinmins * 60000;
     }
 
-    /*SimpleDateFormat f = new SimpleDateFormat("HH");
-        int after = Integer.parseInt(f.format(new Date(System.currentTimeMillis() + 7200000)));
-        int now = Integer.parseInt(f.format(new Date(System.currentTimeMillis())));
-        if ((now > 9 && now < 22) && (after < 10 || after > 21)) return 50400000;
-        else if (now > 21 || now < 12) {
-            Calendar c = Calendar.getInstance();
-            if (now > 21)
-                c.add(Calendar.DAY_OF_MONTH, 1);
-            c.set(Calendar.HOUR_OF_DAY, 14);
-            c.set(Calendar.MINUTE, 0);
-            c.set(Calendar.SECOND, 0);
-            c.set(Calendar.MILLISECOND, 0);
-            return c.getTimeInMillis() - System.currentTimeMillis();
-        } else return 7200000;*/
-
-    public static int getXPNeeded(int level) {
-        return (int) (5 * (Math.pow(level, 2)) + 50 * level + 100);
+    public static long getXPNeeded(int level) {
+        return (long) (5 * (Math.pow(level, 2)) + 50 * level + 100);
     }
 
     public static int getLevelFromXP(int xp) {
-        int remaining_xp = xp;
+        return getLevelFromXP((long) xp);
+    }
+
+    public static int getLevelFromXP(long xp) {
+        long remaining_xp = xp;
         int level = 0;
         while (remaining_xp >= getXPNeeded(level)) {
             remaining_xp -= getXPNeeded(level);
@@ -2170,6 +2020,21 @@ public abstract class Command {
         Google.getSheetsService().spreadsheets().batchUpdate(sid, new BatchUpdateSpreadsheetRequest().setRequests(l)).execute();
     }
 
+    /*SimpleDateFormat f = new SimpleDateFormat("HH");
+        int after = Integer.parseInt(f.format(new Date(System.currentTimeMillis() + 7200000)));
+        int now = Integer.parseInt(f.format(new Date(System.currentTimeMillis())));
+        if ((now > 9 && now < 22) && (after < 10 || after > 21)) return 50400000;
+        else if (now > 21 || now < 12) {
+            Calendar c = Calendar.getInstance();
+            if (now > 21)
+                c.add(Calendar.DAY_OF_MONTH, 1);
+            c.set(Calendar.HOUR_OF_DAY, 14);
+            c.set(Calendar.MINUTE, 0);
+            c.set(Calendar.SECOND, 0);
+            c.set(Calendar.MILLISECOND, 0);
+            return c.getTimeInMillis() - System.currentTimeMillis();
+        } else return 7200000;*/
+
     public static void sortASL() {
         String sid = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7").getString("sid");
         List<List<Object>> formula = Google.get(sid, "Tabelle!B3:J14", true, false);
@@ -2198,9 +2063,10 @@ public abstract class Command {
             senddata.add(valmap.get(j));
             rowData.add(new RowData().setValues(Collections.singletonList(new CellData().setUserEnteredFormat(new CellFormat().setBackgroundColor(formap.get(j))))));
         }
-        Google.updateRequest(sid, "Tabelle!B3", senddata, false, false);
-        Google.batchUpdateRequest(sid, new Request().setUpdateCells(new UpdateCellsRequest().setRows(rowData)
-                .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(765460930).setStartRowIndex(2).setEndRowIndex(14).setStartColumnIndex(1).setEndColumnIndex(2))), false);
+        RequestBuilder b = new RequestBuilder(sid);
+        b.addAll("Tabelle!B3", senddata);
+        b.addBatch(new Request().setUpdateCells(new UpdateCellsRequest().setRows(rowData)
+                .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(765460930).setStartRowIndex(2).setEndRowIndex(14).setStartColumnIndex(1).setEndColumnIndex(2))));
         System.out.println("Done!");
         sortTablesPerDay();
     }
@@ -2261,13 +2127,19 @@ public abstract class Command {
             System.out.println("sendname.get(j) = " + sendname.get(j));
             System.out.println("senddata.get(j) = " + senddata.get(j));
         }*/
-        Google.updateRequest(sid, "Tabelle!F3", senddata, false, false);
-        Google.updateRequest(sid, "Tabelle!C3", sendname, false, false);
+        RequestBuilder b = new RequestBuilder(sid);
+        b.addAll("Tabelle!F3", senddata);
+        b.addAll("Tabelle!C3", sendname);
         Request request = new Request();
         request.setUpdateCells(new UpdateCellsRequest().setRows(rowData)
                 .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(1702581801).setStartRowIndex(2).setEndRowIndex(20).setStartColumnIndex(2).setEndColumnIndex(3)));
-        Google.batchUpdateRequest(sid, request, false);
+        b.addBatch(request);
+        b.execute();
         System.out.println("Done!");
+    }
+
+    public static void singleThread(Runnable r) {
+        new Thread(r).start();
     }
 
     public static String getBSTGerName(String s) {
@@ -2418,33 +2290,9 @@ public abstract class Command {
         return s.toLowerCase().replaceAll("[^a-zA-Z0-9äöüÄÖÜß]+", "");
     }
 
-
     public static boolean canLearn(String pokemon, String form, String atk, String msg, int maxgen, String mod) {
         return getAttacksFrom(pokemon, msg, form, maxgen, mod).contains(atk);
     }
-
-    /*public static String getGerName(String s) {
-        String check = checkShortcuts(s);
-        if(check != null) return check;
-        JSONObject json = getWikiJSON();
-        if (!json.getJSONObject("translations").has(s)) {
-            String str = eachWordUpperCase(s);
-            if (!json.getJSONObject("translations").has(str)) return "";
-            return json.getJSONObject("translations").getJSONObject(str).getString("type") + ";" + json.getJSONObject("translations").getJSONObject(str).getString("ger");
-        } else
-            return json.getJSONObject("translations").getJSONObject(s).getString("type") + ";" + json.getJSONObject("translations").getJSONObject(s).getString("ger");
-    }
-
-    public static String getEnglName(String s) {
-        if (s.equalsIgnoreCase("STEIN")) return "Stonjourner";
-        JSONObject json = getWikiJSON();
-        if (!json.getJSONObject("translations").has(s)) {
-            String str = eachWordUpperCase(s);
-            if (!json.getJSONObject("translations").has(str)) return "";
-            return json.getJSONObject("translations").getJSONObject(str).getString("engl");
-        } else
-            return json.getJSONObject("translations").getJSONObject(s).getString("engl");
-    }*/
 
     public static String checkShortcuts(String s) {
         return getWikiJSON().getJSONObject("shortcuts").optString(s.toLowerCase(), null);
@@ -2482,6 +2330,7 @@ public abstract class Command {
             }
         }
         if (s.equals("Greninja-Ash")) return "Ash-Quajutsu";
+        if (s.equals("Zarude-Dada")) return "Zarude";
         if (s.contains("Furfrou")) return "Coiffwaff";
         if (s.equals("Wormadam")) return "Burmadame-Pflz";
         if (s.equals("Wormadam-Sandy")) return "Burmadame-Sand";
@@ -2543,19 +2392,25 @@ public abstract class Command {
         return getGerName(s).split(";")[1];
     }
 
-
-    /*public static String getAbiGerName(String s) {
-        JSONObject json = PnumaListener.getEmolgaJSON();
-        String translations = json.getJSONObject("translations").getString("abi");
-        return Arrays.stream(translations.split(";")).filter(str -> str.split(":")[0].toLowerCase().equalsIgnoreCase(s.toLowerCase()) || str.split(":")[1].toLowerCase().equalsIgnoreCase(s.toLowerCase())).collect(Collectors.joining("")).split(":")[0];
+    public boolean allowsMember(Member mem) {
+        return category.allowsMember(mem) || allowsMember.test(mem);
     }
 
-    public static String getAbiEnglName(String s) {
-        JSONObject json = PnumaListener.getEmolgaJSON();
-        String translations = json.getJSONObject("translations").getString("abi");
-        return Arrays.stream(translations.split(";")).filter(str -> str.split(":")[0].toLowerCase().equalsIgnoreCase(s.toLowerCase()) || str.split(":")[1].toLowerCase().equalsIgnoreCase(s.toLowerCase())).collect(Collectors.joining("")).split(":")[1];
-    }*/
+    public boolean allowsGuild(Guild g) {
+        return allowsGuild(g.getId());
+    }
 
+    public boolean allowsGuild(String gid) {
+        if (gid.equals(Constants.MYSERVER)) return true;
+        if (allowedGuilds.isEmpty() && category.allowsGuild(gid)) return true;
+        return !allowedGuilds.isEmpty() && allowedGuilds.contains(gid);
+    }
+
+    public Optional<String> checkPermissions(String gid, Member mem) {
+        if (!allowsGuild(gid)) return Optional.empty();
+        if (!allowsMember(mem)) return Optional.of(NOPERM);
+        return Optional.of("SUCCESS");
+    }
 
     private boolean checkPrefix(String msg) {
         if (category == CommandCategory.Music) {

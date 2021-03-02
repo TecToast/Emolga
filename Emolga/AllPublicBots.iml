@@ -9,15 +9,15 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" exported="" name="JDA" level="project" />
     <orderEntry type="library" name="JSoup" level="project" />
-    <orderEntry type="library" name="JSON" level="project" />
+    <orderEntry type="library" name="JSON" level="application" />
     <orderEntry type="library" name="Pi4J" level="project" />
     <orderEntry type="library" name="Google API" level="project" />
     <orderEntry type="library" name="Google Sheets" level="project" />
     <orderEntry type="library" name="Google Auth" level="project" />
     <orderEntry type="library" name="lavaplayer-1.3.50" level="project" />
     <orderEntry type="library" name="Google YouTube" level="project" />
-    <orderEntry type="library" name="org.eclipse.jetty:jetty-server:7.0.1.v20091125" level="project" />
-    <orderEntry type="library" name="org.eclipse.jetty:jetty-util:7.0.1.v20091125" level="project" />
+    <orderEntry type="library" name="org.eclipse.jetty:jetty-server:7.0.1.v20091125" level="application" />
+    <orderEntry type="library" name="org.eclipse.jetty:jetty-util:7.0.1.v20091125" level="application" />
     <orderEntry type="library" name="rome:rome:1.0" level="project" />
     <orderEntry type="library" name="Google Docs" level="project" />
     <orderEntry type="library" name="JDAUtilities" level="project" />

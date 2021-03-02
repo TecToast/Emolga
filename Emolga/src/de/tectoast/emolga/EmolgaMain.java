@@ -1,14 +1,14 @@
 package de.tectoast.emolga;
 
 import de.tectoast.commands.Command;
+import de.tectoast.jdautilities.managers.ReactionManager;
 import de.tectoast.utils.Giveaway;
 import de.tectoast.utils.MessageWaiter;
 import de.tectoast.utils.ModManager;
 import de.tectoast.ytsubscriber.NotificationCallback;
-import de.tectoast.ytsubscriber.Subscriber;
-import de.tectoast.ytsubscriber.impl.SubscriberImpl;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
@@ -16,14 +16,11 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.security.auth.login.LoginException;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.URI;
+import java.io.*;
+import java.nio.file.*;
 import java.time.Instant;
 import java.util.*;
+import java.util.function.Consumer;
 
 import static de.tectoast.commands.Command.*;
 
@@ -32,10 +29,14 @@ public class EmolgaMain {
     public static final MessageWaiter messageWaiter = new MessageWaiter();
     public static final ArrayList<Giveaway> todel = new ArrayList<>();
     public static JDA jda;
-    public static final NotificationCallback parseYT = XML -> {
+    public static final ArrayList<String> alreadywritten = new ArrayList<>();
+    public static final HashMap<String, Consumer<String>> sdmessages = new HashMap<>();
+    public static final NotificationCallback parseYT = feed -> {
 
-        System.out.println("XML = " + XML);
-        if (XML.contains("at:deleted-entry")) {
+        System.out.println(feed.toString(4));
+        sendToMe("KONSOLE! YT und so lol");
+
+        /*if (XML.contains("at:deleted-entry")) {
             jda.getTextChannelById("447357526997073932").sendMessage("Deleted!").queue();
             return;
         }
@@ -70,43 +71,73 @@ public class EmolgaMain {
         arr.put(id);
         Command.save(json, "./yt.json");
         jda.getTextChannelById("752119281918935071").sendMessage(link).queue();
-        //System.out.println(link);
+        //System.out.println(link);*/
+
     };
     private static int i = 0;
 
     public static void start() throws LoginException, InterruptedException {
+        //ArrayList<String> youtube = new ArrayList<>(Arrays.asList("UCYoTO-akZCsiusTe4rBxfhA", "UCMqmTa_6_wE7r9jQ6b8yqjQ", "UCUkb-7kNR03r4ldj_fm_BhA"));
+        /*ArrayList<String> youtube = new ArrayList<>(Arrays.asList("UCwbxxz-T7dBccRIo_TZIeoQ", "UCNsChOlGuhsifD-WkaGV7yA"));
+        Subscriber subscriber = new SubscriberImpl(Command.tokens.getJSONObject("subscriber").getString("host"), Command.tokens.getJSONObject("subscriber").getInt("port"));
+        new Thread(() -> {
+            for (String s : youtube) {
+                subscriber.subscribe(URI.create("https://www.youtube.com/xml/feeds/videos.xml?channel_id=" + s)).setNotificationCallback(parseYT);
+            }
+        }).start();*/
         jda = JDABuilder.createDefault(Command.tokens.getString("discord"))
                 .enableIntents(GatewayIntent.GUILD_MEMBERS)
                 .addEventListeners(new EmolgaListener(), messageWaiter)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
         jda.awaitReady();
+        jda.getPresence().setActivity(Activity.watching("Flo dabei zu, wie er mich programmiert"));
+        ReactionManager manager = new ReactionManager(jda);
+        manager.registerReaction("715249205186265178", "813025531779743774", "813025179114405898", "719928482544484352")
+        .registerReaction("715249205186265178", "813025531779743774", "813025403098628097", "813005659619590184")
+        .registerReaction("715249205186265178", "813025531779743774", "813025709232488480", "813027599743713320");
         new ModManager("default", "./ShowdownData/");
         new ModManager("nml", "../Showdown/sspserver/data/");
-        ArrayList<String> youtube = new ArrayList<>(Arrays.asList("UCYoTO-akZCsiusTe4rBxfhA", "UCMqmTa_6_wE7r9jQ6b8yqjQ", "UCUkb-7kNR03r4ldj_fm_BhA"));
-        Subscriber subscriber = new SubscriberImpl(Command.tokens.getJSONObject("subscriber").getString("host"), Command.tokens.getJSONObject("subscriber").getInt("port"));
+        sdmessages.put("joinServer", str -> jda.getTextChannelById("791284726677766155").sendMessage(str + " hat den Server betreten!").queue());
+        sdmessages.put("leaveServer", str -> jda.getTextChannelById("791284726677766155").sendMessage(str + " hat den Server verlassen!").queue());
+        sdmessages.put("manualMessage", str -> {
+            String user = str.split("\\|")[0];
+            jda.getTextChannelById("447357526997073932").sendMessage(user + ": " + str.substring(user.length() + 1)).queue();
+        });
+
         new Thread(() -> {
-            for (String s : youtube) {
-                subscriber.subscribe(URI.create("https://www.youtube.com/xml/feeds/videos.xml?channel_id=" + s)).setNotificationCallback(parseYT);
-            }
-        }).start();
-        new Thread(() -> {
-            try {
-                ServerSocket server = new ServerSocket(2535);
-                System.out.println("Startet SocketServer!");
+            Path path = Paths.get("/home/florian/Showdown/sspserver/discord");
+            try (final WatchService watchService = FileSystems.getDefault().newWatchService()) {
+                final WatchKey watchKey = path.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
                 while (true) {
-                    System.out.println("Waiting for client...");
-                    Socket client = server.accept();
-                    System.out.println("Found Client!");
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
-                    System.out.println("reader.readLine() = " + reader.readLine());
+                    final WatchKey wk = watchService.take();
+                    for (WatchEvent<?> event : wk.pollEvents()) {
+                        //we only register "ENTRY_MODIFY" so the context is always a Path.
+                        final Path changed = (Path) event.context();
+                        if (changed.endsWith("send.txt")) {
+                            String message = String.join("\n", Files.readAllLines(path.resolve("send.txt")));
+                            if(message.length() < 1) continue;
+                            if(alreadywritten.remove(message)) continue;
+                            alreadywritten.add(message);
+                            System.out.println("Message from SD: " + message);
+                            String type = message.split("\\|")[0];
+                            if(!sdmessages.containsKey(type)) {
+                                sendToMe(type + " wurde noch nicht registriert!"); // Should never happen
+                            } else {
+                                sdmessages.get(type).accept(message.substring(type.length() + 1));
+                            }
+                        }
+                    }
+                    // reset the key
+                    boolean valid = wk.reset();
+                    if (!valid) {
+                        System.out.println("Key has been unregisterede");
+                    }
                 }
-            } catch (IOException e) {
+            } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
         }).start();
-
-
 
         /*new Timer().scheduleAtFixedRate(new TimerTask() {
             @Override

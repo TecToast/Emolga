@@ -9,14 +9,13 @@ import de.tectoast.ytsubscriber.Subscription;
 import de.tectoast.ytsubscriber.SubscriptionHandler;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.eclipse.jetty.server.Server;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -37,6 +36,12 @@ public class SubscriberImpl implements Subscriber {
     private final Set<Map.Entry<URI, String>> unsubscribeIntents = new HashSet<>();
     private final ExecutorService executors = Executors.newFixedThreadPool(16);
 
+    /**
+     * Creates a new subscriber.
+     *
+     * @param host The external hostname of this subscriber
+     * @param port The port this subscriber is listening to.
+     */
     public SubscriberImpl(String host, int port) {
         this.host = host;
         this.port = port;
@@ -86,23 +91,15 @@ public class SubscriberImpl implements Subscriber {
         subscriptions.put(subscription.getInternalId(), subscription);
 
         //subscribe to hub
-        CloseableHttpClient client = HttpClientBuilder.create().build();
+        HttpClient client = HttpClientBuilder.create().build();
         HttpPost post = new HttpPost(hubUri);
         post.addHeader("Content-Type", "application/x-www-form-urlencoded");
         List<NameValuePair> params = new ArrayList<>();
         generateParams(params, subscription, SubscriptionMode.subscribe);
         try {
             post.setEntity(new UrlEncodedFormEntity(params));
+            System.out.println(post.toString());
             HttpResponse response = client.execute(post);
-            System.out.println("Subscribed!");
-            /*for (Header allHeader : response.getAllHeaders()) {
-                for (HeaderElement element : allHeader.getElements()) {
-                    for (NameValuePair parameter : element.getParameters()) {
-                        System.out.println(parameter.getName() + " = " + parameter.getValue());
-                    }
-                }
-            }
-            System.out.println("response.toString() = " + response.toString());*/
             if (response.getStatusLine().getStatusCode() != 204) {
                 throw new RuntimeException();
             }
@@ -110,12 +107,6 @@ public class SubscriberImpl implements Subscriber {
             subscriptions.remove(subscription.getInternalId());
             post.abort();
             throw new RuntimeException(e);
-        } finally {
-            try {
-                client.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
         return subscription;
     }
@@ -133,7 +124,7 @@ public class SubscriberImpl implements Subscriber {
         removeSubscribeIntent(subscription.getFeedTopicUri(), subscription.getVerifyToken());
         addUnsubscribeIntent(subscription.getFeedTopicUri(), subscription.getVerifyToken());
 
-        CloseableHttpClient client = HttpClientBuilder.create().build();
+        HttpClient client = HttpClientBuilder.create().build();
         HttpPost post = new HttpPost(subscription.getHubUri());
         post.addHeader("Content-Type", "application/x-www-form-urlencoded");
         List<NameValuePair> params = new ArrayList<>();
@@ -146,11 +137,6 @@ public class SubscriberImpl implements Subscriber {
             subscriptions.remove(subscription.getInternalId());
             post.abort();
         } finally {
-            try {
-                client.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
             subscriptions.remove(subscription.getInternalId());
         }
     }

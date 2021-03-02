@@ -4,6 +4,7 @@ import com.google.api.services.sheets.v4.model.*;
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
 import de.tectoast.utils.Google;
+import de.tectoast.utils.RequestBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
@@ -76,8 +77,8 @@ public class AddMonCommand extends Command {
             return;
         }
         l.add(Integer.parseInt(id));
-        Google.updateRequest(tradesid, range, Collections.singletonList(Collections.singletonList(l.stream().sorted().map(String::valueOf).collect(Collectors.joining(";")))), false, false);
-        tco.sendMessage("Du hast eingetragen, dass du ein " + mon + " in einem " + ball + " hast!").queue();
+        RequestBuilder b = new RequestBuilder(tradesid);
+        b.addSingle(range, l.stream().sorted().map(String::valueOf).collect(Collectors.joining(";")));
         Request req = new Request();
         req.setUpdateCells(new UpdateCellsRequest().setRows(Collections.singletonList(new RowData()
                 .setValues(Collections.singletonList(new CellData()
@@ -85,6 +86,8 @@ public class AddMonCommand extends Command {
                                 .setBackgroundColor(new Color()
                                         .setRed((float) 0.5764706).setGreen((float) 0.76862746).setBlue((float) 0.49019608)))))))
                 .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(248731694).setStartRowIndex(mons.indexOf(mon) + 2).setEndRowIndex(mons.indexOf(mon) + 3).setStartColumnIndex(0).setEndColumnIndex(1)));
-        Google.batchUpdateRequest(tradesid, req, false);
+        b.addBatch(req);
+        tco.sendMessage("Du hast eingetragen, dass du ein " + mon + " in einem " + ball + " hast!").queue();
+        b.execute();
     }
 }

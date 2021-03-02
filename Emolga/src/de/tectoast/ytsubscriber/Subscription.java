@@ -1,27 +1,37 @@
 package de.tectoast.ytsubscriber;
 
+import de.tectoast.ytsubscriber.NotificationCallback;
+
 import java.net.URI;
 
 /**
  * The Subscription interface represents a subscription to a feed using a
  * distinct hub. Note that a {@link NotificationCallback} should be set in order
  * to react on incoming updates.
- *
+ * 
  * @author Benjamin Erb
+ * 
  */
-public interface Subscription {
+public interface Subscription
+{
 
-    String getInternalId();
+	String getInternalId();
 
-    String getVerifyToken();
 
-    URI getFeedTopicUri();
+	String getVerifyToken();
 
-    URI getHubUri();
 
-    Subscriber getSubscriber();
+	URI getFeedTopicUri();
 
-    NotificationCallback getNotificationCallback();
 
-    void setNotificationCallback(NotificationCallback callback);
+	URI getHubUri();
+
+
+	Subscriber getSubscriber();
+
+
+	void setNotificationCallback(NotificationCallback callback);
+
+
+	NotificationCallback getNotificationCallback();
 }

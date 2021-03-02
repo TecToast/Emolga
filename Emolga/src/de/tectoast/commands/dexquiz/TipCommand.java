@@ -22,7 +22,7 @@ public class TipCommand extends Command {
             tco.sendMessage("Anfangsbuchstabe der Lösung: " + quiz.gerName.charAt(0) + "\n" +
                     "Anfangsbuchstabe auf Englisch: " + quiz.englName.charAt(0)).queue();
         } else {
-            tco.sendMessage("In diesem Channel wurde kein dexquiz erstellt!").queue();
+            tco.sendMessage("In diesem Channel wurde kein Dexquiz erstellt!").queue();
         }
     }
 }

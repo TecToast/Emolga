@@ -221,20 +221,29 @@ public class DataCommand extends Command {
                                 int spe = stats.getInt("spe");
                                 String str = "KP: " + kp + "\nAtk: " + atk + "\nDef: " + def + "\nSpAtk: " + spa
                                         + "\nSpDef: " + spd + "\nInit: " + spe + "\nSumme: " + (kp + atk + def + spa + spd + spe);
-                                String toadd = obj.getString("name");
-                                ArrayList<String> split = new ArrayList<>(Arrays.asList(toadd.split("-")));
-                                if (toadd.contains("-Alola"))
-                                    toadd = "Alola-" + getGerNameNoCheck(toadd.replace("-Alola", ""));
-                                else if (toadd.contains("-Galar"))
-                                    toadd = "Galar-" + getGerNameNoCheck(toadd.replace("-Galar", ""));
-                                else if (toadd.contains("-Mega"))
-                                    toadd = "Mega-" + getGerNameNoCheck(toadd.replace("-Mega", ""));
-                                else if (split.size() > 1) {
-                                    toadd = getGerNameNoCheck(split.remove(0)) + "-" + String.join("-", split);
-                                } else toadd = getGerNameNoCheck(toadd);
-                                origname.put(toadd, toSDName(obj.getString("name")));
-                                if (stat.containsKey(str)) stat.get(str).add(toadd);
-                                else stat.put(str, new ArrayList<>(Collections.singletonList(toadd)));
+                                StringBuilder toadd = new StringBuilder(obj.getString("name"));
+                                ArrayList<String> split = new ArrayList<>(Arrays.asList(toadd.toString().split("-")));
+                                if (toadd.toString().contains("-Alola")) {
+                                    toadd = new StringBuilder("Alola-" + getGerNameNoCheck(split.get(0)));
+                                    for (int i = 2; i < split.size(); i++) {
+                                        toadd.append("-").append(split.get(i));
+                                    }
+                                } else if (toadd.toString().contains("-Galar")) {
+                                    toadd = new StringBuilder("Galar-" + getGerNameNoCheck(split.get(0)));
+                                    for (int i = 2; i < split.size(); i++) {
+                                        toadd.append("-").append(split.get(i));
+                                    }
+                                } else if (toadd.toString().contains("-Mega")) {
+                                    toadd = new StringBuilder("Mega-" + getGerNameNoCheck(split.get(0)));
+                                    for (int i = 2; i < split.size(); i++) {
+                                        toadd.append("-").append(split.get(i));
+                                    }
+                                } else if (split.size() > 1) {
+                                    toadd = new StringBuilder(getGerNameNoCheck(split.remove(0)) + "-" + String.join("-", split));
+                                } else toadd = new StringBuilder(getGerNameNoCheck(toadd.toString()));
+                                origname.put(toadd.toString(), toSDName(obj.getString("name")));
+                                if (stat.containsKey(str)) stat.get(str).add(toadd.toString());
+                                else stat.put(str, new ArrayList<>(Collections.singletonList(toadd.toString())));
                             }
                             for (String s : stat.keySet().stream().sorted(Comparator.comparing(o -> stat.get(o).stream().mapToInt(str -> formeNames.indexOf(origname.get(str))).min().orElse(0))).collect(Collectors.toList())) {
                                 builder.addField(String.join(", ", stat.get(s)), s, true);

@@ -4,6 +4,7 @@ import com.google.api.services.sheets.v4.model.*;
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
 import de.tectoast.utils.Google;
+import de.tectoast.utils.RequestBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
@@ -75,7 +76,8 @@ public class DelMonCommand extends Command {
             tco.sendMessage("Du besitzt im Tauschdokument kein " + mon + " in einem " + ball + "!").queue();
             return;
         }
-        Google.updateRequest(tradesid, range, Collections.singletonList(Collections.singletonList(l.stream().sorted().map(String::valueOf).collect(Collectors.joining(";")))), false, false);
+        RequestBuilder b = new RequestBuilder(tradesid);
+        b.addSingle(range, l.stream().sorted().map(String::valueOf).collect(Collectors.joining(";")));
         tco.sendMessage("Du hast eingetragen, dass du ein " + mon + " in einem " + ball + " nicht mehr hast!").queue();
         if (Google.get(tradesid, "VFs und Ballmons!D" + (mons.indexOf(mon) + 3) + ":AA" + (mons.indexOf(mon) + 3), false, false) == null) {
             Request req = new Request();
@@ -85,9 +87,8 @@ public class DelMonCommand extends Command {
                                     .setBackgroundColor(new Color()
                                             .setRed((float) 1)))))))
                     .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(248731694).setStartRowIndex(mons.indexOf(mon) + 2).setEndRowIndex(mons.indexOf(mon) + 3).setStartColumnIndex(0).setEndColumnIndex(1)));
-            Google.batchUpdateRequest(tradesid, req, false);
+            b.addBatch(req);
         }
-
-
+        b.execute();
     }
 }

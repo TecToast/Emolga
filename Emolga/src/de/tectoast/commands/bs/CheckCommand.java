@@ -56,7 +56,7 @@ public class CheckCommand extends Command {
             return;
         }
         if (!mons.contains(mon)) {
-            tco.sendMessage("Dieses pokemon steht nicht im Tauschdokument!").queue();
+            tco.sendMessage("Dieses Pokemon steht nicht im Tauschdokument!").queue();
             return;
         }
         JSONObject json = getEmolgaJSON();

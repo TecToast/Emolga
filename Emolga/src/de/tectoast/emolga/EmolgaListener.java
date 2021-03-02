@@ -15,6 +15,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.channel.text.TextChannelCreateEvent;
+import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
@@ -26,15 +27,11 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
 import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -157,7 +154,7 @@ public class EmolgaListener extends ListenerAdapter {
             }
         }, 0, 30000);
         //e.getJDA().getTextChannelById("756828765065183253").retrieveMessageById("756828900083892264").queue(helps::add);
-        e.getJDA().getTextChannelById("757170844240707634").retrieveMessageById("757171205055840286").queue(helps::add);
+        //e.getJDA().getTextChannelById("757170844240707634").retrieveMessageById("757171205055840286").queue(helps::add);
         //e.getJDA().getTextChannelById("715249205186265178").retrieveMessageById("758397956637720596").queue(helps::add);
         Guild g = e.getJDA().getGuildById("712035338846994502");
         TextChannel channel = e.getJDA().getTextChannelById("715249205186265178");
@@ -182,6 +179,7 @@ public class EmolgaListener extends ListenerAdapter {
             System.out.println("TIMER: " + (delay));
         }
     }
+
 
     @Override
     public void onUserUpdateName(UserUpdateNameEvent e) {
@@ -217,7 +215,7 @@ public class EmolgaListener extends ListenerAdapter {
             String emoji = e.getReactionEmote().getEmoji();
             if (emoji.equals("◀️")) {
                 EmbedBuilder builder = new EmbedBuilder();
-                builder.setTitle("commands").setColor(java.awt.Color.CYAN);
+                builder.setTitle("Commands").setColor(java.awt.Color.CYAN);
                 builder.setDescription(getHelpDescripion(g, mem));
                 builder.setColor(java.awt.Color.CYAN);
                 addReactions(m, mem);
@@ -236,6 +234,15 @@ public class EmolgaListener extends ListenerAdapter {
             e.getChannel().getManager().putPermissionOverride(g.getRoleById("717297533294215258"), null, Collections.singletonList(Permission.MESSAGE_WRITE)).queue();
         else if (g.getId().equals("447357526997073930"))
             e.getChannel().getManager().putPermissionOverride(g.getRoleById("761723664273899580"), null, Collections.singletonList(Permission.MESSAGE_WRITE)).queue();
+    }
+
+    @Override
+    public void onGuildInviteCreate(@NotNull GuildInviteCreateEvent e) {
+        Guild g = e.getGuild();
+        if(!g.getId().equals(Constants.ASLID)) return;
+        g.retrieveMember(e.getInvite().getInviter()).queue(mem -> {
+            if(g.getSelfMember().canInteract(mem)) e.getInvite().delete().queue();
+        });
     }
 
     @Override
@@ -829,33 +836,10 @@ public class EmolgaListener extends ListenerAdapter {
                     if (!quiz.points.containsKey(member)) quiz.points.put(member, 0);
                     quiz.points.put(member, quiz.points.get(member) + 1);
                     if (quiz.round > quiz.cr) {
-                        StringBuilder builder = new StringBuilder("Punkte:\n");
-                        //noinspection SuspiciousMethodCalls
-                        for (Member mem : quiz.points.keySet().stream().sorted(Comparator.comparing(quiz.points::get).reversed()).collect(Collectors.toList())) {
-                            builder.append(mem.getAsMention()).append(": ").append(quiz.points.get(mem)).append("\n");
-                        }
-                        tco.sendMessage(builder.toString()).queue();
-                        DexQuiz.list.remove(quiz);
+                        quiz.end();
                         return;
                     }
-                    File file = new File("./entwicklung.txt");
-                    try {
-                        List<String> list = Files.readAllLines(file.toPath());
-                        String pokemon = list.get(new Random().nextInt(list.size()));
-                        Document d = Jsoup.connect("https://www.pokewiki.de/" + pokemon).get();
-                        String englName = getEnglName(pokemon);
-                        Element table = d.select("table[class=\"round centered\"]").get(0);
-                        Element element = table.select("td").get(new Random().nextInt(table.select("td").size()));
-                        quiz.gerName = pokemon;
-                        sendToMe(tco.getAsMention() + pokemon);
-                        quiz.englName = englName;
-                        //ü = %C3%B6
-                        quiz.block = false;
-                        Thread.sleep(3000);
-                        tco.sendMessage(trim(element.text(), pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queue();
-                    } catch (IOException | InterruptedException ioException) {
-                        ioException.printStackTrace();
-                    }
+                    quiz.newMon();
                 }
             }
             JSONObject json = getEmolgaJSON();
@@ -866,24 +850,23 @@ public class EmolgaListener extends ListenerAdapter {
                     if (urlop.isPresent()) {
                         String url = urlop.get();
                         System.out.println(url);
-                        Player[] game = Analysis.analyse(url);
-                        System.out.println("Analysed!");
-                        if (game == null) {
-                            tco.getGuild().getTextChannelById(analysis.getString(tco.getId())).sendMessage("Da in einem der beiden Teams ein Zoroark ist, kann ich das Ergebnis nicht bestimmen! Trage die Ergebnisse bitte selber ein!").queue();
+                        Player[] game;
+                        try {
+                            game = Analysis.analyse(url);
+                        } catch (Exception ex) {
+                            tco.getGuild().getTextChannelById(analysis.getString(tco.getId())).sendMessage("Beim Auswerten des Replays ist (vermutlich wegen eines Zoruas/Zoroarks) ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein!").queue();
                             return;
                         }
+                        System.out.println("Analysed!");
                         int aliveP1 = 0;
                         int aliveP2 = 0;
                         StringBuilder t1 = new StringBuilder();
                         StringBuilder t2 = new StringBuilder();
-
                         for (SDPokemon p : game[0].getMons()) {
                             if (!p.isDead()) aliveP1++;
-
                         }
                         for (SDPokemon p : game[1].getMons()) {
                             if (!p.isDead()) aliveP2++;
-
                         }
                         String winloose = aliveP1 + ":" + aliveP2;
                         boolean p1wins = game[0].isWinner();

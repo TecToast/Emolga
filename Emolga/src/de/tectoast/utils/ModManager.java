@@ -19,9 +19,9 @@ public class ModManager {
         this.name = name;
         this.datapath = datapath;
         File dir = new File(datapath);
-        this.dex = Command.loadSD(datapath + "pokedex.ts", Constants.DEXJSONSUB);
-        this.learnsets = Command.loadSD(datapath + "learnsets.ts", Constants.LEARNSETJSONSUB);
-        this.moves = Command.loadSD(datapath + "moves.ts", Constants.MOVESJSONSUB);
+        Command.singleThread(() -> this.dex = Command.loadSD(datapath + "pokedex.ts", Constants.DEXJSONSUB));
+        Command.singleThread(() -> this.learnsets = Command.loadSD(datapath + "learnsets.ts", Constants.LEARNSETJSONSUB));
+        Command.singleThread(() -> this.moves = Command.loadSD(datapath + "moves.ts", Constants.MOVESJSONSUB));
         modManagers.add(this);
     }
 

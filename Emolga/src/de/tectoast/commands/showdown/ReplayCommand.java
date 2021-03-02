@@ -1,4 +1,4 @@
-package de.tectoast.commands.pokemon;
+package de.tectoast.commands.showdown;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
@@ -10,7 +10,7 @@ import org.json.JSONObject;
 
 public class ReplayCommand extends Command {
     public ReplayCommand() {
-        super("replay", "`!replay <Channel>` Schickt von nun an die Ergebnisse aller Replays, die hier rein geschickt werden, in den angegebenen Channel", CommandCategory.Pokemon);
+        super("replay", "`!replay <Channel>` Schickt von nun an die Ergebnisse aller Replays, die hier rein geschickt werden, in den angegebenen Channel", CommandCategory.Showdown);
         everywhere = true;
     }
 

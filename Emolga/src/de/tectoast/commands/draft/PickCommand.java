@@ -3,10 +3,10 @@ package de.tectoast.commands.draft;
 import com.google.api.services.sheets.v4.model.*;
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
+import de.tectoast.utils.RequestBuilder;
 import de.tectoast.utils.draft.Draft;
 import de.tectoast.utils.draft.DraftPokemon;
 import de.tectoast.utils.draft.Tierlist;
-import de.tectoast.utils.Google;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
@@ -219,6 +219,7 @@ public class PickCommand extends Command {
                 y = 2;
             } else y++;
         }
+        RequestBuilder b = new RequestBuilder(sid);
         if (found) {
             Request request = new Request();
             request.setUpdateCells(new UpdateCellsRequest().setRows(Collections.singletonList(new RowData()
@@ -226,14 +227,14 @@ public class PickCommand extends Command {
                             .setUserEnteredFormat(new CellFormat()
                                     .setBackgroundColor(new Color().setRed((float) 1)))))))
                     .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(league.getInt("tierlist")).setStartRowIndex(y).setEndRowIndex(y + 1).setStartColumnIndex(x * 2 - 1).setEndColumnIndex(x * 2)));
-            Google.batchUpdateRequest(sid, request, false);
+            b.addBatch(request);
         }
         //System.out.println(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
 
 
         int user = Arrays.asList(league.getString("table").split(",")).indexOf(mem.getId());
         int row = (pk * 19 + d.picks.get(mem).size() + 17);
-        Google.updateRequest(sid, asl.getJSONArray("teams").getString(user) + "!B" + row, Collections.singletonList(Arrays.asList(getGen5Sprite(pokemon), pokemon, "", tierlist.getPointsNeeded(pokemon))), false, false);
+        b.addRow(asl.getJSONArray("teams").getString(user) + "!B" + row, Arrays.asList(getGen5Sprite(pokemon), pokemon, "", tierlist.getPointsNeeded(pokemon)));
         String dbname;
         if (pokemon.contains("Amigento")) dbname = "Amigento";
         else if (sdex.containsKey(pokemon)) dbname = pokemon.split("-")[0] + sdex.get(pokemon).replace("-", "");
@@ -245,7 +246,8 @@ public class PickCommand extends Command {
             else if (pokemon.endsWith("-Y")) dbname = sub.substring(0, sub.length() - 2) + "megay";
             else dbname = sub + "mega";
         } else dbname = pokemon;
-        Google.updateRequest(sid, asl.getJSONArray("teams").getString(user) + "!I" + row, Collections.singletonList(Collections.singletonList(getDataJSON().getJSONObject(toSDName(dbname)).getJSONObject("baseStats").getInt("spe"))), false, false);
+        b.addSingle(asl.getJSONArray("teams").getString(user) + "!I" + row, getDataJSON().getJSONObject(toSDName(dbname)).getJSONObject("baseStats").getInt("spe"));
+        b.execute();
     }
 
     private static void zbsdoc(Tierlist tierlist, String pokemon, Draft d, Member mem, String tier, int num, int round) {
@@ -281,13 +283,13 @@ public class PickCommand extends Command {
             int user = Arrays.asList(league.getString("table").split(",")).indexOf(mem.getId());
             String range = "Liga 2!" + (char) (tier.equals("OU") ? (76 + d.picks.get(mem).stream().filter(p -> p.tier.equals("OU")).count()) : (tierlist.order.indexOf(tier) * 3 + 75 + d.picks.get(mem).stream().filter(p -> p.tier.equals(tier)).count())) + (user + 3);
             System.out.println("range = " + range);
-            Google.batchUpdateRequest(doc, request, false);
+            RequestBuilder b = new RequestBuilder(doc);
+            b.addBatch(request, req).addSingle(range, getGen5Sprite(pokemon));
             System.out.println("d.members.size() = " + d.members.size());
             System.out.println("d.order.size() = " + d.order.get(d.round).size());
             System.out.println("d.members.size() - d.order.size() = " + (d.members.size() - d.order.get(d.round).size()));
             //if (d.members.size() - d.order.get(d.round).size() != 1 && isEnabled)
-                Google.batchUpdateRequest(doc, req, false);
-            Google.updateRequest(doc, range, Collections.singletonList(Collections.singletonList(getGen5Sprite(pokemon))), false, false);
+            b.execute();
         }
     }
 }

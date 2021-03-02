@@ -1,4 +1,4 @@
-package de.tectoast.commands.pokemon;
+package de.tectoast.commands.showdown;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class AnalyseCommand extends Command {
     public AnalyseCommand() {
-        super("analyse", "`!analyse <Replay-Link>` Schickt das Ergebnis des Kampfes in den Channel", CommandCategory.Pokemon);
+        super("analyse", "`!analyse <Replay-Link>` Schickt das Ergebnis des Kampfes in den Channel", CommandCategory.Showdown);
     }
 
     @Override

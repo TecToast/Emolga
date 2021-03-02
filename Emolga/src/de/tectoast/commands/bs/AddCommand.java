@@ -2,13 +2,11 @@ package de.tectoast.commands.bs;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
-import de.tectoast.utils.Google;
+import de.tectoast.utils.RequestBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
-
-import java.util.Collections;
 
 public class AddCommand extends Command {
     public AddCommand() {
@@ -45,7 +43,7 @@ public class AddCommand extends Command {
         tco.sendMessage("Du wurdest erfolgreich mit der ID " + x + " registriert!").queue();
         saveEmolgaJSON();
         if (x <= 8)
-            Google.updateRequest(tradesid, "VFs und Ballmons!" + (char) (x * 3 + 65) + "1", Collections.singletonList(Collections.singletonList(member.getEffectiveName() + " (" + x + ")")), false, false);
+            RequestBuilder.updateSingle(tradesid, "VFs und Ballmons!" + (char) (x * 3 + 65) + "1", member.getEffectiveName() + " (" + x + ")", false);
 
     }
 }

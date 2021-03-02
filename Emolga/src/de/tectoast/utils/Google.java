@@ -13,6 +13,7 @@ import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.SearchResult;
+import net.dv8tion.jda.annotations.ReplaceWith;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -35,8 +36,8 @@ public class Google {
         CLIENTSECRET = clientSecret;
     }
 
+
     public static SearchResult getVid(String vid, boolean recursive) throws IllegalArgumentException {
-        refreshTokenIfNotPresent();
         try {
             return getYouTubeService().search().list(Collections.singletonList("snippet")).setQ(vid).setMaxResults((long) 1).execute().getItems().get(0);
         } catch (GoogleJsonResponseException ex) {
@@ -51,8 +52,8 @@ public class Google {
         return null;
     }
 
+
     public static List<List<Object>> get(String spreadsheetId, String range, boolean formula, boolean recursive) throws IllegalArgumentException {
-        refreshTokenIfNotPresent();
         try {
             return getSheetsService().spreadsheets().values().get(spreadsheetId, range).setValueRenderOption(formula ? "FORMULA" : "FORMATTED_VALUE").execute().getValues();
         } catch (GoogleJsonResponseException ex) {
@@ -67,8 +68,9 @@ public class Google {
         return null;
     }
 
+    @Deprecated
+    @ReplaceWith("RequestBuilder.updateAll")
     public static void updateRequest(String spreadsheetId, String range, List<List<Object>> values, boolean raw, boolean recursive) throws IllegalArgumentException {
-        refreshTokenIfNotPresent();
         try {
             getSheetsService().spreadsheets().values().update(spreadsheetId, range, new ValueRange().setValues(values)).setValueInputOption(raw ? "RAW" : "USER_ENTERED").execute();
         } catch (GoogleJsonResponseException ex) {
@@ -82,7 +84,6 @@ public class Google {
     }
 
     public static Spreadsheet getSheetData(String spreadsheetId, boolean recursive, String... range) throws IllegalArgumentException {
-        refreshTokenIfNotPresent();
         try {
             System.out.println(1);
             Sheets.Spreadsheets.Get get = getSheetsService().spreadsheets().get(spreadsheetId).setIncludeGridData(true);
@@ -101,8 +102,8 @@ public class Google {
         return null;
     }
 
+
     public static List<ValueRange> batchGet(String spreadsheetId, List<String> range, boolean formula, boolean recursive) throws IllegalArgumentException {
-        refreshTokenIfNotPresent();
         try {
             return getSheetsService().spreadsheets().values().batchGet(spreadsheetId).setRanges(range).setValueRenderOption(formula ? "FORMULA" : "FORMATTED_VALUE").execute().getValueRanges();
         } catch (GoogleJsonResponseException ex) {
@@ -117,8 +118,8 @@ public class Google {
         return null;
     }
 
+    @Deprecated
     public static void batchUpdateRequest(String spreadsheetId, Request request, boolean recursive) throws IllegalArgumentException {
-        refreshTokenIfNotPresent();
         try {
             getSheetsService().spreadsheets().batchUpdate(spreadsheetId, new BatchUpdateSpreadsheetRequest()
                     .setRequests(Collections.singletonList(request))).execute();
@@ -133,7 +134,6 @@ public class Google {
     }
 
     public static Sheets getSheetsService() {
-        refreshTokenIfNotPresent();
         try {
             return new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), new Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(accesstoken))
                     .setApplicationName("emolga")
@@ -152,7 +152,7 @@ public class Google {
     }
 
     public static void refreshTokenIfNotPresent() {
-        if(accesstoken == null || System.currentTimeMillis() - lastUpdate > 3500000) generateAccessToken();
+        if(accesstoken == null || System.currentTimeMillis() - lastUpdate > 3000000) generateAccessToken();
     }
 
     public static void generateAccessToken() {

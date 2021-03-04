@@ -10,7 +10,7 @@ import org.json.JSONObject;
 
 public class DeldraftCommand extends Command {
     public DeldraftCommand() {
-        super("deldraft", "`!deldraft <Name>` Löscht den draft mit dem angegebenen Namen", CommandCategory.Draft, true);
+        super("deldraft", "`!deldraft <Name>` Löscht den draft mit dem angegebenen Namen", CommandCategory.Flo);
     }
 
     @Override

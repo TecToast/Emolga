@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class AnalyseCommand extends Command {
     public AnalyseCommand() {
-        super("analyse", "`!analyse <Replay-Link>` Schickt das Ergebnis des Kampfes in den Channel", CommandCategory.Showdown);
+        super("analyse", "`!analyse <Replay-Link>` Schickt das Ergebnis des angegebenen Kampfes in den Channel", CommandCategory.Showdown);
     }
 
     @Override

@@ -134,6 +134,7 @@ public class Google {
     }
 
     public static Sheets getSheetsService() {
+        refreshTokenIfNotPresent();
         try {
             return new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), new Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(accesstoken))
                     .setApplicationName("emolga")

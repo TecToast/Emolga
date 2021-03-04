@@ -18,7 +18,7 @@ import java.util.TimerTask;
 
 public class UpdatedatafromfileCommand extends Command {
     public UpdatedatafromfileCommand() {
-        super("updatedatafromfile", "`!updatedatafromfile <Name>` Aktualisiert die Daten auf Basis der Datei", CommandCategory.Flo, true);
+        super("updatedatafromfile", "`!updatedatafromfile <Name>` Aktualisiert die Daten auf Basis der Datei", CommandCategory.Flo);
     }
 
     @Override

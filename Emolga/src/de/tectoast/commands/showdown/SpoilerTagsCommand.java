@@ -9,7 +9,7 @@ import org.json.JSONObject;
 public class SpoilerTagsCommand extends Command {
 
     public SpoilerTagsCommand() {
-        super("spoilertags", "`!spoilertags` Aktiviert oder deaktiviert den Spoilerschutz bei Showdown-Ergebnissen.", CommandCategory.Showdown);
+        super("spoilertags", "`!spoilertags` Aktiviert oder deaktiviert den Spoilerschutz bei Showdown-Ergebnissen. (Gilt serverweit)", CommandCategory.Showdown);
         everywhere = true;
     }
 

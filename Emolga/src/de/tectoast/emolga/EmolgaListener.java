@@ -15,6 +15,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.channel.text.TextChannelCreateEvent;
+import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent;
@@ -43,6 +44,10 @@ public class EmolgaListener extends ListenerAdapter {
     public static final List<String> allowsCaps = Arrays.asList("712612442622001162", "752230819644440708", "732545253344804914");
     public static boolean disablesort = false;
     public static File file = new File("./debug.txt");
+    public static final String WELCOMEMESSAGE = "Hallo **{USERNAME}** und vielen Dank, dass du mich auf deinen Server {SERVERNAME} geholt hast! " +
+            "Vermutlich möchtest du für deinen Server hauptsächlich, dass die Ergebnisse von Showdown Replays in einen Channel geschickt werden. " +
+            "**Zunächst pingst du mich auf deinem Server und reagierst mit \uD83C\uDDF8, um die Showdown-Hilfe aufzurufen. " +
+            "Dort siehst du, wie man den !replay Command verwendet, um genau das einzustellen.** Falls irgendwelche Probleme auftreten sollten, schreib TecToast/Flo eine PN oder nutz den `!flohelp <Nachricht>` Command, mit dem Flo ebenfalls benachrichtigt wird.";
     //public static byte[] bytes;
 
 
@@ -59,8 +64,13 @@ public class EmolgaListener extends ListenerAdapter {
     }
 
     @Override
+    public void onGuildJoin(@NotNull GuildJoinEvent e) {
+        e.getGuild().retrieveOwner().flatMap(m -> m.getUser().openPrivateChannel()).queue(pc -> pc.sendMessage(WELCOMEMESSAGE.replace("{USERNAME}", e.getGuild().getOwner().getEffectiveName()).replace("{SERVERNAME}", e.getGuild().getName())).queue());
+    }
+
+    @Override
     public void onRoleCreate(@Nonnull RoleCreateEvent e) {
-        if (!e.getGuild().getId().equals("736555250118295622") && !e.getGuild().getId().equals("447357526997073930"))
+        if (!e.getGuild().getId().equals("736555250118295622") && !e.getGuild().getId().equals("447357526997073930") && !e.getGuild().getId().equals("518008523653775366"))
             return;
         e.getRole().getManager().revokePermissions(Permission.CREATE_INSTANT_INVITE).queue();
     }
@@ -68,7 +78,7 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onPrivateMessageReceived(PrivateMessageReceivedEvent e) {
         if (e.getAuthor().getId().equals(Constants.FLOID)) {
-            PrivateCommands.fromPrivate(e);
+            PrivateCommands.execute(e.getJDA(), e.getChannel(), e.getMessage());
         } /*else if (e.getAuthor().getId().equals("574949229668335636")) {
             e.getJDA().getTextChannelById("743471003220443226").sendMessage(e.getMessage().getContentDisplay()).queue();
         }*/
@@ -239,9 +249,9 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onGuildInviteCreate(@NotNull GuildInviteCreateEvent e) {
         Guild g = e.getGuild();
-        if(!g.getId().equals(Constants.ASLID)) return;
+        if (!g.getId().equals(Constants.ASLID)) return;
         g.retrieveMember(e.getInvite().getInviter()).queue(mem -> {
-            if(g.getSelfMember().canInteract(mem)) e.getInvite().delete().queue();
+            if (g.getSelfMember().canInteract(mem)) e.getInvite().delete().queue();
         });
     }
 
@@ -722,7 +732,7 @@ public class EmolgaListener extends ListenerAdapter {
             }
             check(e);
             if (gid.equals("447357526997073930")) {
-                PrivateCommands.fromGuild(e);
+                PrivateCommands.execute(e.getJDA(), e.getChannel(), e.getMessage());
             }
             if (tco.getId().equals("758198459563114516")) {
                 g.addRoleToMember(member, g.getRoleById("758254829885456404")).queue();
@@ -858,6 +868,7 @@ public class EmolgaListener extends ListenerAdapter {
                             return;
                         }
                         System.out.println("Analysed!");
+                        System.out.println(tco.getAsMention());
                         int aliveP1 = 0;
                         int aliveP2 = 0;
                         StringBuilder t1 = new StringBuilder();
@@ -946,7 +957,6 @@ public class EmolgaListener extends ListenerAdapter {
 
         }).start();
     }
-
 
     public boolean isAdmin(Member member) {
         return member.hasPermission(Permission.ADMINISTRATOR) || member.getId().equals("598199247124299776");

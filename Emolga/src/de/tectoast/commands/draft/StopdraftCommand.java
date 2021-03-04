@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 public class StopdraftCommand extends Command {
     public StopdraftCommand() {
-        super("stopdraft", "`!stopdraft <Name>` Beendet den draft", CommandCategory.Draft, true);
+        super("stopdraft", "`!stopdraft <Name>` Beendet den draft", CommandCategory.Flo);
     }
 
     @Override

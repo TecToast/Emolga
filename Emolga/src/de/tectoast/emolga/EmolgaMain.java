@@ -8,6 +8,7 @@ import de.tectoast.utils.ModManager;
 import de.tectoast.ytsubscriber.NotificationCallback;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -91,7 +92,7 @@ public class EmolgaMain {
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
         jda.awaitReady();
-        jda.getPresence().setActivity(Activity.watching("Flo dabei zu, wie er mich programmiert"));
+        updatePresence();
         ReactionManager manager = new ReactionManager(jda);
         manager.registerReaction("715249205186265178", "813025531779743774", "813025179114405898", "719928482544484352")
         .registerReaction("715249205186265178", "813025531779743774", "813025403098628097", "813005659619590184")

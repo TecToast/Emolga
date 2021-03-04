@@ -6,7 +6,7 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class SearchReplaysCommand extends Command {
     public SearchReplaysCommand() {
-        super("searchreplays", "`!searchreplays <User1> [User2]", CommandCategory.Showdown);
+        super("searchreplays", "`!searchreplays <User1> [User2]` Sucht nach Replays der angegebenen Showdownbenutzernamen", CommandCategory.Showdown);
         wip = true;
     }
 

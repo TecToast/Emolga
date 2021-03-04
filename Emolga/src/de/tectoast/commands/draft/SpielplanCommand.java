@@ -14,7 +14,7 @@ import java.util.*;
 
 public class SpielplanCommand extends Command {
     public SpielplanCommand() {
-        super("spielplan", "`!spielplan <Name> <TCID> <RID>` Erstellt einen Spielplan für diesen draft im Channel TCID und pingt die Rolle RID", CommandCategory.Draft, true);
+        super("spielplan", "`!spielplan <Name> <TCID> <RID>` Erstellt einen Spielplan für diesen Draft im Channel TCID und pingt die Rolle RID", CommandCategory.Flo);
     }
 
     @Override

@@ -29,5 +29,6 @@ public class ReplayCommand extends Command {
         json.getJSONObject("analyse").put(tco.getId(), tc.getId());
         saveEmolgaJSON();
         tco.sendMessage("Die Analyse aus dem Channel " + tco.getAsMention() + " in den Channel " + tc.getAsMention() + " wurde aktiviert!").queue();
+        updatePresence();
     }
 }

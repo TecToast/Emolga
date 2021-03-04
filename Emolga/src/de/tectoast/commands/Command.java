@@ -23,15 +23,13 @@ import de.tectoast.commands.showdown.AnalyseCommand;
 import de.tectoast.commands.showdown.ReplayCommand;
 import de.tectoast.commands.showdown.SearchReplaysCommand;
 import de.tectoast.commands.showdown.SpoilerTagsCommand;
-import de.tectoast.commands.various.CalcCommand;
-import de.tectoast.commands.various.GcreateCommand;
-import de.tectoast.commands.various.NicknameCommand;
-import de.tectoast.emolga.EmolgaMain;
+import de.tectoast.commands.various.*;
 import de.tectoast.utils.*;
 import de.tectoast.utils.music.GuildMusicManager;
 import de.tectoast.utils.showdown.Player;
 import de.tectoast.utils.showdown.SDPokemon;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.managers.AudioManager;
@@ -49,6 +47,8 @@ import java.util.List;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import static de.tectoast.emolga.EmolgaMain.jda;
 
 public abstract class Command {
 
@@ -575,13 +575,13 @@ public abstract class Command {
         JSONObject names = shinycountjson.getJSONObject("names");
         for (String method : shinycountjson.getString("methodorder").split(",")) {
             JSONObject m = counter.getJSONObject(method);
-            b.append(method).append(": ").append(EmolgaMain.jda.getGuildById("745934535748747364").getEmoteById(m.getString("emote")).getAsMention()).append("\n");
+            b.append(method).append(": ").append(jda.getGuildById("745934535748747364").getEmoteById(m.getString("emote")).getAsMention()).append("\n");
             for (String s : shinycountjson.getString("userorder").split(",")) {
                 b.append(names.getString(s)).append(": ").append(m.optInt(s, 0)).append("\n");
             }
             b.append("\n");
         }
-        EmolgaMain.jda.getTextChannelById("778380440078647296").editMessageById("778380596413464676", b.toString()).queue();
+        jda.getTextChannelById("778380440078647296").editMessageById("778380596413464676", b.toString()).queue();
         save(shinycountjson, "shinycount.json");
     }
 
@@ -1082,6 +1082,8 @@ public abstract class Command {
         new SpoilerTagsCommand();
         new AnalyseCommand();
         new SearchReplaysCommand();
+        new InviteUrlCommand();
+        new FloHelpCommand();
     }
 
     public static void awaitNextDay() {
@@ -1193,10 +1195,10 @@ public abstract class Command {
             String lsd = null;
             if (uid1.equals("LSD")) {
                 uid1 = table.get(teamsarray.toList().indexOf("Lauras Sterndu"));
-                lsd = EmolgaMain.jda.getGuildById(Constants.ASLID).retrieveMemberById(uid1).complete().getEffectiveName();
+                lsd = jda.getGuildById(Constants.ASLID).retrieveMemberById(uid1).complete().getEffectiveName();
             } else if (uid2.equals("LSD")) {
                 uid2 = table.get(teamsarray.toList().indexOf("Lauras Sterndu"));
-                lsd = EmolgaMain.jda.getGuildById(Constants.ASLID).retrieveMemberById(uid2).complete().getEffectiveName();
+                lsd = jda.getGuildById(Constants.ASLID).retrieveMemberById(uid2).complete().getEffectiveName();
             }
             int tin1 = table.indexOf(uid1);
             int tin2 = table.indexOf(uid2);
@@ -1211,7 +1213,7 @@ public abstract class Command {
                 System.out.println("GAMEDAY -1");
                 return;
             }
-            EmolgaMain.jda.getTextChannelById((String) args[1]).sendMessage("Spieltag " + gameday + "\nPreisklasse " + (pk == 0 ? "Coach" : pk) + "\n" + t1 + " vs " + t2 + "\n\n" + (lsd != null ? ((String) args[0]).replace("REPLACELSD", lsd) : args[0] + "")).queue();
+            jda.getTextChannelById((String) args[1]).sendMessage("Spieltag " + gameday + "\nPreisklasse " + (pk == 0 ? "Coach" : pk) + "\n" + t1 + " vs " + t2 + "\n\n" + (lsd != null ? ((String) args[0]).replace("REPLACELSD", lsd) : args[0] + "")).queue();
             ArrayList<String> userids = new ArrayList<>(Arrays.asList(uid1, uid2));
             ArrayList<String> teams = new ArrayList<>(Arrays.asList(t1, t2));
             RequestBuilder b = new RequestBuilder(sid);
@@ -1259,7 +1261,7 @@ public abstract class Command {
             sortASL();
         });
         sdAnalyser.put("709877545708945438", (game, uid1, uid2, kills, deaths, args) -> {
-            Guild guild = EmolgaMain.jda.getGuildById("709877545708945438");
+            Guild guild = jda.getGuildById("709877545708945438");
             Emote love = guild.getEmoteById("710842233712017478");
             Emote beep = guild.getEmoteById("745355018676469844");
             JSONObject json = getEmolgaJSON();
@@ -1432,7 +1434,7 @@ public abstract class Command {
     }
 
     public static void woolooStyle(String sid, Message message, String uid1, String uid2) {
-        Guild guild = EmolgaMain.jda.getGuildById("709877545708945438");
+        Guild guild = jda.getGuildById("709877545708945438");
         Emote love = guild.getEmoteById("710842233712017478");
         Emote beep = guild.getEmoteById("745355018676469844");
         JSONObject json = getEmolgaJSON();
@@ -1512,6 +1514,10 @@ public abstract class Command {
 
     public static List<Command> getWithCategory(CommandCategory category, Guild g, Member mem) {
         return commands.stream().filter(c -> c.category == category && category.allowsGuild(g) && category.allowsMember(mem) && c.allowsGuild(g)).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public static void updatePresence() {
+        jda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.watching("in " + getEmolgaJSON().getJSONObject("analyse").length() + " Replay-Channel"));
     }
 
     public static String getHelpDescripion(Guild g, Member mem) {
@@ -1734,7 +1740,7 @@ public abstract class Command {
     }
 
     public static void sendToUser(String id, String msg) {
-        EmolgaMain.jda.retrieveUserById(id).submit().thenCompose(u -> u.openPrivateChannel().submit()).thenAccept(pc -> pc.sendMessage(msg).queue());
+        jda.retrieveUserById(id).submit().thenCompose(u -> u.openPrivateChannel().submit()).thenAccept(pc -> pc.sendMessage(msg).queue());
     }
 
     private static boolean containsGen(JSONObject learnset, String move, int gen) {
@@ -1762,7 +1768,7 @@ public abstract class Command {
         ArrayList<String> players = new ArrayList<>(Arrays.asList(json.getString("players").split(",")));
         HashMap<String, String> names = new HashMap<>();
         if (!asIds)
-            EmolgaMain.jda.getGuildById(Constants.BSID).retrieveMembersByIds(players.toArray(new String[0])).get().forEach(mem -> names.put(mem.getId(), mem.getEffectiveName()));
+            jda.getGuildById(Constants.BSID).retrieveMembersByIds(players.toArray(new String[0])).get().forEach(mem -> names.put(mem.getId(), mem.getEffectiveName()));
         JSONObject playerstats = json.getJSONObject("playerstats");
         for (String player : players) {
             List<Object> l = new ArrayList<>();
@@ -2329,6 +2335,7 @@ public abstract class Command {
                     return "Psiaugon-W";
             }
         }
+        if (s.contains("Unown")) return "Icognito";
         if (s.equals("Greninja-Ash")) return "Ash-Quajutsu";
         if (s.equals("Zarude-Dada")) return "Zarude";
         if (s.contains("Furfrou")) return "Coiffwaff";

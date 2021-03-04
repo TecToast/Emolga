@@ -2,6 +2,8 @@ package de.tectoast.commands.draft;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
+import de.tectoast.utils.Constants;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -16,7 +18,7 @@ import java.util.stream.Collectors;
 
 public class CreatedraftCommand extends Command {
     public CreatedraftCommand() {
-        super("createdraft", "`!createdraft <Name> <Rolle>` Erstellt einen draft mit dem Namen und generiert die Draftreihenfolge mit allen Usern, die die Rolle haben", CommandCategory.Draft, true);
+        super("createdraft", "`!createdraft <Name> <Rolle>` Erstellt einen Draft mit dem Namen und generiert die Draftreihenfolge mit allen Usern, die die Rolle haben", CommandCategory.Flo);
     }
 
     @Override

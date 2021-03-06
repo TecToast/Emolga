@@ -1,11 +1,11 @@
 package de.tectoast.emolga.bot;
 
-import de.tectoast.commands.Command;
+import de.tectoast.emolga.commands.Command;
 import de.tectoast.jdautilities.managers.ReactionManager;
-import de.tectoast.utils.Giveaway;
-import de.tectoast.utils.MessageWaiter;
-import de.tectoast.utils.ModManager;
-import de.tectoast.ytsubscriber.NotificationCallback;
+import de.tectoast.emolga.utils.Giveaway;
+import de.tectoast.emolga.utils.MessageWaiter;
+import de.tectoast.emolga.utils.ModManager;
+import de.tectoast.emolga.ytsubscriber.NotificationCallback;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -21,7 +21,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static de.tectoast.commands.Command.*;
+import static de.tectoast.emolga.commands.Command.*;
 
 public class EmolgaMain {
 

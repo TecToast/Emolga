@@ -1,15 +1,15 @@
 package de.tectoast.emolga.bot;
 
-import de.tectoast.commands.CommandCategory;
-import de.tectoast.commands.PrivateCommands;
-import de.tectoast.utils.Constants;
-import de.tectoast.utils.DexQuiz;
-import de.tectoast.utils.Giveaway;
-import de.tectoast.utils.draft.Draft;
-import de.tectoast.utils.music.GuildMusicManager;
-import de.tectoast.utils.showdown.Analysis;
-import de.tectoast.utils.showdown.Player;
-import de.tectoast.utils.showdown.SDPokemon;
+import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.commands.PrivateCommands;
+import de.tectoast.emolga.utils.Constants;
+import de.tectoast.emolga.utils.DexQuiz;
+import de.tectoast.emolga.utils.Giveaway;
+import de.tectoast.emolga.utils.draft.Draft;
+import de.tectoast.emolga.utils.music.GuildMusicManager;
+import de.tectoast.emolga.utils.showdown.Analysis;
+import de.tectoast.emolga.utils.showdown.Player;
+import de.tectoast.emolga.utils.showdown.SDPokemon;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
@@ -36,7 +36,7 @@ import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static de.tectoast.commands.Command.*;
+import static de.tectoast.emolga.commands.Command.*;
 
 public class EmolgaListener extends ListenerAdapter {
     public static final File emolgadata = new File("./emolgadata.json");

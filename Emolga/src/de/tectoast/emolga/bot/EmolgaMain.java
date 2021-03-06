@@ -1,4 +1,4 @@
-package de.tectoast.emolga;
+package de.tectoast.emolga.bot;
 
 import de.tectoast.commands.Command;
 import de.tectoast.jdautilities.managers.ReactionManager;
@@ -8,8 +8,6 @@ import de.tectoast.utils.ModManager;
 import de.tectoast.ytsubscriber.NotificationCallback;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.OnlineStatus;
-import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;

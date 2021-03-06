@@ -2,7 +2,7 @@ package de.tectoast.commands.draft;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
-import de.tectoast.emolga.EmolgaMain;
+import de.tectoast.emolga.bot.EmolgaMain;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;

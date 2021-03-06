@@ -2,7 +2,7 @@ package de.tectoast.commands.various;
 
 import de.tectoast.commands.Command;
 import de.tectoast.commands.CommandCategory;
-import de.tectoast.emolga.EmolgaMain;
+import de.tectoast.emolga.bot.EmolgaMain;
 import de.tectoast.jdautilities.interactive.ErrorMessage;
 import de.tectoast.jdautilities.interactive.InteractiveTemplate;
 import de.tectoast.utils.Giveaway;

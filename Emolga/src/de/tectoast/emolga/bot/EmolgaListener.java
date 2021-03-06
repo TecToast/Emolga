@@ -1,4 +1,4 @@
-package de.tectoast.emolga;
+package de.tectoast.emolga.bot;
 
 import de.tectoast.commands.CommandCategory;
 import de.tectoast.commands.PrivateCommands;
@@ -43,12 +43,11 @@ public class EmolgaListener extends ListenerAdapter {
     public static final File wikidata = new File("./wikidata.json");
     public static final List<String> allowsCaps = Arrays.asList("712612442622001162", "752230819644440708", "732545253344804914");
     public static boolean disablesort = false;
-    public static File file = new File("./debug.txt");
-    public static final String WELCOMEMESSAGE = "Hallo **{USERNAME}** und vielen Dank, dass du mich auf deinen Server {SERVERNAME} geholt hast! " +
+    public static File file = new File("./debug.txt"); 
+    public static final String WELCOMEMESSAGE = "Hallo **{USERNAME}** und vielen Dank, dass du mich auf deinen Server **{SERVERNAME}** geholt hast! " +
             "Vermutlich möchtest du für deinen Server hauptsächlich, dass die Ergebnisse von Showdown Replays in einen Channel geschickt werden. " +
             "**Zunächst pingst du mich auf deinem Server und reagierst mit \uD83C\uDDF8, um die Showdown-Hilfe aufzurufen. " +
-            "Dort siehst du, wie man den !replay Command verwendet, um genau das einzustellen.** Falls irgendwelche Probleme auftreten sollten, schreib TecToast/Flo eine PN oder nutz den `!flohelp <Nachricht>` Command, mit dem Flo ebenfalls benachrichtigt wird.";
-    //public static byte[] bytes;
+            "Dort siehst du, wie man den !replay Command verwendet, um genau das einzustellen.** Falls irgendwelche Probleme oder Fragen auftreten sollten, schreib TecToast/Flo eine PN oder nutz den `!flohelp <Nachricht>` Command, mit dem Flo ebenfalls benachrichtigt wird.";
 
 
     @Override
@@ -65,7 +64,7 @@ public class EmolgaListener extends ListenerAdapter {
 
     @Override
     public void onGuildJoin(@NotNull GuildJoinEvent e) {
-        e.getGuild().retrieveOwner().flatMap(m -> m.getUser().openPrivateChannel()).queue(pc -> pc.sendMessage(WELCOMEMESSAGE.replace("{USERNAME}", e.getGuild().getOwner().getEffectiveName()).replace("{SERVERNAME}", e.getGuild().getName())).queue());
+        e.getGuild().retrieveOwner().flatMap(m -> m.getUser().openPrivateChannel()).queue(pc -> pc.sendMessage(WELCOMEMESSAGE.replace("{USERNAME}", e.getGuild().getOwner().getUser().getName()).replace("{SERVERNAME}", e.getGuild().getName())).queue());
     }
 
     @Override
@@ -280,7 +279,7 @@ public class EmolgaListener extends ListenerAdapter {
                     }
                     if (msg.length() > 3 && (double) x / (double) msg.length() > 0.6) {
                         m.delete().queue();
-                        warn(tco, g.getSelfMember(), member, "Capslock");
+                        warn(tco, g.getSelfMember(), member, "Capslock\nNachricht: " + msg);
                     }
                 }
                 if (System.currentTimeMillis() - latestExp.getOrDefault(meid, (long) 0) > 60000 && !member.getUser().isBot()) {

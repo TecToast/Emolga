@@ -48,7 +48,7 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static de.tectoast.emolga.EmolgaMain.jda;
+import static de.tectoast.emolga.bot.EmolgaMain.jda;
 
 public abstract class Command {
 
@@ -206,6 +206,14 @@ public abstract class Command {
                 channel.sendMessage("Der Track konnte nicht abgespielt werden: " + exception.getMessage()).queue();
             }
         });
+    }
+
+    public static <E> List<E> arrayToList(JSONArray arr, Class<E> c) {
+        ArrayList<E> list = new ArrayList<>();
+        for (Object o : arr) {
+            list.add(c.cast(o));
+        }
+        return list;
     }
 
     public static int parseShortTime(String timestr) {
@@ -503,6 +511,7 @@ public abstract class Command {
         obj.put("mod", mod.getId());
         obj.put("user", mem.getId());
         obj.put("reason", reason);
+        obj.put("timestamp", System.currentTimeMillis());
         arr.put(obj);
         EmbedBuilder builder = new EmbedBuilder();
         builder.setAuthor(mem.getEffectiveName() + " wurde verwarnt", null, mem.getUser().getEffectiveAvatarUrl());
@@ -2439,6 +2448,6 @@ public abstract class Command {
     }
 
     public String getHelp(Guild g) {
-        return overrideHelp.getOrDefault(g.getId(), help) + (wip ? " (W.I.P.)" : "");
+        return overrideHelp.getOrDefault(g.getId(), help) + (wip ? " (**W.I.P.**)" : "");
     }
 }

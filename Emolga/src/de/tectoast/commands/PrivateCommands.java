@@ -1,6 +1,6 @@
 package de.tectoast.commands;
 
-import de.tectoast.emolga.EmolgaMain;
+import de.tectoast.emolga.bot.EmolgaMain;
 import de.tectoast.utils.Constants;
 import de.tectoast.utils.Giveaway;
 import de.tectoast.utils.PrivateCommand;

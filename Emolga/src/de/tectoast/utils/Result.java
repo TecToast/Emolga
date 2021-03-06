@@ -1,6 +1,6 @@
 package de.tectoast.utils;
 
-import de.tectoast.emolga.EmolgaMain;
+import de.tectoast.emolga.bot.EmolgaMain;
 
 import java.util.*;
 

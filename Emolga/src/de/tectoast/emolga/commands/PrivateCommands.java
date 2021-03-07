@@ -1,6 +1,7 @@
 package de.tectoast.emolga.commands;
 
 import de.tectoast.emolga.bot.EmolgaMain;
+import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.Giveaway;
 import de.tectoast.emolga.utils.PrivateCommand;
@@ -239,6 +240,17 @@ public class PrivateCommands {
         a.keySet().stream().filter(s -> jda.getTextChannelById(s) == null).collect(Collectors.toList()).forEach(a::remove);
         saveEmolgaJSON();
         updatePresence();
+    }
+
+    @PrivateCommand(name = "transferreplays")
+    public static void transfer(JDA jda, MessageChannel tco, Message message) {
+        JSONObject analysis = getEmolgaJSON().getJSONObject("analyse");
+        ArrayList<String> list = new ArrayList<>();
+        for (String s : analysis.keySet()) {
+            list.add("(" + s + ", " + analysis.getString(s) + ")");
+        }
+        tco.sendMessage("" + Database.update("insert into analysis values " + String.join(",", list))).queue();
+        tco.sendMessage("" + Database.update("insert into spoilertags values " + getEmolgaJSON().getJSONArray("spoiler").toList().stream().map(o -> "(" + o + ")").collect(Collectors.joining(",")))).queue();
     }
 
     public static void execute(JDA jda, MessageChannel tco, Message message) {

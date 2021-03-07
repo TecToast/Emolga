@@ -2,6 +2,7 @@ package de.tectoast.emolga.commands.moderator;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.database.Database;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -11,6 +12,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.awt.*;
+import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class WarnsCommand extends Command {
 
@@ -20,28 +24,22 @@ public class WarnsCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(GuildMessageReceivedEvent e) throws Exception {
         Message m = e.getMessage();
         TextChannel tco = e.getChannel();
-        JSONObject json = getEmolgaJSON().getJSONObject("warns");
         String gid = e.getGuild().getId();
         if (m.getMentionedMembers().size() != 1) {
             tco.sendMessage("Du musst einen User taggen!").queue();
             return;
         }
         Member mem = m.getMentionedMembers().get(0);
-        if (!json.has(gid)) json.put(gid, new JSONArray());
-        JSONArray arr = json.getJSONArray(gid);
-        if (arr.length() == 0) {
-            tco.sendMessage("Es wurde bisher niemand auf diesem Server verwarnt!").queue();
-            return;
-        }
+        System.out.println(1);
+        ResultSet res = Database.select("select * from warns where userid=" + mem.getId() + " and guildid=" + gid);
+        System.out.println(2);
         StringBuilder str = new StringBuilder();
-        for (Object o : arr) {
-            JSONObject obj = (JSONObject) o;
-            if (obj.getString("user").equals(mem.getId())) {
-                str.append("Von: <@").append(obj.getString("mod")).append(">\nGrund: ").append(obj.getString("reason")).append("\n\n");
-            }
+        SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+        while(res.next()) {
+            str.append("Von: <@").append(res.getLong("modid")).append(">\nGrund: ").append(res.getString("reason")).append("\n").append("Zeitpunkt: ").append(format.format(new Date(res.getTimestamp("timestamp").getTime()))).append(" Uhr\n\n");
         }
         if (str.toString().equals("")) {
             tco.sendMessage("Dieser User hat bisher keine Verwarnungen!").queue();

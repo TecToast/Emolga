@@ -24,6 +24,7 @@ import de.tectoast.emolga.commands.showdown.ReplayCommand;
 import de.tectoast.emolga.commands.showdown.SearchReplaysCommand;
 import de.tectoast.emolga.commands.showdown.SpoilerTagsCommand;
 import de.tectoast.emolga.commands.various.*;
+import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.*;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
 import de.tectoast.emolga.utils.showdown.Player;
@@ -42,6 +43,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
@@ -299,55 +301,38 @@ public abstract class Command {
             tco.sendMessage(builder.build()).queue();
             return;
         }
-        if (g.getId().equals(Constants.BSID))
-            g.addRoleToMember(mem, g.getRoleById("717297533294215258")).queue();
-        else if (g.getId().equals("447357526997073930"))
-            g.addRoleToMember(mem, g.getRoleById("761723664273899580")).queue();
-        JSONObject json = getEmolgaJSON();
-        if (!json.has("mutes")) json.put("mutes", new JSONArray());
-        JSONArray arr = json.getJSONArray("mutes");
-        JSONObject obj = new JSONObject();
-        obj.put("mod", mod.getId());
-        obj.put("user", mem.getId());
-        obj.put("reason", reason);
-        obj.put("guild", g.getId());
-        long delay = System.currentTimeMillis() + time * 1000;
-        obj.put("delay", delay);
-        arr.put(obj);
-        muteTimer(g, delay, time * 1000, mem.getId());
+        if (mutedRoles.containsKey(g.getId())) g.addRoleToMember(mem, g.getRoleById(mutedRoles.get(g.getId()))).queue();
+        long expires = System.currentTimeMillis() + time * 1000;
+        muteTimer(g, expires, mem.getId());
         EmbedBuilder builder = new EmbedBuilder();
         builder.setAuthor(mem.getEffectiveName() + " wurde für " + secondsToTime(time).replace("*", "") + " gemutet", null, mem.getUser().getEffectiveAvatarUrl());
         builder.setColor(Color.CYAN);
         builder.setDescription("**Grund:** " + reason);
         tco.sendMessage(builder.build()).queue();
-        saveEmolgaJSON();
+        Database.insert("mutes", "userid, modid, guildid, reason, expires", mem.getIdLong(), mod.getIdLong(), g.getIdLong(), reason, new Timestamp(expires));
     }
 
-    public static void muteTimer(Guild g, long delay, long time, String mem) {
-        JSONObject json = new JSONObject();
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                if (!json.has("mutes")) json.put("mutes", new JSONArray());
-                JSONArray arr = json.getJSONArray("mutes");
-                boolean success = false;
-                for (int i = 0; i < arr.length(); i++) {
-                    JSONObject obj = (JSONObject) arr.get(i);
-                    if (obj.getLong("delay") == delay) {
-                        arr.remove(i);
-                        success = true;
+    public static void muteTimer(Guild g, long expires, String mem) {
+        try {
+            new Timer().schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    String tstr = new Timestamp(expires).toString();
+                    String query = "delete from mutes where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'";
+                    System.out.println(query);
+                    if (Database.update(query) != 0) {
+                        if (mutedRoles.containsKey(g.getId()))
+                            g.removeRoleFromMember(mem, g.getRoleById(mutedRoles.get(g.getId()))).queue();
                     }
                 }
-                saveEmolgaJSON();
-                System.out.println("Unmuted!");
-                if (success) {
-                    if (g.getId().equals(Constants.BSID))
-                        g.removeRoleFromMember(mem, g.getRoleById("717297533294215258")).queue();
-                    else if (g.getId().equals("447357526997073930"))
-                        g.removeRoleFromMember(mem, g.getRoleById("761723664273899580")).queue();
-                }
+            }, new Date(expires));
+        } catch (IllegalArgumentException ignored) {
+            String tstr = new Timestamp(expires).toString();
+            if (Database.update("delete from mutes where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'") != 0) {
+                if (mutedRoles.containsKey(g.getId()))
+                    g.removeRoleFromMember(mem, g.getRoleById(mutedRoles.get(g.getId()))).queue();
             }
-        }, time);
+        }
     }
 
     public static void kick(TextChannel tco, Member mem, String reason) {
@@ -397,20 +382,12 @@ public abstract class Command {
         if (mutedRoles.containsKey(gid)) {
             g.addRoleToMember(mem, g.getRoleById(mutedRoles.get(gid))).queue();
         }
-        JSONObject json = getEmolgaJSON();
-        JSONArray arr = json.getJSONArray("mutes");
-        JSONObject obj = new JSONObject();
-        obj.put("mod", mod.getId());
-        obj.put("user", mem.getId());
-        obj.put("reason", reason);
-        obj.put("guild", g.getId());
-        arr.put(obj);
         EmbedBuilder builder = new EmbedBuilder();
         builder.setAuthor(mem.getEffectiveName() + " wurde gemutet", null, mem.getUser().getEffectiveAvatarUrl());
         builder.setColor(Color.CYAN);
         builder.setDescription("**Grund:** " + reason);
         tco.sendMessage(builder.build()).queue();
-        saveEmolgaJSON();
+        Database.insert("mutes", "userid, modid, guildid, reason", mem.getIdLong(), mod.getIdLong(), tco.getGuild().getIdLong(), reason);
     }
 
     public static void unmute(TextChannel tco, Member mem) {
@@ -420,24 +397,11 @@ public abstract class Command {
         if (mutedRoles.containsKey(gid)) {
             g.removeRoleFromMember(mem, g.getRoleById(mutedRoles.get(gid))).queue();
         }
-        JSONArray arr = json.getJSONArray("mutes");
-        ArrayList<Integer> indexes = new ArrayList<>();
-        for (int i = 0; i < arr.length(); i++) {
-            JSONObject obj = (JSONObject) arr.get(i);
-            if (obj.getString("user").equals(mem.getId())) indexes.add(i);
-        }
-        while (!indexes.isEmpty()) {
-            System.out.println(indexes);
-            arr.remove(indexes.remove(0));
-            for (int i = 0; i < indexes.size(); i++) {
-                indexes.set(i, indexes.get(i) - 1);
-            }
-        }
         EmbedBuilder builder = new EmbedBuilder();
         builder.setAuthor(mem.getEffectiveName() + " wurde entmutet", null, mem.getUser().getEffectiveAvatarUrl());
         builder.setColor(Color.CYAN);
         tco.sendMessage(builder.build()).queue();
-        saveEmolgaJSON();
+        Database.update("delete from mutes where guildid=" + tco.getGuild().getId() + " and userid=" + mem.getId());
     }
 
     public static void tempBan(TextChannel tco, Member mod, Member mem, int time, String reason) {
@@ -450,48 +414,33 @@ public abstract class Command {
             return;
         }
         g.ban(mem, 0, reason).queue();
-        JSONObject json = getEmolgaJSON();
-        if (!json.has("bans")) json.put("bans", new JSONArray());
-        JSONArray arr = json.getJSONArray("bans");
-        JSONObject obj = new JSONObject();
-        obj.put("mod", mod.getId());
-        obj.put("user", mem.getId());
-        obj.put("reason", reason);
-        obj.put("guild", g.getId());
-        long delay = System.currentTimeMillis() + time * 1000;
-        obj.put("delay", delay);
-        arr.put(obj);
-        banTimer(g, delay, time * 1000, mem.getId());
+        long expires = System.currentTimeMillis() + time * 1000;
+        banTimer(g, expires, mem.getId());
         EmbedBuilder builder = new EmbedBuilder();
         builder.setAuthor(mem.getEffectiveName() + " wurde für " + secondsToTime(time).replace("*", "") + " gebannt", null, mem.getUser().getEffectiveAvatarUrl());
         builder.setColor(Color.CYAN);
         builder.setDescription("**Grund:** " + reason);
         tco.sendMessage(builder.build()).queue();
-        saveEmolgaJSON();
+        Database.insert("bans", "userid, modid, guildid, reason, expires", mem.getIdLong(), mod.getIdLong(), tco.getGuild().getIdLong(), reason, new Timestamp(expires));
     }
 
-    public static void banTimer(Guild g, long delay, int time, String mem) {
-        JSONObject json = getEmolgaJSON();
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                if (!json.has("bans")) json.put("bans", new JSONArray());
-                JSONArray arr = json.getJSONArray("bans");
-                boolean success = false;
-                for (int i = 0; i < arr.length(); i++) {
-                    JSONObject obj = (JSONObject) arr.get(i);
-                    if (obj.getLong("delay") == delay) {
-                        arr.remove(i);
-                        success = true;
+    public static void banTimer(Guild g, long expires, String mem) {
+        try {
+            new Timer().schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    if (Database.update("delete from bans where timestamp'" + new Timestamp(expires) + "'") != 0) {
+                        g.unban(mem).queue();
+                        System.out.println("Unbanned!");
                     }
                 }
-                saveEmolgaJSON();
-                if (success) {
-                    g.unban(mem).queue();
-                    System.out.println("Unbanned!");
-                }
+            }, new Date(expires));
+        } catch (IllegalArgumentException ignored) {
+            if (Database.update("delete from bans where timestamp'" + new Timestamp(expires) + "'") != 0) {
+                g.unban(mem).queue();
+                System.out.println("Unbanned!");
             }
-        }, time);
+        }
     }
 
     public static void warn(TextChannel tco, Member mod, Member mem, String reason) {
@@ -503,22 +452,12 @@ public abstract class Command {
             tco.sendMessage(builder.build()).queue();
             return;
         }
-        JSONObject json = getEmolgaJSON().getJSONObject("warns");
-        String gid = tco.getGuild().getId();
-        if (!json.has(gid)) json.put(gid, new JSONArray());
-        JSONArray arr = json.getJSONArray(tco.getGuild().getId());
-        JSONObject obj = new JSONObject();
-        obj.put("mod", mod.getId());
-        obj.put("user", mem.getId());
-        obj.put("reason", reason);
-        obj.put("timestamp", System.currentTimeMillis());
-        arr.put(obj);
         EmbedBuilder builder = new EmbedBuilder();
         builder.setAuthor(mem.getEffectiveName() + " wurde verwarnt", null, mem.getUser().getEffectiveAvatarUrl());
         builder.setColor(Color.CYAN);
         builder.setDescription("**Grund:** " + reason);
         tco.sendMessage(builder.build()).queue();
-        saveEmolgaJSON();
+        Database.insert("warns", "userid, modid, guildid, reason", mem.getIdLong(), mod.getIdLong(), tco.getGuild().getIdLong(), reason);
     }
 
     public static String getMonIfPresent(HashMap<String, String> map, String pick, int pk, int index) {
@@ -2437,7 +2376,7 @@ public abstract class Command {
                 || msg.equalsIgnoreCase("!" + name.toLowerCase()) || aliases.stream().anyMatch(s -> msg.equalsIgnoreCase("!" + s));
     }
 
-    public abstract void process(GuildMessageReceivedEvent e);
+    public abstract void process(GuildMessageReceivedEvent e) throws Exception;
 
     public String getName() {
         return name;

@@ -2,6 +2,7 @@ package de.tectoast.emolga.bot;
 
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.PrivateCommands;
+import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.DexQuiz;
 import de.tectoast.emolga.utils.Giveaway;
@@ -33,6 +34,7 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.sql.ResultSet;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -94,98 +96,58 @@ public class EmolgaListener extends ListenerAdapter {
 
     @Override
     public void onReady(@NotNull ReadyEvent e) {
-        Draft.init();
-        if (emolgajson.has("giveaways")) {
-            JSONArray arr = emolgajson.getJSONArray("giveaways");
-            for (Object o : arr) {
-                JSONObject obj = (JSONObject) o;
-                new Giveaway(obj.getString("tcid"), obj.getString("author"), new Date(obj.getLong("end")).toInstant(), obj.getInt("winners"), obj.getString("prize"), obj.getString("mid"), obj.has("role"));
-            }
-        }
-        if (emolgajson.has("mutes")) {
-            JSONArray arr = emolgajson.getJSONArray("mutes");
-            ArrayList<Integer> indexes = new ArrayList<>();
-            for (int i = 0; i < arr.length(); i++) {
-                JSONObject obj = arr.getJSONObject(i);
-                if (!obj.has("delay")) continue;
-                long origdelay = obj.getLong("delay");
-                long delay = origdelay - System.currentTimeMillis();
-                if (delay < 0) {
-                    indexes.add(i);
-                    Guild g = e.getJDA().getGuildById(obj.getString("guild"));
-                    if (g.getId().equals("712035338846994502"))
-                        g.removeRoleFromMember(obj.getString("user"), g.getRoleById("717297533294215258")).queue();
-                    else if (g.getId().equals("447357526997073930"))
-                        g.removeRoleFromMember(obj.getString("user"), g.getRoleById("761723664273899580")).queue();
-                    continue;
-                }
-                muteTimer(e.getJDA().getGuildById(obj.getString("guild")), origdelay, delay, obj.getString("user"));
-            }
-            while (!indexes.isEmpty()) {
-                System.out.println(indexes);
-                arr.remove(indexes.remove(0));
-                for (int j = 0; j < indexes.size(); j++) {
-                    indexes.set(j, indexes.get(j) - 1);
+        try {
+            Draft.init();
+            if (emolgajson.has("giveaways")) {
+                JSONArray arr = emolgajson.getJSONArray("giveaways");
+                for (Object o : arr) {
+                    JSONObject obj = (JSONObject) o;
+                    new Giveaway(obj.getString("tcid"), obj.getString("author"), new Date(obj.getLong("end")).toInstant(), obj.getInt("winners"), obj.getString("prize"), obj.getString("mid"), obj.has("role"));
                 }
             }
-            saveEmolgaJSON();
-        }
-        if (emolgajson.has("bans")) {
-            JSONArray arr = emolgajson.getJSONArray("bans");
-            ArrayList<Integer> indexes = new ArrayList<>();
-            for (int i = 0; i < arr.length(); i++) {
-                JSONObject obj = arr.getJSONObject(i);
-                if (!obj.has("delay")) continue;
-                long origdelay = obj.getLong("delay");
-                long delay = origdelay - System.currentTimeMillis();
-                if (delay < 0) {
-                    indexes.add(i);
-                    e.getJDA().getGuildById(obj.getString("guild")).unban(obj.getString("user")).queue();
-                    continue;
-                }
-                banTimer(e.getJDA().getGuildById(obj.getString("guild")), origdelay, (int) delay, obj.getString("user"));
+            ResultSet mutes = Database.select("select * from mutes");
+            while (mutes.next()) {
+                muteTimer(e.getJDA().getGuildById(mutes.getLong("guildid")), mutes.getTimestamp("expires").getTime(), String.valueOf(mutes.getLong("userid")));
             }
-            while (!indexes.isEmpty()) {
-                System.out.println(indexes);
-                arr.remove(indexes.remove(0));
-                for (int j = 0; j < indexes.size(); j++) {
-                    indexes.set(j, indexes.get(j) - 1);
-                }
+            ResultSet bans = Database.select("select * from bans");
+            while (bans.next()) {
+                banTimer(e.getJDA().getGuildById(mutes.getLong("guildid")), mutes.getTimestamp("expires").getTime(), String.valueOf(mutes.getLong("userid")));
             }
-            saveEmolgaJSON();
-        }
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                if (expEdited) {
-                    saveLevelJSON();
-                }
-            }
-        }, 0, 30000);
-        //e.getJDA().getTextChannelById("756828765065183253").retrieveMessageById("756828900083892264").queue(helps::add);
-        //e.getJDA().getTextChannelById("757170844240707634").retrieveMessageById("757171205055840286").queue(helps::add);
-        //e.getJDA().getTextChannelById("715249205186265178").retrieveMessageById("758397956637720596").queue(helps::add);
-        Guild g = e.getJDA().getGuildById("712035338846994502");
-        TextChannel channel = e.getJDA().getTextChannelById("715249205186265178");
-        //channel.retrieveMessageById("758397956637720596").queue(helps::add);
-        JSONObject json = getEmolgaJSON();
-        if (!json.has("style")) return;
-        JSONArray style = json.getJSONArray("style");
-        for (int i = 0; i < style.length(); i++) {
-            JSONObject obj = style.getJSONObject(i);
-            long delay = Long.parseLong(obj.getString("timer")) - System.currentTimeMillis();
             new Timer().schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    Guild guild = e.getJDA().getGuildById("709877545708945438");
-                    Message message = guild.getTextChannelById("749194448507764766").retrieveMessageById(obj.getString("mid")).complete();
-                    String uid1 = obj.getString("uid1");
-                    String uid2 = obj.getString("uid2");
-                    String sid = getEmolgaJSON().getJSONObject("drafts").getJSONObject("Wooloo Cup").getJSONObject("doc").getString("sid");
-                    woolooStyle(sid, message, uid1, uid2);
+                    if (expEdited) {
+                        saveLevelJSON();
+                    }
                 }
-            }, delay < 0 ? 0 : delay);
-            System.out.println("TIMER: " + (delay));
+            }, 0, 30000);
+            //e.getJDA().getTextChannelById("756828765065183253").retrieveMessageById("756828900083892264").queue(helps::add);
+            //e.getJDA().getTextChannelById("757170844240707634").retrieveMessageById("757171205055840286").queue(helps::add);
+            //e.getJDA().getTextChannelById("715249205186265178").retrieveMessageById("758397956637720596").queue(helps::add);
+            Guild g = e.getJDA().getGuildById("712035338846994502");
+            TextChannel channel = e.getJDA().getTextChannelById("715249205186265178");
+            //channel.retrieveMessageById("758397956637720596").queue(helps::add);
+            JSONObject json = getEmolgaJSON();
+            if (!json.has("style")) return;
+            JSONArray style = json.getJSONArray("style");
+            for (int i = 0; i < style.length(); i++) {
+                JSONObject obj = style.getJSONObject(i);
+                long delay = Long.parseLong(obj.getString("timer")) - System.currentTimeMillis();
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        Guild guild = e.getJDA().getGuildById("709877545708945438");
+                        Message message = guild.getTextChannelById("749194448507764766").retrieveMessageById(obj.getString("mid")).complete();
+                        String uid1 = obj.getString("uid1");
+                        String uid2 = obj.getString("uid2");
+                        String sid = getEmolgaJSON().getJSONObject("drafts").getJSONObject("Wooloo Cup").getJSONObject("doc").getString("sid");
+                        woolooStyle(sid, message, uid1, uid2);
+                    }
+                }, delay < 0 ? 0 : delay);
+                System.out.println("TIMER: " + (delay));
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 
@@ -257,140 +219,141 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onGuildMessageReceived(@NotNull GuildMessageReceivedEvent e) {
         new Thread(() -> {
-            if (e.isWebhookMessage()) return;
-            Message m = e.getMessage();
-            String msg = m.getContentDisplay();
-            TextChannel tco = e.getChannel();
-            Member member = e.getMember();
-            Guild g = e.getGuild();
-            String gid = g.getId();
-            String meid = member.getId();
-            if (member.getId().equals(Constants.FLOID)) {
-                if (msg.contains("518008523653775366")) gid = "518008523653775366";
-                if (msg.contains("709877545708945438")) gid = "709877545708945438";
-                if (msg.contains("747357029714231299")) gid = "747357029714231299";
-                if (msg.contains("736555250118295622")) gid = "736555250118295622";
-            }
-            if (gid.equals("712035338846994502")) {
-                if (g.getSelfMember().canInteract(member) && !allowsCaps.contains(tco.getId())) {
-                    int x = 0;
-                    for (char c : msg.toCharArray()) {
-                        if (c >= 65 && c <= 90) x++;
+            try {
+                if (e.isWebhookMessage()) return;
+                Message m = e.getMessage();
+                String msg = m.getContentDisplay();
+                TextChannel tco = e.getChannel();
+                Member member = e.getMember();
+                Guild g = e.getGuild();
+                String gid = g.getId();
+                String meid = member.getId();
+                if (member.getId().equals(Constants.FLOID)) {
+                    if (msg.contains("518008523653775366")) gid = "518008523653775366";
+                    if (msg.contains("709877545708945438")) gid = "709877545708945438";
+                    if (msg.contains("747357029714231299")) gid = "747357029714231299";
+                    if (msg.contains("736555250118295622")) gid = "736555250118295622";
+                }
+                if (gid.equals("712035338846994502")) {
+                    if (g.getSelfMember().canInteract(member) && !allowsCaps.contains(tco.getId())) {
+                        int x = 0;
+                        for (char c : msg.toCharArray()) {
+                            if (c >= 65 && c <= 90) x++;
+                        }
+                        if (msg.length() > 3 && (double) x / (double) msg.length() > 0.6) {
+                            m.delete().queue();
+                            warn(tco, g.getSelfMember(), member, "Capslock\nNachricht: " + msg);
+                        }
                     }
-                    if (msg.length() > 3 && (double) x / (double) msg.length() > 0.6) {
-                        m.delete().queue();
-                        warn(tco, g.getSelfMember(), member, "Capslock\nNachricht: " + msg);
+                    if (System.currentTimeMillis() - latestExp.getOrDefault(meid, (long) 0) > 60000 && !member.getUser().isBot()) {
+                        latestExp.put(meid, System.currentTimeMillis());
+                        JSONObject levelsystem = getLevelJSON();
+                        int exp = levelsystem.optInt(meid, 0);
+                        int oldlevel = getLevelFromXP(exp);
+                        exp += (new Random().nextInt(10) + 15) * expmultiplicator.getOrDefault(meid, (double) 1);
+                        int newlevel = getLevelFromXP(exp);
+                        levelsystem.put(meid, exp);
+                        if (newlevel != oldlevel) {
+                            e.getJDA().getTextChannelById("447357526997073932").sendMessage("HGW " + member.getEffectiveName() + "! Du bist nun Level " + newlevel + "!").queue();
+                            //g.getTextChannelById("732545253344804914").sendMessage(member.getAsMention() + ", du erreichst Level " + data.getInt("levels") + "!" +
+                            //      (meid.equals("456821278653808650") ? "\nHaha du wurdest gepingt :^)" : "")).queue();
+                        }
+                        expEdited = true;
                     }
                 }
-                if (System.currentTimeMillis() - latestExp.getOrDefault(meid, (long) 0) > 60000 && !member.getUser().isBot()) {
-                    latestExp.put(meid, System.currentTimeMillis());
-                    JSONObject levelsystem = getLevelJSON();
-                    int exp = levelsystem.optInt(meid, 0);
-                    int oldlevel = getLevelFromXP(exp);
-                    exp += (new Random().nextInt(10) + 15) * expmultiplicator.getOrDefault(meid, (double) 1);
-                    int newlevel = getLevelFromXP(exp);
-                    levelsystem.put(meid, exp);
-                    if (newlevel != oldlevel) {
-                        e.getJDA().getTextChannelById("447357526997073932").sendMessage("HGW " + member.getEffectiveName() + "! Du bist nun Level " + newlevel + "!").queue();
-                        //g.getTextChannelById("732545253344804914").sendMessage(member.getAsMention() + ", du erreichst Level " + data.getInt("levels") + "!" +
-                        //      (meid.equals("456821278653808650") ? "\nHaha du wurdest gepingt :^)" : "")).queue();
-                    }
-                    expEdited = true;
-                }
-            }
-            if (tco.getId().equals("771350676876951552") || tco.getId().equals("774661698074050581")) {
-                List<String> list = Arrays.asList(msg.split("\n"));
-                JSONObject json = getEmolgaJSON().getJSONObject("BlitzTurnier");
-                int gameday = json.getInt("gameday");
-                if (gameday == -1) return;
-                String p1 = member.getId();
-                Optional<String> op = Arrays.stream(json.getJSONObject("battleorder").getString(String.valueOf(gameday)).split(";")).filter(str -> str.contains(p1)).findFirst();
-                if (!op.isPresent()) {
-                    sendToUser(member, "Du spielst nicht in dieser Liga mit!");
-                    return;
-                }
-                String[] bosplit = op.get().split(":");
-                String p2 = bosplit[0].equals(p1) ? bosplit[1] : bosplit[0];
-                int k1 = 0;
-                int d1 = 0;
-                int p1wins = 0;
-                int gamecount = 0;
-                for (int i = 1; i < list.size(); i++) {
-                    k1 += 4 - Integer.parseInt(list.get(i).split(":")[1].trim());
-                    int d = Integer.parseInt(list.get(i).split(":")[0].trim());
-                    d1 += 4 - d;
-                    if (d > 0) p1wins++;
-                    gamecount++;
-                }
-                boolean p1win = p1wins > (gamecount - p1wins);
-                System.out.println("p1win = " + p1win);
-                System.out.println("p1wins = " + p1wins);
-                System.out.println("gamecount = " + gamecount);
-                System.out.println("k1 = " + k1);
-                System.out.println("d1 = " + d1);
-                JSONObject playerstats = json.getJSONObject("playerstats");
-                JSONObject obj1 = playerstats.has(p1) ? playerstats.getJSONObject(p1) : new JSONObject();
-                JSONObject obj2 = playerstats.has(p2) ? playerstats.getJSONObject(p2) : new JSONObject();
-                obj1.put("wins", obj1.optInt("wins", 0) + (p1win ? 1 : 0));
-                obj2.put("wins", obj2.optInt("wins", 0) + (p1win ? 0 : 1));
-                obj1.put("looses", obj1.optInt("looses", 0) + (p1win ? 0 : 1));
-                obj2.put("looses", obj2.optInt("looses", 0) + (p1win ? 1 : 0));
-
-                obj1.put("bo3wins", obj1.optInt("bo3wins", 0) + p1wins);
-                obj2.put("bo3wins", obj2.optInt("bo3wins", 0) + (gamecount - p1wins));
-                obj1.put("bo3looses", obj1.optInt("bo3looses", 0) + (gamecount - p1wins));
-                obj2.put("bo3looses", obj2.optInt("bo3looses", 0) + p1wins);
-
-                obj1.put("kills", obj1.optInt("kills", 0) + k1);
-                obj2.put("kills", obj2.optInt("kills", 0) + d1);
-                obj1.put("deaths", obj1.optInt("deaths", 0) + d1);
-                obj2.put("deaths", obj2.optInt("deaths", 0) + k1);
-
-                playerstats.put(p1, obj1);
-                playerstats.put(p2, obj2);
-
-                JSONObject results = json.getJSONObject("results");
-                JSONObject rg = results.has(String.valueOf(gameday)) ? results.getJSONObject(String.valueOf(gameday)) : new JSONObject();
-                rg.put(p1 + ":" + p2, p1win ? p1 : p2);
-                results.put(String.valueOf(gameday), rg);
-                updateTable(json, e.getJDA().getTextChannelById("771403849029386270"));
-                if (rg.length() == 4) {
-                    if (json.getInt("gameday") == 4) {
-                        sendToMe("Mach die drecks POs du knecht!");
-                        json.put("gameday", -1);
-                        saveEmolgaJSON();
+                if (tco.getId().equals("771350676876951552") || tco.getId().equals("774661698074050581")) {
+                    List<String> list = Arrays.asList(msg.split("\n"));
+                    JSONObject json = getEmolgaJSON().getJSONObject("BlitzTurnier");
+                    int gameday = json.getInt("gameday");
+                    if (gameday == -1) return;
+                    String p1 = member.getId();
+                    Optional<String> op = Arrays.stream(json.getJSONObject("battleorder").getString(String.valueOf(gameday)).split(";")).filter(str -> str.contains(p1)).findFirst();
+                    if (!op.isPresent()) {
+                        sendToUser(member, "Du spielst nicht in dieser Liga mit!");
                         return;
                     }
-                    new Thread(() -> {
-                        JSONObject bo = json.getJSONObject("battleorder");
-                        ArrayList<String> already = bo.keySet().stream().map(bo::getString).flatMap(s -> Arrays.stream(s.split(";"))).collect(Collectors.toCollection(ArrayList::new));
-                        ArrayList<String> order = new ArrayList<>();
-                        ArrayList<String> names = getBlitzTable(true).stream().map(l -> (String) l.get(0)).collect(Collectors.toCollection(ArrayList::new));
-                        HashMap<String, String> namesmap = new HashMap<>();
-                        EmolgaMain.jda.getGuildById(Constants.BSID).retrieveMembersByIds(names.toArray(new String[0])).get().forEach(mem -> namesmap.put(mem.getId(), mem.getEffectiveName()));
-                        for (int i = 0; i < names.size(); i++) {
-                            String s = names.get(i);
-                            if (order.stream().anyMatch(str -> str.contains(s))) continue;
-                            for (int j = i + 1; j < names.size(); j++) {
-                                String str = names.get(j);
-                                if (already.contains(str + ":" + s) || already.contains(s + ":" + str) || order.stream().anyMatch(string -> string.contains(str)))
-                                    continue;
-                                order.add(s + ":" + str);
-                                break;
+                    String[] bosplit = op.get().split(":");
+                    String p2 = bosplit[0].equals(p1) ? bosplit[1] : bosplit[0];
+                    int k1 = 0;
+                    int d1 = 0;
+                    int p1wins = 0;
+                    int gamecount = 0;
+                    for (int i = 1; i < list.size(); i++) {
+                        k1 += 4 - Integer.parseInt(list.get(i).split(":")[1].trim());
+                        int d = Integer.parseInt(list.get(i).split(":")[0].trim());
+                        d1 += 4 - d;
+                        if (d > 0) p1wins++;
+                        gamecount++;
+                    }
+                    boolean p1win = p1wins > (gamecount - p1wins);
+                    System.out.println("p1win = " + p1win);
+                    System.out.println("p1wins = " + p1wins);
+                    System.out.println("gamecount = " + gamecount);
+                    System.out.println("k1 = " + k1);
+                    System.out.println("d1 = " + d1);
+                    JSONObject playerstats = json.getJSONObject("playerstats");
+                    JSONObject obj1 = playerstats.has(p1) ? playerstats.getJSONObject(p1) : new JSONObject();
+                    JSONObject obj2 = playerstats.has(p2) ? playerstats.getJSONObject(p2) : new JSONObject();
+                    obj1.put("wins", obj1.optInt("wins", 0) + (p1win ? 1 : 0));
+                    obj2.put("wins", obj2.optInt("wins", 0) + (p1win ? 0 : 1));
+                    obj1.put("looses", obj1.optInt("looses", 0) + (p1win ? 0 : 1));
+                    obj2.put("looses", obj2.optInt("looses", 0) + (p1win ? 1 : 0));
+
+                    obj1.put("bo3wins", obj1.optInt("bo3wins", 0) + p1wins);
+                    obj2.put("bo3wins", obj2.optInt("bo3wins", 0) + (gamecount - p1wins));
+                    obj1.put("bo3looses", obj1.optInt("bo3looses", 0) + (gamecount - p1wins));
+                    obj2.put("bo3looses", obj2.optInt("bo3looses", 0) + p1wins);
+
+                    obj1.put("kills", obj1.optInt("kills", 0) + k1);
+                    obj2.put("kills", obj2.optInt("kills", 0) + d1);
+                    obj1.put("deaths", obj1.optInt("deaths", 0) + d1);
+                    obj2.put("deaths", obj2.optInt("deaths", 0) + k1);
+
+                    playerstats.put(p1, obj1);
+                    playerstats.put(p2, obj2);
+
+                    JSONObject results = json.getJSONObject("results");
+                    JSONObject rg = results.has(String.valueOf(gameday)) ? results.getJSONObject(String.valueOf(gameday)) : new JSONObject();
+                    rg.put(p1 + ":" + p2, p1win ? p1 : p2);
+                    results.put(String.valueOf(gameday), rg);
+                    updateTable(json, e.getJDA().getTextChannelById("771403849029386270"));
+                    if (rg.length() == 4) {
+                        if (json.getInt("gameday") == 4) {
+                            sendToMe("Mach die drecks POs du knecht!");
+                            json.put("gameday", -1);
+                            saveEmolgaJSON();
+                            return;
+                        }
+                        new Thread(() -> {
+                            JSONObject bo = json.getJSONObject("battleorder");
+                            ArrayList<String> already = bo.keySet().stream().map(bo::getString).flatMap(s -> Arrays.stream(s.split(";"))).collect(Collectors.toCollection(ArrayList::new));
+                            ArrayList<String> order = new ArrayList<>();
+                            ArrayList<String> names = getBlitzTable(true).stream().map(l -> (String) l.get(0)).collect(Collectors.toCollection(ArrayList::new));
+                            HashMap<String, String> namesmap = new HashMap<>();
+                            EmolgaMain.jda.getGuildById(Constants.BSID).retrieveMembersByIds(names.toArray(new String[0])).get().forEach(mem -> namesmap.put(mem.getId(), mem.getEffectiveName()));
+                            for (int i = 0; i < names.size(); i++) {
+                                String s = names.get(i);
+                                if (order.stream().anyMatch(str -> str.contains(s))) continue;
+                                for (int j = i + 1; j < names.size(); j++) {
+                                    String str = names.get(j);
+                                    if (already.contains(str + ":" + s) || already.contains(s + ":" + str) || order.stream().anyMatch(string -> string.contains(str)))
+                                        continue;
+                                    order.add(s + ":" + str);
+                                    break;
+                                }
                             }
-                        }
-                        json.put("gameday", json.getInt("gameday") + 1);
-                        StringBuilder str = new StringBuilder("Runde " + json.getInt("gameday") + ":\n");
-                        for (String s : order) {
-                            str.append(namesmap.get(s.split(":")[0])).append(" vs ").append(namesmap.get(s.split(":")[1])).append("\n");
-                        }
-                        e.getJDA().getTextChannelById("771403897130450995").sendMessage(str.toString()).queue();
-                        bo.put(String.valueOf(json.getInt("gameday")), String.join(";", order));
-                        saveEmolgaJSON();
-                    }).start();
+                            json.put("gameday", json.getInt("gameday") + 1);
+                            StringBuilder str = new StringBuilder("Runde " + json.getInt("gameday") + ":\n");
+                            for (String s : order) {
+                                str.append(namesmap.get(s.split(":")[0])).append(" vs ").append(namesmap.get(s.split(":")[1])).append("\n");
+                            }
+                            e.getJDA().getTextChannelById("771403897130450995").sendMessage(str.toString()).queue();
+                            bo.put(String.valueOf(json.getInt("gameday")), String.join(";", order));
+                            saveEmolgaJSON();
+                        }).start();
+                    }
+                    saveEmolgaJSON();
                 }
-                saveEmolgaJSON();
-            }
             /*if (tco.getId().equals("759712094223728650") || tco.getId().equals("759734608773775360")) {
                 JSONObject bst = getEmolgaJSON().getJSONObject("BST");
                 String raw = m.getContentRaw();
@@ -725,235 +688,237 @@ public class EmolgaListener extends ListenerAdapter {
                 sortBST();
                 return;
             }*/
-            if (tco.getId().equals("743471003220443226") && !member.getUser().isBot()) {
-                e.getJDA().retrieveUserById("574949229668335636").complete().openPrivateChannel().complete().sendMessage(msg).queue();
-                return;
-            }
-            check(e);
-            if (gid.equals("447357526997073930")) {
-                PrivateCommands.execute(e.getJDA(), e.getChannel(), e.getMessage());
-            }
-            if (tco.getId().equals("758198459563114516")) {
-                g.addRoleToMember(member, g.getRoleById("758254829885456404")).queue();
-            }
-            if (m.getMentionedMembers().size() == 1) {
-                if (m.getMentionedMembers().get(0).getId().equals("723829878755164202") && !e.getAuthor().isBot()) {
-                    help(tco, member);
+                if (tco.getId().equals("743471003220443226") && !member.getUser().isBot()) {
+                    e.getJDA().retrieveUserById("574949229668335636").complete().openPrivateChannel().complete().sendMessage(msg).queue();
+                    return;
                 }
-            }
-            if ((tco.getId().equals("712612442622001162") || tco.getId().equals("724034089891397692")) && m.getAttachments().size() > 0) {
-                tco.sendMessage("Gz!").queue();
-            }
-            if (emotesteal.contains(tco.getId())) {
-                List<Emote> l = m.getEmotes();
-                for (Emote emote : l) {
-                    try {
-                        g.createEmote(emote.getName(), Icon.from(new URL(emote.getImageUrl()).openStream())).queue();
-                    } catch (IOException ioException) {
-                        ioException.printStackTrace();
+                check(e);
+                if (gid.equals("447357526997073930")) {
+                    PrivateCommands.execute(e.getJDA(), e.getChannel(), e.getMessage());
+                }
+                if (tco.getId().equals("758198459563114516")) {
+                    g.addRoleToMember(member, g.getRoleById("758254829885456404")).queue();
+                }
+                if (m.getMentionedMembers().size() == 1) {
+                    if (m.getMentionedMembers().get(0).getId().equals("723829878755164202") && !e.getAuthor().isBot()) {
+                        help(tco, member);
                     }
                 }
-            }
-            if (tco.getId().equals("778380440078647296")) {
-                String[] split = msg.split(" ");
-                JSONObject counter = shinycountjson.getJSONObject("counter");
-                if (m.getEmotes().size() == 0) return;
-                String eid = m.getEmotes().get(0).getId();
-                Optional<String> mop = counter.keySet().stream().filter(s -> counter.getJSONObject(s).getString("emote").equals(eid)).findFirst();
-                if (mop.isPresent()) {
-                    JSONObject o = shinycountjson.getJSONObject("counter").getJSONObject(mop.get());
-                    boolean isCmd = true;
-                    if (msg.startsWith("!set ")) {
-                        o.put(member.getId(), Integer.parseInt(split[1]));
-                    } else if (msg.startsWith("!reset ")) {
-                        o.put(member.getId(), 0);
-                    } else if (msg.startsWith("!add ")) {
-                        o.put(member.getId(), o.optInt(member.getId(), 0) + Integer.parseInt(split[1]));
-                    } else isCmd = false;
-                    if (isCmd) {
-                        m.delete().queue();
-                        updateShinyCounts();
-                    }
+                if ((tco.getId().equals("712612442622001162") || tco.getId().equals("724034089891397692")) && m.getAttachments().size() > 0) {
+                    tco.sendMessage("Gz!").queue();
                 }
-            }
-            if (meid.equals("159985870458322944") && g.getId().equals("712035338846994502")) {
-                if (msg.contains(", du erreichst Level ")) {
-                    try {
-                        Member mem = m.getMentionedMembers().get(0);
-                        String[] split = msg.split(" ");
-                        int lvl = Integer.parseInt(split[split.length - 1].substring(0, split[split.length - 1].length() - 1));
-                        /*
-                         * Mitglied: 715242519528603708
-                         * Neuling: 715248666008354847
-                         * pokemon Fan: 715247650018164826
-                         * Experte: 715248788314259546
-                         * Veteran: 715248194732163163
-                         * Top 4: 715248297471770640
-                         * Champ: 715248393223667753
-                         * Elite: 715247811687612547
-                         * Meistertrainer: 715248587344183347
-                         * */
-                        switch (lvl) {
-                            case 5:
-                                g.addRoleToMember(mem, g.getRoleById("715248666008354847")).queue();
-                                g.removeRoleFromMember(mem, g.getRoleById("715242519528603708")).queue();
-                                break;
-                            case 10:
-                                g.addRoleToMember(mem, g.getRoleById("715247650018164826")).queue();
-                                g.removeRoleFromMember(mem, g.getRoleById("715248666008354847")).queue();
-                                break;
-                            case 15:
-                                g.addRoleToMember(mem, g.getRoleById("715248788314259546")).queue();
-                                g.removeRoleFromMember(mem, g.getRoleById("715247650018164826")).queue();
-                                break;
-                            case 20:
-                                g.addRoleToMember(mem, g.getRoleById("715248194732163163")).queue();
-                                g.removeRoleFromMember(mem, g.getRoleById("715248788314259546")).queue();
-                                break;
-                            case 30:
-                                g.addRoleToMember(mem, g.getRoleById("715248297471770640")).queue();
-                                g.removeRoleFromMember(mem, g.getRoleById("715248194732163163")).queue();
-                                break;
-                            case 35:
-                                g.addRoleToMember(mem, g.getRoleById("715248393223667753")).queue();
-                                g.removeRoleFromMember(mem, g.getRoleById("715248297471770640")).queue();
-                                break;
-                            case 40:
-                                g.addRoleToMember(mem, g.getRoleById("715247811687612547")).queue();
-                                g.removeRoleFromMember(mem, g.getRoleById("715248393223667753")).queue();
-                                break;
-                            case 50:
-                                g.addRoleToMember(mem, g.getRoleById("715248587344183347")).queue();
-                                g.removeRoleFromMember(mem, g.getRoleById("715247811687612547")).queue();
-                                break;
-                        }
-                    } catch (Exception ex) {
-                        e.getJDA().retrieveUserById(Constants.FLOID).complete().openPrivateChannel().complete().sendMessage("Fehler bei Level Up!").queue();
-                    }
-                }
-                return;
-            }
-            DexQuiz quiz = DexQuiz.getByTC(tco);
-            if (quiz != null && !quiz.block) {
-                String mon = quiz.gerName;
-                String name = getGerName(msg);
-                if (name.startsWith("pkmn;")) name = name.split(";")[1];
-                if (name.equalsIgnoreCase(mon) || name.equalsIgnoreCase(quiz.englName)) {
-                    quiz.block = true;
-                    tco.sendMessage(member.getAsMention() + " hat das Pokemon erraten! Es war " + mon + "!").queue();
-                    quiz.round++;
-                    if (!quiz.points.containsKey(member)) quiz.points.put(member, 0);
-                    quiz.points.put(member, quiz.points.get(member) + 1);
-                    if (quiz.round > quiz.cr) {
-                        quiz.end();
-                        return;
-                    }
-                    quiz.newMon();
-                }
-            }
-            JSONObject json = getEmolgaJSON();
-            JSONObject analysis = json.getJSONObject("analyse");
-            if (analysis.keySet().contains(tco.getId())) {
-                if (msg.contains("https://")) {
-                    Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com")).map(s -> s.substring(s.indexOf("https://"), s.indexOf(" ", s.indexOf("https://") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("https://") + 1))).findFirst();
-                    if (urlop.isPresent()) {
-                        String url = urlop.get();
-                        System.out.println(url);
-                        Player[] game;
+                if (emotesteal.contains(tco.getId())) {
+                    List<Emote> l = m.getEmotes();
+                    for (Emote emote : l) {
                         try {
-                            game = Analysis.analyse(url);
-                        } catch (Exception ex) {
-                            tco.getGuild().getTextChannelById(analysis.getString(tco.getId())).sendMessage("Beim Auswerten des Replays ist (vermutlich wegen eines Zoruas/Zoroarks) ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein!").queue();
-                            return;
-                        }
-                        System.out.println("Analysed!");
-                        System.out.println(tco.getAsMention());
-                        int aliveP1 = 0;
-                        int aliveP2 = 0;
-                        StringBuilder t1 = new StringBuilder();
-                        StringBuilder t2 = new StringBuilder();
-                        for (SDPokemon p : game[0].getMons()) {
-                            if (!p.isDead()) aliveP1++;
-                        }
-                        for (SDPokemon p : game[1].getMons()) {
-                            if (!p.isDead()) aliveP2++;
-                        }
-                        String winloose = aliveP1 + ":" + aliveP2;
-                        boolean p1wins = game[0].isWinner();
-                        HashMap<String, String> kills = new HashMap<>();
-                        HashMap<String, String> deaths = new HashMap<>();
-                        boolean spoiler = false;
-                        if (json.has("spoiler")) {
-                            spoiler = json.getJSONArray("spoiler").toList().contains(tco.getGuild().getId());
-                        }
-                        if (spoiler) t1.append("||");
-                        for (SDPokemon p : game[0].getMons()) {
-                            String monName = getMonName(p.getPokemon(), gid);
-                            kills.put(monName, String.valueOf(p.getKills()));
-                            deaths.put(monName, p.isDead() ? "1" : "0");
-                            t1.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (p1wins || spoiler) ? "X" : "").append("\n");
-                        }
-                        if (spoiler) t1.append("||");
-                        if (spoiler) t2.append("||");
-                        for (SDPokemon p : game[1].getMons()) {
-                            String monName = getMonName(p.getPokemon(), gid);
-                            kills.put(monName, String.valueOf(p.getKills()));
-                            deaths.put(monName, p.isDead() ? "1" : "0");
-                            t2.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (!p1wins || spoiler) ? "X" : "").append("\n");
-                        }
-                        if (spoiler) t2.append("||");
-                        System.out.println("Kills");
-                        System.out.println(kills);
-                        System.out.println("Deaths");
-                        System.out.println(deaths);
-                        String u1 = game[0].getNickname();
-                        String u2 = game[1].getNickname();
-                        String name1;
-                        String name2;
-                        String uid1 = null;
-                        String uid2 = null;
-                        if (json.getJSONObject("showdown").has(gid)) {
-                            JSONObject showdown = json.getJSONObject("showdown").getJSONObject(gid);
-                            System.out.println("u1 = " + u1);
-                            System.out.println("u2 = " + u2);
-                            for (String s : showdown.keySet()) {
-                                if (u1.equalsIgnoreCase(s)) uid1 = showdown.getString(s);
-                                if (u2.equalsIgnoreCase(s)) uid2 = showdown.getString(s);
-                            }
-                            name1 = uid1 != null && gid.equals("518008523653775366") ? uid1.equals("LSD") ? "REPLACELSD" : e.getJDA().getGuildById(gid).retrieveMemberById(uid1).complete().getEffectiveName() : game[0].getNickname();
-                            name2 = uid2 != null && gid.equals("518008523653775366") ? uid2.equals("LSD") ? "REPLACELSD" : e.getJDA().getGuildById(gid).retrieveMemberById(uid2).complete().getEffectiveName() : game[1].getNickname();
-                        } else {
-                            name1 = game[0].getNickname();
-                            name2 = game[1].getNickname();
-                        }
-                        String str;
-                        if (spoiler) {
-                            str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1.toString()
-                                    + "\n" + name2 + ": " + "\n" + t2.toString();
-                        } else {
-                            str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1.toString()
-                                    + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2.toString();
-                        }
-                        if (!gid.equals("518008523653775366")) {
-                            TextChannel t = tco.getGuild().getTextChannelById(analysis.getString(tco.getId()));
-                            t.sendMessage(str).queue();
-                            for (int i = 0; i < 2; i++) {
-                                if (game[i].getMons().stream().anyMatch(mon -> mon.getPokemon().equals("Zoroark") || mon.getPokemon().equals("Zorua")))
-                                    t.sendMessage("Im Team von " + game[i].getNickname() + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!").queue();
-                            }
-                            System.out.println("In emolga Listener!");
-                        }
-                        if (!gid.equals("518008523653775366") && !gid.equals("447357526997073930") && !gid.equals("709877545708945438") && !gid.equals("736555250118295622"))
-                            return;
-                        if (!json.getJSONObject("showdown").has(gid)) return;
-                        if (uid1 == null || uid2 == null) return;
-                        if (sdAnalyser.containsKey(gid)) {
-                            sdAnalyser.get(gid).analyse(game, uid1, uid2, kills, deaths, str, url);
+                            g.createEmote(emote.getName(), Icon.from(new URL(emote.getImageUrl()).openStream())).queue();
+                        } catch (IOException ioException) {
+                            ioException.printStackTrace();
                         }
                     }
                 }
+                if (tco.getId().equals("778380440078647296")) {
+                    String[] split = msg.split(" ");
+                    JSONObject counter = shinycountjson.getJSONObject("counter");
+                    if (m.getEmotes().size() == 0) return;
+                    String eid = m.getEmotes().get(0).getId();
+                    Optional<String> mop = counter.keySet().stream().filter(s -> counter.getJSONObject(s).getString("emote").equals(eid)).findFirst();
+                    if (mop.isPresent()) {
+                        JSONObject o = shinycountjson.getJSONObject("counter").getJSONObject(mop.get());
+                        boolean isCmd = true;
+                        if (msg.startsWith("!set ")) {
+                            o.put(member.getId(), Integer.parseInt(split[1]));
+                        } else if (msg.startsWith("!reset ")) {
+                            o.put(member.getId(), 0);
+                        } else if (msg.startsWith("!add ")) {
+                            o.put(member.getId(), o.optInt(member.getId(), 0) + Integer.parseInt(split[1]));
+                        } else isCmd = false;
+                        if (isCmd) {
+                            m.delete().queue();
+                            updateShinyCounts();
+                        }
+                    }
+                }
+                if (meid.equals("159985870458322944") && g.getId().equals("712035338846994502")) {
+                    if (msg.contains(", du erreichst Level ")) {
+                        try {
+                            Member mem = m.getMentionedMembers().get(0);
+                            String[] split = msg.split(" ");
+                            int lvl = Integer.parseInt(split[split.length - 1].substring(0, split[split.length - 1].length() - 1));
+                            /*
+                             * Mitglied: 715242519528603708
+                             * Neuling: 715248666008354847
+                             * pokemon Fan: 715247650018164826
+                             * Experte: 715248788314259546
+                             * Veteran: 715248194732163163
+                             * Top 4: 715248297471770640
+                             * Champ: 715248393223667753
+                             * Elite: 715247811687612547
+                             * Meistertrainer: 715248587344183347
+                             * */
+                            switch (lvl) {
+                                case 5:
+                                    g.addRoleToMember(mem, g.getRoleById("715248666008354847")).queue();
+                                    g.removeRoleFromMember(mem, g.getRoleById("715242519528603708")).queue();
+                                    break;
+                                case 10:
+                                    g.addRoleToMember(mem, g.getRoleById("715247650018164826")).queue();
+                                    g.removeRoleFromMember(mem, g.getRoleById("715248666008354847")).queue();
+                                    break;
+                                case 15:
+                                    g.addRoleToMember(mem, g.getRoleById("715248788314259546")).queue();
+                                    g.removeRoleFromMember(mem, g.getRoleById("715247650018164826")).queue();
+                                    break;
+                                case 20:
+                                    g.addRoleToMember(mem, g.getRoleById("715248194732163163")).queue();
+                                    g.removeRoleFromMember(mem, g.getRoleById("715248788314259546")).queue();
+                                    break;
+                                case 30:
+                                    g.addRoleToMember(mem, g.getRoleById("715248297471770640")).queue();
+                                    g.removeRoleFromMember(mem, g.getRoleById("715248194732163163")).queue();
+                                    break;
+                                case 35:
+                                    g.addRoleToMember(mem, g.getRoleById("715248393223667753")).queue();
+                                    g.removeRoleFromMember(mem, g.getRoleById("715248297471770640")).queue();
+                                    break;
+                                case 40:
+                                    g.addRoleToMember(mem, g.getRoleById("715247811687612547")).queue();
+                                    g.removeRoleFromMember(mem, g.getRoleById("715248393223667753")).queue();
+                                    break;
+                                case 50:
+                                    g.addRoleToMember(mem, g.getRoleById("715248587344183347")).queue();
+                                    g.removeRoleFromMember(mem, g.getRoleById("715247811687612547")).queue();
+                                    break;
+                            }
+                        } catch (Exception ex) {
+                            e.getJDA().retrieveUserById(Constants.FLOID).complete().openPrivateChannel().complete().sendMessage("Fehler bei Level Up!").queue();
+                        }
+                    }
+                    return;
+                }
+                DexQuiz quiz = DexQuiz.getByTC(tco);
+                if (quiz != null && !quiz.block) {
+                    String mon = quiz.gerName;
+                    String name = getGerName(msg);
+                    if (name.startsWith("pkmn;")) name = name.split(";")[1];
+                    if (name.equalsIgnoreCase(mon) || name.equalsIgnoreCase(quiz.englName)) {
+                        quiz.block = true;
+                        tco.sendMessage(member.getAsMention() + " hat das Pokemon erraten! Es war " + mon + "!").queue();
+                        quiz.round++;
+                        if (!quiz.points.containsKey(member)) quiz.points.put(member, 0);
+                        quiz.points.put(member, quiz.points.get(member) + 1);
+                        if (quiz.round > quiz.cr) {
+                            quiz.end();
+                            return;
+                        }
+                        quiz.newMon();
+                    }
+                }
+                JSONObject json = getEmolgaJSON();
+                ResultSet res = Database.select("SELECT * FROM analysis WHERE replay=" + tco.getIdLong() + " LIMIT 1");
+                if (res.next()) {
+                    if (msg.contains("https://")) {
+                        Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com")).map(s -> s.substring(s.indexOf("https://"), s.indexOf(" ", s.indexOf("https://") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("https://") + 1))).findFirst();
+                        if (urlop.isPresent()) {
+                            String url = urlop.get();
+                            System.out.println(url);
+                            Player[] game;
+                            try {
+                                game = Analysis.analyse(url);
+                            } catch (Exception ex) {
+                                tco.getGuild().getTextChannelById(res.getLong("result")).sendMessage("Beim Auswerten des Replays ist (vermutlich wegen eines Zoruas/Zoroarks) ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein!").queue();
+                                return;
+                            }
+                            System.out.println("Analysed!");
+                            System.out.println(tco.getAsMention());
+                            int aliveP1 = 0;
+                            int aliveP2 = 0;
+                            StringBuilder t1 = new StringBuilder();
+                            StringBuilder t2 = new StringBuilder();
+                            for (SDPokemon p : game[0].getMons()) {
+                                if (!p.isDead()) aliveP1++;
+                            }
+                            for (SDPokemon p : game[1].getMons()) {
+                                if (!p.isDead()) aliveP2++;
+                            }
+                            String winloose = aliveP1 + ":" + aliveP2;
+                            boolean p1wins = game[0].isWinner();
+                            HashMap<String, String> kills = new HashMap<>();
+                            HashMap<String, String> deaths = new HashMap<>();
+                            boolean spoiler = false;
+                            if (json.has("spoiler")) {
+                                spoiler = Database.select("SELECT guildid FROM spoilertags WHERE guildid = " + gid + " LIMIT 1").next();
+                            }
+                            if (spoiler) t1.append("||");
+                            for (SDPokemon p : game[0].getMons()) {
+                                String monName = getMonName(p.getPokemon(), gid);
+                                kills.put(monName, String.valueOf(p.getKills()));
+                                deaths.put(monName, p.isDead() ? "1" : "0");
+                                t1.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (p1wins || spoiler) ? "X" : "").append("\n");
+                            }
+                            if (spoiler) t1.append("||");
+                            if (spoiler) t2.append("||");
+                            for (SDPokemon p : game[1].getMons()) {
+                                String monName = getMonName(p.getPokemon(), gid);
+                                kills.put(monName, String.valueOf(p.getKills()));
+                                deaths.put(monName, p.isDead() ? "1" : "0");
+                                t2.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (!p1wins || spoiler) ? "X" : "").append("\n");
+                            }
+                            if (spoiler) t2.append("||");
+                            System.out.println("Kills");
+                            System.out.println(kills);
+                            System.out.println("Deaths");
+                            System.out.println(deaths);
+                            String u1 = game[0].getNickname();
+                            String u2 = game[1].getNickname();
+                            String name1;
+                            String name2;
+                            String uid1 = null;
+                            String uid2 = null;
+                            if (json.getJSONObject("showdown").has(gid)) {
+                                JSONObject showdown = json.getJSONObject("showdown").getJSONObject(gid);
+                                System.out.println("u1 = " + u1);
+                                System.out.println("u2 = " + u2);
+                                for (String s : showdown.keySet()) {
+                                    if (u1.equalsIgnoreCase(s)) uid1 = showdown.getString(s);
+                                    if (u2.equalsIgnoreCase(s)) uid2 = showdown.getString(s);
+                                }
+                                name1 = uid1 != null && gid.equals("518008523653775366") ? uid1.equals("LSD") ? "REPLACELSD" : e.getJDA().getGuildById(gid).retrieveMemberById(uid1).complete().getEffectiveName() : game[0].getNickname();
+                                name2 = uid2 != null && gid.equals("518008523653775366") ? uid2.equals("LSD") ? "REPLACELSD" : e.getJDA().getGuildById(gid).retrieveMemberById(uid2).complete().getEffectiveName() : game[1].getNickname();
+                            } else {
+                                name1 = game[0].getNickname();
+                                name2 = game[1].getNickname();
+                            }
+                            String str;
+                            if (spoiler) {
+                                str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1.toString()
+                                        + "\n" + name2 + ": " + "\n" + t2.toString();
+                            } else {
+                                str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1.toString()
+                                        + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2.toString();
+                            }
+                            if (!gid.equals("518008523653775366")) {
+                                TextChannel t = tco.getGuild().getTextChannelById(res.getLong("result"));
+                                t.sendMessage(str).queue();
+                                for (int i = 0; i < 2; i++) {
+                                    if (game[i].getMons().stream().anyMatch(mon -> mon.getPokemon().equals("Zoroark") || mon.getPokemon().equals("Zorua")))
+                                        t.sendMessage("Im Team von " + game[i].getNickname() + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!").queue();
+                                }
+                                System.out.println("In Emolga Listener!");
+                            }
+                            if (!gid.equals("518008523653775366") && !gid.equals("447357526997073930") && !gid.equals("709877545708945438") && !gid.equals("736555250118295622"))
+                                return;
+                            if (!json.getJSONObject("showdown").has(gid)) return;
+                            if (uid1 == null || uid2 == null) return;
+                            if (sdAnalyser.containsKey(gid)) {
+                                sdAnalyser.get(gid).analyse(game, uid1, uid2, kills, deaths, str, url);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
-
         }).start();
     }
 

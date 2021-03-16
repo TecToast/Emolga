@@ -2,9 +2,9 @@ package de.tectoast.emolga.commands.flo;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
 
 public class MuffinRevolutionCommand extends Command {
@@ -13,7 +13,7 @@ public class MuffinRevolutionCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         Guild g = e.getGuild();
         JSONObject o = new JSONObject();
         e.getChannel().sendMessage("Möge die **Muffin-Revolution** beginnen! <:Muffin:814756664653774858>").queue();

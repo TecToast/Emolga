@@ -2,11 +2,11 @@ package de.tectoast.emolga.commands.draft;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import de.tectoast.emolga.utils.draft.Draft;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class DraftsetupCommand extends Command {
     public DraftsetupCommand() {
@@ -14,7 +14,7 @@ public class DraftsetupCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();

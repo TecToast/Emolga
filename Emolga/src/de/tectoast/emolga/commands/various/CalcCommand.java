@@ -2,9 +2,9 @@ package de.tectoast.emolga.commands.various;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
@@ -20,7 +20,7 @@ public class CalcCommand extends Command {
     final ScriptEngine engine = mgr.getEngineByName("JavaScript");
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         String msg = e.getMessage().getContentDisplay().substring(6);
         try {

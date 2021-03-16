@@ -1,11 +1,12 @@
 package de.tectoast.emolga.bot;
 
 import de.tectoast.emolga.commands.Command;
-import de.tectoast.jdautilities.managers.ReactionManager;
+import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.Giveaway;
 import de.tectoast.emolga.utils.MessageWaiter;
 import de.tectoast.emolga.utils.ModManager;
 import de.tectoast.emolga.ytsubscriber.NotificationCallback;
+import de.tectoast.toastilities.managers.ReactionManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -17,6 +18,8 @@ import org.json.JSONObject;
 import javax.security.auth.login.LoginException;
 import java.io.*;
 import java.nio.file.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Consumer;
@@ -75,7 +78,7 @@ public class EmolgaMain {
     };
     private static int i = 0;
 
-    public static void start() throws LoginException, InterruptedException {
+    public static void start() throws LoginException, InterruptedException, SQLException {
         //ArrayList<String> youtube = new ArrayList<>(Arrays.asList("UCYoTO-akZCsiusTe4rBxfhA", "UCMqmTa_6_wE7r9jQ6b8yqjQ", "UCUkb-7kNR03r4ldj_fm_BhA"));
         /*ArrayList<String> youtube = new ArrayList<>(Arrays.asList("UCwbxxz-T7dBccRIo_TZIeoQ", "UCNsChOlGuhsifD-WkaGV7yA"));
         Subscriber subscriber = new SubscriberImpl(Command.tokens.getJSONObject("subscriber").getString("host"), Command.tokens.getJSONObject("subscriber").getInt("port"));
@@ -89,12 +92,21 @@ public class EmolgaMain {
                 .addEventListeners(new EmolgaListener(), messageWaiter)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
+        ResultSet replana = Database.select("select * from analysis");
+        while (replana.next()) {
+            replayAnalysis.put(replana.getLong("replay"), replana.getLong("result"));
+        }
+        ResultSet spoiler = Database.select("select * from spoilertags");
+        while (spoiler.next()) {
+            spoilerTags.add(spoiler.getLong("guildid"));
+        }
         jda.awaitReady();
         updatePresence();
         ReactionManager manager = new ReactionManager(jda);
         manager.registerReaction("715249205186265178", "813025531779743774", "813025179114405898", "719928482544484352")
         .registerReaction("715249205186265178", "813025531779743774", "813025403098628097", "813005659619590184")
-        .registerReaction("715249205186265178", "813025531779743774", "813025709232488480", "813027599743713320");
+        .registerReaction("715249205186265178", "813025531779743774", "813025709232488480", "813027599743713320")
+                .registerReaction("540899923789611018", "820784528888561715", "820781668586618901", "820783085976420372");
         new ModManager("default", "./ShowdownData/");
         new ModManager("nml", "../Showdown/sspserver/data/");
         sdmessages.put("joinServer", str -> jda.getTextChannelById("791284726677766155").sendMessage(str + " hat den Server betreten!").queue());

@@ -2,13 +2,13 @@ package de.tectoast.emolga.commands.showdown;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import de.tectoast.emolga.utils.showdown.Analysis;
 import de.tectoast.emolga.utils.showdown.Player;
 import de.tectoast.emolga.utils.showdown.SDPokemon;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class AnalyseCommand extends Command {
     public AnalyseCommand() {
@@ -16,7 +16,7 @@ public class AnalyseCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();
@@ -36,7 +36,7 @@ public class AnalyseCommand extends Command {
         for (SDPokemon p : game[1].getMons()) {
             if (p.isDead()) deadP2++;
         }
-        String gid = tco.getGuild().getId();
+        long gid = tco.getGuild().getIdLong();
         String winloose = (game[0].getMons().size() - deadP1) + ":" + (game[1].getMons().size() - deadP2);
         boolean p1wins = game[0].getMons().size() - deadP1 > 0;
         for (SDPokemon p : game[0].getMons()) {

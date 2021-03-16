@@ -2,9 +2,9 @@ package de.tectoast.emolga.commands.draft;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import de.tectoast.emolga.utils.draft.Draft;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 import java.util.Optional;
 
@@ -14,7 +14,7 @@ public class RoundCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         Optional<Draft> op = Draft.drafts.stream().filter(d -> d.tc.getId().equals(tco.getId())).findFirst();
         if (!op.isPresent()) {

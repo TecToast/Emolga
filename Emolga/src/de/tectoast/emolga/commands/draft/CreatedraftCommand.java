@@ -2,10 +2,10 @@ package de.tectoast.emolga.commands.draft;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ public class CreatedraftCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         if (m.getMentionedRoles().size() != 1) {
@@ -61,7 +61,7 @@ public class CreatedraftCommand extends Command {
             for (int i = 1; i <= 12; i++) {
                 builder.append(i).append(". Runde\n").append(map.get(i).stream().map(Member::getEffectiveName).collect(Collectors.joining("\n"))).append("\n\n");
             }
-            tco.sendMessage(builder).complete().pin().queue();
+            tco.sendMessage(builder).submit().thenAccept(message -> message.pin().queue());
             JSONObject json = getEmolgaJSON();
             if (!json.has("drafts")) json.put("drafts", new JSONObject());
             JSONObject drafts = json.getJSONObject("drafts");

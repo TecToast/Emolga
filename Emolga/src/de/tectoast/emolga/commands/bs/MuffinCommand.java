@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.bs;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import de.tectoast.emolga.utils.CommandEvent;
 
 public class MuffinCommand extends Command {
     public MuffinCommand() {
@@ -10,7 +10,7 @@ public class MuffinCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         try {
             loadAndPlay(e.getChannel(), "https://www.youtube.com/watch?v=LACbVhgtx9I", e.getMember(), "**ITS MUFFIN TIME!**");
         } catch (IllegalArgumentException IllegalArgumentException) {

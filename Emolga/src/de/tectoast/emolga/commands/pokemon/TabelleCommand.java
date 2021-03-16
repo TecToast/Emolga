@@ -2,11 +2,11 @@ package de.tectoast.emolga.commands.pokemon;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import de.tectoast.emolga.utils.Google;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,12 +14,12 @@ import java.util.List;
 
 public class TabelleCommand extends Command {
     public TabelleCommand() {
-        super("tabelle", "`!tabelle` Zeigt die Tabelle der Liga an", CommandCategory.Pokemon, "712035338846994502", "518008523653775366");
+        super("tabelle", "`!tabelle` Zeigt die Tabelle der Liga an", CommandCategory.Pokemon, 712035338846994502L, 518008523653775366L);
         //overrideHelp.put("518008523653775366", "`!tabelle` Zeigt die Tabelle der angebenen Liga an");
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();

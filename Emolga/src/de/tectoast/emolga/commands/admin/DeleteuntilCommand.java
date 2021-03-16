@@ -2,9 +2,9 @@ package de.tectoast.emolga.commands.admin;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 import java.util.ArrayList;
 
@@ -14,16 +14,15 @@ public class DeleteuntilCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         Message m = e.getMessage();
         String msg = e.getMessage().getContentRaw();
         System.out.println("msg = " + msg);
         TextChannel tco = e.getChannel();
-        String[] split = msg.split(" ");
         TextChannel tc;
         if (m.getMentionedChannels().size() > 0) tc = m.getMentionedChannels().get(0);
         else tc = tco;
-        String mid = split.length == 3 ? split[2] : split[1];
+        String mid = e.hasArg(1) ? e.getArg(1) : e.getArg(0);
         try {
             tc.retrieveMessageById(mid).complete();
         } catch (Exception ex) {

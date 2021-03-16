@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.various;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import de.tectoast.emolga.utils.CommandEvent;
 
 public class FloHelpCommand extends Command {
     public FloHelpCommand() {
@@ -10,7 +10,7 @@ public class FloHelpCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         sendToMe(e.getChannel().getAsMention() + " - " + e.getMember().getAsMention() + ":\n" + e.getMessage().getContentRaw().substring(9));
     }
 }

@@ -3,13 +3,11 @@ package de.tectoast.emolga.commands.moderator;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.database.Database;
+import de.tectoast.emolga.utils.CommandEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.awt.*;
 import java.sql.ResultSet;
@@ -24,7 +22,7 @@ public class WarnsCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) throws Exception {
+    public void process(CommandEvent e) throws Exception {
         Message m = e.getMessage();
         TextChannel tco = e.getChannel();
         String gid = e.getGuild().getId();
@@ -33,9 +31,7 @@ public class WarnsCommand extends Command {
             return;
         }
         Member mem = m.getMentionedMembers().get(0);
-        System.out.println(1);
         ResultSet res = Database.select("select * from warns where userid=" + mem.getId() + " and guildid=" + gid);
-        System.out.println(2);
         StringBuilder str = new StringBuilder();
         SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy HH:mm");
         while(res.next()) {

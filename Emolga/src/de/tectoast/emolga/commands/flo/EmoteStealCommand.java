@@ -2,8 +2,8 @@ package de.tectoast.emolga.commands.flo;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class EmoteStealCommand extends Command {
 
@@ -13,12 +13,12 @@ public class EmoteStealCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
-        if(emotesteal.remove(tco.getId())) {
+        if(emoteSteal.remove(tco.getIdLong())) {
             tco.sendMessage("Der EmoteSteal wurde deaktiviert!").queue();
         } else {
-            emotesteal.add(tco.getId());
+            emoteSteal.add(tco.getIdLong());
             tco.sendMessage("Der EmoteSteal wurde aktiviert!").queue();
         }
     }

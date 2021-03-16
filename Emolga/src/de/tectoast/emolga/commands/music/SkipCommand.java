@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.music;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import de.tectoast.emolga.utils.CommandEvent;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,11 +11,11 @@ public class SkipCommand extends Command {
     public SkipCommand() {
         super("s", "`e!s` Skippt den derzeitigen Track", CommandCategory.Music);
         aliases.add("skip");
-        overrideChannel.put("712035338846994502", new ArrayList<>(Arrays.asList("716221567079546983", "735076688144105493")));
+        overrideChannel.put(712035338846994502L, new ArrayList<>(Arrays.asList(716221567079546983L, 735076688144105493L)));
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         skipTrack(e.getChannel());
     }
 }

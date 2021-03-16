@@ -2,9 +2,9 @@ package de.tectoast.emolga.commands.moderator;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
 
 import java.util.List;
@@ -15,7 +15,7 @@ public class ResetCooldownCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         JSONObject json = getEmolgaJSON();
         List<Member> list = e.getMessage().getMentionedMembers();
         TextChannel tco = e.getChannel();

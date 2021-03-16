@@ -1,12 +1,10 @@
 package de.tectoast.emolga.database;
 
-import com.mysql.cj.jdbc.Driver;
 import de.tectoast.emolga.commands.Command;
 import org.json.JSONObject;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class Database {
 
@@ -14,8 +12,7 @@ public class Database {
     private final Connection connection;
 
     public Database(String username, String password) throws SQLException {
-        DriverManager.registerDriver(new Driver());
-        connection = DriverManager.getConnection("jdbc:mysql://localhost/emolga", username, password);
+        connection = DriverManager.getConnection("jdbc:mysql://localhost/emolga?autoReconnect=true", username, password);
     }
 
     public static void init() throws SQLException {
@@ -41,13 +38,13 @@ public class Database {
         return -1;
     }
 
-    public static int insert(String table, String columns, Object... values) {
+    public static void insert(String table, String columns, Object... values) {
         String query = "insert into " + table + " (" + columns + ") values (";
         ArrayList<String> list = new ArrayList<>();
         for (Object value : values) {
             if(value instanceof String || value instanceof Timestamp) list.add("'" + value + "'");
             else list.add(value.toString());
         }
-        return update(query + String.join(", ", list) + ")");
+        update(query + String.join(", ", list) + ")");
     }
 }

@@ -67,7 +67,7 @@ public class RequestBuilder {
      *
      * @param range The range, where the object should be written
      * @param body  The single object that should be written
-     * @param raw   optional argument, which makes the request raw (if true) or user entered (if false)
+     * @param raw   optional argument, which makes the request raw (if true) or user entered (if false or null)
      * @return this RequestBuilder
      */
     public RequestBuilder addSingle(String range, Object body, boolean... raw) {
@@ -79,7 +79,7 @@ public class RequestBuilder {
      *
      * @param range The range, where the row should be written
      * @param body  The row that should be written
-     * @param raw   optional argument, which makes the request raw (if true) or user entered (if false)
+     * @param raw   optional argument, which makes the request raw (if true) or user entered (if false or null)
      * @return this RequestBuilder
      */
     @SuppressWarnings("UnusedReturnValue")
@@ -92,7 +92,7 @@ public class RequestBuilder {
      *
      * @param range The range, where the objects should be written
      * @param body  The matrix that should be written
-     * @param raw   optional argument, which makes the request raw (if true) or user entered (if false)
+     * @param raw   optional argument, which makes the request raw (if true) or user entered (if false or null)
      * @return this RequestBuilder
      */
     public RequestBuilder addAll(String range, List<List<Object>> body, boolean... raw) {
@@ -101,7 +101,7 @@ public class RequestBuilder {
     }
 
     /**
-     * Adds a or multiple batch request(s) to the builder
+     * Adds one or multiple batch request(s) to the builder
      *
      * @param requests The request(s) that should be sent
      * @return this RequestBuilder

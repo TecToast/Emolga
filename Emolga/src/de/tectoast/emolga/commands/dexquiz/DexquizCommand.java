@@ -2,9 +2,9 @@ package de.tectoast.emolga.commands.dexquiz;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import de.tectoast.emolga.utils.DexQuiz;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -18,7 +18,7 @@ public class DexquizCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         String msg = e.getMessage().getContentDisplay();
         DexQuiz quiz = DexQuiz.getByTC(tco);
@@ -36,7 +36,7 @@ public class DexquizCommand extends Command {
                 Element element = table.select("td").get(new Random().nextInt(table.select("td").size()));
                 new DexQuiz(tco, pokemon, englName, Integer.parseInt(msg.substring(9)));
                 //� = %C3%B6
-                tco.sendMessage(trim(element.text(), pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queue();
+                tco.sendMessage("Runde 1: " + trim(element.text(), pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queue();
             } catch (Exception ioException) {
                 tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
                 ioException.printStackTrace();

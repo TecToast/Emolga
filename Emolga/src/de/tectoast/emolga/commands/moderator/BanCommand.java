@@ -2,10 +2,10 @@ package de.tectoast.emolga.commands.moderator;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class BanCommand extends Command {
     public BanCommand() {
@@ -13,7 +13,7 @@ public class BanCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         Message m = e.getMessage();
         TextChannel tco = e.getChannel();
         String raw = m.getContentRaw();

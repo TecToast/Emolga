@@ -3,20 +3,21 @@ package de.tectoast.emolga.commands.various;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.bot.EmolgaMain;
+import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
 
 public class NicknameCommand extends Command {
     public NicknameCommand() {
-        super("nickname", "`!nickname <Neuer Name>` Ändert deinen Nickname (funktioniert nur 1x pro Woche)", CommandCategory.Various, "712035338846994502", "518008523653775366");
+        super("nickname", "`!nickname <Neuer Name>` Ändert deinen Nickname (funktioniert nur 1x pro Woche)", CommandCategory.Various, Constants.BSID, Constants.ASLID);
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();

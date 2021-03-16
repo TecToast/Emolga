@@ -2,11 +2,11 @@ package de.tectoast.emolga.commands.showdown;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.database.Database;
+import de.tectoast.emolga.utils.CommandEvent;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import org.json.JSONObject;
 
 public class ReplayCommand extends Command {
     public ReplayCommand() {
@@ -15,7 +15,7 @@ public class ReplayCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();
@@ -25,9 +25,8 @@ public class ReplayCommand extends Command {
             return;
         }
         TextChannel tc = m.getMentionedChannels().get(0);
-        JSONObject json = getEmolgaJSON();
-        json.getJSONObject("analyse").put(tco.getId(), tc.getId());
-        saveEmolgaJSON();
+        Database.insert("analysis", "replay, result", tco.getIdLong(), tc.getIdLong());
+        Command.replayAnalysis.put(tco.getIdLong(), tc.getIdLong());
         tco.sendMessage("Die Analyse aus dem Channel " + tco.getAsMention() + " in den Channel " + tc.getAsMention() + " wurde aktiviert!").queue();
         updatePresence();
     }

@@ -25,6 +25,7 @@ public class Draft {
     public final HashMap<Member, ArrayList<DraftPokemon>> picks = new HashMap<>();
     public final HashMap<Integer, ArrayList<Member>> order = new HashMap<>();
     public final HashMap<Member, Integer> points = new HashMap<>();
+    public final ArrayList<Member> afterDraft = new ArrayList<>();
     public final TextChannel tc;
     public final String name;
     public final String guild;
@@ -34,10 +35,11 @@ public class Draft {
     public int round = 0;
     public Timer cooldown = new Timer();
     public TextChannel ts;
+    public boolean ended = false;
 
     public Draft(TextChannel tc, String name, String tcid, boolean fromFile) {
         this.tc = tc;
-        this.guild = "747357029714231299";
+        this.guild = tc.getGuild().getId();
         this.name = name;
         isPointBased = getTierlist().isPointBased;
         JSONObject json = getEmolgaJSON();
@@ -58,8 +60,8 @@ public class Draft {
         new Thread(() -> {
             List<Member> memberlist = tc.getGuild().retrieveMembersByIds(o.getString("1").split(",")).get();
             memberlist.forEach(mem -> map.put(mem.getId(), mem));
-            for (int i = 1; i <= 11; i++) {
-                order.put(i, Arrays.stream(o.getString(Integer.toString(i)).split(",")).map(map::get).collect(Collectors.toCollection(ArrayList::new)));
+            for (String i : o.keySet()) {
+                order.put(Integer.valueOf(i), Arrays.stream(o.getString(i).split(",")).map(map::get).collect(Collectors.toCollection(ArrayList::new)));
             }
             this.members = new ArrayList<>(order.get(1));
             ts = tc.getGuild().getTextChannelById(tcid);
@@ -227,12 +229,12 @@ public class Draft {
         if (league.has("mentions")) {
             JSONObject mentions = league.getJSONObject("mentions");
             if (mentions.has(mem.getId()))
-                return tc.getGuild().retrieveMemberById(mentions.getString(mem.getId())).complete().getAsMention();
+                return "<@" + mentions.getString(mem.getId()) + ">";
         }
         return mem.getAsMention();
     }
 
-    public boolean isCurrent(Member mem) {
+    public boolean isNotCurrent(Member mem) {
         if (current.getId().equals(mem.getId())) return false;
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(name);
         return !league.getJSONObject("allowed").optString(mem.getId(), "").equals(current.getId());
@@ -243,7 +245,6 @@ public class Draft {
         return picks.get(mem).stream().anyMatch(mon -> mon.name.startsWith("M-"));
     }
 
-    @SuppressWarnings("SameReturnValue")
     public boolean hasInAnotherForm(Member mem, String pokemon) {
         String[] split = pokemon.split("-");
 
@@ -277,6 +278,7 @@ public class Draft {
     }
 
     public void timer() {
+        if (ended) return;
         if (order.get(round).size() == 0) {
             if (round == 12) {
                 saveEmolgaJSON();

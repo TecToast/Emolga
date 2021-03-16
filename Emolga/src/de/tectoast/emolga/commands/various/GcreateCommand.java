@@ -3,9 +3,10 @@ package de.tectoast.emolga.commands.various;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.bot.EmolgaMain;
-import de.tectoast.jdautilities.interactive.ErrorMessage;
-import de.tectoast.jdautilities.interactive.InteractiveTemplate;
+import de.tectoast.emolga.utils.CommandEvent;
 import de.tectoast.emolga.utils.Giveaway;
+import de.tectoast.toastilities.interactive.ErrorMessage;
+import de.tectoast.toastilities.interactive.InteractiveTemplate;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -36,7 +37,7 @@ public class GcreateCommand extends Command {
 
     //GuildMessageReceivedEvent event, TextChannel tchan, int seconds, int winners
     public GcreateCommand() {
-        super("gcreate", "`!gcreate` Startet ein Giveaway", CommandCategory.Various, "712035338846994502", "756239772665511947", "518008523653775366", "673833176036147210", "745934535748747364");
+        super("gcreate", "`!gcreate` Startet ein Giveaway", CommandCategory.Various, 712035338846994502L, 756239772665511947L, 518008523653775366L, 673833176036147210L, 745934535748747364L);
         template = new InteractiveTemplate((u, tco, l) -> {
             current.remove(tco.getId());
             TextChannel tchan = (TextChannel) l.get("channel");
@@ -98,7 +99,7 @@ public class GcreateCommand extends Command {
 
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();

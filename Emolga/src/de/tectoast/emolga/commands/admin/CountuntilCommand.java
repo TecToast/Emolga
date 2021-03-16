@@ -2,9 +2,9 @@ package de.tectoast.emolga.commands.admin;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class CountuntilCommand extends Command {
     public CountuntilCommand() {
@@ -12,19 +12,18 @@ public class CountuntilCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         Message m = e.getMessage();
         String msg = m.getContentRaw();
-        String[] split = msg.split(" ");
         TextChannel tco = e.getChannel();
         TextChannel tc;
         String mid;
-        if (split.length == 3) {
+        if (e.hasArg(1)) {
             tc = m.getMentionedChannels().get(0);
-            mid = split[2];
+            mid = e.getArg(1);
         } else {
             tc = tco;
-            mid = split[1];
+            mid = e.getArg(0);
         }
         try {
             tc.retrieveMessageById(mid).complete();

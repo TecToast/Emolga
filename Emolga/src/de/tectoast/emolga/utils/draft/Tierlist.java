@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils.draft;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -29,7 +30,7 @@ public class Tierlist {
                     tiercolumns.addAll(lines);
                 } else {
                     prices.put(name, Integer.parseInt(lines.remove(0)));
-                    tierlist.put(name, new ArrayList<>(lines));
+                    tierlist.put(name, lines.stream().map(String::trim).collect(Collectors.toCollection(ArrayList::new)));
                 }
             } catch (IOException e) {
                 e.printStackTrace();

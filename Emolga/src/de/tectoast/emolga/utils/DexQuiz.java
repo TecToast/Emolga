@@ -86,7 +86,7 @@ public class DexQuiz {
             //ü = %C3%B6
             this.block = false;
             Thread.sleep(3000);
-            this.tc.sendMessage(trim(element.text(), pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queue();
+            this.tc.sendMessage("Runde " + round + ": " + trim(element.text(), pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queue();
         } catch (IOException | InterruptedException ioException) {
             ioException.printStackTrace();
         }

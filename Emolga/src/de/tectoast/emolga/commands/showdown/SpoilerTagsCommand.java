@@ -2,8 +2,8 @@ package de.tectoast.emolga.commands.showdown;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import org.json.JSONArray;
+import de.tectoast.emolga.database.Database;
+import de.tectoast.emolga.utils.CommandEvent;
 import org.json.JSONObject;
 
 public class SpoilerTagsCommand extends Command {
@@ -14,23 +14,16 @@ public class SpoilerTagsCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
-        String gid = e.getGuild().getId();
+    public void process(CommandEvent e) {
+        long gid = e.getGuild().getIdLong();
         JSONObject json = getEmolgaJSON();
-        JSONArray arr = json.getJSONArray("spoiler");
-        boolean found = false;
-        for (int i = 0; i < arr.length(); i++) {
-            String o = arr.getString(i);
-            if (o.equals(gid)) {
-                arr.remove(i);
-                saveEmolgaJSON();
-                e.getChannel().sendMessage("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!").queue();
-                return;
-            }
+        if (Database.update("delete from spoilertags where guildid = " + gid) != 0) {
+            e.getChannel().sendMessage("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!").queue();
+            Command.spoilerTags.remove(gid);
+            return;
         }
-        arr.put(gid);
-        saveEmolgaJSON();
+        Database.insert("spoilertags", "guildid", gid);
+        Command.spoilerTags.add(gid);
         e.getChannel().sendMessage("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **aktiviert**!").queue();
-
     }
 }

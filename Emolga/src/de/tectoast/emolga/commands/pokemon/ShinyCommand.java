@@ -2,8 +2,10 @@ package de.tectoast.emolga.commands.pokemon;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+
+import java.io.File;
 
 public class ShinyCommand extends Command {
     public ShinyCommand() {
@@ -11,14 +13,18 @@ public class ShinyCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         String msg = e.getMessage().getContentDisplay();
-        String mon = getGerName(msg.substring(7));
+        String mon = getEnglNameWithType(msg.substring(7));
         if (!mon.startsWith("pkmn;")) {
             tco.sendMessage("Das ist kein Pokemon!").queue();
             return;
         }
-        tco.sendMessage(getShinySpriteJSON().getString(String.valueOf(getDataJSON(getModByGuild(e)).getJSONObject(getSDName(mon.substring(5))).getInt("num")))).queue();
+        File f = new File("../Showdown/sspclient/sprites/gen5-shiny/" + mon.split(";")[1].toLowerCase() + ".png");
+        //if(!f.exists()) f = new File("../Showdown/sspclient/sprites/gen5-shiny/" + mon.split(";")[1].toLowerCase() + ".png");
+        System.out.println(f.getPath());
+        System.out.println(f.exists());
+        tco.sendFile(f).queue();
     }
 }

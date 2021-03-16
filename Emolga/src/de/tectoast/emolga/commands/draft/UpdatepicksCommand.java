@@ -2,13 +2,13 @@ package de.tectoast.emolga.commands.draft;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.draft.DraftPokemon;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -23,7 +23,7 @@ public class UpdatepicksCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentRaw();
@@ -37,7 +37,7 @@ public class UpdatepicksCommand extends Command {
             return;
         }
         JSONObject drafts = json.getJSONObject("drafts");
-        if (e.getGuild().getId().equals(Constants.ASLID)) drafts = drafts.getJSONObject("ASLS7");
+        if (e.getGuild().getIdLong() == Constants.ASLID) drafts = drafts.getJSONObject("ASLS7");
         if (!drafts.has(name)) {
             tco.sendMessage("Es gibt keine Liga mit dem Namen " + name + "!").queue();
             return;

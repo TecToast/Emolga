@@ -2,11 +2,11 @@ package de.tectoast.emolga.commands.draft;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -18,16 +18,28 @@ public class RandomPickCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         Member member = e.getMember();
         TextChannel tco = e.getChannel();
         Draft d = Draft.getDraftByMember(member, tco);
+        String msg = e.getMessage().getContentDisplay();
+        String[] split = msg.split(" ");
+        Tierlist tierlist = Tierlist.getByGuild(d.guild);
+        if(split.length <= 1) {
+            tco.sendMessage("Du musst ein Tier auswählen!").queue();
+            return;
+        }
+        String tier = split[1].toUpperCase();
+        if (!tierlist.order.contains(tier)) {
+            tco.sendMessage("Das ist kein Tier!").queue();
+            return;
+        }
         if (d == null) {
             tco.sendMessage(member.getAsMention() + " Du bist in keinem Draft drin!").queue();
             return;
         }
         if (!d.tc.getId().equals(tco.getId())) return;
-        if (d.isCurrent(member)) {
+        if (d.isNotCurrent(member)) {
             tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue();
             return;
         }
@@ -45,15 +57,9 @@ public class RandomPickCommand extends Command {
         else {
             mem = tco.getGuild().retrieveMemberById(league.getJSONObject("allowed").getString(member.getId())).complete();
         }
-        Tierlist tierlist = Tierlist.getByGuild("747357029714231299");
-        for (String tier : tierlist.order) {
-            if (d.getPossibleTiers(mem).get(tier) == 0) {
-                continue;
-            }
-            ArrayList<String> list = new ArrayList<>(tierlist.tierlist.get(tier));
-            Collections.shuffle(list);
-            PickCommand.exec(tco, "!pick " + list.stream().filter(str -> !d.isPicked(str) && !d.hasInAnotherForm(mem, str)).findFirst().orElse(""), mem, true);
-            break;
-        }
+
+        ArrayList<String> list = new ArrayList<>(tierlist.tierlist.get(tier));
+        Collections.shuffle(list);
+        PickCommand.exec(tco, "!pick " + list.stream().filter(str -> !d.isPicked(str) && !d.hasInAnotherForm(mem, str) && (!d.hasMega(mem) || !str.startsWith("M-"))).map(String::trim).findFirst().orElse(""), mem, true);
     }
 }

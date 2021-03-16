@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.bs;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.bot.EmolgaMain;
+import de.tectoast.emolga.utils.CommandEvent;
 import de.tectoast.emolga.utils.Result;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
@@ -23,7 +24,7 @@ public class ResultCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         if (current.contains(e.getAuthor().getId())) {
             e.getChannel().sendMessage("Du befindest dich bereits in einer Ergebnisaufnahme!").queue();
             return;
@@ -53,11 +54,11 @@ public class ResultCommand extends Command {
                 }
             }
         }
-        sendToUser(p1, "Wieviele Spiele habt ihr gespielt?");
+        sendToUser(Long.parseLong(p1), "Wieviele Spiele habt ihr gespielt?");
         e.getChannel().sendMessage("Ich habe dir privat geschrieben!").queue();
         Result r = new Result(p1, p2);
         r.gameday = gameday;
-        waitForGamesCount(e, r);
+        waitForGamesCount(e.getEvent(), r);
     }
 
     private void waitForGamesCount(GuildMessageReceivedEvent event, Result r) {

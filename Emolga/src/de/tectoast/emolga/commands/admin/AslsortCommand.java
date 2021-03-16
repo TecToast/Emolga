@@ -2,8 +2,8 @@ package de.tectoast.emolga.commands.admin;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.utils.CommandEvent;
 import de.tectoast.emolga.utils.Constants;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 public class AslsortCommand extends Command {
     public AslsortCommand() {
@@ -11,7 +11,7 @@ public class AslsortCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         sortASL();
         e.getChannel().sendMessage("Done!").queue();
     }

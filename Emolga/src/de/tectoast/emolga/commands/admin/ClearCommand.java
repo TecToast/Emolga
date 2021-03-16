@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.admin;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import de.tectoast.emolga.utils.CommandEvent;
 
 import java.util.stream.Collectors;
 
@@ -12,7 +12,7 @@ public class ClearCommand extends Command {
     }
 
     @Override
-    public void process(GuildMessageReceivedEvent e) {
+    public void process(CommandEvent e) {
         e.getChannel().deleteMessages(e.getChannel().getIterableHistory().stream().collect(Collectors.toList())).queue();
     }
 }

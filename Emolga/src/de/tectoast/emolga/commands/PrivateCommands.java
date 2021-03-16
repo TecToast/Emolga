@@ -14,8 +14,11 @@ import org.json.JSONObject;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static de.tectoast.emolga.commands.Command.*;
 
@@ -242,15 +245,46 @@ public class PrivateCommands {
         updatePresence();
     }
 
-    @PrivateCommand(name = "transferreplays")
+    @PrivateCommand(name = "transferstuff")
     public static void transfer(JDA jda, MessageChannel tco, Message message) {
-        JSONObject analysis = getEmolgaJSON().getJSONObject("analyse");
-        ArrayList<String> list = new ArrayList<>();
-        for (String s : analysis.keySet()) {
-            list.add("(" + s + ", " + analysis.getString(s) + ")");
+        JSONObject t = getWikiJSON().getJSONObject("translations");
+        ArrayList<String> egg = new ArrayList<>();
+        ArrayList<String> st = new ArrayList<>();
+        for (String s : t.keySet()) {
+            JSONObject o = t.getJSONObject(s);
+            if(!o.getString("type").equals("egg")) continue;
+            if(!s.equals(toSDName("e" + o.getString("ger")))) egg.add(s);
+            /*if(already.contains(toSDName(o.getString("ger")))) continue;
+            already.add(toSDName(o.getString("ger")));
+            st.add("(" + Stream.of(toSDName(o.getString("engl")), toSDName(o.getString("ger")), o.getString("ger"), o.getString("type"), "normal").map(str -> "\"" + str + "\"").collect(Collectors.joining(",")) + ")");*/
         }
-        tco.sendMessage("" + Database.update("insert into analysis values " + String.join(",", list))).queue();
-        tco.sendMessage("" + Database.update("insert into spoilertags values " + getEmolgaJSON().getJSONArray("spoiler").toList().stream().map(o -> "(" + o + ")").collect(Collectors.joining(",")))).queue();
+        for (String s : egg) {
+            st.add("(" + Stream.of(s, toSDName(t.getJSONObject(s).getString("ger")), "", t.getJSONObject(s).getString("ger"), "egg", "default").map(str -> "\"" + str + "\"").collect(Collectors.joining(", ")) + ")");
+        }
+        Database.update("insert into translations(englishid, germanid, englishname, germanname, type, modification) values " + String.join(",", st));
+    }
+
+    @PrivateCommand(name = "delfromjson")
+    public static void delFromJSON(JDA jda, MessageChannel tco, Message message) throws SQLException {
+        ResultSet set = Database.select("select * from analysis");
+        JSONObject an = getEmolgaJSON().getJSONObject("analyse");
+        while (set.next()) {
+            an.remove(set.getString("replay"));
+        }
+        saveEmolgaJSON();
+    }
+
+    @PrivateCommand(name = "addreactions")
+    public static void addReactions(JDA jda, MessageChannel tco, Message message) {
+        String[] msg = message.getContentDisplay().split("\\s+");
+        jda.getTextChannelById(msg[1]).retrieveMessageById(msg[2]).queue(m -> {
+            m.getReactions().forEach(mr -> {
+                MessageReaction.ReactionEmote emote = mr.getReactionEmote();
+                if(emote.isEmoji()) m.addReaction(emote.getEmoji()).queue();
+                else m.addReaction(emote.getEmote()).queue();
+            });
+            tco.sendMessage("Done!").queue();
+        });
     }
 
     public static void execute(JDA jda, MessageChannel tco, Message message) {

@@ -26,11 +26,11 @@ public enum CommandCategory {
 
     static {
         Admin.allowsMember = m -> m.hasPermission(Permission.ADMINISTRATOR);
-        Moderator.allowsMember = m -> Admin.allowsMember(m) || m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getId()));
-        BS.allowsGuild = gid -> gid.equals("712035338846994502");
-        Music.allowsGuild = gid -> gid.equals("700504340368064562") || gid.equals("712035338846994502") || gid.equals("673833176036147210");
+        Moderator.allowsMember = m -> Admin.allowsMember(m) || m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getIdLong()));
+        BS.allowsGuild = gid -> gid.equals(712035338846994502L);
+        Music.allowsGuild = gid -> gid == 700504340368064562L || gid == 712035338846994502L || gid == 673833176036147210L;
         Moderator.allowsGuild = Command.moderatorRoles::containsKey;
-        Flo.allowsMember = mem -> mem.getId().equals(Constants.FLOID);
+        Flo.allowsMember = mem -> mem.getIdLong() == Constants.FLOID;
         Draft.everywhere = true;
         Flo.everywhere = true;
         Admin.everywhere = true;
@@ -40,7 +40,7 @@ public enum CommandCategory {
     String emoji;
     String name;
     private Predicate<Member> allowsMember = m -> true;
-    private Predicate<String> allowsGuild = g -> true;
+    private Predicate<Long> allowsGuild = g -> true;
     private boolean everywhere = false;
 
     CommandCategory(String emoji, String name) {
@@ -72,14 +72,14 @@ public enum CommandCategory {
     }
 
     public boolean allowsGuild(Guild g) {
-        return allowsGuild(g.getId());
+        return allowsGuild(g.getIdLong());
     }
 
-    public boolean allowsGuild(String gid) {
-        return gid.equals("447357526997073930") || allowsGuild.test(gid);
+    public boolean allowsGuild(long gid) {
+        return gid == 447357526997073930L || allowsGuild.test(gid);
     }
 
     public boolean allowsMember(Member mem) {
-        return mem.getId().equals(Constants.FLOID) || allowsMember.test(mem);
+        return mem.getIdLong() == Constants.FLOID || allowsMember.test(mem);
     }
 }

@@ -88,7 +88,7 @@ public class EmolgaMain {
             }
         }).start();*/
         jda = JDABuilder.createDefault(Command.tokens.getString("discord"))
-                .enableIntents(GatewayIntent.GUILD_MEMBERS)
+                .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
                 .addEventListeners(new EmolgaListener(), messageWaiter)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();

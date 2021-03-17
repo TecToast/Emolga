@@ -55,11 +55,16 @@ public class EmolgaListener extends ListenerAdapter {
     public void onGuildMemberJoin(@Nonnull GuildMemberJoinEvent e) {
         Guild g = e.getGuild();
         Member mem = e.getMember();
-        if (g.getId().equals("712035338846994502")) {
-            g.addRoleToMember(mem, g.getRoleById("715242519528603708")).queue();
+        long gid = g.getIdLong();
+        if (gid == Constants.BSID) {
+            g.addRoleToMember(mem, g.getRoleById(715242519528603708L)).queue();
         }
-        if (g.getId().equals("706794294127755324") && (mem.getId().equals("574989869911113738") || mem.getId().equals("728202578353193010"))) {
-            e.getMember().ban(0, "Permanent").queue();
+        if (gid == Constants.ASLID) {
+            g.getTextChannelById(615605820381593610L).sendMessage(
+                    "Willkommen auf der ASL, " + mem.getAsMention() + ". <:hi:540969951608045578>\n" +
+                            "Dies ist ein Pokémon Server mit dem Fokus auf einem kompetetiven Draftligasystem. " +
+                            "Mach dich mit dem <#635765395038666762> vertraut und beachte die vorgegebenen Themen der Kanäle. Viel Spaß! <:yay:540970044297838597>"
+            ).queue();
         }
     }
 

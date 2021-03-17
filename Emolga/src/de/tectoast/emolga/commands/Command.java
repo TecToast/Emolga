@@ -1042,6 +1042,7 @@ public abstract class Command {
         new EmolgaDiktaturCommand();
         new ResetEmolgaCommand();
         new UserInfoCommand();
+        new ServerInfoCommand();
     }
 
     public static void awaitNextDay() {

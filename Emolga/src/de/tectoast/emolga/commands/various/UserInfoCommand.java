@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.various;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.database.Database;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
@@ -22,7 +22,7 @@ public class UserInfoCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) throws SQLException {
+    public void process(GuildCommandEvent e) throws SQLException {
         User u = e.getAuthor();
         Member member = e.getMember();
         ResultSet set = Database.select("select count(*) as warncount from warns where guildid = " + Constants.ASLID + " and userid = " + u.getId());

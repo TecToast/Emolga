@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.draft;
 import com.google.api.services.sheets.v4.model.*;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.RequestBuilder;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.DraftPokemon;
@@ -111,10 +111,10 @@ public class PickCommand extends Command {
                 tco.sendMessage(member.getAsMention() + " Du hast bereits ein Mega!").complete().getId();
                 return;
             }
-            if (d.hasInAnotherForm(mem, pokemon)) {
+            /*if (d.hasInAnotherForm(mem, pokemon)) {
                 tco.sendMessage(member.getAsMention() + " Damit würdest du gegen die Species Clause verstoßen!").queue();
                 return;
-            }
+            }*/
             if (d.isPointBased && d.points.get(mem) - needed < 0) {
                 tco.sendMessage(member.getAsMention() + " Dafür hast du nicht genug Punkte!").queue();
                 return;
@@ -317,7 +317,7 @@ public class PickCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         exec(e.getChannel(), e.getMessage().getContentDisplay(), e.getMember(), false);
     }
 }

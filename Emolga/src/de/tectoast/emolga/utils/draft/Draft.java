@@ -15,13 +15,6 @@ import static de.tectoast.emolga.commands.Command.*;
 public class Draft {
     public static final ArrayList<Draft> drafts = new ArrayList<>();
     public static HashMap<String, Integer> already = new HashMap<>();
-    //public static Timer write;
-    /*public static ArrayList<String> stier;
-    public static ArrayList<String> atier;
-    public static ArrayList<String> btier;
-    public static ArrayList<String> ctier;
-    public static ArrayList<String> dtier;*/
-    //public HashMap<Member, Message> messages = new HashMap<>();
     public final HashMap<Member, ArrayList<DraftPokemon>> picks = new HashMap<>();
     public final HashMap<Integer, ArrayList<Member>> order = new HashMap<>();
     public final HashMap<Member, Integer> points = new HashMap<>();
@@ -220,6 +213,13 @@ public class Draft {
         return null;
     }
 
+    public static Draft getDraftByChannel(TextChannel tc) {
+        for (Draft draft : Draft.drafts) {
+            if(draft.tc.getId().equals(tc.getId())) return draft;
+        }
+        return null;
+    }
+
     public Tierlist getTierlist() {
         return Tierlist.getByGuild(guild);
     }
@@ -277,25 +277,36 @@ public class Draft {
         //messages.get(member).editMessage(str.toString()).queue();
     }
 
-    public void timer() {
+    public enum TimerReason {
+        REALTIMER,
+        SKIP
+    }
+
+    public void timer(TimerReason tr) {
         if (ended) return;
         if (order.get(round).size() == 0) {
             if (round == 12) {
                 saveEmolgaJSON();
-                tc.sendMessage("Der draft ist vorbei!").queue();
+                tc.sendMessage("Der Draft ist vorbei!").queue();
                 Draft.drafts.remove(this);
                 return;
             }
             round++;
             tc.sendMessage("Runde " + round + "!").queue();
         }
-        String msg = getMention(current) + " war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran! ";
+        String msg = tr == TimerReason.REALTIMER ? getMention(current) + " war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran! " : getMention(current) + " wurde geskippt und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran! ";
         current = order.get(round).remove(0);
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(name).put("current", current.getId());
         if (isPointBased)
             msg += "(" + points.get(current) + " mögliche Punkte)";
         else
             msg += "(Mögliche Tiers: " + getPossibleTiersAsString(current) + ")";
         tc.sendMessage(msg).queue();
+        try {
+            cooldown.cancel();
+        } catch (Exception ignored) {
+
+        }
         cooldown = new Timer();
         JSONObject json = getEmolgaJSON();
         if (isPointBased && points.get(current) < 20) {
@@ -321,6 +332,10 @@ public class Draft {
                 timer();
             }
         }, delay);
+    }
+
+    public void timer() {
+        timer(TimerReason.REALTIMER);
     }
 
     public JSONArray getTeamAsArray(Member mem) {

@@ -69,13 +69,13 @@ public class EmolgaListener extends ListenerAdapter {
     }
 
     @Override
-    public void onGuildVoiceJoin(@com.sun.istack.internal.NotNull GuildVoiceJoinEvent e) {
+    public void onGuildVoiceJoin(@Nonnull GuildVoiceJoinEvent e) {
         if (e.getMember().getId().equals("634093507388243978")) e.getGuild().kickVoiceMember(e.getMember()).queue();
     }
 
 
     @Override
-    public void onGuildJoin(@com.sun.istack.internal.NotNull GuildJoinEvent e) {
+    public void onGuildJoin(@Nonnull GuildJoinEvent e) {
         e.getGuild().retrieveOwner().flatMap(m -> m.getUser().openPrivateChannel()).queue(pc -> pc.sendMessage(WELCOMEMESSAGE.replace("{USERNAME}", e.getGuild().getOwner().getUser().getName()).replace("{SERVERNAME}", e.getGuild().getName())).queue());
     }
 
@@ -89,7 +89,7 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onPrivateMessageReceived(PrivateMessageReceivedEvent e) {
         if (e.getAuthor().getIdLong() == Constants.FLOID) {
-            PrivateCommands.execute(e.getJDA(), e.getChannel(), e.getMessage());
+            PrivateCommands.execute(e.getMessage());
         } /*else if (e.getAuthor().getId().equals("574949229668335636")) {
             e.getJDA().getTextChannelById("743471003220443226").sendMessage(e.getMessage().getContentDisplay()).queue();
         }*/
@@ -704,7 +704,7 @@ public class EmolgaListener extends ListenerAdapter {
                 }
                 check(e);
                 if (gid == 447357526997073930L) {
-                    PrivateCommands.execute(e.getJDA(), e.getChannel(), e.getMessage());
+                    PrivateCommands.execute(e.getMessage());
                 }
                 if (tco.getId().equals("758198459563114516")) {
                     g.addRoleToMember(member, g.getRoleById("758254829885456404")).queue();
@@ -826,6 +826,8 @@ public class EmolgaListener extends ListenerAdapter {
                 }
                 JSONObject json = getEmolgaJSON();
                 if (replayAnalysis.containsKey(tco.getIdLong())) {
+                    TextChannel t = tco.getGuild().getTextChannelById(replayAnalysis.get(tco.getIdLong()));
+                    //t.sendTyping().queue();
                     if (msg.contains("https://")) {
                         Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com")).map(s -> s.substring(s.indexOf("https://"), s.indexOf(" ", s.indexOf("https://") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("https://") + 1))).findFirst();
                         if (urlop.isPresent()) {
@@ -839,7 +841,7 @@ public class EmolgaListener extends ListenerAdapter {
                                 return;
                             }
                             System.out.println("Analysed!");
-                            System.out.println(tco.getAsMention());
+                            System.out.println(g.getName() + " -> " + tco.getAsMention());
                             int aliveP1 = 0;
                             int aliveP2 = 0;
                             StringBuilder t1 = new StringBuilder();
@@ -854,12 +856,15 @@ public class EmolgaListener extends ListenerAdapter {
                             boolean p1wins = game[0].isWinner();
                             HashMap<String, String> kills = new HashMap<>();
                             HashMap<String, String> deaths = new HashMap<>();
+                            ArrayList<String> p1mons = new ArrayList<>();
+                            ArrayList<String> p2mons = new ArrayList<>();
                             boolean spoiler = spoilerTags.contains(gid);
                             if (spoiler) t1.append("||");
                             for (SDPokemon p : game[0].getMons()) {
                                 String monName = getMonName(p.getPokemon(), gid);
                                 kills.put(monName, String.valueOf(p.getKills()));
                                 deaths.put(monName, p.isDead() ? "1" : "0");
+                                p1mons.add(monName);
                                 t1.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (p1wins || spoiler) ? "X" : "").append("\n");
                             }
                             if (spoiler) t1.append("||");
@@ -868,6 +873,7 @@ public class EmolgaListener extends ListenerAdapter {
                                 String monName = getMonName(p.getPokemon(), gid);
                                 kills.put(monName, String.valueOf(p.getKills()));
                                 deaths.put(monName, p.isDead() ? "1" : "0");
+                                p2mons.add(monName);
                                 t2.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (!p1wins || spoiler) ? "X" : "").append("\n");
                             }
                             if (spoiler) t2.append("||");
@@ -903,21 +909,18 @@ public class EmolgaListener extends ListenerAdapter {
                                 str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1.toString()
                                         + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2.toString();
                             }
-                            if (gid != 518008523653775366L) {
-                                TextChannel t = tco.getGuild().getTextChannelById(replayAnalysis.get(tco.getIdLong()));
-                                t.sendMessage(str).queue();
-                                for (int i = 0; i < 2; i++) {
-                                    if (game[i].getMons().stream().anyMatch(mon -> mon.getPokemon().equals("Zoroark") || mon.getPokemon().equals("Zorua")))
-                                        t.sendMessage("Im Team von " + game[i].getNickname() + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!").queue();
-                                }
-                                System.out.println("In Emolga Listener!");
+                            t.sendMessage(str).queue();
+                            for (int i = 0; i < 2; i++) {
+                                if (game[i].getMons().stream().anyMatch(mon -> mon.getPokemon().equals("Zoroark") || mon.getPokemon().equals("Zorua")))
+                                    t.sendMessage("Im Team von " + game[i].getNickname() + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!").queue();
                             }
+                            System.out.println("In Emolga Listener!");
                             if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L)
                                 return;
                             if (!json.getJSONObject("showdown").has(String.valueOf(gid))) return;
                             if (uid1 == null || uid2 == null) return;
                             if (sdAnalyser.containsKey(gid)) {
-                                sdAnalyser.get(gid).analyse(game, uid1, uid2, kills, deaths, str, url);
+                                sdAnalyser.get(gid).analyse(game, uid1, uid2, kills, deaths, new ArrayList[]{p1mons, p2mons}, url);
                             }
                         }
                     }

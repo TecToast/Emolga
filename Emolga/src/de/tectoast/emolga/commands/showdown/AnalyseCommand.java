@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.showdown;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.showdown.Analysis;
 import de.tectoast.emolga.utils.showdown.Player;
 import de.tectoast.emolga.utils.showdown.SDPokemon;
@@ -16,7 +16,7 @@ public class AnalyseCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();

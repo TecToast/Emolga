@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.showdown;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.database.Database;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import org.json.JSONObject;
 
 public class SpoilerTagsCommand extends Command {
@@ -14,7 +14,7 @@ public class SpoilerTagsCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         long gid = e.getGuild().getIdLong();
         JSONObject json = getEmolgaJSON();
         if (Database.update("delete from spoilertags where guildid = " + gid) != 0) {

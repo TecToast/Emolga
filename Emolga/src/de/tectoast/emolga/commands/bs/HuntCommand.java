@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.bs;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.json.JSONObject;
 
@@ -22,7 +22,7 @@ public class HuntCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         String msg = e.getMessage().getContentDisplay();
         String[] split = msg.split(" ");
         TextChannel tco = e.getChannel();

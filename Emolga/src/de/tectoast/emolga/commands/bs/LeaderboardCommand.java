@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.bs;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -16,7 +16,7 @@ public class LeaderboardCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         StringBuilder str = new StringBuilder();
         HashMap<String, String> names = new HashMap<>();
         e.getGuild().retrieveMembersByIds(leveljson.keySet().toArray(new String[0])).get().forEach(mem -> names.put(mem.getId(), mem.getEffectiveName()));

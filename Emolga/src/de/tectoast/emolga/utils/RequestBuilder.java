@@ -33,18 +33,18 @@ public class RequestBuilder {
     }
 
 
-    public static void updateSingle(String sid, String range, Object value, boolean raw) {
+    public static void updateSingle(String sid, String range, Object value, boolean... raw) {
         updateRow(sid, range, Collections.singletonList(value), raw);
     }
 
-    public static void updateRow(String sid, String range, List<Object> values, boolean raw) {
+    public static void updateRow(String sid, String range, List<Object> values, boolean... raw) {
         updateAll(sid, range, Collections.singletonList(values), raw);
     }
 
-    public static void updateAll(String sid, String range, List<List<Object>> values, boolean raw) {
+    public static void updateAll(String sid, String range, List<List<Object>> values, boolean... raw) {
         new Thread(() -> {
             try {
-                getSheetsService().spreadsheets().values().update(sid, range, new ValueRange().setValues(values)).setValueInputOption(raw ? "RAW" : "USER_ENTERED").execute();
+                getSheetsService().spreadsheets().values().update(sid, range, new ValueRange().setValues(values)).setValueInputOption(raw.length == 0 || !raw[0] ? "USER_ENTERED" : "RAW").execute();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -135,6 +135,10 @@ public class RequestBuilder {
         Sheets service = getSheetsService();
         new Thread(() -> {
             if (!userentered.isEmpty()) {
+                for (int i = 0; i < userentered.size(); i++) {
+                    ValueRange range = userentered.get(i);
+                    System.out.println(i + ": " + range.getRange() + " -> " + range.getValues());
+                }
                 try {
                     service.spreadsheets().values().batchUpdate(sid, new BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")).execute();
                 } catch (IOException e) {

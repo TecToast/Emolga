@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.moderator;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.database.Database;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -22,7 +22,7 @@ public class WarnsCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) throws Exception {
         Message m = e.getMessage();
         TextChannel tco = e.getChannel();
         String gid = e.getGuild().getId();

@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.flo;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.bot.EmolgaMain;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -15,7 +15,7 @@ public class GoinCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();

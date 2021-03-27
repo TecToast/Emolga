@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.various;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 
 public class FloHelpCommand extends Command {
     public FloHelpCommand() {
@@ -10,7 +10,7 @@ public class FloHelpCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         sendToMe(e.getChannel().getAsMention() + " - " + e.getMember().getAsMention() + ":\n" + e.getMessage().getContentRaw().substring(9));
     }
 }

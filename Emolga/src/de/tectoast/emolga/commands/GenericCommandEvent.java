@@ -1,36 +1,29 @@
-package de.tectoast.emolga.utils;
+package de.tectoast.emolga.commands;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class CommandEvent {
-    private final GuildMessageReceivedEvent event;
+public abstract class GenericCommandEvent {
     private final Message message;
-    private final Member member;
-    private final String msg;
-    private final TextChannel channel;
-    private final Guild guild;
     private final User author;
+    private final String msg;
+    private final MessageChannel channel;
     private final JDA jda;
     private final ArrayList<String> args;
     private final List<TextChannel> mentionedChannels;
     private final List<Member> mentionedMembers;
     private final List<Role> mentionedRoles;
 
-    public CommandEvent(GuildMessageReceivedEvent e) {
-        this.event = e;
-        this.message = e.getMessage();
-        this.member = e.getMember();
-        this.msg = this.message.getContentDisplay();
-        this.channel = e.getChannel();
-        this.guild = e.getGuild();
-        this.author = e.getAuthor();
-        this.jda = e.getJDA();
+    public GenericCommandEvent(Message message) {
+        this.message = message;
+        this.author = message.getAuthor();
+        this.msg = message.getContentDisplay();
+        this.channel = message.getChannel();
+        this.jda = message.getJDA();
         this.mentionedChannels = this.message.getMentionedChannels();
         this.mentionedMembers = this.message.getMentionedMembers();
         this.mentionedRoles = this.message.getMentionedRoles();
@@ -42,32 +35,25 @@ public class CommandEvent {
         return author;
     }
 
-    public GuildMessageReceivedEvent getEvent() {
-        return event;
-    }
-
     public Message getMessage() {
         return message;
     }
 
-    public Member getMember() {
-        return member;
-    }
 
     public String getMsg() {
         return msg;
     }
 
-    public TextChannel getChannel() {
+    public String getRaw() {
+        return message.getContentRaw();
+    }
+
+    public MessageChannel getChannel() {
         return channel;
     }
 
     public ArrayList<String> getArgs() {
         return args;
-    }
-
-    public Guild getGuild() {
-        return guild;
     }
 
     public JDA getJDA() {
@@ -87,11 +73,19 @@ public class CommandEvent {
     }
 
     public String getArg(int i) {
-        if(hasArg(i)) return getArgs().get(i);
+        if (hasArg(i)) return getArgs().get(i);
         return null;
     }
 
     public boolean hasArg(int i) {
         return i < getArgs().size();
+    }
+
+    public void reply(String msg) {
+        this.channel.sendMessage(msg).queue();
+    }
+
+    public void done() {
+        reply("Done!");
     }
 }

@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.admin;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
 
 public class AslsortCommand extends Command {
@@ -11,8 +11,8 @@ public class AslsortCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
-        sortASL();
+    public void process(GuildCommandEvent e) {
+        sortASL(getEmolgaJSON().getJSONObject("drafts").getJSONObject(e.getArg(0) + "-Conference"));
         e.getChannel().sendMessage("Done!").queue();
     }
 }

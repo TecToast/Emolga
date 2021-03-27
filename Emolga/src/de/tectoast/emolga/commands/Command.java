@@ -47,6 +47,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -92,6 +93,8 @@ public abstract class Command {
     protected static String tradesid;
     protected static List<String> balls;
     protected static List<String> mons;
+
+
     protected final List<Long> allowedGuilds;
     protected final HashSet<String> aliases = new HashSet<>();
     protected final HashMap<String, String> overrideHelp = new HashMap<>();
@@ -101,7 +104,6 @@ public abstract class Command {
     protected final CommandCategory category;
     protected boolean wip = false;
     protected boolean everywhere = false;
-    @SuppressWarnings("CanBeFinal")
     protected Predicate<Member> allowsMember = m -> false;
 
 
@@ -305,7 +307,8 @@ public abstract class Command {
             tco.sendMessage(builder.build()).queue();
             return;
         }
-        if (mutedRoles.containsKey(g.getIdLong())) g.addRoleToMember(mem, g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
+        if (mutedRoles.containsKey(g.getIdLong()))
+            g.addRoleToMember(mem, g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
         long expires = System.currentTimeMillis() + time * 1000;
         muteTimer(g, expires, mem.getId());
         EmbedBuilder builder = new EmbedBuilder();
@@ -483,6 +486,14 @@ public abstract class Command {
             }
         }
         return "";
+    }
+
+    public static int aslIndexPick(ArrayList<String> picks, String mon) {
+        for (String pick : picks) {
+            if (pick.equalsIgnoreCase(mon) || pick.substring(2).equalsIgnoreCase(mon)) return picks.indexOf(pick);
+            if (pick.equalsIgnoreCase("Amigento") && mon.contains("Amigento")) return picks.indexOf(pick);
+        }
+        return -1;
     }
 
     public static String formatToTime(long l) {
@@ -892,7 +903,7 @@ public abstract class Command {
         return ModManager.getByName(mod).getMoves();
     }
 
-    public static String getModByGuild(CommandEvent e) {
+    public static String getModByGuild(GuildCommandEvent e) {
         String gid = e.getGuild().getId();
         if ("447357526997073930".equals(gid) || "786351922029527130".equals(gid)) {
             return "nml";
@@ -1043,6 +1054,7 @@ public abstract class Command {
         new ResetEmolgaCommand();
         new UserInfoCommand();
         new ServerInfoCommand();
+        new SkipPickCommand();
     }
 
     public static void awaitNextDay() {
@@ -1061,6 +1073,7 @@ public abstract class Command {
             }
         }, c.getTimeInMillis() - System.currentTimeMillis());
     }
+
 
     public static void init() {
         loadJSONFiles();
@@ -1138,60 +1151,29 @@ public abstract class Command {
         emolgachannel.put(694256540642705408L, new ArrayList<>(Collections.singletonList(695157832072560651L)));
         emolgachannel.put(747357029714231299L, new ArrayList<>(Arrays.asList(752802115096674306L, 762411109859852298L)));
         sdAnalyser.put(Constants.ASLID, (game, uid1, uid2, kills, deaths, args) -> {
-            JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7");
-            String checkUid;
-            if (uid1.equals("LSD")) checkUid = uid2;
-            else checkUid = uid1;
-            String leaguename = asl.keySet().stream().filter(s -> s.startsWith("PK") || s.equals("Coach")).filter(s -> Arrays.asList(asl.getJSONObject(s).getString("table").split(",")).contains(checkUid)).collect(Collectors.joining(""));
-            System.out.println("leaguename = " + leaguename);
-            JSONObject league = asl.getJSONObject(leaguename);
-            List<String> table = Arrays.asList(league.getString("table").split(","));
-            System.out.println("table = " + table);
-            System.out.println("uid1 = " + uid1);
-            System.out.println("uid2 = " + uid2);
-            JSONArray teamsarray = asl.getJSONArray("teams");
-            System.out.println("teamsarray = " + teamsarray.toString(4));
-            String lsd = null;
-            if (uid1.equals("LSD")) {
-                uid1 = table.get(teamsarray.toList().indexOf("Lauras Sterndu"));
-                lsd = jda.getGuildById(Constants.ASLID).retrieveMemberById(uid1).complete().getEffectiveName();
-            } else if (uid2.equals("LSD")) {
-                uid2 = table.get(teamsarray.toList().indexOf("Lauras Sterndu"));
-                lsd = jda.getGuildById(Constants.ASLID).retrieveMemberById(uid2).complete().getEffectiveName();
+            JSONObject league = null;
+            JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
+            for (String s : drafts.keySet()) {
+                JSONObject o = drafts.getJSONObject(s);
+                if (o.getString("table").contains(uid1)) {
+                    league = o;
+                    break;
+                }
             }
+            if (league == null) return;
+            List<String> table = Arrays.asList(league.getString("table").split(","));
             int tin1 = table.indexOf(uid1);
             int tin2 = table.indexOf(uid2);
             System.out.println("tin1 = " + tin1);
             System.out.println("tin2 = " + tin2);
-            String t1 = teamsarray.getString(tin1);
-            String t2 = teamsarray.getString(tin2);
-            int pk = leaguename.equals("Coach") ? 0 : Integer.parseInt(leaguename.substring(2));
-            String sid = asl.getString("sid");
-            int gameday = getGameDay(asl, t1, t2);
+            String sid = league.getString("sid");
+            int gameday = getGameDay(league, uid1, uid2);
             if (gameday == -1) {
                 System.out.println("GAMEDAY -1");
                 return;
             }
-            jda.getTextChannelById((String) args[1]).sendMessage("Spieltag " + gameday + "\nPreisklasse " + (pk == 0 ? "Coach" : pk) + "\n" + t1 + " vs " + t2 + "\n\n" + (lsd != null ? ((String) args[0]).replace("REPLACELSD", lsd) : args[0] + "")).queue();
             ArrayList<String> userids = new ArrayList<>(Arrays.asList(uid1, uid2));
-            ArrayList<String> teams = new ArrayList<>(Arrays.asList(t1, t2));
             RequestBuilder b = new RequestBuilder(sid);
-            for (int i = 0; i < 2; i++) {
-                String uid = userids.get(i);
-                String team = teams.get(i);
-                ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
-                List<List<Object>> list = new ArrayList<>();
-                for (int j = 0; j < picks.size(); j++) {
-                    String pick = picks.get(j);
-                    list.add(Arrays.asList(getMonIfPresent(kills, pick, pk, j), getNumber(kills, pick), getNumber(deaths, pick)));
-                }
-                try {
-                    b.addAll(team + "!" + getAsXCoord(gameday * 3 + 8) + (pk * 19 + 18), list)
-                            .addRow(team + "!" + getAsXCoord(gameday * 3 + 9) + (pk * 19 + 30), Arrays.asList(game[i].isWinner() ? 1 : 0, game[1 - i].isWinner() ? 1 : 0));
-                } catch (IllegalArgumentException IllegalArgumentException) {
-                    IllegalArgumentException.printStackTrace();
-                }
-            }
             int aliveP1 = 0;
             int aliveP2 = 0;
             for (SDPokemon p : game[0].getMons()) {
@@ -1201,23 +1183,75 @@ public abstract class Command {
                 if (!p.isDead()) aliveP2++;
             }
             String str = null;
-            int index = -1;
-            List<String> battleorder = Arrays.asList(asl.getJSONObject("battleorder").getString(String.valueOf(gameday)).split("\\|"));
+            int battleindex = -1;
+            List<String> battleorder = Arrays.asList(league.getJSONObject("battleorder").getString(String.valueOf(gameday)).split(";"));
             for (String s : battleorder) {
-                if (s.contains(t1)) {
+                if (s.contains(uid1)) {
                     str = s;
-                    index = battleorder.indexOf(s);
+                    battleindex = battleorder.indexOf(s);
                     break;
                 }
             }
-            if (str.split(":")[0].equals(t1)) {
-                b.addSingle("Spielplan!" + getASLGameplanCoords(gameday, index, pk), aliveP1 + ":" + aliveP2);
+            gameday--;
+            ArrayList<String>[] mons = (ArrayList<String>[]) args[0];
+            List<Object> res;
+            if (str.split(":")[0].equals(uid1)) {
+                res = Arrays.asList(String.valueOf(aliveP1), ":", String.valueOf(aliveP2));
             } else {
-                b.addSingle("Spielplan!" + getASLGameplanCoords(gameday, index, pk), aliveP2 + ":" + aliveP1);
+                res = Arrays.asList(String.valueOf(aliveP2), ":", String.valueOf(aliveP1));
             }
+            System.out.println(res);
+            b.addRow("Spielplan!" + getAsXCoord(battleindex * 8 + 5) + (gameday * 10 + 5), res);
+            for (int i = 0; i < 2; i++) {
+                String uid = userids.get(i);
+                ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
+                int x = 0;
+                int index = table.indexOf(uid);
+                List<List<Object>> list = Google.get(sid, "Teams!" + getAsXCoord((index > 3 ? index - 4 : index) * 5 + 3) + (index > 3 ? 24 : 7)
+                        + ":" + getAsXCoord((index > 3 ? index - 4 : index) * 5 + 4) + (index > 3 ? 35 : 18), true, false);
+                System.out.println("gameday = " + gameday);
+                if (str.split(":")[0].equals(uid)) {
+                    System.out.println("LINKS Picks von " + game[i].getNickname() + ": " + picks);
+                    for (String s : mons[i]) {
+                        System.out.println("s = " + s + " ");
+                        int monindex = aslIndexPick(picks, s);
+                        if (monindex > -1) {
+                            b.addRow("Spielplan!" + getAsXCoord(battleindex * 8 + 3) + (gameday * 10 + 6 + x), Arrays.asList(deaths.get(s), kills.get(s), s));
+                            List<Object> l = list.get(monindex);
+                            b.addRow("Teams!" + getAsXCoord((index > 3 ? index - 4 : index) * 5 + 3) + ((index > 3 ? 24 : 7) + monindex),
+                                    Arrays.asList(l.get(0) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 4) + (gameday * 10 + 6 + x),
+                                            l.get(1) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 3) + (gameday * 10 + 6 + x)));
+                            x++;
+                        }
+                    }
+                } else {
+                    System.out.println("RECHTS Picks von " + game[i].getNickname() + ": " + picks);
+                    for (String s : mons[i]) {
+                        System.out.println("s = " + s);
+                        int monindex = aslIndexPick(picks, s);
+                        if (monindex > -1) {
+                            b.addRow("Spielplan!" + getAsXCoord(battleindex * 8 + 7) + (gameday * 10 + 6 + x), Arrays.asList(s, kills.get(s), deaths.get(s)));
+                            List<Object> l = list.get(monindex);
+                            b.addRow("Teams!" + getAsXCoord((index > 3 ? index - 4 : index) * 5 + 3) + ((index > 3 ? 24 : 7) + monindex),
+                                    Arrays.asList(l.get(0) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 8) + (gameday * 10 + 6 + x),
+                                            l.get(1) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 9) + (gameday * 10 + 6 + x)));
+                            x++;
+                        }
+                    }
+                }
+                if (game[i].isWinner()) {
+                    if (!league.has("results")) league.put("results", new JSONObject());
+                    JSONObject results = league.getJSONObject("results");
+                    results.put(uid1 + ":" + uid2, uid);
+                    b.addSingle("Daten!D" + (index + 1), (Integer.parseInt((String) Google.get(sid, "Daten!D" + (index + 1), false, false).get(0).get(0)) + 1));
+                } else {
+                    b.addSingle("Daten!E" + (index + 1), (Integer.parseInt((String) Google.get(sid, "Daten!E" + (index + 1), false, false).get(0).get(0)) + 1));
+                }
+            }
+            b.addSingle("Spielplan!" + getAsXCoord(battleindex * 8 + 6) + (gameday * 10 + 3), "=HYPERLINK(\"" + args[1] + "\"; \"VS\")");
             b.execute();
             saveEmolgaJSON();
-            sortASL();
+            sortASL(league);
         });
         sdAnalyser.put(709877545708945438L, (game, uid1, uid2, kills, deaths, args) -> {
             Guild guild = jda.getGuildById("709877545708945438");
@@ -1554,7 +1588,7 @@ public abstract class Command {
                 }
             }
             try {
-                command.process(new CommandEvent(e));
+                command.process(new GuildCommandEvent(e));
             } catch (Exception ex) {
                 ex.printStackTrace();
                 tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo/TecToast.\n" + command.getHelp(e.getGuild()) + (mem.getIdLong() == Constants.FLOID ? "\nJa, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
@@ -2006,40 +2040,39 @@ public abstract class Command {
             return c.getTimeInMillis() - System.currentTimeMillis();
         } else return 7200000;*/
 
-    public static void sortASL() {
-        String sid = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7").getString("sid");
-        List<List<Object>> formula = Google.get(sid, "Tabelle!B3:J14", true, false);
-        List<List<Object>> points = Google.get(sid, "Tabelle!C3:J14", false, false);
+    public static void sortASL(JSONObject league) {
+        String sid = league.getString("sid");
+        List<List<Object>> formula = Google.get(sid, "Tabelle!B4:J11", true, false);
+        List<List<Object>> points = Google.get(sid, "Tabelle!C4:J11", false, false);
         List<List<Object>> orig = new ArrayList<>(points);
-        points.sort((o1, o2) -> compareColumns(o1, o2, 1, 7, 5));
+        JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
+        points.sort((o1, o2) -> {
+            int c = compareColumns(o1, o2, 1, 7, 5);
+            if (c != 0) return c;
+            String u1 = docnames.getString((String) o1.get(0));
+            String u2 = docnames.getString((String) o2.get(0));
+            if (league.has("results")) {
+                JSONObject o = league.getJSONObject("results");
+                if (o.has(u1 + ";" + u2)) return o.getString(u1 + ";" + u2).equals(u1) ? 1 : -1;
+                if (o.has(u2 + ";" + u1)) return o.getString(u2 + ";" + u1).equals(u1) ? 1 : -1;
+            }
+            return 0;
+        });
         Collections.reverse(points);
-        Spreadsheet s = Google.getSheetData(sid, false, "Tabelle!B3:B14");
-        ArrayList<com.google.api.services.sheets.v4.model.Color> formats = new ArrayList<>();
-        for (RowData rowDatum : s.getSheets().get(0).getData().get(0).getRowData()) {
-            formats.add(rowDatum.getValues().get(0).getEffectiveFormat().getBackgroundColor());
-        }
         HashMap<Integer, List<Object>> valmap = new HashMap<>();
-        HashMap<Integer, com.google.api.services.sheets.v4.model.Color> formap = new HashMap<>();
         int i = 0;
         for (List<Object> objects : orig) {
             int index = points.indexOf(objects);
             valmap.put(index, formula.get(i));
-            formap.put(index, formats.get(i));
             i++;
         }
         List<List<Object>> senddata = new ArrayList<>();
         //List<List<Object>> sendname = new ArrayList<>();
-        ArrayList<RowData> rowData = new ArrayList<>();
         for (int j = 0; j < 12; j++) {
             senddata.add(valmap.get(j));
-            rowData.add(new RowData().setValues(Collections.singletonList(new CellData().setUserEnteredFormat(new CellFormat().setBackgroundColor(formap.get(j))))));
         }
-        RequestBuilder b = new RequestBuilder(sid);
-        b.addAll("Tabelle!B3", senddata);
-        b.addBatch(new Request().setUpdateCells(new UpdateCellsRequest().setRows(rowData)
-                .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(765460930).setStartRowIndex(2).setEndRowIndex(14).setStartColumnIndex(1).setEndColumnIndex(2))));
+        RequestBuilder.updateAll(sid, "Tabelle!B4", senddata);
         System.out.println("Done!");
-        sortTablesPerDay();
     }
 
     public static void sortBST() {
@@ -2278,7 +2311,12 @@ public abstract class Command {
     }
 
     public static String getMonName(String s, long gid) {
-        System.out.println("s = " + s);
+        return getMonName(s, gid, true);
+    }
+
+    public static String getMonName(String s, long gid, boolean withDebug) {
+        if (withDebug)
+            System.out.println("s = " + s);
         if (gid == 709877545708945438L) {
             if (s.endsWith("-Alola")) {
                 return "Alola-" + Command.getGerName(s.substring(0, s.length() - 6)).split(";")[1];
@@ -2308,10 +2346,16 @@ public abstract class Command {
                     return "Psiaugon-W";
             }
         }
+        if (s.equals("Calyrex-Shadow")) return "Coronospa-Rappenreiter";
+        if (s.equals("Calyrex-Ice")) return "Coronospa-Schimmelreiter";
+        if (s.equals("Shaymin-Sky")) return "Shaymin-Sky";
         if (s.contains("Unown")) return "Icognito";
+        if (s.contains("Zacian-Crowned")) return "Zacian-Crowned";
+        if (s.contains("Zamazenta-Crowned")) return "Zamazenta-Crowned";
         if (s.equals("Greninja-Ash")) return "Ash-Quajutsu";
         if (s.equals("Zarude-Dada")) return "Zarude";
         if (s.contains("Furfrou")) return "Coiffwaff";
+        if (s.contains("Genesect")) return "Genesect";
         if (s.equals("Wormadam")) return "Burmadame-Pflz";
         if (s.equals("Wormadam-Sandy")) return "Burmadame-Sand";
         if (s.equals("Wormadam-Trash")) return "Burmadame-Lumpen";
@@ -2342,6 +2386,11 @@ public abstract class Command {
             if (split.length == 1 || s.equals("Silvally-*")) return "Amigento";
             else return "Amigento-" + getGerName(split[1]).split(";")[1];
         }
+        if (s.contains("Arceus")) {
+            String[] split = s.split("-");
+            if (split.length == 1 || s.equals("Arceus-*")) return "Arceus";
+            else return "Arceus-" + getGerName(split[1]).split(";")[1];
+        }
         //System.out.println("s = " + s);
         if (s.contains("Basculin")) return "Barschuft";
         if (s.contains("Sawsbuck")) return "Kronjuwild";
@@ -2369,7 +2418,13 @@ public abstract class Command {
         if (s.equals("Thundurus")) return "Voltolos-I";
         if (s.equals("Landorus")) return "Demeteros-I";
         //System.out.println(s);
-        return getGerName(s).split(";")[1];
+        String gername = getGerName(s);
+        ArrayList<String> split = new ArrayList<>(Arrays.asList(s.split("-")));
+        if (gername.startsWith("pkmn;")) {
+            return gername.split(";")[1];
+        }
+        String first = split.remove(0);
+        return getGerName(first).split(";")[0] + String.join("-" + split);
     }
 
     public boolean allowsMember(Member mem) {
@@ -2401,7 +2456,7 @@ public abstract class Command {
                 || msg.equalsIgnoreCase("!" + name.toLowerCase()) || aliases.stream().anyMatch(s -> msg.equalsIgnoreCase("!" + s));
     }
 
-    public abstract void process(CommandEvent e) throws Exception;
+    public abstract void process(GuildCommandEvent e) throws Exception;
 
     public String getName() {
         return name;

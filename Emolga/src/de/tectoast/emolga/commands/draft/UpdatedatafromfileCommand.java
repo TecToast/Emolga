@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.draft;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.DraftPokemon;
 import net.dv8tion.jda.api.entities.Member;
@@ -22,14 +22,14 @@ public class UpdatedatafromfileCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();
         String name = msg.substring(20);
         Optional<Draft> op = Draft.drafts.stream().filter(d -> d.name.equals(name)).findFirst();
         if (!op.isPresent()) {
-            tco.sendMessage("Dieser draft existiert nicht!").queue();
+            tco.sendMessage("Dieser Draft existiert nicht!").queue();
             return;
         }
         Draft d = op.get();

@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.showdown;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -17,7 +17,7 @@ public class SearchReplaysCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) throws IOException {
+    public void process(GuildCommandEvent e) throws IOException {
         TextChannel tco = e.getChannel();
         String msg = e.getMessage().getContentDisplay().substring(15);
         String url = "https://replay.pokemonshowdown.com/search.json?user=";

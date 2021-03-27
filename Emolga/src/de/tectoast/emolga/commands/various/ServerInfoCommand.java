@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.various;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -19,7 +19,7 @@ public class ServerInfoCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         EmbedBuilder builder = new EmbedBuilder();
         Guild g = e.getGuild();
         List<Member> memberList = g.loadMembers().get();

@@ -7,7 +7,6 @@ import de.tectoast.emolga.utils.Giveaway;
 import de.tectoast.emolga.utils.PrivateCommand;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -18,29 +17,28 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static de.tectoast.emolga.commands.Command.*;
 
 public class PrivateCommands {
 
     @PrivateCommand(name = "updatetierlist")
-    public static void updateTierlist(JDA jda, MessageChannel tco, Message message) {
+    public static void updateTierlist(GenericCommandEvent e) {
         Tierlist.setup();
-        tco.sendMessage("Die Tierliste wurde aktualisiert!").queue();
+        e.reply("Die Tierliste wurde aktualisiert!");
     }
 
     @PrivateCommand(name = "skip")
-    public static void skip(JDA jda, MessageChannel tco, Message message) {
-        Draft.drafts.stream().filter(draft -> draft.name.equals(message.getContentDisplay().substring(6))).collect(Collectors.toList()).get(0).timer();
+    public static void skip(GenericCommandEvent e) {
+        Draft.drafts.stream().filter(draft -> draft.name.equals(e.getMsg().substring(6))).collect(Collectors.toList()).get(0).timer();
     }
 
     @PrivateCommand(name = "timer")
-    public static void timer(JDA jda, MessageChannel tco, Message message) {
-        String name = message.getContentDisplay().substring(7);
+    public static void timer(GenericCommandEvent e) {
+        String name = e.getMsg().substring(7);
         List<Draft> list = Draft.drafts.stream().filter(d -> d.name.equals(name)).collect(Collectors.toList());
         if (list.size() == 0) {
-            tco.sendMessage("Dieser draft existiert nicht!").queue();
+            e.reply("Dieser Draft existiert nicht!");
             return;
         }
         Draft d = list.get(0);
@@ -56,21 +54,21 @@ public class PrivateCommands {
         }, delay);
         getEmolgaJSON().getJSONObject("drafts").getJSONObject(name).put("timer", true);
         saveEmolgaJSON();
-        tco.sendMessage("Der Timer bei " + name + " wurde aktiviert!").queue();
+        e.reply("Der Timer bei " + name + " wurde aktiviert!");
     }
 
     @PrivateCommand(name = "edit")
-    public static void edit(JDA jda, MessageChannel tco, Message message) {
-        String[] split = message.getContentDisplay().split(" ");
-        jda.getTextChannelById(split[1]).editMessageById(split[2], message.getContentDisplay().substring(43)).queue();
+    public static void edit(GenericCommandEvent e) {
+        e.getJDA().getTextChannelById(e.getArg(0)).editMessageById(e.getArg(1), e.getMsg().substring(43)).queue();
     }
 
     @PrivateCommand(name = "send")
-    public static void send(JDA jda, MessageChannel tco, Message message) {
+    public static void send(GenericCommandEvent e) {
+        Message message = e.getMessage();
         String[] split = message.getContentDisplay().split(" ");
         System.out.println(message.getContentRaw());
         String s = message.getContentRaw().substring(24).replaceAll("\\\\", "");
-        TextChannel tc = jda.getTextChannelById(split[1]);
+        TextChannel tc = e.getJDA().getTextChannelById(e.getArg(0));
         Guild g = tc.getGuild();
         for (ListedEmote emote : g.retrieveEmotes().complete()) {
             s = s.replace("<<" + emote.getName() + ">>", emote.getAsMention());
@@ -79,12 +77,11 @@ public class PrivateCommands {
     }
 
     @PrivateCommand(name = "react")
-    public static void react(JDA jda, MessageChannel tco, Message message) {
-        String msg = message.getContentDisplay();
-        String[] split = msg.split(" ");
+    public static void react(GenericCommandEvent e) {
+        String msg = e.getMsg();
         String s = msg.substring(45);
-        TextChannel tc = jda.getTextChannelById(split[1]);
-        Message m = tc.retrieveMessageById(split[2]).complete();
+        TextChannel tc = e.getJDA().getTextChannelById(e.getArg(0));
+        Message m = tc.retrieveMessageById(e.getArg(1)).complete();
         assert (m != null);
         if (s.contains("<")) {
             s = s.substring(1);
@@ -97,24 +94,24 @@ public class PrivateCommands {
     }
 
     @PrivateCommand(name = "ban")
-    public static void ban(JDA jda, MessageChannel tco, Message message) {
-        jda.getGuildById(message.getContentDisplay().split(" ")[1]).ban(message.getContentDisplay().split(" ")[2], 0).queue();
+    public static void ban(GenericCommandEvent e) {
+        e.getJDA().getGuildById(e.getArg(0)).ban(e.getArg(1), 0).queue();
     }
 
     @PrivateCommand(name = "updatedatabase")
-    public static void updateDatabase(JDA jda, MessageChannel tco, Message message) {
+    public static void updateDatabase(GenericCommandEvent e) {
         loadJSONFiles();
-        tco.sendMessage("Done!").queue();
+        e.done();
     }
 
     @PrivateCommand(name = "emolgajson", aliases = {"ej"})
-    public static void emolgajson(JDA jda, MessageChannel tco, Message message) {
+    public static void emolgajson(GenericCommandEvent e) {
         emolgajson = load("./emolgadata.json");
-        tco.sendMessage("Done!").queue();
+        e.done();
     }
 
     @PrivateCommand(name = "updategiveaways")
-    public static void updateGiveaways(JDA jda, MessageChannel tco, Message message) {
+    public static void updateGiveaways(GenericCommandEvent e) {
         Giveaway.giveaways.clear();
         if (emolgajson.has("giveaways")) {
             JSONArray arr = emolgajson.getJSONArray("giveaways");
@@ -123,38 +120,37 @@ public class PrivateCommands {
                 new Giveaway(obj.getString("tcid"), obj.getString("author"), new Date(obj.getLong("end")).toInstant(), obj.getInt("winners"), obj.getString("prize"), obj.getString("mid"), obj.has("role"));
             }
         }
-        tco.sendMessage("Done!").queue();
+        e.done();
     }
 
     @PrivateCommand(name = "sortbst")
-    public static void sortBSTCmd(JDA jda, MessageChannel tco, Message message) {
+    public static void sortBSTCmd(GenericCommandEvent e) {
         sortBST();
-        tco.sendMessage("Done!").queue();
+        e.done();
     }
 
     @PrivateCommand(name = "del")
-    public static void del(JDA jda, MessageChannel tco, Message message) {
-        jda.getTextChannelById(message.getContentDisplay().split(" ")[1]).deleteMessageById(message.getContentDisplay().split(" ")[2]).queue();
+    public static void del(GenericCommandEvent e) {
+        e.getJDA().getTextChannelById(e.getArg(0)).deleteMessageById(e.getArg(1)).queue();
     }
 
     @PrivateCommand(name = "sortzbs")
-    public static void sortZBSCmd(JDA jda, MessageChannel tco, Message message) {
-        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ZBSL" + message.getContentDisplay().split(" ")[1]);
-        sortZBS(league.getString("sid"), "Liga " + message.getContentDisplay().split(" ")[1], league);
+    public static void sortZBSCmd(GenericCommandEvent e) {
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ZBSL" + e.getArg(0));
+        sortZBS(league.getString("sid"), "Liga " + e.getArg(0), league);
     }
 
     @PrivateCommand(name = "sortwooloo")
-    public static void sortWoolooCmd(JDA jda, MessageChannel tco, Message message) {
+    public static void sortWoolooCmd(GenericCommandEvent e) {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("Wooloo Cup");
         sortWooloo(league.getJSONObject("doc").getString("sid"), league);
     }
 
     @PrivateCommand(name = "troll")
-    public static void troll(JDA jda, MessageChannel tco, Message message) {
-        String[] split = message.getContentDisplay().split(" ");
-        Category category = jda.getCategoryById(split[1]);
+    public static void troll(GenericCommandEvent e) {
+        Category category = e.getJDA().getCategoryById(e.getArg(0));
         Guild g = category.getGuild();
-        Member user = g.retrieveMemberById(split[2]).complete();
+        Member user = g.retrieveMemberById(e.getArg(1)).complete();
         ArrayList<VoiceChannel> list = new ArrayList<>(category.getVoiceChannels());
         Collections.shuffle(list);
         VoiceChannel old = user.getVoiceState().getChannel();
@@ -171,12 +167,12 @@ public class PrivateCommands {
     }
 
     @PrivateCommand(name = "updatetable")
-    public static void updateTableCmd(JDA jda, MessageChannel tco, Message message) {
-        updateTable(getEmolgaJSON().getJSONObject("BlitzTurnier"), jda.getTextChannelById("771403849029386270"));
+    public static void updateTableCmd(GenericCommandEvent e) {
+        updateTable(getEmolgaJSON().getJSONObject("BlitzTurnier"), e.getJDA().getTextChannelById(771403849029386270L));
     }
 
     @PrivateCommand(name = "nextround")
-    public static void nextRoundCmd(JDA jda, MessageChannel tco, Message message) {
+    public static void nextRoundCmd(GenericCommandEvent e) {
         new Thread(() -> {
             JSONObject b = getEmolgaJSON().getJSONObject("BlitzTurnier");
             JSONObject bo = b.getJSONObject("battleorder");
@@ -200,7 +196,7 @@ public class PrivateCommands {
             for (String s : order) {
                 str.append(namesmap.get(s.split(":")[0])).append(" vs ").append(namesmap.get(s.split(":")[1])).append("\n");
             }
-            tco.sendMessage(str.toString()).queue();
+            e.reply(str.toString());
             b.put("gameday", b.getInt("gameday") + 1);
             bo.put(String.valueOf(b.getInt("gameday")), String.join(";", order));
             saveEmolgaJSON();
@@ -208,24 +204,24 @@ public class PrivateCommands {
     }
 
     @PrivateCommand(name = "levels")
-    public static void levels(JDA jda, MessageChannel tco, Message message) {
+    public static void levels(GenericCommandEvent e) {
         new Thread(() -> {
             HashMap<String, String> map = new HashMap<>();
             JSONObject level = getLevelJSON();
-            jda.getGuildById(Constants.BSID).retrieveMembersByIds(level.keySet().toArray(new String[0])).get().forEach(m -> map.put(m.getId(), m.getEffectiveName()));
+            e.getJDA().getGuildById(Constants.BSID).retrieveMembersByIds(level.keySet().toArray(new String[0])).get().forEach(m -> map.put(m.getId(), m.getEffectiveName()));
             StringBuilder str = new StringBuilder();
             level.keySet().stream().sorted(Comparator.comparing(level::getInt).reversed()).forEach(s -> {
                 if (map.get(s) == null) return;
                 str.append(map.get(s)).append(": ").append(getLevelFromXP(level.getInt(s))).append("\n");
             });
-            tco.sendMessage(str.toString()).queue();
+            e.reply(str.toString());
         }).start();
     }
 
     @PrivateCommand(name = "generateorder")
-    public static void generateOrder(JDA jda, MessageChannel tco, Message message) {
+    public static void generateOrder(GenericCommandEvent e) {
         new Thread(() -> {
-            ArrayList<Member> list = new ArrayList<>(jda.getGuildById(Constants.BSID).findMembers(mem -> mem.getRoles().contains(jda.getGuildById(Constants.BSID).getRoleById("774659853812760587"))).get());
+            ArrayList<Member> list = new ArrayList<>(e.getJDA().getGuildById(Constants.BSID).findMembers(mem -> mem.getRoles().contains(e.getJDA().getGuildById(Constants.BSID).getRoleById("774659853812760587"))).get());
             Collections.shuffle(list);
             StringBuilder str = new StringBuilder();
             boolean b = false;
@@ -233,39 +229,21 @@ public class PrivateCommands {
                 str.append(member.getId()).append(b ? ";" : ":");
                 b = !b;
             }
-            tco.sendMessage(str.toString()).queue();
+            e.reply(str.toString());
         }).start();
     }
 
     @PrivateCommand(name = "deletedreplays")
-    public static void deletedReplays(JDA jda, MessageChannel tco, Message message) {
+    public static void deletedReplays(GenericCommandEvent e) {
         JSONObject a = getEmolgaJSON().getJSONObject("analyse");
-        a.keySet().stream().filter(s -> jda.getTextChannelById(s) == null).collect(Collectors.toList()).forEach(a::remove);
+        a.keySet().stream().filter(s -> e.getJDA().getTextChannelById(s) == null).collect(Collectors.toList()).forEach(a::remove);
         saveEmolgaJSON();
         updatePresence();
     }
 
-    @PrivateCommand(name = "transferstuff")
-    public static void transfer(JDA jda, MessageChannel tco, Message message) {
-        JSONObject t = getWikiJSON().getJSONObject("translations");
-        ArrayList<String> egg = new ArrayList<>();
-        ArrayList<String> st = new ArrayList<>();
-        for (String s : t.keySet()) {
-            JSONObject o = t.getJSONObject(s);
-            if(!o.getString("type").equals("egg")) continue;
-            if(!s.equals(toSDName("e" + o.getString("ger")))) egg.add(s);
-            /*if(already.contains(toSDName(o.getString("ger")))) continue;
-            already.add(toSDName(o.getString("ger")));
-            st.add("(" + Stream.of(toSDName(o.getString("engl")), toSDName(o.getString("ger")), o.getString("ger"), o.getString("type"), "normal").map(str -> "\"" + str + "\"").collect(Collectors.joining(",")) + ")");*/
-        }
-        for (String s : egg) {
-            st.add("(" + Stream.of(s, toSDName(t.getJSONObject(s).getString("ger")), "", t.getJSONObject(s).getString("ger"), "egg", "default").map(str -> "\"" + str + "\"").collect(Collectors.joining(", ")) + ")");
-        }
-        Database.update("insert into translations(englishid, germanid, englishname, germanname, type, modification) values " + String.join(",", st));
-    }
 
     @PrivateCommand(name = "delfromjson")
-    public static void delFromJSON(JDA jda, MessageChannel tco, Message message) throws SQLException {
+    public static void delFromJSON(GenericCommandEvent e) throws SQLException {
         ResultSet set = Database.select("select * from analysis");
         JSONObject an = getEmolgaJSON().getJSONObject("analyse");
         while (set.next()) {
@@ -275,26 +253,57 @@ public class PrivateCommands {
     }
 
     @PrivateCommand(name = "addreactions")
-    public static void addReactions(JDA jda, MessageChannel tco, Message message) {
-        String[] msg = message.getContentDisplay().split("\\s+");
-        jda.getTextChannelById(msg[1]).retrieveMessageById(msg[2]).queue(m -> {
+    public static void addReactions(GenericCommandEvent e) {
+        Message message = e.getMessage();
+        e.getJDA().getTextChannelById(e.getArg(0)).retrieveMessageById(e.getArg(1)).queue(m -> {
             m.getReactions().forEach(mr -> {
                 MessageReaction.ReactionEmote emote = mr.getReactionEmote();
-                if(emote.isEmoji()) m.addReaction(emote.getEmoji()).queue();
+                if (emote.isEmoji()) m.addReaction(emote.getEmoji()).queue();
                 else m.addReaction(emote.getEmote()).queue();
             });
-            tco.sendMessage("Done!").queue();
+            e.done();
         });
     }
 
-    public static void execute(JDA jda, MessageChannel tco, Message message) {
+    @PrivateCommand(name = "replaceplayer")
+    public static void replacePlayer(GenericCommandEvent e) {
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(e.getArg(0));
+        JSONObject battleOrder = league.getJSONObject("battleorder");
+        String oldid = e.getArg(1);
+        String newid = e.getArg(2);
+        for (int i = 1; i <= battleOrder.length(); i++) {
+            battleOrder.put(String.valueOf(i), battleOrder.getString(String.valueOf(i)).replace(oldid, newid));
+        }
+        league.put("table", league.getString("table").replace(oldid, newid));
+        JSONObject order = league.getJSONObject("order");
+        for (int i = 1; i <= order.length(); i++) {
+            order.put(String.valueOf(i), order.getString(String.valueOf(i)).replace(oldid, newid));
+        }
+        JSONObject picks = league.getJSONObject("picks");
+        picks.put(newid, picks.getJSONArray(oldid));
+        picks.remove(oldid);
+        if (league.has("results")) {
+            JSONObject results = league.getJSONObject("results");
+            ArrayList<String> keys = new ArrayList<>(results.keySet());
+            for (String key : keys) {
+                if (key.contains(oldid)) {
+                    results.put(key.replace(oldid, newid), results.getString(key));
+                    results.remove(key);
+                }
+            }
+        }
+        saveEmolgaJSON();
+        e.done();
+    }
+
+    public static void execute(Message message) {
         String msg = message.getContentRaw();
         for (Method method : PrivateCommands.class.getDeclaredMethods()) {
             PrivateCommand a = method.getAnnotation(PrivateCommand.class);
             if (a == null) continue;
             if (msg.toLowerCase().startsWith("!" + a.name().toLowerCase() + " ") || msg.equalsIgnoreCase("!" + a.name()) || Arrays.stream(a.aliases()).anyMatch(s -> msg.startsWith("!" + s + " ") || msg.equalsIgnoreCase("!" + s))) {
                 try {
-                    method.invoke(null, jda, tco, message);
+                    method.invoke(null, new PrivateCommandEvent(message));
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }

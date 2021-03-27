@@ -27,7 +27,7 @@ public class Tierlist {
                     isPointBased = lines.get(0).equalsIgnoreCase("points");
                     order.addAll(Arrays.asList(lines.get(1).split(",")));
                 } else if (name.equals("tiercolumns")) {
-                    tiercolumns.addAll(lines);
+                    tiercolumns.addAll(lines.stream().map(String::trim).collect(Collectors.toCollection(ArrayList::new)));
                 } else {
                     prices.put(name, Integer.parseInt(lines.remove(0)));
                     tierlist.put(name, lines.stream().map(String::trim).collect(Collectors.toCollection(ArrayList::new)));

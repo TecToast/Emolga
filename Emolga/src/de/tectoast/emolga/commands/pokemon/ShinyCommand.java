@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.pokemon;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.io.File;
@@ -13,7 +13,7 @@ public class ShinyCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
         String msg = e.getMessage().getContentDisplay();
         String mon = getEnglNameWithType(msg.substring(7));

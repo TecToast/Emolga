@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.pokemon;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -44,7 +44,7 @@ public class CombinationCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();

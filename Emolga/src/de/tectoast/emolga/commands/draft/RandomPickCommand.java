@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.draft;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import net.dv8tion.jda.api.entities.Member;
@@ -18,10 +18,13 @@ public class RandomPickCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         Member member = e.getMember();
         TextChannel tco = e.getChannel();
         Draft d = Draft.getDraftByMember(member, tco);
+        if(d == null) {
+            e.getChannel().sendMessage("Du Kek der Command funktioniert nur in einem Draft xD").queue();
+        }
         String msg = e.getMessage().getContentDisplay();
         String[] split = msg.split(" ");
         Tierlist tierlist = Tierlist.getByGuild(d.guild);

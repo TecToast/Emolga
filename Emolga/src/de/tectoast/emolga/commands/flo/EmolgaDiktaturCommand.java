@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.flo;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.GuildChannel;
 import net.dv8tion.jda.api.entities.Member;
@@ -14,7 +14,7 @@ public class EmolgaDiktaturCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         Guild g = e.getGuild();
         JSONObject members = new JSONObject();
         JSONObject channels = new JSONObject();
@@ -28,7 +28,7 @@ public class EmolgaDiktaturCommand extends Command {
                 member.modifyNickname("Emolga-Anhänger").queue();
             }
             for (GuildChannel gc : g.getChannels()) {
-                gc.getManager().setName("emolga-" + gc.getName()).queue();
+                gc.getManager().setName("Emolga-" + gc.getName()).queue();
             }
             getEmolgaJSON().getJSONObject("emolgareset").put(g.getId(), members);
             saveEmolgaJSON();

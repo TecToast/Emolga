@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.bs;
 import com.google.api.services.sheets.v4.model.*;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.utils.CommandEvent;
+import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Google;
 import de.tectoast.emolga.utils.RequestBuilder;
 import net.dv8tion.jda.api.entities.Member;
@@ -19,7 +19,7 @@ public class AddMonCommand extends Command {
     }
 
     @Override
-    public void process(CommandEvent e) {
+    public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
         String msg = e.getMessage().getContentDisplay();
         Member member = e.getMember();

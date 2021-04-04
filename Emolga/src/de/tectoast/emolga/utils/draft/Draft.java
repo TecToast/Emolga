@@ -1,13 +1,17 @@
 package de.tectoast.emolga.utils.draft;
 
 
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
@@ -62,7 +66,7 @@ public class Draft {
                 round++;
                 for (Member member : members) {
                     picks.put(member, new ArrayList<>());
-                    points.put(member, 1000);
+                    points.put(member, 1100);
                 }
                 for (Member member : members) {
                     ts.sendMessage("**" + member.getEffectiveName() + ":**").queue();
@@ -106,7 +110,7 @@ public class Draft {
                         picks.put(member, new ArrayList<>());
                     }
                     if (isPointBased) {
-                        points.put(member, 1000);
+                        points.put(member, 1100);
                         for (DraftPokemon mon : picks.get(member)) {
                             points.put(member, points.get(member) - getTierlist().prices.get(mon.tier));
                         }
@@ -136,63 +140,57 @@ public class Draft {
         }).start();
     }
 
-    public static void init() {
+    public static void init(JDA jda) {
         Tierlist.setup();
-        /*JSONObject json = getEmolgaJSON();
-        for (String s : json.getJSONObject("drafts").keySet()) {
-            JSONObject league = json.getJSONObject("drafts").getJSONObject(s);
-            if (league.has("announcements")) {
-                JSONObject announcements = league.getJSONObject("announcements");
-                for (int i = 1; i <= announcements.keySet().size(); i++) {
-                    if (league.has("alreadyannounced")) {
-                        if (Arrays.asList(league.getString("alreadyannounced").split(",")).contains(String.valueOf(i)))
-                            continue;
-                    }
-                    int finalI = i;
-                    long delay = announcements.getLong(String.valueOf(i)) - System.currentTimeMillis();
-                    if (delay < 0) delay = 0;
-                    //System.out.println("delay = " + delay);
+        JSONObject json = getEmolgaJSON();
+        SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy hh:mm:ss", Locale.GERMANY);
+        for (String draftname : json.getJSONObject("drafts").keySet()) {
+            JSONObject league = json.getJSONObject("drafts").getJSONObject(draftname);
+            if (league.has("predictiongame")) {
+                Emote p1emote = jda.getEmoteById(540970044297838597L);
+                Emote p2emote = jda.getEmoteById(645622238757781505L);
+                JSONObject predictiongame = league.getJSONObject("predictiongame");
+                int lastDay = predictiongame.getInt("lastDay");
+                Calendar c = Calendar.getInstance();
+                c.set(Calendar.HOUR_OF_DAY, 20);
+                c.set(Calendar.MINUTE, 0);
+                c.set(Calendar.SECOND, 0);
+                while (c.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) c.add(Calendar.DAY_OF_WEEK, 1);
+                long timeUntilStart = c.getTimeInMillis() - System.currentTimeMillis();
+                TextChannel tc = jda.getTextChannelById(predictiongame.getLong("channelid"));
+                for (int i = 0; i < league.getJSONObject("battleorder").length() - lastDay; i++) {
+                    long delay = timeUntilStart + (i * 604800000L);
+                    System.out.println(draftname + " -> " + i + " -> " + delay + " -> " + format.format(new Date(System.currentTimeMillis() + delay)));
+                    int finalI = i + 1;
+                    System.out.println("finalI = " + finalI);
                     new Timer().schedule(new TimerTask() {
                         @Override
                         public void run() {
-                            JSONObject json = getEmolgaJSON();
-                            JSONObject league = json.getJSONObject("drafts").getJSONObject(s);
-                            already.put(s, finalI);
-                            if (write == null) {
-                                write = new Timer();
-                                write.schedule(new TimerTask() {
-                                    @Override
-                                    public void run() {
-                                        JSONObject json = getEmolgaJSON();
-                                        for (String s : already.keySet()) {
-                                            JSONObject league = json.getJSONObject("drafts").getJSONObject(s);
-                                            if (!league.has("alreadyannounced")) league.put("alreadyannounced", "");
-                                            league.put("alreadyannounced", league.getString("alreadyannounced") + already.get(s) + ",");
-                                        }
-                                        saveEmolgaJSON();
-                                    }
-                                }, 60000);
+                            int gameday = lastDay + finalI;
+                            tc.sendMessage("**Spieltag " + gameday + ":**").queue();
+                            predictiongame.getJSONObject("ids").put(String.valueOf(gameday), new JSONObject());
+                            JSONObject o = predictiongame.getJSONObject("ids").getJSONObject(String.valueOf(gameday));
+                            String bo = league.getJSONObject("battleorder").getString(String.valueOf(gameday));
+                            ArrayList<CompletableFuture<Message>> list = new ArrayList<>();
+                            for (String str : bo.split(";")) {
+                                String[] split = str.split(":");
+                                list.add(tc.sendMessage("<:yay:540970044297838597> <@" + split[0] + "> vs. <@" + split[1] + "> <:yay2:645622238757781505>").submit().whenComplete((m, throwable) -> {
+                                    m.addReaction(p1emote).queue();
+                                    m.addReaction(p2emote).queue();
+                                    List<Member> mentioned = m.getMentionedMembers();
+                                    o.put(mentioned.get(0).getId() + ":" + mentioned.get(1).getId(), m.getIdLong());
+                                }));
                             }
-                            Guild g = EmolgaMain.jda.getGuildById(league.getString("guild"));
-                            TextChannel tc = g.getTextChannelById(league.getString("announcementchannel"));
-                            StringBuilder s = new StringBuilder("**Spieltag " + finalI + ":**\n");
-                            for (String order : league.getJSONObject("battleorder").getString(String.valueOf(finalI)).split(";")) {
-                                s.append(g.retrieveMemberById(order.split(":")[0]).complete().getEffectiveName()).append(" vs ").append(g.retrieveMemberById(order.split(":")[1]).complete().getEffectiveName()).append("\n");
-                            }
-                            s.append(g.getRoleById(league.getString("role")).getAsMention());
-                            tc.sendMessage(s.toString()).queue();
-                            saveEmolgaJSON();
+                            CompletableFuture.allOf(list.toArray(new CompletableFuture[0])).whenComplete((unused, throwable) -> saveEmolgaJSON());
                         }
                     }, delay);
-                    //System.out.println(i + " " + (announcements.getLong(String.valueOf(i)) - System.currentTimeMillis()));
                 }
             }
-        }*/
+        }
     }
 
     /*public static boolean isDraftIn(TextChannel tc) {
-        List<String> list = drafts.stream().map(draft -> draft.tc.getId()).collect(Collectors.toList());
-        return list.contains(tc.getId());
+        return drafts.stream().anyMatch(d -> d.tc.getId().equals(tc.getId()));
     }*/
 
     public static Draft getDraftByMember(Member member, TextChannel tco) {
@@ -215,7 +213,7 @@ public class Draft {
 
     public static Draft getDraftByChannel(TextChannel tc) {
         for (Draft draft : Draft.drafts) {
-            if(draft.tc.getId().equals(tc.getId())) return draft;
+            if (draft.tc.getId().equals(tc.getId())) return draft;
         }
         return null;
     }
@@ -277,15 +275,10 @@ public class Draft {
         //messages.get(member).editMessage(str.toString()).queue();
     }
 
-    public enum TimerReason {
-        REALTIMER,
-        SKIP
-    }
-
     public void timer(TimerReason tr) {
         if (ended) return;
         if (order.get(round).size() == 0) {
-            if (round == 12) {
+            if (round == 13) {
                 saveEmolgaJSON();
                 tc.sendMessage("Der Draft ist vorbei!").queue();
                 Draft.drafts.remove(this);
@@ -325,6 +318,7 @@ public class Draft {
             this.picks.get(current).remove(p);
             json.getJSONObject("drafts").getJSONObject(name).getJSONObject("picks").put(current.getId(), getTeamAsArray(current));
         }
+        saveEmolgaJSON();
         long delay = calculateASLTimer();
         cooldown.schedule(new TimerTask() {
             @Override
@@ -349,6 +343,18 @@ public class Draft {
         return arr;
     }
 
+    public String getTeamMsg(Member member) {
+        ArrayList<DraftPokemon> list = picks.get(member);
+        StringBuilder msg = new StringBuilder("**" + member.getEffectiveName() + "**\n");
+        for (String o : getTierlist().order) {
+            ArrayList<DraftPokemon> mons = list.stream().filter(s -> s.tier.equals(o)).sorted(Comparator.comparing(o2 -> o2.name)).collect(Collectors.toCollection(ArrayList::new));
+            for (DraftPokemon mon : mons) {
+                msg.append(o).append(": ").append(mon.name).append("\n");
+            }
+        }
+        return msg.toString();
+    }
+
     /*public static String getTeamMsgFromString(Guild g, String mem, String str) {
         Member member = g.retrieveMemberById(mem).complete();
         StringBuilder msg = new StringBuilder("**" + member.getEffectiveName() + "**\n");
@@ -361,18 +367,6 @@ public class Draft {
         }
         return msg.toString();
     }*/
-
-    public String getTeamMsg(Member member) {
-        ArrayList<DraftPokemon> list = picks.get(member);
-        StringBuilder msg = new StringBuilder("**" + member.getEffectiveName() + "**\n");
-        for (String o : getTierlist().order) {
-            ArrayList<DraftPokemon> mons = list.stream().filter(s -> s.tier.equals(o)).sorted(Comparator.comparing(o2 -> o2.name)).collect(Collectors.toCollection(ArrayList::new));
-            for (DraftPokemon mon : mons) {
-                msg.append(o).append(": ").append(mon.name).append("\n");
-            }
-        }
-        return msg.toString();
-    }
 
     public HashMap<String, Integer> getPossibleTiers(Member mem) {
         HashMap<String, Integer> possible = new HashMap<>(getTierlist().prices);
@@ -390,5 +384,10 @@ public class Draft {
             list.add(possible.get(s) + "x **" + s + "**");
         }
         return String.join(", ", list);
+    }
+
+    public enum TimerReason {
+        REALTIMER,
+        SKIP
     }
 }

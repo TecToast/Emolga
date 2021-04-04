@@ -17,6 +17,7 @@ public abstract class GenericCommandEvent {
     private final List<TextChannel> mentionedChannels;
     private final List<Member> mentionedMembers;
     private final List<Role> mentionedRoles;
+    private final int argsLength;
 
     public GenericCommandEvent(Message message) {
         this.message = message;
@@ -29,6 +30,7 @@ public abstract class GenericCommandEvent {
         this.mentionedRoles = this.message.getMentionedRoles();
         this.args = new ArrayList<>(Arrays.asList(msg.split("\\s+")));
         this.args.remove(0);
+        this.argsLength = this.args.size();
     }
 
     public User getAuthor() {
@@ -70,6 +72,10 @@ public abstract class GenericCommandEvent {
 
     public List<Role> getMentionedRoles() {
         return mentionedRoles;
+    }
+
+    public int getArgsLength() {
+        return argsLength;
     }
 
     public String getArg(int i) {

@@ -321,18 +321,20 @@ public abstract class Command {
 
     public static void muteTimer(Guild g, long expires, String mem) {
         try {
-            new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    String tstr = new Timestamp(expires).toString();
-                    String query = "delete from mutes where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'";
-                    System.out.println(query);
-                    if (Database.update(query) != 0) {
-                        if (mutedRoles.containsKey(g.getIdLong()))
-                            g.removeRoleFromMember(mem, g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
+            if(expires > -1) {
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        String tstr = new Timestamp(expires).toString();
+                        String query = "delete from mutes where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'";
+                        System.out.println(query);
+                        if (Database.update(query) != 0) {
+                            if (mutedRoles.containsKey(g.getIdLong()))
+                                g.removeRoleFromMember(mem, g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
+                        }
                     }
-                }
-            }, new Date(expires));
+                }, new Date(expires));
+            }
         } catch (IllegalArgumentException ignored) {
             String tstr = new Timestamp(expires).toString();
             if (Database.update("delete from mutes where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'") != 0) {
@@ -359,7 +361,7 @@ public abstract class Command {
         tco.sendMessage(builder.build()).queue();
     }
 
-    public static void ban(TextChannel tco, Member mem, String reason) {
+    public static void ban(TextChannel tco, Member mod, Member mem, String reason) {
         Guild g = tco.getGuild();
         if (!g.getSelfMember().canInteract(mem)) {
             EmbedBuilder builder = new EmbedBuilder();
@@ -374,6 +376,7 @@ public abstract class Command {
         builder.setColor(Color.CYAN);
         builder.setDescription("**Grund:** " + reason);
         tco.sendMessage(builder.build()).queue();
+        Database.insert("bans", "userid, modid, guildid, reason", mem.getIdLong(), mod.getIdLong(), tco.getGuild().getIdLong(), reason);
     }
 
     public static void mute(TextChannel tco, Member mod, Member mem, String reason) {
@@ -931,7 +934,7 @@ public abstract class Command {
         save(statisticsjson, "statistics.json");
     }
 
-    public static void saveEmolgaJSON() {
+    public static synchronized void saveEmolgaJSON() {
         save(emolgajson, "emolgadata.json");
     }
 
@@ -1154,14 +1157,18 @@ public abstract class Command {
             JSONObject league = null;
             JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
             for (String s : drafts.keySet()) {
+                if(s.equalsIgnoreCase("IchMagKekse")) continue;
                 JSONObject o = drafts.getJSONObject(s);
+                if(Long.parseLong(o.optString("guild")) != Constants.ASLID) continue;
                 if (o.getString("table").contains(uid1)) {
                     league = o;
+                    System.out.println("Conference: " + s);
                     break;
                 }
             }
             if (league == null) return;
             List<String> table = Arrays.asList(league.getString("table").split(","));
+            System.out.println("table = " + table);
             int tin1 = table.indexOf(uid1);
             int tin2 = table.indexOf(uid2);
             System.out.println("tin1 = " + tin1);
@@ -1170,6 +1177,12 @@ public abstract class Command {
             int gameday = getGameDay(league, uid1, uid2);
             if (gameday == -1) {
                 System.out.println("GAMEDAY -1");
+                return;
+            }
+            if (!league.has("results")) league.put("results", new JSONObject());
+            JSONObject results = league.getJSONObject("results");
+            if(results.has(uid1 + ":" + uid2) || results.has(uid2 + ":" + uid1)) {
+                sendToMe("Double Entry -> skipped");
                 return;
             }
             ArrayList<String> userids = new ArrayList<>(Arrays.asList(uid1, uid2));
@@ -1240,8 +1253,6 @@ public abstract class Command {
                     }
                 }
                 if (game[i].isWinner()) {
-                    if (!league.has("results")) league.put("results", new JSONObject());
-                    JSONObject results = league.getJSONObject("results");
                     results.put(uid1 + ":" + uid2, uid);
                     b.addSingle("Daten!D" + (index + 1), (Integer.parseInt((String) Google.get(sid, "Daten!D" + (index + 1), false, false).get(0).get(0)) + 1));
                 } else {

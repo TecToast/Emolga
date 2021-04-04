@@ -28,6 +28,6 @@ public class BanCommand extends Command {
         } catch (Exception ignored) {
             reason = "Nicht angegeben";
         }
-        ban(tco, mem, reason);
+        ban(tco, e.getMember(), mem, reason);
     }
 }

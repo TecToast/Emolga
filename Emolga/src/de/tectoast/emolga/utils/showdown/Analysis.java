@@ -11,10 +11,6 @@ public class Analysis {
 
     public static Player[] analyse(String link) {
 
-        if (link.indexOf("http:") == 0) {
-            link = "https:" + link.split("http:")[1];
-        }
-
         ArrayList<String> game = (ArrayList<String>) getGameArrayList(link).clone();
 
         Player p1 = new Player();
@@ -33,14 +29,21 @@ public class Analysis {
             if (s.contains("|poke|p1")) {
                 String str = s.split("\\|")[3].split(",")[0];
                 //if (str.contains("Zoroark") || str.contains("Zorua")) return null;
-                if (str.contains("Urshifu")) str = "Urshifu-Rapid-Strike";
                 p1.getMons().add(new SDPokemon(str));
             }
             if (s.contains("|poke|p2")) {
                 String str = s.split("\\|")[3].split(",")[0];
                 //if (str.contains("Zoroark") || str.contains("Zorua")) return null;
-                if (str.contains("Urshifu")) str = "Urshifu-Rapid-Strike";
                 p2.getMons().add(new SDPokemon(str));
+            }
+
+            if (s.contains("|-end|p1a") && s.contains("|Illusion")) {
+                p1.getMons().stream().filter(sd -> sd.getPokemon().equals("Zoroark") || sd.getPokemon().equals("Zorua")).forEach(sd -> sd.setNickname(s.split("\\|")[2].substring(5)));
+            }
+
+            if (s.contains("|-end|p2a") && s.contains("|Illusion")) {
+                //System.out.println("ILLUSION FOUND");
+                p2.getMons().stream().filter(sd -> sd.getPokemon().equals("Zoroark") || sd.getPokemon().equals("Zorua")).forEach(sd -> sd.setNickname(s.split("\\|")[2].substring(5)));
             }
 
             //Nicks & Detailschange
@@ -56,7 +59,11 @@ public class Analysis {
                 }
                 if (s.split("\\|")[3].split(",")[0].contains("Gourgeist") && p1.indexOfName("Gourgeist-*") != -1) {//Genesect-Problem
                     p1.getMons().get(p1.indexOfName("Gourgeist-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
-                }//hier
+                }
+                if (s.split("\\|")[3].split(",")[0].contains("Urshifu") && p1.indexOfName("Urshifu-*") != -1) {//Genesect-Problem
+                    p1.getMons().get(p1.indexOfName("Urshifu-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                }
+                //hier
                 try {
                     p1.getMons().get(p1.indexOfName(s.split("\\|")[3].split(",")[0])).setNickname(s.split("\\|")[2].substring(5));
                 } catch (ArrayIndexOutOfBoundsException ignored) {
@@ -72,17 +79,17 @@ public class Analysis {
                 if (s.split("\\|")[3].split(",")[0].contains("Genesect") && p2.indexOfName("Genesect-*") != -1) {//Genesect-Problem
                     p2.getMons().get(p2.indexOfName("Genesect-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
                 }
-                if (s.split("\\|")[3].split(",")[0].contains("Gourgeist") && p1.indexOfName("Gourgeist-*") != -1) {//Genesect-Problem
-                    p1.getMons().get(p1.indexOfName("Gourgeist-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (s.split("\\|")[3].split(",")[0].contains("Gourgeist") && p2.indexOfName("Gourgeist-*") != -1) {//Genesect-Problem
+                    p2.getMons().get(p2.indexOfName("Gourgeist-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
                 }
-                if (s.split("\\|")[3].split(",")[0].contains("Urshifu") && p1.indexOfName("Urshifu-*") != -1) {//Genesect-Problem
-                    p1.getMons().get(p1.indexOfName("Urshifu-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (s.split("\\|")[3].split(",")[0].contains("Urshifu") && p2.indexOfName("Urshifu-*") != -1) {//Genesect-Problem
+                    p2.getMons().get(p2.indexOfName("Urshifu-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
                 }//Hier
                 try {
-                    String mon = s.split("\\|")[3].split(",")[0];
-                    if (mon.contains("Gourgeist")) mon = "Gourgeist-*";
+                    //String mon = s.split("\\|")[3].split(",")[0];
+                    //if (mon.contains("Gourgeist")) mon = "Gourgeist-*";
                     //System.out.println(p2.getMons().stream().map(commands::getPokemon).collect(Collectors.joining(",")));
-                    p2.getMons().get(p2.indexOfName(mon)).setNickname(s.split("\\|")[2].substring(5));
+                    p2.getMons().get(p2.indexOfName(s.split("\\|")[3].split(",")[0])).setNickname(s.split("\\|")[2].substring(5));
                 } catch (ArrayIndexOutOfBoundsException ignored) {
                 }
             }

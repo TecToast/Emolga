@@ -39,7 +39,7 @@ public class CreatedraftCommand extends Command {
             ArrayList<Member> invertedOrder = new ArrayList<>(order);
             Collections.reverse(invertedOrder);
             HashMap<Integer, ArrayList<Member>> map = new HashMap<>();
-            for (int i = 1; i <= 12; i++) {
+            for (int i = 1; i <= 13; i++) {
                 if (i % 2 == 0) {
                     order.clear();
                     order.addAll(invertedOrder);
@@ -58,7 +58,7 @@ public class CreatedraftCommand extends Command {
             }
             //System.out.println(map.toString());
             StringBuilder builder = new StringBuilder(name + ":\n");
-            for (int i = 1; i <= 12; i++) {
+            for (int i = 1; i <= 13; i++) {
                 builder.append(i).append(". Runde\n").append(map.get(i).stream().map(Member::getEffectiveName).collect(Collectors.joining("\n"))).append("\n\n");
             }
             tco.sendMessage(builder).submit().thenAccept(message -> message.pin().queue());
@@ -66,7 +66,7 @@ public class CreatedraftCommand extends Command {
             if (!json.has("drafts")) json.put("drafts", new JSONObject());
             JSONObject drafts = json.getJSONObject("drafts");
             HashMap<Integer, String> jstring = new HashMap<>();
-            for (int i = 1; i <= 12; i++) {
+            for (int i = 1; i <= 13; i++) {
                 jstring.put(i, map.get(i).stream().map(Member::getId).collect(Collectors.joining(",")));
             }
             JSONObject o = new JSONObject();

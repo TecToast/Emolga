@@ -1,6 +1,8 @@
 package de.tectoast.emolga.database;
 
+import de.tectoast.emolga.bot.EmolgaMain;
 import de.tectoast.emolga.commands.Command;
+import de.tectoast.emolga.utils.Constants;
 import org.json.JSONObject;
 
 import java.sql.*;
@@ -9,10 +11,10 @@ import java.util.ArrayList;
 public class Database {
 
     private static Database instance;
-    private Connection connection;
-    private long lastRequest;
     private final String username;
     private final String password;
+    private Connection connection;
+    private long lastRequest;
 
     public Database(String username, String password) throws SQLException {
         System.out.println("Connecting...");
@@ -64,5 +66,28 @@ public class Database {
             else list.add(value.toString());
         }
         update(query + String.join(", ", list) + ")");
+    }
+
+    public static void incrementPredictionCounter(long userid) {
+        new Thread(() -> {
+            try {
+                String verifyIfUserAlreadyExists = "SELECT userid FROM predictiongame WHERE userid = ? ";
+                PreparedStatement usernameInput = instance.connection.prepareStatement(verifyIfUserAlreadyExists);
+                usernameInput.setLong(1, userid);
+                ResultSet rS = usernameInput.executeQuery();
+                if (rS.next()) {
+                    update("UPDATE predictiongame SET predictions = (predictions + 1) WHERE userid = " + userid);
+                } else {
+                    String name = EmolgaMain.jda.getGuildById(Constants.ASLID).retrieveMemberById(userid).complete().getEffectiveName();
+                    PreparedStatement userDataInput = instance.connection.prepareStatement("INSERT INTO predictiongame (userid, username, predictions) VALUES (?,?,?);");
+                    userDataInput.setLong(1, userid);
+                    userDataInput.setString(2, name);
+                    userDataInput.setInt(3, 1);
+                    userDataInput.executeUpdate();
+                }
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }).start();
     }
 }

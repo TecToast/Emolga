@@ -9,7 +9,7 @@ public class EmoteStealCommand extends Command {
 
 
     public EmoteStealCommand() {
-        super("emotesteal", "`!emotesteal`", CommandCategory.Flo);
+        super("emotesteal", "`!emotesteal` Stealt Emotes... lol", CommandCategory.Flo);
     }
 
     @Override

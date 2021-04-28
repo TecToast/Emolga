@@ -9,5 +9,6 @@ public class Constants {
     public static final int DEXJSONSUB = 59;
     public static final int LEARNSETJSONSUB = 62;
     public static final int MOVESJSONSUB = 51;
+    public static final int TYPESJSONSUB = 50;
     public static final long GAMERSQUAD = 673833176036147210L;
 }

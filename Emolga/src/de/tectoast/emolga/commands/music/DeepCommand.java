@@ -11,7 +11,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class DeepCommand extends Command {
     public DeepCommand() {
-        super("deep", "`e!deep` Spielt die Deepplaylist ab", CommandCategory.Music, 700504340368064562L);
+        super("deep", "`e!deep` Spielt die Deepplaylist ab", CommandCategory.Music, 700504340368064562L, 673833176036147210L);
     }
 
     @Override

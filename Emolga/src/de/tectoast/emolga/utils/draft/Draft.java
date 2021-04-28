@@ -2,10 +2,7 @@ package de.tectoast.emolga.utils.draft;
 
 
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Emote;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -166,7 +163,12 @@ public class Draft {
                     new Timer().schedule(new TimerTask() {
                         @Override
                         public void run() {
+                            JSONObject json = getEmolgaJSON();
+                            JSONObject league = json.getJSONObject("drafts").getJSONObject(draftname);
+                            JSONObject predictiongame = league.getJSONObject("predictiongame");
+                            int lastDay = predictiongame.getInt("lastDay");
                             int gameday = lastDay + finalI;
+                            predictiongame.put("lastDay", lastDay + 1);
                             tc.sendMessage("**Spieltag " + gameday + ":**").queue();
                             predictiongame.getJSONObject("ids").put(String.valueOf(gameday), new JSONObject());
                             JSONObject o = predictiongame.getJSONObject("ids").getJSONObject(String.valueOf(gameday));
@@ -174,14 +176,22 @@ public class Draft {
                             ArrayList<CompletableFuture<Message>> list = new ArrayList<>();
                             for (String str : bo.split(";")) {
                                 String[] split = str.split(":");
-                                list.add(tc.sendMessage("<:yay:540970044297838597> <@" + split[0] + "> vs. <@" + split[1] + "> <:yay2:645622238757781505>").submit().whenComplete((m, throwable) -> {
-                                    m.addReaction(p1emote).queue();
-                                    m.addReaction(p2emote).queue();
-                                    List<Member> mentioned = m.getMentionedMembers();
-                                    o.put(mentioned.get(0).getId() + ":" + mentioned.get(1).getId(), m.getIdLong());
+                                String u1 = split[0];
+                                String u2 = split[1];
+                                list.add(tc.sendMessage("<:yay:540970044297838597> <@" + u1 + "> vs. <@" + u2 + "> <:yay2:645622238757781505>").submit().whenComplete((m, throwable) -> {
+                                    try {
+                                        m.addReaction(p1emote).queue();
+                                        m.addReaction(p2emote).queue();
+                                        o.put(u1 + ":" + u2, m.getIdLong());
+                                    } catch (Exception ex) {
+                                        ex.printStackTrace();
+                                    }
                                 }));
                             }
-                            CompletableFuture.allOf(list.toArray(new CompletableFuture[0])).whenComplete((unused, throwable) -> saveEmolgaJSON());
+                            CompletableFuture.allOf(list.toArray(new CompletableFuture[0])).whenComplete((unused, throwable) -> {
+                                saveEmolgaJSON();
+                                sendEarlyASLReplays(gameday);
+                            });
                         }
                     }, delay);
                 }

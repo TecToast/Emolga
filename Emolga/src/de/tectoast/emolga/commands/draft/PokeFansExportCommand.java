@@ -1,0 +1,58 @@
+package de.tectoast.emolga.commands.draft;
+
+import de.tectoast.emolga.commands.Command;
+import de.tectoast.emolga.commands.CommandCategory;
+import de.tectoast.emolga.commands.GuildCommandEvent;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+
+import static de.tectoast.emolga.bot.EmolgaMain.jda;
+
+public class PokeFansExportCommand extends Command {
+    public PokeFansExportCommand() {
+        super("pokefansexport", "`!pokefansexport <Draftname>` Macht Pokefans Export lol", CommandCategory.Flo);
+    }
+
+    @Override
+    public void process(GuildCommandEvent e) {
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(e.getArg(0));
+        JSONObject picksObj = league.getJSONObject("picks");
+        JSONArray tosend = new JSONArray();
+        ArrayList<String> ids = new ArrayList<>(picksObj.keySet());
+        HashMap<String, String> names = new HashMap<>();
+        jda.getGuildById(league.getString("guild")).retrieveMembersByIds(ids.toArray(new String[0])).get().forEach(mem -> names.put(mem.getId(), mem.getEffectiveName()));
+        for (String id : ids) {
+            JSONArray picksArr = picksObj.getJSONArray(id);
+            JSONArray oneUser = new JSONArray();
+            oneUser.put(names.get(id).replaceAll("[^A-Za-z\\s]", ""));
+            oneUser.put(e.getArg(0));
+            JSONArray mons = new JSONArray();
+            picksArr.toList().stream().map(o -> (String) ((HashMap<String, Object>) o).get("name"))
+                    .sorted(Comparator.comparing(str -> getDataJSON().getJSONObject(getDataName((String) str)).getJSONObject("baseStats").getInt("spe")).reversed())
+                    .map(str -> str
+                            .replace("Boreos-T", "Boreos Tiergeistform")
+                            .replace("Voltolos-T", "Voltolos Tiergeistform")
+                            .replace("Demeteros-T", "Demeteros Tiergeistform")
+                            .replace("Boreos-I", "Boreos Inkarnationsform")
+                            .replace("Voltolos-I", "Voltolos Inkarnationsform")
+                            .replace("Demeteros-I", "Demeteros Inkarnationsform")
+                            .replace("Wolwerock-Tag", "Wolwerock Tagform")
+                            .replace("Wolwerock-Nacht", "Wolwerock Nachtform")
+                            .replace("Wolwerock-Zw", "Wolwerock Zwielichtform")
+                            .replace("Shaymin", "Shaymin Landform")
+                            .replace("Durengard", "Durengard Schildform")
+                            .replace("Pumpdjinn", "Pumpdjinn XL")
+                            .replace("M-", "Mega-")
+                            .replace("A-", "Alola-")
+                            .replace("G-", "Galar-")
+                    ).forEach(mons::put);
+            oneUser.put(mons);
+            tosend.put(oneUser);
+        }
+        e.reply(tosend.toString());
+    }
+}

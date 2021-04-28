@@ -13,7 +13,6 @@
     <orderEntry type="library" name="Google API" level="project" />
     <orderEntry type="library" name="Google Sheets" level="project" />
     <orderEntry type="library" name="Google Auth" level="project" />
-    <orderEntry type="library" name="lavaplayer-1.3.50" level="project" />
     <orderEntry type="library" name="Google YouTube" level="project" />
     <orderEntry type="library" name="org.eclipse.jetty:jetty-server:7.0.1.v20091125" level="application" />
     <orderEntry type="library" name="org.eclipse.jetty:jetty-util:7.0.1.v20091125" level="application" />
@@ -22,5 +21,6 @@
     <orderEntry type="library" name="JDAUtilities" level="project" />
     <orderEntry type="library" name="mysql-connector-java-8.0.23" level="application" />
     <orderEntry type="library" name="JDA" level="application" />
+    <orderEntry type="library" name="com.sedmelluq:lavaplayer:1.3.75" level="project" />
   </component>
 </module>

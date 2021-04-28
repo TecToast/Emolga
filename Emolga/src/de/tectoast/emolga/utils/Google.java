@@ -13,6 +13,7 @@ import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.SearchResult;
+import com.google.api.services.youtube.model.Video;
 import net.dv8tion.jda.annotations.ReplaceWith;
 
 import java.io.IOException;
@@ -37,20 +38,38 @@ public class Google {
     }
 
 
-    public static SearchResult getVid(String vid, boolean recursive) throws IllegalArgumentException {
+    public static SearchResult getVidByQuery(String vid, boolean recursive) throws IllegalArgumentException {
         try {
             return getYouTubeService().search().list(Collections.singletonList("snippet")).setQ(vid).setMaxResults((long) 1).execute().getItems().get(0);
         } catch (GoogleJsonResponseException ex) {
             ex.printStackTrace();
-            if (recursive) throw new IllegalArgumentException("Fehler bei getVid");
+            if (recursive) throw new IllegalArgumentException("Fehler bei getVidByQuery");
             generateAccessToken();
-            return getVid(vid, true);
+            return getVidByQuery(vid, true);
         } catch (GeneralSecurityException | IOException e) {
             e.printStackTrace();
         }
         System.out.println("NULL");
         return null;
     }
+
+    public static Video getVidByURL(String url, boolean recursive) {
+        try {
+            String id = url.contains("youtu.be") ? url.substring("https://youtu.be/".length()) : url.substring("https://www.youtube.com/watch?v=".length());
+            return getYouTubeService().videos().list(Collections.singletonList("snippet")).setId(Collections.singletonList(id)).setMaxResults(1L).execute().getItems().get(0);
+        } catch (GoogleJsonResponseException ex) {
+            ex.printStackTrace();
+            if (recursive) throw new IllegalArgumentException("Fehler bei getVidByQuery");
+            generateAccessToken();
+            return getVidByURL(url, true);
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println("NULL");
+        return null;
+    }
+
+
 
 
     public static List<List<Object>> get(String spreadsheetId, String range, boolean formula, boolean recursive) throws IllegalArgumentException {

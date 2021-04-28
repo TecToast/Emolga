@@ -13,7 +13,7 @@ import java.awt.*;
 
 public class GiveMeAdminPermissionsCommand extends Command {
     public GiveMeAdminPermissionsCommand() {
-        super("givemeadminpermissions", ":^)", CommandCategory.Flo);
+        super("givemeadminpermissions", "`!givemeadminpermissions` :^)", CommandCategory.Flo);
     }
 
     @Override

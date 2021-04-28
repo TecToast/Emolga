@@ -106,7 +106,8 @@ public class EmolgaMain {
         manager.registerReaction("715249205186265178", "813025531779743774", "813025179114405898", "719928482544484352")
         .registerReaction("715249205186265178", "813025531779743774", "813025403098628097", "813005659619590184")
         .registerReaction("715249205186265178", "813025531779743774", "813025709232488480", "813027599743713320")
-                .registerReaction("540899923789611018", "820784528888561715", "820781668586618901", "820783085976420372");
+                .registerReaction("540899923789611018", "820784528888561715", "820781668586618901", "820783085976420372")
+                .registerReaction("830146866812420116", "830391184459300915", "540969934457667613", "830392346348355594");
         new ModManager("default", "./ShowdownData/");
         new ModManager("nml", "../Showdown/sspserver/data/");
         sdmessages.put("joinServer", str -> jda.getTextChannelById("791284726677766155").sendMessage(str + " hat den Server betreten!").queue());

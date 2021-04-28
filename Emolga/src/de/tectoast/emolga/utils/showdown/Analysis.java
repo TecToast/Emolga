@@ -18,98 +18,105 @@ public class Analysis {
 
         for (String s : game) {
             //Nickname des Spielers
+            String[] split = s.split("\\|");
             if ((s.contains("|player|p1")) && (s.length() > 11)) {
-                p1.setNickname(s.split("\\|")[3]);
+                p1.setNickname(split[3]);
             }
             if ((s.contains("|player|p2")) && (s.length() > 11)) {
-                p2.setNickname(s.split("\\|")[3]);
+                p2.setNickname(split[3]);
             }
 
             //Welche commands sind dabei?
             if (s.contains("|poke|p1")) {
-                String str = s.split("\\|")[3].split(",")[0];
+                String str = split[3].split(",")[0];
                 //if (str.contains("Zoroark") || str.contains("Zorua")) return null;
                 p1.getMons().add(new SDPokemon(str));
             }
             if (s.contains("|poke|p2")) {
-                String str = s.split("\\|")[3].split(",")[0];
+                String str = split[3].split(",")[0];
                 //if (str.contains("Zoroark") || str.contains("Zorua")) return null;
                 p2.getMons().add(new SDPokemon(str));
             }
 
             if (s.contains("|-end|p1a") && s.contains("|Illusion")) {
-                p1.getMons().stream().filter(sd -> sd.getPokemon().equals("Zoroark") || sd.getPokemon().equals("Zorua")).forEach(sd -> sd.setNickname(s.split("\\|")[2].substring(5)));
+                p1.getMons().stream().filter(sd -> sd.getPokemon().equals("Zoroark") || sd.getPokemon().equals("Zorua")).forEach(sd -> sd.setNickname(split[2].substring(5)));
             }
 
             if (s.contains("|-end|p2a") && s.contains("|Illusion")) {
                 //System.out.println("ILLUSION FOUND");
-                p2.getMons().stream().filter(sd -> sd.getPokemon().equals("Zoroark") || sd.getPokemon().equals("Zorua")).forEach(sd -> sd.setNickname(s.split("\\|")[2].substring(5)));
+                p2.getMons().stream().filter(sd -> sd.getPokemon().equals("Zoroark") || sd.getPokemon().equals("Zorua")).forEach(sd -> sd.setNickname(split[2].substring(5)));
             }
 
             //Nicks & Detailschange
             if (s.contains("|switch|p1") || s.contains("|drag|p1")) {
-                if (s.split("\\|")[3].split(",")[0].contains("Silvally") && p1.indexOfName("Silvally-*") != -1) {//Silvally-Problem
-                    p1.getMons().get(p1.indexOfName("Silvally-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (split[3].split(",")[0].contains("Silvally") && p1.indexOfName("Silvally-*") != -1) {//Silvally-Problem
+                    p1.getMons().get(p1.indexOfName("Silvally-*")).setPokemon(split[3].split(",")[0]);
                 }
-                if (s.split("\\|")[3].split(",")[0].contains("Arceus") && p1.indexOfName("Arceus-*") != -1) {//Arceus-Problem
-                    p1.getMons().get(p1.indexOfName("Arceus-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (split[3].split(",")[0].contains("Arceus") && p1.indexOfName("Arceus-*") != -1) {//Arceus-Problem
+                    p1.getMons().get(p1.indexOfName("Arceus-*")).setPokemon(split[3].split(",")[0]);
                 }
-                if (s.split("\\|")[3].split(",")[0].contains("Genesect") && p1.indexOfName("Genesect-*") != -1) {//Genesect-Problem
-                    p1.getMons().get(p1.indexOfName("Genesect-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (split[3].split(",")[0].contains("Genesect") && p1.indexOfName("Genesect-*") != -1) {//Genesect-Problem
+                    p1.getMons().get(p1.indexOfName("Genesect-*")).setPokemon(split[3].split(",")[0]);
                 }
-                if (s.split("\\|")[3].split(",")[0].contains("Gourgeist") && p1.indexOfName("Gourgeist-*") != -1) {//Genesect-Problem
-                    p1.getMons().get(p1.indexOfName("Gourgeist-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (split[3].split(",")[0].contains("Gourgeist") && p1.indexOfName("Gourgeist-*") != -1) {//Genesect-Problem
+                    p1.getMons().get(p1.indexOfName("Gourgeist-*")).setPokemon(split[3].split(",")[0]);
                 }
-                if (s.split("\\|")[3].split(",")[0].contains("Urshifu") && p1.indexOfName("Urshifu-*") != -1) {//Genesect-Problem
-                    p1.getMons().get(p1.indexOfName("Urshifu-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (split[3].split(",")[0].contains("Pumpkaboo") && p1.indexOfName("Pumpkaboo-*") != -1) {//Genesect-Problem
+                    p1.getMons().get(p1.indexOfName("Pumpkaboo-*")).setPokemon(split[3].split(",")[0]);
+                }
+                if (split[3].split(",")[0].contains("Urshifu") && p1.indexOfName("Urshifu-*") != -1) {//Genesect-Problem
+                    p1.getMons().get(p1.indexOfName("Urshifu-*")).setPokemon(split[3].split(",")[0]);
                 }
                 //hier
                 try {
-                    p1.getMons().get(p1.indexOfName(s.split("\\|")[3].split(",")[0])).setNickname(s.split("\\|")[2].substring(5));
+                    p1.getMons().get(p1.indexOfName(split[3].split(",")[0])).setNickname(split[2].substring(5));
                 } catch (ArrayIndexOutOfBoundsException ignored) {
                 }
             }
             if (s.contains("|switch|p2") || s.contains("|drag|p2")) {
-                if (s.split("\\|")[3].split(",")[0].contains("Silvally") && p2.indexOfName("Silvally-*") != -1) {//Silvally-Problem
-                    p2.getMons().get(p2.indexOfName("Silvally-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (split[3].split(",")[0].contains("Silvally") && p2.indexOfName("Silvally-*") != -1) {//Silvally-Problem
+                    p2.getMons().get(p2.indexOfName("Silvally-*")).setPokemon(split[3].split(",")[0]);
                 }
-                if (s.split("\\|")[3].split(",")[0].contains("Arceus") && p2.indexOfName("Arceus-*") != -1) {//Arceus-Problem
-                    p2.getMons().get(p2.indexOfName("Arceus-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (split[3].split(",")[0].contains("Arceus") && p2.indexOfName("Arceus-*") != -1) {//Arceus-Problem
+                    p2.getMons().get(p2.indexOfName("Arceus-*")).setPokemon(split[3].split(",")[0]);
                 }
-                if (s.split("\\|")[3].split(",")[0].contains("Genesect") && p2.indexOfName("Genesect-*") != -1) {//Genesect-Problem
-                    p2.getMons().get(p2.indexOfName("Genesect-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (split[3].split(",")[0].contains("Genesect") && p2.indexOfName("Genesect-*") != -1) {//Genesect-Problem
+                    p2.getMons().get(p2.indexOfName("Genesect-*")).setPokemon(split[3].split(",")[0]);
                 }
-                if (s.split("\\|")[3].split(",")[0].contains("Gourgeist") && p2.indexOfName("Gourgeist-*") != -1) {//Genesect-Problem
-                    p2.getMons().get(p2.indexOfName("Gourgeist-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (split[3].split(",")[0].contains("Gourgeist") && p2.indexOfName("Gourgeist-*") != -1) {//Genesect-Problem
+                    p2.getMons().get(p2.indexOfName("Gourgeist-*")).setPokemon(split[3].split(",")[0]);
                 }
-                if (s.split("\\|")[3].split(",")[0].contains("Urshifu") && p2.indexOfName("Urshifu-*") != -1) {//Genesect-Problem
-                    p2.getMons().get(p2.indexOfName("Urshifu-*")).setPokemon(s.split("\\|")[3].split(",")[0]);
+                if (split[3].split(",")[0].contains("Pumpkaboo") && p2.indexOfName("Pumpkaboo-*") != -1) {//Genesect-Problem
+                    p2.getMons().get(p2.indexOfName("Pumpkaboo-*")).setPokemon(split[3].split(",")[0]);
+                }
+                if (split[3].split(",")[0].contains("Urshifu") && p2.indexOfName("Urshifu-*") != -1) {//Genesect-Problem
+                    p2.getMons().get(p2.indexOfName("Urshifu-*")).setPokemon(split[3].split(",")[0]);
                 }//Hier
                 try {
                     //String mon = s.split("\\|")[3].split(",")[0];
                     //if (mon.contains("Gourgeist")) mon = "Gourgeist-*";
                     //System.out.println(p2.getMons().stream().map(commands::getPokemon).collect(Collectors.joining(",")));
-                    p2.getMons().get(p2.indexOfName(s.split("\\|")[3].split(",")[0])).setNickname(s.split("\\|")[2].substring(5));
+                    p2.getMons().get(p2.indexOfName(split[3].split(",")[0])).setNickname(split[2].substring(5));
                 } catch (ArrayIndexOutOfBoundsException ignored) {
                 }
             }
 
             //Win
             if (s.contains("|win|")) {
-                if (p1.getNickname().equals(s.split("\\|")[2])) {
+                if (p1.getNickname().equals(split[2])) {
                     p1.setWinner(true);
                 }
-                if (p2.getNickname().equals(s.split("\\|")[2])) {
+                if (p2.getNickname().equals(split[2])) {
                     p2.setWinner(true);
                 }
             }
 
             //Datailschange
             if (s.contains("|detailschange|p1")) {
-                p1.getMons().get(p1.indexOfNick(s.split("\\|")[2].substring(5))).setPokemon(s.split("\\|")[3].split(",")[0]);
+                p1.getMons().get(p1.indexOfNick(split[2].substring(5))).setPokemon(split[3].split(",")[0]);
             }
             if (s.contains("|detailschange|p2")) {
-                p2.getMons().get(p2.indexOfNick(s.split("\\|")[2].substring(5))).setPokemon(s.split("\\|")[3].split(",")[0]);
+                p2.getMons().get(p2.indexOfNick(split[2].substring(5))).setPokemon(split[3].split(",")[0]);
             }
         }
 
@@ -123,12 +130,13 @@ public class Analysis {
             /*
              * LastMove abspeichern
              */
+            String[] split = s.split("\\|");
             if (s.contains("|move|p1")) {
-                lastMove = p1.getMons().get(p1.indexOfNick(s.split("\\|")[2].substring(5)));
+                lastMove = p1.getMons().get(p1.indexOfNick(split[2].substring(5)));
             }
             if (s.contains("|move|p2")) {
                 //System.out.println(s.split("\\|")[2].substring(5));
-                lastMove = p2.getMons().get(p2.indexOfNick(s.split("\\|")[2].substring(5)));
+                lastMove = p2.getMons().get(p2.indexOfNick(split[2].substring(5)));
             }
 
             /*
@@ -142,7 +150,7 @@ public class Analysis {
              * aktive commands abspeichern und LastMove zuruecksetzen
              */
             if (s.contains("|switch|p1") || s.contains("|drag|p1")) {
-                activeP1 = p1.getMons().get(p1.indexOfNick(s.split("\\|")[2].substring(5)));
+                activeP1 = p1.getMons().get(p1.indexOfNick(split[2].substring(5)));
                 lastMove = null;
             }
             if (s.contains("|switch|p2") || s.contains("|drag|p2")) {
@@ -152,17 +160,26 @@ public class Analysis {
                     System.out.print(mon.getPokemon() + " ::: ");
                     m.out.println(mon.getNickname());
                 }*/
-                activeP2 = p2.getMons().get(p2.indexOfNick(s.split("\\|")[2].substring(5)));
+                activeP2 = p2.getMons().get(p2.indexOfNick(split[2].substring(5)));
                 lastMove = null;
+            }
+
+            if(s.contains("|faint|p1")) {
+                p1.getMons().get(p1.indexOfNick(split[2].substring(5))).setDead(true);
+            }
+
+            if(s.contains("|faint|p2")) {
+                p2.getMons().get(p2.indexOfNick(split[2].substring(5))).setDead(true);
             }
 
             /*
              * Direkte Hits, ausgenommen von CurseSD
              */
-            if ((s.contains("|-damage|p1")) && (s.split("\\|").length == 4)) {
+            if ((s.contains("|-damage|p1")) && (split.length == 4)) {
                 if (s.contains("0 fnt")) {
                     //Wenn CurseSD
-                    if (lastMove == p1.getMons().get(p1.indexOfNick(s.split("\\|")[2].substring(5)))) {
+                    System.out.println(activeP1.getPokemon());
+                    if (lastMove == p1.getMons().get(p1.indexOfNick(split[2].substring(5)))) {
                         if (lastMove.getLastDmgBy() != null) {
                             lastMove.getLastDmgBy().killsPlus1();
                             lastMove.setDead(true);
@@ -179,11 +196,11 @@ public class Analysis {
                     activeP1.setLastDmgBy(activeP2);
                 }
             }
-            boolean b = (s.contains("|-damage|p2")) && (s.split("\\|").length == 4);
+            boolean b = (s.contains("|-damage|p2")) && (split.length == 4);
             if (b) {
                 if (s.contains("0 fnt")) {
                     //Wenn CurseSD
-                    if (lastMove == p2.getMons().get(p2.indexOfNick(s.split("\\|")[2].substring(5)))) {
+                    if (lastMove == p2.getMons().get(p2.indexOfNick(split[2].substring(5)))) {
                         if (lastMove.getLastDmgBy() != null) {
                             lastMove.getLastDmgBy().killsPlus1();
                             lastMove.setDead(true);
@@ -205,16 +222,16 @@ public class Analysis {
              * Klammerattacken
              */
             //Eingesetzt
-            if ((s.contains("|-activate|p1")) && (s.split("\\|").length == 5)) {
+            if ((s.contains("|-activate|p1")) && (split.length == 5)) {
 
                 activeP1.setBindedBy(activeP2);
             }
-            if ((s.contains("|-activate|p2")) && (s.split("\\|").length == 5)) {
+            if ((s.contains("|-activate|p2")) && (split.length == 5)) {
                 activeP2.setBindedBy(activeP1);
             }
             //Kill
             if (s.contains("partiallytrapped")) {
-                if ((s.contains("|-damage|p1")) && (s.split("\\|").length == 6)) {
+                if ((s.contains("|-damage|p1")) && (split.length == 6)) {
                     if (s.contains("0 fnt")) {
                         activeP1.setDead(true);
                         activeP1.getBindedBy().killsPlus1();
@@ -222,7 +239,7 @@ public class Analysis {
                         activeP1.setLastDmgBy(activeP1.getBindedBy());
                     }
                 }
-                if ((s.contains("|-damage|p2")) && (s.split("\\|").length == 6)) {
+                if ((s.contains("|-damage|p2")) && (split.length == 6)) {
                     if (s.contains("0 fnt")) {
                         activeP2.setDead(true);
                         activeP2.getBindedBy().killsPlus1();

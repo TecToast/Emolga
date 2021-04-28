@@ -76,6 +76,16 @@ public class PrivateCommands {
         tc.sendMessage(s).queue();
     }
 
+    @PrivateCommand(name = "sendpn")
+    public static void sendPN(GenericCommandEvent e) {
+        Message message = e.getMessage();
+        String[] split = message.getContentDisplay().split(" ");
+        System.out.println(message.getContentRaw());
+        String s = message.getContentRaw().substring(26).replaceAll("\\\\", "");
+        String userid = e.getArg(0);
+        sendToUser(Long.parseLong(userid), s);
+    }
+
     @PrivateCommand(name = "react")
     public static void react(GenericCommandEvent e) {
         String msg = e.getMsg();
@@ -142,8 +152,8 @@ public class PrivateCommands {
 
     @PrivateCommand(name = "sortwooloo")
     public static void sortWoolooCmd(GenericCommandEvent e) {
-        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("Wooloo Cup");
-        sortWooloo(league.getJSONObject("doc").getString("sid"), league);
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("WoolooCupS3L" + e.getArg(0));
+        sortWooloo(league.getString("sid"), league);
     }
 
     @PrivateCommand(name = "troll")
@@ -294,6 +304,38 @@ public class PrivateCommands {
         }
         saveEmolgaJSON();
         e.done();
+    }
+
+    @PrivateCommand(name = "saveemolgajson")
+    public static void saveEmolga(GenericCommandEvent e) {
+        saveEmolgaJSON();
+        e.done();
+    }
+
+    @PrivateCommand(name = "pdg")
+    public static void pdg(GenericCommandEvent e) {
+        evaluatePredictions(getEmolgaJSON().getJSONObject("drafts").getJSONObject(e.getArg(0)), Boolean.parseBoolean(e.getArg(1)), Integer.parseInt(e.getArg(2)),
+                e.getArg(3), e.getArg(4));
+        e.done();
+    }
+
+    @PrivateCommand(name = "incrpdg")
+    public static void incrPdg(GenericCommandEvent e) {
+        for (String arg : e.getArgs()) {
+            Database.incrementPredictionCounter(Long.parseLong(arg));
+        }
+    }
+
+    @PrivateCommand(name = "silentmove")
+    public static void silentMove(GenericCommandEvent e) {
+        VoiceChannel from = e.getJDA().getVoiceChannelById(e.getArg(0));
+    }
+
+    @PrivateCommand(name = "testvolume")
+    public static void testVolume(GenericCommandEvent e) {
+        System.out.println("Start!");
+        musicManagers.get(673833176036147210L).player.setVolume(Integer.parseInt(e.getArg(0)));
+        System.out.println("musicManagers.get(673833176036147210L).player.getVolume() = " + musicManagers.get(673833176036147210L).player.getVolume());
     }
 
     public static void execute(Message message) {

@@ -14,6 +14,7 @@ public class ModManager {
     private JSONObject dex;
     private JSONObject learnsets;
     private JSONObject moves;
+    private JSONObject typechart;
 
     public ModManager(String name, String datapath) {
         this.name = name;
@@ -22,6 +23,7 @@ public class ModManager {
         Command.singleThread(() -> this.dex = Command.loadSD(datapath + "pokedex.ts", Constants.DEXJSONSUB));
         Command.singleThread(() -> this.learnsets = Command.loadSD(datapath + "learnsets.ts", Constants.LEARNSETJSONSUB));
         Command.singleThread(() -> this.moves = Command.loadSD(datapath + "moves.ts", Constants.MOVESJSONSUB));
+        Command.singleThread(() -> this.typechart = Command.loadSD(datapath + "typechart.ts", Constants.TYPESJSONSUB));
         modManagers.add(this);
     }
 
@@ -49,9 +51,14 @@ public class ModManager {
         return moves;
     }
 
+    public JSONObject getTypechart() {
+        return typechart;
+    }
+
     public void update() {
         this.dex = Command.loadSD(datapath + "pokedex.ts", Constants.DEXJSONSUB);
         this.learnsets = Command.loadSD(datapath + "learnsets.ts", Constants.LEARNSETJSONSUB);
         this.moves = Command.loadSD(datapath + "moves.ts", Constants.MOVESJSONSUB);
+        this.typechart = Command.loadSD(datapath + "typechart.ts", Constants.TYPESJSONSUB);
     }
 }

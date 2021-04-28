@@ -15,7 +15,10 @@ import de.tectoast.emolga.commands.dexquiz.DexquizCommand;
 import de.tectoast.emolga.commands.dexquiz.SolutionCommand;
 import de.tectoast.emolga.commands.dexquiz.TipCommand;
 import de.tectoast.emolga.commands.draft.*;
-import de.tectoast.emolga.commands.flo.*;
+import de.tectoast.emolga.commands.flo.EmolgaDiktaturCommand;
+import de.tectoast.emolga.commands.flo.EmoteStealCommand;
+import de.tectoast.emolga.commands.flo.GetIdsCommand;
+import de.tectoast.emolga.commands.flo.GiveMeAdminPermissionsCommand;
 import de.tectoast.emolga.commands.moderator.*;
 import de.tectoast.emolga.commands.music.*;
 import de.tectoast.emolga.commands.pokemon.*;
@@ -27,10 +30,13 @@ import de.tectoast.emolga.commands.various.*;
 import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.*;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
+import de.tectoast.emolga.utils.showdown.Analysis;
 import de.tectoast.emolga.utils.showdown.Player;
 import de.tectoast.emolga.utils.showdown.SDPokemon;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.managers.AudioManager;
@@ -38,7 +44,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import javax.imageio.ImageIO;
 import java.awt.Color;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -90,6 +98,7 @@ public abstract class Command {
     public static boolean expEdited = false;
     @SuppressWarnings("CanBeFinal")
     public static boolean checkBST = false;
+    protected static List<Long> cultists = Arrays.asList(175910318608744448L, 452575044070277122L, 535095576136515605L, 456821278653808650L, 598199247124299776L);
     protected static String tradesid;
     protected static List<String> balls;
     protected static List<String> mons;
@@ -105,6 +114,7 @@ public abstract class Command {
     protected boolean wip = false;
     protected boolean everywhere = false;
     protected Predicate<Member> allowsMember = m -> false;
+    protected boolean customPermissions = false;
 
 
     public Command(String name, String help, CommandCategory category, long... guilds) {
@@ -122,6 +132,73 @@ public abstract class Command {
     public Command(String name, String help, CommandCategory category, Command guildBase) {
         this(name, help, category, guildBase.allowedGuilds);
     }
+
+    public static File invertImage(String mon, boolean shiny) {
+        BufferedImage inputFile;
+        System.out.println("mon = " + mon);
+        try {
+            File f = new File("../Showdown/sspclient/sprites/dex" + (shiny ? "-shiny" : "") + "/" + mon.toLowerCase() + ".png");
+            System.out.println("f.getAbsolutePath() = " + f.getAbsolutePath());
+            inputFile = ImageIO.read(f);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        for (int x = 0; x < inputFile.getWidth(); x++) {
+            for (int y = 0; y < inputFile.getHeight(); y++) {
+                int rgba = inputFile.getRGB(x, y);
+                Color col = new Color(rgba, true);
+                col = new Color(255 - col.getRed(),
+                        255 - col.getGreen(),
+                        255 - col.getBlue());
+                inputFile.setRGB(x, y, col.getRGB());
+            }
+        }
+
+        try {
+            File outputFile = new File("tempimages/invert-" + mon + ".png");
+            ImageIO.write(inputFile, "png", outputFile);
+            return outputFile;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static void loadJarvisPlaylist(String gid) {
+        Guild g = jda.getGuildById(gid);
+        GuildMusicManager musicManager = getGuildAudioPlayer(g);
+        playerManager.loadItemOrdered(musicManager, "https://www.youtube.com/playlist?list=PLrwrdAXSpHC5Mr2zC-q_dWKONVybk6JO6", new AudioLoadResultHandler() {
+
+
+            @Override
+            public void trackLoaded(AudioTrack track) {
+
+            }
+
+            @Override
+            public void playlistLoaded(AudioPlaylist playlist) {
+                ArrayList<AudioTrack> list = new ArrayList<>(playlist.getTracks());
+                Collections.shuffle(list);
+                for (AudioTrack audioTrack : list) {
+                    play(g, musicManager, audioTrack);
+                }
+            }
+
+            @Override
+            public void noMatches() {
+                sendToMe("Jarvis Playlist not found!");
+            }
+
+            @Override
+            public void loadFailed(FriendlyException exception) {
+                exception.printStackTrace();
+                sendStacktraceToMe(exception);
+            }
+        });
+    }
+
 
     public static void loadPlaylist(final TextChannel channel, final String track, Member mem, String cm) {
         GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
@@ -160,10 +237,23 @@ public abstract class Command {
     }
 
     public static void loadAndPlay(final TextChannel channel, final String track, Member mem, String cm) throws IllegalArgumentException {
+        if (track.startsWith("https://youtube.com/playlist")) {
+            loadPlaylist(channel, track, mem, cm);
+            return;
+        }
         GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
         System.out.println(track);
-        SearchResult s = Google.getVid(track, false);
-        String url = "https://www.youtube.com/watch?v=" + s.getId().getVideoId();
+        String url;
+        YTDataLoader loader;
+        if (track.startsWith("https://www.youtube.com/")) {
+            url = track;
+            loader = new YTDataLoader(Google.getVidByURL(url, false));
+        } else {
+            SearchResult s = Google.getVidByQuery(track, false);
+            url = "https://www.youtube.com/watch?v=" + s.getId().getVideoId();
+            loader = new YTDataLoader(s);
+        }
+
         System.out.println("url = " + url);
         playerManager.loadItemOrdered(musicManager, url, new AudioLoadResultHandler() {
             @Override
@@ -175,13 +265,13 @@ public abstract class Command {
                         duration += (musicManager.player.getPlayingTrack().getDuration() - musicManager.player.getPlayingTrack().getPosition());
                     }
                     EmbedBuilder b = new EmbedBuilder()
-                            .setTitle(track.getInfo().title, "https://www.youtube.com/watch?v=" + s.getId().getVideoId())
+                            .setTitle(track.getInfo().title, url)
                             .setAuthor("Added to queue", null, mem.getUser().getEffectiveAvatarUrl())
-                            .addField("Channel", s.getSnippet().getChannelTitle(), true)
+                            .addField("Channel", loader.getChannel(), true)
                             .addField("Song Duration", formatToTime(track.getDuration()), true)
                             .addField("Estimated time until playing", formatToTime(duration), true)
                             .addField("Position in queue", (musicManager.scheduler.queue.size() > 0 ? musicManager.scheduler.queue.size() + 1 : 0) + "", false)
-                            .setThumbnail(s.getSnippet().getThumbnails().getMedium().getUrl());
+                            .setThumbnail(loader.getThumbnail());
                     channel.sendMessage(b.build()).queue();
                 } else {
                     channel.sendMessage(cm).queue();
@@ -321,7 +411,7 @@ public abstract class Command {
 
     public static void muteTimer(Guild g, long expires, String mem) {
         try {
-            if(expires > -1) {
+            if (expires > -1) {
                 new Timer().schedule(new TimerTask() {
                     @Override
                     public void run() {
@@ -648,56 +738,36 @@ public abstract class Command {
 
     public static void sortWooloo(String sid, JSONObject league) {
         int i;
-        List<List<Object>> formula = Google.get(sid, "Tabelle!D3:O39", true, false);
-        List<List<Object>> p = Google.get(sid, "Tabelle!E3:P39", false, false);
-        List<List<Object>> pf = Google.get(sid, "Tabelle!H3:H39", true, false);
+        List<List<Object>> formula = Google.get(sid, "Tabelle!D3:P31", true, false);
+        List<List<Object>> p = Google.get(sid, "Tabelle!E3:P31", false, false);
+        //List<List<Object>> pf = Google.get(sid, "Tabelle!H3:H39", true, false);
         ArrayList<List<Object>> points = new ArrayList<>();
-        for (i = 0; i < 40; i++) {
+        for (i = 0; i < 32; i++) {
             if ((i + 4) % 4 == 0) {
                 points.add(p.get(i));
             }
         }
         //System.out.println(points);
         List<List<Object>> orig = new ArrayList<>(points);
-
+        JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
         points.sort((o1, o2) -> {
-            if (Integer.parseInt((String) o1.get(3)) != Integer.parseInt((String) o2.get(3))) {
-                return Integer.compare(Integer.parseInt((String) o1.get(3)), Integer.parseInt((String) o2.get(3)));
-            }
-            if (Integer.parseInt((String) o1.get(11)) != Integer.parseInt((String) o2.get(11))) {
-                return Integer.compare(Integer.parseInt((String) o1.get(11)), Integer.parseInt((String) o2.get(11)));
-            }
-            if (Integer.parseInt((String) o1.get(9)) != Integer.parseInt((String) o2.get(9))) {
-                return Integer.compare(Integer.parseInt((String) o1.get(9)), Integer.parseInt((String) o2.get(9)));
-            }
-            if (!league.has("results")) return -1;
+            int compare = compareColumns(o1, o2, 3, 11, 9);
+            if (compare != 0) return compare;
+            if (!league.has("results")) return 0;
             JSONObject results = league.getJSONObject("results");
-            String n1 = (String) o1.get(0);
-            String n2 = (String) o2.get(0);
+            String n1 = docnames.getString((String) o1.get(0));
+            String n2 = docnames.getString((String) o2.get(0));
             if (results.has(n1 + ":" + n2)) {
                 return results.getString(n1 + ":" + n2).equals(n1) ? 1 : -1;
             }
             if (results.has(n2 + ":" + n1)) {
                 return results.getString(n2 + ":" + n1).equals(n1) ? 1 : -1;
             }
-            return -1;
+            return 0;
         });
         Collections.reverse(points);
         HashMap<Integer, List<Object>> valmap = new HashMap<>();
         HashMap<Integer, List<Object>> namap = new HashMap<>();
-        i = 0;
-        Spreadsheet s = Google.getSheetData(sid, false, "Tabelle!E3:E39");
-        Sheet sheet = s.getSheets().get(0);
-        ArrayList<CellFormat> formats = new ArrayList<>();
-        for (RowData rowDatum : sheet.getData().get(0).getRowData()) {
-            if ((i + 4) % 4 != 0) {
-                i++;
-                continue;
-            }
-            formats.add(rowDatum.getValues().get(0).getEffectiveFormat());
-            i++;
-        }
-        HashMap<Integer, CellFormat> formap = new HashMap<>();
         HashMap<Integer, String> stMap = new HashMap<>();
         i = 0;
         for (List<Object> objects : orig) {
@@ -705,39 +775,24 @@ public abstract class Command {
             int index = points.indexOf(objects);
             Object logo = list.remove(0);
             Object name = list.remove(0);
-            list.subList(0, 5).clear();
+            list.subList(0, 2).clear();
             valmap.put(index, list);
             namap.put(index, Arrays.asList(logo, name));
-            formap.put(index, formats.get(i));
-            String teamname = (String) orig.get(i).get(0);
-            stMap.put(index, "=SUMME(K" + (index * 4 + 3) + " * 3 + D" + (Arrays.asList(getEmolgaJSON().getJSONObject("drafts").getJSONObject("Wooloo Cup").getString("table").split(",")).indexOf(teamname) + 51) + ")");
             i++;
         }
         List<List<Object>> senddata = new ArrayList<>();
         List<List<Object>> sendname = new ArrayList<>();
-        List<List<Object>> sendstyle = new ArrayList<>();
         for (int j = 0; j < 10; j++) {
             senddata.add(valmap.get(j));
             sendname.add(namap.get(j));
-            sendstyle.add(Collections.singletonList(stMap.get(j)));
             for (int k = 0; k < 3; k++) {
                 senddata.add(Collections.emptyList());
                 sendname.add(Collections.emptyList());
-                sendstyle.add(Collections.emptyList());
             }
         }
         RequestBuilder b = new RequestBuilder(sid);
-        b.addAll("Tabelle!K3", senddata);
+        b.addAll("Tabelle!H3", senddata);
         b.addAll("Tabelle!D3", sendname);
-        b.addAll("Tabelle!H3", sendstyle);
-        for (int j = 0; j < 10; j++) {
-            Request request = new Request();
-            CellData cellData = new CellData().setUserEnteredFormat(new CellFormat().setTextFormat(new TextFormat().setFontSize(formap.get(j).getTextFormat().getFontSize())));
-            request.setUpdateCells(new UpdateCellsRequest().setRows(Collections.singletonList(new RowData()
-                    .setValues(Collections.singletonList(cellData))))
-                    .setFields("userEnteredFormat.textFormat.fontSize").setRange(new GridRange().setSheetId(1102442612).setStartRowIndex(j * 4 + 2).setEndRowIndex(j * 4 + 3).setStartColumnIndex(4).setEndColumnIndex(5)));
-            b.addBatch(request);
-        }
         b.execute();
     }
 
@@ -784,6 +839,19 @@ public abstract class Command {
                 audioManager.openAudioConnection(mem.getVoiceState().getChannel());
             } else {
                 tc.sendMessage("Du musst dich in einem Voicechannel befinden!").queue();
+            }
+        }
+        musicManager.scheduler.queue(track);
+    }
+
+    public static void play(Guild guild, GuildMusicManager musicManager, AudioTrack track) {
+        AudioManager audioManager = guild.getAudioManager();
+        Member mem = guild.retrieveMemberById(Constants.FLOID).complete();
+        if (!audioManager.isConnected()) {
+            if (mem.getVoiceState().inVoiceChannel()) {
+                audioManager.openAudioConnection(mem.getVoiceState().getChannel());
+            } else {
+                sendToMe("Du musst dich in einem Voicechannel befinden!");
             }
         }
         musicManager.scheduler.queue(track);
@@ -896,6 +964,14 @@ public abstract class Command {
 
     public static JSONObject getDataJSON() {
         return getDataJSON("default");
+    }
+
+    public static JSONObject getTypeJSON(String mod) {
+        return ModManager.getByName(mod).getTypechart();
+    }
+
+    public static JSONObject getTypeJSON() {
+        return getTypeJSON("default");
     }
 
     public static JSONObject getLearnsetJSON(String mod) {
@@ -1044,8 +1120,6 @@ public abstract class Command {
         new CalcCommand();
         new LeaderboardCommand();
         new InviteCommand();
-        new MuffinRevolutionCommand();
-        new ResetMuffinCommand();
         new ResetCooldownCommand();
         new SpoilerTagsCommand();
         new AnalyseCommand();
@@ -1054,10 +1128,15 @@ public abstract class Command {
         new FloHelpCommand();
         new UserInfoCommand();
         new EmolgaDiktaturCommand();
-        new ResetEmolgaCommand();
         new UserInfoCommand();
         new ServerInfoCommand();
         new SkipPickCommand();
+        new PokeFansExportCommand();
+        new RevolutionCommand();
+        new ResetRevolutionCommand();
+        new NatureCommand();
+        new InvertColorsCommand();
+        new ResistanceCommand();
     }
 
     public static void awaitNextDay() {
@@ -1076,7 +1155,6 @@ public abstract class Command {
             }
         }, c.getTimeInMillis() - System.currentTimeMillis());
     }
-
 
     public static void init() {
         loadJSONFiles();
@@ -1157,9 +1235,9 @@ public abstract class Command {
             JSONObject league = null;
             JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
             for (String s : drafts.keySet()) {
-                if(s.equalsIgnoreCase("IchMagKekse")) continue;
+                if (s.equalsIgnoreCase("IchMagKekse")) continue;
                 JSONObject o = drafts.getJSONObject(s);
-                if(Long.parseLong(o.optString("guild")) != Constants.ASLID) continue;
+                if (Long.parseLong(o.optString("guild")) != Constants.ASLID) continue;
                 if (o.getString("table").contains(uid1)) {
                     league = o;
                     System.out.println("Conference: " + s);
@@ -1181,7 +1259,7 @@ public abstract class Command {
             }
             if (!league.has("results")) league.put("results", new JSONObject());
             JSONObject results = league.getJSONObject("results");
-            if(results.has(uid1 + ":" + uid2) || results.has(uid2 + ":" + uid1)) {
+            if (results.has(uid1 + ":" + uid2) || results.has(uid2 + ":" + uid1)) {
                 sendToMe("Double Entry -> skipped");
                 return;
             }
@@ -1215,6 +1293,7 @@ public abstract class Command {
             }
             System.out.println(res);
             b.addRow("Spielplan!" + getAsXCoord(battleindex * 8 + 5) + (gameday * 10 + 5), res);
+            boolean p1wins = false;
             for (int i = 0; i < 2; i++) {
                 String uid = userids.get(i);
                 ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
@@ -1225,6 +1304,7 @@ public abstract class Command {
                 System.out.println("gameday = " + gameday);
                 if (str.split(":")[0].equals(uid)) {
                     System.out.println("LINKS Picks von " + game[i].getNickname() + ": " + picks);
+                    p1wins = game[i].isWinner();
                     for (String s : mons[i]) {
                         System.out.println("s = " + s + " ");
                         int monindex = aslIndexPick(picks, s);
@@ -1263,6 +1343,8 @@ public abstract class Command {
             b.execute();
             saveEmolgaJSON();
             sortASL(league);
+            gameday++;
+            evaluatePredictions(league, p1wins, gameday, uid1, uid2);
         });
         sdAnalyser.put(709877545708945438L, (game, uid1, uid2, kills, deaths, args) -> {
             Guild guild = jda.getGuildById("709877545708945438");
@@ -1342,9 +1424,9 @@ public abstract class Command {
             JSONObject league;
             JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
             int l;
-            if (drafts.getJSONObject("ZBSL1").getString("table").contains(uid1)) l = 1;
+            if (drafts.getJSONObject("WoolooCupS3L1").getString("table").contains(uid1)) l = 1;
             else l = 2;
-            league = drafts.getJSONObject("ZBSL" + l);
+            league = drafts.getJSONObject("WoolooCupS3L" + l);
             String sid = league.getString("sid");
             int gameday = getGameDay(league, uid1, uid2);
             if (gameday == -1) {
@@ -1357,24 +1439,25 @@ public abstract class Command {
             for (String uid : users) {
                 int index = Arrays.asList(league.getString("table").split(",")).indexOf(uid);
                 ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
-                List<List<Object>> get = Google.get(sid, "Liga " + l + "!B" + (index * 11 + 200) + ":D" + (index * 11 + 210), false, false);
+                List<List<Object>> get = Google.get(sid, "Teamübersicht!" + getAsXCoord((index > 3 ? index - 4 : index) * 6 + 4) + (index > 3 ? 26 : 7) + ":"
+                        + getAsXCoord((index > 3 ? index - 4 : index) * 6 + 5) + (index > 3 ? 38 : 19), false, false);
                 List<List<Object>> list = new ArrayList<>();
                 int x = 0;
                 for (String pick : picks) {
                     String kill = getNumber(kills, pick);
                     String death = getNumber(deaths, pick);
-                    list.add(Arrays.asList((kill.equals("") ? 0 : Integer.parseInt(kill)) + Integer.parseInt((String) get.get(x).get(0)), (death.equals("") ? 0 : Integer.parseInt(death)) + Integer.parseInt((String) get.get(x).get(1)), Integer.parseInt((String) get.get(x).get(2)) + (death.equals("") ? 0 : 1)));
+                    list.add(Arrays.asList((kill.equals("") ? 0 : Integer.parseInt(kill)) + Integer.parseInt((String) get.get(x).get(0)), (death.equals("") ? 0 : Integer.parseInt(death)) + Integer.parseInt((String) get.get(x).get(1))));
                     x++;
                 }
                 List<List<Object>> getvic;
                 try {
-                    getvic = Google.get(sid, "Liga " + l + "!I" + (index + 3) + ":K" + (index + 3), false, false);
+                    getvic = Google.get(sid, "Daten!D" + (index + 1) + ":E" + (index + 1), false, false);
                 } catch (IllegalArgumentException IllegalArgumentException) {
                     IllegalArgumentException.printStackTrace();
                     return;
                 }
                 int win = Integer.parseInt((String) getvic.get(0).get(0));
-                int loose = Integer.parseInt((String) getvic.get(0).get(2));
+                int loose = Integer.parseInt((String) getvic.get(0).get(1));
                 if (game[i].isWinner()) {
                     win++;
                     if (!league.has("results"))
@@ -1382,18 +1465,40 @@ public abstract class Command {
                     league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
                 } else loose++;
                 try {
-                    b.addAll("Liga " + l + "!B" + (index * 11 + 200), list);
-                    b.addRow("Liga " + l + "!I" + (index + 3), Arrays.asList(win, getvic.get(0).get(1), loose), false, false);
+                    b.addAll("Teamübersicht!" + getAsXCoord((index > 3 ? index - 4 : index) * 6 + 4) + (index > 3 ? 26 : 7), list);
+                    b.addRow("Daten!D" + (index + 1), Arrays.asList(win, loose));
                 } catch (IllegalArgumentException IllegalArgumentException) {
                     IllegalArgumentException.printStackTrace();
                 }
                 i++;
             }
-            generateResult(b, game, league, gameday, uid1, "Spielplan Liga " + l, "ZBS", (String) args[0]);
+            generateResult(b, game, league, gameday, uid1, "Spielplan", "Wooloo", (String) args[1]);
             b.execute();
-            sortZBS(sid, "Liga " + l, league);
+            sortWooloo(sid, league);
             saveEmolgaJSON();
         });
+    }
+
+    public static void evaluatePredictions(JSONObject league, boolean p1wins, int gameday, String uid1, String uid2) {
+        JSONObject predictiongame = league.getJSONObject("predictiongame");
+        JSONObject gd = predictiongame.getJSONObject("ids").getJSONObject(String.valueOf(gameday));
+        String key = gd.has(uid1 + ":" + uid2) ? uid1 + ":" + uid2 : uid2 + ":" + uid1;
+        Message message = jda.getTextChannelById(predictiongame.getLong("channelid")).retrieveMessageById(gd.getLong(key)).complete();
+        List<User> e1 = message.retrieveReactionUsers(jda.getEmoteById(540970044297838597L)).complete();
+        List<User> e2 = message.retrieveReactionUsers(jda.getEmoteById(645622238757781505L)).complete();
+        if (p1wins) {
+            for (User user : e1) {
+                if (!e2.contains(user)) {
+                    Database.incrementPredictionCounter(user.getIdLong());
+                }
+            }
+        } else {
+            for (User user : e2) {
+                if (!e1.contains(user)) {
+                    Database.incrementPredictionCounter(user.getIdLong());
+                }
+            }
+        }
     }
 
     public static void generateResult(RequestBuilder b, Player[] game, JSONObject league, int gameday, String uid1, String sheet, String leaguename, String replay) {
@@ -1425,11 +1530,11 @@ public abstract class Command {
                 break;
         }
         if (str.split(":")[0].equals(uid1)) {
-            //b.addSingle(sheet + "!" + coords, "=HYPERLINK(\"" + replay + "\"; \"" + aliveP1 + ":" + aliveP2 + "\")");
-            b.addSingle(sheet + "!" + coords, aliveP1 + ":" + aliveP2);
+            b.addSingle(sheet + "!" + coords, "=HYPERLINK(\"" + replay + "\"; \"" + aliveP1 + ":" + aliveP2 + "\")");
+            //b.addSingle(sheet + "!" + coords, aliveP1 + ":" + aliveP2);
         } else {
-            //b.addSingle(sheet + "!" + coords, "=HYPERLINK(\"" + replay + "\"; \"" + aliveP2 + ":" + aliveP1 + "\")");
-            b.addSingle(sheet + "!" + coords, aliveP2 + ":" + aliveP1);
+            b.addSingle(sheet + "!" + coords, "=HYPERLINK(\"" + replay + "\"; \"" + aliveP2 + ":" + aliveP1 + "\")");
+            //b.addSingle(sheet + "!" + coords, aliveP2 + ":" + aliveP1);
         }
     }
 
@@ -1488,9 +1593,11 @@ public abstract class Command {
     }
 
     private static String getWoolooGameplanCoords(int gameday, int index) {
-        if (gameday < 4) return "C" + (gameday * 6 + index - 2);
-        if (gameday < 7) return "F" + ((gameday - 3) * 6 + index - 2);
-        return "I" + ((gameday - 6) * 6 + index - 2);
+        System.out.println("gameday = " + gameday);
+        System.out.println("index = " + index);
+        if (gameday < 4) return "C" + (gameday * 5 + index - 1);
+        if (gameday < 7) return "F" + ((gameday - 3) * 5 + index - 1);
+        return "I" + ((gameday - 6) * 5 + index - 1);
     }
 
     private static String getASLGameplanCoords(int gameday, int index, int pk) {
@@ -1517,7 +1624,7 @@ public abstract class Command {
     }
 
     public static List<Command> getWithCategory(CommandCategory category, Guild g, Member mem) {
-        return commands.stream().filter(c -> c.category == category && category.allowsGuild(g) && category.allowsMember(mem) && c.allowsGuild(g)).collect(Collectors.toCollection(ArrayList::new));
+        return commands.stream().filter(c -> c.category == category && c.allowsGuild(g) && c.allowsMember(mem)).collect(Collectors.toCollection(ArrayList::new));
     }
 
     public static void updatePresence() {
@@ -1564,21 +1671,21 @@ public abstract class Command {
         TextChannel tco = e.getChannel();
         long gid = e.getGuild().getIdLong();
         for (Command command : commands) {
-            if (command.category == CommandCategory.Flo && mem.getIdLong() != Constants.FLOID) continue;
             if (!command.checkPrefix(msg)) continue;
-            if (command.category == CommandCategory.Music) {
-                tco.sendMessage("Die Musikfunktionen wurden aufgrund einer Fehlfunktion komplett deaktiviert!").queue();
-                return;
+            if (mem.getIdLong() != Constants.FLOID) {
+                if (command.category == CommandCategory.Flo) return;
+                if (!command.category.disabled.isEmpty()) {
+                    tco.sendMessage(command.category.disabled).queue();
+                }
+                if (command.wip) {
+                    tco.sendMessage("Diese Funktion ist derzeit noch in Entwicklung und ist noch nicht einsatzbereit!").queue();
+                    return;
+                }
             }
-            if (command.wip && mem.getIdLong() != Constants.FLOID) {
-                tco.sendMessage("Diese Funktion ist derzeit noch in Entwicklung und ist noch nicht einsatzbereit!").queue();
-                return;
-            }
-            Optional<String> op = command.checkPermissions(gid, mem);
-            if (!op.isPresent()) break;
-            String message = op.get();
-            if (!message.equals("SUCCESS")) {
-                tco.sendMessage(message).queue();
+            PermissionCheck check = command.checkPermissions(gid, mem);
+            if (check == PermissionCheck.NOGUILD) break;
+            if (check == PermissionCheck.NOPERMISSION) {
+                tco.sendMessage(NOPERM).queue();
                 break;
             }
             if (!command.everywhere && !command.category.isEverywhere()) {
@@ -1602,7 +1709,7 @@ public abstract class Command {
                 command.process(new GuildCommandEvent(e));
             } catch (Exception ex) {
                 ex.printStackTrace();
-                tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo/TecToast.\n" + command.getHelp(e.getGuild()) + (mem.getIdLong() == Constants.FLOID ? "\nJa, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
+                tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo/TecToast.\n" + command.getHelp(e.getGuild()) + (mem.getIdLong() == Constants.FLOID ? "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
             }
 
         }
@@ -1663,7 +1770,6 @@ public abstract class Command {
     public static ArrayList<String> getAttacksFrom(String pokemon, String msg, String form, String mod) {
         return getAttacksFrom(pokemon, msg, form, 8, mod);
     }
-
 
     public static boolean moveFilter(String msg, String move) {
         JSONObject o = getWikiJSON().getJSONObject("movefilter");
@@ -1746,11 +1852,11 @@ public abstract class Command {
     }
 
     public static void sendToUser(User user, String msg) {
-        user.openPrivateChannel().submit().thenAccept(pc -> pc.sendMessage(msg).queue());
+        user.openPrivateChannel().flatMap(pc -> pc.sendMessage(msg)).queue();
     }
 
     public static void sendToUser(long id, String msg) {
-        jda.retrieveUserById(id).submit().thenCompose(u -> u.openPrivateChannel().submit()).thenAccept(pc -> pc.sendMessage(msg).queue());
+        jda.retrieveUserById(id).flatMap(User::openPrivateChannel).flatMap(pc -> pc.sendMessage(msg)).queue();
     }
 
     private static boolean containsGen(JSONObject learnset, String move, int gen) {
@@ -1886,6 +1992,140 @@ public abstract class Command {
             list.add(asl.getJSONObject(s).getString("table").split(",")[index]);
         }
         return list;
+    }
+
+    public static void analyseASLReplay(long authorid, String url, JDA jda) {
+        long gid = Constants.ASLID;
+        Guild g = jda.getGuildById(gid);
+        System.out.println(url);
+        Player[] game;
+        try {
+            game = Analysis.analyse(url);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            sendToMe("Analyse Error! Console!");
+            sendToUser(authorid, "Beim Auswerten des Replays ist ein Fehler aufgetreten! Flo wurde benachrichtigt, du musst nichts machen.");
+            return;
+        }
+        System.out.println("Analysed in PN!");
+        String u1 = game[0].getNickname();
+        String u2 = game[1].getNickname();
+        String name1;
+        String name2;
+        String uid1 = null;
+        String uid2 = null;
+        JSONObject json = getEmolgaJSON();
+        if (json.getJSONObject("showdown").has(String.valueOf(gid))) {
+            JSONObject showdown = json.getJSONObject("showdown").getJSONObject(String.valueOf(gid));
+            System.out.println("u1 = " + u1);
+            System.out.println("u2 = " + u2);
+            for (String s : showdown.keySet()) {
+                if (u1.equalsIgnoreCase(s)) uid1 = showdown.getString(s);
+                if (u2.equalsIgnoreCase(s)) uid2 = showdown.getString(s);
+            }
+            name1 = uid1 != null && gid == 518008523653775366L ? uid1.equals("LSD") ? "REPLACELSD" : jda.getGuildById(gid).retrieveMemberById(uid1).complete().getEffectiveName() : game[0].getNickname();
+            name2 = uid2 != null && gid == 518008523653775366L ? uid2.equals("LSD") ? "REPLACELSD" : jda.getGuildById(gid).retrieveMemberById(uid2).complete().getEffectiveName() : game[1].getNickname();
+        } else {
+            name1 = game[0].getNickname();
+            name2 = game[1].getNickname();
+        }
+        if (uid1 == null || uid2 == null) return;
+        JSONObject league = null;
+        JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
+        for (String s : drafts.keySet()) {
+            if (s.equalsIgnoreCase("IchMagKekse")) continue;
+            JSONObject o = drafts.getJSONObject(s);
+            if (Long.parseLong(o.optString("guild")) != Constants.ASLID) continue;
+            if (o.getString("table").contains(uid1)) {
+                league = o;
+                System.out.println("Conference: " + s);
+                break;
+            }
+        }
+        if (league == null) return;
+        int lastday = league.getJSONObject("predictiongame").getInt("lastDay");
+        int gameday = getGameDay(league, uid1, uid2);
+        if (lastday < gameday) {
+            sendToUser(authorid, "Das Replay wurde gespeichert, aber noch nicht reingeschickt, da es zu einem späteren Spieltag gehört!");
+            JSONObject early = json.getJSONObject("earlyreplays");
+            if (!early.has(String.valueOf(gameday))) early.put(String.valueOf(gameday), new JSONArray());
+            early.getJSONArray(String.valueOf(gameday)).put(url);
+            saveEmolgaJSON();
+            return;
+        }
+        System.out.println("uid1 = " + uid1);
+        System.out.println("uid2 = " + uid2);
+        int aliveP1 = 0;
+        int aliveP2 = 0;
+        StringBuilder t1 = new StringBuilder();
+        StringBuilder t2 = new StringBuilder();
+        for (SDPokemon p : game[0].getMons()) {
+            if (!p.isDead()) aliveP1++;
+        }
+        for (SDPokemon p : game[1].getMons()) {
+            if (!p.isDead()) aliveP2++;
+        }
+        String winloose = aliveP1 + ":" + aliveP2;
+        boolean p1wins = game[0].isWinner();
+        HashMap<String, String> kills = new HashMap<>();
+        HashMap<String, String> deaths = new HashMap<>();
+        ArrayList<String> p1mons = new ArrayList<>();
+        ArrayList<String> p2mons = new ArrayList<>();
+        boolean spoiler = spoilerTags.contains(gid);
+        if (spoiler) t1.append("||");
+        for (SDPokemon p : game[0].getMons()) {
+            String monName = getMonName(p.getPokemon(), gid);
+            kills.put(monName, String.valueOf(p.getKills()));
+            deaths.put(monName, p.isDead() ? "1" : "0");
+            p1mons.add(monName);
+            t1.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (p1wins || spoiler) ? "X" : "").append("\n");
+        }
+        if (spoiler) t1.append("||");
+        if (spoiler) t2.append("||");
+        for (SDPokemon p : game[1].getMons()) {
+            String monName = getMonName(p.getPokemon(), gid);
+            kills.put(monName, String.valueOf(p.getKills()));
+            deaths.put(monName, p.isDead() ? "1" : "0");
+            p2mons.add(monName);
+            t2.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (!p1wins || spoiler) ? "X" : "").append("\n");
+        }
+        if (spoiler) t2.append("||");
+        System.out.println("Kills");
+        System.out.println(kills);
+        System.out.println("Deaths");
+        System.out.println(deaths);
+
+        String str;
+        if (spoiler) {
+            str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1.toString()
+                    + "\n" + name2 + ": " + "\n" + t2.toString();
+        } else {
+            str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1.toString()
+                    + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2.toString();
+        }
+
+        g.getTextChannelById(league.getLong("replaychannel")).sendMessage("Spieltag " + gameday + "\n" + name1 + " vs " + name2 + "\n" + url).queue();
+        TextChannel resultchannel = g.getTextChannelById(league.getLong("resultchannel"));
+        resultchannel.sendMessage(str).queue();
+        for (int i = 0; i < 2; i++) {
+            if (game[i].getMons().stream().anyMatch(mon -> mon.getPokemon().equals("Zoroark") || mon.getPokemon().equals("Zorua")))
+                resultchannel.sendMessage("Im Team von " + game[i].getNickname() + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills von ihm überprüfen!").queue();
+        }
+        System.out.println("In Emolga Listener!");
+        if (!json.getJSONObject("showdown").has(String.valueOf(gid))) return;
+        if (sdAnalyser.containsKey(gid)) {
+            sdAnalyser.get(gid).analyse(game, uid1, uid2, kills, deaths, new ArrayList[]{p1mons, p2mons}, url);
+        }
+    }
+
+    public static void sendEarlyASLReplays(int gameday) {
+        JSONObject early = getEmolgaJSON().getJSONObject("earlyreplays");
+        if (!early.has(String.valueOf(gameday))) return;
+        for (Object o : early.getJSONArray(String.valueOf(gameday))) {
+            analyseASLReplay(Constants.FLOID, (String) o, jda);
+        }
+        early.remove(String.valueOf(gameday));
+        saveEmolgaJSON();
     }
 
     public static String getIconSprite(String str) {
@@ -2036,21 +2276,6 @@ public abstract class Command {
         Google.getSheetsService().spreadsheets().batchUpdate(sid, new BatchUpdateSpreadsheetRequest().setRequests(l)).execute();
     }
 
-    /*SimpleDateFormat f = new SimpleDateFormat("HH");
-        int after = Integer.parseInt(f.format(new Date(System.currentTimeMillis() + 7200000)));
-        int now = Integer.parseInt(f.format(new Date(System.currentTimeMillis())));
-        if ((now > 9 && now < 22) && (after < 10 || after > 21)) return 50400000;
-        else if (now > 21 || now < 12) {
-            Calendar c = Calendar.getInstance();
-            if (now > 21)
-                c.add(Calendar.DAY_OF_MONTH, 1);
-            c.set(Calendar.HOUR_OF_DAY, 14);
-            c.set(Calendar.MINUTE, 0);
-            c.set(Calendar.SECOND, 0);
-            c.set(Calendar.MILLISECOND, 0);
-            return c.getTimeInMillis() - System.currentTimeMillis();
-        } else return 7200000;*/
-
     public static void sortASL(JSONObject league) {
         String sid = league.getString("sid");
         List<List<Object>> formula = Google.get(sid, "Tabelle!B4:J11", true, false);
@@ -2085,6 +2310,21 @@ public abstract class Command {
         RequestBuilder.updateAll(sid, "Tabelle!B4", senddata);
         System.out.println("Done!");
     }
+
+    /*SimpleDateFormat f = new SimpleDateFormat("HH");
+        int after = Integer.parseInt(f.format(new Date(System.currentTimeMillis() + 7200000)));
+        int now = Integer.parseInt(f.format(new Date(System.currentTimeMillis())));
+        if ((now > 9 && now < 22) && (after < 10 || after > 21)) return 50400000;
+        else if (now > 21 || now < 12) {
+            Calendar c = Calendar.getInstance();
+            if (now > 21)
+                c.add(Calendar.DAY_OF_MONTH, 1);
+            c.set(Calendar.HOUR_OF_DAY, 14);
+            c.set(Calendar.MINUTE, 0);
+            c.set(Calendar.SECOND, 0);
+            c.set(Calendar.MILLISECOND, 0);
+            return c.getTimeInMillis() - System.currentTimeMillis();
+        } else return 7200000;*/
 
     public static void sortBST() {
         JSONObject bst = getEmolgaJSON().getJSONObject("BST");
@@ -2306,11 +2546,30 @@ public abstract class Command {
         System.out.println("getSDName s = " + s);
         String engl = getEnglNameWithType(s, mod);
         if (engl.equals("")) return "";
-        return engl.split(";")[1].toLowerCase().replaceAll("[^a-zA-Z0-9äöüÄÖÜß]+", "");
+        return toSDName(engl.split(";")[1]);
     }
 
     public static String toSDName(String s) {
         return s.toLowerCase().replaceAll("[^a-zA-Z0-9äöüÄÖÜß]+", "");
+    }
+
+    public static String getDataName(String s) {
+        System.out.println("s = " + s);
+        if (s.equals("Wie-Shu")) return "mienshao";
+        if (s.equals("Porygon-Z")) return "porygonz";
+        if (s.equals("Sen-Long")) return "drampa";
+        if (s.startsWith("Kapu-")) return getSDName(s);
+        String[] split = s.split("-");
+        if (split.length == 1) return getSDName(s);
+        if (s.startsWith("M-")) {
+            if (split.length == 3) {
+                return getSDName(split[1]) + "mega" + split[2].toLowerCase();
+            }
+            return getSDName(split[1]) + "mega";
+        }
+        if (s.startsWith("A-")) return getSDName(split[1]) + "alola";
+        if (s.startsWith("G-")) return getSDName(split[1]) + "galar";
+        return getSDName(split[0]) + toSDName(sdex.getOrDefault(s, ""));
     }
 
     public static boolean canLearn(String pokemon, String form, String atk, String msg, int maxgen, String mod) {
@@ -2381,6 +2640,7 @@ public abstract class Command {
         if (gid == Constants.ASLID && s.contains("Urshifu")) return "Wulaosu-Wasser";
         if (s.contains("Urshifu")) return "Wulaosu";
         if (s.contains("Gourgeist")) return "Pumpdjinn";
+        if (s.contains("Pumpkaboo")) return "Irrbis";
         if (s.contains("Pikachu")) return "Pikachu";
         if (s.contains("Indeedee")) return "Servol";
         if (s.contains("Meloetta")) return "Meloetta";
@@ -2395,11 +2655,13 @@ public abstract class Command {
         if (s.contains("Silvally")) {
             String[] split = s.split("-");
             if (split.length == 1 || s.equals("Silvally-*")) return "Amigento";
+            else if (split[1].equals("Psychic")) return "Amigento-Psycho";
             else return "Amigento-" + getGerName(split[1]).split(";")[1];
         }
         if (s.contains("Arceus")) {
             String[] split = s.split("-");
             if (split.length == 1 || s.equals("Arceus-*")) return "Arceus";
+            else if (split[1].equals("Psychic")) return "Arceus-Psycho";
             else return "Arceus-" + getGerName(split[1]).split(";")[1];
         }
         //System.out.println("s = " + s);
@@ -2438,8 +2700,17 @@ public abstract class Command {
         return getGerName(first).split(";")[0] + String.join("-" + split);
     }
 
+    protected void setCustomPermissions(Predicate<Member> predicate) {
+        this.allowsMember = predicate;
+        this.customPermissions = true;
+    }
+
+    protected void setAdminOnly() {
+        setCustomPermissions(PermissionPreset.ADMIN);
+    }
+
     public boolean allowsMember(Member mem) {
-        return category.allowsMember(mem) || allowsMember.test(mem);
+        return (category.allowsMember(mem) && !customPermissions) || allowsMember.test(mem);
     }
 
     public boolean allowsGuild(Guild g) {
@@ -2452,10 +2723,10 @@ public abstract class Command {
         return !allowedGuilds.isEmpty() && allowedGuilds.contains(gid);
     }
 
-    public Optional<String> checkPermissions(long gid, Member mem) {
-        if (!allowsGuild(gid)) return Optional.empty();
-        if (!allowsMember(mem)) return Optional.of(NOPERM);
-        return Optional.of("SUCCESS");
+    public PermissionCheck checkPermissions(long gid, Member mem) {
+        if (!allowsGuild(gid)) return PermissionCheck.NOGUILD;
+        if (!allowsMember(mem)) return PermissionCheck.NOPERMISSION;
+        return PermissionCheck.GRANTED;
     }
 
     private boolean checkPrefix(String msg) {
@@ -2479,5 +2750,50 @@ public abstract class Command {
 
     public String getHelp(Guild g) {
         return overrideHelp.getOrDefault(g.getId(), help) + (wip ? " (**W.I.P.**)" : "");
+    }
+
+    private enum PermissionCheck {
+        GRANTED,
+        NOPERMISSION,
+        NOGUILD
+    }
+
+    public static final class PermissionPreset {
+        public static final Predicate<Member> OWNER = Member::isOwner;
+        public static final Predicate<Member> ADMIN = member -> member.hasPermission(Permission.ADMINISTRATOR);
+        public static final Predicate<Member> MODERATOR = m -> ADMIN.test(m) || m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getIdLong()));
+
+        public static Predicate<Member> fromRole(long roleId) {
+            return member -> member.getRoles().stream().anyMatch(r -> r.getIdLong() == roleId);
+        }
+    }
+
+    public static final class Translation {
+        private final String translation;
+        private final String type;
+        private final Language language;
+
+        public Translation(String translation, String type, Language language) {
+            this.translation = translation;
+            this.type = type;
+            this.language = language;
+        }
+
+        public String getTranslation() {
+            return translation;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public Language getLanguage() {
+            return language;
+        }
+
+        public enum Language {
+            GERMAN,
+            ENGLISH
+        }
     }
 }

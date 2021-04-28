@@ -37,7 +37,7 @@ public class GcreateCommand extends Command {
 
     //GuildMessageReceivedEvent event, TextChannel tchan, int seconds, int winners
     public GcreateCommand() {
-        super("gcreate", "`!gcreate` Startet ein Giveaway", CommandCategory.Various, 712035338846994502L, 756239772665511947L, 518008523653775366L, 673833176036147210L, 745934535748747364L);
+        super("gcreate", "`!gcreate` Startet ein Giveaway", CommandCategory.Various, 712035338846994502L, 756239772665511947L, 518008523653775366L, 673833176036147210L, 745934535748747364L, 821350264152784896L);
         template = new InteractiveTemplate((u, tco, l) -> {
             current.remove(tco.getId());
             TextChannel tchan = (TextChannel) l.get("channel");
@@ -95,6 +95,7 @@ public class GcreateCommand extends Command {
                 });
         CANCEL_WORDS.forEach(template::addCancelCommand);
         template.setTimer(2, TimeUnit.MINUTES, "Du hast länger als 2 Minuten für eine Antwort gebraucht, deshalb wurde das Giveaway gelöscht.");
+        template.setOnCancel(i -> current.remove(i.getChannel().getId()));
     }
 
 

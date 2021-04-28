@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 public class GetIdsCommand extends Command {
     public GetIdsCommand() {
-        super("getids", "`!getids` <Rolle>`", CommandCategory.Flo);
+        super("getids", "`!getids <Rolle>` Holt die Namen und die IDs der Leute mit der Rolle", CommandCategory.Flo);
     }
 
     @Override

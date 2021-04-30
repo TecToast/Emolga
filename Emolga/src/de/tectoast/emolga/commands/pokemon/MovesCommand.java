@@ -41,12 +41,12 @@ public class MovesCommand extends Command {
             } else {
                 pokemon = args[1];
             }
-            String string = getGerName(pokemon, getModByGuild(e));
-            if (!string.split(";")[0].equals("pkmn")) {
-                tco.sendMessage("Das ist kein pokemon!").queue();
+            Translation t = getGerName(pokemon, getModByGuild(e));
+            if (!t.isFromType(Translation.Type.POKEMON)) {
+                tco.sendMessage("Das ist kein Pokemon!").queue();
                 return;
             }
-            pokemon = string.split(";")[1];
+            pokemon = t.getTranslation();
             System.out.println(pokemon);
             try {
                 ArrayList<String> attacks;

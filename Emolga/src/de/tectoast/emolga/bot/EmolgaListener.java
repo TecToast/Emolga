@@ -746,7 +746,7 @@ public class EmolgaListener extends ListenerAdapter {
                     g.addRoleToMember(member, g.getRoleById("758254829885456404")).queue();
                 }
                 if (m.getMentionedMembers().size() == 1) {
-                    if (m.getMentionedMembers().get(0).getId().equals("723829878755164202") && !e.getAuthor().isBot() && (!emolgachannel.containsKey(gid) || emolgachannel.get(gid).contains(tco.getIdLong()))) {
+                    if (m.getMentionedMembers().get(0).getId().equals("723829878755164202") && !e.getAuthor().isBot() && (!emolgaChannel.containsKey(gid) || emolgaChannel.get(gid).contains(tco.getIdLong()))) {
                         help(tco, member);
                     }
                 }
@@ -844,12 +844,10 @@ public class EmolgaListener extends ListenerAdapter {
                 }
                 DexQuiz quiz = DexQuiz.getByTC(tco);
                 if (quiz != null && !quiz.block) {
-                    String mon = quiz.gerName;
-                    String name = getGerName(msg);
-                    if (name.startsWith("pkmn;")) name = name.split(";")[1];
-                    if (name.equalsIgnoreCase(mon) || name.equalsIgnoreCase(quiz.englName)) {
+                    Translation name = getGerName(msg);
+                    if (quiz.check(name)) {
                         quiz.block = true;
-                        tco.sendMessage(member.getAsMention() + " hat das Pokemon erraten! Es war " + mon + "!").queue();
+                        tco.sendMessage(member.getAsMention() + " hat das Pokemon erraten! Es war " + quiz.gerName + "!").queue();
                         quiz.round++;
                         if (!quiz.points.containsKey(member)) quiz.points.put(member, 0);
                         quiz.points.put(member, quiz.points.get(member) + 1);

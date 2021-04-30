@@ -11,7 +11,7 @@ import java.util.List;
 
 public class ResetCooldownCommand extends Command {
     public ResetCooldownCommand() {
-        super("resetcooldown", "`!resetcooldown @User` Resettet den Cooldown der angegebenen Person", CommandCategory.Moderator, byName("nickname"));
+        super("resetcooldown", "`!resetcooldown @User` Resettet den Cooldown der angegebenen Person", CommandCategory.Moderator, "nickname");
     }
 
     @Override

@@ -40,9 +40,9 @@ public class DexQuiz {
     }
 
     public static Pair<String, String> getNewMon() {
-        File file = new File("./entwicklung.txt");
         try {
             if (cachedMons == null) {
+                File file = new File("./entwicklung.txt");
                 cachedMons = Files.readAllLines(file.toPath());
             }
             String pokemon = cachedMons.get(new Random().nextInt(cachedMons.size()));
@@ -56,6 +56,10 @@ public class DexQuiz {
 
     public static DexQuiz getByTC(TextChannel tc) {
         return list.stream().filter(q -> q.tc.getId().equals(tc.getId())).findFirst().orElse(null);
+    }
+
+    public boolean check(Translation t) {
+        return t.getTranslation().equals(gerName) || t.getTranslation().equals(englName);
     }
 
     public void end() {

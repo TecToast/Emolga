@@ -57,15 +57,16 @@ public class CombinationCommand extends Command {
         ArrayList<String> egg = new ArrayList<>();
         String modByGuild = getModByGuild(e);
         for (String s : args.split(",")) {
-            String str = getGerName(s.trim(), modByGuild);
-            if (str.equals("") || str.startsWith("pkmn")) {
+            Translation t = getGerName(s.trim(), modByGuild);
+            if (t.isEmpty() || t.isFromType(Translation.Type.POKEMON)) {
                 tco.sendMessage("**" + s + "** ist kein valides Argument!").queue();
                 return;
             }
-            if (str.startsWith("atk")) atks.add(getSDName(str.split(";")[1], modByGuild));
-            else if (str.startsWith("abi")) abis.add(getEnglName(str.split(";")[1], modByGuild));
-            else if (str.startsWith("type")) types.add(getEnglName(str.split(";")[1], modByGuild));
-            else if (str.startsWith("egg")) egg.add(getEnglName(str.split(";")[1], modByGuild));
+            String trans = t.getTranslation();
+            if (t.isFromType(Translation.Type.MOVE)) atks.add(getSDName(trans, modByGuild));
+            else if (t.isFromType(Translation.Type.ABILITY)) abis.add(getEnglName(trans, modByGuild));
+            else if (t.isFromType(Translation.Type.TYPE)) types.add(getEnglName(trans, modByGuild));
+            else if (t.isFromType(Translation.Type.EGGGROUP)) egg.add(getEnglName(trans, modByGuild));
         }
         JSONObject data = getDataJSON(modByGuild);
         JSONObject moves = getLearnsetJSON(modByGuild);

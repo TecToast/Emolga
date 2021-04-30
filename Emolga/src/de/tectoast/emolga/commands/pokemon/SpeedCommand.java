@@ -39,28 +39,28 @@ public class SpeedCommand extends Command {
                 int bs;
                 String ger;
                 if (mon.startsWith("M-")) {
-                    String st = getGerName(mon.substring(2));
-                    if (st.equals("") || !st.startsWith("pkmn")) {
+                    Translation st = getGerName(mon.substring(2));
+                    if (st.isEmpty() || !st.isFromType(Translation.Type.POKEMON)) {
                         tco.sendMessage(mon.substring(2) + " ist kein Pokemon!").queue();
                         return;
                     }
-                    ger = st.split(";")[1];
+                    ger = st.getTranslation();
                     bs = datajson.getJSONObject(getSDName(ger) + "mega").getJSONObject("baseStats").getInt("spe");
                 } else if (mon.startsWith("A-")) {
-                    String st = getGerName(mon.substring(2));
-                    if (st.equals("") || !st.startsWith("pkmn")) {
+                    Translation st = getGerName(mon.substring(2));
+                    if (st.isEmpty() || !st.isFromType(Translation.Type.POKEMON)) {
                         tco.sendMessage(mon.substring(2) + " ist kein Pokemon!").queue();
                         return;
                     }
-                    ger = st.split(";")[1];
+                    ger = st.getTranslation();
                     bs = datajson.getJSONObject(getSDName(ger) + "alola").getJSONObject("baseStats").getInt("spe");
                 } else if (mon.startsWith("G-")) {
-                    String string = getGerName(mon.substring(2));
-                    if (string.equals("") || !string.startsWith("pkmn")) {
+                    Translation st = getGerName(mon.substring(2));
+                    if (st.isEmpty() || !st.isFromType(Translation.Type.POKEMON)) {
                         tco.sendMessage(mon.substring(2) + " ist kein Pokemon!").queue();
                         return;
                     }
-                    ger = string.split(";")[1];
+                    ger = st.getTranslation();
                     bs = datajson.getJSONObject(getSDName(ger) + "galar").getJSONObject("baseStats").getInt("spe");
                 } else {
                     if (mon.startsWith("Amigento") || mon.startsWith("Silvally")) {
@@ -77,12 +77,12 @@ public class SpeedCommand extends Command {
                         String englname = getEnglName(ger.split("-")[0]);
                         bs = datajson.getJSONObject(toSDName(englname + sdex.get(mon))).getJSONObject("baseStats").getInt("spe");
                     } else {
-                        String string = getGerName(mon);
-                        if (string.equals("") || !string.startsWith("pkmn")) {
+                        Translation t = getGerName(mon);
+                        if (t.isEmpty() || !t.isFromType(Translation.Type.POKEMON)) {
                             tco.sendMessage(mon + " ist kein Pokemon!").queue();
                             return;
                         }
-                        ger = string.split(";")[1];
+                        ger = t.getTranslation();
                         bs = datajson.getJSONObject(getSDName(ger)).getJSONObject("baseStats").getInt("spe");
                     }
                 }

@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class CanlearnCommand extends Command {
     public CanlearnCommand() {
-        super("canlearn", "`!canlearn <pokemon> <Attacke>` Zeigt, ob das pokemon diese Attacke erlernen kann", CommandCategory.Pokemon);
+        super("canlearn", "`!canlearn <Pokemon> <Attacke>` Zeigt, ob das pokemon diese Attacke erlernen kann", CommandCategory.Pokemon);
         aliases.add("canlearn5");
     }
 
@@ -41,18 +41,18 @@ public class CanlearnCommand extends Command {
                 pokemon = args[1];
                 atk = msg.substring(pokemon.length() + 11);
             }
-            pokemon = getGerName(pokemon, getModByGuild(e));
-            if (!pokemon.startsWith("pkmn;")) {
-                tco.sendMessage("Das ist kein pokemon!").queue();
+            Translation t = getGerName(pokemon, getModByGuild(e));
+            if (!t.isFromType(Translation.Type.POKEMON)) {
+                tco.sendMessage("Das ist kein Pokemon!").queue();
                 return;
             }
-            pokemon = pokemon.substring(5);
-            String str = getGerName(atk, getModByGuild(e));
-            if (!str.split(";")[0].equals("atk")) {
+            pokemon = t.getTranslation();
+            Translation movet = getGerName(atk, getModByGuild(e));
+            if (!movet.isFromType(Translation.Type.MOVE)) {
                 tco.sendMessage("Das ist keine Attacke!").queue();
                 return;
             }
-            atk = str.split(";")[1];
+            atk = movet.getTranslation();
             try {
                 tco.sendMessage((form.equals("Normal") ? "" : form + "-") + pokemon + " kann " + atk + (canLearn(pokemon, form, atk, msg, e.getGuild().getId().equals("747357029714231299") || args[0].equalsIgnoreCase("!canlearn5") ? 5 : 8, getModByGuild(e)) ? "" : " nicht") + " erlernen!").queue();
             } catch (Exception ex) {

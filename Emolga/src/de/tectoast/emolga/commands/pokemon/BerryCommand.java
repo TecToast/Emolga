@@ -18,88 +18,88 @@ public class BerryCommand extends Command {
         Message m = e.getMessage();
         String msg = m.getContentDisplay();
         Member member = e.getMember();
-        String str = getGerName(msg.substring(7));
-        if (str.equals("") || !str.startsWith("type")) {
+        Translation t = getGerName(msg.substring(7));
+        if (!t.isFromType(Translation.Type.TYPE)) {
             tco.sendMessage("Das ist kein Typ!").queue();
             return;
         }
-        String ger = str.split(";")[1];
+        String ger = t.getTranslation();
         String g = "Fehler";
-        String err = "Fehler";
+        String engl = "Fehler";
         switch (ger) {
             case "Feuer":
                 g = "Koakobeere";
-                err = "Occa Berry";
+                engl = "Occa Berry";
                 break;
             case "Wasser":
                 g = "Foepasbeere";
-                err = "Passho Berry";
+                engl = "Passho Berry";
                 break;
             case "Elektro":
                 g = "Kerzalbeere";
-                err = "Wacan Berry";
+                engl = "Wacan Berry";
                 break;
             case "Pflanze":
                 g = "Grindobeere";
-                err = "Rindo Berry";
+                engl = "Rindo Berry";
                 break;
             case "Eis":
                 g = "Kiroyabeere";
-                err = "Yache Berry";
+                engl = "Yache Berry";
                 break;
             case "Kampf":
                 g = "Rospelbeere";
-                err = "Chople Berry";
+                engl = "Chople Berry";
                 break;
             case "Gift":
                 g = "Grarzbeere";
-                err = "Kebia Berry";
+                engl = "Kebia Berry";
                 break;
             case "Boden":
                 g = "Schukebeere";
-                err = "Shuca Berry";
+                engl = "Shuca Berry";
                 break;
             case "Flug":
                 g = "Kobabeere";
-                err = "Coba Berry";
+                engl = "Coba Berry";
                 break;
             case "Psycho":
                 g = "Pyapabeere";
-                err = "Payapa Berry";
+                engl = "Payapa Berry";
                 break;
             case "Käfer":
                 g = "Tanigabeere";
-                err = "Tanga Berry";
+                engl = "Tanga Berry";
                 break;
             case "Gestein":
                 g = "Chiaribeere";
-                err = "Charti Berry";
+                engl = "Charti Berry";
                 break;
             case "Geist":
                 g = "Zitarzbeere";
-                err = "Kasib Berry";
+                engl = "Kasib Berry";
                 break;
             case "Drache":
                 g = "Terirobeere";
-                err = "Haban Berry";
+                engl = "Haban Berry";
                 break;
             case "Unlicht":
                 g = "Burleobeere";
-                err = "Colbur Berry";
+                engl = "Colbur Berry";
                 break;
             case "Stahl":
                 g = "Babiribeere";
-                err = "Babiri Berry";
+                engl = "Babiri Berry";
                 break;
             case "Normal":
                 g = "Latchibeere";
-                err = "Chilan Berry";
+                engl = "Chilan Berry";
                 break;
             case "Fee":
                 g = "Hibisbeere";
-                err = "Roseli Berry";
+                engl = "Roseli Berry";
                 break;
         }
-        tco.sendMessage("Deutsch: " + g + "\nEnglisch: " + err).queue();
+        tco.sendMessage("Deutsch: " + g + "\nEnglisch: " + engl).queue();
     }
 }

@@ -16,7 +16,7 @@ public class InvertColorsCommand extends Command {
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
         String msg = e.getMessage().getContentDisplay();
-        String mon;
+        Translation mon;
         boolean shiny;
         if(e.getArgsLength() == 2) {
             mon = getEnglNameWithType(e.getArg(1));
@@ -26,12 +26,12 @@ public class InvertColorsCommand extends Command {
             shiny = false;
         }
         System.out.println("mon = " + mon);
-        if (!mon.startsWith("pkmn;")) {
+        if (!mon.isFromType(Translation.Type.POKEMON)) {
             tco.sendMessage("Das ist kein Pokemon!").queue();
             return;
         }
         System.out.println("mon = " + mon);
-        File f = invertImage(mon.split(";")[1], shiny);
+        File f = invertImage(mon.getTranslation(), shiny);
         tco.sendFile(f).queue(message -> {
             //noinspection ResultOfMethodCallIgnored
             f.delete();

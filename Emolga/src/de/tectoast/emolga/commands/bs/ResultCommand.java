@@ -86,18 +86,18 @@ public class ResultCommand extends Command {
     private void waitForMon(User u, Result r) {
         wait(u, e -> {
             String msg = e.getMessage().getContentDisplay();
-            String mon = getBSTGerName(msg);
-            if (mon.equals("ONLYWITHFORM")) {
+            Translation t = getBSTGerName(msg);
+            if (t.getTranslation().equals("ONLYWITHFORM")) {
                 sendToUser(u, "Du musst bei Wulaosu -Unlicht oder -Wasser hinterschreiben!");
                 waitForMon(u, r);
                 return;
             }
-            if (!mon.startsWith("pkmn;")) {
+            if (!t.isFromType(Translation.Type.POKEMON)) {
                 sendToUser(u, "Das ist kein pokemon!");
                 waitForMon(u, r);
                 return;
             }
-            mon = mon.substring(5);
+            String mon = t.getTranslation();
             r.currmon = mon;
             if (r.curruser.equals(r.u1)) r.mons1.add(mon);
             else r.mons2.add(mon);

@@ -42,14 +42,15 @@ public class CheckCommand extends Command {
         if (optmon.isPresent()) {
             mon = optmon.get();
         } else {
-            if (pokemon.toLowerCase().startsWith("a-")) mon = "A-" + getGerName(pokemon.substring(2));
-            else if (pokemon.toLowerCase().startsWith("g-")) mon = "G-" + getGerName(pokemon.substring(2));
-            else mon = getGerName(pokemon);
-            if (!mon.contains("pkmn;")) {
-                tco.sendMessage("Dieses pokemon existiert nicht!").queue();
+            Translation t;
+            if (pokemon.toLowerCase().startsWith("a-")) t = getGerName(pokemon.substring(2)).before("A-");
+            else if (pokemon.toLowerCase().startsWith("g-")) t = getGerName(pokemon.substring(2)).before("A-");
+            else t = getGerName(pokemon);
+            if (!t.isFromType(Translation.Type.POKEMON)) {
+                tco.sendMessage("Dieses Pokemon existiert nicht!").queue();
                 return;
             }
-            mon = mon.replace("pkmn;", "");
+            mon = t.getTranslation();
         }
         if ((mon.equals("Hopplo") || mon.equals("Memmeon") || mon.equals("Chimpep")) && !ball.equals("Pokéball") && !ball.equals("NONE")) {
             tco.sendMessage("Die Starter können nur in einem normalen Pokéball sein!").queue();

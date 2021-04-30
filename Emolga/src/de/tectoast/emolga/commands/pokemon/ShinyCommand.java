@@ -16,12 +16,12 @@ public class ShinyCommand extends Command {
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
         String msg = e.getMessage().getContentDisplay();
-        String mon = getEnglNameWithType(msg.substring(7));
-        if (!mon.startsWith("pkmn;")) {
+        Translation t = getEnglNameWithType(msg.substring(7));
+        if (!t.isFromType(Translation.Type.POKEMON)) {
             tco.sendMessage("Das ist kein Pokemon!").queue();
             return;
         }
-        File f = new File("../Showdown/sspclient/sprites/gen5-shiny/" + mon.split(";")[1].toLowerCase() + ".png");
+        File f = new File("../Showdown/sspclient/sprites/gen5-shiny/" + t.getTranslation().toLowerCase() + ".png");
         //if(!f.exists()) f = new File("../Showdown/sspclient/sprites/gen5-shiny/" + mon.split(";")[1].toLowerCase() + ".png");
         System.out.println(f.getPath());
         System.out.println(f.exists());

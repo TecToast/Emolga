@@ -27,12 +27,12 @@ public class AbilityCommand extends Command {
         Member member = e.getMember();
         JSONObject json = getDataJSON(getModByGuild(e));
         ArrayList<String> mons = new ArrayList<>();
-        String str = getEnglNameWithType(msg.substring(9), getModByGuild(e));
-        if (!str.split(";")[0].equals("abi")) {
+        Translation t = getEnglNameWithType(msg.substring(9), getModByGuild(e));
+        if (!t.isFromType(Translation.Type.ABILITY)) {
             tco.sendMessage("Das ist keine Fähigkeit!").queue();
             return;
         }
-        String abi = str.split(";")[1];
+        String abi = t.getTranslation();
         for (String s : json.keySet()) {
             if (json.getJSONObject(s).getJSONObject("abilities").keySet().stream().map(string -> json.getJSONObject(s).getJSONObject("abilities").getString(string)).anyMatch(string -> string.equalsIgnoreCase(abi))) {
                 String name = json.getJSONObject(s).getString("name");
@@ -46,11 +46,11 @@ public class AbilityCommand extends Command {
         for (String mon : mons) {
             s.append(mon).append("\n");
             if (s.length() > 1900) {
-                tco.sendMessage(new EmbedBuilder().setColor(Color.CYAN).setTitle(getGerNameNoCheck(abi) + " haben:").setDescription(s).build()).queue();
+                tco.sendMessage(new EmbedBuilder().setColor(Color.CYAN).setTitle(t.getOtherLang() + " haben:").setDescription(s).build()).queue();
                 s = new StringBuilder();
             }
         }
-        tco.sendMessage(new EmbedBuilder().setColor(Color.CYAN).setTitle(getGerNameNoCheck(abi) + " haben:").setDescription(s).build()).queue();
+        tco.sendMessage(new EmbedBuilder().setColor(Color.CYAN).setTitle(t.getOtherLang() + " haben:").setDescription(s).build()).queue();
         /*
         try {
             tco.sendMessage(new EmbedBuilder().setColor(Color.CYAN).setTitle(eachWordUpperCase(msg.substring(9)) + " haben:").setDescription(String.join("\n", Jsoup.connect("https://www.pokewiki.de/" + msg.substring(9)).get().select("span[style=\"padding-left: 0.2em;\"]").stream().map(Element::text).collect(Collectors.toCollection(ArrayList::new)))).build()).queue();

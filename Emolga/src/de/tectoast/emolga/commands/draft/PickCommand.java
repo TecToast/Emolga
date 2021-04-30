@@ -60,23 +60,24 @@ public class PickCommand extends Command {
             Member finalMem = mem;
             String[] split = msg.substring(6).split(" ");
             String tier;
+            Translation t;
             String pokemon;
             Tierlist tierlist = d.getTierlist();
             if (split.length == 2 && !d.isPointBased) {
-                pokemon = getDraftGerName(split[0]);
-                if (!pokemon.startsWith("pkmn;")) {
+                t = getDraftGerName(split[0]);
+                if (!t.isFromType(Translation.Type.POKEMON)) {
                     tco.sendMessage("Das ist kein Pokemon!").queue();
                     return;
                 }
-                pokemon = pokemon.substring(5);
+                pokemon = t.getTranslation();
                 tier = split[1];
             } else {
-                pokemon = getDraftGerName(split[0]);
-                if (!pokemon.startsWith("pkmn;")) {
+                t = getDraftGerName(split[0]);
+                if (!t.isFromType(Translation.Type.POKEMON)) {
                     tco.sendMessage("Das ist kein Pokemon!").queue();
                     return;
                 }
-                pokemon = pokemon.substring(5);
+                pokemon = t.getTranslation();
                 tier = tierlist.getTierOf(pokemon);
             }
             if (d.isPicked(pokemon)) {

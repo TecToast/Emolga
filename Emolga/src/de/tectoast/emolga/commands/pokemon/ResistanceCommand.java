@@ -6,35 +6,31 @@ import de.tectoast.emolga.commands.GuildCommandEvent;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class ResistanceCommand extends Command {
     public ResistanceCommand() {
-        super("resistance", "`!resistance <Typ> Zeigt alle Typen an, die den angegebenen Typen resistieren", CommandCategory.Pokemon);
-        this.wip = true;
+        super("resistance", "`!resistance` <Typ> Zeigt alle Typen an, die den angegebenen Typen resistieren", CommandCategory.Pokemon);
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        if(e.getArgsLength() == 0) {
+        if (e.getArgsLength() == 0) {
             e.reply("Du musst einen Typen angeben!");
             return;
         }
-        String type = getEnglNameWithType(e.getArg(0));
-        if(!type.startsWith("type;")) {
+        Translation type = getEnglNameWithType(e.getArg(0));
+        if (!type.isFromType(Translation.Type.TYPE)) {
             e.reply("Das ist kein Typ!");
             return;
         }
-        type = type.split(";")[1];
         JSONObject json = getTypeJSON();
-        ArrayList<String> list = new ArrayList<>();
-        for (String s : json.keySet()) {
-            if(json.getJSONObject(s).getJSONObject("damageTaken").getInt(type) == 2) {
-                list.add(getGerNameNoCheck(s));
-            }
+        ArrayList<String> l = json.keySet().stream().filter(s -> json.getJSONObject(s).getJSONObject("damageTaken").getInt(type.getTranslation()) == 2).map(Command::getGerNameNoCheck).collect(Collectors.toCollection(ArrayList::new));
+        if (l.size() == 0) {
+            e.reply("Es wurden keine Typen gefunden, die diesen Typ resistieren! (Das ist für normal ein Fehler, Flo wurde kontaktiert)");
+            Command.sendToMe("ResistanceCommand ListSize 0");
+            return;
         }
-        String finalType = type;
-        ArrayList<String> l = json.keySet().stream().filter(s -> json.getJSONObject(s).getJSONObject("damageTaken").getInt(finalType) == 2).map(Command::getGerNameNoCheck).collect(Collectors.toCollection(ArrayList::new));
+        e.reply("Folgende Typen resistieren " + type.getOtherLang() + ":\n" + String.join("\n", l));
     }
 }

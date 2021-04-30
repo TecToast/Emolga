@@ -338,6 +338,16 @@ public class PrivateCommands {
         System.out.println("musicManagers.get(673833176036147210L).player.getVolume() = " + musicManagers.get(673833176036147210L).player.getVolume());
     }
 
+    @PrivateCommand(name = "printcache")
+    public static void printCache(GenericCommandEvent e) {
+        translationsCache.forEach((str, t) -> {
+            System.out.println(str);
+            t.print();
+            System.out.println("=====");
+        });
+        System.out.println(translationsCacheOrder);
+    }
+
     public static void execute(Message message) {
         String msg = message.getContentRaw();
         for (Method method : PrivateCommands.class.getDeclaredMethods()) {

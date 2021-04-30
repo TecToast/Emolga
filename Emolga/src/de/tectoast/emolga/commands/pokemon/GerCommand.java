@@ -20,12 +20,12 @@ public class GerCommand extends Command {
         Member member = e.getMember();
         String s = msg.substring(5);
         System.out.println(s);
-        String str = getGerName(s);
-        System.out.println(str);
-        if (!str.equals("")) {
-            tco.sendMessage(str.split(";")[1]).queue();
+        Translation t = getGerName(s);
+        //System.out.println(t);
+        if (t.isSuccess()) {
+            tco.sendMessage(t.getTranslation()).queue();
             return;
         }
-        tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
+        tco.sendMessage("Es wurde keine Übersetzung für " + s + " gefunden!").queue();
     }
 }

@@ -101,7 +101,12 @@ public class EmolgaMain {
             spoilerTags.add(spoiler.getLong("guildid"));
         }
         jda.awaitReady();
-        updatePresence();
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                updatePresence();
+            }
+        }, 0, 60000);
         ReactionManager manager = new ReactionManager(jda);
         manager.registerReaction("715249205186265178", "813025531779743774", "813025179114405898", "719928482544484352")
         .registerReaction("715249205186265178", "813025531779743774", "813025403098628097", "813005659619590184")

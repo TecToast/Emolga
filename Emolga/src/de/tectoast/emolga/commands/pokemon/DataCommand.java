@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import org.json.JSONObject;
 
 import java.awt.*;
+import java.io.File;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,13 +39,13 @@ public class DataCommand extends Command {
                 name = name.substring(6);
             }
             String mod = getModByGuild(e);
-            String gerName = getGerName(name, mod);
-            String objtype = gerName.split(";")[0];
+            Translation gerName = getGerName(name, mod);
+            Translation.Type objtype = gerName.getType();
             switch (objtype) {
-                case "pkmn":
+                case POKEMON:
                     try {
                         JSONObject json = getDataJSON(mod);
-                        String monname = gerName.split(";")[1];
+                        String monname = gerName.getTranslation();
                         EmbedBuilder builder = new EmbedBuilder();
                         String sdname = getSDName(monname);
                         System.out.println("sdname = " + sdname);
@@ -249,19 +250,28 @@ public class DataCommand extends Command {
                                 builder.addField(String.join(", ", stat.get(s)), s, true);
                             }
                         }
-                        if (msg.toLowerCase().contains("shiny") || msg.toLowerCase().contains("gummibärchen"))
-                            builder.setImage(getShinySpriteJSON().getString(String.valueOf(mon.getInt("num"))));
-                        else builder.setImage(getSpriteJSON().getString(String.valueOf(mon.getInt("num"))));
+                        boolean shiny;
+                        if (msg.toLowerCase().contains("shiny") || msg.toLowerCase().contains("gummibärchen")) {
+                            builder.setImage("attachment://sprite.png");
+                            shiny = true;
+                        } else {
+                            builder.setImage(getSpriteJSON().getString(String.valueOf(mon.getInt("num"))));
+                            shiny = false;
+                        }
                         builder.setTitle(monname);
                         builder.setColor(Color.CYAN);
-                        tco.sendMessage(builder.build()).queue();
+                        if (shiny) {
+                            tco.sendFile(new File("../Showdown/sspclient/sprites/gen5-shiny/" + gerName.getOtherLang().toLowerCase() + ".png"), "sprite.png").embed(builder.build()).queue();
+                        } else {
+                            tco.sendMessage(builder.build()).queue();
+                        }
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
 
                     break;
-                case "atk":
-                    name = gerName.split(";")[1];
+                case MOVE:
+                    name = gerName.getTranslation();
                     System.out.println(getMovesJSON(mod).toString(4));
                     JSONObject data = getMovesJSON(mod).getJSONObject(getSDName(name, mod));
                     String type = data.getString("type");
@@ -427,12 +437,12 @@ public class DataCommand extends Command {
                     }
                     tco.sendMessage(builder.build()).queue();
                     break;
-                case "abi":
-                    String abiname = gerName.split(";")[1];
+                case ABILITY:
+                    String abiname = gerName.getTranslation();
                     tco.sendMessage(new EmbedBuilder().setTitle(abiname).setDescription("Englisch: " + getEnglName(abiname) + "\n" + getWikiJSON().getJSONObject("abidata").getString(toSDName(abiname))).setColor(Color.CYAN).build()).queue();
                     break;
-                case "item":
-                    String itemname = gerName.split(";")[1];
+                case ITEM:
+                    String itemname = gerName.getTranslation();
                     tco.sendMessage(new EmbedBuilder().setTitle(itemname).setDescription("Englisch: " + getEnglName(itemname) + "\n" + getWikiJSON().getJSONObject("itemdata").getString(toSDName(itemname))).setColor(Color.CYAN).build()).queue();
                     break;
                 default:

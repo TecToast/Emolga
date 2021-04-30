@@ -23,13 +23,13 @@ public class RandomPickCommand extends Command {
         Member member = e.getMember();
         TextChannel tco = e.getChannel();
         Draft d = Draft.getDraftByMember(member, tco);
-        if(d == null) {
+        if (d == null) {
             e.getChannel().sendMessage("Du Kek der Command funktioniert nur in einem Draft xD").queue();
             return;
         }
         String msg = e.getMessage().getContentDisplay();
         Tierlist tierlist = Tierlist.getByGuild(d.guild);
-        if(e.getArgsLength() == 0) {
+        if (e.getArgsLength() == 0) {
             tco.sendMessage("Du musst ein Tier auswählen!").queue();
             return;
         }
@@ -61,21 +61,19 @@ public class RandomPickCommand extends Command {
         ArrayList<String> list = new ArrayList<>(tierlist.tierlist.get(tier));
         Collections.shuffle(list);
         Predicate<String> typecheck;
-        if(e.hasArg(1)) {
-            String type = getEnglNameWithType(e.getArg(1));
-            if(!type.startsWith("type")) {
+        if (e.hasArg(1)) {
+            Translation type = getEnglNameWithType(e.getArg(1));
+            if (!type.isFromType(Translation.Type.TYPE)) {
                 tco.sendMessage("Das ist kein Typ!").queue();
                 return;
             }
-            type = type.split(";")[1];
-            String finalType = type;
             typecheck = str -> {
                 String sd;
-                if(str.startsWith("M-")) sd = getSDName(str.substring(2)) + "mega";
-                else if(str.startsWith("A-")) sd = getSDName(str.substring(2)) + "alola";
-                else if(str.startsWith("G-")) sd = getSDName(str.substring(2)) + "galar";
+                if (str.startsWith("M-")) sd = getSDName(str.substring(2)) + "mega";
+                else if (str.startsWith("A-")) sd = getSDName(str.substring(2)) + "alola";
+                else if (str.startsWith("G-")) sd = getSDName(str.substring(2)) + "galar";
                 else sd = getSDName(str.split("-")[0]);
-                return getDataJSON().getJSONObject(sd).getJSONArray("types").toList().contains(finalType);
+                return getDataJSON().getJSONObject(sd).getJSONArray("types").toList().contains(type.getTranslation());
             };
         } else {
             typecheck = str -> true;

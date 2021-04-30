@@ -27,12 +27,12 @@ public class AttackCommand extends Command {
         Member member = e.getMember();
         JSONObject json = getLearnsetJSON(getModByGuild(e));
         ArrayList<String> mons = new ArrayList<>();
-        String str = getEnglNameWithType(msg.substring(8), getModByGuild(e));
-        if (!str.split(";")[0].equals("atk")) {
+        Translation t = getEnglNameWithType(msg.substring(8), getModByGuild(e));
+        if (!t.isFromType(Translation.Type.MOVE)) {
             tco.sendMessage("Das ist keine Attacke!").queue();
             return;
         }
-        String atk = str.split(";")[1];
+        String atk = t.getTranslation();
         for (String s : json.keySet()) {
             if(!json.getJSONObject(s).has("learnset")) continue;
             if (json.getJSONObject(s).getJSONObject("learnset").keySet().contains(toSDName(atk))) {
@@ -41,14 +41,14 @@ public class AttackCommand extends Command {
                 else if(s.endsWith("galar")) name = getGerNameNoCheck(s.substring(0,s.length() - 5)) + "-Galar";
                 else if(s.endsWith("unova")) name = getGerNameNoCheck(s.substring(0,s.length() - 5)) + "-Unova";
                 else {
-                    String gerName = getGerName(s);
-                    if(!gerName.equals("")) name = gerName.substring(5);
+                    Translation gerName = getGerName(s);
+                    if(gerName.isSuccess()) name = gerName.getTranslation();
                     else {
                         for (int i = 1; i <= s.length(); i++) {
                             String sub = s.substring(0, i);
                             gerName = getGerName(sub);
-                            if(!gerName.equals("")) {
-                                name = gerName.substring(5);
+                            if(gerName.isSuccess()) {
+                                name = gerName.getTranslation();
                                 break;
                             }
                         }

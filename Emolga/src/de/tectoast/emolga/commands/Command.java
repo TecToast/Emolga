@@ -63,60 +63,219 @@ import java.util.stream.Collectors;
 import static de.tectoast.emolga.bot.EmolgaMain.jda;
 
 public abstract class Command {
-
+    /**
+     * NO PERMISSION Message
+     */
     public static final String NOPERM = "Dafür hast du keine Berechtigung!";
+    /**
+     * File to the main storage of the bot
+     */
     public static final File emolgadata = new File("./emolgadata.json");
+    /**
+     * List of all commands of the bot
+     */
     public static final ArrayList<Command> commands = new ArrayList<>();
+    /**
+     * List of guilds where the chill playlist is playing
+     */
     public static final ArrayList<Guild> chill = new ArrayList<>();
+    /**
+     * List of guilds where the deep playlist is playing
+     */
     public static final ArrayList<Guild> deep = new ArrayList<>();
+    /**
+     * List of guilds where the music playlist is playing
+     */
     public static final ArrayList<Guild> music = new ArrayList<>();
+    /**
+     * Contains all messages which are help messages by the bot
+     */
     public static final HashSet<Message> helps = new HashSet<>();
-    public static final HashMap<Long, List<Long>> emolgachannel = new HashMap<>();
+    /**
+     * Saves the channel ids per server where emolgas commands work
+     */
+    public static final HashMap<Long, List<Long>> emolgaChannel = new HashMap<>();
+    /**
+     * Some pokemon extensions for serebii
+     */
     public static final HashMap<String, String> serebiiex = new HashMap<>();
+    /**
+     * Some pokemon extensions for showdown
+     */
     public static final HashMap<String, String> sdex = new HashMap<>();
+    /**
+     * saves when an user got xp
+     */
     public static final HashMap<Long, Long> latestExp = new HashMap<>();
+    /**
+     * an optional xp multiplicator per user
+     */
     public static final HashMap<Long, Double> expmultiplicator = new HashMap<>();
+    /**
+     * saves per guild a ReplayAnalyser, which does something with the result of a showdown match
+     */
     public static final HashMap<Long, ReplayAnalyser> sdAnalyser = new HashMap<>();
+    /**
+     * saves all channels where emoteSteal is enabled
+     */
     public static final ArrayList<Long> emoteSteal = new ArrayList<>();
+    /**
+     * saves all Muted Roles per guild
+     */
     public static final HashMap<Long, Long> mutedRoles = new HashMap<>();
+    /**
+     * saves all Moderator Roles per guild
+     */
     public static final HashMap<Long, Long> moderatorRoles = new HashMap<>();
+    /**
+     * saves all replay channel with their result channel
+     */
     public static final HashMap<Long, Long> replayAnalysis = new HashMap<>();
+    /**
+     * saves all guilds where spoiler tags should be used in the showdown results
+     */
     public static final ArrayList<Long> spoilerTags = new ArrayList<>();
+    /**
+     * Path to the default Showdown Data
+     */
     private static final String SDPATH = "./ShowdownData/";
+    /**
+     * JSONObject where data about pokemon is saved
+     */
     public static JSONObject wikijson;
+    /**
+     * JSONObject where pokemon sugimori sprite links are saved
+     */
     public static JSONObject spritejson;
-    public static JSONObject shinyspritejson;
+    /**
+     * JSONObject of the main storage of the bot
+     */
     public static JSONObject emolgajson;
+    /**
+     * Currently not used
+     */
     public static JSONObject huntjson;
+    /**
+     * Currently not used
+     */
     public static JSONObject statisticsjson;
+    /**
+     * Currently not used
+     */
     public static JSONObject ytjson;
+    /**
+     * JSONObject where the current xp from the users are stored
+     */
     public static JSONObject leveljson;
+    /**
+     * Used for a shiny counter
+     */
     public static JSONObject shinycountjson;
+    /**
+     * JSONObject containing all credentials (Discord Token, Google OAuth Token)
+     */
     public static JSONObject tokens;
+    /**
+     * AudioManager by Lavaplayer
+     */
     public static AudioPlayerManager playerManager;
+    /**
+     * MusicManagers for Lavaplayer
+     */
     public static Map<Long, GuildMusicManager> musicManagers;
+    /**
+     * True if the XP JSON got edited after the last save
+     */
     public static boolean expEdited = false;
+    /**
+     * Currently not used
+     */
     @SuppressWarnings("CanBeFinal")
     public static boolean checkBST = false;
+    /**
+     * Cache for translations
+     */
+    public static HashMap<String, Translation> translationsCache = new HashMap<>();
+    /**
+     * Order of the cached items, used to delete the oldest after enough caching
+     */
+    public static LinkedList<String> translationsCacheOrder = new LinkedList<>();
+    /**
+     * false = Last time it showed how many replay channels there were<br>
+     * true = Last time it showed my discord data
+     */
+    public static boolean lastPresence = false;
+    /**
+     * List containing some special user ids
+     */
     protected static List<Long> cultists = Arrays.asList(175910318608744448L, 452575044070277122L, 535095576136515605L, 456821278653808650L, 598199247124299776L);
+    /**
+     * Currently not used
+     */
     protected static String tradesid;
+    /**
+     * Currently not used
+     */
     protected static List<String> balls;
+    /**
+     * Currently not used
+     */
     protected static List<String> mons;
 
 
+    /**
+     * List containing guild ids where this command is enabled, empty if it is enabled in all guilds
+     */
     protected final List<Long> allowedGuilds;
+    /**
+     * Set containing all aliases of this command
+     */
     protected final HashSet<String> aliases = new HashSet<>();
-    protected final HashMap<String, String> overrideHelp = new HashMap<>();
+    /**
+     * HashMap containing a help for a guild id which should be shown for this command on that guild instead of the {@link #help}
+     */
+    protected final HashMap<Long, String> overrideHelp = new HashMap<>();
+    /**
+     * HashMap containing a channel list which should be used for this command instead of {@link #emolgaChannel}
+     */
     protected final HashMap<Long, List<Long>> overrideChannel = new HashMap<>();
+    /**
+     * The name of the command, used to check if the command was used in {@link #check(GuildMessageReceivedEvent)}
+     */
     protected final String name;
+    /**
+     * The help string of the command, shown in the help messages by the bot
+     */
     protected final String help;
+    /**
+     * The {@link CommandCategory} which this command is in
+     */
     protected final CommandCategory category;
+    /**
+     * If true, this command is only allowed for me because I'm working on it
+     */
     protected boolean wip = false;
+    /**
+     * True if this command should bypass all channel restrictions
+     */
     protected boolean everywhere = false;
+    /**
+     * Predicate which checks if a member is allowed to use this command, ignored if {@link #customPermissions} is false
+     */
     protected Predicate<Member> allowsMember = m -> false;
+    /**
+     * True if this command should not use the permissions of the CommandCategory but {@link #allowsMember} to test if a user is allowed to use the command
+     */
     protected boolean customPermissions = false;
 
-
+    /**
+     * Creates a new command and adds is to the list. Each command should use this constructor for one time (see {@link #registerCommands()})
+     *
+     * @param name     The {@link #name} of the command
+     * @param help     The {@link #help} of the command
+     * @param category The {@link #category} of the command
+     * @param guilds   The {@link #allowedGuilds} of the command, as long array or an empty array if it is allowed everywhere
+     */
     public Command(String name, String help, CommandCategory category, long... guilds) {
         this.name = name;
         this.help = help;
@@ -125,12 +284,16 @@ public abstract class Command {
         commands.add(this);
     }
 
-    public Command(String name, String help, CommandCategory category, List<Long> guilds) {
-        this(name, help, category, guilds.stream().mapToLong(l -> l).toArray());
-    }
-
-    public Command(String name, String help, CommandCategory category, Command guildBase) {
-        this(name, help, category, guildBase.allowedGuilds);
+    /**
+     * See {@link #Command(String, String, CommandCategory, long...)}
+     *
+     * @param name      See {@link #Command(String, String, CommandCategory, long...)}
+     * @param help      See {@link #Command(String, String, CommandCategory, long...)}
+     * @param category  See {@link #Command(String, String, CommandCategory, long...)}
+     * @param guildBase The name of the command from which this command should use the allowed guilds
+     */
+    public Command(String name, String help, CommandCategory category, String guildBase) {
+        this(name, help, category, byName(guildBase).allowedGuilds.stream().mapToLong(l -> l).toArray());
     }
 
     public static File invertImage(String mon, boolean shiny) {
@@ -198,7 +361,6 @@ public abstract class Command {
             }
         });
     }
-
 
     public static void loadPlaylist(final TextChannel channel, final String track, Member mem, String cm) {
         GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
@@ -1035,9 +1197,6 @@ public abstract class Command {
         }
     }
 
-    public static JSONObject getShinySpriteJSON() {
-        return shinyspritejson;
-    }
 
     public static JSONObject getSpriteJSON() {
         return spritejson;
@@ -1126,7 +1285,6 @@ public abstract class Command {
         new SearchReplaysCommand();
         new InviteUrlCommand();
         new FloHelpCommand();
-        new UserInfoCommand();
         new EmolgaDiktaturCommand();
         new UserInfoCommand();
         new ServerInfoCommand();
@@ -1225,12 +1383,12 @@ public abstract class Command {
         sdex.put("Voltolos-I", "");
         sdex.put("Zygarde-50%", "");
         sdex.put("Zygarde-10%", "-10");
-        emolgachannel.put(Constants.ASLID, new ArrayList<>(Arrays.asList(728680506098712579L, 736501675447025704L)));
-        emolgachannel.put(Constants.BSID, new ArrayList<>(Arrays.asList(732545253344804914L, 735076688144105493L)));
-        emolgachannel.put(709877545708945438L, new ArrayList<>(Collections.singletonList(738893933462945832L)));
-        emolgachannel.put(677229415629062180L, new ArrayList<>(Collections.singletonList(731455491527540777L)));
-        emolgachannel.put(694256540642705408L, new ArrayList<>(Collections.singletonList(695157832072560651L)));
-        emolgachannel.put(747357029714231299L, new ArrayList<>(Arrays.asList(752802115096674306L, 762411109859852298L)));
+        emolgaChannel.put(Constants.ASLID, new ArrayList<>(Arrays.asList(728680506098712579L, 736501675447025704L)));
+        emolgaChannel.put(Constants.BSID, new ArrayList<>(Arrays.asList(732545253344804914L, 735076688144105493L)));
+        emolgaChannel.put(709877545708945438L, new ArrayList<>(Collections.singletonList(738893933462945832L)));
+        emolgaChannel.put(677229415629062180L, new ArrayList<>(Collections.singletonList(731455491527540777L)));
+        emolgaChannel.put(694256540642705408L, new ArrayList<>(Collections.singletonList(695157832072560651L)));
+        emolgaChannel.put(747357029714231299L, new ArrayList<>(Arrays.asList(752802115096674306L, 762411109859852298L)));
         sdAnalyser.put(Constants.ASLID, (game, uid1, uid2, kills, deaths, args) -> {
             JSONObject league = null;
             JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
@@ -1610,7 +1768,6 @@ public abstract class Command {
         //datajson = loadSD("pokedex.ts", 59);
         //movejson = loadSD("learnsets.ts", 62);
         spritejson = load("./sprites.json");
-        shinyspritejson = load("./shinysprites.json");
         huntjson = load("./hunt.json");
         statisticsjson = load("./statistics.json");
         ytjson = load("./yt.json");
@@ -1628,13 +1785,8 @@ public abstract class Command {
     }
 
     public static void updatePresence() {
-        ResultSet set = Database.select("select count(*) as total from analysis");
-        try {
-            set.next();
-            jda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.watching("in " + set.getInt("total") + " Replay-Channel"));
-        } catch (Exception ex) {
-            sendStacktraceToMe(ex);
-        }
+        jda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.watching(lastPresence ? ("in " + replayAnalysis.size() + " Replay-Channel") : ("zu @TecToast | Flo#2535")));
+        lastPresence = !lastPresence;
     }
 
     public static String getHelpDescripion(Guild g, Member mem) {
@@ -1683,8 +1835,8 @@ public abstract class Command {
                 }
             }
             PermissionCheck check = command.checkPermissions(gid, mem);
-            if (check == PermissionCheck.NOGUILD) break;
-            if (check == PermissionCheck.NOPERMISSION) {
+            if (check == PermissionCheck.GUILD_NOT_ALLOWED) break;
+            if (check == PermissionCheck.PERMISSION_DENIED) {
                 tco.sendMessage(NOPERM).queue();
                 break;
             }
@@ -1696,8 +1848,8 @@ public abstract class Command {
                         return;
                     }
                 } else {
-                    if (emolgachannel.containsKey(gid)) {
-                        List<Long> l = emolgachannel.get(gid);
+                    if (emolgaChannel.containsKey(gid)) {
+                        List<Long> l = emolgaChannel.get(gid);
                         if (!l.contains(e.getChannel().getIdLong())) {
                             e.getChannel().sendMessage("<#" + l.get(0) + ">").queue();
                             return;
@@ -2397,31 +2549,31 @@ public abstract class Command {
         new Thread(r).start();
     }
 
-    public static String getBSTGerName(String s) {
-        String check = checkShortcuts(s);
-        if (check != null) return check;
+    public static Translation getBSTGerName(String s) {
+        Translation check = checkShortcuts(s);
+        if (check.isSuccess()) return check;
         System.out.println("BSTGerName s = " + s);
-        String ret;
+        Translation ret;
         if (s.equalsIgnoreCase("wulaosu") || s.equalsIgnoreCase("urshifu")) {
-            return "ONLYWITHFORM";
+            return new Translation("ONLYWITHFORM", Translation.Type.UNKNOWN, Translation.Language.UNKNOWN);
         }
         if (serebiiex.keySet().stream().anyMatch(s::equalsIgnoreCase)) {
-            String ex = serebiiex.keySet().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining(""));
-            System.out.println("ex = " + ex);
-            ret = getGerName(ex.split("-")[0]) + "-" + ex.split("-")[1];
+            String[] ex = serebiiex.keySet().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining("")).split("-");
+            System.out.println("ex = " + Arrays.toString(ex));
+            ret = getGerName(ex[0]).append("-" + ex[1]);
             System.out.println("ret = " + ret);
             return ret;
         }
         if (s.toLowerCase().startsWith("a-")) {
-            String gername = getGerName(s.substring(2));
-            if (!gername.startsWith("pkmn;")) return "";
-            ret = "pkmn;A-" + gername.substring(5);
+            Translation gername = getGerName(s.substring(2));
+            if (!gername.isFromType(Translation.Type.POKEMON)) return Translation.empty();
+            ret = gername.before("A-");
             System.out.println("ret = " + ret);
             return ret;
         } else if (s.toLowerCase().startsWith("g-")) {
-            String gername = getGerName(s.substring(2));
-            if (!gername.startsWith("pkmn;")) return "";
-            ret = "pkmn;G-" + gername.substring(5);
+            Translation gername = getGerName(s.substring(2));
+            if (!gername.isFromType(Translation.Type.POKEMON)) return Translation.empty();
+            ret = gername.before("G-");
             System.out.println("ret = " + ret);
             return ret;
         }
@@ -2430,66 +2582,75 @@ public abstract class Command {
         return ret;
     }
 
-    public static String getDraftGerName(String s) {
-        if (!getGerName(s).equals("")) return getGerName(s);
+    public static Translation getDraftGerName(String s) {
+        if (getGerName(s).isSuccess()) return getGerName(s);
         String[] split = s.split("-");
         System.out.println("getDraftGerName s = " + s);
         System.out.println("getDraftGerName Arr = " + Arrays.toString(split));
         if (s.toLowerCase().startsWith("m-")) {
             String sub = s.substring(2);
-            String mon;
-            if (s.endsWith("-X")) mon = getGerName(sub.substring(0, sub.length() - 2)) + "-X";
-            else if (s.endsWith("-Y")) mon = getGerName(sub.substring(0, sub.length() - 2)) + "-Y";
+            Translation mon;
+            if (s.endsWith("-X")) mon = getGerName(sub.substring(0, sub.length() - 2)).append("-X");
+            else if (s.endsWith("-Y")) mon = getGerName(sub.substring(0, sub.length() - 2)).append("-Y");
             else mon = getGerName(sub);
-            if (!mon.startsWith("pkmn;")) return "";
-            return "pkmn;M-" + mon.substring(5);
+            if (!mon.isFromType(Translation.Type.POKEMON)) return Translation.empty();
+            return mon.before("M-");
         } else if (s.toLowerCase().startsWith("a-")) {
-            String mon = getGerName(s.substring(2));
-            if (!mon.startsWith("pkmn;")) return "";
-            return "pkmn;A-" + mon.substring(5);
+            Translation mon = getGerName(s.substring(2));
+            if (mon.isFromType(Translation.Type.POKEMON)) return Translation.empty();
+            return mon.before("A-");
         } else if (s.toLowerCase().startsWith("g-")) {
-            String mon = getGerName(s.substring(2));
-            if (!mon.startsWith("pkmn;")) return "";
-            return "pkmn;G-" + mon.substring(5);
+            Translation mon = getGerName(s.substring(2));
+            if (mon.isFromType(Translation.Type.POKEMON)) return Translation.empty();
+            return mon.before("G-");
         }
-        if (!getGerName(split[0]).equals("")) {
-            String gername = getGerName(split[0]);
-            String ret = gername + "-" + split[1];
-            System.out.println("getDraftGerName ret = " + ret);
-            return ret;
+        Translation t = getGerName(split[0]);
+        if (t.isSuccess()) {
+            t.append("-" + split[1]);
+            System.out.println("getDraftGerName ret = " + t);
+            return t;
         }
-        return "";
+        return Translation.empty();
     }
 
-    public static String getGerName(String s) {
+    public static Translation getGerName(String s) {
         return getGerName(s, "default");
     }
 
-    public static String getGerName(String s, String mod) {
-        String check = checkShortcuts(s);
-        if (check != null) return check;
+    public static Translation getGerName(String s, String mod) {
+        if (translationsCache.containsKey(toSDName(s))) {
+            return translationsCache.get(toSDName(s));
+        }
+        Translation check = checkShortcuts(s);
+        if (check.isSuccess()) return check;
         System.out.println("getGerName s = " + s);
         if (serebiiex.keySet().stream().anyMatch(s::equalsIgnoreCase)) {
             String[] ex = serebiiex.keySet().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining("")).split("-");
-            return getGerName(ex[0]) + "-" + ex[1];
+            return new Translation(getGerName(ex[0]).getTranslation() + ex[1], Translation.Type.POKEMON, Translation.Language.GERMAN);
         }
         ResultSet set = getTranslation(s, mod);
         try {
             if (set.next()) {
-                return set.getString("type") + ";" + set.getString("germanname");
+                Translation t = new Translation(set.getString("germanname"), Translation.Type.fromId(set.getString("type")), Translation.Language.GERMAN, set.getString("englishname"));
+                translationsCache.put(toSDName(s), t.copy());
+                translationsCacheOrder.add(toSDName(s));
+                return t;
             }
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
-        return "";
+        return Translation.empty();
     }
 
     public static String getGerNameNoCheck(String s) {
-        //System.out.println("NoCheckGerName s = " + s);
+        System.out.println("NoCheckGerName s = " + s);
         ResultSet set = getTranslation(s, null);
         try {
             set.next();
-            return set.getString("germanname");
+            Translation t = new Translation(set.getString("germanname"), Translation.Type.fromId(set.getString("type")), Translation.Language.GERMAN, set.getString("englishname"));
+            translationsCache.put(toSDName(s), t.copy());
+            translationsCacheOrder.add(toSDName(s));
+            return t.getTranslation();
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
@@ -2501,33 +2662,34 @@ public abstract class Command {
     }
 
     public static String getEnglName(String s, String mod) {
-        String str = getEnglNameWithType(s, mod);
-        if (str.equals("")) return "";
-        return str.split(";")[1];
+        Translation str = getEnglNameWithType(s, mod);
+        if (str.isEmpty()) return "";
+        return str.getTranslation();
     }
 
-    public static String getEnglNameWithType(String s) {
+    public static Translation getEnglNameWithType(String s) {
         return getEnglNameWithType(s, "default");
     }
 
-    public static String getEnglNameWithType(String s, String mod) {
-        String check = checkShortcuts(s);
-        if (check != null) {
-            return getEnglNameWithType(check.split(";")[1]);
+    public static Translation getEnglNameWithType(String s, String mod) {
+        Translation check = checkShortcuts(s);
+        if (check.isSuccess()) {
+            return getEnglNameWithType(check.getTranslation());
         }
         ResultSet set = getTranslation(s, mod);
         try {
             if (set.next()) {
-                return set.getString("type") + ";" + set.getString("englishname");
+                return new Translation(set.getString("englishname"), Translation.Type.fromId(set.getString("type")), Translation.Language.ENGLISH, set.getString("germanname"));
             }
         } catch (SQLException throwables) {
             throwables.printStackTrace();
         }
-        return "";
+        return Translation.empty();
     }
 
     public static ResultSet getTranslation(String s, String mod) {
         String id = toSDName(s);
+
         String query = "select * from translations where (englishid=\"" + id + "\" or germanid=\"" + id + "\")" + (mod != null ? " and (modification=\"" + mod + "\"" + (!mod.equals("default") ? " or modification=\"default\"" : "") + ")" : "");
         //System.out.println(query);
         return Database.select(query);
@@ -2544,9 +2706,9 @@ public abstract class Command {
 
     public static String getSDName(String s, String mod) {
         System.out.println("getSDName s = " + s);
-        String engl = getEnglNameWithType(s, mod);
-        if (engl.equals("")) return "";
-        return toSDName(engl.split(";")[1]);
+        Translation engl = getEnglNameWithType(s, mod);
+        if (engl.isEmpty()) return "";
+        return toSDName(engl.getTranslation());
     }
 
     public static String toSDName(String s) {
@@ -2576,8 +2738,8 @@ public abstract class Command {
         return getAttacksFrom(pokemon, msg, form, maxgen, mod).contains(atk);
     }
 
-    public static String checkShortcuts(String s) {
-        return getWikiJSON().getJSONObject("shortcuts").optString(s.toLowerCase(), null);
+    public static Translation checkShortcuts(String s) {
+        return Translation.fromOldString(getWikiJSON().getJSONObject("shortcuts").optString(s.toLowerCase(), null));
     }
 
     public static String getMonName(String s, long gid) {
@@ -2589,9 +2751,9 @@ public abstract class Command {
             System.out.println("s = " + s);
         if (gid == 709877545708945438L) {
             if (s.endsWith("-Alola")) {
-                return "Alola-" + Command.getGerName(s.substring(0, s.length() - 6)).split(";")[1];
+                return "Alola-" + getGerName(s.substring(0, s.length() - 6)).getTranslation();
             } else if (s.endsWith("-Galar")) {
-                return "Galar-" + Command.getGerName(s.substring(0, s.length() - 6)).split(";")[1];
+                return "Galar-" + getGerName(s.substring(0, s.length() - 6)).getTranslation();
             }
             switch (s) {
                 case "Oricorio":
@@ -2656,13 +2818,13 @@ public abstract class Command {
             String[] split = s.split("-");
             if (split.length == 1 || s.equals("Silvally-*")) return "Amigento";
             else if (split[1].equals("Psychic")) return "Amigento-Psycho";
-            else return "Amigento-" + getGerName(split[1]).split(";")[1];
+            else return "Amigento-" + getGerName(split[1]).getTranslation();
         }
         if (s.contains("Arceus")) {
             String[] split = s.split("-");
             if (split.length == 1 || s.equals("Arceus-*")) return "Arceus";
             else if (split[1].equals("Psychic")) return "Arceus-Psycho";
-            else return "Arceus-" + getGerName(split[1]).split(";")[1];
+            else return "Arceus-" + getGerName(split[1]).getTranslation();
         }
         //System.out.println("s = " + s);
         if (s.contains("Basculin")) return "Barschuft";
@@ -2675,29 +2837,30 @@ public abstract class Command {
         if (s.equals("Zygarde")) return "Zygarde-50%";
         if (s.equals("Zygarde-10%")) return "Zygarde-10%";
         if (s.endsWith("-Mega")) {
-            return "M-" + getGerName(s.substring(0, s.length() - 5)).split(";")[1];
+            return "M-" + getGerName(s.substring(0, s.length() - 5)).getTranslation();
         } else if (s.endsWith("-Alola")) {
-            return "A-" + getGerName(s.substring(0, s.length() - 6)).split(";")[1];
+            return "A-" + getGerName(s.substring(0, s.length() - 6)).getTranslation();
         } else if (s.endsWith("-Galar")) {
-            return "G-" + getGerName(s.substring(0, s.length() - 6)).split(";")[1];
+            return "G-" + getGerName(s.substring(0, s.length() - 6)).getTranslation();
         } else if (s.endsWith("-Therian")) {
-            return getGerName(s.substring(0, s.length() - 8)).split(";")[1] + "-T";
+            return getGerName(s.substring(0, s.length() - 8)).getTranslation() + "-T";
         } else if (s.endsWith("-X")) {
-            return "M-" + getGerName(s.split("-")[0]).split(";")[1] + "-X";
+            return "M-" + getGerName(s.split("-")[0]).getTranslation() + "-X";
         } else if (s.endsWith("-Y")) {
-            return "M-" + getGerName(s.split("-")[0]).split(";")[1] + "-Y";
+            return "M-" + getGerName(s.split("-")[0]).getTranslation() + "-Y";
         }
         if (s.equals("Tornadus")) return "Boreos-I";
         if (s.equals("Thundurus")) return "Voltolos-I";
         if (s.equals("Landorus")) return "Demeteros-I";
-        //System.out.println(s);
-        String gername = getGerName(s);
+        System.out.println(s);
+        Translation gername = getGerName(s);
+        gername.print();
         ArrayList<String> split = new ArrayList<>(Arrays.asList(s.split("-")));
-        if (gername.startsWith("pkmn;")) {
-            return gername.split(";")[1];
+        if (gername.isFromType(Translation.Type.POKEMON)) {
+            return gername.getTranslation();
         }
         String first = split.remove(0);
-        return getGerName(first).split(";")[0] + String.join("-" + split);
+        return getGerName(first).getTranslation() + "-" + String.join("-" + split);
     }
 
     protected void setCustomPermissions(Predicate<Member> predicate) {
@@ -2724,8 +2887,8 @@ public abstract class Command {
     }
 
     public PermissionCheck checkPermissions(long gid, Member mem) {
-        if (!allowsGuild(gid)) return PermissionCheck.NOGUILD;
-        if (!allowsMember(mem)) return PermissionCheck.NOPERMISSION;
+        if (!allowsGuild(gid)) return PermissionCheck.GUILD_NOT_ALLOWED;
+        if (!allowsMember(mem)) return PermissionCheck.PERMISSION_DENIED;
         return PermissionCheck.GRANTED;
     }
 
@@ -2738,6 +2901,11 @@ public abstract class Command {
                 || msg.equalsIgnoreCase("!" + name.toLowerCase()) || aliases.stream().anyMatch(s -> msg.equalsIgnoreCase("!" + s));
     }
 
+    /**
+     * Abstract method, which is called on the subclass with the corresponding command when the command was received
+     * @param e A GuildCommandEvent containing the informations about the command
+     * @throws Exception Every exception that can be thrown in any command
+     */
     public abstract void process(GuildCommandEvent e) throws Exception;
 
     public String getName() {
@@ -2749,13 +2917,13 @@ public abstract class Command {
     }
 
     public String getHelp(Guild g) {
-        return overrideHelp.getOrDefault(g.getId(), help) + (wip ? " (**W.I.P.**)" : "");
+        return overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
     }
 
     private enum PermissionCheck {
         GRANTED,
-        NOPERMISSION,
-        NOGUILD
+        PERMISSION_DENIED,
+        GUILD_NOT_ALLOWED
     }
 
     public static final class PermissionPreset {
@@ -2769,21 +2937,99 @@ public abstract class Command {
     }
 
     public static final class Translation {
-        private final String translation;
-        private final String type;
-        private final Language language;
+        private static final Translation emptyTranslation;
 
-        public Translation(String translation, String type, Language language) {
+        static {
+            emptyTranslation = new Translation("", Type.UNKNOWN, Language.UNKNOWN);
+            emptyTranslation.empty = true;
+        }
+
+        private final Type type;
+        private final Language language;
+        private String translation;
+        private boolean empty;
+        private String otherLang = "";
+
+        public Translation(String translation, Type type, Language language) {
             this.translation = translation;
             this.type = type;
             this.language = language;
+            this.empty = false;
+        }
+
+        public Translation(String translation, Type type, Language language, String otherLang) {
+            this.translation = translation;
+            this.type = type;
+            this.language = language;
+            this.otherLang = otherLang;
+            this.empty = false;
+        }
+
+        public static Translation empty() {
+            return emptyTranslation;
+        }
+
+        public static Translation fromOldString(String str) {
+            if (str == null) return empty();
+            String[] arr = str.split(";");
+            return new Translation(arr[1], Type.fromId(arr[0]), Language.UNKNOWN);
+        }
+
+        public Translation copy() {
+            if (isEmpty()) return empty();
+            return new Translation(translation, type, language, otherLang);
+        }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("Translation{");
+            sb.append("type=").append(type);
+            sb.append(", language=").append(language);
+            sb.append(", translation='").append(translation).append('\'');
+            sb.append(", empty=").append(empty);
+            sb.append(", otherLang='").append(otherLang).append('\'');
+            sb.append('}');
+            jda.getTextChannelById(837027867417641021L).sendMessage(sb.toString()).queue();
+            return sb.toString();
+        }
+
+        public void print() {
+            String sb = "Translation{" + "type=" + type +
+                    ", language=" + language +
+                    ", translation='" + translation + '\'' +
+                    ", empty=" + empty +
+                    ", otherLang='" + otherLang + '\'' +
+                    '}';
+            System.out.println(sb);
+        }
+
+        public String getOtherLang() {
+            return otherLang;
+        }
+
+        public Translation append(String str) {
+            translation += str;
+            return this;
+        }
+
+        public Translation before(String str) {
+            translation = str + translation;
+            return this;
+        }
+
+        public Translation after(String str) {
+            return append(str);
+        }
+
+        public boolean isFromType(Type type) {
+            return this.type == type;
         }
 
         public String getTranslation() {
             return translation;
         }
 
-        public String getType() {
+        public Type getType() {
             return type;
         }
 
@@ -2791,9 +3037,44 @@ public abstract class Command {
             return language;
         }
 
+        public boolean isSuccess() {
+            return !empty;
+        }
+
+        public boolean isEmpty() {
+            return empty;
+        }
+
         public enum Language {
             GERMAN,
-            ENGLISH
+            ENGLISH,
+            UNKNOWN
+        }
+
+        public enum Type {
+            ABILITY("abi"),
+            EGGGROUP("egg"),
+            ITEM("item"),
+            MOVE("atk"),
+            NATURE("nat"),
+            POKEMON("pkmn"),
+            TRAINER("trainer"),
+            TYPE("type"),
+            UNKNOWN("unknown");
+
+            String id;
+
+            Type(String id) {
+                this.id = id;
+            }
+
+            public static Type fromId(String id) {
+                return Arrays.stream(values()).filter(t -> t.getId().equalsIgnoreCase(id)).findFirst().orElse(UNKNOWN);
+            }
+
+            public String getId() {
+                return id;
+            }
         }
     }
 }

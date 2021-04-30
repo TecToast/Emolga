@@ -2,6 +2,7 @@ package de.tectoast.emolga.commands;
 
 import com.google.api.services.sheets.v4.model.*;
 import com.google.api.services.youtube.model.SearchResult;
+import com.google.common.reflect.ClassPath;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
@@ -9,24 +10,6 @@ import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import de.tectoast.emolga.commands.admin.*;
-import de.tectoast.emolga.commands.bs.*;
-import de.tectoast.emolga.commands.dexquiz.DexquizCommand;
-import de.tectoast.emolga.commands.dexquiz.SolutionCommand;
-import de.tectoast.emolga.commands.dexquiz.TipCommand;
-import de.tectoast.emolga.commands.draft.*;
-import de.tectoast.emolga.commands.flo.EmolgaDiktaturCommand;
-import de.tectoast.emolga.commands.flo.EmoteStealCommand;
-import de.tectoast.emolga.commands.flo.GetIdsCommand;
-import de.tectoast.emolga.commands.flo.GiveMeAdminPermissionsCommand;
-import de.tectoast.emolga.commands.moderator.*;
-import de.tectoast.emolga.commands.music.*;
-import de.tectoast.emolga.commands.pokemon.*;
-import de.tectoast.emolga.commands.showdown.AnalyseCommand;
-import de.tectoast.emolga.commands.showdown.ReplayCommand;
-import de.tectoast.emolga.commands.showdown.SearchReplaysCommand;
-import de.tectoast.emolga.commands.showdown.SpoilerTagsCommand;
-import de.tectoast.emolga.commands.various.*;
 import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.*;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
@@ -48,6 +31,7 @@ import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -282,18 +266,6 @@ public abstract class Command {
         this.category = category;
         allowedGuilds = guilds.length == 0 ? new ArrayList<>() : Arrays.stream(guilds).boxed().collect(Collectors.toCollection(ArrayList::new));
         commands.add(this);
-    }
-
-    /**
-     * See {@link #Command(String, String, CommandCategory, long...)}
-     *
-     * @param name      See {@link #Command(String, String, CommandCategory, long...)}
-     * @param help      See {@link #Command(String, String, CommandCategory, long...)}
-     * @param category  See {@link #Command(String, String, CommandCategory, long...)}
-     * @param guildBase The name of the command from which this command should use the allowed guilds
-     */
-    public Command(String name, String help, CommandCategory category, String guildBase) {
-        this(name, help, category, byName(guildBase).allowedGuilds.stream().mapToLong(l -> l).toArray());
     }
 
     public static File invertImage(String mon, boolean shiny) {
@@ -1202,8 +1174,20 @@ public abstract class Command {
         return spritejson;
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     private static void registerCommands() {
-        new DataCommand();
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        try {
+            for (ClassPath.ClassInfo classInfo : ClassPath.from(loader).getTopLevelClassesRecursive("de.tectoast.emolga.commands")) {
+                if (!classInfo.getPackageName().equals("de.tectoast.emolga.commands")) {
+                    System.out.println(classInfo.getName());
+                    classInfo.load().getConstructors()[0].newInstance();
+                }
+            }
+        } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        /*new DataCommand();
         new MovesCommand();
         new CanlearnCommand();
         new SmogonCommand();
@@ -1295,6 +1279,7 @@ public abstract class Command {
         new NatureCommand();
         new InvertColorsCommand();
         new ResistanceCommand();
+        new GoinCommand();*/
     }
 
     public static void awaitNextDay() {
@@ -2903,6 +2888,7 @@ public abstract class Command {
 
     /**
      * Abstract method, which is called on the subclass with the corresponding command when the command was received
+     *
      * @param e A GuildCommandEvent containing the informations about the command
      * @throws Exception Every exception that can be thrown in any command
      */

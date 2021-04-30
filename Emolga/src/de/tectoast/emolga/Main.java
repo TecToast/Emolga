@@ -1,4 +1,4 @@
-package de.tectoast;
+package de.tectoast.emolga;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.bot.EmolgaMain;

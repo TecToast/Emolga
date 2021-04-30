@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.moderator;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.json.JSONObject;
@@ -11,7 +12,7 @@ import java.util.List;
 
 public class ResetCooldownCommand extends Command {
     public ResetCooldownCommand() {
-        super("resetcooldown", "`!resetcooldown @User` Resettet den Cooldown der angegebenen Person", CommandCategory.Moderator, "nickname");
+        super("resetcooldown", "`!resetcooldown @User` Resettet den Cooldown der angegebenen Person", CommandCategory.Moderator, Constants.BSID, Constants.ASLID);
     }
 
     @Override

@@ -84,7 +84,7 @@ public abstract class GenericCommandEvent {
     }
 
     public boolean hasArg(int i) {
-        return i < getArgs().size();
+        return i < argsLength;
     }
 
     public void reply(String msg) {

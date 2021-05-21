@@ -1,9 +1,10 @@
 package de.tectoast.emolga.utils.draft;
 
+import de.tectoast.emolga.commands.Command;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -52,19 +53,20 @@ public class Tierlist {
         for (Tierlist tierlist : list) {
             if (tierlist.guild.equals(guild)) return tierlist;
         }
+        System.out.println(guild + " RETURNED NULL");
         return null;
     }
 
     public int getPointsNeeded(String s) {
         for (Map.Entry<String, ArrayList<String>> en : tierlist.entrySet()) {
-            if (en.getValue().contains(s)) return prices.get(en.getKey());
+            if (en.getValue().stream().anyMatch(str -> Command.toSDName(str).equals(Command.toSDName(s)))) return prices.get(en.getKey());
         }
         return -1;
     }
 
     public String getTierOf(String s) {
         for (Map.Entry<String, ArrayList<String>> en : tierlist.entrySet()) {
-            if (en.getValue().stream().anyMatch(s::equalsIgnoreCase)) return en.getKey();
+            if (en.getValue().stream().anyMatch(str -> Command.toSDName(str).equals(Command.toSDName(s)))) return en.getKey();
         }
         return "";
     }

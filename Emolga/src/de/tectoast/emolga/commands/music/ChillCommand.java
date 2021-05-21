@@ -14,8 +14,9 @@ import java.util.Arrays;
 
 public class ChillCommand extends Command {
     public ChillCommand() {
-        super("chill", "`e!chill` Spielt die Chillplaylist ab", CommandCategory.Music, 712035338846994502L, 745934535748747364L);
+        super("chill", "Spielt die Chillplaylist ab", CommandCategory.Music, 712035338846994502L, 745934535748747364L);
         overrideChannel.put(712035338846994502L, new ArrayList<>(Arrays.asList(716221567079546983L, 735076688144105493L)));
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

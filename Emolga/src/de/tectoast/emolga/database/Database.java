@@ -51,6 +51,7 @@ public class Database {
                 Command.sendToMe("Reconnected!");
             }
             instance.lastRequest = System.currentTimeMillis();
+            //System.out.println("query = " + query);
             return instance.connection.createStatement().executeUpdate(query);
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -62,26 +63,26 @@ public class Database {
         String query = "insert into " + table + " (" + columns + ") values (";
         ArrayList<String> list = new ArrayList<>();
         for (Object value : values) {
-            if (value instanceof String || value instanceof Timestamp) list.add("'" + value + "'");
-            else list.add(value.toString());
+            //if (value instanceof String || value instanceof Timestamp) list.add("'" + value + "'");
+            /*else*/ list.add(value.toString());
         }
-        update(query + String.join(", ", list) + ")");
+        query = query + String.join(", ", list) + ")";
+        System.out.println(query);
+        System.out.println();
+        //update(query);
     }
 
     public static void incrementPredictionCounter(long userid) {
         new Thread(() -> {
             try {
-                String verifyIfUserAlreadyExists = "SELECT userid FROM predictiongame WHERE userid = ? ";
-                PreparedStatement usernameInput = instance.connection.prepareStatement(verifyIfUserAlreadyExists);
+                PreparedStatement usernameInput = instance.connection.prepareStatement("SELECT userid FROM predictiongame WHERE userid = ? ");
                 usernameInput.setLong(1, userid);
-                ResultSet rS = usernameInput.executeQuery();
-                if (rS.next()) {
+                if (usernameInput.executeQuery().next()) {
                     update("UPDATE predictiongame SET predictions = (predictions + 1) WHERE userid = " + userid);
                 } else {
-                    String name = EmolgaMain.jda.getGuildById(Constants.ASLID).retrieveMemberById(userid).complete().getEffectiveName();
                     PreparedStatement userDataInput = instance.connection.prepareStatement("INSERT INTO predictiongame (userid, username, predictions) VALUES (?,?,?);");
                     userDataInput.setLong(1, userid);
-                    userDataInput.setString(2, name);
+                    userDataInput.setString(2, EmolgaMain.jda.getGuildById(Constants.ASLID).retrieveMemberById(userid).complete().getEffectiveName());
                     userDataInput.setInt(3, 1);
                     userDataInput.executeUpdate();
                 }
@@ -89,5 +90,35 @@ public class Database {
                 throwables.printStackTrace();
             }
         }).start();
+    }
+
+    public static void incrementStatistic(String name) {
+        new Thread(() -> {
+            try {
+                PreparedStatement usernameInput = instance.connection.prepareStatement("SELECT name FROM statistics WHERE name = ? ");
+                usernameInput.setString(1, name);
+                if (usernameInput.executeQuery().next()) {
+                    update("UPDATE statistics SET count = (count + 1) WHERE name = \"" + name + "\"");
+                } else {
+                    PreparedStatement userDataInput = instance.connection.prepareStatement("INSERT INTO statistics (name,count) VALUES (?,?);");
+                    userDataInput.setString(1, name);
+                    userDataInput.setInt(2, 1);
+                    userDataInput.executeUpdate();
+                }
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }).start();
+    }
+
+    public static String getDataFrom(String type, String id) {
+        ResultSet set = select("SELECT description from " + type + "data WHERE name = \"" + id + "\"");
+        try {
+            set.next();
+            return set.getString("description");
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return null;
     }
 }

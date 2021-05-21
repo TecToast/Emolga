@@ -85,7 +85,7 @@ public class DexQuiz {
             Element table = d.select("table[class=\"round centered\"]").get(0);
             Element element = table.select("td").get(new Random().nextInt(table.select("td").size()));
             gerName = pokemon;
-            sendToMe(this.tc.getAsMention() + pokemon);
+            sendDexEntry(this.tc.getAsMention() + pokemon);
             this.englName = englName;
             //ü = %C3%B6
             this.block = false;

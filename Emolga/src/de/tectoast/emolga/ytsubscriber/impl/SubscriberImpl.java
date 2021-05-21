@@ -98,7 +98,7 @@ public class SubscriberImpl implements Subscriber {
         generateParams(params, subscription, SubscriptionMode.subscribe);
         try {
             post.setEntity(new UrlEncodedFormEntity(params));
-            System.out.println(post.toString());
+            System.out.println(post);
             HttpResponse response = client.execute(post);
             if (response.getStatusLine().getStatusCode() != 204) {
                 throw new RuntimeException();

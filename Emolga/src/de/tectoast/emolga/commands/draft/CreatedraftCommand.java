@@ -4,8 +4,6 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -16,23 +14,21 @@ import java.util.stream.Collectors;
 
 public class CreatedraftCommand extends Command {
     public CreatedraftCommand() {
-        super("createdraft", "`!createdraft <Name> <Rolle>` Erstellt einen Draft mit dem Namen und generiert die Draftreihenfolge mit allen Usern, die die Rolle haben", CommandCategory.Flo);
+        super("createdraft", "Erstellt einen Draft mit dem Namen und generiert die Draftreihenfolge mit allen Usern, die die Rolle haben", CommandCategory.Flo);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("name", "Name", "Name des Drafts/der Liga", ArgumentManagerTemplate.Text.any())
+                .add("role", "Rolle", "Rolle, von der alle User in die Draftreihenfolge kommen", ArgumentManagerTemplate.DiscordType.ROLE)
+                .setExample("!createdraft Emolga-Conference @Emolga-Teilnehmer")
+                .build());
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        if (m.getMentionedRoles().size() != 1) {
-            tco.sendMessage("Du musst eine Rolle angeben!").queue();
-            return;
-        }
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
-        String name = msg.substring(13, msg.indexOf("@") - 1);
-        tco.getGuild().findMembers(mem -> mem.getRoles().contains(m.getMentionedRoles().get(0))).onSuccess(members -> {
+        ArgumentManager args = e.getArguments();
+        String name = args.getText("name");
+        e.getGuild().findMembers(mem -> mem.getRoles().contains(args.getRole("role"))).onSuccess(members -> {
             if (members.size() == 0) {
-                tco.sendMessage("Niemand hat diese Rolle!").queue();
+                e.reply("Niemand hat diese Rolle!");
                 return;
             }
             ArrayList<Member> order = new ArrayList<>();
@@ -61,7 +57,7 @@ public class CreatedraftCommand extends Command {
             for (int i = 1; i <= 13; i++) {
                 builder.append(i).append(". Runde\n").append(map.get(i).stream().map(Member::getEffectiveName).collect(Collectors.joining("\n"))).append("\n\n");
             }
-            tco.sendMessage(builder).submit().thenAccept(message -> message.pin().queue());
+            e.reply(builder.toString()).thenAccept(message -> message.pin().queue());
             JSONObject json = getEmolgaJSON();
             if (!json.has("drafts")) json.put("drafts", new JSONObject());
             JSONObject drafts = json.getJSONObject("drafts");
@@ -71,7 +67,7 @@ public class CreatedraftCommand extends Command {
             }
             JSONObject o = new JSONObject();
             o.put("order", jstring);
-            o.put("guild", tco.getGuild().getId());
+            o.put("guild", e.getGuild().getId());
             drafts.put(name, o);
             saveEmolgaJSON();
         });

@@ -10,13 +10,24 @@ public class GuildCommandEvent extends GenericCommandEvent {
     private final Guild guild;
     private final TextChannel tco;
     private final GuildMessageReceivedEvent event;
+    private final String usedName;
+    private Command.ArgumentManager manager;
 
-    public GuildCommandEvent(GuildMessageReceivedEvent e) {
+    public GuildCommandEvent(Command c, GuildMessageReceivedEvent e) throws Exception {
         super(e.getMessage());
         this.member = e.getMember();
         this.guild = e.getGuild();
         this.tco = e.getChannel();
         event = e;
+        Command.ArgumentManagerTemplate template = c.getArgumentTemplate();
+        if (template != null)
+            this.manager = template.construct(e);
+        this.usedName = getMsg().split("\\s+")[0].substring(c.getPrefix().length());
+        c.process(this);
+    }
+
+    public String getUsedName() {
+        return usedName;
     }
 
     public Member getMember() {
@@ -27,11 +38,19 @@ public class GuildCommandEvent extends GenericCommandEvent {
         return guild;
     }
 
+    public Command.ArgumentManager getArguments() {
+        return manager;
+    }
+
     public TextChannel getChannel() {
         return tco;
     }
 
     public GuildMessageReceivedEvent getEvent() {
         return event;
+    }
+
+    public void deleteMessage() {
+        this.getMessage().delete().queue();
     }
 }

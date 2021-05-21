@@ -10,8 +10,9 @@ import org.json.JSONObject;
 
 public class ResetRevolutionCommand extends Command {
     public ResetRevolutionCommand() {
-        super("resetrevolution", "`!resetrevolution` Setzt die Diktatur zurück", CommandCategory.Various);
-        setCustomPermissions(PermissionPreset.fromRole(781457314846343208L));
+        super("resetrevolution", "Setzt die Diktatur zurück", CommandCategory.Various);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
+        setCustomPermissions(PermissionPreset.CULT);
     }
 
     @Override

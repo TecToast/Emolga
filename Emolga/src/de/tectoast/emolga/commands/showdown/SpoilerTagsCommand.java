@@ -2,14 +2,15 @@ package de.tectoast.emolga.commands.showdown;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.emolga.database.Database;
 import org.json.JSONObject;
 
 public class SpoilerTagsCommand extends Command {
 
     public SpoilerTagsCommand() {
-        super("spoilertags", "`!spoilertags` Aktiviert oder deaktiviert den Spoilerschutz bei Showdown-Ergebnissen. (Gilt serverweit)", CommandCategory.Showdown);
+        super("spoilertags", "Aktiviert oder deaktiviert den Spoilerschutz bei Showdown-Ergebnissen. (Gilt serverweit)", CommandCategory.Showdown);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
         everywhere = true;
     }
 

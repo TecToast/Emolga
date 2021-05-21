@@ -9,13 +9,14 @@ public class EmoteStealCommand extends Command {
 
 
     public EmoteStealCommand() {
-        super("emotesteal", "`!emotesteal` Stealt Emotes... lol", CommandCategory.Flo);
+        super("emotesteal", "Stealt Emotes... lol", CommandCategory.Flo);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
-        if(emoteSteal.remove(tco.getIdLong())) {
+        if (emoteSteal.remove(tco.getIdLong())) {
             tco.sendMessage("Der EmoteSteal wurde deaktiviert!").queue();
         } else {
             emoteSteal.add(tco.getIdLong());

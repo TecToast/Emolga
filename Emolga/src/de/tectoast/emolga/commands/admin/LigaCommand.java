@@ -9,7 +9,10 @@ import java.util.ArrayList;
 
 public class LigaCommand extends Command {
     public LigaCommand() {
-        super("liga", "`!liga <Rolle>` Erstellt einen Spielplan mit allen Usern, die die angegebene Rolle besitzen", CommandCategory.Admin);
+        super("liga", "Erstellt einen Spielplan mit allen Usern, die die angegebene Rolle besitzen", CommandCategory.Admin);
+        setArgumentTemplate(ArgumentManagerTemplate.builder().add("role", "Rolle", "Die Rolle, die verwendet werden soll", ArgumentManagerTemplate.DiscordType.ROLE)
+                .setExample("!liga @S1-Teilnehmer")
+                .build());
     }
 
     @Override
@@ -17,12 +20,8 @@ public class LigaCommand extends Command {
         Member member = e.getMember();
         Message m = e.getMessage();
         TextChannel tco = e.getChannel();
-        if (m.getMentionedRoles().size() == 0) {
-            tco.sendMessage(member.getAsMention() + " Du musst eine Rolle angeben!").queue();
-            return;
-        }
         Guild g = tco.getGuild();
-        Role r = m.getMentionedRoles().get(0);
+        Role r = e.getArguments().getRole("role");
         g.findMembers(mem -> mem.getRoles().contains(r)).onSuccess((members) -> {
             if (members.size() % 2 != 0) {
                 members.add(null);

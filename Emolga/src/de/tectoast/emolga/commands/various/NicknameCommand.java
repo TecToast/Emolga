@@ -1,8 +1,8 @@
 package de.tectoast.emolga.commands.various;
 
+import de.tectoast.emolga.bot.EmolgaMain;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.bot.EmolgaMain;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.entities.Guild;
@@ -13,7 +13,10 @@ import org.json.JSONObject;
 
 public class NicknameCommand extends Command {
     public NicknameCommand() {
-        super("nickname", "`!nickname <Neuer Name>` Ändert deinen Nickname (funktioniert nur 1x pro Woche)", CommandCategory.Various, Constants.BSID, Constants.ASLID);
+        super("nickname", "Ändert deinen Nickname (funktioniert nur 1x pro Woche)", CommandCategory.Various, Constants.BSID, Constants.ASLID);
+        setArgumentTemplate(ArgumentManagerTemplate.builder().add("name", "Neuer Name", "Der neue Nickname", ArgumentManagerTemplate.Text.any())
+                .setExample("!nickname IchMagEmolga")
+                .build());
     }
 
     @Override
@@ -43,9 +46,9 @@ public class NicknameCommand extends Command {
                 if (untilnow < 604800000) {
                     long delay = 604800000 - untilnow;
                     int days = (int) (delay / 86400000);
-                    delay -= days * 86400000;
+                    delay -= days * 86400000L;
                     int hours = (int) (delay / 3600000);
-                    delay -= hours * 3600000;
+                    delay -= hours * 3600000L;
                     int minutes = (int) (delay / 60000);
                     tco.sendMessage(member.getAsMention() + " Du kannst deinen Namen noch nicht wieder ändern!\nCooldown: " + days + "d " + hours + "h " + minutes + "m").queue();
                     return;

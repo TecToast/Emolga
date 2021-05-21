@@ -1,8 +1,12 @@
 package de.tectoast.emolga.utils.draft;
 
 
+import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Emote;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -15,7 +19,6 @@ import static de.tectoast.emolga.commands.Command.*;
 
 public class Draft {
     public static final ArrayList<Draft> drafts = new ArrayList<>();
-    public static HashMap<String, Integer> already = new HashMap<>();
     public final HashMap<Member, ArrayList<DraftPokemon>> picks = new HashMap<>();
     public final HashMap<Integer, ArrayList<Member>> order = new HashMap<>();
     public final HashMap<Member, Integer> points = new HashMap<>();
@@ -30,11 +33,17 @@ public class Draft {
     public Timer cooldown = new Timer();
     public TextChannel ts;
     public boolean ended = false;
+    public final boolean isSwitchDraft;
 
     public Draft(TextChannel tc, String name, String tcid, boolean fromFile) {
+        this(tc, name, tcid, fromFile, false);
+    }
+
+    public Draft(TextChannel tc, String name, String tcid, boolean fromFile, boolean isSwitchDraft) {
         this.tc = tc;
         this.guild = tc.getGuild().getId();
         this.name = name;
+        this.isSwitchDraft = isSwitchDraft;
         isPointBased = getTierlist().isPointBased;
         JSONObject json = getEmolgaJSON();
         if (drafts.stream().map(draft -> draft.name).anyMatch(name::equals)) {
@@ -59,17 +68,17 @@ public class Draft {
             }
             this.members = new ArrayList<>(order.get(1));
             ts = tc.getGuild().getTextChannelById(tcid);
-            if (!fromFile) {
+            if (!fromFile && !isSwitchDraft) {
                 round++;
                 for (Member member : members) {
                     picks.put(member, new ArrayList<>());
-                    points.put(member, 1100);
+                    points.put(member, 1000);
                 }
                 for (Member member : members) {
                     ts.sendMessage("**" + member.getEffectiveName() + ":**").queue();
                 }
                 current = order.get(1).remove(0);
-                new Timer().schedule(new TimerTask() {
+                cooldown.schedule(new TimerTask() {
                     @Override
                     public void run() {
                         timer();
@@ -81,59 +90,112 @@ public class Draft {
                 else
                     tc.sendMessage(getMention(current) + " ist dran! (Mögliche Tiers: " + getPossibleTiersAsString(current) + ")").complete().getId();
             } else {
-                round = league.optInt("round", 1);
-                current = tc.getGuild().retrieveMemberById(league.getString("current")).complete();
-                int x = 0;
-                for (Member member : order.get(round)) {
-                    x++;
-                    if (current.getId().equals(member.getId())) break;
-                }
-                if (x > 0) {
-                    order.get(round).subList(0, x).clear();
-                }
-                System.out.println("order.size() = " + order.get(round).size());
-                JSONObject pick = league.getJSONObject("picks");
-                for (Member member : members) {
-                    if (pick.has(member.getId())) {
-                        JSONArray arr = pick.getJSONArray(member.getId());
-                        ArrayList<DraftPokemon> list = new ArrayList<>();
-                        for (Object ob : arr) {
-                            JSONObject obj = (JSONObject) ob;
-                            list.add(new DraftPokemon(obj.getString("name"), obj.getString("tier")));
+                if (isSwitchDraft && !fromFile) {
+                    round++;
+                    current = order.get(1).remove(0);
+                    JSONObject pick = league.getJSONObject("picks");
+                    for (Member member : members) {
+                        System.out.println("member = " + member);
+                        if (pick.has(member.getId())) {
+                            JSONArray arr = pick.getJSONArray(member.getId());
+                            ArrayList<DraftPokemon> list = new ArrayList<>();
+                            for (Object ob : arr) {
+                                JSONObject obj = (JSONObject) ob;
+                                list.add(new DraftPokemon(obj.getString("name"), obj.getString("tier")));
+                            }
+                            picks.put(member, list);
+                            update(member);
+                            System.out.println("update end");
+                        } else {
+                            picks.put(member, new ArrayList<>());
                         }
-                        picks.put(member, list);
-                        update(member);
-                    } else {
-                        picks.put(member, new ArrayList<>());
-                    }
-                    if (isPointBased) {
-                        points.put(member, 1100);
-                        for (DraftPokemon mon : picks.get(member)) {
-                            points.put(member, points.get(member) - getTierlist().prices.get(mon.tier));
+                        if (isPointBased) {
+                            points.put(member, 1000);
+                            for (DraftPokemon mon : picks.get(member)) {
+                                points.put(member, points.get(member) - getTierlist().prices.get(mon.tier));
+                            }
+                            p.put(member.getId(), points.get(member));
                         }
-                        p.put(member.getId(), points.get(member));
                     }
-                }
-                long delay;
-                if (league.has("cooldown")) {
-                    delay = league.getLong("cooldown") - System.currentTimeMillis();
-                } else {
-                    delay = calculateASLTimer();
-                }
-                if (!league.has("cooldown"))
+                    System.out.println("For finished");
+                    long delay = calculateASLTimer();
                     league.put("cooldown", System.currentTimeMillis() + delay);
-                if (delay != -1) {
-                    cooldown.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            timer();
+                    if (delay != -1) {
+                        cooldown.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                timer();
+                            }
+                        }, delay);
+                    }
+                    System.out.println("Before send");
+                    tc.sendMessage("Runde " + round + "!").queue();
+                    if (isPointBased)
+                        tc.sendMessage(getMention(current) + " ist dran! (" + points.get(current) + " mögliche Punkte)").complete().getId();
+                    else
+                        tc.sendMessage(getMention(current) + " ist dran! (Mögliche Tiers: " + getPossibleTiersAsString(current) + ")").complete().getId();
+                    saveEmolgaJSON();
+                } else {
+                    round = league.optInt("round", 1);
+                    current = tc.getGuild().retrieveMemberById(league.getString("current")).complete();
+                    int x = 0;
+                    for (Member member : order.get(round)) {
+                        x++;
+                        if (current.getId().equals(member.getId())) break;
+                    }
+                    if (x > 0) {
+                        order.get(round).subList(0, x).clear();
+                    }
+                    System.out.println("order.size() = " + order.get(round).size());
+                    JSONObject pick = league.getJSONObject("picks");
+                    for (Member member : members) {
+                        if (pick.has(member.getId())) {
+                            JSONArray arr = pick.getJSONArray(member.getId());
+                            ArrayList<DraftPokemon> list = new ArrayList<>();
+                            for (Object ob : arr) {
+                                JSONObject obj = (JSONObject) ob;
+                                list.add(new DraftPokemon(obj.getString("name"), obj.getString("tier")));
+                            }
+                            picks.put(member, list);
+                            update(member);
+                        } else {
+                            picks.put(member, new ArrayList<>());
                         }
-                    }, delay);
+                        if (isPointBased) {
+                            points.put(member, 1000);
+                            for (DraftPokemon mon : picks.get(member)) {
+                                Tierlist t = getTierlist();
+                                if(t == null) System.out.println("TIERLISTNULL");
+                                if(t.prices.get(mon.tier) == null) {
+                                    System.out.println(mon.name + " ERROR " + mon.tier);
+                                }
+                                points.put(member, points.get(member) - t.prices.get(mon.tier));
+                            }
+                            p.put(member.getId(), points.get(member));
+                        }
+                    }
+                    long delay;
+                    if (league.has("cooldown")) {
+                        delay = league.getLong("cooldown") - System.currentTimeMillis();
+                    } else {
+                        delay = calculateASLTimer();
+                    }
+                    if (!league.has("cooldown"))
+                        league.put("cooldown", System.currentTimeMillis() + delay);
+                    if (delay != -1) {
+                        cooldown.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                timer();
+                            }
+                        }, delay);
+                    }
+                    saveEmolgaJSON();
+                    sendToMe("Aufgesetzt! " + delay);
                 }
-                saveEmolgaJSON();
-                sendToMe("Aufgesetzt! " + delay);
             }
             drafts.add(this);
+            System.out.println("Initialized Draft " + name + " !");
         }).start();
     }
 
@@ -155,7 +217,8 @@ public class Draft {
                 while (c.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) c.add(Calendar.DAY_OF_WEEK, 1);
                 long timeUntilStart = c.getTimeInMillis() - System.currentTimeMillis();
                 TextChannel tc = jda.getTextChannelById(predictiongame.getLong("channelid"));
-                for (int i = 0; i < league.getJSONObject("battleorder").length() - lastDay; i++) {
+                //TextChannel tc = jda.getTextChannelById(774661698074050581L);
+                for (int i = 0; i < league.getJSONObject("battleorder").length() + 7 - lastDay; i++) {
                     long delay = timeUntilStart + (i * 604800000L);
                     System.out.println(draftname + " -> " + i + " -> " + delay + " -> " + format.format(new Date(System.currentTimeMillis() + delay)));
                     int finalI = i + 1;
@@ -172,7 +235,7 @@ public class Draft {
                             tc.sendMessage("**Spieltag " + gameday + ":**").queue();
                             predictiongame.getJSONObject("ids").put(String.valueOf(gameday), new JSONObject());
                             JSONObject o = predictiongame.getJSONObject("ids").getJSONObject(String.valueOf(gameday));
-                            String bo = league.getJSONObject("battleorder").getString(String.valueOf(gameday));
+                            String bo = league.getJSONObject("battleorder").getString(String.valueOf(gameday - 7));
                             ArrayList<CompletableFuture<Message>> list = new ArrayList<>();
                             for (String str : bo.split(";")) {
                                 String[] split = str.split(":");
@@ -193,7 +256,7 @@ public class Draft {
                                 sendEarlyASLReplays(gameday);
                             });
                         }
-                    }, delay);
+                    }, delay < 0 ? 0 : delay);
                 }
             }
         }
@@ -205,10 +268,11 @@ public class Draft {
 
     public static Draft getDraftByMember(Member member, TextChannel tco) {
         JSONObject json = getEmolgaJSON();
-        System.out.println("member.getId() = " + member.getId());
+        //System.out.println("member.getId() = " + member.getId());
         for (Draft draft : Draft.drafts) {
-            System.out.println(draft.members.stream().map(mem -> mem.getId() + ":" + mem.getEffectiveName()).collect(Collectors.joining("\n")));
+            //System.out.println(draft.members.stream().map(mem -> mem.getId() + ":" + mem.getEffectiveName()).collect(Collectors.joining("\n")));
             if (!draft.tc.getId().equals(tco.getId())) continue;
+            if (member.getIdLong() == Constants.FLOID) return draft;
             if (draft.members.stream().anyMatch(mem -> mem.getId().equals(member.getId())))
                 return draft;
             JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(draft.name);
@@ -244,7 +308,9 @@ public class Draft {
 
     public boolean isNotCurrent(Member mem) {
         if (current.getId().equals(mem.getId())) return false;
+        if (mem.getIdLong() == Constants.FLOID) return false;
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(name);
+        if (!league.has("allowed")) return true;
         return !league.getJSONObject("allowed").optString(mem.getId(), "").equals(current.getId());
     }
 
@@ -263,32 +329,38 @@ public class Draft {
         return picks.values().stream().flatMap(Collection::stream).anyMatch(mon -> mon.name.equalsIgnoreCase(pokemon));
     }
 
+    public boolean isPickedBy(String oldmon, Member mem) {
+        return picks.get(mem).stream().anyMatch(dp -> dp.name.equalsIgnoreCase(oldmon));
+    }
+
     public void update(Member mem) {
-        ArrayList<Message> list = new ArrayList<>();
-        for (Message message : ts.getIterableHistory()) {
-            list.add(message);
-        }
-        Collections.reverse(list);
-        if (list.isEmpty()) {
+        new Thread(() -> {
+            ArrayList<Message> list = new ArrayList<>();
+            for (Message message : ts.getIterableHistory()) {
+                list.add(message);
+            }
+            Collections.reverse(list);
+            if (list.isEmpty()) {
+                for (Member member : members) {
+                    list.add(tc.sendMessage(getTeamMsg(mem)).complete());
+                }
+            }
+            int i = 0;
             for (Member member : members) {
-                list.add(tc.sendMessage(getTeamMsg(mem)).complete());
+                if (member.getId().equals(mem.getId())) {
+                    list.get(i).editMessage(getTeamMsg(mem)).queue();
+                    break;
+                }
+                i++;
             }
-        }
-        int i = 0;
-        for (Member member : members) {
-            if (member.getId().equals(mem.getId())) {
-                list.get(i).editMessage(getTeamMsg(mem)).queue();
-                break;
-            }
-            i++;
-        }
-        //messages.get(member).editMessage(str.toString()).queue();
+            //messages.get(member).editMessage(str.toString()).queue();
+        }).start();
     }
 
     public void timer(TimerReason tr) {
         if (ended) return;
         if (order.get(round).size() == 0) {
-            if (round == 13) {
+            if (round == 4) {
                 saveEmolgaJSON();
                 tc.sendMessage("Der Draft ist vorbei!").queue();
                 Draft.drafts.remove(this);
@@ -312,7 +384,7 @@ public class Draft {
         }
         cooldown = new Timer();
         JSONObject json = getEmolgaJSON();
-        if (isPointBased && points.get(current) < 20) {
+        if (isPointBased && !isSwitchDraft && points.get(current) < 20) {
             ArrayList<DraftPokemon> picks = this.picks.get(current);
             DraftPokemon p = null;
             int price = 0;
@@ -323,7 +395,7 @@ public class Draft {
                     p = pick;
                 }
             }
-            tc.sendMessage("Du hast nicht mehr genug Punkte um ein weiteres commands zu draften! Deshalb verlierst du " + p + " und erhältst dafür " + price / 2 + " Punkte!").queue();
+            tc.sendMessage("Du hast nicht mehr genug Punkte um ein weiteres Pokemon zu draften! Deshalb verlierst du " + p + " und erhältst dafür " + price / 2 + " Punkte!").queue();
             points.put(current, points.get(current) + price / 2);
             this.picks.get(current).remove(p);
             json.getJSONObject("drafts").getJSONObject(name).getJSONObject("picks").put(current.getId(), getTeamAsArray(current));
@@ -395,6 +467,7 @@ public class Draft {
         }
         return String.join(", ", list);
     }
+
 
     public enum TimerReason {
         REALTIMER,

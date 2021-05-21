@@ -8,7 +8,8 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class ListallmembersCommand extends Command {
     public ListallmembersCommand() {
-        super("listallmembers", "`!listallmembers` Zeigt alle Mitglieder des Servers an", CommandCategory.Admin);
+        super("listallmembers", "Zeigt alle Mitglieder des Servers an", CommandCategory.Admin);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

@@ -1,11 +1,13 @@
 package de.tectoast.emolga.commands;
 
+import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class GenericCommandEvent {
     private final Message message;
@@ -87,11 +89,20 @@ public abstract class GenericCommandEvent {
         return i < argsLength;
     }
 
-    public void reply(String msg) {
-        this.channel.sendMessage(msg).queue();
+    public CompletableFuture<Message> reply(String msg) {
+        return this.channel.sendMessage(msg).submit();
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    public CompletableFuture<Message> reply(MessageEmbed message) {
+        return this.channel.sendMessage(message).submit();
     }
 
     public void done() {
         reply("Done!");
+    }
+
+    public boolean isNotFlo() {
+        return this.author.getIdLong() != Constants.FLOID;
     }
 }

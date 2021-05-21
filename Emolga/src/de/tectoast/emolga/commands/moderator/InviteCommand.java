@@ -9,12 +9,13 @@ import java.util.Arrays;
 
 public class InviteCommand extends Command {
     public InviteCommand() {
-        super("invite", "`!invite` Erstellt einen einmalig nutzbaren Invite", CommandCategory.Moderator, Constants.ASLID);
+        super("invite", "Erstellt einen einmalig nutzbaren Invite", CommandCategory.Moderator, Constants.ASLID);
         overrideChannel.put(Constants.ASLID, Arrays.asList(773572093697851392L, 736501675447025704L));
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        e.getChannel().createInvite().setMaxUses(1).submit().thenCompose(inv -> e.getChannel().sendMessage(inv.getUrl()).submit());
+        e.getChannel().createInvite().setMaxUses(1).flatMap(inv -> e.getChannel().sendMessage(inv.getUrl())).queue();
     }
 }

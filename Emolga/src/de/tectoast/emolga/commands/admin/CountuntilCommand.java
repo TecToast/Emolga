@@ -8,12 +8,18 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class CountuntilCommand extends Command {
     public CountuntilCommand() {
-        super("countuntil", "`!countuntil [Text-Channel] <Message-ID>` Zählt die Nachrichten bis zur angegebenen Nachricht", CommandCategory.Admin);
+        super("countuntil", "Zählt die Nachrichten bis zur angegebenen Nachricht", CommandCategory.Admin);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("tc", "Text-Channel", "Der Channel, in dem gezählt werden soll, sonst der, in dem der Command geschrieben wurde", ArgumentManagerTemplate.DiscordType.CHANNEL, true)
+                .add("mid", "Message-ID", "Die Message-ID, bis zu der gezählt werden soll", ArgumentManagerTemplate.DiscordType.ID)
+                .setExample("!countuntil #Banane 839470836624130098")
+                .build()
+        );
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        Message m = e.getMessage();
+        /*Message m = e.getMessage();
         String msg = m.getContentRaw();
         TextChannel tco = e.getChannel();
         TextChannel tc;
@@ -24,18 +30,21 @@ public class CountuntilCommand extends Command {
         } else {
             tc = tco;
             mid = e.getArg(0);
-        }
+        }*/
+        ArgumentManager args = e.getArguments();
+        TextChannel tc = args.getOrDefault("tc", e.getChannel());
+        long mid = args.getID("mid");
         try {
             tc.retrieveMessageById(mid).complete();
         } catch (Exception ex) {
-            tco.sendMessage("Diese Nachricht existiert nicht!").queue();
+            e.reply("Diese Nachricht existiert nicht!");
             return;
         }
         int i = 0;
         for (Message message : tc.getIterableHistory()) {
             i++;
-            if (message.getId().equals(mid)) break;
+            if (message.getIdLong() == mid) break;
         }
-        tco.sendMessage("Bis zu dieser ID wurden " + i + " Nachrichten geschickt!").queue();
+        e.reply("Bis zu dieser ID wurden " + i + " Nachrichten geschickt!");
     }
 }

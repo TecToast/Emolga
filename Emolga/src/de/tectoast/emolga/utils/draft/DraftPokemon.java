@@ -2,11 +2,27 @@ package de.tectoast.emolga.utils.draft;
 
 public class DraftPokemon {
 
-    public final String name;
-    public final String tier;
+    public String name;
+    public String tier;
 
     public DraftPokemon(String name, String tier) {
         this.name = name;
+        this.tier = tier;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getTier() {
+        return tier;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setTier(String tier) {
         this.tier = tier;
     }
 }

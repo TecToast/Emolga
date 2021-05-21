@@ -4,10 +4,12 @@ package de.tectoast.emolga.commands.pokemon;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.emolga.database.Database;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -18,8 +20,50 @@ import java.util.stream.Collectors;
 
 public class DataCommand extends Command {
     public DataCommand() {
-        super("data", "`!data [Shiny] <Pokemon|Attacke|Fähigkeit|Item>` Zeigt Informationen über diese Sache", CommandCategory.Pokemon);
+        super("data", "Zeigt Informationen über diese Sache", CommandCategory.Pokemon);
         aliases.add("dt");
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("shiny", "Shiny", "", ArgumentManagerTemplate.Text.of(SubCommand.of("Shiny", "Wenn der Sprite des Mons als Shiny angezeigt werden soll")), true)
+                .add("form", "Form", "", ArgumentManagerTemplate.Text.of(
+                        SubCommand.of("Alola"), SubCommand.of("Galar"), SubCommand.of("Mega")
+                ), true)
+                .add("stuff", "Sache", "Pokemon/Item/Whatever", Translation.Type.of(Translation.Type.POKEMON, Translation.Type.MOVE, Translation.Type.ITEM, Translation.Type.ABILITY))
+                .setExample("!dt Shiny Primarene")
+                .build());
+    }
+
+    public static String getPrevoInfo(JSONObject obj) {
+        if (obj.optString("forme").equals("Mega"))
+            return "Megaentwicklung von " + getGerNameNoCheck(obj.getString("baseSpecies"));
+        if (!obj.has("prevo")) return "";
+        String str = "ERROR (Wenn du das siehst, melde dich bitte bei Flo)";
+        String prev = obj.getString("prevo");
+        //String prevo = getGerNameNoCheck(obj.getString("prevo"));
+        String prevo;
+        if (prev.endsWith("-Alola") || prev.endsWith("-Galar"))
+            prevo = prev.substring(prev.length() - 5) + "-" + getGerNameNoCheck(prev.substring(0, prev.length() - 6));
+        else prevo = getGerNameNoCheck(prev);
+        if (obj.has("evoLevel")) str = "auf Level " + obj.getInt("evoLevel");
+        else if (obj.has("evoType")) {
+            switch (obj.getString("evoType")) {
+                case "useItem":
+                    str = "mit dem Item \"" + getGerNameNoCheck(obj.getString("evoItem")) + "\"";
+                    break;
+                case "levelFriendship":
+                    str = "durch Freundschaft";
+                    break;
+                case "trade":
+                    str = "durch Tausch";
+                    break;
+                case "levelExtra":
+                    str = "";
+                    break;
+            }
+        }
+        String condition = "";
+        if (obj.has("evoCondition"))
+            condition = "\nBedingung: " + obj.getString("evoCondition");
+        return "Entwickelt sich aus " + prevo + " " + str + condition;
     }
 
     @Override
@@ -29,7 +73,7 @@ public class DataCommand extends Command {
         String msg = m.getContentDisplay();
         Member member = e.getMember();
         try {
-            String[] args = msg.split(" ");
+            /*String[] args = msg.split(" ");
             if (args.length < 2) {
                 tco.sendMessage("Syntax: !data <Name>").queue();
                 return;
@@ -38,9 +82,14 @@ public class DataCommand extends Command {
             if (msg.toLowerCase().contains("shiny")) {
                 name = name.substring(6);
             }
-            String mod = getModByGuild(e);
+
             Translation gerName = getGerName(name, mod);
+            */
+            ArgumentManager args = e.getArguments();
+            Translation gerName = args.getTranslation("stuff");
             Translation.Type objtype = gerName.getType();
+            String mod = getModByGuild(e);
+            String name = gerName.getTranslation();
             switch (objtype) {
                 case POKEMON:
                     try {
@@ -206,12 +255,21 @@ public class DataCommand extends Command {
                                 str = str.replace("Normal VF", "VF");
                             builder.addField("Fähigkeiten", str, false);
                         }
+                        /*if (mon.has("prevo")) {
+                            if(list.size() == 1) {
+                                builder.addField("Vorentwicklung", getPrevoInfo(mon), false);
+                            } else {
+                                for (JSONObject obj : list) {
+                                    builder.addField(name + "-" + (obj.optString("baseForme", obj.optString("forme", ""))), getPrevoInfo(obj), true);
+                                }
+                            }
+                        }*/
                         if (monname.equalsIgnoreCase("amigento") || monname.equalsIgnoreCase("arceus")) {
                             builder.addField(monname.equalsIgnoreCase("amigento") ? "Amigento" : "Arceus", monname.equalsIgnoreCase("amigento") ? "KP: 95\n" + "Atk: 95\n" + "Def: 95\n" + "SpAtk: 95\n" + "SpDef: 95\n" + "Init: 95\n" + "Summe: 570"
                                     : "KP: 120\n" + "Atk: 120\n" + "Def: 120\n" + "SpAtk: 120\n" + "SpDef: 120\n" + "Init: 120\n" + "Summe: 720", false);
                         } else {
                             HashMap<String, ArrayList<String>> stat = new HashMap<>();
-                            HashMap<String, String> origname = new HashMap<>();
+                            HashMap<String, JSONObject> origname = new HashMap<>();
                             for (JSONObject obj : list) {
                                 JSONObject stats = obj.getJSONObject("baseStats");
                                 int kp = stats.getInt("hp");
@@ -242,29 +300,37 @@ public class DataCommand extends Command {
                                 } else if (split.size() > 1) {
                                     toadd = new StringBuilder(getGerNameNoCheck(split.remove(0)) + "-" + String.join("-", split));
                                 } else toadd = new StringBuilder(getGerNameNoCheck(toadd.toString()));
-                                origname.put(toadd.toString(), toSDName(obj.getString("name")));
+                                /*origname.put(toadd.toString(), obj);
                                 if (stat.containsKey(str)) stat.get(str).add(toadd.toString());
-                                else stat.put(str, new ArrayList<>(Collections.singletonList(toadd.toString())));
+                                else stat.put(str, new ArrayList<>(Collections.singletonList(toadd.toString())));*/
+                                builder.addField(toadd.toString(), getPrevoInfo(obj) + "\n\nBasestats:\n" + str, true);
                             }
-                            for (String s : stat.keySet().stream().sorted(Comparator.comparing(o -> stat.get(o).stream().mapToInt(str -> formeNames.indexOf(origname.get(str))).min().orElse(0))).collect(Collectors.toList())) {
-                                builder.addField(String.join(", ", stat.get(s)), s, true);
-                            }
+                            /*for (String s : stat.keySet().stream().sorted(Comparator.comparing(o -> stat.get(o).stream().mapToInt(str -> formeNames.indexOf(toSDName(origname.get(str).getString("name")))).min().orElse(0))).collect(Collectors.toList())) {
+                                builder.addField(String.join(", ", stat.get(s)), stat.get(s).stream().map(origname::get).map(DataCommand::getPrevoInfo).collect(Collectors.joining("")) + s, true);
+                            }*/
                         }
-                        boolean shiny;
-                        if (msg.toLowerCase().contains("shiny") || msg.toLowerCase().contains("gummibärchen")) {
-                            builder.setImage("attachment://sprite.png");
-                            shiny = true;
-                        } else {
-                            builder.setImage(getSpriteJSON().getString(String.valueOf(mon.getInt("num"))));
-                            shiny = false;
-                        }
+                        builder.setImage("attachment://sprite.png");
                         builder.setTitle(monname);
                         builder.setColor(Color.CYAN);
-                        if (shiny) {
-                            tco.sendFile(new File("../Showdown/sspclient/sprites/gen5-shiny/" + gerName.getOtherLang().toLowerCase() + ".png"), "sprite.png").embed(builder.build()).queue();
+                        String suffix;
+                        if (args.has("form")) {
+                            String form = args.getText("form");
+                            if (!mon.has("otherFormes")) {
+                                e.reply(monname + " besitzt keine **" + form + "**-Form!");
+                                return;
+                            }
+                            JSONArray otherFormes = mon.getJSONArray("otherFormes");
+                            if (otherFormes.toList().stream().noneMatch(s -> ((String) s).endsWith("-" + form))) {
+                                e.reply(monname + " besitzt keine **" + form + "**-Form!");
+                                return;
+                            }
+                            suffix = "-" + form.toLowerCase();
                         } else {
-                            tco.sendMessage(builder.build()).queue();
+                            suffix = "";
                         }
+                        File f = new File("../Showdown/sspclient/sprites/gen5" + (args.isText("shiny", "Shiny") || msg.toLowerCase().contains("gummibärchen") ? "-shiny" : "") + "/" + gerName.getOtherLang().toLowerCase()
+                                + suffix + ".png");
+                        tco.sendFile(f, "sprite.png").embed(builder.build()).queue();
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -352,7 +418,7 @@ public class DataCommand extends Command {
                             .addField("Type", type, true)
                             .addField("Priority", String.valueOf(data.getInt("priority")), true)
                             .setColor(Color.CYAN)
-                            .setDescription(getWikiJSON().getJSONObject("atkdata").getString(toSDName(getGerNameNoCheck(name))));
+                            .setDescription(Database.getDataFrom("atk", toSDName(name)));
                     if (data.getString("category").equals("Status")) {
                         String text;
                         JSONObject eff = data.getJSONObject("zMove");
@@ -439,11 +505,11 @@ public class DataCommand extends Command {
                     break;
                 case ABILITY:
                     String abiname = gerName.getTranslation();
-                    tco.sendMessage(new EmbedBuilder().setTitle(abiname).setDescription("Englisch: " + getEnglName(abiname) + "\n" + getWikiJSON().getJSONObject("abidata").getString(toSDName(abiname))).setColor(Color.CYAN).build()).queue();
+                    tco.sendMessage(new EmbedBuilder().setTitle(abiname).setDescription("Englisch: " + getEnglName(abiname) + "\n" + Database.getDataFrom("abi", toSDName(name))).setColor(Color.CYAN).build()).queue();
                     break;
                 case ITEM:
                     String itemname = gerName.getTranslation();
-                    tco.sendMessage(new EmbedBuilder().setTitle(itemname).setDescription("Englisch: " + getEnglName(itemname) + "\n" + getWikiJSON().getJSONObject("itemdata").getString(toSDName(itemname))).setColor(Color.CYAN).build()).queue();
+                    tco.sendMessage(new EmbedBuilder().setTitle(itemname).setDescription("Englisch: " + getEnglName(itemname) + "\n" + Database.getDataFrom("item", toSDName(name))).setColor(Color.CYAN).build()).queue();
                     break;
                 default:
                     tco.sendMessage("Es gibt kein(e) Pokemon/Attacke/Fähigkeit/Item mit dem Namen " + name + "!").queue();

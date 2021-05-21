@@ -21,13 +21,14 @@ public class PickCommand extends Command {
     public static boolean isEnabled = true;
 
     public PickCommand() {
-        super("pick", "`!pick <Pokemon>` Pickt das pokemon", CommandCategory.Draft);
+        super("pick", "Pickt das Pokemon", CommandCategory.Draft);
+        setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!pick <Pokemon> [Optionales Tier]", "!pick Emolga"));
     }
 
     public static void exec(TextChannel tco, String msg, Member member, boolean isRandom) {
         try {
-            if(msg.equals("!pick")) {
-                if(isRandom) {
+            if (msg.equals("!pick")) {
+                if (isRandom) {
                     tco.sendMessage("Jedes Pokemon aus dem Tier mit dem Typen ist bereits weg!").queue();
                 } else {
                     tco.sendMessage("Willst du vielleicht noch ein Pokemon dahinter schreiben? xD").queue();
@@ -39,6 +40,10 @@ public class PickCommand extends Command {
                 return;
             }
             if (!d.tc.getId().equals(tco.getId())) return;
+            if (d.isSwitchDraft) {
+                tco.sendMessage("Dieser Draft ist ein Switch-Draft, daher wird !pick nicht unterstützt!").queue();
+                return;
+            }
             if (d.isNotCurrent(member)) {
                 tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue();
                 return;
@@ -145,7 +150,7 @@ public class PickCommand extends Command {
             d.update(mem);
             if (isRandom) {
                 tco.sendMessage("**" + mem.getEffectiveName() + "** hat aus dem " + tier + "-Tier ein **" + pokemon + "** bekommen!").queue();
-            } else if(pokemon.equals("Emolga")) {
+            } else if (pokemon.equals("Emolga")) {
                 tco.sendMessage("<:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142>").queue();
             }
             try {
@@ -160,8 +165,8 @@ public class PickCommand extends Command {
                     tco.sendMessage("Der Draft ist vorbei!").queue();
                     d.ended = true;
                     wooloodoc(tierlist, pokemon, d, mem, needed, null, num, round);
-                    if(d.afterDraft.size() > 0)
-                    tco.sendMessage("Reihenfolge zum Nachdraften:\n" + d.afterDraft.stream().map(d::getMention).collect(Collectors.joining("\n"))).queue();
+                    if (d.afterDraft.size() > 0)
+                        tco.sendMessage("Reihenfolge zum Nachdraften:\n" + d.afterDraft.stream().map(d::getMention).collect(Collectors.joining("\n"))).queue();
                     saveEmolgaJSON();
                     Draft.drafts.remove(d);
                     return;
@@ -186,9 +191,9 @@ public class PickCommand extends Command {
                 tco.sendMessage(d.getMention(d.current) + " Du hast nicht mehr genug Punkte um ein weiteres Pokemon zu draften! Deshalb verlierst du " + toremove.name + " und erhältst dafür " + price / 2 + " Punkte!").queue();
                 d.points.put(d.current, d.points.get(d.current) + price / 2);
                 d.picks.get(d.current).remove(toremove);
-                league.getJSONObject("picks").put(d.current.getId(), d.getTeamAsArray(d.current));
                 d.afterDraft.add(d.current);
             }
+            league.getJSONObject("picks").put(d.current.getId(), d.getTeamAsArray(d.current));
             if (d.isPointBased)
                 tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").complete().getId();
             else
@@ -287,7 +292,7 @@ public class PickCommand extends Command {
         }
         x = 1;
         y = 2;
-        if(removed != null) {
+        if (removed != null) {
             for (String s : tierlist.tiercolumns) {
                 if (s.equalsIgnoreCase(removed.name)) {
                     break;
@@ -323,7 +328,7 @@ public class PickCommand extends Command {
         ArrayList<DraftPokemon> picks = d.picks.get(mem);
         for (int i = 0; i < 13; i++) {
             List<Object> list = new ArrayList<>();
-            if(i < picks.size()) {
+            if (i < picks.size()) {
                 DraftPokemon mon = picks.get(i);
                 list.add(tierlist.prices.get(mon.tier));
                 list.add(mon.name);
@@ -365,7 +370,7 @@ public class PickCommand extends Command {
         }
         x = 1;
         y = 2;
-        if(removed != null) {
+        if (removed != null) {
             for (String s : tierlist.tiercolumns) {
                 if (s.equalsIgnoreCase(removed.name)) {
                     break;
@@ -392,7 +397,7 @@ public class PickCommand extends Command {
         ArrayList<DraftPokemon> picks = d.picks.get(mem);
         for (int i = 0; i < 12; i++) {
             List<Object> list = new ArrayList<>();
-            if(i < picks.size()) {
+            if (i < picks.size()) {
                 DraftPokemon mon = picks.get(i);
                 list.add(mon.name);
                 list.add(String.valueOf(tierlist.getPointsNeeded(mon.name)));

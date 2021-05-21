@@ -4,26 +4,27 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.json.JSONObject;
 
 public class UpdateorderfromfileCommand extends Command {
     public UpdateorderfromfileCommand() {
-        super("updateorderfromfile", "`!updateorderfromfile <MID> <Name>", CommandCategory.Flo);
+        super("updateorderfromfile", "Aktualisiert die Draftreihenfolge in einer Nachricht", CommandCategory.Flo);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("mid", "Message-ID", "Die MessageID der Draftreihenfolge", ArgumentManagerTemplate.DiscordType.ID)
+                .add("name", "Draftname", "Der Name der Draftliga", ArgumentManagerTemplate.draft())
+                .setExample("!updateorderfromfile 839470836624130098")
+                .build());
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
         try {
-            String mid = msg.split(" ")[1];
-            String name = msg.substring(mid.length() + 22);
-            Guild g = tco.getGuild();
+            ArgumentManager args = e.getArguments();
+            long mid = args.getID("mid");
+            String name = args.getText("name");
+            Guild g = e.getGuild();
             JSONObject json = getEmolgaJSON();
             StringBuilder edit = new StringBuilder(name + ":\n");
             if (json.has("drafts")) {
@@ -50,16 +51,16 @@ public class UpdateorderfromfileCommand extends Command {
                         }
                     }
                     if (b) {
-                        tco.sendMessage("Success!").queue();
+                        e.reply("Success!");
                     } else {
-                        tco.sendMessage("Die Nachricht wurde nicht gefunden!").queue();
+                        e.reply("Die Nachricht wurde nicht gefunden!");
                     }
                 } else {
-                    tco.sendMessage("Es gibt keine Liga mit dem Namen " + name + "!").queue();
+                    e.reply("Es gibt keine Liga mit dem Namen " + name + "!");
                 }
-            } else tco.sendMessage("Es wurde noch kein draft erstellt!").queue();
+            } else e.reply("Es wurde noch kein draft erstellt!");
         } catch (Exception ex) {
-            tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
+            e.reply("Es ist ein Fehler aufgetreten!");
             ex.printStackTrace();
         }
     }

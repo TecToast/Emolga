@@ -13,31 +13,38 @@ import java.net.URL;
 
 public class SearchReplaysCommand extends Command {
     public SearchReplaysCommand() {
-        super("searchreplays", "`!searchreplays <User1> [User2]` Sucht nach Replays der angegebenen Showdownbenutzernamen", CommandCategory.Showdown);
+        super("searchreplays", "Sucht nach Replays der angegebenen Showdownbenutzernamen", CommandCategory.Showdown);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("user1", "User 1", "Der Showdown-Username von jemandem", ArgumentManagerTemplate.Text.any())
+                .add("user2", "User 2", "Der Showdown-Username eines potenziellen zweiten Users", ArgumentManagerTemplate.Text.any(), true)
+                .setExample("!searchreplays TecToast")
+                .build());
     }
 
     @Override
     public void process(GuildCommandEvent e) throws IOException {
         TextChannel tco = e.getChannel();
-        String msg = e.getMessage().getContentDisplay().substring(15);
         String url = "https://replay.pokemonshowdown.com/search.json?user=";
-        String[] split = msg.split(" ");
-        if(split.length > 1) url += split[0].toLowerCase() + "&user2=" + split[1].toLowerCase();
-        else url += split[0];
+        ArgumentManager args = e.getArguments();
+        String user1 = args.getText("user1");
+        if (args.has("user2")) url += toSDName(user1) + "&user2=" + toSDName(args.getText("user2"));
+        else url += toSDName(user1);
         System.out.println(url);
         JSONArray array = new JSONArray(new JSONTokener(new URL(url).openStream()));
         System.out.println(array.toString(4));
         StringBuilder str = new StringBuilder();
-        if(array.length() == 0) {
-            tco.sendMessage("Es wurde kein Kampf zwischen " + split[0] + " und " + split[1] + " hochgeladen!").queue();
+        if (array.length() == 0) {
+            if (args.has("user2"))
+                e.reply("Es wurde kein Kampf zwischen " + user1 + " und " + args.getText("user2") + " hochgeladen!");
+            else
+                e.reply("Es wurde kein Kampf von " + user1 + " hochgeladen!");
             return;
         }
         for (int i = 0; i < array.length(); i++) {
             JSONObject o = array.getJSONObject(i);
             str.append(o.getString("p1")).append(" vs ").append(o.getString("p2")).append(": https://replay.pokemonshowdown.com/").append(o.getString("id")).append("\n");
         }
-        System.out.println(str.toString());
-
+        System.out.println(str);
         e.getChannel().sendMessage(str.toString()).queue();
     }
 }

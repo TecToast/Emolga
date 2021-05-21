@@ -11,13 +11,15 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.awt.*;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class CombinationCommand extends Command {
     public CombinationCommand() {
-        super("combination", "`!combination [Attacke|Fähigkeit],[Attacke|Fähigkeit] ...` Zeigt, welche pokemon die angegeben Attacken lernen bzw. die Fähigkeiten haben können", CommandCategory.Pokemon);
+        super("combination", "Zeigt, welche Pokemon die angegeben Attacken lernen bzw. die Fähigkeiten haben können", CommandCategory.Pokemon);
+        setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!combination <Typ|Attacke|Eigruppe|Fähigkeit>, <Typ|Attacke|Eigruppe|Fähigkeit> usw.",
+                "!combination Water, Donnerblitz"));
     }
 
     public static boolean containsNotAll(JSONObject mon, ArrayList<String> list) {
@@ -82,21 +84,21 @@ public class CombinationCommand extends Command {
             for (String form : Arrays.asList("alola", "galar", "unova")) {
                 if (mon.optString("forme", "").toLowerCase().contains(form)) isRegion = true;
             }
-            if(!isRegion) {
+            if (!isRegion) {
                 if (mon.has("baseSpecies")) string = mon.getString("baseSpecies");
             }
-            if(string == null) string = s;
+            if (string == null) string = s;
 
             if (atks.size() > 0) {
-                if(!moves.has(toSDName(string))) continue;
-                if(!moves.getJSONObject(toSDName(string)).has("learnset")) continue;
-                if(containsNotAll(moves.getJSONObject(toSDName(string)).getJSONObject("learnset").keySet(), atks))
-                continue;
+                if (!moves.has(toSDName(string))) continue;
+                if (!moves.getJSONObject(toSDName(string)).has("learnset")) continue;
+                if (containsNotAll(moves.getJSONObject(toSDName(string)).getJSONObject("learnset").keySet(), atks))
+                    continue;
             }
-            if(mon.getInt("num") < 0) continue;
+            if (mon.getInt("num") < 0) continue;
             String name = data.getJSONObject(s).getString("name");
             String[] split = name.split("-");
-            if(split.length > 1) mons.add(getGerNameNoCheck(split[0]) + "-" + split[1]);
+            if (split.length > 1) mons.add(getGerNameNoCheck(split[0]) + "-" + split[1]);
             else mons.add(getGerNameNoCheck(name));
             /*
             JSONObject mon = data.getJSONObject(s);

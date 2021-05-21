@@ -128,7 +128,8 @@ public class RequestBuilder {
      * Executes the request to the specified google sheet
      */
     public void execute() {
-        if (executed) throw new IllegalStateException("Already executed RequestBuilder with requests:\nsid = " + this.sid + "\n" + requests.toString());
+        if (executed)
+            throw new IllegalStateException("Already executed RequestBuilder with requests:\nsid = " + this.sid + "\n" + requests);
         List<ValueRange> userentered = getUserEntered();
         List<ValueRange> raw = getRaw();
         List<com.google.api.services.sheets.v4.model.Request> batch = getBatch();

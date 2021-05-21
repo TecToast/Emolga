@@ -12,7 +12,8 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class AnalyseCommand extends Command {
     public AnalyseCommand() {
-        super("analyse", "`!analyse <Replay-Link>` Schickt das Ergebnis des angegebenen Kampfes in den Channel", CommandCategory.Showdown);
+        super("analyse", "Schickt das Ergebnis des angegebenen Kampfes in den Channel", CommandCategory.Showdown);
+        setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!analyse <Replay-Link>", "!analyse https://replay.pokemonshowdown.com/oumonotype-82345404"));
     }
 
     @Override
@@ -50,8 +51,8 @@ public class AnalyseCommand extends Command {
             t2.append(getMonName(p.getPokemon(), gid)).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && !p1wins ? "X" : "").append("\n");
         }
 
-        String str = game[0].getNickname() + " " + winloose + " " + game[1].getNickname() + "\n\n" + game[0].getNickname() + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1.toString()
-                + "\n" + game[1].getNickname() + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2.toString();
+        String str = game[0].getNickname() + " " + winloose + " " + game[1].getNickname() + "\n\n" + game[0].getNickname() + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1
+                + "\n" + game[1].getNickname() + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
         tco.sendMessage(str).queue();
     }
 }

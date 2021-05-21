@@ -3,29 +3,20 @@ package de.tectoast.emolga.commands.pokemon;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
 
 public class BerryCommand extends Command {
     public BerryCommand() {
-        super("berry", "`!berry <Typ>` Zeigt den Namen der Antibeere für diesen Typen an.", CommandCategory.Pokemon);
+        super("berry", "Zeigt den Namen der Antibeere für diesen Typen an.", CommandCategory.Pokemon);
+        setArgumentTemplate(ArgumentManagerTemplate.builder().add("type", "Typ", "Der Typ der Antibeere", Translation.Type.TYPE)
+                .setExample("!berry Rock")
+                .build());
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
-        Translation t = getGerName(msg.substring(7));
-        if (!t.isFromType(Translation.Type.TYPE)) {
-            tco.sendMessage("Das ist kein Typ!").queue();
-            return;
-        }
-        String ger = t.getTranslation();
-        String g = "Fehler";
-        String engl = "Fehler";
+        String ger = e.getArguments().getTranslation("type").getTranslation();
+        String g;
+        String engl;
         switch (ger) {
             case "Feuer":
                 g = "Koakobeere";
@@ -99,7 +90,11 @@ public class BerryCommand extends Command {
                 g = "Hibisbeere";
                 engl = "Roseli Berry";
                 break;
+            default:
+                g = "Es ist ein unbekannter Fehler aufgetreten! Bitte kontaktiere Flo mit `!flohelp <Nachricht>` !";
+                engl = "";
+                break;
         }
-        tco.sendMessage("Deutsch: " + g + "\nEnglisch: " + engl).queue();
+        e.reply("Deutsch: " + g + "\nEnglisch: " + engl);
     }
 }

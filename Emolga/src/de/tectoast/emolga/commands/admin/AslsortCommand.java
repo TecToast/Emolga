@@ -7,7 +7,8 @@ import de.tectoast.emolga.utils.Constants;
 
 public class AslsortCommand extends Command {
     public AslsortCommand() {
-        super("aslsort", "`!aslsort` Sortiert die Tabelle der ASL", CommandCategory.Admin, Constants.ASLID);
+        super("aslsort", "Sortiert die Tabelle der ASL", CommandCategory.Admin, Constants.ASLID);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

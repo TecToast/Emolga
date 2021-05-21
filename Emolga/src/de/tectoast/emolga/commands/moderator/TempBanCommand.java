@@ -9,7 +9,14 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class TempBanCommand extends Command {
     public TempBanCommand() {
-        super("tempban", "`!tempban <User> <Zeit> <Grund>` Tempbannt den User", CommandCategory.Moderator);
+        super("tempban", "Tempbannt den User", CommandCategory.Moderator);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("user", "User", "User, der getempbannt werden soll", ArgumentManagerTemplate.DiscordType.USER)
+                .add("time", "Zeit", "Zeitspanne, für die der User gebannt werden soll", ArgumentManagerTemplate.Text.any())
+                .add("reason", "Grund", "Grund des Tempbanns", ArgumentManagerTemplate.Text.any())
+                .setNoCheck(true)
+                .setExample("!tempban @BöserUser123 1d Hat böse Sachen gemacht")
+                .build());
     }
 
     @Override

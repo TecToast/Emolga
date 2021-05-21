@@ -13,8 +13,12 @@ import org.json.JSONObject;
 public class RevolutionCommand extends Command {
 
     public RevolutionCommand() {
-        super("revolution", "`!revolution <Name>` muhahahahaha", CommandCategory.Various);
-        setCustomPermissions(PermissionPreset.fromRole(781457314846343208L));
+        super("revolution", "muhahahahaha", CommandCategory.Various);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("name", "Name", "Name der Revolution", ArgumentManagerTemplate.Text.any())
+                .setExample("!revolution Emolga")
+                .build());
+        setCustomPermissions(PermissionPreset.CULT);
     }
 
     @Override

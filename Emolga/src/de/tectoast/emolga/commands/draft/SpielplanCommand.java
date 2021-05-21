@@ -1,8 +1,8 @@
 package de.tectoast.emolga.commands.draft;
 
+import de.tectoast.emolga.bot.EmolgaMain;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.bot.EmolgaMain;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -15,6 +15,7 @@ import java.util.*;
 public class SpielplanCommand extends Command {
     public SpielplanCommand() {
         super("spielplan", "`!spielplan <Name> <TCID> <RID>` Erstellt einen Spielplan für diesen Draft im Channel TCID und pingt die Rolle RID", CommandCategory.Flo);
+        this.disable();
     }
 
     @Override

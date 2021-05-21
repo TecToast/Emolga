@@ -15,7 +15,8 @@ import java.util.List;
 
 public class ServerInfoCommand extends Command {
     public ServerInfoCommand() {
-        super("serverinfo", "`!serverinfo` Zeigt Infos über diesen Server", CommandCategory.Various, Constants.ASLID);
+        super("serverinfo", "Zeigt Infos über diesen Server", CommandCategory.Various, Constants.ASLID);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

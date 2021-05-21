@@ -23,6 +23,8 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.managers.AudioManager;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.dv8tion.jda.internal.utils.Helpers;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -41,7 +43,9 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.bot.EmolgaMain.jda;
@@ -120,6 +124,18 @@ public abstract class Command {
      */
     public static final ArrayList<Long> spoilerTags = new ArrayList<>();
     /**
+     * Cache for translations
+     */
+    public static final HashMap<String, Translation> translationsCache = new HashMap<>();
+    /**
+     * Order of the cached items, used to delete the oldest after enough caching
+     */
+    public static final LinkedList<String> translationsCacheOrder = new LinkedList<>();
+    /**
+     * Mapper for the DraftGerName
+     */
+    public static final Function<String, String> draftnamemapper = s -> getDraftGerName(s).getTranslation();
+    /**
      * Path to the default Showdown Data
      */
     private static final String SDPATH = "./ShowdownData/";
@@ -177,22 +193,10 @@ public abstract class Command {
     @SuppressWarnings("CanBeFinal")
     public static boolean checkBST = false;
     /**
-     * Cache for translations
-     */
-    public static HashMap<String, Translation> translationsCache = new HashMap<>();
-    /**
-     * Order of the cached items, used to delete the oldest after enough caching
-     */
-    public static LinkedList<String> translationsCacheOrder = new LinkedList<>();
-    /**
      * false = Last time it showed how many replay channels there were<br>
      * true = Last time it showed my discord data
      */
     public static boolean lastPresence = false;
-    /**
-     * List containing some special user ids
-     */
-    protected static List<Long> cultists = Arrays.asList(175910318608744448L, 452575044070277122L, 535095576136515605L, 456821278653808650L, 598199247124299776L);
     /**
      * Currently not used
      */
@@ -236,6 +240,14 @@ public abstract class Command {
      */
     protected final CommandCategory category;
     /**
+     * True if this command should use the {@code e!} instead of {@code !}
+     */
+    protected boolean otherPrefix = false;
+    /**
+     * The ArgumentManagerTemplate of this command, used for checking arguments
+     */
+    protected ArgumentManagerTemplate argumentTemplate;
+    /**
      * If true, this command is only allowed for me because I'm working on it
      */
     protected boolean wip = false;
@@ -251,6 +263,10 @@ public abstract class Command {
      * True if this command should not use the permissions of the CommandCategory but {@link #allowsMember} to test if a user is allowed to use the command
      */
     protected boolean customPermissions = false;
+    /**
+     * If true, this command is disabled and cannot be used
+     */
+    protected boolean disabled = false;
 
     /**
      * Creates a new command and adds is to the list. Each command should use this constructor for one time (see {@link #registerCommands()})
@@ -272,7 +288,7 @@ public abstract class Command {
         BufferedImage inputFile;
         System.out.println("mon = " + mon);
         try {
-            File f = new File("../Showdown/sspclient/sprites/dex" + (shiny ? "-shiny" : "") + "/" + mon.toLowerCase() + ".png");
+            File f = new File("../Showdown/sspclient/sprites/gen5" + (shiny ? "-shiny" : "") + "/" + mon.toLowerCase() + ".png");
             System.out.println("f.getAbsolutePath() = " + f.getAbsolutePath());
             inputFile = ImageIO.read(f);
         } catch (IOException e) {
@@ -367,7 +383,7 @@ public abstract class Command {
     }
 
     public static Command byName(String name) {
-        return commands.stream().filter(c -> c.name.equals(name)).findFirst().orElse(null);
+        return commands.stream().filter(c -> c.name.equalsIgnoreCase(name) || c.getAliases().stream().anyMatch(name::equalsIgnoreCase)).findFirst().orElse(null);
     }
 
     public static void loadAndPlay(final TextChannel channel, final String track, Member mem, String cm) throws IllegalArgumentException {
@@ -379,7 +395,7 @@ public abstract class Command {
         System.out.println(track);
         String url;
         YTDataLoader loader;
-        if (track.startsWith("https://www.youtube.com/")) {
+        if (track.startsWith("https://www.youtube.com/") || track.startsWith("https://youtu.be/")) {
             url = track;
             loader = new YTDataLoader(Google.getVidByURL(url, false));
         } else {
@@ -438,6 +454,17 @@ public abstract class Command {
                 channel.sendMessage("Der Track konnte nicht abgespielt werden: " + exception.getMessage()).queue();
             }
         });
+    }
+
+    public static boolean removeFromJSONArray(JSONArray arr, Object value) {
+        boolean success = false;
+        for (int i = 0; i < arr.length(); ) {
+            if (arr.get(i).equals(value)) {
+                arr.remove(i);
+                success = true;
+            } else i++;
+        }
+        return success;
     }
 
     public static <E> List<E> arrayToList(JSONArray arr, Class<E> c) {
@@ -533,7 +560,7 @@ public abstract class Command {
         }
         if (mutedRoles.containsKey(g.getIdLong()))
             g.addRoleToMember(mem, g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
-        long expires = System.currentTimeMillis() + time * 1000;
+        long expires = System.currentTimeMillis() + time * 1000L;
         muteTimer(g, expires, mem.getId());
         EmbedBuilder builder = new EmbedBuilder();
         builder.setAuthor(mem.getEffectiveName() + " wurde für " + secondsToTime(time).replace("*", "") + " gemutet", null, mem.getUser().getEffectiveAvatarUrl());
@@ -568,7 +595,7 @@ public abstract class Command {
         }
     }
 
-    public static void kick(TextChannel tco, Member mem, String reason) {
+    public static void kick(TextChannel tco, Member mod, Member mem, String reason) {
         Guild g = tco.getGuild();
         if (!g.getSelfMember().canInteract(mem)) {
             EmbedBuilder builder = new EmbedBuilder();
@@ -583,6 +610,7 @@ public abstract class Command {
         builder.setColor(Color.CYAN);
         builder.setDescription("**Grund:** " + reason);
         tco.sendMessage(builder.build()).queue();
+        Database.insert("kicks", "userid, modid, guildid, reason", mem.getIdLong(), mod.getIdLong(), tco.getGuild().getIdLong(), reason);
     }
 
     public static void ban(TextChannel tco, Member mod, Member mem, String reason) {
@@ -648,7 +676,7 @@ public abstract class Command {
             return;
         }
         g.ban(mem, 0, reason).queue();
-        long expires = System.currentTimeMillis() + time * 1000;
+        long expires = System.currentTimeMillis() + time * 1000L;
         banTimer(g, expires, mem.getId());
         EmbedBuilder builder = new EmbedBuilder();
         builder.setAuthor(mem.getEffectiveName() + " wurde für " + secondsToTime(time).replace("*", "") + " gebannt", null, mem.getUser().getEffectiveAvatarUrl());
@@ -1029,9 +1057,11 @@ public abstract class Command {
     }
 
     public static String stars(int n) {
-        StringBuilder s = new StringBuilder();
-        for (int i = 0; i < n; i++) s.append("+");
-        return s.toString();
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            b.append("+");
+        }
+        return b.toString();
     }
 
     public static JSONObject load(String filename) {
@@ -1086,7 +1116,8 @@ public abstract class Command {
                 writer2.close();
             }
             return new JSONObject(b.toString());
-        } catch (IOException e) {
+        } catch (Exception e) {
+            System.out.println("STACKTRACE " + path);
             e.printStackTrace();
         }
         return null;
@@ -1117,7 +1148,11 @@ public abstract class Command {
     }
 
     public static String getModByGuild(GuildCommandEvent e) {
-        String gid = e.getGuild().getId();
+        return getModByGuild(e.getGuild());
+    }
+
+    public static String getModByGuild(Guild g) {
+        String gid = g.getId();
         if ("447357526997073930".equals(gid) || "786351922029527130".equals(gid)) {
             return "nml";
         }
@@ -1169,7 +1204,6 @@ public abstract class Command {
         }
     }
 
-
     public static JSONObject getSpriteJSON() {
         return spritejson;
     }
@@ -1179,9 +1213,10 @@ public abstract class Command {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         try {
             for (ClassPath.ClassInfo classInfo : ClassPath.from(loader).getTopLevelClassesRecursive("de.tectoast.emolga.commands")) {
-                if (!classInfo.getPackageName().equals("de.tectoast.emolga.commands")) {
-                    System.out.println(classInfo.getName());
-                    classInfo.load().getConstructors()[0].newInstance();
+                Class<?> cl = classInfo.load();
+                if (cl.getSuperclass().getSimpleName().equals("Command")) {
+                    //System.out.println(classInfo.getName());
+                    cl.getConstructors()[0].newInstance();
                 }
             }
         } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
@@ -1301,6 +1336,8 @@ public abstract class Command {
 
     public static void init() {
         loadJSONFiles();
+        new ModManager("default", "./ShowdownData/");
+        new ModManager("nml", "../Showdown/sspserver/data/");
         JSONObject mute = emolgajson.getJSONObject("mutedroles");
         for (String s : mute.keySet()) {
             mutedRoles.put(Long.parseLong(s), mute.getLong(s));
@@ -1308,6 +1345,10 @@ public abstract class Command {
         JSONObject mod = emolgajson.getJSONObject("moderatorroles");
         for (String s : mod.keySet()) {
             moderatorRoles.put(Long.parseLong(s), mod.getLong(s));
+        }
+        JSONObject echannel = emolgajson.getJSONObject("emolgachannel");
+        for (String s : echannel.keySet()) {
+            emolgaChannel.put(Long.parseLong(s), echannel.getJSONArray(s).toList().stream().map(o -> (Long) o).collect(Collectors.toCollection(ArrayList::new)));
         }
         registerCommands();
         try {
@@ -1368,13 +1409,14 @@ public abstract class Command {
         sdex.put("Voltolos-I", "");
         sdex.put("Zygarde-50%", "");
         sdex.put("Zygarde-10%", "-10");
-        emolgaChannel.put(Constants.ASLID, new ArrayList<>(Arrays.asList(728680506098712579L, 736501675447025704L)));
+        /*emolgaChannel.put(Constants.ASLID, new ArrayList<>(Arrays.asList(728680506098712579L, 736501675447025704L)));
         emolgaChannel.put(Constants.BSID, new ArrayList<>(Arrays.asList(732545253344804914L, 735076688144105493L)));
         emolgaChannel.put(709877545708945438L, new ArrayList<>(Collections.singletonList(738893933462945832L)));
         emolgaChannel.put(677229415629062180L, new ArrayList<>(Collections.singletonList(731455491527540777L)));
         emolgaChannel.put(694256540642705408L, new ArrayList<>(Collections.singletonList(695157832072560651L)));
-        emolgaChannel.put(747357029714231299L, new ArrayList<>(Arrays.asList(752802115096674306L, 762411109859852298L)));
+        emolgaChannel.put(747357029714231299L, new ArrayList<>(Arrays.asList(752802115096674306L, 762411109859852298L)));*/
         sdAnalyser.put(Constants.ASLID, (game, uid1, uid2, kills, deaths, args) -> {
+
             JSONObject league = null;
             JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
             for (String s : drafts.keySet()) {
@@ -1435,28 +1477,26 @@ public abstract class Command {
                 res = Arrays.asList(String.valueOf(aliveP2), ":", String.valueOf(aliveP1));
             }
             System.out.println(res);
-            b.addRow("Spielplan!" + getAsXCoord(battleindex * 8 + 5) + (gameday * 10 + 5), res);
+            b.addRow("Spielplan!" + getAsXCoord(battleindex * 8 + 5) + (gameday * 10 + 77), res);
             boolean p1wins = false;
             for (int i = 0; i < 2; i++) {
                 String uid = userids.get(i);
                 ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
                 int x = 0;
                 int index = table.indexOf(uid);
-                List<List<Object>> list = Google.get(sid, "Teams!" + getAsXCoord((index > 3 ? index - 4 : index) * 5 + 3) + (index > 3 ? 24 : 7)
-                        + ":" + getAsXCoord((index > 3 ? index - 4 : index) * 5 + 4) + (index > 3 ? 35 : 18), true, false);
+                List<List<Object>> list = Google.get(sid, "Daten!B" + (index * 15 + 21) + ":C" + (index * 15 + 32), true, false);
                 System.out.println("gameday = " + gameday);
                 if (str.split(":")[0].equals(uid)) {
                     System.out.println("LINKS Picks von " + game[i].getNickname() + ": " + picks);
-                    p1wins = game[i].isWinner();
                     for (String s : mons[i]) {
                         System.out.println("s = " + s + " ");
                         int monindex = aslIndexPick(picks, s);
                         if (monindex > -1) {
-                            b.addRow("Spielplan!" + getAsXCoord(battleindex * 8 + 3) + (gameday * 10 + 6 + x), Arrays.asList(deaths.get(s), kills.get(s), s));
+                            b.addRow("Spielplan!" + getAsXCoord(battleindex * 8 + 3) + (gameday * 10 + 78 + x), Arrays.asList(deaths.get(s), kills.get(s), s));
                             List<Object> l = list.get(monindex);
-                            b.addRow("Teams!" + getAsXCoord((index > 3 ? index - 4 : index) * 5 + 3) + ((index > 3 ? 24 : 7) + monindex),
-                                    Arrays.asList(l.get(0) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 4) + (gameday * 10 + 6 + x),
-                                            l.get(1) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 3) + (gameday * 10 + 6 + x)));
+                            b.addRow("Daten!B" + (index * 15 + 21 + monindex),
+                                    Arrays.asList(l.get(0) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 4) + (gameday * 10 + 78 + x),
+                                            l.get(1) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 3) + (gameday * 10 + 78 + x)));
                             x++;
                         }
                     }
@@ -1466,28 +1506,28 @@ public abstract class Command {
                         System.out.println("s = " + s);
                         int monindex = aslIndexPick(picks, s);
                         if (monindex > -1) {
-                            b.addRow("Spielplan!" + getAsXCoord(battleindex * 8 + 7) + (gameday * 10 + 6 + x), Arrays.asList(s, kills.get(s), deaths.get(s)));
+                            b.addRow("Spielplan!" + getAsXCoord(battleindex * 8 + 7) + (gameday * 10 + 78 + x), Arrays.asList(s, kills.get(s), deaths.get(s)));
                             List<Object> l = list.get(monindex);
-                            b.addRow("Teams!" + getAsXCoord((index > 3 ? index - 4 : index) * 5 + 3) + ((index > 3 ? 24 : 7) + monindex),
-                                    Arrays.asList(l.get(0) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 8) + (gameday * 10 + 6 + x),
-                                            l.get(1) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 9) + (gameday * 10 + 6 + x)));
+                            b.addRow("Daten!B" + (index * 15 + 21 + monindex),
+                                    Arrays.asList(l.get(0) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 8) + (gameday * 10 + 78 + x),
+                                            l.get(1) + " + Spielplan!" + getAsXCoord(battleindex * 8 + 9) + (gameday * 10 + 78 + x)));
                             x++;
                         }
                     }
                 }
                 if (game[i].isWinner()) {
                     results.put(uid1 + ":" + uid2, uid);
-                    b.addSingle("Daten!D" + (index + 1), (Integer.parseInt((String) Google.get(sid, "Daten!D" + (index + 1), false, false).get(0).get(0)) + 1));
+                    b.addSingle("Daten!I" + (index + 1), (Integer.parseInt((String) Google.get(sid, "Daten!I" + (index + 1), false, false).get(0).get(0)) + 1));
                 } else {
-                    b.addSingle("Daten!E" + (index + 1), (Integer.parseInt((String) Google.get(sid, "Daten!E" + (index + 1), false, false).get(0).get(0)) + 1));
+                    b.addSingle("Daten!J" + (index + 1), (Integer.parseInt((String) Google.get(sid, "Daten!J" + (index + 1), false, false).get(0).get(0)) + 1));
                 }
             }
-            b.addSingle("Spielplan!" + getAsXCoord(battleindex * 8 + 6) + (gameday * 10 + 3), "=HYPERLINK(\"" + args[1] + "\"; \"VS\")");
+            b.addSingle("Spielplan!" + getAsXCoord(battleindex * 8 + 6) + (gameday * 10 + 75), "=HYPERLINK(\"" + args[1] + "\"; \"VS\")");
             b.execute();
             saveEmolgaJSON();
             sortASL(league);
-            gameday++;
-            evaluatePredictions(league, p1wins, gameday, uid1, uid2);
+            //gameday++;
+            //evaluatePredictions(league, p1wins, gameday, uid1, uid2);
         });
         sdAnalyser.put(709877545708945438L, (game, uid1, uid2, kills, deaths, args) -> {
             Guild guild = jda.getGuildById("709877545708945438");
@@ -1624,7 +1664,7 @@ public abstract class Command {
 
     public static void evaluatePredictions(JSONObject league, boolean p1wins, int gameday, String uid1, String uid2) {
         JSONObject predictiongame = league.getJSONObject("predictiongame");
-        JSONObject gd = predictiongame.getJSONObject("ids").getJSONObject(String.valueOf(gameday));
+        JSONObject gd = predictiongame.getJSONObject("ids").getJSONObject(String.valueOf(gameday + 7));
         String key = gd.has(uid1 + ":" + uid2) ? uid1 + ":" + uid2 : uid2 + ":" + uid1;
         Message message = jda.getTextChannelById(predictiongame.getLong("channelid")).retrieveMessageById(gd.getLong(key)).complete();
         List<User> e1 = message.retrieveReactionUsers(jda.getEmoteById(540970044297838597L)).complete();
@@ -1682,7 +1722,7 @@ public abstract class Command {
     }
 
     public static List<String> getMonList(String mod) {
-        return getDataJSON(mod).keySet().stream().filter(s -> !s.endsWith("gmax")).collect(Collectors.toList());
+        return getDataJSON(mod).keySet().stream().filter(s -> !s.endsWith("gmax") && !s.endsWith("totem")).collect(Collectors.toList());
     }
 
     public static void woolooStyle(String sid, Message message, String uid1, String uid2) {
@@ -1807,7 +1847,25 @@ public abstract class Command {
         String msg = e.getMessage().getContentDisplay();
         TextChannel tco = e.getChannel();
         long gid = e.getGuild().getIdLong();
+        JSONObject cc = getEmolgaJSON().getJSONObject("customcommands");
+        for (String s : cc.keySet()) {
+            if (msg.toLowerCase().startsWith("!" + s)) {
+                JSONObject o = cc.getJSONObject(s);
+                String sendmsg = null;
+                File f = null;
+                if (!o.get("text").equals(false)) sendmsg = o.getString("text");
+                if (!o.get("image").equals(false)) f = new File(o.getString("image"));
+                if (sendmsg == null) {
+                    tco.sendFile(f).queue();
+                } else {
+                    MessageAction ac = tco.sendMessage(sendmsg);
+                    if (f != null) ac = ac.addFile(f);
+                    ac.queue();
+                }
+            }
+        }
         for (Command command : commands) {
+            if (command.disabled) continue;
             if (!command.checkPrefix(msg)) continue;
             if (mem.getIdLong() != Constants.FLOID) {
                 if (command.category == CommandCategory.Flo) return;
@@ -1835,7 +1893,7 @@ public abstract class Command {
                 } else {
                     if (emolgaChannel.containsKey(gid)) {
                         List<Long> l = emolgaChannel.get(gid);
-                        if (!l.contains(e.getChannel().getIdLong())) {
+                        if (!l.contains(e.getChannel().getIdLong()) && !l.isEmpty()) {
                             e.getChannel().sendMessage("<#" + l.get(0) + ">").queue();
                             return;
                         }
@@ -1843,7 +1901,18 @@ public abstract class Command {
                 }
             }
             try {
-                command.process(new GuildCommandEvent(e));
+                Database.incrementStatistic("cmd_" + command.name);
+                GuildCommandEvent event = new GuildCommandEvent(command, e);
+            } catch (MissingArgumentException ex) {
+                ArgumentManagerTemplate.Argument arg = ex.getArgument();
+                if (arg.hasCustomErrorMessage()) tco.sendMessage(arg.getCustomErrorMessage()).queue();
+                else {
+                    tco.sendMessage("Das benötigte Argument `" + arg.getName() + "`, was eigentlich " + buildEnumeration(arg.getTypes()) + " sein müsste, ist nicht vorhanden!\n" +
+                            "Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help " + command.getName() + "`.").queue();
+                }
+                if (mem.getIdLong() != Constants.FLOID) {
+                    sendToMe("MissingArgument " + tco.getAsMention());
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
                 tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo/TecToast.\n" + command.getHelp(e.getGuild()) + (mem.getIdLong() == Constants.FLOID ? "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
@@ -1900,7 +1969,7 @@ public abstract class Command {
         JSONObject mon = json.getJSONObject(getSDName(monname));
         //System.out.println("getAllForms mon = " + mon.toString(4));
         if (!mon.has("formeOrder")) return Collections.singletonList(mon);
-        return mon.getJSONArray("formeOrder").toList().stream().map(o -> toSDName((String) o)).filter(json::has).map(json::getJSONObject).collect(Collectors.toList());
+        return mon.getJSONArray("formeOrder").toList().stream().map(o -> toSDName((String) o)).distinct().filter(json::has).map(json::getJSONObject).filter(o -> !o.optString("forme").endsWith("Totem")).collect(Collectors.toList());
         //return json.keySet().stream().filter(s -> s.startsWith(monname.toLowerCase()) && !s.endsWith("gmax") && (s.equalsIgnoreCase(monname) || json.getJSONObject(s).has("forme"))).sorted(Comparator.comparingInt(String::length)).map(json::getJSONObject).collect(Collectors.toList());
     }
 
@@ -1909,7 +1978,7 @@ public abstract class Command {
     }
 
     public static boolean moveFilter(String msg, String move) {
-        JSONObject o = getWikiJSON().getJSONObject("movefilter");
+        JSONObject o = getEmolgaJSON().getJSONObject("movefilter");
         for (String s : o.keySet()) {
             if (msg.toLowerCase().contains("--" + s) && !o.getJSONArray(s).toList().contains(move)) return false;
         }
@@ -1921,7 +1990,6 @@ public abstract class Command {
         String type = getType(msg);
         String dmgclass = getClass(msg);
         JSONObject movejson = getLearnsetJSON(mod);
-        JSONObject json = getWikiJSON();
         JSONObject atkdata = getMovesJSON(mod);
         JSONObject data = getDataJSON(mod);
         try {
@@ -1976,6 +2044,10 @@ public abstract class Command {
 
     public static void sendToMe(String msg) {
         sendToUser(Constants.FLOID, msg);
+    }
+
+    public static void sendDexEntry(String msg) {
+        jda.getTextChannelById(839540004908957707L).sendMessage(msg).queue();
     }
 
     public static void sendStacktraceToMe(Throwable t) {
@@ -2234,16 +2306,16 @@ public abstract class Command {
 
         String str;
         if (spoiler) {
-            str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1.toString()
-                    + "\n" + name2 + ": " + "\n" + t2.toString();
+            str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1
+                    + "\n" + name2 + ": " + "\n" + t2;
         } else {
-            str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1.toString()
-                    + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2.toString();
+            str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1
+                    + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
         }
-
-        g.getTextChannelById(league.getLong("replaychannel")).sendMessage("Spieltag " + gameday + "\n" + name1 + " vs " + name2 + "\n" + url).queue();
+        g.getTextChannelById(league.getLong("replaychannel")).sendMessage("Spieltag " + (gid == Constants.ASLID ? gameday + 7 : gameday) + "\n" + name1 + " vs " + name2 + "\n" + url).queue();
         TextChannel resultchannel = g.getTextChannelById(league.getLong("resultchannel"));
         resultchannel.sendMessage(str).queue();
+        Database.incrementStatistic("analysis");
         for (int i = 0; i < 2; i++) {
             if (game[i].getMons().stream().anyMatch(mon -> mon.getPokemon().equals("Zoroark") || mon.getPokemon().equals("Zorua")))
                 resultchannel.sendMessage("Im Team von " + game[i].getNickname() + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills von ihm überprüfen!").queue();
@@ -2325,9 +2397,10 @@ public abstract class Command {
     public static long calculateTimer(int from, int to, int delayinmins) {
         SimpleDateFormat f = new SimpleDateFormat("HH");
         long currmillis = System.currentTimeMillis();
-        int after = Integer.parseInt(f.format(new Date(currmillis + delayinmins * 60000)));
+        int after = Integer.parseInt(f.format(new Date(currmillis + delayinmins * 60000L)));
         int now = Integer.parseInt(f.format(new Date(currmillis)));
-        if ((now >= from && now < to) && (after < from || after >= to)) return ((to - from) * 60 + delayinmins) * 60000;
+        if ((now >= from && now < to) && (after < from || after >= to))
+            return ((to - from) * 60L + delayinmins) * 60000;
         else if (now >= to || now < from) {
             Calendar c = Calendar.getInstance();
             if (now >= to)
@@ -2337,11 +2410,11 @@ public abstract class Command {
             c.set(Calendar.SECOND, 0);
             c.set(Calendar.MILLISECOND, 0);
             return c.getTimeInMillis() - System.currentTimeMillis();
-        } else return delayinmins * 60000;
+        } else return delayinmins * 60000L;
     }
 
     public static long getXPNeeded(int level) {
-        return (long) (5 * (Math.pow(level, 2)) + 50 * level + 100);
+        return (long) (5 * (Math.pow(level, 2)) + 50L * level + 100);
     }
 
     public static int getLevelFromXP(int xp) {
@@ -2415,53 +2488,42 @@ public abstract class Command {
 
     public static void sortASL(JSONObject league) {
         String sid = league.getString("sid");
-        List<List<Object>> formula = Google.get(sid, "Tabelle!B4:J11", true, false);
-        List<List<Object>> points = Google.get(sid, "Tabelle!C4:J11", false, false);
-        List<List<Object>> orig = new ArrayList<>(points);
-        JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
-        points.sort((o1, o2) -> {
-            int c = compareColumns(o1, o2, 1, 7, 5);
-            if (c != 0) return c;
-            String u1 = docnames.getString((String) o1.get(0));
-            String u2 = docnames.getString((String) o2.get(0));
-            if (league.has("results")) {
-                JSONObject o = league.getJSONObject("results");
-                if (o.has(u1 + ";" + u2)) return o.getString(u1 + ";" + u2).equals(u1) ? 1 : -1;
-                if (o.has(u2 + ";" + u1)) return o.getString(u2 + ";" + u1).equals(u1) ? 1 : -1;
+        RequestBuilder b = new RequestBuilder(sid);
+        for (int sc = 0; sc < 2; sc++) {
+            List<List<Object>> formula = Google.get(sid, "Tabelle!B" + (sc * 5 + 14) + ":J" + (sc * 5 + 17), true, false);
+            List<List<Object>> points = Google.get(sid, "Tabelle!C" + (sc * 5 + 14) + ":J" + (sc * 5 + 17), false, false);
+            List<List<Object>> orig = new ArrayList<>(points);
+            JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
+            points.sort((o1, o2) -> {
+                int c = compareColumns(o1, o2, 1, 7, 5);
+                if (c != 0) return c;
+                String u1 = docnames.getString((String) o1.get(0));
+                String u2 = docnames.getString((String) o2.get(0));
+                if (league.has("results")) {
+                    JSONObject o = league.getJSONObject("results");
+                    if (o.has(u1 + ";" + u2)) return o.getString(u1 + ";" + u2).equals(u1) ? 1 : -1;
+                    if (o.has(u2 + ";" + u1)) return o.getString(u2 + ";" + u1).equals(u1) ? 1 : -1;
+                }
+                return 0;
+            });
+            Collections.reverse(points);
+            HashMap<Integer, List<Object>> valmap = new HashMap<>();
+            int i = 0;
+            for (List<Object> objects : orig) {
+                int index = points.indexOf(objects);
+                valmap.put(index, formula.get(i));
+                i++;
             }
-            return 0;
-        });
-        Collections.reverse(points);
-        HashMap<Integer, List<Object>> valmap = new HashMap<>();
-        int i = 0;
-        for (List<Object> objects : orig) {
-            int index = points.indexOf(objects);
-            valmap.put(index, formula.get(i));
-            i++;
+            List<List<Object>> senddata = new ArrayList<>();
+            //List<List<Object>> sendname = new ArrayList<>();
+            for (int j = 0; j < 4; j++) {
+                senddata.add(valmap.get(j));
+            }
+            b.addAll("Tabelle!B" + (sc * 5 + 14), senddata);
         }
-        List<List<Object>> senddata = new ArrayList<>();
-        //List<List<Object>> sendname = new ArrayList<>();
-        for (int j = 0; j < 12; j++) {
-            senddata.add(valmap.get(j));
-        }
-        RequestBuilder.updateAll(sid, "Tabelle!B4", senddata);
+        b.execute();
         System.out.println("Done!");
     }
-
-    /*SimpleDateFormat f = new SimpleDateFormat("HH");
-        int after = Integer.parseInt(f.format(new Date(System.currentTimeMillis() + 7200000)));
-        int now = Integer.parseInt(f.format(new Date(System.currentTimeMillis())));
-        if ((now > 9 && now < 22) && (after < 10 || after > 21)) return 50400000;
-        else if (now > 21 || now < 12) {
-            Calendar c = Calendar.getInstance();
-            if (now > 21)
-                c.add(Calendar.DAY_OF_MONTH, 1);
-            c.set(Calendar.HOUR_OF_DAY, 14);
-            c.set(Calendar.MINUTE, 0);
-            c.set(Calendar.SECOND, 0);
-            c.set(Calendar.MILLISECOND, 0);
-            return c.getTimeInMillis() - System.currentTimeMillis();
-        } else return 7200000;*/
 
     public static void sortBST() {
         JSONObject bst = getEmolgaJSON().getJSONObject("BST");
@@ -2530,6 +2592,21 @@ public abstract class Command {
         System.out.println("Done!");
     }
 
+    /*SimpleDateFormat f = new SimpleDateFormat("HH");
+        int after = Integer.parseInt(f.format(new Date(System.currentTimeMillis() + 7200000)));
+        int now = Integer.parseInt(f.format(new Date(System.currentTimeMillis())));
+        if ((now > 9 && now < 22) && (after < 10 || after > 21)) return 50400000;
+        else if (now > 21 || now < 12) {
+            Calendar c = Calendar.getInstance();
+            if (now > 21)
+                c.add(Calendar.DAY_OF_MONTH, 1);
+            c.set(Calendar.HOUR_OF_DAY, 14);
+            c.set(Calendar.MINUTE, 0);
+            c.set(Calendar.SECOND, 0);
+            c.set(Calendar.MILLISECOND, 0);
+            return c.getTimeInMillis() - System.currentTimeMillis();
+        } else return 7200000;*/
+
     public static void singleThread(Runnable r) {
         new Thread(r).start();
     }
@@ -2568,9 +2645,9 @@ public abstract class Command {
     }
 
     public static Translation getDraftGerName(String s) {
+        System.out.println("getDraftGerName s = " + s);
         if (getGerName(s).isSuccess()) return getGerName(s);
         String[] split = s.split("-");
-        System.out.println("getDraftGerName s = " + s);
         System.out.println("getDraftGerName Arr = " + Arrays.toString(split));
         if (s.toLowerCase().startsWith("m-")) {
             String sub = s.substring(2);
@@ -2582,14 +2659,17 @@ public abstract class Command {
             return mon.before("M-");
         } else if (s.toLowerCase().startsWith("a-")) {
             Translation mon = getGerName(s.substring(2));
-            if (mon.isFromType(Translation.Type.POKEMON)) return Translation.empty();
+            if (!mon.isFromType(Translation.Type.POKEMON)) return Translation.empty();
             return mon.before("A-");
         } else if (s.toLowerCase().startsWith("g-")) {
             Translation mon = getGerName(s.substring(2));
-            if (mon.isFromType(Translation.Type.POKEMON)) return Translation.empty();
+            if (!mon.isFromType(Translation.Type.POKEMON)) return Translation.empty();
             return mon.before("G-");
         }
+        System.out.println("split[0] = " + split[0]);
         Translation t = getGerName(split[0]);
+        System.out.print("DraftGer Trans ");
+        t.print();
         if (t.isSuccess()) {
             t.append("-" + split[1]);
             System.out.println("getDraftGerName ret = " + t);
@@ -2609,16 +2689,15 @@ public abstract class Command {
         Translation check = checkShortcuts(s);
         if (check.isSuccess()) return check;
         System.out.println("getGerName s = " + s);
-        if (serebiiex.keySet().stream().anyMatch(s::equalsIgnoreCase)) {
+        /*if (serebiiex.keySet().stream().anyMatch(s::equalsIgnoreCase)) {
             String[] ex = serebiiex.keySet().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining("")).split("-");
             return new Translation(getGerName(ex[0]).getTranslation() + ex[1], Translation.Type.POKEMON, Translation.Language.GERMAN);
-        }
+        }*/
         ResultSet set = getTranslation(s, mod);
         try {
             if (set.next()) {
                 Translation t = new Translation(set.getString("germanname"), Translation.Type.fromId(set.getString("type")), Translation.Language.GERMAN, set.getString("englishname"));
-                translationsCache.put(toSDName(s), t.copy());
-                translationsCacheOrder.add(toSDName(s));
+                addToCache(s, t);
                 return t;
             }
         } catch (SQLException throwables) {
@@ -2628,18 +2707,27 @@ public abstract class Command {
     }
 
     public static String getGerNameNoCheck(String s) {
+        if (translationsCache.containsKey(toSDName(s))) {
+            return translationsCache.get(toSDName(s)).getTranslation();
+        }
         System.out.println("NoCheckGerName s = " + s);
         ResultSet set = getTranslation(s, null);
         try {
             set.next();
             Translation t = new Translation(set.getString("germanname"), Translation.Type.fromId(set.getString("type")), Translation.Language.GERMAN, set.getString("englishname"));
-            translationsCache.put(toSDName(s), t.copy());
-            translationsCacheOrder.add(toSDName(s));
+            addToCache(s, t);
             return t.getTranslation();
         } catch (SQLException throwables) {
-            throwables.printStackTrace();
+            return null;
         }
-        return null;
+    }
+
+    public static void addToCache(String name, Translation t) {
+        translationsCache.put(toSDName(name), t.copy());
+        translationsCacheOrder.add(toSDName(name));
+        if (translationsCacheOrder.size() > 1000) {
+            translationsCache.remove(translationsCacheOrder.removeFirst());
+        }
     }
 
     public static String getEnglName(String s) {
@@ -2697,7 +2785,7 @@ public abstract class Command {
     }
 
     public static String toSDName(String s) {
-        return s.toLowerCase().replaceAll("[^a-zA-Z0-9äöüÄÖÜß]+", "");
+        return s.toLowerCase().replaceAll("[^a-zA-Z0-9äöüÄÖÜß♂♀]+", "");
     }
 
     public static String getDataName(String s) {
@@ -2724,7 +2812,7 @@ public abstract class Command {
     }
 
     public static Translation checkShortcuts(String s) {
-        return Translation.fromOldString(getWikiJSON().getJSONObject("shortcuts").optString(s.toLowerCase(), null));
+        return Translation.fromOldString(getEmolgaJSON().getJSONObject("shortcuts").optString(s.toLowerCase(), null));
     }
 
     public static String getMonName(String s, long gid) {
@@ -2837,9 +2925,7 @@ public abstract class Command {
         if (s.equals("Tornadus")) return "Boreos-I";
         if (s.equals("Thundurus")) return "Voltolos-I";
         if (s.equals("Landorus")) return "Demeteros-I";
-        System.out.println(s);
         Translation gername = getGerName(s);
-        gername.print();
         ArrayList<String> split = new ArrayList<>(Arrays.asList(s.split("-")));
         if (gername.isFromType(Translation.Type.POKEMON)) {
             return gername.getTranslation();
@@ -2848,9 +2934,36 @@ public abstract class Command {
         return getGerName(first).getTranslation() + "-" + String.join("-" + split);
     }
 
+    public static String buildEnumeration(ArgumentType... types) {
+        return buildEnumeration(Arrays.stream(types).map(ArgumentType::getName).toArray(String[]::new));
+    }
+
+    public static String buildEnumeration(String... types) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < types.length; i++) {
+            if (i > 0) {
+                if (i + 1 == types.length)
+                    builder.append(" oder ");
+                else
+                    builder.append(", ");
+            }
+            builder.append(types[i]);
+        }
+        return builder.toString();
+    }
+
+    public static boolean isChannelAllowed(TextChannel tc) {
+        long gid = tc.getGuild().getIdLong();
+        return (!emolgaChannel.containsKey(gid) || emolgaChannel.get(gid).contains(tc.getIdLong()) || emolgaChannel.get(gid).isEmpty());
+    }
+
     protected void setCustomPermissions(Predicate<Member> predicate) {
-        this.allowsMember = predicate;
+        this.allowsMember = predicate.or(member -> member.getIdLong() == Constants.FLOID);
         this.customPermissions = true;
+    }
+
+    protected void disable() {
+        this.disabled = true;
     }
 
     protected void setAdminOnly() {
@@ -2878,12 +2991,16 @@ public abstract class Command {
     }
 
     private boolean checkPrefix(String msg) {
-        if (category == CommandCategory.Music) {
+        if (category == CommandCategory.Music || otherPrefix) {
             return msg.toLowerCase().startsWith("e!" + name.toLowerCase() + " ") || aliases.stream().anyMatch(s -> msg.toLowerCase().startsWith("e!" + s.toLowerCase() + " "))
                     || msg.equalsIgnoreCase("e!" + name) || aliases.stream().anyMatch(s -> msg.equalsIgnoreCase("e!" + s));
         }
         return msg.toLowerCase().startsWith("!" + name.toLowerCase() + " ") || aliases.stream().anyMatch(s -> msg.toLowerCase().startsWith("!" + s.toLowerCase() + " "))
                 || msg.equalsIgnoreCase("!" + name.toLowerCase()) || aliases.stream().anyMatch(s -> msg.equalsIgnoreCase("!" + s));
+    }
+
+    public String getPrefix() {
+        return otherPrefix ? "e!" : "!";
     }
 
     /**
@@ -2902,7 +3019,25 @@ public abstract class Command {
         return help;
     }
 
+    public HashSet<String> getAliases() {
+        return aliases;
+    }
+
+    public ArgumentManagerTemplate getArgumentTemplate() {
+        return argumentTemplate;
+    }
+
+    public void setArgumentTemplate(ArgumentManagerTemplate template) {
+        this.argumentTemplate = template;
+    }
+
     public String getHelp(Guild g) {
+        ArgumentManagerTemplate args = getArgumentTemplate();
+        return ("`" + (args.hasSyntax() ? args.getSyntax() : getPrefix() + getName() + (args.arguments.size() > 0 ? " " : "")
+                + args.arguments.stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" ")))) + "` " + overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
+    }
+
+    public String getHelpWithoutCmd(Guild g) {
         return overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
     }
 
@@ -2912,13 +3047,579 @@ public abstract class Command {
         GUILD_NOT_ALLOWED
     }
 
+    public interface ArgumentType {
+        Object validate(String str, Object... params);
+
+        String getName();
+
+        String getCustomHelp();
+    }
+
     public static final class PermissionPreset {
         public static final Predicate<Member> OWNER = Member::isOwner;
         public static final Predicate<Member> ADMIN = member -> member.hasPermission(Permission.ADMINISTRATOR);
         public static final Predicate<Member> MODERATOR = m -> ADMIN.test(m) || m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getIdLong()));
+        public static final Predicate<Member> CULT = fromRole(781457314846343208L);
 
         public static Predicate<Member> fromRole(long roleId) {
             return member -> member.getRoles().stream().anyMatch(r -> r.getIdLong() == roleId);
+        }
+
+        public static Predicate<Member> fromIDs(long... ids) {
+            return member -> Arrays.stream(ids).anyMatch(l -> member.getIdLong() == l);
+        }
+    }
+
+    public static class ArgumentException extends Exception {
+        final ArgumentManagerTemplate.Argument argument;
+
+        public ArgumentException(ArgumentManagerTemplate.Argument argument) {
+            this.argument = argument;
+        }
+
+        public ArgumentManagerTemplate.Argument getArgument() {
+            return argument;
+        }
+    }
+
+    public static final class MissingArgumentException extends ArgumentException {
+
+        public MissingArgumentException(ArgumentManagerTemplate.Argument argument) {
+            super(argument);
+        }
+    }
+
+    public static final class ArgumentManager {
+        private final HashMap<String, Object> map;
+
+        public ArgumentManager(HashMap<String, Object> map) {
+            this.map = map;
+        }
+
+        public Member getMember(String key) {
+            return (Member) map.get(key);
+        }
+
+        public Translation getTranslation(String key) {
+            return (Translation) map.get(key);
+        }
+
+        public String getText(String key) {
+            return (String) map.get(key);
+        }
+
+        public boolean isText(String key, String text) {
+            return map.getOrDefault(key, "").equals(text);
+        }
+
+        public boolean has(String key) {
+            return map.containsKey(key);
+        }
+
+        public <T> T getOrDefault(String key, T defvalue) {
+            return (T) map.getOrDefault(key, defvalue);
+        }
+
+        public long getID(String key) {
+            return (long) map.get(key);
+        }
+
+        public Role getRole(String key) {
+            return (Role) map.get(key);
+        }
+
+        public <C> boolean is(String key, Class<? extends C> cl) {
+            return cl.isInstance(map.get(key));
+        }
+
+        public int getInt(String key) {
+            return (int) map.get(key);
+        }
+
+        public TextChannel getChannel(String key) {
+            return (TextChannel) map.get(key);
+        }
+    }
+
+    public static final class SubCommand {
+        final String name;
+        final String help;
+
+        private SubCommand(String name, String help) {
+            this.name = name;
+            this.help = help;
+        }
+
+        public static SubCommand of(String name, String help) {
+            return new SubCommand(name, help);
+        }
+
+        public static SubCommand of(String name) {
+            return new SubCommand(name, null);
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getHelp() {
+            return help == null ? "" : " " + help;
+        }
+    }
+
+    public static final class ArgumentManagerTemplate {
+
+        private static final ArgumentManagerTemplate noCheckTemplate;
+
+        static {
+            noCheckTemplate = new ArgumentManagerTemplate();
+        }
+
+        private final boolean noCheck;
+        public LinkedList<Argument> arguments;
+        private String example;
+        private String syntax;
+
+        private ArgumentManagerTemplate(LinkedList<Argument> arguments, boolean noCheck, String example, String syntax) {
+            this.arguments = arguments;
+            this.noCheck = noCheck;
+            this.example = example;
+            this.syntax = syntax;
+        }
+
+        private ArgumentManagerTemplate() {
+            noCheck = true;
+            this.arguments = new LinkedList<>();
+        }
+
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        @SuppressWarnings("SameReturnValue")
+        public static ArgumentManagerTemplate noArgs() {
+            return noCheckTemplate;
+        }
+
+        public static ArgumentManagerTemplate noSpecifiedArgs(String syntax, String example) {
+            return new ArgumentManagerTemplate(new LinkedList<>(), true, example, syntax);
+        }
+
+        public static ArgumentType draft() {
+            return withPredicate("Draftname", getEmolgaJSON().getJSONObject("drafts")::has, false);
+        }
+
+        public static ArgumentType withPredicate(String name, Predicate<String> check, boolean female) {
+            return new ArgumentType() {
+                @Override
+                public Object validate(String str, Object... params) {
+                    return check.test(str) ? str : null;
+                }
+
+                @Override
+                public String getName() {
+                    return "ein" + (female ? "e" : "") + " **" + name + "**";
+                }
+
+                @Override
+                public String getCustomHelp() {
+                    return null;
+                }
+            };
+        }
+
+        public static ArgumentType withPredicate(String name, Predicate<String> check, boolean female, Function<String, String> mapper) {
+            return new ArgumentType() {
+                @Override
+                public Object validate(String str, Object... params) {
+                    if (check.test(str)) {
+                        System.out.println("Before map: " + str);
+                        String applied = mapper.apply(str);
+                        System.out.println("After Map:" + applied);
+                        return applied;
+                    }
+                    return null;
+                }
+
+                @Override
+                public String getName() {
+                    return "ein" + (female ? "e" : "") + " **" + name + "**";
+                }
+
+                @Override
+                public String getCustomHelp() {
+                    return null;
+                }
+            };
+        }
+
+        public String getExample() {
+            return example;
+        }
+
+        public boolean hasExample() {
+            return example != null;
+        }
+
+        public String getSyntax() {
+            return syntax;
+        }
+
+        public boolean hasSyntax() {
+            return syntax != null;
+        }
+
+        public ArgumentManager construct(GuildMessageReceivedEvent e) throws ArgumentException {
+            if (noCheck) return null;
+            Message m = e.getMessage();
+            String raw = m.getContentRaw();
+            ArrayList<String> split = new ArrayList<>(Arrays.asList(raw.split("\\s+")));
+            split.remove(0);
+            HashMap<DiscordType, Integer> asFar = new HashMap<>();
+            HashMap<String, Object> map = new HashMap<>();
+            int argumentI = 0;
+            for (int i = 0; i < split.size(); ) {
+                if (i >= arguments.size()) {
+                    break;
+                }
+                if (argumentI >= arguments.size()) break;
+                Argument a = arguments.get(argumentI);
+                String str = argumentI + 1 == arguments.size() ? String.join(" ", split.subList(i, split.size())) : split.get(i);
+                ArgumentType[] types = a.getTypes();
+                Object o;
+                int count = 1;
+                for (ArgumentType type : types) {
+                    if (type instanceof DiscordType) {
+                        o = type.validate(str, m, asFar.getOrDefault(type, 0));
+                        if (o != null) asFar.put((DiscordType) type, asFar.getOrDefault(type, 0) + 1);
+                    } else {
+                        o = type.validate(str, a.getLanguage(), getModByGuild(e.getGuild()));
+                    }
+                    if (o == null) {
+                        if (!a.isOptional() && count == types.length) throw new MissingArgumentException(a);
+                    } else {
+                        map.put(a.getId(), o);
+                        i++;
+                        break;
+                    }
+                    count++;
+                }
+                argumentI++;
+            }
+            return new ArgumentManager(map);
+        }
+
+
+        public enum DiscordType implements ArgumentType {
+            USER(Pattern.compile("<@!*\\d{18,22}>"), "User", false),
+            CHANNEL(Pattern.compile("<#*\\d{18,22}>"), "Channel", false),
+            ROLE(Pattern.compile("<@&*\\d{18,22}>"), "Rolle", true),
+            ID(Pattern.compile("\\d{18,22}"), "ID", true),
+            INTEGER(Pattern.compile("\\d{1,9}"), "Zahl", true);
+
+            final Pattern pattern;
+            final String name;
+            final boolean female;
+
+            DiscordType(Pattern pattern, String name, boolean female) {
+                this.pattern = pattern;
+                this.name = name;
+                this.female = female;
+            }
+
+            public Pattern getPattern() {
+                return pattern;
+            }
+
+            @Override
+            public Object validate(String str, Object... params) {
+                if (pattern.matcher(str).find()) {
+                    if (mentionable()) {
+                        Message m = (Message) params[0];
+                        int soFar = (int) params[1];
+                        return this == USER ? m.getMentionedMembers().get(soFar) : this == CHANNEL ? m.getMentionedChannels().get(soFar) : m.getMentionedRoles().get(soFar);
+                    }
+                    if (this == ID) return Long.parseLong(str);
+                    if (this == INTEGER) return Integer.parseInt(str);
+                }
+                return null;
+            }
+
+            public boolean mentionable() {
+                return this == USER || this == CHANNEL || this == ROLE;
+            }
+
+            @Override
+            public String getName() {
+                return "ein" + (female ? "e" : "") + " **" + name + "**";
+            }
+
+            @Override
+            public String getCustomHelp() {
+                return null;
+            }
+
+
+        }
+
+        public static final class Text implements ArgumentType {
+
+            private final LinkedList<SubCommand> texts = new LinkedList<>();
+            private final boolean any;
+            private final boolean withOf;
+            private Function<String, String> mapper = s -> s;
+
+            private Text(SubCommand[] possible) {
+                texts.addAll(Arrays.asList(possible));
+                any = false;
+                withOf = true;
+            }
+
+            private Text() {
+                any = true;
+                withOf = false;
+            }
+
+            public static Text of(SubCommand... possible) {
+                return new Text(possible);
+            }
+
+            public static Text any() {
+                return new Text();
+            }
+
+            public Text setMapper(Function<String, String> mapper) {
+                this.mapper = mapper;
+                return this;
+            }
+
+            @Override
+            public Object validate(String str, Object... params) {
+                if (any) return str;
+                return texts.stream().map(SubCommand::getName).filter(scName -> scName.equalsIgnoreCase(str)).map(mapper).findFirst().orElse(null);
+            }
+
+            @Override
+            public String getName() {
+                return "ein Text";
+            }
+
+            @Override
+            public String getCustomHelp() {
+                return texts.stream().map(sc -> "`" + sc.getName() + "`" + sc.getHelp()).collect(Collectors.joining("\n"));
+            }
+
+        }
+
+        public static final class Number implements ArgumentType {
+
+            private final LinkedList<Integer> numbers = new LinkedList<>();
+            private final boolean any;
+            private final boolean withOf;
+            private int from;
+            private int to;
+            private boolean hasRange;
+
+            private Number(Integer[] possible) {
+                numbers.addAll(Arrays.asList(possible));
+                any = false;
+                withOf = true;
+                hasRange = false;
+            }
+
+            private Number() {
+                any = true;
+                withOf = false;
+                hasRange = false;
+            }
+
+            public static Number range(int from, int to) {
+                LinkedList<Integer> l = new LinkedList<>();
+                for (int i = from; i <= to; i++) {
+                    l.add(i);
+                }
+                return of(l.toArray(new Integer[0])).setRange(from, to);
+            }
+
+            public static Number of(Integer... possible) {
+                return new Number(possible);
+            }
+
+            public static Number any() {
+                return new Number();
+            }
+
+            private Number setRange(int from, int to) {
+                this.from = from;
+                this.to = to;
+                this.hasRange = true;
+                return this;
+            }
+
+            public int getFrom() {
+                return from;
+            }
+
+            public int getTo() {
+                return to;
+            }
+
+            public boolean hasRange() {
+                return hasRange;
+            }
+
+            @Override
+            public Object validate(String str, Object... params) {
+                if (Helpers.isNumeric(str)) {
+                    int num = Integer.parseInt(str);
+                    if (any) return num;
+                    return numbers.contains(num) ? num : null;
+                }
+                return null;
+            }
+
+            @Override
+            public String getName() {
+                return "ein Text";
+            }
+
+            @Override
+            public String getCustomHelp() {
+                if (hasRange()) {
+                    return from + "-" + to;
+                }
+                return numbers.stream().map(String::valueOf).collect(Collectors.joining(","));
+            }
+        }
+
+        public static final class Argument {
+            private final String id;
+            private final String name;
+            private final String help;
+            private final ArgumentType[] type;
+            private final boolean optional;
+            private final Translation.Language language;
+            private final String customErrorMessage;
+
+            public Argument(String id, String name, String help, ArgumentType type, boolean optional, Translation.Language language, String customErrorMessage) {
+                this.id = id;
+                this.name = name;
+                this.optional = optional;
+                this.type = new ArgumentType[]{type};
+                this.help = help;
+                this.language = language;
+                this.customErrorMessage = customErrorMessage;
+            }
+
+            public Argument(String id, String name, String help, ArgumentType[] type, boolean optional, Translation.Language language, String customErrorMessage) {
+                this.id = id;
+                this.name = name;
+                this.optional = optional;
+                this.type = type;
+                this.help = help;
+                this.language = language;
+                this.customErrorMessage = customErrorMessage;
+            }
+
+            public String getHelp() {
+                StringBuilder b = new StringBuilder(help);
+                if (type[0].getCustomHelp() == null) return b.toString();
+                ArgumentType t = type[0];
+                if (!help.equals("")) {
+                    b.append("\n");
+                }
+                return b.append("Möglichkeiten:\n").append(t.getCustomHelp()).toString();
+            }
+
+            public String getId() {
+                return id;
+            }
+
+            public ArgumentType[] getTypes() {
+                return type;
+            }
+
+            public boolean isOptional() {
+                return optional;
+            }
+
+            public Translation.Language getLanguage() {
+                return language;
+            }
+
+            public String getName() {
+                return name;
+            }
+
+            public String getCustomErrorMessage() {
+                return customErrorMessage;
+            }
+
+            public boolean hasCustomErrorMessage() {
+                return customErrorMessage != null;
+            }
+        }
+
+        public static final class Builder {
+
+            private final LinkedList<Argument> arguments = new LinkedList<>();
+            private boolean noCheck = false;
+            private String example;
+            private String customDescription;
+
+            public Builder add(String id, String name, String help, ArgumentType type) {
+                return add(id, name, help, type, false);
+            }
+
+            public Builder add(String id, String name, String help, ArgumentType type, boolean optional) {
+                return add(id, name, help, type, optional, null);
+            }
+
+            public Builder add(String id, String name, String help, ArgumentType type, boolean optional, String customErrorMessage) {
+                arguments.add(new Argument(id, name, help, type, optional, Translation.Language.GERMAN, customErrorMessage));
+                return this;
+            }
+
+            public Builder addMultiple(String id, String name, String help, boolean optional, ArgumentType... type) {
+                return addMultiple(id, name, help, optional, null, type);
+            }
+
+            public Builder addMultiple(String id, String name, String help, boolean optional, String customErrorMessage, ArgumentType... type) {
+                arguments.add(new Argument(id, name, help, type, optional, Translation.Language.GERMAN, customErrorMessage));
+                return this;
+            }
+
+            public Builder addEngl(String id, String name, String help, ArgumentType type) {
+                return addEngl(id, name, help, type, false);
+            }
+
+            public Builder addEngl(String id, String name, String help, ArgumentType type, boolean optional) {
+                return addEngl(id, name, help, type, optional, null);
+            }
+
+            public Builder addEngl(String id, String name, String help, ArgumentType type, boolean optional, String customErrorMessage) {
+                arguments.add(new Argument(id, name, help, type, optional, Translation.Language.ENGLISH, customErrorMessage));
+                return this;
+            }
+
+            public Builder setNoCheck(boolean noCheck) {
+                this.noCheck = noCheck;
+                return this;
+            }
+
+            public Builder setExample(String example) {
+                this.example = example;
+                return this;
+            }
+
+            public Builder setCustomDescription(String customDescription) {
+                this.customDescription = customDescription;
+                return this;
+            }
+
+            public ArgumentManagerTemplate build() {
+                return new ArgumentManagerTemplate(arguments, noCheck, example, customDescription);
+            }
         }
     }
 
@@ -2958,7 +3659,7 @@ public abstract class Command {
         public static Translation fromOldString(String str) {
             if (str == null) return empty();
             String[] arr = str.split(";");
-            return new Translation(arr[1], Type.fromId(arr[0]), Language.UNKNOWN);
+            return new Translation(arr[1], Type.fromId(arr[0]), Language.GERMAN, getEnglName(arr[1]));
         }
 
         public Translation copy() {
@@ -3031,35 +3732,93 @@ public abstract class Command {
             return empty;
         }
 
+        public String toOldString() {
+            return type.getId() + ";" + translation;
+        }
+
         public enum Language {
             GERMAN,
             ENGLISH,
             UNKNOWN
         }
 
-        public enum Type {
-            ABILITY("abi"),
-            EGGGROUP("egg"),
-            ITEM("item"),
-            MOVE("atk"),
-            NATURE("nat"),
-            POKEMON("pkmn"),
-            TRAINER("trainer"),
-            TYPE("type"),
-            UNKNOWN("unknown");
+        public enum Type implements ArgumentType {
+            ABILITY("abi", "Fähigkeit", true),
+            EGGGROUP("egg", "Eigruppe", true),
+            ITEM("item", "Item", false),
+            MOVE("atk", "Attacke", true),
+            NATURE("nat", "Wesen", false),
+            POKEMON("pkmn", "Pokémon", false),
+            TYPE("type", "Typ", false),
+            UNKNOWN("unknown", "Undefiniert", false);
 
-            String id;
+            final String id;
+            final String name;
+            final boolean female;
 
-            Type(String id) {
+            Type(String id, String name, boolean female) {
                 this.id = id;
+                this.name = name;
+                this.female = female;
             }
 
             public static Type fromId(String id) {
                 return Arrays.stream(values()).filter(t -> t.getId().equalsIgnoreCase(id)).findFirst().orElse(UNKNOWN);
             }
 
+            public static ArgumentType of(Type... types) {
+                return new ArgumentType() {
+                    @Override
+                    public Object validate(String str, Object... params) {
+                        Translation t = params[0] == Language.GERMAN ? getGerName(str) : getEnglNameWithType(str);
+                        if (t.isEmpty()) return null;
+                        if (!Arrays.asList(types).contains(t.getType())) return null;
+                        return t;
+                    }
+
+                    @Override
+                    public String getName() {
+                        //return "ein **Pokémon**, eine **Attacke**, ein **Item** oder eine **Fähigkeit**";
+                        return buildEnumeration(types);
+                    }
+
+                    @Override
+                    public String getCustomHelp() {
+                        return null;
+                    }
+                };
+            }
+
+            public static ArgumentType all() {
+                return of(Arrays.stream(values()).filter(t -> t != UNKNOWN).toArray(Type[]::new));
+            }
+
             public String getId() {
                 return id;
+            }
+
+            @Override
+            public Object validate(String str, Object... params) {
+                String mod = (String) params[1];
+                Translation t = params[0] == Language.GERMAN ? getGerName(str, mod) : getEnglNameWithType(str, mod);
+                if (t.isEmpty()) return null;
+                if (t.getTranslation().equals("Psychic") || t.getOtherLang().equals("Psychic")) {
+                    if (this == TYPE) {
+                        return new Translation(t.getLanguage() == Language.GERMAN ? "Psycho" : "Psychic", TYPE, t.getLanguage());
+                    }
+                }
+                if (t.getType() != this) return null;
+                return t;
+            }
+
+            @Override
+            public String getName() {
+                return "ein" + (female ? "e" : "") + " **" + name + "**";
+            }
+
+            @Override
+            public String getCustomHelp() {
+                return null;
             }
         }
     }

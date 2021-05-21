@@ -15,9 +15,10 @@ import java.util.Arrays;
 
 public class QueueCommand extends Command {
     public QueueCommand() {
-        super("q", "`e!q` Zeigt die Queue an", CommandCategory.Music);
+        super("q", "Zeigt die Queue an", CommandCategory.Music);
         aliases.add("queue");
         overrideChannel.put(712035338846994502L, new ArrayList<>(Arrays.asList(716221567079546983L, 735076688144105493L)));
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

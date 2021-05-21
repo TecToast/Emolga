@@ -24,7 +24,7 @@ public enum CommandCategory {
 
     private static final ArrayList<CommandCategory> order = new ArrayList<>(Arrays.asList(Showdown, Pokemon, Draft, Dexquiz, BS, Various, Admin, Moderator));
 
-    private static final ArrayList<Long> musicGuilds = new ArrayList<>(Arrays.asList(700504340368064562L, 712035338846994502L, 673833176036147210L, 821350264152784896L, 745934535748747364L));
+    private static final ArrayList<Long> musicGuilds = new ArrayList<>(Arrays.asList(700504340368064562L, 712035338846994502L, 673833176036147210L, 821350264152784896L, 745934535748747364L, Constants.ASLID));
 
     static {
         Admin.allowsMember = m -> m.hasPermission(Permission.ADMINISTRATOR);
@@ -40,9 +40,9 @@ public enum CommandCategory {
         //Music.disabled = "Die Musikfunktionen wurden aufgrund einer Fehlfunktion komplett deaktiviert!";
     }
 
+    final String disabled = "";
     String emoji;
     String name;
-    String disabled = "";
     private Predicate<Member> allowsMember = m -> true;
     private Predicate<Long> allowsGuild = g -> true;
     private boolean everywhere = false;

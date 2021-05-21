@@ -3,31 +3,22 @@ package de.tectoast.emolga.commands.moderator;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
 
 public class BanCommand extends Command {
     public BanCommand() {
-        super("ban", "`!ban <User> <Grund>` Bannt den User", CommandCategory.Moderator);
+        super("ban", "Bannt den User", CommandCategory.Moderator);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("user", "User", "Der User, der gebannt werden soll", ArgumentManagerTemplate.DiscordType.USER, true)
+                .add("reason", "Grund", "Der Grund des Bans", ArgumentManagerTemplate.Text.any(), true)
+                .setExample("!ban @BöserUser123 Hat böse Sachen gemacht")
+                .build()
+        );
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        Message m = e.getMessage();
-        TextChannel tco = e.getChannel();
-        String raw = m.getContentRaw();
-        if (m.getMentionedMembers().size() != 1) {
-            //tco.sendMessage("Du musst einen Spieler taggen!").queue();
-            return;
-        }
-        Member mem = m.getMentionedMembers().get(0);
-        String reason;
-        try {
-            reason = raw.substring(raw.indexOf(">") + 2);
-        } catch (Exception ignored) {
-            reason = "Nicht angegeben";
-        }
-        ban(tco, e.getMember(), mem, reason);
+        ArgumentManager args = e.getArguments();
+        if (!args.has("user")) return;
+        ban(e.getChannel(), e.getMember(), args.getMember("user"), args.getOrDefault("reason", "Nicht angegeben"));
     }
 }

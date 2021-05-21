@@ -1,7 +1,9 @@
 package de.tectoast.emolga.bot;
 
+import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.PrivateCommands;
+import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.DexQuiz;
 import de.tectoast.emolga.utils.Giveaway;
@@ -269,7 +271,7 @@ public class EmolgaListener extends ListenerAdapter {
                     String[] split = msg.split(":");
                     if (split[1].equals("play"))
                         loadJarvisPlaylist(split[0]);
-                    else if(split[1].equals("stop")) {
+                    else if (split[1].equals("stop")) {
                         getGuildAudioPlayer(e.getJDA().getGuildById(split[0])).player.stopTrack();
                     }
                 }
@@ -733,7 +735,6 @@ public class EmolgaListener extends ListenerAdapter {
                 sortBST();
                 return;
             }*/
-                int[][] arr = new int[10][10];
                 if (tco.getId().equals("743471003220443226") && !member.getUser().isBot()) {
                     e.getJDA().retrieveUserById("574949229668335636").complete().openPrivateChannel().complete().sendMessage(msg).queue();
                     return;
@@ -746,7 +747,7 @@ public class EmolgaListener extends ListenerAdapter {
                     g.addRoleToMember(member, g.getRoleById("758254829885456404")).queue();
                 }
                 if (m.getMentionedMembers().size() == 1) {
-                    if (m.getMentionedMembers().get(0).getId().equals("723829878755164202") && !e.getAuthor().isBot() && (!emolgaChannel.containsKey(gid) || emolgaChannel.get(gid).contains(tco.getIdLong()))) {
+                    if (m.getMentionedMembers().get(0).getId().equals("723829878755164202") && !e.getAuthor().isBot() && Command.isChannelAllowed(tco)) {
                         help(tco, member);
                     }
                 }
@@ -940,13 +941,14 @@ public class EmolgaListener extends ListenerAdapter {
                             System.out.println("uid2 = " + uid2);
                             String str;
                             if (spoiler) {
-                                str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1.toString()
-                                        + "\n" + name2 + ": " + "\n" + t2.toString();
+                                str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1
+                                        + "\n" + name2 + ": " + "\n" + t2;
                             } else {
-                                str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1.toString()
-                                        + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2.toString();
+                                str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1
+                                        + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
                             }
                             t.sendMessage(str).queue();
+                            Database.incrementStatistic("analysis");
                             for (int i = 0; i < 2; i++) {
                                 if (game[i].getMons().stream().anyMatch(mon -> mon.getPokemon().equals("Zoroark") || mon.getPokemon().equals("Zorua")))
                                     t.sendMessage("Im Team von " + game[i].getNickname() + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!").queue();

@@ -2,16 +2,10 @@ package de.tectoast.emolga.utils;
 
 import de.tectoast.emolga.bot.EmolgaMain;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Result {
-    public int gameday = -1;
-    public int gamecount = -1;
-    public int currgamecount = 1;
-    public String curruser;
-    public String currname;
-    public String currmon = "";
-    public int currmoncount = 1;
     public final String u1;
     public final String u2;
     public final ArrayList<String> mons1 = new ArrayList<>();
@@ -26,6 +20,13 @@ public class Result {
     public final String name1;
     public final String name2;
     public final ArrayList<Integer> wins1 = new ArrayList<>();
+    public int gameday = -1;
+    public int gamecount = -1;
+    public int currgamecount = 1;
+    public String curruser;
+    public String currname;
+    public String currmon = "";
+    public int currmoncount = 1;
     //public int k1sum;
     //public int d1sum;
 

@@ -2,16 +2,19 @@ package de.tectoast.emolga.commands.showdown;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.emolga.database.Database;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 public class ReplayCommand extends Command {
     public ReplayCommand() {
-        super("replay", "`!replay <Channel>` Schickt von nun an die Ergebnisse aller Replays, die hier rein geschickt werden, in den angegebenen Channel", CommandCategory.Showdown);
+        super("replay", "Schickt von nun an die Ergebnisse aller Replays, die hier rein geschickt werden, in den angegebenen Channel", CommandCategory.Showdown);
         everywhere = true;
+        setArgumentTemplate(ArgumentManagerTemplate.builder().add("channel", "Channel", "Der Channel, wo die Ergebnisse reingeschickt werden sollen", ArgumentManagerTemplate.DiscordType.CHANNEL)
+                .setExample("!replay #ergebnisse-emolga")
+                .build());
     }
 
     @Override

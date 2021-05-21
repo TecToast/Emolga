@@ -7,12 +7,20 @@ import de.tectoast.emolga.utils.Giveaway;
 import de.tectoast.emolga.utils.PrivateCommand;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -346,6 +354,82 @@ public class PrivateCommands {
             System.out.println("=====");
         });
         System.out.println(translationsCacheOrder);
+    }
+
+    @PrivateCommand(name = "clearcache")
+    public static void clearCache(GenericCommandEvent e) {
+        translationsCache.clear();
+        translationsCacheOrder.clear();
+    }
+
+    @PrivateCommand(name = "startdrafts")
+    public static void startDrafts(GenericCommandEvent e) {
+        JDA jda = e.getJDA();
+        new Draft(jda.getTextChannelById(818221372970762250L), "Regieleki-Conference", "819133325079609364", true, true);
+        new Draft(jda.getTextChannelById(818225474991947838L), "Registeel-Conference", "819133438514823259", true, true);
+        new Draft(jda.getTextChannelById(818226066254331925L), "Regirock-Conference", "819133475461529600", true, true);
+        new Draft(jda.getTextChannelById(818226684045557810L), "Regidrago-Conference", "819133576230600734", true, true);
+        new Draft(jda.getTextChannelById(818227169943093248L), "Regice-Conference", "819133631749554223", true, true);
+    }
+
+    @PrivateCommand(name = "transfer")
+    public static void transfer(GenericCommandEvent e) {
+        JSONObject wiki = getWikiJSON();
+        JSONObject atk = wiki.getJSONObject("natures");
+        ArrayList<String> values = new ArrayList<>();
+        for (String s : atk.keySet()) {
+            JSONObject o = atk.getJSONObject(s);
+            if (o.has("plus"))
+                values.add("(\"" + s + "\", \"" + o.getString("plus") + "\", \"" + o.getString("minus") + "\")");
+            else
+                values.add("(\"" + s + "\", null, null)");
+        }
+        Database.update("INSERT INTO natures(name, plus, minus) VALUES " + String.join(",", values));
+    }
+
+    @PrivateCommand(name = "getguild")
+    public static void getGuildCmd(GenericCommandEvent e) {
+        e.reply(e.getJDA().getTextChannelById(e.getArg(0)).getGuild().getName());
+    }
+
+    @PrivateCommand(name = "downloadpokedex")
+    public static void downloadPokedex(GenericCommandEvent event) throws IOException {
+        List<String> l = Files.readAllLines(Paths.get("entwicklung.txt"));
+        //ArrayList<String> list = new ArrayList<>();
+        //int x = 0;
+        for (String mon : l) {
+            Document d = Jsoup.connect("https://www.pokewiki.de/" + mon).execute().bufferUp().parse();
+            Element el = d.select("table[class=\"round centered\"]").first().child(0);
+            Elements children = el.children();
+            children.remove(0);
+            //System.out.println("children.html() = " + children.html());
+            //System.out.println("children.get(0).html() = " + children.get(0).html());
+            ArrayList<String> games = new ArrayList<>();
+            ArrayList<String> entries = new ArrayList<>();
+            for (Element e : children) {
+                int startindex = e.children().size() == 3 ? 1 : 0;
+                Element edition = e.child(startindex).child(0);
+                for (Element child : edition.children()) {
+                    String text = child.text();
+                    String title = child.child(0).attr("title");
+                    String edi = title.substring(title.indexOf(" ") + 1);
+                    String entry = e.child(startindex + 1).text();
+                    games.add("`" + edi + "`");
+                    entries.add("'" + entry.replace("'", "\\'") + "'");
+                    //System.out.println(text);
+                /*list.add(text);
+                set.add(text);*/
+                }
+
+            }
+            String query = "insert into pokedex(" + "`pokemonname`," + String.join(",", games) + ")" + " values ('" + toSDName(mon) + "'," + String.join(",", entries) + ")";
+            System.out.println(query);
+            System.out.println();
+            Database.update(query);
+            /*x++;
+            if(x % 10 == 0) System.out.println(x);*/
+            //Database.insert("pokedex",  , "`" + toSDName(mon) + "`", entries.toArray());
+        }
     }
 
     public static void execute(Message message) {

@@ -15,8 +15,9 @@ import java.util.Arrays;
 
 public class NpCommand extends Command {
     public NpCommand() {
-        super("np", "`e!np` Zeigt, welcher Track gerade läuft", CommandCategory.Music);
+        super("np", "Zeigt, welcher Track gerade läuft", CommandCategory.Music);
         overrideChannel.put(712035338846994502L, new ArrayList<>(Arrays.asList(716221567079546983L, 735076688144105493L)));
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

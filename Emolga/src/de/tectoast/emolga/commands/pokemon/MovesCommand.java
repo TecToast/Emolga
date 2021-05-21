@@ -14,8 +14,18 @@ import java.util.Collections;
 
 public class MovesCommand extends Command {
     public MovesCommand() {
-        super("moves", "`!moves [Alola|Galar] <pokemon> [--phys|--spez|--status] [--feuer|...]` Zeigt die möglichen Attacken des pokemon an (Entweder alle oder nur die physischen etc.)", CommandCategory.Pokemon);
+        super("moves", "Zeigt die möglichen Attacken des pokemon an (Entweder alle oder nur die physischen etc.)", CommandCategory.Pokemon);
         aliases.add("moves5");
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("form", "Form", "Optionale alternative Form", ArgumentManagerTemplate.Text.of(
+                        SubCommand.of("Alola"), SubCommand.of("Galar")
+                ), true)
+                .add("mon", "Pokemon", "Das Pokemon", Translation.Type.POKEMON)
+                .setExample("!moves Emolga --spez --flying")
+                .setCustomDescription("!moves [Alola|Galar] <Pokemon> [--phys|--spez|--status] [--feuer|...]")
+                .setNoCheck(true)
+                .build()
+        );
     }
 
 

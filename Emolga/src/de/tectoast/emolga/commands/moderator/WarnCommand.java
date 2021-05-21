@@ -3,31 +3,21 @@ package de.tectoast.emolga.commands.moderator;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
 
 public class WarnCommand extends Command {
     public WarnCommand() {
-        super("warn", "`!warn <User> <Grund>` Verwarnt den User", CommandCategory.Moderator);
+        super("warn", "Verwarnt den User", CommandCategory.Moderator);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("user", "User", "Der User, der gekickt werden soll", ArgumentManagerTemplate.DiscordType.USER, true)
+                .add("reason", "Grund", "Der Grund des Kicks", ArgumentManagerTemplate.Text.any(), true)
+                .setExample("!warn @BöserUser123 Verstoß von Regel XY")
+                .build()
+        );
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        Message m = e.getMessage();
-        TextChannel tco = e.getChannel();
-        String raw = m.getContentRaw();
-        if (m.getMentionedMembers().size() != 1) {
-            //tco.sendMessage("Du musst einen Spieler taggen!").queue();
-            return;
-        }
-        Member mem = m.getMentionedMembers().get(0);
-        String reason = "Nicht angegeben";
-        try {
-            reason = raw.substring(raw.indexOf(">") + 2);
-        } catch (Exception ignored) {
-
-        }
-        warn(tco, e.getMember(), mem, reason);
+        ArgumentManager args = e.getArguments();
+        warn(e.getChannel(), e.getMember(), args.getMember("user"), args.getOrDefault("reason", "Nicht angegeben"));
     }
 }

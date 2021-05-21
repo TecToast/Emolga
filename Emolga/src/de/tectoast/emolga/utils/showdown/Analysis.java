@@ -38,12 +38,14 @@ public class Analysis {
                 p2.getMons().add(new SDPokemon(str));
             }
 
-            if (s.contains("|-end|p1a") && s.contains("|Illusion")) {
+            if (s.contains("|replace|p1a")) {
+                System.out.println("ILLUSION FOUND");
                 p1.getMons().stream().filter(sd -> sd.getPokemon().equals("Zoroark") || sd.getPokemon().equals("Zorua")).forEach(sd -> sd.setNickname(split[2].substring(5)));
+
             }
 
-            if (s.contains("|-end|p2a") && s.contains("|Illusion")) {
-                //System.out.println("ILLUSION FOUND");
+            if (s.contains("|replace|p2a")) {
+                System.out.println("ILLUSION FOUND");
                 p2.getMons().stream().filter(sd -> sd.getPokemon().equals("Zoroark") || sd.getPokemon().equals("Zorua")).forEach(sd -> sd.setNickname(split[2].substring(5)));
             }
 
@@ -113,10 +115,14 @@ public class Analysis {
 
             //Datailschange
             if (s.contains("|detailschange|p1")) {
-                p1.getMons().get(p1.indexOfNick(split[2].substring(5))).setPokemon(split[3].split(",")[0]);
+                int index = p1.indexOfNick(split[2].substring(5));
+                p1.getMons().get(index).setOrigMon(p1.getMons().get(index).getPokemon());
+                p1.getMons().get(index).setPokemon(split[3].split(",")[0]);
             }
             if (s.contains("|detailschange|p2")) {
-                p2.getMons().get(p2.indexOfNick(split[2].substring(5))).setPokemon(split[3].split(",")[0]);
+                int index = p2.indexOfNick(split[2].substring(5));
+                p2.getMons().get(index).setOrigMon(p2.getMons().get(index).getPokemon());
+                p2.getMons().get(index).setPokemon(split[3].split(",")[0]);
             }
         }
 
@@ -125,8 +131,13 @@ public class Analysis {
         SDPokemon activeP1 = null;
         SDPokemon activeP2 = null;
         SDPokemon weatherBy = null;
+        /*System.out.println("PLAYER 1");
+        p1.getMons().forEach(sd -> System.out.println(sd.getPokemon() + " -> " + sd.getNickname()));
+        System.out.println("PLAYER 2");
+        p2.getMons().forEach(sd -> System.out.println(sd.getPokemon() + " -> " + sd.getNickname()));*/
         //Schaden
         for (String s : game) {
+            //System.out.println("s = " + s);
             /*
              * LastMove abspeichern
              */
@@ -146,11 +157,22 @@ public class Analysis {
                 lastMove = null;
             }
 
+            if (s.contains("|replace|p1a")) {
+                //System.out.println("ILLUSION FOUND");
+                activeP1 = p1.getMons().get(p1.indexOfNick(split[2].substring(5)));
+            }
+
+            if (s.contains("|replace|p2a")) {
+                //System.out.println("ILLUSION FOUND");
+                p2.getMons().stream().filter(sd -> sd.getPokemon().equals("Zoroark") || sd.getPokemon().equals("Zorua")).forEach(sd -> sd.setNickname(split[2].substring(5)));
+                activeP2 = p2.getMons().get(p2.indexOfNick(split[2].substring(5)));
+            }
+
             /*
              * aktive commands abspeichern und LastMove zuruecksetzen
              */
             if (s.contains("|switch|p1") || s.contains("|drag|p1")) {
-                activeP1 = p1.getMons().get(p1.indexOfNick(split[2].substring(5)));
+                activeP1 = p1.getMons().get(p1.indexOfName(split[3].split(",")[0]));
                 lastMove = null;
             }
             if (s.contains("|switch|p2") || s.contains("|drag|p2")) {
@@ -160,16 +182,18 @@ public class Analysis {
                     System.out.print(mon.getPokemon() + " ::: ");
                     m.out.println(mon.getNickname());
                 }*/
-                activeP2 = p2.getMons().get(p2.indexOfNick(split[2].substring(5)));
+                activeP2 = p2.getMons().get(p2.indexOfName(split[3].split(",")[0]));
                 lastMove = null;
             }
 
-            if(s.contains("|faint|p1")) {
-                p1.getMons().get(p1.indexOfNick(split[2].substring(5))).setDead(true);
+            if (s.contains("|faint|p1")) {
+                //p1.getMons().get(p1.indexOfNick(split[2].substring(5))).setDead(true);
+                activeP1.setDead(true);
             }
 
-            if(s.contains("|faint|p2")) {
-                p2.getMons().get(p2.indexOfNick(split[2].substring(5))).setDead(true);
+            if (s.contains("|faint|p2")) {
+                //p2.getMons().get(p2.indexOfNick(split[2].substring(5))).setDead(true);
+                activeP2.setDead(true);
             }
 
             /*
@@ -178,7 +202,7 @@ public class Analysis {
             if ((s.contains("|-damage|p1")) && (split.length == 4)) {
                 if (s.contains("0 fnt")) {
                     //Wenn CurseSD
-                    System.out.println(activeP1.getPokemon());
+                    //System.out.println(activeP1.getPokemon());
                     if (lastMove == p1.getMons().get(p1.indexOfNick(split[2].substring(5)))) {
                         if (lastMove.getLastDmgBy() != null) {
                             lastMove.getLastDmgBy().killsPlus1();

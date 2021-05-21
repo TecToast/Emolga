@@ -12,7 +12,11 @@ import java.util.stream.Collectors;
 
 public class GetIdsCommand extends Command {
     public GetIdsCommand() {
-        super("getids", "`!getids <Rolle>` Holt die Namen und die IDs der Leute mit der Rolle", CommandCategory.Flo);
+        super("getids", "Holt die Namen und die IDs der Leute mit der Rolle", CommandCategory.Flo);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("role", "Rolle", "Die Rolle, von der die IDs geholt werden sollen", ArgumentManagerTemplate.DiscordType.ROLE)
+                .setExample("!getids @VIP")
+                .build());
     }
 
     @Override

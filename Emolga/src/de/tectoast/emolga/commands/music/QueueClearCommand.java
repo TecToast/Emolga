@@ -13,8 +13,9 @@ import java.util.Arrays;
 
 public class QueueClearCommand extends Command {
     public QueueClearCommand() {
-        super("c", "`e!c` Cleart die Queue", CommandCategory.Music);
+        super("c", "Cleart die Queue", CommandCategory.Music);
         overrideChannel.put(712035338846994502L, new ArrayList<>(Arrays.asList(716221567079546983L, 735076688144105493L)));
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

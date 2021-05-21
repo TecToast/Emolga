@@ -16,7 +16,8 @@ import java.util.stream.Collectors;
 public class SpeedCommand extends Command {
 
     public SpeedCommand() {
-        super("speed", "`!speed <Pokemon1 Pokemon2 ...>` Zeigt die Init-Base und die maximale Initiative der pokemon auf Level 100 an.", CommandCategory.Pokemon);
+        super("speed", "Zeigt die Init-Base und die maximale Initiative der pokemon auf Level 100 an.", CommandCategory.Pokemon);
+        setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!speed <Pokemon1> <Pokemon2> usw.", "!speed Galvantula M-Gallade Primarene Bisaflor"));
     }
 
     @Override
@@ -29,12 +30,11 @@ public class SpeedCommand extends Command {
             String s = msg.substring(7);
             String[] mons;
             if (!s.contains("\n"))
-                mons = s.split(" ");
-            else mons = s.split("\n");
+                mons = s.split("\\s+");
+            else mons = s.split("\\s*\n\\s*");
             ArrayList<SpeedMon> speedMons = new ArrayList<>();
             JSONObject datajson = getDataJSON(getModByGuild(e));
             for (String mon : mons) {
-                mon = mon.trim();
                 System.out.println("mon = " + mon);
                 int bs;
                 String ger;
@@ -102,9 +102,9 @@ public class SpeedCommand extends Command {
     }
 
     private static class SpeedMon implements Comparable<SpeedMon> {
-        String monName;
-        int baseSpeed;
-        int maxSpeed;
+        final String monName;
+        final int baseSpeed;
+        final int maxSpeed;
 
         public SpeedMon(String monName, int baseSpeed, int maxSpeed) {
             this.monName = monName;

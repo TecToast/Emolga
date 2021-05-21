@@ -10,7 +10,10 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class ListmembersCommand extends Command {
     public ListmembersCommand() {
-        super("listmembers", "`!listmembers <Rolle>` Zeigt alle User an, die diese Rolle haben", CommandCategory.Admin);
+        super("listmembers", "Zeigt alle User an, die diese Rolle haben", CommandCategory.Admin);
+        setArgumentTemplate(ArgumentManagerTemplate.builder().addMultiple("role", "Rolle", "Die Rolle, die die User besitzen sollen", false, ArgumentManagerTemplate.DiscordType.ROLE, ArgumentManagerTemplate.DiscordType.ID)
+                .setExample("!listmembers @VIP")
+                .build());
     }
 
     @Override
@@ -18,8 +21,9 @@ public class ListmembersCommand extends Command {
         Message m = e.getMessage();
         TextChannel tco = e.getChannel();
         Member member = e.getMember();
-        Role r;
-        if (m.getMentionedRoles().size() == 0) {
+        ArgumentManager args = e.getArguments();
+        Role r = args.is("role", Role.class) ? args.getRole("role") : e.getJDA().getRoleById(args.getID("role"));
+        /*if (m.getMentionedRoles().size() == 0) {
             if (m.getContentDisplay().split(" ").length == 2) {
                 try {
                     r = e.getGuild().getRoleById(m.getContentDisplay().split(" ")[1]);
@@ -32,7 +36,7 @@ public class ListmembersCommand extends Command {
                 return;
             }
         } else
-            r = m.getMentionedRoles().get(0);
+            r = m.getMentionedRoles().get(0);*/
         tco.getGuild().findMembers(mem -> mem.getRoles().contains(r)).onSuccess(members -> {
             StringBuilder s = new StringBuilder();
             for (Member mem : members) {

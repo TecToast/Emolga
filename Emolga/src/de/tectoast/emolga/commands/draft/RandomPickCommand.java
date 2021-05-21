@@ -15,7 +15,12 @@ import java.util.function.Predicate;
 
 public class RandomPickCommand extends Command {
     public RandomPickCommand() {
-        super("randompick", "`!randompick` Well...", CommandCategory.Draft);
+        super("randompick", "Well... nen Random-Pick halt", CommandCategory.Draft);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("tier", "Tier", "Das Tier, in dem gepickt werden soll", ArgumentManagerTemplate.Text.any())
+                .addEngl("type", "Typ", "Der Typ, von dem random gepickt werden soll", Translation.Type.TYPE, true)
+                .setExample("!randompick A")
+                .build());
     }
 
     @Override
@@ -29,11 +34,8 @@ public class RandomPickCommand extends Command {
         }
         String msg = e.getMessage().getContentDisplay();
         Tierlist tierlist = Tierlist.getByGuild(d.guild);
-        if (e.getArgsLength() == 0) {
-            tco.sendMessage("Du musst ein Tier auswählen!").queue();
-            return;
-        }
-        String tier = e.getArg(0).toUpperCase();
+        ArgumentManager args = e.getArguments();
+        String tier = args.getText("tier").toUpperCase();
         if (!tierlist.order.contains(tier)) {
             tco.sendMessage("Das ist kein Tier!").queue();
             return;
@@ -61,12 +63,8 @@ public class RandomPickCommand extends Command {
         ArrayList<String> list = new ArrayList<>(tierlist.tierlist.get(tier));
         Collections.shuffle(list);
         Predicate<String> typecheck;
-        if (e.hasArg(1)) {
-            Translation type = getEnglNameWithType(e.getArg(1));
-            if (!type.isFromType(Translation.Type.TYPE)) {
-                tco.sendMessage("Das ist kein Typ!").queue();
-                return;
-            }
+        if (args.has("type")) {
+            Translation type = args.getTranslation("type");
             typecheck = str -> {
                 String sd;
                 if (str.startsWith("M-")) sd = getSDName(str.substring(2)) + "mega";

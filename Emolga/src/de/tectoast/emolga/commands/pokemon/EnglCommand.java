@@ -3,28 +3,18 @@ package de.tectoast.emolga.commands.pokemon;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
 
 public class EnglCommand extends Command {
     public EnglCommand() {
-        super("engl", "`!engl <Name>` Zeigt den englischen Namen dieser Sache.", CommandCategory.Pokemon);
+        super("engl", "Zeigt den englischen Namen dieser Sache.", CommandCategory.Pokemon);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .addEngl("stuff", "Pokemon|Attacke|Fähigkeit|Item", "Die Sache, von der du den englischen Namen haben möchtest", Translation.Type.all())
+                .setExample("!engl Primarene")
+                .build());
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-
-        TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
-        String s = msg.substring(6);
-        String str = getEnglName(s);
-        if (!str.equals("")) {
-            tco.sendMessage(str).queue();
-            return;
-        }
-        tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
+        e.reply(e.getArguments().getTranslation("stuff").getTranslation());
     }
 }

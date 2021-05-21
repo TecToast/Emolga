@@ -10,7 +10,10 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class TierCommand extends Command {
     public TierCommand() {
-        super("tier", "`!tier <pokemon>` Zeigt das Tier des pokemon in der Liga dieses Servers an.", CommandCategory.Pokemon);
+        super("tier", "Zeigt das Tier des Pokemon in der Liga dieses Servers an.", CommandCategory.Pokemon);
+        setArgumentTemplate(ArgumentManagerTemplate.builder().add("mon", "Pokemon", "Das Pokemon", ArgumentManagerTemplate.withPredicate("Pokemon", s -> getDraftGerName(s).isSuccess(), false))
+                .setExample("!tier M-Galagladi")
+                .build());
     }
 
     @Override
@@ -19,8 +22,12 @@ public class TierCommand extends Command {
         Message m = e.getMessage();
         String msg = m.getContentDisplay();
         Member member = e.getMember();
-        String pkmn = msg.substring(6);
+        String pkmn = getDraftGerName(e.getArguments().getText("mon")).getTranslation();
         Tierlist tierlist = Tierlist.getByGuild(tco.getGuild().getId());
+        if (tierlist == null) {
+            e.reply("Auf diesem Server ist keine Tierliste hinterlegt! Wenn du dies tun möchtest, melde dich bei Flo/TecToast.");
+            return;
+        }
         String tier = tierlist.getTierOf(pkmn);
         if (!tier.equals("")) {
             tco.sendMessage(pkmn + " ist im " + tier + "-Tier!").queue();

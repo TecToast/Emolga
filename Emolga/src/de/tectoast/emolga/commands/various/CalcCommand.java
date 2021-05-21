@@ -12,12 +12,12 @@ import javax.script.ScriptException;
 
 public class CalcCommand extends Command {
 
-    public CalcCommand() {
-        super("calc", "`!calc <Matheformel>` Berechnet die angegebene Formel", CommandCategory.Various, Constants.BSID, Constants.GAMERSQUAD);
-    }
-
     final ScriptEngineManager mgr = new ScriptEngineManager();
     final ScriptEngine engine = mgr.getEngineByName("JavaScript");
+    public CalcCommand() {
+        super("calc", "Berechnet die angegebene Formel", CommandCategory.Various, Constants.BSID, Constants.GAMERSQUAD);
+        setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!calc <Matheformel>", "!calc 1+1"));
+    }
 
     @Override
     public void process(GuildCommandEvent e) {

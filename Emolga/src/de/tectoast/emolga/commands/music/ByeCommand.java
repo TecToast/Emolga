@@ -8,6 +8,11 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 public class ByeCommand extends Command {
+    public ByeCommand() {
+        super("bye", ":^(", CommandCategory.Music, 700504340368064562L);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
+    }
+
     @Override
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
@@ -19,9 +24,5 @@ public class ByeCommand extends Command {
         } catch (IllegalArgumentException IllegalArgumentException) {
             IllegalArgumentException.printStackTrace();
         }
-    }
-
-    public ByeCommand() {
-        super("bye", "`e!bye` :^(", CommandCategory.Music, 700504340368064562L);
     }
 }

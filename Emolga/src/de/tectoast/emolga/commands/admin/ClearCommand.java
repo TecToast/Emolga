@@ -8,7 +8,8 @@ import java.util.stream.Collectors;
 
 public class ClearCommand extends Command {
     public ClearCommand() {
-        super("clear", "`!clear` Cleart den Channel", CommandCategory.Flo);
+        super("clear", "Cleart den Channel", CommandCategory.Flo);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

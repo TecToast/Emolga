@@ -4,8 +4,9 @@ package de.tectoast.emolga.utils.showdown;
 public class SDPokemon {
     private String pokemon, nickname;
     private int kills;
-    private SDPokemon statusedBy, bindedBy, cursedBy, seededBy, nightmaredBy, confusedBy, lastDmgBy, perishedBy;
+    private SDPokemon statusedBy, bindedBy, cursedBy, seededBy, nightmaredBy, confusedBy, lastDmgBy, perishedBy, orbBy;
     private boolean dead = false;
+    private String origMon;
 
 
     public SDPokemon(String poke) {
@@ -18,6 +19,22 @@ public class SDPokemon {
         else return "a";
     }
 
+    public void setOrigMon(String origMon) {
+        this.origMon = origMon;
+    }
+
+    public boolean isMon(String name) {
+        //System.out.println(name + " ======> " + pokemon + " ||| " + origMon);
+        return name.equals(pokemon) || name.equals(origMon);
+    }
+
+    public SDPokemon getOrbBy() {
+        return orbBy;
+    }
+
+    public void setOrbBy(SDPokemon orbBy) {
+        this.orbBy = orbBy;
+    }
 
     public SDPokemon getSeededBy() {
         return seededBy;
@@ -117,5 +134,20 @@ public class SDPokemon {
         this.perishedBy = perishedBy;
     }
 
-
+    @Override
+    public String toString() {
+        return "SDPokemon{" + "pokemon='" + pokemon + '\'' +
+                ", nickname='" + nickname + '\'' +
+                ", kills=" + kills +
+                ", statusedBy=" + statusedBy +
+                ", bindedBy=" + bindedBy +
+                ", cursedBy=" + cursedBy +
+                ", seededBy=" + seededBy +
+                ", nightmaredBy=" + nightmaredBy +
+                ", confusedBy=" + confusedBy +
+                ", lastDmgBy=" + lastDmgBy +
+                ", perishedBy=" + perishedBy +
+                ", dead=" + dead +
+                '}';
+    }
 }

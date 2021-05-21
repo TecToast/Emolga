@@ -9,9 +9,10 @@ import java.util.Arrays;
 
 public class SkipCommand extends Command {
     public SkipCommand() {
-        super("s", "`e!s` Skippt den derzeitigen Track", CommandCategory.Music);
+        super("s", "Skippt den derzeitigen Track", CommandCategory.Music);
         aliases.add("skip");
         overrideChannel.put(712035338846994502L, new ArrayList<>(Arrays.asList(716221567079546983L, 735076688144105493L)));
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

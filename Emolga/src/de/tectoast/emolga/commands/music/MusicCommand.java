@@ -11,7 +11,8 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class MusicCommand extends Command {
     public MusicCommand() {
-        super("music", "`e!music` Spielt die GamerSquad Playlist ab", CommandCategory.Music, 673833176036147210L);
+        super("music", "Spielt die GamerSquad Playlist ab", CommandCategory.Music, 673833176036147210L);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

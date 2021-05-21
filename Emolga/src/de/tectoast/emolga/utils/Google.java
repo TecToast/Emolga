@@ -70,8 +70,6 @@ public class Google {
     }
 
 
-
-
     public static List<List<Object>> get(String spreadsheetId, String range, boolean formula, boolean recursive) throws IllegalArgumentException {
         try {
             return getSheetsService().spreadsheets().values().get(spreadsheetId, range).setValueRenderOption(formula ? "FORMULA" : "FORMATTED_VALUE").execute().getValues();
@@ -172,7 +170,7 @@ public class Google {
     }
 
     public static void refreshTokenIfNotPresent() {
-        if(accesstoken == null || System.currentTimeMillis() - lastUpdate > 3000000) generateAccessToken();
+        if (accesstoken == null || System.currentTimeMillis() - lastUpdate > 3000000) generateAccessToken();
     }
 
     public static void generateAccessToken() {

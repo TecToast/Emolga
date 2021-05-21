@@ -6,7 +6,10 @@ import de.tectoast.emolga.commands.GuildCommandEvent;
 
 public class FloHelpCommand extends Command {
     public FloHelpCommand() {
-        super("flohelp", "`!flohelp <Nachricht>` Nutzt diesen Command, falls irgendwelche Fehler auftreten sollen, um meinen Programmierer Flo zu benachrichtigen", CommandCategory.Various);
+        super("flohelp", "Nutzt diesen Command, falls irgendwelche Fehler auftreten sollen, um meinen Programmierer Flo zu benachrichtigen", CommandCategory.Various);
+        setArgumentTemplate(ArgumentManagerTemplate.builder().add("text", "Nachricht", "Die Nachricht, die du schicken willst", ArgumentManagerTemplate.Text.any())
+                .setExample("!flohelp Ey, Emolga tut grad nich D:")
+                .build());
     }
 
     @Override

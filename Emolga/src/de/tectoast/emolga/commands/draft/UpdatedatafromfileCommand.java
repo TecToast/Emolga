@@ -18,7 +18,11 @@ import java.util.TimerTask;
 
 public class UpdatedatafromfileCommand extends Command {
     public UpdatedatafromfileCommand() {
-        super("updatedatafromfile", "`!updatedatafromfile <Name>` Aktualisiert die Daten auf Basis der Datei", CommandCategory.Flo);
+        super("updatedatafromfile", "Aktualisiert die Daten auf Basis der Datei", CommandCategory.Flo);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("name", "Draftname", "Der Name des Drafts", ArgumentManagerTemplate.draft())
+                .setExample("!updatedatafromfile Emolga-Conference")
+                .build());
     }
 
     @Override
@@ -26,14 +30,14 @@ public class UpdatedatafromfileCommand extends Command {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();
-        String name = msg.substring(20);
+        String name = e.getArguments().getText("name");
         Optional<Draft> op = Draft.drafts.stream().filter(d -> d.name.equals(name)).findFirst();
         if (!op.isPresent()) {
             tco.sendMessage("Dieser Draft existiert nicht!").queue();
             return;
         }
         Draft d = op.get();
-        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS7").getJSONObject(name);
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(name);
         int lround = league.getInt("round");
         if (d.round != lround) {
             d.tc.sendMessage("Runde " + lround + "!").queue();
@@ -80,6 +84,6 @@ public class UpdatedatafromfileCommand extends Command {
                 d.timer();
             }
         }, calculateASLTimer());
-        tco.sendMessage("Done!").queue();
+        e.done();
     }
 }

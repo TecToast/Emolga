@@ -2,8 +2,8 @@ package de.tectoast.emolga.commands.various;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
-import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
@@ -18,13 +18,18 @@ import java.util.Date;
 
 public class UserInfoCommand extends Command {
     public UserInfoCommand() {
-        super("userinfo", "`!userinfo [@User]` Zeigt die Userinfo von dir bzw. dem gepingten Spieler an", CommandCategory.Various, Constants.ASLID);
+        super("userinfo", "Zeigt die Userinfo von dir bzw. dem gepingten Spieler an", CommandCategory.Various, Constants.ASLID);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("user", "User", "Der User, dessen Info du haben möchtest, oder gar nichts, wenn du deine eigene Info sehen möchtest", ArgumentManagerTemplate.DiscordType.USER, true)
+                .setExample("!userinfo @Flo")
+                .build());
     }
 
     @Override
     public void process(GuildCommandEvent e) throws SQLException {
-        User u = e.getAuthor();
-        Member member = e.getMember();
+        ArgumentManager args = e.getArguments();
+        Member member = args.has("user") ? args.getMember("user") : e.getMember();
+        User u = member.getUser();
         ResultSet set = Database.select("select count(*) as warncount from warns where guildid = " + Constants.ASLID + " and userid = " + u.getId());
         set.next();
         SimpleDateFormat format = new SimpleDateFormat();

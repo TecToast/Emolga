@@ -4,23 +4,20 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.draft.Draft;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
 
 public class DraftsetupCommand extends Command {
     public DraftsetupCommand() {
-        super("draftsetup", "`!draftsetup <Name> <Textchannel>` Startet das Draften der Liga in diesem Channel (im angegebenen Textchannel werden die Teams angezeigt)", CommandCategory.Draft);
+        super("draftsetup", "Startet das Draften der Liga in diesem Channel (im angegebenen Textchannel werden die Teams angezeigt)", CommandCategory.Draft);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("name", "Name", "Der Name der Liga/des Drafts", ArgumentManagerTemplate.Text.any())
+                .add("tc", "Channel", "Der Channel, wo die Teamübersicht sein soll", ArgumentManagerTemplate.DiscordType.CHANNEL)
+                .setExample("!draftsetup Emolga-Conference #emolga-teamübersicht")
+                .build());
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
-        String name = msg.split(" ")[1];
-        String tcid = m.getMentionedChannels().get(0).getId();
-        new Draft(tco, name, tcid, false);
+        ArgumentManager args = e.getArguments();
+        new Draft(e.getChannel(), args.getText("name"), args.getChannel("tc").getId(), false);
     }
 }

@@ -1,7 +1,7 @@
 package de.tectoast.emolga;
 
-import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.bot.EmolgaMain;
+import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.database.Database;
 
 import javax.security.auth.login.LoginException;

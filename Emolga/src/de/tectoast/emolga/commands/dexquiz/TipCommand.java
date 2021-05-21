@@ -9,7 +9,8 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class TipCommand extends Command {
     public TipCommand() {
-        super("tip", "`!tip` Zeigt einen Tipp für den derzeitigen Eintrag", CommandCategory.Dexquiz);
+        super("tip", "Zeigt einen Tipp für den derzeitigen Eintrag", CommandCategory.Dexquiz);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

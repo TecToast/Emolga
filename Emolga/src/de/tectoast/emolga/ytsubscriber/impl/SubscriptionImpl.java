@@ -27,8 +27,8 @@ public class SubscriptionImpl implements Subscription {
     /**
      * Creates a new subscription.
      *
-     * @param feedUri feedUri
-     * @param hubUri hubUri
+     * @param feedUri    feedUri
+     * @param hubUri     hubUri
      * @param subscriber subscriber
      */
     public SubscriptionImpl(URI feedUri, URI hubUri, Subscriber subscriber) {
@@ -46,7 +46,7 @@ public class SubscriptionImpl implements Subscription {
             this.id = String.format("%1$032x", i);
 
             m = MessageDigest.getInstance("MD5");
-            s = feedUri.toString() + hubUri.toString() + Math.random();
+            s = feedUri.toString() + hubUri + Math.random();
             data = s.getBytes();
             m.update(data, 0, data.length);
             i = new BigInteger(1, m.digest());

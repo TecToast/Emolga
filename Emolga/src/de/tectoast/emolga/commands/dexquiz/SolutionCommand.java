@@ -9,7 +9,8 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class SolutionCommand extends Command {
     public SolutionCommand() {
-        super("solution", "`!solution` Zeigt die Lösung des derzeitigen Eintrags", CommandCategory.Dexquiz);
+        super("solution", "Zeigt die Lösung des derzeitigen Eintrags", CommandCategory.Dexquiz);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

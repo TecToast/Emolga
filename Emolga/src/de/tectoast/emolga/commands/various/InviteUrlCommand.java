@@ -6,7 +6,8 @@ import de.tectoast.emolga.commands.GuildCommandEvent;
 
 public class InviteUrlCommand extends Command {
     public InviteUrlCommand() {
-        super("inviteurl", "`!inviteurl` Sendet die URL, mit dem man diesen Bot auf andere Server einladen kann", CommandCategory.Various);
+        super("inviteurl", "Sendet die URL, mit dem man diesen Bot auf andere Server einladen kann", CommandCategory.Various);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override

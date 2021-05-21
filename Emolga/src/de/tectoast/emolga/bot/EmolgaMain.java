@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.Giveaway;
 import de.tectoast.emolga.utils.MessageWaiter;
-import de.tectoast.emolga.utils.ModManager;
 import de.tectoast.emolga.ytsubscriber.NotificationCallback;
 import de.tectoast.toastilities.managers.ReactionManager;
 import net.dv8tion.jda.api.JDA;
@@ -16,12 +15,15 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.security.auth.login.LoginException;
-import java.io.*;
+import java.io.IOException;
 import java.nio.file.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.function.Consumer;
 
 import static de.tectoast.emolga.commands.Command.*;
@@ -30,9 +32,9 @@ public class EmolgaMain {
 
     public static final MessageWaiter messageWaiter = new MessageWaiter();
     public static final ArrayList<Giveaway> todel = new ArrayList<>();
-    public static JDA jda;
     public static final ArrayList<String> alreadywritten = new ArrayList<>();
     public static final HashMap<String, Consumer<String>> sdmessages = new HashMap<>();
+    public static JDA jda;
     public static final NotificationCallback parseYT = feed -> {
 
         System.out.println(feed.toString(4));
@@ -109,12 +111,10 @@ public class EmolgaMain {
         }, 0, 60000);
         ReactionManager manager = new ReactionManager(jda);
         manager.registerReaction("715249205186265178", "813025531779743774", "813025179114405898", "719928482544484352")
-        .registerReaction("715249205186265178", "813025531779743774", "813025403098628097", "813005659619590184")
-        .registerReaction("715249205186265178", "813025531779743774", "813025709232488480", "813027599743713320")
+                .registerReaction("715249205186265178", "813025531779743774", "813025403098628097", "813005659619590184")
+                .registerReaction("715249205186265178", "813025531779743774", "813025709232488480", "813027599743713320")
                 .registerReaction("540899923789611018", "820784528888561715", "820781668586618901", "820783085976420372")
                 .registerReaction("830146866812420116", "830391184459300915", "540969934457667613", "830392346348355594");
-        new ModManager("default", "./ShowdownData/");
-        new ModManager("nml", "../Showdown/sspserver/data/");
         sdmessages.put("joinServer", str -> jda.getTextChannelById("791284726677766155").sendMessage(str + " hat den Server betreten!").queue());
         sdmessages.put("leaveServer", str -> jda.getTextChannelById("791284726677766155").sendMessage(str + " hat den Server verlassen!").queue());
         sdmessages.put("manualMessage", str -> {
@@ -133,12 +133,12 @@ public class EmolgaMain {
                         final Path changed = (Path) event.context();
                         if (changed.endsWith("send.txt")) {
                             String message = String.join("\n", Files.readAllLines(path.resolve("send.txt")));
-                            if(message.length() < 1) continue;
-                            if(alreadywritten.remove(message)) continue;
+                            if (message.length() < 1) continue;
+                            if (alreadywritten.remove(message)) continue;
                             alreadywritten.add(message);
                             System.out.println("Message from SD: " + message);
                             String type = message.split("\\|")[0];
-                            if(!sdmessages.containsKey(type)) {
+                            if (!sdmessages.containsKey(type)) {
                                 sendToMe(type + " wurde noch nicht registriert!"); // Should never happen
                             } else {
                                 sdmessages.get(type).accept(message.substring(type.length() + 1));
@@ -216,7 +216,7 @@ public class EmolgaMain {
                     }
                 });
                 if (i >= 5) i = 0;
-                Giveaway.giveaways.removeAll(todel);
+                todel.forEach(Giveaway.giveaways::remove);
                 boolean modified = false;
                 for (Giveaway giveaway : todel) {
                     modified = true;

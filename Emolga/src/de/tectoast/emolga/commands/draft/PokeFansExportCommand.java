@@ -14,12 +14,15 @@ import static de.tectoast.emolga.bot.EmolgaMain.jda;
 
 public class PokeFansExportCommand extends Command {
     public PokeFansExportCommand() {
-        super("pokefansexport", "`!pokefansexport <Draftname>` Macht Pokefans Export lol", CommandCategory.Flo);
+        super("pokefansexport", "Macht Pokefans Export lol", CommandCategory.Flo);
+        setArgumentTemplate(ArgumentManagerTemplate.builder().add("draft", "Draft-Name", "Der Name der Liga, für die der Export gemacht werden soll", ArgumentManagerTemplate.draft())
+                .setExample("!pokefansexport Emolga-Conference")
+                .build());
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(e.getArg(0));
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(e.getArguments().getText("draft"));
         JSONObject picksObj = league.getJSONObject("picks");
         JSONArray tosend = new JSONArray();
         ArrayList<String> ids = new ArrayList<>(picksObj.keySet());

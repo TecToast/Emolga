@@ -10,7 +10,8 @@ import org.json.JSONObject;
 
 public class EmolgaDiktaturCommand extends Command {
     public EmolgaDiktaturCommand() {
-        super("emolgadiktatur", "`!emolgadiktatur` EMOLGADIKTATUR", CommandCategory.Flo);
+        super("emolgadiktatur", "EMOLGADIKTATUR", CommandCategory.Flo);
+        setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
     @Override
@@ -21,9 +22,9 @@ public class EmolgaDiktaturCommand extends Command {
         e.getChannel().sendMessage("**Möge die Emolga-Diktatur beginnen!**").queue();
         g.loadMembers().onSuccess(list -> {
             for (Member member : list) {
-                if(member.isOwner()) continue;
-                if(member.getId().equals(e.getJDA().getSelfUser().getId())) member.modifyNickname("Diktator").queue();
-                if(!g.getSelfMember().canInteract(member)) continue;
+                if (member.isOwner()) continue;
+                if (member.getId().equals(e.getJDA().getSelfUser().getId())) member.modifyNickname("Diktator").queue();
+                if (!g.getSelfMember().canInteract(member)) continue;
                 members.put(member.getId(), member.getEffectiveName());
                 member.modifyNickname("Emolga-Anhänger").queue();
             }

@@ -5,47 +5,41 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.TextChannel;
 import org.json.JSONObject;
-
-import java.util.List;
 
 public class ResetCooldownCommand extends Command {
     public ResetCooldownCommand() {
-        super("resetcooldown", "`!resetcooldown @User` Resettet den Cooldown der angegebenen Person", CommandCategory.Moderator, Constants.BSID, Constants.ASLID);
+        super("resetcooldown", "Resettet den Cooldown der angegebenen Person", CommandCategory.Moderator, Constants.BSID, Constants.ASLID);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("user", "User", "Der User, dessen Cooldown resettet werden soll", ArgumentManagerTemplate.DiscordType.USER)
+                .setExample("!resetcooldown @CoolerUser")
+                .build());
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        JSONObject json = getEmolgaJSON();
-        List<Member> list = e.getMessage().getMentionedMembers();
-        TextChannel tco = e.getChannel();
-        String gid = e.getGuild().getId();
-        if (list.size() != 1) {
-            tco.sendMessage("Du musst einen Member taggen!").queue();
-            return;
-        }
-        Member mem = list.get(0);
-        String mid = mem.getId();
+        Member mem = e.getArguments().getMember("user");
         String name = "**" + mem.getEffectiveName() + "**";
-        JSONObject c = json.getJSONObject("cooldowns");
+        JSONObject c = getEmolgaJSON().getJSONObject("cooldowns");
+        String gid = e.getGuild().getId();
         if (!c.has(gid)) {
-            tco.sendMessage("Auf diesem Server hat noch nie jemand seinen Namen geändert!").queue();
+            e.reply("Auf diesem Server hat noch nie jemand seinen Namen geändert!");
             return;
         }
+        String mid = mem.getId();
         JSONObject o = c.getJSONObject(gid);
         if (!o.has(mid)) {
-            tco.sendMessage(name + " hat noch nie seinen Nickname geändert!").queue();
+            e.reply(name + " hat noch nie seinen Nickname geändert!");
             return;
         }
         long l = Long.parseLong(o.getString(mid));
         long untilnow = System.currentTimeMillis() - l;
         if (untilnow >= 604800000) {
-            tco.sendMessage(name + " darf seinen Namen bereits wieder ändern!").queue();
+            e.reply(name + " darf seinen Namen bereits wieder ändern!");
             return;
         }
         o.put(mid, "-1");
-        tco.sendMessage("Der Cooldown von " + name + " wurde resettet!").queue();
+        e.reply("Der Cooldown von " + name + " wurde resettet!");
         saveEmolgaJSON();
     }
 }

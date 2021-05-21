@@ -19,27 +19,28 @@ import java.util.stream.Collectors;
 
 public class UpdatepicksCommand extends Command {
     public UpdatepicksCommand() {
-        super("updatepicks", "`!updatepicks <Text-Channel> <Name>`", CommandCategory.Flo);
+        super("updatepicks", "Updatet die Picks in einem Channel", CommandCategory.Flo);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("channel", "Text-Channel", "Der Channel, wo die Picks drin stehen", ArgumentManagerTemplate.DiscordType.CHANNEL)
+                .add("name", "Draft-Name", "Der Name des Drafts", ArgumentManagerTemplate.draft())
+                .setExample("!updatepicks #emolga-teamübersicht Emolga-Conference")
+                .build());
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentRaw();
-        String[] split = msg.split(" ");
-        String name = split[2];
-        TextChannel tc = m.getMentionedChannels().get(0);
+        ArgumentManager args = e.getArguments();
+        TextChannel tc = args.getChannel("channel");
         Guild g = tc.getGuild();
         JSONObject json = getEmolgaJSON();
         if (!json.has("drafts")) {
-            tco.sendMessage("Es wurde noch kein draft erstellt!").queue();
+            e.reply("Es wurde noch kein Draft erstellt!");
             return;
         }
         JSONObject drafts = json.getJSONObject("drafts");
         if (e.getGuild().getIdLong() == Constants.ASLID) drafts = drafts.getJSONObject("ASLS7");
         if (!drafts.has(name)) {
-            tco.sendMessage("Es gibt keine Liga mit dem Namen " + name + "!").queue();
+            e.reply("Es gibt keine Liga mit dem Namen " + name + "!");
             return;
         }
         JSONObject league = drafts.getJSONObject(name);
@@ -65,7 +66,7 @@ public class UpdatepicksCommand extends Command {
             //tco.sendMessage(mes.toString()).queue();
             i++;
         }
-        tco.sendMessage("Success!").queue();
+        e.done();
     }
 
 }

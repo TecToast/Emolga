@@ -9,7 +9,14 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class TempMuteCommand extends Command {
     public TempMuteCommand() {
-        super("tempmute", "`!tempmute <User> <Zeit> [Grund]` Muted den User temporär", CommandCategory.Moderator);
+        super("tempmute", "Muted den User temporär", CommandCategory.Moderator);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("user", "User", "User, der getempmuted werden soll", ArgumentManagerTemplate.DiscordType.USER)
+                .add("time", "Zeit", "Zeitspanne, für die der User gemutet werden soll", ArgumentManagerTemplate.Text.any())
+                .add("reason", "Grund", "Grund des Tempmutes", ArgumentManagerTemplate.Text.any())
+                .setNoCheck(true)
+                .setExample("!tempban @BöserUser123 1d Hat böse Wörter verwendet")
+                .build());
     }
 
     @Override

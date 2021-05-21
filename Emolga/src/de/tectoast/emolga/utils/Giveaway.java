@@ -125,7 +125,7 @@ public class Giveaway {
         try {
 
             Optional<MessageReaction> opt;
-            if(messageId.equals("775761399737352222")) {
+            if (messageId.equals("775761399737352222")) {
                 opt = EmolgaMain.jda.getTextChannelById(channelId).retrieveMessageById(messageId).complete().getReactions().stream().filter(mr -> mr.getReactionEmote().isEmoji() && mr.getReactionEmote().getEmoji().equals("\uD83C\uDF89")).findFirst();
             } else {
                 opt = EmolgaMain.jda.getTextChannelById(channelId).retrieveMessageById(messageId).complete().getReactions().stream().filter(mr -> mr.getReactionEmote().isEmote() && mr.getReactionEmote().getEmote().getId().equals("772191611487780934")).findFirst();

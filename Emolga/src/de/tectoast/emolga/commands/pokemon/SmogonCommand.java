@@ -11,41 +11,40 @@ import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import java.io.IOException;
+
 public class SmogonCommand extends Command {
     public SmogonCommand() {
-        super("smogon", "`!smogon <pokemon>` Zeigt die vorgeschlagenen Smogon-Sets für Gen 8", CommandCategory.Pokemon);
+        super("smogon", "Zeigt die vorgeschlagenen Smogon-Sets für Gen 8", CommandCategory.Pokemon);
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("form", "Form", "Optionale alternative Form", ArgumentManagerTemplate.Text.of(
+                        SubCommand.of("Alola"), SubCommand.of("Galar"), SubCommand.of("Mega")
+                ), true)
+                .addEngl("mon", "Pokemon", "Das Pokemon... lol", Translation.Type.POKEMON)
+                .setExample("!smogon Primarene")
+                .build());
     }
 
 
     @Override
-    public void process(GuildCommandEvent e) {
+    public void process(GuildCommandEvent e) throws IOException {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();
         Member member = e.getMember();
-        String name = msg.substring(8);
         Document wiki;
-        Document d;
-        try {
-            d = Jsoup.connect("https://www.smogon.com/dex/ss/pokemon/" + name.toLowerCase() + "/").get();
-        } catch (Exception ex) {
-            try {
-                wiki = Jsoup.connect("https://www.pokewiki.de/" + name).get();
-                name = wiki.select("span").get(18).text();
-                if (name.equals("en")) name = wiki.select("span").get(19).text();
-                d = Jsoup.connect("https://www.smogon.com/dex/ss/pokemon/" + name.toLowerCase() + "/").get();
-            } catch (Exception exception) {
-                tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
-                return;
-            }
-        }
+        ArgumentManager args = e.getArguments();
+        String name = args.getTranslation("mon").getTranslation();
+        String form = args.has("form") ? "-" + args.getText("form").toLowerCase() : "";
+        Document d = Jsoup.connect("https://www.smogon.com/dex/ss/pokemon/" + name.toLowerCase() + form + "/").get();
+
 
         if (new JSONObject(d.select("script").first().html().substring(14)).getJSONArray("injectRpcs").getJSONArray(2).getJSONObject(1).getJSONArray("strategies").length() == 0) {
             try {
-                d = Jsoup.connect("https://www.smogon.com/dex/sm/pokemon/" + name.toLowerCase() + "/").get();
+                d = Jsoup.connect("https://www.smogon.com/dex/sm/pokemon/" + name.toLowerCase() + form + "/").get();
                 tco.sendMessage("Gen 7:").queue();
             } catch (Exception ex) {
-                tco.sendMessage("Es gibt kein Moveset für dieses pokemon!").queue();
+                tco.sendMessage("Es gibt kein Moveset für dieses Pokemon!").queue();
                 return;
             }
         }
@@ -66,7 +65,7 @@ public class SmogonCommand extends Command {
                 JSONArray moveslots = ms.getJSONArray("moveslots");
                 StringBuilder moves = new StringBuilder("- ");
                 for (int i = 0; i < 4; i++) {
-                    for(int j = 0; ; j++) {
+                    for (int j = 0; ; j++) {
                         try {
                             moves.append(moveslots.getJSONArray(i).getJSONObject(j).getString("move")).append(" / ");
                         } catch (Exception ex) {
@@ -110,11 +109,11 @@ public class SmogonCommand extends Command {
         System.out.println(items);
         System.out.println(evs);*/
 
-                String moveset = eachWordUpperCase(name) + " @ " + items.toString() + "\n" +
-                        "Ability: " + abilities.toString() + "\n" +
-                        "EVs: " + evs.toString() + "\n" +
-                        nature.toString() + " Nature" + "\n" +
-                        moves.toString();
+                String moveset = eachWordUpperCase(name) + " @ " + items + "\n" +
+                        "Ability: " + abilities + "\n" +
+                        "EVs: " + evs + "\n" +
+                        nature + " Nature" + "\n" +
+                        moves;
                 tco.sendMessage(moveset).queue();
             } catch (Exception ex) {
                 break;

@@ -18,6 +18,6 @@ public class GoinCommand extends Command {
     @Override
     public void process(GuildCommandEvent e) {
         ArgumentManager args = e.getArguments();
-        loadAndPlay(e.getChannel(), args.getText("link"), EmolgaMain.jda.getVoiceChannelById(args.getID("vid")));
+        loadAndPlay(e.getChannel(), args.getText("link"), EmolgaMain.emolgajda.getVoiceChannelById(args.getID("vid")));
     }
 }

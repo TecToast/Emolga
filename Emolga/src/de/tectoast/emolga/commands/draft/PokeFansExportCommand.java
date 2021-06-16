@@ -10,14 +10,15 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 
-import static de.tectoast.emolga.bot.EmolgaMain.jda;
+import static de.tectoast.emolga.bot.EmolgaMain.emolgajda;
 
 public class PokeFansExportCommand extends Command {
     public PokeFansExportCommand() {
-        super("pokefansexport", "Macht Pokefans Export lol", CommandCategory.Flo);
+        super("pokefansexport", "Macht Pokefans Export lol", CommandCategory.Draft);
         setArgumentTemplate(ArgumentManagerTemplate.builder().add("draft", "Draft-Name", "Der Name der Liga, für die der Export gemacht werden soll", ArgumentManagerTemplate.draft())
                 .setExample("!pokefansexport Emolga-Conference")
                 .build());
+        setCustomPermissions(PermissionPreset.CULT);
     }
 
     @Override
@@ -27,7 +28,7 @@ public class PokeFansExportCommand extends Command {
         JSONArray tosend = new JSONArray();
         ArrayList<String> ids = new ArrayList<>(picksObj.keySet());
         HashMap<String, String> names = new HashMap<>();
-        jda.getGuildById(league.getString("guild")).retrieveMembersByIds(ids.toArray(new String[0])).get().forEach(mem -> names.put(mem.getId(), mem.getEffectiveName()));
+        emolgajda.getGuildById(league.getString("guild")).retrieveMembersByIds(ids.toArray(new String[0])).get().forEach(mem -> names.put(mem.getId(), mem.getEffectiveName()));
         for (String id : ids) {
             JSONArray picksArr = picksObj.getJSONArray(id);
             JSONArray oneUser = new JSONArray();

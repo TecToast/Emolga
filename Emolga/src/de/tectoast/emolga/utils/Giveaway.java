@@ -94,7 +94,7 @@ public class Giveaway {
     }
 
     private String messageLink() {
-        return String.format("\n<https://discordapp.com/channels/%s/%s/%s>", EmolgaMain.jda.getTextChannelById(channelId).getGuild().getIdLong(), channelId, messageId);
+        return String.format("\n<https://discordapp.com/channels/%s/%s/%s>", EmolgaMain.emolgajda.getTextChannelById(channelId).getGuild().getIdLong(), channelId, messageId);
     }
 
     public void end() {
@@ -126,12 +126,12 @@ public class Giveaway {
 
             Optional<MessageReaction> opt;
             if (messageId.equals("775761399737352222")) {
-                opt = EmolgaMain.jda.getTextChannelById(channelId).retrieveMessageById(messageId).complete().getReactions().stream().filter(mr -> mr.getReactionEmote().isEmoji() && mr.getReactionEmote().getEmoji().equals("\uD83C\uDF89")).findFirst();
+                opt = EmolgaMain.emolgajda.getTextChannelById(channelId).retrieveMessageById(messageId).complete().getReactions().stream().filter(mr -> mr.getReactionEmote().isEmoji() && mr.getReactionEmote().getEmoji().equals("\uD83C\uDF89")).findFirst();
             } else {
-                opt = EmolgaMain.jda.getTextChannelById(channelId).retrieveMessageById(messageId).complete().getReactions().stream().filter(mr -> mr.getReactionEmote().isEmote() && mr.getReactionEmote().getEmote().getId().equals("772191611487780934")).findFirst();
+                opt = EmolgaMain.emolgajda.getTextChannelById(channelId).retrieveMessageById(messageId).complete().getReactions().stream().filter(mr -> mr.getReactionEmote().isEmote() && mr.getReactionEmote().getEmote().getId().equals("772191611487780934")).findFirst();
             }
             ArrayList<Member> members = new ArrayList<>();
-            opt.ifPresent(mr -> mr.retrieveUsers().complete().stream().filter(u -> !u.isBot() && !u.getId().equals(userId)).forEach(u -> members.add(EmolgaMain.jda.getTextChannelById(channelId).getGuild().retrieveMember(u).complete())));
+            opt.ifPresent(mr -> mr.retrieveUsers().complete().stream().filter(u -> !u.isBot() && !u.getId().equals(userId)).forEach(u -> members.add(EmolgaMain.emolgajda.getTextChannelById(channelId).getGuild().retrieveMember(u).complete())));
             ArrayList<Member> wins = new ArrayList<>();
             if (members.size() > 0)
                 for (int i = 0; i < winners; i++) {
@@ -155,14 +155,14 @@ public class Giveaway {
             }
             mb.setEmbed(eb.appendDescription("\nGehostet von: <@" + (isRole ? "&" : "") + userId + ">").build());
             EmolgaMain.todel.add(this);
-            EmolgaMain.jda.getTextChannelById(channelId).editMessageById(messageId, mb.build()).queue();
-            EmolgaMain.jda.getTextChannelById(channelId).sendMessage(toSend).queue();
+            EmolgaMain.emolgajda.getTextChannelById(channelId).editMessageById(messageId, mb.build()).queue();
+            EmolgaMain.emolgajda.getTextChannelById(channelId).sendMessage(toSend).queue();
 
         } catch (Exception e) {
             e.printStackTrace();
             mb.setEmbed(eb.setDescription("Es konnte kein Gewinner festgestellt werden!\nGehostet von: <@" + (isRole ? "&" : "") + userId + ">").build());
-            EmolgaMain.jda.getTextChannelById(channelId).editMessageById(messageId, mb.build()).queue();
-            EmolgaMain.jda.getTextChannelById(channelId).sendMessage("Es konnte kein Gewinner festgestellt werden!").queue();
+            EmolgaMain.emolgajda.getTextChannelById(channelId).editMessageById(messageId, mb.build()).queue();
+            EmolgaMain.emolgajda.getTextChannelById(channelId).sendMessage("Es konnte kein Gewinner festgestellt werden!").queue();
         }
     }
 }

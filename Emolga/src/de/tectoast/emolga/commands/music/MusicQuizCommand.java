@@ -35,7 +35,7 @@ public class MusicQuizCommand extends Command {
         VoiceChannel vc = e.getJDA().getVoiceChannelById(e.getArguments().getID("vid"));
         vc.getGuild().getAudioManager().openAudioConnection(vc);
         GuildMusicManager musicManager = getGuildAudioPlayer(vc.getGuild());
-        playerManager.loadItemOrdered(musicManager, links.get(e.getArguments().getText("playlist")), new AudioLoadResultHandler() {
+        getPlayerManager(vc.getGuild()).loadItemOrdered(musicManager, links.get(e.getArguments().getText("playlist")), new AudioLoadResultHandler() {
 
 
             @Override

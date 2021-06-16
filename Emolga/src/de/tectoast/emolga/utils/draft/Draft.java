@@ -253,7 +253,7 @@ public class Draft {
                             }
                             CompletableFuture.allOf(list.toArray(new CompletableFuture[0])).whenComplete((unused, throwable) -> {
                                 saveEmolgaJSON();
-                                sendEarlyASLReplays(gameday);
+                                //sendEarlyASLReplays(gameday);
                             });
                         }
                     }, delay < 0 ? 0 : delay);

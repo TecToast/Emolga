@@ -16,7 +16,7 @@ public class TeamCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         e.getGuild().loadMembers().onSuccess(l -> {
             ArrayList<Member> list = new ArrayList<>();
             for (Member mem : l) {

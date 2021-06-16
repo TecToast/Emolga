@@ -89,7 +89,7 @@ public class SpielplanCommand extends Command {
                     public void run() {
                         JSONObject json = getEmolgaJSON();
                         JSONObject league = json.getJSONObject("drafts").getJSONObject(name);
-                        Guild g = EmolgaMain.jda.getGuildById(league.getString("guild"));
+                        Guild g = EmolgaMain.emolgajda.getGuildById(league.getString("guild"));
                         TextChannel tc = g.getTextChannelById(league.getString("announcementchannel"));
                         StringBuilder s = new StringBuilder("**Spieltag " + finalI + ":**\n");
                         for (String order : league.getJSONObject("battleorder").getString(String.valueOf(finalI)).split(";")) {

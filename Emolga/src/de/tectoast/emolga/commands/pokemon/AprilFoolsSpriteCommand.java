@@ -25,7 +25,7 @@ public class AprilFoolsSpriteCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         String suffix;
         ArgumentManager args = e.getArguments();
         if (args.has("form")) {

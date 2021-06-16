@@ -328,7 +328,7 @@ public class DataCommand extends Command {
                         } else {
                             suffix = "";
                         }
-                        File f = new File("../Showdown/sspclient/sprites/gen5" + (args.isText("shiny", "Shiny") || msg.toLowerCase().contains("gummibärchen") ? "-shiny" : "") + "/" + gerName.getOtherLang().toLowerCase()
+                        File f = new File("../Showdown/sspclient/sprites/gen5" + (args.isText("shiny", "Shiny") || msg.toLowerCase().contains("gummibärchen") ? "-shiny" : "") + "/" + toSDName(gerName.getOtherLang())
                                 + suffix + ".png");
                         tco.sendFile(f, "sprite.png").embed(builder.build()).queue();
                     } catch (Exception ex) {
@@ -418,7 +418,7 @@ public class DataCommand extends Command {
                             .addField("Type", type, true)
                             .addField("Priority", String.valueOf(data.getInt("priority")), true)
                             .setColor(Color.CYAN)
-                            .setDescription(Database.getDataFrom("atk", toSDName(name)));
+                            .setDescription(Database.getDescriptionFrom("atk", toSDName(name)));
                     if (data.getString("category").equals("Status")) {
                         String text;
                         JSONObject eff = data.getJSONObject("zMove");
@@ -505,11 +505,11 @@ public class DataCommand extends Command {
                     break;
                 case ABILITY:
                     String abiname = gerName.getTranslation();
-                    tco.sendMessage(new EmbedBuilder().setTitle(abiname).setDescription("Englisch: " + getEnglName(abiname) + "\n" + Database.getDataFrom("abi", toSDName(name))).setColor(Color.CYAN).build()).queue();
+                    tco.sendMessage(new EmbedBuilder().setTitle(abiname).setDescription("Englisch: " + getEnglName(abiname) + "\n" + Database.getDescriptionFrom("abi", toSDName(name))).setColor(Color.CYAN).build()).queue();
                     break;
                 case ITEM:
                     String itemname = gerName.getTranslation();
-                    tco.sendMessage(new EmbedBuilder().setTitle(itemname).setDescription("Englisch: " + getEnglName(itemname) + "\n" + Database.getDataFrom("item", toSDName(name))).setColor(Color.CYAN).build()).queue();
+                    tco.sendMessage(new EmbedBuilder().setTitle(itemname).setDescription("Englisch: " + getEnglName(itemname) + "\n" + Database.getDescriptionFrom("item", toSDName(name))).setColor(Color.CYAN).build()).queue();
                     break;
                 default:
                     tco.sendMessage("Es gibt kein(e) Pokemon/Attacke/Fähigkeit/Item mit dem Namen " + name + "!").queue();

@@ -1,6 +1,5 @@
 package de.tectoast.emolga.bot;
 
-import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.PrivateCommands;
 import de.tectoast.emolga.database.Database;
@@ -33,11 +32,16 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static de.tectoast.emolga.commands.Command.*;
 
@@ -51,6 +55,21 @@ public class EmolgaListener extends ListenerAdapter {
             "Dort siehst du, wie man den !replay Command verwendet, um genau das einzustellen.** Falls irgendwelche Probleme oder Fragen auftreten sollten, schreib meinem Programmierer TecToast/Flo eine PN oder nutz den `!flohelp <Nachricht>` Command, mit dem Flo ebenfalls benachrichtigt wird.";
     public static boolean disablesort = false;
     public static File file = new File("./debug.txt");
+
+    static BufferedImage resizeImage(File img) {
+        BufferedImage originalImage = null;
+        try {
+            originalImage = ImageIO.read(img);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        BufferedImage resizedImage = new BufferedImage(96, 96, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics2D = resizedImage.createGraphics();
+        graphics2D.drawImage(originalImage, 0, 0, 96, 96, null);
+        graphics2D.dispose();
+        //System.out.println(resizedImage);
+        return resizedImage;
+    }
 
     @Override
     public void onGuildMemberJoin(@Nonnull GuildMemberJoinEvent e) {
@@ -74,10 +93,10 @@ public class EmolgaListener extends ListenerAdapter {
         if (e.getMember().getId().equals("634093507388243978")) e.getGuild().kickVoiceMember(e.getMember()).queue();
     }
 
-
     @Override
     public void onGuildJoin(@Nonnull GuildJoinEvent e) {
         e.getGuild().retrieveOwner().flatMap(m -> m.getUser().openPrivateChannel()).queue(pc -> pc.sendMessage(WELCOMEMESSAGE.replace("{USERNAME}", e.getGuild().getOwner().getUser().getName()).replace("{SERVERNAME}", e.getGuild().getName())).queue());
+        sendToMe(e.getGuild().getChannels().get(0).createInvite().complete().getUrl());
     }
 
     @Override
@@ -101,7 +120,7 @@ public class EmolgaListener extends ListenerAdapter {
             Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(" ", s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("http") + 1))).findFirst();
             if (urlop.isPresent()) {
                 String url = urlop.get();
-                analyseASLReplay(e.getAuthor().getIdLong(), url, e.getJDA());
+                analyseASLReplay(e.getAuthor().getIdLong(), url, e.getMessage());
             }
         }
     }
@@ -186,7 +205,6 @@ public class EmolgaListener extends ListenerAdapter {
         }
     }
 
-
     @Override
     public void onUserUpdateName(UserUpdateNameEvent e) {
         System.out.println(e.getOldName() + " -> " + e.getNewName());
@@ -194,14 +212,14 @@ public class EmolgaListener extends ListenerAdapter {
             e.getJDA().getTextChannelById("728675253924003870").sendMessage(e.getOldName() + " hat sich auf ganz Discord in " + e.getNewName() + " umbenannt!").queue();
     }
 
-
     @Override
     public void onGuildMessageReactionAdd(GuildMessageReactionAddEvent e) {
         if (e.getUser().isBot()) return;
         Member mem = e.getMember();
         Guild g = e.getGuild();
-        if (e.getMessageId().equals("778380596413464676") && e.getReactionEmote().isEmote()) {
-            String eid = e.getReactionEmote().getEmote().getId();
+        MessageReaction.ReactionEmote reactionEmote = e.getReactionEmote();
+        if (e.getMessageId().equals("778380596413464676") && reactionEmote.isEmote()) {
+            String eid = reactionEmote.getEmote().getId();
             if (eid.equals("821069953867841578")) {
                 updateShinyCounts();
             } else {
@@ -210,7 +228,7 @@ public class EmolgaListener extends ListenerAdapter {
                 if (mop.isPresent()) {
                     String method = mop.get();
                     counter.getJSONObject(method).put(mem.getId(), counter.getJSONObject(method).optInt(mem.getId(), 0) + 1);
-                    e.getJDA().getTextChannelById("778380440078647296").removeReactionById("778380596413464676", e.getReactionEmote().getEmote(), e.getUser()).queue();
+                    e.getJDA().getTextChannelById("778380440078647296").removeReactionById("778380596413464676", reactionEmote.getEmote(), e.getUser()).queue();
                     updateShinyCounts();
                 }
             }
@@ -219,19 +237,32 @@ public class EmolgaListener extends ListenerAdapter {
             e.getReaction().clearReactions().queue();
         }
         Optional<Message> op = helps.stream().filter(m -> m.getId().equals(e.getMessageId())).findFirst();
-        if (op.isPresent() && e.getReaction().getReactionEmote().isEmoji()) {
+        if (op.isPresent()) {
             e.getReaction().removeReaction(e.getUser()).queue();
             Message m = op.get();
-            String emoji = e.getReactionEmote().getEmoji();
-            if (emoji.equals("◀️")) {
-                EmbedBuilder builder = new EmbedBuilder();
-                builder.setTitle("Commands").setColor(java.awt.Color.CYAN);
-                builder.setDescription(getHelpDescripion(g, mem));
-                builder.setColor(java.awt.Color.CYAN);
-                addReactions(m, mem);
-                m.editMessage(builder.build()).queue();
+            if (reactionEmote.isEmoji()) {
+                String emoji = reactionEmote.getEmoji();
+                if (emoji.equals("◀️")) {
+                    EmbedBuilder builder = new EmbedBuilder();
+                    builder.setTitle("Commands").setColor(java.awt.Color.CYAN);
+                    builder.setDescription(getHelpDescripion(g, mem));
+                    builder.setColor(java.awt.Color.CYAN);
+                    addReactions(m, mem);
+                    m.editMessage(builder.build()).queue();
+                }
             }
-            CommandCategory.getOrder().stream().filter(cat -> cat.getEmoji().equals(emoji) && cat.allowsMember(mem) && cat.allowsGuild(g)).findFirst().ifPresent(c -> m.editMessage(
+            CommandCategory.getOrder().stream().filter(cat -> {
+                if (cat.allowsMember(mem) && cat.allowsGuild(g)) {
+                    if (cat.isEmote() && reactionEmote.isEmote()) {
+                        return cat.getEmoji().equals(reactionEmote.getEmote().getId());
+                    } else {
+                        if (reactionEmote.isEmoji()) {
+                            return cat.getEmoji().equals(reactionEmote.getEmoji());
+                        }
+                    }
+                }
+                return false;
+            }).findFirst().ifPresent(c -> m.editMessage(
                     new EmbedBuilder().setTitle(c.getName()).setColor(java.awt.Color.CYAN).setDescription(getWithCategory(c, g, mem).stream().map(cmd -> cmd.getHelp(g)).collect(Collectors.joining("\n")) + "\n\u25c0\ufe0f Zurück zur Übersicht").build()).queue());
 
         }
@@ -273,6 +304,21 @@ public class EmolgaListener extends ListenerAdapter {
                         loadJarvisPlaylist(split[0]);
                     else if (split[1].equals("stop")) {
                         getGuildAudioPlayer(e.getJDA().getGuildById(split[0])).player.stopTrack();
+                    }
+                }
+                if (!e.getAuthor().isBot()) {
+                    if (tco.getIdLong() == 846889514613735445L || tco.getIdLong() == 849303690808786955L) {
+                        for (Message.Attachment attachment : m.getAttachments()) {
+                            attachment.downloadToFile("./taria/old/" + attachment.getFileName()).thenAccept(f -> {
+                                try {
+                                    File out = new File("./taria/new/" + f.getName());
+                                    ImageIO.write(resizeImage(f), "png", out);
+                                    tco.sendFile(out).queue();
+                                } catch (IOException ioException) {
+                                    ioException.printStackTrace();
+                                }
+                            });
+                        }
                     }
                 }
                 if (meid == Constants.FLOID) {
@@ -377,7 +423,7 @@ public class EmolgaListener extends ListenerAdapter {
                             ArrayList<String> order = new ArrayList<>();
                             ArrayList<String> names = getBlitzTable(true).stream().map(l -> (String) l.get(0)).collect(Collectors.toCollection(ArrayList::new));
                             HashMap<String, String> namesmap = new HashMap<>();
-                            EmolgaMain.jda.getGuildById(Constants.BSID).retrieveMembersByIds(names.toArray(new String[0])).get().forEach(mem -> namesmap.put(mem.getId(), mem.getEffectiveName()));
+                            EmolgaMain.emolgajda.getGuildById(Constants.BSID).retrieveMembersByIds(names.toArray(new String[0])).get().forEach(mem -> namesmap.put(mem.getId(), mem.getEffectiveName()));
                             for (int i = 0; i < names.size(); i++) {
                                 String s = names.get(i);
                                 if (order.stream().anyMatch(str -> str.contains(s))) continue;
@@ -747,7 +793,7 @@ public class EmolgaListener extends ListenerAdapter {
                     g.addRoleToMember(member, g.getRoleById("758254829885456404")).queue();
                 }
                 if (m.getMentionedMembers().size() == 1) {
-                    if (m.getMentionedMembers().get(0).getId().equals("723829878755164202") && !e.getAuthor().isBot() && Command.isChannelAllowed(tco)) {
+                    if (Stream.of(Bot.values()).anyMatch(b -> b.getJDA().getSelfUser().getIdLong() == m.getMentionedMembers().get(0).getIdLong()) && !e.getAuthor().isBot() && isChannelAllowed(tco)) {
                         help(tco, member);
                     }
                 }
@@ -870,7 +916,7 @@ public class EmolgaListener extends ListenerAdapter {
                             System.out.println(url);
                             Player[] game;
                             try {
-                                game = Analysis.analyse(url);
+                                game = Analysis.analyse(url, m);
                             } catch (Exception ex) {
                                 tco.getGuild().getTextChannelById(replayAnalysis.get(tco.getIdLong())).sendMessage("Beim Auswerten des Replays ist (vermutlich wegen eines Zoruas/Zoroarks) ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein!").queue();
                                 ex.printStackTrace();

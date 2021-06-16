@@ -5,6 +5,8 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import org.json.JSONObject;
 
+import java.sql.SQLException;
+
 public class AddNickCommand extends Command {
 
     public AddNickCommand() {
@@ -18,7 +20,7 @@ public class AddNickCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) {
+    public void process(GuildCommandEvent e) throws SQLException {
         JSONObject json = getEmolgaJSON().getJSONObject("shortcuts");
         ArgumentManager args = e.getArguments();
         String nick = args.getText("nick");
@@ -26,7 +28,7 @@ public class AddNickCommand extends Command {
             e.reply("**" + nick + "** ist bereits als **" + json.getString(nick.toLowerCase()).split(";")[1] + "** hinterlegt!");
             return;
         }
-        if(getGerName(nick).isSuccess()) {
+        if(getTranslation(nick, "default").next()) {
             e.reply("Nein.");
             return;
         }

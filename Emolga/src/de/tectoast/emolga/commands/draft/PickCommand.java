@@ -86,7 +86,7 @@ public class PickCommand extends Command {
                 tier = tierlist.getTierOf(pokemon);
             }
             if (d.isPicked(pokemon)) {
-                tco.sendMessage(member.getAsMention() + " Dieses Pokemon wurde bereits gepickt!").queue();
+                tco.sendMessage(member.getAsMention() + " Junge bist du scheiße oder was?! (Dieses Pokemon wurde bereits gepickt!)").queue();
                 return;
             }
             int needed = tierlist.getPointsNeeded(pokemon);

@@ -57,7 +57,7 @@ public class NicknameCommand extends Command {
             String oldname = member.getEffectiveName();
             member.modifyNickname(nickname).complete();
             if (g.getId().equals("518008523653775366"))
-                EmolgaMain.jda.getGuildById("518008523653775366").getTextChannelById("728675253924003870").sendMessage(oldname + " hat sich in " + nickname + " umbenannt!").queue();
+                EmolgaMain.emolgajda.getGuildById("518008523653775366").getTextChannelById("728675253924003870").sendMessage(oldname + " hat sich in " + nickname + " umbenannt!").queue();
             tco.sendMessage(member.getAsMention() + " Dein Nickname wurde erfolgreich geändert!").queue();
             json.getJSONObject("cooldowns").getJSONObject(g.getId()).put(member.getId(), Long.toString(System.currentTimeMillis()));
             saveEmolgaJSON();

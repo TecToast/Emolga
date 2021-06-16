@@ -16,7 +16,7 @@ public class DelCommandCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         String name = e.getArguments().getText("name").toLowerCase();
         JSONObject json = getEmolgaJSON().getJSONObject("customcommands");
         if (!json.has(name)) {

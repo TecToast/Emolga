@@ -74,7 +74,7 @@ public class CheckCommand extends Command {
             if (l.isEmpty()) {
                 tco.sendMessage("Niemand hat ein " + mon + " in einem " + ball + "!").queue();
             } else {
-                ArrayList<String> owns = l.stream().map(i -> EmolgaMain.jda.getGuildById("712035338846994502").retrieveMemberById(names.getString(String.valueOf(i))).complete().getEffectiveName()).collect(Collectors.toCollection(ArrayList::new));
+                ArrayList<String> owns = l.stream().map(i -> EmolgaMain.emolgajda.getGuildById("712035338846994502").retrieveMemberById(names.getString(String.valueOf(i))).complete().getEffectiveName()).collect(Collectors.toCollection(ArrayList::new));
                 if (owns.size() == 1) {
                     tco.sendMessage("**" + owns.get(0) + "** hat ein " + mon + " in einem " + ball + "!").queue();
                 } else {
@@ -94,7 +94,7 @@ public class CheckCommand extends Command {
                 String s = (String) list.get(i);
                 if (s.equals("")) continue;
                 ArrayList<Integer> l = Arrays.stream(s.split(";")).map(Integer::parseInt).sorted().collect(Collectors.toCollection(ArrayList::new));
-                ArrayList<String> owns = l.stream().map(j -> EmolgaMain.jda.getGuildById("712035338846994502").retrieveMemberById(names.getString(String.valueOf(j))).complete().getEffectiveName()).collect(Collectors.toCollection(ArrayList::new));
+                ArrayList<String> owns = l.stream().map(j -> EmolgaMain.emolgajda.getGuildById("712035338846994502").retrieveMemberById(names.getString(String.valueOf(j))).complete().getEffectiveName()).collect(Collectors.toCollection(ArrayList::new));
                 map.put(balls.get(i), "**" + String.join("**, **", owns) + "**");
             }
             StringBuilder builder = new StringBuilder(mon + ":\n");

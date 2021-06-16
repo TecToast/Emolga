@@ -33,8 +33,8 @@ public class Result {
     public Result(String u1, String u2) {
         this.u1 = u1;
         this.u2 = u2;
-        this.name1 = EmolgaMain.jda.getGuildById("712035338846994502").retrieveMemberById(u1).complete().getEffectiveName();
-        this.name2 = EmolgaMain.jda.getGuildById("712035338846994502").retrieveMemberById(u2).complete().getEffectiveName();
+        this.name1 = EmolgaMain.emolgajda.getGuildById("712035338846994502").retrieveMemberById(u1).complete().getEffectiveName();
+        this.name2 = EmolgaMain.emolgajda.getGuildById("712035338846994502").retrieveMemberById(u2).complete().getEffectiveName();
         this.curruser = u1;
         this.currname = name1;
     }

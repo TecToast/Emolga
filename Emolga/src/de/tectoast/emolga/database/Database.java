@@ -36,6 +36,7 @@ public class Database {
                 instance.connection = DriverManager.getConnection("jdbc:mysql://localhost/emolga?autoReconnect=true", instance.username, instance.password);
             }
             instance.lastRequest = System.currentTimeMillis();
+            System.out.println("SELECT REQUEST: " + query);
             return instance.connection.createStatement().executeQuery(query);
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -48,10 +49,10 @@ public class Database {
             if (System.currentTimeMillis() - instance.lastRequest >= 3600000) {
                 instance.connection.close();
                 instance.connection = DriverManager.getConnection("jdbc:mysql://localhost/emolga?autoReconnect=true", instance.username, instance.password);
-                Command.sendToMe("Reconnected!");
+                //Command.sendToMe("Reconnected!");
             }
             instance.lastRequest = System.currentTimeMillis();
-            //System.out.println("query = " + query);
+            System.out.println("UPDATE REQUEST: " + query);
             return instance.connection.createStatement().executeUpdate(query);
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -64,12 +65,13 @@ public class Database {
         ArrayList<String> list = new ArrayList<>();
         for (Object value : values) {
             //if (value instanceof String || value instanceof Timestamp) list.add("'" + value + "'");
-            /*else*/ list.add(value.toString());
+            /*else*/
+            list.add(value.toString());
         }
         query = query + String.join(", ", list) + ")";
-        System.out.println(query);
+        System.out.println("INSERT REQUEST: " + query);
         System.out.println();
-        //update(query);
+        update(query);
     }
 
     public static void incrementPredictionCounter(long userid) {
@@ -82,7 +84,7 @@ public class Database {
                 } else {
                     PreparedStatement userDataInput = instance.connection.prepareStatement("INSERT INTO predictiongame (userid, username, predictions) VALUES (?,?,?);");
                     userDataInput.setLong(1, userid);
-                    userDataInput.setString(2, EmolgaMain.jda.getGuildById(Constants.ASLID).retrieveMemberById(userid).complete().getEffectiveName());
+                    userDataInput.setString(2, EmolgaMain.emolgajda.getGuildById(Constants.ASLID).retrieveMemberById(userid).complete().getEffectiveName());
                     userDataInput.setInt(3, 1);
                     userDataInput.executeUpdate();
                 }
@@ -90,6 +92,21 @@ public class Database {
                 throwables.printStackTrace();
             }
         }).start();
+    }
+
+    public static void updateOrInsert(String table, String checkcolumn, String editcolumn, String checkvalue, String editvalue) {
+        new Thread(() -> {
+            try {
+                if (select("SELECT * FROM " + table + " WHERE " + checkcolumn + " = " + checkvalue + "").next()) {
+                    update("UPDATE " + table + " SET " + editcolumn + " = " + editvalue + " WHERE " + checkcolumn + " = " + checkvalue);
+                } else {
+                    insert(table, checkcolumn + ", " + editcolumn, checkvalue, editvalue);
+                }
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }).start();
+
     }
 
     public static void incrementStatistic(String name) {
@@ -105,19 +122,36 @@ public class Database {
                     userDataInput.setInt(2, 1);
                     userDataInput.executeUpdate();
                 }
+                if(name.equals("analysis")) Command.updatePresence();
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
             }
         }).start();
     }
 
-    public static String getDataFrom(String type, String id) {
+    public static String getDescriptionFrom(String type, String id) {
         ResultSet set = select("SELECT description from " + type + "data WHERE name = \"" + id + "\"");
         try {
             set.next();
             return set.getString("description");
         } catch (SQLException throwables) {
             throwables.printStackTrace();
+        }
+        return null;
+    }
+
+    private static String getValue(Object o) {
+        if (o instanceof String) return "\"" + o + "\"";
+        return o.toString();
+    }
+
+    public static Object getData(String table, String desiredcolumn, String checkcolumn, Object checkvalue) {
+        ResultSet set = select("SELECT " + desiredcolumn + " from " + table + " WHERE " + checkcolumn + " = " + getValue(checkvalue));
+        try {
+            set.next();
+            return set.getObject(desiredcolumn);
+        } catch (SQLException throwables) {
+            //throwables.printStackTrace();
         }
         return null;
     }

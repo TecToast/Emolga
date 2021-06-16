@@ -90,12 +90,17 @@ public abstract class GenericCommandEvent {
     }
 
     public CompletableFuture<Message> reply(String msg) {
+        if(msg.length() == 0) return CompletableFuture.completedFuture(null);
         return this.channel.sendMessage(msg).submit();
     }
 
     @SuppressWarnings("UnusedReturnValue")
     public CompletableFuture<Message> reply(MessageEmbed message) {
         return this.channel.sendMessage(message).submit();
+    }
+
+    public void replyToMe(String message) {
+        Command.sendToMe(message, Command.Bot.byJDA(jda));
     }
 
     public void done() {

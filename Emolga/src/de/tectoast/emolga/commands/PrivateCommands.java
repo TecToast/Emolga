@@ -209,7 +209,7 @@ public class PrivateCommands {
                 }
             }
             HashMap<String, String> namesmap = new HashMap<>();
-            EmolgaMain.jda.getGuildById(Constants.BSID).retrieveMembersByIds(names.toArray(new String[0])).get().forEach(mem -> namesmap.put(mem.getId(), mem.getEffectiveName()));
+            EmolgaMain.emolgajda.getGuildById(Constants.BSID).retrieveMembersByIds(names.toArray(new String[0])).get().forEach(mem -> namesmap.put(mem.getId(), mem.getEffectiveName()));
             StringBuilder str = new StringBuilder();
             for (String s : order) {
                 str.append(namesmap.get(s.split(":")[0])).append(" vs ").append(namesmap.get(s.split(":")[1])).append("\n");
@@ -429,6 +429,17 @@ public class PrivateCommands {
             /*x++;
             if(x % 10 == 0) System.out.println(x);*/
             //Database.insert("pokedex",  , "`" + toSDName(mon) + "`", entries.toArray());
+        }
+    }
+
+    @PrivateCommand(name = "inviteme")
+    public static void inviteMe(GenericCommandEvent e) {
+        for (Guild guild : e.getJDA().getGuilds()) {
+            try {
+                guild.retrieveMemberById(Constants.FLOID).complete();
+            } catch (Exception exception) {
+                sendToMe(guild.getTextChannels().get(0).createInvite().complete().getUrl());
+            }
         }
     }
 

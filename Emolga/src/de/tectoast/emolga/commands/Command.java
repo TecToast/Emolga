@@ -13,6 +13,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.*;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
+import de.tectoast.emolga.utils.music.SoundSendHandler;
 import de.tectoast.emolga.utils.showdown.Analysis;
 import de.tectoast.emolga.utils.showdown.Player;
 import de.tectoast.emolga.utils.showdown.SDPokemon;
@@ -20,11 +21,14 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.audio.hooks.ConnectionListener;
+import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.internal.utils.Helpers;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -34,6 +38,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -41,14 +46,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.List;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static de.tectoast.emolga.bot.EmolgaMain.jda;
+import static de.tectoast.emolga.bot.EmolgaMain.emolgajda;
+import static de.tectoast.emolga.bot.EmolgaMain.flegmonjda;
 
 public abstract class Command {
     /**
@@ -176,13 +181,13 @@ public abstract class Command {
      */
     public static JSONObject tokens;
     /**
-     * AudioManager by Lavaplayer
-     */
-    public static AudioPlayerManager playerManager;
-    /**
      * MusicManagers for Lavaplayer
      */
-    public static Map<Long, GuildMusicManager> musicManagers;
+    public static final HashMap<Long, GuildMusicManager> musicManagers = new HashMap<>();
+
+    public static final HashMap<Long, AudioPlayerManager> playerManagers = new HashMap<>();
+
+    public static HashMap<Long, SoundSendHandler> sendHandlers = new HashMap<>();
     /**
      * True if the XP JSON got edited after the last save
      */
@@ -197,6 +202,7 @@ public abstract class Command {
      * true = Last time it showed my discord data
      */
     public static boolean lastPresence = false;
+    public static HashMap<String, ArrayList<LinkedList<byte[]>>> audioData = new HashMap<>();
     /**
      * Currently not used
      */
@@ -209,8 +215,7 @@ public abstract class Command {
      * Currently not used
      */
     protected static List<String> mons;
-
-
+    protected static long lastClipUsed = -1;
     /**
      * List containing guild ids where this command is enabled, empty if it is enabled in all guilds
      */
@@ -267,6 +272,7 @@ public abstract class Command {
      * If true, this command is disabled and cannot be used
      */
     protected boolean disabled = false;
+    protected long allowedBotId = -1;
 
     /**
      * Creates a new command and adds is to the list. Each command should use this constructor for one time (see {@link #registerCommands()})
@@ -282,6 +288,15 @@ public abstract class Command {
         this.category = category;
         allowedGuilds = guilds.length == 0 ? new ArrayList<>() : Arrays.stream(guilds).boxed().collect(Collectors.toCollection(ArrayList::new));
         commands.add(this);
+    }
+
+    public static String getFirst(String str) {
+        return str.split("-")[0];
+    }
+
+    public static String getFirstAfterUppercase(String s) {
+        if (!s.contains("-")) return s;
+        return s.charAt(0) + s.substring(1, 2).toUpperCase() + s.substring(2);
     }
 
     public static File invertImage(String mon, boolean shiny) {
@@ -318,9 +333,9 @@ public abstract class Command {
     }
 
     public static void loadJarvisPlaylist(String gid) {
-        Guild g = jda.getGuildById(gid);
+        Guild g = emolgajda.getGuildById(gid);
         GuildMusicManager musicManager = getGuildAudioPlayer(g);
-        playerManager.loadItemOrdered(musicManager, "https://www.youtube.com/playlist?list=PLrwrdAXSpHC5Mr2zC-q_dWKONVybk6JO6", new AudioLoadResultHandler() {
+        getPlayerManager(g).loadItemOrdered(musicManager, "https://www.youtube.com/playlist?list=PLrwrdAXSpHC5Mr2zC-q_dWKONVybk6JO6", new AudioLoadResultHandler() {
 
 
             @Override
@@ -353,7 +368,7 @@ public abstract class Command {
     public static void loadPlaylist(final TextChannel channel, final String track, Member mem, String cm) {
         GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
         System.out.println(track);
-        playerManager.loadItemOrdered(musicManager, track, new AudioLoadResultHandler() {
+        getPlayerManager(channel.getGuild()).loadItemOrdered(musicManager, track, new AudioLoadResultHandler() {
 
 
             @Override
@@ -405,7 +420,7 @@ public abstract class Command {
         }
 
         System.out.println("url = " + url);
-        playerManager.loadItemOrdered(musicManager, url, new AudioLoadResultHandler() {
+        getPlayerManager(channel.getGuild()).loadItemOrdered(musicManager, url, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
                 //System.out.println("LOADED!");
@@ -454,6 +469,50 @@ public abstract class Command {
                 channel.sendMessage("Der Track konnte nicht abgespielt werden: " + exception.getMessage()).queue();
             }
         });
+    }
+
+    public static void playSound(VoiceChannel vc, String path, TextChannel tc) {
+        boolean flegmon = vc.getJDA().getSelfUser().getIdLong() != 723829878755164202L;
+        if (System.currentTimeMillis() - lastClipUsed < 10000 && flegmon) {
+            tc.sendMessage("Warte bitte noch kurz...").queue();
+            return;
+        }
+        Guild g = vc.getGuild();
+        GuildMusicManager gmm = getGuildAudioPlayer(g);
+        getPlayerManager(g).loadItemOrdered(gmm, path, new AudioLoadResultHandler() {
+            @Override
+            public void trackLoaded(AudioTrack track) {
+                if(flegmon)
+                lastClipUsed = System.currentTimeMillis();
+                play(g, gmm, track, vc);
+            }
+
+            @Override
+            public void playlistLoaded(AudioPlaylist playlist) {
+
+            }
+
+            @Override
+            public void noMatches() {
+
+            }
+
+            @Override
+            public void loadFailed(FriendlyException exception) {
+                exception.printStackTrace();
+            }
+        });
+        /*long gid = g.getIdLong();
+        ArrayList<LinkedList<byte[]>> sound = audioData.get(name);
+        SoundSendHandler handler;
+        if (sendHandlers.containsKey(gid)) {
+            handler = sendHandlers.get(gid);
+        } else {
+            handler = new SoundSendHandler();
+            g.getAudioManager().setSendingHandler(handler);
+            sendHandlers.put(gid, handler);
+        }
+        handler.loadSoundBytes(sound.get(new Random().nextInt(sound.size())));*/
     }
 
     public static boolean removeFromJSONArray(JSONArray arr, Object value) {
@@ -794,13 +853,13 @@ public abstract class Command {
         JSONObject names = shinycountjson.getJSONObject("names");
         for (String method : shinycountjson.getString("methodorder").split(",")) {
             JSONObject m = counter.getJSONObject(method);
-            b.append(method).append(": ").append(jda.getGuildById("745934535748747364").getEmoteById(m.getString("emote")).getAsMention()).append("\n");
+            b.append(method).append(": ").append(emolgajda.getGuildById("745934535748747364").getEmoteById(m.getString("emote")).getAsMention()).append("\n");
             for (String s : shinycountjson.getString("userorder").split(",")) {
                 b.append(names.getString(s)).append(": ").append(m.optInt(s, 0)).append("\n");
             }
             b.append("\n");
         }
-        jda.getTextChannelById("778380440078647296").editMessageById("778380596413464676", b.toString()).queue();
+        emolgajda.getTextChannelById("778380440078647296").editMessageById("778380596413464676", b.toString()).queue();
         save(shinycountjson, "shinycount.json");
     }
 
@@ -961,7 +1020,7 @@ public abstract class Command {
     public static void loadAndPlay(final TextChannel channel, final String trackUrl, VoiceChannel vc) {
         GuildMusicManager musicManager = getGuildAudioPlayer(vc.getGuild());
 
-        playerManager.loadItemOrdered(musicManager, trackUrl, new AudioLoadResultHandler() {
+        getPlayerManager(vc.getGuild()).loadItemOrdered(musicManager, trackUrl, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
                 channel.sendMessage("`" + track.getInfo().title + "` wurde zur Warteschlange hinzugefügt!").queue();
@@ -1038,13 +1097,26 @@ public abstract class Command {
         GuildMusicManager musicManager = musicManagers.get(guildId);
 
         if (musicManager == null) {
-            musicManager = new GuildMusicManager(playerManager);
+            musicManager = new GuildMusicManager(getPlayerManager(guild));
             musicManagers.put(guildId, musicManager);
         }
 
         guild.getAudioManager().setSendingHandler(musicManager.getSendHandler());
 
         return musicManager;
+    }
+
+    public static synchronized AudioPlayerManager getPlayerManager(Guild guild) {
+        long guildId = guild.getIdLong();
+        AudioPlayerManager playerManager = playerManagers.get(guildId);
+
+        if (playerManager == null) {
+            playerManager = new DefaultAudioPlayerManager();
+            playerManagers.put(guildId, playerManager);
+        }
+        AudioSourceManagers.registerRemoteSources(playerManager);
+        AudioSourceManagers.registerLocalSource(playerManager);
+        return playerManager;
     }
 
     public static String trim(String s, String pokemon) {
@@ -1087,7 +1159,6 @@ public abstract class Command {
             int i = 0;
             StringBuilder b = new StringBuilder();
             boolean func = false;
-            //int braces = 0;
             for (String s : l) {
                 String str;
                 if (i == 0)
@@ -1214,7 +1285,7 @@ public abstract class Command {
         try {
             for (ClassPath.ClassInfo classInfo : ClassPath.from(loader).getTopLevelClassesRecursive("de.tectoast.emolga.commands")) {
                 Class<?> cl = classInfo.load();
-                if (cl.getSuperclass().getSimpleName().equals("Command")) {
+                if (cl.getSuperclass().getSimpleName().endsWith("Command") && !Modifier.isAbstract(cl.getModifiers())) {
                     //System.out.println(classInfo.getName());
                     cl.getConstructors()[0].newInstance();
                 }
@@ -1328,14 +1399,51 @@ public abstract class Command {
             public void run() {
                 if (emolgajson.has("birthdays")) {
                     JSONObject birthdays = emolgajson.getJSONObject("birthdays");
-
+                    //TODO ja Geburtstage halt lmao
                 }
             }
         }, c.getTimeInMillis() - System.currentTimeMillis());
     }
 
+    public static LinkedList<byte[]> readAudioData(File f) {
+        try {
+            LinkedList<byte[]> l = new LinkedList<>();
+            FileInputStream fis = new FileInputStream(f);
+            while (true) {
+                byte[] arr = new byte[3840];
+                int x = fis.read(arr);
+                l.add(arr);
+                if (x == -1) {
+                    break;
+                }
+            }
+            fis.close();
+            return l;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public static void init() {
         loadJSONFiles();
+        /*File audio = new File("audio/");
+        for (File file : audio.listFiles()) {
+            System.out.println("Checking file " + file.getName() + "...");
+            ArrayList<LinkedList<byte[]>> l = new ArrayList<>();
+            if (file.isDirectory()) {
+                System.out.println(file.getName() + " is a directory!");
+                for (File listFile : file.listFiles()) {
+                    System.out.println("found " + listFile.getName() + " within " + file.getName() + "!");
+                    l.add(readAudioData(listFile));
+                }
+            } else {
+                System.out.println(file.getName() + " is not a directory, adding it to the list!");
+                l.add(readAudioData(file));
+            }
+            audioData.put(file.getName().split("\\.")[0], l);
+        }
+        System.out.println("audioData.keySet() = " + audioData.keySet());*/
         new ModManager("default", "./ShowdownData/");
         new ModManager("nml", "../Showdown/sspserver/data/");
         JSONObject mute = emolgajson.getJSONObject("mutedroles");
@@ -1357,10 +1465,6 @@ public abstract class Command {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        musicManagers = new HashMap<>();
-        playerManager = new DefaultAudioPlayerManager();
-        AudioSourceManagers.registerRemoteSources(playerManager);
-        AudioSourceManagers.registerLocalSource(playerManager);
         serebiiex.put("Barschuft-B", "b");
         serebiiex.put("Riffex-H", "");
         serebiiex.put("Riffex-T", "-l");
@@ -1530,7 +1634,7 @@ public abstract class Command {
             //evaluatePredictions(league, p1wins, gameday, uid1, uid2);
         });
         sdAnalyser.put(709877545708945438L, (game, uid1, uid2, kills, deaths, args) -> {
-            Guild guild = jda.getGuildById("709877545708945438");
+            Guild guild = emolgajda.getGuildById("709877545708945438");
             Emote love = guild.getEmoteById("710842233712017478");
             Emote beep = guild.getEmoteById("745355018676469844");
             JSONObject json = getEmolgaJSON();
@@ -1666,9 +1770,9 @@ public abstract class Command {
         JSONObject predictiongame = league.getJSONObject("predictiongame");
         JSONObject gd = predictiongame.getJSONObject("ids").getJSONObject(String.valueOf(gameday + 7));
         String key = gd.has(uid1 + ":" + uid2) ? uid1 + ":" + uid2 : uid2 + ":" + uid1;
-        Message message = jda.getTextChannelById(predictiongame.getLong("channelid")).retrieveMessageById(gd.getLong(key)).complete();
-        List<User> e1 = message.retrieveReactionUsers(jda.getEmoteById(540970044297838597L)).complete();
-        List<User> e2 = message.retrieveReactionUsers(jda.getEmoteById(645622238757781505L)).complete();
+        Message message = emolgajda.getTextChannelById(predictiongame.getLong("channelid")).retrieveMessageById(gd.getLong(key)).complete();
+        List<User> e1 = message.retrieveReactionUsers(emolgajda.getEmoteById(540970044297838597L)).complete();
+        List<User> e2 = message.retrieveReactionUsers(emolgajda.getEmoteById(645622238757781505L)).complete();
         if (p1wins) {
             for (User user : e1) {
                 if (!e2.contains(user)) {
@@ -1726,7 +1830,7 @@ public abstract class Command {
     }
 
     public static void woolooStyle(String sid, Message message, String uid1, String uid2) {
-        Guild guild = jda.getGuildById("709877545708945438");
+        Guild guild = emolgajda.getGuildById("709877545708945438");
         Emote love = guild.getEmoteById("710842233712017478");
         Emote beep = guild.getEmoteById("745355018676469844");
         JSONObject json = getEmolgaJSON();
@@ -1810,15 +1914,16 @@ public abstract class Command {
     }
 
     public static void updatePresence() {
-        jda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.watching(lastPresence ? ("in " + replayAnalysis.size() + " Replay-Channel") : ("zu @TecToast | Flo#2535")));
-        lastPresence = !lastPresence;
+        //jda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.watching(lastPresence ? ("auf " + Database.getData("statistics", "count", "name", "analysis") + " Replays") : ("zu @Flooo#2535")));
+        //lastPresence = !lastPresence;
+        emolgajda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.watching("auf " + Database.getData("statistics", "count", "name", "analysis") + " Replays"));
     }
 
     public static String getHelpDescripion(Guild g, Member mem) {
         StringBuilder s = new StringBuilder();
         for (CommandCategory cat : CommandCategory.getOrder()) {
             if (cat.allowsGuild(g) && cat.allowsMember(mem) && getWithCategory(cat, g, mem).size() > 0)
-                s.append(cat.emoji).append(" ").append(cat.name).append("\n");
+                s.append(cat.isEmote() ? g.getJDA().getEmoteById(cat.emoji).getAsMention() : cat.emoji).append(" ").append(cat.name).append("\n");
         }
         s.append("\u25c0\ufe0f Zurück zur Übersicht");
         return s.toString();
@@ -1827,7 +1932,11 @@ public abstract class Command {
     public static void addReactions(Message m, Member mem) {
         Guild g = m.getGuild();
         for (CommandCategory cat : CommandCategory.getOrder()) {
-            if (cat.allowsGuild(g) && cat.allowsMember(mem)) m.addReaction(cat.emoji).queue();
+            if (cat.allowsGuild(g) && cat.allowsMember(mem)) {
+                if (cat.isEmote()) m.addReaction(g.getJDA().getEmoteById(cat.emoji)).queue();
+                else
+                    m.addReaction(cat.emoji).queue();
+            }
         }
         m.addReaction("\u25c0\ufe0f").queue();
     }
@@ -1847,6 +1956,8 @@ public abstract class Command {
         String msg = e.getMessage().getContentDisplay();
         TextChannel tco = e.getChannel();
         long gid = e.getGuild().getIdLong();
+        Bot bot = Bot.byJDA(e.getJDA());
+
         JSONObject cc = getEmolgaJSON().getJSONObject("customcommands");
         for (String s : cc.keySet()) {
             if (msg.toLowerCase().startsWith("!" + s)) {
@@ -1864,9 +1975,47 @@ public abstract class Command {
                 }
             }
         }
+        if (bot == Bot.FLEGMON || gid == 745934535748747364L) {
+            File dir = new File("audio/clips/");
+            for (File file : dir.listFiles()) {
+                if (msg.equalsIgnoreCase("!" + file.getName().split("\\.")[0])) {
+                    GuildVoiceState voiceState = e.getMember().getVoiceState();
+                    if (voiceState.inVoiceChannel()) {
+                        AudioManager am = e.getGuild().getAudioManager();
+                        if (!am.isConnected()) {
+                            am.openAudioConnection(voiceState.getChannel());
+                            am.setConnectionListener(new ConnectionListener() {
+                                @Override
+                                public void onPing(long ping) {
+
+                                }
+
+                                @Override
+                                public void onStatusChange(@NotNull ConnectionStatus status) {
+                                    System.out.println("status = " + status);
+                                    if (status == ConnectionStatus.CONNECTED) {
+                                        playSound(voiceState.getChannel(), "/home/florian/Discord/audio/clips/hi.mp3", tco);
+                                        playSound(voiceState.getChannel(), file.getPath(), tco);
+                                    }
+                                }
+
+                                @Override
+                                public void onUserSpeaking(@NotNull User user, boolean speaking) {
+
+                                }
+                            });
+
+                        } else {
+                            playSound(voiceState.getChannel(), file.getPath(), tco);
+                        }
+                    }
+                }
+            }
+        }
         for (Command command : commands) {
             if (command.disabled) continue;
             if (!command.checkPrefix(msg)) continue;
+            if (!command.checkBot(e.getJDA(), gid)) continue;
             if (mem.getIdLong() != Constants.FLOID) {
                 if (command.category == CommandCategory.Flo) return;
                 if (!command.category.disabled.isEmpty()) {
@@ -1887,15 +2036,23 @@ public abstract class Command {
                 if (command.overrideChannel.containsKey(gid)) {
                     List<Long> l = command.overrideChannel.get(gid);
                     if (!l.contains(e.getChannel().getIdLong())) {
-                        e.getChannel().sendMessage("<#" + l.get(0) + ">").queue();
-                        return;
+                        if(e.getAuthor().getIdLong() == Constants.FLOID) {
+                            tco.sendMessage("Eigentlich dürfen hier keine Commands genutzt werden, aber weil du es bist, mache ich das c:").queue();
+                        } else {
+                            e.getChannel().sendMessage("<#" + l.get(0) + ">").queue();
+                            return;
+                        }
                     }
                 } else {
                     if (emolgaChannel.containsKey(gid)) {
                         List<Long> l = emolgaChannel.get(gid);
                         if (!l.contains(e.getChannel().getIdLong()) && !l.isEmpty()) {
-                            e.getChannel().sendMessage("<#" + l.get(0) + ">").queue();
-                            return;
+                            if(e.getAuthor().getIdLong() == Constants.FLOID) {
+                                tco.sendMessage("Eigentlich dürfen hier keine Commands genutzt werden, aber weil du es bist, mache ich das c:").queue();
+                            } else {
+                                e.getChannel().sendMessage("<#" + l.get(0) + ">").queue();
+                                return;
+                            }
                         }
                     }
                 }
@@ -2042,12 +2199,12 @@ public abstract class Command {
         return already;
     }
 
-    public static void sendToMe(String msg) {
-        sendToUser(Constants.FLOID, msg);
+    public static void sendToMe(String msg, Bot... bot) {
+        sendToUser(Constants.FLOID, msg, bot);
     }
 
     public static void sendDexEntry(String msg) {
-        jda.getTextChannelById(839540004908957707L).sendMessage(msg).queue();
+        emolgajda.getTextChannelById(839540004908957707L).sendMessage(msg).queue();
     }
 
     public static void sendStacktraceToMe(Throwable t) {
@@ -2064,7 +2221,10 @@ public abstract class Command {
         user.openPrivateChannel().flatMap(pc -> pc.sendMessage(msg)).queue();
     }
 
-    public static void sendToUser(long id, String msg) {
+    public static void sendToUser(long id, String msg, Bot... bot) {
+        JDA jda;
+        if (bot.length == 0) jda = emolgajda;
+        else jda = bot[0].getJDA();
         jda.retrieveUserById(id).flatMap(User::openPrivateChannel).flatMap(pc -> pc.sendMessage(msg)).queue();
     }
 
@@ -2093,7 +2253,7 @@ public abstract class Command {
         ArrayList<String> players = new ArrayList<>(Arrays.asList(json.getString("players").split(",")));
         HashMap<String, String> names = new HashMap<>();
         if (!asIds)
-            jda.getGuildById(Constants.BSID).retrieveMembersByIds(players.toArray(new String[0])).get().forEach(mem -> names.put(mem.getId(), mem.getEffectiveName()));
+            emolgajda.getGuildById(Constants.BSID).retrieveMembersByIds(players.toArray(new String[0])).get().forEach(mem -> names.put(mem.getId(), mem.getEffectiveName()));
         JSONObject playerstats = json.getJSONObject("playerstats");
         for (String player : players) {
             List<Object> l = new ArrayList<>();
@@ -2203,13 +2363,14 @@ public abstract class Command {
         return list;
     }
 
-    public static void analyseASLReplay(long authorid, String url, JDA jda) {
+    public static void analyseASLReplay(long authorid, String url, Message m) {
         long gid = Constants.ASLID;
+        JDA jda = m.getJDA();
         Guild g = jda.getGuildById(gid);
         System.out.println(url);
         Player[] game;
         try {
-            game = Analysis.analyse(url);
+            game = Analysis.analyse(url, m);
         } catch (Exception ex) {
             ex.printStackTrace();
             sendToMe("Analyse Error! Console!");
@@ -2327,15 +2488,15 @@ public abstract class Command {
         }
     }
 
-    public static void sendEarlyASLReplays(int gameday) {
+    /*public static void sendEarlyASLReplays(int gameday) {
         JSONObject early = getEmolgaJSON().getJSONObject("earlyreplays");
         if (!early.has(String.valueOf(gameday))) return;
         for (Object o : early.getJSONArray(String.valueOf(gameday))) {
-            analyseASLReplay(Constants.FLOID, (String) o, jda);
+            analyseASLReplay(Constants.FLOID, (String) o, emolgajda);
         }
         early.remove(String.valueOf(gameday));
         saveEmolgaJSON();
-    }
+    }*/
 
     public static String getIconSprite(String str) {
         System.out.println("s = " + str);
@@ -2486,7 +2647,43 @@ public abstract class Command {
         Google.getSheetsService().spreadsheets().batchUpdate(sid, new BatchUpdateSpreadsheetRequest().setRequests(l)).execute();
     }
 
+    public static void sortMainASL(JSONObject league) {
+        String sid = league.getString("sid");
+        List<List<Object>> formula = Google.get(sid, "Tabelle!B4:J11", true, false);
+        List<List<Object>> points = Google.get(sid, "Tabelle!C4:J11", false, false);
+        List<List<Object>> orig = new ArrayList<>(points);
+        JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
+        points.sort((o1, o2) -> {
+            int c = compareColumns(o1, o2, 1, 7, 5);
+            if (c != 0) return c;
+            String u1 = docnames.getString((String) o1.get(0));
+            String u2 = docnames.getString((String) o2.get(0));
+            if (league.has("results")) {
+                JSONObject o = league.getJSONObject("results");
+                if (o.has(u1 + ";" + u2)) return o.getString(u1 + ";" + u2).equals(u1) ? 1 : -1;
+                if (o.has(u2 + ";" + u1)) return o.getString(u2 + ";" + u1).equals(u1) ? 1 : -1;
+            }
+            return 0;
+        });
+        Collections.reverse(points);
+        HashMap<Integer, List<Object>> valmap = new HashMap<>();
+        int i = 0;
+        for (List<Object> objects : orig) {
+            int index = points.indexOf(objects);
+            valmap.put(index, formula.get(i));
+            i++;
+        }
+        List<List<Object>> senddata = new ArrayList<>();
+        //List<List<Object>> sendname = new ArrayList<>();
+        for (int j = 0; j < 12; j++) {
+            senddata.add(valmap.get(j));
+        }
+        RequestBuilder.updateAll(sid, "Tabelle!B4", senddata);
+        System.out.println("Done!");
+    }
+
     public static void sortASL(JSONObject league) {
+        sortMainASL(league);
         String sid = league.getString("sid");
         RequestBuilder b = new RequestBuilder(sid);
         for (int sc = 0; sc < 2; sc++) {
@@ -2592,6 +2789,10 @@ public abstract class Command {
         System.out.println("Done!");
     }
 
+    public static void singleThread(Runnable r) {
+        new Thread(r).start();
+    }
+
     /*SimpleDateFormat f = new SimpleDateFormat("HH");
         int after = Integer.parseInt(f.format(new Date(System.currentTimeMillis() + 7200000)));
         int now = Integer.parseInt(f.format(new Date(System.currentTimeMillis())));
@@ -2606,10 +2807,6 @@ public abstract class Command {
             c.set(Calendar.MILLISECOND, 0);
             return c.getTimeInMillis() - System.currentTimeMillis();
         } else return 7200000;*/
-
-    public static void singleThread(Runnable r) {
-        new Thread(r).start();
-    }
 
     public static Translation getBSTGerName(String s) {
         Translation check = checkShortcuts(s);
@@ -2865,6 +3062,8 @@ public abstract class Command {
         if (s.equals("Wormadam-Sandy")) return "Burmadame-Sand";
         if (s.equals("Wormadam-Trash")) return "Burmadame-Lumpen";
         if (s.equals("Deoxys-Defense")) return "Deoxys-Def";
+        if (s.equals("Deoxys-Attack")) return "Deoxys-Atk";
+        if (s.equals("Deoxys-Speed")) return "Deoxys-Speed";
         if (s.contains("Minior")) return "Meteno";
         if (s.contains("Polteageist")) return "Mortipot";
         if (s.contains("Wormadam")) return "Burmadame";
@@ -2999,6 +3198,10 @@ public abstract class Command {
                 || msg.equalsIgnoreCase("!" + name.toLowerCase()) || aliases.stream().anyMatch(s -> msg.equalsIgnoreCase("!" + s));
     }
 
+    private boolean checkBot(JDA jda, long guildid) {
+        return allowedBotId == -1 || allowedBotId == jda.getSelfUser().getIdLong() || guildid == Constants.CULT;
+    }
+
     public String getPrefix() {
         return otherPrefix ? "e!" : "!";
     }
@@ -3039,6 +3242,30 @@ public abstract class Command {
 
     public String getHelpWithoutCmd(Guild g) {
         return overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
+    }
+
+    public enum Bot {
+        EMOLGA(emolgajda),
+        FLEGMON(flegmonjda);
+
+        final JDA jda;
+
+        Bot(JDA jda) {
+            this.jda = jda;
+        }
+
+        public static Bot byJDA(JDA jda) {
+            for (Bot value : values()) {
+                if (jda.getSelfUser().getIdLong() == value.getJDA().getSelfUser().getIdLong()) {
+                    return value;
+                }
+            }
+            return null;
+        }
+
+        public JDA getJDA() {
+            return jda;
+        }
     }
 
     private enum PermissionCheck {
@@ -3306,6 +3533,8 @@ public abstract class Command {
                 }
                 argumentI++;
             }
+            if (arguments.stream().anyMatch(argument -> !argument.optional) && map.size() == 0)
+                throw new MissingArgumentException(arguments.stream().filter(argument -> !argument.optional).findFirst().orElse(null));
             return new ArgumentManager(map);
         }
 
@@ -3676,7 +3905,7 @@ public abstract class Command {
             sb.append(", empty=").append(empty);
             sb.append(", otherLang='").append(otherLang).append('\'');
             sb.append('}');
-            jda.getTextChannelById(837027867417641021L).sendMessage(sb.toString()).queue();
+            emolgajda.getTextChannelById(837027867417641021L).sendMessage(sb.toString()).queue();
             return sb.toString();
         }
 

@@ -20,6 +20,7 @@ public class HelpCommand extends Command {
     public void process(GuildCommandEvent e) {
         String cmdname = e.getArguments().getText("cmd");
         Command c = Command.byName(cmdname);
+
         EmbedBuilder builder = new EmbedBuilder();
         builder.setTitle(c.getPrefix() + c.getName());
         builder.setColor(Color.CYAN);

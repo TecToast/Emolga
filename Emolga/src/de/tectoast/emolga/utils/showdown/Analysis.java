@@ -1,5 +1,8 @@
 package de.tectoast.emolga.utils.showdown;
 
+import de.tectoast.emolga.database.Database;
+import net.dv8tion.jda.api.entities.Message;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -9,7 +12,8 @@ import java.util.ArrayList;
 
 public class Analysis {
 
-    public static Player[] analyse(String link) {
+    public static Player[] analyse(String link, Message m) {
+        Database.updateOrInsert("replaycheck", "channelid", "messageid", m.getChannel().getId(), m.getId());
 
         ArrayList<String> game = (ArrayList<String>) getGameArrayList(link).clone();
 

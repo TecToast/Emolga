@@ -8,6 +8,7 @@ import de.tectoast.emolga.ytsubscriber.NotificationCallback;
 import de.tectoast.toastilities.managers.ReactionManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
@@ -34,7 +35,9 @@ public class EmolgaMain {
     public static final ArrayList<Giveaway> todel = new ArrayList<>();
     public static final ArrayList<String> alreadywritten = new ArrayList<>();
     public static final HashMap<String, Consumer<String>> sdmessages = new HashMap<>();
-    public static JDA jda;
+    public static JDA emolgajda;
+    public static JDA flegmonjda;
+
     public static final NotificationCallback parseYT = feed -> {
 
         System.out.println(feed.toString(4));
@@ -89,7 +92,12 @@ public class EmolgaMain {
                 subscriber.subscribe(URI.create("https://www.youtube.com/xml/feeds/videos.xml?channel_id=" + s)).setNotificationCallback(parseYT);
             }
         }).start();*/
-        jda = JDABuilder.createDefault(Command.tokens.getString("discord"))
+        emolgajda = JDABuilder.createDefault(Command.tokens.getString("discord"))
+                .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
+                .addEventListeners(new EmolgaListener(), messageWaiter)
+                .setMemberCachePolicy(MemberCachePolicy.ALL)
+                .build();
+        flegmonjda = JDABuilder.createDefault(Command.tokens.getString("discordflegmon"))
                 .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
                 .addEventListeners(new EmolgaListener(), messageWaiter)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
@@ -102,24 +110,21 @@ public class EmolgaMain {
         while (spoiler.next()) {
             spoilerTags.add(spoiler.getLong("guildid"));
         }
-        jda.awaitReady();
-        new Timer().scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                updatePresence();
-            }
-        }, 0, 60000);
-        ReactionManager manager = new ReactionManager(jda);
+        emolgajda.awaitReady();
+        flegmonjda.awaitReady();
+        flegmonjda.getPresence().setActivity(Activity.playing("mit seiner Rute"));
+        updatePresence();
+        ReactionManager manager = new ReactionManager(emolgajda);
         manager.registerReaction("715249205186265178", "813025531779743774", "813025179114405898", "719928482544484352")
                 .registerReaction("715249205186265178", "813025531779743774", "813025403098628097", "813005659619590184")
                 .registerReaction("715249205186265178", "813025531779743774", "813025709232488480", "813027599743713320")
                 .registerReaction("540899923789611018", "820784528888561715", "820781668586618901", "820783085976420372")
                 .registerReaction("830146866812420116", "830391184459300915", "540969934457667613", "830392346348355594");
-        sdmessages.put("joinServer", str -> jda.getTextChannelById("791284726677766155").sendMessage(str + " hat den Server betreten!").queue());
-        sdmessages.put("leaveServer", str -> jda.getTextChannelById("791284726677766155").sendMessage(str + " hat den Server verlassen!").queue());
+        sdmessages.put("joinServer", str -> emolgajda.getTextChannelById("791284726677766155").sendMessage(str + " hat den Server betreten!").queue());
+        sdmessages.put("leaveServer", str -> emolgajda.getTextChannelById("791284726677766155").sendMessage(str + " hat den Server verlassen!").queue());
         sdmessages.put("manualMessage", str -> {
             String user = str.split("\\|")[0];
-            jda.getTextChannelById("447357526997073932").sendMessage(user + ": " + str.substring(user.length() + 1)).queue();
+            emolgajda.getTextChannelById("447357526997073932").sendMessage(user + ": " + str.substring(user.length() + 1)).queue();
         });
 
         new Thread(() -> {
@@ -205,7 +210,7 @@ public class EmolgaMain {
                     if (giveaway.isEnded) return;
                     try {
                         if (giveaway.end.toEpochMilli() - System.currentTimeMillis() <= 10000 || i >= 5) {
-                            jda.getTextChannelById(giveaway.channelId).editMessageById(giveaway.messageId, giveaway.render(Instant.now())).complete();
+                            emolgajda.getTextChannelById(giveaway.channelId).editMessageById(giveaway.messageId, giveaway.render(Instant.now())).complete();
                         }
                     } catch (ErrorResponseException ex) {
                         ex.printStackTrace();

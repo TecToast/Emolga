@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.showdown;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.showdown.Analysis;
 import de.tectoast.emolga.utils.showdown.Player;
 import de.tectoast.emolga.utils.showdown.SDPokemon;
@@ -22,7 +23,7 @@ public class AnalyseCommand extends Command {
         Message m = e.getMessage();
         String msg = m.getContentDisplay();
         Member member = e.getMember();
-        Player[] game = Analysis.analyse(msg.substring(9));
+        Player[] game = Analysis.analyse(msg.substring(9), m);
         if (game == null) {
             tco.sendMessage("Da in einem der beiden Teams ein Zoroark ist, kann ich das Ergebnis nicht bestimmen!").queue();
             return;
@@ -32,7 +33,7 @@ public class AnalyseCommand extends Command {
         StringBuilder t1 = new StringBuilder();
         StringBuilder t2 = new StringBuilder();
         System.out.println("Spieler 1");
-        for (SDPokemon p : game[0].getMons()) {//Hallo Dieter\r\nTest\r\nDrei\r\nVier\r\nF\u00FCnf\r\nSechs
+        for (SDPokemon p : game[0].getMons()) {
             if (p.isDead()) deadP1++;
             System.out.println(p.getPokemon() + " -> " + p.isDead());
         }
@@ -50,7 +51,7 @@ public class AnalyseCommand extends Command {
         for (SDPokemon p : game[1].getMons()) {
             t2.append(getMonName(p.getPokemon(), gid)).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && !p1wins ? "X" : "").append("\n");
         }
-
+        Database.incrementStatistic("analysis");
         String str = game[0].getNickname() + " " + winloose + " " + game[1].getNickname() + "\n\n" + game[0].getNickname() + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1
                 + "\n" + game[1].getNickname() + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
         tco.sendMessage(str).queue();

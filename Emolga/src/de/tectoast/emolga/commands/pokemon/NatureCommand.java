@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.database.Database;
-import org.json.JSONObject;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

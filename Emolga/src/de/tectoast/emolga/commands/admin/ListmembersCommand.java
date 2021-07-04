@@ -11,7 +11,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 public class ListmembersCommand extends Command {
     public ListmembersCommand() {
         super("listmembers", "Zeigt alle User an, die diese Rolle haben", CommandCategory.Admin);
-        setArgumentTemplate(ArgumentManagerTemplate.builder().addMultiple("role", "Rolle", "Die Rolle, die die User besitzen sollen", false, ArgumentManagerTemplate.DiscordType.ROLE, ArgumentManagerTemplate.DiscordType.ID)
+        setArgumentTemplate(ArgumentManagerTemplate.builder().add("role", "Rolle", "Die Rolle, die die User besitzen sollen", ArgumentManagerTemplate.DiscordType.ID)
                 .setExample("!listmembers @VIP")
                 .build());
     }
@@ -22,7 +22,7 @@ public class ListmembersCommand extends Command {
         TextChannel tco = e.getChannel();
         Member member = e.getMember();
         ArgumentManager args = e.getArguments();
-        Role r = args.is("role", Role.class) ? args.getRole("role") : e.getJDA().getRoleById(args.getID("role"));
+        Role r = e.getJDA().getRoleById(args.getID("role"));
         /*if (m.getMentionedRoles().size() == 0) {
             if (m.getContentDisplay().split(" ").length == 2) {
                 try {

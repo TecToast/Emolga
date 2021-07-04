@@ -20,7 +20,7 @@ public class SolutionCommand extends Command {
         Member member = e.getMember();
         DexQuiz quiz = DexQuiz.getByTC(tco);
         if (quiz != null) {
-            tco.sendMessage("Die Lösung ist " + quiz.gerName + "!").queue();
+            tco.sendMessage("Die Lösung ist **" + quiz.gerName + "**! (Eintrag aus Pokemon **" + quiz.edition + "**)").queue();
             quiz.round++;
             if (quiz.round > quiz.cr) {
                 quiz.end();

@@ -28,7 +28,7 @@ public class AddMonCommand extends Command {
         String pokeball = split[2];
         if (pokeball.equalsIgnoreCase("Pokeball")) pokeball = "Pokéball";
         Optional<String> optball = balls.stream().filter(pokeball::equalsIgnoreCase).findFirst();
-        if (!optball.isPresent()) {
+        if (optball.isEmpty()) {
             tco.sendMessage("Dieser Ball existiert nicht!").queue();
             return;
         }

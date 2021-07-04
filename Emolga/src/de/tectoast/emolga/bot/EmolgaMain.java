@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.Giveaway;
 import de.tectoast.emolga.utils.MessageWaiter;
+import de.tectoast.emolga.utils.sql.DBManagers;
 import de.tectoast.emolga.ytsubscriber.NotificationCallback;
 import de.tectoast.toastilities.managers.ReactionManager;
 import net.dv8tion.jda.api.JDA;
@@ -21,10 +22,7 @@ import java.nio.file.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.function.Consumer;
 
 import static de.tectoast.emolga.commands.Command.*;
@@ -36,8 +34,6 @@ public class EmolgaMain {
     public static final ArrayList<String> alreadywritten = new ArrayList<>();
     public static final HashMap<String, Consumer<String>> sdmessages = new HashMap<>();
     public static JDA emolgajda;
-    public static JDA flegmonjda;
-
     public static final NotificationCallback parseYT = feed -> {
 
         System.out.println(feed.toString(4));
@@ -81,6 +77,7 @@ public class EmolgaMain {
         //System.out.println(link);*/
 
     };
+    public static JDA flegmonjda;
     private static int i = 0;
 
     public static void start() throws LoginException, InterruptedException, SQLException {
@@ -97,21 +94,32 @@ public class EmolgaMain {
                 .addEventListeners(new EmolgaListener(), messageWaiter)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
+        emolgajda.addEventListener(new SlashListener(emolgajda));
         flegmonjda = JDABuilder.createDefault(Command.tokens.getString("discordflegmon"))
                 .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
                 .addEventListeners(new EmolgaListener(), messageWaiter)
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
-        ResultSet replana = Database.select("select * from analysis");
+        flegmonjda.addEventListener(new SlashListener(emolgajda));
+        /*ResultSet replana = Database.select("select * from analysis");
         while (replana.next()) {
             replayAnalysis.put(replana.getLong("replay"), replana.getLong("result"));
-        }
+        }*/
+        DBManagers.ANALYSIS.forAll(r -> replayAnalysis.put(r.getLong("replay"), r.getLong("result")));
+        System.out.println("replayAnalysis.size() = " + replayAnalysis.size());
         ResultSet spoiler = Database.select("select * from spoilertags");
         while (spoiler.next()) {
             spoilerTags.add(spoiler.getLong("guildid"));
         }
         emolgajda.awaitReady();
         flegmonjda.awaitReady();
+        /*CommandListUpdateAction a = emolgajda.getGuildById(447357526997073930L).updateCommands();
+        a.addCommands(commands.stream().filter(c -> c.getArgumentTemplate() != null).map(c -> {
+            CommandData cd = new CommandData(c.getName(), c.getHelp());
+            c.getArgumentTemplate().arguments.stream().sorted(Comparator.comparing(ArgumentManagerTemplate.Argument::isOptional)).forEach(ar -> cd.addOption(ar.getType().asOptionType(), ar.getName().toLowerCase().replace(" ", "_"), ar.getHelp(), !ar.isOptional()));
+            return cd;
+        }).collect(Collectors.toCollection(ArrayList::new))).queue();*/
+        awaitNextDay();
         flegmonjda.getPresence().setActivity(Activity.playing("mit seiner Rute"));
         updatePresence();
         ReactionManager manager = new ReactionManager(emolgajda);

@@ -4,13 +4,9 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.DexQuiz;
+import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-
-import java.util.Random;
 
 public class DexquizCommand extends Command {
     public DexquizCommand() {
@@ -34,12 +30,11 @@ public class DexquizCommand extends Command {
                 String pokemon = pair.getLeft();
                 String englName = pair.getRight();
                 sendDexEntry(tco.getAsMention() + pokemon);
-                Document d = Jsoup.connect("https://www.pokewiki.de/" + pokemon).get();
-                Element table = d.select("table[class=\"round centered\"]").get(0);
-                Element element = table.select("td").get(new Random().nextInt(table.select("td").size()));
-                new DexQuiz(tco, pokemon, englName, e.getArguments().getInt("count"));
+                Pair<String, String> res = DBManagers.POKEDEX.getDexEntry(pokemon);
+                String entry = res.getLeft();
+                new DexQuiz(tco, pokemon, englName, e.getArguments().getInt("count"), res.getRight());
                 //� = %C3%B6
-                tco.sendMessage("Runde 1: " + trim(element.text(), pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queue();
+                tco.sendMessage("Runde 1: " + trim(entry, pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queue();
             } catch (Exception ioException) {
                 tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
                 ioException.printStackTrace();

@@ -1,17 +1,16 @@
 package de.tectoast.emolga.utils;
 
+import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
@@ -24,14 +23,16 @@ public class DexQuiz {
     final TextChannel tc;
     public String gerName;
     public String englName;
+    public String edition;
     public int round = 1;
     public boolean block = false;
 
-    public DexQuiz(TextChannel tc, String gerName, String englName, int rounds) {
+    public DexQuiz(TextChannel tc, String gerName, String englName, int rounds, String edition) {
         this.tc = tc;
         this.gerName = gerName;
         this.englName = englName;
         this.cr = rounds;
+        this.edition = edition;
         if (cr <= 0) {
             tc.sendMessage("Du musst eine Mindestanzahl von einer Runde angeben!").queue();
             return;
@@ -77,22 +78,20 @@ public class DexQuiz {
     }
 
     public void newMon() {
-        try {
-            Pair<String, String> mon = getNewMon();
-            String pokemon = mon.getLeft();
-            String englName = mon.getRight();
-            Document d = Jsoup.connect("https://www.pokewiki.de/" + pokemon).get();
+        Pair<String, String> mon = getNewMon();
+        String pokemon = mon.getLeft();
+        String englName = mon.getRight();
+            /*Document d = Jsoup.connect("https://www.pokewiki.de/" + pokemon).get();
             Element table = d.select("table[class=\"round centered\"]").get(0);
-            Element element = table.select("td").get(new Random().nextInt(table.select("td").size()));
-            gerName = pokemon;
-            sendDexEntry(this.tc.getAsMention() + pokemon);
-            this.englName = englName;
-            //ü = %C3%B6
-            this.block = false;
-            Thread.sleep(3000);
-            this.tc.sendMessage("Runde " + round + ": " + trim(element.text(), pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queue();
-        } catch (IOException | InterruptedException ioException) {
-            ioException.printStackTrace();
-        }
+            Element element = table.select("td").get(new Random().nextInt(table.select("td").size()));*/
+        Pair<String, String> res = DBManagers.POKEDEX.getDexEntry(pokemon);
+        String entry = res.getLeft();
+        edition = res.getRight();
+        gerName = pokemon;
+        sendDexEntry(this.tc.getAsMention() + pokemon);
+        this.englName = englName;
+        //ü = %C3%B6
+        this.block = false;
+        this.tc.sendMessage("Runde " + round + ": " + trim(entry, pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queueAfter(3, TimeUnit.SECONDS);
     }
 }

@@ -7,6 +7,7 @@ import de.tectoast.emolga.utils.Giveaway;
 import de.tectoast.emolga.utils.PrivateCommand;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
+import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import org.json.JSONArray;
@@ -422,13 +423,13 @@ public class PrivateCommands {
                 }
 
             }
-            String query = "insert into pokedex(" + "`pokemonname`," + String.join(",", games) + ")" + " values ('" + toSDName(mon) + "'," + String.join(",", entries) + ")";
+            String query = "insertBuilder into pokedex(" + "`pokemonname`," + String.join(",", games) + ")" + " values ('" + toSDName(mon) + "'," + String.join(",", entries) + ")";
             System.out.println(query);
             System.out.println();
             Database.update(query);
             /*x++;
             if(x % 10 == 0) System.out.println(x);*/
-            //Database.insert("pokedex",  , "`" + toSDName(mon) + "`", entries.toArray());
+            //Database.insertBuilder("pokedex",  , "`" + toSDName(mon) + "`", entries.toArray());
         }
     }
 
@@ -441,6 +442,48 @@ public class PrivateCommands {
                 sendToMe(guild.getTextChannels().get(0).createInvite().complete().getUrl());
             }
         }
+    }
+
+    @PrivateCommand(name = "insertnicknames")
+    public static void insertNicknames(GenericCommandEvent e) {
+        JSONObject json = getEmolgaJSON().getJSONObject("shortcuts");
+        for (String s : json.keySet()) {
+            Translation t = getGerName(s);
+            Database.insert("translations", "englishid, germanid, englishname, germanname, type, modification, isnick",
+                    s, s, getEnglName(s), t.getTranslation(), t.getType().getId(), "default", true);
+        }
+    }
+
+    @PrivateCommand(name = "downloadtrainers")
+    public static void downloadTrainers(GenericCommandEvent event) throws IOException {
+        Document d = Jsoup.connect("https://www.pokewiki.de/Arenaleiter").get();
+        Element ele = d.select("table[class=\"innerround c\"]").first();
+        List<String> td = ele.select("td").stream().map(Element::text).map(s -> {
+            if(s.equals("Ben")) return "Ben und Svenja";
+            if(s.equals("Svenja")) return "";
+            if(s.equals("Blau")) return "Blau Eich";
+            return s;
+        }).filter(e -> !e.trim().equals("")).filter(e -> !e.trim().equals("kein best.")).filter(e -> !e.trim().equals("—")).collect(Collectors.toList());
+        HashMap<String, String> map = new HashMap<>();
+        td.forEach(s -> {
+            Document doc;
+            try {
+                System.out.println("s = " + s);
+                doc = Jsoup.connect("https://www.pokewiki.de/" + s).get();
+                map.put(s, doc.select("span[lang=\"en\"]").first().text());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        td.forEach(s -> {
+            String engl = map.get(s);
+            DBManagers.TRANSLATIONS.insert(toSDName(engl), toSDName(s), engl, s, "trainer", "default", false, null);
+        });
+    }
+
+    @PrivateCommand(name = "removeduplicates")
+    public static void removeDuplicates(GenericCommandEvent e) {
+        DBManagers.TRANSLATIONS.removeDuplicates();
     }
 
     public static void execute(Message message) {

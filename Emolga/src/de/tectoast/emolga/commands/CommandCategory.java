@@ -23,9 +23,9 @@ public enum CommandCategory {
     Showdown("\uD83C\uDDF8"),
     Pepe("822140307558629446");
 
-    private static final ArrayList<CommandCategory> order = new ArrayList<>(Arrays.asList(Pepe, Showdown, Pokemon, Draft, Dexquiz, BS, Various, Admin, Moderator));
+    private static final ArrayList<CommandCategory> order = new ArrayList<>(Arrays.asList(Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Admin, Moderator));
 
-    private static final ArrayList<Long> musicGuilds = new ArrayList<>(Arrays.asList(700504340368064562L, 712035338846994502L, 673833176036147210L, 821350264152784896L, 745934535748747364L, Constants.ASLID));
+    private static final ArrayList<Long> musicGuilds = new ArrayList<>(Arrays.asList(700504340368064562L, 712035338846994502L, 673833176036147210L, 821350264152784896L, 745934535748747364L, Constants.ASLID, 605632286179983360L));
 
     static {
         Admin.allowsMember = m -> m.hasPermission(Permission.ADMINISTRATOR);
@@ -40,10 +40,11 @@ public enum CommandCategory {
         Admin.everywhere = true;
         Moderator.everywhere = true;
         Pepe.isEmote = true;
+        BS.disabled = "Die Blazing Strikers Commands wurden dauerhaft abgeschaft!";
         //Music.disabled = "Die Musikfunktionen wurden aufgrund einer Fehlfunktion komplett deaktiviert!";
     }
 
-    final String disabled = "";
+    String disabled = "";
     String emoji;
     String name;
     boolean isEmote = false;
@@ -65,6 +66,10 @@ public enum CommandCategory {
     CommandCategory(String emoji) {
         this.emoji = emoji;
         this.name = this.name();
+    }
+
+    public static CommandCategory byName(String name) {
+        return Arrays.stream(values()).filter(cc -> cc.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
     }
 
     public static ArrayList<CommandCategory> getOrder() {

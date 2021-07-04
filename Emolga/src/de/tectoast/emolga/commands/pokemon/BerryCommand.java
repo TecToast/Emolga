@@ -18,82 +18,82 @@ public class BerryCommand extends Command {
         String g;
         String engl;
         switch (ger) {
-            case "Feuer":
+            case "Feuer" -> {
                 g = "Koakobeere";
                 engl = "Occa Berry";
-                break;
-            case "Wasser":
+            }
+            case "Wasser" -> {
                 g = "Foepasbeere";
                 engl = "Passho Berry";
-                break;
-            case "Elektro":
+            }
+            case "Elektro" -> {
                 g = "Kerzalbeere";
                 engl = "Wacan Berry";
-                break;
-            case "Pflanze":
+            }
+            case "Pflanze" -> {
                 g = "Grindobeere";
                 engl = "Rindo Berry";
-                break;
-            case "Eis":
+            }
+            case "Eis" -> {
                 g = "Kiroyabeere";
                 engl = "Yache Berry";
-                break;
-            case "Kampf":
+            }
+            case "Kampf" -> {
                 g = "Rospelbeere";
                 engl = "Chople Berry";
-                break;
-            case "Gift":
+            }
+            case "Gift" -> {
                 g = "Grarzbeere";
                 engl = "Kebia Berry";
-                break;
-            case "Boden":
+            }
+            case "Boden" -> {
                 g = "Schukebeere";
                 engl = "Shuca Berry";
-                break;
-            case "Flug":
+            }
+            case "Flug" -> {
                 g = "Kobabeere";
                 engl = "Coba Berry";
-                break;
-            case "Psycho":
+            }
+            case "Psycho" -> {
                 g = "Pyapabeere";
                 engl = "Payapa Berry";
-                break;
-            case "Käfer":
+            }
+            case "Käfer" -> {
                 g = "Tanigabeere";
                 engl = "Tanga Berry";
-                break;
-            case "Gestein":
+            }
+            case "Gestein" -> {
                 g = "Chiaribeere";
                 engl = "Charti Berry";
-                break;
-            case "Geist":
+            }
+            case "Geist" -> {
                 g = "Zitarzbeere";
                 engl = "Kasib Berry";
-                break;
-            case "Drache":
+            }
+            case "Drache" -> {
                 g = "Terirobeere";
                 engl = "Haban Berry";
-                break;
-            case "Unlicht":
+            }
+            case "Unlicht" -> {
                 g = "Burleobeere";
                 engl = "Colbur Berry";
-                break;
-            case "Stahl":
+            }
+            case "Stahl" -> {
                 g = "Babiribeere";
                 engl = "Babiri Berry";
-                break;
-            case "Normal":
+            }
+            case "Normal" -> {
                 g = "Latchibeere";
                 engl = "Chilan Berry";
-                break;
-            case "Fee":
+            }
+            case "Fee" -> {
                 g = "Hibisbeere";
                 engl = "Roseli Berry";
-                break;
-            default:
+            }
+            default -> {
                 g = "Es ist ein unbekannter Fehler aufgetreten! Bitte kontaktiere Flo mit `!flohelp <Nachricht>` !";
                 engl = "";
-                break;
+            }
         }
         e.reply("Deutsch: " + g + "\nEnglisch: " + engl);
     }

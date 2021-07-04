@@ -31,7 +31,7 @@ public class CheckCommand extends Command {
             String pokeball = split[2];
             if (pokeball.equalsIgnoreCase("Pokeball")) pokeball = "Pokéball";
             Optional<String> opt = balls.stream().filter(pokeball::equalsIgnoreCase).findFirst();
-            if (!opt.isPresent()) {
+            if (opt.isEmpty()) {
                 tco.sendMessage("Dieser Ball existiert nicht!").queue();
                 return;
             }

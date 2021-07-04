@@ -18,7 +18,7 @@ import java.util.Date;
 
 public class UserInfoCommand extends Command {
     public UserInfoCommand() {
-        super("userinfo", "Zeigt die Userinfo von dir bzw. dem gepingten Spieler an", CommandCategory.Various, Constants.ASLID);
+        super("userinfo", "Zeigt die Userinfo von dir bzw. dem gepingten Spieler an", CommandCategory.Various);
         setArgumentTemplate(ArgumentManagerTemplate.builder()
                 .add("user", "User", "Der User, dessen Info du haben möchtest, oder gar nichts, wenn du deine eigene Info sehen möchtest", ArgumentManagerTemplate.DiscordType.USER, true)
                 .setExample("!userinfo @Flo")

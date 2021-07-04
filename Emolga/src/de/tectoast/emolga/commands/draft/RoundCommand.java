@@ -16,7 +16,7 @@ public class RoundCommand extends Command {
     @Override
     public void process(GuildCommandEvent e) {
         Optional<Draft> op = Draft.drafts.stream().filter(d -> d.tc.getId().equals(e.getChannel().getId())).findFirst();
-        if (!op.isPresent()) {
+        if (op.isEmpty()) {
             e.reply("In diesem Textchannel findet derzeit kein Draft statt!");
             return;
         }

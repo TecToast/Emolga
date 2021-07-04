@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 public class CreatedraftCommand extends Command {
     public CreatedraftCommand() {
-        super("createdraft", "Erstellt einen Draft mit dem Namen und generiert die Draftreihenfolge mit allen Usern, die die Rolle haben", CommandCategory.Flo);
+        super("createdraft", "Generiert eine Draftreihenfolge mit allen Usern, die die Rolle haben", CommandCategory.Flo);
         setArgumentTemplate(ArgumentManagerTemplate.builder()
                 .add("name", "Name", "Name des Drafts/der Liga", ArgumentManagerTemplate.Text.any())
                 .add("role", "Rolle", "Rolle, von der alle User in die Draftreihenfolge kommen", ArgumentManagerTemplate.DiscordType.ROLE)

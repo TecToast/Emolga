@@ -26,7 +26,7 @@ public class DeepCommand extends Command {
         if (!deep.contains(g)) {
             String url = "https://www.youtube.com/playlist?list=PLaduIcpkVIbrBbU1vxkMSvKdOKo0GJx65";
             deep.add(g);
-            loadPlaylist(tco, url, member, ":^)");
+            loadPlaylist(tco, url, member, ":^)", true);
         } else {
             deep.remove(g);
             musicManager.player.stopTrack();

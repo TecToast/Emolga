@@ -1,5 +1,7 @@
 package de.tectoast.emolga.bot;
 
+import de.tectoast.emolga.buttons.ButtonListener;
+import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.PrivateCommands;
 import de.tectoast.emolga.database.Database;
@@ -11,6 +13,7 @@ import de.tectoast.emolga.utils.music.GuildMusicManager;
 import de.tectoast.emolga.utils.showdown.Analysis;
 import de.tectoast.emolga.utils.showdown.Player;
 import de.tectoast.emolga.utils.showdown.SDPokemon;
+import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
@@ -21,12 +24,14 @@ import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceJoinEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent;
+import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.guild.react.GuildMessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.api.events.role.RoleCreateEvent;
 import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -40,8 +45,8 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static de.tectoast.emolga.commands.Command.*;
 
@@ -70,6 +75,12 @@ public class EmolgaListener extends ListenerAdapter {
         //System.out.println(resizedImage);
         return resizedImage;
     }
+
+    @Override
+    public void onButtonClick(@NotNull ButtonClickEvent e) {
+        ButtonListener.check(e);
+    }
+
 
     @Override
     public void onGuildMemberJoin(@Nonnull GuildMemberJoinEvent e) {
@@ -306,6 +317,22 @@ public class EmolgaListener extends ListenerAdapter {
                         getGuildAudioPlayer(e.getJDA().getGuildById(split[0])).player.stopTrack();
                     }
                 }
+                if (tco.getIdLong() == 857960777851994142L) {
+                    ArrayList<File> at = new ArrayList<>();
+                    m.getAttachments().forEach(a -> {
+                        try {
+                            at.add(a.downloadToFile("nmlattachments/" + a.getFileName()).get());
+                        } catch (InterruptedException | ExecutionException interruptedException) {
+                            interruptedException.printStackTrace();
+                        }
+                    });
+                    DBManagers.NML_ANNOUNCEMENTS.forAll(c -> {
+                        MessageAction ma = e.getJDA().getTextChannelById(c.getLong("channelid")).sendMessage(m.getContentRaw());
+                        //noinspection ResultOfMethodCallIgnored
+                        at.forEach(ma::addFile);
+                        ma.queue();
+                    });
+                }
                 if (!e.getAuthor().isBot()) {
                     if (tco.getIdLong() == 846889514613735445L || tco.getIdLong() == 849303690808786955L) {
                         for (Message.Attachment attachment : m.getAttachments()) {
@@ -361,7 +388,7 @@ public class EmolgaListener extends ListenerAdapter {
                     if (gameday == -1) return;
                     String p1 = member.getId();
                     Optional<String> op = Arrays.stream(json.getJSONObject("battleorder").getString(String.valueOf(gameday)).split(";")).filter(str -> str.contains(p1)).findFirst();
-                    if (!op.isPresent()) {
+                    if (op.isEmpty()) {
                         sendToUser(member, "Du spielst nicht in dieser Liga mit!");
                         return;
                     }
@@ -793,7 +820,7 @@ public class EmolgaListener extends ListenerAdapter {
                     g.addRoleToMember(member, g.getRoleById("758254829885456404")).queue();
                 }
                 if (m.getMentionedMembers().size() == 1) {
-                    if (Stream.of(Bot.values()).anyMatch(b -> b.getJDA().getSelfUser().getIdLong() == m.getMentionedMembers().get(0).getIdLong()) && !e.getAuthor().isBot() && isChannelAllowed(tco)) {
+                    if (e.getJDA().getSelfUser().getIdLong() == m.getMentionedMembers().get(0).getIdLong() && !e.getAuthor().isBot() && isChannelAllowed(tco)) {
                         help(tco, member);
                     }
                 }
@@ -850,38 +877,38 @@ public class EmolgaListener extends ListenerAdapter {
                              * Meistertrainer: 715248587344183347
                              * */
                             switch (lvl) {
-                                case 5:
+                                case 5 -> {
                                     g.addRoleToMember(mem, g.getRoleById("715248666008354847")).queue();
                                     g.removeRoleFromMember(mem, g.getRoleById("715242519528603708")).queue();
-                                    break;
-                                case 10:
+                                }
+                                case 10 -> {
                                     g.addRoleToMember(mem, g.getRoleById("715247650018164826")).queue();
                                     g.removeRoleFromMember(mem, g.getRoleById("715248666008354847")).queue();
-                                    break;
-                                case 15:
+                                }
+                                case 15 -> {
                                     g.addRoleToMember(mem, g.getRoleById("715248788314259546")).queue();
                                     g.removeRoleFromMember(mem, g.getRoleById("715247650018164826")).queue();
-                                    break;
-                                case 20:
+                                }
+                                case 20 -> {
                                     g.addRoleToMember(mem, g.getRoleById("715248194732163163")).queue();
                                     g.removeRoleFromMember(mem, g.getRoleById("715248788314259546")).queue();
-                                    break;
-                                case 30:
+                                }
+                                case 30 -> {
                                     g.addRoleToMember(mem, g.getRoleById("715248297471770640")).queue();
                                     g.removeRoleFromMember(mem, g.getRoleById("715248194732163163")).queue();
-                                    break;
-                                case 35:
+                                }
+                                case 35 -> {
                                     g.addRoleToMember(mem, g.getRoleById("715248393223667753")).queue();
                                     g.removeRoleFromMember(mem, g.getRoleById("715248297471770640")).queue();
-                                    break;
-                                case 40:
+                                }
+                                case 40 -> {
                                     g.addRoleToMember(mem, g.getRoleById("715247811687612547")).queue();
                                     g.removeRoleFromMember(mem, g.getRoleById("715248393223667753")).queue();
-                                    break;
-                                case 50:
+                                }
+                                case 50 -> {
                                     g.addRoleToMember(mem, g.getRoleById("715248587344183347")).queue();
                                     g.removeRoleFromMember(mem, g.getRoleById("715247811687612547")).queue();
-                                    break;
+                                }
                             }
                         } catch (Exception ex) {
                             e.getJDA().retrieveUserById(Constants.FLOID).complete().openPrivateChannel().complete().sendMessage("Fehler bei Level Up!").queue();
@@ -889,20 +916,22 @@ public class EmolgaListener extends ListenerAdapter {
                     }
                     return;
                 }
-                DexQuiz quiz = DexQuiz.getByTC(tco);
-                if (quiz != null && !quiz.block) {
-                    Translation name = getGerName(msg);
-                    if (quiz.check(name)) {
-                        quiz.block = true;
-                        tco.sendMessage(member.getAsMention() + " hat das Pokemon erraten! Es war " + quiz.gerName + "!").queue();
-                        quiz.round++;
-                        if (!quiz.points.containsKey(member)) quiz.points.put(member, 0);
-                        quiz.points.put(member, quiz.points.get(member) + 1);
-                        if (quiz.round > quiz.cr) {
-                            quiz.end();
-                            return;
+                if (!e.getAuthor().isBot() && !msg.startsWith("!dexquiz")) {
+                    DexQuiz quiz = DexQuiz.getByTC(tco);
+                    if (quiz != null && !quiz.block) {
+                        Translation name = getGerName(msg);
+                        if (quiz.check(name)) {
+                            quiz.block = true;
+                            tco.sendMessage(member.getAsMention() + " hat das Pokemon erraten! Es war **" + quiz.gerName + "**! (Der Eintrag stammt aus **Pokemon " + quiz.edition + "**)").queue();
+                            quiz.round++;
+                            if (!quiz.points.containsKey(member)) quiz.points.put(member, 0);
+                            quiz.points.put(member, quiz.points.get(member) + 1);
+                            if (quiz.round > quiz.cr) {
+                                quiz.end();
+                                return;
+                            }
+                            quiz.newMon();
                         }
-                        quiz.newMon();
                     }
                 }
                 JSONObject json = getEmolgaJSON();

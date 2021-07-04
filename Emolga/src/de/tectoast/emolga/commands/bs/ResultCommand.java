@@ -36,7 +36,7 @@ public class ResultCommand extends Command {
         String p2;
         if (!checkBST) {
             Optional<String> op = gdl.stream().filter(str -> str.contains(p1)).findFirst();
-            if (!op.isPresent()) {
+            if (op.isEmpty()) {
                 sendToUser(member, "Du spielst nicht in dieser Liga mit!");
                 return;
             }

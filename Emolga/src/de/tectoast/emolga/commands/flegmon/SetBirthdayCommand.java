@@ -2,11 +2,9 @@ package de.tectoast.emolga.commands.flegmon;
 
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.commands.PepeCommand;
-import de.tectoast.emolga.database.Database;
+import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
-
-import java.sql.SQLException;
 
 public class SetBirthdayCommand extends PepeCommand {
     public SetBirthdayCommand() {
@@ -17,7 +15,7 @@ public class SetBirthdayCommand extends PepeCommand {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws SQLException {
+    public void process(GuildCommandEvent e) {
         String msg = e.getMessage().getContentDisplay();
         Member member = e.getMember();
         TextChannel tco = e.getChannel();
@@ -49,9 +47,10 @@ public class SetBirthdayCommand extends PepeCommand {
             return;
         }
         long uid = e.getAuthor().getIdLong();
-        if (Database.update("UPDATE birthdays SET year = " + year + ", month = " + month + ", day = " + day + " WHERE userid = " + uid) == 0) {
-            Database.insert("birthdays", "userid, year, month, day", uid, year, month, day);
-        }
+        /*if (Database.update("UPDATE birthdays SET year = " + year + ", month = " + month + ", day = " + day + " WHERE userid = " + uid) == 0) {
+            Database.insertBuilder("birthdays", "userid, year, month, day", uid, year, month, day);
+        }*/
+        DBManagers.BIRTHDAYS.addOrUpdateBirthday(uid, year, month, day);
         tco.sendMessage("Dein Geburtstag wurde erfolgreich auf den " + getWithZeros(day, 2) + "." + getWithZeros(month, 2) + "." + year + " gesetzt!").queue();
     }
 }

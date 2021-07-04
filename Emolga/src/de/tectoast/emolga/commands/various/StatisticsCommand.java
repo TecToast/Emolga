@@ -24,9 +24,12 @@ public class StatisticsCommand extends Command {
         ArrayList<String> otherCmds = new ArrayList<>();
         while (set.next()) {
             int count = set.getInt("count");
-            if (set.getString("name").equals("analysis")) analysis = "Analysierte Replays: " + count;
+            String name = set.getString("name");
+            if (name.equals("analysis")) analysis = "Analysierte Replays: " + count;
             else {
-                Command c = byName(set.getString("name").substring(4));
+                Command c = byName(name.substring(4));
+                System.out.println("name = " + name);
+                if(c.checkBot(e.getJDA(), e.getGuild().getIdLong()))
                 otherCmds.add(c.getPrefix() + c.getName() + ": " + count);
             }
         }

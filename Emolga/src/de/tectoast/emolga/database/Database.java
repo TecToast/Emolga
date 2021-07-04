@@ -64,9 +64,9 @@ public class Database {
         String query = "insert into " + table + " (" + columns + ") values (";
         ArrayList<String> list = new ArrayList<>();
         for (Object value : values) {
-            //if (value instanceof String || value instanceof Timestamp) list.add("'" + value + "'");
-            /*else*/
-            list.add(value.toString());
+            if (value instanceof String || value instanceof Timestamp) list.add("'" + value + "'");
+            else
+                list.add(value.toString());
         }
         query = query + String.join(", ", list) + ")";
         System.out.println("INSERT REQUEST: " + query);
@@ -122,7 +122,7 @@ public class Database {
                     userDataInput.setInt(2, 1);
                     userDataInput.executeUpdate();
                 }
-                if(name.equals("analysis")) Command.updatePresence();
+                if (name.equals("analysis")) Command.updatePresence();
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
             }
@@ -154,5 +154,22 @@ public class Database {
             //throwables.printStackTrace();
         }
         return null;
+    }
+
+    public static void updateConnection() {
+        if (System.currentTimeMillis() - instance.lastRequest >= 3600000) {
+            try {
+                instance.connection.close();
+                instance.connection = DriverManager.getConnection("jdbc:mysql://localhost/emolga?autoReconnect=true", instance.username, instance.password);
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
+        instance.lastRequest = System.currentTimeMillis();
+    }
+
+    public static Connection getConnection() {
+        updateConnection();
+        return instance.connection;
     }
 }

@@ -24,10 +24,11 @@ public class DataCommand extends Command {
         aliases.add("dt");
         setArgumentTemplate(ArgumentManagerTemplate.builder()
                 .add("shiny", "Shiny", "", ArgumentManagerTemplate.Text.of(SubCommand.of("Shiny", "Wenn der Sprite des Mons als Shiny angezeigt werden soll")), true)
-                .add("form", "Form", "", ArgumentManagerTemplate.Text.of(
+                .add("regform", "Regional/Mega-Form", "", ArgumentManagerTemplate.Text.of(
                         SubCommand.of("Alola"), SubCommand.of("Galar"), SubCommand.of("Mega")
                 ), true)
                 .add("stuff", "Sache", "Pokemon/Item/Whatever", Translation.Type.of(Translation.Type.POKEMON, Translation.Type.MOVE, Translation.Type.ITEM, Translation.Type.ABILITY))
+                .add("form", "Form", "Sonderform, bspw. `Heat` bei Rotom", ArgumentManagerTemplate.Text.any(), true)
                 .setExample("!dt Shiny Primarene")
                 .build());
     }
@@ -45,20 +46,13 @@ public class DataCommand extends Command {
         else prevo = getGerNameNoCheck(prev);
         if (obj.has("evoLevel")) str = "auf Level " + obj.getInt("evoLevel");
         else if (obj.has("evoType")) {
-            switch (obj.getString("evoType")) {
-                case "useItem":
-                    str = "mit dem Item \"" + getGerNameNoCheck(obj.getString("evoItem")) + "\"";
-                    break;
-                case "levelFriendship":
-                    str = "durch Freundschaft";
-                    break;
-                case "trade":
-                    str = "durch Tausch";
-                    break;
-                case "levelExtra":
-                    str = "";
-                    break;
-            }
+            str = switch (obj.getString("evoType")) {
+                case "useItem" -> "mit dem Item \"" + getGerNameNoCheck(obj.getString("evoItem")) + "\"";
+                case "levelFriendship" -> "durch Freundschaft";
+                case "trade" -> "durch Tausch";
+                case "levelExtra" -> "";
+                default -> str;
+            };
         }
         String condition = "";
         if (obj.has("evoCondition"))
@@ -265,8 +259,22 @@ public class DataCommand extends Command {
                             }
                         }*/
                         if (monname.equalsIgnoreCase("amigento") || monname.equalsIgnoreCase("arceus")) {
-                            builder.addField(monname.equalsIgnoreCase("amigento") ? "Amigento" : "Arceus", monname.equalsIgnoreCase("amigento") ? "KP: 95\n" + "Atk: 95\n" + "Def: 95\n" + "SpAtk: 95\n" + "SpDef: 95\n" + "Init: 95\n" + "Summe: 570"
-                                    : "KP: 120\n" + "Atk: 120\n" + "Def: 120\n" + "SpAtk: 120\n" + "SpDef: 120\n" + "Init: 120\n" + "Summe: 720", false);
+                            builder.addField(monname.equalsIgnoreCase("amigento") ? "Amigento" : "Arceus", monname.equalsIgnoreCase("amigento") ? """
+                                    KP: 95
+                                    Atk: 95
+                                    Def: 95
+                                    SpAtk: 95
+                                    SpDef: 95
+                                    Init: 95
+                                    Summe: 570"""
+                                    : """
+                                    KP: 120
+                                    Atk: 120
+                                    Def: 120
+                                    SpAtk: 120
+                                    SpDef: 120
+                                    Init: 120
+                                    Summe: 720""", false);
                         } else {
                             HashMap<String, ArrayList<String>> stat = new HashMap<>();
                             HashMap<String, JSONObject> origname = new HashMap<>();
@@ -313,20 +321,36 @@ public class DataCommand extends Command {
                         builder.setTitle(monname);
                         builder.setColor(Color.CYAN);
                         String suffix;
-                        if (args.has("form")) {
-                            String form = args.getText("form");
+                        if (args.has("regform")) {
+                            String form = args.getText("regform");
                             if (!mon.has("otherFormes")) {
                                 e.reply(monname + " besitzt keine **" + form + "**-Form!");
                                 return;
                             }
                             JSONArray otherFormes = mon.getJSONArray("otherFormes");
-                            if (otherFormes.toList().stream().noneMatch(s -> ((String) s).endsWith("-" + form))) {
+                            if (otherFormes.toList().stream().noneMatch(s -> ((String) s).toLowerCase().endsWith("-" + form.toLowerCase()))) {
                                 e.reply(monname + " besitzt keine **" + form + "**-Form!");
                                 return;
                             }
                             suffix = "-" + form.toLowerCase();
                         } else {
                             suffix = "";
+                        }
+                        if(args.has("form") || gerName.getForme() != null) {
+                            String form = args.getText("form");
+                            if(form == null) form = gerName.getForme();
+                            if (!mon.has("otherFormes")) {
+                                e.reply(monname + " besitzt keine **" + form + "**-Form!");
+                                return;
+                            }
+                            JSONArray otherFormes = mon.getJSONArray("otherFormes");
+                            String finalForm = form;
+                            if (otherFormes.toList().stream().noneMatch(s -> ((String) s).toLowerCase().endsWith("-" + finalForm.toLowerCase()))) {
+                                e.reply(monname + " besitzt keine **" + form + "**-Form!");
+                                return;
+                            }
+                            if(suffix.equals("")) suffix = "-";
+                            suffix += form.toLowerCase();
                         }
                         File f = new File("../Showdown/sspclient/sprites/gen5" + (args.isText("shiny", "Shiny") || msg.toLowerCase().contains("gummibärchen") ? "-shiny" : "") + "/" + toSDName(gerName.getOtherLang())
                                 + suffix + ".png");
@@ -390,21 +414,12 @@ public class DataCommand extends Command {
                     if (acc instanceof Boolean) accuracy = "-";
                     else accuracy = acc + "%";
                     String cat = data.getString("category");
-                    String category;
-                    switch (cat) {
-                        case "Physical":
-                            category = "Physisch";
-                            break;
-                        case "Special":
-                            category = "Speziell";
-                            break;
-                        case "Status":
-                            category = "Status";
-                            break;
-                        default:
-                            category = "ERROR";
-                            break;
-                    }
+                    String category = switch (cat) {
+                        case "Physical" -> "Physisch";
+                        case "Special" -> "Speziell";
+                        case "Status" -> "Status";
+                        default -> "ERROR";
+                    };
                     int ppc = data.getInt("pp");
                     String pp = ppc + " (max. " + (ppc * 8 / 5) + ")";
                     EmbedBuilder builder = new EmbedBuilder();
@@ -424,57 +439,30 @@ public class DataCommand extends Command {
                         JSONObject eff = data.getJSONObject("zMove");
                         if (eff.has("effect")) {
                             switch (eff.getString("effect")) {
-                                case "clearnegativeboost":
-                                    text = "Negative Statusveränderungen werden zurückgesetzt";
-                                    break;
-                                case "crit2":
-                                    text = "Critchance +2";
-                                    break;
-                                case "heal":
-                                    text = "Volle Heilung";
-                                    break;
-                                case "curse":
-                                    text = "Volle Heilung beim Geist Typ, sonst Atk +1";
-                                    break;
-                                case "redirect":
-                                    text = "Spotlight";
-                                    break;
-                                case "healreplacement":
-                                    text = "Heilt eingewechseltes Mon voll";
-                                    break;
-                                default:
+                                case "clearnegativeboost" -> text = "Negative Statusveränderungen werden zurückgesetzt";
+                                case "crit2" -> text = "Critchance +2";
+                                case "heal" -> text = "Volle Heilung";
+                                case "curse" -> text = "Volle Heilung beim Geist Typ, sonst Atk +1";
+                                case "redirect" -> text = "Spotlight";
+                                case "healreplacement" -> text = "Heilt eingewechseltes Mon voll";
+                                default -> {
                                     text = "Error";
                                     System.out.println(eff.toString(4));
-                                    break;
+                                }
                             }
                         } else {
                             JSONObject boosts = eff.getJSONObject("boost");
                             String stat = boosts.keys().next();
-                            switch (stat) {
-                                case "atk":
-                                    text = "Atk +" + boosts.getInt(stat);
-                                    break;
-                                case "def":
-                                    text = "Def +" + boosts.getInt(stat);
-                                    break;
-                                case "spa":
-                                    text = "SpAtk +" + boosts.getInt(stat);
-                                    break;
-                                case "spd":
-                                    text = "SpDef +" + boosts.getInt(stat);
-                                    break;
-                                case "spe":
-                                    text = "Init +" + boosts.getInt(stat);
-                                    break;
-                                case "accuracy":
-                                    text = "Genauigkeit +" + boosts.getInt(stat);
-                                    break;
-                                case "evasion":
-                                    text = "Ausweichwert +" + boosts.getInt(stat);
-                                    break;
-                                default:
-                                    text = "Error";
-                            }
+                            text = switch (stat) {
+                                case "atk" -> "Atk +" + boosts.getInt(stat);
+                                case "def" -> "Def +" + boosts.getInt(stat);
+                                case "spa" -> "SpAtk +" + boosts.getInt(stat);
+                                case "spd" -> "SpDef +" + boosts.getInt(stat);
+                                case "spe" -> "Init +" + boosts.getInt(stat);
+                                case "accuracy" -> "Genauigkeit +" + boosts.getInt(stat);
+                                case "evasion" -> "Ausweichwert +" + boosts.getInt(stat);
+                                default -> "Error";
+                            };
                         }
                         builder.addField("Z-Effect", text, true);
                     } else {

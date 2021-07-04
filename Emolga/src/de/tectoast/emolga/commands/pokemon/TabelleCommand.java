@@ -16,6 +16,7 @@ public class TabelleCommand extends Command {
     public TabelleCommand() {
         super("tabelle", "Zeigt die Tabelle der Liga an", CommandCategory.Pokemon, 712035338846994502L, 518008523653775366L);
         setArgumentTemplate(ArgumentManagerTemplate.noArgs());
+        disable();
         //overrideHelp.put("518008523653775366", "`!tabelle` Zeigt die Tabelle der angebenen Liga an");
     }
 

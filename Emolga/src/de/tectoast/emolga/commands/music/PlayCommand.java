@@ -13,7 +13,7 @@ public class PlayCommand extends Command {
         aliases.add("play");
         overrideChannel.put(712035338846994502L, new ArrayList<>(Arrays.asList(716221567079546983L, 735076688144105493L)));
         setArgumentTemplate(ArgumentManagerTemplate.builder()
-                .add("video", "Link|Suchbegriff", "Der Link bzw. der Suchbegriff für ein YouTube-Video", ArgumentManagerTemplate.Text.any())
+                .add("video", "Link o Suchbegriff", "Der Link bzw. der Suchbegriff für ein YouTube-Video", ArgumentManagerTemplate.Text.any())
                 .setExample("e!p https://www.youtube.com/watch?v=dQw4w9WgXcQ")
                 .build());
     }

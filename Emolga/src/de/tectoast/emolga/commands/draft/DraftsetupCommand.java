@@ -7,7 +7,7 @@ import de.tectoast.emolga.utils.draft.Draft;
 
 public class DraftsetupCommand extends Command {
     public DraftsetupCommand() {
-        super("draftsetup", "Startet das Draften der Liga in diesem Channel (im angegebenen Textchannel werden die Teams angezeigt)", CommandCategory.Draft);
+        super("draftsetup", "Startet das Draften der Liga in diesem Channel", CommandCategory.Flo);
         setArgumentTemplate(ArgumentManagerTemplate.builder()
                 .add("name", "Name", "Der Name der Liga/des Drafts", ArgumentManagerTemplate.Text.any())
                 .add("tc", "Channel", "Der Channel, wo die Teamübersicht sein soll", ArgumentManagerTemplate.DiscordType.CHANNEL)

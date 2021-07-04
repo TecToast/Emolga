@@ -10,6 +10,7 @@ import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import de.tectoast.emolga.buttons.ButtonListener;
 import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.*;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
@@ -17,6 +18,7 @@ import de.tectoast.emolga.utils.music.SoundSendHandler;
 import de.tectoast.emolga.utils.showdown.Analysis;
 import de.tectoast.emolga.utils.showdown.Player;
 import de.tectoast.emolga.utils.showdown.SDPokemon;
+import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -25,6 +27,9 @@ import net.dv8tion.jda.api.audio.hooks.ConnectionListener;
 import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.Button;
 import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.internal.utils.Helpers;
@@ -46,6 +51,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -141,6 +147,12 @@ public abstract class Command {
      */
     public static final Function<String, String> draftnamemapper = s -> getDraftGerName(s).getTranslation();
     /**
+     * MusicManagers for Lavaplayer
+     */
+    public static final HashMap<Long, GuildMusicManager> musicManagers = new HashMap<>();
+    public static final HashMap<Long, AudioPlayerManager> playerManagers = new HashMap<>();
+    public static final HashMap<Long, TrainerData> trainerData = new HashMap<>();
+    /**
      * Path to the default Showdown Data
      */
     private static final String SDPATH = "./ShowdownData/";
@@ -180,13 +192,7 @@ public abstract class Command {
      * JSONObject containing all credentials (Discord Token, Google OAuth Token)
      */
     public static JSONObject tokens;
-    /**
-     * MusicManagers for Lavaplayer
-     */
-    public static final HashMap<Long, GuildMusicManager> musicManagers = new HashMap<>();
-
-    public static final HashMap<Long, AudioPlayerManager> playerManagers = new HashMap<>();
-
+    public static JSONObject catchrates;
     public static HashMap<Long, SoundSendHandler> sendHandlers = new HashMap<>();
     /**
      * True if the XP JSON got edited after the last save
@@ -366,6 +372,10 @@ public abstract class Command {
     }
 
     public static void loadPlaylist(final TextChannel channel, final String track, Member mem, String cm) {
+        loadPlaylist(channel, track, mem, cm, false);
+    }
+
+    public static void loadPlaylist(final TextChannel channel, final String track, Member mem, String cm, boolean random) {
         GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
         System.out.println(track);
         getPlayerManager(channel.getGuild()).loadItemOrdered(musicManager, track, new AudioLoadResultHandler() {
@@ -378,7 +388,15 @@ public abstract class Command {
 
             @Override
             public void playlistLoaded(AudioPlaylist playlist) {
-                for (AudioTrack playlistTrack : playlist.getTracks()) {
+                LinkedList<AudioTrack> toplay = new LinkedList<>();
+                if (random) {
+                    ArrayList<AudioTrack> list = new ArrayList<>(playlist.getTracks());
+                    Collections.shuffle(list);
+                    toplay.addAll(list);
+                } else {
+                    toplay.addAll(playlist.getTracks());
+                }
+                for (AudioTrack playlistTrack : toplay) {
                     play(channel.getGuild(), musicManager, playlistTrack, mem, channel);
                 }
                 channel.sendMessage(cm == null ? "Loaded playlist!" : cm).queue();
@@ -482,8 +500,8 @@ public abstract class Command {
         getPlayerManager(g).loadItemOrdered(gmm, path, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
-                if(flegmon)
-                lastClipUsed = System.currentTimeMillis();
+                if (flegmon)
+                    lastClipUsed = System.currentTimeMillis();
                 play(g, gmm, track, vc);
             }
 
@@ -687,7 +705,7 @@ public abstract class Command {
         builder.setColor(Color.CYAN);
         builder.setDescription("**Grund:** " + reason);
         tco.sendMessage(builder.build()).queue();
-        Database.insert("bans", "userid, modid, guildid, reason", mem.getIdLong(), mod.getIdLong(), tco.getGuild().getIdLong(), reason);
+        DBManagers.BAN.ban(mem.getIdLong(), mod.getIdLong(), g.getIdLong(), reason, null);
     }
 
     public static void mute(TextChannel tco, Member mod, Member mem, String reason) {
@@ -742,7 +760,7 @@ public abstract class Command {
         builder.setColor(Color.CYAN);
         builder.setDescription("**Grund:** " + reason);
         tco.sendMessage(builder.build()).queue();
-        Database.insert("bans", "userid, modid, guildid, reason, expires", mem.getIdLong(), mod.getIdLong(), tco.getGuild().getIdLong(), reason, new Timestamp(expires));
+        DBManagers.BAN.ban(mem.getIdLong(), mod.getIdLong(), tco.getGuild().getIdLong(), reason, new Timestamp(expires));
     }
 
     public static void banTimer(Guild g, long expires, String mem) {
@@ -1129,11 +1147,7 @@ public abstract class Command {
     }
 
     public static String stars(int n) {
-        StringBuilder b = new StringBuilder();
-        for (int i = 0; i < n; i++) {
-            b.append("+");
-        }
-        return b.toString();
+        return "+".repeat(Math.max(0, n));
     }
 
     public static JSONObject load(String filename) {
@@ -1394,56 +1408,38 @@ public abstract class Command {
         c.set(Calendar.HOUR_OF_DAY, 0);
         c.set(Calendar.MINUTE, 0);
         c.set(Calendar.SECOND, 0);
+        long tilnextday = c.getTimeInMillis() - System.currentTimeMillis() + 1000;
+        System.out.println("System.currentTimeMillis() = " + System.currentTimeMillis());
+        System.out.println("tilnextday = " + tilnextday);
+        System.out.println("System.currentTimeMillis() + tilnextday = " + (System.currentTimeMillis() + tilnextday));
+        System.out.println("\"SELECT * FROM birthdays WHERE month = \" + (c.get(Calendar.MONTH) + 1) + \" AND day = \" + c.get(Calendar.DAY_OF_MONTH) = " + "SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(Calendar.DAY_OF_MONTH));
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                if (emolgajson.has("birthdays")) {
-                    JSONObject birthdays = emolgajson.getJSONObject("birthdays");
-                    //TODO ja Geburtstage halt lmao
+                ResultSet set = Database.select("SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(Calendar.DAY_OF_MONTH));
+                try {
+                    TextChannel tc = flegmonjda.getTextChannelById(605650587329232896L);
+                    while (set.next()) {
+                        tc.sendMessage("Alles Gute zum " + (Calendar.getInstance().get(Calendar.YEAR) - set.getInt("year")) + ". Geburtstag, <@" + set.getLong("userid") + ">!").queue();
+                    }
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
                 }
+                awaitNextDay();
             }
-        }, c.getTimeInMillis() - System.currentTimeMillis());
+        }, tilnextday);
     }
 
-    public static LinkedList<byte[]> readAudioData(File f) {
-        try {
-            LinkedList<byte[]> l = new LinkedList<>();
-            FileInputStream fis = new FileInputStream(f);
-            while (true) {
-                byte[] arr = new byte[3840];
-                int x = fis.read(arr);
-                l.add(arr);
-                if (x == -1) {
-                    break;
-                }
-            }
-            fis.close();
-            return l;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+    public static Collection<ActionRow> getTrainerDataButtons(TrainerData dt, boolean withMoveset) {
+        return addAndReturn(getActionRows(dt.getMonsList(), s -> Button.primary("trainerdata;" + s, s)), ActionRow.of(
+                withMoveset ? Button.success("trainerdata;CHANGEMODE", "Mit Moveset") : Button.secondary("trainerdata;CHANGEMODE", "Ohne Moveset")
+        ));
     }
+
 
     public static void init() {
         loadJSONFiles();
-        /*File audio = new File("audio/");
-        for (File file : audio.listFiles()) {
-            System.out.println("Checking file " + file.getName() + "...");
-            ArrayList<LinkedList<byte[]>> l = new ArrayList<>();
-            if (file.isDirectory()) {
-                System.out.println(file.getName() + " is a directory!");
-                for (File listFile : file.listFiles()) {
-                    System.out.println("found " + listFile.getName() + " within " + file.getName() + "!");
-                    l.add(readAudioData(listFile));
-                }
-            } else {
-                System.out.println(file.getName() + " is not a directory, adding it to the list!");
-                l.add(readAudioData(file));
-            }
-            audioData.put(file.getName().split("\\.")[0], l);
-        }
-        System.out.println("audioData.keySet() = " + audioData.keySet());*/
+        ButtonListener.init();
         new ModManager("default", "./ShowdownData/");
         new ModManager("nml", "../Showdown/sspserver/data/");
         JSONObject mute = emolgajson.getJSONObject("mutedroles");
@@ -1807,15 +1803,11 @@ public abstract class Command {
                 break;
             }
         }
-        String coords = null;
-        switch (leaguename) {
-            case "ZBS":
-                coords = getZBSGameplanCoords(gameday, index);
-                break;
-            case "Wooloo":
-                coords = getWoolooGameplanCoords(gameday, index);
-                break;
-        }
+        String coords = switch (leaguename) {
+            case "ZBS" -> getZBSGameplanCoords(gameday, index);
+            case "Wooloo" -> getWoolooGameplanCoords(gameday, index);
+            default -> null;
+        };
         if (str.split(":")[0].equals(uid1)) {
             b.addSingle(sheet + "!" + coords, "=HYPERLINK(\"" + replay + "\"; \"" + aliveP1 + ":" + aliveP2 + "\")");
             //b.addSingle(sheet + "!" + coords, aliveP1 + ":" + aliveP2);
@@ -1903,6 +1895,7 @@ public abstract class Command {
         leveljson = load("./levels.json");
         shinycountjson = load("./shinycount.json");
         tokens = load("./tokens.json");
+        catchrates = load("./catchrates.json");
         JSONObject google = tokens.getJSONObject("google");
         Google.setCredentials(google.getString("refreshtoken"), google.getString("clientid"), google.getString("clientsecret"));
         tradesid = tokens.getString("tradedoc");
@@ -1910,7 +1903,7 @@ public abstract class Command {
     }
 
     public static List<Command> getWithCategory(CommandCategory category, Guild g, Member mem) {
-        return commands.stream().filter(c -> c.category == category && c.allowsGuild(g) && c.allowsMember(mem)).collect(Collectors.toCollection(ArrayList::new));
+        return commands.stream().filter(c -> !c.disabled && c.category == category && c.allowsGuild(g) && c.allowsMember(mem)).collect(Collectors.toCollection(ArrayList::new));
     }
 
     public static void updatePresence() {
@@ -1923,9 +1916,9 @@ public abstract class Command {
         StringBuilder s = new StringBuilder();
         for (CommandCategory cat : CommandCategory.getOrder()) {
             if (cat.allowsGuild(g) && cat.allowsMember(mem) && getWithCategory(cat, g, mem).size() > 0)
-                s.append(cat.isEmote() ? g.getJDA().getEmoteById(cat.emoji).getAsMention() : cat.emoji).append(" ").append(cat.name).append("\n");
+                s/*.append(cat.isEmote() ? g.getJDA().getEmoteById(cat.emoji).getAsMention() : cat.emoji).append(" ")*/.append(cat.name).append("\n");
         }
-        s.append("\u25c0\ufe0f Zurück zur Übersicht");
+        //s.append("\u25c0\ufe0f Zurück zur Übersicht");
         return s.toString();
     }
 
@@ -1941,14 +1934,40 @@ public abstract class Command {
         m.addReaction("\u25c0\ufe0f").queue();
     }
 
+    public static List<ActionRow> getHelpButtons(Guild g, Member mem) {
+        /*LinkedList<Button> currRow = new LinkedList<>();
+        LinkedList<ActionRow> rows = new LinkedList<>();
+        for (CommandCategory cat : CommandCategory.getOrder()) {
+            if (cat.allowsGuild(g) && cat.allowsMember(mem)) {
+                currRow.add(Button.primary("help;" + cat.getName().toLowerCase(), cat.getName()));
+                if (currRow.size() == 5) {
+                    rows.add(ActionRow.of(currRow));
+                    currRow.clear();
+                }
+            }
+        }
+        if (currRow.size() > 0) rows.add(ActionRow.of(currRow));
+        rows.add(ActionRow.of(Button.secondary("help;BACK", "Zurück zur Übersicht").withEmoji(Emoji.fromUnicode("\u25c0\ufe0f"))));
+        return rows;*/
+        return getActionRows(CommandCategory.getOrder().stream().filter(cat -> cat.allowsGuild(g) && cat.allowsMember(mem)).collect(Collectors.toList()), s -> Button.primary("help;" + s.getName().toLowerCase(), s.getName()));
+    }
+
     public static void help(TextChannel tco, Member mem) {
+        /*if(mem.getIdLong() != Constants.FLOID) {
+            tco.sendMessage("Die Help-Funktion wird momentan umprogrammiert und steht deshalb nicht zur Verfügung.").queue();
+            return;
+        }*/
         EmbedBuilder builder = new EmbedBuilder();
         builder.setTitle("Commands").setColor(Color.CYAN);
+        Message m = null;
         builder.setDescription(getHelpDescripion(tco.getGuild(), mem));
-        tco.sendMessage(builder.build()).queue(m -> {
+        MessageAction ma = tco.sendMessage(builder.build());
+        Guild g = tco.getGuild();
+        ma.setActionRows(getHelpButtons(g, mem)).queue();
+        /*.queue(m -> {
             helps.add(m);
             addReactions(m, mem);
-        });
+        });*/
     }
 
     public static void check(GuildMessageReceivedEvent e) {
@@ -1980,33 +1999,35 @@ public abstract class Command {
             for (File file : dir.listFiles()) {
                 if (msg.equalsIgnoreCase("!" + file.getName().split("\\.")[0])) {
                     GuildVoiceState voiceState = e.getMember().getVoiceState();
-                    if (voiceState.inVoiceChannel()) {
+                    boolean pepe = mem.getIdLong() == 349978348010733569L;
+                    if (voiceState.inVoiceChannel() || pepe) {
                         AudioManager am = e.getGuild().getAudioManager();
                         if (!am.isConnected()) {
-                            am.openAudioConnection(voiceState.getChannel());
-                            am.setConnectionListener(new ConnectionListener() {
-                                @Override
-                                public void onPing(long ping) {
+                            if (voiceState.inVoiceChannel()) {
+                                am.openAudioConnection(voiceState.getChannel());
+                                am.setConnectionListener(new ConnectionListener() {
+                                    @Override
+                                    public void onPing(long ping) {
 
-                                }
-
-                                @Override
-                                public void onStatusChange(@NotNull ConnectionStatus status) {
-                                    System.out.println("status = " + status);
-                                    if (status == ConnectionStatus.CONNECTED) {
-                                        playSound(voiceState.getChannel(), "/home/florian/Discord/audio/clips/hi.mp3", tco);
-                                        playSound(voiceState.getChannel(), file.getPath(), tco);
                                     }
-                                }
 
-                                @Override
-                                public void onUserSpeaking(@NotNull User user, boolean speaking) {
+                                    @Override
+                                    public void onStatusChange(@NotNull ConnectionStatus status) {
+                                        System.out.println("status = " + status);
+                                        if (status == ConnectionStatus.CONNECTED) {
+                                            playSound(voiceState.getChannel(), "/home/florian/Discord/audio/clips/hi.mp3", tco);
+                                            playSound(voiceState.getChannel(), file.getPath(), tco);
+                                        }
+                                    }
 
-                                }
-                            });
+                                    @Override
+                                    public void onUserSpeaking(@NotNull User user, boolean speaking) {
 
+                                    }
+                                });
+                            }
                         } else {
-                            playSound(voiceState.getChannel(), file.getPath(), tco);
+                            playSound(am.getConnectedChannel(), file.getPath(), tco);
                         }
                     }
                 }
@@ -2036,7 +2057,7 @@ public abstract class Command {
                 if (command.overrideChannel.containsKey(gid)) {
                     List<Long> l = command.overrideChannel.get(gid);
                     if (!l.contains(e.getChannel().getIdLong())) {
-                        if(e.getAuthor().getIdLong() == Constants.FLOID) {
+                        if (e.getAuthor().getIdLong() == Constants.FLOID) {
                             tco.sendMessage("Eigentlich dürfen hier keine Commands genutzt werden, aber weil du es bist, mache ich das c:").queue();
                         } else {
                             e.getChannel().sendMessage("<#" + l.get(0) + ">").queue();
@@ -2047,7 +2068,7 @@ public abstract class Command {
                     if (emolgaChannel.containsKey(gid)) {
                         List<Long> l = emolgaChannel.get(gid);
                         if (!l.contains(e.getChannel().getIdLong()) && !l.isEmpty()) {
-                            if(e.getAuthor().getIdLong() == Constants.FLOID) {
+                            if (e.getAuthor().getIdLong() == Constants.FLOID) {
                                 tco.sendMessage("Eigentlich dürfen hier keine Commands genutzt werden, aber weil du es bist, mache ich das c:").queue();
                             } else {
                                 e.getChannel().sendMessage("<#" + l.get(0) + ">").queue();
@@ -2064,7 +2085,7 @@ public abstract class Command {
                 ArgumentManagerTemplate.Argument arg = ex.getArgument();
                 if (arg.hasCustomErrorMessage()) tco.sendMessage(arg.getCustomErrorMessage()).queue();
                 else {
-                    tco.sendMessage("Das benötigte Argument `" + arg.getName() + "`, was eigentlich " + buildEnumeration(arg.getTypes()) + " sein müsste, ist nicht vorhanden!\n" +
+                    tco.sendMessage("Das benötigte Argument `" + arg.getName() + "`, was eigentlich " + buildEnumeration(arg.getType().getName()) + " sein müsste, ist nicht vorhanden!\n" +
                             "Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help " + command.getName() + "`.").queue();
                 }
                 if (mem.getIdLong() != Constants.FLOID) {
@@ -2361,6 +2382,25 @@ public abstract class Command {
             list.add(asl.getJSONObject(s).getString("table").split(",")[index]);
         }
         return list;
+    }
+
+    public static <T> List<ActionRow> getActionRows(Collection<T> c, Function<T, Button> mapper) {
+        LinkedList<Button> currRow = new LinkedList<>();
+        LinkedList<ActionRow> rows = new LinkedList<>();
+        for (T s : c) {
+            currRow.add(mapper.apply(s));
+            if (currRow.size() == 5) {
+                rows.add(ActionRow.of(currRow));
+                currRow.clear();
+            }
+        }
+        if (currRow.size() > 0) rows.add(ActionRow.of(currRow));
+        return rows;
+    }
+
+    public static <T> Collection<T> addAndReturn(Collection<T> c, T toadd) {
+        c.add(toadd);
+        return c;
     }
 
     public static void analyseASLReplay(long authorid, String url, Message m) {
@@ -2893,7 +2933,7 @@ public abstract class Command {
         ResultSet set = getTranslation(s, mod);
         try {
             if (set.next()) {
-                Translation t = new Translation(set.getString("germanname"), Translation.Type.fromId(set.getString("type")), Translation.Language.GERMAN, set.getString("englishname"));
+                Translation t = new Translation(set.getString("germanname"), Translation.Type.fromId(set.getString("type")), Translation.Language.GERMAN, set.getString("englishname"), set.getString("forme"));
                 addToCache(s, t);
                 return t;
             }
@@ -2911,7 +2951,7 @@ public abstract class Command {
         ResultSet set = getTranslation(s, null);
         try {
             set.next();
-            Translation t = new Translation(set.getString("germanname"), Translation.Type.fromId(set.getString("type")), Translation.Language.GERMAN, set.getString("englishname"));
+            Translation t = new Translation(set.getString("germanname"), Translation.Type.fromId(set.getString("type")), Translation.Language.GERMAN, set.getString("englishname"), set.getString("forme"));
             addToCache(s, t);
             return t.getTranslation();
         } catch (SQLException throwables) {
@@ -2949,7 +2989,7 @@ public abstract class Command {
         ResultSet set = getTranslation(s, mod);
         try {
             if (set.next()) {
-                return new Translation(set.getString("englishname"), Translation.Type.fromId(set.getString("type")), Translation.Language.ENGLISH, set.getString("germanname"));
+                return new Translation(set.getString("englishname"), Translation.Type.fromId(set.getString("type")), Translation.Language.ENGLISH, set.getString("germanname"), set.getString("forme"));
             }
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -2958,11 +2998,12 @@ public abstract class Command {
     }
 
     public static ResultSet getTranslation(String s, String mod) {
-        String id = toSDName(s);
+        return DBManagers.TRANSLATIONS.getTranslation(s, mod);
+        /*String id = toSDName(s);
 
         String query = "select * from translations where (englishid=\"" + id + "\" or germanid=\"" + id + "\")" + (mod != null ? " and (modification=\"" + mod + "\"" + (!mod.equals("default") ? " or modification=\"default\"" : "") + ")" : "");
         //System.out.println(query);
-        return Database.select(query);
+        return Database.select(query);*/
     }
 
     public static ResultSet getTranslationList(Collection<String> l, String mod) {
@@ -2982,7 +3023,7 @@ public abstract class Command {
     }
 
     public static String toSDName(String s) {
-        return s.toLowerCase().replaceAll("[^a-zA-Z0-9äöüÄÖÜß♂♀]+", "");
+        return s.toLowerCase().replaceAll("[^a-zA-Z0-9äöüÄÖÜß♂♀é]+", "");
     }
 
     public static String getDataName(String s) {
@@ -3009,7 +3050,8 @@ public abstract class Command {
     }
 
     public static Translation checkShortcuts(String s) {
-        return Translation.fromOldString(getEmolgaJSON().getJSONObject("shortcuts").optString(s.toLowerCase(), null));
+        return Translation.empty();
+        //return Translation.fromOldString(getEmolgaJSON().getJSONObject("shortcuts").optString(s.toLowerCase(), null));
     }
 
     public static String getMonName(String s, long gid) {
@@ -3085,6 +3127,7 @@ public abstract class Command {
         if (s.equals("Lycanroc-Dusk")) return "Wolwerock-Zw";
         if (s.contains("Rotom")) return s;
         if (s.contains("Florges")) return "Florges";
+        if (s.contains("Flabébé")) return "Flabébé";
         //System.out.println(s.contains("Silvally"));
         if (s.contains("Silvally")) {
             String[] split = s.split("-");
@@ -3101,6 +3144,7 @@ public abstract class Command {
         //System.out.println("s = " + s);
         if (s.contains("Basculin")) return "Barschuft";
         if (s.contains("Sawsbuck")) return "Kronjuwild";
+        if (s.contains("Deerling")) return "Sesokitz";
         if (s.equals("Kyurem-Black")) return "Kyurem-Black";
         if (s.equals("Kyurem-White")) return "Kyurem-White";
         if (s.equals("Meowstic")) return "Psiaugon-männlich";
@@ -3198,7 +3242,7 @@ public abstract class Command {
                 || msg.equalsIgnoreCase("!" + name.toLowerCase()) || aliases.stream().anyMatch(s -> msg.equalsIgnoreCase("!" + s));
     }
 
-    private boolean checkBot(JDA jda, long guildid) {
+    public boolean checkBot(JDA jda, long guildid) {
         return allowedBotId == -1 || allowedBotId == jda.getSelfUser().getIdLong() || guildid == Constants.CULT;
     }
 
@@ -3232,6 +3276,10 @@ public abstract class Command {
 
     public void setArgumentTemplate(ArgumentManagerTemplate template) {
         this.argumentTemplate = template;
+    }
+
+    public CommandCategory getCategory() {
+        return category;
     }
 
     public String getHelp(Guild g) {
@@ -3280,6 +3328,8 @@ public abstract class Command {
         String getName();
 
         String getCustomHelp();
+
+        OptionType asOptionType();
     }
 
     public static final class PermissionPreset {
@@ -3452,6 +3502,11 @@ public abstract class Command {
                 public String getCustomHelp() {
                     return null;
                 }
+
+                @Override
+                public OptionType asOptionType() {
+                    return OptionType.STRING;
+                }
             };
         }
 
@@ -3476,6 +3531,11 @@ public abstract class Command {
                 @Override
                 public String getCustomHelp() {
                     return null;
+                }
+
+                @Override
+                public OptionType asOptionType() {
+                    return OptionType.STRING;
                 }
             };
         }
@@ -3512,24 +3572,20 @@ public abstract class Command {
                 if (argumentI >= arguments.size()) break;
                 Argument a = arguments.get(argumentI);
                 String str = argumentI + 1 == arguments.size() ? String.join(" ", split.subList(i, split.size())) : split.get(i);
-                ArgumentType[] types = a.getTypes();
+                ArgumentType type = a.getType();
                 Object o;
                 int count = 1;
-                for (ArgumentType type : types) {
-                    if (type instanceof DiscordType) {
-                        o = type.validate(str, m, asFar.getOrDefault(type, 0));
-                        if (o != null) asFar.put((DiscordType) type, asFar.getOrDefault(type, 0) + 1);
-                    } else {
-                        o = type.validate(str, a.getLanguage(), getModByGuild(e.getGuild()));
-                    }
-                    if (o == null) {
-                        if (!a.isOptional() && count == types.length) throw new MissingArgumentException(a);
-                    } else {
-                        map.put(a.getId(), o);
-                        i++;
-                        break;
-                    }
-                    count++;
+                if (type instanceof DiscordType) {
+                    o = type.validate(str, m, asFar.getOrDefault(type, 0));
+                    if (o != null) asFar.put((DiscordType) type, asFar.getOrDefault(type, 0) + 1);
+                } else {
+                    o = type.validate(str, a.getLanguage(), getModByGuild(e.getGuild()));
+                }
+                if (o == null) {
+                    if (!a.isOptional()) throw new MissingArgumentException(a);
+                } else {
+                    map.put(a.getId(), o);
+                    i++;
                 }
                 argumentI++;
             }
@@ -3540,20 +3596,23 @@ public abstract class Command {
 
 
         public enum DiscordType implements ArgumentType {
-            USER(Pattern.compile("<@!*\\d{18,22}>"), "User", false),
-            CHANNEL(Pattern.compile("<#*\\d{18,22}>"), "Channel", false),
-            ROLE(Pattern.compile("<@&*\\d{18,22}>"), "Rolle", true),
-            ID(Pattern.compile("\\d{18,22}"), "ID", true),
-            INTEGER(Pattern.compile("\\d{1,9}"), "Zahl", true);
+            USER(Pattern.compile("<@!*\\d{18,22}>"), "User", false, OptionType.USER),
+            CHANNEL(Pattern.compile("<#*\\d{18,22}>"), "Channel", false, OptionType.CHANNEL),
+            ROLE(Pattern.compile("<@&*\\d{18,22}>"), "Rolle", true, OptionType.ROLE),
+            ID(Pattern.compile("\\d{18,22}"), "ID", true, OptionType.STRING),
+            INTEGER(Pattern.compile("\\d{1,9}"), "Zahl", true, OptionType.INTEGER);
 
             final Pattern pattern;
             final String name;
             final boolean female;
+            final OptionType optionType;
 
-            DiscordType(Pattern pattern, String name, boolean female) {
+
+            DiscordType(Pattern pattern, String name, boolean female, OptionType optionType) {
                 this.pattern = pattern;
                 this.name = name;
                 this.female = female;
+                this.optionType = optionType;
             }
 
             public Pattern getPattern() {
@@ -3586,6 +3645,11 @@ public abstract class Command {
             @Override
             public String getCustomHelp() {
                 return null;
+            }
+
+            @Override
+            public OptionType asOptionType() {
+                return optionType;
             }
 
 
@@ -3638,6 +3702,10 @@ public abstract class Command {
                 return texts.stream().map(sc -> "`" + sc.getName() + "`" + sc.getHelp()).collect(Collectors.joining("\n"));
             }
 
+            @Override
+            public OptionType asOptionType() {
+                return OptionType.STRING;
+            }
         }
 
         public static final class Number implements ArgumentType {
@@ -3719,28 +3787,23 @@ public abstract class Command {
                 }
                 return numbers.stream().map(String::valueOf).collect(Collectors.joining(","));
             }
+
+            @Override
+            public OptionType asOptionType() {
+                return OptionType.INTEGER;
+            }
         }
 
         public static final class Argument {
             private final String id;
             private final String name;
             private final String help;
-            private final ArgumentType[] type;
+            private final ArgumentType type;
             private final boolean optional;
             private final Translation.Language language;
             private final String customErrorMessage;
 
             public Argument(String id, String name, String help, ArgumentType type, boolean optional, Translation.Language language, String customErrorMessage) {
-                this.id = id;
-                this.name = name;
-                this.optional = optional;
-                this.type = new ArgumentType[]{type};
-                this.help = help;
-                this.language = language;
-                this.customErrorMessage = customErrorMessage;
-            }
-
-            public Argument(String id, String name, String help, ArgumentType[] type, boolean optional, Translation.Language language, String customErrorMessage) {
                 this.id = id;
                 this.name = name;
                 this.optional = optional;
@@ -3750,21 +3813,21 @@ public abstract class Command {
                 this.customErrorMessage = customErrorMessage;
             }
 
+
             public String getHelp() {
                 StringBuilder b = new StringBuilder(help);
-                if (type[0].getCustomHelp() == null) return b.toString();
-                ArgumentType t = type[0];
+                if (type.getCustomHelp() == null) return b.toString();
                 if (!help.equals("")) {
                     b.append("\n");
                 }
-                return b.append("Möglichkeiten:\n").append(t.getCustomHelp()).toString();
+                return b.append("Möglichkeiten:\n").append(type.getCustomHelp()).toString();
             }
 
             public String getId() {
                 return id;
             }
 
-            public ArgumentType[] getTypes() {
+            public ArgumentType getType() {
                 return type;
             }
 
@@ -3805,15 +3868,6 @@ public abstract class Command {
             }
 
             public Builder add(String id, String name, String help, ArgumentType type, boolean optional, String customErrorMessage) {
-                arguments.add(new Argument(id, name, help, type, optional, Translation.Language.GERMAN, customErrorMessage));
-                return this;
-            }
-
-            public Builder addMultiple(String id, String name, String help, boolean optional, ArgumentType... type) {
-                return addMultiple(id, name, help, optional, null, type);
-            }
-
-            public Builder addMultiple(String id, String name, String help, boolean optional, String customErrorMessage, ArgumentType... type) {
                 arguments.add(new Argument(id, name, help, type, optional, Translation.Language.GERMAN, customErrorMessage));
                 return this;
             }
@@ -3865,6 +3919,7 @@ public abstract class Command {
         private String translation;
         private boolean empty;
         private String otherLang = "";
+        private String forme;
 
         public Translation(String translation, Type type, Language language) {
             this.translation = translation;
@@ -3881,6 +3936,15 @@ public abstract class Command {
             this.empty = false;
         }
 
+        public Translation(String translation, Type type, Language language, String otherLang, String forme) {
+            this.translation = translation;
+            this.type = type;
+            this.language = language;
+            this.otherLang = otherLang;
+            this.forme = forme;
+            this.empty = false;
+        }
+
         public static Translation empty() {
             return emptyTranslation;
         }
@@ -3893,7 +3957,7 @@ public abstract class Command {
 
         public Translation copy() {
             if (isEmpty()) return empty();
-            return new Translation(translation, type, language, otherLang);
+            return new Translation(translation, type, language, otherLang, forme);
         }
 
         @Override
@@ -3921,6 +3985,10 @@ public abstract class Command {
 
         public String getOtherLang() {
             return otherLang;
+        }
+
+        public String getForme() {
+            return forme;
         }
 
         public Translation append(String str) {
@@ -3961,6 +4029,7 @@ public abstract class Command {
             return empty;
         }
 
+
         public String toOldString() {
             return type.getId() + ";" + translation;
         }
@@ -3979,6 +4048,7 @@ public abstract class Command {
             NATURE("nat", "Wesen", false),
             POKEMON("pkmn", "Pokémon", false),
             TYPE("type", "Typ", false),
+            TRAINER("trainer", "Trainer", false),
             UNKNOWN("unknown", "Undefiniert", false);
 
             final String id;
@@ -3994,6 +4064,7 @@ public abstract class Command {
             public static Type fromId(String id) {
                 return Arrays.stream(values()).filter(t -> t.getId().equalsIgnoreCase(id)).findFirst().orElse(UNKNOWN);
             }
+
 
             public static ArgumentType of(Type... types) {
                 return new ArgumentType() {
@@ -4014,6 +4085,11 @@ public abstract class Command {
                     @Override
                     public String getCustomHelp() {
                         return null;
+                    }
+
+                    @Override
+                    public OptionType asOptionType() {
+                        return OptionType.STRING;
                     }
                 };
             }
@@ -4048,6 +4124,11 @@ public abstract class Command {
             @Override
             public String getCustomHelp() {
                 return null;
+            }
+
+            @Override
+            public OptionType asOptionType() {
+                return OptionType.STRING;
             }
         }
     }

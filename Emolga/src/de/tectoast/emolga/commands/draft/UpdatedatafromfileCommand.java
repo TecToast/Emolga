@@ -32,7 +32,7 @@ public class UpdatedatafromfileCommand extends Command {
         String msg = m.getContentDisplay();
         String name = e.getArguments().getText("name");
         Optional<Draft> op = Draft.drafts.stream().filter(d -> d.name.equals(name)).findFirst();
-        if (!op.isPresent()) {
+        if (op.isEmpty()) {
             tco.sendMessage("Dieser Draft existiert nicht!").queue();
             return;
         }

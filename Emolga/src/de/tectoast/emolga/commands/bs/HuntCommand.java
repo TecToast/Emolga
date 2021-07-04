@@ -32,13 +32,13 @@ public class HuntCommand extends Command {
             return;
         }
         Optional<String> opgame = games.stream().filter(s -> s.equalsIgnoreCase(split[1])).findFirst();
-        if (!opgame.isPresent()) {
+        if (opgame.isEmpty()) {
             tco.sendMessage("Das ist kein valides Spiel!").queue();
             return;
         }
         String game = opgame.get();
         Optional<String> opmethod = games.stream().filter(s -> s.equalsIgnoreCase(split[1])).findFirst();
-        if (!opmethod.isPresent()) {
+        if (opmethod.isEmpty()) {
             tco.sendMessage("Das ist keine valide Methode!").queue();
             return;
         }

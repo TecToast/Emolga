@@ -3,9 +3,8 @@ package de.tectoast.emolga.commands.pokemon;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import org.json.JSONObject;
-
-import java.sql.SQLException;
+import de.tectoast.emolga.database.Database;
+import de.tectoast.emolga.utils.sql.DBManagers;
 
 public class AddNickCommand extends Command {
 
@@ -20,21 +19,18 @@ public class AddNickCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws SQLException {
-        JSONObject json = getEmolgaJSON().getJSONObject("shortcuts");
+    public void process(GuildCommandEvent e) {
         ArgumentManager args = e.getArguments();
-        String nick = args.getText("nick");
-        if (json.has(nick.toLowerCase()) && e.isNotFlo()) {
-            e.reply("**" + nick + "** ist bereits als **" + json.getString(nick.toLowerCase()).split(";")[1] + "** hinterlegt!");
-            return;
-        }
-        if(getTranslation(nick, "default").next()) {
-            e.reply("Nein.");
+        String nickorig = args.getText("nick");
+        String nick = nickorig.toLowerCase();
+        Translation tr = getGerName(nick);
+        if (tr.isSuccess() && e.isNotFlo()) {
+            e.reply("**" + nickorig + "** ist bereits als **" + tr.getTranslation() + "** hinterlegt!");
             return;
         }
         Translation t = args.getTranslation("stuff");
-        json.put(nick.toLowerCase(), t.toOldString());
-        e.reply("**" + t.getTranslation() + "** kann ab jetzt auch mit **" + nick + "** abgefragt werden!");
+        DBManagers.TRANSLATIONS.addNick(nick, t);
+        e.reply("**" + t.getTranslation() + "** kann ab jetzt auch mit **" + nickorig + "** abgefragt werden!");
         saveEmolgaJSON();
     }
 }

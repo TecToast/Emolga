@@ -1,7 +1,6 @@
 package de.tectoast.emolga.bot;
 
 import de.tectoast.emolga.buttons.ButtonListener;
-import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.PrivateCommands;
 import de.tectoast.emolga.database.Database;
@@ -107,7 +106,7 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onGuildJoin(@Nonnull GuildJoinEvent e) {
         e.getGuild().retrieveOwner().flatMap(m -> m.getUser().openPrivateChannel()).queue(pc -> pc.sendMessage(WELCOMEMESSAGE.replace("{USERNAME}", e.getGuild().getOwner().getUser().getName()).replace("{SERVERNAME}", e.getGuild().getName())).queue());
-        sendToMe(e.getGuild().getChannels().get(0).createInvite().complete().getUrl());
+        sendToMe(e.getGuild().getTextChannels().get(0).createInvite().complete().getUrl());
     }
 
     @Override

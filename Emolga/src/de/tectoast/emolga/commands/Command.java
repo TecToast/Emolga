@@ -644,7 +644,8 @@ public abstract class Command {
         builder.setColor(Color.CYAN);
         builder.setDescription("**Grund:** " + reason);
         tco.sendMessage(builder.build()).queue();
-        Database.insert("mutes", "userid, modid, guildid, reason, expires", mem.getIdLong(), mod.getIdLong(), g.getIdLong(), reason, new Timestamp(expires));
+        //Database.insert("mutes", "userid, modid, guildid, reason, expires", mem.getIdLong(), mod.getIdLong(), g.getIdLong(), reason, new Timestamp(expires));
+        DBManagers.MUTE.mute(mem.getIdLong(), mod.getIdLong(), g.getIdLong(), reason, new Timestamp(expires));
     }
 
     public static void muteTimer(Guild g, long expires, String mem) {

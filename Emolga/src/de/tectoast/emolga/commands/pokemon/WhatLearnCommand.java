@@ -16,7 +16,7 @@ public class WhatLearnCommand extends Command {
     public final HashMap<String, String> map = new HashMap<>();
 
     public WhatLearnCommand() {
-        super("whatlearn", "Zeigt an, welche Attacken ein Pokemom auf eine bestimme Art lernen kann", CommandCategory.Pokemon);
+        super("whatlearn", "Zeigt an, welche Attacken ein Pokemon auf eine bestimme Art lernen kann", CommandCategory.Pokemon);
         map.put("Level", "L");
         map.put("TM", "M");
         map.put("Tutor", "T");

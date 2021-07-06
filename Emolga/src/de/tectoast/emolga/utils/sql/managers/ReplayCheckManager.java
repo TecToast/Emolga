@@ -13,5 +13,4 @@ public class ReplayCheckManager extends DataManager {
         setColumns(CHANNELID, MESSAGEID);
     }
 
-    // TODO ReplayCheckManager und die restlichen Manager fertig machen
 }

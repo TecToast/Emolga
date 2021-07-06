@@ -3,7 +3,6 @@ package de.tectoast.emolga.commands.pokemon;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.sql.DBManagers;
 
 public class AddNickCommand extends Command {

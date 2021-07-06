@@ -123,6 +123,23 @@ public abstract class DataManager {
         }
     }
 
+    public final int update(String query) {
+        try (Statement statement = getConnection().createStatement()) {
+            return statement.executeUpdate(query);
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+            return -1;
+        }
+    }
+
+    public final String deleteStmt(String where) {
+        return "DELETE FROM " + this.getTableName() + " WHERE " + where;
+    }
+
+    public final int delete(String where) {
+        return update(deleteStmt(where));
+    }
+
     public final String getTableName() {
         return tableName;
     }
@@ -146,6 +163,8 @@ public abstract class DataManager {
     public String select(String where, String columns) {
         return "SELECT " + columns + " FROM " + tableName + (where == null ? "" : " WHERE " + where);
     }
+
+
 
     /*public InsertBuilder insertBuilder() {
         return new InsertBuilder();

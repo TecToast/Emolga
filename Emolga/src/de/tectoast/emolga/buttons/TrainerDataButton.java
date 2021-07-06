@@ -3,7 +3,6 @@ package de.tectoast.emolga.buttons;
 import de.tectoast.emolga.utils.TrainerData;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
-import net.dv8tion.jda.api.interactions.components.ButtonStyle;
 
 import java.awt.*;
 

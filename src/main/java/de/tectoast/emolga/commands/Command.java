@@ -48,6 +48,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 import org.jsolf.JSONTokener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
@@ -82,7 +84,8 @@ public abstract class Command {
      * NO PERMISSION Message
      */
     public static final String NOPERM = "Dafür hast du keine Berechtigung!";
-
+    
+    private static final Logger logger = LoggerFactory.getLogger(Command.class);
 
     public static final List<Long> NML_GUILDS = Collections.singletonList(786351922029527130L);
     /**
@@ -333,24 +336,24 @@ public abstract class Command {
         socket.connect();
         Scanner in = new Scanner(System.in);
         socket.on(Socket.EVENT_CONNECT, args -> {
-            System.out.println("Connected to Heroku!");
+            logger.info("Connected to Heroku!");
             socket.emit("authenticate730", tokens.getJSONObject("website").getString("token"));
         });
         socket.on("herokuemolga", args -> {
             String[] split = ((String) args[0]).split("###");
             String id = split[0];
             String msg = split[1];
-            System.out.println("Message: " + msg);
+            logger.info("Message: " + msg);
             switch (id) {
                 case "cookievalidation" -> {
-                    System.out.println("msg = sid = " + msg);
+                    logger.info("msg = sid = " + msg);
                     socket.emit("sidvalidate", "ofcourseyay");
                 }
 
             }
             /*new Thread(() -> {
                 String s = in.nextLine();
-                System.out.println("s = " + s);
+                logger.info("s = " + s);
                 socket.emit("back", id + "###" + s);
             }).start();
         });
@@ -363,10 +366,10 @@ public abstract class Command {
 
     public static File invertImage(String mon, boolean shiny) {
         BufferedImage inputFile;
-        System.out.println("mon = " + mon);
+        logger.info("mon = " + mon);
         try {
             File f = new File("../Showdown/sspclient/sprites/gen5" + (shiny ? "-shiny" : "") + "/" + mon.toLowerCase() + ".png");
-            System.out.println("f.getAbsolutePath() = " + f.getAbsolutePath());
+            logger.info("f.getAbsolutePath() = " + f.getAbsolutePath());
             inputFile = ImageIO.read(f);
         } catch (IOException e) {
             e.printStackTrace();
@@ -433,7 +436,7 @@ public abstract class Command {
 
     public static void loadPlaylist(final TextChannel channel, final String track, Member mem, String cm, boolean random) {
         GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
-        System.out.println(track);
+        logger.info(track);
         getPlayerManager(channel.getGuild()).loadItemOrdered(musicManager, track, new AudioLoadResultHandler() {
 
 
@@ -481,14 +484,14 @@ public abstract class Command {
             return;
         }*/
         GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
-        System.out.println(track);
+        logger.info(track);
         YTDataLoader loader = YTDataLoader.create(track);
         String url = loader.getUrl();
-        System.out.println("url = " + url);
+        logger.info("url = " + url);
         getPlayerManager(channel.getGuild()).loadItemOrdered(musicManager, url, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
-                //System.out.println("LOADED!");
+                //logger.info("LOADED!");
                 if (cm == null) {
                     channel.sendMessageEmbeds(loader.buildEmbed(track, mem, musicManager)).queue();
                 } else {
@@ -695,7 +698,7 @@ public abstract class Command {
                     public void run() {
                         String tstr = new Timestamp(expires).toString();
                         String query = "delete from mutes where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'";
-                        System.out.println(query);
+                        logger.info(query);
                         if (Database.update(query) != 0) {
                             if (mutedRoles.containsKey(g.getIdLong()))
                                 g.removeRoleFromMember(mem, g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
@@ -826,14 +829,14 @@ public abstract class Command {
                     String tstr = new Timestamp(expires).toString();
                     if (Database.update("delete from bans where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'") != 0) {
                         g.unban(mem).queue();
-                        System.out.println("Unbanned!");
+                        logger.info("Unbanned!");
                     }
                 }
             }, new Date(expires));
         } catch (IllegalArgumentException ignored) {
             if (Database.update("delete from bans where timestamp'" + new Timestamp(expires) + "'") != 0) {
                 g.unban(mem).queue();
-                System.out.println("Unbanned!");
+                logger.info("Unbanned!");
             }
         }
     }
@@ -867,7 +870,7 @@ public abstract class Command {
     }
 
     public static String getNumber(HashMap<String, String> map, String pick) {
-        //System.out.println(map);
+        //logger.info(map);
         for (String s : map.keySet()) {
             if ((pick.contains("Amigento") && s.contains("Amigento")) || s.equals(pick) || s.equals(pick.substring(2)) || (pick.contains("Wulaosu") && s.contains("Wulaosu")))
                 return map.get(s);
@@ -1030,7 +1033,7 @@ public abstract class Command {
             return 0;
         });
         Collections.reverse(points);
-        //System.out.println(points);
+        //logger.info(points);
         HashMap<Integer, List<Object>> namap = new HashMap<>();
         int i = 0;
         for (List<Object> objects : orig) {
@@ -1041,9 +1044,9 @@ public abstract class Command {
         for (int j = 0; j < 8; j++) {
             sendname.add(namap.get(j));
         }
-        System.out.println(sendname);
+        logger.info(String.valueOf(sendname));
         RequestBuilder.updateAll(sid, tablename + "!F14", sendname, false);
-        System.out.println("Done!");
+        logger.info("Done!");
     }
 
     public static void sortFPL(String sid, String tablename, JSONObject league) {
@@ -1063,7 +1066,7 @@ public abstract class Command {
             //return 0;
         });
         Collections.reverse(points);
-        //System.out.println(points);
+        //logger.info(points);
         HashMap<Integer, List<Object>> namap = new HashMap<>();
         int i = 0;
         for (List<Object> objects : orig) {
@@ -1074,9 +1077,9 @@ public abstract class Command {
         for (int j = 0; j < 8; j++) {
             sendname.add(namap.get(j));
         }
-        System.out.println(sendname);
+        logger.info(String.valueOf(sendname));
         RequestBuilder.updateAll(sid, tablename + "!B2", sendname, false);
-        System.out.println("Done!");
+        logger.info("Done!");
     }
 
     public static void sortBADS(String sid, JSONObject league) {
@@ -1097,7 +1100,7 @@ public abstract class Command {
             return 0;
         });
         Collections.reverse(points);
-        //System.out.println(points);
+        //logger.info(points);
         HashMap<Integer, List<Object>> namap = new HashMap<>();
         int i = 0;
         for (List<Object> objects : orig) {
@@ -1108,9 +1111,9 @@ public abstract class Command {
         for (int j = 0; j < 10; j++) {
             sendname.add(namap.get(j));
         }
-        System.out.println(sendname);
+        logger.info(String.valueOf(sendname));
         RequestBuilder.updateAll(sid, "Tabelle!B2", sendname);
-        System.out.println("Done!");
+        logger.info("Done!");
     }
 
     public static void sortNDS(String sid, JSONObject league) {
@@ -1138,7 +1141,7 @@ public abstract class Command {
             return 0;
         });
         Collections.reverse(points);
-        //System.out.println(points);
+        //logger.info(points);
         HashMap<Integer, List<Object>> namap = new HashMap<>();
         int i = 0;
         for (List<Object> objects : orig) {
@@ -1149,9 +1152,9 @@ public abstract class Command {
         for (int j = 0; j < namap.size(); j++) {
             sendname.add(namap.get(j));
         }
-        System.out.println(sendname);
+        logger.info(String.valueOf(sendname));
         RequestBuilder.updateAll(sid, "Tabelle RR!C" + start, sendname);
-        System.out.println("Done!");
+        logger.info("Done!");
     }
 
     public static void sortWooloo(String sid, JSONObject league) {
@@ -1165,7 +1168,7 @@ public abstract class Command {
                 points.add(p.get(i));
             }
         }
-        //System.out.println(points);
+        //logger.info(points);
         List<List<Object>> orig = new ArrayList<>(points);
         JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
         points.sort((o1, o2) -> {
@@ -1347,7 +1350,7 @@ public abstract class Command {
     public static JSONObject loadSD(String path, int sub) {
         try {
             File f = new File(path);
-            System.out.println("path = " + path);
+            logger.info("path = " + path);
             List<String> l = Files.readAllLines(f.toPath());
             int i = 0;
             StringBuilder b = new StringBuilder();
@@ -1381,7 +1384,7 @@ public abstract class Command {
             }
             return new JSONObject(b.toString());
         } catch (Exception e) {
-            System.out.println("STACKTRACE " + path);
+            logger.info("STACKTRACE " + path);
             e.printStackTrace();
         }
         return null;
@@ -1481,7 +1484,7 @@ public abstract class Command {
                 if (cl.isInterface()) continue;
                 String name = cl.getSuperclass().getSimpleName();
                 if (name.endsWith("Command") && /*!name.equals("PrivateCommand") &&*/ !Modifier.isAbstract(cl.getModifiers())) {
-                    //System.out.println(classInfo.getName());
+                    //logger.info(classInfo.getName());
                     cl.getConstructors()[0].newInstance();
                 }
             }
@@ -1498,10 +1501,10 @@ public abstract class Command {
         c.set(Calendar.MINUTE, 0);
         c.set(Calendar.SECOND, 0);
         long tilnextday = c.getTimeInMillis() - System.currentTimeMillis() + 1000;
-        System.out.println("System.currentTimeMillis() = " + System.currentTimeMillis());
-        System.out.println("tilnextday = " + tilnextday);
-        System.out.println("System.currentTimeMillis() + tilnextday = " + (System.currentTimeMillis() + tilnextday));
-        System.out.println("SELECT REQUEST: " + "SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(Calendar.DAY_OF_MONTH));
+        logger.info("System.currentTimeMillis() = " + System.currentTimeMillis());
+        logger.info("tilnextday = " + tilnextday);
+        logger.info("System.currentTimeMillis() + tilnextday = " + (System.currentTimeMillis() + tilnextday));
+        logger.info("SELECT REQUEST: " + "SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(Calendar.DAY_OF_MONTH));
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
@@ -1630,7 +1633,7 @@ public abstract class Command {
             String sid = asl.getString("sid");
             int gameday = getGameDay(asl, uid1, uid2);
             if (gameday == -1) {
-                System.out.println("GAMEDAY -1");
+                logger.info("GAMEDAY -1");
                 return;
             }
             if (!asl.has("results")) asl.put("results", new JSONObject());
@@ -1647,8 +1650,8 @@ public abstract class Command {
                 String name1 = g.retrieveMemberById(uid1).complete().getEffectiveName();
                 String name2 = g.retrieveMemberById(uid2).complete().getEffectiveName();
                 TextChannel replaychannel = (TextChannel) args[6];
-                System.out.println("args[4] = " + args[4]);
-                System.out.println("args[5] = " + args[5]);
+                logger.info("args[4] = " + args[4]);
+                logger.info("args[5] = " + args[5]);
                 if (replaychannel != null)
                     replaychannel.sendMessage("Spieltag %d\n%s vs %s\n%s".formatted(gameday, name1, name2, args[1])).queue();
                 result.sendMessage("Spieltag " + gameday + "\n" + t1 + " vs " + t2 + "\n"
@@ -1665,16 +1668,16 @@ public abstract class Command {
                 JSONObject league = Draft.getLevelJSON(userid);
                 String team = getTeamName(userid);
                 ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
-                System.out.println("gameday = " + gameday);
-                System.out.println("gdi = " + gdi);
-                System.out.println("LINKS Picks von " + game[i].getNickname() + ": " + picks);
+                logger.info("gameday = " + gameday);
+                logger.info("gdi = " + gdi);
+                logger.info("LINKS Picks von " + game[i].getNickname() + ": " + picks);
                 int level = getLevel(userid);
                 String killcolumn = getAsXCoord(gdi * 5 + 10);
                 int monindex = 0;
                 HashMap<String, String> ki = kills.get(i);
                 String amigento = ki.keySet().stream().filter(str -> str.contains("Amigento")).findFirst().orElse("");
                 for (String s : picks) {
-                    System.out.println("s = " + s + " ");
+                    logger.info("s = " + s + " ");
                     /*int monindex = indexPick(picks, s);
                     if (monindex > -1) {*/
                     String str = s.equals("Amigento") ? amigento : s;
@@ -1769,18 +1772,18 @@ public abstract class Command {
                 }
                 //List<List<Object>> get = Google.get(sid, "Spielplan [erweitert]!D" + (index * 14 + 1) + ":E" + (index * 14 + 1));
                 List<List<Object>> slist = Google.get(sid, "Teamübersicht!C" + (index + 40) + ":D" + (index + 40), false, false);
-                //System.out.println(uid);
-                //System.out.println("slist = " + slist);
+                //logger.info(uid);
+                //logger.info("slist = " + slist);
                 int win = Integer.parseInt((String) slist.get(0).get(0));
                 int loose = Integer.parseInt((String) slist.get(0).get(1));
                 if (!league.has("results")) league.put("results", new JSONObject());
                 if (game[i].isWinner()) {
                     win++;
                     league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
-                    //System.out.println("win = " + win);
+                    //logger.info("win = " + win);
                 } else {
                     loose++;
-                    //System.out.println("loose = " + loose);
+                    //logger.info("loose = " + loose);
                 }
                 saveEmolgaJSON();
                 String urange = range.split(":")[0];
@@ -1877,7 +1880,7 @@ public abstract class Command {
             String sid = league.getString("sid");
             int gameday = getGameDay(league, uid1, uid2);
             if (gameday == -1) {
-                System.out.println("GAMEDAY -1");
+                logger.info("GAMEDAY -1");
                 return;
             }
             ArrayList<String> users = new ArrayList<>(Arrays.asList(uid1, uid2));
@@ -1923,10 +1926,10 @@ public abstract class Command {
                 }
             }
             String sid = league.getString("sid");
-            System.out.println("l = " + l);
+            logger.info("l = " + l);
             int gameday = getGameDay(league, uid1, uid2);
             if (gameday == -1) {
-                System.out.println("GAMEDAY -1");
+                logger.info("GAMEDAY -1");
                 return;
             }
             ArrayList<String> users = new ArrayList<>(Arrays.asList(uid1, uid2));
@@ -1989,7 +1992,7 @@ public abstract class Command {
             String sid = league.getString("sid");
             int gameday = getGameDay(league, uid1, uid2);
             if (gameday == -1) {
-                System.out.println("GAMEDAY -1");
+                logger.info("GAMEDAY -1");
                 return;
             }
             List<String> users = Arrays.asList(uid1, uid2);
@@ -2116,18 +2119,18 @@ public abstract class Command {
                 b.addSingle(str + getAsXCoord(gameday + 3 + 5) + "10", (6 - game[i].getTotalDeaths()) + ":" + (6 - game[1 - i].getTotalDeaths()));
                 //List<List<Object>> get = Google.get(sid, "Spielplan [erweitert]!D" + (index * 14 + 1) + ":E" + (index * 14 + 1));
                 //List<List<Object>> slist = Google.get(sid, "Teamübersicht!C" + (index + 40) + ":D" + (index + 40), false, false);
-                //System.out.println(uid);
-                //System.out.println("slist = " + slist);
+                //logger.info(uid);
+                //logger.info("slist = " + slist);
                 int win = 0;
                 int loose = 0;
                 if (!league.has("results")) league.put("results", new JSONObject());
                 if (game[i].isWinner()) {
                     win = 1;
                     league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
-                    //System.out.println("win = " + win);
+                    //logger.info("win = " + win);
                 } else {
                     loose = 1;
-                    //System.out.println("loose = " + loose);
+                    //logger.info("loose = " + loose);
                 }
                 b.addSingle(str + getAsXCoord(gameday + 1 + 5) + "216", win);
                 b.addSingle(str + getAsXCoord(gameday + 13 + 5) + "216", loose);
@@ -2273,8 +2276,8 @@ public abstract class Command {
     }
 
     private static String getWoolooGameplanCoords(int gameday, int index) {
-        System.out.println("gameday = " + gameday);
-        System.out.println("index = " + index);
+        logger.info("gameday = " + gameday);
+        logger.info("index = " + index);
         if (gameday < 4) return "C" + (gameday * 6 + index - 2);
         if (gameday < 7) return "F" + ((gameday - 3) * 6 + index - 2);
         return "I" + ((gameday - 6) * 6 + index - 2);
@@ -2418,7 +2421,7 @@ public abstract class Command {
 
                                     @Override
                                     public void onStatusChange(@NotNull ConnectionStatus status) {
-                                        System.out.println("status = " + status);
+                                        logger.info("status = " + status);
                                         if (status == ConnectionStatus.CONNECTED) {
                                             playSound(voiceState.getChannel(), "/home/florian/Discord/audio/clips/hi.mp3", tco);
                                             playSound(voiceState.getChannel(), file.getPath(), tco);
@@ -2485,7 +2488,7 @@ public abstract class Command {
             try {
                 Database.incrementStatistic("cmd_" + command.name);
                 int randnum = new Random().nextInt(4096);
-                System.out.println("randnum = " + randnum);
+                logger.info("randnum = " + randnum);
                 if (randnum == 133) {
                     e.getChannel().sendMessage("No, I don't think I will :^)\n||Gib mal den Command nochmal ein, die Wahrscheinlichkeit, dass diese Nachricht auftritt, liegt bei 1:4096 :D||").queue();
                     sendToMe(e.getGuild().getName() + " " + e.getChannel().getAsMention() + " " + e.getAuthor().getId() + " " + e.getAuthor().getAsMention() + " HAT IM LOTTO GEWONNEN!");
@@ -2555,7 +2558,7 @@ public abstract class Command {
     public static List<JSONObject> getAllForms(String monname, String mod) {
         JSONObject json = getDataJSON(mod);
         JSONObject mon = json.getJSONObject(getSDName(monname));
-        //System.out.println("getAllForms mon = " + mon.toString(4));
+        //logger.info("getAllForms mon = " + mon.toString(4));
         if (!mon.has("formeOrder")) return Collections.singletonList(mon);
         return mon.getJSONArray("formeOrder").toList().stream().map(o -> toSDName((String) o)).distinct().filter(json::has).map(json::getJSONObject).filter(o -> !o.optString("forme").endsWith("Totem")).collect(Collectors.toList());
         //return json.keySet().stream().filter(s -> s.startsWith(monname.toLowerCase()) && !s.endsWith("gmax") && (s.equalsIgnoreCase(monname) || json.getJSONObject(s).has("forme"))).sorted(Comparator.comparingInt(String::length)).map(json::getJSONObject).collect(Collectors.toList());
@@ -2620,10 +2623,10 @@ public abstract class Command {
                 JSONObject learnset = movejson.getJSONObject(str).getJSONObject("learnset");
                 ResultSet set = getTranslationList(learnset.keySet(), mod);
                 while (set.next()) {
-                    //System.out.println("moveengl = " + moveengl);
+                    //logger.info("moveengl = " + moveengl);
                     String moveengl = set.getString("englishid");
                     String move = set.getString("germanname");
-                    //System.out.println("move = " + move);
+                    //logger.info("move = " + move);
                     if ((type.equals("") || atkdata.getJSONObject(moveengl).getString("type").equals(getEnglName(type))) &&
                             (dmgclass.equals("") || atkdata.getJSONObject(moveengl).getString("category").equals(dmgclass)) &&
                             (!msg.toLowerCase().contains("--prio") || atkdata.getJSONObject(moveengl).getInt("priority") > 0) &&
@@ -2766,7 +2769,7 @@ public abstract class Command {
                 dif.add((String.valueOf(l.get(6))).length());
             }
             int maxname = Collections.max(name);
-            //System.out.println("maxname = " + maxname);
+            //logger.info("maxname = " + maxname);
             int maxvic = Collections.max(vic);
             int maxkills = Collections.max(bo3dif);
             //int maxdeaths = Collections.max(deaths);
@@ -2776,7 +2779,7 @@ public abstract class Command {
             for (int i = 0; i < list.size(); i++) {
                 List<Object> l = list.get(i);
                 str.append(expandTo((i + 1) + ". " + (i < 9 ? " " : "") + l.get(0), maxname)).append(seperator).append(expandTo(String.valueOf(l.get(2)), maxvic)).append(" S.").append(seperator).append(expandTo(String.valueOf(l.get(6)), maxbo3dif)).append(" BO3 Dif.").append(seperator).append(expandTo(String.valueOf(l.get(9)), maxdif)).append(" Dif.\n");
-                //System.out.println();
+                //logger.info();
             }
             tc.editMessageById(tc.getLatestMessageId(), str.append("```").toString()).queue();
         }).start();
@@ -2785,7 +2788,7 @@ public abstract class Command {
     public static String expandTo(String str, int i) {
         StringBuilder strBuilder = new StringBuilder(str);
         while (strBuilder.length() < i) strBuilder.append(" ");
-        //System.out.println("'" + strBuilder.toString() + "'");
+        //logger.info("'" + strBuilder.toString() + "'");
         return strBuilder.toString();
     }
 
@@ -2894,8 +2897,8 @@ public abstract class Command {
         } else {
             gid = g.getIdLong();
         }
-        System.out.println("Analysed!");
-        //System.out.println(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
+        logger.info("Analysed!");
+        //logger.info(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
         for (Pokemon p : game[0].getMons()) {
             game[0].addTotalKills(p.getKills());
             game[0].addTotalDeaths(p.isDead() ? 1 : 0);
@@ -2917,9 +2920,9 @@ public abstract class Command {
         boolean spoiler = spoilerTags.contains(gid);
         if (spoiler) t1.append("||");
         for (Pokemon p : game[0].getMons()) {
-            System.out.println("p.getPokemon() = " + p.getPokemon());
+            logger.info("p.getPokemon() = " + p.getPokemon());
             String monName = getMonName(p.getPokemon(), gid);
-            System.out.println("monName = " + monName);
+            logger.info("monName = " + monName);
             kills.get(0).put(monName, String.valueOf(p.getKills()));
             deaths.get(0).put(monName, p.isDead() ? "1" : "0");
             p1mons.add(monName);
@@ -2941,18 +2944,18 @@ public abstract class Command {
             t2.append("_unbekannt_").append("\n");
         }
         if (spoiler) t2.append("||");
-        System.out.println("Kills");
-        System.out.println(kills);
-        System.out.println("Deaths");
-        System.out.println(deaths);
+        logger.info("Kills");
+        logger.info(String.valueOf(kills));
+        logger.info("Deaths");
+        logger.info(String.valueOf(deaths));
         String u1 = game[0].getNickname();
         String u2 = game[1].getNickname();
         String name1;
         String name2;
         JSONObject json = getEmolgaJSON();
         //JSONObject showdown = json.getJSONObject("showdown").getJSONObject(String.valueOf(gid));
-        System.out.println("u1 = " + u1);
-        System.out.println("u2 = " + u2);
+        logger.info("u1 = " + u1);
+        logger.info("u2 = " + u2);
             /*for (String s : showdown.keySet()) {
                 if (u1.equalsIgnoreCase(s)) uid1 = showdown.getString(s);
                 if (u2.equalsIgnoreCase(s)) uid2 = showdown.getString(s);
@@ -2964,8 +2967,8 @@ public abstract class Command {
         //JSONObject teamnames = json.getJSONObject("drafts").getJSONObject("NDS").getJSONObject("teamnames");
         name1 = /*uid1 != -1 && gid == NDSID ? teamnames.getString(String.valueOf(uid1)) : */game[0].getNickname();
         name2 = /*uid2 != -1 && gid == NDSID ? teamnames.getString(String.valueOf(uid2)) : */game[1].getNickname();
-        System.out.println("uid1 = " + uid1);
-        System.out.println("uid2 = " + uid2);
+        logger.info("uid1 = " + uid1);
+        logger.info("uid2 = " + uid2);
         String str;
         if (spoiler) {
             str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1
@@ -2983,7 +2986,7 @@ public abstract class Command {
             if (game[i].getMons().stream().anyMatch(mon -> mon.getPokemon().equals("Zoroark") || mon.getPokemon().equals("Zorua")))
                 resultchannel.sendMessage("Im Team von " + game[i].getNickname() + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!").queue();
         }
-        System.out.println("In Emolga Listener!");
+        logger.info("In Emolga Listener!");
         //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )
         //  return;
         if (uid1 == -1 || uid2 == -1) return;
@@ -2993,7 +2996,7 @@ public abstract class Command {
     }
 
     public static String getIconSprite(String str) {
-        System.out.println("s = " + str);
+        logger.info("s = " + str);
         String gitname;
         JSONObject data = getDataJSON();
         if (str.toLowerCase().startsWith("a-")) {
@@ -3014,7 +3017,7 @@ public abstract class Command {
             gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + "";
         }
         String url = "https://www.serebii.net/pokedex-swsh/icon/" + gitname.toLowerCase() + ".png";
-        System.out.println("url = " + url);
+        logger.info("url = " + url);
         /*BufferedImage img = null;
         try {
             img = ImageIO.read(new URL(url));
@@ -3057,7 +3060,7 @@ public abstract class Command {
 
     public static long calculateASLTimer() {
         long delay = calculateTimer(10, 22, 120);
-        System.out.println("delay = " + delay);
+        logger.info("delay = " + delay);
         return delay;
     }
 
@@ -3169,10 +3172,10 @@ public abstract class Command {
             if (c != 0) return c;
             String team1 = (String) o1.get(0);
             String team2 = (String) o2.get(0);
-            System.out.println("team1 = " + team1);
-            System.out.println("team2 = " + team2);
+            logger.info("team1 = " + team1);
+            logger.info("team2 = " + team2);
             int gd = getGameDayByTeamnames(league, team1, team2);
-            System.out.println("gd = " + gd);
+            logger.info("gd = " + gd);
             RequestGetter g = new RequestGetter(sid);
             String coord = getAsXCoord(gd * 5 + 5);
             g.addRange("%s!%s100:%s102".formatted(team1, coord, coord));
@@ -3180,8 +3183,8 @@ public abstract class Command {
             AtomicInteger ai = new AtomicInteger();
             List<List<Integer>> l = g.execute().stream().map(li -> {
                 int num = ai.getAndIncrement();
-                System.out.println("num = " + num);
-                System.out.println("li = " + li);
+                logger.info("num = " + num);
+                logger.info("li = " + li);
                 return li.stream().map(lis -> Integer.parseInt(lis.get(0))).collect(Collectors.toList());
             }).collect(Collectors.toList());
             List<Integer> l1 = l.get(0);
@@ -3194,17 +3197,17 @@ public abstract class Command {
             if (kills != 0) return kills;
             String m1 = String.valueOf(getTeamMembers(team1).get(0));
             String m2 = String.valueOf(getTeamMembers(team2).get(0));
-            System.out.println("m1 = " + m1);
-            System.out.println("m2 = " + m2);
+            logger.info("m1 = " + m1);
+            logger.info("m2 = " + m2);
             JSONObject results = league.getJSONObject("results");
             if (results.has(m1 + ":" + m2)) {
                 int i = results.getString(m1 + ":" + m2).equals(m1) ? 1 : -1;
-                System.out.println("i = " + i);
+                logger.info("i = " + i);
                 return i;
             }
             if (results.has(m2 + ":" + m1)) {
                 int j = results.getString(m2 + ":" + m1).equals(m1) ? 1 : -1;
-                System.out.println("j = " + j);
+                logger.info("j = " + j);
                 return j;
             }
             return compareColumns(o1, o2, 7, 5);
@@ -3227,7 +3230,7 @@ public abstract class Command {
         }
         b.addAll("Tabellen!B%d".formatted(cn * 6 + 5), senddata);
         b.execute();
-        System.out.println("Done!");
+        logger.info("Done!");
     }
 
     public static void sortBST() {
@@ -3252,7 +3255,7 @@ public abstract class Command {
             return 0;
         });
         Collections.reverse(points);
-        //System.out.println(points);
+        //logger.info(points);
         Spreadsheet s = Google.getSheetData(sid, false, "Tabelle!C3:C20");
         Sheet sheet = s.getSheets().get(0);
         ArrayList<com.google.api.services.sheets.v4.model.Color> formats = new ArrayList<>();
@@ -3283,8 +3286,8 @@ public abstract class Command {
             rowData.add(new RowData().setValues(Collections.singletonList(new CellData().setUserEnteredFormat(new CellFormat().setBackgroundColor(formap.get(j))))));
         }
         /*for (int j = 0; j < 18; j++) {
-            System.out.println("sendname.get(j) = " + sendname.get(j));
-            System.out.println("senddata.get(j) = " + senddata.get(j));
+            logger.info("sendname.get(j) = " + sendname.get(j));
+            logger.info("senddata.get(j) = " + senddata.get(j));
         }*/
         RequestBuilder b = new RequestBuilder(sid);
         b.addAll("Tabelle!F3", senddata);
@@ -3294,7 +3297,7 @@ public abstract class Command {
                 .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(1702581801).setStartRowIndex(2).setEndRowIndex(20).setStartColumnIndex(2).setEndColumnIndex(3)));
         b.addBatch(request);
         b.execute();
-        System.out.println("Done!");
+        logger.info("Done!");
     }
 
     /*public static void sortMainASL(JSONObject league) {
@@ -3329,7 +3332,7 @@ public abstract class Command {
             senddata.add(valmap.get(j));
         }
         RequestBuilder.updateAll(sid, "Tabelle!B4", senddata);
-        System.out.println("Done!");
+        logger.info("Done!");
     }
 
     public static void sortASL(JSONObject league) {
@@ -3369,7 +3372,7 @@ public abstract class Command {
             b.addAll("Tabelle!B" + (sc * 5 + 14), senddata);
         }
         b.execute();
-        System.out.println("Done!");
+        logger.info("Done!");
     }*/
 
     public static void singleThread(Runnable r) {
@@ -3379,33 +3382,33 @@ public abstract class Command {
     public static Translation getBSTGerName(String s) {
         Translation check = checkShortcuts(s);
         if (check.isSuccess()) return check;
-        System.out.println("BSTGerName s = " + s);
+        logger.info("BSTGerName s = " + s);
         Translation ret;
         if (s.equalsIgnoreCase("wulaosu") || s.equalsIgnoreCase("urshifu")) {
             return new Translation("ONLYWITHFORM", Translation.Type.UNKNOWN, Translation.Language.UNKNOWN);
         }
         if (serebiiex.keySet().stream().anyMatch(s::equalsIgnoreCase)) {
             String[] ex = serebiiex.keySet().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining("")).split("-");
-            System.out.println("ex = " + Arrays.toString(ex));
+            logger.info("ex = " + Arrays.toString(ex));
             ret = getGerName(ex[0]).append("-" + ex[1]);
-            System.out.println("ret = " + ret);
+            logger.info("ret = " + ret);
             return ret;
         }
         if (s.toLowerCase().startsWith("a-")) {
             Translation gername = getGerName(s.substring(2));
             if (!gername.isFromType(Translation.Type.POKEMON)) return Translation.empty();
             ret = gername.before("A-");
-            System.out.println("ret = " + ret);
+            logger.info("ret = " + ret);
             return ret;
         } else if (s.toLowerCase().startsWith("g-")) {
             Translation gername = getGerName(s.substring(2));
             if (!gername.isFromType(Translation.Type.POKEMON)) return Translation.empty();
             ret = gername.before("G-");
-            System.out.println("ret = " + ret);
+            logger.info("ret = " + ret);
             return ret;
         }
         ret = getGerName(s);
-        System.out.println("ret = " + ret);
+        logger.info("ret = " + ret);
         return ret;
     }
 
@@ -3425,11 +3428,11 @@ public abstract class Command {
         } else return 7200000;*/
 
     public static Translation getDraftGerName(String s) {
-        System.out.println("getDraftGerName s = " + s);
+        logger.info("getDraftGerName s = " + s);
         Translation gerName = getGerName(s);
         if (gerName.isSuccess()) return gerName;
         String[] split = s.split("-");
-        System.out.println("getDraftGerName Arr = " + Arrays.toString(split));
+        logger.info("getDraftGerName Arr = " + Arrays.toString(split));
         if (s.toLowerCase().startsWith("m-")) {
             String sub = s.substring(2);
             Translation mon;
@@ -3447,13 +3450,13 @@ public abstract class Command {
             if (!mon.isFromType(Translation.Type.POKEMON)) return Translation.empty();
             return mon.before("G-");
         }
-        System.out.println("split[0] = " + split[0]);
+        logger.info("split[0] = " + split[0]);
         Translation t = getGerName(split[0]);
         System.out.print("DraftGer Trans ");
         t.print();
         if (t.isSuccess()) {
             Translation tr = t.append("-" + split[1]);
-            System.out.println("getDraftGerName ret = " + tr);
+            logger.info("getDraftGerName ret = " + tr);
             return tr;
         }
         return Translation.empty();
@@ -3491,7 +3494,7 @@ public abstract class Command {
         /*if (translationsCache.containsKey(toSDName(s))) {
             return translationsCache.get(toSDName(s));
         }*/
-        System.out.println("getGerName s = " + s);
+        logger.info("getGerName s = " + s);
         /*if (serebiiex.keySet().stream().anyMatch(s::equalsIgnoreCase)) {
             String[] ex = serebiiex.keySet().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining("")).split("-");
             return new Translation(getGerName(ex[0]).getTranslation() + ex[1], Translation.Type.POKEMON, Translation.Language.GERMAN);
@@ -3580,7 +3583,7 @@ public abstract class Command {
         /*String id = toSDName(s);
 
         String query = "select * from translations where (englishid=\"" + id + "\" or germanid=\"" + id + "\")" + (mod != null ? " and (modification=\"" + mod + "\"" + (!mod.equals("default") ? " or modification=\"default\"" : "") + ")" : "");
-        //System.out.println(query);
+        //logger.info(query);
         return Database.select(query);*/
     }
 
@@ -3594,7 +3597,7 @@ public abstract class Command {
     }
 
     public static String getSDName(String str, String mod) {
-        System.out.println("getSDName s = " + str);
+        logger.info("getSDName s = " + str);
         Optional<String> op = sdex.keySet().stream().filter(str::equalsIgnoreCase).findFirst();
         String gitname;
         if (op.isPresent()) {
@@ -3629,7 +3632,7 @@ public abstract class Command {
     }
 
     public static String getDataName(String s) {
-        System.out.println("s = " + s);
+        logger.info("s = " + s);
         if (s.equals("Wie-Shu")) return "mienshao";
         if (s.equals("Porygon-Z")) return "porygonz";
         if (s.equals("Sen-Long")) return "drampa";
@@ -3662,7 +3665,7 @@ public abstract class Command {
 
     public static String getMonName(String s, long gid, boolean withDebug) {
         if (withDebug)
-            System.out.println("s = " + s);
+            logger.info("s = " + s);
         if (gid == 709877545708945438L) {
             if (s.endsWith("-Alola")) {
                 return "Alola-" + getGerName(s.substring(0, s.length() - 6), "default", true).getTranslation();
@@ -3732,7 +3735,7 @@ public abstract class Command {
         if (s.contains("Rotom")) return s;
         if (s.contains("Florges")) return "Florges";
         if (s.contains("Flabébé")) return "Flabébé";
-        //System.out.println(s.contains("Silvally"));
+        //logger.info(s.contains("Silvally"));
         if (s.contains("Silvally")) {
             String[] split = s.split("-");
             if (split.length == 1 || s.equals("Silvally-*")) return "Amigento";
@@ -3745,7 +3748,7 @@ public abstract class Command {
             else if (split[1].equals("Psychic")) return "Arceus-Psycho";
             else return "Arceus-" + getGerName(split[1], "default", true).getTranslation();
         }
-        //System.out.println("s = " + s);
+        //logger.info("s = " + s);
         if (s.contains("Basculin")) return "Barschuft";
         if (s.contains("Sawsbuck")) return "Kronjuwild";
         if (s.contains("Deerling")) return "Sesokitz";
@@ -4148,9 +4151,9 @@ public abstract class Command {
                 @Override
                 public Object validate(String str, Object... params) {
                     if (check.test(str)) {
-                        System.out.println("Before map: " + str);
+                        logger.info("Before map: " + str);
                         String applied = mapper.apply(str);
-                        System.out.println("After Map:" + applied);
+                        logger.info("After Map:" + applied);
                         return applied;
                     }
                     return null;
@@ -4716,7 +4719,7 @@ public abstract class Command {
         }
 
         public void print() {
-            System.out.println("Translation{" + "type=" + type +
+            logger.info("Translation{" + "type=" + type +
                     ", language=" + language +
                     ", translation='" + translation + '\'' +
                     ", empty=" + empty +

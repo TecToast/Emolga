@@ -58,7 +58,6 @@ public class EmolgaMain {
     public static JDA flegmonjda;
 
     public static void start() throws Exception {
-        System.out.println("Starting Bots... :)");
         emolgajda = JDABuilder.createDefault(Command.tokens.getString("discord"))
                 .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
                 .addEventListeners(new EmolgaListener(), messageWaiter)

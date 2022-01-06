@@ -1,0 +1,181 @@
+package de.tectoast.emolga.commands;
+
+import de.tectoast.emolga.utils.Constants;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.dv8tion.jda.api.requests.restaction.interactions.ReplyAction;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+public abstract class GenericCommandEvent {
+    private final Message message;
+    private final User author;
+    private final String msg;
+    private final MessageChannel channel;
+    private final JDA jda;
+    private final List<String> args;
+    private final List<TextChannel> mentionedChannels;
+    private final List<Member> mentionedMembers;
+    private final List<Role> mentionedRoles;
+    private final int argsLength;
+    private final SlashCommandEvent slashCommandEvent;
+
+    public GenericCommandEvent(Message message) {
+        this.message = message;
+        this.author = message.getAuthor();
+        this.msg = message.getContentDisplay();
+        this.channel = message.getChannel();
+        this.jda = message.getJDA();
+        this.mentionedChannels = this.message.getMentionedChannels();
+        this.mentionedMembers = this.message.getMentionedMembers();
+        this.mentionedRoles = this.message.getMentionedRoles();
+        this.args = new ArrayList<>(Arrays.asList(msg.split("\\s+")));
+        this.args.remove(0);
+        this.argsLength = this.args.size();
+        this.slashCommandEvent = null;
+    }
+
+    public GenericCommandEvent(SlashCommandEvent e) {
+        this.message = null;
+        this.author = e.getUser();
+        this.msg = null;
+        this.channel = e.getChannel();
+        this.jda = e.getJDA();
+        this.args = e.getOptions().stream().map(OptionMapping::getAsString).collect(Collectors.toList());
+        this.mentionedChannels = e.getOptions().stream().filter(o -> o.getType() == OptionType.CHANNEL).map(o -> (TextChannel) o.getAsMessageChannel()).collect(Collectors.toList());
+        this.mentionedMembers = e.getOptions().stream().filter(o -> o.getType() == OptionType.USER).map(OptionMapping::getAsMember).collect(Collectors.toList());
+        this.mentionedRoles = e.getOptions().stream().filter(o -> o.getType() == OptionType.ROLE).map(OptionMapping::getAsRole).collect(Collectors.toList());
+        this.argsLength = this.args.size();
+        this.slashCommandEvent = e;
+    }
+
+    public User getAuthor() {
+        return author;
+    }
+
+    public Message getMessage() {
+        return message;
+    }
+
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public String getRaw() {
+        return message.getContentRaw();
+    }
+
+    public MessageChannel getChannel() {
+        return channel;
+    }
+
+    public List<String> getArgs() {
+        return args;
+    }
+
+    public JDA getJDA() {
+        return jda;
+    }
+
+    public List<TextChannel> getMentionedChannels() {
+        return mentionedChannels;
+    }
+
+    public List<Member> getMentionedMembers() {
+        return mentionedMembers;
+    }
+
+    public List<Role> getMentionedRoles() {
+        return mentionedRoles;
+    }
+
+    public int getArgsLength() {
+        return argsLength;
+    }
+
+    public String getArg(int i) {
+        if (hasArg(i)) return getArgs().get(i);
+        return null;
+    }
+
+    public boolean hasArg(int i) {
+        return i < argsLength;
+    }
+
+    public void reply(String msg) {
+        if (msg.length() == 0) return;
+        if (slashCommandEvent != null) slashCommandEvent.reply(msg).queue();
+        else this.channel.sendMessage(msg).queue();
+    }
+
+    public void reply(String msg, @Nullable Consumer<MessageAction> ma, @Nullable Consumer<ReplyAction> ra, @Nullable Consumer<Message> m, @Nullable Consumer<InteractionHook> ih) {
+        if (slashCommandEvent != null) {
+            ReplyAction reply = slashCommandEvent.reply(msg);
+            if (ra != null)
+                ra.accept(reply);
+            reply.queue(ih);
+        } else {
+            MessageAction ac = getChannel().sendMessage(msg);
+            if (ma != null)
+                ma.accept(ac);
+            ac.queue(m);
+        }
+    }
+
+    public void reply(MessageEmbed msg, @Nullable Consumer<MessageAction> ma, @Nullable Consumer<ReplyAction> ra, @Nullable Consumer<Message> m, @Nullable Consumer<InteractionHook> ih) {
+        if (slashCommandEvent != null) {
+            ReplyAction reply = slashCommandEvent.replyEmbeds(msg);
+            if (ra != null)
+                ra.accept(reply);
+            reply.queue(ih);
+        } else {
+            MessageAction ac = getChannel().sendMessageEmbeds(msg);
+            if (ma != null)
+                ma.accept(ac);
+            ac.queue(m);
+        }
+        System.out.println("QUEUED! " + System.currentTimeMillis());
+    }
+
+    public CompletableFuture<Message> replyMessage(String msg) {
+        if (msg.length() == 0) return null;
+        if (slashCommandEvent != null) {
+            slashCommandEvent.reply("\uD83D\uDC4D").setEphemeral(true).queue();
+        }
+        return this.channel.sendMessage(msg).submit();
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    public void reply(MessageEmbed message) {
+        if (slashCommandEvent != null) slashCommandEvent.replyEmbeds(message).queue();
+        else this.channel.sendMessageEmbeds(message).queue();
+    }
+
+    public void replyToMe(String message) {
+        Command.sendToMe(message, Command.Bot.byJDA(jda));
+    }
+
+    public void done() {
+        reply("Done!");
+    }
+
+    public void errorInteraction() {
+        if(slashCommandEvent != null) slashCommandEvent.reply("D:").setEphemeral(true).queue();
+    }
+
+    public boolean isNotFlo() {
+        return this.author.getIdLong() != Constants.FLOID;
+    }
+}

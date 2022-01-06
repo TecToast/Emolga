@@ -48,7 +48,7 @@ public class RequestBuilder {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }).start();
+        }, "ReqBuilder").start();
     }
 
 
@@ -275,7 +275,7 @@ public class RequestBuilder {
                     sendStacktraceToMe(e);
                 }
             }
-        }));
+        }, "ReqBuilder User"));
         list.add(new Thread(() -> {
             if (!raw.isEmpty()) {
                 try {
@@ -285,7 +285,7 @@ public class RequestBuilder {
                     sendStacktraceToMe(e);
                 }
             }
-        }));
+        }, "ReqBuilder Raw"));
         list.add(new Thread(() -> {
             if (!batch.isEmpty()) {
                 try {
@@ -295,7 +295,7 @@ public class RequestBuilder {
                     sendStacktraceToMe(e);
                 }
             }
-        }));
+        }, "ReqBuilder Batch"));
         list.forEach(Thread::start);
         //noinspection IfStatementWithIdenticalBranches
         if (r != null) {

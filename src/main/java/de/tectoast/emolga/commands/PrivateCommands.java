@@ -226,7 +226,7 @@ public class PrivateCommands {
             b.put("gameday", b.getInt("gameday") + 1);
             bo.put(String.valueOf(b.getInt("gameday")), String.join(";", order));
             saveEmolgaJSON();
-        }).start();
+        }, "NextRound").start();
     }
 
     @PrivateCommand(name = "levels")
@@ -241,7 +241,7 @@ public class PrivateCommands {
                 str.append(map.get(s)).append(": ").append(getLevelFromXP(level.getInt(s))).append("\n");
             });
             e.reply(str.toString());
-        }).start();
+        }, "Levels").start();
     }
 
     @PrivateCommand(name = "generateorder")
@@ -256,7 +256,7 @@ public class PrivateCommands {
                 b = !b;
             }
             e.reply(str.toString());
-        }).start();
+        }, "GenerateOrder").start();
     }
 
     @PrivateCommand(name = "deletedreplays")

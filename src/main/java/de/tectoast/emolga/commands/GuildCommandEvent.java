@@ -33,7 +33,7 @@ public class GuildCommandEvent extends GenericCommandEvent {
                 ex.printStackTrace();
                 tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (Flooo#2535).\n" + c.getHelp(e.getGuild()) + (member.getIdLong() == FLOID ? "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
             }
-        }).start();
+        }, "CMD " + c.getName()).start();
     }
 
     public GuildCommandEvent(Command c, SlashCommandEvent e) throws Exception {

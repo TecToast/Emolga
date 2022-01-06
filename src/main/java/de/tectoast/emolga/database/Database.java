@@ -42,7 +42,7 @@ public class Database {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-        }).start();
+        }, "DBCreation").start();
     }
 
     public static void init() {
@@ -102,7 +102,7 @@ public class Database {
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
             }
-        }).start();
+        }, "IncrPredCounter").start();
     }
 
 
@@ -123,7 +123,7 @@ public class Database {
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
             }
-        }).start();
+        }, "IncrStat").start();
     }
 
     public static String getDescriptionFrom(String type, String id) {

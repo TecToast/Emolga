@@ -200,7 +200,7 @@ public class Draft {
             }
             Draft.drafts.add(this);
             logger.info("Initialized Draft " + name + " !");
-        }).start();
+        }, "CreateDraft").start();
     }
 
     public static void setupNDSNominate() {
@@ -573,7 +573,7 @@ public class Draft {
                 i++;
             }
             //messages.get(member).editMessage(str.toString()).queue();
-        }).start();
+        }, "DraftMemberUpdate").start();
     }
 
     public void timer(TimerReason tr) {

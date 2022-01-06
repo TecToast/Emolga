@@ -64,6 +64,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -83,9 +84,6 @@ public abstract class Command {
      * NO PERMISSION Message
      */
     public static final String NOPERM = "Dafür hast du keine Berechtigung!";
-    
-    private static final Logger logger = LoggerFactory.getLogger(Command.class);
-
     public static final List<Long> NML_GUILDS = Collections.singletonList(786351922029527130L);
     /**
      * List of all commands of the bot
@@ -168,10 +166,6 @@ public abstract class Command {
      */
     public static final LinkedList<String> translationsCacheOrderEnglish = new LinkedList<>();
     /**
-     * Mapper for the DraftGerName
-     */
-    public static final Function<String, String> draftnamemapper = s -> getDraftGerName(s).getTranslation();
-    /**
      * MusicManagers for Lavaplayer
      */
     public static final HashMap<Long, GuildMusicManager> musicManagers = new HashMap<>();
@@ -182,6 +176,11 @@ public abstract class Command {
     public static final HashMap<Long, SmogonSet> smogonMenu = new HashMap<>();
     public static final List<Long> customResult = Collections.emptyList();
     public static final HashMap<Long, CircularFifoQueue<byte[]>> clips = new HashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(Command.class);
+    /**
+     * Mapper for the DraftGerName
+     */
+    public static final Function<String, String> draftnamemapper = s -> getDraftGerName(s).getTranslation();
     /**
      * Path to the default Showdown Data
      */
@@ -1544,257 +1543,256 @@ public abstract class Command {
         new ModManager("default", "./ShowdownData/");
         new ModManager("nml", "../Showdown/sspserver/data/");
         new Thread(() -> {
-
-        ButtonListener.init();
-        MenuListener.init();
-        registerCommands();
-        ndsnominates = Executors.newScheduledThreadPool(10);
-        JSONObject mute = emolgajson.getJSONObject("mutedroles");
-        for (String s : mute.keySet()) {
-            mutedRoles.put(Long.parseLong(s), mute.getLong(s));
-        }
-        JSONObject mod = emolgajson.getJSONObject("moderatorroles");
-        for (String s : mod.keySet()) {
-            moderatorRoles.put(Long.parseLong(s), mod.getLong(s));
-        }
-        JSONObject echannel = emolgajson.getJSONObject("emolgachannel");
-        for (String s : echannel.keySet()) {
-            emolgaChannel.put(Long.parseLong(s), echannel.getJSONArray(s).toList().stream().map(o -> (Long) o).collect(Collectors.toCollection(ArrayList::new)));
-        }
-        try {
-            balls = Files.readAllLines(Paths.get("./balls.txt"));
-            mons = Files.readAllLines(Paths.get("./tauschdoc.txt"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        serebiiex.put("Barschuft-B", "b");
-        serebiiex.put("Riffex-H", "");
-        serebiiex.put("Riffex-T", "-l");
-        serebiiex.put("Wolwerock-Tag", "");
-        serebiiex.put("Wolwerock-Nacht", "-m");
-        serebiiex.put("Wolwerock-Dusk", "-d");
-        serebiiex.put("Barschuft-R", "");
-        serebiiex.put("Wulaosu-Unlicht", "");
-        serebiiex.put("Wulaosu-Wasser", "-r");
-        serebiiex.put("Basculin-B", "b");
-        serebiiex.put("Toxtricity-H", "");
-        serebiiex.put("Toxtricity-T", "-l");
-        serebiiex.put("Lycanroc-Tag", "");
-        serebiiex.put("Lycanroc-Nacht", "-m");
-        serebiiex.put("Lycanroc-Dusk", "-d");
-        serebiiex.put("Basculin-R", "");
-        serebiiex.put("Urshifu-Unlicht", "");
-        serebiiex.put("Urshifu-Wasser", "-r");
-        serebiiex.put("Rotom-Wash", "-w");
-        serebiiex.put("Rotom-Heat", "-h");
-        serebiiex.put("Rotom-Fan", "-s");
-        serebiiex.put("Rotom-Mow", "-m");
-        serebiiex.put("Rotom-Frost", "-f");
-        serebiiex.put("Demeteros-T", "-s");
-        serebiiex.put("Voltolos-T", "-s");
-        serebiiex.put("Boreos-I", "");
-        serebiiex.put("Burmadame-Pflz", "");
-        serebiiex.put("Burmadame-Sand", "-c");
-        serebiiex.put("Burmadame-Lumpen", "-s");
-        sdex.put("Burmadame-Pflz", "");
-        sdex.put("Burmadame-Sand", "-sandy");
-        sdex.put("Burmadame-Lumpen", "-trash");
-        sdex.put("Boreos-T", "-therian");
-        sdex.put("Demeteros-T", "-therian");
-        sdex.put("Deoxys-Def", "-defense");
-        sdex.put("Deoxys-Speed", "-speed");
-        sdex.put("Hoopa-U", "-unbound");
-        sdex.put("Wulaosu-Wasser", "-rapidstrike");
-        sdex.put("Demeteros-I", "");
-        sdex.put("Rotom-Heat", "-heat");
-        sdex.put("Rotom-Wash", "-wash");
-        sdex.put("Rotom-Mow", "-mow");
-        sdex.put("Rotom-Fan", "-fan");
-        sdex.put("Rotom-Frost", "-frost");
-        sdex.put("Wolwerock-Zw", "-dusk");
-        sdex.put("Wolwerock-Dusk", "-dusk");
-        sdex.put("Wolwerock-Tag", "");
-        sdex.put("Wolwerock-Nacht", "-midnight");
-        sdex.put("Boreos-I", "");
-        sdex.put("Voltolos-T", "-therian");
-        sdex.put("Voltolos-I", "");
-        sdex.put("Zygarde-50%", "");
-        sdex.put("Zygarde-10%", "-10");
+            ButtonListener.init();
+            MenuListener.init();
+            registerCommands();
+            ndsnominates = Executors.newScheduledThreadPool(10);
+            JSONObject mute = emolgajson.getJSONObject("mutedroles");
+            for (String s : mute.keySet()) {
+                mutedRoles.put(Long.parseLong(s), mute.getLong(s));
+            }
+            JSONObject mod = emolgajson.getJSONObject("moderatorroles");
+            for (String s : mod.keySet()) {
+                moderatorRoles.put(Long.parseLong(s), mod.getLong(s));
+            }
+            JSONObject echannel = emolgajson.getJSONObject("emolgachannel");
+            for (String s : echannel.keySet()) {
+                emolgaChannel.put(Long.parseLong(s), echannel.getJSONArray(s).toList().stream().map(o -> (Long) o).collect(Collectors.toCollection(ArrayList::new)));
+            }
+            try {
+                balls = Files.readAllLines(Paths.get("./balls.txt"));
+                mons = Files.readAllLines(Paths.get("./tauschdoc.txt"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            serebiiex.put("Barschuft-B", "b");
+            serebiiex.put("Riffex-H", "");
+            serebiiex.put("Riffex-T", "-l");
+            serebiiex.put("Wolwerock-Tag", "");
+            serebiiex.put("Wolwerock-Nacht", "-m");
+            serebiiex.put("Wolwerock-Dusk", "-d");
+            serebiiex.put("Barschuft-R", "");
+            serebiiex.put("Wulaosu-Unlicht", "");
+            serebiiex.put("Wulaosu-Wasser", "-r");
+            serebiiex.put("Basculin-B", "b");
+            serebiiex.put("Toxtricity-H", "");
+            serebiiex.put("Toxtricity-T", "-l");
+            serebiiex.put("Lycanroc-Tag", "");
+            serebiiex.put("Lycanroc-Nacht", "-m");
+            serebiiex.put("Lycanroc-Dusk", "-d");
+            serebiiex.put("Basculin-R", "");
+            serebiiex.put("Urshifu-Unlicht", "");
+            serebiiex.put("Urshifu-Wasser", "-r");
+            serebiiex.put("Rotom-Wash", "-w");
+            serebiiex.put("Rotom-Heat", "-h");
+            serebiiex.put("Rotom-Fan", "-s");
+            serebiiex.put("Rotom-Mow", "-m");
+            serebiiex.put("Rotom-Frost", "-f");
+            serebiiex.put("Demeteros-T", "-s");
+            serebiiex.put("Voltolos-T", "-s");
+            serebiiex.put("Boreos-I", "");
+            serebiiex.put("Burmadame-Pflz", "");
+            serebiiex.put("Burmadame-Sand", "-c");
+            serebiiex.put("Burmadame-Lumpen", "-s");
+            sdex.put("Burmadame-Pflz", "");
+            sdex.put("Burmadame-Sand", "-sandy");
+            sdex.put("Burmadame-Lumpen", "-trash");
+            sdex.put("Boreos-T", "-therian");
+            sdex.put("Demeteros-T", "-therian");
+            sdex.put("Deoxys-Def", "-defense");
+            sdex.put("Deoxys-Speed", "-speed");
+            sdex.put("Hoopa-U", "-unbound");
+            sdex.put("Wulaosu-Wasser", "-rapidstrike");
+            sdex.put("Demeteros-I", "");
+            sdex.put("Rotom-Heat", "-heat");
+            sdex.put("Rotom-Wash", "-wash");
+            sdex.put("Rotom-Mow", "-mow");
+            sdex.put("Rotom-Fan", "-fan");
+            sdex.put("Rotom-Frost", "-frost");
+            sdex.put("Wolwerock-Zw", "-dusk");
+            sdex.put("Wolwerock-Dusk", "-dusk");
+            sdex.put("Wolwerock-Tag", "");
+            sdex.put("Wolwerock-Nacht", "-midnight");
+            sdex.put("Boreos-I", "");
+            sdex.put("Voltolos-T", "-therian");
+            sdex.put("Voltolos-I", "");
+            sdex.put("Zygarde-50%", "");
+            sdex.put("Zygarde-10%", "-10");
         /*emolgaChannel.put(Constants.ASLID, new ArrayList<>(Arrays.asList(728680506098712579L, 736501675447025704L)));
         emolgaChannel.put(Constants.BSID, new ArrayList<>(Arrays.asList(732545253344804914L, 735076688144105493L)));
         emolgaChannel.put(709877545708945438L, new ArrayList<>(Collections.singletonList(738893933462945832L)));
         emolgaChannel.put(677229415629062180L, new ArrayList<>(Collections.singletonList(731455491527540777L)));
         emolgaChannel.put(694256540642705408L, new ArrayList<>(Collections.singletonList(695157832072560651L)));
         emolgaChannel.put(747357029714231299L, new ArrayList<>(Arrays.asList(752802115096674306L, 762411109859852298L)));*/
-        sdAnalyser.put(ASLID, (game, uid1, uid2, kills, deaths, args) -> {
-            if (true) return;
-            JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
-            String sid = asl.getString("sid");
-            int gameday = getGameDay(asl, uid1, uid2);
-            if (gameday == -1) {
-                logger.info("GAMEDAY -1");
-                return;
-            }
-            if (!asl.has("results")) asl.put("results", new JSONObject());
-            JSONObject results = asl.getJSONObject("results");
-            if (results.has(uid1 + ":" + uid2) || results.has(uid2 + ":" + uid1)) {
-                sendToMe("Double Entry -> skipped");
-                return;
-            }
-            String t1 = getTeamName(Long.parseLong(uid1));
-            String t2 = getTeamName(Long.parseLong(uid2));
-            TextChannel result = (TextChannel) args[3];
-            new Thread(() -> {
-                Guild g = emolgajda.getGuildById(ASLID);
-                String name1 = g.retrieveMemberById(uid1).complete().getEffectiveName();
-                String name2 = g.retrieveMemberById(uid2).complete().getEffectiveName();
-                TextChannel replaychannel = (TextChannel) args[6];
-                logger.info("args[4] = " + args[4]);
-                logger.info("args[5] = " + args[5]);
-                if (replaychannel != null)
-                    replaychannel.sendMessage("Spieltag %d\n%s vs %s\n%s".formatted(gameday, name1, name2, args[1])).queue();
-                result.sendMessage("Spieltag " + gameday + "\n" + t1 + " vs " + t2 + "\n"
-                        + name1 + " " + game[0].getDisplayNumber() + ":" + game[1].getDisplayNumber() + " " + name2 + "\n\n" + name1 + ":\n" + args[4] + "\n" + name2 + ":\n" + args[5]).queue();
-            }).start();
-            ArrayList<String> userids = new ArrayList<>(Arrays.asList(uid1, uid2));
-            RequestBuilder b = new RequestBuilder(sid);
-            ArrayList<String>[] mons = (ArrayList<String>[]) args[0];
-            boolean p1wins = false;
-            int gdi = gameday - 1;
-            for (int i = 0; i < 2; i++) {
-                String uid = userids.get(i);
-                long userid = Long.parseLong(uid);
-                JSONObject league = Draft.getLevelJSON(userid);
-                String team = getTeamName(userid);
-                ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
-                logger.info("gameday = " + gameday);
-                logger.info("gdi = " + gdi);
-                logger.info("LINKS Picks von " + game[i].getNickname() + ": " + picks);
-                int level = getLevel(userid);
-                String killcolumn = getAsXCoord(gdi * 5 + 10);
-                int monindex = 0;
-                HashMap<String, String> ki = kills.get(i);
-                String amigento = ki.keySet().stream().filter(str -> str.contains("Amigento")).findFirst().orElse("");
-                for (String s : picks) {
-                    logger.info("s = " + s + " ");
+            sdAnalyser.put(ASLID, (game, uid1, uid2, kills, deaths, args) -> {
+                if (true) return;
+                JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
+                String sid = asl.getString("sid");
+                int gameday = getGameDay(asl, uid1, uid2);
+                if (gameday == -1) {
+                    logger.info("GAMEDAY -1");
+                    return;
+                }
+                if (!asl.has("results")) asl.put("results", new JSONObject());
+                JSONObject results = asl.getJSONObject("results");
+                if (results.has(uid1 + ":" + uid2) || results.has(uid2 + ":" + uid1)) {
+                    sendToMe("Double Entry -> skipped");
+                    return;
+                }
+                String t1 = getTeamName(Long.parseLong(uid1));
+                String t2 = getTeamName(Long.parseLong(uid2));
+                TextChannel result = (TextChannel) args[3];
+                new Thread(() -> {
+                    Guild g = emolgajda.getGuildById(ASLID);
+                    String name1 = g.retrieveMemberById(uid1).complete().getEffectiveName();
+                    String name2 = g.retrieveMemberById(uid2).complete().getEffectiveName();
+                    TextChannel replaychannel = (TextChannel) args[6];
+                    logger.info("args[4] = " + args[4]);
+                    logger.info("args[5] = " + args[5]);
+                    if (replaychannel != null)
+                        replaychannel.sendMessage("Spieltag %d\n%s vs %s\n%s".formatted(gameday, name1, name2, args[1])).queue();
+                    result.sendMessage("Spieltag " + gameday + "\n" + t1 + " vs " + t2 + "\n"
+                            + name1 + " " + game[0].getDisplayNumber() + ":" + game[1].getDisplayNumber() + " " + name2 + "\n\n" + name1 + ":\n" + args[4] + "\n" + name2 + ":\n" + args[5]).queue();
+                }, "ASL Result").start();
+                ArrayList<String> userids = new ArrayList<>(Arrays.asList(uid1, uid2));
+                RequestBuilder b = new RequestBuilder(sid);
+                ArrayList<String>[] mons = (ArrayList<String>[]) args[0];
+                boolean p1wins = false;
+                int gdi = gameday - 1;
+                for (int i = 0; i < 2; i++) {
+                    String uid = userids.get(i);
+                    long userid = Long.parseLong(uid);
+                    JSONObject league = Draft.getLevelJSON(userid);
+                    String team = getTeamName(userid);
+                    ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
+                    logger.info("gameday = " + gameday);
+                    logger.info("gdi = " + gdi);
+                    logger.info("LINKS Picks von " + game[i].getNickname() + ": " + picks);
+                    int level = getLevel(userid);
+                    String killcolumn = getAsXCoord(gdi * 5 + 10);
+                    int monindex = 0;
+                    HashMap<String, String> ki = kills.get(i);
+                    String amigento = ki.keySet().stream().filter(str -> str.contains("Amigento")).findFirst().orElse("");
+                    for (String s : picks) {
+                        logger.info("s = " + s + " ");
                     /*int monindex = indexPick(picks, s);
                     if (monindex > -1) {*/
-                    String str = s.equals("Amigento") ? amigento : s;
-                    b.addRow("%s!%s%d".formatted(team, killcolumn, level * 20 + 1 + monindex), Arrays.asList(ki.getOrDefault(str, "-"), deaths.get(i).getOrDefault(str, "-")));
-                    //}
-                    monindex++;
+                        String str = s.equals("Amigento") ? amigento : s;
+                        b.addRow("%s!%s%d".formatted(team, killcolumn, level * 20 + 1 + monindex), Arrays.asList(ki.getOrDefault(str, "-"), deaths.get(i).getOrDefault(str, "-")));
+                        //}
+                        monindex++;
+                    }
+                    boolean winner = game[i].isWinner();
+                    if (winner) {
+                        results.put(uid1 + ":" + uid2, uid);
+                    }
+                    b.addRow("%s!%s%d".formatted(team, killcolumn, level * 20 + 13), winner ? Arrays.asList(1, 0) : Arrays.asList(0, 1));
+                    long oppid = Long.parseLong(userids.get(1 - i));
+                    String oppteam = getTeamName(oppid);
+                    int opplevel = getLevel(oppid);
+                    b.addSingle("%s!%s%d".formatted(team, killcolumn, level * 20 - 1), "=HYPERLINK(\"" + args[1] + "\"; CONCAT(\"vs \"; '%s'!A%d))".formatted(oppteam, opplevel * 20 - 3));
                 }
-                boolean winner = game[i].isWinner();
-                if (winner) {
-                    results.put(uid1 + ":" + uid2, uid);
+                String bo = asl.getJSONObject("battleorder").getString(String.valueOf(gameday));
+                int num = 0;
+                String str = "";
+                for (String s : bo.split(";")) {
+                    if (s.contains(uid1)) {
+                        str = s;
+                        break;
+                    }
+                    num++;
                 }
-                b.addRow("%s!%s%d".formatted(team, killcolumn, level * 20 + 13), winner ? Arrays.asList(1, 0) : Arrays.asList(0, 1));
-                long oppid = Long.parseLong(userids.get(1 - i));
-                String oppteam = getTeamName(oppid);
-                int opplevel = getLevel(oppid);
-                b.addSingle("%s!%s%d".formatted(team, killcolumn, level * 20 - 1), "=HYPERLINK(\"" + args[1] + "\"; CONCAT(\"vs \"; '%s'!A%d))".formatted(oppteam, opplevel * 20 - 3));
-            }
-            String bo = asl.getJSONObject("battleorder").getString(String.valueOf(gameday));
-            int num = 0;
-            String str = "";
-            for (String s : bo.split(";")) {
-                if (s.contains(uid1)) {
-                    str = s;
-                    break;
+                int add = num / 4;
+                int sub = num % 4;
+                int y = add * 6 + 5 + sub;
+                List<String> l = new LinkedList<>();
+                l.add(String.valueOf(game[0].getMons().size() - game[0].getTotalDeaths()));
+                l.add(String.valueOf(game[1].getMons().size() - game[1].getTotalDeaths()));
+                if (str.split(":")[0].equals(uid2)) {
+                    Collections.reverse(l);
                 }
-                num++;
-            }
-            int add = num / 4;
-            int sub = num % 4;
-            int y = add * 6 + 5 + sub;
-            List<String> l = new LinkedList<>();
-            l.add(String.valueOf(game[0].getMons().size() - game[0].getTotalDeaths()));
-            l.add(String.valueOf(game[1].getMons().size() - game[1].getTotalDeaths()));
-            if (str.split(":")[0].equals(uid2)) {
-                Collections.reverse(l);
-            }
-            b.addSingle("Spielplan!%s%d".formatted(getAsXCoord(gameday * 5 - 3), y), "=HYPERLINK(\"%s\"; \"%s\")".formatted(args[1], String.join(":", l)));
-            b.execute();
-            saveEmolgaJSON();
-            //sortASLS9(t1);
-            //gameday++;
-            //evaluatePredictions(league, p1wins, gameday, uid1, uid2);
-        });
-        sdAnalyser.put(709877545708945438L, (game, uid1, uid2, kills, deaths, args) -> {
-            Guild guild = emolgajda.getGuildById("709877545708945438");
-            Emote love = guild.getEmoteById("710842233712017478");
-            Emote beep = guild.getEmoteById("745355018676469844");
-            JSONObject json = getEmolgaJSON();
-            JSONObject league = json.getJSONObject("drafts").getJSONObject("Wooloo Cup");
-            if (!league.has("doc")) return;
-            String sid = league.getJSONObject("doc").getString("sid");
-            Message message = guild.getTextChannelById("749194448507764766").sendMessage(uid1 + " (" + love.getAsMention() + ") oder " + uid2 + " (" + beep.getAsMention() + ")?").complete();
-            message.addReaction(love).queue();
-            message.addReaction(beep).queue();
-            if (!json.has("style")) json.put("style", new JSONArray());
-            JSONArray style = json.getJSONArray("style");
-            JSONObject obj = new JSONObject();
-            obj.put("uid1", uid1);
-            obj.put("uid2", uid2);
-            obj.put("mid", message.getId());
-            obj.put("timer", System.currentTimeMillis() + 86400000 + "");
-            style.put(obj);
-            new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    woolooStyle(sid, message, uid1, uid2);
-                }
-            }, 86400000);
-            saveEmolgaJSON();
-            ArrayList<String> users = new ArrayList<>(Arrays.asList(uid1, uid2));
-            int i = 0;
-            RequestBuilder b = new RequestBuilder(sid);
-            for (String uid : users) {
-                int index = Arrays.asList(league.getString("table").split(",")).indexOf(uid);
-                String range;
-                if (index < 4)
-                    range = "Teamübersicht!" + getAsXCoord(index * 6 + 4) + "7:" + getAsXCoord(index * 6 + 5) + "18";
-                else if (index < 8)
-                    range = "Teamübersicht!" + getAsXCoord((index - 4) * 6 + 4) + "24:" + getAsXCoord((index - 4) * 6 + 5) + "35";
-                else
-                    range = "Teamübersicht!" + getAsXCoord((index - 8) * 6 + 16) + "41:" + getAsXCoord((index - 8) * 6 + 17) + "52";
-                //boolean console = msg.contains("--console");
-                ArrayList<String> picks = new ArrayList<>(Arrays.asList(league.getJSONObject("picks").getString(uid).split(",")));
-                List<List<Object>> list = new ArrayList<>();
-                List<List<Object>> get = Google.get(sid, range, false, false);
-                int x = 0;
-                for (String pick : picks) {
-                    String kill = getNumber(kills.get(i), pick);
-                    String death = getNumber(deaths.get(i), pick);
-                    list.add(Arrays.asList((kill.equals("") ? 0 : Integer.parseInt(kill)) + Integer.parseInt((String) get.get(x).get(0)), (death.equals("") ? 0 : Integer.parseInt(death)) + Integer.parseInt((String) get.get(x).get(1))));
-                    x++;
-                }
-                //List<List<Object>> get = Google.get(sid, "Spielplan [erweitert]!D" + (index * 14 + 1) + ":E" + (index * 14 + 1));
-                List<List<Object>> slist = Google.get(sid, "Teamübersicht!C" + (index + 40) + ":D" + (index + 40), false, false);
-                //logger.info(uid);
-                //logger.info("slist = " + slist);
-                int win = Integer.parseInt((String) slist.get(0).get(0));
-                int loose = Integer.parseInt((String) slist.get(0).get(1));
-                if (!league.has("results")) league.put("results", new JSONObject());
-                if (game[i].isWinner()) {
-                    win++;
-                    league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
-                    //logger.info("win = " + win);
-                } else {
-                    loose++;
-                    //logger.info("loose = " + loose);
-                }
+                b.addSingle("Spielplan!%s%d".formatted(getAsXCoord(gameday * 5 - 3), y), "=HYPERLINK(\"%s\"; \"%s\")".formatted(args[1], String.join(":", l)));
+                b.execute();
                 saveEmolgaJSON();
-                String urange = range.split(":")[0];
-                b.addAll(urange, list);
-                b.addRow("Teamübersicht!C" + (index + 40), Arrays.asList(win, loose), true, false);
-                i++;
-            }
-            b.execute();
-            sortWooloo(sid, league);
-        });
-        sdAnalyser.put(FLPID, (game, uid1, uid2, kills, deaths, args) -> {
-            // Gen 4 Turnier
+                //sortASLS9(t1);
+                //gameday++;
+                //evaluatePredictions(league, p1wins, gameday, uid1, uid2);
+            });
+            sdAnalyser.put(709877545708945438L, (game, uid1, uid2, kills, deaths, args) -> {
+                Guild guild = emolgajda.getGuildById("709877545708945438");
+                Emote love = guild.getEmoteById("710842233712017478");
+                Emote beep = guild.getEmoteById("745355018676469844");
+                JSONObject json = getEmolgaJSON();
+                JSONObject league = json.getJSONObject("drafts").getJSONObject("Wooloo Cup");
+                if (!league.has("doc")) return;
+                String sid = league.getJSONObject("doc").getString("sid");
+                Message message = guild.getTextChannelById("749194448507764766").sendMessage(uid1 + " (" + love.getAsMention() + ") oder " + uid2 + " (" + beep.getAsMention() + ")?").complete();
+                message.addReaction(love).queue();
+                message.addReaction(beep).queue();
+                if (!json.has("style")) json.put("style", new JSONArray());
+                JSONArray style = json.getJSONArray("style");
+                JSONObject obj = new JSONObject();
+                obj.put("uid1", uid1);
+                obj.put("uid2", uid2);
+                obj.put("mid", message.getId());
+                obj.put("timer", System.currentTimeMillis() + 86400000 + "");
+                style.put(obj);
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        woolooStyle(sid, message, uid1, uid2);
+                    }
+                }, 86400000);
+                saveEmolgaJSON();
+                ArrayList<String> users = new ArrayList<>(Arrays.asList(uid1, uid2));
+                int i = 0;
+                RequestBuilder b = new RequestBuilder(sid);
+                for (String uid : users) {
+                    int index = Arrays.asList(league.getString("table").split(",")).indexOf(uid);
+                    String range;
+                    if (index < 4)
+                        range = "Teamübersicht!" + getAsXCoord(index * 6 + 4) + "7:" + getAsXCoord(index * 6 + 5) + "18";
+                    else if (index < 8)
+                        range = "Teamübersicht!" + getAsXCoord((index - 4) * 6 + 4) + "24:" + getAsXCoord((index - 4) * 6 + 5) + "35";
+                    else
+                        range = "Teamübersicht!" + getAsXCoord((index - 8) * 6 + 16) + "41:" + getAsXCoord((index - 8) * 6 + 17) + "52";
+                    //boolean console = msg.contains("--console");
+                    ArrayList<String> picks = new ArrayList<>(Arrays.asList(league.getJSONObject("picks").getString(uid).split(",")));
+                    List<List<Object>> list = new ArrayList<>();
+                    List<List<Object>> get = Google.get(sid, range, false, false);
+                    int x = 0;
+                    for (String pick : picks) {
+                        String kill = getNumber(kills.get(i), pick);
+                        String death = getNumber(deaths.get(i), pick);
+                        list.add(Arrays.asList((kill.equals("") ? 0 : Integer.parseInt(kill)) + Integer.parseInt((String) get.get(x).get(0)), (death.equals("") ? 0 : Integer.parseInt(death)) + Integer.parseInt((String) get.get(x).get(1))));
+                        x++;
+                    }
+                    //List<List<Object>> get = Google.get(sid, "Spielplan [erweitert]!D" + (index * 14 + 1) + ":E" + (index * 14 + 1));
+                    List<List<Object>> slist = Google.get(sid, "Teamübersicht!C" + (index + 40) + ":D" + (index + 40), false, false);
+                    //logger.info(uid);
+                    //logger.info("slist = " + slist);
+                    int win = Integer.parseInt((String) slist.get(0).get(0));
+                    int loose = Integer.parseInt((String) slist.get(0).get(1));
+                    if (!league.has("results")) league.put("results", new JSONObject());
+                    if (game[i].isWinner()) {
+                        win++;
+                        league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
+                        //logger.info("win = " + win);
+                    } else {
+                        loose++;
+                        //logger.info("loose = " + loose);
+                    }
+                    saveEmolgaJSON();
+                    String urange = range.split(":")[0];
+                    b.addAll(urange, list);
+                    b.addRow("Teamübersicht!C" + (index + 40), Arrays.asList(win, loose), true, false);
+                    i++;
+                }
+                b.execute();
+                sortWooloo(sid, league);
+            });
+            sdAnalyser.put(FLPID, (game, uid1, uid2, kills, deaths, args) -> {
+                // Gen 4 Turnier
             /*try {
                 TextChannel result = (TextChannel) args[3];
                 JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("SinnohPlateau");
@@ -1911,250 +1909,250 @@ public abstract class Command {
 
             // ZBS
              */
-            JSONObject league;
-            JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
-            int l;
-            if (drafts.getJSONObject("ZBSS3L1").getLongList("table").contains(Long.parseLong(uid1))) l = 1;
-            else l = 2;
-            league = drafts.getJSONObject("ZBSS3L" + l);
-            if (league.has("results")) {
-                JSONObject results = league.getJSONObject("results");
-                if (results.has(uid1 + ":" + uid2) || results.has(uid2 + ":" + uid1)) {
-                    sendToMe("Double Entry FLP/ZBS -> Skipped");
+                JSONObject league;
+                JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
+                int l;
+                if (drafts.getJSONObject("ZBSS3L1").getLongList("table").contains(Long.parseLong(uid1))) l = 1;
+                else l = 2;
+                league = drafts.getJSONObject("ZBSS3L" + l);
+                if (league.has("results")) {
+                    JSONObject results = league.getJSONObject("results");
+                    if (results.has(uid1 + ":" + uid2) || results.has(uid2 + ":" + uid1)) {
+                        sendToMe("Double Entry FLP/ZBS -> Skipped");
+                        return;
+                    }
+                }
+                String sid = league.getString("sid");
+                logger.info("l = " + l);
+                int gameday = getGameDay(league, uid1, uid2);
+                if (gameday == -1) {
+                    logger.info("GAMEDAY -1");
                     return;
                 }
-            }
-            String sid = league.getString("sid");
-            logger.info("l = " + l);
-            int gameday = getGameDay(league, uid1, uid2);
-            if (gameday == -1) {
-                logger.info("GAMEDAY -1");
-                return;
-            }
-            ArrayList<String> users = new ArrayList<>(Arrays.asList(uid1, uid2));
-            int i = 0;
-            List<Long> table = league.getLongList("table");
-            RequestBuilder b = new RequestBuilder(sid);
-            List<Integer> indexes = new ArrayList<>(2);
-            users.forEach(u -> indexes.add(table.indexOf(Long.parseLong(u))));
-            RequestGetter rg = new RequestGetter(sid);
-            String li = "Liga " + l;
-            indexes.forEach(index -> rg.addRange(li + "!B" + (index * 11 + 200) + ":D"
-                    + (index * 11 + 210)).addRange(li + "!I" + (index + 3) + ":K" + (index + 3)));
-            List<List<List<String>>> gets = rg.execute();
-            for (String uid : users) {
-                int index = table.indexOf(Long.parseLong(uid));
-                ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
-                List<List<String>> get = gets.get(i * 2);
-                List<List<Object>> list = new ArrayList<>();
-                int x = 0;
-                for (String pick : picks) {
-                    String kill = getNumber(kills.get(i), pick);
-                    String death = getNumber(deaths.get(i), pick);
-                    list.add(Arrays.asList(
-                            Integer.parseInt(get.get(x).get(0)) + (kill.equals("") ? 0 : Integer.parseInt(kill)),
-                            Integer.parseInt(get.get(x).get(1)) + (death.equals("") ? 0 : Integer.parseInt(death)),
-                            Integer.parseInt(get.get(x).get(2)) + (death.equals("") ? 0 : 1)
-                    ));
-                    x++;
-                }
-                List<List<String>> getvic = gets.get(i * 2 + 1);
-                int win = Integer.parseInt(getvic.get(0).get(0));
-                int tie = Integer.parseInt(getvic.get(0).get(1));
-                int loose = Integer.parseInt(getvic.get(0).get(2));
-                if (game[i].isWinner()) {
-                    win++;
-                    if (!league.has("results"))
-                        league.put("results", new JSONObject());
-                    league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
-                } else loose++;
-                try {
-                    b.addAll(li + "!B" + (index * 11 + 200), list);
-                    b.addRow(li + "!I" + (index + 3), Arrays.asList(win, tie, loose));
-                } catch (IllegalArgumentException IllegalArgumentException) {
-                    IllegalArgumentException.printStackTrace();
-                }
-                i++;
-            }
-            generateResult(b, game, league, gameday, uid1, "Spielplan " + li, "ZBS", (String) args[1]);
-            b.execute(() -> sortZBS(sid, li, league));
-            saveEmolgaJSON();
-        });
-
-        sdAnalyser.put(Constants.FPLID, (game, uid1, uid2, kills, deaths, args) -> {
-            JSONObject league;
-            JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
-            int l;
-            if (drafts.getJSONObject("FPLS1L1").getLongList("table").contains(Long.parseLong(uid1))) l = 1;
-            else l = 2;
-            league = drafts.getJSONObject("FPLS1L" + l);
-            String sid = league.getString("sid");
-            int gameday = getGameDay(league, uid1, uid2);
-            if (gameday == -1) {
-                logger.info("GAMEDAY -1");
-                return;
-            }
-            List<String> users = Arrays.asList(uid1, uid2);
-            int i = 0;
-            List<Long> table = league.getLongList("table");
-            RequestBuilder b = new RequestBuilder(sid);
-            String li = "Kader L" + l + "!";
-            for (String uid : users) {
-                int index = table.indexOf(Long.parseLong(uid));
-                ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
-                List<Object> list = new ArrayList<>();
-                int x = 0;
-                for (String pick : picks) {
-                    list.add(getNumber(kills.get(i), pick));
-                    x++;
-                }
-                int win = 0;
-                int loose = 0;
-                if (game[i].isWinner()) {
-                    win++;
-                    if (!league.has("results"))
-                        league.put("results", new JSONObject());
-                    league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
-                } else loose++;
-                try {
-                    String s = li + getAsXCoord((index / 4) * 22 + 6 + gameday);
-                    int yc = (index % 4) * 20;
-                    b.addColumn(s + (yc + 8), list);
-                    b.addSingle(s + (yc + 20), game[i].getTotalDeaths());
-                    b.addColumn(s + (yc + 21), Arrays.asList(win, loose));
-                } catch (IllegalArgumentException IllegalArgumentException) {
-                    IllegalArgumentException.printStackTrace();
-                }
-                i++;
-            }
-            //generateResult(b, game, league, gameday, uid1, "Spielplan " + li, "ZBS", (String) args[1]);
-            int gdi = gameday - 1;
-            List<Object> gpl = new ArrayList<>(Arrays.asList(6 - game[0].getTotalDeaths(),
-                    "=HYPERLINK(\"%s\"; \":\")".formatted(args[1]),
-                    6 - game[1].getTotalDeaths()));
-            String battleorder = league.getJSONObject("battleorder").getString(gameday);
-            int ycoord = 0;
-            String str = null;
-            for (String s : battleorder.split(";")) {
-                if (s.contains(uid1)) {
-                    str = s;
-                    break;
-                }
-                ycoord++;
-            }
-            if (str.split(":")[0].equals(uid2)) Collections.reverse(gpl);
-            b.addRow("Spielplan (Spoiler) L%d!%s%d".formatted(l, getAsXCoord((gdi / 4) * 6 + 4), (gdi % 4) * 6 + 6 + ycoord), gpl);
-            b.execute(() -> sortFPL(sid, "Tabelle L" + l, league));
-            saveEmolgaJSON();
-        });
-
-
-        sdAnalyser.put(NDSID, (game, uid1, uid2, kills, deaths, args) -> {
-            JSONObject json = getEmolgaJSON();
-            JSONObject league = json.getJSONObject("drafts").getJSONObject("NDS");
-            String sid = league.getString("sid");
-            List<String> users = Arrays.asList(uid1, uid2);
-            int gameday = getGameDay(league, uid1, uid2);
-            if (gameday == -1) {
-                sendToMe("Gameday -1 " + uid1 + " " + uid2);
-                return;
-            }
-            ((TextChannel) args[3]).sendMessage("Spieltag " + (gameday + 5) + "\n\n" + args[2]).queue();
-            String battle = null;
-            int battleindex = -1;
-            List<String> battleorder = Arrays.asList(league.getJSONObject("battleorder").getString(String.valueOf(gameday)).split(";"));
-            for (String s : battleorder) {
-                if (s.contains(uid1)) {
-                    battle = s;
-                    battleindex = battleorder.indexOf(s);
-                    break;
-                }
-            }
-            ArrayList<String>[] mons = (ArrayList<String>[]) args[0];
-            int i = 0;
-            RequestBuilder b = new RequestBuilder(sid);
-            int gdi = gameday - 1;
-            List<String> killlistloc = null;
-            try {
-                killlistloc = Files.readAllLines(Paths.get("ndskilllistorder.txt"));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            for (String uid : users) {
-                //boolean console = msg.contains("--console");
-                ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
-                String str = "'" + league.getJSONObject("teamnames").getString(uid) + "'!";
-                boolean isRight = battle.split(":")[1].equals(uid);
-                List<List<Object>> list = new LinkedList<>();
-                int num = 0;
-                for (String s : mons[i]) {
-                    int x = indexPick(picks, s);
-                    String kill = getNumber(kills.get(i), s);
-                    String death = getNumber(deaths.get(i), s);
-                    String killloc = str + getAsXCoord(gameday + 1 + 5) + (x + 200);
-                    int killint = kill.equals("") ? 0 : Integer.parseInt(kill);
-                    b.addSingle(killloc, killint);
-                    b.addSingle("Killliste!%s%d".formatted(getAsXCoord(gameday + 18 + 5), killlistloc.indexOf(s) + 1001), killint);
-                    int deathint = death.equals("") ? 0 : Integer.parseInt(death);
-                    b.addSingle(str + getAsXCoord(gameday + 13 + 5) + (x + 200), deathint);
-                    List<Object> l = new LinkedList<>();
-                    l.add(s);
-                    l.add(getSerebiiIcon(s));
-                    l.add("=" + killloc);
-                    if (isRight) Collections.reverse(l);
-                    list.add(l);
-                    String loc = getAsXCoord(gdi * 9 + (isRight ? 9 : 1)) + (battleindex * 10 + 6 + num);
-                    String range = loc + ":" + loc;
-                    if ((deathint) == 1) {
-                        b.addFGColorChange(1634614187, range, convertColor(0x000000));
-                        b.addStrikethroughChange(1634614187, range, true);
-                    } else {
-                        b.addFGColorChange(1634614187, range, convertColor(0xefefef));
-                        b.addStrikethroughChange(1634614187, range, false);
+                ArrayList<String> users = new ArrayList<>(Arrays.asList(uid1, uid2));
+                int i = 0;
+                List<Long> table = league.getLongList("table");
+                RequestBuilder b = new RequestBuilder(sid);
+                List<Integer> indexes = new ArrayList<>(2);
+                users.forEach(u -> indexes.add(table.indexOf(Long.parseLong(u))));
+                RequestGetter rg = new RequestGetter(sid);
+                String li = "Liga " + l;
+                indexes.forEach(index -> rg.addRange(li + "!B" + (index * 11 + 200) + ":D"
+                        + (index * 11 + 210)).addRange(li + "!I" + (index + 3) + ":K" + (index + 3)));
+                List<List<List<String>>> gets = rg.execute();
+                for (String uid : users) {
+                    int index = table.indexOf(Long.parseLong(uid));
+                    ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
+                    List<List<String>> get = gets.get(i * 2);
+                    List<List<Object>> list = new ArrayList<>();
+                    int x = 0;
+                    for (String pick : picks) {
+                        String kill = getNumber(kills.get(i), pick);
+                        String death = getNumber(deaths.get(i), pick);
+                        list.add(Arrays.asList(
+                                Integer.parseInt(get.get(x).get(0)) + (kill.equals("") ? 0 : Integer.parseInt(kill)),
+                                Integer.parseInt(get.get(x).get(1)) + (death.equals("") ? 0 : Integer.parseInt(death)),
+                                Integer.parseInt(get.get(x).get(2)) + (death.equals("") ? 0 : 1)
+                        ));
+                        x++;
                     }
-                    num++;
+                    List<List<String>> getvic = gets.get(i * 2 + 1);
+                    int win = Integer.parseInt(getvic.get(0).get(0));
+                    int tie = Integer.parseInt(getvic.get(0).get(1));
+                    int loose = Integer.parseInt(getvic.get(0).get(2));
+                    if (game[i].isWinner()) {
+                        win++;
+                        if (!league.has("results"))
+                            league.put("results", new JSONObject());
+                        league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
+                    } else loose++;
+                    try {
+                        b.addAll(li + "!B" + (index * 11 + 200), list);
+                        b.addRow(li + "!I" + (index + 3), Arrays.asList(win, tie, loose));
+                    } catch (IllegalArgumentException IllegalArgumentException) {
+                        IllegalArgumentException.printStackTrace();
+                    }
+                    i++;
                 }
-                b.addAll("Spielplan RR!" + getAsXCoord(gdi * 9 + (isRight ? 7 : 1)) + (battleindex * 10 + 6), list);
-                b.addSingle(str + getAsXCoord(gameday + 3 + 5) + "10", (6 - game[i].getTotalDeaths()) + ":" + (6 - game[1 - i].getTotalDeaths()));
-                //List<List<Object>> get = Google.get(sid, "Spielplan [erweitert]!D" + (index * 14 + 1) + ":E" + (index * 14 + 1));
-                //List<List<Object>> slist = Google.get(sid, "Teamübersicht!C" + (index + 40) + ":D" + (index + 40), false, false);
-                //logger.info(uid);
-                //logger.info("slist = " + slist);
-                int win = 0;
-                int loose = 0;
-                if (!league.has("results")) league.put("results", new JSONObject());
-                if (game[i].isWinner()) {
-                    win = 1;
-                    league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
-                    //logger.info("win = " + win);
-                } else {
-                    loose = 1;
-                    //logger.info("loose = " + loose);
-                }
-                b.addSingle(str + getAsXCoord(gameday + 1 + 5) + "216", win);
-                b.addSingle(str + getAsXCoord(gameday + 13 + 5) + "216", loose);
+                generateResult(b, game, league, gameday, uid1, "Spielplan " + li, "ZBS", (String) args[1]);
+                b.execute(() -> sortZBS(sid, li, league));
                 saveEmolgaJSON();
+            });
+
+            sdAnalyser.put(Constants.FPLID, (game, uid1, uid2, kills, deaths, args) -> {
+                JSONObject league;
+                JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
+                int l;
+                if (drafts.getJSONObject("FPLS1L1").getLongList("table").contains(Long.parseLong(uid1))) l = 1;
+                else l = 2;
+                league = drafts.getJSONObject("FPLS1L" + l);
+                String sid = league.getString("sid");
+                int gameday = getGameDay(league, uid1, uid2);
+                if (gameday == -1) {
+                    logger.info("GAMEDAY -1");
+                    return;
+                }
+                List<String> users = Arrays.asList(uid1, uid2);
+                int i = 0;
+                List<Long> table = league.getLongList("table");
+                RequestBuilder b = new RequestBuilder(sid);
+                String li = "Kader L" + l + "!";
+                for (String uid : users) {
+                    int index = table.indexOf(Long.parseLong(uid));
+                    ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
+                    List<Object> list = new ArrayList<>();
+                    int x = 0;
+                    for (String pick : picks) {
+                        list.add(getNumber(kills.get(i), pick));
+                        x++;
+                    }
+                    int win = 0;
+                    int loose = 0;
+                    if (game[i].isWinner()) {
+                        win++;
+                        if (!league.has("results"))
+                            league.put("results", new JSONObject());
+                        league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
+                    } else loose++;
+                    try {
+                        String s = li + getAsXCoord((index / 4) * 22 + 6 + gameday);
+                        int yc = (index % 4) * 20;
+                        b.addColumn(s + (yc + 8), list);
+                        b.addSingle(s + (yc + 20), game[i].getTotalDeaths());
+                        b.addColumn(s + (yc + 21), Arrays.asList(win, loose));
+                    } catch (IllegalArgumentException IllegalArgumentException) {
+                        IllegalArgumentException.printStackTrace();
+                    }
+                    i++;
+                }
+                //generateResult(b, game, league, gameday, uid1, "Spielplan " + li, "ZBS", (String) args[1]);
+                int gdi = gameday - 1;
+                List<Object> gpl = new ArrayList<>(Arrays.asList(6 - game[0].getTotalDeaths(),
+                        "=HYPERLINK(\"%s\"; \":\")".formatted(args[1]),
+                        6 - game[1].getTotalDeaths()));
+                String battleorder = league.getJSONObject("battleorder").getString(gameday);
+                int ycoord = 0;
+                String str = null;
+                for (String s : battleorder.split(";")) {
+                    if (s.contains(uid1)) {
+                        str = s;
+                        break;
+                    }
+                    ycoord++;
+                }
+                if (str.split(":")[0].equals(uid2)) Collections.reverse(gpl);
+                b.addRow("Spielplan (Spoiler) L%d!%s%d".formatted(l, getAsXCoord((gdi / 4) * 6 + 4), (gdi % 4) * 6 + 6 + ycoord), gpl);
+                b.execute(() -> sortFPL(sid, "Tabelle L" + l, league));
+                saveEmolgaJSON();
+            });
+
+
+            sdAnalyser.put(NDSID, (game, uid1, uid2, kills, deaths, args) -> {
+                JSONObject json = getEmolgaJSON();
+                JSONObject league = json.getJSONObject("drafts").getJSONObject("NDS");
+                String sid = league.getString("sid");
+                List<String> users = Arrays.asList(uid1, uid2);
+                int gameday = getGameDay(league, uid1, uid2);
+                if (gameday == -1) {
+                    sendToMe("Gameday -1 " + uid1 + " " + uid2);
+                    return;
+                }
+                ((TextChannel) args[3]).sendMessage("Spieltag " + (gameday + 5) + "\n\n" + args[2]).queue();
+                String battle = null;
+                int battleindex = -1;
+                List<String> battleorder = Arrays.asList(league.getJSONObject("battleorder").getString(String.valueOf(gameday)).split(";"));
+                for (String s : battleorder) {
+                    if (s.contains(uid1)) {
+                        battle = s;
+                        battleindex = battleorder.indexOf(s);
+                        break;
+                    }
+                }
+                ArrayList<String>[] mons = (ArrayList<String>[]) args[0];
+                int i = 0;
+                RequestBuilder b = new RequestBuilder(sid);
+                int gdi = gameday - 1;
+                List<String> killlistloc = null;
+                try {
+                    killlistloc = Files.readAllLines(Paths.get("ndskilllistorder.txt"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                for (String uid : users) {
+                    //boolean console = msg.contains("--console");
+                    ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
+                    String str = "'" + league.getJSONObject("teamnames").getString(uid) + "'!";
+                    boolean isRight = battle.split(":")[1].equals(uid);
+                    List<List<Object>> list = new LinkedList<>();
+                    int num = 0;
+                    for (String s : mons[i]) {
+                        int x = indexPick(picks, s);
+                        String kill = getNumber(kills.get(i), s);
+                        String death = getNumber(deaths.get(i), s);
+                        String killloc = str + getAsXCoord(gameday + 1 + 5) + (x + 200);
+                        int killint = kill.equals("") ? 0 : Integer.parseInt(kill);
+                        b.addSingle(killloc, killint);
+                        b.addSingle("Killliste!%s%d".formatted(getAsXCoord(gameday + 18 + 5), killlistloc.indexOf(s) + 1001), killint);
+                        int deathint = death.equals("") ? 0 : Integer.parseInt(death);
+                        b.addSingle(str + getAsXCoord(gameday + 13 + 5) + (x + 200), deathint);
+                        List<Object> l = new LinkedList<>();
+                        l.add(s);
+                        l.add(getSerebiiIcon(s));
+                        l.add("=" + killloc);
+                        if (isRight) Collections.reverse(l);
+                        list.add(l);
+                        String loc = getAsXCoord(gdi * 9 + (isRight ? 9 : 1)) + (battleindex * 10 + 6 + num);
+                        String range = loc + ":" + loc;
+                        if ((deathint) == 1) {
+                            b.addFGColorChange(1634614187, range, convertColor(0x000000));
+                            b.addStrikethroughChange(1634614187, range, true);
+                        } else {
+                            b.addFGColorChange(1634614187, range, convertColor(0xefefef));
+                            b.addStrikethroughChange(1634614187, range, false);
+                        }
+                        num++;
+                    }
+                    b.addAll("Spielplan RR!" + getAsXCoord(gdi * 9 + (isRight ? 7 : 1)) + (battleindex * 10 + 6), list);
+                    b.addSingle(str + getAsXCoord(gameday + 3 + 5) + "10", (6 - game[i].getTotalDeaths()) + ":" + (6 - game[1 - i].getTotalDeaths()));
+                    //List<List<Object>> get = Google.get(sid, "Spielplan [erweitert]!D" + (index * 14 + 1) + ":E" + (index * 14 + 1));
+                    //List<List<Object>> slist = Google.get(sid, "Teamübersicht!C" + (index + 40) + ":D" + (index + 40), false, false);
+                    //logger.info(uid);
+                    //logger.info("slist = " + slist);
+                    int win = 0;
+                    int loose = 0;
+                    if (!league.has("results")) league.put("results", new JSONObject());
+                    if (game[i].isWinner()) {
+                        win = 1;
+                        league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
+                        //logger.info("win = " + win);
+                    } else {
+                        loose = 1;
+                        //logger.info("loose = " + loose);
+                    }
+                    b.addSingle(str + getAsXCoord(gameday + 1 + 5) + "216", win);
+                    b.addSingle(str + getAsXCoord(gameday + 13 + 5) + "216", loose);
+                    saveEmolgaJSON();
                 /*String urange = range.split(":")[0];
                 b.addAll(urange, list);
                 b.addRow("Teamübersicht!C" + (index + 40), Arrays.asList(win, loose), true, false);*/
-                i++;
-            }
-            //"=HYPERLINK(\"" + replay + "\"; \"" + aliveP1 + ":" + aliveP2 + "\")"
-            if (battle.split(":")[0].equals(uid1)) {
-                b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 4) + (battleindex * 10 + 3), 6 - game[0].getTotalDeaths());
-                b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 5) + (battleindex * 10 + 4), "=HYPERLINK(\"" + args[1] + "\"; \"Link\")");
-                b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 6) + (battleindex * 10 + 3), 6 - game[1].getTotalDeaths());
-                //b.addSingle(sheet + "!" + coords, aliveP1 + ":" + aliveP2);
-            } else {
-                b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 4) + (battleindex * 10 + 3), 6 - game[1].getTotalDeaths());
-                b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 5) + (battleindex * 10 + 4), "=HYPERLINK(\"" + args[1] + "\"; \"Link\")");
-                b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 6) + (battleindex * 10 + 3), 6 - game[0].getTotalDeaths());
-                //b.addSingle(sheet + "!" + coords, aliveP2 + ":" + aliveP1);
-            }
-            b.execute();
-            sortNDS(sid, league);
-        });
-        }).start();
+                    i++;
+                }
+                //"=HYPERLINK(\"" + replay + "\"; \"" + aliveP1 + ":" + aliveP2 + "\")"
+                if (battle.split(":")[0].equals(uid1)) {
+                    b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 4) + (battleindex * 10 + 3), 6 - game[0].getTotalDeaths());
+                    b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 5) + (battleindex * 10 + 4), "=HYPERLINK(\"" + args[1] + "\"; \"Link\")");
+                    b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 6) + (battleindex * 10 + 3), 6 - game[1].getTotalDeaths());
+                    //b.addSingle(sheet + "!" + coords, aliveP1 + ":" + aliveP2);
+                } else {
+                    b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 4) + (battleindex * 10 + 3), 6 - game[1].getTotalDeaths());
+                    b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 5) + (battleindex * 10 + 4), "=HYPERLINK(\"" + args[1] + "\"; \"Link\")");
+                    b.addSingle("Spielplan RR!" + getAsXCoord(gdi * 9 + 6) + (battleindex * 10 + 3), 6 - game[0].getTotalDeaths());
+                    //b.addSingle(sheet + "!" + coords, aliveP2 + ":" + aliveP1);
+                }
+                b.execute();
+                sortNDS(sid, league);
+            });
+        }, "Command Initialization").start();
     }
 
     public static com.google.api.services.sheets.v4.model.Color convertColor(int hexcode) {
@@ -2304,7 +2302,7 @@ public abstract class Command {
             Google.setCredentials(google.getString("refreshtoken"), google.getString("clientid"), google.getString("clientsecret"));
             tradesid = tokens.getString("tradedoc");
             Google.generateAccessToken();
-        }).start();
+        }, "JSON Fileload").start();
     }
 
     public static List<Command> getWithCategory(CommandCategory category, Guild g, Member mem) {
@@ -2781,7 +2779,7 @@ public abstract class Command {
                 //logger.info();
             }
             tc.editMessageById(tc.getLatestMessageId(), str.append("```").toString()).queue();
-        }).start();
+        }, "UpdateTable").start();
     }
 
     public static String expandTo(String str, int i) {
@@ -3374,9 +3372,6 @@ public abstract class Command {
         logger.info("Done!");
     }*/
 
-    public static void singleThread(Runnable r) {
-        new Thread(r).start();
-    }
 
     public static Translation getBSTGerName(String s) {
         Translation check = checkShortcuts(s);

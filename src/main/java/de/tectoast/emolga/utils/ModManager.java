@@ -20,10 +20,10 @@ public class ModManager {
         this.name = name;
         this.datapath = datapath;
         File dir = new File(datapath);
-        Command.singleThread(() -> this.dex = Command.loadSD(datapath + "pokedex.ts", Constants.DEXJSONSUB));
-        Command.singleThread(() -> this.learnsets = Command.loadSD(datapath + "learnsets.ts", Constants.LEARNSETJSONSUB));
-        Command.singleThread(() -> this.moves = Command.loadSD(datapath + "moves.ts", Constants.MOVESJSONSUB));
-        Command.singleThread(() -> this.typechart = Command.loadSD(datapath + "typechart.ts", Constants.TYPESJSONSUB));
+        new Thread(() -> this.dex = Command.loadSD(datapath + "pokedex.ts", Constants.DEXJSONSUB), "ModManager " + name + " Dex").start();
+        new Thread(() -> this.learnsets = Command.loadSD(datapath + "learnsets.ts", Constants.LEARNSETJSONSUB), "ModManager " + name + " Dex").start();
+        new Thread(() -> this.moves = Command.loadSD(datapath + "moves.ts", Constants.MOVESJSONSUB), "ModManager " + name + " Dex").start();
+        new Thread(() -> this.typechart = Command.loadSD(datapath + "typechart.ts", Constants.TYPESJSONSUB), "ModManager " + name + " Dex").start();
         modManagers.add(this);
     }
 

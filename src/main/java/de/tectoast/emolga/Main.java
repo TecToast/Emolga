@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        //System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "DEBUG");
         Logger logger = LoggerFactory.getLogger(Main.class);
         logger.info("Starting Bot...");
         Command.init();

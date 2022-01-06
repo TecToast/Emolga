@@ -497,7 +497,7 @@ public class EmolgaListener extends ListenerAdapter {
                             e.getJDA().getTextChannelById("771403897130450995").sendMessage(str.toString()).queue();
                             bo.put(String.valueOf(json.getInt("gameday")), String.join(";", order));
                             saveEmolgaJSON();
-                        }).start();
+                        }, "unused").start();
                     }
                     saveEmolgaJSON();
                 }

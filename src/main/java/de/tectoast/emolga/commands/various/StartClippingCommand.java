@@ -17,7 +17,7 @@ public class StartClippingCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         AudioManager am = e.getGuild().getAudioManager();
         am.openAudioConnection(e.getMember().getVoiceState().getChannel());
         clips.put(e.getGuild().getIdLong(), new CircularFifoQueue<>(1500));

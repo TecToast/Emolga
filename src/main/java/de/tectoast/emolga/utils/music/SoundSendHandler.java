@@ -2,11 +2,15 @@ package de.tectoast.emolga.utils.music;
 
 import net.dv8tion.jda.api.audio.AudioSendHandler;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 
 public class SoundSendHandler implements AudioSendHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(SoundSendHandler.class);
 
     public final LinkedList<byte[]> bytes = new LinkedList<>();
 
@@ -23,7 +27,7 @@ public class SoundSendHandler implements AudioSendHandler {
     @Override
     public ByteBuffer provide20MsAudio() {
         byte[] array = bytes.removeFirst();
-        System.out.println("array.length = " + array.length);
+        logger.info("array.length = " + array.length);
         return ByteBuffer.wrap(array);
     }
 

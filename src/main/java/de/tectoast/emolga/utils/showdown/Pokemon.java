@@ -1,16 +1,20 @@
 package de.tectoast.emolga.utils.showdown;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
 public class Pokemon {
+    private static final Logger logger = LoggerFactory.getLogger(Pokemon.class);
     private final Player player;
+    private final List<Integer> zoroTurns;
+    private final List<String> game;
     private String pokemon;
     private int kills;
     private Pokemon statusedBy, bindedBy, cursedBy, seededBy, nightmaredBy, confusedBy, lastDmgBy, perishedBy;
     private boolean dead = false;
-    private final List<Integer> zoroTurns;
-    private final List<String> game;
     private int hp = 100;
     private String ability = "";
 
@@ -28,7 +32,7 @@ public class Pokemon {
 
     public void setAbility(String ability) {
         this.ability = ability;
-        System.out.println("Set Ability from " + this.getPokemon() + " to " + this.ability);
+        logger.info("Set Ability from " + this.getPokemon() + " to " + this.ability);
     }
 
     public boolean noAbilityTrigger(int line) {
@@ -84,19 +88,19 @@ public class Pokemon {
     }
 
     public void setDead(int line) {
-        if(game.get(line + 1).contains("|replace|") && game.get(line + 1).contains("|Zor")) {
+        if (game.get(line + 1).contains("|replace|") && game.get(line + 1).contains("|Zor")) {
             player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> p.dead = true);
         } else {
             this.dead = true;
         }
     }
 
-    public void setHp(int hp) {
-        this.hp = hp;
-    }
-
     public int getHp() {
         return hp;
+    }
+
+    public void setHp(int hp) {
+        this.hp = hp;
     }
 
     public String getPokemon() {
@@ -132,7 +136,7 @@ public class Pokemon {
     }
 
     public void killsPlus1(int turn) {
-        if(this.zoroTurns.contains(turn)) {
+        if (this.zoroTurns.contains(turn)) {
             player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> p.kills++);
         } else {
             this.kills++;

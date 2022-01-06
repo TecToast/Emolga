@@ -8,6 +8,8 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -20,6 +22,7 @@ import static de.tectoast.emolga.commands.Command.*;
 
 public class Draft {
     public static final List<Draft> drafts = new ArrayList<>();
+    private static final Logger logger = LoggerFactory.getLogger(Draft.class);
     public final HashMap<Long, List<DraftPokemon>> picks = new HashMap<>();
     public final HashMap<Integer, List<Member>> order = new HashMap<>();
     public final HashMap<Long, Integer> points = new HashMap<>();
@@ -52,18 +55,18 @@ public class Draft {
         JSONObject league = aslpattern.matcher(name).find() ? asl.getJSONObject(name) : drafts.getJSONObject(name);
         this.guild = league.has("guild") ? league.getString("guild") : tc.getGuild().getId();
         isPointBased = getTierlist().isPointBased;
-        System.out.println("isPointBased = " + isPointBased);
+        logger.info("isPointBased = " + isPointBased);
         JSONObject o = league.getJSONObject("order");
         HashMap<Long, Member> map = new HashMap<>();
         new Thread(() -> {
             List<Member> memberlist = tc.getJDA().getGuildById(this.guild).retrieveMembersByIds(o.getLongList("1")).get();
             memberlist.forEach(mem -> map.put(mem.getIdLong(), mem));
-            System.out.println(name);
-            System.out.println("map = " + map);
+            logger.info(name);
+            logger.info("map = " + map);
             for (String i : o.keySet()) {
                 order.put(Integer.valueOf(i), o.getLongList(i).stream().map(map::get).collect(Collectors.toCollection(ArrayList::new)));
             }
-            System.out.println("order = " + order);
+            logger.info("order = " + order);
             this.members = new ArrayList<>(memberlist);
             ts = tcid != null ? tc.getGuild().getTextChannelById(tcid) : null;
             if (!fromFile && !isSwitchDraft) {
@@ -95,7 +98,7 @@ public class Draft {
                     current = order.get(1).remove(0);
                     JSONObject pick = league.getJSONObject("picks");
                     for (Member member : members) {
-                        System.out.println("member = " + member);
+                        logger.info("member = " + member);
                         if (pick.has(member.getId())) {
                             JSONArray arr = pick.getJSONArray(member.getId());
                             ArrayList<DraftPokemon> list = new ArrayList<>();
@@ -105,7 +108,7 @@ public class Draft {
                             }
                             picks.put(member.getIdLong(), list);
                             update(member);
-                            System.out.println("update end");
+                            logger.info("update end");
                         } else {
                             picks.put(member.getIdLong(), new ArrayList<>());
                         }
@@ -116,7 +119,7 @@ public class Draft {
                             }
                         }
                     }
-                    System.out.println("For finished");
+                    logger.info("For finished");
                     long delay = calculateASLTimer();
                     league.put("cooldown", System.currentTimeMillis() + delay);
                     if (delay != -1) {
@@ -127,7 +130,7 @@ public class Draft {
                             }
                         }, delay);
                     }
-                    System.out.println("Before send");
+                    logger.info("Before send");
                     tc.sendMessage("Runde " + round + "!").queue();
                     if (isPointBased)
                         tc.sendMessage(getMention(current) + " ist dran! (" + points.get(current.getIdLong()) + " mögliche Punkte)").queue();
@@ -148,7 +151,7 @@ public class Draft {
                     if (league.has("finished")) {
                         Arrays.asList(league.getString("finished").split(",")).forEach(s -> order.values().forEach(l -> l.removeIf(me -> me.getId().equals(s))));
                     }
-                    System.out.println("order.size() = " + order.get(round).size());
+                    logger.info("order.size() = " + order.get(round).size());
                     JSONObject pick = league.getJSONObject("picks");
                     for (Member member : members) {
                         if (pick.has(member.getId())) {
@@ -167,9 +170,9 @@ public class Draft {
                             points.put(member.getIdLong(), getTierlist().points);
                             for (DraftPokemon mon : picks.get(member.getIdLong())) {
                                 Tierlist t = getTierlist();
-                                if (t == null) System.out.println("TIERLISTNULL");
+                                if (t == null) logger.info("TIERLISTNULL");
                                 if (t.prices.get(mon.tier) == null) {
-                                    System.out.println(mon.name + " ERROR " + mon.tier);
+                                    logger.info(mon.name + " ERROR " + mon.tier);
                                 }
                                 points.put(member.getIdLong(), points.get(member.getIdLong()) - t.prices.get(mon.tier));
                             }
@@ -196,7 +199,7 @@ public class Draft {
                 }
             }
             Draft.drafts.add(this);
-            System.out.println("Initialized Draft " + name + " !");
+            logger.info("Initialized Draft " + name + " !");
         }).start();
     }
 
@@ -244,19 +247,19 @@ public class Draft {
                     o.put(u, nom.getJSONObject(String.valueOf(cday - 1)).getString(u));
                 }
             }
-            //System.out.println("o.get(u) = " + o.get(u));
+            //logger.info("o.get(u) = " + o.get(u));
             String str = o.getString(u);
             List<String> mons = Arrays.stream(str.split("###")).flatMap(s -> Arrays.stream(s.split(";"))).map(s -> s.split(",")[0]).collect(Collectors.toList());
-            System.out.println("mons = " + mons);
+            logger.info("mons = " + mons);
             String range = nds.getJSONObject("teamnames").getString(u) + "!B15:O29";
-            System.out.println("u = " + u);
-            System.out.println("range = " + range);
+            logger.info("u = " + u);
+            logger.info("range = " + range);
             builder.addAll(range, Google.get(sid, range, true, false).stream().filter(n -> !n.get(2).equals("")).sorted(Comparator.comparing(n -> {
 
                 String s1 = (String) n.get(2);
-                System.out.println("s1 = " + s1);
+                logger.info("s1 = " + s1);
                 int ret = mons.indexOf(s1);
-                System.out.println("ret = " + ret);
+                logger.info("ret = " + ret);
                 return ret;
             })).collect(Collectors.toList()));
         }
@@ -280,16 +283,16 @@ public class Draft {
             String[] split = str.split(":");
             String u1 = split[0];
             String u2 = split[1];
-            System.out.println("u1 = " + u1);
-            System.out.println("u2 = " + u2);
+            logger.info("u1 = " + u1);
+            logger.info("u2 = " + u2);
             JSONObject teamnames = league.getJSONObject("teamnames");
             String t1 = teamnames.getString(u1);
             String t2 = teamnames.getString(u2);
-            System.out.println("t1 = " + t1);
-            System.out.println("t2 = " + t2);
+            logger.info("t1 = " + t1);
+            logger.info("t2 = " + t2);
             Emote e1 = g.getEmotesByName(toSDName(t1), true).get(0);
             Emote e2 = g.getEmotesByName(toSDName(t2), true).get(0);
-            //System.out.println("<@" + u1 + "> (" + e1.getAsMention() + ") vs. <@" + u2 + "> (" + e2.getAsMention() + ")");
+            //logger.info("<@" + u1 + "> (" + e1.getAsMention() + ") vs. <@" + u2 + "> (" + e2.getAsMention() + ")");
             tc.sendMessage("<@" + u1 + "> (" + e1.getAsMention() + ") vs. <@" + u2 + "> (" + e2.getAsMention() + ")").queue(m -> {
                 m.addReaction(e1).queue();
                 m.addReaction(e2).queue();
@@ -313,9 +316,9 @@ public class Draft {
         for (int i = 0; i < league.getJSONObject("battleorder").length() - lastDay; i++) {
             long delay = timeUntilStart + (i * 604800000L);
             if (i == 0 && b) continue;
-            System.out.println("NDS" + " -> " + i + " -> " + delay + " -> " + new SimpleDateFormat().format(new Date(System.currentTimeMillis() + delay)));
+            logger.info("NDS" + " -> " + i + " -> " + delay + " -> " + new SimpleDateFormat().format(new Date(System.currentTimeMillis() + delay)));
             int finalI = i + 1;
-            System.out.println("finalI = " + finalI);
+            logger.info("finalI = " + finalI);
             new Timer().schedule(new TimerTask() {
                 @Override
                 public void run() {
@@ -334,7 +337,7 @@ public class Draft {
                         JSONObject teamnames = league.getJSONObject("teamnames");
                         Emote e1 = g.getEmotesByName(toSDName(teamnames.getString(u1)), true).get(0);
                         Emote e2 = g.getEmotesByName(toSDName(teamnames.getString(u2)), true).get(0);
-                        System.out.println("<@" + u1 + "> (" + e1.getAsMention() + ") vs. <@" + u2 + "> (" + e2.getAsMention() + ")");
+                        logger.info("<@" + u1 + "> (" + e1.getAsMention() + ") vs. <@" + u2 + "> (" + e2.getAsMention() + ")");
 
                         /*tc.sendMessage("<@" + u1 + "> (" + e1.getAsMention() + ") vs. <@" + u2 + "> (" + e2.getAsMention() + ")").queue(m -> {
                             m.addReaction(e1).queue();
@@ -370,9 +373,9 @@ public class Draft {
                 //TextChannel tc = jda.getTextChannelById(774661698074050581L);
                 for (int i = 0; i < league.getJSONObject("battleorder").length() + 7 - lastDay; i++) {
                     long delay = timeUntilStart + (i * 604800000L);
-                    System.out.println(draftname + " -> " + i + " -> " + delay + " -> " + format.format(new Date(System.currentTimeMillis() + delay)));
+                    logger.info(draftname + " -> " + i + " -> " + delay + " -> " + format.format(new Date(System.currentTimeMillis() + delay)));
                     int finalI = i + 1;
-                    System.out.println("finalI = " + finalI);
+                    logger.info("finalI = " + finalI);
                     new Timer().schedule(new TimerTask() {
                         @Override
                         public void run() {
@@ -418,9 +421,9 @@ public class Draft {
 
     public static Draft getDraftByMember(Member member, TextChannel tco) {
         JSONObject json = getEmolgaJSON();
-        //System.out.println("member.getId() = " + member.getId());
+        //logger.info("member.getId() = " + member.getId());
         for (Draft draft : Draft.drafts) {
-            //System.out.println(draft.members.stream().map(mem -> mem.getId() + ":" + mem.getEffectiveName()).collect(Collectors.joining("\n")));
+            //logger.info(draft.members.stream().map(mem -> mem.getId() + ":" + mem.getEffectiveName()).collect(Collectors.joining("\n")));
             if (!draft.tc.getId().equals(tco.getId())) continue;
             if (member.getIdLong() == Constants.FLOID) return draft;
             if (member.getIdLong() == 690971979821613056L) return draft;
@@ -491,6 +494,13 @@ public class Draft {
         return levelJSON.getLongList("table").indexOf(userid);
     }
 
+    public static JSONObject getLeagueStatic(String name) {
+        JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
+        JSONObject asl = drafts.getJSONObject("ASLS9");
+        Pattern aslpattern = Pattern.compile("^S\\d");
+        return aslpattern.matcher(name).find() ? asl.getJSONObject(name) : drafts.getJSONObject(name);
+    }
+
     public Tierlist getTierlist() {
         return Tierlist.getByGuild(guild);
     }
@@ -506,13 +516,6 @@ public class Draft {
     }
 
     public JSONObject getLeague() {
-        JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
-        JSONObject asl = drafts.getJSONObject("ASLS9");
-        Pattern aslpattern = Pattern.compile("^S\\d");
-        return aslpattern.matcher(name).find() ? asl.getJSONObject(name) : drafts.getJSONObject(name);
-    }
-
-    public static JSONObject getLeagueStatic(String name) {
         JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
         JSONObject asl = drafts.getJSONObject("ASLS9");
         Pattern aslpattern = Pattern.compile("^S\\d");

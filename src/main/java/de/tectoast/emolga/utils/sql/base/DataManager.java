@@ -2,6 +2,8 @@ package de.tectoast.emolga.utils.sql.base;
 
 import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.sql.base.columns.SQLColumn;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -15,6 +17,7 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("SameParameterValue")
 public abstract class DataManager {
+    private static final Logger logger = LoggerFactory.getLogger(DataManager.class);
     private final String tableName;
     protected SQLColumn<?>[] columns;
     private boolean ready = false;
@@ -149,7 +152,7 @@ public abstract class DataManager {
     public final <T> T readWrite(String query, ResultsFunction<T> rf) {
         T results = readWrite(query, rf, null);
         try {
-            System.out.println("((ResultSet) results).isClosed() = " + ((ResultSet) results).isClosed());
+            logger.info("((ResultSet) results).isClosed() = " + ((ResultSet) results).isClosed());
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -160,9 +163,9 @@ public abstract class DataManager {
         try {
             Statement statement = getConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
             ResultSet results = statement.executeQuery(query);
-            System.out.println("results.isClosed() = " + results.isClosed());
+            logger.info("results.isClosed() = " + results.isClosed());
             T apply = rf.apply(results);
-            System.out.println("((ResultSet) apply).isClosed() = " + ((ResultSet) apply).isClosed());
+            logger.info("((ResultSet) apply).isClosed() = " + ((ResultSet) apply).isClosed());
             return apply;
         } catch (SQLException e) {
             return err;
@@ -172,7 +175,7 @@ public abstract class DataManager {
     public final int executeQuery(String query) {
         try (Statement statement = getConnection().createStatement()) {
             if (query.startsWith("INSERT INTO") || query.startsWith("UPDATE")) {
-                System.out.println("query = " + query);
+                logger.info("query = " + query);
             }
             return statement.executeUpdate(query);
         } catch (SQLException throwables) {

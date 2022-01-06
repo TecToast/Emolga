@@ -1,9 +1,12 @@
 package de.tectoast.emolga.commands.pokemon;
 
+import de.tectoast.emolga.bot.EmolgaListener;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.database.Database;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,9 +32,7 @@ public class NatureCommand extends Command {
     @Override
     public void process(GuildCommandEvent e) throws SQLException {
         Translation t = e.getArguments().getTranslation("nature");
-        System.out.println("Before select");
         ResultSet set = Database.select("SELECT * FROM natures WHERE name = \"" + t.getTranslation() + "\"");
-        System.out.println("after select");
         set.next();
         StringBuilder b = new StringBuilder(t.getOtherLang() + "/" + t.getTranslation() + ":\n");
         String plus = set.getString("plus");

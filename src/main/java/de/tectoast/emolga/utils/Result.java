@@ -1,11 +1,14 @@
 package de.tectoast.emolga.utils;
 
 import de.tectoast.emolga.bot.EmolgaMain;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Result {
+    private static final Logger logger = LoggerFactory.getLogger(Result.class);
     public final String u1;
     public final String u2;
     public final ArrayList<String> mons1 = new ArrayList<>();
@@ -92,9 +95,9 @@ public class Result {
     }
 
     public String buildMessage() {
-        System.out.println("uses2 = " + uses2);
-        System.out.println("kills2 = " + kills2);
-        System.out.println("deaths2 = " + deaths2);
+        logger.info("uses2 = " + uses2);
+        logger.info("kills2 = " + kills2);
+        logger.info("deaths2 = " + deaths2);
         StringBuilder str = new StringBuilder("Spieltag " + gameday + "\n<@" + u1 + "> vs <@" + u2 + ">\nSieger: ");
         str.append(wins1.size() == 2 ? name1 : name2).append("\n");
         str.append("Ergebnis: ").append(wins1.size()).append(":").append(results.size() - wins1.size()).append("\n\n");
@@ -110,7 +113,7 @@ public class Result {
             str.append("\n").append(name2).append(":\n\n");
             for (String s : mons2) {
                 str.append(s).append(" ");
-                System.out.println("s = " + s);
+                logger.info("s = " + s);
                 if (uses2.getOrDefault(s, new ArrayList<>()).contains(i + 1)) {
                     str.append(kills2.get(s).get(i + 1)).append(" ").append(deaths2.get(s).contains(i + 1) ? "D" : "A");
                 } else str.append("/");
@@ -137,7 +140,7 @@ public class Result {
         if (!obj.getString("order").equals(""))
             statorder.addAll(Arrays.asList(obj.getString("order").split(",")));
         ArrayList<String> origstatorder = new ArrayList<>(statorder);
-        System.out.println("origstatorder1 = " + origstatorder);
+        logger.info("origstatorder1 = " + origstatorder);
         for (String s : mons1) {
             if (!obj.has(s)) {
                 obj.put(s, new JSONObject());
@@ -176,12 +179,12 @@ public class Result {
             o.put("kills", o.getInt("kills") + kills2.getOrDefault(s, new HashMap<>()).values().stream().mapToInt(i -> i).sum());
             o.put("deaths", o.getInt("deaths") + deaths2.getOrDefault(s, new ArrayList<>()).size());
         }
-        System.out.println("origstatorder2 = " + origstatorder);
+        logger.info("origstatorder2 = " + origstatorder);
         obj.put("order", String.join(",", statorder));
         obj.put("games", obj.getInt("games") + results.size());
         saveStatisticsJSON();
-        //System.out.println("k1 = " + k1);
-        //System.out.println("k2 = " + k2);
+        //logger.info("k1 = " + k1);
+        //logger.info("k2 = " + k2);
         JSONObject bst = getEmolgaJSON().getJSONObject("BST");
         ArrayList<String> gdl = new ArrayList<>(Arrays.asList(bst.getJSONObject("battleorder").getString(String.valueOf(gameday)).split(";")));
         String sid = bst.getString("sid");
@@ -277,20 +280,20 @@ public class Result {
             int winrate = o.getInt("winrate");
             int kills = o.getInt("kills");
             int deaths = o.getInt("deaths");
-            System.out.println("s = " + s);
+            logger.info("s = " + s);
             statsend.add(Arrays.asList(urate, divAndRound(urate, games * 2, true), winrate, divAndRound(winrate, urate, true), kills, divAndRound(kills, urate, false), deaths, divAndRound(deaths, urate, false), kills - deaths));
         }
         Google.updateRequest(sid, "Statistiken!C3", new ValueRange().setValues(statsend), true, false);
-        System.out.println("statorder1 = " + statorder);
-        System.out.println("origstatorder3 = " + statorder);
+        logger.info("statorder1 = " + statorder);
+        logger.info("origstatorder3 = " + statorder);
         statorder.removeAll(origstatorder);
-        System.out.println("statorder2 = " + statorder);
+        logger.info("statorder2 = " + statorder);
         List<List<Object>> newmons = new ArrayList<>();
         for (String s : statorder) {
             newmons.add(Arrays.asList(s, "=IMAGE(\"" + getSugiLink(s) + "\")"));
         }
         Google.updateRequest(sid, "Statistiken!A" + (origstatorder.size() + 3), new ValueRange().setValues(newmons), false, false);
-        System.out.println("Updating...");
+        logger.info("Updating...");
         sortBST();
     }*/
 }

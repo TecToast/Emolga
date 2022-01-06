@@ -3,6 +3,8 @@ package de.tectoast.emolga.utils;
 
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
@@ -14,6 +16,8 @@ import static de.tectoast.emolga.utils.Google.getSheetsService;
 
 @SuppressWarnings("UnusedReturnValue")
 public class RequestBuilder {
+
+    private static final Logger logger = LoggerFactory.getLogger(RequestBuilder.class);
 
     private final ArrayList<MyRequest> requests = new ArrayList<>();
     private final String sid;
@@ -79,7 +83,7 @@ public class RequestBuilder {
         r.setEndColumnIndex(getColumnFromRange(s2) + 1)
                 .setEndRowIndex(getRowFromRange(s2) + 1);
         try {
-            System.out.println("r = " + r.toPrettyString());
+            logger.info("r = {}", r.toPrettyString());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -262,7 +266,7 @@ public class RequestBuilder {
                 if (!suppressMessages)
                     for (int i = 0; i < userentered.size(); i++) {
                         ValueRange range = userentered.get(i);
-                        System.out.println(i + ": " + range.getRange() + " -> " + range.getValues());
+                        logger.info("{}: {} -> {}", i, range.getRange(), range.getValues());
                     }
                 try {
                     service.spreadsheets().values().batchUpdate(sid, new BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")).execute();

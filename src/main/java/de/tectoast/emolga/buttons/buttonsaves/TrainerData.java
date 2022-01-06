@@ -4,31 +4,18 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class TrainerData {
+    private static final Logger logger = LoggerFactory.getLogger(TrainerData.class);
     final LinkedHashMap<String, List<TrainerMon>> mons = new LinkedHashMap<>();
-    private boolean withMoveset = false;
     String current;
-
-    public void swapWithMoveset() {
-        withMoveset = !withMoveset;
-    }
-
-    public boolean isWithMoveset() {
-        return withMoveset;
-    }
-
-    public void setCurrent(String fight) {
-        this.current = fight;
-    }
-
-    public boolean isCurrent(String fight) {
-        return Objects.equals(current, fight);
-    }
+    private boolean withMoveset = false;
 
     public TrainerData(String trainerName) {
         Document d;
@@ -59,6 +46,22 @@ public class TrainerData {
         }
     }
 
+    public void swapWithMoveset() {
+        withMoveset = !withMoveset;
+    }
+
+    public boolean isWithMoveset() {
+        return withMoveset;
+    }
+
+    public void setCurrent(String fight) {
+        this.current = fight;
+    }
+
+    public boolean isCurrent(String fight) {
+        return Objects.equals(current, fight);
+    }
+
     public HashMap<String, List<TrainerMon>> getMons() {
         return mons;
     }
@@ -72,9 +75,9 @@ public class TrainerData {
     }
 
     public String getNormalName(String name) {
-        System.out.println("getNormalName name = " + name);
+        logger.info("getNormalName name = {}", name);
         String s = mons.keySet().stream().filter(name::equalsIgnoreCase).findFirst().orElse(null);
-        System.out.println("s = " + s);
+        logger.info("s = {}", s);
         return s;
     }
 

@@ -5,6 +5,8 @@ import de.tectoast.emolga.commands.pokemon.WeaknessCommand;
 import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.entities.Message;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,6 +21,8 @@ import java.util.stream.Stream;
 import static de.tectoast.emolga.commands.Command.*;
 
 public class Analysis {
+
+    private static final Logger logger = LoggerFactory.getLogger(Analysis.class);
 
     private final String link;
     private final Map<Integer, Player> pl = new LinkedHashMap<>();
@@ -55,9 +59,9 @@ public class Analysis {
     }
 
     public Player[] analyse() throws IOException {
-        System.out.println("Reading URL...");
+        logger.info("Reading URL... {}", link);
         List<String> game = new BufferedReader(new InputStreamReader(new URL(link + ".log").openConnection().getInputStream())).lines().toList();
-        System.out.println("Starting analyse!");
+        logger.info("Starting analyse!");
         long time = System.currentTimeMillis();
         for (String string : game) {
             this.s = string;
@@ -74,7 +78,7 @@ public class Analysis {
                 Player p = pl.get(i);
                 if (p.getMons().size() == 0 && !randomBattle) randomBattle = true;
                 if (randomBattle) {
-                    System.out.println("RANDOM BATTLE DETECTED!");
+                    logger.info("RANDOM BATTLE DETECTED!");
                     //Random Battle
                     if (p.indexOfName(pokemon) == -1) {
                         System.out.printf("Adding %s to %s...%n", pokemon, p.getNickname());
@@ -179,7 +183,7 @@ public class Analysis {
                 else p1.settSpikesBy(null);
             });
             check(zoru::containsKey, i -> {
-                    Pokemon activeP1 = activeP.get(i);
+                Pokemon activeP1 = activeP.get(i);
                 if (s.contains("|-damage|p" + i)) {
                     Player p1 = pl.get(i);
                     int oldHP = activeP1.getHp();
@@ -201,15 +205,14 @@ public class Analysis {
                     activeP.put(i, activeP1);
                 } else if (s.contains("|-heal|p" + i)) {
                     activeP1.setHp(Integer.parseInt(split[3].split("/")[0]));
-                }
-                else if (s.contains("|-activate|p" + i) && s.contains("|move: Sticky Web")) {
+                } else if (s.contains("|-activate|p" + i) && s.contains("|move: Sticky Web")) {
                     Player p1 = pl.get(i);
                     JSONObject mon = Command.getDataJSON().getJSONObject(toSDName(activeP1.getPokemon()));
                     if (mon.getStringList("types").contains("Flying") || mon.getJSONObject("abilities").toMap().containsValue("Levitate"))
                         activeP.put(i, getZoro(i));
                 } else if (s.contains("[from] ability:") && s.contains("[of] p" + i)) {
                     activeP.get(i).setAbility(split[3].split(":")[1].trim());
-                } else if(s.contains("|-ability|p" + i)) {
+                } else if (s.contains("|-ability|p" + i)) {
                     activeP.get(i).setAbility(split[3].trim());
                 }
             });
@@ -449,7 +452,7 @@ public class Analysis {
                 }
             });
         }
-        System.out.println("TIME: " + (System.currentTimeMillis() - time) + " ==========================================================");
+        logger.info("TIME: " + (System.currentTimeMillis() - time) + " ==========================================================");
         return pl.values().toArray(Player[]::new);
     }
 

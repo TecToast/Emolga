@@ -12,6 +12,8 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 import static de.tectoast.emolga.utils.draft.Draft.getIndex;
 
 public class PickCommand extends Command {
+    private static final Logger logger = LoggerFactory.getLogger(PickCommand.class);
     public static boolean isEnabled = true;
 
     public PickCommand() {
@@ -201,7 +204,7 @@ public class PickCommand extends Command {
                 tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
             else
                 tco.sendMessage(d.getMention(d.current) + " ist dran! (Mögliche Tiers: " + d.getPossibleTiersAsString(d.current) + ")").queue();
-            if(normal) {
+            if (normal) {
                 d.cooldown = new Timer();
                 long delay = calculateASLTimer();
                 league.put("cooldown", System.currentTimeMillis() + delay);
@@ -233,7 +236,7 @@ public class PickCommand extends Command {
                 found = true;
                 break;
             }
-            //System.out.println(s + " " + y);
+            //logger.info(s + " " + y);
             if (s.equals("NEXT")) {
                 x++;
                 y = 5;
@@ -250,7 +253,7 @@ public class PickCommand extends Command {
                 if (s.equalsIgnoreCase(removed.name)) {
                     break;
                 }
-                //System.out.println(s + " " + y);
+                //logger.info(s + " " + y);
                 if (s.equals("NEXT")) {
                     x++;
                     y = 5;
@@ -266,7 +269,7 @@ public class PickCommand extends Command {
             b.addBatch(request);*/
             b.addBGColorChange(league.getInt("tierlist"), x * 2, y, convertColor(0x93c47d));
         }
-        //System.out.println(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+        //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
         String team = asl.getStringList("teams").get(getIndex(mem.getIdLong()));
         int yc = (Draft.getLevel(mem.getIdLong()) * 20 + d.picks.get(mem.getIdLong()).size());
         List<Integer> list = new LinkedList<>();
@@ -289,14 +292,14 @@ public class PickCommand extends Command {
             int y = FIRST_ROW;
             for (String s : tierlist.tiercolumns) {
                 if (s.equalsIgnoreCase(pokemon)) break;
-                //System.out.println(s + " " + y);
+                //logger.info(s + " " + y);
                 if (s.equals("NEXT")) {
                     x++;
                     y = FIRST_ROW;
                 } else y++;
             }
 
-            //System.out.println(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+            //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
             int user = Arrays.asList(league.getString("table").split(",")).indexOf(mem.getId());
             RequestBuilder b = new RequestBuilder(doc);
             String teamname = league.getJSONObject("teamnames").getString(mem.getId());
@@ -318,9 +321,9 @@ public class PickCommand extends Command {
             b.addSingle(teamname + "!I" + i, tierlist.getPointsNeeded(pokemon));
             b.addSingle(teamname + "!J" + i, "2");
             b.addRow(teamname + "!L" + i, Arrays.asList(canLearnNDS(sdName, "stealthrock"), canLearnNDS(sdName, "defog"), canLearnNDS(sdName, "rapidspin"), canLearnNDS(sdName, "voltswitch", "uturn", "flipturn", "batonpass", "teleport")));
-            System.out.println("d.members.size() = " + d.members.size());
-            System.out.println("d.order.size() = " + d.order.get(d.round).size());
-            System.out.println("d.members.size() - d.order.size() = " + (d.members.size() - d.order.get(d.round).size()));
+            logger.info("d.members.size() = " + d.members.size());
+            logger.info("d.order.size() = " + d.order.get(d.round).size());
+            logger.info("d.members.size() - d.order.size() = " + (d.members.size() - d.order.get(d.round).size()));
             //if (d.members.size() - d.order.get(d.round).size() != 1 && isEnabled)
             b.execute();
         }
@@ -334,24 +337,24 @@ public class PickCommand extends Command {
             int y = 3;
             for (String s : tierlist.tiercolumns) {
                 if (s.equalsIgnoreCase(pokemon)) break;
-                //System.out.println(s + " " + y);
+                //logger.info(s + " " + y);
                 if (s.equals("NEXT")) {
                     x++;
                     y = 3;
                 } else y++;
             }
-            System.out.println("num = " + num);
+            logger.info("num = " + num);
             RequestBuilder b = new RequestBuilder(doc);
             b.addStrikethroughChange(league.getInt("tierlist"), x * 2, y, true);
-            //System.out.println(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+            //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
             b.addStrikethroughChange(league.getInt("draftorder"), d.round + 1, num + 6, true);
             int user = league.getLongList("table").indexOf(mem.getIdLong());
             String range = "Kader %s!%s%d".formatted(d.name.substring(5), getAsXCoord((user / 4) * 22 + 2), (user % 4) * 20 + 7 + d.picks.get(mem.getIdLong()).size());
-            System.out.println("range = " + range);
+            logger.info("range = " + range);
             b.addRow(range, Arrays.asList(tier, "", pokemon, "", getDataJSON().getJSONObject(getSDName(pokemon)).getJSONObject("baseStats").getInt("spe")));
-            System.out.println("d.members.size() = " + d.members.size());
-            System.out.println("d.order.size() = " + d.order.get(d.round).size());
-            System.out.println("d.members.size() - d.order.size() = " + (d.members.size() - d.order.get(d.round).size()));
+            logger.info("d.members.size() = " + d.members.size());
+            logger.info("d.order.size() = " + d.order.get(d.round).size());
+            logger.info("d.members.size() - d.order.size() = " + (d.members.size() - d.order.get(d.round).size()));
             //if (d.members.size() - d.order.get(d.round).size() != 1 && isEnabled)
             b.execute();
         }
@@ -365,24 +368,24 @@ public class PickCommand extends Command {
             int y = 2;
             for (String s : tierlist.tiercolumns) {
                 if (s.equalsIgnoreCase(pokemon)) break;
-                //System.out.println(s + " " + y);
+                //logger.info(s + " " + y);
                 if (s.equals("NEXT")) {
                     x++;
                     y = 2;
                 } else y++;
             }
-            System.out.println("num = " + num);
+            logger.info("num = " + num);
             RequestBuilder b = new RequestBuilder(doc);
             b.addStrikethroughChange(910228334, x * 2 + 1, y, true);
-            //System.out.println(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+            //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
             b.addStrikethroughChange(856868721, d.round + 2, num + 2, true);
             int user = league.getLongList("table").indexOf(mem.getIdLong());
             String range = "Liga 2!" + getAsXCoord((int) (tier.equals("S") ? (12 + d.picks.get(mem.getIdLong()).stream().filter(p -> p.tier.equals("S")).count()) : (tierlist.order.indexOf(tier) * 3 + 11 + d.picks.get(mem.getIdLong()).stream().filter(p -> p.tier.equals(tier)).count()))) + (user + 3);
-            System.out.println("range = " + range);
+            logger.info("range = " + range);
             b.addSingle(range, getGen5Sprite(pokemon));
-            System.out.println("d.members.size() = " + d.members.size());
-            System.out.println("d.order.size() = " + d.order.get(d.round).size());
-            System.out.println("d.members.size() - d.order.size() = " + (d.members.size() - d.order.get(d.round).size()));
+            logger.info("d.members.size() = " + d.members.size());
+            logger.info("d.order.size() = " + d.order.get(d.round).size());
+            logger.info("d.members.size() - d.order.size() = " + (d.members.size() - d.order.get(d.round).size()));
             //if (d.members.size() - d.order.get(d.round).size() != 1 && isEnabled)
             b.execute();
         }
@@ -404,7 +407,7 @@ public class PickCommand extends Command {
                 found = true;
                 break;
             }
-            //System.out.println(s + " " + y);
+            //logger.info(s + " " + y);
             if (s.equals("NEXT")) {
                 x++;
                 y = 2;
@@ -427,7 +430,7 @@ public class PickCommand extends Command {
                 if (s.equalsIgnoreCase(removed.name)) {
                     break;
                 }
-                //System.out.println(s + " " + y);
+                //logger.info(s + " " + y);
                 if (s.equals("NEXT")) {
                     x++;
                     y = 2;
@@ -443,14 +446,14 @@ public class PickCommand extends Command {
             b.addBatch(request);
         }
         Request req = new Request();
-        //System.out.println(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+        //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
 
         req.setUpdateCells(new UpdateCellsRequest().setRows(Collections.singletonList(new RowData()
                         .setValues(Collections.singletonList(new CellData()
                                 .setUserEnteredFormat(new CellFormat()
                                         .setTextFormat(new TextFormat().setStrikethrough(true)))))))
                 .setFields("userEnteredFormat.textFormat.strikethrough").setRange(new GridRange().setSheetId(1316641169).setStartRowIndex(num + 1).setEndRowIndex(num + 2).setStartColumnIndex(round).setEndColumnIndex(round + 1)));
-        //System.out.println(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+        //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
         b.addBatch(req);
 
 
@@ -482,7 +485,7 @@ public class PickCommand extends Command {
                 found = true;
                 break;
             }
-            //System.out.println(s + " " + y);
+            //logger.info(s + " " + y);
             if (s.equals("NEXT")) {
                 x++;
                 y = 2;
@@ -505,7 +508,7 @@ public class PickCommand extends Command {
                 if (s.equalsIgnoreCase(removed.name)) {
                     break;
                 }
-                //System.out.println(s + " " + y);
+                //logger.info(s + " " + y);
                 if (s.equals("NEXT")) {
                     x++;
                     y = 2;
@@ -520,7 +523,7 @@ public class PickCommand extends Command {
                     .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(league.getInt("tierlist")).setStartRowIndex(y).setEndRowIndex(y + 1).setStartColumnIndex(x * 2 - 1).setEndColumnIndex(x * 2)));
             b.addBatch(request);
         }
-        //System.out.println(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+        //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
 
 
         int user = Arrays.asList(league.getString("table").split(",")).indexOf(mem.getId());

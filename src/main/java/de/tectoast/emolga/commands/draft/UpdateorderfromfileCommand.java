@@ -35,7 +35,7 @@ public class UpdateorderfromfileCommand extends Command {
                         String str = order.getString(Integer.toString(i));
                         edit.append(i).append(". Runde\n");
                         for (String s : str.split(",")) {
-                            //System.out.println(s);
+                            //logger.info(s);
                             edit.append(g.retrieveMemberById(s).complete().getEffectiveName()).append("\n");
                         }
                         edit.append("\n");

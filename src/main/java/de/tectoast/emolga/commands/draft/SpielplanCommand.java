@@ -9,10 +9,14 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class SpielplanCommand extends Command {
+    private static final Logger logger = LoggerFactory.getLogger(SpielplanCommand.class);
+
     public SpielplanCommand() {
         super("spielplan", "`!spielplan <Name> <TCID> <RID>` Erstellt einen Spielplan für diesen Draft im Channel TCID und pingt die Rolle RID", CommandCategory.Flo);
         this.disable();
@@ -61,9 +65,9 @@ public class SpielplanCommand extends Command {
                 for (int idx = 1; idx < halfSize; idx++) {
                     int firstTeam = (day + idx) % teamsSize;
                     int secondTeam = (day + teamsSize - idx) % teamsSize;
-                    //System.out.println(teams.get(firstTeam) + "   " + teams.get(secondTeam));
+                    //logger.info(teams.get(firstTeam) + "   " + teams.get(secondTeam));
                     file.append(teams.get(firstTeam)).append(":").append(teams.get(secondTeam)).append(";");
-                    System.out.println(teams.get(firstTeam) + " " + teams.get(secondTeam));
+                    logger.info(teams.get(firstTeam) + " " + teams.get(secondTeam));
                     s.append(g.retrieveMemberById(teams.get(firstTeam)).complete().getEffectiveName())
                             .append(" vs ").append(g.retrieveMemberById(teams.get(secondTeam)).complete().getEffectiveName()).append("\n");
                 }
@@ -81,7 +85,7 @@ public class SpielplanCommand extends Command {
                 c.set(Calendar.MINUTE, 0);
                 c.set(Calendar.SECOND, 0);
                 c.set(Calendar.MILLISECOND, 0);
-                //System.out.println(new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss").format(c.getTime()));
+                //logger.info(new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss").format(c.getTime()));
                 league.getJSONObject("announcements").put(String.valueOf(i), c.getTimeInMillis());
                 int finalI = i;
                 new Timer().schedule(new TimerTask() {
@@ -99,7 +103,7 @@ public class SpielplanCommand extends Command {
                         tc.sendMessage(s.toString()).queue();
                     }
                 }, c.getTimeInMillis() - System.currentTimeMillis());
-                System.out.println(i + ": " + c.getTimeInMillis() + " " + (c.getTimeInMillis() - System.currentTimeMillis()));
+                logger.info(i + ": " + c.getTimeInMillis() + " " + (c.getTimeInMillis() - System.currentTimeMillis()));
                 c.add(Calendar.DATE, 1);
             }
             saveEmolgaJSON();

@@ -5,6 +5,8 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.interactions.components.Button;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -17,13 +19,15 @@ import static de.tectoast.emolga.commands.pokemon.DataCommand.getPrevoInfo;
 
 public class MonDataButton extends ButtonListener {
 
+    private static final Logger logger = LoggerFactory.getLogger(MonDataButton.class);
+
     public MonDataButton() {
         super("mondata");
     }
 
     @Override
     public void process(ButtonClickEvent e, String name) {
-        System.out.println("e.getMessageIdLong() = " + e.getMessageIdLong());
+        logger.info("e.getMessageIdLong() = " + e.getMessageIdLong());
         MonData dt = monDataButtons.get(e.getMessageIdLong());
         if (dt == null) {
             e.editMessageEmbeds(new EmbedBuilder().setTitle("Ach Mensch " + e.getMember().getEffectiveName() + ", diese Mon-Data funktioniert nicht mehr, da seitdem der Bot neugestartet wurde!").setColor(Color.CYAN).build()).queue();
@@ -43,14 +47,14 @@ public class MonDataButton extends ButtonListener {
             gender = mon.getString("gender").equals("M") ? "100% ♂" : (mon.getString("gender").equals("F") ? "100% ♀" : "Unbekannt");
         } else gender = "50% ♂ 50% ♀";
         builder.addField("Geschlecht", gender, true);
-        //list.forEach(j -> System.out.println(j.toString(4)));
+        //list.forEach(j -> logger.info(j.toString(4)));
         String monname = mon.getString("name");
         if (monname.equalsIgnoreCase("silvally") || monname.equalsIgnoreCase("arceus")) {
             builder.addField("Typen", "Normal", false);
         } else {
             HashMap<String, ArrayList<String>> types = new HashMap<>();
 
-            System.out.println(mon);
+            logger.info(mon.toString());
             String type = mon.getJSONArray("types").toList().stream().map(o -> {
                 if (o.equals("Psychic")) return "Psycho";
                 return getGerNameNoCheck((String) o);

@@ -50,9 +50,9 @@ public class CreatedraftCommand extends Command {
                     Collections.reverse(invertedOrder);
                 }
                 map.put(i, new ArrayList<>(order));
-                //System.out.println(i);
+                //logger.info(i);
             }
-            //System.out.println(map.toString());
+            //logger.info(map.toString());
             StringBuilder builder = new StringBuilder(name + ":\n");
             for (int i = 1; i <= 13; i++) {
                 builder.append(i).append(". Runde\n").append(map.get(i).stream().map(Member::getEffectiveName).collect(Collectors.joining("\n"))).append("\n\n");

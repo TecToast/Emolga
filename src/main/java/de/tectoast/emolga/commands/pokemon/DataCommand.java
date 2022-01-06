@@ -14,6 +14,8 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -23,6 +25,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class DataCommand extends Command {
+    private static final Logger logger = LoggerFactory.getLogger(DataCommand.class);
+
     public DataCommand() {
         super("data", "Zeigt Informationen über diese Sache", CommandCategory.Pokemon);
         aliases.add("dt");
@@ -110,14 +114,13 @@ public class DataCommand extends Command {
                             gender = mon.getString("gender").equals("M") ? "100% ♂" : (mon.getString("gender").equals("F") ? "100% ♀" : "Unbekannt");
                         } else gender = "50% ♂ 50% ♀";
                         builder.addField("Geschlecht", gender, true);
-                        //list.forEach(j -> System.out.println(j.toString(4)));
+                        //list.forEach(j -> logger.info(j.toString(4)));
                         String monname = mon.getString("name");
                         if (monname.equalsIgnoreCase("silvally") || monname.equalsIgnoreCase("arceus")) {
                             builder.addField("Typen", "Normal", false);
                         } else {
                             HashMap<String, ArrayList<String>> types = new HashMap<>();
-
-                            System.out.println(mon);
+                            logger.info(mon.toString());
                             String type = mon.getJSONArray("types").toList().stream().map(o -> {
                                 if (o.equals("Psychic")) return "Psycho";
                                 return getGerNameNoCheck((String) o);
@@ -326,7 +329,7 @@ public class DataCommand extends Command {
                                 case "healreplacement" -> text = "Heilt eingewechseltes Mon voll";
                                 default -> {
                                     text = "Error";
-                                    System.out.println(eff.toString(4));
+                                    logger.info(eff.toString(4));
                                 }
                             }
                         } else {
@@ -412,8 +415,8 @@ public class DataCommand extends Command {
                 tco.sendMessage(builder.build()).queue();
             } else {
                 tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
-                System.out.println("Text");
-                System.out.println(d.select("span[lang=\"en\"]").text());
+                logger.info("Text");
+                logger.info(d.select("span[lang=\"en\"]").text());
             }*/
         } catch (Exception ex) {
             tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
@@ -426,12 +429,12 @@ public class DataCommand extends Command {
 JSONObject json = getDataJSON(mod);
                         String monname = gerName.getTranslation();
                         String sdname = getSDName(monname);
-                        System.out.println("sdname = " + sdname);
+                        logger.info("sdname = " + sdname);
                         String regform = args.getOrDefault("regform", "");
                         String form1 = args.getOrDefault("form", "");
                         JSONObject mon = json.optJSONObject(toSDName(sdname + regform + form1));
                         JSONObject basemon = json.getJSONObject(sdname);
-                        System.out.println("mon = " + mon.toString(4));
+                        logger.info("mon = " + mon.toString(4));
                         EmbedBuilder builder = new EmbedBuilder();
                         builder.addField("Englisch", getEnglName(monname), true);
                         builder.addField("Dex", String.valueOf(mon.getInt("num")), true);
@@ -444,13 +447,13 @@ JSONObject json = getDataJSON(mod);
                         } else gender = "50% ♂ 50% ♀";
                         builder.addField("Geschlecht", gender, true);
                         List<JSONObject> list = getAllForms(monname, mod);
-                        //list.forEach(j -> System.out.println(j.toString(4)));
+                        //list.forEach(j -> logger.info(j.toString(4)));
                         if (monname.equalsIgnoreCase("amigento") || monname.equalsIgnoreCase("arceus")) {
                             builder.addField("Typen", "Normal", false);
                         } else {
                             HashMap<String, ArrayList<String>> types = new HashMap<>();
                             for (JSONObject obj : list) {
-                                System.out.println(obj);
+                                logger.info(obj);
                                 String type = obj.getJSONArray("types").toList().stream().map(o -> {
                                     if (o.equals("Psychic")) return "Psycho";
                                     return getGerNameNoCheck((String) o);
@@ -574,7 +577,7 @@ JSONObject json = getDataJSON(mod);
         return l1.get(0).compareTo(l2.get(0));
         }).collect(Collectors.toList())) {
         ArrayList<String> l = abis.get(s);
-        System.out.println("l = " + l);
+        logger.info("l = " + l);
         if (l.size() == 1 && l.contains("Normal")) abi.append(s).append("\n");
         else {
         if (list.size() == 1) {

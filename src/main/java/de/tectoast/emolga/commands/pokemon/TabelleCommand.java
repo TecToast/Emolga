@@ -46,7 +46,7 @@ public class TabelleCommand extends Command {
                 dif.add(((String) l.get(6)).length());
             }
             int maxname = Collections.max(name);
-            //System.out.println("maxname = " + maxname);
+            //logger.info("maxname = " + maxname);
             int maxvic = Collections.max(vic);
             int maxkills = Collections.max(kills);
             int maxdeaths = Collections.max(deaths);
@@ -55,7 +55,7 @@ public class TabelleCommand extends Command {
             for (int i = 0; i < 18; i++) {
                 List<Object> l = list.get(i);
                 str.append(expandTo((i + 1) + ". " + (i < 9 ? " " : "") + l.get(0), maxname)).append(seperator).append(expandTo((String) l.get(2), maxvic)).append(" S.").append(seperator).append(expandTo((String) l.get(4), maxkills)).append(" K.").append(seperator).append(expandTo((String) l.get(5), maxdeaths)).append(" D.").append(seperator).append(expandTo((String) l.get(6), maxdif)).append(" Dif.\n");
-                //System.out.println();
+                //logger.info();
             }
             //str.append(i + 1).append(". ").append(l.get(0)).append(" - ").append(l.get(2)).append(" S. - ").append(l.get(4)).append(" K. - ").append(l.get(5)).append(" D. - ").append(l.get(6)).append(" Dif.\n");
             tco.sendMessage(str.append("```").toString()).queue();
@@ -77,7 +77,7 @@ public class TabelleCommand extends Command {
                 dif.add(((String) l.get(7)).length());
             }
             int maxname = Collections.max(name);
-            //System.out.println("maxname = " + maxname);
+            //logger.info("maxname = " + maxname);
             int maxpoints = Collections.max(points);
             int maxkills = Collections.max(kills);
             int maxdeaths = Collections.max(deaths);
@@ -86,7 +86,7 @@ public class TabelleCommand extends Command {
             for (int i = 0; i < 12; i++) {
                 List<Object> l = list.get(i);
                 str.append(expandTo((i + 1) + ". " + (i < 9 ? " " : "") + ((String) l.get(0)).replace("\n", " "), maxname)).append(seperator).append(expandTo((String) l.get(1), maxpoints)).append(" P.").append(seperator).append(expandTo((String) l.get(5), maxkills)).append(" K.").append(seperator).append(expandTo((String) l.get(6), maxdeaths)).append(" D.").append(seperator).append(expandTo((String) l.get(7), maxdif)).append(" Dif.\n");
-                //System.out.println();
+                //logger.info();
             }
             //str.append(i + 1).append(". ").append(l.get(0)).append(" - ").append(l.get(2)).append(" S. - ").append(l.get(4)).append(" K. - ").append(l.get(5)).append(" D. - ").append(l.get(6)).append(" Dif.\n");
             tco.sendMessage(str.append("```").toString()).queue();

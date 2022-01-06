@@ -5,12 +5,16 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
 import org.jsolf.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
 public class ShowdownPokeFansCommand extends Command {
+    private static final Logger logger = LoggerFactory.getLogger(ShowdownPokeFansCommand.class);
+
     public ShowdownPokeFansCommand() {
         super("showdownpokefans", "Nimmt ein Showdown-Paste und wandelt es in ein Pokefans-Paste um", CommandCategory.Draft, Constants.CULTID, 821350264152784896L);
         setArgumentTemplate(ArgumentManagerTemplate.builder().add("paste", "Paste", "Das Paste", ArgumentManagerTemplate.Text.any())
@@ -32,11 +36,11 @@ public class ShowdownPokeFansCommand extends Command {
         for (String s : paste.split("\n")) {
             if (s.trim().length() == 0) continue;
             if (s.contains(":") && !s.contains("Type: Null")) continue;
-            System.out.println("s = " + s);
+            logger.info("s = " + s);
             pmons.add(s.trim());
         }
         JSONArray mons = new JSONArray();
-        System.out.println("pmons = " + pmons);
+        logger.info("pmons = " + pmons);
         pmons.stream()
                 .sorted(Comparator.comparing(str -> getDataJSON().getJSONObject(toSDName((String) str)).getJSONObject("baseStats").getInt("spe")).reversed())
                 .map(s -> {

@@ -1,9 +1,12 @@
 package de.tectoast.emolga.selectmenus;
 
+import de.tectoast.emolga.bot.EmolgaListener;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -15,6 +18,8 @@ import static de.tectoast.emolga.commands.pokemon.DataCommand.getPrevoInfo;
 
 public class MonDataMenu extends MenuListener {
 
+    private static final Logger logger = LoggerFactory.getLogger(MonDataMenu.class);
+
     public MonDataMenu() {
         super("mondata");
     }
@@ -23,7 +28,7 @@ public class MonDataMenu extends MenuListener {
     public void process(SelectionMenuEvent e) {
         /*e.reply("Dieses Menü funktioniert noch nicht, aber Flo arbeitet zurzeit daran :3").setEphemeral(true).queue();
         if (true) return;*/
-        System.out.println("e.getMessageIdLong() = " + e.getMessageIdLong());
+        logger.info("e.getMessageIdLong() = " + e.getMessageIdLong());
         String name = e.getInteraction().getValues().get(0);
         /*MonData dt = monDataButtons.get(e.getMessageIdLong());
         if (dt == null) {
@@ -42,14 +47,14 @@ public class MonDataMenu extends MenuListener {
             gender = mon.getString("gender").equals("M") ? "100% ♂" : (mon.getString("gender").equals("F") ? "100% ♀" : "Unbekannt");
         } else gender = "50% ♂ 50% ♀";
         builder.addField("Geschlecht", gender, true);
-        //list.forEach(j -> System.out.println(j.toString(4)));
+        //list.forEach(j -> logger.info(j.toString(4)));
         String monname = mon.getString("name");
         if (monname.equalsIgnoreCase("silvally") || monname.equalsIgnoreCase("arceus")) {
             builder.addField("Typen", "Normal", false);
         } else {
             HashMap<String, ArrayList<String>> types = new HashMap<>();
 
-            System.out.println(mon);
+            logger.info(String.valueOf(mon));
             String type = mon.getJSONArray("types").toList().stream().map(o -> {
                 if (o.equals("Psychic")) return "Psycho";
                 return getGerNameNoCheck((String) o);

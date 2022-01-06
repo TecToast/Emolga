@@ -33,6 +33,8 @@ import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import org.jetbrains.annotations.NotNull;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.imageio.ImageIO;
@@ -68,6 +70,8 @@ public class EmolgaListener extends ListenerAdapter {
             Falls du weitere Fragen oder Probleme hast, schreibe Flooo#2535 eine PN :)""";
     public static boolean disablesort = false;
 
+    private static final Logger logger = LoggerFactory.getLogger(EmolgaListener.class);
+
     static BufferedImage resizeImage(File img) {
         BufferedImage originalImage = null;
         try {
@@ -79,7 +83,7 @@ public class EmolgaListener extends ListenerAdapter {
         Graphics2D graphics2D = resizedImage.createGraphics();
         graphics2D.drawImage(originalImage, 0, 0, 96, 96, null);
         graphics2D.dispose();
-        //System.out.println(resizedImage);
+        //logger.info(resizedImage);
         return resizedImage;
     }
 
@@ -228,7 +232,7 @@ public class EmolgaListener extends ListenerAdapter {
                         woolooStyle(sid, message, uid1, uid2);
                     }
                 }, delay < 0 ? 0 : delay);
-                System.out.println("TIMER: " + (delay));
+                logger.info("TIMER: " + (delay));
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -237,7 +241,7 @@ public class EmolgaListener extends ListenerAdapter {
 
     @Override
     public void onUserUpdateName(UserUpdateNameEvent e) {
-        System.out.println(e.getOldName() + " -> " + e.getNewName());
+        logger.info(e.getOldName() + " -> " + e.getNewName());
         if (e.getUser().getMutualGuilds().stream().map(ISnowflake::getId).collect(Collectors.toList()).contains("518008523653775366"))
             e.getJDA().getTextChannelById("728675253924003870").sendMessage(e.getOldName() + " hat sich auf ganz Discord in " + e.getNewName() + " umbenannt!").queue();
     }
@@ -319,7 +323,7 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onGuildMessageReceived(@org.jetbrains.annotations.NotNull GuildMessageReceivedEvent e) {
         if(e.getGuild().getIdLong() == MYSERVER) {
-            System.out.println("GOT IT " + System.currentTimeMillis());
+            logger.info("GOT IT " + System.currentTimeMillis());
         }
         //new Thread(() -> {
             try {
@@ -429,11 +433,11 @@ public class EmolgaListener extends ListenerAdapter {
                         gamecount++;
                     }
                     boolean p1win = p1wins > (gamecount - p1wins);
-                    System.out.println("p1win = " + p1win);
-                    System.out.println("p1wins = " + p1wins);
-                    System.out.println("gamecount = " + gamecount);
-                    System.out.println("k1 = " + k1);
-                    System.out.println("d1 = " + d1);
+                    logger.info("p1win = " + p1win);
+                    logger.info("p1wins = " + p1wins);
+                    logger.info("gamecount = " + gamecount);
+                    logger.info("k1 = " + k1);
+                    logger.info("d1 = " + d1);
                     JSONObject playerstats = json.getJSONObject("playerstats");
                     JSONObject obj1 = playerstats.has(p1) ? playerstats.getJSONObject(p1) : new JSONObject();
                     JSONObject obj2 = playerstats.has(p2) ? playerstats.getJSONObject(p2) : new JSONObject();
@@ -628,7 +632,7 @@ public class EmolgaListener extends ListenerAdapter {
                         Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(" ", s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("http") + 1))).findFirst();
                         if (urlop.isPresent()) {
                             String url = urlop.get();
-                            System.out.println(url);
+                            logger.info(url);
                             analyseReplay(url, null, t, m, null);
                         }
                     }

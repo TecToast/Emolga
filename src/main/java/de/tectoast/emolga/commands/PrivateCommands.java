@@ -2,8 +2,10 @@ package de.tectoast.emolga.commands;
 
 import de.tectoast.emolga.bot.EmolgaMain;
 import de.tectoast.emolga.database.Database;
+import de.tectoast.emolga.utils.Constants;
+import de.tectoast.emolga.utils.Google;
 import de.tectoast.emolga.utils.PrivateCommand;
-import de.tectoast.emolga.utils.*;
+import de.tectoast.emolga.utils.RequestBuilder;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.sql.DBManagers;
@@ -17,6 +19,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -34,6 +38,8 @@ import static de.tectoast.emolga.utils.sql.DBManagers.ANALYSIS;
 import static de.tectoast.emolga.utils.sql.DBManagers.TRANSLATIONS;
 
 public class PrivateCommands {
+
+    private static final Logger logger = LoggerFactory.getLogger(PrivateCommands.class);
 
     @PrivateCommand(name = "updatetierlist")
     public static void updateTierlist(GenericCommandEvent e) {
@@ -84,7 +90,7 @@ public class PrivateCommands {
     public static void send(GenericCommandEvent e) {
         Message message = e.getMessage();
         String[] split = message.getContentDisplay().split(" ");
-        System.out.println(message.getContentRaw());
+        logger.info(message.getContentRaw());
         String s = message.getContentRaw().substring(24).replaceAll("\\\\", "");
         TextChannel tc = e.getJDA().getTextChannelById(e.getArg(0));
         Guild g = tc.getGuild();
@@ -98,7 +104,7 @@ public class PrivateCommands {
     public static void sendPN(GenericCommandEvent e) {
         Message message = e.getMessage();
         String[] split = message.getContentDisplay().split(" ");
-        System.out.println(message.getContentRaw());
+        logger.info(message.getContentRaw());
         String s = message.getContentRaw().substring(26).replaceAll("\\\\", "");
         String userid = e.getArg(0);
         sendToUser(Long.parseLong(userid), s);
@@ -113,7 +119,7 @@ public class PrivateCommands {
         assert (m != null);
         if (s.contains("<")) {
             s = s.substring(1);
-            System.out.println("s = " + s);
+            logger.info("s = " + s);
             String finalS = s;
             tc.getGuild().retrieveEmotes().complete().stream().filter(emote -> emote.getName().equalsIgnoreCase(finalS)).forEach(emote -> m.addReaction(emote).queue());
         } else {
@@ -343,26 +349,26 @@ public class PrivateCommands {
 
     @PrivateCommand(name = "testvolume")
     public static void testVolume(GenericCommandEvent e) {
-        System.out.println("Start!");
+        logger.info("Start!");
         musicManagers.get(673833176036147210L).player.setVolume(Integer.parseInt(e.getArg(0)));
-        System.out.println("musicManagers.get(673833176036147210L).player.getVolume() = " + musicManagers.get(673833176036147210L).player.getVolume());
+        logger.info("musicManagers.get(673833176036147210L).player.getVolume() = " + musicManagers.get(673833176036147210L).player.getVolume());
     }
 
     @PrivateCommand(name = "printcache")
     public static void printCache(GenericCommandEvent e) {
         translationsCacheGerman.forEach((str, t) -> {
-            System.out.println(str);
+            logger.info(str);
             t.print();
-            System.out.println("=====");
+            logger.info("=====");
         });
-        System.out.println(translationsCacheOrderGerman);
-        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>");
+        logger.info(String.valueOf(translationsCacheOrderGerman));
+        logger.info(">>>>>>>>>>>>>>>>>>>>>>>>>>");
         translationsCacheEnglish.forEach((str, t) -> {
-            System.out.println(str);
+            logger.info(str);
             t.print();
-            System.out.println("=====");
+            logger.info("=====");
         });
-        System.out.println(translationsCacheOrderEnglish);
+        logger.info(String.valueOf(translationsCacheOrderEnglish));
         e.done();
     }
 
@@ -423,8 +429,8 @@ public class PrivateCommands {
             Element el = d.select("table[class=\"round centered\"]").first().child(0);
             Elements children = el.children();
             children.remove(0);
-            //System.out.println("children.html() = " + children.html());
-            //System.out.println("children.get(0).html() = " + children.get(0).html());
+            //logger.info("children.html() = " + children.html());
+            //logger.info("children.get(0).html() = " + children.get(0).html());
             ArrayList<String> games = new ArrayList<>();
             ArrayList<String> entries = new ArrayList<>();
             for (Element e : children) {
@@ -437,18 +443,17 @@ public class PrivateCommands {
                     String entry = e.child(startindex + 1).text();
                     games.add("`" + edi + "`");
                     entries.add("'" + entry.replace("'", "\\'") + "'");
-                    //System.out.println(text);
+                    //logger.info(text);
                 /*list.add(text);
                 set.add(text);*/
                 }
 
             }
             String query = "insertBuilder into pokedex(" + "`pokemonname`," + String.join(",", games) + ")" + " values ('" + toSDName(mon) + "'," + String.join(",", entries) + ")";
-            System.out.println(query);
-            System.out.println();
+            logger.info(query);
             Database.update(query);
             /*x++;
-            if(x % 10 == 0) System.out.println(x);*/
+            if(x % 10 == 0) logger.info(x);*/
             //Database.insertBuilder("pokedex",  , "`" + toSDName(mon) + "`", entries.toArray());
         }
     }
@@ -487,7 +492,7 @@ public class PrivateCommands {
         td.forEach(s -> {
             Document doc;
             try {
-                System.out.println("s = " + s);
+                logger.info("s = " + s);
                 doc = Jsoup.connect("https://www.pokewiki.de/" + s).get();
                 map.put(s, doc.select("span[lang=\"en\"]").first().text());
             } catch (IOException e) {
@@ -602,7 +607,7 @@ public class PrivateCommands {
                 found = true;
                 break;
             }
-            //System.out.println(s + " " + y);
+            //logger.info(s + " " + y);
             if (s.equals("NEXT")) {
                 x++;
                 y = 0;
@@ -651,9 +656,9 @@ public class PrivateCommands {
                     JSONArray arr = allpicks.getJSONArray(current);
                     if (!raus.trim().equals("/") && !rein.trim().equals("/")) {
                         List<String> picks = getPicksAsList(arr);
-                        System.out.println("picks = " + picks);
-                        System.out.println("raus = " + raus);
-                        System.out.println("rein = " + rein);
+                        logger.info("picks = " + picks);
+                        logger.info("raus = " + raus);
+                        logger.info("rein = " + rein);
                         int index = picks.indexOf(raus);
                         killstoadd.get(current).addAndGet(currkills.get(current).get(index));
                         deathstoadd.get(current).addAndGet(currdeaths.get(current).get(index));
@@ -763,7 +768,7 @@ public class PrivateCommands {
         ANALYSIS.readWrite(ANALYSIS.selectAll(), set -> {
             while (set.next()) {
                 TextChannel replay = EmolgaMain.emolgajda.getTextChannelById(set.getLong("replay"));
-                if(replay != null) {
+                if (replay != null) {
                     set.updateLong("guild", replay.getGuild().getIdLong());
                     set.updateRow();
                 }

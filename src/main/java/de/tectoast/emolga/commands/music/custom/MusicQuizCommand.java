@@ -50,7 +50,7 @@ public class MusicQuizCommand extends Command {
                 int i = 0;
                 StringBuilder builder = new StringBuilder();
                 for (AudioTrack audioTrack : list) {
-                    //System.out.println(audioTrack.getInfo().author);
+                    //logger.info(audioTrack.getInfo().author);
                     if (audioTrack.getInfo().author.equals("Pokeli")) {
                         if (i < 20) builder.append(audioTrack.getInfo().title).append("\n");
                         play(vc.getGuild(), musicManager, audioTrack);

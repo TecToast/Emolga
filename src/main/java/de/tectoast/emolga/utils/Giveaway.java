@@ -7,6 +7,8 @@ import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageReaction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.time.Instant;
@@ -23,9 +25,9 @@ import static de.tectoast.emolga.commands.various.GcreateCommand.secondsToTime;
 
 public class Giveaway {
 
-
     public static final Set<Giveaway> giveaways = new HashSet<>();
     public static final Set<Giveaway> toadd = new HashSet<>();
+    private static final Logger logger = LoggerFactory.getLogger(Giveaway.class);
     private static final ScheduledExecutorService giveawayExecutor = new ScheduledThreadPoolExecutor(5);
     private static final HashMap<Long, ScheduledFuture<?>> giveawayFutures = new HashMap<>();
     private static final HashMap<Long, ScheduledFuture<?>> giveawayFinalizes = new HashMap<>();
@@ -54,7 +56,7 @@ public class Giveaway {
         this.winners = winners;
         this.prize = prize == null ? null : prize.isEmpty() ? null : prize;
         long delay = end.toEpochMilli() - System.currentTimeMillis();
-        System.out.println(end.toEpochMilli() - System.currentTimeMillis());
+        logger.info(String.valueOf(end.toEpochMilli() - System.currentTimeMillis()));
         giveawayFutures.put(mid, giveawayExecutor.scheduleAtFixedRate(() -> {
             Instant now = Instant.now();
             if (now.until(end, ChronoUnit.MILLIS) < 6000) {

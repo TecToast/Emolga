@@ -5,6 +5,8 @@ import de.tectoast.emolga.utils.sql.base.columns.LongColumn;
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn;
 import de.tectoast.emolga.utils.sql.base.columns.TimestampColumn;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -14,6 +16,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 
 public class DiscordAuthManager extends DataManager {
+    private static final Logger logger = LoggerFactory.getLogger(DiscordAuthManager.class);
     final StringColumn COOKIE = new StringColumn("hexcookie", this);
     final StringColumn REFRESHTOKEN = new StringColumn("refreshtoken", this);
     final StringColumn LASTACCESSTOKEN = new StringColumn("lastAccesstoken", this);
@@ -27,7 +30,7 @@ public class DiscordAuthManager extends DataManager {
 
     public String generateCookie(JSONObject tokens, long userid) {
         String c = COOKIE.retrieveValue(REFRESHTOKEN, tokens.getString("refresh_token"));
-        if(c != null) return c;
+        if (c != null) return c;
         String cookie = new BigInteger(256, new SecureRandom()).toString(16);
         insert(cookie, tokens.getString("refresh_token"), tokens.getString("access_token"), new Timestamp(Instant.now().plusSeconds(tokens.getInt("expires_in") - 100).toEpochMilli()), userid);
         return cookie;
@@ -43,11 +46,11 @@ public class DiscordAuthManager extends DataManager {
 
     public ResultSet getSessionByCookie(String cookie) {
         ResultSet resultSet = readWrite(selectAll(COOKIE.check(cookie)), r -> {
-            System.out.println("Mapping oder so");
+            logger.info("Mapping oder so");
             return r;
         });
         try {
-            System.out.println("resultSet.isClosed() = " + resultSet.isClosed());
+            logger.info("resultSet.isClosed() = " + resultSet.isClosed());
         } catch (SQLException e) {
             e.printStackTrace();
         }

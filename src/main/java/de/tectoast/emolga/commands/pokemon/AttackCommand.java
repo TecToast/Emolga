@@ -50,7 +50,7 @@ public class AttackCommand extends Command {
                 }
                 //}
                 /*String[] split = name.split("-");
-                System.out.println("name = " + name);
+                logger.info("name = " + name);
                 if (split.length > 1) mons.add(getGerNameNoCheck(split[0]) + "-" + split[1]);
                 else mons.add(getGerNameNoCheck(name));*/
                 mons.add(name);

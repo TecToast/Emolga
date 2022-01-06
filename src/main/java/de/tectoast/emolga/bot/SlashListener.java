@@ -16,7 +16,6 @@ import static de.tectoast.emolga.utils.Constants.FLOID;
 
 
 public class SlashListener extends ListenerAdapter {
-
     final JDA jda;
 
     public SlashListener(JDA jda) {
@@ -57,9 +56,9 @@ public class SlashListener extends ListenerAdapter {
         }
         /*TextChannel tco = e.getTextChannel();
         String sn = e.getSubcommandName();
-        System.out.println("e.getName() = " + name);
-        System.out.println("e.getSubcommandGroup() = " + e.getSubcommandGroup());
-        System.out.println("e.getSubcommandName() = " + sn);
+        logger.info("e.getName() = " + name);
+        logger.info("e.getSubcommandGroup() = " + e.getSubcommandGroup());
+        logger.info("e.getSubcommandName() = " + sn);
         if (name.equals("replaychannel")) {
             TextChannel tc = (TextChannel) e.getOption("channel").getAsMessageChannel();
             if (sn.equalsIgnoreCase("remove")) {

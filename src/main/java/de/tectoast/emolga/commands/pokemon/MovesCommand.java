@@ -7,12 +7,16 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 
 public class MovesCommand extends Command {
+    private static final Logger logger = LoggerFactory.getLogger(MovesCommand.class);
+
     public MovesCommand() {
         super("moves", "Zeigt die möglichen Attacken des pokemon an (Entweder alle oder nur die physischen etc.)", CommandCategory.Pokemon);
         aliases.add("moves5");
@@ -57,12 +61,12 @@ public class MovesCommand extends Command {
                 return;
             }
             pokemon = t.getTranslation();
-            System.out.println(pokemon);
+            logger.info(pokemon);
             try {
                 ArrayList<String> attacks;
                 int gen = e.getGuild().getId().equals("747357029714231299") || args[0].equalsIgnoreCase("!moves5") ? 5 : 8;
-                //System.out.println("args[0] = " + args[0]);
-                //System.out.println("gen = " + gen);
+                //logger.info("args[0] = " + args[0]);
+                //logger.info("gen = " + gen);
                 attacks = getAttacksFrom(pokemon, msg, form, gen, getModByGuild(e));
                 Collections.sort(attacks);
                 if (attacks.size() == 0) {

@@ -54,7 +54,6 @@ public class EmolgaMain {
     public static final ArrayList<String> alreadywritten = new ArrayList<>();
     public static final HashMap<String, Consumer<String>> sdmessages = new HashMap<>();
     public static JDA emolgajda;
-
     public static JDA flegmonjda;
 
     public static void start() throws Exception {
@@ -130,7 +129,7 @@ public class EmolgaMain {
 
         /*Subscription test = subscriber.subscribe(URI.create("https://www.youtube.com/xml/feeds/videos.xml?channel_id=UCypQULrVZkp1-_RUnrpJ2nQ"));
         test.setNotificationCallback(XML -> {
-            System.out.println("XML = " + XML);
+            logger.info("XML = " + XML);
         });*/
         //jda.getPresence().setActivity(Activity.playing("Wartungsarbeiten"));
     }
@@ -295,7 +294,7 @@ public class EmolgaMain {
                             if (message.length() < 1) continue;
                             if (alreadywritten.remove(message)) continue;
                             alreadywritten.add(message);
-                            System.out.println("Message from SD: " + message);
+                            logger.info("Message from SD: " + message);
                             String type = message.split("\\|")[0];
                             if (!sdmessages.containsKey(type)) {
                                 sendToMe(type + " wurde noch nicht registriert!"); // Should never happen
@@ -307,7 +306,7 @@ public class EmolgaMain {
                     // reset the key
                     boolean valid = wk.reset();
                     if (!valid) {
-                        System.out.println("Key has been unregisterede");
+                        logger.info("Key has been unregisterede");
                     }
                 }
             } catch (IOException | InterruptedException e) {
@@ -319,16 +318,16 @@ new Timer().scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 i++;
-                //System.out.println(Giveaway.toadd);
+                //logger.info(Giveaway.toadd);
                 Giveaway.giveaways.addAll(Giveaway.toadd);
                 Giveaway.toadd.clear();
                 Giveaway.giveaways.forEach(giveaway -> {
-                    //System.out.println("giveaway.messageId = " + giveaway.messageId);
+                    //logger.info("giveaway.messageId = " + giveaway.messageId);
                     if (giveaway.getMessageId() == -1) return;
                     if (giveaway.isEnded()) return;
                     try {
                         if (giveaway.getEnd().toEpochMilli() - System.currentTimeMillis() <= 10000 || i >= 5) {
-                            //System.out.println("giveaway.toString() = " + giveaway);
+                            //logger.info("giveaway.toString() = " + giveaway);
                             emolgajda.getTextChannelById(giveaway.getChannelId()).editMessageById(giveaway.getMessageId(), giveaway.render(Instant.now())).complete();
                         }
                     } catch (ErrorResponseException ex) {

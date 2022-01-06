@@ -2,6 +2,8 @@ package de.tectoast.emolga.utils;
 
 import com.google.api.services.sheets.v4.model.ExtendedValue;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class RequestGetter {
+    private static final Logger logger = LoggerFactory.getLogger(RequestGetter.class);
     private final String sid;
     private final List<String> ranges = new LinkedList<>();
 
@@ -30,7 +33,7 @@ public class RequestGetter {
             HashMap<String, AtomicInteger> map = new HashMap<>();
             List<List<List<String>>> ret = new ArrayList<>(ranges.size());
             for (String range : ranges) {
-                System.out.println("range = " + range);
+                logger.info("range = {}", range);
                 String sheetname = range.split("!")[0];
                 ret.add(sh.getSheets().stream().filter(s -> s.getProperties().getTitle().equals(sheetname)).findFirst().orElse(null).getData()
                         .get(map.computeIfAbsent(sheetname, i -> new AtomicInteger(-1)).incrementAndGet())

@@ -3,6 +3,8 @@ package de.tectoast.emolga.utils.draft;
 import de.tectoast.emolga.commands.Command;
 import org.jsolf.JSONException;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +20,7 @@ public class Tierlist {
      * All tierlists
      */
     public static final ArrayList<Tierlist> list = new ArrayList<>();
+    private static final Logger logger = LoggerFactory.getLogger(Tierlist.class);
     /**
      * HashMap containing<br>Keys: Tiers<br>Values: Lists with the mons
      */
@@ -67,7 +70,8 @@ public class Tierlist {
                     }
                     rounds = o.optInt("rounds", -1);
                     String mode = o.getString("mode");
-                    if(rounds == -1 && !mode.equals("nothing")) throw new IllegalArgumentException("BRUDER OLF IST DAS DEIN SCHEIß ERNST");
+                    if (rounds == -1 && !mode.equals("nothing"))
+                        throw new IllegalArgumentException("BRUDER OLF IST DAS DEIN SCHEIß ERNST");
                     switch (mode) {
                         case "points" -> {
                             points = o.getInt("points");
@@ -94,8 +98,8 @@ public class Tierlist {
                     try {
                         prices.put(name, Integer.parseInt(lines.remove(0)));
                     } catch (NumberFormatException e) {
-                        System.out.println("guild = " + guild);
-                        System.out.println("name = " + name);
+                        logger.info("guild = " + guild);
+                        logger.info("name = " + name);
                     }
                     tierlist.put(name, lines.stream().map(String::trim).collect(Collectors.toCollection(ArrayList::new)));
                 }
@@ -123,7 +127,7 @@ public class Tierlist {
         for (Tierlist tierlist : list) {
             if (tierlist.guild.equals(guild)) return tierlist;
         }
-        System.out.println(guild + " RETURNED NULL");
+        logger.info(guild + " RETURNED NULL");
         return null;
     }
 

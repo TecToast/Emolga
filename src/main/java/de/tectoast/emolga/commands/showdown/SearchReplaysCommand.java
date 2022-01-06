@@ -7,11 +7,15 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 import org.jsolf.JSONTokener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
 
 public class SearchReplaysCommand extends Command {
+    private static final Logger logger = LoggerFactory.getLogger(SearchReplaysCommand.class);
+
     public SearchReplaysCommand() {
         super("searchreplays", "Sucht nach Replays der angegebenen Showdownbenutzernamen", CommandCategory.Showdown);
         setArgumentTemplate(ArgumentManagerTemplate.builder()
@@ -29,9 +33,9 @@ public class SearchReplaysCommand extends Command {
         String user1 = args.getText("user1");
         if (args.has("user2")) url += toSDName(user1) + "&user2=" + toSDName(args.getText("user2"));
         else url += toSDName(user1);
-        System.out.println(url);
+        logger.info(url);
         JSONArray array = new JSONArray(new JSONTokener(new URL(url).openStream()));
-        System.out.println(array.toString(4));
+        logger.info(array.toString(4));
         StringBuilder str = new StringBuilder();
         if (array.length() == 0) {
             if (args.has("user2"))
@@ -44,7 +48,7 @@ public class SearchReplaysCommand extends Command {
             JSONObject o = array.getJSONObject(i);
             str.append(o.getString("p1")).append(" vs ").append(o.getString("p2")).append(": https://replay.pokemonshowdown.com/").append(o.getString("id")).append("\n");
         }
-        System.out.println(str);
+        logger.info(str.toString());
         e.getChannel().sendMessage(str.toString()).queue();
     }
 }

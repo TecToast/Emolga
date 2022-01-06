@@ -5,12 +5,15 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.database.Database;
 import net.dv8tion.jda.api.EmbedBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 
 public class StatisticsCommand extends Command {
+    private static final Logger logger = LoggerFactory.getLogger(StatisticsCommand.class);
 
     public StatisticsCommand() {
         super("statistics", "Zeigt Statistiken über die Usage des Bots an", CommandCategory.Various);
@@ -28,9 +31,9 @@ public class StatisticsCommand extends Command {
             if (name.equals("analysis")) analysis = "Analysierte Replays: " + count;
             else {
                 Command c = byName(name.substring(4));
-                System.out.println("name = " + name);
-                if(c.checkBot(e.getJDA(), e.getGuild().getIdLong()))
-                otherCmds.add(c.getPrefix() + c.getName() + ": " + count);
+                logger.info("name = " + name);
+                if (c.checkBot(e.getJDA(), e.getGuild().getIdLong()))
+                    otherCmds.add(c.getPrefix() + c.getName() + ": " + count);
             }
         }
         e.reply(new EmbedBuilder().setColor(Color.CYAN).setTitle("Anzahl der Nutzung").setDescription(analysis + "\n" + String.join("\n", otherCmds)).build());

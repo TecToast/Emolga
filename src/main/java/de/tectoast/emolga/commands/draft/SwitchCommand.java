@@ -10,6 +10,8 @@ import de.tectoast.emolga.utils.draft.Tierlist;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -18,6 +20,8 @@ import java.util.stream.IntStream;
 import static de.tectoast.emolga.utils.draft.Draft.getIndex;
 
 public class SwitchCommand extends Command {
+
+    private static final Logger logger = LoggerFactory.getLogger(SwitchCommand.class);
 
     public SwitchCommand() {
         super("switch", "Switcht ein Pokemon", CommandCategory.Draft);
@@ -39,7 +43,7 @@ public class SwitchCommand extends Command {
                 found = true;
                 break;
             }
-            //System.out.println(s + " " + y);
+            //logger.info(s + " " + y);
             if (s.equals("NEXT")) {
                 x++;
                 y = 5;
@@ -57,7 +61,7 @@ public class SwitchCommand extends Command {
                 found = true;
                 break;
             }
-            //System.out.println(s + " " + y);
+            //logger.info(s + " " + y);
             if (s.equals("NEXT")) {
                 x++;
                 y = 5;
@@ -66,11 +70,11 @@ public class SwitchCommand extends Command {
         if (found)
             b.addBGColorChange(league.getInt("tierlist"), x * 2, y, convertColor(0x93c47d));
 
-        //System.out.println(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+        //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
         String team = asl.getStringList("teams").get(getIndex(mem.getIdLong()));
         List<DraftPokemon> picks = d.picks.get(mem.getIdLong());
         int index = IntStream.range(0, picks.size()).filter(i -> {
-            System.out.println("picks.get(" + i + ") = " + picks.get(i));
+            logger.info("picks.get(" + i + ") = " + picks.get(i));
             return picks.get(i).name.equals(pokemon);
         }).findFirst().orElse(-1);
         int yc = (Draft.getLevel(mem.getIdLong()) * 20 + index + 1);
@@ -137,8 +141,8 @@ public class SwitchCommand extends Command {
             e.reply("Das, was du rauswerfen möchtest, steht nicht in der Tierliste!");
             return;
         }
-        System.out.println("oldmon = " + oldmon);
-        System.out.println("newmon = " + newmon);
+        logger.info("oldmon = " + oldmon);
+        logger.info("newmon = " + newmon);
         int newpoints = tierlist.getPointsNeeded(newmon);
         if (newpoints == -1) {
             e.reply("Das, was du haben möchtest, steht nicht in der Tierliste!");

@@ -5,7 +5,7 @@ import de.tectoast.emolga.utils.sql.base.columns.LongColumn;
 
 public class MusicGuildsManager extends DataManager {
 
-    LongColumn GUILDID = new LongColumn("guildid", this);
+    final LongColumn GUILDID = new LongColumn("guildid", this);
 
     public MusicGuildsManager() {
         super("musicguilds");

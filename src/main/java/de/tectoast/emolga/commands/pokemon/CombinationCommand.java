@@ -78,7 +78,7 @@ public class CombinationCommand extends Command {
             if (abis.size() > 0 && containsNotAll(mon.getJSONObject("abilities"), abis)) continue;
             if (types.size() > 0 && containsNotAll(mon.getJSONArray("types"), types)) continue;
             if (egg.size() > 0 && containsNotAll(mon.getJSONArray("eggGroups"), egg)) continue;
-            //System.out.println("s = " + s);
+            //logger.info("s = " + s);
             String string = null;
             boolean isRegion = false;
             for (String form : Arrays.asList("alola", "galar", "unova")) {

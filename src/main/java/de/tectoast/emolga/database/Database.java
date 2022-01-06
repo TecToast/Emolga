@@ -6,6 +6,8 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.sql.DBManagers;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.Properties;
@@ -15,6 +17,7 @@ import static de.tectoast.emolga.commands.Command.spoilerTags;
 
 public class Database {
 
+    private static final Logger logger = LoggerFactory.getLogger(Database.class);
     private static Database instance;
     private final Properties properties = new Properties();
     private Connection connection;
@@ -23,15 +26,15 @@ public class Database {
     public Database(String username, String password) {
         new Thread(() -> {
             try {
-                System.out.println("Connecting...");
+                logger.info("Connecting...");
                 properties.setProperty("user", username);
                 properties.setProperty("password", password);
                 properties.setProperty("autoReconnect", "true");
                 connection = DriverManager.getConnection("jdbc:mysql://localhost/emolga", properties);
-                System.out.println("Connected!");
+                logger.info("Connected!");
                 DBManagers.ANALYSIS.forAll(r -> replayAnalysis.put(r.getLong("replay"), r.getLong("result")));
                 DBManagers.MUSIC_GUILDS.forAll(r -> CommandCategory.musicGuilds.add(r.getLong("guildid")));
-                System.out.println("replayAnalysis.size() = " + replayAnalysis.size());
+                logger.info("replayAnalysis.size() = " + replayAnalysis.size());
                 ResultSet spoiler = Database.select("select * from spoilertags");
                 while (spoiler.next()) {
                     spoilerTags.add(spoiler.getLong("guildid"));
@@ -54,7 +57,7 @@ public class Database {
                 instance.connection = DriverManager.getConnection("jdbc:mysql://localhost/emolga?autoReconnect=true", instance.properties);
             }
             instance.lastRequest = System.currentTimeMillis();
-            if (!suppressMessage) System.out.println("SELECT REQUEST: " + query);
+            if (!suppressMessage) logger.info("SELECT REQUEST: " + query);
             return instance.connection.createStatement().executeQuery(query);
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -74,7 +77,7 @@ public class Database {
                 //Command.sendToMe("Reconnected!");
             }
             instance.lastRequest = System.currentTimeMillis();
-            System.out.println("UPDATE REQUEST: " + query);
+            logger.info("UPDATE REQUEST: " + query);
             return instance.connection.createStatement().executeUpdate(query);
         } catch (SQLException throwables) {
             throwables.printStackTrace();

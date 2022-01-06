@@ -1,8 +1,11 @@
 package de.tectoast.emolga.selectmenus;
 
 import com.google.common.reflect.ClassPath;
+import de.tectoast.emolga.bot.EmolgaListener;
 import de.tectoast.emolga.commands.Command;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -10,6 +13,8 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 
 public abstract class MenuListener {
+
+    private static final Logger logger = LoggerFactory.getLogger(MenuListener.class);
 
     public static final HashMap<String, MenuListener> listener = new HashMap<>();
     final String name;
@@ -26,7 +31,7 @@ public abstract class MenuListener {
     }
 
     public static void check(SelectionMenuEvent e) {
-        System.out.println("e.getComponentId() = " + e.getComponentId());
+        logger.info("e.getComponentId() = " + e.getComponentId());
         String id = e.getComponentId();
         listener.getOrDefault(id, NULL).process(e);
     }
@@ -38,7 +43,7 @@ public abstract class MenuListener {
             for (ClassPath.ClassInfo classInfo : ClassPath.from(loader).getTopLevelClassesRecursive("de.tectoast.emolga.selectmenus")) {
                 Class<?> cl = classInfo.load();
                 if (cl.getSuperclass().getSimpleName().endsWith("MenuListener") && !Modifier.isAbstract(cl.getModifiers())) {
-                    //System.out.println(classInfo.getName());
+                    //logger.info(classInfo.getName());
                     cl.getConstructors()[0].newInstance();
                 }
             }

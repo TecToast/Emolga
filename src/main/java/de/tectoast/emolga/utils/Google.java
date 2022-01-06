@@ -15,6 +15,8 @@ import com.google.api.services.youtube.model.Playlist;
 import com.google.api.services.youtube.model.SearchResult;
 import com.google.api.services.youtube.model.Video;
 import net.dv8tion.jda.annotations.ReplaceWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -24,6 +26,8 @@ import java.util.List;
 
 
 public class Google {
+
+    private static final Logger logger = LoggerFactory.getLogger(Google.class);
 
     private static String REFRESHTOKEN;
     private static String CLIENTID;
@@ -44,7 +48,7 @@ public class Google {
         } catch (GeneralSecurityException | IOException ex) {
             ex.printStackTrace();
         }
-        System.out.println("NULL");
+        logger.info("NULL");
         return null;
     }
 
@@ -55,7 +59,7 @@ public class Google {
         } catch (GeneralSecurityException | IOException ex) {
             ex.printStackTrace();
         }
-        System.out.println("NULL");
+        logger.info("NULL");
         return null;
     }
 
@@ -66,7 +70,7 @@ public class Google {
         } catch (GeneralSecurityException | IOException ex) {
             ex.printStackTrace();
         }
-        System.out.println("NULL");
+        logger.info("NULL");
         return null;
     }
 
@@ -77,7 +81,7 @@ public class Google {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-        System.out.println("NULL");
+        logger.info("NULL");
         return null;
     }
 
@@ -109,7 +113,7 @@ public class Google {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-        System.out.println("NULL");
+        logger.info("NULL");
         return null;
     }
 

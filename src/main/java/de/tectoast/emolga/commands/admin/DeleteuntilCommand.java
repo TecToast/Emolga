@@ -22,7 +22,6 @@ public class DeleteuntilCommand extends Command {
     public void process(GuildCommandEvent e) {
         Message m = e.getMessage();
         String msg = e.getMessage().getContentRaw();
-        System.out.println("msg = " + msg);
         TextChannel tco = e.getChannel();
         TextChannel tc;
         if (m.getMentionedChannels().size() > 0) tc = m.getMentionedChannels().get(0);

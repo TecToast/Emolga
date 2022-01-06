@@ -11,11 +11,15 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.HashSet;
 
 public class BadsTeamCommand extends PrivateCommand {
+
+    private static final Logger logger = LoggerFactory.getLogger(BadsTeamCommand.class);
 
     final InteractiveTemplate template;
 
@@ -24,14 +28,14 @@ public class BadsTeamCommand extends PrivateCommand {
 
     public BadsTeamCommand() {
         super("badsteam");
-        System.out.println("Registered BadsTeamCommand!");
+        logger.info("Registered BadsTeamCommand!");
         setIsAllowed(u -> Arrays.asList(Command.getEmolgaJSON().getJSONObject("drafts").getJSONObject("BADS").getString("table").split(",")).contains(u.getId()));
         template = new InteractiveTemplate((u, tc, map) -> {
             current.remove(u.getIdLong());
             JSONObject bads = Command.getEmolgaJSON().getJSONObject("drafts").getJSONObject("BADS");
             JSONArray arr = new JSONArray();
             for (String s : map.keySet()) {
-                if(s.equals("check")) continue;
+                if (s.equals("check")) continue;
                 arr.put(new JSONObject().put("tier", s.charAt(0) + "").put("name", map.get(s)));
             }
             bads.getJSONObject("picks").put(u.getId(), arr);
@@ -54,7 +58,7 @@ public class BadsTeamCommand extends PrivateCommand {
                 .addLayer("D2", "D-Mon Nr. 2:", (m, i) -> test(m, i, "D"))
                 .addLayer("check", """
                                 Hier nochmal die Liste deiner Mons:
-                                
+                                                                
                                 S: {S1}
                                 S: {S2}
                                 A: {A1}
@@ -78,22 +82,22 @@ public class BadsTeamCommand extends PrivateCommand {
 
     public Object test(Message m, Interactive i, String reqtier) {
         String msg = m.getContentDisplay();
-        if(msg.equalsIgnoreCase("!badsteam")) {
+        if (msg.equalsIgnoreCase("!badsteam")) {
             return new ErrorMessage("");
         }
         Command.Translation t = Command.getDraftGerName(msg);
-        System.out.println("msg = " + msg);
+        logger.info("msg = " + msg);
         if (!t.isFromType(Command.Translation.Type.POKEMON)) {
             return new ErrorMessage("Das ist kein Pokemon!");
         }
         Tierlist tierlist = getTierlist();
         String tier = tierlist.getTierOf(t.getTranslation());
-        System.out.println("tier = " + tier);
+        logger.info("tier = " + tier);
         if (tier.equals(""))
             return new ErrorMessage("Das ist zwar ein Pokemon, aber es steht so nicht in der Tierliste!");
-        System.out.println("tierlist.order.indexOf(tier) = " + tierlist.order.indexOf(tier));
-        System.out.println("reqtier = " + reqtier);
-        System.out.println("tierlist.order.indexOf(reqtier) = " + tierlist.order.indexOf(reqtier));
+        logger.info("tierlist.order.indexOf(tier) = " + tierlist.order.indexOf(tier));
+        logger.info("reqtier = " + reqtier);
+        logger.info("tierlist.order.indexOf(reqtier) = " + tierlist.order.indexOf(reqtier));
         if (tierlist.order.indexOf(tier) < tierlist.order.indexOf(reqtier)) {
             return new ErrorMessage("Du kannst ein " + tier + "-Mon nicht ins " + reqtier + " hochdraften!");
         }

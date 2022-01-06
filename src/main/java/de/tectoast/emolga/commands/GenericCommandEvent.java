@@ -9,6 +9,8 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyAction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public abstract class GenericCommandEvent {
+    private static final Logger logger = LoggerFactory.getLogger(GenericCommandEvent.class);
     private final Message message;
     private final User author;
     private final String msg;
@@ -146,7 +149,7 @@ public abstract class GenericCommandEvent {
                 ma.accept(ac);
             ac.queue(m);
         }
-        System.out.println("QUEUED! " + System.currentTimeMillis());
+        logger.info("QUEUED! " + System.currentTimeMillis());
     }
 
     public CompletableFuture<Message> replyMessage(String msg) {
@@ -172,7 +175,7 @@ public abstract class GenericCommandEvent {
     }
 
     public void errorInteraction() {
-        if(slashCommandEvent != null) slashCommandEvent.reply("D:").setEphemeral(true).queue();
+        if (slashCommandEvent != null) slashCommandEvent.reply("D:").setEphemeral(true).queue();
     }
 
     public boolean isNotFlo() {

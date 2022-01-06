@@ -13,6 +13,8 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 import org.jsolf.JSONTokener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -37,6 +39,8 @@ public class HttpHandler extends AbstractHandler {
     private static final HashMap<String, JSONArray> guildCache = new HashMap<>();
     private static final HashMap<String, JSONObject> userCache = new HashMap<>();
 
+    private static final Logger logger = LoggerFactory.getLogger(HttpHandler.class);
+
     @Route(route = "/discordauth", needsCookie = false)
     public static void exchangeCodeRoute(String cookie, HttpServletRequest req, HttpServletResponse res) throws IOException {
         Map<String, String> map = getQueryMap(req.getQueryString());
@@ -45,9 +49,9 @@ public class HttpHandler extends AbstractHandler {
         }
         String code = map.get("code");
         JSONObject tokens = exchangeCode(code);
-        System.out.println("tokens = " + tokens);
+        logger.info("tokens = " + tokens);
         JSONObject data = getUserInfo(tokens.getString("access_token"));
-        System.out.println("data = " + data);
+        logger.info("data = " + data);
         res.sendRedirect("https://emolga.epizy.com/?c=" + DISCORD_AUTH.generateCookie(tokens, Long.parseLong(data.getString("id"))));
         //.send(new JSONObject().put("key", "token").put("token", DISCORD_AUTH.generateCookie(tokens, Long.parseLong(data.getString("id")))).toString());
     }
@@ -82,7 +86,7 @@ public class HttpHandler extends AbstractHandler {
     @Route(route = "/guilds")
     public static void guilds(String cookie, HttpServletRequest req, HttpServletResponse res) throws SQLException, IOException {
         if (guildCache.containsKey(cookie)) {
-            System.out.println("FROM CACHE");
+            logger.info("FROM CACHE");
             res.getWriter().println(guildCache.get(cookie));
             return;
         }
@@ -90,7 +94,7 @@ public class HttpHandler extends AbstractHandler {
         if (session.next()) {
             String token = getAccessToken(session);
             JSONArray guilds = getGuilds(token);
-            System.out.println("token = " + token);
+            logger.info("token = " + token);
             List<String> gl = emolgajda.getGuilds().stream().map(Guild::getId).collect(Collectors.toList());
             JSONArray arr = new JSONArray();
             List<JSONObject> joined = new LinkedList<>();
@@ -120,7 +124,7 @@ public class HttpHandler extends AbstractHandler {
     @Route(route = "/guilddata/(\\d+)/banned")
     public static void bannedUsers(String cookie, HttpServletRequest req, HttpServletResponse res, List<String> args) throws SQLException, IOException {
         ResultSet session = DISCORD_AUTH.getSessionByCookie(cookie);
-        if(session.next()) {
+        if (session.next()) {
             long gid = Long.parseLong(args.get(0));
             Guild g = emolgajda.getGuildById(gid);
             if (g == null) {
@@ -140,7 +144,7 @@ public class HttpHandler extends AbstractHandler {
     @Route(route = "/guilddata/(\\d+)/warned")
     public static void warnedUsers(String cookie, HttpServletRequest req, HttpServletResponse res, List<String> args) throws SQLException, IOException {
         ResultSet session = DISCORD_AUTH.getSessionByCookie(cookie);
-        if(session.next()) {
+        if (session.next()) {
             long gid = Long.parseLong(args.get(0));
             Guild g = emolgajda.getGuildById(gid);
             if (g == null) {
@@ -169,7 +173,7 @@ public class HttpHandler extends AbstractHandler {
     @Route(route = "/unban", method = "POST")
     public static void unban(String cookie, HttpServletRequest req, HttpServletResponse res) throws SQLException, IOException {
         ResultSet session = DISCORD_AUTH.getSessionByCookie(cookie);
-        if(session.next()) {
+        if (session.next()) {
             JSONObject body = getBody(req);
             long gid = Long.parseLong(body.getString("guild"));
             Guild g = emolgajda.getGuildById(gid);
@@ -209,7 +213,7 @@ public class HttpHandler extends AbstractHandler {
         String refreshtoken = set.getString("refreshtoken");
         System.out.printf("Requesting new AccessToken with Refreshtoken %s%n", refreshtoken);
         JSONObject res = refreshToken(refreshtoken);
-        System.out.println("res.toString(4) = " + res.toString(4));
+        logger.info("res.toString(4) = " + res.toString(4));
         String access = res.getString("access_token");
         set.updateString("lastAccesstoken", access);
         set.updateTimestamp("tokenexpires", new Timestamp(System.currentTimeMillis() + res.getInt("expires_in")));
@@ -223,7 +227,7 @@ public class HttpHandler extends AbstractHandler {
                 .get()
                 .addHeader("Authorization", "Bearer " + token)
                 .build()).execute().body().string();
-        System.out.println("arr = " + arr);
+        logger.info("arr = " + arr);
         return new JSONArray(arr);
     }
 
@@ -276,8 +280,8 @@ public class HttpHandler extends AbstractHandler {
         }
         String auth = request.getHeader("Authorization");
         String path = target.substring("/api".length());
-        System.out.println("target = " + target);
-        System.out.println("auth = " + auth);
+        logger.info("target = " + target);
+        logger.info("auth = " + auth);
         for (Method method : HttpHandler.class.getDeclaredMethods()) {
             Route a = method.getAnnotation(Route.class);
             if (a == null) continue;

@@ -8,12 +8,15 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jetbrains.annotations.NotNull;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class SpeedCommand extends Command {
+    private static final Logger logger = LoggerFactory.getLogger(SpeedCommand.class);
 
     public SpeedCommand() {
         super("speed", "Zeigt die Init-Base und die maximale Initiative der pokemon auf Level 100 an.", CommandCategory.Pokemon);
@@ -35,7 +38,7 @@ public class SpeedCommand extends Command {
             ArrayList<SpeedMon> speedMons = new ArrayList<>();
             JSONObject datajson = getDataJSON(getModByGuild(e));
             for (String mon : mons) {
-                System.out.println("mon = " + mon);
+                logger.info("mon = " + mon);
                 int bs;
                 String ger;
                 if (mon.startsWith("M-")) {

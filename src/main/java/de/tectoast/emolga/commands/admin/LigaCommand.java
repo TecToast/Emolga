@@ -41,7 +41,7 @@ public class LigaCommand extends Command {
                 for (int idx = 1; idx < halfSize; idx++) {
                     int firstTeam = (day + idx) % teamsSize;
                     int secondTeam = (day + teamsSize - idx) % teamsSize;
-                    //System.out.println(teams.get(firstTeam) + "   " + teams.get(secondTeam));
+                    //logger.info(teams.get(firstTeam) + "   " + teams.get(secondTeam));
                     s.append(teams.get(firstTeam) == null ? "(Platzhalter)" : teams.get(firstTeam).getEffectiveName())
                             .append(" vs ").append(teams.get(secondTeam) == null ? "(Platzhalter)" : teams.get(secondTeam).getEffectiveName()).append("\n");
                 }

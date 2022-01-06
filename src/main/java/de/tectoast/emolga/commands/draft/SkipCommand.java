@@ -1,5 +1,6 @@
 package de.tectoast.emolga.commands.draft;
 
+import de.tectoast.emolga.bot.EmolgaListener;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
@@ -8,6 +9,8 @@ import de.tectoast.emolga.utils.draft.Draft;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -16,6 +19,8 @@ import java.util.stream.Collectors;
 import static de.tectoast.emolga.utils.draft.Draft.getIndex;
 
 public class SkipCommand extends Command {
+
+    private static final Logger logger = LoggerFactory.getLogger(SkipCommand.class);
 
     public SkipCommand() {
         super("skip", "Überspringt deinen Zug", CommandCategory.Draft, Constants.ASLID);
@@ -63,8 +68,8 @@ public class SkipCommand extends Command {
             d.tc.sendMessage("Runde " + d.round + "!").queue();
             league.put("round", d.round);
         }
-        System.out.println("d.order = " + d.order);
-        System.out.println("d.round = " + d.round);
+        logger.info("d.order = " + d.order);
+        logger.info("d.round = " + d.round);
         d.current = d.order.get(d.round).remove(0);
         league.put("current", d.current.getId());
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");

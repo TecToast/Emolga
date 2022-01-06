@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.sql.managers;
 
+import de.tectoast.emolga.bot.EmolgaListener;
 import de.tectoast.emolga.utils.sql.base.DataManager;
 import de.tectoast.emolga.utils.sql.base.columns.LongColumn;
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn;
@@ -7,6 +8,8 @@ import de.tectoast.emolga.utils.sql.base.columns.TimestampColumn;
 import net.dv8tion.jda.api.entities.Guild;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.sql.ResultSet;
@@ -16,6 +19,8 @@ import java.util.*;
 import static de.tectoast.emolga.utils.sql.base.Condition.and;
 
 public class BanManager extends DataManager {
+
+    private static final Logger logger = LoggerFactory.getLogger(BanManager.class);
 
     final LongColumn USERID = new LongColumn("userid", this);
     final StringColumn USERNAME = new StringColumn("username", this);
@@ -66,8 +71,8 @@ public class BanManager extends DataManager {
 
     public JSONObject unban(Guild g, long userid) {
         JSONObject o = new JSONObject();
-        System.out.println("userid = " + userid);
-        System.out.println("g.getIdLong() = " + g.getIdLong());
+        logger.info("userid = " + userid);
+        logger.info("g.getIdLong() = " + g.getIdLong());
         g.unban(String.valueOf(userid)).queue();
         return delete(and(GUILDID.check(g.getIdLong()), USERID.check(userid))) > 0 ? o.put("success", "Entbannung erfolgreich!") : o.put("error", "Die Person war gar nicht gebannt!");
     }

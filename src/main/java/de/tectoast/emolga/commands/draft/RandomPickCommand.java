@@ -25,7 +25,8 @@ public class RandomPickCommand extends Command {
 
     @Override
     public void process(GuildCommandEvent e) {
-        Member member = e.getMember();
+        Member memberr = e.getMember();
+        long member = memberr.getIdLong();
         TextChannel tco = e.getChannel();
         Draft d = Draft.getDraftByMember(member, tco);
         if (d == null) {
@@ -33,10 +34,10 @@ public class RandomPickCommand extends Command {
             return;
         }
         String msg = e.getMessage().getContentDisplay();
-        Tierlist tierlist = Tierlist.getByGuild(d.guild);
+        Tierlist tierlist = d.getTierlist();
         ArgumentManager args = e.getArguments();
-        String tier = args.getText("tier").toUpperCase();
-        if (!tierlist.order.contains(tier)) {
+        String tier = tierlist.order.stream().filter(s -> args.getText("tier").equalsIgnoreCase(s)).findFirst().orElse("");
+        if (tier.equals("")) {
             tco.sendMessage("Das ist kein Tier!").queue();
             return;
         }
@@ -45,7 +46,7 @@ public class RandomPickCommand extends Command {
             tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue();
             return;
         }
-        Member mem = d.current;
+        long mem = d.current;
         JSONObject json = getEmolgaJSON();
         //JSONObject league = json.getJSONObject("drafts").getJSONObject(d.name);
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
@@ -64,6 +65,6 @@ public class RandomPickCommand extends Command {
         } else {
             typecheck = str -> true;
         }
-        PickCommand.exec(tco, "!pick " + list.stream().filter(str -> !d.isPicked(str) && !d.hasInAnotherForm(mem, str) && (!d.hasMega(mem) || !str.startsWith("M-")) && typecheck.test(str)).map(String::trim).findFirst().orElse(""), mem, true);
+        PickCommand.exec(tco, "!pick " + list.stream().filter(str -> !d.isPicked(str) && !d.hasInAnotherForm(mem, str) && (!d.hasMega(mem) || !str.startsWith("M-")) && typecheck.test(str)).map(String::trim).findFirst().orElse(""), memberr, true);
     }
 }

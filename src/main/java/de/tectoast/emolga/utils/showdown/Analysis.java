@@ -388,7 +388,7 @@ public class Analysis {
             if (!s.contains("|[upkeep]") && !s.contains("|none")) {
                 weatherBy = lastMove;
             }
-            check(i -> s.contains("|[from] Sandstorm") || s.contains("|[from] Hail") && s.contains("|-damage|p" + i), i -> {
+            check(i -> (s.contains("|[from] Sandstorm") || s.contains("|[from] Hail")) && s.contains("|-damage|p" + i), i -> {
                 Pokemon activeP1 = activeP.get(i);
                 if (pl.get(3 - i).getMons().contains(weatherBy)) { //Abfrage, ob das Weather von einem gegnerischem Mon kommt
                     if (s.contains("0 fnt")) {

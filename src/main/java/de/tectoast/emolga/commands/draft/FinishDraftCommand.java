@@ -26,7 +26,8 @@ public class FinishDraftCommand extends Command {
     public void process(GuildCommandEvent e) {
         String msg = e.getMsg();
         TextChannel tco = e.getChannel();
-        Member member = e.getMember();
+        Member memberr = e.getMember();
+        long member = memberr.getIdLong();
         Draft d = Draft.getDraftByMember(member, tco);
         if (d == null) {
             //tco.sendMessage(member.getAsMention() + " Du bist in keinem Draft drin!").queue();
@@ -38,15 +39,15 @@ public class FinishDraftCommand extends Command {
             tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue();
             return;
         }
-        Member mem = d.current;
+        long mem = d.current;
         int round = d.round;
         /*if (round < 12) {
             e.reply("Du hast noch nicht 11 Pokemon!");
             return;
         }*/
         e.reply("Du hast den Draft für dich beendet!");
-        d.order.values().forEach(l -> l.removeIf(me -> me.getIdLong() == mem.getIdLong()));
-        league.put("finished", league.optString("finished") + mem.getId() + ",");
+        d.order.values().forEach(l -> l.removeIf(me -> me == mem));
+        league.put("finished", league.optString("finished") + mem + ",");
         try {
             d.cooldown.cancel();
         } catch (Exception ignored) {
@@ -71,9 +72,9 @@ public class FinishDraftCommand extends Command {
             league.put("round", d.round);
         }
         d.current = d.order.get(d.round).remove(0);
-        league.put("current", d.current.getId());
+        league.put("current", d.current);
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
-        tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current.getIdLong())) + ">) ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
+        tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current)) + ">) ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
         try {
             d.cooldown.cancel();
         } catch (Exception ignored) {

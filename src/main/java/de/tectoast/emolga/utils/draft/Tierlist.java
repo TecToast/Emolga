@@ -1,19 +1,15 @@
 package de.tectoast.emolga.utils.draft;
 
 import de.tectoast.emolga.commands.Command;
-import org.jsolf.JSONException;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static de.tectoast.emolga.commands.Command.load;
 
 public class Tierlist {
     /**
@@ -24,7 +20,7 @@ public class Tierlist {
     /**
      * HashMap containing<br>Keys: Tiers<br>Values: Lists with the mons
      */
-    public final HashMap<String, ArrayList<String>> tierlist = new HashMap<>();
+    public final HashMap<String, List<String>> tierlist = new LinkedHashMap<>();
     /**
      * The price for each tier
      */
@@ -36,11 +32,11 @@ public class Tierlist {
     /**
      * List with all pokemon in the sheets tierlists, columns are separated by an "NEXT"
      */
-    public final ArrayList<String> tiercolumns = new ArrayList<>();
+    public final LinkedList<String> tiercolumns = new LinkedList<>();
     /**
      * Order of the tiers, from highest to lowest
      */
-    public final ArrayList<String> order = new ArrayList<>();
+    public final List<String> order = new ArrayList<>();
     /**
      * if this tierlist is pointbased
      */
@@ -55,8 +51,44 @@ public class Tierlist {
     public int rounds;
 
     public Tierlist(String guild) {
-        this.guild = guild;
-        File dir = new File("./Tierlists/" + guild + "/");
+        this.guild = guild.substring(0, guild.length() - 5);
+        JSONObject o = load("./Tierlists/" + guild);
+        rounds = o.optInt("rounds", -1);
+        String mode = o.getString("mode");
+        if (rounds == -1 && !mode.equals("nothing"))
+            throw new IllegalArgumentException("BRUDER OLF IST DAS DEIN SCHEIß ERNST");
+        switch (mode) {
+            case "points" -> {
+                points = o.getInt("points");
+                isPointBased = true;
+            }
+            case "tiers", "nothing" -> isPointBased = false;
+            default -> throw new IllegalArgumentException("Invalid mode! Has to be one of 'points', 'tiers' or 'nothing'!");
+        }
+        JSONObject tiers = o.getJSONObject("tiers");
+        for (String s : tiers.keySet()) {
+            order.add(s);
+            prices.put(s, tiers.getInt(s));
+        }
+        List<List<String>> mons = o.getJSONArray("mons").toListList(String.class);
+        int x = 0;
+        int currtier = 0;
+        List<String> currtierlist = new LinkedList<>();
+        List<Integer> nexttiers = o.getIntList("nexttiers");
+        for (List<String> mon : mons) {
+            if (nexttiers.contains(x)) {
+                String key = order.get(currtier++);
+                tierlist.put(key, new ArrayList<>(currtierlist));
+                currtierlist.clear();
+            }
+            currtierlist.addAll(mon);
+            tiercolumns.addAll(mon);
+            tiercolumns.add("NEXT");
+            x++;
+        }
+        tierlist.put(order.get(currtier), new ArrayList<>(currtierlist));
+        tiercolumns.removeLast();
+        /*File dir = new File("./Tierlists/" + guild + ".json");
         for (File file : dir.listFiles()) {
             try {
                 List<String> lines = Files.readAllLines(file.toPath());
@@ -91,7 +123,7 @@ public class Tierlist {
                     } else {
                         isPointBased = false;
                     }
-                    order.addAll(Arrays.asList(lines.get(1).split(",")));*/
+                    order.addAll(Arrays.asList(lines.get(1).split(",")));**
                 } else if (name.equals("tiercolumns")) {
                     tiercolumns.addAll(lines.stream().map(String::trim).collect(Collectors.toCollection(ArrayList::new)));
                 } else {
@@ -107,7 +139,7 @@ public class Tierlist {
                 e.printStackTrace();
             }
 
-        }
+        }*/
         list.add(this);
     }
 
@@ -115,7 +147,8 @@ public class Tierlist {
         list.clear();
         File dir = new File("./Tierlists/");
         for (File file : dir.listFiles()) {
-            new Tierlist(file.getName());
+            if (file.isFile())
+                new Tierlist(file.getName());
         }
     }
 
@@ -127,12 +160,12 @@ public class Tierlist {
         for (Tierlist tierlist : list) {
             if (tierlist.guild.equals(guild)) return tierlist;
         }
-        logger.info(guild + " RETURNED NULL");
+        logger.error(guild + " RETURNED NULL");
         return null;
     }
 
     public int getPointsNeeded(String s) {
-        for (Map.Entry<String, ArrayList<String>> en : tierlist.entrySet()) {
+        for (Map.Entry<String, List<String>> en : tierlist.entrySet()) {
             if (en.getValue().stream().anyMatch(s::equalsIgnoreCase))
                 return prices.get(en.getKey());
         }
@@ -140,7 +173,7 @@ public class Tierlist {
     }
 
     public String getTierOf(String s) {
-        for (Map.Entry<String, ArrayList<String>> en : tierlist.entrySet()) {
+        for (Map.Entry<String, List<String>> en : tierlist.entrySet()) {
             if (en.getValue().stream().anyMatch(str -> Command.toSDName(str).equals(Command.toSDName(s))))
                 return en.getKey();
         }
@@ -148,7 +181,7 @@ public class Tierlist {
     }
 
     public String getNameOf(String s) {
-        for (Map.Entry<String, ArrayList<String>> en : tierlist.entrySet()) {
+        for (Map.Entry<String, List<String>> en : tierlist.entrySet()) {
             String str = en.getValue().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining(""));
             if (!str.equals("")) return str;
         }

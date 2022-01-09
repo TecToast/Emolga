@@ -29,7 +29,7 @@ public class DexquizCommand extends Command {
                 Pair<String, String> pair = DexQuiz.getNewMon();
                 String pokemon = pair.getLeft();
                 String englName = pair.getRight();
-                sendDexEntry(tco.getAsMention() + pokemon);
+                sendDexEntry(tco.getAsMention() + " " + pokemon);
                 Pair<String, String> res = DBManagers.POKEDEX.getDexEntry(pokemon);
                 String entry = res.getLeft();
                 new DexQuiz(tco, pokemon, englName, e.getArguments().getInt("count"), res.getRight());

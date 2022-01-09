@@ -30,8 +30,9 @@ public class PickCommand extends Command {
         setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!pick <Pokemon> [Optionales Tier]", "!pick Emolga"));
     }
 
-    public static void exec(TextChannel tco, String msg, Member member, boolean isRandom) {
+    public static void exec(TextChannel tco, String msg, Member memberr, boolean isRandom) {
         try {
+            long member = memberr.getIdLong();
             if (msg.trim().equals("!pick")) {
                 if (isRandom) {
                     tco.sendMessage("Jedes Pokemon aus dem Tier mit dem Typen ist bereits weg!").queue();
@@ -42,7 +43,7 @@ public class PickCommand extends Command {
             }
             Draft d = Draft.getDraftByMember(member, tco);
             if (d == null) {
-                tco.sendMessage(member.getAsMention() + " Du bist in keinem Draft drin!").queue();
+                tco.sendMessage(memberr.getAsMention() + " Du bist in keinem Draft drin!").queue();
                 return;
             }
             if (!d.tc.getId().equals(tco.getId())) return;
@@ -54,7 +55,7 @@ public class PickCommand extends Command {
                 tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue();
                 return;
             }
-            Member mem = d.current;
+            long mem = d.current;
             JSONObject json = getEmolgaJSON();
             //JSONObject asl = json.getJSONObject("drafts").getJSONObject("ASLS9");
             JSONObject league = json.getJSONObject("drafts").getJSONObject(d.name);
@@ -82,7 +83,7 @@ public class PickCommand extends Command {
                     return;
                 }
                 pokemon = t.getTranslation();
-                tier = split[1];
+                tier = d.getTierlist().order.stream().filter(s -> split[1].equalsIgnoreCase(s)).findFirst().orElse("");
             } else {
                 t = getDraftGerName(msg.substring(6));
                 if (!t.isFromType(Translation.Type.POKEMON)) {
@@ -94,26 +95,26 @@ public class PickCommand extends Command {
             }
             if (d.isPicked(pokemon)) {
                 //tco.sendMessage(member.getAsMention() + " Junge bist du scheiße oder was?! (Dieses Pokemon wurde bereits gepickt!)").queue();
-                tco.sendMessage(member.getAsMention() + " Dieses Pokemon wurde bereits gepickt!").queue();
+                tco.sendMessage(memberr.getAsMention() + " Dieses Pokemon wurde bereits gepickt!").queue();
                 return;
             }
             int needed = tierlist.getPointsNeeded(pokemon);
             if (d.isPointBased) {
                 if (needed == -1) {
-                    tco.sendMessage(member.getAsMention() + " Das Pokemon steht nicht in der Tierliste!").queue();
+                    tco.sendMessage(memberr.getAsMention() + " Das Pokemon steht nicht in der Tierliste!").queue();
                     return;
                 }
             } else {
                 String origtier = tierlist.getTierOf(pokemon);
                 if (origtier.equals("")) {
-                    tco.sendMessage(member.getAsMention() + " Das ist kein Pokemon!").queue();
+                    tco.sendMessage(memberr.getAsMention() + " Das ist kein Pokemon!").queue();
                     return;
                 }
                 if (tierlist.order.indexOf(origtier) < tierlist.order.indexOf(tier)) {
                     tco.sendMessage("Du kannst ein " + origtier + "-Mon nicht ins " + tier + " hochdraften!").queue();
                     return;
                 }
-                HashMap<String, Integer> map = d.getPossibleTiers(mem);
+                Map<String, Integer> map = d.getPossibleTiers(mem);
                 if (!map.containsKey(tier)) {
                     tco.sendMessage("Das Tier `" + tier + "` existiert nicht!").queue();
                     return;
@@ -136,25 +137,26 @@ public class PickCommand extends Command {
                 tco.sendMessage(member.getAsMention() + " Damit würdest du gegen die Species Clause verstoßen!").queue();
                 return;
             }*/
-            if (d.isPointBased && d.points.get(mem.getIdLong()) - needed < 0) {
-                tco.sendMessage(member.getAsMention() + " Dafür hast du nicht genug Punkte!").queue();
+            if (d.isPointBased && d.points.get(mem) - needed < 0) {
+                tco.sendMessage(memberr.getAsMention() + " Dafür hast du nicht genug Punkte!").queue();
                 return;
             }
             if (d.isPointBased)
-                d.points.put(mem.getIdLong(), d.points.get(mem.getIdLong()) - needed);
-            d.picks.get(mem.getIdLong()).add(new DraftPokemon(pokemon, tier));
+                d.points.put(mem, d.points.get(mem) - needed);
+            d.picks.get(mem).add(new DraftPokemon(pokemon, tier));
             if (!league.has("picks"))
                 league.put("picks", new JSONObject());
-            league.getJSONObject("picks").put(mem.getId(), d.getTeamAsArray(mem));
+            league.getJSONObject("picks").put(mem, d.getTeamAsArray(mem));
             //m.delete().queue();
             d.update(mem);
             if (isRandom) {
-                tco.sendMessage("**" + mem.getEffectiveName() + "** hat aus dem " + tier + "-Tier ein **" + pokemon + "** bekommen!").queue();
+                tco.sendMessage("**<@" + mem + ">** hat aus dem " + tier + "-Tier ein **" + pokemon + "** bekommen!").queue();
             } else if (pokemon.equals("Emolga")) {
                 tco.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>").queue();
             }
             //zbsdoc(tierlist, pokemon, d, mem, tier, d.members.size() - d.order.get(d.round).size(), d.round);
-            fpldoc(tierlist, pokemon, d, mem, tier, d.members.size() - d.order.get(d.round).size(), d.round);
+            //fpldoc(tierlist, pokemon, d, mem, tier, d.members.size() - d.order.get(d.round).size(), d.round);
+            woolooDoc(tierlist, pokemon, d, mem, tier, d.round);
             int round = d.round;
             if (d.order.get(d.round).size() == 0) {
                 if (d.round == tierlist.rounds) {
@@ -175,7 +177,7 @@ public class PickCommand extends Command {
             boolean normal = /*round != 12 || d.picks.get(d.current.getIdLong()).size() == tierlist.rounds;*/ true;
             if (normal) {
                 d.current = d.order.get(d.round).remove(0);
-                league.put("current", d.current.getId());
+                league.put("current", d.current);
                 try {
                     d.cooldown.cancel();
                 } catch (Exception ignored) {
@@ -183,8 +185,8 @@ public class PickCommand extends Command {
                 }
             }
             DraftPokemon toremove = null;
-            if (d.isPointBased && d.points.get(d.current.getIdLong()) < 20) {
-                List<DraftPokemon> picks = d.picks.get(d.current.getIdLong());
+            if (d.isPointBased && d.points.get(d.current) < 20) {
+                List<DraftPokemon> picks = d.picks.get(d.current);
                 int price = 0;
                 for (DraftPokemon pick : picks) {
                     int pr = tierlist.getPointsNeeded(pick.name);
@@ -194,14 +196,14 @@ public class PickCommand extends Command {
                     }
                 }
                 tco.sendMessage(d.getMention(d.current) + " Du hast nicht mehr genug Punkte um ein weiteres Pokemon zu draften! Deshalb verlierst du " + toremove.name + " und erhältst dafür " + price / 2 + " Punkte!").queue();
-                d.points.put(d.current.getIdLong(), d.points.get(d.current.getIdLong()) + price / 2);
-                d.picks.get(d.current.getIdLong()).remove(toremove);
+                d.points.put(d.current, d.points.get(d.current) + price / 2);
+                d.picks.get(d.current).remove(toremove);
                 d.afterDraft.add(d.current);
             }
-            league.getJSONObject("picks").put(d.current.getId(), d.getTeamAsArray(d.current));
+            league.getJSONObject("picks").put(d.current, d.getTeamAsArray(d.current));
             if (d.isPointBased)
                 //tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current.getIdLong())) + ">) ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
-                tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
+                tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
             else
                 tco.sendMessage(d.getMention(d.current) + " ist dran! (Mögliche Tiers: " + d.getPossibleTiersAsString(d.current) + ")").queue();
             if (normal) {
@@ -222,6 +224,45 @@ public class PickCommand extends Command {
             tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
             ex.printStackTrace();
         }
+    }
+
+    private static void woolooDoc(Tierlist tierlist, String pokemon, Draft d, long mem, String tier, int round) {
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("WoolooCupS4");
+        String sid = league.getString("sid");
+        int x = 1;
+        int y = 4;
+        boolean found = false;
+        for (String s : tierlist.tiercolumns) {
+            if (s.equalsIgnoreCase(pokemon)) {
+                found = true;
+                break;
+            }
+            //logger.info(s + " " + y);
+            if (s.equals("NEXT")) {
+                x++;
+                y = 4;
+            } else y++;
+        }
+        RequestBuilder b = new RequestBuilder(sid);
+        if (found) {
+            b.addStrikethroughChange(league.getInt("tierlist"), x * 2, y, true);
+        }
+        //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+        String lea = "";
+        int num = -1;
+        for (int i = 1; i <= 2; i++) {
+            List<List<Long>> lists = league.getJSONArray("table" + i).toLongListList();
+            Integer in = lists.stream().filter(l -> l.contains(mem)).map(lists::indexOf).findFirst().orElse(-1);
+            if (in == -1) continue;
+            lea = i == 1 ? "Sonne" : "Hagel";
+            num = in;
+        }
+        b.addRow("Teamseite %s!C%d".formatted(lea, num * 15L + 3 +
+                ((tierlist.order.indexOf(tier) * 3L + d.picks.get(mem).stream().filter(p -> p.tier.equals(tier)).count()))
+        ), Arrays.asList(pokemon, getDataJSON().getJSONObject(getSDName(pokemon)).getJSONObject("baseStats").getInt("spe")));
+        int rr = d.round - 1;
+        b.addSingle("Draftreihenfolge!%s%d".formatted(getAsXCoord((rr % 6) * 3 + 3), (rr / 6) * 14 + 2 + (12 - d.order.get(d.round).size())), pokemon);
+        b.execute();
     }
 
     private static void aslCoachDoc(Tierlist tierlist, String pokemon, Draft d, Member mem, int needed, int round, @Nullable DraftPokemon removed) {
@@ -396,7 +437,7 @@ public class PickCommand extends Command {
         //aslnocoachdoc(tierlist, pokemon, d, mem, tier, league, pk);
     }*/
 
-    private static void wooloodoc(Tierlist tierlist, String pokemon, Draft d, Member mem, int needed, @Nullable DraftPokemon removed, int num, int round) {
+    private static void woolooolddoc(Tierlist tierlist, String pokemon, Draft d, Member mem, int needed, @Nullable DraftPokemon removed, int num, int round) {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
         String sid = league.getString("sid");
         int x = 1;

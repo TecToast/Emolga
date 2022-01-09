@@ -17,6 +17,7 @@ public class Pokemon {
     private boolean dead = false;
     private int hp = 100;
     private String ability = "";
+    private int lastKillTurn = -1;
 
 
     public Pokemon(String poke, Player player, List<Integer> zoroTurns, List<String> game) {
@@ -137,9 +138,18 @@ public class Pokemon {
 
     public void killsPlus1(int turn) {
         if (this.zoroTurns.contains(turn)) {
-            player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> p.kills++);
+            player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> {
+                if(p.lastKillTurn == turn) return;
+                p.kills++;
+                p.lastKillTurn = turn;
+            });
         } else {
+            if (this.pokemon.equals("Noivern")) {
+                logger.info("NOIVERN KILLED {}", turn);
+            }
+            if(lastKillTurn == turn) return;
             this.kills++;
+            this.lastKillTurn = turn;
         }
     }
 

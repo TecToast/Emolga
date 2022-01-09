@@ -25,11 +25,12 @@ public class VerschiebenCommand extends Command {
 
     @Override
     public void process(GuildCommandEvent e) {
-        Member member = e.getMember();
+        Member memberr = e.getMember();
+        long member = memberr.getIdLong();
         TextChannel tco = e.getChannel();
         Draft d = Draft.getDraftByMember(member, tco);
         if (d == null) {
-            tco.sendMessage(member.getAsMention() + " Du bist in keinem Draft drin!").queue();
+            tco.sendMessage(memberr.getAsMention() + " Du bist in keinem Draft drin!").queue();
             return;
         }
         if (!d.tc.getId().equals(tco.getId())) return;
@@ -37,7 +38,7 @@ public class VerschiebenCommand extends Command {
             tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue();
             return;
         }
-        Member mem = d.current;
+        long mem = d.current;
         if(d.round == d.getTierlist().rounds) {
             e.reply("Der Draft befindet sich bereits in Runde " + d.round + ", somit kann der Pick nicht mehr verschoben werden!");
             return;
@@ -55,10 +56,10 @@ public class VerschiebenCommand extends Command {
             league.put("round", d.round);
         }
         d.current = d.order.get(d.round).remove(0);
-        league.put("current", d.current.getId());
+        league.put("current", d.current);
         DraftPokemon toremove = null;
-        if (d.isPointBased && d.points.get(d.current.getIdLong()) < 20) {
-            List<DraftPokemon> picks = d.picks.get(d.current.getIdLong());
+        if (d.isPointBased && d.points.get(d.current) < 20) {
+            List<DraftPokemon> picks = d.picks.get(d.current);
             int price = 0;
             for (DraftPokemon pick : picks) {
                 int pr = d.getTierlist().getPointsNeeded(pick.name);
@@ -68,13 +69,13 @@ public class VerschiebenCommand extends Command {
                 }
             }
             tco.sendMessage(d.getMention(d.current) + " Du hast nicht mehr genug Punkte um ein weiteres Pokemon zu draften! Deshalb verlierst du " + toremove.name + " und erhältst dafür " + price / 2 + " Punkte!").queue();
-            d.points.put(d.current.getIdLong(), d.points.get(d.current.getIdLong()) + price / 2);
-            d.picks.get(d.current.getIdLong()).remove(toremove);
+            d.points.put(d.current, d.points.get(d.current) + price / 2);
+            d.picks.get(d.current).remove(toremove);
             d.afterDraft.add(d.current);
         }
-        league.getJSONObject("picks").put(d.current.getId(), d.getTeamAsArray(d.current));
+        league.getJSONObject("picks").put(d.current, d.getTeamAsArray(d.current));
         if (d.isPointBased)
-            tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current.getIdLong())) + ">) ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
+            tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current)) + ">) ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
         else
             tco.sendMessage(d.getMention(d.current) + " ist dran! (Mögliche Tiers: " + d.getPossibleTiersAsString(d.current) + ")").queue();
         d.cooldown = new Timer();

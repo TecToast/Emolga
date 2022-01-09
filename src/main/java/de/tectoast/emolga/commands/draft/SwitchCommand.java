@@ -31,7 +31,7 @@ public class SwitchCommand extends Command {
                 .setExample("!switch Gufa Emolga").build());
     }
 
-    private static void asldoc(Tierlist tierlist, String pokemon, Draft d, Member mem, int needed, DraftPokemon removed) {
+    private static void asldoc(Tierlist tierlist, String pokemon, Draft d, long mem, int needed, DraftPokemon removed) {
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
         JSONObject league = asl.getJSONObject(d.name);
         String sid = asl.getString("sid");
@@ -71,13 +71,13 @@ public class SwitchCommand extends Command {
             b.addBGColorChange(league.getInt("tierlist"), x * 2, y, convertColor(0x93c47d));
 
         //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
-        String team = asl.getStringList("teams").get(getIndex(mem.getIdLong()));
-        List<DraftPokemon> picks = d.picks.get(mem.getIdLong());
+        String team = asl.getStringList("teams").get(getIndex(mem));
+        List<DraftPokemon> picks = d.picks.get(mem);
         int index = IntStream.range(0, picks.size()).filter(i -> {
             logger.info("picks.get(" + i + ") = " + picks.get(i));
             return picks.get(i).name.equals(pokemon);
         }).findFirst().orElse(-1);
-        int yc = (Draft.getLevel(mem.getIdLong()) * 20 + index + 1);
+        int yc = (Draft.getLevel(mem) * 20 + index + 1);
         List<Integer> list = new LinkedList<>();
         for (int i = 0; i < 10; i++) {
             list.add(i * 5 + 10);
@@ -93,14 +93,15 @@ public class SwitchCommand extends Command {
     public void process(GuildCommandEvent e) {
         String msg = e.getMsg();
         TextChannel tco = e.getChannel();
-        Member member = e.getMember();
+        Member memberr = e.getMember();
+        long member = memberr.getIdLong();
         if (msg.equals("!switch")) {
             e.reply("Willst du vielleicht noch zwei Pokemon dahinter schreiben? xD");
             return;
         }
         Draft d = Draft.getDraftByMember(member, tco);
         if (d == null) {
-            tco.sendMessage(member.getAsMention() + " Du bist in keinem Draft drin!").queue();
+            tco.sendMessage(memberr.getAsMention() + " Du bist in keinem Draft drin!").queue();
             return;
         }
         if (!d.tc.getId().equals(tco.getId())) return;
@@ -112,7 +113,7 @@ public class SwitchCommand extends Command {
             tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue();
             return;
         }
-        Member mem = d.current;
+        long mem = d.current;
         JSONObject json = getEmolgaJSON();
         JSONObject league = json.getJSONObject("drafts").getJSONObject("ASLS9").getJSONObject(d.name);
         //JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ZBSL2");
@@ -129,11 +130,11 @@ public class SwitchCommand extends Command {
         String newmon = args.getText("newmon");
         Tierlist tierlist = d.getTierlist();
         if (!d.isPickedBy(oldmon, mem)) {
-            e.reply(member.getAsMention() + " " + oldmon + " befindet sich nicht in deinem Kader!");
+            e.reply(memberr.getAsMention() + " " + oldmon + " befindet sich nicht in deinem Kader!");
             return;
         }
         if (d.isPicked(newmon)) {
-            e.reply(member.getAsMention() + " " + newmon + " wurde bereits gepickt!");
+            e.reply(memberr.getAsMention() + " " + newmon + " wurde bereits gepickt!");
             return;
         }
         int pointsBack = tierlist.getPointsNeeded(oldmon);
@@ -148,21 +149,21 @@ public class SwitchCommand extends Command {
             e.reply("Das, was du haben möchtest, steht nicht in der Tierliste!");
             return;
         }
-        d.points.put(mem.getIdLong(), d.points.get(mem.getIdLong()) + pointsBack);
-        if (d.points.get(mem.getIdLong()) - newpoints < 0) {
-            d.points.put(mem.getIdLong(), d.points.get(mem.getIdLong()) - pointsBack);
-            e.reply(member.getAsMention() + " Du kannst dir " + newmon + " nicht leisten!");
+        d.points.put(mem, d.points.get(mem) + pointsBack);
+        if (d.points.get(mem) - newpoints < 0) {
+            d.points.put(mem, d.points.get(mem) - pointsBack);
+            e.reply(memberr.getAsMention() + " Du kannst dir " + newmon + " nicht leisten!");
             return;
         }
-        d.points.put(mem.getIdLong(), d.points.get(mem.getIdLong()) - newpoints);
-        d.picks.get(mem.getIdLong()).stream().filter(dp -> dp.name.equalsIgnoreCase(oldmon)).forEach(dp -> {
+        d.points.put(mem, d.points.get(mem) - newpoints);
+        d.picks.get(mem).stream().filter(dp -> dp.name.equalsIgnoreCase(oldmon)).forEach(dp -> {
             dp.setName(newmon);
             dp.setTier(tierlist.getTierOf(newmon));
         });
         //m.delete().queue();
         d.update(mem);
         asldoc(tierlist, newmon, d, mem, newpoints, new DraftPokemon(oldmon, tierlist.getTierOf(oldmon)));
-        league.getJSONObject("picks").put(d.current.getId(), d.getTeamAsArray(d.current));
+        league.getJSONObject("picks").put(d.current, d.getTeamAsArray(d.current));
         if (newmon.equals("Emolga")) {
             tco.sendMessage("<:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142>").queue();
         }
@@ -188,9 +189,9 @@ public class SwitchCommand extends Command {
             league.put("round", d.round);
         }
         d.current = d.order.get(d.round).remove(0);
-        league.put("current", d.current.getId());
+        league.put("current", d.current);
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
-        tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current.getIdLong())) + ">) ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
+        tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current)) + ">) ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
         //tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
         d.cooldown = new Timer();
         long delay = calculateASLTimer();

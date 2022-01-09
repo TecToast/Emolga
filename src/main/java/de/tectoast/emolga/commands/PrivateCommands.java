@@ -551,7 +551,7 @@ public class PrivateCommands {
 
     @PrivateCommand(name = "aslstuff")
     public static void aslStuff(GenericCommandEvent e) {
-        ArrayList<String> tiercolumns = Tierlist.getByGuild(Constants.ASLID).tiercolumns;
+        List<String> tiercolumns = Tierlist.getByGuild(Constants.ASLID).tiercolumns;
         List<List<Object>> lists = Arrays.asList(new LinkedList<>(), new LinkedList<>(), new LinkedList<>(), new LinkedList<>(), new LinkedList<>(), new LinkedList<>(), new LinkedList<>());
         int x = 0;
         JSONObject data = getDataJSON();

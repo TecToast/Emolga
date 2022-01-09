@@ -88,7 +88,7 @@ public class DexQuiz {
         String entry = res.getLeft();
         edition = res.getRight();
         gerName = pokemon;
-        sendDexEntry(this.tc.getAsMention() + pokemon);
+        sendDexEntry(this.tc.getAsMention() + " " + pokemon);
         this.englName = englName;
         //ü = %C3%B6
         this.block = false;

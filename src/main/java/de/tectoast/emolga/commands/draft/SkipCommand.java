@@ -31,7 +31,8 @@ public class SkipCommand extends Command {
     public void process(GuildCommandEvent e) {
         String msg = e.getMsg();
         TextChannel tco = e.getChannel();
-        Member member = e.getMember();
+        Member memberr = e.getMember();
+        long member = memberr.getIdLong();
         Draft d = Draft.getDraftByMember(member, tco);
         if (d == null) {
             //tco.sendMessage(member.getAsMention() + " Du bist in keinem Draft drin!").queue();
@@ -71,9 +72,9 @@ public class SkipCommand extends Command {
         logger.info("d.order = " + d.order);
         logger.info("d.round = " + d.round);
         d.current = d.order.get(d.round).remove(0);
-        league.put("current", d.current.getId());
+        league.put("current", d.current);
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
-        tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current.getIdLong())) + ">) ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
+        tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current)) + ">) ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
         try {
             d.cooldown.cancel();
         } catch (Exception ignored) {

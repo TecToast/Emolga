@@ -1595,8 +1595,11 @@ public abstract class Command {
             serebiiex.put("Burmadame-Sand", "-c");
             serebiiex.put("Burmadame-Lumpen", "-s");
             sdex.put("Burmadame-Pflz", "");
+            sdex.put("Burmadame-Pflanze", "");
             sdex.put("Burmadame-Sand", "-sandy");
+            sdex.put("Burmadame-Boden", "-sandy");
             sdex.put("Burmadame-Lumpen", "-trash");
+            sdex.put("Burmadame-Stahl", "-trash");
             sdex.put("Boreos-T", "-therian");
             sdex.put("Demeteros-T", "-therian");
             sdex.put("Deoxys-Def", "-defense");
@@ -1618,6 +1621,10 @@ public abstract class Command {
             sdex.put("Voltolos-I", "");
             sdex.put("Zygarde-50%", "");
             sdex.put("Zygarde-10%", "-10");
+            sdex.put("Psiaugon-W", "f");
+            sdex.put("Psiaugon-M", "");
+            sdex.put("Nidoran-M", "m");
+            sdex.put("Nidoran-F", "f");
         /*emolgaChannel.put(Constants.ASLID, new ArrayList<>(Arrays.asList(728680506098712579L, 736501675447025704L)));
         emolgaChannel.put(Constants.BSID, new ArrayList<>(Arrays.asList(732545253344804914L, 735076688144105493L)));
         emolgaChannel.put(709877545708945438L, new ArrayList<>(Collections.singletonList(738893933462945832L)));
@@ -3628,6 +3635,7 @@ public abstract class Command {
     public static String getDataName(String s) {
         logger.info("s = " + s);
         if (s.equals("Wie-Shu")) return "mienshao";
+        if (s.equals("Lin-Fu")) return "mienfoo";
         if (s.equals("Porygon-Z")) return "porygonz";
         if (s.equals("Sen-Long")) return "drampa";
         if (s.startsWith("Kapu-")) return getSDName(s);
@@ -4108,7 +4116,7 @@ public abstract class Command {
         }
 
         public static ArgumentType draft() {
-            return withPredicate("Draftname", s -> getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9").has(s) || getEmolgaJSON().getJSONObject("drafts").has(s), false);
+            return withPredicate("Draftname", s -> getEmolgaJSON().getJSONObject("drafts").has(s) || getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9").has(s), false);
         }
 
         public static ArgumentType withPredicate(String name, Predicate<String> check, boolean female) {

@@ -48,7 +48,7 @@ public class Tierlist {
     /**
      * the amount of rounds in the draft
      */
-    public int rounds;
+    public final int rounds;
 
     public Tierlist(String guild) {
         this.guild = guild.substring(0, guild.length() - 5);

@@ -1,6 +1,5 @@
 package de.tectoast.emolga.selectmenus;
 
-import de.tectoast.emolga.bot.EmolgaListener;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;

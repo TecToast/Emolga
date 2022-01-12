@@ -1,7 +1,6 @@
 package de.tectoast.emolga.selectmenus;
 
 import com.google.common.reflect.ClassPath;
-import de.tectoast.emolga.bot.EmolgaListener;
 import de.tectoast.emolga.commands.Command;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import org.slf4j.Logger;

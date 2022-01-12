@@ -809,6 +809,25 @@ public class PrivateCommands {
         CommandCategory.musicGuilds.forEach(DBManagers.MUSIC_GUILDS::addGuild);
     }
 
+    @PrivateCommand(name = "wooloos4fix")
+    public static void woolooFix(GenericCommandEvent e) {
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("WoolooCupS4");
+        JSONObject picks = league.getJSONObject("picks");
+        List<String> tiers = Arrays.asList("Lambda", "Theta", "Phi", "Rho");
+        for (String s : new ArrayList<>(picks.keySet())) {
+            HashMap<String, List<JSONObject>> map = new HashMap<>();
+            for (JSONObject o : picks.getJSONList(s)) {
+                map.computeIfAbsent(o.getString("tier"), k -> new LinkedList<>()).add(o);
+            }
+            JSONArray arr = new JSONArray();
+            for (String tier : tiers) {
+                map.get(tier).forEach(arr::put);
+            }
+            picks.put(s, arr);
+        }
+        saveEmolgaJSON();
+    }
+
     public static void execute(Message message) {
         String msg = message.getContentRaw();
         for (Method method : PrivateCommands.class.getDeclaredMethods()) {

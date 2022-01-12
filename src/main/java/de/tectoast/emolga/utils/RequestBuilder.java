@@ -22,6 +22,25 @@ public class RequestBuilder {
     private final ArrayList<MyRequest> requests = new ArrayList<>();
     private final String sid;
     private boolean executed = false;
+    private Runnable runnable;
+    private long delay = 0;
+    private boolean suppressMessages = false;
+
+    public RequestBuilder withRunnable(Runnable r) {
+        this.runnable = r;
+        return this;
+    }
+
+    public RequestBuilder withRunnable(Runnable r, long delay) {
+        this.runnable = r;
+        this.delay = delay;
+        return this;
+    }
+
+    public RequestBuilder suppressMessages() {
+        this.suppressMessages = true;
+        return this;
+    }
 
     /**
      * Creates a RequestBuilder
@@ -236,22 +255,10 @@ public class RequestBuilder {
         return requests.stream().filter(r -> r.valueInputOption.equals(ValueInputOption.BATCH)).map(MyRequest::buildBatch).collect(Collectors.toList());
     }
 
-    public void execute() {
-        execute(false, null);
-    }
-
-    public void execute(Runnable r) {
-        execute(false, r);
-    }
-
-    public void execute(boolean suppressMessages) {
-        execute(suppressMessages, null);
-    }
-
     /**
      * Executes the request to the specified google sheet
      */
-    public void execute(boolean suppressMessages, Runnable r) {
+    public void execute() {
         if (executed)
             throw new IllegalStateException("Already executed RequestBuilder with requests:\nsid = " + this.sid + "\n" + requests);
 
@@ -298,16 +305,16 @@ public class RequestBuilder {
         }, "ReqBuilder Batch"));
         list.forEach(Thread::start);
         //noinspection IfStatementWithIdenticalBranches
-        if (r != null) {
+        if (runnable != null) {
             try {
                 for (Thread thread : list) {
                     thread.join();
                 }
-                Thread.sleep(3000);
+                Thread.sleep(delay);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            r.run();
+            runnable.run();
             executed = true;
         } else
             executed = true;

@@ -1,6 +1,5 @@
 package de.tectoast.emolga.commands.various;
 
-import de.tectoast.emolga.bot.EmolgaListener;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;

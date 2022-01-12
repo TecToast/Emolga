@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("UnusedReturnValue")
 public class RequestGetter {
     private static final Logger logger = LoggerFactory.getLogger(RequestGetter.class);
     private final String sid;

@@ -64,7 +64,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.List;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -628,10 +627,10 @@ public abstract class Command {
             builder.append("**").append(hours).append("** ").append(pluralise(hours, "Stunde", "Stunden")).append(", ");
             timeseconds = timeseconds % (60 * 60);
         }
-        int minutes = (int) (timeseconds / (60));
+        int minutes = (int) (timeseconds / 60);
         if (minutes > 0) {
             builder.append("**").append(minutes).append("** ").append(pluralise(minutes, "Minute", "Minuten")).append(", ");
-            timeseconds = timeseconds % (60);
+            timeseconds = timeseconds % 60;
         }
         if (timeseconds > 0) {
             builder.append("**").append(timeseconds).append("** ").append(pluralise(timeseconds, "Sekunde", "Sekunden"));
@@ -870,7 +869,7 @@ public abstract class Command {
     public static String getNumber(HashMap<String, String> map, String pick) {
         //logger.info(map);
         for (String s : map.keySet()) {
-            if ((pick.contains("Amigento") && s.contains("Amigento")) || s.equals(pick) || s.equals(pick.substring(2)) || (pick.contains("Wulaosu") && s.contains("Wulaosu")))
+            if (pick.contains("Amigento") && s.contains("Amigento") || s.equals(pick) || pick.equals("M-" + s) || pick.contains("Wulaosu") && s.contains("Wulaosu"))
                 return map.get(s);
         }
         return "";
@@ -1011,6 +1010,42 @@ public abstract class Command {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void sortWoolooS4(String sid, int leagu, JSONObject league) {
+        String range = "Tabelle!%s%d:%s%d".formatted(getAsXCoord(leagu * 8 - 5), 8, getAsXCoord(leagu * 8), 13);
+        List<List<Object>> formula = Google.get(sid, range, true, false);
+        List<List<Object>> points = Google.get(sid, range, false, false);
+        List<List<Object>> orig = new ArrayList<>(points);
+        JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
+        List<List<Long>> ll = league.getLongListList("table" + leagu);
+        points.sort((o1, o2) -> {
+            int c = compareColumns(o1, o2, 5);
+            if (c != 0) return c;
+            long u1 = ll.get((Integer.parseInt(String.valueOf(formula.get(points.indexOf(o1)).get(0)).substring(21)) - 2) / 15).get(0);
+            long u2 = ll.get((Integer.parseInt(String.valueOf(formula.get(points.indexOf(o1)).get(0)).substring(21)) - 2) / 15).get(0);
+            if (league.has("results")) {
+                JSONObject o = league.getJSONObject("results");
+                if (o.has(u1 + ";" + u2)) return o.getLong(u1 + ";" + u2) == u1 ? 1 : -1;
+                if (o.has(u2 + ";" + u1)) return o.getLong(u2 + ";" + u1) == u1 ? 1 : -1;
+            }
+            return compareColumns(o1, o2, 4, 2);
+        });
+        Collections.reverse(points);
+        //logger.info(points);
+        HashMap<Integer, List<Object>> namap = new HashMap<>();
+        int i = 0;
+        for (List<Object> objects : orig) {
+            namap.put(points.indexOf(objects), formula.get(i));
+            i++;
+        }
+        List<List<Object>> sendname = new ArrayList<>();
+        for (int j = 0; j < 6; j++) {
+            sendname.add(namap.get(j));
+        }
+        logger.info(String.valueOf(sendname));
+        RequestBuilder.updateAll(sid, range.substring(0, range.length() - 4), sendname, false);
+        logger.info("Done!");
     }
 
     public static void sortZBS(String sid, String tablename, JSONObject league) {
@@ -1799,194 +1834,61 @@ public abstract class Command {
                 sortWooloo(sid, league);
             });
             sdAnalyser.put(FLPID, (game, uid1, uid2, kills, deaths, args) -> {
-                // Gen 4 Turnier
-            /*try {
-                TextChannel result = (TextChannel) args[3];
-                JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("SinnohPlateau");
-                String url = (String) args[1];
-                String[] split = url.split("-");
-                long battleid = Long.parseLong(split[split.length - 1]);
-                List<Long> played = league.getLongList("played");
-                Message m = (Message) args[7];
-                if (played.contains(battleid)) {
-                    m.delete().queue();
-                    sendToUser(m.getAuthor(), "kek");
-                    return;
-                }
-                league.getJSONArray("played").put(battleid);
-                List<Long> table = league.getLongList("table");
-                long luid1 = Long.parseLong(uid1);
-                long luid2 = Long.parseLong(uid2);
-                if (!table.contains(luid1)) {
-                    result.sendMessage("<@" + uid1 + "> hat sich nicht angemeldet!").queue();
-                    return;
-                }
-                if (!table.contains(luid2)) {
-                    result.sendMessage("<@" + uid2 + "> hat sich nicht angemeldet!").queue();
-                    return;
-                }
-                result.sendMessage((CharSequence) args[2]).queue();
-                String sid = "18akCBATIaQ0DcMihj_DLX9QmxbZPP6Gpd6NlYqrMHUY";
-                RequestBuilder b = new RequestBuilder(sid);
-                List<String> list = Files.readAllLines(Paths.get("sinnoh.txt"));
-                List<List<Object>> nmons = new LinkedList<>();
-                List<List<Object>> getkills = Google.get(sid, "Tabelle!O500:U1000", false, false);
-                HashMap<String, Integer> gkills = new HashMap<>();
-                HashMap<String, Integer> gfights = new HashMap<>();
-                if (getkills != null) {
-                    for (List<Object> objects : getkills) {
-                        String mon = (String) objects.get(0);
-                        gkills.put(mon, Integer.valueOf((String) objects.get(4)));
-                        gfights.put(mon, Integer.valueOf((String) objects.get(2)));
-                    }
-                }
-                kills.stream().flatMap(hm -> hm.entrySet().stream()).forEach(e -> {
-                    String mon = e.getKey();
-                    String k = e.getValue();
-                    Integer killsi = Integer.valueOf(k);
-                    if (!list.contains(mon)) {
-                        list.add(mon);
-                        gkills.put(mon, killsi);
-                        gfights.put(mon, 1);
-                    } else {
-                        gkills.put(mon, gkills.get(mon) + killsi);
-                        gfights.put(mon, gfights.get(mon) + 1);
-                    }
-                });
-                Files.writeString(Paths.get("sinnoh.txt"), String.join("\n", list));
-                List<List<Object>> send = new LinkedList<>();
-                int x = 500;
-                for (String s : list) {
-                    send.add(Arrays.asList(s, "", gfights.get(s), "", gkills.get(s), "", "=RUNDEN(S%d/Q%d; 2)".formatted(x, x)));
-                    x++;
-                }
-                b.addAll("Tabelle!O500", send);
-                List<List<Object>> gettable = Google.get(sid, "Tabelle!S300:U500", false, false);
-                List<Long> uids = Arrays.asList(luid1, luid2);
-                for (int i = 0; i < uids.size(); i++) {
-                    long uid = uids.get(i);
-                    Player p = game[i];
-                    int index = table.indexOf(uid);
-                    List<Object> oldl = gettable.get(index);
-                    int oldwins = Integer.parseInt((String) oldl.get(0));
-                    int oldlooses = Integer.parseInt((String) oldl.get(2));
-                    b.addRow("Tabelle!S%d".formatted(index + 300), p.isWinner() ? Arrays.asList(oldwins + 1, "", oldlooses) : Arrays.asList(oldwins, "", oldlooses + 1));
-                }
-                b.execute();
-                saveEmolgaJSON();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            /*
-            BADS
-            JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
-            JSONObject league = drafts.getJSONObject("BADS");
-            String sid = league.getString("sid");
-            int gameday = getGameDay(league, uid1, uid2);
-            if (gameday == -1) {
-                logger.info("GAMEDAY -1");
-                return;
-            }
-            ArrayList<String> users = new ArrayList<>(Arrays.asList(uid1, uid2));
-            int i = 0;
-            RequestBuilder b = new RequestBuilder(sid);
-            for (String uid : users) {
-                int index = Arrays.asList(league.getString("table").split(",")).indexOf(uid);
-                ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
-                String s = "Teamübersicht!" + getAsXCoord(index * 2 + 2);
-                b.addSingle(s + (gameday + 217), game[i].getTotalKills());
-                b.addSingle(s + (gameday + 226), game[i].getTotalDeaths());
-                int win = 0;
-                int loose = 0;
-                if (game[i].isWinner()) {
-                    win = 1;
-                    if (!league.has("results"))
-                        league.put("results", new JSONObject());
-                    league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
-                } else loose = 1;
-                b.addSingle(s + (gameday + 199), win);
-                b.addSingle(s + (gameday + 208), loose);
-                i++;
-            }
-            generateResult(b, game, league, gameday, uid1, "Spielplan", "Wooloo", (String) args[1]);
-            b.execute();
-            sortBADS(sid, league);
-            saveEmolgaJSON();
-
-
-            // ZBS
-             */
-                JSONObject league;
-                JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
-                int l;
-                if (drafts.getJSONObject("ZBSS3L1").getLongList("table").contains(Long.parseLong(uid1))) l = 1;
-                else l = 2;
-                league = drafts.getJSONObject("ZBSS3L" + l);
+                JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("WoolooCupS4");
                 if (league.has("results")) {
                     JSONObject results = league.getJSONObject("results");
                     if (results.has(uid1 + ":" + uid2) || results.has(uid2 + ":" + uid1)) {
-                        sendToMe("Double Entry FLP/ZBS -> Skipped");
+                        sendToMe("Double Entry FLP/Wooloo -> Skipped");
                         return;
                     }
                 }
                 String sid = league.getString("sid");
-                logger.info("l = " + l);
                 int gameday = getGameDay(league, uid1, uid2);
                 if (gameday == -1) {
                     logger.info("GAMEDAY -1");
                     return;
                 }
-                ArrayList<String> users = new ArrayList<>(Arrays.asList(uid1, uid2));
+                int gdi = gameday - 1;
+                List<String> users = Arrays.asList(uid1, uid2);
                 int i = 0;
-                List<Long> table = league.getLongList("table");
+                int leagu = league.getLongListList("table1").stream().anyMatch(l -> l.contains(Long.parseLong(uid1))) ? 1 : 2;
+                String lea = leagu == 1 ? "Sonne" : "Hagel";
+                List<Long> table = league.getLongListList("table" + leagu).stream().map(l -> l.get(0)).collect(Collectors.toList());
                 RequestBuilder b = new RequestBuilder(sid);
-                List<Integer> indexes = new ArrayList<>(2);
-                users.forEach(u -> indexes.add(table.indexOf(Long.parseLong(u))));
-                RequestGetter rg = new RequestGetter(sid);
-                String li = "Liga " + l;
-                indexes.forEach(index -> rg.addRange(li + "!B" + (index * 11 + 200) + ":D"
-                        + (index * 11 + 210)).addRange(li + "!I" + (index + 3) + ":K" + (index + 3)));
-                List<List<List<String>>> gets = rg.execute();
                 for (String uid : users) {
                     int index = table.indexOf(Long.parseLong(uid));
                     ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
-                    List<List<String>> get = gets.get(i * 2);
                     List<List<Object>> list = new ArrayList<>();
                     int x = 0;
                     for (String pick : picks) {
                         String kill = getNumber(kills.get(i), pick);
                         String death = getNumber(deaths.get(i), pick);
                         list.add(Arrays.asList(
-                                Integer.parseInt(get.get(x).get(0)) + (kill.equals("") ? 0 : Integer.parseInt(kill)),
-                                Integer.parseInt(get.get(x).get(1)) + (death.equals("") ? 0 : Integer.parseInt(death)),
-                                Integer.parseInt(get.get(x).get(2)) + (death.equals("") ? 0 : 1)
+                                death.equals("") ? "-" : 1,
+                                kill.equals("") ? "-" : Integer.parseInt(kill),
+                                death.equals("") ? "-" : Integer.parseInt(death)
                         ));
                         x++;
                     }
-                    List<List<String>> getvic = gets.get(i * 2 + 1);
-                    int win = Integer.parseInt(getvic.get(0).get(0));
-                    int tie = Integer.parseInt(getvic.get(0).get(1));
-                    int loose = Integer.parseInt(getvic.get(0).get(2));
                     if (game[i].isWinner()) {
-                        win++;
+                        b.addSingle("Teamseite %s!%s%d".formatted(lea, getAsXCoord(gdi * 3 + 12), index * 15 + 16), "1");
                         if (!league.has("results"))
                             league.put("results", new JSONObject());
                         league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
-                    } else loose++;
+                    }
                     try {
-                        b.addAll(li + "!B" + (index * 11 + 200), list);
-                        b.addRow(li + "!I" + (index + 3), Arrays.asList(win, tie, loose));
-                    } catch (IllegalArgumentException IllegalArgumentException) {
-                        IllegalArgumentException.printStackTrace();
+                        b.addAll("Teamseite %s!%s%d".formatted(lea, getAsXCoord(gdi * 3 + 11), index * 15 + 4), list);
+                    } catch (IllegalArgumentException ex) {
+                        ex.printStackTrace();
                     }
                     i++;
                 }
-                generateResult(b, game, league, gameday, uid1, "Spielplan " + li, "ZBS", (String) args[1]);
-                b.execute(() -> sortZBS(sid, li, league));
+                generateResult(b, game, league, gameday, uid1, "Spielplan", "WoolooCupS4", (String) args[1], leagu);
+                b.withRunnable(() -> sortWoolooS4(sid, leagu, league), 3000).execute();
                 saveEmolgaJSON();
             });
 
-            sdAnalyser.put(Constants.FPLID, (game, uid1, uid2, kills, deaths, args) -> {
+            sdAnalyser.put(FPLID, (game, uid1, uid2, kills, deaths, args) -> {
                 JSONObject league;
                 JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
                 int l;
@@ -2022,8 +1924,8 @@ public abstract class Command {
                         league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
                     } else loose++;
                     try {
-                        String s = li + getAsXCoord((index / 4) * 22 + 6 + gameday);
-                        int yc = (index % 4) * 20;
+                        String s = li + getAsXCoord(index / 4 * 22 + 6 + gameday);
+                        int yc = index % 4 * 20;
                         b.addColumn(s + (yc + 8), list);
                         b.addSingle(s + (yc + 20), game[i].getTotalDeaths());
                         b.addColumn(s + (yc + 21), Arrays.asList(win, loose));
@@ -2048,8 +1950,8 @@ public abstract class Command {
                     ycoord++;
                 }
                 if (str.split(":")[0].equals(uid2)) Collections.reverse(gpl);
-                b.addRow("Spielplan (Spoiler) L%d!%s%d".formatted(l, getAsXCoord((gdi / 4) * 6 + 4), (gdi % 4) * 6 + 6 + ycoord), gpl);
-                b.execute(() -> sortFPL(sid, "Tabelle L" + l, league));
+                b.addRow("Spielplan (Spoiler) L%d!%s%d".formatted(l, getAsXCoord(gdi / 4 * 6 + 4), gdi % 4 * 6 + 6 + ycoord), gpl);
+                b.withRunnable(() -> sortFPL(sid, "Tabelle L" + l, league), 4000).execute();
                 saveEmolgaJSON();
             });
 
@@ -2110,7 +2012,7 @@ public abstract class Command {
                         list.add(l);
                         String loc = getAsXCoord(gdi * 9 + (isRight ? 9 : 1)) + (battleindex * 10 + 6 + num);
                         String range = loc + ":" + loc;
-                        if ((deathint) == 1) {
+                        if (deathint == 1) {
                             b.addFGColorChange(1634614187, range, convertColor(0x000000));
                             b.addStrikethroughChange(1634614187, range, true);
                         } else {
@@ -2192,7 +2094,7 @@ public abstract class Command {
         }
     }
 
-    public static void generateResult(RequestBuilder b, Player[] game, JSONObject league, int gameday, String uid1, String sheet, String leaguename, String replay) {
+    public static void generateResult(RequestBuilder b, Player[] game, JSONObject league, int gameday, String uid1, String sheet, String leaguename, String replay, Object... args) {
         int aliveP1 = 0;
         int aliveP2 = 0;
         for (Pokemon p : game[0].getMons()) {
@@ -2214,6 +2116,7 @@ public abstract class Command {
         String coords = switch (leaguename) {
             case "ZBS" -> getZBSGameplanCoords(gameday, index);
             case "Wooloo" -> getWoolooGameplanCoords(gameday, index);
+            case "WoolooCupS4" -> getWoolooS4GameplanCoords(gameday, index, (Integer) args[0]);
             default -> null;
         };
         if (str.split(":")[0].equals(uid1)) {
@@ -2285,6 +2188,12 @@ public abstract class Command {
         if (gameday < 4) return "C" + (gameday * 6 + index - 2);
         if (gameday < 7) return "F" + ((gameday - 3) * 6 + index - 2);
         return "I" + ((gameday - 6) * 6 + index - 2);
+    }
+    private static String getWoolooS4GameplanCoords(int gameday, int index, int liga) {
+        int x = gameday - 1;
+        logger.info("gameday = " + gameday);
+        logger.info("index = " + index);
+        return "%s%d".formatted(getAsXCoord(x > 1 && x < 8 ? gameday % 3 * 4 + 3 : x % 2 * 4 + 5), gameday / 3 * 8 + 3 * liga);
     }
 
     private static String getASLGameplanCoords(int gameday, int index, int pk) {
@@ -2634,7 +2543,7 @@ public abstract class Command {
                     if ((type.equals("") || atkdata.getJSONObject(moveengl).getString("type").equals(getEnglName(type))) &&
                             (dmgclass.equals("") || atkdata.getJSONObject(moveengl).getString("category").equals(dmgclass)) &&
                             (!msg.toLowerCase().contains("--prio") || atkdata.getJSONObject(moveengl).getInt("priority") > 0) &&
-                            (containsGen(learnset, moveengl, maxgen)) &&
+                            containsGen(learnset, moveengl, maxgen) &&
                             moveFilter(msg, move) &&
                             !already.contains(move)) {
                         already.add(move);
@@ -2767,10 +2676,10 @@ public abstract class Command {
                 List<Object> l = list.get(i);
                 String s = (i + 1) + ". " + (i < 9 ? " " : "") + l.get(0);
                 name.add(s.length());
-                vic.add((String.valueOf(l.get(2))).length());
-                bo3dif.add((String.valueOf(l.get(4))).length());
+                vic.add(String.valueOf(l.get(2)).length());
+                bo3dif.add(String.valueOf(l.get(4)).length());
                 //deaths.add(((String) l.get(5)).length());
-                dif.add((String.valueOf(l.get(6))).length());
+                dif.add(String.valueOf(l.get(6)).length());
             }
             int maxname = Collections.max(name);
             //logger.info("maxname = " + maxname);
@@ -2814,7 +2723,7 @@ public abstract class Command {
     }
 
     public static String getGen5SpriteWithoutGoogle(JSONObject o, boolean shiny) {
-        return "http://play.pokemonshowdown.com/sprites/gen5" + (shiny ? "-shiny" : "") + "/" + (toSDName(o.has("baseSpecies") ? o.getString("baseSpecies") : o.getString("name")) + (o.has("forme") ? "-" + toSDName(o.getString("forme")) : "")) + ".png";
+        return "http://play.pokemonshowdown.com/sprites/gen5" + (shiny ? "-shiny" : "") + "/" + toSDName(o.has("baseSpecies") ? o.getString("baseSpecies") : o.getString("name")) + (o.has("forme") ? "-" + toSDName(o.getString("forme")) : "") + ".png";
     }
 
     public static String getGen5SpriteWithoutGoogle(JSONObject o) {
@@ -2822,7 +2731,7 @@ public abstract class Command {
     }
 
     public static String getGen5Sprite(JSONObject o) {
-        return "=IMAGE(\"http://play.pokemonshowdown.com/sprites/gen5/" + (toSDName(o.has("baseSpecies") ? o.getString("baseSpecies") : o.getString("name")) + (o.has("forme") ? "-" + toSDName(o.getString("forme")) : "")) + ".png\"; 1)";
+        return "=IMAGE(\"http://play.pokemonshowdown.com/sprites/gen5/" + toSDName(o.has("baseSpecies") ? o.getString("baseSpecies") : o.getString("name")) + (o.has("forme") ? "-" + toSDName(o.getString("forme")) : "") + ".png\"; 1)";
     }
 
     public static String getGen5Sprite(String str) {
@@ -2890,7 +2799,7 @@ public abstract class Command {
         Guild g = resultchannel.getGuild();
         long gid;
         String msg = m != null ? m.getContentDisplay() : "";
-        if ((m != null && m.getAuthor().getIdLong() == FLOID)) {
+        if (m != null && m.getAuthor().getIdLong() == FLOID) {
             if (msg.contains("518008523653775366")) gid = 518008523653775366L;
             else if (msg.contains("709877545708945438")) gid = 709877545708945438L;
             else if (msg.contains("747357029714231299")) gid = 747357029714231299L;
@@ -3074,14 +2983,14 @@ public abstract class Command {
         if (currmillis < 1629482400000L) return 1629489600000L - currmillis;
         int after = Integer.parseInt(f.format(new Date(currmillis + delayinmins * 60000L)));
         int now = Integer.parseInt(f.format(new Date(currmillis)));
-        if ((now >= from && now < to) && (after < from || after >= to))
+        if (now >= from && now < to && (after < from || after >= to))
             return ((to - from) * 60L + delayinmins) * 60000;
         else if (now >= to || now < from) {
             Calendar c = Calendar.getInstance();
             if (now >= to)
                 c.add(Calendar.DAY_OF_MONTH, 1);
-            c.set(Calendar.HOUR_OF_DAY, from + (delayinmins / 60));
-            c.set(Calendar.MINUTE, (delayinmins % 60));
+            c.set(Calendar.HOUR_OF_DAY, from + delayinmins / 60);
+            c.set(Calendar.MINUTE, delayinmins % 60);
             c.set(Calendar.SECOND, 0);
             c.set(Calendar.MILLISECOND, 0);
             return c.getTimeInMillis() - System.currentTimeMillis();
@@ -3089,7 +2998,7 @@ public abstract class Command {
     }
 
     public static long getXPNeeded(int level) {
-        return (long) (5 * (Math.pow(level, 2)) + 50L * level + 100);
+        return (long) (5 * Math.pow(level, 2) + 50L * level + 100);
     }
 
     public static int getLevelFromXP(int xp) {
@@ -3720,7 +3629,7 @@ public abstract class Command {
         if (s.contains("Gastrodon")) return "Gastrodon";
         if (s.contains("Eiscue")) return "Kubuin";
         if (s.contains("Oricorio")) return "Choreogel";
-        if (((gid == ASLID || gid == NDSID) || s.equals("Urshifu-Rapid-Strike")) && s.contains("Urshifu"))
+        if ((gid == ASLID || gid == NDSID || s.equals("Urshifu-Rapid-Strike")) && s.contains("Urshifu"))
             return "Wulaosu-Wasser";
         if (s.equals("Urshifu")) return "Wulaosu-Unlicht";
         if (s.contains("Urshifu")) return "Wulaosu";
@@ -3808,7 +3717,7 @@ public abstract class Command {
 
     public static boolean isChannelAllowed(TextChannel tc) {
         long gid = tc.getGuild().getIdLong();
-        return (!emolgaChannel.containsKey(gid) || emolgaChannel.get(gid).contains(tc.getIdLong()) || emolgaChannel.get(gid).isEmpty());
+        return !emolgaChannel.containsKey(gid) || emolgaChannel.get(gid).contains(tc.getIdLong()) || emolgaChannel.get(gid).isEmpty();
     }
 
     public boolean isSlash() {
@@ -3844,7 +3753,7 @@ public abstract class Command {
     }
 
     public boolean allowsMember(Member mem) {
-        return (category.allowsMember(mem) && !customPermissions) || allowsMember.test(mem);
+        return category.allowsMember(mem) && !customPermissions || allowsMember.test(mem);
     }
 
     public boolean allowsGuild(Guild g) {
@@ -3919,8 +3828,8 @@ public abstract class Command {
         if (args == null) {
             return "`" + getPrefix() + getName() + "` Keine Hilfe verfügbar";
         }
-        return ("`" + (args.hasSyntax() ? args.getSyntax() : getPrefix() + getName() + (args.arguments.size() > 0 ? " " : "")
-                + args.arguments.stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" ")))) + "` " + overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
+        return "`" + (args.hasSyntax() ? args.getSyntax() : getPrefix() + getName() + (args.arguments.size() > 0 ? " " : "")
+                + args.arguments.stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" "))) + "` " + overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
     }
 
     public String getHelpWithoutCmd(Guild g) {

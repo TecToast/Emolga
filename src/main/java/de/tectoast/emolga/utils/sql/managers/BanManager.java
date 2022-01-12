@@ -1,6 +1,5 @@
 package de.tectoast.emolga.utils.sql.managers;
 
-import de.tectoast.emolga.bot.EmolgaListener;
 import de.tectoast.emolga.utils.sql.base.DataManager;
 import de.tectoast.emolga.utils.sql.base.columns.LongColumn;
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn;

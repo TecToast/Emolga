@@ -64,6 +64,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -3645,6 +3646,7 @@ public abstract class Command {
         if (s.equals("Lycanroc-Dusk")) return "Wolwerock-Zw";
         if (s.contains("Rotom")) return s;
         if (s.contains("Florges")) return "Florges";
+        if (s.contains("Floette")) return "Floette";
         if (s.contains("Flabébé")) return "Flabébé";
         //logger.info(s.contains("Silvally"));
         if (s.contains("Silvally")) {
@@ -3665,8 +3667,8 @@ public abstract class Command {
         if (s.contains("Deerling")) return "Sesokitz";
         if (s.equals("Kyurem-Black")) return "Kyurem-Black";
         if (s.equals("Kyurem-White")) return "Kyurem-White";
-        if (s.equals("Meowstic")) return "Psiaugon-männlich";
-        if (s.equals("Meowstic-F")) return "Psiaugon-weiblich";
+        if (s.equals("Meowstic")) return "Psiaugon-M";
+        if (s.equals("Meowstic-F")) return "Psiaugon-W";
         if (s.equalsIgnoreCase("Hoopa-Unbound")) return "Hoopa-U";
         if (s.equals("Zygarde")) return "Zygarde-50%";
         if (s.equals("Zygarde-10%")) return "Zygarde-10%";

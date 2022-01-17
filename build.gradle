@@ -1,0 +1,75 @@
+//file:noinspection GroovyAssignabilityCheck
+plugins {
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id 'java'
+}
+compileJava.options.encoding = 'UTF-8'
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+apply plugin: "com.github.johnrengelman.shadow"
+
+group 'de.tectoast'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://m2.dv8tion.net/releases"
+    }
+}
+
+jar {
+    manifest {
+        attributes "Main-Class": "de.tectoast.emolga.Main"
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+
+shadowJar {
+    archiveBaseName.set('Bots')
+    archiveClassifier.set('')
+    archiveVersion.set('')
+    destinationDirectory.set(new File("C:\\Users\\Florian\\Desktop\\JARVIS und co"))
+    manifest {
+        attributes "Main-Class": "de.tectoast.emolga.Main"
+    }
+}
+
+dependencies {
+    implementation ('org.slf4j:slf4j-api:1.7.32') {
+        version {
+            strictly('2.0.0-alpha5')
+        }
+    }
+    implementation 'org.eclipse.jetty:jetty-server:11.0.7'
+    implementation 'org.eclipse.jetty:jetty-util:11.0.7'
+    implementation 'com.google.oauth-client:google-oauth-client-jetty:1.32.1'
+    implementation 'com.google.apis:google-api-services-docs:v1-rev20210707-1.32.1'
+    implementation 'com.google.apis:google-api-services-sheets:v4-rev20210629-1.32.1'
+    implementation 'com.google.apis:google-api-services-youtube:v3-rev20210915-1.32.1'
+    implementation 'org.jsoup:jsoup:1.14.3'
+    implementation 'com.sedmelluq:lavaplayer:1.3.75'
+    //implementation 'org.slf4j:slf4j-simple:1.7.32'
+
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.17.1'
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.17.1'
+    implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.17.1'
+    implementation 'mysql:mysql-connector-java:8.0.27'
+    implementation 'jakarta.xml.bind:jakarta.xml.bind-api:3.0.1'
+    implementation 'org.glassfish.jaxb:jaxb-runtime:3.0.1'
+    implementation files("C:\\Users\\Florian\\Desktop\\IntelliJ\\GitHub\\JSON-java\\src\\main\\java\\json-java-olf.jar")
+    implementation files("C:\\Users\\Florian\\Desktop\\IntelliJ\\Toastilities.jar")
+    implementation files("C:\\Users\\Florian\\Desktop\\IntelliJ\\GitHub\\JDA\\build\\libs\\JDA-4.4.0_DEV-withDependencies.jar")
+}
+
+test {
+    useJUnitPlatform()
+}
+

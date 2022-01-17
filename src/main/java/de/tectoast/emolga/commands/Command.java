@@ -4627,7 +4627,7 @@ public abstract class Command {
             sb.append(", empty=").append(empty);
             sb.append(", otherLang='").append(otherLang).append('\'');
             sb.append('}');
-            emolgajda.getTextChannelById(837027867417641021L).sendMessage(sb.toString()).queue();
+            logger.info("ToStringCheck {}", sb);
             return sb.toString();
         }
 

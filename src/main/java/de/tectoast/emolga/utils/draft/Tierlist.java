@@ -1,6 +1,8 @@
 package de.tectoast.emolga.utils.draft;
 
 import de.tectoast.emolga.commands.Command;
+import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
+import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,11 +22,11 @@ public class Tierlist {
     /**
      * HashMap containing<br>Keys: Tiers<br>Values: Lists with the mons
      */
-    public final HashMap<String, List<String>> tierlist = new LinkedHashMap<>();
+    public final Map<String, List<String>> tierlist = new LinkedHashMap<>();
     /**
      * The price for each tier
      */
-    public final HashMap<String, Integer> prices = new HashMap<>();
+    public final Map<String, Integer> prices = new HashMap<>();
     /**
      * The guild of this tierlist
      */
@@ -186,5 +188,19 @@ public class Tierlist {
             if (!str.equals("")) return str;
         }
         return "";
+    }
+
+    public Pair<Integer, Integer> getLocation(String mon, int defX, int defY) {
+        int x = defX;
+        int y = defY;
+        for (String s : tiercolumns) {
+            if (s.equalsIgnoreCase(mon)) break;
+            //logger.info(s + " " + y);
+            if (s.equals("NEXT")) {
+                x++;
+                y = 3;
+            } else y++;
+        }
+        return new ImmutablePair<>(x, y);
     }
 }

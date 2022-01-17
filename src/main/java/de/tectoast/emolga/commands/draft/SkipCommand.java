@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
+import de.tectoast.emolga.utils.RequestBuilder;
 import de.tectoast.emolga.utils.draft.Draft;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -15,14 +16,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.stream.Collectors;
 
-import static de.tectoast.emolga.utils.draft.Draft.getIndex;
-
 public class SkipCommand extends Command {
 
     private static final Logger logger = LoggerFactory.getLogger(SkipCommand.class);
 
     public SkipCommand() {
-        super("skip", "Überspringt deinen Zug", CommandCategory.Draft, Constants.ASLID);
+        super("skip", "Überspringt deinen Zug", CommandCategory.Draft, Constants.ASLID, Constants.FPLID);
         setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
@@ -37,7 +36,7 @@ public class SkipCommand extends Command {
             //tco.sendMessage(member.getAsMention() + " Du bist in keinem Draft drin!").queue();
             return;
         }
-        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9").getJSONObject(d.name);
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
         if (!d.tc.getId().equals(tco.getId())) return;
         if (!d.isSwitchDraft) {
             e.reply("Dieser Draft ist kein Switch-Draft, daher wird !skip nicht unterstützt!");
@@ -53,8 +52,11 @@ public class SkipCommand extends Command {
 
         }
         int round = d.round;
+        RequestBuilder b = new RequestBuilder(league.getString("sid"));
+        b.addStrikethroughChange(league.getInt("draftorder"), d.round + 1, (d.members.size() - d.order.get(d.round).size()) + 6, true);
+        b.execute();
         if (d.order.get(d.round).size() == 0) {
-            if (d.round == 4) {
+            if (d.round == d.getTierlist().rounds) {
                 tco.sendMessage("Der Draft ist vorbei!").queue();
                 d.ended = true;
                 //wooloodoc(tierlist, pokemon, d, mem, needed, null, num, round);
@@ -72,8 +74,8 @@ public class SkipCommand extends Command {
         logger.info("d.round = " + d.round);
         d.current = d.order.get(d.round).remove(0);
         league.put("current", d.current);
-        JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
-        tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current)) + ">) ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
+        JSONObject asl = getEmolgaJSON().getJSONObject("drafts");
+        tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
         try {
             d.cooldown.cancel();
         } catch (Exception ignored) {

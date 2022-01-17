@@ -828,6 +828,36 @@ public class PrivateCommands {
         saveEmolgaJSON();
     }
 
+    @PrivateCommand(name = "checktierlist")
+    public static void checkTierlist(GenericCommandEvent e) {
+        Tierlist tierlist = Tierlist.getByGuild(e.getArg(0));
+        List<String> mons = new LinkedList<>();
+        for (String s : tierlist.order) {
+            for (String str : tierlist.tierlist.get(s)) {
+                if (!getDraftGerName(str).isFromType(Translation.Type.POKEMON)) {
+                    mons.add(str);
+                }
+            }
+        }
+        e.reply(String.join("\n", mons));
+    }
+
+    @PrivateCommand(name = "converttierlist")
+    public static void convertTierlist(GenericCommandEvent e) throws IOException {
+        JSONArray arr = new JSONArray();
+        List<String> curr = new LinkedList<>();
+        for (String tiercolumn : Files.readAllLines(Paths.get("Tierlists", e.getArg(0), "tiercolumns.txt"))) {
+            if (tiercolumn.equals("NEXT")) {
+                arr.put(curr);
+                curr.clear();
+            } else {
+                curr.add(tiercolumn);
+            }
+        }
+        arr.put(curr);
+        logger.info(arr.toString());
+    }
+
     public static void execute(Message message) {
         String msg = message.getContentRaw();
         for (Method method : PrivateCommands.class.getDeclaredMethods()) {

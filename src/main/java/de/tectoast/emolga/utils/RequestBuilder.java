@@ -178,6 +178,18 @@ public class RequestBuilder {
         return addBGColorChange(sheetId, getAsXCoord(x) + y, c);
     }
 
+    public RequestBuilder addNoteChange(int sheetId, String range, String note) {
+        String[] split = range.split(":");
+        String s1 = split[0];
+        String s2 = split.length == 1 ? s1 : split[1];
+        return addBatch(new Request().setUpdateCells(new UpdateCellsRequest()
+                .setRange(buildGridRange(range, sheetId))
+                .setFields("note")
+                .setRows(getCellsAsRowData(
+                        new CellData().setNote(note), getColumnFromRange(s2) - getColumnFromRange(s1) + 1, getRowFromRange(s2) - getRowFromRange(s1) + 1
+                ))));
+    }
+
     public RequestBuilder addHorizontalAlignmentChange(int sheetId, String range, String alignment) {
         String[] split = range.split(":");
         String s1 = split[0];

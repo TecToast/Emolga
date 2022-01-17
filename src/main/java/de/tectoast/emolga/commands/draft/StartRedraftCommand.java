@@ -13,11 +13,12 @@ public class StartRedraftCommand extends Command {
                 .add("name", "Name", "Der Name der Liga/des Drafts", ArgumentManagerTemplate.Text.any())
                 .setExample("!startredraft Emolga-Conference")
                 .build());
+        setCustomPermissions(PermissionPreset.fromIDs(694543579414134802L, 690971979821613056L));
     }
 
     @Override
     public void process(GuildCommandEvent e) {
         ArgumentManager args = e.getArguments();
-        new Draft(e.getChannel(), args.getText("name"), null, true, true);
+        new Draft(e.getChannel(), args.getText("name"), null, false, true);
     }
 }

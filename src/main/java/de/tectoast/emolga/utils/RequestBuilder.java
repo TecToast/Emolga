@@ -25,22 +25,7 @@ public class RequestBuilder {
     private Runnable runnable;
     private long delay = 0;
     private boolean suppressMessages = false;
-
-    public RequestBuilder withRunnable(Runnable r) {
-        this.runnable = r;
-        return this;
-    }
-
-    public RequestBuilder withRunnable(Runnable r, long delay) {
-        this.runnable = r;
-        this.delay = delay;
-        return this;
-    }
-
-    public RequestBuilder suppressMessages() {
-        this.suppressMessages = true;
-        return this;
-    }
+    private String[] additionalSheets;
 
     /**
      * Creates a RequestBuilder
@@ -50,7 +35,6 @@ public class RequestBuilder {
     public RequestBuilder(String sid) {
         this.sid = sid;
     }
-
 
     public static void updateSingle(String sid, String range, Object value, boolean... raw) {
         updateRow(sid, range, Collections.singletonList(value), raw);
@@ -69,7 +53,6 @@ public class RequestBuilder {
             }
         }, "ReqBuilder").start();
     }
-
 
     public static void batchUpdate(String sid, Request... requests) {
         if (requests.length == 0) return;
@@ -107,6 +90,27 @@ public class RequestBuilder {
             e.printStackTrace();
         }
         return r;
+    }
+
+    public RequestBuilder withRunnable(Runnable r) {
+        this.runnable = r;
+        return this;
+    }
+
+    public RequestBuilder withRunnable(Runnable r, long delay) {
+        this.runnable = r;
+        this.delay = delay;
+        return this;
+    }
+
+    public RequestBuilder suppressMessages() {
+        this.suppressMessages = true;
+        return this;
+    }
+
+    public RequestBuilder withAdditionalSheets(String... additionalSheets) {
+        this.additionalSheets = additionalSheets;
+        return this;
     }
 
     /**
@@ -289,6 +293,11 @@ public class RequestBuilder {
                     }
                 try {
                     service.spreadsheets().values().batchUpdate(sid, new BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")).execute();
+                    if (additionalSheets != null) {
+                        for (String sidd : additionalSheets) {
+                            service.spreadsheets().values().batchUpdate(sidd, new BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")).execute();
+                        }
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                     sendStacktraceToMe(e);
@@ -299,6 +308,11 @@ public class RequestBuilder {
             if (!raw.isEmpty()) {
                 try {
                     service.spreadsheets().values().batchUpdate(sid, new BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW")).execute();
+                    if (additionalSheets != null) {
+                        for (String sidd : additionalSheets) {
+                            service.spreadsheets().values().batchUpdate(sidd, new BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW")).execute();
+                        }
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                     sendStacktraceToMe(e);
@@ -309,6 +323,11 @@ public class RequestBuilder {
             if (!batch.isEmpty()) {
                 try {
                     service.spreadsheets().batchUpdate(sid, new BatchUpdateSpreadsheetRequest().setRequests(batch)).execute();
+                    if (additionalSheets != null) {
+                        for (String sidd : additionalSheets) {
+                            service.spreadsheets().batchUpdate(sidd, new BatchUpdateSpreadsheetRequest().setRequests(batch)).execute();
+                        }
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                     sendStacktraceToMe(e);

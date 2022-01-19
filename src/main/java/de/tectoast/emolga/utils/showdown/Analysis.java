@@ -100,6 +100,12 @@ public class Analysis {
                     if (pokemon.contains("Urshifu") && p.indexOfName("Urshifu-*") != -1) {//Urshifu-Problem
                         p.getMons().get(p.indexOfName("Urshifu-*")).setPokemon(pokemon);
                     }
+                    if (pokemon.contains("Zacian") && p.indexOfName("Zacian-*") != -1) {//Zacian-Problem
+                        p.getMons().get(p.indexOfName("Zacian-*")).setPokemon(pokemon);
+                    }
+                    if (pokemon.contains("Zamazenta") && p.indexOfName("Zamazenta-*") != -1) {//Zacian-Problem
+                        p.getMons().get(p.indexOfName("Zamazenta-*")).setPokemon(pokemon);
+                    }
                 }
             });
             check(i -> s.contains("|switch|p" + i) || s.contains("|drag|p" + i) || s.contains("|replace|p" + i), i -> actMon.put(i, split[3].split(",")[0]));

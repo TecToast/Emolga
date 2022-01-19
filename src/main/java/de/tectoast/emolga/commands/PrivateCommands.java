@@ -858,6 +858,53 @@ public class PrivateCommands {
         logger.info(arr.toString());
     }
 
+    @PrivateCommand(name = "asltierlist")
+    public static void asltierlist(GenericCommandEvent e) {
+        Tierlist t = Tierlist.getByGuild(518008523653775366L);
+        List<String> curr = new LinkedList<>();
+        RequestBuilder b = new RequestBuilder("1wI291CWkKkWqQhY_KNu7GVfdincRz74omnCOvEVTDrc").withAdditionalSheets(
+                "1tFLd9Atl9QpMgCQBclpeU1WlMqSRGMeX8COUVDIf4TU",
+                "1A040AYoiqTus1wSq_3CXgZpgcY3ECpphVRJWHmXyxsQ",
+                "1p8DSvd3vS5s5z-1UGPjKUhFVskYjQyrn-HbvU0pb5WE",
+                "1nEJvV5UESfuJvsJplXi_RXXnq9lY2vD5NyrTF3ObcvU"
+        );
+        int x = 0;
+        for (String s : t.order) {
+            LinkedList<Object> mons = t.tierlist.get(s).stream().map(str -> {
+                if (str.startsWith("M-")) {
+                    if (str.endsWith("-X")) return "M-" + getEnglName(str.substring(2, str.length() - 2)) + "-X";
+                    if (str.endsWith("-Y")) return "M-" + getEnglName(str.substring(2, str.length() - 2)) + "-Y";
+                    return "M-" + getEnglName(str.substring(2));
+                }
+                if (str.startsWith("A-")) return "A-" + getEnglName(str.substring(2));
+                if (str.startsWith("G-")) return "G-" + getEnglName(str.substring(2));
+                Translation engl = getEnglNameWithType(str);
+                if (engl.isSuccess()) return engl.getTranslation();
+                logger.info("str = {}", str);
+                return switch (str) {
+                    case "Kapu-Riki" -> "Tapu Koko";
+                    case "Kapu-Toro" -> "Tapu Bulu";
+                    case "Kapu-Kime" -> "Tapu Fini";
+                    default -> getEnglName(str.split("-")[0]) + "-" + str.split("-")[1];
+                };
+            }).sorted().collect(Collectors.toCollection(LinkedList::new));
+            if (!s.equals("D"))
+                b.addColumn("Tierliste [englisch]!%s%d".formatted(getAsXCoord(x * 2 + 1), 5), mons);
+            else {
+                int size = mons.size() / 3;
+                for (int i = 0; i < 3; i++) {
+                    List<Object> col = new LinkedList<>();
+                    for (int j = 0; j < size; j++) {
+                        col.add(mons.removeFirst());
+                    }
+                    b.addColumn("Tierliste [englisch]!%s%d".formatted(getAsXCoord(x++ * 2 + 1), 5), col);
+                }
+            }
+            x++;
+        }
+        b.execute();
+    }
+
     public static void execute(Message message) {
         String msg = message.getContentRaw();
         for (Method method : PrivateCommands.class.getDeclaredMethods()) {

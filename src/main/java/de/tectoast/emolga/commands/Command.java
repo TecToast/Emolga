@@ -1836,13 +1836,6 @@ public abstract class Command {
             });
             sdAnalyser.put(FLPID, (game, uid1, uid2, kills, deaths, args) -> {
                 JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("WoolooCupS4");
-                if (league.has("results")) {
-                    JSONObject results = league.getJSONObject("results");
-                    if (results.has(uid1 + ":" + uid2) || results.has(uid2 + ":" + uid1)) {
-                        sendToMe("Double Entry FLP/Wooloo -> Skipped");
-                        return;
-                    }
-                }
                 String sid = league.getString("sid");
                 int gameday = getGameDay(league, uid1, uid2);
                 if (gameday == -1) {
@@ -2194,7 +2187,7 @@ public abstract class Command {
         int x = gameday - 1;
         logger.info("gameday = " + gameday);
         logger.info("index = " + index);
-        return "%s%d".formatted(getAsXCoord(x > 1 && x < 8 ? gameday % 3 * 4 + 3 : x % 2 * 4 + 5), gameday / 3 * 8 + 3 * liga);
+        return "%s%d".formatted(getAsXCoord(x > 1 && x < 8 ? gameday % 3 * 4 + 3 : x % 2 * 4 + 5), gameday / 3 * 8 + index + 3);
     }
 
     private static String getASLGameplanCoords(int gameday, int index, int pk) {

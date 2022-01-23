@@ -30,7 +30,7 @@ public class Player {
     }
 
     public Pokemon getSpikesBy(Pokemon other) {
-        if(spikesBy == null) return null;
+        if (spikesBy == null) return null;
         if (spikesBy.getPlayer() == this) return other;
         return spikesBy;
     }
@@ -40,8 +40,8 @@ public class Player {
     }
 
     public Pokemon gettSpikesBy(Pokemon other) {
-        if(tSpikesBy == null) return null;
-        if(tSpikesBy.getPlayer() == this) return other;
+        if (tSpikesBy == null) return null;
+        if (tSpikesBy.getPlayer() == this) return other;
         return tSpikesBy;
     }
 
@@ -50,8 +50,8 @@ public class Player {
     }
 
     public Pokemon getRocksBy(Pokemon other) {
-        if(rocksBy == null) return null;
-        if(rocksBy.getPlayer() == this) return other;
+        if (rocksBy == null) return null;
+        if (rocksBy.getPlayer() == this) return other;
         return rocksBy;
     }
 
@@ -103,5 +103,10 @@ public class Player {
 
     public int getTotalDeaths() {
         return totalDeaths;
+    }
+
+    @Override
+    public String toString() {
+        return "Player{nickname='" + nickname + "'}";
     }
 }

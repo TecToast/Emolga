@@ -391,9 +391,8 @@ public class Analysis {
                 }
             });
             checkPokemon(i -> s.contains("|-weather|") && s.contains("|[of] p" + i), p -> weatherBy = p);
-            if (!s.contains("|[upkeep]") && !s.contains("|none")) {
+            if (s.contains("|-weather|") && !s.contains("|[upkeep]") && !s.contains("|none") && !s.contains("|[of] p"))
                 weatherBy = lastMove;
-            }
             check(i -> (s.contains("|[from] Sandstorm") || s.contains("|[from] Hail")) && s.contains("|-damage|p" + i), i -> {
                 Pokemon activeP1 = activeP.get(i);
                 if (pl.get(3 - i).getMons().contains(weatherBy)) { //Abfrage, ob das Weather von einem gegnerischem Mon kommt

@@ -509,12 +509,12 @@ public class EmolgaListener extends ListenerAdapter {
                 if (gid == 447357526997073930L) {
                     PrivateCommands.execute(e.getMessage());
                 }
-                if (tco.getId().equals("758198459563114516")) {
-                    g.addRoleToMember(member, g.getRoleById("758254829885456404")).queue();
+                if (tco.getIdLong() == 929841771276554260L) {
+                    g.addRoleToMember(member, g.getRoleById(934810601216147477L)).queue();
                 }
                 String raw = m.getContentRaw();
                 long id = e.getJDA().getSelfUser().getIdLong();
-                if(raw.equals("<@!" + id + ">") || raw.equals("<@" + id + ">") && !e.getAuthor().isBot() && isChannelAllowed(tco)) {
+                if (raw.equals("<@!" + id + ">") || raw.equals("<@" + id + ">") && !e.getAuthor().isBot() && isChannelAllowed(tco)) {
                     help(tco, member);
                 }
                 if ((tco.getId().equals("712612442622001162") || tco.getId().equals("724034089891397692")) && m.getAttachments().size() > 0) {

@@ -1,4 +1,4 @@
-package de.tectoast.emolga.commands.bs;
+package de.tectoast.emolga.commands.music.custom;
 
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.commands.MusicCommand;

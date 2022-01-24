@@ -1,4 +1,4 @@
-package de.tectoast.emolga.commands.pokemon;
+package de.tectoast.emolga.commands.draft;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;

@@ -32,7 +32,7 @@ public class EmolgaChannelCommand extends Command {
         long tid = tc.getIdLong();
         if (!ec.has(gid)) ec.put(gid, new JSONArray());
         JSONArray arr = ec.getJSONArray(gid);
-        List<Long> l = arrayToList(arr, Long.class);
+        List<Long> l = arr.toLongList();
         long gidl = e.getGuild().getIdLong();
         if (action.equals("add")) {
             if (l.contains(tid)) {

@@ -32,12 +32,4 @@ public class MonData {
     public List<JSONObject> getList() {
         return list;
     }
-
-    public boolean isNotSent(String id) {
-        boolean b = !sentfile.contains(id);
-        if (b) {
-            sentfile.add(id);
-        }
-        return b;
-    }
 }

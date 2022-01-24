@@ -17,7 +17,7 @@ public class RandomizeKillsCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         List<Integer> l = new LinkedList<>();
         Random r = new Random();
         for (int i = 0; i < 6; i++) {

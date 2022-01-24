@@ -10,7 +10,6 @@ import de.tectoast.emolga.utils.draft.DraftPokemon;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
-import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -351,11 +350,7 @@ public class PickCommand extends Command {
                     .addSingle(teamname + "!B" + i, getGen5Sprite(o))
                     .addSingle(teamname + "!D" + i, pokemon)
                     .addSingle("Tierliste!" + getAsXCoord(x * 6) + y, "='" + teamname + "'!B2");
-            JSONArray arr = o.getJSONArray("types");
-            List<Object> t = new LinkedList<>();
-            for (String s : arrayToList(arr, String.class)) {
-                t.add(getTypeIcons().getString(s));
-            }
+            List<Object> t = o.getStringList("types").stream().map(s -> getTypeIcons().getString(s)).collect(Collectors.toCollection(LinkedList::new));
             if (t.size() == 1) t.add("/");
             b.addRow(teamname + "!F" + i, t);
             b.addSingle(teamname + "!H" + i, o.getJSONObject("baseStats").getInt("spe"));

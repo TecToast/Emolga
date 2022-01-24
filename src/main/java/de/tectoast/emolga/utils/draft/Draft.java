@@ -233,7 +233,7 @@ public class Draft {
             //String u = "297010892678234114";
             if (!o.has(u)) {
                 if (cday == 1) {
-                    List<JSONObject> mons = arrayToList(picks.getJSONArray(u), JSONObject.class);
+                    List<JSONObject> mons = picks.getJSONList(u);
                     StringBuilder b = new StringBuilder();
                     Tierlist tierlist = Tierlist.getByGuild(Constants.NDSID);
                     for (int j = 0; j < 11; j++) {

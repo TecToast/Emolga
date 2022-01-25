@@ -64,9 +64,9 @@ dependencies {
     implementation 'mysql:mysql-connector-java:8.0.27'
     implementation 'jakarta.xml.bind:jakarta.xml.bind-api:3.0.1'
     implementation 'org.glassfish.jaxb:jaxb-runtime:3.0.1'
-    implementation files("C:\\Users\\Florian\\Desktop\\IntelliJ\\GitHub\\JSON-java\\src\\main\\java\\json-java-olf.jar")
-    implementation files("C:\\Users\\Florian\\Desktop\\IntelliJ\\Toastilities.jar")
-    implementation files("C:\\Users\\Florian\\Desktop\\IntelliJ\\GitHub\\JDA\\build\\libs\\JDA-4.4.0_DEV-withDependencies.jar")
+    implementation files("./lib/json-java-olf.jar")
+    implementation files("./lib/Toastilities.jar")
+    implementation("net.dv8tion:JDA:4.4.0_350")
 }
 
 test {

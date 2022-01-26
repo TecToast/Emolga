@@ -140,6 +140,10 @@ public class PickCommand extends Command {
                 tco.sendMessage(memberr.getAsMention() + " Dafür hast du nicht genug Punkte!").queue();
                 return;
             }
+            if (d.isPointBased && (d.getTierlist().rounds - d.round) * d.getTierlist().prices.get(d.getTierlist().order.get(d.order.size() - 1)) > (d.points.get(mem) - needed)) {
+                tco.sendMessage(memberr.getAsMention() + " Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!").queue();
+                return;
+            }
             if (d.isPointBased)
                 d.points.put(mem, d.points.get(mem) - needed);
             d.picks.get(mem).add(new DraftPokemon(pokemon, tier));
@@ -184,21 +188,6 @@ public class PickCommand extends Command {
                 }
             }
             DraftPokemon toremove = null;
-            if (d.isPointBased && d.points.get(d.current) < 20) {
-                List<DraftPokemon> picks = d.picks.get(d.current);
-                int price = 0;
-                for (DraftPokemon pick : picks) {
-                    int pr = tierlist.getPointsNeeded(pick.name);
-                    if (pr > price) {
-                        price = pr;
-                        toremove = pick;
-                    }
-                }
-                tco.sendMessage(d.getMention(d.current) + " Du hast nicht mehr genug Punkte um ein weiteres Pokemon zu draften! Deshalb verlierst du " + toremove.name + " und erhältst dafür " + price / 2 + " Punkte!").queue();
-                d.points.put(d.current, d.points.get(d.current) + price / 2);
-                d.picks.get(d.current).remove(toremove);
-                d.afterDraft.add(d.current);
-            }
             league.getJSONObject("picks").put(d.current, d.getTeamAsArray(d.current));
             if (d.isPointBased)
                 //tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current.getIdLong())) + ">) ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();

@@ -16,6 +16,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static de.tectoast.emolga.commands.Command.*;
@@ -42,6 +43,8 @@ public class Analysis {
     private String[] split;
     private int line = -1;
     private int turn;
+    private String disabledAbility;
+    private final Supplier<String> abiSupplier = () -> disabledAbility;
 
     public Analysis(String link, Message m) {
         this.link = link;
@@ -54,7 +57,8 @@ public class Analysis {
         }
     }
 
-    private Pokemon getZoro(int i) {
+    private Pokemon getZoro(int i, String reason) {
+        logger.warn("Requested Zoro from player {} in turn {} Reason: {}", i, turn, reason);
         return pl.get(i).getMons().get(pl.get(i).indexOfName(zoru.getOrDefault(i, "")));
     }
 
@@ -69,7 +73,7 @@ public class Analysis {
             checkPlayer(i -> s.contains("|player|p" + i) && s.length() > 11, p -> p.setNickname(split[3]));
             check(i -> s.contains("|poke|p" + i), i -> {
                 String poke = split[3].split(",")[0];
-                pl.get(i).getMons().add(new Pokemon(poke, pl.get(i), zoroTurns.get(i), game));
+                pl.get(i).getMons().add(new Pokemon(poke, pl.get(i), zoroTurns.get(i), game, abiSupplier));
                 if (poke.equals("Zoroark") || poke.equals("Zorua")) zoru.put(i, poke);
             });
             checkPlayer(i -> s.contains("|teamsize|p" + i), p -> p.setTeamsize(Integer.parseInt(split[3])));
@@ -78,11 +82,9 @@ public class Analysis {
                 Player p = pl.get(i);
                 if (p.getMons().size() == 0 && !randomBattle) randomBattle = true;
                 if (randomBattle) {
-                    logger.info("RANDOM BATTLE DETECTED!");
-                    //Random Battle
                     if (p.indexOfName(pokemon) == -1) {
                         System.out.printf("Adding %s to %s...%n", pokemon, p.getNickname());
-                        p.getMons().add(new Pokemon(pokemon, p, zoroTurns.get(i), game));
+                        p.getMons().add(new Pokemon(pokemon, p, zoroTurns.get(i), game, abiSupplier));
                     }
                 } else {
                     if (pokemon.contains("Silvally") && p.indexOfName("Silvally-*") != -1) {//Silvally-Problem
@@ -152,9 +154,11 @@ public class Analysis {
             split = s.split("\\|");
             check(i -> s.contains("|switch|p" + i) || s.contains("|drag|p" + i) || s.contains("|replace|p" + i), i -> {
                 Pokemon mon = pl.get(i).getMons().get(pl.get(i).indexOfName(split[3].split(",")[0]));
+                lastMove = null;
                 if (!s.contains("|replace|") && zoru.containsKey(i)) {
-                    if (mon.noAbilityTrigger(line) || mon.checkHPZoro(Integer.parseInt(split[4].split("/")[0]))) {
-                        activeP.put(i, getZoro(i));
+                    boolean noabi = mon.noAbilityTrigger(line);
+                    if (noabi || mon.checkHPZoro(Integer.parseInt(split[4].split("/")[0]))) {
+                        activeP.put(i, getZoro(i, noabi ? "NoAbilityTrigger" : "HPZoro"));
                     } else {
                         activeP.put(i, mon);
                     }
@@ -201,21 +205,21 @@ public class Analysis {
                     if (s.contains("[from] Stealth Rock")) {
                         int dif = oldHP - newHp;
                         if (WeaknessCommand.getEffectiveness("Rock", Command.getDataJSON().getJSONObject(toSDName(activeP1.getPokemon())).getStringList("types").toArray(String[]::new)) != 0 && dif > 10 && dif < 14)
-                            activeP1 = getZoro(i);
+                            activeP1 = getZoro(i, "Stealth Rock");
                     } else if (s.contains("[from] Spikes")) {
                         JSONObject mon = Command.getDataJSON().getJSONObject(toSDName(activeP1.getPokemon()));
                         if (mon.getStringList("types").contains("Flying") || mon.getJSONObject("abilities").toMap().containsValue("Levitate"))
-                            activeP1 = getZoro(i);
+                            activeP1 = getZoro(i, "Spikes");
                     }
-                    activeP1.setHp(newHp);
+                    activeP1.setHp(newHp, turn);
                     activeP.put(i, activeP1);
                 } else if (s.contains("|-heal|p" + i)) {
-                    activeP1.setHp(Integer.parseInt(split[3].split("/")[0]));
+                    activeP1.setHp(Integer.parseInt(split[3].split("/")[0]), turn);
                 } else if (s.contains("|-activate|p" + i) && s.contains("|move: Sticky Web")) {
                     Player p1 = pl.get(i);
                     JSONObject mon = Command.getDataJSON().getJSONObject(toSDName(activeP1.getPokemon()));
                     if (mon.getStringList("types").contains("Flying") || mon.getJSONObject("abilities").toMap().containsValue("Levitate"))
-                        activeP.put(i, getZoro(i));
+                        activeP.put(i, getZoro(i, "Sticky Web"));
                 } else if (s.contains("[from] ability:") && s.contains("[of] p" + i)) {
                     activeP.get(i).setAbility(split[3].split(":")[1].trim());
                 } else if (s.contains("|-ability|p" + i)) {
@@ -393,6 +397,16 @@ public class Analysis {
             checkPokemon(i -> s.contains("|-weather|") && s.contains("|[of] p" + i), p -> weatherBy = p);
             if (s.contains("|-weather|") && !s.contains("|[upkeep]") && !s.contains("|none") && !s.contains("|[of] p"))
                 weatherBy = lastMove;
+            if (s.contains("|-weather|")) {
+                disabledAbility = switch (split[2]) {
+                    case "SunnyDay" -> "Drought";
+                    case "Rain" -> "Drizzle";
+                    case "Sandstorm" -> "Sand Stream";
+                    case "Hail" -> "Snow Warning";
+                    case "none" -> "None";
+                    default -> throw new IllegalStateException("Unexpected value: " + split[2]);
+                };
+            }
             check(i -> (s.contains("|[from] Sandstorm") || s.contains("|[from] Hail")) && s.contains("|-damage|p" + i), i -> {
                 Pokemon activeP1 = activeP.get(i);
                 if (pl.get(3 - i).getMons().contains(weatherBy)) { //Abfrage, ob das Weather von einem gegnerischem Mon kommt

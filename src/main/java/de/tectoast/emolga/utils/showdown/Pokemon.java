@@ -5,12 +5,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 public class Pokemon {
     private static final Logger logger = LoggerFactory.getLogger(Pokemon.class);
     private final Player player;
     private final List<Integer> zoroTurns;
     private final List<String> game;
+    private final Supplier<String> disabledAbi;
     private String pokemon;
     private int kills;
     private Pokemon statusedBy, bindedBy, cursedBy, seededBy, nightmaredBy, confusedBy, lastDmgBy, perishedBy;
@@ -20,11 +22,12 @@ public class Pokemon {
     private int lastKillTurn = -1;
 
 
-    public Pokemon(String poke, Player player, List<Integer> zoroTurns, List<String> game) {
+    public Pokemon(String poke, Player player, List<Integer> zoroTurns, List<String> game, Supplier<String> disabledAbi) {
         pokemon = poke;
         this.zoroTurns = zoroTurns;
         this.game = game;
         this.player = player;
+        this.disabledAbi = disabledAbi;
     }
 
     public Player getPlayer() {
@@ -33,11 +36,10 @@ public class Pokemon {
 
     public void setAbility(String ability) {
         this.ability = ability;
-        logger.info("Set Ability from " + this.getPokemon() + " to " + this.ability);
     }
 
     public boolean noAbilityTrigger(int line) {
-        return !game.get(line + 1).contains("[from] ability: " + this.ability);
+        return !this.ability.isEmpty() && !this.disabledAbi.get().equals(this.ability) && !game.get(line + 1).contains("[from] ability: " + this.ability);
     }
 
     public boolean checkHPZoro(int hp) {
@@ -100,8 +102,11 @@ public class Pokemon {
         return hp;
     }
 
-    public void setHp(int hp) {
-        this.hp = hp;
+    public void setHp(int hp, int turn) {
+        if (zoroTurns.contains(turn))
+            player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> p.hp = hp);
+        else
+            this.hp = hp;
     }
 
     public String getPokemon() {
@@ -139,15 +144,12 @@ public class Pokemon {
     public void killsPlus1(int turn) {
         if (this.zoroTurns.contains(turn)) {
             player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> {
-                if(p.lastKillTurn == turn) return;
+                if (p.lastKillTurn == turn) return;
                 p.kills++;
                 p.lastKillTurn = turn;
             });
         } else {
-            if (this.pokemon.equals("Noivern")) {
-                logger.info("NOIVERN KILLED {}", turn);
-            }
-            if(lastKillTurn == turn) return;
+            if (lastKillTurn == turn) return;
             this.kills++;
             this.lastKillTurn = turn;
         }

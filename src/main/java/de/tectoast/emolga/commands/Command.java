@@ -1289,12 +1289,6 @@ public abstract class Command {
 
     public static void save(JSONObject json, String filename) {
         try {
-            /*if(!emolgajson.has("lastUpload")) emolgajson.put("lastUpload", new JSONObject());
-            JSONObject lastUpload = emolgajson.getJSONObject("lastUpload");
-            if(!lastUpload.has(filename)) lastUpload.put(filename, 0);
-            if(System.currentTimeMillis() - lastUpload.getLong(filename) > 86400000) {
-                lastUpload.put(filename, System.currentTimeMillis());
-            }*/
             Files.copy(Paths.get(filename), Paths.get(filename + ".bak"), StandardCopyOption.REPLACE_EXISTING);
             BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
             writer.write(json.toString(4));

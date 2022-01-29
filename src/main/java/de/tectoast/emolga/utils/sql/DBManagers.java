@@ -10,6 +10,7 @@ public class DBManagers {
     public static final BanManager BAN = new BanManager();
     public static final BirthdayManager BIRTHDAYS = new BirthdayManager();
     public static final DiscordAuthManager DISCORD_AUTH = new DiscordAuthManager();
+    public static final FullStatsManager FULL_STATS = new FullStatsManager();
     public static final GiveawayManager GIVEAWAY = new GiveawayManager();
     public static final ItemDataManager ITEM_DATA = new ItemDataManager();
     public static final KicksManager KICKS = new KicksManager();

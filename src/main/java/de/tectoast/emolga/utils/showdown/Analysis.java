@@ -400,7 +400,7 @@ public class Analysis {
             if (s.contains("|-weather|")) {
                 disabledAbility = switch (split[2]) {
                     case "SunnyDay" -> "Drought";
-                    case "Rain" -> "Drizzle";
+                    case "RainDance" -> "Drizzle";
                     case "Sandstorm" -> "Sand Stream";
                     case "Hail" -> "Snow Warning";
                     case "none" -> "None";

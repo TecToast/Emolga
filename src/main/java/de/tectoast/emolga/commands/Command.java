@@ -749,7 +749,7 @@ public abstract class Command {
         return "";
     }
 
-    public static String getNumber(HashMap<String, String> map, String pick) {
+    public static String getNumber(Map<String, String> map, String pick) {
         //logger.info(map);
         for (String s : map.keySet()) {
             if (pick.contains("Amigento") && s.contains("Amigento") || s.equals(pick) || pick.equals("M-" + s) || pick.contains("Wulaosu") && s.contains("Wulaosu"))
@@ -1491,7 +1491,7 @@ public abstract class Command {
                     int level = getLevel(userid);
                     String killcolumn = getAsXCoord(gdi * 5 + 10);
                     int monindex = 0;
-                    HashMap<String, String> ki = kills.get(i);
+                    Map<String, String> ki = kills.get(i);
                     String amigento = ki.keySet().stream().filter(str -> str.contains("Amigento")).findFirst().orElse("");
                     for (String s : picks) {
                         logger.info("s = " + s + " ");
@@ -1882,7 +1882,7 @@ public abstract class Command {
         if (count % 100 == 0) {
             emolgajda.getTextChannelById(904481960527794217L).sendMessage(new SimpleDateFormat("dd.MM.yyyy").format(new Date()) + ": " + count).queue();
         }
-        emolgajda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.watching("auf " + count + " Replays"));
+        emolgajda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.watching("auf " + count + " analysierte Replays"));
     }
 
     public static String getHelpDescripion(Guild g, Member mem) {
@@ -2326,6 +2326,7 @@ public abstract class Command {
             (m != null ? m.getChannel() : resultchannel).sendMessage("Ich befinde mich derzeit im Wartungsmodus, versuche es später noch einmal :)").queue();
             return;
         }*/
+        logger.info("REPLAY! Channel: {}", m != null ? m.getChannel().getId() : resultchannel.getId());
         try {
             game = new Analysis(url, m).analyse();
             //game = Analysis.analyse(url, m);
@@ -2366,8 +2367,8 @@ public abstract class Command {
         StringBuilder t2 = new StringBuilder();
         String winloose = aliveP1 + ":" + aliveP2;
         boolean p1wins = game[0].isWinner();
-        List<HashMap<String, String>> kills = Arrays.asList(new HashMap<>(), new HashMap<>());
-        List<HashMap<String, String>> deaths = Arrays.asList(new HashMap<>(), new HashMap<>());
+        List<Map<String, String>> kills = Arrays.asList(new HashMap<>(), new HashMap<>());
+        List<Map<String, String>> deaths = Arrays.asList(new HashMap<>(), new HashMap<>());
         ArrayList<String> p1mons = new ArrayList<>();
         ArrayList<String> p2mons = new ArrayList<>();
         boolean spoiler = spoilerTags.contains(gid);
@@ -2379,6 +2380,8 @@ public abstract class Command {
             kills.get(0).put(monName, String.valueOf(p.getKills()));
             deaths.get(0).put(monName, p.isDead() ? "1" : "0");
             p1mons.add(monName);
+            if (gid != MYSERVER)
+                DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0);
             t1.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (p1wins || spoiler) ? "X" : "").append("\n");
         }
         for (int i = 0; i < game[0].getTeamsize() - game[0].getMons().size(); i++) {
@@ -2391,6 +2394,8 @@ public abstract class Command {
             kills.get(1).put(monName, String.valueOf(p.getKills()));
             deaths.get(1).put(monName, p.isDead() ? "1" : "0");
             p2mons.add(monName);
+            if (gid != MYSERVER)
+                DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0);
             t2.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (!p1wins || spoiler) ? "X" : "").append("\n");
         }
         for (int i = 0; i < game[1].getTeamsize() - game[1].getMons().size(); i++) {

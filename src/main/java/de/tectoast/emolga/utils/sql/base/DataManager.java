@@ -63,14 +63,21 @@ public abstract class DataManager {
     }
 
     public void insertOrUpdate(SQLColumn<?> checkcolumn, Object checkvalue, Object... newValues) {
+        insertOrUpdate(checkcolumn, checkvalue, null, newValues);
+    }
+
+
+    public void insertOrUpdate(SQLColumn<?> checkcolumn, Object checkvalue, ResultsConsumer rc, Object... newValues) {
         if (!ready) throw new IllegalStateException("DataManager " + this.getTableName() + " is not initialized!");
         readWrite(selectAll(checkcolumn.check(checkvalue)), res -> {
             if (res.next()) {
-                for (int i = 0; i < columns.length; i++) {
-                    SQLColumn<?> sc = columns[i];
-                    Object value = newValues[i];
-                    sc.update(res, value);
-                }
+                if (rc == null) {
+                    for (int i = 0; i < columns.length; i++) {
+                        SQLColumn<?> sc = columns[i];
+                        Object value = newValues[i];
+                        sc.update(res, value);
+                    }
+                } else rc.consume(res);
                 res.updateRow();
             } else {
                 res.moveToInsertRow();

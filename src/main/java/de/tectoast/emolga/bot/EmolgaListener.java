@@ -187,7 +187,29 @@ public class EmolgaListener extends ListenerAdapter {
             Member member = e.getMember();
             Guild g = e.getGuild();
             long gid = g.getIdLong();
-            long meid = member.getIdLong();
+
+            if (msg.toLowerCase().contains("ich bin") && !e.getMessage().getAuthor().isBot()) {
+
+                String[] message_split = msg.split(" ");
+                int position_name = 0;
+
+                for (int i = 0; i < message_split.length; i++) { //position des bins rausfinden
+                    if (message_split[i].equals("bin")) {
+                        position_name = i;
+                    }
+                }
+                if (msg.contains(",")) {
+                    String name = msg.split(",")[0].split(" ")[position_name + 1];
+                    e.getChannel().sendMessage("Hallo " + name + " ich bin Dad").queue();
+
+                } else {
+                    if ((position_name + 1) <= message_split.length) {
+                        e.getChannel().sendMessage("Hallo " + message_split[position_name + 1] + " ich bin Dad ").queue();
+                    }
+
+                }
+            }
+
             check(e);
             if (gid == 447357526997073930L) {
                 PrivateCommands.execute(e.getMessage());

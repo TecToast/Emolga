@@ -4,6 +4,7 @@ import com.google.api.services.sheets.v4.model.*;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.emolga.utils.Coord;
 import de.tectoast.emolga.utils.RequestBuilder;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.DraftPokemon;
@@ -55,21 +56,7 @@ public class PickCommand extends Command {
                 return;
             }
             long mem = d.current;
-            JSONObject json = getEmolgaJSON();
-            //JSONObject asl = json.getJSONObject("drafts").getJSONObject("ASLS9");
-            JSONObject league = json.getJSONObject("drafts").getJSONObject(d.name);
-            //JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ZBSL2");
-            /*if (asl.has("allowed")) {
-                JSONObject allowed = asl.getJSONObject("allowed");
-                if (allowed.has(member.getId())) {
-                    mem = d.tc.getGuild().retrieveMemberById(allowed.getString(member.getId())).complete();
-                } else mem = member;
-            } else mem = member;*/
-            /*if (d.current.getId().equals(member.getId())) mem = member;
-            else if (member.getIdLong() == Constants.FLOID) mem = d.current;
-            else if (Draft.getTeamMembers(member.getIdLong()).contains(d.current.getIdLong())) mem = d.current;
-            else
-                mem = tco.getGuild().retrieveMemberById(league.getJSONObject("allowed").getString(member.getId())).complete();*/
+            JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
             String[] split = msg.substring(6).split(" ");
             String tier;
             Translation t;
@@ -140,7 +127,7 @@ public class PickCommand extends Command {
                 tco.sendMessage(memberr.getAsMention() + " Dafür hast du nicht genug Punkte!").queue();
                 return;
             }
-            if (d.isPointBased && (d.getTierlist().rounds - d.round) * d.getTierlist().prices.get(d.getTierlist().order.get(d.order.size() - 1)) > (d.points.get(mem) - needed)) {
+            if (d.isPointBased && (d.getTierlist().rounds - d.round) * d.getTierlist().prices.get(d.getTierlist().order.get(d.getTierlist().order.size() - 1)) > (d.points.get(mem) - needed)) {
                 tco.sendMessage(memberr.getAsMention() + " Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!").queue();
                 return;
             }
@@ -159,59 +146,53 @@ public class PickCommand extends Command {
             }
             //zbsdoc(tierlist, pokemon, d, mem, tier, d.members.size() - d.order.get(d.round).size(), d.round);
             //fpldoc(tierlist, pokemon, d, mem, tier, d.members.size() - d.order.get(d.round).size(), d.round);
-            woolooDoc(tierlist, pokemon, d, mem, tier, d.round);
-            int round = d.round;
-            if (d.order.get(d.round).size() == 0) {
-                if (d.round == tierlist.rounds) {
-                    tco.sendMessage("Der Draft ist vorbei!").queue();
-                    d.ended = true;
-                    //ndsdoc(tierlist, pokemon, d, mem, tier, round);
-                    //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
-                    if (d.afterDraft.size() > 0)
-                        tco.sendMessage("Reihenfolge zum Nachdraften:\n" + d.afterDraft.stream().map(d::getMention).collect(Collectors.joining("\n"))).queue();
-                    saveEmolgaJSON();
-                    Draft.drafts.remove(d);
-                    return;
-                }
-                d.round++;
-                d.tc.sendMessage("Runde " + d.round + "!").queue();
-                league.put("round", d.round);
+            //woolooDoc(tierlist, pokemon, d, mem, tier, d.round);
+            int rd = d.round == tierlist.rounds && d.picks.get(mem).size() < tierlist.rounds ? (int) league.getJSONObject("skippedturns").getJSONArrayL(mem).remove(0) : d.round;
+            aslS10Doc(tierlist, pokemon, d, mem, tier, rd);
+            if (d.round == tierlist.rounds && d.picks.get(mem).size() < d.round) {
+                if (d.isPointBased)
+                    //tco.sendMessage(getMention(current) + " (<@&" + asl.getLongList("roleids").get(getIndex(current.getIdLong())) + ">) ist dran! (" + points.get(current.getIdLong()) + " mögliche Punkte)").queue();
+                    tco.sendMessage(d.getMention(mem) + " ist dran! (" + d.points.get(mem) + " mögliche Punkte)").queue();
+                else
+                    tco.sendMessage(d.getMention(mem) + " ist dran! (Mögliche Tiers: " + d.getPossibleTiersAsString(mem) + ")").queue();
+            } else {
+                d.nextPlayer(tco, tierlist, league);
             }
-            boolean normal = /*round != 12 || d.picks.get(d.current.getIdLong()).size() == tierlist.rounds;*/ true;
-            if (normal) {
-                d.current = d.order.get(d.round).remove(0);
-                league.put("current", d.current);
-                try {
-                    d.cooldown.cancel();
-                } catch (Exception ignored) {
-
-                }
-            }
-            DraftPokemon toremove = null;
-            league.getJSONObject("picks").put(d.current, d.getTeamAsArray(d.current));
-            if (d.isPointBased)
-                //tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current.getIdLong())) + ">) ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
-                tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
-            else
-                tco.sendMessage(d.getMention(d.current) + " ist dran! (Mögliche Tiers: " + d.getPossibleTiersAsString(d.current) + ")").queue();
-            if (normal) {
-                d.cooldown = new Timer();
-                long delay = calculateASLTimer();
-                league.put("cooldown", System.currentTimeMillis() + delay);
-                d.cooldown.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        d.timer();
-                    }
-                }, delay);
-            }
-            saveEmolgaJSON();
             //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, toremove);
             //ndsdoc(tierlist, pokemon, d, mem, tier, round);
         } catch (Exception ex) {
             tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
             ex.printStackTrace();
         }
+    }
+
+    private static void aslS10Doc(Tierlist tierlist, String pokemon, Draft d, long mem, String tier, int effectiveRound) {
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
+        String sid = league.getString("sid");
+        RequestBuilder b = new RequestBuilder(sid);
+        Coord c = getTierlistLocation(pokemon, tierlist);
+        logger.info("c.toString() = {}", c);
+        logger.info("c.valid() = {}", c.valid());
+        if (c.valid()) b.addBGColorChange(league.getInt("tierlist"), c.x() * 2 + 2, c.y() + 5, convertColor(0xFF0000));
+        Coord cengl = getTierlistLocation(pokemon, tierlist.tiercolumnsEngl);
+        if (cengl.valid())
+            b.addBGColorChange(league.getInt("tierlistengl"), cengl.x() * 2 + 2, cengl.y() + 5, convertColor(0xFF0000));
+        Integer points = tierlist.prices.get(tier);
+        Comparator<DraftPokemon> comparator = Comparator.comparing(p -> tierlist.order.indexOf(p.getTier()));
+        Comparator<DraftPokemon> finalComp = comparator.thenComparing(p -> p.name);
+        b.addAll("Teamseite HR!B%d".formatted(league.getLongList("table").indexOf(mem) * 15 + 4),
+                d.picks.get(mem).stream().sorted(finalComp).map(mon ->
+                        new ArrayList<Object>(Arrays.asList(mon.getTier(), mon.getName(), getDataJSON().getJSONObject(getSDName(mon.getName())).getJSONObject("baseStats").getInt("spe")))
+                ).collect(Collectors.toList()));
+        int rr = effectiveRound - 1;
+        logger.info("d.originalOrder = {}", d.originalOrder);
+        logger.info("effectiveRound = {}", effectiveRound);
+        logger.info("mem = {}", mem);
+        int index = d.originalOrder.get(effectiveRound).indexOf(mem);
+        logger.info("index = {}", index);
+
+        b.addRow("Draft!%s%d".formatted(getAsXCoord((rr % 6) * 4 + 3), (rr / 6) * 10 + 4 + index), Arrays.asList(pokemon, points));
+        b.execute();
     }
 
     private static void woolooDoc(Tierlist tierlist, String pokemon, Draft d, long mem, String tier, int round) {

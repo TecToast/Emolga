@@ -1,15 +1,12 @@
 package de.tectoast.emolga.commands;
 
 import de.tectoast.emolga.database.Database;
-import de.tectoast.emolga.utils.Constants;
-import de.tectoast.emolga.utils.Google;
 import de.tectoast.emolga.utils.PrivateCommand;
-import de.tectoast.emolga.utils.RequestBuilder;
+import de.tectoast.emolga.utils.*;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
@@ -373,17 +370,17 @@ public class PrivateCommands {
                         String sdName = getSDName(rein);
                         JSONObject data = getDataJSON().getJSONObject(sdName);
                         int currindex = currorder.indexOf(raus) + 15;
-                        Pair<Integer, Integer> outloc = getTierlistLocation(raus, tierlist);
-                        Pair<Integer, Integer> inloc = getTierlistLocation(rein, tierlist);
+                        Coord outloc = getTierlistLocation(raus, tierlist);
+                        Coord inloc = getTierlistLocation(rein, tierlist);
                         b
                                 .addSingle(teamname + "!B" + currindex, getGen5Sprite(data))
                                 .addSingle(teamname + "!D" + currindex, rein);
 
                         if (outloc != null) {
-                            b.addSingle("Tierliste!" + getAsXCoord((outloc.getLeft() + 1) * 6) + (outloc.getRight() + 4), "-frei-");
+                            b.addSingle("Tierliste!" + getAsXCoord((outloc.x() + 1) * 6) + (outloc.y() + 4), "-frei-");
                         }
                         if (inloc != null) {
-                            b.addSingle("Tierliste!" + getAsXCoord((inloc.getLeft() + 1) * 6) + (inloc.getRight() + 4), "='" + teamname + "'!B2");
+                            b.addSingle("Tierliste!" + getAsXCoord((inloc.x() + 1) * 6) + (inloc.y() + 4), "='" + teamname + "'!B2");
                         }
                         b.addRow(teamname + "!A" + (index + 200), Arrays.asList(rein, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
                         b.addRow(teamname + "!N" + (index + 200), Arrays.asList(0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
@@ -422,7 +419,9 @@ public class PrivateCommands {
                 }
             }
         }
-        e.reply(String.join("\n", mons));
+        if (mons.isEmpty()) e.reply("Oh, du bist wohl kein Dasor :3");
+        else
+            e.reply(String.join("\n", mons));
     }
 
     @PrivateCommand(name = "converttierlist")

@@ -17,10 +17,7 @@ public class StopdraftCommand extends Command {
     public void process(GuildCommandEvent e) {
         if (Draft.drafts.removeIf(d -> {
             if (d.name.equals(e.getArguments().getText("draftname"))) {
-                try {
-                    d.cooldown.cancel();
-                } catch (Exception ignored) {
-                }
+                d.cooldown.cancel(false);
                 return true;
             }
             return false;

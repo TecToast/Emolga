@@ -12,8 +12,7 @@ import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class SkipCommand extends Command {
@@ -46,11 +45,7 @@ public class SkipCommand extends Command {
             tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue();
             return;
         }
-        try {
-            d.cooldown.cancel();
-        } catch (Exception ignored) {
-
-        }
+        d.cooldown.cancel(false);
         int round = d.round;
         RequestBuilder b = new RequestBuilder(league.getString("sid"));
         b.addStrikethroughChange(league.getInt("draftorder"), d.round + 1, (d.members.size() - d.order.get(d.round).size()) + 6, true);
@@ -76,19 +71,10 @@ public class SkipCommand extends Command {
         league.put("current", d.current);
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts");
         tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
-        try {
-            d.cooldown.cancel();
-        } catch (Exception ignored) {
-        }
-        d.cooldown = new Timer();
+        d.cooldown.cancel(false);
         long delay = calculateASLTimer();
         league.put("cooldown", System.currentTimeMillis() + delay);
-        d.cooldown.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                d.timer();
-            }
-        }, delay);
+        d.cooldown = d.scheduler.schedule((Runnable) d::timer, delay, TimeUnit.MILLISECONDS);
         saveEmolgaJSON();
     }
 }

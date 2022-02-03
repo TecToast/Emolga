@@ -175,7 +175,7 @@ public class EmolgaListener extends ListenerAdapter {
     }
 
     @Override
-    public void onGuildMessageReceived(@org.jetbrains.annotations.NotNull GuildMessageReceivedEvent e) {
+    public void onGuildMessageReceived(@NotNull GuildMessageReceivedEvent e) {
         if (e.getGuild().getIdLong() == MYSERVER) {
             logger.info("GOT IT " + System.currentTimeMillis());
         }
@@ -188,13 +188,6 @@ public class EmolgaListener extends ListenerAdapter {
             Guild g = e.getGuild();
             long gid = g.getIdLong();
             long meid = member.getIdLong();
-            if (meid == Constants.FLOID) {
-                if (msg.contains("518008523653775366")) gid = 518008523653775366L;
-                if (msg.contains("709877545708945438")) gid = 709877545708945438L;
-                if (msg.contains("747357029714231299")) gid = 747357029714231299L;
-                if (msg.contains("736555250118295622")) gid = 736555250118295622L;
-                if (msg.contains("837425304896536596")) gid = 837425304896536596L;
-            }
             check(e);
             if (gid == 447357526997073930L) {
                 PrivateCommands.execute(e.getMessage());

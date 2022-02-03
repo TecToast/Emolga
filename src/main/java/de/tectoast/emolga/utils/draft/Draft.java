@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -28,6 +28,7 @@ public class Draft {
     private static final Logger logger = LoggerFactory.getLogger(Draft.class);
     public final HashMap<Long, List<DraftPokemon>> picks = new HashMap<>();
     public final HashMap<Integer, List<Long>> order = new HashMap<>();
+    public final HashMap<Integer, List<Long>> originalOrder = new HashMap<>();
     public final HashMap<Long, Integer> points = new HashMap<>();
     public final List<Long> afterDraft = new ArrayList<>();
     public final TextChannel tc;
@@ -39,7 +40,8 @@ public class Draft {
     public List<Long> members;
     public long current;
     public int round = 0;
-    public Timer cooldown = new Timer();
+    public ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(2);
+    public ScheduledFuture<?> cooldown;
     public TextChannel ts;
     public boolean ended = false;
 
@@ -70,12 +72,15 @@ public class Draft {
                     list = arr.toLongList();
                 }
                 order.put(Integer.valueOf(i), list);
+                originalOrder.put(Integer.valueOf(i), new ArrayList<>(list));
             }
+
             logger.info("order = " + order);
             this.members = new ArrayList<>(order.get(1));
             ts = tcid != null ? tc.getGuild().getTextChannelById(tcid) : null;
             if (!fromFile && !isSwitchDraft) {
                 round++;
+                league.put("skippedturns", new JSONObject());
                 for (long member : members) {
                     picks.put(member, new ArrayList<>());
                     points.put(member, getTierlist().points);
@@ -86,17 +91,13 @@ public class Draft {
                     }
                 }
                 current = order.get(1).remove(0);
-                cooldown.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        timer();
-                    }
-                }, calculateASLTimer());
+                cooldown = scheduler.schedule((Runnable) this::timer, calculateASLTimer(), TimeUnit.MILLISECONDS);
                 tc.sendMessage("Runde " + round + "!").queue();
                 if (isPointBased)
                     tc.sendMessage(getMention(current) + " ist dran! (" + points.get(current) + " mögliche Punkte)").queue();
                 else
                     tc.sendMessage(getMention(current) + " ist dran! (Mögliche Tiers: " + getPossibleTiersAsString(current) + ")").complete().getId();
+                saveEmolgaJSON();
             } else {
                 if (isSwitchDraft && !fromFile) {
                     round++;
@@ -127,14 +128,7 @@ public class Draft {
                     logger.info("For finished");
                     long delay = calculateASLTimer();
                     league.put("cooldown", System.currentTimeMillis() + delay);
-                    if (delay != -1) {
-                        cooldown.schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                                timer();
-                            }
-                        }, delay);
-                    }
+                    cooldown = scheduler.schedule((Runnable) this::timer, delay, TimeUnit.MILLISECONDS);
                     logger.info("Before send");
                     tc.sendMessage("Runde " + round + "!").queue();
                     if (isPointBased)
@@ -191,14 +185,7 @@ public class Draft {
                     }
                     if (!league.has("cooldown"))
                         league.put("cooldown", System.currentTimeMillis() + delay);
-                    if (delay != -1) {
-                        cooldown.schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                                timer();
-                            }
-                        }, delay);
-                    }
+                    cooldown = scheduler.schedule((Runnable) this::timer, delay, TimeUnit.MILLISECONDS);
                     saveEmolgaJSON();
                     sendToMe("Aufgesetzt! " + delay);
                 }
@@ -273,7 +260,6 @@ public class Draft {
         //}
     }
 
-
     public static void doNDSPredictionGame() {
         JSONObject json = getEmolgaJSON();
         JSONObject league = json.getJSONObject("drafts").getJSONObject("NDS");
@@ -304,7 +290,6 @@ public class Draft {
             });
         }
     }
-
 
     public static void initializeNDSPredictionGame() {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
@@ -353,7 +338,6 @@ public class Draft {
             }, delay < 0 ? 0 : delay);
         }
     }
-
 
     public static void init(JDA jda) {
         Tierlist.setup();
@@ -420,10 +404,6 @@ public class Draft {
         }
     }
 
-    /*public static boolean isDraftIn(TextChannel tc) {
-        return drafts.stream().anyMatch(d -> d.tc.getId().equals(tc.getId()));
-    }*/
-
     public static Draft getDraftByMember(long member, TextChannel tco) {
         JSONObject json = getEmolgaJSON();
         //logger.info("member.getId() = " + member.getId());
@@ -448,6 +428,10 @@ public class Draft {
         }
         return null;
     }
+
+    /*public static boolean isDraftIn(TextChannel tc) {
+        return drafts.stream().anyMatch(d -> d.tc.getId().equals(tc.getId()));
+    }*/
 
     public static Draft getDraftByChannel(TextChannel tc) {
         for (Draft draft : Draft.drafts) {
@@ -507,6 +491,44 @@ public class Draft {
         JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
         Pattern aslpattern = Pattern.compile("^S\\d");
         return aslpattern.matcher(name).find() ? drafts.getJSONObject("ASLS9").getJSONObject(name) : drafts.getJSONObject(name);
+    }
+
+    public void nextPlayer(TextChannel tco, Tierlist tierlist, JSONObject league) {
+        if (order.get(round).size() == 0) {
+            if (round == tierlist.rounds) {
+                tco.sendMessage("Der Draft ist vorbei!").queue();
+                ended = true;
+                //ndsdoc(tierlist, pokemon, d, mem, tier, round);
+                //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
+                if (afterDraft.size() > 0)
+                    tco.sendMessage("Reihenfolge zum Nachdraften:\n" + afterDraft.stream().map(this::getMention).collect(Collectors.joining("\n"))).queue();
+                saveEmolgaJSON();
+                Draft.drafts.remove(this);
+                return;
+            }
+            round++;
+            tc.sendMessage("Runde " + round + "!").queue();
+            league.put("round", round);
+        }
+        boolean normal = /*round != 12 || picks.get(current.getIdLong()).size() == tierlist.rounds;*/ true;
+        if (normal) {
+            current = order.get(round).remove(0);
+            league.put("current", current);
+            cooldown.cancel(false);
+        }
+        DraftPokemon toremove = null;
+        league.getJSONObject("picks").put(current, getTeamAsArray(current));
+        if (isPointBased)
+            //tco.sendMessage(getMention(current) + " (<@&" + asl.getLongList("roleids").get(getIndex(current.getIdLong())) + ">) ist dran! (" + points.get(current.getIdLong()) + " mögliche Punkte)").queue();
+            tco.sendMessage(getMention(current) + " ist dran! (" + points.get(current) + " mögliche Punkte)").queue();
+        else
+            tco.sendMessage(getMention(current) + " ist dran! (Mögliche Tiers: " + getPossibleTiersAsString(current) + ")").queue();
+        if (normal) {
+            long delay = calculateASLTimer();
+            league.put("cooldown", System.currentTimeMillis() + delay);
+            cooldown = scheduler.schedule((Runnable) this::timer, delay, TimeUnit.MILLISECONDS);
+        }
+        saveEmolgaJSON();
     }
 
     public Tierlist getTierlist() {
@@ -587,8 +609,14 @@ public class Draft {
 
     public void timer(TimerReason tr) {
         if (ended) return;
+        JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
+        JSONObject league = drafts.getJSONObject(name);
+        if (!league.has("skippedturns")) league.put("skippedturns", new JSONObject());
+        JSONObject st = league.getJSONObject("skippedturns");
+        int rounds = getTierlist().rounds;
+        st.put(current, st.optJSONArray(String.valueOf(current), new JSONArray()).put(round));
         if (order.get(round).size() == 0) {
-            if (round == getTierlist().rounds) {
+            if (round == rounds) {
                 saveEmolgaJSON();
                 tc.sendMessage("Der Draft ist vorbei!").queue();
                 Draft.drafts.remove(this);
@@ -597,8 +625,6 @@ public class Draft {
             round++;
             tc.sendMessage("Runde " + round + "!").queue();
         }
-        JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
-        JSONObject league = asl.getJSONObject(name);
         /*String msg = tr == TimerReason.REALTIMER ? "**" + current.getEffectiveName() + "** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " (<@&" + asl.getLongList("roleids").get(getIndex(order.get(round).get(0).getIdLong())) + ">) dran! "
                 : "Der Pick von " + current.getEffectiveName() + " wurde " + (isSwitchDraft ? "geskippt" : "verschoben") + " und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran!";*/
         String msg = tr == TimerReason.REALTIMER ? "**<@" + current + ">** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran! "
@@ -610,38 +636,11 @@ public class Draft {
         else
             msg += "(Mögliche Tiers: " + getPossibleTiersAsString(current) + ")";
         tc.sendMessage(msg).queue();
-        try {
-            cooldown.cancel();
-        } catch (Exception ignored) {
-
-        }
-        cooldown = new Timer();
-        JSONObject json = getEmolgaJSON();
-        if (isPointBased && !isSwitchDraft && points.get(current) < 20) {
-            List<DraftPokemon> picks = this.picks.get(current);
-            DraftPokemon p = null;
-            int price = 0;
-            for (DraftPokemon pick : picks) {
-                int pr = getTierlist().prices.get(pick.tier);
-                if (pr > price) {
-                    price = pr;
-                    p = pick;
-                }
-            }
-            tc.sendMessage("Du hast nicht mehr genug Punkte um ein weiteres Pokemon zu draften! Deshalb verlierst du " + p + " und erhältst dafür " + price / 2 + " Punkte!").queue();
-            points.put(current, points.get(current) + price / 2);
-            this.picks.get(current).remove(p);
-            json.getJSONObject("drafts").getJSONObject("ASLS9").getJSONObject(name).getJSONObject("picks").put(current, getTeamAsArray(current));
-        }
+        cooldown.cancel(false);
         long delay = calculateASLTimer();
         league.put("cooldown", System.currentTimeMillis() + delay);
         saveEmolgaJSON();
-        cooldown.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                timer();
-            }
-        }, delay);
+        cooldown = scheduler.schedule((Runnable) this::timer, delay, TimeUnit.MILLISECONDS);
     }
 
     public void timer() {

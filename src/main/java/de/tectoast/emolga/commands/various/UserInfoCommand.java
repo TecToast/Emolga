@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.database.Database;
-import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
@@ -30,7 +29,7 @@ public class UserInfoCommand extends Command {
         ArgumentManager args = e.getArguments();
         Member member = args.has("user") ? args.getMember("user") : e.getMember();
         User u = member.getUser();
-        ResultSet set = Database.select("select count(*) as warncount from warns where guildid = " + Constants.ASLID + " and userid = " + u.getId());
+        ResultSet set = Database.select("select count(*) as warncount from warns where guildid = " + e.getGuild().getIdLong() + " and userid = " + u.getId());
         set.next();
         SimpleDateFormat format = new SimpleDateFormat();
         e.getChannel().sendMessageEmbeds(

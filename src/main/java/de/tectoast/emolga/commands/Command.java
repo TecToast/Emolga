@@ -45,8 +45,6 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.internal.utils.Helpers;
-import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
-import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.jetbrains.annotations.NotNull;
 import org.jsolf.JSONArray;
@@ -54,6 +52,7 @@ import org.jsolf.JSONObject;
 import org.jsolf.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MarkerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -82,6 +81,7 @@ import static de.tectoast.emolga.bot.EmolgaMain.flegmonjda;
 import static de.tectoast.emolga.utils.Constants.*;
 import static de.tectoast.emolga.utils.draft.Draft.getLevel;
 import static de.tectoast.emolga.utils.draft.Draft.getTeamName;
+import static java.util.Calendar.*;
 
 public abstract class Command {
     /**
@@ -1322,7 +1322,7 @@ public abstract class Command {
 
     public static void awaitNextDay() {
         Calendar c = Calendar.getInstance();
-        c.add(Calendar.DAY_OF_MONTH, 1);
+        c.add(DAY_OF_MONTH, 1);
         c.set(Calendar.HOUR_OF_DAY, 0);
         c.set(Calendar.MINUTE, 0);
         c.set(Calendar.SECOND, 0);
@@ -1330,11 +1330,11 @@ public abstract class Command {
         logger.info("System.currentTimeMillis() = " + System.currentTimeMillis());
         logger.info("tilnextday = " + tilnextday);
         logger.info("System.currentTimeMillis() + tilnextday = " + (System.currentTimeMillis() + tilnextday));
-        logger.info("SELECT REQUEST: " + "SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(Calendar.DAY_OF_MONTH));
+        logger.info("SELECT REQUEST: " + "SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(DAY_OF_MONTH));
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                ResultSet set = Database.select("SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(Calendar.DAY_OF_MONTH));
+                ResultSet set = Database.select("SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(DAY_OF_MONTH));
                 try {
                     TextChannel tc = flegmonjda.getTextChannelById(605650587329232896L);
                     while (set.next()) {
@@ -2246,11 +2246,15 @@ public abstract class Command {
     }
 
 
-    public static Pair<Integer, Integer> getTierlistLocation(String pokemon, Tierlist tierlist) {
+    public static Coord getTierlistLocation(String pokemon, Tierlist tierlist) {
+        return getTierlistLocation(pokemon, tierlist.tiercolumns);
+    }
+
+    public static Coord getTierlistLocation(String pokemon, List<String> tiercolumns) {
         int x = 0;
         int y = 0;
         boolean found = false;
-        for (String s : tierlist.tiercolumns) {
+        for (String s : tiercolumns) {
             if (s.equalsIgnoreCase(pokemon)) {
                 found = true;
                 break;
@@ -2263,8 +2267,8 @@ public abstract class Command {
         }
         if (found)
             //noinspection SuspiciousNameCombination
-            return new ImmutablePair<>(x, y);
-        return null;
+            return new Coord(x, y);
+        return new Coord(-1, -1);
     }
 
 
@@ -2381,7 +2385,7 @@ public abstract class Command {
             deaths.get(0).put(monName, p.isDead() ? "1" : "0");
             p1mons.add(monName);
             if (gid != MYSERVER)
-                DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0);
+                DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0, game[0].isWinner());
             t1.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (p1wins || spoiler) ? "X" : "").append("\n");
         }
         for (int i = 0; i < game[0].getTeamsize() - game[0].getMons().size(); i++) {
@@ -2395,7 +2399,7 @@ public abstract class Command {
             deaths.get(1).put(monName, p.isDead() ? "1" : "0");
             p2mons.add(monName);
             if (gid != MYSERVER)
-                DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0);
+                DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0, game[1].isWinner());
             t2.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (!p1wins || spoiler) ? "X" : "").append("\n");
         }
         for (int i = 0; i < game[1].getTeamsize() - game[1].getMons().size(); i++) {
@@ -2493,29 +2497,25 @@ public abstract class Command {
     }
 
     public static long calculateASLTimer() {
-        long delay = calculateTimer(10, 22, 120);
-        logger.info("delay = " + delay);
+        //long delay = calculateTimer(10, 22, 120);
+        long delay = calculateTimer(new TimerInfo().add(10, 22, SATURDAY, SUNDAY).add(12, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY), 120);
+        logger.info(MarkerFactory.getMarker("important"), "delay = {}", delay);
+        logger.info(MarkerFactory.getMarker("important"), "expires = {}", delay + System.currentTimeMillis());
         return delay;
     }
 
-    public static long calculateTimer(int from, int to, int delayinmins) {
-        SimpleDateFormat f = new SimpleDateFormat("HH");
-        long currmillis = System.currentTimeMillis();
-        if (currmillis < 1629482400000L) return 1629489600000L - currmillis;
-        int after = Integer.parseInt(f.format(new Date(currmillis + delayinmins * 60000L)));
-        int now = Integer.parseInt(f.format(new Date(currmillis)));
-        if (now >= from && now < to && (after < from || after >= to))
-            return ((to - from) * 60L + delayinmins) * 60000;
-        else if (now >= to || now < from) {
-            Calendar c = Calendar.getInstance();
-            if (now >= to)
-                c.add(Calendar.DAY_OF_MONTH, 1);
-            c.set(Calendar.HOUR_OF_DAY, from + delayinmins / 60);
-            c.set(Calendar.MINUTE, delayinmins % 60);
-            c.set(Calendar.SECOND, 0);
-            c.set(Calendar.MILLISECOND, 0);
-            return c.getTimeInMillis() - System.currentTimeMillis();
-        } else return delayinmins * 60000L;
+    public static long calculateTimer(TimerInfo data, int delayinmins) {
+        Calendar cal = Calendar.getInstance();
+        long currentTimeMillis = cal.getTimeInMillis();
+        int elapsedMinutes = delayinmins;
+        while (elapsedMinutes > 0) {
+            TimerInfo.TimerData p = data.get(cal.get(DAY_OF_WEEK));
+            int hour = cal.get(Calendar.HOUR_OF_DAY);
+            if (hour >= p.from() && hour < p.to()) elapsedMinutes--;
+            else if (elapsedMinutes == delayinmins) cal.set(SECOND, 0);
+            cal.add(Calendar.MINUTE, 1);
+        }
+        return cal.getTimeInMillis() - currentTimeMillis;
     }
 
     public static long getXPNeeded(int level) {

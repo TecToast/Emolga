@@ -14,7 +14,10 @@ import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -193,11 +196,7 @@ public class SwitchCommand extends Command {
         if (newmon.equals("Emolga")) {
             tco.sendMessage("<:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142>").queue();
         }
-        try {
-            d.cooldown.cancel();
-        } catch (Exception ignored) {
-
-        }
+        d.cooldown.cancel(false);
         int round = d.round;
         if (d.order.get(d.round).size() == 0) {
             if (d.round == tierlist.rounds) {
@@ -219,15 +218,9 @@ public class SwitchCommand extends Command {
         JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
         tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
         //tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
-        d.cooldown = new Timer();
         long delay = calculateASLTimer();
         league.put("cooldown", System.currentTimeMillis() + delay);
-        d.cooldown.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                d.timer();
-            }
-        }, delay);
+        d.cooldown = d.scheduler.schedule((Runnable) d::timer, delay, TimeUnit.MILLISECONDS);
         saveEmolgaJSON();
     }
 }

@@ -12,8 +12,7 @@ import org.jsolf.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Optional;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 public class UpdatedatafromfileCommand extends Command {
     public UpdatedatafromfileCommand() {
@@ -72,17 +71,8 @@ public class UpdatedatafromfileCommand extends Command {
                 }
             }
         }
-        try {
-            d.cooldown.cancel();
-        } catch (Exception ignored) {
-        }
-        d.cooldown = new Timer();
-        d.cooldown.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                d.timer();
-            }
-        }, calculateASLTimer());
+        d.cooldown.cancel(false);
+        d.cooldown = d.scheduler.schedule((Runnable) d::timer, calculateASLTimer(), TimeUnit.MILLISECONDS);
         e.done();
     }
 }

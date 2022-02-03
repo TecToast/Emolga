@@ -258,6 +258,10 @@ public class RequestBuilder {
                 ))));
     }
 
+    public RequestBuilder addFGColorChange(int sheetId, int x, int y, Color c) {
+        return addFGColorChange(sheetId, getAsXCoord(x) + y, c);
+    }
+
 
     private List<ValueRange> getUserEntered() {
         return requests.stream().filter(r -> r.valueInputOption.equals(ValueInputOption.USER_ENTERED)).map(MyRequest::build).collect(Collectors.toList());

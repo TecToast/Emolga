@@ -9,8 +9,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jsolf.JSONObject;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 import static de.tectoast.emolga.utils.draft.Draft.getIndex;
 
@@ -48,11 +47,7 @@ public class FinishDraftCommand extends Command {
         e.reply("Du hast den Draft für dich beendet!");
         d.order.values().forEach(l -> l.removeIf(me -> me == mem));
         league.put("finished", league.optString("finished") + mem + ",");
-        try {
-            d.cooldown.cancel();
-        } catch (Exception ignored) {
-
-        }
+        d.cooldown.cancel(false);
         if (d.order.get(d.round).size() == 0) {
             if (d.round == d.getTierlist().rounds) {
                 tco.sendMessage("Der Draft ist vorbei!").queue();
@@ -63,7 +58,7 @@ public class FinishDraftCommand extends Command {
                 return;
             }
             d.round++;
-            if(d.order.get(d.round).size() == 0) {
+            if (d.order.get(d.round).size() == 0) {
                 e.reply("Da alle bereits ihre Drafts beendet haben, ist der Draft vorbei!");
                 saveEmolgaJSON();
                 return;
@@ -75,19 +70,10 @@ public class FinishDraftCommand extends Command {
         league.put("current", d.current);
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
         tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current)) + ">) ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
-        try {
-            d.cooldown.cancel();
-        } catch (Exception ignored) {
-        }
-        d.cooldown = new Timer();
+        d.cooldown.cancel(false);
         long delay = calculateASLTimer();
         league.put("cooldown", System.currentTimeMillis() + delay);
-        d.cooldown.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                d.timer();
-            }
-        }, delay);
+        d.cooldown = d.scheduler.schedule((Runnable) d::timer, delay, TimeUnit.MILLISECONDS);
         saveEmolgaJSON();
     }
 }

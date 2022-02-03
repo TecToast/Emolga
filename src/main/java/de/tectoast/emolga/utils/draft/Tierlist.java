@@ -36,9 +36,17 @@ public class Tierlist {
      */
     public final LinkedList<String> tiercolumns = new LinkedList<>();
     /**
+     * List with all pokemon in the sheets tierlists, columns are separated by an "NEXT" SORTED BY ENGLISCH NAMES
+     */
+    public final LinkedList<String> tiercolumnsEngl = new LinkedList<>();
+    /**
      * Order of the tiers, from highest to lowest
      */
     public final List<String> order = new ArrayList<>();
+    /**
+     * the amount of rounds in the draft
+     */
+    public final int rounds;
     /**
      * if this tierlist is pointbased
      */
@@ -47,10 +55,6 @@ public class Tierlist {
      * the possible points for a player
      */
     public int points;
-    /**
-     * the amount of rounds in the draft
-     */
-    public final int rounds;
 
     public Tierlist(String guild) {
         this.guild = guild.substring(0, guild.length() - 5);
@@ -72,76 +76,9 @@ public class Tierlist {
             order.add(s);
             prices.put(s, tiers.getInt(s));
         }
-        List<List<String>> mons = o.getJSONArray("mons").toListList(String.class);
-        int x = 0;
-        int currtier = 0;
-        List<String> currtierlist = new LinkedList<>();
-        List<Integer> nexttiers = o.getIntList("nexttiers");
-        for (List<String> mon : mons) {
-            if (nexttiers.contains(x)) {
-                String key = order.get(currtier++);
-                tierlist.put(key, new ArrayList<>(currtierlist));
-                currtierlist.clear();
-            }
-            currtierlist.addAll(mon);
-            tiercolumns.addAll(mon);
-            tiercolumns.add("NEXT");
-            x++;
-        }
-        tierlist.put(order.get(currtier), new ArrayList<>(currtierlist));
-        tiercolumns.removeLast();
-        /*File dir = new File("./Tierlists/" + guild + ".json");
-        for (File file : dir.listFiles()) {
-            try {
-                List<String> lines = Files.readAllLines(file.toPath());
-                String name = file.getName().split("\\.")[0];
-                if (name.equals("data")) {
-                    JSONObject o = null;
-                    try {
-                        o = new JSONObject(String.join("\n", lines));
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                    rounds = o.optInt("rounds", -1);
-                    String mode = o.getString("mode");
-                    if (rounds == -1 && !mode.equals("nothing"))
-                        throw new IllegalArgumentException("BRUDER OLF IST DAS DEIN SCHEIß ERNST");
-                    switch (mode) {
-                        case "points" -> {
-                            points = o.getInt("points");
-                            isPointBased = true;
-                        }
-                        case "tiers", "nothing" -> isPointBased = false;
-                        default -> throw new IllegalArgumentException("Invalid mode! Has to be one of 'points', 'tiers' or 'nothing'!");
-                    }
-                    order.addAll(o.getJSONArray("tierorder").toStringList());
-                    /*String[] split = lines.get(0).split(";");
-                    if(split[0].equalsIgnoreCase("points")) {
-                        isPointBased = true;
-                        if(split.length != 2) {
-                            throw new IllegalStateException("Tierlist " + guild + " has no points!");
-                        }
-                        points = Integer.parseInt(split[1]);
-                    } else {
-                        isPointBased = false;
-                    }
-                    order.addAll(Arrays.asList(lines.get(1).split(",")));**
-                } else if (name.equals("tiercolumns")) {
-                    tiercolumns.addAll(lines.stream().map(String::trim).collect(Collectors.toCollection(ArrayList::new)));
-                } else {
-                    try {
-                        prices.put(name, Integer.parseInt(lines.remove(0)));
-                    } catch (NumberFormatException e) {
-                        logger.info("guild = " + guild);
-                        logger.info("name = " + name);
-                    }
-                    tierlist.put(name, lines.stream().map(String::trim).collect(Collectors.toCollection(ArrayList::new)));
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        }*/
+        setupTiercolumns(o.getJSONArray("mons").toListList(String.class), o.getIntList("nexttiers"), tiercolumns, true);
+        if (o.has("monsengl"))
+            setupTiercolumns(o.getJSONArray("monsengl").toListList(String.class), o.getIntList("nexttiers"), tiercolumnsEngl, false);
         list.add(this);
     }
 
@@ -164,6 +101,29 @@ public class Tierlist {
         }
         logger.error(guild + " RETURNED NULL");
         return null;
+    }
+
+    private void setupTiercolumns(List<List<String>> mons, List<Integer> nexttiers, List<String> tiercols, boolean normal) {
+        int x = 0;
+        int currtier = 0;
+        List<String> currtierlist = new LinkedList<>();
+        for (List<String> monss : mons) {
+            List<String> mon = monss.stream().map(String::trim).collect(Collectors.toList());
+            if (normal) {
+                if (nexttiers.contains(x)) {
+                    String key = order.get(currtier++);
+                    tierlist.put(key, new ArrayList<>(currtierlist));
+                    currtierlist.clear();
+                }
+                currtierlist.addAll(mon);
+            }
+            tiercols.addAll(mon);
+            tiercols.add("NEXT");
+            x++;
+        }
+        if (normal)
+            tierlist.put(order.get(currtier), new ArrayList<>(currtierlist));
+        tiercolumns.removeLast();
     }
 
     public int getPointsNeeded(String s) {

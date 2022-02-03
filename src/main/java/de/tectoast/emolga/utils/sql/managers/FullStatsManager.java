@@ -14,18 +14,22 @@ public class FullStatsManager extends DataManager {
     IntColumn KILLS = new IntColumn("kills", this);
     IntColumn DEATHS = new IntColumn("deaths", this);
     IntColumn USES = new IntColumn("uses", this);
+    IntColumn WINS = new IntColumn("wins", this);
+    IntColumn LOOSES = new IntColumn("looses", this);
 
     public FullStatsManager() {
         super("fullstats");
-        setColumns(POKEMON, KILLS, DEATHS, USES);
+        setColumns(POKEMON, KILLS, DEATHS, USES, WINS, LOOSES);
     }
 
-    public void add(String pokemon, int kills, int deaths) {
+    public void add(String pokemon, int kills, int deaths, boolean win) {
         logger.debug("Adding to FSM {} {} {}", pokemon, kills, deaths);
         new Thread(() -> insertOrUpdate(POKEMON, pokemon, r -> {
             r.updateInt("kills", r.getInt("kills") + kills);
             r.updateInt("deaths", r.getInt("deaths") + deaths);
             r.updateInt("uses", r.getInt("uses") + 1);
-        }, pokemon, kills, deaths, 1), "AddFullStat").start();
+            String toupdate = win ? "wins" : "looses";
+            r.updateInt(toupdate, r.getInt(toupdate) + 1);
+        }, pokemon, kills, deaths, 1, win ? 1 : 0, win ? 0 : 1), "AddFullStat").start();
     }
 }

@@ -22,6 +22,8 @@ import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
 import de.tectoast.emolga.utils.music.SoundSendHandler;
+import de.tectoast.emolga.utils.records.Coord;
+import de.tectoast.emolga.utils.records.TimerData;
 import de.tectoast.emolga.utils.showdown.Analysis;
 import de.tectoast.emolga.utils.showdown.Player;
 import de.tectoast.emolga.utils.showdown.Pokemon;
@@ -2509,7 +2511,7 @@ public abstract class Command {
         long currentTimeMillis = cal.getTimeInMillis();
         int elapsedMinutes = delayinmins;
         while (elapsedMinutes > 0) {
-            TimerInfo.TimerData p = data.get(cal.get(DAY_OF_WEEK));
+            TimerData p = data.get(cal.get(DAY_OF_WEEK));
             int hour = cal.get(Calendar.HOUR_OF_DAY);
             if (hour >= p.from() && hour < p.to()) elapsedMinutes--;
             else if (elapsedMinutes == delayinmins) cal.set(SECOND, 0);

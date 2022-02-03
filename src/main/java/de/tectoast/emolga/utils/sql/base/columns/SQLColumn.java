@@ -37,6 +37,13 @@ public abstract class SQLColumn<T> {
         return manager.read(manager.selectAll(check(value)), rs -> rs);
     }
 
+    public ResultSet getSingle(T value) {
+        return manager.read(manager.selectAll(check(value)), rs -> {
+            rs.next();
+            return rs;
+        });
+    }
+
     public boolean isAny(Object value) {
         return retrieveValue(this, value) != null;
     }

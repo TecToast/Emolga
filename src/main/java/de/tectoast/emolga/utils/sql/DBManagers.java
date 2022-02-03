@@ -16,6 +16,7 @@ public class DBManagers {
     public static final KicksManager KICKS = new KicksManager();
     public static final MusicGuildsManager MUSIC_GUILDS = new MusicGuildsManager();
     public static final MuteManager MUTE = new MuteManager();
+    public static final NaturalGiftManager NATURAL_GIFT = new NaturalGiftManager();
     public static final NatureManager NATURE = new NatureManager();
     public static final NMLAnnouncementsManager NML_ANNOUNCEMENTS = new NMLAnnouncementsManager();
     public static final PokedexManager POKEDEX = new PokedexManager();

@@ -1,5 +1,7 @@
 package de.tectoast.emolga.utils;
 
+import de.tectoast.emolga.utils.records.TimerData;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,8 +26,5 @@ public class TimerInfo {
     public TimerData get(int day) {
         if (!map.containsKey(day)) throw new IllegalStateException("TimerInfo Map Incomplete (" + day + ")");
         return map.get(day);
-    }
-
-    public static record TimerData(int from, int to) {
     }
 }

@@ -411,7 +411,6 @@ public class Draft {
             //logger.info(draft.members.stream().map(mem -> mem.getId() + ":" + mem.getEffectiveName()).collect(Collectors.joining("\n")));
             if (!draft.tc.getId().equals(tco.getId())) continue;
             if (member == Constants.FLOID) return draft;
-            if (member == 690971979821613056L) return draft;
             if (draft.members.stream().anyMatch(mem -> mem == member))
                 return draft;
             if (draft.getLeague().has("table1") && draft.getLeague().getJSONArray("table1").toLongListList().stream().anyMatch(l -> l.contains(member)))
@@ -558,7 +557,6 @@ public class Draft {
         if (getLeague().has("table2") && getLeague().getJSONArray("table2").toLongListList().stream().anyMatch(l -> l.contains(current) && l.contains(mem)))
             return false;
         if (mem == Constants.FLOID) return false;
-        if (mem == 690971979821613056L) return false;
         //if (getTeamMembers(mem.getIdLong()).contains(current.getIdLong())) return false;
         JSONObject league = getLeague();
         if (!league.has("allowed")) return true;

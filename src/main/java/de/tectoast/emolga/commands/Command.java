@@ -18,6 +18,7 @@ import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.selectmenus.MenuListener;
 import de.tectoast.emolga.selectmenus.selectmenusaves.SmogonSet;
 import de.tectoast.emolga.utils.*;
+import de.tectoast.emolga.utils.annotations.ToTest;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
@@ -1312,9 +1313,11 @@ public abstract class Command {
                 Class<?> cl = classInfo.load();
                 if (cl.isInterface()) continue;
                 String name = cl.getSuperclass().getSimpleName();
-                if (name.endsWith("Command") && /*!name.equals("PrivateCommand") &&*/ !Modifier.isAbstract(cl.getModifiers())) {
-                    //logger.info(classInfo.getName());
+                if (name.endsWith("Command") && !Modifier.isAbstract(cl.getModifiers())) {
                     cl.getConstructors()[0].newInstance();
+                    if (cl.isAnnotationPresent(ToTest.class)) {
+                        logger.warn("{} has to be tested!", cl.getName());
+                    }
                 }
             }
         } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException e) {

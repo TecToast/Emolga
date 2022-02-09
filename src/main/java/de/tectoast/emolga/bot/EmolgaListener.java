@@ -188,7 +188,7 @@ public class EmolgaListener extends ListenerAdapter {
             Guild g = e.getGuild();
             long gid = g.getIdLong();
 
-            if (msg.toLowerCase().contains("ich bin") && !e.getMessage().getAuthor().isBot()) {
+            if (msg.toLowerCase().contains("ich bin") && !e.getMessage().getAuthor().isBot() && Arrays.asList(895689011773972490L, 854624056175493161L, 920364843805061221L, 673833176036147210L, 730487435753947136L, 700504340368064562L, 688803880213282889L, 562276305647829022L, 688085496064507954L).contains(gid)) {
 
                 String[] message_split = msg.split(" ");
                 int position_name = 0;

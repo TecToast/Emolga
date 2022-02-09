@@ -3,12 +3,13 @@ package de.tectoast.emolga.commands;
 import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.Google;
-import de.tectoast.emolga.utils.PrivateCommand;
 import de.tectoast.emolga.utils.RequestBuilder;
+import de.tectoast.emolga.utils.annotations.PrivateCommand;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.records.Coord;
 import de.tectoast.emolga.utils.sql.DBManagers;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
@@ -488,6 +489,21 @@ public class PrivateCommands {
             x++;
         }
         b.execute();
+    }
+
+    @PrivateCommand(name = "asldraft")
+    public static void asldraft(GenericCommandEvent e) {
+        JDA jda = e.getJDA();
+        new Draft(jda.getTextChannelById(938744915209359361L), "ASLS10L1", null, true);
+        new Draft(jda.getTextChannelById(938745041403379743L), "ASLS10L2", null, true);
+        //new Draft(jda.getTextChannelById(938745240829968444L), "ASLS10L3", null, true);
+        //new Draft(jda.getTextChannelById(938745399819251713L), "ASLS10L4", null, true);
+        new Draft(jda.getTextChannelById(938745673908645909L), "ASLS10L5", null, true);
+    }
+
+    @PrivateCommand(name = "sortwooloos4")
+    public static void sortWoolooS4Cmd(GenericCommandEvent e) {
+        sortWoolooS4("1Y01PdUlwHPTDAzKZF_p3R9NCL_CFbcK4_n8pQ9O3Hq8", Integer.parseInt(e.getArg(0)), getEmolgaJSON().getJSONObject("drafts").getJSONObject("WoolooCupS4"));
     }
 
     public static void execute(Message message) {

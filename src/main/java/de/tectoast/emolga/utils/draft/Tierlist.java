@@ -79,6 +79,7 @@ public class Tierlist {
         setupTiercolumns(o.getJSONArray("mons").toListList(String.class), o.getIntList("nexttiers"), tiercolumns, true);
         if (o.has("monsengl"))
             setupTiercolumns(o.getJSONArray("monsengl").toListList(String.class), o.getIntList("nexttiers"), tiercolumnsEngl, false);
+        if (o.has("trashmons")) tierlist.get(order.get(order.size() - 1)).addAll(o.getStringList("trashmons"));
         list.add(this);
     }
 

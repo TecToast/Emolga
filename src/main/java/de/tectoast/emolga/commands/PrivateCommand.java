@@ -6,13 +6,14 @@ import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Predicate;
 
 public abstract class PrivateCommand {
 
     final String name;
-    final LinkedList<String> aliases = new LinkedList<>();
-    public static final LinkedList<PrivateCommand> commands = new LinkedList<>();
+    public static final List<PrivateCommand> commands = new LinkedList<>();
+    final List<String> aliases = new LinkedList<>();
     public Predicate<User> isAllowed = u -> true;
 
     public PrivateCommand(String name) {

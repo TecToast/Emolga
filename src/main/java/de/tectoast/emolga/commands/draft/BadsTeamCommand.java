@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 
 public class BadsTeamCommand extends PrivateCommand {
 
@@ -23,7 +24,7 @@ public class BadsTeamCommand extends PrivateCommand {
 
     final InteractiveTemplate template;
 
-    final HashSet<Long> current = new HashSet<>();
+    final Set<Long> current = new HashSet<>();
 
 
     public BadsTeamCommand() {

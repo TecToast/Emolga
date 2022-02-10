@@ -4,11 +4,13 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
+import de.tectoast.emolga.utils.annotations.ToTest;
 import net.dv8tion.jda.api.entities.Member;
 import org.jsolf.JSONObject;
 
 import java.util.Optional;
 
+@ToTest
 public class AllowCommand extends Command {
 
     public AllowCommand() {

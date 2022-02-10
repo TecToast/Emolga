@@ -38,7 +38,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -74,9 +74,9 @@ public class EmolgaMain {
         setupJetty();
         Guild g = emolgajda.getGuildById(MYSERVER);
         g.updateCommands()
-                .addCommands(commands.stream().filter(Command::isSlash).map(c -> {
+                .addCommands(commands.values().stream().filter(Command::isSlash).map(c -> {
                     CommandData dt = new CommandData(c.getName(), c.getHelp());
-                    LinkedList<ArgumentManagerTemplate.Argument> args = c.getArgumentTemplate().arguments;
+                    List<ArgumentManagerTemplate.Argument> args = c.getArgumentTemplate().arguments;
                     for (ArgumentManagerTemplate.Argument arg : args) {
                         dt.addOption(arg.getType().asOptionType(), arg.getName().toLowerCase(), arg.getHelp(), !arg.isOptional());
                     }

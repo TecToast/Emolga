@@ -10,9 +10,10 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
+import java.util.Map;
 
 public abstract class ButtonListener {
-    public static final HashMap<String, ButtonListener> listener = new HashMap<>();
+    public static final Map<String, ButtonListener> listener = new HashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(ButtonListener.class);
     private static final ButtonListener NULL = new ButtonListener("NULL") {
         @Override

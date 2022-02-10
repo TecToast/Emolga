@@ -95,7 +95,7 @@ public abstract class Command {
     /**
      * List of all commands of the bot
      */
-    public static final ArrayList<Command> commands = new ArrayList<>();
+    public static final Map<String, Command> commands = new HashMap<>();
     /**
      * List of guilds where the chill playlist is playing
      */
@@ -287,7 +287,6 @@ public abstract class Command {
         this.help = help;
         this.category = category;
         allowedGuilds = guilds.length == 0 ? new ArrayList<>() : Arrays.stream(guilds).boxed().collect(Collectors.toCollection(ArrayList::new));
-        commands.add(this);
     }
 
     public static String getFirst(String str) {
@@ -377,7 +376,7 @@ public abstract class Command {
     }
 
     public static Command byName(String name) {
-        return commands.stream().filter(c -> c.name.equalsIgnoreCase(name) || c.getAliases().stream().anyMatch(name::equalsIgnoreCase)).findFirst().orElse(null);
+        return commands.values().stream().filter(c -> c.name.equalsIgnoreCase(name) || c.getAliases().stream().anyMatch(name::equalsIgnoreCase)).findFirst().orElse(null);
     }
 
     public static void loadAndPlay(final TextChannel channel, final String track, Member mem, String cm) throws IllegalArgumentException {
@@ -1314,7 +1313,9 @@ public abstract class Command {
                 if (cl.isInterface()) continue;
                 String name = cl.getSuperclass().getSimpleName();
                 if (name.endsWith("Command") && !Modifier.isAbstract(cl.getModifiers())) {
-                    cl.getConstructors()[0].newInstance();
+                    Object o = cl.getConstructors()[0].newInstance();
+                    if (o instanceof Command)
+                        ((Command) o).addToMap();
                     if (cl.isAnnotationPresent(ToTest.class)) {
                         logger.warn("{} has to be tested!", cl.getName());
                     }
@@ -1835,7 +1836,6 @@ public abstract class Command {
         return getDataJSON(mod).keySet().stream().filter(s -> !s.endsWith("gmax") && !s.endsWith("totem")).collect(Collectors.toList());
     }
 
-
     private static String getZBSGameplanCoords(int gameday, int index) {
         if (gameday < 4) return "C" + (gameday * 5 + index - 2);
         if (gameday < 7) return "F" + ((gameday - 3) * 5 + index - 2);
@@ -1877,7 +1877,7 @@ public abstract class Command {
     }
 
     public static List<Command> getWithCategory(CommandCategory category, Guild g, Member mem) {
-        return commands.stream().filter(c -> !c.disabled && c.category == category && c.allowsGuild(g) && c.allowsMember(mem)).collect(Collectors.toCollection(ArrayList::new));
+        return commands.values().stream().filter(c -> !c.disabled && c.category == category && c.allowsGuild(g) && c.allowsMember(mem)).collect(Collectors.toCollection(ArrayList::new));
     }
 
     public static void updatePresence() {
@@ -1991,10 +1991,10 @@ public abstract class Command {
                 }
             }
         }
-        for (Command command : commands) {
-            if (command.disabled) continue;
-            if (!command.checkPrefix(msg)) continue;
-            if (!command.checkBot(e.getJDA(), gid)) continue;
+        Command command = commands.get(msg.split("\\s+")[0].toLowerCase());
+        if (command != null) {
+            if (command.disabled) return;
+            if (!command.checkBot(e.getJDA(), gid)) return;
             PermissionCheck check = command.checkPermissions(gid, mem);
             if (check == PermissionCheck.GUILD_NOT_ALLOWED) return;
             if (check == PermissionCheck.PERMISSION_DENIED) {
@@ -2250,7 +2250,6 @@ public abstract class Command {
         return (x > 0 ? (char) (x + 64) : "") + "" + (char) (i + 64);
     }
 
-
     public static Coord getTierlistLocation(String pokemon, Tierlist tierlist) {
         return getTierlistLocation(pokemon, tierlist.tiercolumns);
     }
@@ -2275,7 +2274,6 @@ public abstract class Command {
             return new Coord(x, y);
         return new Coord(-1, -1);
     }
-
 
     private static String getSerebiiForm(String forme) {
         if (Helpers.isNumeric(forme)) {
@@ -2908,6 +2906,12 @@ public abstract class Command {
         return !emolgaChannel.containsKey(gid) || emolgaChannel.get(gid).contains(tc.getIdLong()) || emolgaChannel.get(gid).isEmpty();
     }
 
+    private void addToMap() {
+        String prefix = otherPrefix ? "e!" : "!";
+        commands.put(prefix + name, this);
+        aliases.forEach(str -> commands.put(prefix + str, this));
+    }
+
     public boolean isSlash() {
         return slash;
     }
@@ -2958,17 +2962,6 @@ public abstract class Command {
         if (!allowsGuild(gid)) return PermissionCheck.GUILD_NOT_ALLOWED;
         if (!allowsMember(mem)) return PermissionCheck.PERMISSION_DENIED;
         return PermissionCheck.GRANTED;
-    }
-
-    private boolean checkPrefix(String msg) {
-        if (msg.toLowerCase().startsWith("e!" + name.toLowerCase() + " ") || aliases.stream().anyMatch(s -> msg.toLowerCase().startsWith("e!" + s.toLowerCase() + " "))
-                || msg.equalsIgnoreCase("e!" + name) || aliases.stream().anyMatch(s -> msg.equalsIgnoreCase("e!" + s)))
-            return true;
-        if (category != CommandCategory.Music && !otherPrefix) {
-            return msg.toLowerCase().startsWith("!" + name.toLowerCase() + " ") || aliases.stream().anyMatch(s -> msg.toLowerCase().startsWith("!" + s.toLowerCase() + " "))
-                    || msg.equalsIgnoreCase("!" + name.toLowerCase()) || aliases.stream().anyMatch(s -> msg.equalsIgnoreCase("!" + s));
-        }
-        return false;
     }
 
     public boolean checkBot(JDA jda, long guildid) {

@@ -109,7 +109,7 @@ public class Tierlist {
         int currtier = 0;
         List<String> currtierlist = new LinkedList<>();
         for (List<String> monss : mons) {
-            List<String> mon = monss.stream().map(String::trim).collect(Collectors.toList());
+            List<String> mon = monss.stream().map(String::trim).toList();
             if (normal) {
                 if (nexttiers.contains(x)) {
                     String key = order.get(currtier++);

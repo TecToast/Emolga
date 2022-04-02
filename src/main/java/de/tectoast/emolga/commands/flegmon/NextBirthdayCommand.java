@@ -11,7 +11,6 @@ import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.stream.Collectors;
 
 public class NextBirthdayCommand extends PepeCommand {
     public NextBirthdayCommand() {
@@ -51,7 +50,7 @@ public class NextBirthdayCommand extends PepeCommand {
         StringBuilder str = new StringBuilder("Die nächsten Geburtstage:\n\n");
         HashMap<Long, String> names = new HashMap<>();
         e.getGuild().retrieveMembersByIds(map.keySet()).get().forEach(mem -> names.put(mem.getIdLong(), mem.getEffectiveName()));
-        for (long id : map.keySet().stream().sorted(Comparator.comparing(s -> map.get(s).getTimeInMillis())).collect(Collectors.toList())) {
+        for (long id : map.keySet().stream().sorted(Comparator.comparing(s -> map.get(s).getTimeInMillis())).toList()) {
             Calendar c = map.get(id);
             str.append("`").append(getWithZeros(c.get(Calendar.DAY_OF_MONTH), 2)).append(".").append(getWithZeros(c.get(Calendar.MONTH) + 1, 2)).append(".").append("`: ").append(names.get(id)).append("\n");
         }

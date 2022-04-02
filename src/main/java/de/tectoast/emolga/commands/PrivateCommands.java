@@ -9,12 +9,12 @@ import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.records.Coord;
 import de.tectoast.emolga.utils.sql.DBManagers;
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MarkerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
 
+@SuppressWarnings("HttpUrlsUsage")
 public class PrivateCommands {
 
     private static final Logger logger = LoggerFactory.getLogger(PrivateCommands.class);
@@ -274,7 +275,7 @@ public class PrivateCommands {
 
     @PrivateCommand(name = "ndsnominate")
     public static void ndsNominate(GenericCommandEvent e) {
-        Draft.setupNDSNominate();
+        Draft.doNDSNominate();
     }
 
     @PrivateCommand(name = "ndsprediction")
@@ -282,27 +283,24 @@ public class PrivateCommands {
         Draft.doNDSPredictionGame();
     }
 
+    @PrivateCommand(name = "ndsreminder")
+    public static void ndsReminder(GenericCommandEvent e) {
+        JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
+        Collection<String> table = nds.getJSONObject("picks").keySet();
+        JSONObject nominations = nds.getJSONObject("nominations");
+        nominations.getJSONObjectL(nominations.getInt("currentDay")).keySet().forEach(table::remove);
+        logger.info(MarkerFactory.getMarker("important"), table.stream().map(l -> "<@" + l + ">").collect(Collectors.joining(", ")));
+    }
+
     @PrivateCommand(name = "matchups")
     public static void matchUps(GenericCommandEvent e) {
-        JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
-        RequestBuilder b = new RequestBuilder(nds.getString("sid"));
-        String str = nds.getJSONObject("battleorder").getString(e.getArg(0));
-        JSONObject teamnames = nds.getJSONObject("teamnames");
-        for (String s : str.split(";")) {
-            String[] split = s.split(":");
-            String t1 = teamnames.getString(split[0]);
-            String t2 = teamnames.getString(split[1]);
-            b.addSingle(t1 + "!Q15", "=IMPORTRANGE(\"https://docs.google.com/spreadsheets/d/1vPYBY-IzVSPodd8W_ukVSLME0YGyWF0hT6p3kr-QvZU/edit\"; \"" + t2 + "!B15:O29\")");
-            b.addSingle(t1 + "!Q13", "=CONCAT(\"VS. Spieler \"; '" + t2 + "'!O2)");
-            b.addSingle(t2 + "!Q15", "=IMPORTRANGE(\"https://docs.google.com/spreadsheets/d/1vPYBY-IzVSPodd8W_ukVSLME0YGyWF0hT6p3kr-QvZU/edit\"; \"" + t1 + "!B15:O29\")");
-            b.addSingle(t2 + "!Q13", "=CONCAT(\"VS. Spieler \"; '" + t1 + "'!O2)");
-        }
-        b.execute();
+        Draft.doMatchUps(e.getArg(0));
     }
 
     @PrivateCommand(name = "sortnds")
     public static void sortNDSCmd(GenericCommandEvent e) {
-        sortNDS("1vPYBY-IzVSPodd8W_ukVSLME0YGyWF0hT6p3kr-QvZU", getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS"));
+        JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
+        sortNDS(nds.getString("sid"), nds);
         e.done();
     }
 
@@ -347,7 +345,7 @@ public class PrivateCommands {
             for (List<Object> objects : l) {
                 if (x % 2 == 0) current = toid.getString(((String) objects.get(0)).trim());
                 else {
-                    List<String> currorder = Arrays.stream(lastNom.getString(current).split("###")).flatMap(s -> Arrays.stream(s.split(";"))).map(s -> s.split(",")[0]).collect(Collectors.toList());
+                    List<String> currorder = Arrays.stream(lastNom.getString(current).split("###")).flatMap(s -> Arrays.stream(s.split(";"))).map(s -> s.split(",")[0]).toList();
                     String teamname = teamnames.getString(current);
                     if (!currkills.containsKey(current))
                         currkills.put(current, Google.get(sid, "%s!L200:L214".formatted(teamname), false, false).stream().map(li -> Integer.parseInt((String) li.get(0))).collect(Collectors.toList()));
@@ -491,19 +489,156 @@ public class PrivateCommands {
         b.execute();
     }
 
-    @PrivateCommand(name = "asldraft")
-    public static void asldraft(GenericCommandEvent e) {
-        JDA jda = e.getJDA();
-        new Draft(jda.getTextChannelById(938744915209359361L), "ASLS10L1", null, true);
-        new Draft(jda.getTextChannelById(938745041403379743L), "ASLS10L2", null, true);
-        //new Draft(jda.getTextChannelById(938745240829968444L), "ASLS10L3", null, true);
-        //new Draft(jda.getTextChannelById(938745399819251713L), "ASLS10L4", null, true);
-        new Draft(jda.getTextChannelById(938745673908645909L), "ASLS10L5", null, true);
+    @PrivateCommand(name = "ndsdraft")
+    public static void ndsdraft(GenericCommandEvent e) {
+        new Draft(e.getJDA().getTextChannelById(837425828245667841L), "NDS", null, true, true);
     }
 
     @PrivateCommand(name = "sortwooloos4")
     public static void sortWoolooS4Cmd(GenericCommandEvent e) {
         sortWoolooS4("1Y01PdUlwHPTDAzKZF_p3R9NCL_CFbcK4_n8pQ9O3Hq8", Integer.parseInt(e.getArg(0)), getEmolgaJSON().getJSONObject("drafts").getJSONObject("WoolooCupS4"));
+    }
+
+    @PrivateCommand(name = "ndsgeneratekilllist")
+    public static void ndsgenerateKilllist() throws IOException {
+        JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
+        JSONObject picks = nds.getJSONObject("picks");
+        List<List<Object>> send = new LinkedList<>();
+        int x = 1001;
+        List<String> l = new ArrayList<>(15 * 12);
+        for (String s : picks.keySet()) {
+            for (String mon : getPicksAsList(picks.getJSONArray(s))) {
+                send.add(Arrays.asList(
+                        getGen5Sprite(mon),
+                        mon.toUpperCase(),
+                        "=SUMME(S%d:AB%d)".formatted(x, x),
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                ));
+                l.add(mon);
+                x++;
+            }
+        }
+        RequestBuilder.updateAll(nds.getString("sid"), "Killliste!P1001", send);
+        Files.writeString(Paths.get("ndskilllistorder.txt"), String.join("\n", l));
+    }
+
+    @PrivateCommand(name = "ndsteamsite")
+    public static void ndsTeamsite() {
+        JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
+        JSONObject picks = nds.getJSONObject("picks");
+        JSONObject teamnames = nds.getJSONObject("teamnames");
+        RequestBuilder b = new RequestBuilder(nds.getString("sid"));
+        List<List<Object>> clear = new LinkedList<>();
+        List<Object> temp = new LinkedList<>();
+        for (int j = 0; j < 10; j++) {
+            temp.add(0);
+        }
+        for (int i = 0; i < 15; i++) {
+            clear.add(temp);
+        }
+        for (String s : picks.keySet()) {
+            String teamname = teamnames.getString(s);
+            b.addColumn("%s!A200".formatted(teamname), getPicksAsList(picks.getJSONArray(s)).stream().map(str -> (Object) str).collect(Collectors.toList()));
+            b.addAll("%s!B200".formatted(teamname), clear);
+            b.addAll("%s!N200".formatted(teamname), clear);
+            b.addSingle("%s!L199".formatted(teamname), 0);
+            b.addSingle("%s!X199".formatted(teamname), 0);
+            b.addRow("%s!B216".formatted(teamname), temp);
+            b.addRow("%s!N216".formatted(teamname), temp);
+        }
+        b.execute();
+    }
+
+    @PrivateCommand(name = "ndsgameplanfix")
+    public static void ndsgameplanfix(GenericCommandEvent e) {
+        TextChannel tc = e.getJDA().getTextChannelById(837425772288540682L);
+        for (Message m : tc.getIterableHistory()) {
+            String msg = m.getContentDisplay();
+            if (msg.contains("https://") || msg.contains("http://")) {
+                Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(" ", s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("http") + 1))).findFirst();
+                if (urlop.isPresent()) {
+                    String url = urlop.get();
+                    logger.info(url);
+                    analyseReplay(url, null, e.getJDA().getTextChannelById(837425749770240001L), m, null);
+                }
+            }
+            if (m.getIdLong() == 944309573383245904L) break;
+        }
+    }
+
+    @PrivateCommand(name = "wooloogameplanfix")
+    public static void wooloogameplanfix(GenericCommandEvent e) {
+        TextChannel tc = e.getJDA().getTextChannelById(929686889332604969L);
+        for (Message m : tc.getIterableHistory()) {
+            String msg = m.getContentDisplay();
+            if (msg.contains("https://") || msg.contains("http://")) {
+                Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(" ", s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("http") + 1))).findFirst();
+                if (urlop.isPresent()) {
+                    String url = urlop.get();
+                    logger.info(url);
+                    analyseReplay(url, null, e.getJDA().getTextChannelById(929686912048975882L), m, null);
+                }
+            }
+            if (m.getIdLong() == 946505526060122112L) break;
+        }
+    }
+
+    @PrivateCommand(name = "asls10sort")
+    public static void aslS10SortCmd(GenericCommandEvent e) {
+        JSONObject league = emolgajson.getJSONObject("drafts").getJSONObject("ASLS10L" + e.getArg(0));
+        sortASLS10(league.getString("sid"), league);
+    }
+
+    @PrivateCommand(name = "ndsprepares2rrjson")
+    public static void prepareNDSJSON() {
+        JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
+        JSONObject picks = nds.getJSONObject("picks");
+        List<String> tierorder = Arrays.asList("S", "A", "B", "C", "D");
+        Comparator<JSONObject> mc = Comparator.<JSONObject, Integer>comparing(o1 -> tierorder.indexOf(o1.getString("tier"))).thenComparing(o -> o.getString("name"));
+        for (String s : picks.keySet()) {
+            picks.put(s, picks.getJSONList(s).stream().sorted(mc).collect(Collectors.toList()));
+        }
+        saveEmolgaJSON();
+    }
+
+    @PrivateCommand(name = "ndsprepares2rrdoc")
+    public static void prepareNDSDoc() {
+        JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
+        JSONObject picks = nds.getJSONObject("picks");
+        List<String> tierorder = Arrays.asList("S", "A", "B", "C", "D");
+        Comparator<JSONObject> mc = Comparator.<JSONObject, Integer>comparing(o1 -> tierorder.indexOf(o1.getString("tier"))).thenComparing(o -> o.getString("name"));
+        List<List<List<Object>>> get = new LinkedList<>();
+        int temp = 0;
+        String sid = "1ZwYlgwA7opD6Gdc5KmpjYk5JsnEZq3dZet2nJxB0EWQ";
+        for (String s : picks.keySet()) {
+            logger.info(MarkerFactory.getMarker("important"), "{} {}", temp, s);
+            get.add(Google.get(sid, nds.getJSONObject("teamnames").getString(s) + "!B15:O29", true, false));
+            temp++;
+        }
+        int x = 0;
+        RequestBuilder builder = new RequestBuilder(sid);
+        for (String u : picks.keySet()) {
+            //String u = "297010892678234114";
+            //logger.info("o.get(u) = " + o.get(u));
+            String range = nds.getJSONObject("teamnames").getString(u) + "!B15:O29";
+            logger.info("u = " + u);
+            logger.info("range = " + range);
+            Comparator<List<Object>> comp = Comparator.<List<Object>, Integer>comparing(l1 -> Integer.parseInt(String.valueOf(l1.get(7)))).reversed().thenComparing(l -> String.valueOf(l.get(2)));
+            builder.addAll(range, get.get(x).stream().filter(n -> !n.get(2).equals("")).sorted(comp).collect(Collectors.toList()));
+            x++;
+        }
+        builder.execute();
+    }
+
+    @PrivateCommand(name = "asls10fixswitches")
+    public static void asls10fixswitches(GenericCommandEvent e) {
+        JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS10L" + e.getArg(0));
+        JSONObject picks = nds.getJSONObject("picks");
+        List<String> tierorder = Arrays.asList("S", "A", "B", "C", "D");
+        Comparator<JSONObject> mc = Comparator.<JSONObject, Integer>comparing(o1 -> tierorder.indexOf(o1.getString("tier"))).thenComparing(o -> o.getString("name"));
+        String s = e.getArg(1);
+        picks.put(s, picks.getJSONList(s).stream().sorted(mc).collect(Collectors.toList()));
+        saveEmolgaJSON();
     }
 
     public static void execute(Message message) {
@@ -514,9 +649,12 @@ public class PrivateCommands {
             if (msg.toLowerCase().startsWith("!" + a.name().toLowerCase() + " ") || msg.equalsIgnoreCase("!" + a.name()) || Arrays.stream(a.aliases()).anyMatch(s -> msg.startsWith("!" + s + " ") || msg.equalsIgnoreCase("!" + s))) {
                 new Thread(() -> {
                     try {
-                        method.invoke(null, new PrivateCommandEvent(message));
+                        if (method.getParameterCount() == 0) {
+                            method.invoke(null);
+                        } else
+                            method.invoke(null, new PrivateCommandEvent(message));
                     } catch (IllegalAccessException | InvocationTargetException e) {
-                        e.printStackTrace();
+                        logger.error("PrivateCommand " + a.name(), e);
                     }
                 }, "PrivateCommand " + a.name()).start();
             }

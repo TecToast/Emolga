@@ -30,7 +30,7 @@ public class RequestGetter {
 
     public List<List<List<String>>> execute() {
         try {
-            Spreadsheet sh = Google.getSheetsService().spreadsheets().get(sid).setIncludeGridData(true).setRanges(ranges).execute();
+            Spreadsheet sh = Google.getSheetsService().spreadsheets().get(sid).setIncludeGridData(true).setRanges(ranges).execute();//Google.getSheetsService().spreadsheets().values().batchGet("").
             HashMap<String, AtomicInteger> map = new HashMap<>();
             List<List<List<String>>> ret = new ArrayList<>(ranges.size());
             for (String range : ranges) {

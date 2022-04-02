@@ -30,8 +30,9 @@ public class Database {
                 properties.setProperty("user", username);
                 properties.setProperty("password", password);
                 properties.setProperty("autoReconnect", "true");
+                long l = System.currentTimeMillis();
                 connection = DriverManager.getConnection("jdbc:mysql://localhost/emolga", properties);
-                logger.info("Connected!");
+                logger.info("Connected! {}", (System.currentTimeMillis() - l));
                 DBManagers.ANALYSIS.forAll(r -> replayAnalysis.put(r.getLong("replay"), r.getLong("result")));
                 DBManagers.MUSIC_GUILDS.forAll(r -> CommandCategory.musicGuilds.add(r.getLong("guildid")));
                 logger.info("replayAnalysis.size() = " + replayAnalysis.size());

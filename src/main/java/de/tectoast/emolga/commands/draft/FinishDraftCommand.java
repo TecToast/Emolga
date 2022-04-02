@@ -11,8 +11,6 @@ import org.jsolf.JSONObject;
 
 import java.util.concurrent.TimeUnit;
 
-import static de.tectoast.emolga.utils.draft.Draft.getIndex;
-
 public class FinishDraftCommand extends Command {
 
     public FinishDraftCommand() {
@@ -32,7 +30,7 @@ public class FinishDraftCommand extends Command {
             //tco.sendMessage(member.getAsMention() + " Du bist in keinem Draft drin!").queue();
             return;
         }
-        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9").getJSONObject(d.name);
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
         if (!d.tc.getId().equals(tco.getId())) return;
         if (d.isNotCurrent(member)) {
             tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue();
@@ -40,6 +38,10 @@ public class FinishDraftCommand extends Command {
         }
         long mem = d.current;
         int round = d.round;
+        if (e.getGuild().getIdLong() == Constants.NDSID && d.picks.get(mem).size() < 15) {
+            e.reply("Du hast noch keine 15 Pokemon!");
+            return;
+        }
         /*if (round < 12) {
             e.reply("Du hast noch nicht 11 Pokemon!");
             return;
@@ -68,10 +70,14 @@ public class FinishDraftCommand extends Command {
         }
         d.current = d.order.get(d.round).remove(0);
         league.put("current", d.current);
-        JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
-        tco.sendMessage(d.getMention(d.current) + " (<@&" + asl.getLongList("roleids").get(getIndex(d.current)) + ">) ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
         d.cooldown.cancel(false);
-        long delay = calculateASLTimer();
+        league.getJSONObject("picks").put(d.current, d.getTeamAsArray(d.current));
+        if (d.isPointBased)
+            //tco.sendMessage(getMention(current) + " (<@&" + asl.getLongList("roleids").get(getIndex(current.getIdLong())) + ">) ist dran! (" + points.get(current.getIdLong()) + " mögliche Punkte)").queue();
+            tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
+        else
+            tco.sendMessage(d.getMention(d.current) + " ist dran! (Mögliche Tiers: " + d.getPossibleTiersAsString(d.current) + ")").queue();
+        long delay = calculateDraftTimer();
         league.put("cooldown", System.currentTimeMillis() + delay);
         d.cooldown = d.scheduler.schedule((Runnable) d::timer, delay, TimeUnit.MILLISECONDS);
         saveEmolgaJSON();

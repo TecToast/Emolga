@@ -46,8 +46,8 @@ public enum CommandCategory {
     }
 
     String disabled = "";
-    String emoji;
-    String name;
+    final String emoji;
+    final String name;
     boolean isEmote = false;
     private Predicate<Member> allowsMember = m -> true;
     private Predicate<Long> allowsGuildId = g -> true;

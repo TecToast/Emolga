@@ -10,12 +10,12 @@ public class FullStatsManager extends DataManager {
 
     private static final Logger logger = LoggerFactory.getLogger(FullStatsManager.class);
 
-    StringColumn POKEMON = new StringColumn("pokemon", this);
-    IntColumn KILLS = new IntColumn("kills", this);
-    IntColumn DEATHS = new IntColumn("deaths", this);
-    IntColumn USES = new IntColumn("uses", this);
-    IntColumn WINS = new IntColumn("wins", this);
-    IntColumn LOOSES = new IntColumn("looses", this);
+    final StringColumn POKEMON = new StringColumn("pokemon", this);
+    final IntColumn KILLS = new IntColumn("kills", this);
+    final IntColumn DEATHS = new IntColumn("deaths", this);
+    final IntColumn USES = new IntColumn("uses", this);
+    final IntColumn WINS = new IntColumn("wins", this);
+    final IntColumn LOOSES = new IntColumn("looses", this);
 
     public FullStatsManager() {
         super("fullstats");

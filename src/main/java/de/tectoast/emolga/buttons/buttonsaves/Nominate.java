@@ -1,7 +1,5 @@
 package de.tectoast.emolga.buttons.buttonsaves;
 
-import de.tectoast.emolga.utils.Constants;
-import de.tectoast.emolga.utils.draft.Tierlist;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Emoji;
 import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
@@ -58,20 +56,21 @@ public class Nominate {
     }
 
     public void render(ButtonClickEvent e) {
-        e.editComponents(addAndReturn(getActionRows(mons.stream().map(o -> o.getString("name")).collect(Collectors.toList()), s -> isNominated(s) ? Button.primary("nominate;" + s, s) : Button.secondary("nominate;" + s, s)), ActionRow.of(Button.success("nominate;FINISH", Emoji.fromUnicode("✅"))))).queue();
-        e.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Nominierungen").setColor(Color.CYAN).setDescription(generateDescription()).build()).queue();
+        e.editMessageEmbeds(new EmbedBuilder().setTitle("Nominierungen").setColor(Color.CYAN).setDescription(generateDescription()).build())
+                .setActionRows(addAndReturn(getActionRows(mons.stream().map(o -> o.getString("name")).collect(Collectors.toList()), s -> isNominated(s) ? Button.primary("nominate;" + s, s) : Button.secondary("nominate;" + s, s)), ActionRow.of(Button.success("nominate;FINISH", Emoji.fromUnicode("✅")))))
+                .queue();
     }
 
     public String buildJSONString() {
         List<String> tiers = Arrays.asList("S", "A", "B", "C", "D");
         StringBuilder msg = new StringBuilder();
         for (String o : tiers) {
-            nominated.stream().filter(s -> s.getString("tier").equals(o)).map(o2 -> o2.getString("name")).map(s -> s + "," + Tierlist.getByGuild(Constants.NDSID).getPointsNeeded(s)).sorted().forEach(mon -> msg.append(mon).append(";"));
+            nominated.stream().filter(s -> s.getString("tier").equals(o)).map(o2 -> o2.getString("name")).sorted().forEach(mon -> msg.append(mon).append(";"));
         }
         msg.setLength(msg.length() - 1);
         msg.append("###");
         for (String o : tiers) {
-            notNominated.stream().filter(s -> s.getString("tier").equals(o)).map(o2 -> o2.getString("name")).map(s -> s + "," + Tierlist.getByGuild(Constants.NDSID).getPointsNeeded(s)).sorted().forEach(mon -> msg.append(mon).append(";"));
+            notNominated.stream().filter(s -> s.getString("tier").equals(o)).map(o2 -> o2.getString("name")).sorted().forEach(mon -> msg.append(mon).append(";"));
         }
         msg.setLength(msg.length() - 1);
         return msg.toString();
@@ -91,10 +90,11 @@ public class Nominate {
             e.reply("Deine Nominierung wurde gespeichert!").queue();
         } else {
             if (nominated.size() != 11) {
-                e.reply("Du musst exakt 11 Pokemon nominieren!").queue();
+                e.reply("Du musst exakt 11 Pokemon nominieren!").setEphemeral(true).queue();
             } else {
-                e.editComponents(ActionRow.of(Button.success("nominate;FINISHNOW", "Ja"), Button.danger("nominate;CANCEL", "Nein"))).queue();
-                e.getHook().editOriginalEmbeds(new EmbedBuilder().setTitle("Bist du dir wirklich sicher? Die Nominierung kann nicht rückgängig gemacht werden!").setColor(Color.CYAN).setDescription(generateDescription()).build()).queue();
+                e.editMessageEmbeds(new EmbedBuilder().setTitle("Bist du dir wirklich sicher? Die Nominierung kann nicht rückgängig gemacht werden!").setColor(Color.CYAN).setDescription(generateDescription()).build())
+                        .setActionRows(ActionRow.of(Button.success("nominate;FINISHNOW", "Ja"), Button.danger("nominate;CANCEL", "Nein")))
+                        .queue();
             }
         }
     }

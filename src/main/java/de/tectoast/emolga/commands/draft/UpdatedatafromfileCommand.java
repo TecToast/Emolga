@@ -72,7 +72,7 @@ public class UpdatedatafromfileCommand extends Command {
             }
         }
         d.cooldown.cancel(false);
-        d.cooldown = d.scheduler.schedule((Runnable) d::timer, calculateASLTimer(), TimeUnit.MILLISECONDS);
+        d.cooldown = d.scheduler.schedule((Runnable) d::timer, calculateDraftTimer(), TimeUnit.MILLISECONDS);
         e.done();
     }
 }

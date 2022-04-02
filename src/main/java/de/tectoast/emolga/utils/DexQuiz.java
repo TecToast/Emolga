@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
 
@@ -71,7 +70,7 @@ public class DexQuiz {
         }
         StringBuilder builder = new StringBuilder("Punkte:\n");
         //noinspection SuspiciousMethodCalls
-        for (Member mem : points.keySet().stream().sorted(Comparator.comparing(points::get).reversed()).collect(Collectors.toList())) {
+        for (Member mem : points.keySet().stream().sorted(Comparator.comparing(points::get).reversed()).toList()) {
             builder.append(mem.getAsMention()).append(": ").append(points.get(mem)).append("\n");
         }
         tc.sendMessage(builder.toString()).queue();

@@ -7,6 +7,7 @@ import de.tectoast.emolga.utils.RequestBuilder;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.DraftPokemon;
 import de.tectoast.emolga.utils.draft.Tierlist;
+import de.tectoast.emolga.utils.records.Coord;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -117,6 +119,50 @@ public class SwitchCommand extends Command {
         }
     }
 
+    public static void ndsdoc(Tierlist tierlist, Draft d, long mem, DraftPokemon oldmon, DraftPokemon newmon) {
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
+        logger.info("oldmon = {}", oldmon);
+        logger.info("newmon = {}", newmon);
+        //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+        RequestBuilder b = new RequestBuilder(league.getString("sid"));
+        String teamname = league.getJSONObject("teamnames").getString(mem);
+        String pokemon = newmon.getName();
+        String sdName = getSDName(pokemon);
+        JSONObject o = getDataJSON().getJSONObject(sdName);
+        int i = d.picks.get(mem).indexOf(newmon) + 15;
+        Coord tl = getTierlistLocation(pokemon, tierlist);
+        String oldmonName = oldmon.getName();
+        Coord tlold = getTierlistLocation(oldmonName, tierlist);
+        String gen5Sprite = getGen5Sprite(o);
+        b
+                .addSingle(teamname + "!B" + i, gen5Sprite)
+                .addSingle(teamname + "!D" + i, pokemon)
+                .addSingle("Tierliste!" + getAsXCoord(tl.x() * 6 + 6) + (tl.y() + 4), "='" + teamname + "'!B2")
+                .addSingle("Tierliste!" + getAsXCoord(tlold.x() * 6 + 6) + (tlold.y() + 4), "-frei-");
+        List<Object> t = o.getStringList("types").stream().map(s -> getTypeIcons().getString(s)).collect(Collectors.toCollection(LinkedList::new));
+        if (t.size() == 1) t.add("/");
+        b.addRow(teamname + "!F" + i, t);
+        b.addSingle(teamname + "!H" + i, o.getJSONObject("baseStats").getInt("spe"));
+        b.addSingle(teamname + "!I" + i, tierlist.getPointsNeeded(pokemon));
+        b.addSingle(teamname + "!J" + i, "2");
+        b.addRow(teamname + "!L" + i, Arrays.asList(canLearnNDS(sdName, "stealthrock"), canLearnNDS(sdName, "defog"), canLearnNDS(sdName, "rapidspin"), canLearnNDS(sdName, "voltswitch", "uturn", "flipturn", "batonpass", "teleport")));
+        int numInRound = d.originalOrder.get(d.round).indexOf(mem) + 1;
+        b.addSingle("Draft!%s%d".formatted(getAsXCoord(d.round * 5 - 2), numInRound * 5 + 1), "》》》》")
+                .addSingle("Draft!%s%d".formatted(getAsXCoord(d.round * 5 - 3), numInRound * 5 + 1), oldmonName)
+                .addSingle("Draft!%s%d".formatted(getAsXCoord(d.round * 5 - 4), numInRound * 5 + 1), getGen5Sprite(oldmonName))
+                .addSingle("Draft!%s%d".formatted(getAsXCoord(d.round * 5 - 4), numInRound * 5 + 3), tierlist.prices.get(oldmon.getTier()));
+        b.addSingle("Draft!%s%d".formatted(getAsXCoord(d.round * 5 - 3), numInRound * 5 + 2), "《《《《")
+                .addSingle("Draft!%s%d".formatted(getAsXCoord(d.round * 5 - 1), numInRound * 5 + 2), pokemon)
+                .addSingle("Draft!%s%d".formatted(getAsXCoord(d.round * 5), numInRound * 5 + 1), gen5Sprite)
+                .addSingle("Draft!%s%d".formatted(getAsXCoord(d.round * 5), numInRound * 5 + 3), tierlist.prices.get(newmon.getTier()));
+        logger.info("d.members.size() = " + d.members.size());
+        logger.info("d.order.size() = " + d.order.get(d.round).size());
+        logger.info("d.members.size() - d.order.size() = " + numInRound);
+        //if (d.members.size() - d.order.get(d.round).size() != 1 && isEnabled)
+        b.execute();
+
+    }
+
     @Override
     public void process(GuildCommandEvent e) {
         String msg = e.getMsg();
@@ -184,17 +230,26 @@ public class SwitchCommand extends Command {
             return;
         }
         d.points.put(mem, d.points.get(mem) - newpoints);
-        d.picks.get(mem).stream().filter(dp -> dp.name.equalsIgnoreCase(oldmon)).forEach(dp -> {
-            dp.setName(newmon);
-            dp.setTier(tierlist.getTierOf(newmon));
-        });
+
+        DraftPokemon oldMon = d.picks.get(mem).stream().filter(draftMon -> draftMon.name.equalsIgnoreCase(oldmon)).map(DraftPokemon::copy).findFirst().orElse(null);
+
+        Optional<DraftPokemon> drp = d.picks.get(mem).stream().filter(dp -> dp.name.equalsIgnoreCase(oldmon)).findFirst();
+        if (drp.isEmpty()) {
+            logger.error("DRP NULL LINE 232");
+            return;
+        }
+        DraftPokemon dp = drp.get();
+        dp.setName(newmon);
+        dp.setTier(tierlist.getTierOf(newmon));
+
         //m.delete().queue();
         d.update(mem);
         //fpldoc(tierlist, newmon, d, mem, newpoints, new DraftPokemon(oldmon, tierlist.getTierOf(oldmon)));
-        fpldoc(tierlist, newmon, d, mem, tier, d.members.size() - d.order.get(d.round).size(), d.round, oldmon);
+        //fpldoc(tierlist, newmon, d, mem, tier, d.members.size() - d.order.get(d.round).size(), d.round, oldmon);
+        ndsdoc(tierlist, d, mem, oldMon, dp);
         league.getJSONObject("picks").put(d.current, d.getTeamAsArray(d.current));
         if (newmon.equals("Emolga")) {
-            tco.sendMessage("<:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142> <:liebenior:827210993141678142>").queue();
+            tco.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>").queue();
         }
         d.cooldown.cancel(false);
         int round = d.round;
@@ -218,7 +273,7 @@ public class SwitchCommand extends Command {
         JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
         tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
         //tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
-        long delay = calculateASLTimer();
+        long delay = calculateDraftTimer();
         league.put("cooldown", System.currentTimeMillis() + delay);
         d.cooldown = d.scheduler.schedule((Runnable) d::timer, delay, TimeUnit.MILLISECONDS);
         saveEmolgaJSON();

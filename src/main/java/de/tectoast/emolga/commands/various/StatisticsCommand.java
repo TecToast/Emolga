@@ -31,6 +31,7 @@ public class StatisticsCommand extends Command {
             if (name.equals("analysis")) analysis = "Analysierte Replays: " + count;
             else {
                 Command c = byName(name.substring(4));
+                if (c == null) continue;
                 logger.info("name = " + name);
                 if (c.checkBot(e.getJDA(), e.getGuild().getIdLong()))
                     otherCmds.add(c.getPrefix() + c.getName() + ": " + count);

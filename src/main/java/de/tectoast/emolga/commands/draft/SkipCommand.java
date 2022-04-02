@@ -20,7 +20,7 @@ public class SkipCommand extends Command {
     private static final Logger logger = LoggerFactory.getLogger(SkipCommand.class);
 
     public SkipCommand() {
-        super("skip", "Überspringt deinen Zug", CommandCategory.Draft, Constants.ASLID, Constants.FPLID);
+        super("skip", "Überspringt deinen Zug", CommandCategory.Draft, Constants.ASLID, Constants.FPLID, Constants.NDSID);
         setArgumentTemplate(ArgumentManagerTemplate.noArgs());
     }
 
@@ -47,9 +47,8 @@ public class SkipCommand extends Command {
         }
         d.cooldown.cancel(false);
         int round = d.round;
-        RequestBuilder b = new RequestBuilder(league.getString("sid"));
-        b.addStrikethroughChange(league.getInt("draftorder"), d.round + 1, (d.members.size() - d.order.get(d.round).size()) + 6, true);
-        b.execute();
+        //fplDoc(league, d);
+
         if (d.order.get(d.round).size() == 0) {
             if (d.round == d.getTierlist().rounds) {
                 tco.sendMessage("Der Draft ist vorbei!").queue();
@@ -72,9 +71,15 @@ public class SkipCommand extends Command {
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts");
         tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
         d.cooldown.cancel(false);
-        long delay = calculateASLTimer();
+        long delay = calculateDraftTimer();
         league.put("cooldown", System.currentTimeMillis() + delay);
         d.cooldown = d.scheduler.schedule((Runnable) d::timer, delay, TimeUnit.MILLISECONDS);
         saveEmolgaJSON();
+    }
+
+    private void fplDoc(JSONObject league, Draft d) {
+        RequestBuilder b = new RequestBuilder(league.getString("sid"));
+        b.addStrikethroughChange(league.getInt("draftorder"), d.round + 1, (d.members.size() - d.order.get(d.round).size()) + 6, true);
+        b.execute();
     }
 }

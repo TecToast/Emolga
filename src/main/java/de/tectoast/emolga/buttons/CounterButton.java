@@ -18,7 +18,8 @@ public class CounterButton extends ButtonListener {
         String method = split[0];
         Member mem = e.getMember();
         JSONObject counter = shinycountjson.getJSONObject("counter");
-        counter.getJSONObject(method).put(mem.getId(), counter.getJSONObject(method).optInt(mem.getId(), 0) + Integer.parseInt(split[1]));
+        String id = mem.getId().equals("893773494578470922") ? "598199247124299776" : mem.getId();
+        counter.getJSONObject(method).put(id, counter.getJSONObject(method).optInt(id, 0) + Integer.parseInt(split[1]));
         Command.updateShinyCounts(e);
     }
 

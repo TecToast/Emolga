@@ -23,7 +23,7 @@ public class NaturalGiftCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         Translation t = e.getArguments().getTranslation("stuff");
         String translation = t.getTranslation();
         if (t.isFromType(Translation.Type.ITEM)) {

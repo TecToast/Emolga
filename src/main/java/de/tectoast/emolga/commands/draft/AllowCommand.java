@@ -4,13 +4,11 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
-import de.tectoast.emolga.utils.annotations.ToTest;
 import net.dv8tion.jda.api.entities.Member;
 import org.jsolf.JSONObject;
 
 import java.util.Optional;
 
-@ToTest
 public class AllowCommand extends Command {
 
     public AllowCommand() {
@@ -22,7 +20,7 @@ public class AllowCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
         Member member = e.getMember();
         Optional<JSONObject> op = drafts.keySet().stream().map(drafts::getJSONObject).filter(o -> o.has("guild")).filter(o -> o.getString("guild").equals(e.getGuild().getId()))

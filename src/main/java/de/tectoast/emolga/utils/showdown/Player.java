@@ -1,8 +1,13 @@
 package de.tectoast.emolga.utils.showdown;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 
 public class Player {
+
+    private static final Logger logger = LoggerFactory.getLogger(Player.class);
 
     private Pokemon spikesBy, tSpikesBy, rocksBy;
 
@@ -12,6 +17,15 @@ public class Player {
     private int totalKills = 0;
     private int totalDeaths = 0;
     private int teamsize;
+    private final int number;
+
+    public Player(int number) {
+        this.number = number;
+    }
+
+    public int getNumber() {
+        return number;
+    }
 
     public int getTeamsize() {
         return teamsize;

@@ -3,8 +3,11 @@ package de.tectoast.emolga.utils.showdown;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MarkerFactory;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 public class Pokemon {
@@ -20,14 +23,16 @@ public class Pokemon {
     private int hp = 100;
     private String ability = "";
     private int lastKillTurn = -1;
+    private final Map<Integer, String> zoru;
 
 
-    public Pokemon(String poke, Player player, List<Integer> zoroTurns, List<String> game, Supplier<String> disabledAbi) {
+    public Pokemon(String poke, Player player, List<Integer> zoroTurns, List<String> game, Supplier<String> disabledAbi, Map<Integer, String> zoru) {
         pokemon = poke;
         this.zoroTurns = zoroTurns;
         this.game = game;
         this.player = player;
         this.disabledAbi = disabledAbi;
+        this.zoru = zoru;
     }
 
     public Player getPlayer() {
@@ -39,7 +44,7 @@ public class Pokemon {
     }
 
     public boolean noAbilityTrigger(int line) {
-        return !this.ability.isEmpty() && !this.disabledAbi.get().equals(this.ability) && !game.get(line + 1).contains("[from] ability: " + this.ability);
+        return !this.ability.isEmpty() && !Objects.equals(this.disabledAbi.get(), this.ability) && !game.get(line + 1).contains("[from] ability: " + this.ability);
     }
 
     public boolean checkHPZoro(int hp) {
@@ -92,7 +97,10 @@ public class Pokemon {
 
     public void setDead(int line) {
         if (game.get(line + 1).contains("|replace|") && game.get(line + 1).contains("|Zor")) {
-            player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> p.dead = true);
+            player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> {
+                p.dead = true;
+                zoru.remove(player.getNumber());
+            });
         } else {
             this.dead = true;
         }
@@ -103,9 +111,10 @@ public class Pokemon {
     }
 
     public void setHp(int hp, int turn) {
-        if (zoroTurns.contains(turn))
+        if (zoroTurns.contains(turn)) {
             player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> p.hp = hp);
-        else
+            logger.info(MarkerFactory.getMarker("important"), "set hp zoroark in turn {} to {}", turn, hp);
+        } else
             this.hp = hp;
     }
 
@@ -149,7 +158,7 @@ public class Pokemon {
                 p.lastKillTurn = turn;
             });
         } else {
-            if (lastKillTurn == turn) return;
+            //if (lastKillTurn == turn) return;
             this.kills++;
             this.lastKillTurn = turn;
         }

@@ -13,7 +13,6 @@ import org.jsolf.JSONObject;
 import java.awt.*;
 import java.util.List;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class CombinationCommand extends Command {
     public CombinationCommand() {
@@ -31,7 +30,7 @@ public class CombinationCommand extends Command {
     }
 
     public static boolean containsNotAll(JSONArray arr, ArrayList<String> list) {
-        List<String> l = arr.toList().stream().map(o -> (String) o).collect(Collectors.toList());
+        List<String> l = arr.toList().stream().map(o -> (String) o).toList();
         for (String s : list) {
             if (!l.contains(s)) return true;
         }

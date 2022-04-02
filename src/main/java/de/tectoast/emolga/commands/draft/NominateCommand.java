@@ -33,7 +33,9 @@ public class NominateCommand extends PrivateCommand {
     public void process(PrivateMessageReceivedEvent e) {
         JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
         JSONObject nom = nds.getJSONObject("nominations");
-        if (nom.getJSONObject(String.valueOf(nom.getInt("currentDay"))).has(e.getAuthor().getId())) {
+        int currentDay = nom.getInt("currentDay");
+        if (!nom.has(currentDay)) nom.put(currentDay, new JSONObject());
+        if (nom.getJSONObject(String.valueOf(currentDay)).has(e.getAuthor().getId())) {
             e.getChannel().sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!").queue();
             return;
         }

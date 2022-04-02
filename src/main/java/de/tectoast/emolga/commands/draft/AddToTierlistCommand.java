@@ -20,7 +20,7 @@ public class AddToTierlistCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         JSONObject o = load("./Tierlists/518008523653775366.json");
         String str = e.getArguments().getText("mon");
         String mon = getDraftGerName(str).getTranslation();

@@ -45,7 +45,7 @@ public class ReplayChannelCommand extends Command {
             //Database.insert("analysis", "replay, result", tco.getIdLong(), tc.getIdLong());
             long l = DBManagers.ANALYSIS.insertChannel(tco, tc);
             if (l == -1) {
-                e.reply(sameChannel ? "Dieser Channel ist nun ein Replaychannel, somit werden alle Replays automatisch hier reingeschickt!" : ("Alle Ergebnisse der Replays aus " + tco.getAsMention() + " werden von nun an in den Channel " + tc.getAsMention() + " geschickt!"));
+                e.reply(sameChannel ? "Dieser Channel ist nun ein Replaychannel, somit werden alle Replay-Ergebnisse automatisch hier reingeschickt!" : ("Alle Ergebnisse der Replays aus " + tco.getAsMention() + " werden von nun an in den Channel " + tc.getAsMention() + " geschickt!"));
                 Command.replayAnalysis.put(tco.getIdLong(), tc.getIdLong());
             } else {
                 e.reply("Die Replays aus diesem Channel werden " + (l == tc.getIdLong() ? "bereits" : "zurzeit") + " in den Channel <#" + l + "> geschickt!");

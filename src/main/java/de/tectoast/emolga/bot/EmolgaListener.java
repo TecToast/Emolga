@@ -36,7 +36,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
 import static de.tectoast.emolga.utils.Constants.MYSERVER;
@@ -107,6 +106,7 @@ public class EmolgaListener extends ListenerAdapter {
         e.getRole().getManager().revokePermissions(Permission.CREATE_INSTANT_INVITE).queue();
     }
 
+    @SuppressWarnings("HttpUrlsUsage")
     @Override
     public void onPrivateMessageReceived(PrivateMessageReceivedEvent e) {
         if (!e.getAuthor().isBot() && e.getAuthor().getIdLong() != Constants.FLOID)
@@ -122,7 +122,7 @@ public class EmolgaListener extends ListenerAdapter {
             Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(" ", s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("http") + 1))).findFirst();
             if (urlop.isPresent()) {
                 String url = urlop.get();
-                analyseReplay(url, e.getJDA().getTextChannelById(882641809531101256L), e.getJDA().getTextChannelById(882642106533949451L), e.getMessage(), null);
+                analyseReplay(url, null, e.getJDA().getTextChannelById(820359155612254258L), e.getMessage(), null);
             }
         }
     }
@@ -152,7 +152,7 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onUserUpdateName(UserUpdateNameEvent e) {
         logger.info(e.getOldName() + " -> " + e.getNewName());
-        if (e.getUser().getMutualGuilds().stream().map(ISnowflake::getId).collect(Collectors.toList()).contains("518008523653775366"))
+        if (e.getUser().getMutualGuilds().stream().map(ISnowflake::getId).toList().contains("518008523653775366"))
             e.getJDA().getTextChannelById("728675253924003870").sendMessage(e.getOldName() + " hat sich auf ganz Discord in " + e.getNewName() + " umbenannt!").queue();
     }
 
@@ -174,6 +174,7 @@ public class EmolgaListener extends ListenerAdapter {
         });
     }
 
+    @SuppressWarnings("HttpUrlsUsage")
     @Override
     public void onGuildMessageReceived(@NotNull GuildMessageReceivedEvent e) {
         if (e.getGuild().getIdLong() == MYSERVER) {
@@ -239,12 +240,13 @@ public class EmolgaListener extends ListenerAdapter {
                 if (mop.isPresent()) {
                     JSONObject o = shinycountjson.getJSONObject("counter").getJSONObject(mop.get());
                     boolean isCmd = true;
+                    String mid = member.getId().equals("893773494578470922") ? "598199247124299776" : member.getId();
                     if (msg.contains("!set ")) {
-                        o.put(member.getId(), Integer.parseInt(split[2]));
+                        o.put(mid, Integer.parseInt(split[2]));
                     } else if (msg.contains("!reset ")) {
-                        o.put(member.getId(), 0);
+                        o.put(mid, 0);
                     } else if (msg.contains("!add ")) {
-                        o.put(member.getId(), o.optInt(member.getId(), 0) + Integer.parseInt(split[2]));
+                        o.put(mid, o.optInt(mid, 0) + Integer.parseInt(split[2]));
                     } else isCmd = false;
                     if (isCmd) {
                         m.delete().queue();

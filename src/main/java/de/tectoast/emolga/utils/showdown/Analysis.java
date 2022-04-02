@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.Message;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MarkerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -51,7 +52,7 @@ public class Analysis {
         if (m != null)
             DBManagers.REPLAY_CHECK.set(m.getChannel().getIdLong(), m.getIdLong());
         for (int i = 1; i <= 2; i++) {
-            pl.put(i, new Player());
+            pl.put(i, new Player(i));
             zoroTurns.put(i, new LinkedList<>());
             actMons.put(i, new LinkedList<>());
         }
@@ -73,7 +74,7 @@ public class Analysis {
             checkPlayer(i -> s.contains("|player|p" + i) && s.length() > 11, p -> p.setNickname(split[3]));
             check(i -> s.contains("|poke|p" + i), i -> {
                 String poke = split[3].split(",")[0];
-                pl.get(i).getMons().add(new Pokemon(poke, pl.get(i), zoroTurns.get(i), game, abiSupplier));
+                pl.get(i).getMons().add(new Pokemon(poke, pl.get(i), zoroTurns.get(i), game, abiSupplier, zoru));
                 if (poke.equals("Zoroark") || poke.equals("Zorua")) zoru.put(i, poke);
             });
             checkPlayer(i -> s.contains("|teamsize|p" + i), p -> p.setTeamsize(Integer.parseInt(split[3])));
@@ -83,8 +84,8 @@ public class Analysis {
                 if (p.getMons().size() == 0 && !randomBattle) randomBattle = true;
                 if (randomBattle) {
                     if (p.indexOfName(pokemon) == -1) {
-                        System.out.printf("Adding %s to %s...%n", pokemon, p.getNickname());
-                        p.getMons().add(new Pokemon(pokemon, p, zoroTurns.get(i), game, abiSupplier));
+                        logger.info("Adding {} to {}...", pokemon, p.getNickname());
+                        p.getMons().add(new Pokemon(pokemon, p, zoroTurns.get(i), game, abiSupplier, zoru));
                     }
                 } else {
                     if (pokemon.contains("Silvally") && p.indexOfName("Silvally-*") != -1) {//Silvally-Problem
@@ -136,11 +137,13 @@ public class Analysis {
                 }
                 if (s.contains("|replace|p" + i) && s.contains("|Zor")) {
                     isZ = true;
+                    logger.info(MarkerFactory.getMarker("important"), "isZ REPLACE");
                 }
                 if (s.contains("|move|p" + i)) {
                     JSONObject o = dex.getJSONObject(toSDName(actMons.get(i).get(x)));
                     if (!learnset.getJSONObject(toSDName(o.optString("baseSpecies", o.getString("name")))).getJSONObject("learnset").keySet().contains(toSDName(s.split("\\|")[3]))) {
                         isZ = true;
+                        logger.info(MarkerFactory.getMarker("important"), "isZ MOVE");
                     }
                 }
                 if (s.contains("|switch|p" + i) || s.contains("|drag|p" + i)) isZ = false;
@@ -148,6 +151,7 @@ public class Analysis {
             }
         });
         line = -1;
+        logger.info(MarkerFactory.getMarker("important"), "zoroTurns.get(1) = {}", zoroTurns.get(1));
         for (String string : game) {
             line++;
             s = string;
@@ -221,7 +225,10 @@ public class Analysis {
                     if (mon.getStringList("types").contains("Flying") || mon.getJSONObject("abilities").toMap().containsValue("Levitate"))
                         activeP.put(i, getZoro(i, "Sticky Web"));
                 } else if (s.contains("[from] ability:") && s.contains("[of] p" + i)) {
-                    activeP.get(i).setAbility(split[3].split(":")[1].trim());
+                    Arrays.stream(split)
+                            .filter(str -> str.contains("[from] ability:"))
+                            .map(str -> str.split(":")[1].trim())
+                            .forEach(str -> activeP.get(i).setAbility(str));
                 } else if (s.contains("|-ability|p" + i)) {
                     activeP.get(i).setAbility(split[3].trim());
                 }

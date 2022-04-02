@@ -26,7 +26,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.bot.EmolgaMain.emolgajda;
 import static de.tectoast.emolga.utils.sql.DBManagers.DISCORD_AUTH;
@@ -95,7 +94,7 @@ public class HttpHandler extends AbstractHandler {
             String token = getAccessToken(session);
             JSONArray guilds = getGuilds(token);
             logger.info("token = " + token);
-            List<String> gl = emolgajda.getGuilds().stream().map(Guild::getId).collect(Collectors.toList());
+            List<String> gl = emolgajda.getGuilds().stream().map(Guild::getId).toList();
             JSONArray arr = new JSONArray();
             List<JSONObject> joined = new LinkedList<>();
             List<JSONObject> notJoined = new LinkedList<>();

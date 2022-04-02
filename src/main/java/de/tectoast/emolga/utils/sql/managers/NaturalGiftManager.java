@@ -12,9 +12,9 @@ import java.util.List;
 
 public class NaturalGiftManager extends DataManager {
 
-    StringColumn NAME = new StringColumn("name", this);
-    StringColumn TYPE = new StringColumn("type", this);
-    IntColumn BP = new IntColumn("bp", this);
+    final StringColumn NAME = new StringColumn("name", this);
+    final StringColumn TYPE = new StringColumn("type", this);
+    final IntColumn BP = new IntColumn("bp", this);
 
     public NaturalGiftManager() {
         super("naturalgift");

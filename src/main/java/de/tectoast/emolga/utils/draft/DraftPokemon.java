@@ -25,4 +25,16 @@ public class DraftPokemon {
     public void setTier(String tier) {
         this.tier = tier;
     }
+
+    public DraftPokemon copy() {
+        return new DraftPokemon(name, tier);
+    }
+
+    @Override
+    public String toString() {
+        return "DraftPokemon{" +
+                "name='" + name + '\'' +
+                ", tier='" + tier + '\'' +
+                '}';
+    }
 }

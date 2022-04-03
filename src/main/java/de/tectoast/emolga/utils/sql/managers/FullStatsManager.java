@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.sql.managers;
 
+import de.tectoast.emolga.utils.records.UsageData;
 import de.tectoast.emolga.utils.sql.base.DataManager;
 import de.tectoast.emolga.utils.sql.base.columns.IntColumn;
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn;
@@ -31,5 +32,14 @@ public class FullStatsManager extends DataManager {
             String toupdate = win ? "wins" : "looses";
             r.updateInt(toupdate, r.getInt(toupdate) + 1);
         }, pokemon, kills, deaths, 1, win ? 1 : 0, win ? 0 : 1), "AddFullStat").start();
+    }
+
+    public UsageData getData(String mon) {
+        return read(selectAll(POKEMON.check(mon)), r -> {
+            if (!r.next()) {
+                return null;
+            }
+            return new UsageData(r.getInt("kills"), r.getInt("deaths"), r.getInt("uses"), r.getInt("wins"), r.getInt("looses"));
+        });
     }
 }

@@ -29,9 +29,9 @@ public class FullStatsCommand extends Command {
             return;
         }
         String kpu = String.valueOf((double) data.kills() / (double) data.uses());
-        kpu = kpu.substring(0, kpu.indexOf(".") + 6);
+        kpu = kpu.substring(0, kpu.indexOf(".") + Math.min(kpu.length() - 1, 6));
         String wpu = String.valueOf((double) data.wins() / (double) data.uses());
-        wpu = wpu.substring(0, wpu.indexOf(".") + 6);
+        wpu = wpu.substring(0, wpu.indexOf(".") + Math.min(wpu.length() - 1, 6));
         e.reply(new EmbedBuilder().setColor(Color.CYAN)
                 .setTitle("Gesamtstatistik von " + mon)
                 .addField("Kills", String.valueOf(data.kills()), false)

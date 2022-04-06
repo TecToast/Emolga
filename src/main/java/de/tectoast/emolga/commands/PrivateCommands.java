@@ -641,6 +641,19 @@ public class PrivateCommands {
         saveEmolgaJSON();
     }
 
+    @PrivateCommand(name = "ndscorrectpkmnnames")
+    public static void ndscorrektpkmnnames() {
+        JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
+        JSONObject picks = nds.getJSONObject("picks");
+        List<String> table = nds.getStringList("table");
+        RequestBuilder b = new RequestBuilder(nds.getString("sid"));
+        JSONObject teamnames = nds.getJSONObject("teamnames");
+        for (String s : table) {
+            b.addColumn(s + "!A200", picks.getJSONList(reverseGet(teamnames, s)).stream().map(o -> o.getString("name")).collect(Collectors.toList()));
+        }
+        b.execute();
+    }
+
     public static void execute(Message message) {
         String msg = message.getContentRaw();
         for (Method method : PrivateCommands.class.getDeclaredMethods()) {

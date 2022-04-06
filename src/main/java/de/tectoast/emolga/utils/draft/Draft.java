@@ -38,10 +38,10 @@ public class Draft {
     public final String guild;
     public final boolean isPointBased;
     public final boolean isSwitchDraft;
+    public final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(2);
     public List<Long> members;
     public long current;
     public int round = 0;
-    public final ScheduledExecutorService scheduler = new ScheduledThreadPoolExecutor(2);
     public ScheduledFuture<?> cooldown;
     public TextChannel ts;
     public boolean ended = false;
@@ -259,7 +259,13 @@ public class Draft {
             })).collect(Collectors.toList()));
             x++;
         }
-        builder.execute();
+        builder.withRunnable(() -> emolgajda.getTextChannelById(837425690844201000L)
+                .sendMessage("""
+                        Jo ihr alten Zipfelklatscher! Eure jämmerlichen Versuche eine Liga zu gewinnen werden scheitern ihr Arschgeigen, da ihr zu inkompetent seid euch zu merken, wann alles nach meiner Schwerstarbeit automatisch eingetragen wird. Daher erinnere ich euer Erbsenhirn mithilfe dieser noch nett formulierten Nachricht daran, dass ihr nun anfangen könnt zu builden. Dann bis nächste Woche Mittwoch!
+                        PS: Bannt Henny, der Typ ist broken! Und gebt ihm keinen Gehstocktänzer!
+
+                        _written by Henny_""")
+                .queue()).execute();
         nom.increment("currentDay");
         saveEmolgaJSON();
     }

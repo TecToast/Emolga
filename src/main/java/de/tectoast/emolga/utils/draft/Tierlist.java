@@ -159,7 +159,7 @@ public class Tierlist {
             //logger.info(s + " " + y);
             if (s.equals("NEXT")) {
                 x++;
-                y = 3;
+                y = defY;
             } else y++;
         }
         return new ImmutablePair<>(x, y);

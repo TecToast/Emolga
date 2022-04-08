@@ -26,6 +26,7 @@ public class RequestBuilder {
     private long delay = 0;
     private boolean suppressMessages = false;
     private String[] additionalSheets;
+    private boolean onlyBatch = false;
 
     /**
      * Creates a RequestBuilder
@@ -110,6 +111,11 @@ public class RequestBuilder {
 
     public RequestBuilder withAdditionalSheets(String... additionalSheets) {
         this.additionalSheets = additionalSheets;
+        return this;
+    }
+
+    public RequestBuilder onlyBatch() {
+        this.onlyBatch = true;
         return this;
     }
 
@@ -287,42 +293,43 @@ public class RequestBuilder {
         List<Request> batch = getBatch();
         Sheets service = getSheetsService();
         List<Thread> list = new LinkedList<>();
-
-        list.add(new Thread(() -> {
-            if (!userentered.isEmpty()) {
-                if (!suppressMessages)
-                    for (int i = 0; i < userentered.size(); i++) {
-                        ValueRange range = userentered.get(i);
-                        logger.info("{}: {} -> {}", i, range.getRange(), range.getValues());
-                    }
-                try {
-                    service.spreadsheets().values().batchUpdate(sid, new BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")).execute();
-                    if (additionalSheets != null) {
-                        for (String sidd : additionalSheets) {
-                            service.spreadsheets().values().batchUpdate(sidd, new BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")).execute();
+        if (!onlyBatch)
+            list.add(new Thread(() -> {
+                if (!userentered.isEmpty()) {
+                    if (!suppressMessages)
+                        for (int i = 0; i < userentered.size(); i++) {
+                            ValueRange range = userentered.get(i);
+                            logger.info("{}: {} -> {}", i, range.getRange(), range.getValues());
                         }
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    sendStacktraceToMe(e);
-                }
-            }
-        }, "ReqBuilder User"));
-        list.add(new Thread(() -> {
-            if (!raw.isEmpty()) {
-                try {
-                    service.spreadsheets().values().batchUpdate(sid, new BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW")).execute();
-                    if (additionalSheets != null) {
-                        for (String sidd : additionalSheets) {
-                            service.spreadsheets().values().batchUpdate(sidd, new BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW")).execute();
+                    try {
+                        service.spreadsheets().values().batchUpdate(sid, new BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")).execute();
+                        if (additionalSheets != null) {
+                            for (String sidd : additionalSheets) {
+                                service.spreadsheets().values().batchUpdate(sidd, new BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")).execute();
+                            }
                         }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        sendStacktraceToMe(e);
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    sendStacktraceToMe(e);
                 }
-            }
-        }, "ReqBuilder Raw"));
+            }, "ReqBuilder User"));
+        if (!onlyBatch)
+            list.add(new Thread(() -> {
+                if (!raw.isEmpty()) {
+                    try {
+                        service.spreadsheets().values().batchUpdate(sid, new BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW")).execute();
+                        if (additionalSheets != null) {
+                            for (String sidd : additionalSheets) {
+                                service.spreadsheets().values().batchUpdate(sidd, new BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW")).execute();
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        sendStacktraceToMe(e);
+                    }
+                }
+            }, "ReqBuilder Raw"));
         list.add(new Thread(() -> {
             if (!batch.isEmpty()) {
                 try {

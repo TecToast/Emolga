@@ -1047,7 +1047,7 @@ public abstract class Command {
     public static void sortNDSSingle(String sid, JSONObject league, int num) {
         int start = num * 8 + 3;
         int end = num * 8 + 8;
-        List<List<Object>> formula = Google.get(sid, "Tabelle RR!C" + start + ":K" + end, true, false);
+        List<List<Object>> formula = Google.get(sid, "Tabelle RR!B" + start + ":K" + end, true, false);
         List<List<Object>> points = Google.get(sid, "Tabelle RR!C" + start + ":K" + end, false, false);
         List<List<Object>> orig = new ArrayList<>(points);
         JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
@@ -1759,11 +1759,11 @@ public abstract class Command {
                         String loc = getAsXCoord(gdi * 9 + (isRight ? 9 : 1)) + (battleindex * 10 + 6 + num);
                         String range = loc + ":" + loc;
                         if (deathint == 1) {
-                            b.addFGColorChange(453772599, range, convertColor(0x000000));
-                            b.addStrikethroughChange(453772599, range, true);
+                            b.addFGColorChange(1634614187, range, convertColor(0x000000));
+                            b.addStrikethroughChange(1634614187, range, true);
                         } else {
-                            b.addFGColorChange(453772599, range, convertColor(0xefefef));
-                            b.addStrikethroughChange(453772599, range, false);
+                            b.addFGColorChange(1634614187, range, convertColor(0xefefef));
+                            b.addStrikethroughChange(1634614187, range, false);
                         }
                         num++;
                     }

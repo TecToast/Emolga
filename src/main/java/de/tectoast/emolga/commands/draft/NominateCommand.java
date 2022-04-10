@@ -2,6 +2,7 @@ package de.tectoast.emolga.commands.draft;
 
 import de.tectoast.emolga.buttons.buttonsaves.Nominate;
 import de.tectoast.emolga.commands.PrivateCommand;
+import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Emoji;
 import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
@@ -39,7 +40,7 @@ public class NominateCommand extends PrivateCommand {
             e.getChannel().sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!").queue();
             return;
         }
-        JSONArray arr = nds.getJSONObject("picks").getJSONArray(e.getAuthor().getId());
+        JSONArray arr = nds.getJSONObject("picks").getJSONArray(e.getAuthor().getIdLong() == Constants.FLOID ? e.getMessage().getContentDisplay().split("\\s+")[1] : e.getAuthor().getId());
         List<JSONObject> list = arr.toJSONList();
         list.sort(tiercomparator);
         List<String> b = list.stream().map(o -> o.getString("name")).collect(Collectors.toList());

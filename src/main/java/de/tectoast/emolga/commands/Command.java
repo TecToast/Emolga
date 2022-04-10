@@ -1077,7 +1077,7 @@ public abstract class Command {
             sendname.add(namap.get(j));
         }
         logger.info(String.valueOf(sendname));
-        RequestBuilder.updateAll(sid, "Tabelle RR!C" + start, sendname);
+        RequestBuilder.updateAll(sid, "Tabelle RR!B" + start, sendname);
         logger.info("Done!");
     }
 

@@ -22,7 +22,6 @@ import de.tectoast.emolga.utils.annotations.ToTest;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
 import de.tectoast.emolga.utils.music.SoundSendHandler;
-import de.tectoast.emolga.utils.records.Coord;
 import de.tectoast.emolga.utils.records.TimerData;
 import de.tectoast.emolga.utils.showdown.Analysis;
 import de.tectoast.emolga.utils.showdown.Player;
@@ -2296,31 +2295,6 @@ public abstract class Command {
             x++;
         }
         return (x > 0 ? (char) (x + 64) : "") + "" + (char) (i + 64);
-    }
-
-    public static Coord getTierlistLocation(String pokemon, Tierlist tierlist) {
-        return getTierlistLocation(pokemon, tierlist.tiercolumns);
-    }
-
-    public static Coord getTierlistLocation(String pokemon, List<String> tiercolumns) {
-        int x = 0;
-        int y = 0;
-        boolean found = false;
-        for (String s : tiercolumns) {
-            if (s.equalsIgnoreCase(pokemon)) {
-                found = true;
-                break;
-            }
-            //logger.info(s + " " + y);
-            if (s.equals("NEXT")) {
-                x++;
-                y = 0;
-            } else y++;
-        }
-        if (found)
-            //noinspection SuspiciousNameCombination
-            return new Coord(x, y);
-        return new Coord(-1, -1);
     }
 
     private static String getSerebiiForm(String forme) {

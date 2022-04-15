@@ -1,8 +1,7 @@
 package de.tectoast.emolga.utils.draft;
 
 import de.tectoast.emolga.commands.Command;
-import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
-import net.dv8tion.jda.internal.utils.tuple.Pair;
+import de.tectoast.emolga.utils.records.Coord;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,17 +150,29 @@ public class Tierlist {
         return "";
     }
 
-    public Pair<Integer, Integer> getLocation(String mon, int defX, int defY) {
+    public Coord getLocation(String mon) {
+        return getLocation(mon, 0, 0);
+    }
+
+    public Coord getLocation(String mon, int defX, int defY) {
+        return getLocation(mon, defX, defY, tiercolumns);
+    }
+
+    public Coord getLocation(String mon, int defX, int defY, List<String> tiercolumns) {
         int x = defX;
         int y = defY;
+        boolean valid = false;
         for (String s : tiercolumns) {
-            if (s.equalsIgnoreCase(mon)) break;
+            if (s.equalsIgnoreCase(mon)) {
+                valid = true;
+                break;
+            }
             //logger.info(s + " " + y);
             if (s.equals("NEXT")) {
                 x++;
                 y = defY;
             } else y++;
         }
-        return new ImmutablePair<>(x, y);
+        return new Coord(x, y, valid);
     }
 }

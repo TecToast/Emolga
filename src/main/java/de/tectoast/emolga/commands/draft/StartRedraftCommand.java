@@ -13,7 +13,7 @@ public class StartRedraftCommand extends Command {
                 .add("name", "Name", "Der Name der Liga/des Drafts", ArgumentManagerTemplate.Text.any())
                 .setExample("!startredraft Emolga-Conference")
                 .build());
-        setCustomPermissions(PermissionPreset.fromIDs(694543579414134802L, 690971979821613056L));
+        setCustomPermissions(PermissionPreset.fromIDs(297010892678234114L));
     }
 
     @Override

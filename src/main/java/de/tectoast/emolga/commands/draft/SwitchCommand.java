@@ -10,16 +10,17 @@ import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.records.Coord;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MarkerFactory;
 
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -37,7 +38,32 @@ public class SwitchCommand extends Command {
                 .setExample("!switch Gufa Emolga").build());
     }
 
-    private static void asldoc(Tierlist tierlist, String pokemon, Draft d, long mem, int needed, DraftPokemon removed) {
+    private static void aslNoCoachDoc(Tierlist tierlist, String pokemon, Draft d, long mem, String newtier, int diff, DraftPokemon removed, int monindex, int userindex) {
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
+        String sid = league.getString("sid");
+        RequestBuilder b = new RequestBuilder(sid);
+        String oldmon = removed.getName();
+        Coord cng = tierlist.getLocation(pokemon, 1, 5);
+        Coord cog = tierlist.getLocation(oldmon, 1, 5);
+        Coord cne = tierlist.getLocation(pokemon, 1, 5, tierlist.tiercolumnsEngl);
+        Coord coe = tierlist.getLocation(oldmon, 1, 5, tierlist.tiercolumnsEngl);
+        logger.info(MarkerFactory.getMarker("important"), "{} {} {} {}", cng, cog, cne, coe);
+        if (cng.valid())
+            b.addBGColorChange(league.getInt("tierlist"), cng.x() * 2, cng.y(), convertColor(0xFF0000));
+        if (cog.valid())
+            b.addBGColorChange(league.getInt("tierlist"), cog.x() * 2, cog.y(), convertColor(0x93c47d));
+        if (cne.valid())
+            b.addBGColorChange(league.getInt("tierlistengl"), cne.x() * 2, cne.y(), convertColor(0xFF0000));
+        if (coe.valid())
+            b.addBGColorChange(league.getInt("tierlistengl"), coe.x() * 2, coe.y(), convertColor(0x93c47d));
+        b.addRow("Teamseite RR!B%d".formatted(league.getLongList("table").indexOf(mem) * 15 + 4 + monindex),
+                Arrays.asList(newtier, pokemon, getDataJSON().getJSONObject(getSDName(pokemon)).getJSONObject("baseStats").getInt("spe")));
+        int round = d.round;
+        b.addRow("Zwischendraft!%s%d".formatted(getAsXCoord(round * 5 - 2), userindex + 4), Arrays.asList(oldmon, pokemon, diff));
+        b.execute();
+    }
+
+    private static void aslCoachDoc(Tierlist tierlist, String pokemon, Draft d, long mem, int needed, DraftPokemon removed) {
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
         JSONObject league = asl.getJSONObject(d.name);
         String sid = asl.getString("sid");
@@ -101,10 +127,10 @@ public class SwitchCommand extends Command {
             String doc = league.getString("sid");
             logger.info("num = " + num);
             RequestBuilder b = new RequestBuilder(doc);
-            Pair<Integer, Integer> ncoords = tierlist.getLocation(pokemon, 1, 3);
-            b.addStrikethroughChange(league.getInt("tierlist"), ncoords.getLeft() * 2, ncoords.getRight(), true);
-            Pair<Integer, Integer> ocoords = tierlist.getLocation(removed, 1, 3);
-            b.addStrikethroughChange(league.getInt("tierlist"), ocoords.getLeft() * 2, ocoords.getRight(), false);
+            Coord ncoords = tierlist.getLocation(pokemon, 1, 3);
+            b.addStrikethroughChange(league.getInt("tierlist"), ncoords.x() * 2, ncoords.y(), true);
+            Coord ocoords = tierlist.getLocation(removed, 1, 3);
+            b.addStrikethroughChange(league.getInt("tierlist"), ocoords.x() * 2, ocoords.y(), false);
             //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
             b.addStrikethroughChange(league.getInt("draftorder"), d.round + 1, num + 6, true);
             int user = league.getLongList("table").indexOf(mem);
@@ -130,9 +156,9 @@ public class SwitchCommand extends Command {
         String sdName = getSDName(pokemon);
         JSONObject o = getDataJSON().getJSONObject(sdName);
         int i = d.picks.get(mem).indexOf(newmon) + 15;
-        Coord tl = getTierlistLocation(pokemon, tierlist);
+        Coord tl = tierlist.getLocation(pokemon, 0, 0);
         String oldmonName = oldmon.getName();
-        Coord tlold = getTierlistLocation(oldmonName, tierlist);
+        Coord tlold = tierlist.getLocation(oldmonName, 0, 0);
         String gen5Sprite = getGen5Sprite(o);
         b
                 .addSingle(teamname + "!B" + i, gen5Sprite)
@@ -230,10 +256,10 @@ public class SwitchCommand extends Command {
             return;
         }
         d.points.put(mem, d.points.get(mem) - newpoints);
-
-        DraftPokemon oldMon = d.picks.get(mem).stream().filter(draftMon -> draftMon.name.equalsIgnoreCase(oldmon)).map(DraftPokemon::copy).findFirst().orElse(null);
-
-        Optional<DraftPokemon> drp = d.picks.get(mem).stream().filter(dp -> dp.name.equalsIgnoreCase(oldmon)).findFirst();
+        AtomicInteger oldindex = new AtomicInteger(-1);
+        List<DraftPokemon> draftPokemons = d.picks.get(mem);
+        DraftPokemon oldMon = draftPokemons.stream().filter(draftMon -> draftMon.name.equalsIgnoreCase(oldmon)).peek(dp -> oldindex.set(draftPokemons.indexOf(dp))).map(DraftPokemon::copy).findFirst().orElse(null);
+        Optional<DraftPokemon> drp = draftPokemons.stream().filter(dp -> dp.name.equalsIgnoreCase(oldmon)).findFirst();
         if (drp.isEmpty()) {
             logger.error("DRP NULL LINE 232");
             return;
@@ -244,9 +270,7 @@ public class SwitchCommand extends Command {
 
         //m.delete().queue();
         d.update(mem);
-        //fpldoc(tierlist, newmon, d, mem, newpoints, new DraftPokemon(oldmon, tierlist.getTierOf(oldmon)));
-        //fpldoc(tierlist, newmon, d, mem, tier, d.members.size() - d.order.get(d.round).size(), d.round, oldmon);
-        ndsdoc(tierlist, d, mem, oldMon, dp);
+        aslNoCoachDoc(tierlist, newmon, d, mem, tier, pointsBack - newpoints, oldMon, oldindex.get(), d.originalOrder.get(d.round).indexOf(mem));
         league.getJSONObject("picks").put(d.current, d.getTeamAsArray(d.current));
         if (newmon.equals("Emolga")) {
             tco.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>").queue();

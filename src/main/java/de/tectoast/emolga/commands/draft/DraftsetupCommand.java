@@ -13,7 +13,7 @@ public class DraftsetupCommand extends Command {
                 .add("tc", "Channel", "Der Channel, wo die Teamübersicht sein soll", ArgumentManagerTemplate.DiscordType.CHANNEL, true)
                 .setExample("!draftsetup Emolga-Conference #emolga-teamübersicht")
                 .build());
-        setCustomPermissions(PermissionPreset.fromIDs(694543579414134802L, 690971979821613056L));
+        setCustomPermissions(PermissionPreset.fromIDs(297010892678234114L));
     }
 
     @Override

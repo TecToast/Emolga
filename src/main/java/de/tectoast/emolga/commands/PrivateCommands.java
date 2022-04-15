@@ -1,5 +1,6 @@
 package de.tectoast.emolga.commands;
 
+import de.tectoast.emolga.bot.EmolgaMain;
 import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.Google;
@@ -9,6 +10,7 @@ import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.records.Coord;
 import de.tectoast.emolga.utils.sql.DBManagers;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
@@ -372,8 +374,8 @@ public class PrivateCommands {
                         String sdName = getSDName(rein);
                         JSONObject data = getDataJSON().getJSONObject(sdName);
                         int currindex = currorder.indexOf(raus) + 15;
-                        Coord outloc = getTierlistLocation(raus, tierlist);
-                        Coord inloc = getTierlistLocation(rein, tierlist);
+                        Coord outloc = tierlist.getLocation(raus);
+                        Coord inloc = tierlist.getLocation(rein);
                         b
                                 .addSingle(teamname + "!B" + currindex, getGen5Sprite(data))
                                 .addSingle(teamname + "!D" + currindex, rein);
@@ -652,6 +654,16 @@ public class PrivateCommands {
             b.addColumn(s + "!A200", picks.getJSONList(reverseGet(teamnames, s)).stream().map(o -> o.getString("name")).collect(Collectors.toList()));
         }
         b.execute();
+    }
+
+    @PrivateCommand(name = "asls10start")
+    public static void asls10startredraft() {
+        JDA jda = EmolgaMain.emolgajda;
+        new Draft(jda.getTextChannelById(938744915209359361L), "ASLS10L1", null, true, true);
+        new Draft(jda.getTextChannelById(938745041403379743L), "ASLS10L2", null, true, true);
+        new Draft(jda.getTextChannelById(938745240829968444L), "ASLS10L3", null, true, true);
+        new Draft(jda.getTextChannelById(938745399819251713L), "ASLS10L4", null, true, true);
+        new Draft(jda.getTextChannelById(938745673908645909L), "ASLS10L5", null, true, true);
     }
 
     public static void execute(Message message) {

@@ -175,11 +175,11 @@ public class PickCommand extends Command {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
         String sid = league.getString("sid");
         RequestBuilder b = new RequestBuilder(sid);
-        Coord c = getTierlistLocation(pokemon, tierlist);
+        Coord c = tierlist.getLocation(pokemon, 0, 0);
         logger.info("c.toString() = {}", c);
         logger.info("c.valid() = {}", c.valid());
         if (c.valid()) b.addBGColorChange(league.getInt("tierlist"), c.x() * 2 + 2, c.y() + 5, convertColor(0xFF0000));
-        Coord cengl = getTierlistLocation(pokemon, tierlist.tiercolumnsEngl);
+        Coord cengl = tierlist.getLocation(pokemon, 0, 0, tierlist.tiercolumnsEngl);
         if (cengl.valid())
             b.addBGColorChange(league.getInt("tierlistengl"), cengl.x() * 2 + 2, cengl.y() + 5, convertColor(0xFF0000));
         Integer points = tierlist.prices.get(tier);
@@ -307,7 +307,7 @@ public class PickCommand extends Command {
         String sdName = getSDName(pokemon);
         JSONObject o = getDataJSON().getJSONObject(sdName);
         int i = d.picks.get(mem).size() + 14;
-        Coord tl = getTierlistLocation(pokemon, tierlist);
+        Coord tl = tierlist.getLocation(pokemon, 0, 0);
         String gen5Sprite = getGen5Sprite(o);
         b
                 .addSingle(teamname + "!B" + i, gen5Sprite)

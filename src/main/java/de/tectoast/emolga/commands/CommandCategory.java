@@ -4,7 +4,6 @@ import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,11 +21,11 @@ public enum CommandCategory {
     BS("\uD83C\uDDE7", "Blazing Strikers"),
     Various("\uD83C\uDDFB", "Verschiedenes"),
     Showdown("\uD83C\uDDF8"),
-    Pepe("822140307558629446");
-
-    private static final ArrayList<CommandCategory> order = new ArrayList<>(Arrays.asList(Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Moderator, Music));
+    Pepe("822140307558629446"),
+    RPI("\uD83C\uDDF7", "Raspberry Pi");
 
     public static final List<Long> musicGuilds = new LinkedList<>();
+    private static final List<CommandCategory> order = Arrays.asList(Flo, RPI, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Moderator, Music);
 
     static {
         Moderator.allowsMember = m -> Admin.allowsMember(m) || m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getIdLong()));
@@ -35,6 +34,8 @@ public enum CommandCategory {
         Moderator.allowsGuildId = Command.moderatorRoles::containsKey;
         Pepe.allowsGuildId = gid -> gid.equals(605632286179983360L);
         Flo.allowsMember = mem -> mem.getIdLong() == Constants.FLOID;
+        RPI.allowsMember = Flo.allowsMember;
+        RPI.allowsGuildId = gid -> gid.equals(Constants.MYSERVER);
         Admin.allowsMember = Flo.allowsMember;
         Draft.everywhere = true;
         Flo.everywhere = true;
@@ -45,9 +46,9 @@ public enum CommandCategory {
         //Music.disabled = "Die Musikfunktionen wurden aufgrund einer Fehlfunktion komplett deaktiviert!";
     }
 
-    String disabled = "";
     final String emoji;
     final String name;
+    String disabled = "";
     boolean isEmote = false;
     private Predicate<Member> allowsMember = m -> true;
     private Predicate<Long> allowsGuildId = g -> true;
@@ -69,7 +70,7 @@ public enum CommandCategory {
         return Arrays.stream(values()).filter(cc -> cc.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
     }
 
-    public static ArrayList<CommandCategory> getOrder() {
+    public static List<CommandCategory> getOrder() {
         return order;
     }
 

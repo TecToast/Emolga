@@ -47,7 +47,7 @@ dependencies {
     implementation('org.slf4j:slf4j-api:2.0.0-alpha7')
     implementation 'org.eclipse.jetty:jetty-server:11.0.9'
     implementation 'org.eclipse.jetty:jetty-util:11.0.9'
-    implementation 'com.google.oauth-client:google-oauth-client-jetty:1.33.2'
+    implementation 'com.google.oauth-client:google-oauth-client-jetty:1.33.3'
     implementation 'com.google.apis:google-api-services-docs:v1-rev20220331-1.32.1'
     implementation 'com.google.apis:google-api-services-sheets:v4-rev20220308-1.32.1'
     implementation 'com.google.apis:google-api-services-youtube:v3-rev20220409-1.32.1'

@@ -61,7 +61,7 @@ dependencies {
     implementation 'org.glassfish.jaxb:jaxb-runtime:3.0.2'
     implementation files("./lib/json-java-olf.jar")
     implementation files("./lib/Toastilities.jar")
-    implementation("net.dv8tion:JDA:4.4.0_350")
+    implementation("net.dv8tion:JDA:4.4.0_352")
 }
 
 test {

@@ -1369,7 +1369,6 @@ public abstract class Command {
         return spritejson;
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     private static void registerCommands() {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         try {

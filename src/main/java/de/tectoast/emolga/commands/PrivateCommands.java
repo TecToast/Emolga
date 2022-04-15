@@ -10,19 +10,23 @@ import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.records.Coord;
 import de.tectoast.emolga.utils.sql.DBManagers;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.interactions.components.Button;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
 
+import java.awt.*;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -664,6 +668,19 @@ public class PrivateCommands {
         new Draft(jda.getTextChannelById(938745240829968444L), "ASLS10L3", null, true, true);
         new Draft(jda.getTextChannelById(938745399819251713L), "ASLS10L4", null, true, true);
         new Draft(jda.getTextChannelById(938745673908645909L), "ASLS10L5", null, true, true);
+    }
+
+    @PrivateCommand(name = "setupflorixcontrol")
+    public static void setupFlorixControl(GenericCommandEvent e) {
+        JDA jda = e.getJDA();
+        jda.getTextChannelById(964528154549055558L).sendMessageEmbeds(
+                new EmbedBuilder().setTitle("FlorixControl").setColor(Color.CYAN).build()
+        ).setActionRow(
+                Button.success("florix;startserver", "Server starten").withEmoji(Emoji.fromEmote(jda.getEmoteById(964570148692443196L))),
+                Button.secondary("florix;stopserver", "Server stoppen").withEmoji(Emoji.fromEmote(jda.getEmoteById(964570147220254810L))),
+                Button.danger("florix;poweroff", "PowerOff").withEmoji(Emoji.fromUnicode("⚠️")),
+                Button.primary("florix;status", "Status").withEmoji(Emoji.fromUnicode("ℹ️"))
+        ).queue();
     }
 
     public static void execute(Message message) {

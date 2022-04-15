@@ -31,10 +31,13 @@ public abstract class ButtonListener {
     public static void check(ButtonClickEvent e) {
         logger.info("e.getComponentId() = {}", e.getComponentId());
         String[] split = e.getComponentId().split(";");
-        listener.getOrDefault(split[0], NULL).process(e, split[1]);
+        try {
+            listener.getOrDefault(split[0], NULL).process(e, split[1]);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     public static void init() {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         try {
@@ -50,5 +53,5 @@ public abstract class ButtonListener {
         }
     }
 
-    public abstract void process(ButtonClickEvent e, String name);
+    public abstract void process(ButtonClickEvent e, String name) throws Exception;
 }

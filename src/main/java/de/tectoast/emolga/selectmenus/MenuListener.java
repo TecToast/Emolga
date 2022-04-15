@@ -35,7 +35,6 @@ public abstract class MenuListener {
         listener.getOrDefault(id, NULL).process(e);
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     public static void init() {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         try {

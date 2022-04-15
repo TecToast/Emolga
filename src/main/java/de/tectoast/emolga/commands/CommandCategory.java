@@ -21,11 +21,10 @@ public enum CommandCategory {
     BS("\uD83C\uDDE7", "Blazing Strikers"),
     Various("\uD83C\uDDFB", "Verschiedenes"),
     Showdown("\uD83C\uDDF8"),
-    Pepe("822140307558629446"),
-    RPI("\uD83C\uDDF7", "Raspberry Pi");
+    Pepe("822140307558629446");
 
     public static final List<Long> musicGuilds = new LinkedList<>();
-    private static final List<CommandCategory> order = Arrays.asList(Flo, RPI, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Moderator, Music);
+    private static final List<CommandCategory> order = Arrays.asList(Flo, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Moderator, Music);
 
     static {
         Moderator.allowsMember = m -> Admin.allowsMember(m) || m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getIdLong()));
@@ -34,8 +33,6 @@ public enum CommandCategory {
         Moderator.allowsGuildId = Command.moderatorRoles::containsKey;
         Pepe.allowsGuildId = gid -> gid.equals(605632286179983360L);
         Flo.allowsMember = mem -> mem.getIdLong() == Constants.FLOID;
-        RPI.allowsMember = Flo.allowsMember;
-        RPI.allowsGuildId = gid -> gid.equals(Constants.MYSERVER);
         Admin.allowsMember = Flo.allowsMember;
         Draft.everywhere = true;
         Flo.everywhere = true;

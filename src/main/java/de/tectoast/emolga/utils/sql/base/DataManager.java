@@ -181,7 +181,7 @@ public abstract class DataManager {
 
     public final int executeQuery(String query) {
         try (Statement statement = getConnection().createStatement()) {
-            if (query.startsWith("INSERT INTO") || query.startsWith("UPDATE")) {
+            if (query.startsWith("INSERT INTO") || query.startsWith("UPDATE") || query.startsWith("DELETE")) {
                 logger.info("query = " + query);
             }
             return statement.executeUpdate(query);

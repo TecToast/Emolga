@@ -19,4 +19,7 @@ public class Constants {
     public static final long CULTID = 745934535748747364L;
     public static final long FLPID = 736555250118295622L;
     public static final long FPLID = 860253715624361996L;
+
+    public static final long CALENDAR_TCID = 938156657706418176L;
+    public static final long CALENDAR_MSGID = 964920267598098433L;
 }

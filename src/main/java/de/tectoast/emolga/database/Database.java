@@ -35,6 +35,7 @@ public class Database {
                 logger.info("Connected! {}", (System.currentTimeMillis() - l));
                 DBManagers.ANALYSIS.forAll(r -> replayAnalysis.put(r.getLong("replay"), r.getLong("result")));
                 DBManagers.MUSIC_GUILDS.forAll(r -> CommandCategory.musicGuilds.add(r.getLong("guildid")));
+                DBManagers.CALENDAR.getAllEntries().forEach(Command::scheduleCalendarEntry);
                 logger.info("replayAnalysis.size() = " + replayAnalysis.size());
                 ResultSet spoiler = Database.select("select * from spoilertags");
                 while (spoiler.next()) {

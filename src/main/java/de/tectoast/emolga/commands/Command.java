@@ -22,6 +22,7 @@ import de.tectoast.emolga.utils.annotations.ToTest;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
 import de.tectoast.emolga.utils.music.SoundSendHandler;
+import de.tectoast.emolga.utils.records.CalendarEntry;
 import de.tectoast.emolga.utils.records.TimerData;
 import de.tectoast.emolga.utils.showdown.Analysis;
 import de.tectoast.emolga.utils.showdown.Player;
@@ -73,6 +74,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -211,6 +215,7 @@ public abstract class Command {
     public static JSONObject catchrates;
     public static Map<Long, SoundSendHandler> sendHandlers = new HashMap<>();
     protected static long lastClipUsed = -1;
+    protected static ScheduledExecutorService calendarService = Executors.newScheduledThreadPool(5);
 
 
     /**
@@ -809,6 +814,66 @@ public abstract class Command {
             }
         }
         return 0;
+    }
+
+    protected static String buildCalendar() {
+        SimpleDateFormat f = new SimpleDateFormat("dd.MM. HH:mm");
+        String str = DBManagers.CALENDAR.getAllEntries().stream().sorted(Comparator.comparing(o -> o.expires().getTime())).map(
+                o -> "**%s:** %s".formatted(f.format(o.expires()), o.message())
+        ).collect(Collectors.joining("\n"));
+        return str.isEmpty() ? "_leer_" : str;
+    }
+
+    protected static void scheduleCalendarEntry(long expires, String message) {
+        calendarService.schedule(() -> {
+            TextChannel calendarTc = emolgajda.getTextChannelById(CALENDAR_TCID);
+            DBManagers.CALENDAR.delete(new Timestamp(expires / 1000 * 1000));
+            calendarTc.sendMessage("(<@%d>) %s".formatted(FLOID, message)).setActionRow(Button.primary("calendar;delete", "Löschen")).queue();
+            calendarTc.editMessageById(CALENDAR_MSGID, buildCalendar()).queue();
+        }, expires - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+    }
+
+    public static void scheduleCalendarEntry(CalendarEntry e) {
+        scheduleCalendarEntry(e.expires().getTime(), e.message());
+    }
+
+    protected static long parseCalendarTime(String str) throws NumberFormatException {
+        String timestr = str.toLowerCase();
+        if (!timestr.matches("\\d{1,8}[smhdw]?")) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(SECOND, 0);
+            boolean hoursSet = false;
+            for (String s : str.split(";")) {
+                String[] split = s.split("[.|:]");
+                if (s.contains(".")) {
+                    calendar.set(DAY_OF_MONTH, Integer.parseInt(split[0]));
+                    calendar.set(MONTH, Integer.parseInt(split[1]) - 1);
+                } else if (s.contains(":")) {
+                    calendar.set(HOUR_OF_DAY, Integer.parseInt(split[0]));
+                    calendar.set(MINUTE, Integer.parseInt(split[1]));
+                    hoursSet = true;
+                }
+            }
+            if (!hoursSet) {
+                calendar.set(HOUR_OF_DAY, 15);
+                calendar.set(MINUTE, 0);
+            }
+            return calendar.getTimeInMillis();
+        }
+        int multiplier = 1000;
+        switch (timestr.charAt(timestr.length() - 1)) {
+            case 'w':
+                multiplier *= 7;
+            case 'd':
+                multiplier *= 24;
+            case 'h':
+                multiplier *= 60;
+            case 'm':
+                multiplier *= 60;
+            case 's':
+                timestr = timestr.substring(0, timestr.length() - 1);
+        }
+        return System.currentTimeMillis() + (long) multiplier * Integer.parseInt(timestr);
     }
 
     public static void updateShinyCounts(long id) {
@@ -3060,7 +3125,7 @@ public abstract class Command {
     public String getHelp(Guild g) {
         ArgumentManagerTemplate args = getArgumentTemplate();
         if (args == null) {
-            return "`" + getPrefix() + getName() + "` Keine Hilfe verfügbar";
+            return "`" + getPrefix() + getName() + "` " + overrideHelp.getOrDefault(g.getIdLong(), help);
         }
         return "`" + (args.hasSyntax() ? args.getSyntax() : getPrefix() + getName() + (args.arguments.size() > 0 ? " " : "")
                 + args.arguments.stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" "))) + "` " + overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");

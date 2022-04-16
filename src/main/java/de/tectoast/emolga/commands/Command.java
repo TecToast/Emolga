@@ -884,7 +884,12 @@ public abstract class Command {
     }
 
     public static void sortASLS10(String sid, JSONObject league) {
-        String range = "Tabelle!C4:J11";
+        sortOneASLS10(sid, league, 1);
+        sortOneASLS10(sid, league, 2);
+    }
+
+    public static void sortOneASLS10(String sid, JSONObject league, int num) {
+        String range = "Tabelle!C%d:J%d".formatted(num * 8 + 8, num * 8 + 11);
         List<List<Object>> formula = Google.get(sid, range, true, false);
         List<List<Object>> points = Google.get(sid, range, false, false);
         List<List<Object>> orig = new ArrayList<>(points);
@@ -892,8 +897,8 @@ public abstract class Command {
         points.sort((o1, o2) -> {
             int c = compareColumns(o1, o2, 7);
             if (c != 0) return c;
-            long u1 = table.get((Integer.parseInt(String.valueOf(formula.get(points.indexOf(o1)).get(0)).substring("='Teamseite HR'!D".length())) - 2) / 15);
-            long u2 = table.get((Integer.parseInt(String.valueOf(formula.get(points.indexOf(o2)).get(0)).substring("='Teamseite HR'!D".length())) - 2) / 15);
+            long u1 = table.get((Integer.parseInt(String.valueOf(formula.get(points.indexOf(o1)).get(0)).substring("='Teamseite RR'!D".length())) - 2) / 15);
+            long u2 = table.get((Integer.parseInt(String.valueOf(formula.get(points.indexOf(o2)).get(0)).substring("='Teamseite RR'!D".length())) - 2) / 15);
             logger.info("u1 = {}", u1);
             logger.info("u2 = {}", u2);
             if (league.has("results")) {
@@ -920,7 +925,7 @@ public abstract class Command {
             i++;
         }
         List<List<Object>> sendname = new ArrayList<>();
-        for (int j = 0; j < 8; j++) {
+        for (int j = 0; j < points.size(); j++) {
             sendname.add(namap.get(j));
         }
         logger.info(String.valueOf(sendname));
@@ -1430,10 +1435,10 @@ public abstract class Command {
     public static void setupRepeatTasks() {
         new RepeatTask(Instant.ofEpochMilli(1651010400000L), 5, Duration.ofDays(7L), day -> doNDSNominate(), true);
         new RepeatTask(Instant.ofEpochMilli(1650823200000L), 5, Duration.ofDays(7L), day -> doMatchUps(String.valueOf(day)), true);
-        new RepeatTask(Instant.ofEpochMilli(1648422000000L), 7, Duration.ofDays(7L), day -> {
+        new RepeatTask(Instant.ofEpochMilli(1651442400000L), 3, Duration.ofDays(7L), day -> {
             for (long tcid : Arrays.asList(934881485121523862L, 934881531971895297L, 934881637727096922L, 934881660854489098L, 934881557334867978L,
                     934881655531925554L, 934881603086327828L, 934881645268439061L, 934881662020497508L, 934881747731120169L)) {
-                emolgajda.getTextChannelById(tcid).sendMessage("_**--- Spieltag %d ---**_".formatted(day)).queue();
+                emolgajda.getTextChannelById(tcid).sendMessage("_**--- Spieltag %d ---**_".formatted(day + 7)).queue();
             }
         }, true);
     }
@@ -1544,7 +1549,7 @@ public abstract class Command {
                     logger.error("GAMEDAY -1");
                     return;
                 }
-                int gdi = gameday - 1;
+                int gdi = gameday - 1 - 7;
                 List<String> users = Arrays.asList(uid1, uid2);
                 int i = 0;
                 List<Long> table = league.getLongList("table");
@@ -1573,7 +1578,7 @@ public abstract class Command {
                         b.addSingle("Stats!D%d".formatted(index * 12 + 2 + gameday), "1");
                     }
                     try {
-                        b.addAll("Teamseite HR!%s%d".formatted(getAsXCoord(gdi * 3 + 11), index * 15 + 4), list);
+                        b.addAll("Teamseite RR!%s%d".formatted(getAsXCoord(gdi * 3 + 11), index * 15 + 4), list);
                     } catch (IllegalArgumentException ex) {
                         ex.printStackTrace();
                     }
@@ -2348,10 +2353,11 @@ public abstract class Command {
         return c;
     }
 
-    private static List<TextChannel> resultChannelASL(long userid) {
+    private static List<TextChannel> resultChannelASL(long uid1, long uid2) {
         for (int i = 1; i <= 5; i++) {
             JSONObject league = emolgajson.getJSONObject("drafts").getJSONObject("ASLS10L" + i);
-            if (league.getLongList("table").contains(userid))
+            List<Long> table = league.getLongList("table");
+            if (table.containsAll(List.of(uid1, uid2)))
                 return Arrays.asList(emolgajda.getTextChannelById(league.getLong("replay")), emolgajda.getTextChannelById(league.getLong("result")));
         }
         return Collections.emptyList();
@@ -2392,7 +2398,7 @@ public abstract class Command {
         String u2 = game[1].getNickname();
         long uid1 = DBManagers.SD_NAMES.getIDByName(u1);
         long uid2 = DBManagers.SD_NAMES.getIDByName(u2);
-        List<TextChannel> aslChannel = resultChannelASL(uid1);
+        List<TextChannel> aslChannel = resultChannelASL(uid1, uid2);
         if (gid == ASLID && aslChannel.isEmpty()) {
             sendToMe("Invalid ASL Replay");
             return;

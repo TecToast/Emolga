@@ -28,6 +28,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -139,19 +142,16 @@ public class PrivateCommands {
         Category category = e.getJDA().getCategoryById(e.getArg(0));
         Guild g = category.getGuild();
         Member user = g.retrieveMemberById(e.getArg(1)).complete();
-        ArrayList<VoiceChannel> list = new ArrayList<>(category.getVoiceChannels());
+        List<VoiceChannel> list = new ArrayList<>(category.getVoiceChannels());
         Collections.shuffle(list);
         VoiceChannel old = user.getVoiceState().getChannel();
         list.remove(old);
+        ScheduledExecutorService service = Executors.newScheduledThreadPool(3);
+        int x = 1;
         for (VoiceChannel voiceChannel : list) {
-            g.moveVoiceMember(user, voiceChannel).queue();
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException interruptedException) {
-                interruptedException.printStackTrace();
-            }
+            service.schedule(() -> g.moveVoiceMember(user, voiceChannel).queue(), x++, TimeUnit.SECONDS);
         }
-        g.moveVoiceMember(user, old).queue();
+        service.schedule(() -> g.moveVoiceMember(user, old).queue(), x, TimeUnit.SECONDS);
     }
 
     @PrivateCommand(name = "addreactions")

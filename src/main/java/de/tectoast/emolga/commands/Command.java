@@ -2430,6 +2430,9 @@ public abstract class Command {
         for (Pokemon p : game[0].getMons()) {
             logger.info("p.getPokemon() = " + p.getPokemon());
             String monName = getMonName(p.getPokemon(), gid);
+            if (monName.trim().endsWith("-")) {
+                sendToMe(p.getPokemon() + " SD - at End");
+            }
             logger.info("monName = " + monName);
             kills.get(0).put(monName, String.valueOf(p.getKills()));
             deaths.get(0).put(monName, p.isDead() ? "1" : "0");
@@ -2445,6 +2448,9 @@ public abstract class Command {
         if (spoiler) t2.append("||");
         for (Pokemon p : game[1].getMons()) {
             String monName = getMonName(p.getPokemon(), gid);
+            if (monName.trim().endsWith("-")) {
+                sendToMe(p.getPokemon() + " SD - at End");
+            }
             kills.get(1).put(monName, String.valueOf(p.getKills()));
             deaths.get(1).put(monName, p.isDead() ? "1" : "0");
             p2mons.add(monName);

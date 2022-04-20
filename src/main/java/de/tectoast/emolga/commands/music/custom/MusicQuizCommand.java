@@ -35,7 +35,8 @@ public class MusicQuizCommand extends Command {
         VoiceChannel vc = e.getJDA().getVoiceChannelById(e.getArguments().getID("vid"));
         vc.getGuild().getAudioManager().openAudioConnection(vc);
         GuildMusicManager musicManager = getGuildAudioPlayer(vc.getGuild());
-        getPlayerManager(vc.getGuild()).loadItemOrdered(musicManager, links.get(e.getArguments().getText("playlist")), new AudioLoadResultHandler() {
+        String playlistName = e.getArguments().getText("playlist");
+        getPlayerManager(vc.getGuild()).loadItemOrdered(musicManager, links.get(playlistName), new AudioLoadResultHandler() {
 
 
             @Override
@@ -51,10 +52,11 @@ public class MusicQuizCommand extends Command {
                 StringBuilder builder = new StringBuilder();
                 for (AudioTrack audioTrack : list) {
                     //logger.info(audioTrack.getInfo().author);
-                    if (audioTrack.getInfo().author.equals("Pokeli")) {
-                        if (i < 20) builder.append(audioTrack.getInfo().title).append("\n");
-                        play(vc.getGuild(), musicManager, audioTrack);
+                    if (playlistName.equals("Pokemon") && !audioTrack.getInfo().author.equals("Pokeli")) {
+                        continue;
                     }
+                    if (i < 20) builder.append(audioTrack.getInfo().title).append("\n");
+                    play(vc.getGuild(), musicManager, audioTrack);
                     i++;
                 }
                 e.reply("Loaded MusicQuiz!");

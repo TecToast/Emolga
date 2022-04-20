@@ -49,8 +49,7 @@ public class Analysis {
 
     public Analysis(String link, Message m) {
         this.link = link;
-        if (m != null)
-            DBManagers.REPLAY_CHECK.set(m.getChannel().getIdLong(), m.getIdLong());
+        if (m != null) DBManagers.REPLAY_CHECK.set(m.getChannel().getIdLong(), m.getIdLong());
         for (int i = 1; i <= 2; i++) {
             pl.put(i, new Player(i));
             zoroTurns.put(i, new LinkedList<>());
@@ -73,19 +72,24 @@ public class Analysis {
             this.split = s.split("\\|");
             checkPlayer(i -> s.contains("|player|p" + i) && s.length() > 11, p -> p.setNickname(split[3]));
             check(i -> s.contains("|poke|p" + i), i -> {
-                String poke = split[3].split(",")[0];
-                pl.get(i).getMons().add(new Pokemon(poke, pl.get(i), zoroTurns.get(i), game, abiSupplier, zoru));
+                String[] spl = split[3].split(",");
+                String poke = spl[0];
+                pl.get(i).getMons().add(new Pokemon(poke, pl.get(i), zoroTurns.get(i), game, abiSupplier, zoru, spl.length == 1 ? null : spl[1]));
                 if (poke.equals("Zoroark") || poke.equals("Zorua")) zoru.put(i, poke);
             });
             checkPlayer(i -> s.contains("|teamsize|p" + i), p -> p.setTeamsize(Integer.parseInt(split[3])));
             check(i -> s.contains("|switch|p" + i) || s.contains("|drag|p" + i), i -> {
-                String pokemon = split[3].split(",")[0];
+                String[] spl = split[3].split(",");
+                String pokemon = spl[0];
                 Player p = pl.get(i);
                 if (p.getMons().size() == 0 && !randomBattle) randomBattle = true;
                 if (randomBattle) {
                     if (p.indexOfName(pokemon) == -1) {
                         logger.info("Adding {} to {}...", pokemon, p.getNickname());
-                        p.getMons().add(new Pokemon(pokemon, p, zoroTurns.get(i), game, abiSupplier, zoru));
+                        p.getMons().add(new Pokemon(pokemon, p, zoroTurns.get(i), game, abiSupplier, zoru, Arrays.stream(spl).map(String::trim).filter(str -> {
+                            if (str.equals("F")) return true;
+                            return str.equals("M");
+                        }).findFirst().orElse(null)));
                     }
                 } else {
                     if (pokemon.contains("Silvally") && p.indexOfName("Silvally-*") != -1) {//Silvally-Problem
@@ -158,6 +162,7 @@ public class Analysis {
             split = s.split("\\|");
             check(i -> s.contains("|switch|p" + i) || s.contains("|drag|p" + i) || s.contains("|replace|p" + i), i -> {
                 Pokemon mon = pl.get(i).getMons().get(pl.get(i).indexOfName(split[3].split(",")[0]));
+                mon.setNickname(split[2].split(":")[1].trim());
                 lastMove = null;
                 if (!s.contains("|replace|") && zoru.containsKey(i)) {
                     boolean noabi = mon.noAbilityTrigger(line);
@@ -170,7 +175,10 @@ public class Analysis {
                     activeP.put(i, mon);
                 }
             });
-            checkPokemon(i -> s.contains("|move|p" + i), p -> lastMove = p);
+            checkPokemon(i -> s.contains("|move|p" + i), p -> {
+                lastMove = p;
+                p.addMove(split[3]);
+            });
             checkPokemon(i -> s.contains("|-activate|p" + i) && (s.contains("|ability: Synchronize") || s.contains("|move: Protect")), p -> lastMove = p);
             if (s.contains("|turn|")) {
                 lastMove = null;
@@ -204,8 +212,7 @@ public class Analysis {
                     String lifes = split[3].split("/")[0];
                     int newHp;
                     if (lifes.contains("fnt")) newHp = 0;
-                    else
-                        newHp = Integer.parseInt(lifes);
+                    else newHp = Integer.parseInt(lifes);
                     if (s.contains("[from] Stealth Rock")) {
                         int dif = oldHP - newHp;
                         if (WeaknessCommand.getEffectiveness("Rock", Command.getDataJSON().getJSONObject(toSDName(activeP1.getPokemon())).getStringList("types").toArray(String[]::new)) != 0 && dif > 10 && dif < 14)
@@ -225,14 +232,13 @@ public class Analysis {
                     if (mon.getStringList("types").contains("Flying") || mon.getJSONObject("abilities").toMap().containsValue("Levitate"))
                         activeP.put(i, getZoro(i, "Sticky Web"));
                 } else if (s.contains("[from] ability:") && s.contains("[of] p" + i)) {
-                    Arrays.stream(split)
-                            .filter(str -> str.contains("[from] ability:"))
-                            .map(str -> str.split(":")[1].trim())
-                            .forEach(str -> activeP.get(i).setAbility(str));
+                    Arrays.stream(split).filter(str -> str.contains("[from] ability:")).map(str -> str.split(":")[1].trim()).forEach(str -> activeP.get(i).setAbility(str));
                 } else if (s.contains("|-ability|p" + i)) {
                     activeP.get(i).setAbility(split[3].trim());
                 }
             });
+            checkPokemon(i -> s.contains("[from] ability:") && s.contains("[of] p" + i), p -> Arrays.stream(split).filter(str -> str.contains("[from] ability:")).map(str -> str.split(":")[1].trim()).forEach(p::setAbility));
+            checkPokemon(i -> s.contains("|-ability|p" + i), p -> p.setAbility(split[3].trim()));
             check(i -> s.contains("|-damage|p" + i) && split.length == 4, i -> {
                 Pokemon activeP1 = activeP.get(i);
                 Pokemon activeP2 = activeP.get(3 - i);
@@ -372,9 +378,9 @@ public class Analysis {
                 }
             });
 
+            check(i -> s.contains("[from] item:") && s.contains("|p" + i), i -> (s.contains("[of] p" + (3 - i)) ? activeP.get(3 - i) : activeP.get(i)).setItem(Arrays.stream(split).filter(str -> str.contains("[from] item")).map(str -> str.split(":")[1].trim()).findFirst().orElse(null)));
 
-            checkPokemonBoth(i -> Stream.of("|[from] High Jump Kick", "|[from] Jump Kick", "|[from] item: Life Orb", "|[from] Recoil", "|[from] recoil",
-                    "|[from] item: Black Sludge", "|[from] item: Sticky Barb", "|[from] ability: Solar Power", "|[from] ability: Dry Skin", "|[from] mindblown").anyMatch(s::contains) && s.contains("|-damage|p" + i), (activeP1, activeP2) -> {
+            checkPokemonBoth(i -> Stream.of("|[from] High Jump Kick", "|[from] Jump Kick", "|[from] item: Life Orb", "|[from] Recoil", "|[from] recoil", "|[from] item: Black Sludge", "|[from] item: Sticky Barb", "|[from] ability: Solar Power", "|[from] ability: Dry Skin", "|[from] mindblown").anyMatch(s::contains) && s.contains("|-damage|p" + i), (activeP1, activeP2) -> {
                 if (s.contains("0 fnt")) {
                     activeP1.setDead(line);
                     if (activeP1.getLastDmgBy() != null) {
@@ -384,8 +390,7 @@ public class Analysis {
                     }
                 }
             });
-            checkPokemonBoth(i -> Stream.of("|[from] jumpkick", "|[from] highjumpkick", "|[from] ability: Liquid Ooze", "|[from] ability: Aftermath", "|[from] ability: Rough Skin", "|[from] ability: Iron Barbs",
-                    "|[from] ability: Bad Dreams", "|[from] item: Rocky Helmet", "|[from] Spiky Shield", "|[from] item: Rowap Berry", "|[from] item: Jaboca Berry").anyMatch(s::contains) && s.contains("|-damage|p" + i), (activeP1, activeP2) -> {
+            checkPokemonBoth(i -> Stream.of("|[from] jumpkick", "|[from] highjumpkick", "|[from] ability: Liquid Ooze", "|[from] ability: Aftermath", "|[from] ability: Rough Skin", "|[from] ability: Iron Barbs", "|[from] ability: Bad Dreams", "|[from] item: Rocky Helmet", "|[from] Spiky Shield", "|[from] item: Rowap Berry", "|[from] item: Jaboca Berry").anyMatch(s::contains) && s.contains("|-damage|p" + i), (activeP1, activeP2) -> {
                 if (s.contains("0 fnt")) {
                     activeP1.setDead(line);
                     activeP2.killsPlus1(turn);

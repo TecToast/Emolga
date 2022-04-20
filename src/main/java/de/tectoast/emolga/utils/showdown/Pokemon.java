@@ -5,9 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Supplier;
 
 public class Pokemon {
@@ -16,6 +14,9 @@ public class Pokemon {
     private final List<Integer> zoroTurns;
     private final List<String> game;
     private final Supplier<String> disabledAbi;
+    private final Map<Integer, String> zoru;
+    private final Set<String> moves = new HashSet<>();
+    private final String gender;
     private String pokemon;
     private int kills;
     private Pokemon statusedBy, bindedBy, cursedBy, seededBy, nightmaredBy, confusedBy, lastDmgBy, perishedBy;
@@ -23,24 +24,62 @@ public class Pokemon {
     private int hp = 100;
     private String ability = "";
     private int lastKillTurn = -1;
-    private final Map<Integer, String> zoru;
+    private String nickname;
+    private String item;
 
 
-    public Pokemon(String poke, Player player, List<Integer> zoroTurns, List<String> game, Supplier<String> disabledAbi, Map<Integer, String> zoru) {
+    public Pokemon(String poke, Player player, List<Integer> zoroTurns, List<String> game, Supplier<String> disabledAbi, Map<Integer, String> zoru, String gender) {
         pokemon = poke;
         this.zoroTurns = zoroTurns;
         this.game = game;
         this.player = player;
         this.disabledAbi = disabledAbi;
         this.zoru = zoru;
+        this.gender = gender;
+    }
+
+    public Optional<String> getItem() {
+        return Optional.ofNullable(item);
+    }
+
+    public void setItem(String item) {
+        if (this.item == null) this.item = item;
+    }
+
+
+    public String getNickname() {
+        return nickname == null ? pokemon : nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void addMove(String move) {
+        moves.add(move);
+    }
+
+    public String buildGenderStr() {
+        return gender != null ? " (%s)".formatted(gender.trim()) : "";
+    }
+
+    public Set<String> getMoves() {
+        return moves;
     }
 
     public Player getPlayer() {
         return player;
     }
 
+    public Optional<String> getAbility() {
+        return Optional.ofNullable(ability.isEmpty() ? null : ability);
+    }
+
     public void setAbility(String ability) {
-        this.ability = ability;
+        logger.debug("setting ability {} to {}...", ability, pokemon);
+        if (this.ability.isEmpty()) {
+            this.ability = ability;
+        }
     }
 
     public boolean noAbilityTrigger(int line) {
@@ -114,8 +153,7 @@ public class Pokemon {
         if (zoroTurns.contains(turn)) {
             player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> p.hp = hp);
             logger.info(MarkerFactory.getMarker("important"), "set hp zoroark in turn {} to {}", turn, hp);
-        } else
-            this.hp = hp;
+        } else this.hp = hp;
     }
 
     public String getPokemon() {
@@ -176,10 +214,6 @@ public class Pokemon {
 
     @Override
     public String toString() {
-        return "Pokemon{" + "player=" + player +
-                ", pokemon='" + pokemon + '\'' +
-                ", kills=" + kills +
-                ", dead=" + dead +
-                '}';
+        return "Pokemon{" + "player=" + player + ", pokemon='" + pokemon + '\'' + ", kills=" + kills + ", dead=" + dead + '}';
     }
 }

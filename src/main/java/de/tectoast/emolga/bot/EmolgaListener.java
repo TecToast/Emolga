@@ -249,7 +249,7 @@ public class EmolgaListener extends ListenerAdapter {
                 }
             }
             JSONObject json = getEmolgaJSON();
-            if (replayAnalysis.containsKey(tco.getIdLong()) && !e.getAuthor().getId().equals(e.getJDA().getSelfUser().getId()) && !msg.contains("!analyse ")) {
+            if (replayAnalysis.containsKey(tco.getIdLong()) && !e.getAuthor().getId().equals(e.getJDA().getSelfUser().getId()) && !msg.contains("!analyse ") && !msg.contains("!sets ")) {
                 TextChannel t = tco.getGuild().getTextChannelById(replayAnalysis.get(tco.getIdLong()));
                 //t.sendTyping().queue();
                 if (msg.contains("https://") || msg.contains("http://")) {

@@ -259,6 +259,10 @@ public abstract class Command {
      */
     protected boolean wip = false;
     /**
+     * If true, sends a beta information when using this command
+     */
+    protected boolean beta = false;
+    /**
      * True if this command should bypass all channel restrictions
      */
     protected boolean everywhere = false;
@@ -2160,6 +2164,8 @@ public abstract class Command {
                     sendToMe(e.getGuild().getName() + " " + e.getChannel().getAsMention() + " " + e.getAuthor().getId() + " " + e.getAuthor().getAsMention() + " HAT IM LOTTO GEWONNEN!");
                     return;
                 }
+                if (command.beta)
+                    e.getChannel().sendMessage("Dieser Command befindet sich zurzeit in der Beta-Phase! Falls Fehler auftreten, kontaktiert bitte Flooo#2535 durch einen Ping oder eine PN!").queue();
                 new GuildCommandEvent(command, e);
             } catch (MissingArgumentException ex) {
                 ArgumentManagerTemplate.Argument arg = ex.getArgument();
@@ -3056,6 +3062,10 @@ public abstract class Command {
 
     protected void wip() {
         this.wip = true;
+    }
+
+    protected void beta() {
+        this.beta = true;
     }
 
     protected void setAdminOnly() {

@@ -33,8 +33,8 @@ public class SwitchCommand extends Command {
     public SwitchCommand() {
         super("switch", "Switcht ein Pokemon", CommandCategory.Draft);
         setArgumentTemplate(ArgumentManagerTemplate.builder()
-                .add("oldmon", "Altes Mon", "Das Pokemon, was rausgeschmissen werden soll", ArgumentManagerTemplate.withPredicate("Pokemon", s -> getDraftGerName(s).isFromType(Translation.Type.POKEMON), false, draftnamemapper), false, "Das, was du rauswerfen möchtest, ist kein Pokemon!")
-                .add("newmon", "Neues Mon", "Das Pokemon, was stattdessen reinkommen soll", ArgumentManagerTemplate.withPredicate("Pokemon", s -> getDraftGerName(s).isFromType(Translation.Type.POKEMON), false, draftnamemapper), false, "Das, was du haben möchtest, ist kein Pokemon!")
+                .add("oldmon", "Altes Mon", "Das Pokemon, was rausgeschmissen werden soll", ArgumentManagerTemplate.draftPokemon(), false, "Das, was du rauswerfen möchtest, ist kein Pokemon!")
+                .add("newmon", "Neues Mon", "Das Pokemon, was stattdessen reinkommen soll", ArgumentManagerTemplate.draftPokemon(), false, "Das, was du haben möchtest, ist kein Pokemon!")
                 .setExample("!switch Gufa Emolga").build());
     }
 

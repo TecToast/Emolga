@@ -1989,6 +1989,7 @@ public abstract class Command {
             spritejson = load("./sprites.json");
             shinycountjson = load("./shinycount.json");
             catchrates = load("./catchrates.json");
+            TypicalSets.init(load("./typicalsets.json"));
             JSONObject google = tokens.getJSONObject("google");
             Google.setCredentials(google.getString("refreshtoken"), google.getString("clientid"), google.getString("clientsecret"));
             Google.generateAccessToken();
@@ -2497,6 +2498,7 @@ public abstract class Command {
         ArrayList<String> p1mons = new ArrayList<>();
         ArrayList<String> p2mons = new ArrayList<>();
         boolean spoiler = spoilerTags.contains(gid);
+        TypicalSets typicalSets = TypicalSets.getInstance();
         if (spoiler) t1.append("||");
         for (Pokemon p : game[0].getMons()) {
             logger.info("p.getPokemon() = " + p.getPokemon());
@@ -2508,8 +2510,10 @@ public abstract class Command {
             kills.get(0).put(monName, String.valueOf(p.getKills()));
             deaths.get(0).put(monName, p.isDead() ? "1" : "0");
             p1mons.add(monName);
-            if (gid != MYSERVER)
+            if (gid != MYSERVER) {
                 DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0, game[0].isWinner());
+                typicalSets.add(monName, p.getMoves(), p.getItem(), p.getAbility());
+            }
             t1.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (p1wins || spoiler) ? "X" : "").append("\n");
         }
         for (int i = 0; i < game[0].getTeamsize() - game[0].getMons().size(); i++) {
@@ -2525,8 +2529,10 @@ public abstract class Command {
             kills.get(1).put(monName, String.valueOf(p.getKills()));
             deaths.get(1).put(monName, p.isDead() ? "1" : "0");
             p2mons.add(monName);
-            if (gid != MYSERVER)
+            if (gid != MYSERVER) {
                 DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0, game[1].isWinner());
+                typicalSets.add(monName, p.getMoves(), p.getItem(), p.getAbility());
+            }
             t2.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (!p1wins || spoiler) ? "X" : "").append("\n");
         }
         for (int i = 0; i < game[1].getTeamsize() - game[1].getMons().size(); i++) {
@@ -2574,6 +2580,7 @@ public abstract class Command {
         logger.info("In Emolga Listener!");
         //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )
         //  return;
+        typicalSets.save();
         if (uid1 == -1 || uid2 == -1) return;
         if (sdAnalyser.containsKey(gid)) {
             sdAnalyser.get(gid).analyse(game, String.valueOf(uid1), String.valueOf(uid2), kills, deaths, new ArrayList[]{p1mons, p2mons}, url, str, resultchannel, t1, t2, customReplayChannel, m);
@@ -3324,7 +3331,6 @@ public abstract class Command {
             return new Builder();
         }
 
-        @SuppressWarnings("SameReturnValue")
         public static ArgumentManagerTemplate noArgs() {
             return noCheckTemplate;
         }
@@ -3335,6 +3341,10 @@ public abstract class Command {
 
         public static ArgumentType draft() {
             return withPredicate("Draftname", s -> getEmolgaJSON().getJSONObject("drafts").has(s) || getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9").has(s), false);
+        }
+
+        public static ArgumentType draftPokemon() {
+            return withPredicate("Pokemon", s -> getDraftGerName(s).isFromType(Translation.Type.POKEMON), false, draftnamemapper);
         }
 
         public static ArgumentType withPredicate(String name, Predicate<String> check, boolean female) {

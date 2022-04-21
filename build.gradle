@@ -21,16 +21,6 @@ repositories {
     }
 }
 
-jar {
-    manifest {
-        attributes "Main-Class": "de.tectoast.emolga.Main"
-    }
-
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-}
-
 
 shadowJar {
     archiveBaseName.set('Bots')

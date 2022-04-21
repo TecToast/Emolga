@@ -2,8 +2,8 @@ package de.tectoast.emolga.buttons;
 
 import de.tectoast.emolga.buttons.buttonsaves.MonData;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,7 @@ public class MonDataButton extends ButtonListener {
     }
 
     @Override
-    public void process(ButtonClickEvent e, String name) {
+    public void process(ButtonInteractionEvent e, String name) {
         logger.info("e.getMessageIdLong() = " + e.getMessageIdLong());
         MonData dt = monDataButtons.get(e.getMessageIdLong());
         if (dt == null) {

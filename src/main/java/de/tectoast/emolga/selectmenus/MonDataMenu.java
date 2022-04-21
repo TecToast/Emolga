@@ -1,8 +1,8 @@
 package de.tectoast.emolga.selectmenus;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
-import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
+import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent;
+import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +24,11 @@ public class MonDataMenu extends MenuListener {
     }
 
     @Override
-    public void process(SelectionMenuEvent e) {
+    public void process(SelectMenuInteractionEvent e) {
         /*e.reply("Dieses Menü funktioniert noch nicht, aber Flo arbeitet zurzeit daran :3").setEphemeral(true).queue();
         if (true) return;*/
         logger.info("e.getMessageIdLong() = " + e.getMessageIdLong());
-        String name = e.getInteraction().getValues().get(0);
+        String name = e.getValues().get(0);
         /*MonData dt = monDataButtons.get(e.getMessageIdLong());
         if (dt == null) {
             e.editMessageEmbeds(new EmbedBuilder().setTitle("Ach Mensch " + e.getMember().getEffectiveName() + ", diese Mon-Data funktioniert nicht mehr, da seitdem der Bot neugestartet wurde!").setColor(Color.CYAN).build()).queue();
@@ -138,7 +138,7 @@ public class MonDataMenu extends MenuListener {
         builder.setImage(getGen5SpriteWithoutGoogle(mon));
         builder.setTitle(getGerNameWithForm(monname));
         builder.setColor(Color.CYAN);
-        e.editMessageEmbeds(builder.build()).setActionRow(SelectionMenu.create("mondata").addOptions(e.getSelectionMenu().getOptions().stream().map(o -> o.withDefault(o.getValue().equals(name))).collect(Collectors.toList())).build()).queue();
+        e.editMessageEmbeds(builder.build()).setActionRow(SelectMenu.create("mondata").addOptions(e.getSelectMenu().getOptions().stream().map(o -> o.withDefault(o.getValue().equals(name))).collect(Collectors.toList())).build()).queue();
         //e.getHook().editOriginalEmbeds(builder.build()).queue();
     }
 }

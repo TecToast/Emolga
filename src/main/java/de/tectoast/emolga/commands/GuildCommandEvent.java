@@ -3,8 +3,8 @@ package de.tectoast.emolga.commands;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import static de.tectoast.emolga.utils.Constants.FLOID;
 
@@ -12,15 +12,15 @@ public class GuildCommandEvent extends GenericCommandEvent {
     private final Member member;
     private final Guild guild;
     private final TextChannel tco;
-    private final GuildMessageReceivedEvent event;
+    private final MessageReceivedEvent event;
     private final String usedName;
     private Command.ArgumentManager manager;
 
-    public GuildCommandEvent(Command c, GuildMessageReceivedEvent e) throws Exception {
+    public GuildCommandEvent(Command c, MessageReceivedEvent e) throws Exception {
         super(e.getMessage());
         this.member = e.getMember();
         this.guild = e.getGuild();
-        this.tco = e.getChannel();
+        this.tco = e.getTextChannel();
         event = e;
         Command.ArgumentManagerTemplate template = c.getArgumentTemplate();
         if (template != null)
@@ -36,7 +36,7 @@ public class GuildCommandEvent extends GenericCommandEvent {
         }, "CMD " + c.getName()).start();
     }
 
-    public GuildCommandEvent(Command c, SlashCommandEvent e) throws Exception {
+    public GuildCommandEvent(Command c, SlashCommandInteractionEvent e) throws Exception {
         super(e);
         this.member = e.getMember();
         this.guild = e.getGuild();
@@ -44,7 +44,7 @@ public class GuildCommandEvent extends GenericCommandEvent {
         this.event = null;
         this.usedName = e.getName();
         Command.ArgumentManagerTemplate template = c.getArgumentTemplate();
-        if(template != null)
+        if (template != null)
             this.manager = template.construct(e);
         c.process(this);
     }
@@ -70,7 +70,7 @@ public class GuildCommandEvent extends GenericCommandEvent {
         return tco;
     }
 
-    public GuildMessageReceivedEvent getEvent() {
+    public MessageReceivedEvent getEvent() {
         return event;
     }
 

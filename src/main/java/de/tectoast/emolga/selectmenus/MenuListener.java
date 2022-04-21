@@ -2,7 +2,7 @@ package de.tectoast.emolga.selectmenus;
 
 import com.google.common.reflect.ClassPath;
 import de.tectoast.emolga.commands.Command;
-import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
+import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,23 +13,22 @@ import java.util.HashMap;
 
 public abstract class MenuListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(MenuListener.class);
-
     public static final HashMap<String, MenuListener> listener = new HashMap<>();
-    final String name;
+    private static final Logger logger = LoggerFactory.getLogger(MenuListener.class);
     private static final MenuListener NULL = new MenuListener("NULL") {
         @Override
-        public void process(SelectionMenuEvent e) {
+        public void process(SelectMenuInteractionEvent e) {
             Command.sendToMe("WRONG MENU KEY " + e.getComponentId());
         }
     };
+    final String name;
 
     public MenuListener(String name) {
         this.name = name;
         listener.put(name, this);
     }
 
-    public static void check(SelectionMenuEvent e) {
+    public static void check(SelectMenuInteractionEvent e) {
         logger.info("e.getComponentId() = " + e.getComponentId());
         String id = e.getComponentId();
         listener.getOrDefault(id, NULL).process(e);
@@ -50,5 +49,5 @@ public abstract class MenuListener {
         }
     }
 
-    public abstract void process(SelectionMenuEvent e);
+    public abstract void process(SelectMenuInteractionEvent e);
 }

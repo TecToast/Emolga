@@ -6,7 +6,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 import java.awt.*;
 import java.util.LinkedList;
@@ -21,7 +21,7 @@ public class HelpButton extends ButtonListener {
     }
 
     @Override
-    public void process(ButtonClickEvent e, String name) {
+    public void process(ButtonInteractionEvent e, String name) {
         Guild g = e.getGuild();
         Member mem = e.getMember();
         if (name.equals("BACK")) {

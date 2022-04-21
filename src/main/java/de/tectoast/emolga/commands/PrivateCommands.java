@@ -13,7 +13,7 @@ import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
@@ -35,8 +35,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
+import static net.dv8tion.jda.api.entities.UserSnowflake.fromId;
 
-@SuppressWarnings("HttpUrlsUsage")
 public class PrivateCommands {
 
     private static final Logger logger = LoggerFactory.getLogger(PrivateCommands.class);
@@ -100,12 +100,12 @@ public class PrivateCommands {
 
     @PrivateCommand(name = "ban")
     public static void ban(GenericCommandEvent e) {
-        e.getJDA().getGuildById(e.getArg(0)).ban(e.getArg(1), 0).queue();
+        e.getJDA().getGuildById(e.getArg(0)).ban(fromId(e.getArg(1)), 0).queue();
     }
 
     @PrivateCommand(name = "banwithreason")
     public static void banwithreason(GenericCommandEvent e) {
-        e.getJDA().getGuildById(e.getArg(0)).ban(e.getArg(1), 0, e.getMsg().substring(53)).queue();
+        e.getJDA().getGuildById(e.getArg(0)).ban(fromId(e.getArg(1)), 0, e.getMsg().substring(53)).queue();
     }
 
     @PrivateCommand(name = "updatedatabase")
@@ -142,13 +142,13 @@ public class PrivateCommands {
         Category category = e.getJDA().getCategoryById(e.getArg(0));
         Guild g = category.getGuild();
         Member user = g.retrieveMemberById(e.getArg(1)).complete();
-        List<VoiceChannel> list = new ArrayList<>(category.getVoiceChannels());
+        List<AudioChannel> list = new ArrayList<>(category.getVoiceChannels());
         Collections.shuffle(list);
-        VoiceChannel old = user.getVoiceState().getChannel();
+        AudioChannel old = user.getVoiceState().getChannel();
         list.remove(old);
         ScheduledExecutorService service = Executors.newScheduledThreadPool(3);
         int x = 1;
-        for (VoiceChannel voiceChannel : list) {
+        for (AudioChannel voiceChannel : list) {
             service.schedule(() -> g.moveVoiceMember(user, voiceChannel).queue(), x++, TimeUnit.SECONDS);
         }
         service.schedule(() -> g.moveVoiceMember(user, old).queue(), x, TimeUnit.SECONDS);

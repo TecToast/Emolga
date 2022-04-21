@@ -1,6 +1,6 @@
 package de.tectoast.emolga.buttons;
 
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 public class CalendarButton extends ButtonListener {
     public CalendarButton() {
@@ -8,7 +8,7 @@ public class CalendarButton extends ButtonListener {
     }
 
     @Override
-    public void process(ButtonClickEvent e, String name) throws Exception {
+    public void process(ButtonInteractionEvent e, String name) throws Exception {
         if (name.equals("delete")) {
             e.reply("+1").setEphemeral(true).queue();
             e.getHook().deleteMessageById(e.getMessageId()).queue();

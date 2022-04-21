@@ -2,9 +2,9 @@ package de.tectoast.emolga.buttons.buttonsaves;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Emoji;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.jsolf.JSONObject;
 
 import java.awt.*;
@@ -55,7 +55,7 @@ public class Nominate {
         return msg.toString();
     }
 
-    public void render(ButtonClickEvent e) {
+    public void render(ButtonInteractionEvent e) {
         e.editMessageEmbeds(new EmbedBuilder().setTitle("Nominierungen").setColor(Color.CYAN).setDescription(generateDescription()).build())
                 .setActionRows(addAndReturn(getActionRows(mons.stream().map(o -> o.getString("name")).collect(Collectors.toList()), s -> isNominated(s) ? Button.primary("nominate;" + s, s) : Button.secondary("nominate;" + s, s)), ActionRow.of(Button.success("nominate;FINISH", Emoji.fromUnicode("✅")))))
                 .queue();
@@ -77,7 +77,7 @@ public class Nominate {
         //return nominated.stream().map(o -> o.getString("name")).collect(Collectors.joining(",")) + "###" + notNominated.stream().map(o -> o.getString("name")).collect(Collectors.joining(","));
     }
 
-    public void finish(ButtonClickEvent e, boolean now) {
+    public void finish(ButtonInteractionEvent e, boolean now) {
         if (now) {
             JSONObject nom = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS").getJSONObject("nominations");
             JSONObject day = nom.getJSONObject(String.valueOf(nom.getInt("currentDay")));

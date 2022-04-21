@@ -3,8 +3,8 @@ package de.tectoast.emolga.buttons;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.GPIOManager;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 import java.awt.*;
 import java.io.IOException;
@@ -20,7 +20,7 @@ public class FlorixButton extends ButtonListener {
     }
 
     @Override
-    public void process(ButtonClickEvent e, String name) throws IOException {
+    public void process(ButtonInteractionEvent e, String name) throws IOException {
         if (e.getUser().getIdLong() != Constants.FLOID || e.getGuild().getIdLong() != Constants.MYSERVER) return;
         boolean on = GPIOManager.isOn();
         switch (name) {

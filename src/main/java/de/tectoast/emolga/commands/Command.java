@@ -36,15 +36,15 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.audio.hooks.ConnectionListener;
 import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
-import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.internal.utils.Helpers;
@@ -88,6 +88,7 @@ import static de.tectoast.emolga.utils.Constants.*;
 import static de.tectoast.emolga.utils.draft.Draft.doMatchUps;
 import static de.tectoast.emolga.utils.draft.Draft.doNDSNominate;
 import static java.util.Calendar.*;
+import static net.dv8tion.jda.api.entities.UserSnowflake.fromId;
 
 public abstract class Command {
     /**
@@ -235,7 +236,7 @@ public abstract class Command {
      */
     protected final Map<Long, List<Long>> overrideChannel = new HashMap<>();
     /**
-     * The name of the command, used to check if the command was used in {@link #check(GuildMessageReceivedEvent)}
+     * The name of the command, used to check if the command was used in {@link #check(MessageReceivedEvent)}
      */
     protected final String name;
     /**
@@ -434,7 +435,7 @@ public abstract class Command {
         });
     }
 
-    public static void playSound(VoiceChannel vc, String path, TextChannel tc) {
+    public static void playSound(AudioChannel vc, String path, TextChannel tc) {
         boolean flegmon = vc.getJDA().getSelfUser().getIdLong() != 723829878755164202L;
         if (System.currentTimeMillis() - lastClipUsed < 10000 && flegmon) {
             tc.sendMessage("Warte bitte noch kurz...").queue();
@@ -569,7 +570,7 @@ public abstract class Command {
         if (mutedRoles.containsKey(g.getIdLong()))
             g.addRoleToMember(mem, g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
         long expires = System.currentTimeMillis() + time * 1000L;
-        muteTimer(g, expires, mem.getId());
+        muteTimer(g, expires, mem.getIdLong());
         EmbedBuilder builder = new EmbedBuilder();
         builder.setAuthor(mem.getEffectiveName() + " wurde für " + secondsToTime(time).replace("*", "") + " gemutet", null, mem.getUser().getEffectiveAvatarUrl());
         builder.setColor(Color.CYAN);
@@ -579,7 +580,7 @@ public abstract class Command {
         DBManagers.MUTE.mute(mem.getIdLong(), mod.getIdLong(), g.getIdLong(), reason, new Timestamp(expires));
     }
 
-    public static void muteTimer(Guild g, long expires, String mem) {
+    public static void muteTimer(Guild g, long expires, long mem) {
         try {
             if (expires > -1) {
                 new Timer().schedule(new TimerTask() {
@@ -590,7 +591,7 @@ public abstract class Command {
                         logger.info(query);
                         if (Database.update(query) != 0) {
                             if (mutedRoles.containsKey(g.getIdLong()))
-                                g.removeRoleFromMember(mem, g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
+                                g.removeRoleFromMember(fromId(mem), g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
                         }
                     }
                 }, new Date(expires));
@@ -599,7 +600,7 @@ public abstract class Command {
             String tstr = new Timestamp(expires).toString();
             if (Database.update("delete from mutes where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'") != 0) {
                 if (mutedRoles.containsKey(g.getIdLong()))
-                    g.removeRoleFromMember(mem, g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
+                    g.removeRoleFromMember(fromId(mem), g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
             }
         }
     }
@@ -701,7 +702,7 @@ public abstract class Command {
         }
         g.ban(mem, 0, reason).queue();
         long expires = System.currentTimeMillis() + time * 1000L;
-        banTimer(g, expires, mem.getId());
+        banTimer(g, expires, mem.getIdLong());
         EmbedBuilder builder = new EmbedBuilder();
         builder.setAuthor(mem.getEffectiveName() + " wurde für " + secondsToTime(time).replace("*", "") + " gebannt", null, mem.getUser().getEffectiveAvatarUrl());
         builder.setColor(Color.CYAN);
@@ -710,21 +711,21 @@ public abstract class Command {
         DBManagers.BAN.ban(mem.getIdLong(), mem.getUser().getName(), mod.getIdLong(), tco.getGuild().getIdLong(), reason, new Timestamp(expires));
     }
 
-    public static void banTimer(Guild g, long expires, String mem) {
+    public static void banTimer(Guild g, long expires, long mem) {
         try {
             new Timer().schedule(new TimerTask() {
                 @Override
                 public void run() {
                     String tstr = new Timestamp(expires).toString();
                     if (Database.update("delete from bans where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'") != 0) {
-                        g.unban(mem).queue();
+                        g.unban(fromId(mem)).queue();
                         logger.info("Unbanned!");
                     }
                 }
             }, new Date(expires));
         } catch (IllegalArgumentException ignored) {
             if (Database.update("delete from bans where timestamp'" + new Timestamp(expires) + "'") != 0) {
-                g.unban(mem).queue();
+                g.unban(fromId(mem)).queue();
                 logger.info("Unbanned!");
             }
         }
@@ -884,7 +885,7 @@ public abstract class Command {
         emolgajda.getTextChannelById(id).editMessageById(id == 778380440078647296L ? 778380596413464676L : 925446888772239440L, buildAndSaveShinyCounts()).queue();
     }
 
-    public static void updateShinyCounts(ButtonClickEvent e) {
+    public static void updateShinyCounts(ButtonInteractionEvent e) {
         e.editMessage(buildAndSaveShinyCounts()).queue();
     }
 
@@ -1253,7 +1254,7 @@ public abstract class Command {
     public static void play(Guild guild, GuildMusicManager musicManager, AudioTrack track, Member mem, TextChannel tc) {
         AudioManager audioManager = guild.getAudioManager();
         if (!audioManager.isConnected()) {
-            if (mem.getVoiceState().inVoiceChannel()) {
+            if (mem.getVoiceState().inAudioChannel()) {
                 audioManager.openAudioConnection(mem.getVoiceState().getChannel());
             } else {
                 tc.sendMessage("Du musst dich in einem Voicechannel befinden!").queue();
@@ -1266,7 +1267,7 @@ public abstract class Command {
         AudioManager audioManager = guild.getAudioManager();
         Member mem = guild.retrieveMemberById(FLOID).complete();
         if (!audioManager.isConnected()) {
-            if (mem.getVoiceState().inVoiceChannel()) {
+            if (mem.getVoiceState().inAudioChannel()) {
                 audioManager.openAudioConnection(mem.getVoiceState().getChannel());
             } else {
                 sendToMe("Du musst dich in einem Voicechannel befinden!");
@@ -1275,7 +1276,7 @@ public abstract class Command {
         musicManager.scheduler.queue(track);
     }
 
-    public static void play(Guild guild, GuildMusicManager musicManager, AudioTrack track, VoiceChannel vc) {
+    public static void play(Guild guild, GuildMusicManager musicManager, AudioTrack track, AudioChannel vc) {
         AudioManager audioManager = guild.getAudioManager();
         if (!audioManager.isConnected()) {
             audioManager.openAudioConnection(vc);
@@ -1494,7 +1495,7 @@ public abstract class Command {
 
     public static Collection<ActionRow> getTrainerDataActionRow(TrainerData dt, boolean withMoveset) {
         return Arrays.asList(
-                ActionRow.of(SelectionMenu.create("trainerdata").addOptions(
+                ActionRow.of(SelectMenu.create("trainerdata").addOptions(
                         dt.getMonsList().stream().map(s -> SelectOption.of(s, s).withDefault(dt.isCurrent(s))).collect(Collectors.toList())
                 ).build()),
                 ActionRow.of(withMoveset ? Button.success("trainerdata;CHANGEMODE", "Mit Moveset") : Button.secondary("trainerdata;CHANGEMODE", "Ohne Moveset"))
@@ -2051,10 +2052,10 @@ public abstract class Command {
         ma.setActionRows(getHelpButtons(g, mem)).queue();
     }
 
-    public static void check(GuildMessageReceivedEvent e) {
+    public static void check(MessageReceivedEvent e) {
         Member mem = e.getMember();
         String msg = e.getMessage().getContentDisplay();
-        TextChannel tco = e.getChannel();
+        TextChannel tco = e.getTextChannel();
         long gid = e.getGuild().getIdLong();
         Bot bot = Bot.byJDA(e.getJDA());
 
@@ -2079,10 +2080,10 @@ public abstract class Command {
                 if (msg.equalsIgnoreCase("!" + file.getName().split("\\.")[0])) {
                     GuildVoiceState voiceState = e.getMember().getVoiceState();
                     boolean pepe = mem.getIdLong() == 349978348010733569L;
-                    if (voiceState.inVoiceChannel() || pepe) {
+                    if (voiceState.inAudioChannel() || pepe) {
                         AudioManager am = e.getGuild().getAudioManager();
                         if (!am.isConnected()) {
-                            if (voiceState.inVoiceChannel()) {
+                            if (voiceState.inAudioChannel()) {
                                 am.openAudioConnection(voiceState.getChannel());
                                 am.setConnectionListener(new ConnectionListener() {
                                     @Override
@@ -3424,7 +3425,7 @@ public abstract class Command {
             return syntax != null;
         }
 
-        public ArgumentManager construct(SlashCommandEvent e) throws ArgumentException {
+        public ArgumentManager construct(SlashCommandInteractionEvent e) throws ArgumentException {
             HashMap<String, Object> map = new HashMap<>();
             for (Argument arg : arguments) {
                 if (e.getOption(arg.getName().toLowerCase()) == null && !arg.isOptional()) {
@@ -3451,7 +3452,7 @@ public abstract class Command {
             return new ArgumentManager(map);
         }
 
-        public ArgumentManager construct(GuildMessageReceivedEvent e) throws ArgumentException {
+        public ArgumentManager construct(MessageReceivedEvent e) throws ArgumentException {
             if (noCheck) return null;
             Message m = e.getMessage();
             long mid = m.getIdLong();

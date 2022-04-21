@@ -2,7 +2,7 @@ package de.tectoast.emolga.buttons;
 
 import de.tectoast.emolga.buttons.buttonsaves.TrainerData;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 import java.awt.*;
 
@@ -16,7 +16,7 @@ public class TrainerDataButton extends ButtonListener {
     }
 
     @Override
-    public void process(ButtonClickEvent e, String name) {
+    public void process(ButtonInteractionEvent e, String name) {
         TrainerData dt = trainerDataButtons.get(e.getMessageIdLong());
         if (dt == null) {
             e.reply("Dieses Trainer-Data funktioniert nicht mehr, da der Bot seit der Erstellung neugestartet wurde. Bitte ruf den Command nochmal auf :)").setEphemeral(true).queue();

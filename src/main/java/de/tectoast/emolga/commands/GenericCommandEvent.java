@@ -3,12 +3,12 @@ package de.tectoast.emolga.commands;
 import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
-import net.dv8tion.jda.api.requests.restaction.interactions.ReplyAction;
+import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +32,7 @@ public abstract class GenericCommandEvent {
     private final List<Member> mentionedMembers;
     private final List<Role> mentionedRoles;
     private final int argsLength;
-    private final SlashCommandEvent slashCommandEvent;
+    private final SlashCommandInteractionEvent slashCommandEvent;
 
     public GenericCommandEvent(Message message) {
         this.message = message;
@@ -49,7 +49,7 @@ public abstract class GenericCommandEvent {
         this.slashCommandEvent = null;
     }
 
-    public GenericCommandEvent(SlashCommandEvent e) {
+    public GenericCommandEvent(SlashCommandInteractionEvent e) {
         this.message = null;
         this.author = e.getUser();
         this.msg = null;
@@ -123,9 +123,9 @@ public abstract class GenericCommandEvent {
         else this.channel.sendMessage(msg).queue();
     }
 
-    public void reply(String msg, @Nullable Consumer<MessageAction> ma, @Nullable Consumer<ReplyAction> ra, @Nullable Consumer<Message> m, @Nullable Consumer<InteractionHook> ih) {
+    public void reply(String msg, @Nullable Consumer<MessageAction> ma, @Nullable Consumer<ReplyCallbackAction> ra, @Nullable Consumer<Message> m, @Nullable Consumer<InteractionHook> ih) {
         if (slashCommandEvent != null) {
-            ReplyAction reply = slashCommandEvent.reply(msg);
+            ReplyCallbackAction reply = slashCommandEvent.reply(msg);
             if (ra != null)
                 ra.accept(reply);
             reply.queue(ih);
@@ -137,9 +137,9 @@ public abstract class GenericCommandEvent {
         }
     }
 
-    public void reply(MessageEmbed msg, @Nullable Consumer<MessageAction> ma, @Nullable Consumer<ReplyAction> ra, @Nullable Consumer<Message> m, @Nullable Consumer<InteractionHook> ih) {
+    public void reply(MessageEmbed msg, @Nullable Consumer<MessageAction> ma, @Nullable Consumer<ReplyCallbackAction> ra, @Nullable Consumer<Message> m, @Nullable Consumer<InteractionHook> ih) {
         if (slashCommandEvent != null) {
-            ReplyAction reply = slashCommandEvent.replyEmbeds(msg);
+            ReplyCallbackAction reply = slashCommandEvent.replyEmbeds(msg);
             if (ra != null)
                 ra.accept(reply);
             reply.queue(ih);

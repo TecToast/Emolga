@@ -3,7 +3,6 @@ package de.tectoast.emolga.bot;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.jetty.HttpHandler;
 import de.tectoast.emolga.utils.Giveaway;
-import de.tectoast.emolga.utils.MessageWaiter;
 import de.tectoast.emolga.utils.sql.DBManagers;
 import de.tectoast.toastilities.managers.ReactionManager;
 import jakarta.xml.bind.DatatypeConverter;
@@ -12,6 +11,8 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.eclipse.jetty.http.HttpVersion;
@@ -49,7 +50,6 @@ import static de.tectoast.emolga.utils.Constants.MYSERVER;
 
 public class EmolgaMain {
 
-    public static final MessageWaiter messageWaiter = new MessageWaiter();
     public static final ArrayList<Giveaway> todel = new ArrayList<>();
     public static final ArrayList<String> alreadywritten = new ArrayList<>();
     public static final HashMap<String, Consumer<String>> sdmessages = new HashMap<>();
@@ -59,13 +59,13 @@ public class EmolgaMain {
     public static void start() throws Exception {
         emolgajda = JDABuilder.createDefault(Command.tokens.getString("discord"))
                 .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
-                .addEventListeners(new EmolgaListener(), messageWaiter)
+                .addEventListeners(new EmolgaListener())
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
         emolgajda.addEventListener(new SlashListener(emolgajda));
         flegmonjda = JDABuilder.createDefault(Command.tokens.getString("discordflegmon"))
                 .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
-                .addEventListeners(new EmolgaListener(), messageWaiter)
+                .addEventListeners(new EmolgaListener())
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
         flegmonjda.addEventListener(new SlashListener(emolgajda));
@@ -75,7 +75,7 @@ public class EmolgaMain {
         Guild g = emolgajda.getGuildById(MYSERVER);
         g.updateCommands()
                 .addCommands(commands.values().stream().filter(Command::isSlash).map(c -> {
-                    CommandData dt = new CommandData(c.getName(), c.getHelp());
+                    SlashCommandData dt = Commands.slash(c.getName(), c.getHelp());
                     List<ArgumentManagerTemplate.Argument> args = c.getArgumentTemplate().arguments;
                     for (ArgumentManagerTemplate.Argument arg : args) {
                         dt.addOption(arg.getType().asOptionType(), arg.getName().toLowerCase(), arg.getHelp(), !arg.isOptional());

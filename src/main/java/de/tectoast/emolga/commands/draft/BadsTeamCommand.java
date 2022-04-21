@@ -8,7 +8,7 @@ import de.tectoast.toastilities.interactive.Interactive;
 import de.tectoast.toastilities.interactive.InteractiveTemplate;
 import de.tectoast.toastilities.interactive.Layer;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
@@ -114,7 +114,7 @@ public class BadsTeamCommand extends PrivateCommand {
     }
 
     @Override
-    public void process(PrivateMessageReceivedEvent e) {
+    public void process(MessageReceivedEvent e) {
         JSONObject picks = Command.getEmolgaJSON().getJSONObject("drafts").getJSONObject("BADS").getJSONObject("picks");
         if (picks.has(e.getAuthor().getId())) {
             e.getChannel().sendMessage("Du hast dein Team bereits eingegeben! Wenn du wirklich einen Fehler gemacht haben solltest, melde dich bitte bei Flo.").queue();

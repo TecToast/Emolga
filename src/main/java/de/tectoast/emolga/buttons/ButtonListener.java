@@ -2,7 +2,7 @@ package de.tectoast.emolga.buttons;
 
 import com.google.common.reflect.ClassPath;
 import de.tectoast.emolga.commands.Command;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +17,7 @@ public abstract class ButtonListener {
     private static final Logger logger = LoggerFactory.getLogger(ButtonListener.class);
     private static final ButtonListener NULL = new ButtonListener("NULL") {
         @Override
-        public void process(ButtonClickEvent e, String name) {
+        public void process(ButtonInteractionEvent e, String name) {
             Command.sendToMe("WRONG BUTTON KEY " + e.getComponentId());
         }
     };
@@ -28,7 +28,7 @@ public abstract class ButtonListener {
         listener.put(name, this);
     }
 
-    public static void check(ButtonClickEvent e) {
+    public static void check(ButtonInteractionEvent e) {
         logger.info("e.getComponentId() = {}", e.getComponentId());
         String[] split = e.getComponentId().split(";");
         try {
@@ -53,5 +53,5 @@ public abstract class ButtonListener {
         }
     }
 
-    public abstract void process(ButtonClickEvent e, String name) throws Exception;
+    public abstract void process(ButtonInteractionEvent e, String name) throws Exception;
 }

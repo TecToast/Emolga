@@ -21,7 +21,7 @@ public class TeamCommand extends Command {
         e.getGuild().loadMembers().onSuccess(l -> {
             ArrayList<Member> list = new ArrayList<>();
             for (Member mem : l) {
-                if (mem.getVoiceState().inVoiceChannel()) list.add(mem);
+                if (mem.getVoiceState().inAudioChannel()) list.add(mem);
             }
             Collections.shuffle(list);
             e.reply(list.get(0).getEffectiveName() + " und " + list.get(1).getEffectiveName() + " **VS** " + list.get(2).getEffectiveName() + " und " + list.get(3).getEffectiveName());

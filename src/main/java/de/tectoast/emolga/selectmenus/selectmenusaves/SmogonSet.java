@@ -2,8 +2,8 @@ package de.tectoast.emolga.selectmenus.selectmenusaves;
 
 import de.tectoast.emolga.commands.pokemon.SmogonCommand;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
-import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 
@@ -67,10 +67,10 @@ public class SmogonSet {
 
     public List<ActionRow> buildActionRows() {
         return Arrays.asList(
-        ActionRow.of(SelectionMenu.create("smogonformat").addOptions(
-                arr.toJSONList().stream().map(o -> o.getString("format")).map(s -> SelectOption.of("Format: " + s, s).withDefault(format.getString("format").equals(s))).collect(Collectors.toList())
-        ).build()),
-                ActionRow.of(SelectionMenu.create("smogonset").addOptions(
+                ActionRow.of(SelectMenu.create("smogonformat").addOptions(
+                        arr.toJSONList().stream().map(o -> o.getString("format")).map(s -> SelectOption.of("Format: " + s, s).withDefault(format.getString("format").equals(s))).collect(Collectors.toList())
+                ).build()),
+                ActionRow.of(SelectMenu.create("smogonset").addOptions(
                         format.getJSONList("movesets").stream().map(o -> o.getString("name")).map(s -> SelectOption.of("Set: " + s, s).withDefault(set.getString("name").equals(s))).collect(Collectors.toList())
                 ).build()));
     }

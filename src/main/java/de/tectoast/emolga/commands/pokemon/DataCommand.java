@@ -11,8 +11,8 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
-import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -211,7 +211,7 @@ public class DataCommand extends Command {
                             if (list.size() > 1) {
                                 /*ma.setActionRows(getActionRows(list, o -> mon.getString("name").equals(o.getString("name")) ? Button.primary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name")))
                                         : Button.secondary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name")))));*/
-                                ma.setActionRows(ActionRow.of(SelectionMenu.create("mondata").addOptions(
+                                ma.setActionRows(ActionRow.of(SelectMenu.create("mondata").addOptions(
                                         list.stream().map(o -> {
                                             SelectOption so = SelectOption.of("Form: " + getGerNameWithForm(o.getString("name")), toSDName(o.getString("name")));
                                             return mon.getString("name").equals(o.getString("name")) ? so.withDefault(true) : so;
@@ -222,7 +222,8 @@ public class DataCommand extends Command {
                             if (list.size() > 1) {
                                 /*ra.addActionRows(getActionRows(list, o -> mon.getString("name").equals(o.getString("name")) ? Button.primary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name")))
                                         : Button.secondary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name")))));*/
-                                ra.addActionRows(ActionRow.of(SelectionMenu.create("mondata").addOptions(
+
+                                ra.addActionRows(ActionRow.of(SelectMenu.create("mondata").addOptions(
                                         list.stream().map(o -> {
                                             SelectOption so = SelectOption.of("Form: " + getGerNameWithForm(o.getString("name")), toSDName(o.getString("name")));
                                             return mon.getString("name").equals(o.getString("name")) ? so.withDefault(true) : so;

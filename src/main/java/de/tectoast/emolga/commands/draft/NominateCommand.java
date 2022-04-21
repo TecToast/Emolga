@@ -5,9 +5,9 @@ import de.tectoast.emolga.commands.PrivateCommand;
 import de.tectoast.emolga.utils.Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Emoji;
-import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.jsolf.JSONArray;
 import org.jsolf.JSONObject;
 
@@ -31,7 +31,7 @@ public class NominateCommand extends PrivateCommand {
     }
 
     @Override
-    public void process(PrivateMessageReceivedEvent e) {
+    public void process(MessageReceivedEvent e) {
         JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
         JSONObject nom = nds.getJSONObject("nominations");
         int currentDay = nom.getInt("currentDay");

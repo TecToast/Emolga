@@ -11,24 +11,22 @@ import java.util.function.Predicate;
 
 public enum CommandCategory {
 
-    Admin("\uD83C\uDDE6"),
-    Moderator("\uD83C\uDDF2"),
-    Draft("\uD83C\uDDE9"),
-    Flo("\uD83C\uDDEB"),
-    Dexquiz("\uD83C\uDDF6"),
-    Music("\uD83C\uDDF2", "Musik"),
-    Pokemon("\uD83C\uDDF5", "Pokémon"),
-    BS("\uD83C\uDDE7", "Blazing Strikers"),
-    Various("\uD83C\uDDFB", "Verschiedenes"),
-    Showdown("\uD83C\uDDF8"),
-    Pepe("822140307558629446");
+    Admin(967390962877870090L),
+    Moderator(967390963947438120L),
+    Draft(967390964685602867L),
+    Flo(967390966153609226L),
+    Dexquiz(967392435565105172L),
+    Music(967392953934966844L, "Musik"),
+    Pokemon(967390967550332968L, "Pokémon"),
+    Various(967390968670191717L, "Verschiedenes"),
+    Showdown(967391265236860948L),
+    Pepe(967391297797251082L);
 
     public static final List<Long> musicGuilds = new LinkedList<>();
-    private static final List<CommandCategory> order = Arrays.asList(Flo, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Moderator, Music);
+    private static final List<CommandCategory> order = Arrays.asList(Flo, Admin, Moderator, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Music);
 
     static {
         Moderator.allowsMember = m -> Admin.allowsMember(m) || m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getIdLong()));
-        BS.allowsGuildId = gid -> gid.equals(712035338846994502L);
         Music.allowsGuildId = musicGuilds::contains;
         Moderator.allowsGuildId = Command.moderatorRoles::containsKey;
         Pepe.allowsGuildId = gid -> gid.equals(605632286179983360L);
@@ -38,26 +36,23 @@ public enum CommandCategory {
         Flo.everywhere = true;
         Admin.everywhere = true;
         Moderator.everywhere = true;
-        Pepe.isEmote = true;
-        BS.disabled = "Die Blazing Strikers Commands wurden dauerhaft abgeschafft!";
         //Music.disabled = "Die Musikfunktionen wurden aufgrund einer Fehlfunktion komplett deaktiviert!";
     }
 
-    final String emoji;
+    final long emote;
     final String name;
-    String disabled = "";
-    boolean isEmote = false;
+    final String disabled = "";
     private Predicate<Member> allowsMember = m -> true;
     private Predicate<Long> allowsGuildId = g -> true;
     private boolean everywhere = false;
 
-    CommandCategory(String emoji, String name) {
-        this.emoji = emoji;
+    CommandCategory(long emote, String name) {
+        this.emote = emote;
         this.name = name;
     }
 
-    CommandCategory(String emoji) {
-        this.emoji = emoji;
+    CommandCategory(long emote) {
+        this.emote = emote;
         this.name = this.name();
     }
 
@@ -71,16 +66,12 @@ public enum CommandCategory {
         return order;
     }
 
-    public boolean isEmote() {
-        return isEmote;
-    }
-
     public boolean isEverywhere() {
         return everywhere;
     }
 
-    public String getEmoji() {
-        return emoji;
+    public long getEmote() {
+        return emote;
     }
 
     public String getName() {

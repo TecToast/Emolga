@@ -2022,20 +2022,8 @@ public abstract class Command {
         return s.toString();
     }
 
-    public static void addReactions(Message m, Member mem) {
-        Guild g = m.getGuild();
-        for (CommandCategory cat : CommandCategory.getOrder()) {
-            if (cat.allowsGuild(g) && cat.allowsMember(mem)) {
-                if (cat.isEmote()) m.addReaction(g.getJDA().getEmoteById(cat.emoji)).queue();
-                else
-                    m.addReaction(cat.emoji).queue();
-            }
-        }
-        m.addReaction("\u25c0\ufe0f").queue();
-    }
-
     public static List<ActionRow> getHelpButtons(Guild g, Member mem) {
-        return getActionRows(CommandCategory.getOrder().stream().filter(cat -> cat.allowsGuild(g) && cat.allowsMember(mem)).collect(Collectors.toList()), s -> Button.primary("help;" + s.getName().toLowerCase(), s.getName()));
+        return getActionRows(CommandCategory.getOrder().stream().filter(cat -> cat.allowsGuild(g) && cat.allowsMember(mem)).collect(Collectors.toList()), s -> Button.primary("help;" + s.getName().toLowerCase(), s.getName()).withEmoji(Emoji.fromEmote(g.getJDA().getEmoteById(s.getEmote()))));
     }
 
     public static void help(TextChannel tco, Member mem) {
@@ -2046,7 +2034,7 @@ public abstract class Command {
         EmbedBuilder builder = new EmbedBuilder();
         builder.setTitle("Commands").setColor(Color.CYAN);
         Message m = null;
-        builder.setDescription(getHelpDescripion(tco.getGuild(), mem));
+        //builder.setDescription(getHelpDescripion(tco.getGuild(), mem));
         MessageAction ma = tco.sendMessageEmbeds(builder.build());
         Guild g = tco.getGuild();
         ma.setActionRows(getHelpButtons(g, mem)).queue();

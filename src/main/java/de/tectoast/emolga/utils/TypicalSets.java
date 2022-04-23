@@ -7,6 +7,8 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 
 import java.awt.*;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -42,13 +44,14 @@ public record TypicalSets(JSONObject json) {
         }
         JSONObject mon = json.getJSONObject(pokemon);
         double uses = mon.getInt("uses");
-        return new EmbedBuilder().addField("Attacken", mon.optJSONObject("moves", new JSONObject()).toMap().entrySet().stream().map(e -> {
+        Comparator<Map.Entry<String, Object>> comp = Comparator.<Map.Entry<String, Object>, Integer>comparing(e -> (int) e.getValue()).reversed();
+        return new EmbedBuilder().addField("Attacken", mon.optJSONObject("moves", new JSONObject()).toMap().entrySet().stream().sorted(comp).map(e -> {
             String usesStr = String.valueOf((int) e.getValue() / uses * 100f);
             return e.getKey() + ": " + usesStr.substring(0, Math.min(usesStr.length(), 5)) + "%";
-        }).limit(5).collect(Collectors.joining("\n")), true).addField("Items", mon.optJSONObject("items", new JSONObject()).toMap().entrySet().stream().map(e -> {
+        }).limit(5).collect(Collectors.joining("\n")), true).addField("Items", mon.optJSONObject("items", new JSONObject()).toMap().entrySet().stream().sorted(comp).map(e -> {
             String itemsStr = String.valueOf((int) e.getValue() / uses * 100f);
             return e.getKey() + ": " + itemsStr.substring(0, Math.min(itemsStr.length(), 5)) + "%";
-        }).limit(5).collect(Collectors.joining("\n")), true).addField("Fähigkeiten", mon.optJSONObject("abilities", new JSONObject()).toMap().entrySet().stream().map(e -> {
+        }).limit(5).collect(Collectors.joining("\n")), true).addField("Fähigkeiten", mon.optJSONObject("abilities", new JSONObject()).toMap().entrySet().stream().sorted(comp).map(e -> {
             String abilitiesStr = String.valueOf((int) e.getValue() / uses * 100f);
             return e.getKey() + ": " + abilitiesStr.substring(0, Math.min(abilitiesStr.length(), 5)) + "%";
         }).limit(5).collect(Collectors.joining("\n")), true).setColor(Color.CYAN).setTitle(pokemon).build();

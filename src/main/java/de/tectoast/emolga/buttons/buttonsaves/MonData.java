@@ -1,6 +1,6 @@
 package de.tectoast.emolga.buttons.buttonsaves;
 
-import org.jsolf.JSONObject;
+import de.tectoast.jsolf.JSONObject;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;

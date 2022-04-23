@@ -3,11 +3,11 @@ package de.tectoast.emolga.commands.pokemon;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jetbrains.annotations.NotNull;
-import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

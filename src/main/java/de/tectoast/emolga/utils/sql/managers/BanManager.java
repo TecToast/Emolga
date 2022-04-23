@@ -4,10 +4,10 @@ import de.tectoast.emolga.utils.sql.base.DataManager;
 import de.tectoast.emolga.utils.sql.base.columns.LongColumn;
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn;
 import de.tectoast.emolga.utils.sql.base.columns.TimestampColumn;
+import de.tectoast.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.UserSnowflake;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

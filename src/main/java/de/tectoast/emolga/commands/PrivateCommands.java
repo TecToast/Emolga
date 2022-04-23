@@ -10,12 +10,12 @@ import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.records.Coord;
 import de.tectoast.emolga.utils.sql.DBManagers;
+import de.tectoast.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
@@ -294,7 +294,7 @@ public class PrivateCommands {
         JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
         Collection<String> table = nds.getJSONObject("picks").keySet();
         JSONObject nominations = nds.getJSONObject("nominations");
-        nominations.getJSONObjectL(nominations.getInt("currentDay")).keySet().forEach(table::remove);
+        nominations.getJSONObject(nominations.getInt("currentDay")).keySet().forEach(table::remove);
         logger.info(MarkerFactory.getMarker("important"), table.stream().map(l -> "<@" + l + ">").collect(Collectors.joining(", ")));
     }
 

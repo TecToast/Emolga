@@ -1,7 +1,7 @@
 package de.tectoast.emolga.utils;
 
 import de.tectoast.emolga.commands.Command;
-import org.jsolf.JSONObject;
+import de.tectoast.jsolf.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;

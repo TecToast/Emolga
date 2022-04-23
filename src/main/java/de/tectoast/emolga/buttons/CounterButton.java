@@ -1,9 +1,9 @@
 package de.tectoast.emolga.buttons;
 
 import de.tectoast.emolga.commands.Command;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
-import org.jsolf.JSONObject;
 
 import static de.tectoast.emolga.commands.Command.shinycountjson;
 

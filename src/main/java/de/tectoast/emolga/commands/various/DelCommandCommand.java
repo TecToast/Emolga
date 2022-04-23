@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.various;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import org.jsolf.JSONObject;
+import de.tectoast.jsolf.JSONObject;
 
 public class DelCommandCommand extends Command {
 

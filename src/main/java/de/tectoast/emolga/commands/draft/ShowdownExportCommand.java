@@ -3,8 +3,8 @@ package de.tectoast.emolga.commands.draft;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
+import de.tectoast.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Comparator;

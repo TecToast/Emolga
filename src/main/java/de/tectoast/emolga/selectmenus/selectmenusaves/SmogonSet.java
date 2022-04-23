@@ -1,11 +1,11 @@
 package de.tectoast.emolga.selectmenus.selectmenusaves;
 
 import de.tectoast.emolga.commands.pokemon.SmogonCommand;
+import de.tectoast.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
 
 import java.util.Arrays;
 import java.util.List;

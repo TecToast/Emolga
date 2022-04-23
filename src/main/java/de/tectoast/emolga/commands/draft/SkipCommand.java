@@ -6,9 +6,9 @@ import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.RequestBuilder;
 import de.tectoast.emolga.utils.draft.Draft;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
-import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

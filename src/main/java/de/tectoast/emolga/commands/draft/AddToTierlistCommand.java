@@ -5,7 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.draft.Tierlist;
-import org.jsolf.JSONObject;
+import de.tectoast.jsolf.JSONObject;
 
 public class AddToTierlistCommand extends Command {
 

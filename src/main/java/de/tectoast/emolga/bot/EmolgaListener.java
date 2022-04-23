@@ -8,6 +8,7 @@ import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.DexQuiz;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.ReadyEvent;
@@ -24,7 +25,6 @@ import net.dv8tion.jda.api.events.role.RoleCreateEvent;
 import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
-import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

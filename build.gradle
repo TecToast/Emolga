@@ -19,6 +19,12 @@ repositories {
     maven {
         url "https://m2.dv8tion.net/releases"
     }
+    maven {
+        url "https://maven.pkg.github.com/TecToast/Toastilities"
+    }
+    maven {
+        url "https://maven.pkg.github.com/TecToast/JSOLF"
+    }
 }
 
 
@@ -49,8 +55,8 @@ dependencies {
     implementation 'mysql:mysql-connector-java:8.0.28'
     implementation 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
     implementation 'org.glassfish.jaxb:jaxb-runtime:3.0.2'
-    implementation files("./lib/json-java-olf.jar")
-    implementation files("./lib/Toastilities.jar")
+    implementation 'de.tectoast:toastilities:2.1'
+    implementation 'de.tectoast:jsolf:1.1'
     implementation("net.dv8tion:JDA:5.0.0-alpha.10")
 }
 

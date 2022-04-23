@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.jetty.HttpHandler;
 import de.tectoast.emolga.utils.Giveaway;
 import de.tectoast.emolga.utils.sql.DBManagers;
+import de.tectoast.jsolf.JSONObject;
 import de.tectoast.toastilities.managers.ReactionManager;
 import jakarta.xml.bind.DatatypeConverter;
 import net.dv8tion.jda.api.JDA;
@@ -18,7 +19,6 @@ import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.jsolf.JSONObject;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;

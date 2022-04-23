@@ -3,13 +3,13 @@ package de.tectoast.emolga.commands.draft;
 import de.tectoast.emolga.buttons.buttonsaves.Nominate;
 import de.tectoast.emolga.commands.PrivateCommand;
 import de.tectoast.emolga.utils.Constants;
+import de.tectoast.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Emoji;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
 
 import java.awt.*;
 import java.util.Arrays;

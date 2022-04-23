@@ -1,9 +1,9 @@
 package de.tectoast.emolga.selectmenus;
 
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
-import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

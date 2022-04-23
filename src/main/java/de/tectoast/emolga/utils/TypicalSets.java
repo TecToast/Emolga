@@ -1,9 +1,9 @@
 package de.tectoast.emolga.utils;
 
 import de.tectoast.emolga.commands.Command;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import org.jsolf.JSONObject;
 
 import java.awt.*;
 import java.util.Collection;

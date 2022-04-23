@@ -6,10 +6,9 @@ import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
 
 public class MoveCommand extends Command {
 
@@ -43,7 +42,7 @@ public class MoveCommand extends Command {
         JSONObject league = d.getLeague();
         if (!league.has("skippedturns")) league.put("skippedturns", new JSONObject());
         JSONObject st = league.getJSONObject("skippedturns");
-        st.put(mem, st.optJSONArray(String.valueOf(mem), new JSONArray()).put(d.round));
+        st.put(mem, st.createOrGetArray(mem).put(d.round));
         d.nextPlayer(tco, tierlist, league);
         //ndsdoc(tierlist, pokemon, d, mem, tier, round);
     }

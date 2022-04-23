@@ -5,7 +5,7 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.sql.DBManagers;
-import org.jsolf.JSONObject;
+import de.tectoast.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

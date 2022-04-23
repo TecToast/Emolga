@@ -3,14 +3,14 @@ package de.tectoast.emolga.commands.draft;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.PrivateCommand;
 import de.tectoast.emolga.utils.draft.Tierlist;
+import de.tectoast.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONObject;
 import de.tectoast.toastilities.interactive.ErrorMessage;
 import de.tectoast.toastilities.interactive.Interactive;
 import de.tectoast.toastilities.interactive.InteractiveTemplate;
 import de.tectoast.toastilities.interactive.Layer;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

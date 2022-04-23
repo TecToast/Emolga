@@ -3,10 +3,10 @@ package de.tectoast.emolga.commands.various;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.GuildChannel;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
 
 public class ResetRevolutionCommand extends Command {
     public ResetRevolutionCommand() {

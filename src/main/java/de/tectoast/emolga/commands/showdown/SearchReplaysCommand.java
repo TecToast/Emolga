@@ -3,10 +3,10 @@ package de.tectoast.emolga.commands.showdown;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONObject;
+import de.tectoast.jsolf.JSONTokener;
 import net.dv8tion.jda.api.entities.TextChannel;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
-import org.jsolf.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

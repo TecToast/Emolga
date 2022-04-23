@@ -3,9 +3,9 @@ package de.tectoast.emolga.commands.pokemon;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
-import org.jsolf.JSONObject;
 
 import java.util.*;
 import java.util.stream.Collectors;

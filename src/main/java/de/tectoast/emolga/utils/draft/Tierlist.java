@@ -2,7 +2,7 @@ package de.tectoast.emolga.utils.draft;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.utils.records.Coord;
-import org.jsolf.JSONObject;
+import de.tectoast.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

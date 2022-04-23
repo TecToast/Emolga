@@ -4,8 +4,8 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Member;
-import org.jsolf.JSONObject;
 
 import java.util.Optional;
 
@@ -32,10 +32,10 @@ public class AllowCommand extends Command {
             if (!league.has("allowed")) league.put("allowed", new JSONObject());
             JSONObject allowed = league.getJSONObject("allowed");
             if (allowed.has(user)) {
-                e.reply("%s pickt bereits für `%s`!".formatted(mem.getEffectiveName(), e.getGuild().retrieveMemberById(allowed.getLongL(user)).complete().getEffectiveName()));
+                e.reply("%s pickt bereits für `%s`!".formatted(mem.getEffectiveName(), e.getGuild().retrieveMemberById(allowed.getLong(user)).complete().getEffectiveName()));
                 return;
             }
-            allowed.put(user, member.getIdLong());
+            allowed.put(user, (Object) member.getIdLong());
             e.reply("Du hast %s erlaubt, für dich zu picken!".formatted(mem.getEffectiveName()));
             saveEmolgaJSON();
         } else {

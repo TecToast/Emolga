@@ -3,8 +3,8 @@ package de.tectoast.emolga.commands.flegmon;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.commands.PepeCommand;
 import de.tectoast.emolga.database.Database;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.TextChannel;
-import org.jsolf.JSONObject;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

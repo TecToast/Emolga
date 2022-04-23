@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
-import org.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

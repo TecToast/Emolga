@@ -4,8 +4,8 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.Constants;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Member;
-import org.jsolf.JSONObject;
 
 public class ResetCooldownCommand extends Command {
     public ResetCooldownCommand() {

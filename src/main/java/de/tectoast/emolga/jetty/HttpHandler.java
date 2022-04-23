@@ -2,6 +2,9 @@ package de.tectoast.emolga.jetty;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.utils.sql.DBManagers;
+import de.tectoast.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONObject;
+import de.tectoast.jsolf.JSONTokener;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.dv8tion.jda.api.Permission;
@@ -10,9 +13,6 @@ import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
-import org.jsolf.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

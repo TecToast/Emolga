@@ -5,13 +5,13 @@ import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.Google;
 import de.tectoast.emolga.utils.RequestBuilder;
 import de.tectoast.emolga.utils.RequestGetter;
+import de.tectoast.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
@@ -107,7 +107,7 @@ public class Draft {
                     for (long member : members) {
                         logger.info("member = " + member);
                         if (pick.has(member)) {
-                            JSONArray arr = pick.getJSONArrayL(member);
+                            JSONArray arr = pick.getJSONArray(member);
                             ArrayList<DraftPokemon> list = new ArrayList<>();
                             for (Object ob : arr) {
                                 JSONObject obj = (JSONObject) ob;
@@ -155,7 +155,7 @@ public class Draft {
                     JSONObject pick = league.getJSONObject("picks");
                     for (long member : members) {
                         if (pick.has(member)) {
-                            JSONArray arr = pick.getJSONArrayL(member);
+                            JSONArray arr = pick.getJSONArray(member);
                             ArrayList<DraftPokemon> list = new ArrayList<>();
                             for (Object ob : arr) {
                                 JSONObject obj = (JSONObject) ob;
@@ -621,7 +621,7 @@ public class Draft {
         if (!league.has("skippedturns")) league.put("skippedturns", new JSONObject());
         JSONObject st = league.getJSONObject("skippedturns");
         int rounds = getTierlist().rounds;
-        st.put(current, st.optJSONArray(String.valueOf(current), new JSONArray()).put(round));
+        st.put(current, st.createOrGetArray(current).put(round));
         if (order.get(round).size() == 0) {
             if (round == rounds) {
                 saveEmolgaJSON();

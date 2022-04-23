@@ -5,10 +5,10 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.DraftPokemon;
+import de.tectoast.jsolf.JSONArray;
+import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
-import org.jsolf.JSONArray;
-import org.jsolf.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -53,7 +53,7 @@ public class UpdatedatafromfileCommand extends Command {
         JSONObject pick = league.getJSONObject("picks");
         for (long mem : d.members) {
             if (pick.has(mem)) {
-                JSONArray arr = pick.getJSONArrayL(mem);
+                JSONArray arr = pick.getJSONArray(mem);
                 ArrayList<DraftPokemon> monlist = new ArrayList<>();
                 for (Object ob : arr) {
                     JSONObject obj = (JSONObject) ob;

@@ -217,6 +217,8 @@ public abstract class Command {
     public static Map<Long, SoundSendHandler> sendHandlers = new HashMap<>();
     protected static long lastClipUsed = -1;
     protected static ScheduledExecutorService calendarService = Executors.newScheduledThreadPool(5);
+    protected static ScheduledExecutorService moderationService = Executors.newScheduledThreadPool(5);
+    protected static ScheduledExecutorService birthdayService = Executors.newScheduledThreadPool(1);
 
 
     /**
@@ -569,7 +571,7 @@ public abstract class Command {
         }
         if (mutedRoles.containsKey(g.getIdLong()))
             g.addRoleToMember(mem, g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
-        long expires = System.currentTimeMillis() + time * 1000L;
+        long expires = (System.currentTimeMillis() + time * 1000L) / 1000 * 1000;
         muteTimer(g, expires, mem.getIdLong());
         EmbedBuilder builder = new EmbedBuilder();
         builder.setAuthor(mem.getEffectiveName() + " wurde für " + secondsToTime(time).replace("*", "") + " gemutet", null, mem.getUser().getEffectiveAvatarUrl());
@@ -581,28 +583,13 @@ public abstract class Command {
     }
 
     public static void muteTimer(Guild g, long expires, long mem) {
-        try {
-            if (expires > -1) {
-                new Timer().schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        String tstr = new Timestamp(expires).toString();
-                        String query = "delete from mutes where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'";
-                        logger.info(query);
-                        if (Database.update(query) != 0) {
-                            if (mutedRoles.containsKey(g.getIdLong()))
-                                g.removeRoleFromMember(fromId(mem), g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
-                        }
-                    }
-                }, new Date(expires));
+        if (expires == -1) return;
+        moderationService.schedule(() -> {
+            long gid = g.getIdLong();
+            if (DBManagers.MUTE.unmute(mem, gid) != 0) {
+                g.removeRoleFromMember(fromId(mem), g.getRoleById(mutedRoles.get(gid))).queue();
             }
-        } catch (IllegalArgumentException ignored) {
-            String tstr = new Timestamp(expires).toString();
-            if (Database.update("delete from mutes where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'") != 0) {
-                if (mutedRoles.containsKey(g.getIdLong()))
-                    g.removeRoleFromMember(fromId(mem), g.getRoleById(mutedRoles.get(g.getIdLong()))).queue();
-            }
-        }
+        }, expires - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
     }
 
     public static void kick(TextChannel tco, Member mod, Member mem, String reason) {
@@ -712,23 +699,13 @@ public abstract class Command {
     }
 
     public static void banTimer(Guild g, long expires, long mem) {
-        try {
-            new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    String tstr = new Timestamp(expires).toString();
-                    if (Database.update("delete from bans where userid=" + mem + " and expires='" + tstr.substring(0, Math.min(tstr.length(), 20)) + "0'") != 0) {
-                        g.unban(fromId(mem)).queue();
-                        logger.info("Unbanned!");
-                    }
-                }
-            }, new Date(expires));
-        } catch (IllegalArgumentException ignored) {
-            if (Database.update("delete from bans where timestamp'" + new Timestamp(expires) + "'") != 0) {
+        if (expires == -1) return;
+        moderationService.schedule(() -> {
+            long gid = g.getIdLong();
+            if (DBManagers.BAN.unban(mem, gid) != 0) {
                 g.unban(fromId(mem)).queue();
-                logger.info("Unbanned!");
             }
-        }
+        }, expires - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
     }
 
     public static void warn(TextChannel tco, Member mod, Member mem, String reason) {
@@ -1476,21 +1453,18 @@ public abstract class Command {
         logger.info("tilnextday = " + tilnextday);
         logger.info("System.currentTimeMillis() + tilnextday = " + (System.currentTimeMillis() + tilnextday));
         logger.info("SELECT REQUEST: " + "SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(DAY_OF_MONTH));
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                ResultSet set = Database.select("SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(DAY_OF_MONTH));
-                try {
-                    TextChannel tc = flegmonjda.getTextChannelById(605650587329232896L);
-                    while (set.next()) {
-                        tc.sendMessage("Alles Gute zum " + (Calendar.getInstance().get(Calendar.YEAR) - set.getInt("year")) + ". Geburtstag, <@" + set.getLong("userid") + ">!").queue();
-                    }
-                } catch (SQLException throwables) {
-                    throwables.printStackTrace();
+        birthdayService.schedule(() -> {
+            ResultSet set = Database.select("SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(DAY_OF_MONTH));
+            try {
+                TextChannel tc = flegmonjda.getTextChannelById(605650587329232896L);
+                while (set.next()) {
+                    tc.sendMessage("Alles Gute zum " + (Calendar.getInstance().get(Calendar.YEAR) - set.getInt("year")) + ". Geburtstag, <@" + set.getLong("userid") + ">!").queue();
                 }
-                awaitNextDay();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
             }
-        }, tilnextday);
+            awaitNextDay();
+        }, tilnextday, TimeUnit.MILLISECONDS);
     }
 
     public static Collection<ActionRow> getTrainerDataActionRow(TrainerData dt, boolean withMoveset) {

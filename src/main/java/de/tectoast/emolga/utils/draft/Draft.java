@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.Pattern;
@@ -28,6 +27,7 @@ import static de.tectoast.emolga.commands.Command.*;
 public class Draft {
     public static final List<Draft> drafts = new ArrayList<>();
     private static final Logger logger = LoggerFactory.getLogger(Draft.class);
+    private static final ScheduledExecutorService predictionGamesService = Executors.newScheduledThreadPool(1);
     public final Map<Long, List<DraftPokemon>> picks = new HashMap<>();
     public final Map<Integer, List<Long>> order = new HashMap<>();
     public final Map<Integer, List<Long>> originalOrder = new HashMap<>();
@@ -184,8 +184,7 @@ public class Draft {
                     } else {
                         delay = calculateDraftTimer();
                     }
-                    if (!league.has("cooldown"))
-                        league.put("cooldown", System.currentTimeMillis() + delay);
+                    if (!league.has("cooldown")) league.put("cooldown", System.currentTimeMillis() + delay);
                     cooldown = scheduler.schedule((Runnable) this::timer, delay, TimeUnit.MILLISECONDS);
                     saveEmolgaJSON();
                     sendToMe("Aufgesetzt! " + delay);
@@ -237,8 +236,7 @@ public class Draft {
             if (!o.has(u)) {
                 if (cday == 1) {
                     List<JSONObject> mons = picks.getJSONList(u);
-                    o.put(u, mons.stream().limit(11).map(obj -> obj.getString("name")).collect(Collectors.joining(";")) + "###"
-                            + mons.stream().skip(11).map(obj -> obj.getString("name")).collect(Collectors.joining(";")));
+                    o.put(u, mons.stream().limit(11).map(obj -> obj.getString("name")).collect(Collectors.joining(";")) + "###" + mons.stream().skip(11).map(obj -> obj.getString("name")).collect(Collectors.joining(";")));
                 } else {
                     o.put(u, nom.getJSONObject(String.valueOf(cday - 1)).getString(u));
                 }
@@ -259,13 +257,11 @@ public class Draft {
             })).collect(Collectors.toList()));
             x++;
         }
-        builder.withRunnable(() -> emolgajda.getTextChannelById(837425690844201000L)
-                .sendMessage("""
-                        Jo ihr alten Zipfelklatscher! Eure jämmerlichen Versuche eine Liga zu gewinnen werden scheitern ihr Arschgeigen, da ihr zu inkompetent seid euch zu merken, wann alles nach meiner Schwerstarbeit automatisch eingetragen wird. Daher erinnere ich euer Erbsenhirn mithilfe dieser noch nett formulierten Nachricht daran, dass ihr nun anfangen könnt zu builden. Dann bis nächste Woche Mittwoch!
-                        PS: Bannt Henny, der Typ ist broken! Und gebt ihm keinen Gehstocktänzer!
+        builder.withRunnable(() -> emolgajda.getTextChannelById(837425690844201000L).sendMessage("""
+                Jo ihr alten Zipfelklatscher! Eure jämmerlichen Versuche eine Liga zu gewinnen werden scheitern ihr Arschgeigen, da ihr zu inkompetent seid euch zu merken, wann alles nach meiner Schwerstarbeit automatisch eingetragen wird. Daher erinnere ich euer Erbsenhirn mithilfe dieser noch nett formulierten Nachricht daran, dass ihr nun anfangen könnt zu builden. Dann bis nächste Woche Mittwoch!
+                PS: Bannt Henny, der Typ ist broken! Und gebt ihm keinen Gehstocktänzer!
 
-                        _written by Henny_""")
-                .queue()).execute();
+                _written by Henny_""").queue()).execute();
         nom.increment("currentDay");
         saveEmolgaJSON();
     }
@@ -301,117 +297,8 @@ public class Draft {
         }
     }
 
-    public static void initializeNDSPredictionGame() {
-        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
-        int lastDay = league.getInt("lastDay");
-        Calendar c = Calendar.getInstance();
-        c.set(Calendar.HOUR_OF_DAY, 20);
-        c.set(Calendar.MINUTE, 0);
-        c.set(Calendar.SECOND, 0);
-        boolean b = System.currentTimeMillis() - c.getTimeInMillis() >= 0;
-        while (c.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) c.add(Calendar.DAY_OF_WEEK, 1);
-        long timeUntilStart = c.getTimeInMillis() - System.currentTimeMillis();
-        TextChannel tc = emolgajda.getTextChannelById(844806306027929610L);
-        //TextChannel tc = jda.getTextChannelById(774661698074050581L);
-        for (int i = 0; i < league.getJSONObject("battleorder").length() - lastDay; i++) {
-            long delay = timeUntilStart + (i * 604800000L);
-            if (i == 0 && b) continue;
-            logger.info("NDS" + " -> " + i + " -> " + delay + " -> " + new SimpleDateFormat().format(new Date(System.currentTimeMillis() + delay)));
-            int finalI = i + 1;
-            logger.info("finalI = " + finalI);
-            new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    JSONObject json = getEmolgaJSON();
-                    JSONObject league = json.getJSONObject("drafts").getJSONObject("NDS");
-                    int lastDay = league.getInt("lastDay");
-                    int gameday = lastDay + finalI;
-                    league.put("lastDay", lastDay + 1);
-                    //tc.sendMessage("**Spieltag " + gameday + ":**").queue();
-                    String bo = league.getJSONObject("battleorder").getString(String.valueOf(gameday));
-                    Guild g = emolgajda.getGuildById(Constants.NDSID);
-                    for (String str : bo.split(";")) {
-                        String[] split = str.split(":");
-                        String u1 = split[0];
-                        String u2 = split[1];
-                        JSONObject teamnames = league.getJSONObject("teamnames");
-                        Emote e1 = g.getEmotesByName(toSDName(teamnames.getString(u1)), true).get(0);
-                        Emote e2 = g.getEmotesByName(toSDName(teamnames.getString(u2)), true).get(0);
-                        logger.info("<@" + u1 + "> (" + e1.getAsMention() + ") vs. <@" + u2 + "> (" + e2.getAsMention() + ")");
-
-                        /*tc.sendMessage("<@" + u1 + "> (" + e1.getAsMention() + ") vs. <@" + u2 + "> (" + e2.getAsMention() + ")").queue(m -> {
-                            m.addReaction(e1).queue();
-                            m.addReaction(e2).queue();
-                        });*/
-                    }
-                }
-            }, delay < 0 ? 0 : delay);
-        }
-    }
-
     public static void init(JDA jda) {
         Tierlist.setup();
-        JSONObject json = getEmolgaJSON();
-        SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy hh:mm:ss", Locale.GERMANY);
-        //initializeNDSPredictionGame();
-        //setupNDSNominate();
-        for (String draftname : json.getJSONObject("drafts").keySet()) {
-            JSONObject league = json.getJSONObject("drafts").getJSONObject(draftname);
-            if (league.has("predictiongame")) {
-                Emote p1emote = jda.getEmoteById(540970044297838597L);
-                Emote p2emote = jda.getEmoteById(645622238757781505L);
-                JSONObject predictiongame = league.getJSONObject("predictiongame");
-                int lastDay = predictiongame.getInt("lastDay");
-                Calendar c = Calendar.getInstance();
-                c.set(Calendar.HOUR_OF_DAY, 20);
-                c.set(Calendar.MINUTE, 0);
-                c.set(Calendar.SECOND, 0);
-                while (c.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) c.add(Calendar.DAY_OF_WEEK, 1);
-                long timeUntilStart = c.getTimeInMillis() - System.currentTimeMillis();
-                TextChannel tc = jda.getTextChannelById(predictiongame.getLong("channelid"));
-                //TextChannel tc = jda.getTextChannelById(774661698074050581L);
-                for (int i = 0; i < league.getJSONObject("battleorder").length() + 7 - lastDay; i++) {
-                    long delay = timeUntilStart + (i * 604800000L);
-                    logger.info(draftname + " -> " + i + " -> " + delay + " -> " + format.format(new Date(System.currentTimeMillis() + delay)));
-                    int finalI = i + 1;
-                    logger.info("finalI = " + finalI);
-                    new Timer().schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            JSONObject json = getEmolgaJSON();
-                            JSONObject league = json.getJSONObject("drafts").getJSONObject(draftname);
-                            JSONObject predictiongame = league.getJSONObject("predictiongame");
-                            int lastDay = predictiongame.getInt("lastDay");
-                            int gameday = lastDay + finalI;
-                            predictiongame.put("lastDay", lastDay + 1);
-                            tc.sendMessage("**Spieltag " + gameday + ":**").queue();
-                            predictiongame.getJSONObject("ids").put(String.valueOf(gameday), new JSONObject());
-                            JSONObject o = predictiongame.getJSONObject("ids").getJSONObject(String.valueOf(gameday));
-                            String bo = league.getJSONObject("battleorder").getString(String.valueOf(gameday - 7));
-                            ArrayList<CompletableFuture<Message>> list = new ArrayList<>();
-                            for (String str : bo.split(";")) {
-                                String[] split = str.split(":");
-                                String u1 = split[0];
-                                String u2 = split[1];
-                                list.add(tc.sendMessage("<:yay:540970044297838597> <@" + u1 + "> vs. <@" + u2 + "> <:yay2:645622238757781505>").submit().whenComplete((m, throwable) -> {
-                                    try {
-                                        m.addReaction(p1emote).queue();
-                                        m.addReaction(p2emote).queue();
-                                        o.put(u1 + ":" + u2, m.getIdLong());
-                                    } catch (Exception ex) {
-                                        ex.printStackTrace();
-                                    }
-                                }));
-                            }
-                            CompletableFuture.allOf(list.toArray(new CompletableFuture[0])).whenComplete((unused, throwable) -> {
-                                saveEmolgaJSON();
-                                //sendEarlyASLReplays(gameday);
-                            });
-                        }
-                    }, delay < 0 ? 0 : delay);
-                }
-            }
-        }
     }
 
     public static Draft getDraftByMember(long member, TextChannel tco) {
@@ -421,8 +308,7 @@ public class Draft {
             //logger.info(draft.members.stream().map(mem -> mem.getId() + ":" + mem.getEffectiveName()).collect(Collectors.joining("\n")));
             if (!draft.tc.getId().equals(tco.getId())) continue;
             if (member == Constants.FLOID) return draft;
-            if (draft.members.stream().anyMatch(mem -> mem == member))
-                return draft;
+            if (draft.members.stream().anyMatch(mem -> mem == member)) return draft;
             if (draft.getLeague().has("table1") && draft.getLeague().getJSONArray("table1").toLongListList().stream().anyMatch(l -> l.contains(member)))
                 return draft;
             if (draft.getLeague().has("table2") && draft.getLeague().getJSONArray("table2").toLongListList().stream().anyMatch(l -> l.contains(member)))
@@ -547,8 +433,7 @@ public class Draft {
         JSONObject league = getLeague();
         if (league.has("mentions")) {
             JSONObject mentions = league.getJSONObject("mentions");
-            if (mentions.has(mem))
-                return "<@" + mentions.getString(mem) + ">";
+            if (mentions.has(mem)) return "<@" + mentions.getString(mem) + ">";
         }
         return "<@" + mem + ">";
     }
@@ -634,14 +519,11 @@ public class Draft {
         }
         /*String msg = tr == TimerReason.REALTIMER ? "**" + current.getEffectiveName() + "** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " (<@&" + asl.getLongList("roleids").get(getIndex(order.get(round).get(0).getIdLong())) + ">) dran! "
                 : "Der Pick von " + current.getEffectiveName() + " wurde " + (isSwitchDraft ? "geskippt" : "verschoben") + " und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran!";*/
-        String msg = tr == TimerReason.REALTIMER ? "**<@" + current + ">** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran! "
-                : "Der Pick von <@" + current + "> wurde " + (isSwitchDraft ? "geskippt" : "verschoben") + " und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran!";
+        String msg = tr == TimerReason.REALTIMER ? "**<@" + current + ">** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran! " : "Der Pick von <@" + current + "> wurde " + (isSwitchDraft ? "geskippt" : "verschoben") + " und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran!";
         current = order.get(round).remove(0);
         league.put("current", current);
-        if (isPointBased)
-            msg += "(" + points.get(current) + " mögliche Punkte)";
-        else
-            msg += "(Mögliche Tiers: " + getPossibleTiersAsString(current) + ")";
+        if (isPointBased) msg += "(" + points.get(current) + " mögliche Punkte)";
+        else msg += "(Mögliche Tiers: " + getPossibleTiersAsString(current) + ")";
         tc.sendMessage(msg).queue();
         cooldown.cancel(false);
         long delay = calculateDraftTimer();
@@ -710,7 +592,6 @@ public class Draft {
 
 
     public enum TimerReason {
-        REALTIMER,
-        SKIP
+        REALTIMER, SKIP
     }
 }

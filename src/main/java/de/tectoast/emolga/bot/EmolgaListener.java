@@ -1,6 +1,7 @@
 package de.tectoast.emolga.bot;
 
 import de.tectoast.emolga.buttons.ButtonListener;
+import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.PrivateCommand;
 import de.tectoast.emolga.commands.PrivateCommands;
 import de.tectoast.emolga.selectmenus.MenuListener;
@@ -8,7 +9,9 @@ import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.DexQuiz;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
+import de.tectoast.emolga.utils.sql.DBManagers;
 import de.tectoast.jsolf.JSONObject;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.ReadyEvent;
@@ -31,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.net.URL;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -230,8 +234,12 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onReady(@NotNull ReadyEvent e) {
         try {
-            if (e.getJDA().getSelfUser().getIdLong() == 723829878755164202L)
-                Draft.init(e.getJDA());
+            JDA jda = e.getJDA();
+            if (jda.getSelfUser().getIdLong() == 723829878755164202L) {
+                Draft.init(jda);
+                DBManagers.BAN.forAll(rs -> Command.banTimer(jda.getGuildById(rs.getLong("guildid")), Optional.ofNullable(rs.getTimestamp("expires")).map(Timestamp::getTime).orElse(-1L), rs.getLong("userid")));
+                DBManagers.MUTE.forAll(rs -> Command.muteTimer(jda.getGuildById(rs.getLong("guildid")), Optional.ofNullable(rs.getTimestamp("expires")).map(Timestamp::getTime).orElse(-1L), rs.getLong("userid")));
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -240,7 +248,7 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onUserUpdateName(UserUpdateNameEvent e) {
         logger.info(e.getOldName() + " -> " + e.getNewName());
-        if (e.getUser().getMutualGuilds().stream().map(ISnowflake::getId).toList().contains("518008523653775366"))
+        if (e.getUser().getMutualGuilds().stream().map(ISnowflake::getIdLong).anyMatch(l -> l == Constants.ASLID))
             e.getJDA().getTextChannelById("728675253924003870").sendMessage(e.getOldName() + " hat sich auf ganz Discord in " + e.getNewName() + " umbenannt!").queue();
     }
 

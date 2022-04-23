@@ -40,6 +40,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -103,7 +104,7 @@ public class EmolgaMain {
                 .registerReaction("827608009571958806", "884567614918111233", "886748333484441650", "886746672120606771")
                 .registerReaction("827608009571958806", "884567614918111233", "921389285188440115", "921387730200584222");
         ScheduledExecutorService giveawayscheduler = new ScheduledThreadPoolExecutor(5);
-        HashMap<Long, ScheduledFuture<?>> giveawayFutures = new HashMap<>();
+        Map<Long, ScheduledFuture<?>> giveawayFutures = new HashMap<>();
         DBManagers.GIVEAWAY.forAll(r -> new Giveaway(r.getLong("channelid"), r.getLong("hostid"), r.getTimestamp("end").toInstant(), r.getInt("winners"), r.getString("prize"), r.getLong("messageid")));
     }
 

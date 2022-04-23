@@ -8,6 +8,8 @@ import de.tectoast.emolga.utils.sql.base.columns.TimestampColumn;
 import javax.annotation.Nullable;
 import java.sql.Timestamp;
 
+import static de.tectoast.emolga.utils.sql.base.Condition.and;
+
 public class MuteManager extends DataManager {
 
     final LongColumn USERID = new LongColumn("userid", this);
@@ -25,5 +27,9 @@ public class MuteManager extends DataManager {
 
     public void mute(long userid, long modid, long guildid, String reason, @Nullable Timestamp expires) {
         insert(userid, modid, guildid, reason, null, expires);
+    }
+
+    public int unmute(long userid, long guildid) {
+        return delete(and(USERID.check(userid), GUILDID.check(guildid)));
     }
 }

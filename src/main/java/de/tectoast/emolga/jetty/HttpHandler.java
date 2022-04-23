@@ -184,7 +184,7 @@ public class HttpHandler extends AbstractHandler {
                 replyError(res, "No permission to unban users for guild %s", g.getName());
                 return;
             }
-            res.getWriter().println(DBManagers.BAN.unban(g, Long.parseLong(body.getString("member"))));
+            res.getWriter().println(DBManagers.BAN.unbanWebsite(g, Long.parseLong(body.getString("member"))));
         } else {
             res.getWriter().println(new JSONObject().put("error", "invalidcookie").toString());
         }

@@ -69,11 +69,15 @@ public class BanManager extends DataManager {
         return new JSONArray().put(new JSONObject().put("name", "ERROR"));
     }
 
-    public JSONObject unban(Guild g, long userid) {
+    public JSONObject unbanWebsite(Guild g, long userid) {
         JSONObject o = new JSONObject();
         logger.info("userid = " + userid);
         logger.info("g.getIdLong() = " + g.getIdLong());
         g.unban(UserSnowflake.fromId(userid)).queue();
         return delete(and(GUILDID.check(g.getIdLong()), USERID.check(userid))) > 0 ? o.put("success", "Entbannung erfolgreich!") : o.put("error", "Die Person war gar nicht gebannt!");
+    }
+
+    public int unban(long userid, long guildid) {
+        return delete(and(USERID.check(userid), GUILDID.check(guildid)));
     }
 }

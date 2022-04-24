@@ -18,6 +18,7 @@ public class FullStatsCommand extends Command {
                         ArgumentManagerTemplate.withPredicate("Pokemon", s -> getDraftGerName(s).isFromType(Translation.Type.POKEMON), false, draftnamemapper), false, "Das ist kein Pokemon!")
                 .setExample("!fullstats Primarina")
                 .build());
+        slash();
     }
 
     @Override
@@ -33,7 +34,7 @@ public class FullStatsCommand extends Command {
         String wpu = String.valueOf((double) data.wins() / (double) data.uses());
         wpu = wpu.substring(0, wpu.indexOf(".") + Math.min(wpu.length() - 1, 6));
         e.reply(new EmbedBuilder().setColor(Color.CYAN)
-                .setTitle("Gesamtstatistik von " + mon)
+                .setTitle("Gesamtstatistik von " + mon + " in " + (replayCount.get() - 6212) + " Replays")
                 .addField("Kills", String.valueOf(data.kills()), false)
                 .addField("Deaths", String.valueOf(data.deaths()), false)
                 .addField("Uses", String.valueOf(data.uses()), false)

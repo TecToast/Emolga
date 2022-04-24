@@ -22,4 +22,6 @@ public class Constants {
 
     public static final long CALENDAR_TCID = 938156657706418176L;
     public static final long CALENDAR_MSGID = 964920267598098433L;
+
+    public static final String MYTAG = "Flooo#2535";
 }

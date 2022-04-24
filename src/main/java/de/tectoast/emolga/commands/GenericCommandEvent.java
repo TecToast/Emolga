@@ -1,6 +1,7 @@
 package de.tectoast.emolga.commands;
 
 import de.tectoast.emolga.utils.Constants;
+import de.tectoast.emolga.utils.records.DeferredSlashResponse;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -174,11 +175,12 @@ public abstract class GenericCommandEvent {
         reply("Done!");
     }
 
-    public void errorInteraction() {
-        if (slashCommandEvent != null) slashCommandEvent.reply("D:").setEphemeral(true).queue();
-    }
-
     public boolean isNotFlo() {
         return this.author.getIdLong() != Constants.FLOID;
+    }
+
+    public DeferredSlashResponse deferReply() {
+        if (slashCommandEvent != null) return new DeferredSlashResponse(slashCommandEvent.deferReply().submit());
+        return null;
     }
 }

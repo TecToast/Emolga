@@ -14,6 +14,7 @@ public class TypicalSetsCommand extends Command {
                         ArgumentManagerTemplate.draftPokemon(), false, "Das ist kein Pokemon!")
                 .setExample("!typicalsets Primarina")
                 .build());
+        slash();
     }
 
     @Override

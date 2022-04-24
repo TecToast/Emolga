@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import static de.tectoast.emolga.utils.Constants.FLOID;
+import static de.tectoast.emolga.utils.Constants.MYTAG;
 
 public class GuildCommandEvent extends GenericCommandEvent {
     private final Member member;
@@ -31,7 +32,7 @@ public class GuildCommandEvent extends GenericCommandEvent {
                 c.process(this);
             } catch (Exception ex) {
                 ex.printStackTrace();
-                tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (Flooo#2535).\n" + c.getHelp(e.getGuild()) + (member.getIdLong() == FLOID ? "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
+                tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (%s).\n".formatted(MYTAG) + c.getHelp(e.getGuild()) + (member.getIdLong() == FLOID ? "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
             }
         }, "CMD " + c.getName()).start();
     }

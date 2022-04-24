@@ -58,7 +58,7 @@ public class EmolgaListener extends ListenerAdapter {
             Falls die Ergebnisse in ||Spoilertags|| geschickt werden sollen, schick irgendwo auf dem Server den Command `!spoilertags` rein. Dies gilt dann serverweit.
 
             Ich habe übrigens noch viele weitere Funktionen! Wenn du mich pingst, zeige ich dir eine Übersicht aller Commands :)
-            Falls du weitere Fragen oder Probleme hast, schreibe Flooo#2535 eine PN :)""";
+            Falls du weitere Fragen oder Probleme hast, schreibe %s eine PN :)""".formatted(Constants.MYTAG);
     private static final Logger logger = LoggerFactory.getLogger(EmolgaListener.class);
 
     @Override

@@ -23,6 +23,7 @@ import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
 import de.tectoast.emolga.utils.music.SoundSendHandler;
 import de.tectoast.emolga.utils.records.CalendarEntry;
+import de.tectoast.emolga.utils.records.DeferredSlashResponse;
 import de.tectoast.emolga.utils.records.TimerData;
 import de.tectoast.emolga.utils.showdown.Analysis;
 import de.tectoast.emolga.utils.showdown.Player;
@@ -77,6 +78,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -219,6 +221,7 @@ public abstract class Command {
     protected static ScheduledExecutorService calendarService = Executors.newScheduledThreadPool(5);
     protected static ScheduledExecutorService moderationService = Executors.newScheduledThreadPool(5);
     protected static ScheduledExecutorService birthdayService = Executors.newScheduledThreadPool(1);
+    public static AtomicInteger replayCount = new AtomicInteger();
 
 
     /**
@@ -1977,9 +1980,10 @@ public abstract class Command {
     }
 
     public static void updatePresence() {
-        //jda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.watching(lastPresence ? ("auf " + Database.getData("statistics", "count", "name", "analysis") + " Replays") : ("zu @Flooo#2535")));
+        //jda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.watching(lastPresence ? ("auf " + Database.getData("statistics", "count", "name", "analysis") + " Replays") : ("zu @%s".formatted(Constants.MYTAG))));
         //lastPresence = !lastPresence;
         int count = (int) Database.getData("statistics", "count", "name", "analysis");
+        replayCount.set(count);
         if (count % 100 == 0) {
             emolgajda.getTextChannelById(904481960527794217L).sendMessage(new SimpleDateFormat("dd.MM.yyyy").format(new Date()) + ": " + count).queue();
         }
@@ -2129,7 +2133,7 @@ public abstract class Command {
                     return;
                 }
                 if (command.beta)
-                    e.getChannel().sendMessage("Dieser Command befindet sich zurzeit in der Beta-Phase! Falls Fehler auftreten, kontaktiert bitte Flooo#2535 durch einen Ping oder eine PN!").queue();
+                    e.getChannel().sendMessage("Dieser Command befindet sich zurzeit in der Beta-Phase! Falls Fehler auftreten, kontaktiert bitte %s durch einen Ping oder eine PN!".formatted(MYTAG)).queue();
                 new GuildCommandEvent(command, e);
             } catch (MissingArgumentException ex) {
                 ArgumentManagerTemplate.Argument arg = ex.getArgument();
@@ -2143,7 +2147,7 @@ public abstract class Command {
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
-                tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (Flooo#2535).\n" + command.getHelp(e.getGuild()) + (mem.getIdLong() == FLOID ? "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
+                tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (%s).\n".formatted(MYTAG) + command.getHelp(e.getGuild()) + (mem.getIdLong() == FLOID ? "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
             }
         }
     }
@@ -2398,7 +2402,7 @@ public abstract class Command {
         return Collections.emptyList();
     }
 
-    public static void analyseReplay(String url, TextChannel customReplayChannell, TextChannel resultchannell, Message m, GuildCommandEvent e) {
+    public static void analyseReplay(String url, TextChannel customReplayChannell, TextChannel resultchannell, Message m, DeferredSlashResponse e) {
         Player[] game;
         /*if(resultchannel.getGuild().getIdLong() != MYSERVER) {
             (m != null ? m.getChannel() : resultchannel).sendMessage("Ich befinde mich derzeit im Wartungsmodus, versuche es später noch einmal :)").queue();
@@ -2409,9 +2413,12 @@ public abstract class Command {
             game = new Analysis(url, m).analyse();
             //game = Analysis.analyse(url, m);
         } catch (Exception ex) {
-            resultchannell.sendMessage("Beim Auswerten des Replays ist (vermutlich wegen eines Zoruas/Zoroarks) ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein!").queue();
+            String msg = "Beim Auswerten des Replays ist (vermutlich wegen eines Zoruas/Zoroarks) ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein und melde dich gegebenenfalls bei %s!".formatted(MYTAG);
             if (e != null)
-                e.errorInteraction();
+                e.reply(msg);
+            else {
+                resultchannell.sendMessage(msg).queue();
+            }
             ex.printStackTrace();
             return;
         }

@@ -17,7 +17,7 @@ public class AnalyseCommand extends Command {
     @Override
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
-        analyseReplay(e.getArguments().getText("url"), null, tco, null, e);
+        analyseReplay(e.getArguments().getText("url"), null, tco, null, e.deferReply());
     }
 
 }

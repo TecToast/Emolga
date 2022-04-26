@@ -118,10 +118,14 @@ public abstract class GenericCommandEvent {
         return i < argsLength;
     }
 
-    public void reply(String msg) {
+    public void reply(String msg, boolean ephermal) {
         if (msg.length() == 0) return;
-        if (slashCommandEvent != null) slashCommandEvent.reply(msg).queue();
+        if (slashCommandEvent != null) slashCommandEvent.reply(msg).setEphemeral(ephermal).queue();
         else this.channel.sendMessage(msg).queue();
+    }
+
+    public void reply(String msg) {
+        reply(msg, false);
     }
 
     public void reply(String msg, @Nullable Consumer<MessageAction> ma, @Nullable Consumer<ReplyCallbackAction> ra, @Nullable Consumer<Message> m, @Nullable Consumer<InteractionHook> ih) {

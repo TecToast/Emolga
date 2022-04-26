@@ -19,10 +19,12 @@ public class SDNamesManager extends DataManager {
         return ID.retrieveValue(NAME, Command.toUsername(name));
     }
 
-    public void addIfAbsent(String name, long id) {
+    public boolean addIfAbsent(String name, long id) {
         if (!NAME.isAny(name)) {
             insert(Command.toUsername(name), id);
+            return true;
         }
+        return false;
     }
 
 

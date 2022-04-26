@@ -683,6 +683,18 @@ public class PrivateCommands {
         ).queue();
     }
 
+    @PrivateCommand(name = "buildtabletest")
+    public static void buildTableTest(GenericCommandEvent e) {
+        e.reply(Command.buildTable(Arrays.asList(
+                Arrays.asList("Pascal", "David", "Jesse", "Felix", "Fundort", "Status"),
+                Arrays.asList("", "Rutena", "", "", "Route 2", "Team"),
+                Arrays.asList("", "Floette", "", "", "Illumina City", "Team"),
+                Arrays.asList("", "Garados", "", "", "Route 22", "Team"),
+                Arrays.asList("", "Togetic", "", "", "Route 5", "Team"),
+                Arrays.asList("", "Zirpeise", "", "", "Route 3", "Box")
+        )));
+    }
+
     public static void execute(Message message) {
         String msg = message.getContentRaw();
         for (Method method : PrivateCommands.class.getDeclaredMethods()) {

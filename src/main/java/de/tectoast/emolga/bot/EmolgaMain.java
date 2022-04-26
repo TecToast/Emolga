@@ -1,6 +1,7 @@
 package de.tectoast.emolga.bot;
 
 import de.tectoast.emolga.commands.Command;
+import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.jetty.HttpHandler;
 import de.tectoast.emolga.utils.Giveaway;
 import de.tectoast.emolga.utils.sql.DBManagers;
@@ -45,6 +46,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static de.tectoast.emolga.commands.Command.*;
 import static de.tectoast.emolga.utils.Constants.MYSERVER;
@@ -74,15 +76,17 @@ public class EmolgaMain {
         flegmonjda.awaitReady();
         setupJetty();
         Guild g = emolgajda.getGuildById(MYSERVER);
-        g.updateCommands()
-                .addCommands(commands.values().stream().filter(Command::isSlash).map(c -> {
-                    SlashCommandData dt = Commands.slash(c.getName(), c.getHelp());
-                    List<ArgumentManagerTemplate.Argument> args = c.getArgumentTemplate().arguments;
-                    for (ArgumentManagerTemplate.Argument arg : args) {
-                        dt.addOption(arg.getType().asOptionType(), arg.getName().toLowerCase(), arg.getHelp(), !arg.isOptional());
-                    }
-                    return dt;
-                }).toArray(CommandData[]::new)).queue();
+        Function<Command, SlashCommandData> cmdmapper = c -> {
+            SlashCommandData dt = Commands.slash(c.getName(), c.getHelp());
+            List<ArgumentManagerTemplate.Argument> args = c.getArgumentTemplate().arguments;
+            for (ArgumentManagerTemplate.Argument arg : args) {
+                dt.addOption(arg.getType().asOptionType(), arg.getName().toLowerCase(), arg.getHelp(), !arg.isOptional());
+            }
+            return dt;
+        };
+        g.updateCommands().addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() != CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new)).queue();
+        emolgajda.getGuildById(695943416789598208L).updateCommands()
+                .addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() == CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new)).queue();
         awaitNextDay();
         flegmonjda.getPresence().setActivity(Activity.playing("mit seiner Rute"));
         updatePresence();

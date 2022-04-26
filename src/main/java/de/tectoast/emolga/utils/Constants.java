@@ -23,5 +23,9 @@ public class Constants {
     public static final long CALENDAR_TCID = 938156657706418176L;
     public static final long CALENDAR_MSGID = 964920267598098433L;
 
+    public static final long SOULLINK_TCID = 967720855415185418L;
+    public static final long SOULLINK_MSGID = 967721129278054480L;
+
+
     public static final String MYTAG = "Flooo#2535";
 }

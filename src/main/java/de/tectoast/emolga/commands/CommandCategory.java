@@ -20,10 +20,11 @@ public enum CommandCategory {
     Pokemon(967390967550332968L, "Pokémon"),
     Various(967390968670191717L, "Verschiedenes"),
     Showdown(967391265236860948L),
-    Pepe(967391297797251082L);
+    Pepe(967391297797251082L),
+    Soullink(967717447199244309L);
 
     public static final List<Long> musicGuilds = new LinkedList<>();
-    private static final List<CommandCategory> order = Arrays.asList(Flo, Admin, Moderator, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Music);
+    private static final List<CommandCategory> order = Arrays.asList(Flo, Admin, Moderator, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Music, Soullink);
 
     static {
         Moderator.allowsMember = m -> Admin.allowsMember(m) || m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getIdLong()));
@@ -32,6 +33,7 @@ public enum CommandCategory {
         Pepe.allowsGuildId = gid -> gid.equals(605632286179983360L);
         Flo.allowsMember = mem -> mem.getIdLong() == Constants.FLOID;
         Admin.allowsMember = Flo.allowsMember;
+        Soullink.allowsGuildId = gid -> gid.equals(695943416789598208L);
         Draft.everywhere = true;
         Flo.everywhere = true;
         Admin.everywhere = true;

@@ -81,8 +81,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static de.tectoast.emolga.bot.EmolgaMain.emolgajda;
 import static de.tectoast.emolga.bot.EmolgaMain.flegmonjda;
@@ -189,6 +192,8 @@ public abstract class Command {
     public static final Map<Long, SmogonSet> smogonMenu = new HashMap<>();
     public static final List<Long> customResult = Collections.singletonList(NDSID);
     public static final Map<Long, CircularFifoQueue<byte[]>> clips = new HashMap<>();
+    protected static final Map<Long, String> soullinkIds = Map.of(448542640850599947L, "Pascal", 726495601021157426L, "David", 867869302808248341L, "Jesse", 541214204926099477L, "Felix");
+    protected static final List<String> soullinkNames = Arrays.asList("Pascal", "David", "Jesse", "Felix");
     private static final Logger logger = LoggerFactory.getLogger(Command.class);
     /**
      * Mapper for the DraftGerName
@@ -217,13 +222,11 @@ public abstract class Command {
     public static JSONObject tokens;
     public static JSONObject catchrates;
     public static Map<Long, SoundSendHandler> sendHandlers = new HashMap<>();
+    public static AtomicInteger replayCount = new AtomicInteger();
     protected static long lastClipUsed = -1;
     protected static ScheduledExecutorService calendarService = Executors.newScheduledThreadPool(5);
     protected static ScheduledExecutorService moderationService = Executors.newScheduledThreadPool(5);
     protected static ScheduledExecutorService birthdayService = Executors.newScheduledThreadPool(1);
-    public static AtomicInteger replayCount = new AtomicInteger();
-
-
     /**
      * List containing guild ids where this command is enabled, empty if it is enabled in all guilds
      */
@@ -863,6 +866,52 @@ public abstract class Command {
 
     public static void updateShinyCounts(long id) {
         emolgajda.getTextChannelById(id).editMessageById(id == 778380440078647296L ? 778380596413464676L : 925446888772239440L, buildAndSaveShinyCounts()).queue();
+    }
+
+    public static void updateSoullink() {
+        emolgajda.getTextChannelById(SOULLINK_TCID).editMessageById(SOULLINK_MSGID, buildSoullink()).queue();
+    }
+
+    private static Supplier<Stream<String>> soullinkCols() {
+        return () -> Stream.concat(soullinkNames.stream(), Stream.of("Fundort", "Status"));
+    }
+
+    public static String buildTable(List<List<String>> list) {
+        List<Integer> colsizes = IntStream.range(0, list.get(0).size()).mapToObj(i -> list.stream().mapToInt(l -> l.get(i).length()).max().orElse(0)).toList();
+        return colsizes.toString();
+    }
+
+    public static String buildSoullink() {
+        List<String> statusOrder = Arrays.asList("Team", "Box", "RIP");
+        JSONObject soullink = emolgajson.getJSONObject("soullink");
+        JSONObject mons = soullink.getJSONObject("mons");
+        List<String> order = soullink.getStringList("order");
+        int maxlen = Math.max(order.stream().mapToInt(String::length).max().orElse(0), Math.max(mons.keySet().stream().map(mons::getJSONObject).flatMap(o -> o.keySet().stream().map(o::getString).toList().stream())
+                .map(String::length).max(Comparator.naturalOrder()).orElse(-1), 7)) + 1;
+        StringBuilder b = new StringBuilder("```");
+        soullinkCols().get().map(s -> ew(s, maxlen)).forEach(b::append);
+        b.append("\n");
+        for (String s : order.stream().sorted(Comparator.comparing(str -> statusOrder.indexOf(mons.getJSONObject(str).getString("status")))).toList()) {
+            JSONObject o = mons.getJSONObject(s);
+            String status = o.getString("status");
+            b.append(soullinkCols().get().map(n -> ew(switch (n) {
+                case "Fundort" -> s;
+                case "Status" -> status;
+                default -> o.optString(n, "");
+            }, maxlen)).collect(Collectors.joining(""))).append("\n");
+        }
+        return b.append("```").toString();
+    }
+
+    /**
+     * Expand whitespaces
+     *
+     * @param str the string
+     * @param len the length
+     * @return the whitespaced string
+     */
+    public static String ew(String str, int len) {
+        return str + " ".repeat(Math.max(0, len - str.length()));
     }
 
     public static void updateShinyCounts(ButtonInteractionEvent e) {
@@ -2140,7 +2189,7 @@ public abstract class Command {
                 if (arg.hasCustomErrorMessage()) tco.sendMessage(arg.getCustomErrorMessage()).queue();
                 else {
                     tco.sendMessage("Das benötigte Argument `" + arg.getName() + "`, was eigentlich " + buildEnumeration(arg.getType().getName()) + " sein müsste, ist nicht vorhanden!\n" +
-                            "Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help " + command.getName() + "`.").queue();
+                                    "Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help " + command.getName() + "`.").queue();
                 }
                 if (mem.getIdLong() != FLOID) {
                     sendToMe("MissingArgument " + tco.getAsMention() + " Server: " + tco.getGuild().getName());
@@ -2268,11 +2317,11 @@ public abstract class Command {
                     String move = set.getString("germanname");
                     //logger.info("move = " + move);
                     if ((type.equals("") || atkdata.getJSONObject(moveengl).getString("type").equals(getEnglName(type))) &&
-                            (dmgclass.equals("") || atkdata.getJSONObject(moveengl).getString("category").equals(dmgclass)) &&
-                            (!msg.toLowerCase().contains("--prio") || atkdata.getJSONObject(moveengl).getInt("priority") > 0) &&
-                            containsGen(learnset, moveengl, maxgen) &&
-                            moveFilter(msg, move) &&
-                            !already.contains(move)) {
+                        (dmgclass.equals("") || atkdata.getJSONObject(moveengl).getString("category").equals(dmgclass)) &&
+                        (!msg.toLowerCase().contains("--prio") || atkdata.getJSONObject(moveengl).getInt("priority") > 0) &&
+                        containsGen(learnset, moveengl, maxgen) &&
+                        moveFilter(msg, move) &&
+                        !already.contains(move)) {
                         already.add(move);
                     }
                 }
@@ -2532,10 +2581,10 @@ public abstract class Command {
         String str;
         if (spoiler) {
             str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1
-                    + "\n" + name2 + ": " + "\n" + t2;
+                  + "\n" + name2 + ": " + "\n" + t2;
         } else {
             str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1
-                    + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
+                  + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
         }
         if (customReplayChannel != null) customReplayChannel.sendMessage(url).queue();
         if (e != null) {
@@ -3115,7 +3164,7 @@ public abstract class Command {
             return "`" + getPrefix() + getName() + "` " + overrideHelp.getOrDefault(g.getIdLong(), help);
         }
         return "`" + (args.hasSyntax() ? args.getSyntax() : getPrefix() + getName() + (args.arguments.size() > 0 ? " " : "")
-                + args.arguments.stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" "))) + "` " + overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
+                                                            + args.arguments.stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" "))) + "` " + overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
     }
 
     public String getHelpWithoutCmd(Guild g) {
@@ -3917,11 +3966,11 @@ public abstract class Command {
 
         public void print() {
             logger.info("Translation{" + "type=" + type +
-                    ", language=" + language +
-                    ", translation='" + translation + '\'' +
-                    ", empty=" + empty +
-                    ", otherLang='" + otherLang + '\'' +
-                    '}');
+                        ", language=" + language +
+                        ", translation='" + translation + '\'' +
+                        ", empty=" + empty +
+                        ", otherLang='" + otherLang + '\'' +
+                        '}');
         }
 
         public String getOtherLang() {

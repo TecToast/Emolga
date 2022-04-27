@@ -84,9 +84,12 @@ public class EmolgaMain {
             }
             return dt;
         };
-        g.updateCommands().addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() != CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new)).queue();
+        g.updateCommands().addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() != CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new))
+                .queue();
         emolgajda.getGuildById(695943416789598208L).updateCommands()
                 .addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() == CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new)).queue();
+
+
         awaitNextDay();
         flegmonjda.getPresence().setActivity(Activity.playing("mit seiner Rute"));
         updatePresence();

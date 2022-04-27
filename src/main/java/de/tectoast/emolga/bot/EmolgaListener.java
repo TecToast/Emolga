@@ -21,6 +21,7 @@ import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceMoveEvent;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -38,6 +39,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
 import static de.tectoast.emolga.utils.Constants.MYSERVER;
@@ -66,6 +68,10 @@ public class EmolgaListener extends ListenerAdapter {
         ButtonListener.check(e);
     }
 
+    @Override
+    public void onModalInteraction(@NotNull ModalInteractionEvent e) {
+        e.reply(e.getValues().stream().map(m -> "%s: %s (%s)".formatted(m.getId(), m.getAsString(), m.getType().toString())).collect(Collectors.joining("\n"))).queue();
+    }
 
     @Override
     public void onSelectMenuInteraction(@NotNull SelectMenuInteractionEvent e) {
@@ -258,7 +264,7 @@ public class EmolgaListener extends ListenerAdapter {
             Guild g = e.getGuild();
             GuildChannel channel = (GuildChannel) e.getChannel();
             if (g.getId().equals("447357526997073930"))
-                channel.getPermissionContainer().putPermissionOverride(g.getRoleById("761723664273899580")).setDeny(Permission.MESSAGE_SEND).queue();
+                channel.getPermissionContainer().upsertPermissionOverride(g.getRoleById("761723664273899580")).setDenied(Permission.MESSAGE_SEND).queue();
         }
     }
 

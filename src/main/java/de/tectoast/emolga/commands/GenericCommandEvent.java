@@ -187,4 +187,8 @@ public abstract class GenericCommandEvent {
         if (slashCommandEvent != null) return new DeferredSlashResponse(slashCommandEvent.deferReply().submit());
         return null;
     }
+
+    public SlashCommandInteractionEvent getSlashCommandEvent() {
+        return slashCommandEvent;
+    }
 }

@@ -289,6 +289,7 @@ public abstract class Command {
     protected boolean disabled = false;
     protected long allowedBotId = -1;
     protected boolean slash = false;
+    protected boolean onlySlash = false;
 
     /**
      * Creates a new command and adds is to the list. Each command should use this constructor for one time (see {@link #registerCommands()})
@@ -2130,7 +2131,7 @@ public abstract class Command {
         }
         Command command = commands.get(msg.split("\\s+")[0].toLowerCase());
         if (command != null) {
-            if (command.disabled) return;
+            if (command.disabled || command.onlySlash) return;
             if (!command.checkBot(e.getJDA(), gid)) return;
             PermissionCheck check = command.checkPermissions(gid, mem);
             if (check == PermissionCheck.GUILD_NOT_ALLOWED) return;
@@ -2980,6 +2981,8 @@ public abstract class Command {
         if (s.equals("Lycanroc")) return "Wolwerock-Tag";
         if (s.equals("Lycanroc-Midnight")) return "Wolwerock-Nacht";
         if (s.equals("Lycanroc-Dusk")) return "Wolwerock-Zw";
+        if (s.equals("Eevee-Starter")) return "Evoli-Starter";
+        if (s.equals("Pikachu-Starter")) return "Pikachu-Starter";
         if (s.contains("Rotom")) return s;
         if (s.contains("Florges")) return "Florges";
         if (s.contains("Floette")) return "Floette";
@@ -3082,8 +3085,13 @@ public abstract class Command {
         this.disabled = true;
     }
 
-    protected void slash() {
+    protected void slash(boolean onlySlash) {
+        this.onlySlash = onlySlash;
         this.slash = true;
+    }
+
+    protected void slash() {
+        this.slash(false);
     }
 
     protected void wip() {

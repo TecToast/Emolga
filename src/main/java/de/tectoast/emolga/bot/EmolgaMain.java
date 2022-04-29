@@ -80,7 +80,7 @@ public class EmolgaMain {
             SlashCommandData dt = Commands.slash(c.getName(), c.getHelp());
             List<ArgumentManagerTemplate.Argument> args = c.getArgumentTemplate().arguments;
             for (ArgumentManagerTemplate.Argument arg : args) {
-                dt.addOption(arg.getType().asOptionType(), arg.getName().toLowerCase(), arg.getHelp(), !arg.isOptional());
+                dt.addOption(arg.getType().asOptionType(), arg.getName().toLowerCase(), arg.getHelp(), !arg.isOptional(), arg.getType().hasAutoComplete());
             }
             return dt;
         };

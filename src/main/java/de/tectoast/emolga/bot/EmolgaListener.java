@@ -22,12 +22,14 @@ import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceMoveEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.role.RoleCreateEvent;
 import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.AutoCompleteQuery;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,8 +91,8 @@ public class EmolgaListener extends ListenerAdapter {
         if (gid == Constants.ASLID) {
             g.getTextChannelById(615605820381593610L).sendMessage(
                     "Willkommen auf der ASL, " + mem.getAsMention() + ". <:hi:540969951608045578>\n" +
-                            "Dies ist ein Pokémon Server mit dem Fokus auf einem kompetetiven Draftligasystem. " +
-                            "Mach dich mit dem <#635765395038666762> vertraut und beachte die vorgegebenen Themen der Kanäle. Viel Spaß! <:yay:540970044297838597>"
+                    "Dies ist ein Pokémon Server mit dem Fokus auf einem kompetetiven Draftligasystem. " +
+                    "Mach dich mit dem <#635765395038666762> vertraut und beachte die vorgegebenen Themen der Kanäle. Viel Spaß! <:yay:540970044297838597>"
             ).queue();
         }
     }
@@ -202,6 +204,8 @@ public class EmolgaListener extends ListenerAdapter {
                         }
                     }
                 }
+            } catch (IllegalArgumentException ex) {
+                sendToMe(e.getChannelType().name() + " Illegal Argument Exception Channel");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -275,5 +279,17 @@ public class EmolgaListener extends ListenerAdapter {
         g.retrieveMember(e.getInvite().getInviter()).queue(mem -> {
             if (g.getSelfMember().canInteract(mem)) e.getInvite().delete().queue();
         });
+    }
+
+    @Override
+    public void onCommandAutoCompleteInteraction(@NotNull CommandAutoCompleteInteractionEvent e) {
+        if (e.getCommandType() == net.dv8tion.jda.api.interactions.commands.Command.Type.SLASH) {
+            AutoCompleteQuery focusedOption = e.getFocusedOption();
+            ArgumentManagerTemplate.Argument arg = byName(e.getName()).getArgumentTemplate().find(focusedOption.getName());
+            ArgumentType type = arg.getType();
+            if (type.hasAutoComplete()) {
+                e.replyChoiceStrings(type.autoCompleteList(focusedOption.getValue())).queue();
+            }
+        }
     }
 }

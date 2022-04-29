@@ -18,7 +18,7 @@ public class AddPokemonCommand extends Command {
                         SubCommand.of("Team"),
                         SubCommand.of("Box"),
                         SubCommand.of("RIP")
-                ))
+                ), true)
                 .setExample("/addpokemon Starter Robball Team")
                 .build());
         slash();
@@ -32,11 +32,13 @@ public class AddPokemonCommand extends Command {
         String pokemon = args.getText("pokemon");
         String location = eachWordUpperCase(args.getText("location"));
         if (!order.contains(location)) {
-            soullink.getJSONArray("order").put(location);
+            e.reply("Die Location gibt es nicht! Falls es eine neue Location ist, füge diese mit `/addlocation` hinzu.");
+            return;
         }
         JSONObject o = soullink.getJSONObject("mons").createOrGetJSON(location);
         o.put(soullinkIds.get(e.getAuthor().getIdLong()), pokemon);
-        o.put("status", args.getText("status"));
+        if (args.has("status"))
+            o.put("status", args.getText("status"));
         e.reply("\uD83D\uDC4D");
         saveEmolgaJSON();
         updateSoullink();

@@ -892,9 +892,9 @@ public abstract class Command {
         StringBuilder b = new StringBuilder("```");
         soullinkCols().get().map(s -> ew(s, maxlen)).forEach(b::append);
         b.append("\n");
-        for (String s : order.stream().sorted(Comparator.comparing(str -> statusOrder.indexOf(mons.getJSONObject(str).getString("status")))).toList()) {
-            JSONObject o = mons.getJSONObject(s);
-            String status = o.getString("status");
+        for (String s : order.stream().sorted(Comparator.comparing(str -> statusOrder.indexOf(mons.createOrGetJSON(str).optString("status", "Box")))).toList()) {
+            JSONObject o = mons.createOrGetJSON(s);
+            String status = o.optString("status", "Box");
             b.append(soullinkCols().get().map(n -> ew(switch (n) {
                 case "Fundort" -> s;
                 case "Status" -> status;
@@ -3219,6 +3219,14 @@ public abstract class Command {
         OptionType asOptionType();
 
         boolean needsValidate();
+
+        default boolean hasAutoComplete() {
+            return false;
+        }
+
+        default List<String> autoCompleteList(String arg) {
+            return null;
+        }
     }
 
     public static final class PermissionPreset {
@@ -3338,11 +3346,11 @@ public abstract class Command {
         }
 
         private final boolean noCheck;
-        public LinkedList<Argument> arguments;
+        public List<Argument> arguments;
         private String example;
         private String syntax;
 
-        private ArgumentManagerTemplate(LinkedList<Argument> arguments, boolean noCheck, String example, String syntax) {
+        private ArgumentManagerTemplate(List<Argument> arguments, boolean noCheck, String example, String syntax) {
             this.arguments = arguments;
             this.noCheck = noCheck;
             this.example = example;
@@ -3352,6 +3360,10 @@ public abstract class Command {
         private ArgumentManagerTemplate() {
             noCheck = true;
             this.arguments = new LinkedList<>();
+        }
+
+        public Argument find(String name) {
+            return arguments.stream().filter(a -> a.name.equalsIgnoreCase(name)).findFirst().orElse(null);
         }
 
         public static Builder builder() {
@@ -3460,20 +3472,22 @@ public abstract class Command {
                 ArgumentType type = arg.getType();
                 OptionMapping o = e.getOption(arg.getName().toLowerCase());
                 Object obj;
-                if (type.needsValidate()) {
-                    obj = type.validate(o.getAsString(), arg.getLanguage(), getModByGuild(e.getGuild()));
-                    if (obj == null) throw new MissingArgumentException(arg);
-                } else {
-                    switch (o.getType()) {
-                        case ROLE -> obj = o.getAsRole();
-                        case CHANNEL -> obj = o.getAsGuildChannel();
-                        case USER -> obj = o.getAsUser();
-                        case INTEGER -> obj = o.getAsLong();
-                        case BOOLEAN -> obj = o.getAsBoolean();
-                        default -> obj = o.getAsString();
+                if (o != null) {
+                    if (type.needsValidate()) {
+                        obj = type.validate(o.getAsString(), arg.getLanguage(), getModByGuild(e.getGuild()));
+                        if (obj == null) throw new MissingArgumentException(arg);
+                    } else {
+                        switch (o.getType()) {
+                            case ROLE -> obj = o.getAsRole();
+                            case CHANNEL -> obj = o.getAsGuildChannel();
+                            case USER -> obj = o.getAsUser();
+                            case INTEGER -> obj = o.getAsLong();
+                            case BOOLEAN -> obj = o.getAsBoolean();
+                            default -> obj = o.getAsString();
+                        }
                     }
+                    map.put(arg.getId(), obj);
                 }
-                map.put(arg.getId(), obj);
             }
             return new ArgumentManager(map);
         }
@@ -3609,7 +3623,7 @@ public abstract class Command {
 
         public static final class Text implements ArgumentType {
 
-            private final LinkedList<SubCommand> texts = new LinkedList<>();
+            private final List<SubCommand> texts = new LinkedList<>();
             private final boolean any;
             private final boolean withOf;
             private Function<String, String> mapper = s -> s;
@@ -3663,6 +3677,16 @@ public abstract class Command {
             @Override
             public boolean needsValidate() {
                 return true;
+            }
+
+            @Override
+            public boolean hasAutoComplete() {
+                return !texts.isEmpty();
+            }
+
+            @Override
+            public List<String> autoCompleteList(String arg) {
+                return texts.stream().filter(c -> c.name.toLowerCase().startsWith(arg)).map(SubCommand::getName).toList();
             }
         }
 

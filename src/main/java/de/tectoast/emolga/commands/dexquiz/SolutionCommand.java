@@ -20,13 +20,8 @@ public class SolutionCommand extends Command {
         Member member = e.getMember();
         DexQuiz quiz = DexQuiz.getByTC(tco);
         if (quiz != null) {
-            tco.sendMessage("Die Lösung ist **" + quiz.gerName + "**! (Eintrag aus Pokemon **" + quiz.edition + "**)").queue();
-            quiz.round++;
-            if (quiz.round > quiz.cr) {
-                quiz.end();
-                return;
-            }
-            quiz.newMon();
+            tco.sendMessage("Die Lösung ist **" + quiz.getCurrentGerName() + "**! (Eintrag aus Pokemon **" + quiz.getCurrentEdition() + "**)").queue();
+
         } else {
             tco.sendMessage("In diesem Channel wurde kein Dexquiz erstellt!").queue();
         }

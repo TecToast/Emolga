@@ -3015,6 +3015,7 @@ public abstract class Command {
         if (s.equalsIgnoreCase("Hoopa-Unbound")) return "Hoopa-U";
         if (s.equals("Zygarde")) return "Zygarde-50%";
         if (s.equals("Zygarde-10%")) return "Zygarde-10%";
+        if (s.equals("Zygarde-Complete")) return "Zygarde-Optimum";
         if (s.endsWith("-Mega")) {
             return "M-" + getGerName(s.substring(0, s.length() - 5), "default", true).getTranslation();
         } else if (s.endsWith("-Alola")) {

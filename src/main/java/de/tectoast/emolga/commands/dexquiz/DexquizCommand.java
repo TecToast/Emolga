@@ -11,7 +11,7 @@ import net.dv8tion.jda.internal.utils.tuple.Pair;
 public class DexquizCommand extends Command {
     public DexquizCommand() {
         super("dexquiz", "Erstellt ein Dexquiz mit der angegebenen Anzahl an Einträgen", CommandCategory.Dexquiz);
-        setArgumentTemplate(ArgumentManagerTemplate.builder().add("count", "Anzahl", "Die Anzahl an Einträgen", ArgumentManagerTemplate.DiscordType.INTEGER)
+        setArgumentTemplate(ArgumentManagerTemplate.builder().add("count", "Anzahl", "Die Anzahl an Einträgen", ArgumentManagerTemplate.DiscordType.INTEGER, true)
                 .setExample("!dexquiz 10")
                 .build());
     }
@@ -22,17 +22,21 @@ public class DexquizCommand extends Command {
         String msg = e.getMessage().getContentDisplay();
         DexQuiz quiz = DexQuiz.getByTC(tco);
         if (quiz != null) {
-            tco.sendMessage("Die Lösung des alten Quizzes war " + quiz.gerName + "!").queue();
-            DexQuiz.list.remove(quiz);
+            tco.sendMessage("Die Lösung des alten Quizzes war " + quiz.getCurrentGerName() + "!").queue();
+            DexQuiz.removeByTC(tco.getIdLong());
         } else {
             try {
+                ArgumentManager args = e.getArguments();
+                if (!args.has("count")) {
+                    e.reply("Du musst eine Rundenanzahl angeben! (Bspw. `!dexquiz 10`)");
+                }
                 Pair<String, String> pair = DexQuiz.getNewMon();
                 String pokemon = pair.getLeft();
                 String englName = pair.getRight();
                 sendDexEntry(tco.getAsMention() + " " + pokemon);
                 Pair<String, String> res = DBManagers.POKEDEX.getDexEntry(pokemon);
                 String entry = res.getLeft();
-                new DexQuiz(tco, pokemon, englName, e.getArguments().getInt("count"), res.getRight());
+                new DexQuiz(tco, pokemon, englName, args.getInt("count"), res.getRight());
                 //� = %C3%B6
                 tco.sendMessage("Runde 1: " + trim(entry, pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queue();
             } catch (Exception ioException) {

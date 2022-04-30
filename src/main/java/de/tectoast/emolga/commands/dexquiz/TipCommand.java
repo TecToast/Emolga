@@ -20,8 +20,8 @@ public class TipCommand extends Command {
         Member member = e.getMember();
         DexQuiz quiz = DexQuiz.getByTC(tco);
         if (quiz != null) {
-            tco.sendMessage("Anfangsbuchstabe der Lösung: " + quiz.gerName.charAt(0) + "\n" +
-                    "Anfangsbuchstabe auf Englisch: " + quiz.englName.charAt(0)).queue();
+            tco.sendMessage("Anfangsbuchstabe der Lösung: " + quiz.getCurrentGerName().charAt(0) + "\n" +
+                            "Anfangsbuchstabe auf Englisch: " + quiz.getCurrentEnglName().charAt(0)).queue();
         } else {
             tco.sendMessage("In diesem Channel wurde kein Dexquiz erstellt!").queue();
         }

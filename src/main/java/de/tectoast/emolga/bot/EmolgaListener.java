@@ -176,18 +176,12 @@ public class EmolgaListener extends ListenerAdapter {
                 }
                 if (!e.getAuthor().isBot() && !msg.startsWith("!dexquiz")) {
                     DexQuiz quiz = DexQuiz.getByTC(tco);
-                    if (quiz != null && !quiz.block) {
+                    if (quiz != null && quiz.nonBlocking()) {
                         if (quiz.check(msg)) {
-                            quiz.block = true;
-                            tco.sendMessage(member.getAsMention() + " hat das Pokemon erraten! Es war **" + quiz.gerName + "**! (Der Eintrag stammt aus **Pokemon " + quiz.edition + "**)").queue();
-                            quiz.round++;
-                            if (!quiz.points.containsKey(member)) quiz.points.put(member, 0);
-                            quiz.points.put(member, quiz.points.get(member) + 1);
-                            if (quiz.round > quiz.cr) {
-                                quiz.end();
-                                return;
-                            }
-                            quiz.newMon();
+                            quiz.block();
+                            tco.sendMessage(member.getAsMention() + " hat das Pokemon erraten! Es war **" + quiz.getCurrentGerName() + "**! (Der Eintrag stammt aus **Pokemon " + quiz.getCurrentEdition() + "**)").queue();
+                            quiz.givePoint(member.getIdLong());
+                            quiz.nextRound();
                         }
                     }
                 }

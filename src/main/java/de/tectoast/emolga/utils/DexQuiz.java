@@ -1,7 +1,6 @@
 package de.tectoast.emolga.utils;
 
 import de.tectoast.emolga.utils.sql.DBManagers;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
@@ -15,28 +14,28 @@ import java.util.concurrent.TimeUnit;
 import static de.tectoast.emolga.commands.Command.*;
 
 public class DexQuiz {
-    public static final ArrayList<DexQuiz> list = new ArrayList<>();
+    private static final Map<Long, DexQuiz> activeQuizzes = new HashMap<>();
     private static List<String> cachedMons;
-    public final int cr;
-    public final HashMap<Member, Integer> points = new HashMap<>();
-    final TextChannel tc;
-    public String gerName;
-    public String englName;
-    public String edition;
-    public int round = 1;
-    public boolean block = false;
+    private final int totalRounds;
+    private final Map<Long, Integer> points = new HashMap<>();
+    private final TextChannel tc;
+    private String gerName;
+    private String englName;
+    private String edition;
+    private int round = 1;
+    private boolean block = false;
 
     public DexQuiz(TextChannel tc, String gerName, String englName, int rounds, String edition) {
         this.tc = tc;
         this.gerName = gerName;
         this.englName = englName;
-        this.cr = rounds;
+        this.totalRounds = rounds;
         this.edition = edition;
-        if (cr <= 0) {
+        if (totalRounds <= 0) {
             tc.sendMessage("Du musst eine Mindestanzahl von einer Runde angeben!").queue();
             return;
         }
-        list.add(this);
+        activeQuizzes.put(tc.getIdLong(), this);
     }
 
     public static Pair<String, String> getNewMon() {
@@ -55,7 +54,11 @@ public class DexQuiz {
     }
 
     public static DexQuiz getByTC(TextChannel tc) {
-        return list.stream().filter(q -> q.tc.getId().equals(tc.getId())).findFirst().orElse(null);
+        return activeQuizzes.get(tc.getIdLong());
+    }
+
+    public static void removeByTC(long tc) {
+        activeQuizzes.remove(tc);
     }
 
     public boolean check(String t) {
@@ -63,17 +66,26 @@ public class DexQuiz {
     }
 
     public void end() {
-        list.remove(this);
+        activeQuizzes.remove(tc.getIdLong());
         if (points.size() == 0) {
             tc.sendMessage("Nur den Solution Command zu benutzen ist nicht der Sinn der Sache! xD").queue();
             return;
         }
         StringBuilder builder = new StringBuilder("Punkte:\n");
         //noinspection SuspiciousMethodCalls
-        for (Member mem : points.keySet().stream().sorted(Comparator.comparing(points::get).reversed()).toList()) {
-            builder.append(mem.getAsMention()).append(": ").append(points.get(mem)).append("\n");
+        for (long mem : points.keySet().stream().sorted(Comparator.comparing(points::get).reversed()).toList()) {
+            builder.append("<@").append(mem).append(">").append(": ").append(points.get(mem)).append("\n");
         }
         tc.sendMessage(builder.toString()).queue();
+    }
+
+    public void nextRound() {
+        incrementRound();
+        if (isEnded()) {
+            end();
+            return;
+        }
+        newMon();
     }
 
     public void newMon() {
@@ -92,5 +104,53 @@ public class DexQuiz {
         //ü = %C3%B6
         this.block = false;
         this.tc.sendMessage("Runde " + round + ": " + trim(entry, pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queueAfter(3, TimeUnit.SECONDS);
+    }
+
+    public void givePoint(long member) {
+        points.compute(member, (key, oldvalue) -> oldvalue == null ? 1 : oldvalue + 1);
+    }
+
+    public boolean isEnded() {
+        return round > totalRounds;
+    }
+
+    public int getTotalRounds() {
+        return totalRounds;
+    }
+
+    public Map<Long, Integer> getPoints() {
+        return points;
+    }
+
+    public TextChannel getChannel() {
+        return tc;
+    }
+
+    public String getCurrentGerName() {
+        return gerName;
+    }
+
+    public String getCurrentEnglName() {
+        return englName;
+    }
+
+    public String getCurrentEdition() {
+        return edition;
+    }
+
+    public int getRound() {
+        return round;
+    }
+
+    public boolean nonBlocking() {
+        return !block;
+    }
+
+    public void block() {
+        block = true;
+    }
+
+    public void incrementRound() {
+        round++;
     }
 }

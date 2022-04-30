@@ -15,7 +15,7 @@ public class AddLocationCommand extends Command {
                 .add("location", "Location", "Die Location", ArgumentManagerTemplate.Text.any())
                 .setExample("/addlocation Route 3")
                 .build());
-        slash(true);
+        slash(true, 695943416789598208L);
     }
 
     @Override

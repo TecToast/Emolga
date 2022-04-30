@@ -191,4 +191,8 @@ public abstract class GenericCommandEvent {
     public SlashCommandInteractionEvent getSlashCommandEvent() {
         return slashCommandEvent;
     }
+
+    public boolean isSlash() {
+        return slashCommandEvent != null;
+    }
 }

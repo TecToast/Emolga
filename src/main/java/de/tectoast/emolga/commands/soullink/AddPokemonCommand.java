@@ -21,7 +21,7 @@ public class AddPokemonCommand extends Command {
                 ), true)
                 .setExample("/addpokemon Starter Robball Team")
                 .build());
-        slash();
+        slash(true, 695943416789598208L);
     }
 
     @Override

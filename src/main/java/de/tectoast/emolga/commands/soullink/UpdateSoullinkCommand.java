@@ -9,7 +9,7 @@ public class UpdateSoullinkCommand extends Command {
     public UpdateSoullinkCommand() {
         super("updatesoullink", "Updated die Message", CommandCategory.Soullink);
         setArgumentTemplate(ArgumentManagerTemplate.noArgs());
-        slash();
+        slash(true, 695943416789598208L);
     }
 
     @Override

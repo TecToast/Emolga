@@ -4,6 +4,7 @@ import com.google.api.services.sheets.v4.model.*;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
+import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.RequestBuilder;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.DraftPokemon;
@@ -12,6 +13,7 @@ import de.tectoast.emolga.utils.records.Coord;
 import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,10 +29,29 @@ public class PickCommand extends Command {
 
     public PickCommand() {
         super("pick", "Pickt das Pokemon", CommandCategory.Draft);
-        setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!pick <Pokemon> [Optionales Tier]", "!pick Emolga"));
+        //setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!pick <Pokemon> [Optionales Tier]", "!pick Emolga"));
+        setArgumentTemplate(ArgumentManagerTemplate.builder()
+                .add("pokemon", "Pokemon", "Das Pokemon, was du picken willst", ArgumentManagerTemplate.draftPokemon(
+                        s -> {
+                            List<String> lol = Tierlist.getByGuild(Constants.FPLID).tierlist.get("lol");
+                            List<String> strings = lol.stream().filter(str -> str.toLowerCase().startsWith(s.toLowerCase())).toList();
+                            if (strings.size() > 25) return Collections.emptyList();
+                            return strings;
+                        }
+                ), false, "Das ist kein Pokemon!")
+                //.add("tier", "Tier", "Das Tier", ArgumentManagerTemplate.Text.any(), true)
+                .setExample("!pick Emolga")
+                .build()
+        );
+        slash(false, Constants.FPLID);
     }
 
+
     public static void exec(TextChannel tco, String msg, Member memberr, boolean isRandom) {
+        exec(tco, msg, memberr, isRandom, null);
+    }
+
+    public static void exec(TextChannel tco, String msg, Member memberr, boolean isRandom, SlashCommandInteractionEvent slashEvent) {
         try {
             long member = memberr.getIdLong();
             if (msg.trim().equals("!pick")) {
@@ -143,6 +164,9 @@ public class PickCommand extends Command {
             league.getJSONObject("picks").put(mem, d.getTeamAsArray(mem));
             //m.delete().queue();
             d.update(mem);
+            if (slashEvent != null) {
+                slashEvent.reply("%s hat %s gepickt!".formatted(slashEvent.getMember().getEffectiveName(), pokemon)).queue();
+            }
             if (isRandom) {
                 tco.sendMessage("**<@" + mem + ">** hat aus dem " + tier + "-Tier ein **" + pokemon + "** bekommen!").queue();
             } else if (pokemon.equals("Emolga")) {
@@ -153,7 +177,8 @@ public class PickCommand extends Command {
             //woolooDoc(tierlist, pokemon, d, mem, tier, d.round);
             //int rd = d.round == tierlist.rounds && d.picks.get(mem).size() < tierlist.rounds ? (int) league.getJSONObject("skippedturns").getJSONArrayL(mem).remove(0) : d.round;
             //aslS10Doc(tierlist, pokemon, d, mem, tier, rd);
-            ndsdoc(tierlist, pokemon, d, mem, tier);
+            //ndsdoc(tierlist, pokemon, d, mem, tier);
+            uplDoc(pokemon, league, d, d.members.size() - d.order.get(d.round).size(), mem);
             /*if (d.round == tierlist.rounds && d.picks.get(mem).size() < d.round) {
                 if (d.isPointBased)
                     //tco.sendMessage(getMention(current) + " (<@&" + asl.getLongList("roleids").get(getIndex(current.getIdLong())) + ">) ist dran! (" + points.get(current.getIdLong()) + " mögliche Punkte)").queue();
@@ -167,8 +192,20 @@ public class PickCommand extends Command {
             //ndsdoc(tierlist, pokemon, d, mem, tier, round);
         } catch (Exception ex) {
             tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
+            if (slashEvent != null) slashEvent.reply("Da ist wohl was schiefgelaufen :(").setEphemeral(true).queue();
             ex.printStackTrace();
         }
+    }
+
+    private static void uplDoc(String pokemon, JSONObject league, Draft d, int num, long mem) {
+        String sid = league.getString("sid");
+        RequestBuilder b = new RequestBuilder(sid);
+        int round = d.round - 1;
+        b.addStrikethroughChange(league.getInt("draftorder"), round % 6 + 2, round / 6 * 12 + num + 6, true);
+        List<Long> table = league.getLongList("table");
+        int index = table.indexOf(mem);
+        b.addSingle("Kader!%s%d".formatted(getAsXCoord(index % 3 * 8 + 2), index / 3 * 20 + 7 + d.picks.get(mem).size()), pokemon);
+        b.execute();
     }
 
     private static void aslS10Doc(Tierlist tierlist, String pokemon, Draft d, long mem, String tier, int effectiveRound) {
@@ -232,7 +269,7 @@ public class PickCommand extends Command {
             num = in;
         }
         b.addRow("Teamseite %s!C%d".formatted(lea, num * 15L + 3 +
-                ((tierlist.order.indexOf(tier) * 3L + d.picks.get(mem).stream().filter(p -> p.tier.equals(tier)).count()))
+                                                   ((tierlist.order.indexOf(tier) * 3L + d.picks.get(mem).stream().filter(p -> p.tier.equals(tier)).count()))
         ), Arrays.asList(pokemon, getDataJSON().getJSONObject(getSDName(pokemon)).getJSONObject("baseStats").getInt("spe")));
         int rr = d.round - 1;
         b.addSingle("Draftreihenfolge!%s%d".formatted(getAsXCoord((rr % 6) * 3 + 3), (rr / 6) * 14 + 2 + (12 - d.order.get(d.round).size())), pokemon);
@@ -552,6 +589,14 @@ public class PickCommand extends Command {
 
     @Override
     public void process(GuildCommandEvent e) {
-        exec(e.getChannel(), e.getMessage().getContentDisplay(), e.getMember(), false);
+        String msg;
+        SlashCommandInteractionEvent sc = null;
+        if (e.isSlash()) {
+            sc = e.getSlashCommandEvent();
+            msg = "!pick %s".formatted(sc.getOption("pokemon").getAsString());
+        } else {
+            msg = e.getMsg();
+        }
+        exec(e.getChannel(), msg, e.getMember(), false, sc);
     }
 }

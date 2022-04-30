@@ -290,6 +290,7 @@ public abstract class Command {
     protected long allowedBotId = -1;
     protected boolean slash = false;
     protected boolean onlySlash = false;
+    protected Collection<Long> slashGuilds = new LinkedList<>();
 
     /**
      * Creates a new command and adds is to the list. Each command should use this constructor for one time (see {@link #registerCommands()})
@@ -308,6 +309,27 @@ public abstract class Command {
 
     public static String getFirst(String str) {
         return str.split("-")[0];
+    }
+
+    public static String getDataName(String s) {
+        logger.info("s = " + s);
+        if (s.equals("Wie-Shu")) return "mienshao";
+        if (s.equals("Lin-Fu")) return "mienfoo";
+        if (s.equals("Porygon-Z")) return "porygonz";
+        if (s.equals("Sen-Long")) return "drampa";
+        if (s.equals("Ho-Oh")) return "hooh";
+        if (s.startsWith("Kapu-")) return getSDName(s);
+        String[] split = s.split("-");
+        if (split.length == 1) return getSDName(s);
+        if (s.startsWith("M-")) {
+            if (split.length == 3) {
+                return getSDName(split[1]) + "mega" + split[2].toLowerCase();
+            }
+            return getSDName(split[1]) + "mega";
+        }
+        if (s.startsWith("A-")) return getSDName(split[1]) + "alola";
+        if (s.startsWith("G-")) return getSDName(split[1]) + "galar";
+        return getSDName(split[0]) + toSDName(sdex.getOrDefault(s, ""));
     }
 
     public static String getFirstAfterUppercase(String s) {
@@ -2884,24 +2906,8 @@ public abstract class Command {
         return s.toLowerCase().trim().replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss").replaceAll("[^a-zA-Z0-9]+", "");
     }
 
-    public static String getDataName(String s) {
-        logger.info("s = " + s);
-        if (s.equals("Wie-Shu")) return "mienshao";
-        if (s.equals("Lin-Fu")) return "mienfoo";
-        if (s.equals("Porygon-Z")) return "porygonz";
-        if (s.equals("Sen-Long")) return "drampa";
-        if (s.startsWith("Kapu-")) return getSDName(s);
-        String[] split = s.split("-");
-        if (split.length == 1) return getSDName(s);
-        if (s.startsWith("M-")) {
-            if (split.length == 3) {
-                return getSDName(split[1]) + "mega" + split[2].toLowerCase();
-            }
-            return getSDName(split[1]) + "mega";
-        }
-        if (s.startsWith("A-")) return getSDName(split[1]) + "alola";
-        if (s.startsWith("G-")) return getSDName(split[1]) + "galar";
-        return getSDName(split[0]) + toSDName(sdex.getOrDefault(s, ""));
+    public Collection<Long> getSlashGuilds() {
+        return slashGuilds;
     }
 
     public static boolean canLearn(String pokemon, String form, String atk, String msg, int maxgen, String mod) {
@@ -3085,9 +3091,11 @@ public abstract class Command {
         this.disabled = true;
     }
 
-    protected void slash(boolean onlySlash) {
+    protected void slash(boolean onlySlash, Long... guilds) {
         this.onlySlash = onlySlash;
         this.slash = true;
+        this.slashGuilds.addAll(List.of(guilds));
+        this.slashGuilds.add(MYSERVER);
     }
 
     protected void slash() {
@@ -3383,7 +3391,11 @@ public abstract class Command {
         }
 
         public static ArgumentType draftPokemon() {
-            return withPredicate("Pokemon", s -> getDraftGerName(s).isFromType(Translation.Type.POKEMON), false, draftnamemapper);
+            return draftPokemon(null);
+        }
+
+        public static ArgumentType draftPokemon(Function<String, List<String>> autoComplete) {
+            return withPredicate("Pokemon", s -> getDraftGerName(s).isFromType(Translation.Type.POKEMON), false, draftnamemapper, autoComplete);
         }
 
         public static ArgumentType withPredicate(String name, Predicate<String> check, boolean female) {
@@ -3416,6 +3428,10 @@ public abstract class Command {
         }
 
         public static ArgumentType withPredicate(String name, Predicate<String> check, boolean female, Function<String, String> mapper) {
+            return withPredicate(name, check, female, mapper, null);
+        }
+
+        public static ArgumentType withPredicate(String name, Predicate<String> check, boolean female, Function<String, String> mapper, Function<String, List<String>> autoComplete) {
             return new ArgumentType() {
                 @Override
                 public Object validate(String str, Object... params) {
@@ -3443,6 +3459,16 @@ public abstract class Command {
                 @Override
                 public boolean needsValidate() {
                     return true;
+                }
+
+                @Override
+                public boolean hasAutoComplete() {
+                    return autoComplete != null;
+                }
+
+                @Override
+                public List<String> autoCompleteList(String arg) {
+                    return autoComplete.apply(arg);
                 }
             };
         }

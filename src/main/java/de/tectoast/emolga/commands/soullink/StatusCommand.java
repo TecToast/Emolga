@@ -14,7 +14,7 @@ public class StatusCommand extends Command {
                 .add("status", "Status", "Der Status", ArgumentManagerTemplate.Text.of(SubCommand.of("Team"), SubCommand.of("Box"), SubCommand.of("RIP")))
                 .setExample("/status Route 1 RIP")
                 .build());
-        slash();
+        slash(true, 695943416789598208L);
     }
 
     @Override

@@ -1,7 +1,6 @@
 package de.tectoast.emolga.bot;
 
 import de.tectoast.emolga.commands.Command;
-import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.jetty.HttpHandler;
 import de.tectoast.emolga.utils.Giveaway;
 import de.tectoast.emolga.utils.sql.DBManagers;
@@ -12,7 +11,6 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -38,10 +36,7 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -84,10 +79,19 @@ public class EmolgaMain {
             }
             return dt;
         };
-        g.updateCommands().addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() != CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new))
+        /*g.updateCommands().addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() != CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new))
                 .queue();
         emolgajda.getGuildById(695943416789598208L).updateCommands()
-                .addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() == CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new)).queue();
+                .addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() == CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new)).queue();*/
+        Map<Long, List<SlashCommandData>> map = new HashMap<>();
+        commands.values().stream().filter(Command::isSlash).filter(c -> !c.getSlashGuilds().isEmpty()).forEach(c -> {
+            for (Long slashGuild : c.getSlashGuilds()) {
+                map.computeIfAbsent(slashGuild, k -> new LinkedList<>()).add(cmdmapper.apply(c));
+            }
+        });
+        for (Long guild : map.keySet()) {
+            emolgajda.getGuildById(guild).updateCommands().addCommands(map.get(guild)).queue();
+        }
 
 
         awaitNextDay();

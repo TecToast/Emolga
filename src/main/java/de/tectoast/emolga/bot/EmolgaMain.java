@@ -18,6 +18,8 @@ import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -42,6 +44,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
 import static de.tectoast.emolga.utils.Constants.MYSERVER;
@@ -53,6 +56,8 @@ public class EmolgaMain {
     public static final HashMap<String, Consumer<String>> sdmessages = new HashMap<>();
     public static JDA emolgajda;
     public static JDA flegmonjda;
+
+    private static final Logger logger = LoggerFactory.getLogger(EmolgaMain.class);
 
     public static void start() throws Exception {
         emolgajda = JDABuilder.createDefault(Command.tokens.getString("discord"))
@@ -90,7 +95,10 @@ public class EmolgaMain {
             }
         });
         for (Long guild : map.keySet()) {
-            emolgajda.getGuildById(guild).updateCommands().addCommands(map.get(guild)).queue();
+            emolgajda.getGuildById(guild).updateCommands().addCommands(map.get(guild)).queue(l -> {
+                logger.info("guild = {}", guild);
+                logger.info("l = {}", l.stream().map(net.dv8tion.jda.api.interactions.commands.Command::getName).collect(Collectors.joining(", ")));
+            }, Throwable::printStackTrace);
         }
 
 

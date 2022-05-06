@@ -2993,6 +2993,9 @@ public abstract class Command {
         if (s.contains("Florges")) return "Florges";
         if (s.contains("Floette")) return "Floette";
         if (s.contains("Flabébé")) return "Flabébé";
+        if (s.equals("Giratina-Origin")) return s;
+        if (s.endsWith("-Zen")) return getMonName(s.substring(0, s.length() - 4), gid, withDebug);
+
         if (s.contains("Silvally")) {
             String[] split = s.split("-");
             if (split.length == 1 || s.equals("Silvally-*")) return "Amigento";

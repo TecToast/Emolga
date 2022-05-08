@@ -8,6 +8,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
@@ -19,7 +23,9 @@ public class RequestBuilder {
 
     private static final Logger logger = LoggerFactory.getLogger(RequestBuilder.class);
 
-    private final ArrayList<MyRequest> requests = new ArrayList<>();
+    private static final ScheduledExecutorService runnableService = Executors.newScheduledThreadPool(1);
+
+    private final List<MyRequest> requests = new ArrayList<>();
     private final String sid;
     private boolean executed = false;
     private Runnable runnable;
@@ -287,14 +293,17 @@ public class RequestBuilder {
     public void execute() {
         if (executed)
             throw new IllegalStateException("Already executed RequestBuilder with requests:\nsid = " + this.sid + "\n" + requests);
-
+        executed = true;
         List<ValueRange> userentered = getUserEntered();
         List<ValueRange> raw = getRaw();
         List<Request> batch = getBatch();
         Sheets service = getSheetsService();
         List<Thread> list = new LinkedList<>();
+        CompletableFuture<Object> userEnteredFuture = new CompletableFuture<>();
+        CompletableFuture<Object> rawFuture = new CompletableFuture<>();
+        CompletableFuture<Object> batchFuture = new CompletableFuture<>();
         if (!onlyBatch)
-            list.add(new Thread(() -> {
+            new Thread(() -> {
                 if (!userentered.isEmpty()) {
                     if (!suppressMessages)
                         for (int i = 0; i < userentered.size(); i++) {
@@ -313,9 +322,10 @@ public class RequestBuilder {
                         sendStacktraceToMe(e);
                     }
                 }
-            }, "ReqBuilder User"));
+                userEnteredFuture.complete(null);
+            }, "ReqBuilder User").start();
         if (!onlyBatch)
-            list.add(new Thread(() -> {
+            new Thread(() -> {
                 if (!raw.isEmpty()) {
                     try {
                         service.spreadsheets().values().batchUpdate(sid, new BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW")).execute();
@@ -329,8 +339,9 @@ public class RequestBuilder {
                         sendStacktraceToMe(e);
                     }
                 }
-            }, "ReqBuilder Raw"));
-        list.add(new Thread(() -> {
+                rawFuture.complete(null);
+            }, "ReqBuilder Raw").start();
+        new Thread(() -> {
             if (!batch.isEmpty()) {
                 try {
                     service.spreadsheets().batchUpdate(sid, new BatchUpdateSpreadsheetRequest().setRequests(batch)).execute();
@@ -344,22 +355,11 @@ public class RequestBuilder {
                     sendStacktraceToMe(e);
                 }
             }
-        }, "ReqBuilder Batch"));
-        list.forEach(Thread::start);
-        //noinspection IfStatementWithIdenticalBranches
+            batchFuture.complete(null);
+        }, "ReqBuilder Batch").start();
         if (runnable != null) {
-            try {
-                for (Thread thread : list) {
-                    thread.join();
-                }
-                Thread.sleep(delay);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            runnable.run();
-            executed = true;
-        } else
-            executed = true;
+            CompletableFuture.allOf(userEnteredFuture, rawFuture, batchFuture).whenComplete((unused, throwable) -> runnableService.schedule(() -> runnable.run(), delay, TimeUnit.MILLISECONDS));
+        }
     }
 
     private enum ValueInputOption {
@@ -406,10 +406,10 @@ public class RequestBuilder {
         @Override
         public String toString() {
             return "Request{" +
-                    "range='" + range + '\'' +
-                    ", send=" + send +
-                    ", valueInputOption='" + valueInputOption + '\'' +
-                    '}';
+                   "range='" + range + '\'' +
+                   ", send=" + send +
+                   ", valueInputOption='" + valueInputOption + '\'' +
+                   '}';
         }
     }
 }

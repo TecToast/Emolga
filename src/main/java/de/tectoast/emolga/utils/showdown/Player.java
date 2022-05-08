@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class Player {
 
@@ -11,7 +12,7 @@ public class Player {
 
     private Pokemon spikesBy, tSpikesBy, rocksBy;
 
-    private ArrayList<Pokemon> mons = new ArrayList<>();
+    private List<Pokemon> mons = new ArrayList<>();
     private String nickname;
     private boolean winner = false;
     private int totalKills = 0;
@@ -73,11 +74,11 @@ public class Player {
         this.rocksBy = rocksBy;
     }
 
-    public ArrayList<Pokemon> getMons() {
+    public List<Pokemon> getMons() {
         return mons;
     }
 
-    public void setMons(ArrayList<Pokemon> mons) {
+    public void setMons(List<Pokemon> mons) {
         this.mons = mons;
     }
 

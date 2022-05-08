@@ -44,7 +44,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
 import static de.tectoast.emolga.utils.Constants.MYSERVER;
@@ -94,12 +93,12 @@ public class EmolgaMain {
                 map.computeIfAbsent(slashGuild, k -> new LinkedList<>()).add(cmdmapper.apply(c));
             }
         });
-        for (Long guild : map.keySet()) {
+        /*for (Long guild : map.keySet()) {
             emolgajda.getGuildById(guild).updateCommands().addCommands(map.get(guild)).queue(l -> {
                 logger.info("guild = {}", guild);
                 logger.info("l = {}", l.stream().map(net.dv8tion.jda.api.interactions.commands.Command::getName).collect(Collectors.joining(", ")));
             }, Throwable::printStackTrace);
-        }
+        }*/
 
 
         awaitNextDay();

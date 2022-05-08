@@ -19,6 +19,7 @@ import de.tectoast.emolga.selectmenus.MenuListener;
 import de.tectoast.emolga.selectmenus.selectmenusaves.SmogonSet;
 import de.tectoast.emolga.utils.*;
 import de.tectoast.emolga.utils.annotations.ToTest;
+import de.tectoast.emolga.utils.automation.collection.DocEntries;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
 import de.tectoast.emolga.utils.music.SoundSendHandler;
@@ -32,7 +33,6 @@ import de.tectoast.emolga.utils.sql.DBManagers;
 import de.tectoast.jsolf.JSONArray;
 import de.tectoast.jsolf.JSONObject;
 import de.tectoast.jsolf.JSONTokener;
-import de.tectoast.toastilities.repeat.RepeatTask;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -71,8 +71,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -90,8 +88,6 @@ import java.util.stream.Stream;
 import static de.tectoast.emolga.bot.EmolgaMain.emolgajda;
 import static de.tectoast.emolga.bot.EmolgaMain.flegmonjda;
 import static de.tectoast.emolga.utils.Constants.*;
-import static de.tectoast.emolga.utils.draft.Draft.doMatchUps;
-import static de.tectoast.emolga.utils.draft.Draft.doNDSNominate;
 import static java.util.Calendar.*;
 import static net.dv8tion.jda.api.entities.UserSnowflake.fromId;
 
@@ -572,6 +568,10 @@ public abstract class Command {
     }
 
     public static int getGameDay(JSONObject league, String uid1, String uid2) {
+        return getGameDay(league, Long.parseLong(uid1), Long.parseLong(uid2));
+    }
+
+    public static int getGameDay(JSONObject league, long uid1, long uid2) {
         JSONObject battleorder = league.getJSONObject("battleorder");
         for (String s : battleorder.keySet()) {
             String str = battleorder.getString(s);
@@ -585,7 +585,7 @@ public abstract class Command {
         return getGameDay(league, String.valueOf(league.getJSONObject("S1").getLongList("table").get(teams.indexOf(team1))), String.valueOf(league.getJSONObject("S2").getLongList("table").get(teams.indexOf(team2))));
     }
 
-    public static ArrayList<String> getPicksAsList(JSONArray arr) {
+    public static List<String> getPicksAsList(JSONArray arr) {
         return arr.toList().stream().map(o -> (String) ((HashMap<?, ?>) o).get("name")).collect(Collectors.toCollection(ArrayList::new));
     }
 
@@ -764,11 +764,10 @@ public abstract class Command {
         }
         return "";
     }
-
     public static String getNumber(Map<String, String> map, String pick) {
         //logger.info(map);
         for (String s : map.keySet()) {
-            if (pick.contains("Amigento") && s.contains("Amigento") || s.equals(pick) || pick.equals("M-" + s) || pick.contains("Wulaosu") && s.contains("Wulaosu"))
+            if (s.equals(pick) || pick.equals("M-" + s) || Stream.of("Amigento", "Wulaosu", "Arceus", "Deoxys", "Genesect").anyMatch(str -> s.contains(str) && pick.contains(str)))
                 return map.get(s);
         }
         return "";
@@ -816,7 +815,7 @@ public abstract class Command {
         return list;
     }
 
-    private static int compareColumns(List<Object> o1, List<Object> o2, int... columns) {
+    public static int compareColumns(List<Object> o1, List<Object> o2, int... columns) {
         for (int column : columns) {
             int i1 = o1.get(column) instanceof Integer ? (int) o1.get(column) : Integer.parseInt((String) o1.get(column));
             int i2 = o2.get(column) instanceof Integer ? (int) o2.get(column) : Integer.parseInt((String) o2.get(column));
@@ -1552,14 +1551,7 @@ public abstract class Command {
     }
 
     public static void setupRepeatTasks() {
-        new RepeatTask(Instant.ofEpochMilli(1651010400000L), 5, Duration.ofDays(7L), day -> doNDSNominate(), true);
-        new RepeatTask(Instant.ofEpochMilli(1650823200000L), 5, Duration.ofDays(7L), day -> doMatchUps(String.valueOf(day)), true);
-        new RepeatTask(Instant.ofEpochMilli(1651442400000L), 3, Duration.ofDays(7L), day -> {
-            for (long tcid : Arrays.asList(934881485121523862L, 934881531971895297L, 934881637727096922L, 934881660854489098L, 934881557334867978L,
-                    934881655531925554L, 934881603086327828L, 934881645268439061L, 934881662020497508L, 934881747731120169L)) {
-                emolgajda.getTextChannelById(tcid).sendMessage("_**--- Spieltag %d ---**_".formatted(day + 7)).queue();
-            }
-        }, true);
+
     }
 
     public static void init() {
@@ -1677,7 +1669,6 @@ public abstract class Command {
                     int index = table.indexOf(Long.parseLong(uid));
                     List<String> picks = getSortedListOfMons(league.getJSONObject("picks").getJSONList(uid));
                     List<List<Object>> list = new ArrayList<>();
-                    int x = 0;
                     for (String pick : picks) {
                         String kill = getNumber(kills.get(i), pick);
                         String death = getNumber(deaths.get(i), pick);
@@ -1686,7 +1677,6 @@ public abstract class Command {
                                 kill.equals("") ? "-" : Integer.parseInt(kill),
                                 death.equals("") ? "-" : Integer.parseInt(death)
                         ));
-                        x++;
                     }
                     if (game[i].isWinner()) {
                         b.addSingle("Stats!C%d".formatted(index * 12 + 2 + gameday), "1");
@@ -1725,7 +1715,7 @@ public abstract class Command {
                 RequestBuilder b = new RequestBuilder(sid);
                 for (String uid : users) {
                     int index = table.indexOf(Long.parseLong(uid));
-                    ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
+                    List<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
                     List<List<Object>> list = new ArrayList<>();
                     int x = 0;
                     for (String pick : picks) {
@@ -1757,67 +1747,7 @@ public abstract class Command {
                 saveEmolgaJSON();
             });
 
-            sdAnalyser.put(FPLID, (game, uid1, uid2, kills, deaths, args) -> {
-                if (true) return;
-                JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("UPL");
-                String sid = league.getString("sid");
-                int gameday = getGameDay(league, uid1, uid2);
-                if (gameday == -1) {
-                    logger.info("GAMEDAY -1");
-                    return;
-                }
-                List<String> users = Arrays.asList(uid1, uid2);
-                int i = 0;
-                List<Long> table = league.getLongList("table");
-                RequestBuilder b = new RequestBuilder(sid);
-                for (String uid : users) {
-                    int index = table.indexOf(Long.parseLong(uid));
-                    List<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
-                    List<Object> list = new ArrayList<>();
-                    int x = 0;
-                    for (String pick : picks) {
-                        list.add(getNumber(kills.get(i), pick));
-                        x++;
-                    }
-                    int win = 0;
-                    int loose = 0;
-                    if (game[i].isWinner()) {
-                        win++;
-                        if (!league.has("results"))
-                            league.put("results", new JSONObject());
-                        league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
-                    } else loose++;
-                    try {
-                        String s = getAsXCoord(index / 4 * 22 + 6 + gameday);
-                        int yc = index % 4 * 20;
-                        b.addColumn(s + (yc + 8), list);
-                        b.addSingle(s + (yc + 20), game[i].getTotalDeaths());
-                        b.addColumn(s + (yc + 21), Arrays.asList(win, loose));
-                    } catch (IllegalArgumentException IllegalArgumentException) {
-                        IllegalArgumentException.printStackTrace();
-                    }
-                    i++;
-                }
-                //generateResult(b, game, league, gameday, uid1, "Spielplan " + li, "ZBS", (String) args[1]);
-                int gdi = gameday - 1;
-                List<Object> gpl = new ArrayList<>(Arrays.asList(6 - game[0].getTotalDeaths(),
-                        "=HYPERLINK(\"%s\"; \":\")".formatted(args[1]),
-                        6 - game[1].getTotalDeaths()));
-                String battleorder = league.getJSONObject("battleorder").getString(gameday);
-                int ycoord = 0;
-                String str = null;
-                for (String s : battleorder.split(";")) {
-                    if (s.contains(uid1)) {
-                        str = s;
-                        break;
-                    }
-                    ycoord++;
-                }
-                if (str.split(":")[0].equals(uid2)) Collections.reverse(gpl);
-                b.addRow("Spielplan (Spoiler) L%d!%s%d".formatted(1, getAsXCoord(gdi / 4 * 6 + 4), gdi % 4 * 6 + 6 + ycoord), gpl);
-                b.withRunnable(() -> sortFPL(sid, "Tabelle L", league), 4000).execute();
-                saveEmolgaJSON();
-            });
+            sdAnalyser.put(FPLID, (game, uid1, uid2, kills, deaths, optionalArgs) -> DocEntries.UPL.execute(game, Long.parseLong(uid1), Long.parseLong(uid2), kills, deaths, optionalArgs));
 
 
             sdAnalyser.put(NDSID, (game, uid1, uid2, kills, deaths, args) -> {
@@ -2955,7 +2885,7 @@ public abstract class Command {
         if (s.equals("Wormadam-Sandy")) return "Burmadame-Sand";
         if (s.equals("Wormadam-Trash")) return "Burmadame-Lumpen";
         if (s.equals("Deoxys-Defense")) return "Deoxys-Def";
-        if (s.equals("Deoxys-Attack")) return "Deoxys-Atk";
+        if (s.equals("Deoxys-Attack")) return "Deoxys-Attack";
         if (s.equals("Deoxys-Speed")) return "Deoxys-Speed";
         if (s.contains("Minior")) return "Meteno";
         if (s.contains("Polteageist")) return "Mortipot";

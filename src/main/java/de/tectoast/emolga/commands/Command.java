@@ -1758,12 +1758,8 @@ public abstract class Command {
             });
 
             sdAnalyser.put(FPLID, (game, uid1, uid2, kills, deaths, args) -> {
-                JSONObject league;
-                JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
-                int l;
-                if (drafts.getJSONObject("FPLS1L1").getLongList("table").contains(Long.parseLong(uid1))) l = 1;
-                else l = 2;
-                league = drafts.getJSONObject("FPLS1L" + l);
+                if (true) return;
+                JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("UPL");
                 String sid = league.getString("sid");
                 int gameday = getGameDay(league, uid1, uid2);
                 if (gameday == -1) {
@@ -1774,10 +1770,9 @@ public abstract class Command {
                 int i = 0;
                 List<Long> table = league.getLongList("table");
                 RequestBuilder b = new RequestBuilder(sid);
-                String li = "Kader L" + l + "!";
                 for (String uid : users) {
                     int index = table.indexOf(Long.parseLong(uid));
-                    ArrayList<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
+                    List<String> picks = getPicksAsList(league.getJSONObject("picks").getJSONArray(uid));
                     List<Object> list = new ArrayList<>();
                     int x = 0;
                     for (String pick : picks) {
@@ -1793,7 +1788,7 @@ public abstract class Command {
                         league.getJSONObject("results").put(uid1 + ":" + uid2, uid);
                     } else loose++;
                     try {
-                        String s = li + getAsXCoord(index / 4 * 22 + 6 + gameday);
+                        String s = getAsXCoord(index / 4 * 22 + 6 + gameday);
                         int yc = index % 4 * 20;
                         b.addColumn(s + (yc + 8), list);
                         b.addSingle(s + (yc + 20), game[i].getTotalDeaths());
@@ -1819,8 +1814,8 @@ public abstract class Command {
                     ycoord++;
                 }
                 if (str.split(":")[0].equals(uid2)) Collections.reverse(gpl);
-                b.addRow("Spielplan (Spoiler) L%d!%s%d".formatted(l, getAsXCoord(gdi / 4 * 6 + 4), gdi % 4 * 6 + 6 + ycoord), gpl);
-                b.withRunnable(() -> sortFPL(sid, "Tabelle L" + l, league), 4000).execute();
+                b.addRow("Spielplan (Spoiler) L%d!%s%d".formatted(1, getAsXCoord(gdi / 4 * 6 + 4), gdi % 4 * 6 + 6 + ycoord), gpl);
+                b.withRunnable(() -> sortFPL(sid, "Tabelle L", league), 4000).execute();
                 saveEmolgaJSON();
             });
 
@@ -2906,10 +2901,6 @@ public abstract class Command {
         return s.toLowerCase().trim().replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss").replaceAll("[^a-zA-Z0-9]+", "");
     }
 
-    public Collection<Long> getSlashGuilds() {
-        return slashGuilds;
-    }
-
     public static boolean canLearn(String pokemon, String form, String atk, String msg, int maxgen, String mod) {
         return getAttacksFrom(pokemon, msg, form, maxgen, mod).contains(atk);
     }
@@ -3067,6 +3058,10 @@ public abstract class Command {
     public static boolean isChannelAllowed(TextChannel tc) {
         long gid = tc.getGuild().getIdLong();
         return !emolgaChannel.containsKey(gid) || emolgaChannel.get(gid).contains(tc.getIdLong()) || emolgaChannel.get(gid).isEmpty();
+    }
+
+    public Collection<Long> getSlashGuilds() {
+        return slashGuilds;
     }
 
     private void addToMap() {
@@ -3374,10 +3369,6 @@ public abstract class Command {
             this.arguments = new LinkedList<>();
         }
 
-        public Argument find(String name) {
-            return arguments.stream().filter(a -> a.name.equalsIgnoreCase(name)).findFirst().orElse(null);
-        }
-
         public static Builder builder() {
             return new Builder();
         }
@@ -3475,6 +3466,10 @@ public abstract class Command {
                     return autoComplete.apply(arg);
                 }
             };
+        }
+
+        public Argument find(String name) {
+            return arguments.stream().filter(a -> a.name.equalsIgnoreCase(name)).findFirst().orElse(null);
         }
 
         public String getExample() {

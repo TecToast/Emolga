@@ -20,6 +20,8 @@ public class Constants {
     public static final long FLPID = 736555250118295622L;
     public static final long FPLID = 860253715624361996L;
 
+    public static final long EMOLGA_KI = 972778235265962014L;
+
     public static final long CALENDAR_TCID = 938156657706418176L;
     public static final long CALENDAR_MSGID = 964920267598098433L;
 

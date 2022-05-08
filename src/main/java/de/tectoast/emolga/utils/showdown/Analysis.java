@@ -47,6 +47,8 @@ public class Analysis {
     private String disabledAbility;
     private final Supplier<String> abiSupplier = () -> disabledAbility;
 
+    private static final Collection<String> unknownFormes = List.of("Silvally", "Arceus", "Genesect", "Gourgeist", "Urshifu", "Zacian", "Zamazenta", "Xerneas");
+
     public Analysis(String link, Message m) {
         this.link = link;
         if (m != null) DBManagers.REPLAY_CHECK.set(m.getChannel().getIdLong(), m.getIdLong());
@@ -92,6 +94,7 @@ public class Analysis {
                         }).findFirst().orElse(null)));
                     }
                 } else {
+                    //unknownFormes.stream().filter(pokemon::contains).filter(str -> p.indexOfName(str + "-*") != 1).forEach(str -> p.getMons().get(p.indexOfName(str + "-*")).setPokemon(pokemon));
                     if (pokemon.contains("Silvally") && p.indexOfName("Silvally-*") != -1) {//Silvally-Problem
                         p.getMons().get(p.indexOfName("Silvally-*")).setPokemon(pokemon);
                     }
@@ -112,6 +115,9 @@ public class Analysis {
                     }
                     if (pokemon.contains("Zamazenta") && p.indexOfName("Zamazenta-*") != -1) {//Zacian-Problem
                         p.getMons().get(p.indexOfName("Zamazenta-*")).setPokemon(pokemon);
+                    }
+                    if (pokemon.contains("Xerneas") && p.indexOfName("Xerneas-*") != -1) {//Xerneas-Problem
+                        p.getMons().get(p.indexOfName("Xerneas-*")).setPokemon(pokemon);
                     }
                 }
             });

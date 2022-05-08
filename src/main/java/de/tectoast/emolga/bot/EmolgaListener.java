@@ -44,6 +44,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
+import static de.tectoast.emolga.utils.Constants.EMOLGA_KI;
 import static de.tectoast.emolga.utils.Constants.MYSERVER;
 
 public class EmolgaListener extends ListenerAdapter {
@@ -120,9 +121,6 @@ public class EmolgaListener extends ListenerAdapter {
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
         if (e.getChannelType().isGuild()) {
-            if (e.getGuild().getIdLong() == MYSERVER) {
-                logger.info("GOT IT " + System.currentTimeMillis());
-            }
             try {
                 if (e.isWebhookMessage()) return;
                 Message m = e.getMessage();
@@ -132,8 +130,12 @@ public class EmolgaListener extends ListenerAdapter {
                 Guild g = e.getGuild();
                 long gid = g.getIdLong();
                 check(e);
-                if (gid == 447357526997073930L) {
+                if (gid == MYSERVER) {
                     PrivateCommands.execute(e.getMessage());
+                    if (tco.getParentCategoryIdLong() == EMOLGA_KI) {
+                        String[] split = tco.getName().split("-");
+                        e.getJDA().getTextChannelById(split[split.length - 1]).sendMessage(m.getContentRaw()).queue();
+                    }
                 }
                 if (tco.getIdLong() == 929841771276554260L) {
                     g.addRoleToMember(member, g.getRoleById(934810601216147477L)).queue();
@@ -211,8 +213,6 @@ public class EmolgaListener extends ListenerAdapter {
             }
             PrivateCommand.check(e);
             String msg = e.getMessage().getContentDisplay();
-            long gid = Constants.ASLID;
-            Guild g = e.getJDA().getGuildById(gid);
             if (msg.contains("https://") || msg.contains("http://")) {
                 Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(" ", s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("http") + 1))).findFirst();
                 if (urlop.isPresent()) {

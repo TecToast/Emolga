@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
+import static de.tectoast.emolga.utils.Constants.EMOLGA_KI;
 import static net.dv8tion.jda.api.entities.UserSnowflake.fromId;
 
 public class PrivateCommands {
@@ -693,6 +694,14 @@ public class PrivateCommands {
                 Arrays.asList("", "Togetic", "", "", "Route 5", "Team"),
                 Arrays.asList("", "Zirpeise", "", "", "Route 3", "Box")
         )));
+    }
+
+    @PrivateCommand(name = "createki")
+    public static void createKI(GenericCommandEvent e) {
+        JDA jda = e.getJDA();
+        TextChannel tc = jda.getTextChannelById(e.getArg(0));
+        jda.getCategoryById(EMOLGA_KI).createTextChannel("%s-%d".formatted(tc.getName(), tc.getIdLong())).queue();
+        e.done();
     }
 
     public static void execute(Message message) {

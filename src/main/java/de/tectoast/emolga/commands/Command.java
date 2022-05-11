@@ -3151,7 +3151,9 @@ public abstract class Command {
 
         String getName();
 
-        String getCustomHelp();
+        default String getCustomHelp() {
+            return null;
+        }
 
         OptionType asOptionType();
 
@@ -3169,7 +3171,7 @@ public abstract class Command {
     public static final class PermissionPreset {
         public static final Predicate<Member> OWNER = Member::isOwner;
         public static final Predicate<Member> ADMIN = member -> member.hasPermission(Permission.ADMINISTRATOR);
-        public static final Predicate<Member> MODERATOR = m -> ADMIN.test(m) || m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getIdLong()));
+        public static final Predicate<Member> MODERATOR = ADMIN.or(m -> m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getIdLong())));
         public static final Predicate<Member> CULT = fromRole(781457314846343208L);
 
         public static Predicate<Member> fromRole(long roleId) {
@@ -3335,10 +3337,6 @@ public abstract class Command {
                     return "ein" + (female ? "e" : "") + " **" + name + "**";
                 }
 
-                @Override
-                public String getCustomHelp() {
-                    return null;
-                }
 
                 @Override
                 public OptionType asOptionType() {
@@ -3369,11 +3367,6 @@ public abstract class Command {
                 @Override
                 public String getName() {
                     return "ein" + (female ? "e" : "") + " **" + name + "**";
-                }
-
-                @Override
-                public String getCustomHelp() {
-                    return null;
                 }
 
                 @Override
@@ -3557,11 +3550,6 @@ public abstract class Command {
             @Override
             public String getName() {
                 return "ein" + (female ? "e" : "") + " **" + name + "**";
-            }
-
-            @Override
-            public String getCustomHelp() {
-                return null;
             }
 
             @Override
@@ -3756,11 +3744,6 @@ public abstract class Command {
             @Override
             public String getName() {
                 return "eine " + (fileType.equals("*") ? "" : fileType + "-") + "Datei";
-            }
-
-            @Override
-            public String getCustomHelp() {
-                return null;
             }
 
             @Override
@@ -4057,11 +4040,6 @@ public abstract class Command {
                     }
 
                     @Override
-                    public String getCustomHelp() {
-                        return null;
-                    }
-
-                    @Override
                     public OptionType asOptionType() {
                         return OptionType.STRING;
                     }
@@ -4135,10 +4113,6 @@ public abstract class Command {
                 return "ein" + (female ? "e" : "") + " **" + name + "**";
             }
 
-            @Override
-            public String getCustomHelp() {
-                return null;
-            }
 
             @Override
             public OptionType asOptionType() {

@@ -89,7 +89,6 @@ public enum CommandCategory {
     }
 
     public boolean allowsMember(Member mem) {
-        boolean test = allowsMember.test(mem);
-        return mem.getIdLong() == Constants.FLOID || test;
+        return mem.getIdLong() == Constants.FLOID || allowsMember.test(mem);
     }
 }

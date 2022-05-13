@@ -30,6 +30,7 @@ import net.dv8tion.jda.api.events.role.RoleCreateEvent;
 import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.AutoCompleteQuery;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,8 +108,11 @@ public class EmolgaListener extends ListenerAdapter {
 
     @Override
     public void onGuildJoin(@Nonnull GuildJoinEvent e) {
-        e.getGuild().retrieveOwner().flatMap(m -> m.getUser().openPrivateChannel()).queue(pc -> pc.sendMessage(WELCOMEMESSAGE.replace("{USERNAME}", e.getGuild().getOwner().getUser().getName()).replace("{SERVERNAME}", e.getGuild().getName())).queue());
-        sendToMe(e.getGuild().getTextChannels().get(0).createInvite().setMaxUses(1).complete().getUrl());
+        Guild g = e.getGuild();
+        g.retrieveOwner().flatMap(m -> m.getUser().openPrivateChannel()).queue(pc -> pc.sendMessage(WELCOMEMESSAGE.replace("{USERNAME}", g.getOwner().getUser().getName()).replace("{SERVERNAME}", g.getName())).queue());
+        e.getJDA().retrieveUserById(Constants.FLOID).flatMap(User::openPrivateChannel).flatMap(
+                        u -> u.sendMessage("%s (%s)".formatted(g.getName(), g.getId())).setActionRow(Button.primary("guildinvite;" + g.getId(), "Invite").withEmoji(Emoji.fromUnicode("✉️"))))
+                .queue();
     }
 
     @Override

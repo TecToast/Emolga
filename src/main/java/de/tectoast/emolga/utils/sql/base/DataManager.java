@@ -157,23 +157,12 @@ public abstract class DataManager {
     }
 
     public final <T> T readWrite(String query, ResultsFunction<T> rf) {
-        T results = readWrite(query, rf, null);
-        try {
-            logger.info("((ResultSet) results).isClosed() = " + ((ResultSet) results).isClosed());
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return results;
+        return readWrite(query, rf, null);
     }
 
     public final <T> T readWrite(String query, ResultsFunction<T> rf, T err) {
         try {
-            Statement statement = getConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            ResultSet results = statement.executeQuery(query);
-            logger.info("results.isClosed() = " + results.isClosed());
-            T apply = rf.apply(results);
-            logger.info("((ResultSet) apply).isClosed() = " + ((ResultSet) apply).isClosed());
-            return apply;
+            return rf.apply(getConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE).executeQuery(query));
         } catch (SQLException e) {
             return err;
         }

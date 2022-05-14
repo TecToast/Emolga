@@ -704,6 +704,11 @@ public class PrivateCommands {
         e.done();
     }
 
+    @PrivateCommand(name = "deleteunusedreplaychannels")
+    public static void deleteUnused(GenericCommandEvent e) {
+        e.reply("Deleted: " + DBManagers.ANALYSIS.removeUnused());
+    }
+
     public static void execute(Message message) {
         String msg = message.getContentRaw();
         for (Method method : PrivateCommands.class.getDeclaredMethods()) {

@@ -1642,6 +1642,7 @@ public abstract class Command {
         emolgaChannel.put(694256540642705408L, new ArrayList<>(Collections.singletonList(695157832072560651L)));
         emolgaChannel.put(747357029714231299L, new ArrayList<>(Arrays.asList(752802115096674306L, 762411109859852298L)));*/
             sdAnalyser.put(ASLID, (game, uid1, uid2, kills, deaths, args) -> {
+                if (true) return;
                 JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
 
                 JSONObject league = null;
@@ -2399,13 +2400,13 @@ public abstract class Command {
         return Collections.emptyList();
     }
 
-    public static void analyseReplay(String url, TextChannel customReplayChannell, TextChannel resultchannell, Message m, DeferredSlashResponse e) {
+    public static void analyseReplay(String url, TextChannel customReplayChannel, TextChannel resultchannel, Message m, DeferredSlashResponse e) {
         Player[] game;
         /*if(resultchannel.getGuild().getIdLong() != MYSERVER) {
             (m != null ? m.getChannel() : resultchannel).sendMessage("Ich befinde mich derzeit im Wartungsmodus, versuche es später noch einmal :)").queue();
             return;
         }*/
-        logger.info("REPLAY! Channel: {}", m != null ? m.getChannel().getId() : resultchannell.getId());
+        logger.info("REPLAY! Channel: {}", m != null ? m.getChannel().getId() : resultchannel.getId());
         try {
             game = new Analysis(url, m).analyse();
             //game = Analysis.analyse(url, m);
@@ -2414,12 +2415,12 @@ public abstract class Command {
             if (e != null)
                 e.reply(msg);
             else {
-                resultchannell.sendMessage(msg).queue();
+                resultchannel.sendMessage(msg).queue();
             }
             ex.printStackTrace();
             return;
         }
-        Guild g = resultchannell.getGuild();
+        Guild g = resultchannel.getGuild();
         long gid;
         String msg = m != null ? m.getContentDisplay() : "";
         if (m != null && m.getAuthor().getIdLong() == FLOID) {
@@ -2437,13 +2438,6 @@ public abstract class Command {
         String u2 = game[1].getNickname();
         long uid1 = DBManagers.SD_NAMES.getIDByName(u1);
         long uid2 = DBManagers.SD_NAMES.getIDByName(u2);
-        List<TextChannel> aslChannel = resultChannelASL(uid1, uid2);
-        if (gid == ASLID && aslChannel.isEmpty()) {
-            sendToMe("Invalid ASL Replay");
-            return;
-        }
-        TextChannel customReplayChannel = gid != ASLID ? customReplayChannell : aslChannel.get(0);
-        TextChannel resultchannel = g.getIdLong() != ASLID ? resultchannell : aslChannel.get(1);
         logger.info("Analysed!");
         //logger.info(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
         for (Pokemon p : game[0].getMons()) {

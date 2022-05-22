@@ -47,7 +47,7 @@ public class GPIOManager {
     }
 
     public static boolean isOn(PC pc) throws IOException {
-        return new BufferedReader(new InputStreamReader(Runtime.getRuntime().exec(new String[]{"/usr/bin/gpio", "read", pc.getReadPin()}).getInputStream())).readLine().trim().equals("1");
+        return !new BufferedReader(new InputStreamReader(Runtime.getRuntime().exec(new String[]{"/usr/bin/gpio", "read", pc.getReadPin()}).getInputStream())).readLine().trim().equals("1");
     }
 
     public enum PC {

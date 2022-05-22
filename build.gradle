@@ -21,9 +21,17 @@ repositories {
     }
     maven {
         url "https://maven.pkg.github.com/TecToast/Toastilities"
+        credentials {
+            username = gprUser
+            password = gprPassword
+        }
     }
     maven {
         url "https://maven.pkg.github.com/TecToast/JSOLF"
+        credentials {
+            username = gprUser
+            password = gprPassword
+        }
     }
 }
 
@@ -55,6 +63,6 @@ dependencies {
     implementation 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
     implementation 'org.glassfish.jaxb:jaxb-runtime:3.0.2'
     implementation 'de.tectoast:toastilities:2.1'
-    implementation 'de.tectoast:jsolf:1.1'
+    implementation 'de.tectoast:jsolf:1.2'
     implementation 'net.dv8tion:JDA:5.0.0-alpha.11'
 }

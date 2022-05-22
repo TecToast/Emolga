@@ -8,7 +8,7 @@ public class CalendarButton extends ButtonListener {
     }
 
     @Override
-    public void process(ButtonInteractionEvent e, String name) throws Exception {
+    public void process(ButtonInteractionEvent e, String name) {
         if (name.equals("delete")) {
             e.reply("+1").setEphemeral(true).queue();
             e.getHook().deleteMessageById(e.getMessageId()).queue();

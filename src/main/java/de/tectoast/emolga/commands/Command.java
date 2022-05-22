@@ -218,11 +218,11 @@ public abstract class Command {
     public static JSONObject tokens;
     public static JSONObject catchrates;
     public static Map<Long, SoundSendHandler> sendHandlers = new HashMap<>();
-    public static AtomicInteger replayCount = new AtomicInteger();
+    public static final AtomicInteger replayCount = new AtomicInteger();
     protected static long lastClipUsed = -1;
     protected static ScheduledExecutorService calendarService = Executors.newScheduledThreadPool(5);
-    protected static ScheduledExecutorService moderationService = Executors.newScheduledThreadPool(5);
-    protected static ScheduledExecutorService birthdayService = Executors.newScheduledThreadPool(1);
+    protected static final ScheduledExecutorService moderationService = Executors.newScheduledThreadPool(5);
+    protected static final ScheduledExecutorService birthdayService = Executors.newScheduledThreadPool(1);
     /**
      * List containing guild ids where this command is enabled, empty if it is enabled in all guilds
      */
@@ -286,7 +286,7 @@ public abstract class Command {
     protected long allowedBotId = -1;
     protected boolean slash = false;
     protected boolean onlySlash = false;
-    protected Collection<Long> slashGuilds = new LinkedList<>();
+    protected final Collection<Long> slashGuilds = new LinkedList<>();
 
     /**
      * Creates a new command and adds is to the list. Each command should use this constructor for one time (see {@link #registerCommands()})
@@ -1551,7 +1551,7 @@ public abstract class Command {
     }
 
     public static void setupRepeatTasks() {
-
+        logger.info("No RepeatTasks");
     }
 
     public static void init() {
@@ -3529,7 +3529,8 @@ public abstract class Command {
                     if (mentionable()) {
                         Message m = (Message) params[0];
                         int soFar = (int) params[1];
-                        return this == USER ? m.getMentionedMembers().get(soFar) : this == CHANNEL ? m.getMentionedChannels().get(soFar) : m.getMentionedRoles().get(soFar);
+                        Mentions mentions = m.getMentions();
+                        return this == USER ? mentions.getMembers().get(soFar) : this == CHANNEL ? mentions.getChannels().get(soFar) : mentions.getRoles().get(soFar);
                     }
                     if (this == ID) return Long.parseLong(str);
                     if (this == INTEGER) return Integer.parseInt(str);

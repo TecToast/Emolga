@@ -27,6 +27,6 @@ public class AddSoundCommand extends PepeCommand {
             e.reply("Ein Sound mit dem Namen " + fileName.substring(0, fileName.length() - 4) + " gibt es bereits!");
             return;
         }
-        a.downloadToFile(f).thenAccept(file -> e.reply("Der Sound wurde hinzugefügt!"));
+        a.getProxy().downloadToFile(f).thenAccept(file -> e.reply("Der Sound wurde hinzugefügt!"));
     }
 }

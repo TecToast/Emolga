@@ -9,7 +9,7 @@ public class GuildInviteButton extends ButtonListener {
     }
 
     @Override
-    public void process(ButtonInteractionEvent e, String name) throws Exception {
+    public void process(ButtonInteractionEvent e, String name) {
         e.reply(e.getJDA().getGuildById(name).getDefaultChannel().createInvite().setMaxUses(1).complete().getUrl()).queue();
     }
 }

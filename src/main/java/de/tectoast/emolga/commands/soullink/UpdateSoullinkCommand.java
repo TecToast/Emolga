@@ -13,7 +13,7 @@ public class UpdateSoullinkCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         updateSoullink();
         e.reply("Done!", true);
     }

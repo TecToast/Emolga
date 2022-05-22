@@ -53,10 +53,11 @@ public class GcreateCommand extends Command {
             });
         }, "Die Giveawayerstellung wurde abgebrochen.")
                 .addLayer("channel", "Es geht los! Zuerst, in welchem Channel soll das Giveaway stattfinden?" + CHANNEL, m -> {
-                    if (m.getMentionedChannels().size() != 1) {
+                    List<TextChannel> channels = m.getMentions().getChannels(TextChannel.class);
+                    if (channels.size() != 1) {
                         return new ErrorMessage("Du musst einen Channel taggen!");
                     }
-                    return m.getMentionedChannels().get(0);
+                    return channels.get(0);
                 }, o -> ((TextChannel) o).getAsMention())
                 .addLayer("seconds", "Das Giveaway wird in {channel} stattfinden! Wie lange soll das Giveaway laufen?" + TIME, m -> {
                     int seconds = parseShortTime(m.getContentRaw());

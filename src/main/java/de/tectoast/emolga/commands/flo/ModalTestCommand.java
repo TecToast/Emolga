@@ -17,7 +17,7 @@ public class ModalTestCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         TextInput email = TextInput.create("email", "Email", TextInputStyle.SHORT)
                 .setPlaceholder("Enter your E-mail")
                 .setMinLength(10)

@@ -41,9 +41,10 @@ public abstract class GenericCommandEvent {
         this.msg = message.getContentDisplay();
         this.channel = message.getChannel();
         this.jda = message.getJDA();
-        this.mentionedChannels = this.message.getMentionedChannels();
-        this.mentionedMembers = this.message.getMentionedMembers();
-        this.mentionedRoles = this.message.getMentionedRoles();
+        Mentions mentions = this.message.getMentions();
+        this.mentionedChannels = mentions.getChannels(TextChannel.class);
+        this.mentionedMembers = mentions.getMembers();
+        this.mentionedRoles = mentions.getRoles();
         this.args = new ArrayList<>(Arrays.asList(msg.split("\\s+")));
         this.args.remove(0);
         this.argsLength = this.args.size();

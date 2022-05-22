@@ -36,7 +36,7 @@ public class CreateCommandCommand extends Command {
         File file = null;
         if (m.getAttachments().size() > 0) {
             Message.Attachment a = m.getAttachments().get(0);
-            file = a.downloadToFile("customcommandimages/" + a.getFileName()).get();
+            file = a.getProxy().downloadToFile(new File("customcommandimages/" + a.getFileName())).get();
             json.put("image", file.getAbsolutePath());
         }
         if (!args.has("text")) {

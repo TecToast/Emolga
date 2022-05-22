@@ -18,7 +18,7 @@ public class TypicalSetsCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         e.reply(TypicalSets.getInstance().buildPokemon(e.getArguments().getText("mon")));
     }
 }

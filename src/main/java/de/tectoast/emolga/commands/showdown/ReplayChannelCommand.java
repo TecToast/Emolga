@@ -9,6 +9,8 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
+import java.util.List;
+
 public class ReplayChannelCommand extends Command {
     public ReplayChannelCommand() {
         super("replaychannel", "Schickt von nun an die Ergebnisse aller Replays, die in diesen Channel geschickt werden, in den angegebenen Channel (wenn die Ergebnisse in den gleichen Channel sollen, tagge einfach diesen Channel hier)", CommandCategory.Showdown);
@@ -31,8 +33,9 @@ public class ReplayChannelCommand extends Command {
         if (e.getUsedName().equals("replay")) {
             sendToUser(e.getAuthor(), "Der Command wurde in !replaychannel umbenannt, damit er sich nicht mehr mit anderen Bots schneidet. !replay funktioniert weiterhin, jedoch sollte am besten !replaychannel verwendet werden.");
         }
-        boolean sameChannel = m.getMentionedChannels().size() == 0;
-        TextChannel tc = sameChannel ? tco : m.getMentionedChannels().get(0);
+        List<TextChannel> channels = m.getMentions().getChannels(TextChannel.class);
+        boolean sameChannel = channels.size() == 0;
+        TextChannel tc = sameChannel ? tco : channels.get(0);
         ArgumentManager args = e.getArguments();
         if (args.has("action") && args.isText("action", "remove")) {
             if (Database.update("DELETE FROM analysis WHERE replay = " + tco.getIdLong()) > 0) {

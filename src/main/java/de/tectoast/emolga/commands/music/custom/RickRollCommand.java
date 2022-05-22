@@ -10,7 +10,7 @@ public class RickRollCommand extends MusicCommand {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         loadAndPlay(e.getChannel(), "https://www.youtube.com/watch?v=dQw4w9WgXcQ", e.getMember(), null);
         e.reply(":^)");
     }

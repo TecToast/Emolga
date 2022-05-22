@@ -18,7 +18,7 @@ public class StatusCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         JSONObject soullink = getEmolgaJSON().getJSONObject("soullink");
         ArgumentManager args = e.getArguments();
         String location = eachWordUpperCase(args.getText("location"));

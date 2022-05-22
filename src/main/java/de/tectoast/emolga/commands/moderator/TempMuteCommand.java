@@ -7,6 +7,8 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
+import java.util.List;
+
 public class TempMuteCommand extends Command {
     public TempMuteCommand() {
         super("tempmute", "Muted den User temporär", CommandCategory.Moderator);
@@ -24,11 +26,12 @@ public class TempMuteCommand extends Command {
         Message m = e.getMessage();
         String raw = m.getContentRaw();
         TextChannel tco = e.getChannel();
-        if (m.getMentionedMembers().size() != 1) {
+        List<Member> members = m.getMentions().getMembers();
+        if (members.size() != 1) {
             //tco.sendMessage("Du musst einen Spieler taggen!").queue();
             return;
         }
-        Member mem = m.getMentionedMembers().get(0);
+        Member mem = members.get(0);
         String[] splitarr = raw.split(" ");
         //ArrayList<String> split = new ArrayList<>(Arrays.asList(splitarr));
         StringBuilder reasonbuilder = new StringBuilder();

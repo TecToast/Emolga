@@ -22,7 +22,7 @@ public class FullStatsCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         String mon = e.getArguments().getText("mon");
         UsageData data = DBManagers.FULL_STATS.getData(mon);
         if (data == null) {

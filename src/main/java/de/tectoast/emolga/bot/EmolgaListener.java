@@ -150,7 +150,7 @@ public class EmolgaListener extends ListenerAdapter {
                     help(tco, member);
                 }
                 if (emoteSteal.contains(tco.getIdLong())) {
-                    List<Emote> l = m.getEmotes();
+                    List<Emote> l = m.getMentions().getEmotes();
                     for (Emote emote : l) {
                         try {
                             g.createEmote(emote.getName(), Icon.from(new URL(emote.getImageUrl()).openStream())).queue();

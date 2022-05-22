@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class DeleteuntilCommand extends Command {
     public DeleteuntilCommand() {
@@ -24,7 +25,8 @@ public class DeleteuntilCommand extends Command {
         String msg = e.getMessage().getContentRaw();
         TextChannel tco = e.getChannel();
         TextChannel tc;
-        if (m.getMentionedChannels().size() > 0) tc = m.getMentionedChannels().get(0);
+        List<TextChannel> channels = m.getMentions().getChannels(TextChannel.class);
+        if (channels.size() > 0) tc = channels.get(0);
         else tc = tco;
         String mid = e.hasArg(1) ? e.getArg(1) : e.getArg(0);
         try {

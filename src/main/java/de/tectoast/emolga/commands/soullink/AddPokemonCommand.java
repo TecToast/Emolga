@@ -25,7 +25,7 @@ public class AddPokemonCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         ArgumentManager args = e.getArguments();
         JSONObject soullink = getEmolgaJSON().getJSONObject("soullink");
         List<String> order = soullink.getStringList("order");

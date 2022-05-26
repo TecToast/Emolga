@@ -9,6 +9,9 @@ import de.tectoast.emolga.utils.annotations.PrivateCommand;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.records.Coord;
+import de.tectoast.emolga.utils.showdown.Analysis;
+import de.tectoast.emolga.utils.showdown.Player;
+import de.tectoast.emolga.utils.showdown.Pokemon;
 import de.tectoast.emolga.utils.sql.DBManagers;
 import de.tectoast.jsolf.JSONArray;
 import de.tectoast.jsolf.JSONObject;
@@ -36,6 +39,7 @@ import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
 import static de.tectoast.emolga.utils.Constants.EMOLGA_KI;
+import static de.tectoast.emolga.utils.Constants.MYSERVER;
 import static net.dv8tion.jda.api.entities.UserSnowflake.fromId;
 
 public class PrivateCommands {
@@ -707,6 +711,25 @@ public class PrivateCommands {
     @PrivateCommand(name = "deleteunusedreplaychannels")
     public static void deleteUnused(GenericCommandEvent e) {
         e.reply("Deleted: " + DBManagers.ANALYSIS.removeUnused());
+    }
+
+    @PrivateCommand(name = "dasorlol")
+    public static void dasorLol() throws IOException {
+        JSONObject load = load("dasorfights.json");
+        List<JSONObject> fights = load.getJSONList("fights");
+        for (JSONObject f : fights) {
+            String id = f.getString("id");
+            if (id.contains("doubles")) continue;
+            Player[] game = new Analysis("https://replay.pokemonshowdown.com/" + id, null).analyse();
+            for (Player player : game) {
+                if (toUsername(player.getNickname()).equals("dasor54")) {
+                    for (Pokemon mon : player.getMons()) {
+                        String monName = getMonName(mon.getPokemon(), MYSERVER);
+                        DBManagers.DASOR_USAGE.addPokemon(monName);
+                    }
+                }
+            }
+        }
     }
 
     public static void execute(Message message) {

@@ -124,7 +124,7 @@ public class EmolgaListener extends ListenerAdapter {
 
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
-        if (e.getChannelType().isGuild()) {
+        if (e.getChannelType() == ChannelType.TEXT) {
             try {
                 if (e.isWebhookMessage()) return;
                 Message m = e.getMessage();

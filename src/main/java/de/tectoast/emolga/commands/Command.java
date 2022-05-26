@@ -764,6 +764,7 @@ public abstract class Command {
         }
         return "";
     }
+
     public static String getNumber(Map<String, String> map, String pick) {
         //logger.info(map);
         for (String s : map.keySet()) {
@@ -2138,7 +2139,7 @@ public abstract class Command {
                 if (arg.hasCustomErrorMessage()) tco.sendMessage(arg.getCustomErrorMessage()).queue();
                 else {
                     tco.sendMessage("Das benötigte Argument `" + arg.getName() + "`, was eigentlich " + buildEnumeration(arg.getType().getName()) + " sein müsste, ist nicht vorhanden!\n" +
-                                    "Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help " + command.getName() + "`.").queue();
+                            "Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help " + command.getName() + "`.").queue();
                 }
                 if (mem.getIdLong() != FLOID) {
                     sendToMe("MissingArgument " + tco.getAsMention() + " Server: " + tco.getGuild().getName());
@@ -2266,11 +2267,11 @@ public abstract class Command {
                     String move = set.getString("germanname");
                     //logger.info("move = " + move);
                     if ((type.equals("") || atkdata.getJSONObject(moveengl).getString("type").equals(getEnglName(type))) &&
-                        (dmgclass.equals("") || atkdata.getJSONObject(moveengl).getString("category").equals(dmgclass)) &&
-                        (!msg.toLowerCase().contains("--prio") || atkdata.getJSONObject(moveengl).getInt("priority") > 0) &&
-                        containsGen(learnset, moveengl, maxgen) &&
-                        moveFilter(msg, move) &&
-                        !already.contains(move)) {
+                            (dmgclass.equals("") || atkdata.getJSONObject(moveengl).getString("category").equals(dmgclass)) &&
+                            (!msg.toLowerCase().contains("--prio") || atkdata.getJSONObject(moveengl).getInt("priority") > 0) &&
+                            containsGen(learnset, moveengl, maxgen) &&
+                            moveFilter(msg, move) &&
+                            !already.contains(move)) {
                         already.add(move);
                     }
                 }
@@ -2474,6 +2475,9 @@ public abstract class Command {
             if (gid != MYSERVER) {
                 DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0, game[0].isWinner());
                 typicalSets.add(monName, p.getMoves(), p.getItem(), p.getAbility());
+                if (toUsername(game[0].getNickname()).equals("dasor54")) {
+                    DBManagers.DASOR_USAGE.addPokemon(monName);
+                }
             }
             t1.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (p1wins || spoiler) ? "X" : "").append("\n");
         }
@@ -2493,6 +2497,9 @@ public abstract class Command {
             if (gid != MYSERVER) {
                 DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0, game[1].isWinner());
                 typicalSets.add(monName, p.getMoves(), p.getItem(), p.getAbility());
+                if (toUsername(game[1].getNickname()).equals("dasor54")) {
+                    DBManagers.DASOR_USAGE.addPokemon(monName);
+                }
             }
             t2.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (!p1wins || spoiler) ? "X" : "").append("\n");
         }
@@ -2523,10 +2530,10 @@ public abstract class Command {
         String str;
         if (spoiler) {
             str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1
-                  + "\n" + name2 + ": " + "\n" + t2;
+                    + "\n" + name2 + ": " + "\n" + t2;
         } else {
             str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1
-                  + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
+                    + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
         }
         if (customReplayChannel != null) customReplayChannel.sendMessage(url).queue();
         if (e != null) {
@@ -3103,7 +3110,7 @@ public abstract class Command {
             return "`" + getPrefix() + getName() + "` " + overrideHelp.getOrDefault(g.getIdLong(), help);
         }
         return "`" + (args.hasSyntax() ? args.getSyntax() : getPrefix() + getName() + (args.arguments.size() > 0 ? " " : "")
-                                                            + args.arguments.stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" "))) + "` " + overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
+                + args.arguments.stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" "))) + "` " + overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
     }
 
     public String getHelpWithoutCmd(Guild g) {
@@ -3931,11 +3938,11 @@ public abstract class Command {
 
         public void print() {
             logger.info("Translation{" + "type=" + type +
-                        ", language=" + language +
-                        ", translation='" + translation + '\'' +
-                        ", empty=" + empty +
-                        ", otherLang='" + otherLang + '\'' +
-                        '}');
+                    ", language=" + language +
+                    ", translation='" + translation + '\'' +
+                    ", empty=" + empty +
+                    ", otherLang='" + otherLang + '\'' +
+                    '}');
         }
 
         public String getOtherLang() {

@@ -130,7 +130,7 @@ public class PickCommand extends Command {
                     tco.sendMessage("Das Tier `" + tier + "` existiert nicht!").queue();
                     return;
                 }
-                if (map.get(tier) == 0) {
+                if (map.get(tier) <= 0) {
                     if (tierlist.prices.get(tier) == 0) {
                         tco.sendMessage("Ein Pokemon aus dem " + tier + "-Tier musst du in ein anderes Tier hochdraften!").queue();
                         return;
@@ -178,7 +178,8 @@ public class PickCommand extends Command {
             //int rd = d.round == tierlist.rounds && d.picks.get(mem).size() < tierlist.rounds ? (int) league.getJSONObject("skippedturns").getJSONArrayL(mem).remove(0) : d.round;
             //aslS10Doc(tierlist, pokemon, d, mem, tier, rd);
             //ndsdoc(tierlist, pokemon, d, mem, tier);
-            uplDoc(pokemon, league, d, d.members.size() - d.order.get(d.round).size(), mem);
+            //uplDoc(pokemon, league, d, d.members.size() - d.order.get(d.round).size(), mem);
+            ndss3Doc(pokemon, d, mem);
             /*if (d.round == tierlist.rounds && d.picks.get(mem).size() < d.round) {
                 if (d.isPointBased)
                     //tco.sendMessage(getMention(current) + " (<@&" + asl.getLongList("roleids").get(getIndex(current.getIdLong())) + ">) ist dran! (" + points.get(current.getIdLong()) + " mögliche Punkte)").queue();
@@ -195,6 +196,31 @@ public class PickCommand extends Command {
             if (slashEvent != null) slashEvent.reply("Da ist wohl was schiefgelaufen :(").setEphemeral(true).queue();
             ex.printStackTrace();
         }
+    }
+
+    private static void ndss3Doc(String pokemon, Draft d, long mem) {
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
+
+        //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+        RequestBuilder b = new RequestBuilder(league.getString("sid"));
+        String teamname = league.getJSONObject("teamnames").getString(mem);
+        String sdName = getSDName(pokemon);
+        JSONObject o = getDataJSON().getJSONObject(sdName);
+        int i = d.picks.get(mem).size() + 14;
+        String gen5Sprite = getGen5Sprite(o);
+        int y = league.getStringList("table").indexOf(teamname) * 17 + 1 + d.picks.get(mem).size();
+        b.addSingle("Data!B%s".formatted(y), pokemon);
+        b.addSingle("Data!AF%s".formatted(y), 2);
+        List<String> tiers = List.of("S", "A", "B");
+        b.addColumn("Data!F%s".formatted(league.getStringList("table").indexOf(teamname) * 17 + 2), d.picks.get(mem).stream()
+                .sorted(Comparator.<DraftPokemon, Integer>comparing(pk -> tiers.indexOf(pk.getTier())).thenComparing(DraftPokemon::getName)).map(DraftPokemon::getName).collect(Collectors.toList()));
+        int numInRound = d.originalOrder.get(d.round).indexOf(mem) + 1;
+        b.addSingle("Draft!%s%d".formatted(getAsXCoord(d.round * 5 - 1), numInRound * 5 + 2), pokemon);
+        logger.info("d.members.size() = " + d.members.size());
+        logger.info("d.order.size() = " + d.order.get(d.round).size());
+        logger.info("d.members.size() - d.order.size() = " + numInRound);
+        //if (d.members.size() - d.order.get(d.round).size() != 1 && isEnabled)
+        b.execute();
     }
 
     private static void uplDoc(String pokemon, JSONObject league, Draft d, int num, long mem) {

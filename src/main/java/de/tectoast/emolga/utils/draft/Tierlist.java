@@ -79,6 +79,10 @@ public class Tierlist {
         if (o.has("monsengl"))
             setupTiercolumns(o.getJSONArray("monsengl").toListList(String.class), o.getIntList("nexttiers"), tiercolumnsEngl, false);
         if (o.has("trashmons")) tierlist.get(order.get(order.size() - 1)).addAll(o.getStringList("trashmons"));
+        if (o.has("additionalmons")) {
+            JSONObject am = o.getJSONObject("additionalmons");
+            am.keySet().forEach(k -> tierlist.get(k).addAll(am.getStringList(k)));
+        }
         list.add(this);
     }
 
@@ -108,7 +112,7 @@ public class Tierlist {
         int currtier = 0;
         List<String> currtierlist = new LinkedList<>();
         for (List<String> monss : mons) {
-            List<String> mon = monss.stream().map(String::trim).toList();
+            List<String> mon = monss.stream().map(String::trim).map(s -> s.replaceAll("[^a-zA-Z0-9-:% ]", "")).toList();
             if (normal) {
                 if (nexttiers.contains(x)) {
                     String key = order.get(currtier++);

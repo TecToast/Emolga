@@ -573,7 +573,7 @@ public class Draft {
     }*/
 
     public Map<String, Integer> getPossibleTiers(long mem) {
-        HashMap<String, Integer> possible = new HashMap<>(getTierlist().prices);
+        Map<String, Integer> possible = new HashMap<>(getTierlist().prices);
         for (DraftPokemon mon : picks.get(mem)) {
             possible.put(mon.tier, possible.get(mon.tier) - 1);
         }

@@ -15,11 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -145,6 +141,33 @@ public class SwitchCommand extends Command {
         }
     }
 
+    private static void ndss3Doc(String pokemon, Draft d, long mem, String removed) {
+        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
+
+        //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
+        RequestBuilder b = new RequestBuilder(league.getString("sid"));
+        String teamname = league.getJSONObject("teamnames").getString(mem);
+        String sdName = getSDName(pokemon);
+        JSONObject o = getDataJSON().getJSONObject(sdName);
+        List<DraftPokemon> picks = d.picks.get(mem);
+        int i = picks.size() + 14;
+        String gen5Sprite = getGen5Sprite(o);
+        int y = league.getStringList("table").indexOf(teamname) * 17 + 2 + IntStream.range(0, picks.size()).filter(ii -> picks.get(ii).getName().equals(pokemon)).findFirst().orElse(-1);
+        b.addSingle("Data!B%s".formatted(y), pokemon);
+        b.addSingle("Data!AF%s".formatted(y), 2);
+        List<String> tiers = List.of("S", "A", "B");
+        b.addColumn("Data!F%s".formatted(league.getStringList("table").indexOf(teamname) * 17 + 2), d.picks.get(mem).stream()
+                .sorted(Comparator.<DraftPokemon, Integer>comparing(pk -> tiers.indexOf(pk.getTier())).thenComparing(DraftPokemon::getName)).map(DraftPokemon::getName).collect(Collectors.toList()));
+        int numInRound = d.originalOrder.get(d.round).indexOf(mem) + 1;
+        b.addSingle("Draft!%s%d".formatted(getAsXCoord(d.round * 5 - 1), numInRound * 5 + 2), pokemon);
+        b.addSingle("Draft!%s%d".formatted(getAsXCoord(d.round * 5 - 3), numInRound * 5 + 1), removed);
+        logger.info("d.members.size() = " + d.members.size());
+        logger.info("d.order.size() = " + d.order.get(d.round).size());
+        logger.info("d.members.size() - d.order.size() = " + numInRound);
+        //if (d.members.size() - d.order.get(d.round).size() != 1 && isEnabled)
+        b.execute();
+    }
+
     public static void ndsdoc(Tierlist tierlist, Draft d, long mem, DraftPokemon oldmon, DraftPokemon newmon) {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
         logger.info("oldmon = {}", oldmon);
@@ -249,19 +272,26 @@ public class SwitchCommand extends Command {
             return;
         }
         String tier = tierlist.getTierOf(newmon);
-        d.points.put(mem, d.points.get(mem) + pointsBack);
-        if (d.points.get(mem) - newpoints < 0) {
-            d.points.put(mem, d.points.get(mem) - pointsBack);
-            e.reply(memberr.getAsMention() + " Du kannst dir " + newmon + " nicht leisten!");
-            return;
+        if (d.isPointBased) {
+            d.points.put(mem, d.points.get(mem) + pointsBack);
+            if (d.points.get(mem) - newpoints < 0) {
+                d.points.put(mem, d.points.get(mem) - pointsBack);
+                e.reply(memberr.getAsMention() + " Du kannst dir " + newmon + " nicht leisten!");
+                return;
+            }
+            d.points.put(mem, d.points.get(mem) - newpoints);
+        } else {
+            if (d.getPossibleTiers(mem).get(tier) < 0 || (d.getPossibleTiers(mem).get(tier) == 0 && !tierlist.getTierOf(oldmon).equals(tier))) {
+                e.reply(memberr.getAsMention() + " Du kannst dir kein " + tier + "-Tier mehr holen!");
+                return;
+            }
         }
-        d.points.put(mem, d.points.get(mem) - newpoints);
         AtomicInteger oldindex = new AtomicInteger(-1);
         List<DraftPokemon> draftPokemons = d.picks.get(mem);
         DraftPokemon oldMon = draftPokemons.stream().filter(draftMon -> draftMon.name.equalsIgnoreCase(oldmon)).peek(dp -> oldindex.set(draftPokemons.indexOf(dp))).map(DraftPokemon::copy).findFirst().orElse(null);
         Optional<DraftPokemon> drp = draftPokemons.stream().filter(dp -> dp.name.equalsIgnoreCase(oldmon)).findFirst();
         if (drp.isEmpty()) {
-            logger.error("DRP NULL LINE 232");
+            logger.error("DRP NULL LINE 232 " + oldindex.get());
             return;
         }
         DraftPokemon dp = drp.get();
@@ -270,36 +300,12 @@ public class SwitchCommand extends Command {
 
         //m.delete().queue();
         d.update(mem);
-        aslNoCoachDoc(tierlist, newmon, d, mem, tier, pointsBack - newpoints, oldMon, oldindex.get(), d.originalOrder.get(d.round).indexOf(mem));
+        //aslNoCoachDoc(tierlist, newmon, d, mem, tier, pointsBack - newpoints, oldMon, oldindex.get(), d.originalOrder.get(d.round).indexOf(mem));
+        ndss3Doc(newmon, d, mem, oldmon);
         league.getJSONObject("picks").put(d.current, d.getTeamAsArray(d.current));
         if (newmon.equals("Emolga")) {
             tco.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>").queue();
         }
-        d.cooldown.cancel(false);
-        int round = d.round;
-        if (d.order.get(d.round).size() == 0) {
-            if (d.round == tierlist.rounds) {
-                tco.sendMessage("Der Draft ist vorbei!").queue();
-                d.ended = true;
-                //wooloodoc(tierlist, pokemon, d, mem, needed, null, num, round);
-                if (d.afterDraft.size() > 0)
-                    tco.sendMessage("Reihenfolge zum Nachdraften:\n" + d.afterDraft.stream().map(d::getMention).collect(Collectors.joining("\n"))).queue();
-                saveEmolgaJSON();
-                Draft.drafts.remove(d);
-                return;
-            }
-            d.round++;
-            d.tc.sendMessage("Runde " + d.round + "!").queue();
-            league.put("round", d.round);
-        }
-        d.current = d.order.get(d.round).remove(0);
-        league.put("current", d.current);
-        JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
-        tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
-        //tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current.getIdLong()) + " mögliche Punkte)").queue();
-        long delay = calculateDraftTimer();
-        league.put("cooldown", System.currentTimeMillis() + delay);
-        d.cooldown = d.scheduler.schedule((Runnable) d::timer, delay, TimeUnit.MILLISECONDS);
-        saveEmolgaJSON();
+        d.nextPlayer(tco, tierlist, league);
     }
 }

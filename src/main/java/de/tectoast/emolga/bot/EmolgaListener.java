@@ -204,7 +204,7 @@ public class EmolgaListener extends ListenerAdapter {
                         }
                     }
                 }
-            } catch (IllegalArgumentException ex) {
+            } catch (IllegalStateException ex) {
                 sendToMe(e.getChannelType().name() + " Illegal Argument Exception Channel");
             } catch (Exception ex) {
                 ex.printStackTrace();

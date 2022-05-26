@@ -12,9 +12,6 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 public class SkipCommand extends Command {
 
     private static final Logger logger = LoggerFactory.getLogger(SkipCommand.class);
@@ -45,36 +42,8 @@ public class SkipCommand extends Command {
             tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue();
             return;
         }
-        d.cooldown.cancel(false);
-        int round = d.round;
         //fplDoc(league, d);
-
-        if (d.order.get(d.round).size() == 0) {
-            if (d.round == d.getTierlist().rounds) {
-                tco.sendMessage("Der Draft ist vorbei!").queue();
-                d.ended = true;
-                //wooloodoc(tierlist, pokemon, d, mem, needed, null, num, round);
-                if (d.afterDraft.size() > 0)
-                    tco.sendMessage("Reihenfolge zum Nachdraften:\n" + d.afterDraft.stream().map(d::getMention).collect(Collectors.joining("\n"))).queue();
-                saveEmolgaJSON();
-                Draft.drafts.remove(d);
-                return;
-            }
-            d.round++;
-            d.tc.sendMessage("Runde " + d.round + "!").queue();
-            league.put("round", d.round);
-        }
-        logger.info("d.order = " + d.order);
-        logger.info("d.round = " + d.round);
-        d.current = d.order.get(d.round).remove(0);
-        league.put("current", d.current);
-        JSONObject asl = getEmolgaJSON().getJSONObject("drafts");
-        tco.sendMessage(d.getMention(d.current) + " ist dran! (" + d.points.get(d.current) + " mögliche Punkte)").queue();
-        d.cooldown.cancel(false);
-        long delay = calculateDraftTimer();
-        league.put("cooldown", System.currentTimeMillis() + delay);
-        d.cooldown = d.scheduler.schedule((Runnable) d::timer, delay, TimeUnit.MILLISECONDS);
-        saveEmolgaJSON();
+        d.nextPlayer(tco, d.getTierlist(), league);
     }
 
     private void fplDoc(JSONObject league, Draft d) {

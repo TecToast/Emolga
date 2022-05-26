@@ -12,7 +12,7 @@ import java.util.Optional;
 public class AllowCommand extends Command {
 
     public AllowCommand() {
-        super("allow", "Erlaubt einem anderen User, für dich zu picken", CommandCategory.Draft, Constants.ASLID);
+        super("allow", "Erlaubt einem anderen User, für dich zu picken", CommandCategory.Draft, Constants.ASLID, Constants.NDSID);
         setArgumentTemplate(ArgumentManagerTemplate.builder()
                 .add("user", "User", "Der User, der für dich picken darf", ArgumentManagerTemplate.DiscordType.USER)
                 .setExample("!allow @Flo")
@@ -23,7 +23,7 @@ public class AllowCommand extends Command {
     public void process(GuildCommandEvent e) {
         JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
         Member member = e.getMember();
-        Optional<JSONObject> op = drafts.keySet().stream().map(drafts::getJSONObject).filter(o -> o.has("guild")).filter(o -> o.getString("guild").equals(e.getGuild().getId()))
+        Optional<JSONObject> op = e.getGuild().getIdLong() == Constants.NDSID ? Optional.of(drafts.getJSONObject("NDS")) : drafts.keySet().stream().map(drafts::getJSONObject).filter(o -> o.has("guild")).filter(o -> o.getString("guild").equals(e.getGuild().getId()))
                 .filter(o -> o.has("table")).filter(o -> o.getLongList("table").contains(member.getIdLong())).findFirst();
         if (op.isPresent()) {
             Member mem = e.getArguments().getMember("user");

@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.sql;
 
+import de.tectoast.emolga.commands.various.DasorCommand;
 import de.tectoast.emolga.utils.sql.managers.*;
 
 public class DBManagers {
@@ -10,6 +11,7 @@ public class DBManagers {
     public static final BanManager BAN = new BanManager();
     public static final BirthdayManager BIRTHDAYS = new BirthdayManager();
     public static final CalendarManager CALENDAR = new CalendarManager();
+    public static final DasorUsageManager DASOR_USAGE = new DasorUsageManager();
     public static final DiscordAuthManager DISCORD_AUTH = new DiscordAuthManager();
     public static final FullStatsManager FULL_STATS = new FullStatsManager();
     public static final GiveawayManager GIVEAWAY = new GiveawayManager();

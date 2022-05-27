@@ -247,6 +247,7 @@ public class EmolgaListener extends ListenerAdapter {
                 Draft.init(jda);
                 DBManagers.BAN.forAll(rs -> Command.banTimer(jda.getGuildById(rs.getLong("guildid")), Optional.ofNullable(rs.getTimestamp("expires")).map(Timestamp::getTime).orElse(-1L), rs.getLong("userid")));
                 DBManagers.MUTE.forAll(rs -> Command.muteTimer(jda.getGuildById(rs.getLong("guildid")), Optional.ofNullable(rs.getTimestamp("expires")).map(Timestamp::getTime).orElse(-1L), rs.getLong("userid")));
+                new Draft(jda.getTextChannelById(837425828245667841L), "NDS", null, true, true);
             }
         } catch (Exception ex) {
             ex.printStackTrace();

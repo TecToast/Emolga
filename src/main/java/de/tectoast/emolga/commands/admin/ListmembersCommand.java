@@ -10,7 +10,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class ListmembersCommand extends Command {
     public ListmembersCommand() {
-        super("listmembers", "Zeigt alle User an, die diese Rolle haben", CommandCategory.Admin);
+        super("listmembers", "Zeigt alle User an, die diese Rolle haben", CommandCategory.Flo);
         setArgumentTemplate(ArgumentManagerTemplate.builder().add("role", "Rolle", "Die Rolle, die die User besitzen sollen", ArgumentManagerTemplate.DiscordType.ID)
                 .setExample("!listmembers @VIP")
                 .build());

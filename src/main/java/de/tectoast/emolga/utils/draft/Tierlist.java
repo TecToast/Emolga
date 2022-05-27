@@ -48,7 +48,7 @@ public class Tierlist {
     /**
      * the amount of rounds in the draft
      */
-    public final int rounds;
+    public int rounds;
     /**
      * if this tierlist is pointbased
      */
@@ -61,6 +61,9 @@ public class Tierlist {
     public Tierlist(String guild) {
         this.guild = guild.substring(0, guild.length() - 5);
         JSONObject o = load("./Tierlists/" + guild);
+        if (!o.has("mode")) {
+            return;
+        }
         rounds = o.optInt("rounds", -1);
         String mode = o.getString("mode");
         if (rounds == -1 && !mode.equals("nothing"))

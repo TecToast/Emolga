@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
 public class StartClippingCommand extends Command {
 
     public StartClippingCommand() {
-        super("startclipping", "Startet die Clip-Funktion c:", CommandCategory.Admin, 919639507740020846L);
+        super("startclipping", "Startet die Clip-Funktion c:", CommandCategory.Flo, 919639507740020846L);
     }
 
     @Override

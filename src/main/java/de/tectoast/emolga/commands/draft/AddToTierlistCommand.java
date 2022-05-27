@@ -12,7 +12,7 @@ public class AddToTierlistCommand extends Command {
     public AddToTierlistCommand() {
         super("addtotierlist", "Fügt ein Mon ins D-Tier ein", CommandCategory.Draft, Constants.ASLID);
         setArgumentTemplate(ArgumentManagerTemplate.builder()
-                .add("mon", "Mon", "Das Mon", ArgumentManagerTemplate.Text.any(), false)
+                .add("mon", "Mon", "Das Mon", ArgumentManagerTemplate.draftPokemon(), false, "Das ist kein Pokemon!")
                 .add("tier", "Tier", "Das Tier, sonst das unterste", ArgumentManagerTemplate.Text.any(), true)
                 .setExample("!addtotierlist Chimstix")
                 .build()
@@ -24,12 +24,7 @@ public class AddToTierlistCommand extends Command {
     public void process(GuildCommandEvent e) {
         String id = e.getGuild().getId();
         JSONObject o = load("./Tierlists/%s.json".formatted(id));
-        String str = e.getArguments().getText("mon");
-        String mon = getDraftGerName(str).getTranslation();
-        if (mon.isEmpty()) {
-            e.reply("Das ist kein Pokemon!");
-            return;
-        }
+        String mon = e.getArguments().getText("mon");
         if (e.getArguments().has("tier"))
             o.createOrGetJSON("additionalmons").createOrGetArray(e.getArguments().getText("tier")).put(mon);
         else

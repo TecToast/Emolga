@@ -189,7 +189,7 @@ public class Draft {
                     if (!league.has("cooldown")) league.put("cooldown", System.currentTimeMillis() + delay);
                     cooldown = scheduler.schedule((Runnable) this::timer, delay, TimeUnit.MILLISECONDS);
                     saveEmolgaJSON();
-                    sendToMe("Aufgesetzt! " + delay);
+                    //sendToMe("Aufgesetzt! " + delay);
                 }
             }
             Draft.drafts.add(this);

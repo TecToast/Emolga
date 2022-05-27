@@ -11,7 +11,7 @@ import java.util.List;
 
 public class DeleteuntilCommand extends Command {
     public DeleteuntilCommand() {
-        super("deleteuntil", "Löscht alle Nachrichten bis zur angegebenen ID", CommandCategory.Admin);
+        super("deleteuntil", "Löscht alle Nachrichten bis zur angegebenen ID", CommandCategory.Flo);
         setArgumentTemplate(ArgumentManagerTemplate.builder()
                 .add("tc", "Text-Channel", "Der Channel, in dem gelöscht werden soll, sonst der, in dem der Command geschrieben wurde", ArgumentManagerTemplate.DiscordType.CHANNEL, true)
                 .add("mid", "Message-ID", "Die Message-ID, bis zu der gelöscht werden soll", ArgumentManagerTemplate.DiscordType.ID)

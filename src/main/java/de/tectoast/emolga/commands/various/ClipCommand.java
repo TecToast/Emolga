@@ -7,7 +7,7 @@ import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 
 public class ClipCommand extends Command {
@@ -15,7 +15,7 @@ public class ClipCommand extends Command {
     private static final Logger logger = LoggerFactory.getLogger(ClipCommand.class);
 
     public ClipCommand() {
-        super("clip", "Clippt. lol.", CommandCategory.Admin, 919639507740020846L);
+        super("clip", "Clippt. lol.", CommandCategory.Flo, 919639507740020846L);
     }
 
     @Override

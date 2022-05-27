@@ -8,7 +8,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 
 public class CountuntilCommand extends Command {
     public CountuntilCommand() {
-        super("countuntil", "Zählt die Nachrichten bis zur angegebenen Nachricht", CommandCategory.Admin);
+        super("countuntil", "Zählt die Nachrichten bis zur angegebenen Nachricht", CommandCategory.Flo);
         setArgumentTemplate(ArgumentManagerTemplate.builder()
                 .add("tc", "Text-Channel", "Der Channel, in dem gezählt werden soll, sonst der, in dem der Command geschrieben wurde", ArgumentManagerTemplate.DiscordType.CHANNEL, true)
                 .add("mid", "Message-ID", "Die Message-ID, bis zu der gezählt werden soll", ArgumentManagerTemplate.DiscordType.ID)

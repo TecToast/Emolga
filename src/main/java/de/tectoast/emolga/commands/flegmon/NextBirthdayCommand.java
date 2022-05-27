@@ -43,6 +43,7 @@ public class NextBirthdayCommand extends PepeCommand {
                 map.put(id, c);
             }
         }
+        set.close();
         if (map.isEmpty()) {
             tco.sendMessage("Es gibt keine nahegelegenen Geburtstage!").queue();
             return;

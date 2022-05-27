@@ -45,7 +45,7 @@ public class CompareShinyCommand extends Command {
                 e.reply(monname + " besitzt keine **" + form + "**-Form!");
                 return;
             }
-            if (suffix.equals("")) suffix = "-";
+            if (suffix.isEmpty()) suffix = "-";
             suffix += form.toLowerCase();
         }
         File fn = new File("../Showdown/sspclient/sprites/gen5/" + monname.toLowerCase() + suffix + ".png");

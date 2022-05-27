@@ -6,6 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -101,10 +102,14 @@ public class WeaknessCommand extends Command {
         );
     }
 
-    private String checkAbiImmunity(String type, List<String> abilities) {
-        if (!immunities.containsKey(type)) return null;
-        List<String> l = immunities.get(type);
-        return l.stream().filter(abilities::contains).collect(Collectors.joining(" oder "));
+    private static boolean getImmunity(String type, String... against) {
+        if (against.length > 1) {
+            for (String s : against) {
+                if (getImmunity(type, s)) return true;
+            }
+            return false;
+        }
+        return getTypeJSON().getJSONObject(against[0]).getJSONObject("damageTaken").getInt(type) == 3;
     }
 
     private List<Pair<String, Integer>> checkAbiChanges(String type, List<String> abilities) {
@@ -131,13 +136,9 @@ public class WeaknessCommand extends Command {
         };
     }
 
-    private boolean getImmunity(String type, String... against) {
-        if (against.length > 1) {
-            for (String s : against) {
-                if (getImmunity(type, s)) return true;
-            }
-            return false;
-        }
-        return getTypeJSON().getJSONObject(against[0]).getJSONObject("damageTaken").getInt(type) == 3;
+    private @Nullable String checkAbiImmunity(String type, List<String> abilities) {
+        if (!immunities.containsKey(type)) return null;
+        List<String> l = immunities.get(type);
+        return l.stream().filter(abilities::contains).collect(Collectors.joining(" oder "));
     }
 }

@@ -45,7 +45,7 @@ public abstract class GenericCommandEvent {
         this.mentionedChannels = mentions.getChannels(TextChannel.class);
         this.mentionedMembers = mentions.getMembers();
         this.mentionedRoles = mentions.getRoles();
-        this.args = new ArrayList<>(Arrays.asList(msg.split("\\s+")));
+        this.args = new ArrayList<>(Arrays.asList(Command.WHITESPACES_SPLITTER.split(msg)));
         this.args.remove(0);
         this.argsLength = this.args.size();
         this.slashCommandEvent = null;
@@ -110,8 +110,8 @@ public abstract class GenericCommandEvent {
         return argsLength;
     }
 
-    public String getArg(int i) {
-        if (hasArg(i)) return getArgs().get(i);
+    public @org.jetbrains.annotations.Nullable String getArg(int i) {
+        if (hasArg(i)) return args.get(i);
         return null;
     }
 
@@ -158,7 +158,7 @@ public abstract class GenericCommandEvent {
         logger.info("QUEUED! " + System.currentTimeMillis());
     }
 
-    public CompletableFuture<Message> replyMessage(String msg) {
+    public @org.jetbrains.annotations.Nullable CompletableFuture<Message> replyMessage(String msg) {
         if (msg.length() == 0) return null;
         if (slashCommandEvent != null) {
             slashCommandEvent.reply("\uD83D\uDC4D").setEphemeral(true).queue();
@@ -184,7 +184,7 @@ public abstract class GenericCommandEvent {
         return this.author.getIdLong() != Constants.FLOID;
     }
 
-    public DeferredSlashResponse deferReply() {
+    public @org.jetbrains.annotations.Nullable DeferredSlashResponse deferReply() {
         if (slashCommandEvent != null) return new DeferredSlashResponse(slashCommandEvent.deferReply().submit());
         return null;
     }

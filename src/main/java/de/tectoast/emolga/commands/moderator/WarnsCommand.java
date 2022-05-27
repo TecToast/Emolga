@@ -35,7 +35,8 @@ public class WarnsCommand extends Command {
         while (res.next()) {
             str.append("Von: <@").append(res.getLong("modid")).append(">\nGrund: ").append(res.getString("reason")).append("\n").append("Zeitpunkt: ").append(format.format(new Date(res.getTimestamp("timestamp").getTime()))).append(" Uhr\n\n");
         }
-        if (str.toString().equals("")) {
+        res.close();
+        if (str.toString().isEmpty()) {
             e.reply(mem.getEffectiveName() + " hat bisher keine Verwarnungen!");
         } else {
             EmbedBuilder builder = new EmbedBuilder();

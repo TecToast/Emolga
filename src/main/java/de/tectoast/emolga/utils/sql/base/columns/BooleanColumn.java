@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.sql.base.columns;
 
 import de.tectoast.emolga.utils.sql.base.DataManager;
+import org.jetbrains.annotations.Nullable;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,7 +13,7 @@ public class BooleanColumn extends SQLColumn<Boolean> {
     }
 
     @Override
-    public Boolean getValue(ResultSet set) {
+    public @Nullable Boolean getValue(ResultSet set) {
         try {
             return set.getBoolean(name);
         } catch (SQLException throwables) {
@@ -32,7 +33,7 @@ public class BooleanColumn extends SQLColumn<Boolean> {
 
     @Override
     public Boolean retrieveValue(SQLColumn<?> checkcolumn, Object checkvalue) {
-        return manager.read(manager.select(checkcolumn.check(checkvalue), this), rs -> {
+        return DataManager.read(manager.select(checkcolumn.check(checkvalue), this), rs -> {
             if (rs.next()) {
                 return getValue(rs);
             }

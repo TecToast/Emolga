@@ -78,20 +78,20 @@ public class CombinationCommand extends Command {
             if (types.size() > 0 && containsNotAll(mon.getJSONArray("types"), types)) continue;
             if (egg.size() > 0 && containsNotAll(mon.getJSONArray("eggGroups"), egg)) continue;
             //logger.info("s = " + s);
-            String string = null;
+            String currentMon = null;
             boolean isRegion = false;
             for (String form : Arrays.asList("alola", "galar", "unova")) {
                 if (mon.optString("forme", "").toLowerCase().contains(form)) isRegion = true;
             }
             if (!isRegion) {
-                if (mon.has("baseSpecies")) string = mon.getString("baseSpecies");
+                if (mon.has("baseSpecies")) currentMon = mon.getString("baseSpecies");
             }
-            if (string == null) string = s;
+            if (currentMon == null) currentMon = s;
 
             if (atks.size() > 0) {
-                if (!moves.has(toSDName(string))) continue;
-                if (!moves.getJSONObject(toSDName(string)).has("learnset")) continue;
-                if (containsNotAll(moves.getJSONObject(toSDName(string)).getJSONObject("learnset").keySet(), atks))
+                if (!moves.has(toSDName(currentMon))) continue;
+                if (!moves.getJSONObject(toSDName(currentMon)).has("learnset")) continue;
+                if (containsNotAll(moves.getJSONObject(toSDName(currentMon)).getJSONObject("learnset").keySet(), atks))
                     continue;
             }
             if (mon.getInt("num") < 0) continue;

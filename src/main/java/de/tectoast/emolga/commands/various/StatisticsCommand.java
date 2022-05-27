@@ -37,6 +37,7 @@ public class StatisticsCommand extends Command {
                     otherCmds.add(c.getPrefix() + c.getName() + ": " + count);
             }
         }
+        set.close();
         e.reply(new EmbedBuilder().setColor(Color.CYAN).setTitle("Anzahl der Nutzung").setDescription(analysis + "\n" + String.join("\n", otherCmds)).build());
     }
 }

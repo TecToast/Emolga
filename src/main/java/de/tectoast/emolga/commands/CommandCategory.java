@@ -43,7 +43,6 @@ public enum CommandCategory {
 
     final long emote;
     final String name;
-    final String disabled = "";
     private Predicate<Member> allowsMember = m -> true;
     private Predicate<Long> allowsGuildId = g -> true;
     private boolean everywhere = false;
@@ -61,7 +60,7 @@ public enum CommandCategory {
     //(gid.equals("700504340368064562") || gid.equals("712035338846994502") || gid.equals("673833176036147210")
 
     public static CommandCategory byName(String name) {
-        return Arrays.stream(values()).filter(cc -> cc.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
+        return Arrays.stream(values()).filter(commandCategory -> commandCategory.name.equalsIgnoreCase(name)).findFirst().orElse(null);
     }
 
     public static List<CommandCategory> getOrder() {

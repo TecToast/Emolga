@@ -21,7 +21,7 @@ public class RemindCommand extends Command {
     @Override
     public void process(GuildCommandEvent e) {
         try {
-            String[] split = e.getMessage().getContentRaw().split("\\s+", 3);
+            String[] split = WHITESPACES_SPLITTER.split(e.getMessage().getContentRaw(), 3);
             long expires = parseCalendarTime(split[1]);
             String message = split[2];
             long uid = e.getAuthor().getIdLong();

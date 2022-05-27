@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class PrismaTeamCommand extends PrivateCommand {
@@ -36,9 +37,10 @@ public class PrismaTeamCommand extends PrivateCommand {
             String collect = String.join("", x);
             JSONObject bads = Command.getEmolgaJSON().getJSONObject("drafts").getJSONObject("Prisma");
             JSONArray arr = new JSONArray();
-            for (String s : map.keySet()) {
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                String s = entry.getKey();
                 if (s.equals("check")) continue;
-                arr.put(new JSONObject().put("tier", s.charAt(0) + "").put("name", map.get(s)));
+                arr.put(new JSONObject().put("tier", String.valueOf(s.charAt(0))).put("name", entry.getValue()));
             }
             bads.getJSONObject("picks").put(u.getId(), arr);
             Command.saveEmolgaJSON();
@@ -82,7 +84,7 @@ public class PrismaTeamCommand extends PrivateCommand {
                 .setOnCancel(i -> current.remove(i.getUser().getIdLong()));
     }
 
-    public Object test(Message m, Interactive i, String reqtier) {
+    public static Object test(Message m, Interactive i, String reqtier) {
         String msg = m.getContentDisplay();
         if (msg.equalsIgnoreCase("!badsteam")) {
             return new ErrorMessage("");
@@ -96,7 +98,7 @@ public class PrismaTeamCommand extends PrivateCommand {
         Tierlist tierlist = getTierlist();
         String tier = tierlist.getTierOf(t.getTranslation());
         logger.info("tier = " + tier);
-        if (tier.equals(""))
+        if (tier.isEmpty())
             return new ErrorMessage("Das ist zwar ein Pokemon, aber es steht so nicht in der Tierliste!");
         logger.info("tierlist.order.indexOf(tier) = " + tierlist.order.indexOf(tier));
         logger.info("reqtier = " + reqtier);
@@ -111,7 +113,7 @@ public class PrismaTeamCommand extends PrivateCommand {
         return name;
     }
 
-    public Tierlist getTierlist() {
+    public static Tierlist getTierlist() {
         return Tierlist.getByGuild("736555250118295622");
     }
 

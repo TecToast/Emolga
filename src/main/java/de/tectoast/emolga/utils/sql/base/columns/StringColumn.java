@@ -1,7 +1,7 @@
 package de.tectoast.emolga.utils.sql.base.columns;
 
 import de.tectoast.emolga.utils.sql.base.DataManager;
-import de.tectoast.emolga.utils.sql.base.columns.SQLColumn;
+import org.jetbrains.annotations.Nullable;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,7 +19,7 @@ public class StringColumn extends SQLColumn<String> {
     }
 
     @Override
-    public String getValue(ResultSet set) {
+    public @Nullable String getValue(ResultSet set) {
         try {
             return set.getString(name);
         } catch (SQLException throwables) {

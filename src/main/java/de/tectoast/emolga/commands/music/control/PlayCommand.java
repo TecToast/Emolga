@@ -17,8 +17,8 @@ public class PlayCommand extends MusicCommand {
     public void process(GuildCommandEvent e) {
         try {
             loadAndPlay(e.getChannel(), e.getArguments().getText("video"), e.getMember(), null);
-        } catch (IllegalArgumentException IllegalArgumentException) {
-            IllegalArgumentException.printStackTrace();
+        } catch (IllegalArgumentException ex) {
+            ex.printStackTrace();
         }
     }
 }

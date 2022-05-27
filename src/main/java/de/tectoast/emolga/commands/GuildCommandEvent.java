@@ -26,7 +26,7 @@ public class GuildCommandEvent extends GenericCommandEvent {
         Command.ArgumentManagerTemplate template = c.getArgumentTemplate();
         if (template != null)
             this.manager = template.construct(e);
-        this.usedName = getMsg().split("\\s+")[0].substring(c.getPrefix().length());
+        this.usedName = Command.WHITESPACES_SPLITTER.split(getMsg())[0].substring(c.getPrefix().length());
         new Thread(() -> {
             try {
                 c.process(this);

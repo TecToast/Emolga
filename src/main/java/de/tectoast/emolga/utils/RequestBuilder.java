@@ -12,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
@@ -24,6 +25,8 @@ public class RequestBuilder {
     private static final Logger logger = LoggerFactory.getLogger(RequestBuilder.class);
 
     private static final ScheduledExecutorService runnableService = Executors.newScheduledThreadPool(1);
+    private static final Pattern EVERYTHING_BUT_NUMBER = Pattern.compile("\\D");
+    private static final Pattern EVERYTHING_BUT_CHARS = Pattern.compile("[^a-zA-Z]");
 
     private final List<MyRequest> requests = new ArrayList<>();
     private final String sid;
@@ -72,13 +75,13 @@ public class RequestBuilder {
     }
 
     public static int getColumnFromRange(String range) {
-        char[] chars = range.replaceAll("[^a-zA-Z]", "").toCharArray();
+        char[] chars = EVERYTHING_BUT_CHARS.matcher(range).replaceAll("").toCharArray();
         if (chars.length == 1) return chars[0] - 65;
         return (chars[0] - 64) * 26 + (chars[1] - 65);
     }
 
     public static int getRowFromRange(String range) {
-        return Integer.parseInt(range.replaceAll("[^\\d]", "")) - 1;
+        return Integer.parseInt(EVERYTHING_BUT_NUMBER.matcher(range).replaceAll("")) - 1;
     }
 
     public static GridRange buildGridRange(String expr, int sheetId) {

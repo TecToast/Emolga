@@ -10,10 +10,13 @@ import de.tectoast.jsolf.JSONObject;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.regex.Pattern;
 
 import static de.tectoast.emolga.bot.EmolgaMain.emolgajda;
 
 public class PokeFansExportCommand extends Command {
+    private static final Pattern JUST_CHARS_AND_WHITESPACES = Pattern.compile("[^A-Za-z\\s]");
+
     public PokeFansExportCommand() {
         super("pokefansexport", "Macht Pokefans Export lol", CommandCategory.Draft);
         setArgumentTemplate(ArgumentManagerTemplate.builder().add("draft", "Draft-Name", "Der Name der Liga, für die der Export gemacht werden soll", ArgumentManagerTemplate.draft())
@@ -33,7 +36,7 @@ public class PokeFansExportCommand extends Command {
         for (String id : ids) {
             JSONArray picksArr = picksObj.getJSONArray(id);
             JSONArray oneUser = new JSONArray();
-            oneUser.put(names.get(id).replaceAll("[^A-Za-z\\s]", ""));
+            oneUser.put(JUST_CHARS_AND_WHITESPACES.matcher(names.get(id)).replaceAll(""));
             oneUser.put(e.getArg(0));
             JSONArray mons = new JSONArray();
             picksArr.toList().stream().map(o -> (String) ((HashMap<String, Object>) o).get("name"))

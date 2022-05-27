@@ -117,7 +117,7 @@ public class PickCommand extends Command {
                 }
             } else {
                 String origtier = tierlist.getTierOf(pokemon);
-                if (origtier.equals("")) {
+                if (origtier.isEmpty()) {
                     tco.sendMessage(memberr.getAsMention() + " Das ist kein Pokemon!").queue();
                     return;
                 }
@@ -230,7 +230,7 @@ public class PickCommand extends Command {
         b.addStrikethroughChange(league.getInt("draftorder"), round % 6 + 2, round / 6 * 12 + num + 6, true);
         List<Long> table = league.getLongList("table");
         int index = table.indexOf(mem);
-        b.addSingle("Kader!%s%d".formatted(getAsXCoord(index % 3 * 8 + 2), index / 3 * 20 + 7 + d.picks.get(mem).size()), pokemon);
+        b.addSingle("Kader!%s%d".formatted(getAsXCoord((index % 3 << 3) + 2), index / 3 * 20 + 7 + d.picks.get(mem).size()), pokemon);
         b.execute();
     }
 
@@ -241,10 +241,11 @@ public class PickCommand extends Command {
         Coord c = tierlist.getLocation(pokemon, 0, 0);
         logger.info("c.toString() = {}", c);
         logger.info("c.valid() = {}", c.valid());
-        if (c.valid()) b.addBGColorChange(league.getInt("tierlist"), c.x() * 2 + 2, c.y() + 5, convertColor(0xFF0000));
-        Coord cengl = tierlist.getLocation(pokemon, 0, 0, tierlist.tiercolumnsEngl);
+        if (c.valid())
+            b.addBGColorChange(league.getInt("tierlist"), (c.x() << 1) + 2, c.y() + 5, convertColor(0xFF0000));
+        Coord cengl = Tierlist.getLocation(pokemon, 0, 0, tierlist.tiercolumnsEngl);
         if (cengl.valid())
-            b.addBGColorChange(league.getInt("tierlistengl"), cengl.x() * 2 + 2, cengl.y() + 5, convertColor(0xFF0000));
+            b.addBGColorChange(league.getInt("tierlistengl"), (cengl.x() << 1) + 2, cengl.y() + 5, convertColor(0xFF0000));
         Integer points = tierlist.prices.get(tier);
         Comparator<DraftPokemon> comparator = Comparator.comparing(p -> tierlist.order.indexOf(p.getTier()));
         Comparator<DraftPokemon> finalComp = comparator.thenComparing(p -> p.name);
@@ -259,7 +260,7 @@ public class PickCommand extends Command {
         int index = d.originalOrder.get(effectiveRound).indexOf(mem);
         logger.info("index = {}", index);
 
-        b.addRow("Draft!%s%d".formatted(getAsXCoord((rr % 6) * 4 + 3), (rr / 6) * 10 + 4 + index), Arrays.asList(pokemon, points));
+        b.addRow("Draft!%s%d".formatted(getAsXCoord(((rr % 6) << 2) + 3), (rr / 6) * 10 + 4 + index), Arrays.asList(pokemon, points));
         b.execute();
     }
 
@@ -282,7 +283,7 @@ public class PickCommand extends Command {
         }
         RequestBuilder b = new RequestBuilder(sid);
         if (found) {
-            b.addStrikethroughChange(league.getInt("tierlist"), x * 2, y, true);
+            b.addStrikethroughChange(league.getInt("tierlist"), x << 1, y, true);
         }
         //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
         String lea = "";
@@ -322,7 +323,7 @@ public class PickCommand extends Command {
         }
         RequestBuilder b = new RequestBuilder(sid);
         if (found) {
-            b.addBGColorChange(league.getInt("tierlist"), x * 2, y, convertColor(0xff0000));
+            b.addBGColorChange(league.getInt("tierlist"), x << 1, y, convertColor(0xff0000));
         }
         x = 1;
         y = 5;
@@ -345,14 +346,14 @@ public class PickCommand extends Command {
                                                     .setRed((float) 0.5764706).setGreen((float) 0.76862746).setBlue((float) 0.49019608)))))))
                     .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(league.getInt("tierlist")).setStartRowIndex(y).setEndRowIndex(y + 1).setStartColumnIndex(x * 2 - 1).setEndColumnIndex(x * 2)));
             b.addBatch(request);*/
-            b.addBGColorChange(league.getInt("tierlist"), x * 2, y, convertColor(0x93c47d));
+            b.addBGColorChange(league.getInt("tierlist"), x << 1, y, convertColor(0x93c47d));
         }
         //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
         String team = asl.getStringList("teams").get(getIndex(mem.getIdLong()));
         int yc = (Draft.getLevel(mem.getIdLong()) * 20 + d.picks.get(mem.getIdLong()).size());
         List<Integer> list = new LinkedList<>();
         for (int i = 0; i < 9; i++) {
-            list.add(i * 4 + 10);
+            list.add((i << 2) + 10);
         }
         b.addRow(team + "!B" + yc, Arrays.asList(getGen5Sprite(pokemon), pokemon, needed,
                 "=" + list.stream().map(i -> getAsXCoord(i) + yc).collect(Collectors.joining(" + ")),
@@ -415,7 +416,7 @@ public class PickCommand extends Command {
             }
             logger.info("num = " + num);
             RequestBuilder b = new RequestBuilder(doc);
-            b.addStrikethroughChange(league.getInt("tierlist"), x * 2, y, true);
+            b.addStrikethroughChange(league.getInt("tierlist"), x << 1, y, true);
             //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
             b.addStrikethroughChange(league.getInt("draftorder"), d.round + 1, num + 6, true);
             int user = league.getLongList("table").indexOf(mem.getIdLong());
@@ -446,7 +447,7 @@ public class PickCommand extends Command {
             }
             logger.info("num = " + num);
             RequestBuilder b = new RequestBuilder(doc);
-            b.addStrikethroughChange(910228334, x * 2 + 1, y, true);
+            b.addStrikethroughChange(910228334, (x << 1) + 1, y, true);
             //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
             b.addStrikethroughChange(856868721, d.round + 2, num + 2, true);
             int user = league.getLongList("table").indexOf(mem.getIdLong());
@@ -490,7 +491,7 @@ public class PickCommand extends Command {
                             .setValues(Collections.singletonList(new CellData()
                                     .setUserEnteredFormat(new CellFormat()
                                             .setBackgroundColor(new Color().setRed(1f)))))))
-                    .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(league.getInt("tierlist")).setStartRowIndex(y).setEndRowIndex(y + 1).setStartColumnIndex(x * 2 - 1).setEndColumnIndex(x * 2)));
+                    .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(league.getInt("tierlist")).setStartRowIndex(y).setEndRowIndex(y + 1).setStartColumnIndex((x << 1) - 1).setEndColumnIndex(x << 1)));
             b.addBatch(request);
         }
         x = 1;
@@ -512,7 +513,7 @@ public class PickCommand extends Command {
                                     .setUserEnteredFormat(new CellFormat()
                                             .setBackgroundColor(new Color()
                                                     .setRed((float) 0.5764706).setGreen((float) 0.76862746).setBlue((float) 0.49019608)))))))
-                    .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(league.getInt("tierlist")).setStartRowIndex(y).setEndRowIndex(y + 1).setStartColumnIndex(x * 2 - 1).setEndColumnIndex(x * 2)));
+                    .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(league.getInt("tierlist")).setStartRowIndex(y).setEndRowIndex(y + 1).setStartColumnIndex((x << 1) - 1).setEndColumnIndex(x << 1)));
             b.addBatch(request);
         }
         Request req = new Request();
@@ -568,7 +569,7 @@ public class PickCommand extends Command {
                             .setValues(Collections.singletonList(new CellData()
                                     .setUserEnteredFormat(new CellFormat()
                                             .setBackgroundColor(new Color().setRed(1f)))))))
-                    .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(league.getInt("tierlist")).setStartRowIndex(y).setEndRowIndex(y + 1).setStartColumnIndex(x * 2 - 1).setEndColumnIndex(x * 2)));
+                    .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(league.getInt("tierlist")).setStartRowIndex(y).setEndRowIndex(y + 1).setStartColumnIndex((x << 1) - 1).setEndColumnIndex(x << 1)));
             b.addBatch(request);
         }
         x = 1;
@@ -590,7 +591,7 @@ public class PickCommand extends Command {
                                     .setUserEnteredFormat(new CellFormat()
                                             .setBackgroundColor(new Color()
                                                     .setRed((float) 0.5764706).setGreen((float) 0.76862746).setBlue((float) 0.49019608)))))))
-                    .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(league.getInt("tierlist")).setStartRowIndex(y).setEndRowIndex(y + 1).setStartColumnIndex(x * 2 - 1).setEndColumnIndex(x * 2)));
+                    .setFields("userEnteredFormat.backgroundColor").setRange(new GridRange().setSheetId(league.getInt("tierlist")).setStartRowIndex(y).setEndRowIndex(y + 1).setStartColumnIndex((x << 1) - 1).setEndColumnIndex(x << 1)));
             b.addBatch(request);
         }
         //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));

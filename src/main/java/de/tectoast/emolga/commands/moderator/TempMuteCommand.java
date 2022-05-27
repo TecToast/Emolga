@@ -41,7 +41,7 @@ public class TempMuteCommand extends Command {
                 time += parseShortTime(splitarr[i]);
             } else reasonbuilder.append(splitarr[i]).append(" ");
         }
-        String reason = reasonbuilder.toString().trim().equals("") ? "Nicht angegeben" : reasonbuilder.toString().trim();
+        String reason = reasonbuilder.toString().trim().isEmpty() ? "Nicht angegeben" : reasonbuilder.toString().trim();
         tempMute(tco, e.getMember(), mem, time, reason);
     }
 }

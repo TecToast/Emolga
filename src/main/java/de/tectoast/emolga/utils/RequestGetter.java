@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils;
 
 import com.google.api.services.sheets.v4.model.ExtendedValue;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +29,7 @@ public class RequestGetter {
         return this;
     }
 
-    public List<List<List<String>>> execute() {
+    public @Nullable List<List<List<String>>> execute() {
         try {
             Spreadsheet sh = Google.getSheetsService().spreadsheets().get(sid).setIncludeGridData(true).setRanges(ranges).execute();//Google.getSheetsService().spreadsheets().values().batchGet("").
             HashMap<String, AtomicInteger> map = new HashMap<>();

@@ -46,7 +46,7 @@ public class SkipCommand extends Command {
         d.nextPlayer(tco, d.getTierlist(), league);
     }
 
-    private void fplDoc(JSONObject league, Draft d) {
+    private static void fplDoc(JSONObject league, Draft d) {
         RequestBuilder b = new RequestBuilder(league.getString("sid"));
         b.addStrikethroughChange(league.getInt("draftorder"), d.round + 1, (d.members.size() - d.order.get(d.round).size()) + 6, true);
         b.execute();

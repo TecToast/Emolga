@@ -44,7 +44,7 @@ public class ShinyCommand extends Command {
                 e.reply(monname + " besitzt keine **" + form + "**-Form!");
                 return;
             }
-            if(suffix.equals("")) suffix = "-";
+            if (suffix.isEmpty()) suffix = "-";
             suffix += form.toLowerCase();
         }
         File f = new File("../Showdown/sspclient/sprites/gen5-shiny/" + monname.toLowerCase() + suffix + ".png");

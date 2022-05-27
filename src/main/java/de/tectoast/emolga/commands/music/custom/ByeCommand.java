@@ -20,8 +20,8 @@ public class ByeCommand extends MusicCommand {
         Member member = e.getMember();
         try {
             loadAndPlay(tco, "https://www.youtube.com/watch?v=TgqiSBxvdws", member, ":(");
-        } catch (IllegalArgumentException IllegalArgumentException) {
-            IllegalArgumentException.printStackTrace();
+        } catch (IllegalArgumentException ex) {
+            ex.printStackTrace();
         }
     }
 }

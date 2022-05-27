@@ -127,7 +127,7 @@ public class DocEntry {
         for (int j = 0; j < points.size(); j++) {
             sendname.add(namap.get(j));
         }
-        RequestBuilder.updateAll(sid, formulaRange.substring(0, formulaRange.indexOf(":")), sendname);
+        RequestBuilder.updateAll(sid, formulaRange.substring(0, formulaRange.indexOf(':')), sendname);
     }
 
     public DocEntry leagueFunction(BiFunction<Long, Long, JSONObject> leagueFunction) {

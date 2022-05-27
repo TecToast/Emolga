@@ -38,13 +38,13 @@ public class WhatLearnCommand extends Command {
         aliases.add("howlearn");
     }
 
-    public boolean banane(JSONObject learnset, int gen, String type, HashMap<Integer, List<String>> levels, LinkedList<String> list) {
+    public static boolean banane(JSONObject learnset, int gen, String type, HashMap<Integer, List<String>> levels, LinkedList<String> list) {
         for (String s : learnset.keySet()) {
             ArrayList<String> arr = learnset.getJSONArray(s).toList().stream().map(o -> ((String) o)).collect(Collectors.toCollection(ArrayList::new));
             if (arr.stream().anyMatch(t -> t.startsWith(String.valueOf(gen)) && t.contains(type))) {
                 String name = getGerNameNoCheck(s);
                 if (type.equals("L")) {
-                    arr.stream().filter(str -> str.startsWith(gen + "L")).map(str -> str.substring(str.indexOf("L") + 1)).map(Integer::parseInt).forEach(i -> {
+                    arr.stream().filter(str -> str.startsWith(gen + "L")).map(str -> str.substring(str.indexOf('L') + 1)).map(Integer::parseInt).forEach(i -> {
                         if (!levels.containsKey(i)) levels.put(i, new ArrayList<>());
                         List<String> l = levels.get(i);
                         l.add(name);

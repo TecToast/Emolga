@@ -40,7 +40,7 @@ public class NominateCommand extends PrivateCommand {
             e.getChannel().sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!").queue();
             return;
         }
-        JSONArray arr = nds.getJSONObject("picks").getJSONArray(e.getAuthor().getIdLong() == Constants.FLOID ? e.getMessage().getContentDisplay().split("\\s+")[1] : e.getAuthor().getId());
+        JSONArray arr = nds.getJSONObject("picks").getJSONArray(e.getAuthor().getIdLong() == Constants.FLOID ? WHITESPACES_SPLITTER.split(e.getMessage().getContentDisplay())[1] : e.getAuthor().getId());
         List<JSONObject> list = arr.toJSONList();
         list.sort(tiercomparator);
         List<String> b = list.stream().map(o -> o.getString("name")).collect(Collectors.toList());

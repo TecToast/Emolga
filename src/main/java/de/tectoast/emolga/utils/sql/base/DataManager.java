@@ -43,15 +43,8 @@ public abstract class DataManager {
         executeQuery("UPDATE " + tableName + " SET " + String.join(",", l) + " WHERE " + checkcolumn.check(checkvalue));
     }
 
-    public void insertOrUpdateOld(SQLColumn<?> checkcolumn, Object checkvalue, Object... values) {
-        if (!ready) throw new IllegalStateException("DataManager " + this.getTableName() + " is not initialized!");
-        read(selectAll(checkcolumn.check(checkvalue)), res -> {
-            if (res.next()) {
-                update(checkcolumn, checkvalue, columns, values);
-            } else {
-                insert(values);
-            }
-        });
+    protected static Connection getConnection() {
+        return Database.getConnection();
     }
 
     public void insertSpecifiedColumns(SQLColumn<?>[] columns, Object... values) {
@@ -66,9 +59,92 @@ public abstract class DataManager {
         insertOrUpdate(checkcolumn, checkvalue, null, newValues);
     }
 
+    public static <T> T read(String query, ResultsFunction<T> rf) {
+        return read(query, rf, null);
+    }
+
+    public static void read(String query, ResultsConsumer rc) {
+        try (Statement statement = getConnection().createStatement()) {
+            ResultSet results = statement.executeQuery(query);
+            rc.consume(results);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static <T> T read(String query, ResultsFunction<T> rf, T err) {
+        try (Statement statement = getConnection().createStatement()) {
+            ResultSet results = statement.executeQuery(query);
+            return rf.apply(results);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return err;
+        }
+    }
+
+    public static <T> T readWrite(String query, ResultsFunction<T> rf) {
+        return readWrite(query, rf, null);
+    }
+
+    public static void readWrite(String query, ResultsConsumer rc) {
+        try (Statement statement = getConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            ResultSet results = statement.executeQuery(query);
+            rc.consume(results);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static int executeQuery(String query) {
+        try (Statement statement = getConnection().createStatement()) {
+            if (query.startsWith("INSERT INTO") || query.startsWith("UPDATE") || query.startsWith("DELETE")) {
+                logger.info("query = " + query);
+            }
+            return statement.executeUpdate(query);
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+            return -1;
+        }
+    }
+
+    public static <T> T readWrite(String query, ResultsFunction<T> rf, T err) {
+        try (ResultSet set = getConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE).executeQuery(query)) {
+            return rf.apply(set);
+        } catch (SQLException e) {
+            return err;
+        }
+    }
+
+    public void insertOrUpdateOld(SQLColumn<?> checkcolumn, Object checkvalue, Object... values) {
+        if (!ready) throw new IllegalStateException("DataManager " + this.tableName + " is not initialized!");
+        read(selectAll(checkcolumn.check(checkvalue)), res -> {
+            if (res.next()) {
+                update(checkcolumn, checkvalue, columns, values);
+            } else {
+                insert(values);
+            }
+        });
+    }
+
+    public void editOneValue(SQLColumn<?> checkcolumn, Object checkvalue, SQLColumn<?> toedit, Object editobject) {
+        readWrite(selectAll(checkcolumn.check(checkvalue)), res -> {
+            if (res.next()) {
+                toedit.update(res, editobject);
+                res.updateRow();
+            }
+        });
+    }
+
+    public void forAll(ResultsConsumer c) {
+        read(selectAll(), rc -> {
+            while (rc.next()) {
+                c.consume(rc);
+            }
+        });
+    }
 
     public void insertOrUpdate(SQLColumn<?> checkcolumn, Object checkvalue, ResultsConsumer rc, Object... newValues) {
-        if (!ready) throw new IllegalStateException("DataManager " + this.getTableName() + " is not initialized!");
+        if (!ready) throw new IllegalStateException("DataManager " + this.tableName + " is not initialized!");
         readWrite(selectAll(checkcolumn.check(checkvalue)), res -> {
             if (res.next()) {
                 if (rc == null) {
@@ -91,26 +167,8 @@ public abstract class DataManager {
         });
     }
 
-    public void editOneValue(SQLColumn<?> checkcolumn, Object checkvalue, SQLColumn<?> toedit, Object editobject) {
-        readWrite(selectAll(checkcolumn.check(checkvalue)), res -> {
-            if (res.next()) {
-                toedit.update(res, editobject);
-                res.updateRow();
-            }
-        });
-    }
-
-    public void forAll(ResultsConsumer c) {
-        read(selectAll(), rc -> {
-            while (rc.next()) {
-                c.consume(rc);
-            }
-        });
-    }
-
-
     public void insert(Object... newValues) {
-        if (!ready) throw new IllegalStateException("DataManager " + this.getTableName() + " is not initialized!");
+        if (!ready) throw new IllegalStateException("DataManager " + this.tableName + " is not initialized!");
         ArrayList<String> l = new ArrayList<>();
         for (int i = 0; i < columns.length; i++) {
             Object newValue = newValues[i];
@@ -118,70 +176,7 @@ public abstract class DataManager {
             else
                 l.add(columns[i].wrap(newValue));
         }
-        Database.update("INSERT INTO " + getTableName() + " (" + Arrays.stream(columns).map(s -> s.name).collect(Collectors.joining(", ")) + ") VALUES (" + String.join(", ", l) + ")");
-    }
-
-    public final void read(String query, ResultsConsumer rc) {
-        try {
-            Statement statement = getConnection().createStatement();
-            ResultSet results = statement.executeQuery(query);
-            rc.consume(results);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public final <T> T read(String query, ResultsFunction<T> rf) {
-        return read(query, rf, null);
-    }
-
-    public final <T> T read(String query, ResultsFunction<T> rf, T err) {
-        try {
-            Statement statement = getConnection().createStatement();
-            ResultSet results = statement.executeQuery(query);
-            return rf.apply(results);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return err;
-        }
-    }
-
-    public final void readWrite(String query, ResultsConsumer rc) {
-        try {
-            Statement statement = getConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-            ResultSet results = statement.executeQuery(query);
-            rc.consume(results);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public final <T> T readWrite(String query, ResultsFunction<T> rf) {
-        return readWrite(query, rf, null);
-    }
-
-    public final <T> T readWrite(String query, ResultsFunction<T> rf, T err) {
-        try {
-            return rf.apply(getConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE).executeQuery(query));
-        } catch (SQLException e) {
-            return err;
-        }
-    }
-
-    public final int executeQuery(String query) {
-        try (Statement statement = getConnection().createStatement()) {
-            if (query.startsWith("INSERT INTO") || query.startsWith("UPDATE") || query.startsWith("DELETE")) {
-                logger.info("query = " + query);
-            }
-            return statement.executeUpdate(query);
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-            return -1;
-        }
-    }
-
-    public final String deleteStmt(String where) {
-        return "DELETE FROM " + this.getTableName() + " WHERE " + where;
+        Database.update("INSERT INTO " + tableName + " (" + Arrays.stream(columns).map(s -> s.name).collect(Collectors.joining(", ")) + ") VALUES (" + String.join(", ", l) + ")");
     }
 
     public final int delete(String where) {
@@ -192,8 +187,8 @@ public abstract class DataManager {
         return tableName;
     }
 
-    protected final Connection getConnection() {
-        return Database.getConnection();
+    public final String deleteStmt(String where) {
+        return "DELETE FROM " + this.tableName + " WHERE " + where;
     }
 
     public final String select(String where, SQLColumn<?>... columns) {

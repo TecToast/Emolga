@@ -136,7 +136,7 @@ public class Pokemon {
 
     public void setDead(int line) {
         if (game.get(line + 1).contains("|replace|") && game.get(line + 1).contains("|Zor")) {
-            player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> {
+            player.getMons().stream().filter(p -> p.pokemon.equals("Zoroark") || p.pokemon.equals("Zorua")).findFirst().ifPresent(p -> {
                 p.dead = true;
                 zoru.remove(player.getNumber());
             });
@@ -151,7 +151,7 @@ public class Pokemon {
 
     public void setHp(int hp, int turn) {
         if (zoroTurns.contains(turn)) {
-            player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> p.hp = hp);
+            player.getMons().stream().filter(p -> p.pokemon.equals("Zoroark") || p.pokemon.equals("Zorua")).findFirst().ifPresent(p -> p.hp = hp);
             logger.info(MarkerFactory.getMarker("important"), "set hp zoroark in turn {} to {}", turn, hp);
         } else this.hp = hp;
     }
@@ -190,7 +190,7 @@ public class Pokemon {
 
     public void killsPlus1(int turn) {
         if (this.zoroTurns.contains(turn)) {
-            player.getMons().stream().filter(p -> p.getPokemon().equals("Zoroark") || p.getPokemon().equals("Zorua")).findFirst().ifPresent(p -> {
+            player.getMons().stream().filter(p -> p.pokemon.equals("Zoroark") || p.pokemon.equals("Zorua")).findFirst().ifPresent(p -> {
                 if (p.lastKillTurn == turn) return;
                 p.kills++;
                 p.lastKillTurn = turn;

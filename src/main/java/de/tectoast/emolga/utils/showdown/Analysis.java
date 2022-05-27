@@ -64,13 +64,19 @@ public class Analysis {
         return pl.get(i).getMons().get(pl.get(i).indexOfName(zoru.getOrDefault(i, "")));
     }
 
+    private static void check(IntFunction<Boolean> ch, Consumer<Integer> c) {
+        for (int i = 1; i <= 2; i++) {
+            if (ch.apply(i)) c.accept(i);
+        }
+    }
+
     public Player[] analyse() throws IOException {
         logger.info("Reading URL... {}", link);
         List<String> game = new BufferedReader(new InputStreamReader(new URL(link + ".log").openConnection().getInputStream())).lines().toList();
         logger.info("Starting analyse!");
         long time = System.currentTimeMillis();
-        for (String string : game) {
-            this.s = string;
+        for (String currentLine : game) {
+            this.s = currentLine;
             this.split = s.split("\\|");
             checkPlayer(i -> s.contains("|player|p" + i) && s.length() > 11, p -> p.setNickname(split[3]));
             check(i -> s.contains("|poke|p" + i), i -> {
@@ -162,9 +168,9 @@ public class Analysis {
         });
         line = -1;
         logger.info(MarkerFactory.getMarker("important"), "zoroTurns.get(1) = {}", zoroTurns.get(1));
-        for (String string : game) {
+        for (String currentLine : game) {
             line++;
-            s = string;
+            s = currentLine;
             split = s.split("\\|");
             check(i -> s.contains("|switch|p" + i) || s.contains("|drag|p" + i) || s.contains("|replace|p" + i), i -> {
                 Pokemon mon = pl.get(i).getMons().get(pl.get(i).indexOfName(split[3].split(",")[0]));
@@ -491,12 +497,6 @@ public class Analysis {
         }
         logger.info("TIME: " + (System.currentTimeMillis() - time) + " ==========================================================");
         return pl.values().toArray(Player[]::new);
-    }
-
-    private void check(IntFunction<Boolean> ch, Consumer<Integer> c) {
-        for (int i = 1; i <= 2; i++) {
-            if (ch.apply(i)) c.accept(i);
-        }
     }
 
     private void checkPokemon(IntFunction<Boolean> ch, Consumer<Pokemon> active) {

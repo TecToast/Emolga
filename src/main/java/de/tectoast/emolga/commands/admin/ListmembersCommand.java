@@ -42,7 +42,7 @@ public class ListmembersCommand extends Command {
             for (Member mem : members) {
                 s.append(mem.getEffectiveName()).append("\n");
             }
-            if (s.toString().equals("")) {
+            if (s.toString().isEmpty()) {
                 tco.sendMessage("Kein Member hat die Rolle " + r.getName() + "!").queue();
                 return;
             }

@@ -14,7 +14,7 @@ public class DasorCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         e.reply(DBManagers.DASOR_USAGE.buildMessage());
     }
 }

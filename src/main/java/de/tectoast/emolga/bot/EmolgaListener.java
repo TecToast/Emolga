@@ -196,7 +196,7 @@ public class EmolgaListener extends ListenerAdapter {
                     TextChannel t = tco.getGuild().getTextChannelById(replayAnalysis.get(tco.getIdLong()));
                     //t.sendTyping().queue();
                     if (msg.contains("https://") || msg.contains("http://")) {
-                        Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(" ", s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("http") + 1))).findFirst();
+                        Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(' ', s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(' ', s.indexOf("http") + 1))).findFirst();
                         if (urlop.isPresent()) {
                             String url = urlop.get();
                             logger.info(url);
@@ -218,7 +218,7 @@ public class EmolgaListener extends ListenerAdapter {
             PrivateCommand.check(e);
             String msg = e.getMessage().getContentDisplay();
             if (msg.contains("https://") || msg.contains("http://")) {
-                Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(" ", s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("http") + 1))).findFirst();
+                Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(' ', s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(' ', s.indexOf("http") + 1))).findFirst();
                 if (urlop.isPresent()) {
                     String url = urlop.get();
                     analyseReplay(url, null, e.getJDA().getTextChannelById(820359155612254258L), e.getMessage(), null);

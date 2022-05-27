@@ -11,8 +11,10 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
+import okhttp3.Response;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -160,7 +162,7 @@ public class HttpHandler extends AbstractHandler {
         }
     }
 
-    public static JSONObject getBody(HttpServletRequest req) {
+    public static @Nullable JSONObject getBody(HttpServletRequest req) {
         try {
             return new JSONObject(new JSONTokener(req.getReader()));
         } catch (IOException e) {
@@ -221,25 +223,30 @@ public class HttpHandler extends AbstractHandler {
     }
 
     private static JSONArray getGuilds(String token) throws IOException {
-        String arr = client.newCall(new okhttp3.Request.Builder()
+        Response res = client.newCall(new okhttp3.Request.Builder()
                 .url("https://discordapp.com/api/users/@me/guilds")
                 .get()
                 .addHeader("Authorization", "Bearer " + token)
-                .build()).execute().body().string();
+                .build()).execute();
+        String arr = res.body().string();
+        res.close();
         logger.info("arr = " + arr);
         return new JSONArray(arr);
     }
 
     private static JSONObject getUserInfo(String token) throws IOException {
-        return new JSONObject(client.newCall(new okhttp3.Request.Builder()
+        Response res = client.newCall(new okhttp3.Request.Builder()
                 .url("https://discordapp.com/api/users/@me")
                 .get()
                 .addHeader("Authorization", "Bearer " + token)
-                .build()).execute().body().string());
+                .build()).execute();
+        String respStr = res.body().string();
+        res.close();
+        return new JSONObject(respStr);
     }
 
     private static JSONObject exchangeCode(String code) throws IOException {
-        return new JSONObject(client.newCall(new okhttp3.Request.Builder()
+        Response res = client.newCall(new okhttp3.Request.Builder()
                 .url("https://discord.com/api/v8/oauth2/token")
                 .method("POST", new FormBody.Builder()
                         .add("client_id", "723829878755164202")
@@ -249,11 +256,14 @@ public class HttpHandler extends AbstractHandler {
                         .add("redirect_uri", "https://florixserver.selfhost.eu:51216/api/discordauth")
                         .build())
                 .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                .build()).execute().body().string());
+                .build()).execute();
+        String respStr = res.body().string();
+        res.close();
+        return new JSONObject(respStr);
     }
 
     private static JSONObject refreshToken(String refreshToken) throws IOException {
-        return new JSONObject(client.newCall(new okhttp3.Request.Builder()
+        Response res = client.newCall(new okhttp3.Request.Builder()
                 .url("https://discord.com/api/v8/oauth2/token")
                 .method("POST", new FormBody.Builder()
                         .add("client_id", "723829878755164202")
@@ -262,7 +272,10 @@ public class HttpHandler extends AbstractHandler {
                         .add("refresh_token", refreshToken)
                         .build())
                 .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                .build()).execute().body().string());
+                .build()).execute();
+        String respStr = res.body().string();
+        res.close();
+        return new JSONObject(respStr);
     }
 
 

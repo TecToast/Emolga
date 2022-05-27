@@ -127,7 +127,7 @@ public class MonDataButton extends ButtonListener {
                                 if (stat.containsKey(str)) stat.get(str).add(toadd.toString());
                                 else stat.put(str, new ArrayList<>(Collections.singletonList(toadd.toString())));*/
             String prevoInfo = getPrevoInfo(mon);
-            if (!prevoInfo.equals("")) {
+            if (!prevoInfo.isEmpty()) {
                 builder.addField("Erhaltbarkeit", prevoInfo, false);
             }
             builder.addField("Basestats", str, false);

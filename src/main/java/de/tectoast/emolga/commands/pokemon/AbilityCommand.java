@@ -28,11 +28,11 @@ public class AbilityCommand extends Command {
         String abi = e.getArguments().getTranslation("abi").getTranslation();
         for (String s : json.keySet()) {
             JSONObject data = json.getJSONObject(s);
-            if(data.getInt("num") < 0) continue;
-            if (data.getJSONObject("abilities").keySet().stream().map(string -> data.getJSONObject("abilities").getString(string)).anyMatch(string -> string.equalsIgnoreCase(abi))) {
+            if (data.getInt("num") < 0) continue;
+            if (data.getJSONObject("abilities").keySet().stream().map(ability -> data.getJSONObject("abilities").getString(ability)).anyMatch(ability -> ability.equalsIgnoreCase(abi))) {
                 String name;
-                if(s.equals("nidoranf")) name = "Nidoran-F";
-                else if(s.equals("nidoranm")) name = "Nidoran-M";
+                if (s.equals("nidoranf")) name = "Nidoran-F";
+                else if (s.equals("nidoranm")) name = "Nidoran-M";
                 else {
                     Translation gerName = getGerName(s);
                     if (gerName.isSuccess()) name = gerName.getTranslation();
@@ -45,12 +45,12 @@ public class AbilityCommand extends Command {
         }
         mons.removeIf(Objects::isNull);
         Collections.sort(mons);
-        StringBuilder s = new StringBuilder();
+        StringBuilder s = new StringBuilder(2 << 11);
         for (String mon : mons) {
             s.append(mon).append("\n");
             if (s.length() > 1900) {
                 e.reply(new EmbedBuilder().setColor(Color.CYAN).setTitle(e.getArguments().getTranslation("abi").getOtherLang() + " haben:").setDescription(s).build());
-                s = new StringBuilder();
+                s = new StringBuilder(2 << 11);
             }
         }
         e.reply(new EmbedBuilder().setColor(Color.CYAN).setTitle(e.getArguments().getTranslation("abi").getOtherLang() + " haben:").setDescription(s).build());

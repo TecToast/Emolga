@@ -13,8 +13,8 @@ public class MuffinCommand extends MusicCommand {
     public void process(GuildCommandEvent e) {
         try {
             loadAndPlay(e.getChannel(), "https://www.youtube.com/watch?v=LACbVhgtx9I", e.getMember(), "**ITS MUFFIN TIME!**");
-        } catch (IllegalArgumentException IllegalArgumentException) {
-            IllegalArgumentException.printStackTrace();
+        } catch (IllegalArgumentException ex) {
+            ex.printStackTrace();
         }
     }
 }

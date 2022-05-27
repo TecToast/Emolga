@@ -7,6 +7,7 @@ import de.tectoast.emolga.utils.music.GuildMusicManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 
@@ -38,7 +39,7 @@ public class YTDataLoader {
         this.url = "https://www.youtube.com/playlist?list=" + playlist.getId();
     }
 
-    private static YTDataLoader fromURL(String url) {
+    private static @Nullable YTDataLoader fromURL(String url) {
         if (url.startsWith("https://www.youtube.com/playlist?list="))
             return new YTDataLoader(Google.getPlaylistByURL(url));
         if (url.startsWith("https://www.youtube.com/watch?v=") || url.startsWith("https://youtu.be/"))
@@ -75,11 +76,11 @@ public class YTDataLoader {
                 .setTitle(track.getInfo().title, url)
                 .setColor(Color.CYAN)
                 .setAuthor("Added to queue", null, mem.getUser().getEffectiveAvatarUrl())
-                .addField("Channel", getChannel(), true)
+                .addField("Channel", channel, true)
                 .addField("Song Duration", formatToTime(track.getDuration()), true)
                 .addField("Estimated time until playing", formatToTime(duration), true)
-                .addField("Position in queue", (musicManager.scheduler.queue.size() > 0 ? musicManager.scheduler.queue.size() + 1 : 0) + "", false)
-                .setThumbnail(getThumbnail()).build();
+                .addField("Position in queue", String.valueOf(musicManager.scheduler.queue.size() > 0 ? musicManager.scheduler.queue.size() + 1 : 0), false)
+                .setThumbnail(thumbnail).build();
     }
 
     public MessageEmbed buildEmbed(AudioPlaylist playlist, Member mem, GuildMusicManager musicManager) {
@@ -91,10 +92,10 @@ public class YTDataLoader {
                 .setTitle(playlist.getName(), url)
                 .setColor(Color.CYAN)
                 .setAuthor("Added to queue", null, mem.getUser().getEffectiveAvatarUrl())
-                .addField("Channel", getChannel(), true)
+                .addField("Channel", channel, true)
                 .addField("Estimated time until playing", formatToTime(duration), true)
-                .addField("Position in queue", (musicManager.scheduler.queue.size() > 0 ? musicManager.scheduler.queue.size() + 1 : 0) + "", true)
+                .addField("Position in queue", String.valueOf(musicManager.scheduler.queue.size() > 0 ? musicManager.scheduler.queue.size() + 1 : 0), true)
                 .addField("Queued tracks", String.valueOf(playlist.getTracks().size()), true)
-                .setThumbnail(getThumbnail()).build();
+                .setThumbnail(thumbnail).build();
     }
 }

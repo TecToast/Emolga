@@ -13,10 +13,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SpeedCommand extends Command {
     private static final Logger logger = LoggerFactory.getLogger(SpeedCommand.class);
+    private static final Pattern WNW = Pattern.compile("\\s*\n\\s*");
 
     public SpeedCommand() {
         super("speed", "Zeigt die Init-Base und die maximale Initiative der pokemon auf Level 100 an.", CommandCategory.Pokemon);
@@ -33,8 +35,8 @@ public class SpeedCommand extends Command {
             String s = msg.substring(7);
             String[] mons;
             if (!s.contains("\n"))
-                mons = s.split("\\s+");
-            else mons = s.split("\\s*\n\\s*");
+                mons = WHITESPACES_SPLITTER.split(s);
+            else mons = WNW.split(s);
             ArrayList<SpeedMon> speedMons = new ArrayList<>();
             JSONObject datajson = getDataJSON(getModByGuild(e));
             for (String mon : mons) {

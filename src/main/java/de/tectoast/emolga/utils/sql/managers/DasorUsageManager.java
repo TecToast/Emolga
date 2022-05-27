@@ -2,7 +2,6 @@ package de.tectoast.emolga.utils.sql.managers;
 
 import de.tectoast.emolga.utils.sql.base.DataManager;
 import de.tectoast.emolga.utils.sql.base.columns.IntColumn;
-import de.tectoast.emolga.utils.sql.base.columns.SQLColumn;
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -20,9 +19,7 @@ public class DasorUsageManager extends DataManager {
     }
 
     public void addPokemon(String pokemon) {
-        insertOrUpdate(POKEMON, pokemon, results -> {
-            results.updateInt("uses", results.getInt("uses") + 1);
-        }, pokemon, 1);
+        insertOrUpdate(POKEMON, pokemon, results -> results.updateInt("uses", results.getInt("uses") + 1), pokemon, 1);
     }
     public MessageEmbed buildMessage(){
         return new EmbedBuilder()

@@ -41,17 +41,17 @@ public class SwitchCommand extends Command {
         String oldmon = removed.getName();
         Coord cng = tierlist.getLocation(pokemon, 1, 5);
         Coord cog = tierlist.getLocation(oldmon, 1, 5);
-        Coord cne = tierlist.getLocation(pokemon, 1, 5, tierlist.tiercolumnsEngl);
-        Coord coe = tierlist.getLocation(oldmon, 1, 5, tierlist.tiercolumnsEngl);
+        Coord cne = Tierlist.getLocation(pokemon, 1, 5, tierlist.tiercolumnsEngl);
+        Coord coe = Tierlist.getLocation(oldmon, 1, 5, tierlist.tiercolumnsEngl);
         logger.info(MarkerFactory.getMarker("important"), "{} {} {} {}", cng, cog, cne, coe);
         if (cng.valid())
-            b.addBGColorChange(league.getInt("tierlist"), cng.x() * 2, cng.y(), convertColor(0xFF0000));
+            b.addBGColorChange(league.getInt("tierlist"), cng.x() << 1, cng.y(), convertColor(0xFF0000));
         if (cog.valid())
-            b.addBGColorChange(league.getInt("tierlist"), cog.x() * 2, cog.y(), convertColor(0x93c47d));
+            b.addBGColorChange(league.getInt("tierlist"), cog.x() << 1, cog.y(), convertColor(0x93c47d));
         if (cne.valid())
-            b.addBGColorChange(league.getInt("tierlistengl"), cne.x() * 2, cne.y(), convertColor(0xFF0000));
+            b.addBGColorChange(league.getInt("tierlistengl"), cne.x() << 1, cne.y(), convertColor(0xFF0000));
         if (coe.valid())
-            b.addBGColorChange(league.getInt("tierlistengl"), coe.x() * 2, coe.y(), convertColor(0x93c47d));
+            b.addBGColorChange(league.getInt("tierlistengl"), coe.x() << 1, coe.y(), convertColor(0x93c47d));
         b.addRow("Teamseite RR!B%d".formatted(league.getLongList("table").indexOf(mem) * 15 + 4 + monindex),
                 Arrays.asList(newtier, pokemon, getDataJSON().getJSONObject(getSDName(pokemon)).getJSONObject("baseStats").getInt("spe")));
         int round = d.round;
@@ -79,7 +79,7 @@ public class SwitchCommand extends Command {
         }
         RequestBuilder b = new RequestBuilder(sid);
         if (found) {
-            b.addBGColorChange(league.getInt("tierlist"), x * 2, y, convertColor(0xFF0000));
+            b.addBGColorChange(league.getInt("tierlist"), x << 1, y, convertColor(0xFF0000));
         }
         x = 1;
         y = 5;
@@ -96,7 +96,7 @@ public class SwitchCommand extends Command {
             } else y++;
         }
         if (found)
-            b.addBGColorChange(league.getInt("tierlist"), x * 2, y, convertColor(0x93c47d));
+            b.addBGColorChange(league.getInt("tierlist"), x << 1, y, convertColor(0x93c47d));
 
         //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
         String team = asl.getStringList("teams").get(getIndex(mem));
@@ -124,9 +124,9 @@ public class SwitchCommand extends Command {
             logger.info("num = " + num);
             RequestBuilder b = new RequestBuilder(doc);
             Coord ncoords = tierlist.getLocation(pokemon, 1, 3);
-            b.addStrikethroughChange(league.getInt("tierlist"), ncoords.x() * 2, ncoords.y(), true);
+            b.addStrikethroughChange(league.getInt("tierlist"), ncoords.x() << 1, ncoords.y(), true);
             Coord ocoords = tierlist.getLocation(removed, 1, 3);
-            b.addStrikethroughChange(league.getInt("tierlist"), ocoords.x() * 2, ocoords.y(), false);
+            b.addStrikethroughChange(league.getInt("tierlist"), ocoords.x() << 1, ocoords.y(), false);
             //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
             b.addStrikethroughChange(league.getInt("draftorder"), d.round + 1, num + 6, true);
             int user = league.getLongList("table").indexOf(mem);
@@ -152,7 +152,7 @@ public class SwitchCommand extends Command {
         List<DraftPokemon> picks = d.picks.get(mem);
         int i = picks.size() + 14;
         String gen5Sprite = getGen5Sprite(o);
-        int y = league.getStringList("table").indexOf(teamname) * 17 + 2 + IntStream.range(0, picks.size()).filter(ii -> picks.get(ii).getName().equals(pokemon)).findFirst().orElse(-1);
+        int y = league.getStringList("table").indexOf(teamname) * 17 + 2 + IntStream.range(0, picks.size()).filter(num -> picks.get(num).getName().equals(pokemon)).findFirst().orElse(-1);
         b.addSingle("Data!B%s".formatted(y), pokemon);
         b.addSingle("Data!AF%s".formatted(y), 2);
         List<String> tiers = List.of("S", "A", "B");

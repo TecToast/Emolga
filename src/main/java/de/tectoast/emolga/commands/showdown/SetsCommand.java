@@ -13,10 +13,13 @@ import okhttp3.Response;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SetsCommand extends Command {
 
+    private static final Pattern BEGIN_RETURN = Pattern.compile("^\\r\\n");
+    private static final Pattern END_RETURN = Pattern.compile("\\r\\n$");
     private final OkHttpClient client = new OkHttpClient().newBuilder().build();
 
     public SetsCommand() {
@@ -25,6 +28,16 @@ public class SetsCommand extends Command {
                 .add("url", "Replay-Link", "Der Replay-Link", ArgumentManagerTemplate.Text.any())
                 .setExample("!sets https://replay.pokemonshowdown.com/oumonotype-82345404").build());
         beta();
+    }
+
+    private static String buildPaste(Player p) {
+        return p.getMons().stream().map(SetsCommand::buildPokemon).map(s -> END_RETURN.matcher(BEGIN_RETURN.matcher(s).replaceAll("")).replaceAll("")).collect(Collectors.joining("\r\n\r\n"));
+    }
+
+    private static String buildPokemon(Pokemon p) {
+        return (p.getNickname().equals(p.getPokemon()) ? p.getPokemon() : p.getNickname() + " (%s)".formatted(p.getPokemon())) + p.buildGenderStr() + (p.getItem().map(s -> " @ " + s).orElse("")) + "  \r\n"
+               + "Ability: " + p.getAbility().orElse("unknown") + "  \r\n"
+               + p.getMoves().stream().map(s -> "- " + s + "  ").collect(Collectors.joining("\r\n"));
     }
 
     @Override
@@ -52,17 +65,7 @@ public class SetsCommand extends Command {
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-            return null;
+            return "";
         }).collect(Collectors.joining("\n")));
-    }
-
-    private String buildPaste(Player p) {
-        return p.getMons().stream().map(this::buildPokemon).map(s -> s.replaceAll("^\\r\\n", "").replaceAll("\\r\\n$", "")).collect(Collectors.joining("\r\n\r\n"));
-    }
-
-    private String buildPokemon(Pokemon p) {
-        return (p.getNickname().equals(p.getPokemon()) ? p.getPokemon() : p.getNickname() + " (%s)".formatted(p.getPokemon())) + p.buildGenderStr() + (p.getItem().map(s -> " @ " + s).orElse("")) + "  \r\n"
-                + "Ability: " + p.getAbility().orElse("unknown") + "  \r\n"
-                + p.getMoves().stream().map(s -> "- " + s + "  ").collect(Collectors.joining("\r\n"));
     }
 }

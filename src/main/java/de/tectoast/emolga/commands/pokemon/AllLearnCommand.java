@@ -6,7 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent;
 
 public class AllLearnCommand extends Command {
     public AllLearnCommand() {
-        super("alllearn", "Zeigt, welche der angegeben pokemon die angegebene Attacke lernen können.", CommandCategory.Pokemon);
+        super("alllearn", "Zeigt, welche der angegeben Pokemon die angegebene Attacke lernen können.", CommandCategory.Pokemon);
         setArgumentTemplate(ArgumentManagerTemplate.builder()
                 .add("move", "Attacke", "Die Attacke, nach der geschaut werden soll", Translation.Type.MOVE)
                 .add("mons", "Pokemon", "Alle Pokemon, mit Leerzeichen separiert", ArgumentManagerTemplate.Text.any())
@@ -18,7 +18,7 @@ public class AllLearnCommand extends Command {
     public void process(GuildCommandEvent e) {
         ArgumentManager args = e.getArguments();
         String atk = args.getTranslation("move").getTranslation();
-        StringBuilder str = new StringBuilder();
+        StringBuilder str = new StringBuilder(2 << 5);
         String mons = args.getText("mons");
         if (mons.contains("\n")) {
             for (String s : mons.split("\n")) {
@@ -29,7 +29,7 @@ public class AllLearnCommand extends Command {
                 str.append(Command.canLearn(s.startsWith("A-") || s.startsWith("G-") || s.startsWith("M-") ? s.substring(2) : s, s.startsWith("A-") ? "" : (s.startsWith("G-") ? "Galar" : "Normal"), atk, e.getMsg(), e.getGuild().getId().equals("747357029714231299") ? 5 : 8, getModByGuild(e)) ? s + "\n" : "");
             }
         }
-        if (str.toString().equals("")) str.append("Kein Pokemon kann diese Attacke erlernen!");
+        if (str.toString().isEmpty()) str.append("Kein Pokemon kann diese Attacke erlernen!");
         e.reply(str.toString());
 
     }

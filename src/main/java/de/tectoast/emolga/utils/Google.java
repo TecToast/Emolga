@@ -15,6 +15,7 @@ import com.google.api.services.youtube.model.Playlist;
 import com.google.api.services.youtube.model.SearchResult;
 import com.google.api.services.youtube.model.Video;
 import net.dv8tion.jda.annotations.ReplaceWith;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +43,7 @@ public class Google {
     }
 
 
-    public static SearchResult getVidByQuery(String vid) throws IllegalArgumentException {
+    public static @Nullable SearchResult getVidByQuery(String vid) throws IllegalArgumentException {
         try {
             return getYouTubeService().search().list(Collections.singletonList("snippet")).setQ(vid).setMaxResults((long) 1).execute().getItems().get(0);
         } catch (GeneralSecurityException | IOException ex) {
@@ -52,7 +53,7 @@ public class Google {
         return null;
     }
 
-    public static Video getVidByURL(String url) {
+    public static @Nullable Video getVidByURL(String url) {
         try {
             String id = (url.contains("youtu.be") ? url.substring("https://youtu.be/".length()) : url.substring("https://www.youtube.com/watch?v=".length())).split("&")[0];
             return getYouTubeService().videos().list(Collections.singletonList("snippet")).setId(Collections.singletonList(id)).setMaxResults(1L).execute().getItems().get(0);
@@ -63,7 +64,7 @@ public class Google {
         return null;
     }
 
-    public static Playlist getPlaylistByURL(String url) {
+    public static @Nullable Playlist getPlaylistByURL(String url) {
         try {
             String id = url.substring("https://www.youtube.com/playlist?list=".length()).split("&")[0];
             return getYouTubeService().playlists().list(Collections.singletonList("snippet")).setId(Collections.singletonList(id)).setMaxResults(1L).execute().getItems().get(0);
@@ -75,7 +76,7 @@ public class Google {
     }
 
 
-    public static List<List<Object>> get(String spreadsheetId, String range, boolean formula, boolean recursive) throws IllegalArgumentException {
+    public static @Nullable List<List<Object>> get(String spreadsheetId, String range, boolean formula, boolean recursive) throws IllegalArgumentException {
         try {
             return getSheetsService().spreadsheets().values().get(spreadsheetId, range).setValueRenderOption(formula ? "FORMULA" : "FORMATTED_VALUE").execute().getValues();
         } catch (IOException ex) {
@@ -95,7 +96,7 @@ public class Google {
         }
     }
 
-    public static Spreadsheet getSheetData(String spreadsheetId, boolean recursive, String... range) throws IllegalArgumentException {
+    public static @Nullable Spreadsheet getSheetData(String spreadsheetId, boolean recursive, String... range) throws IllegalArgumentException {
         try {
             Sheets.Spreadsheets.Get get = getSheetsService().spreadsheets().get(spreadsheetId).setIncludeGridData(true);
             if (range != null) get.setRanges(Arrays.asList(range));
@@ -107,7 +108,7 @@ public class Google {
     }
 
 
-    public static List<ValueRange> batchGet(String spreadsheetId, List<String> range, boolean formula, boolean recursive) throws IllegalArgumentException {
+    public static @Nullable List<ValueRange> batchGet(String spreadsheetId, List<String> range, boolean formula, boolean recursive) throws IllegalArgumentException {
         try {
             return getSheetsService().spreadsheets().values().batchGet(spreadsheetId).setRanges(range).setValueRenderOption(formula ? "FORMULA" : "FORMATTED_VALUE").execute().getValueRanges();
         } catch (IOException ex) {
@@ -127,7 +128,7 @@ public class Google {
         }
     }
 
-    public static Sheets getSheetsService() {
+    public static @Nullable Sheets getSheetsService() {
         refreshTokenIfNotPresent();
         try {
             return new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), GsonFactory.getDefaultInstance(), new Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(accesstoken))

@@ -3,11 +3,13 @@ package de.tectoast.emolga.utils.draft;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.utils.records.Coord;
 import de.tectoast.jsolf.JSONObject;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.load;
@@ -18,6 +20,7 @@ public class Tierlist {
      */
     public static final ArrayList<Tierlist> list = new ArrayList<>();
     private static final Logger logger = LoggerFactory.getLogger(Tierlist.class);
+    private static final Pattern REPLACE_NONSENSE = Pattern.compile("[^a-zA-Z\\d-:% ]");
     /**
      * HashMap containing<br>Keys: Tiers<br>Values: Lists with the mons
      */
@@ -99,7 +102,7 @@ public class Tierlist {
         return getByGuild(String.valueOf(guild));
     }
 
-    public static Tierlist getByGuild(String guild) {
+    public static @Nullable Tierlist getByGuild(String guild) {
         for (Tierlist tierlist : list) {
             if (tierlist.guild.equals(guild)) return tierlist;
         }
@@ -107,27 +110,22 @@ public class Tierlist {
         return null;
     }
 
-    private void setupTiercolumns(List<List<String>> mons, List<Integer> nexttiers, List<String> tiercols, boolean normal) {
-        int x = 0;
-        int currtier = 0;
-        List<String> currtierlist = new LinkedList<>();
-        for (List<String> monss : mons) {
-            List<String> mon = monss.stream().map(String::trim).map(s -> s.replaceAll("[^a-zA-Z0-9-:% ]", "")).toList();
-            if (normal) {
-                if (nexttiers.contains(x)) {
-                    String key = order.get(currtier++);
-                    tierlist.put(key, new ArrayList<>(currtierlist));
-                    currtierlist.clear();
-                }
-                currtierlist.addAll(mon);
+    public static Coord getLocation(String mon, int defX, int defY, List<String> tiercolumns) {
+        int x = defX;
+        int y = defY;
+        boolean valid = false;
+        for (String s : tiercolumns) {
+            if (s.equalsIgnoreCase(mon)) {
+                valid = true;
+                break;
             }
-            tiercols.addAll(mon);
-            tiercols.add("NEXT");
-            x++;
+            //logger.info(s + " " + y);
+            if (s.equals("NEXT")) {
+                x++;
+                y = defY;
+            } else y++;
         }
-        if (normal)
-            tierlist.put(order.get(currtier), new ArrayList<>(currtierlist));
-        tiercolumns.removeLast();
+        return new Coord(x, y, valid);
     }
 
     public int getPointsNeeded(String s) {
@@ -146,12 +144,27 @@ public class Tierlist {
         return "";
     }
 
-    public String getNameOf(String s) {
-        for (Map.Entry<String, List<String>> en : tierlist.entrySet()) {
-            String str = en.getValue().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining(""));
-            if (!str.equals("")) return str;
+    private void setupTiercolumns(List<List<String>> mons, List<Integer> nexttiers, List<String> tiercols, boolean normal) {
+        int x = 0;
+        int currtier = 0;
+        List<String> currtierlist = new LinkedList<>();
+        for (List<String> monss : mons) {
+            List<String> mon = monss.stream().map(String::trim).map(s -> REPLACE_NONSENSE.matcher(s).replaceAll("")).toList();
+            if (normal) {
+                if (nexttiers.contains(x)) {
+                    String key = order.get(currtier++);
+                    tierlist.put(key, new ArrayList<>(currtierlist));
+                    currtierlist.clear();
+                }
+                currtierlist.addAll(mon);
+            }
+            tiercols.addAll(mon);
+            tiercols.add("NEXT");
+            x++;
         }
-        return "";
+        if (normal)
+            tierlist.put(order.get(currtier), new ArrayList<>(currtierlist));
+        tiercolumns.removeLast();
     }
 
     public Coord getLocation(String mon) {
@@ -162,21 +175,11 @@ public class Tierlist {
         return getLocation(mon, defX, defY, tiercolumns);
     }
 
-    public Coord getLocation(String mon, int defX, int defY, List<String> tiercolumns) {
-        int x = defX;
-        int y = defY;
-        boolean valid = false;
-        for (String s : tiercolumns) {
-            if (s.equalsIgnoreCase(mon)) {
-                valid = true;
-                break;
-            }
-            //logger.info(s + " " + y);
-            if (s.equals("NEXT")) {
-                x++;
-                y = defY;
-            } else y++;
+    public String getNameOf(String s) {
+        for (Map.Entry<String, List<String>> en : tierlist.entrySet()) {
+            String str = en.getValue().stream().filter(s::equalsIgnoreCase).collect(Collectors.joining(""));
+            if (!str.isEmpty()) return str;
         }
-        return new Coord(x, y, valid);
+        return "";
     }
 }

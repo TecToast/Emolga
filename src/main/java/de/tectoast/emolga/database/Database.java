@@ -6,6 +6,7 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.sql.DBManagers;
 import de.tectoast.jsolf.JSONObject;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +42,7 @@ public class Database {
                 while (spoiler.next()) {
                     spoilerTags.add(spoiler.getLong("guildid"));
                 }
+                spoiler.close();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -52,13 +54,9 @@ public class Database {
         instance = new Database(cred.getString("username"), cred.getString("password"));
     }
 
-    public static ResultSet select(String query, boolean suppressMessage) {
+    public static @Nullable ResultSet select(String query, boolean suppressMessage) {
         try {
-            if (System.currentTimeMillis() - instance.lastRequest >= 3600000) {
-                instance.connection.close();
-                instance.connection = DriverManager.getConnection("jdbc:mysql://localhost/emolga?autoReconnect=true", instance.properties);
-            }
-            instance.lastRequest = System.currentTimeMillis();
+            updateConnection();
             if (!suppressMessage) logger.info("SELECT REQUEST: " + query);
             return instance.connection.createStatement().executeQuery(query);
         } catch (SQLException throwables) {
@@ -73,12 +71,7 @@ public class Database {
 
     public static int update(String query) {
         try {
-            if (System.currentTimeMillis() - instance.lastRequest >= 3600000) {
-                instance.connection.close();
-                instance.connection = DriverManager.getConnection("jdbc:mysql://localhost/emolga", instance.properties);
-                //Command.sendToMe("Reconnected!");
-            }
-            instance.lastRequest = System.currentTimeMillis();
+            updateConnection();
             logger.info("UPDATE REQUEST: " + query);
             return instance.connection.createStatement().executeUpdate(query);
         } catch (SQLException throwables) {
@@ -128,9 +121,8 @@ public class Database {
         }, "IncrStat").start();
     }
 
-    public static String getDescriptionFrom(String type, String id) {
-        ResultSet set = select("SELECT description from " + type + "data WHERE name = \"" + id + "\"");
-        try {
+    public static @Nullable String getDescriptionFrom(String type, String id) {
+        try (ResultSet set = select("SELECT description from " + type + "data WHERE name = \"" + id + "\"")) {
             set.next();
             return set.getString("description");
         } catch (SQLException throwables) {
@@ -144,9 +136,8 @@ public class Database {
         return o.toString();
     }
 
-    public static Object getData(String table, String desiredcolumn, String checkcolumn, Object checkvalue) {
-        ResultSet set = select("SELECT " + desiredcolumn + " from " + table + " WHERE " + checkcolumn + " = " + getValue(checkvalue));
-        try {
+    public static @Nullable Object getData(String table, String desiredcolumn, String checkcolumn, Object checkvalue) {
+        try (ResultSet set = select("SELECT " + desiredcolumn + " from " + table + " WHERE " + checkcolumn + " = " + getValue(checkvalue))) {
             set.next();
             return set.getObject(desiredcolumn);
         } catch (SQLException throwables) {

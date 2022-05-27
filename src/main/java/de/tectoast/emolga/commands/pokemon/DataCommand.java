@@ -193,7 +193,7 @@ public class DataCommand extends Command {
                                 if (stat.containsKey(str)) stat.get(str).add(toadd.toString());
                                 else stat.put(str, new ArrayList<>(Collections.singletonList(toadd.toString())));*/
                             String prevoInfo = getPrevoInfo(mon);
-                            if (!prevoInfo.equals("")) {
+                            if (!prevoInfo.isEmpty()) {
                                 builder.addField("Erhaltbarkeit", prevoInfo, false);
                             }
                             builder.addField("Basestats", str, false);
@@ -304,7 +304,7 @@ public class DataCommand extends Command {
                         default -> "ERROR";
                     };
                     int ppc = data.getInt("pp");
-                    String pp = ppc + " (max. " + (ppc * 8 / 5) + ")";
+                    String pp = ppc + " (max. " + ((ppc << 3) / 5) + ")";
                     EmbedBuilder builder = new EmbedBuilder();
                     builder.setTitle(name)
                             .addField("English", getEnglName(name, mod), true)

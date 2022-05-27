@@ -86,10 +86,10 @@ public class TrainerData {
 
         public String build(boolean onlyWithLevel) {
             if (onlyWithLevel) return name + " (Level " + level + ")";
-            return name + (item != null && !item.trim().equals("") ? " @ " + item : "") + "\n"
-                    + (ability != null ? "Fähigkeit: " + ability + "\n" : "")
-                    + "Level: " + level + "\n"
-                    + moves.stream().map(s -> "- " + s).collect(Collectors.joining("\n"));
+            return name + (item != null && !item.trim().isEmpty() ? " @ " + item : "") + "\n"
+                   + (ability != null ? "Fähigkeit: " + ability + "\n" : "")
+                   + "Level: " + level + "\n"
+                   + moves.stream().map(s -> "- " + s).collect(Collectors.joining("\n"));
         }
     }
 }

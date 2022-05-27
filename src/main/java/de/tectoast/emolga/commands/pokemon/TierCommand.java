@@ -29,7 +29,7 @@ public class TierCommand extends Command {
             return;
         }
         String tier = tierlist.getTierOf(pkmn);
-        if (!tier.equals("")) {
+        if (!tier.isEmpty()) {
             tco.sendMessage(pkmn + " ist im " + tier + "-Tier!").queue();
         } else {
             tco.sendMessage(pkmn + " befindet sich nicht in der Tierliste!").queue();

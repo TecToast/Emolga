@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
@@ -45,6 +46,8 @@ import static net.dv8tion.jda.api.entities.UserSnowflake.fromId;
 public class PrivateCommands {
 
     private static final Logger logger = LoggerFactory.getLogger(PrivateCommands.class);
+    private static final Pattern DOUBLE_BACKSLASH = Pattern.compile("\\\\");
+    private static final Pattern TRIPLE_HASHTAG = Pattern.compile("###");
 
     @PrivateCommand(name = "updatetierlist")
     public static void updateTierlist(GenericCommandEvent e) {
@@ -67,7 +70,7 @@ public class PrivateCommands {
         Message message = e.getMessage();
         String[] split = message.getContentDisplay().split(" ");
         logger.info(message.getContentRaw());
-        String s = message.getContentRaw().substring(24).replaceAll("\\\\", "");
+        String s = DOUBLE_BACKSLASH.matcher(message.getContentRaw().substring(24)).replaceAll("");
         TextChannel tc = e.getJDA().getTextChannelById(e.getArg(0));
         Guild g = tc.getGuild();
         for (ListedEmote emote : g.retrieveEmotes().complete()) {
@@ -81,7 +84,7 @@ public class PrivateCommands {
         Message message = e.getMessage();
         String[] split = message.getContentDisplay().split(" ");
         logger.info(message.getContentRaw());
-        String s = message.getContentRaw().substring(26).replaceAll("\\\\", "");
+        String s = DOUBLE_BACKSLASH.matcher(message.getContentRaw().substring(26)).replaceAll("");
         String userid = e.getArg(0);
         sendToUser(Long.parseLong(userid), s);
     }
@@ -351,12 +354,12 @@ public class PrivateCommands {
         HashMap<String, AtomicInteger> killstoadd = new HashMap<>();
         HashMap<String, AtomicInteger> deathstoadd = new HashMap<>();
         for (int i = 0; i < 6; i++) {
-            List<List<Object>> l = Google.get(sid, "RR Draft!%s5:%s28".formatted(getAsXCoord(i * 4 + 2), getAsXCoord(i * 4 + 4)), false, false);
+            List<List<Object>> l = Google.get(sid, "RR Draft!%s5:%s28".formatted(getAsXCoord((i << 2) + 2), getAsXCoord((i << 2) + 4)), false, false);
             int x = 0;
             for (List<Object> objects : l) {
                 if (x % 2 == 0) current = toid.getString(((String) objects.get(0)).trim());
                 else {
-                    List<String> currorder = Arrays.stream(lastNom.getString(current).split("###")).flatMap(s -> Arrays.stream(s.split(";"))).map(s -> s.split(",")[0]).toList();
+                    List<String> currorder = Arrays.stream(TRIPLE_HASHTAG.split(lastNom.getString(current))).flatMap(s -> Arrays.stream(s.split(";"))).map(s -> s.split(",")[0]).toList();
                     String teamname = teamnames.getString(current);
                     if (!currkills.containsKey(current))
                         currkills.put(current, Google.get(sid, "%s!L200:L214".formatted(teamname), false, false).stream().map(li -> Integer.parseInt((String) li.get(0))).collect(Collectors.toList()));
@@ -409,10 +412,11 @@ public class PrivateCommands {
                 x++;
             }
         }
-        for (String s : killstoadd.keySet()) {
+        for (Map.Entry<String, AtomicInteger> entry : killstoadd.entrySet()) {
+            String s = entry.getKey();
             String teamname = teamnames.getString(s);
             b.addSingle("%s!L215".formatted(teamname), "=SUMME(L199:L214)");
-            b.addSingle("%s!L199".formatted(teamname), killstoadd.get(s).get());
+            b.addSingle("%s!L199".formatted(teamname), entry.getValue().get());
             b.addSingle("%s!X215".formatted(teamname), "=SUMME(X199:X214)");
             b.addSingle("%s!X199".formatted(teamname), deathstoadd.get(s).get());
         }
@@ -484,7 +488,7 @@ public class PrivateCommands {
                 };
             }).sorted().collect(Collectors.toCollection(LinkedList::new));
             if (!s.equals("D"))
-                b.addColumn("Tierliste [englisch]!%s%d".formatted(getAsXCoord(x * 2 + 1), 5), mons);
+                b.addColumn("Tierliste [englisch]!%s%d".formatted(getAsXCoord((x << 1) + 1), 5), mons);
             else {
                 int size = mons.size() / 3;
                 for (int i = 0; i < 3; i++) {
@@ -492,7 +496,7 @@ public class PrivateCommands {
                     for (int j = 0; j < size; j++) {
                         col.add(mons.removeFirst());
                     }
-                    b.addColumn("Tierliste [englisch]!%s%d".formatted(getAsXCoord(x++ * 2 + 1), 5), col);
+                    b.addColumn("Tierliste [englisch]!%s%d".formatted(getAsXCoord((x++ << 1) + 1), 5), col);
                 }
             }
             x++;
@@ -566,7 +570,7 @@ public class PrivateCommands {
         for (Message m : tc.getIterableHistory()) {
             String msg = m.getContentDisplay();
             if (msg.contains("https://") || msg.contains("http://")) {
-                Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(" ", s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("http") + 1))).findFirst();
+                Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(' ', s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(' ', s.indexOf("http") + 1))).findFirst();
                 if (urlop.isPresent()) {
                     String url = urlop.get();
                     logger.info(url);
@@ -583,7 +587,7 @@ public class PrivateCommands {
         for (Message m : tc.getIterableHistory()) {
             String msg = m.getContentDisplay();
             if (msg.contains("https://") || msg.contains("http://")) {
-                Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(" ", s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(" ", s.indexOf("http") + 1))).findFirst();
+                Optional<String> urlop = Arrays.stream(msg.split("\n")).filter(s -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/")).map(s -> s.substring(s.indexOf("http"), s.indexOf(' ', s.indexOf("http") + 1) == -1 ? s.length() : s.indexOf(' ', s.indexOf("http") + 1))).findFirst();
                 if (urlop.isPresent()) {
                     String url = urlop.get();
                     logger.info(url);
@@ -690,7 +694,7 @@ public class PrivateCommands {
 
     @PrivateCommand(name = "buildtabletest")
     public static void buildTableTest(GenericCommandEvent e) {
-        e.reply(Command.buildTable(Arrays.asList(
+        e.reply(buildTable(Arrays.asList(
                 Arrays.asList("Pascal", "David", "Jesse", "Felix", "Fundort", "Status"),
                 Arrays.asList("", "Rutena", "", "", "Route 2", "Team"),
                 Arrays.asList("", "Floette", "", "", "Illumina City", "Team"),

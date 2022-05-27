@@ -43,6 +43,6 @@ public class UserInfoCommand extends Command {
                         .setFooter("Aufgerufen von " + e.getMember().getUser().getAsTag() + " | " + e.getMember().getId())
                         .setColor(Color.CYAN)
                         .setThumbnail(u.getEffectiveAvatarUrl()).build()).queue();
-
+        set.close();
     }
 }

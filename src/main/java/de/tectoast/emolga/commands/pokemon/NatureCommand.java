@@ -34,6 +34,7 @@ public class NatureCommand extends Command {
         StringBuilder b = new StringBuilder(t.getOtherLang() + "/" + t.getTranslation() + ":\n");
         String plus = set.getString("plus");
         String minus = set.getString("minus");
+        set.close();
         if (plus != null) {
             b.append(statnames.get(plus)).append("+\n").append(statnames.get(minus)).append("-");
         } else {

@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.showdown;
 
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,7 @@ public class Player {
         this.winner = winner;
     }
 
-    public Pokemon getSpikesBy(Pokemon other) {
+    public @Nullable Pokemon getSpikesBy(Pokemon other) {
         if (spikesBy == null) return null;
         if (spikesBy.getPlayer() == this) return other;
         return spikesBy;
@@ -54,7 +55,7 @@ public class Player {
         this.spikesBy = spikesBy;
     }
 
-    public Pokemon gettSpikesBy(Pokemon other) {
+    public @Nullable Pokemon gettSpikesBy(Pokemon other) {
         if (tSpikesBy == null) return null;
         if (tSpikesBy.getPlayer() == this) return other;
         return tSpikesBy;
@@ -64,7 +65,7 @@ public class Player {
         this.tSpikesBy = tSpikesBy;
     }
 
-    public Pokemon getRocksBy(Pokemon other) {
+    public @Nullable Pokemon getRocksBy(Pokemon other) {
         if (rocksBy == null) return null;
         if (rocksBy.getPlayer() == this) return other;
         return rocksBy;

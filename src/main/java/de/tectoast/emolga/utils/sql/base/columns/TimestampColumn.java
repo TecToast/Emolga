@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.sql.base.columns;
 
 import de.tectoast.emolga.utils.sql.base.DataManager;
+import org.jetbrains.annotations.Nullable;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,7 +13,7 @@ public class TimestampColumn extends SQLColumn<Timestamp> {
     }
 
     @Override
-    public Timestamp getValue(ResultSet set) {
+    public @Nullable Timestamp getValue(ResultSet set) {
         try {
             return set.getTimestamp(name);
         } catch (SQLException throwables) {

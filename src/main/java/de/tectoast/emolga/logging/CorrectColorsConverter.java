@@ -18,7 +18,7 @@ public class CorrectColorsConverter extends ForegroundCompositeConverterBase<ILo
         };
     }
 
-    private boolean hasMarker(String marker, ILoggingEvent e) {
+    private static boolean hasMarker(String marker, ILoggingEvent e) {
         return e.getMarkerList() != null && e.getMarkerList().stream().anyMatch(m -> m.getName().equals(marker));
     }
 }

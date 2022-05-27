@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,20 +129,20 @@ public class EmolgaMain {
 
     private static void setupJetty() throws Exception {
         Server server = new Server();
-        HttpConfiguration http_config = new HttpConfiguration();
-        http_config.setSecureScheme("https");
-        http_config.setSecurePort(51216);
-        http_config.setOutputBufferSize(32768);
+        HttpConfiguration httpConfig = new HttpConfiguration();
+        httpConfig.setSecureScheme("https");
+        httpConfig.setSecurePort(51216);
+        httpConfig.setOutputBufferSize(32768);
         SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
         sslContextFactory.setSslContext(getContext());
-        HttpConfiguration https_config = new HttpConfiguration(http_config);
+        HttpConfiguration httpsConfig = new HttpConfiguration(httpConfig);
         SecureRequestCustomizer src = new SecureRequestCustomizer();
         src.setStsMaxAge(2000);
         src.setStsIncludeSubDomains(true);
-        https_config.addCustomizer(src);
-        ServerConnector https = new ServerConnector(server,
+        httpsConfig.addCustomizer(src);
+        @SuppressWarnings("resource") ServerConnector https = new ServerConnector(server,
                 new SslConnectionFactory(sslContextFactory, HttpVersion.HTTP_1_1.asString()),
-                new HttpConnectionFactory(https_config));
+                new HttpConnectionFactory(httpsConfig));
         https.setPort(51216);
         https.setIdleTimeout(500000);
         server.setConnectors(new Connector[]{https});
@@ -206,7 +207,7 @@ public class EmolgaMain {
         return (X509Certificate) factory.generateCertificate(new ByteArrayInputStream(certBytes));
     }
 
-    private static byte[] getBytes(File file) {
+    private static byte @Nullable [] getBytes(File file) {
         try {
             return Files.readAllBytes(file.toPath());
         } catch (IOException e) {

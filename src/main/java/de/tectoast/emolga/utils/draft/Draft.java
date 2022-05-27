@@ -12,6 +12,7 @@ import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
@@ -28,6 +29,7 @@ public class Draft {
     public static final List<Draft> drafts = new ArrayList<>();
     private static final Logger logger = LoggerFactory.getLogger(Draft.class);
     private static final ScheduledExecutorService predictionGamesService = Executors.newScheduledThreadPool(1);
+    private static final Pattern TRIPLE_HASHTAG = Pattern.compile("###");
     public final Map<Long, List<DraftPokemon>> picks = new HashMap<>();
     public final Map<Integer, List<Long>> order = new HashMap<>();
     public final Map<Integer, List<Long>> originalOrder = new HashMap<>();
@@ -243,7 +245,7 @@ public class Draft {
             }
             //logger.info("o.get(u) = " + o.get(u));
             String str = o.getString(u);
-            List<String> mons = Arrays.stream(str.split("###")).flatMap(s -> Arrays.stream(s.split(";"))).toList();
+            List<String> mons = Arrays.stream(TRIPLE_HASHTAG.split(str)).flatMap(s -> Arrays.stream(s.split(";"))).toList();
             logger.info("mons = " + mons);
             String range = nds.getJSONObject("teamnames").getString(u) + "!B15:O29";
             logger.info("u = " + u);
@@ -301,7 +303,7 @@ public class Draft {
         Tierlist.setup();
     }
 
-    public static Draft getDraftByMember(long member, TextChannel tco) {
+    public static @Nullable Draft getDraftByMember(long member, TextChannel tco) {
         JSONObject json = getEmolgaJSON();
         //logger.info("member.getId() = " + member.getId());
         for (Draft draft : Draft.drafts) {
@@ -328,7 +330,7 @@ public class Draft {
         return drafts.stream().anyMatch(d -> d.tc.getId().equals(tc.getId()));
     }*/
 
-    public static Draft getDraftByChannel(TextChannel tc) {
+    public static @Nullable Draft getDraftByChannel(TextChannel tc) {
         for (Draft draft : Draft.drafts) {
             if (draft.tc.getId().equals(tc.getId())) return draft;
         }

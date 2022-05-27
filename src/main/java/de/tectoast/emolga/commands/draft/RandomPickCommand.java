@@ -37,7 +37,7 @@ public class RandomPickCommand extends Command {
         Tierlist tierlist = d.getTierlist();
         ArgumentManager args = e.getArguments();
         String tier = tierlist.order.stream().filter(s -> args.getText("tier").equalsIgnoreCase(s)).findFirst().orElse("");
-        if (tier.equals("")) {
+        if (tier.isEmpty()) {
             tco.sendMessage("Das ist kein Tier!").queue();
             return;
         }

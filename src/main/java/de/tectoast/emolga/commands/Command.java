@@ -54,6 +54,7 @@ import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.internal.utils.Helpers;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
@@ -200,6 +201,13 @@ public abstract class Command {
      */
     private static final String SDPATH = "./ShowdownData/";
     private static final JSONObject typeIcons = load("typeicons.json");
+    public static final Pattern SD_NAME_PATTERN = Pattern.compile("[^a-zA-Z\\däöüÄÖÜß♂♀é+]+");
+    public static final Pattern DURATION_PATTERN = Pattern.compile("\\d{1,8}[smhd]?");
+    public static final Pattern DURATION_SPLITTER = Pattern.compile("[.|:]");
+    public static final Pattern WHITESPACES_SPLITTER = Pattern.compile("\\s+");
+    public static final Pattern EMPTY_PATTERN = Pattern.compile("");
+    public static final Pattern HYPHEN = Pattern.compile("-");
+    public static final Pattern USERNAME_PATTERN = Pattern.compile("[^a-zA-Z\\d]+");
     /**
      * JSONObject where pokemon sugimori sprite links are saved
      */
@@ -333,7 +341,7 @@ public abstract class Command {
         return s.charAt(0) + s.substring(1, 2).toUpperCase() + s.substring(2);
     }
 
-    public static File invertImage(String mon, boolean shiny) {
+    public static @Nullable File invertImage(String mon, boolean shiny) {
         BufferedImage inputFile;
         logger.info("mon = " + mon);
         try {
@@ -345,8 +353,10 @@ public abstract class Command {
             return null;
         }
 
-        for (int x = 0; x < inputFile.getWidth(); x++) {
-            for (int y = 0; y < inputFile.getHeight(); y++) {
+        int width = inputFile.getWidth();
+        int height = inputFile.getHeight();
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
                 int rgba = inputFile.getRGB(x, y);
                 Color col = new Color(rgba, true);
                 col = new Color(255 - col.getRed(),
@@ -411,7 +421,7 @@ public abstract class Command {
     }
 
     public static Command byName(String name) {
-        return commands.values().stream().filter(c -> c.name.equalsIgnoreCase(name) || c.getAliases().stream().anyMatch(name::equalsIgnoreCase)).findFirst().orElse(null);
+        return commands.values().stream().filter(c -> c.name.equalsIgnoreCase(name) || c.aliases.stream().anyMatch(name::equalsIgnoreCase)).findFirst().orElse(null);
     }
 
     public static void loadAndPlay(final TextChannel channel, final String track, Member mem, String cm) throws IllegalArgumentException {
@@ -508,7 +518,7 @@ public abstract class Command {
 
     public static int parseShortTime(String timestr) {
         timestr = timestr.toLowerCase();
-        if (!timestr.matches("\\d{1,8}[smhd]?"))
+        if (!DURATION_PATTERN.matcher(timestr).matches())
             return -1;
         int multiplier = 1;
         switch (timestr.charAt(timestr.length() - 1)) {
@@ -526,7 +536,7 @@ public abstract class Command {
     }
 
     public static String secondsToTime(long timeseconds) {
-        StringBuilder builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder(20);
         int years = (int) (timeseconds / (60 * 60 * 24 * 365));
         if (years > 0) {
             builder.append("**").append(years).append("** ").append(pluralise(years, "Jahr", "Jahre")).append(", ");
@@ -558,7 +568,7 @@ public abstract class Command {
         String str = builder.toString();
         if (str.endsWith(", "))
             str = str.substring(0, str.length() - 2);
-        if (str.equals(""))
+        if (str.isEmpty())
             str = "**0** Sekunden";
         return str;
     }
@@ -578,11 +588,6 @@ public abstract class Command {
             if (str.contains(uid1 + ":" + uid2) || str.contains(uid2 + ":" + uid1)) return Integer.parseInt(s);
         }
         return -1;
-    }
-
-    public static int getGameDayByTeamnames(JSONObject league, String team1, String team2) {
-        List<String> teams = league.getStringList("teams");
-        return getGameDay(league, String.valueOf(league.getJSONObject("S1").getLongList("table").get(teams.indexOf(team1))), String.valueOf(league.getJSONObject("S2").getLongList("table").get(teams.indexOf(team2))));
     }
 
     public static List<String> getPicksAsList(JSONArray arr) {
@@ -694,7 +699,7 @@ public abstract class Command {
     }
 
     public static void unmute(TextChannel tco, Member mem) {
-        JSONObject json = getEmolgaJSON().getJSONObject("mutes");
+        JSONObject json = emolgajson.getJSONObject("mutes");
         Guild g = tco.getGuild();
         long gid = g.getIdLong();
         if (mutedRoles.containsKey(gid)) {
@@ -755,21 +760,12 @@ public abstract class Command {
         DBManagers.WARNS.warn(mem.getIdLong(), mod.getIdLong(), tco.getGuild().getIdLong(), reason);
     }
 
-    public static String getMonIfPresent(HashMap<String, String> map, String pick, int pk, int index) {
-        if (pick.contains("Amigento") && map.containsKey("Amigento")) return "=C" + (pk * 19 + index + 18);
-        for (String s : map.keySet()) {
-            if (s.equals(pick) || s.equals(pick.substring(2))) {
-                return "=C" + (pk * 19 + index + 18);
-            }
-        }
-        return "";
-    }
-
     public static String getNumber(Map<String, String> map, String pick) {
         //logger.info(map);
-        for (String s : map.keySet()) {
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            String s = entry.getKey();
             if (s.equals(pick) || pick.equals("M-" + s) || Stream.of("Amigento", "Wulaosu", "Arceus", "Deoxys", "Genesect").anyMatch(str -> s.contains(str) && pick.contains(str)))
-                return map.get(s);
+                return entry.getValue();
         }
         return "";
     }
@@ -795,7 +791,7 @@ public abstract class Command {
     }
 
     public static String getWithZeros(int i, int lenght) {
-        StringBuilder str = new StringBuilder(i + "");
+        StringBuilder str = new StringBuilder(String.valueOf(i));
         while (str.length() < lenght) str.insert(0, "0");
         return str.toString();
     }
@@ -850,12 +846,12 @@ public abstract class Command {
 
     protected static long parseCalendarTime(String str) throws NumberFormatException {
         String timestr = str.toLowerCase();
-        if (!timestr.matches("\\d{1,8}[smhdw]?")) {
-            Calendar calendar = Calendar.getInstance();
+        if (!DURATION_PATTERN.matcher(timestr).matches()) {
+            Calendar calendar = getInstance();
             calendar.set(SECOND, 0);
             boolean hoursSet = false;
             for (String s : str.split(";")) {
-                String[] split = s.split("[.|:]");
+                String[] split = DURATION_SPLITTER.split(s);
                 if (s.contains(".")) {
                     calendar.set(DAY_OF_MONTH, Integer.parseInt(split[0]));
                     calendar.set(MONTH, Integer.parseInt(split[1]) - 1);
@@ -942,7 +938,7 @@ public abstract class Command {
     }
 
     public static String buildAndSaveShinyCounts() {
-        StringBuilder b = new StringBuilder();
+        StringBuilder b = new StringBuilder(50);
         JSONObject counter = shinycountjson.getJSONObject("counter");
         JSONObject names = shinycountjson.getJSONObject("names");
         for (String method : shinycountjson.getString("methodorder").split(",")) {
@@ -958,7 +954,7 @@ public abstract class Command {
     }
 
     public static void sortWoolooS4(String sid, int leagu, JSONObject league) {
-        String range = "Tabelle!%s%d:%s%d".formatted(getAsXCoord(leagu * 8 - 5), 22, getAsXCoord(leagu * 8), 27);
+        String range = "Tabelle!%s%d:%s%d".formatted(getAsXCoord((leagu << 3) - 5), 22, getAsXCoord(leagu << 3), 27);
         List<List<Object>> formula = Google.get(sid, range, true, false);
         List<List<Object>> points = Google.get(sid, range, false, false);
         List<List<Object>> orig = new ArrayList<>(points);
@@ -1011,7 +1007,7 @@ public abstract class Command {
     }
 
     public static void sortOneASLS10(String sid, JSONObject league, int num) {
-        String range = "Tabelle!C%d:J%d".formatted(num * 8 + 8, num * 8 + 11);
+        String range = "Tabelle!C%d:J%d".formatted((num << 3) + 8, (num << 3) + 11);
         List<List<Object>> formula = Google.get(sid, range, true, false);
         List<List<Object>> points = Google.get(sid, range, false, false);
         List<List<Object>> orig = new ArrayList<>(points);
@@ -1059,7 +1055,7 @@ public abstract class Command {
         List<List<Object>> formula = Google.get(sid, tablename + "!F14:M21", true, false);
         List<List<Object>> points = Google.get(sid, tablename + "!F14:M21", false, false);
         List<List<Object>> orig = new ArrayList<>(points);
-        JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
+        JSONObject docnames = emolgajson.getJSONObject("docnames");
         points.sort((o1, o2) -> {
             int c = compareColumns(o1, o2, 1, 7, 5);
             if (c != 0) return c;
@@ -1093,7 +1089,7 @@ public abstract class Command {
         List<List<Object>> formula = Google.get(sid, tablename + "!B2:H9", true, false);
         List<List<Object>> points = Google.get(sid, tablename + "!B2:H9", false, false);
         List<List<Object>> orig = new ArrayList<>(points);
-        JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
+        JSONObject docnames = emolgajson.getJSONObject("docnames");
         points.sort((o1, o2) -> {
             return compareColumns(o1, o2, 1, 4, 2);
             /*String u1 = docnames.getString((String) o1.get(0));
@@ -1126,7 +1122,7 @@ public abstract class Command {
         List<List<Object>> formula = Google.get(sid, "Tabelle!B2:J11", true, false);
         List<List<Object>> points = Google.get(sid, "Tabelle!C2:J11", false, false);
         List<List<Object>> orig = new ArrayList<>(points);
-        JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
+        JSONObject docnames = emolgajson.getJSONObject("docnames");
         points.sort((o1, o2) -> {
             int c = compareColumns(o1, o2, 1, 7, 5);
             if (c != 0) return c;
@@ -1161,7 +1157,7 @@ public abstract class Command {
         sortNDSSingle(sid, league, 1);
     }
 
-    public static String reverseGet(JSONObject o, Object value) {
+    public static @Nullable String reverseGet(JSONObject o, Object value) {
         logger.info("value = {}", value);
         for (String s : o.keySet()) {
             Object obj = o.get(s);
@@ -1171,12 +1167,12 @@ public abstract class Command {
     }
 
     public static void sortNDSSingle(String sid, JSONObject league, int num) {
-        int start = num * 8 + 3;
-        int end = num * 8 + 8;
+        int start = (num << 3) + 3;
+        int end = (num << 3) + 8;
         List<List<Object>> formula = Google.get(sid, "Tabelle RR!B" + start + ":K" + end, true, false);
         List<List<Object>> points = Google.get(sid, "Tabelle RR!C" + start + ":K" + end, false, false);
         List<List<Object>> orig = new ArrayList<>(points);
-        JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
+        JSONObject docnames = emolgajson.getJSONObject("docnames");
         JSONObject teamnames = league.getJSONObject("teamnames");
         points.sort((o1, o2) -> {
             int c = compareColumns(o1, o2, 1, 7, 5);
@@ -1220,7 +1216,7 @@ public abstract class Command {
         }
         //logger.info(points);
         List<List<Object>> orig = new ArrayList<>(points);
-        JSONObject docnames = getEmolgaJSON().getJSONObject("docnames");
+        JSONObject docnames = emolgajson.getJSONObject("docnames");
         points.sort((o1, o2) -> {
             int compare = compareColumns(o1, o2, 3, 11, 9);
             if (compare != 0) return compare;
@@ -1242,7 +1238,7 @@ public abstract class Command {
         HashMap<Integer, String> stMap = new HashMap<>();
         i = 0;
         for (List<Object> objects : orig) {
-            List<Object> list = formula.get(i * 4);
+            List<Object> list = formula.get(i << 2);
             int index = points.indexOf(objects);
             Object logo = list.remove(0);
             Object name = list.remove(0);
@@ -1379,7 +1375,7 @@ public abstract class Command {
         return "+".repeat(Math.max(0, n));
     }
 
-    public static JSONObject load(String filename) {
+    public static @Nullable JSONObject load(String filename) {
         try {
             File f = new File(filename);
             if (f.createNewFile()) {
@@ -1394,13 +1390,13 @@ public abstract class Command {
         return null;
     }
 
-    public static JSONObject loadSD(String path, int sub) {
+    public static @Nullable JSONObject loadSD(String path, int sub) {
         try {
             File f = new File(path);
             logger.info("path = " + path);
             List<String> l = Files.readAllLines(f.toPath());
             int i = 0;
-            StringBuilder b = new StringBuilder();
+            StringBuilder b = new StringBuilder(1000);
             boolean func = false;
             for (String s : l) {
                 String str;
@@ -1412,7 +1408,8 @@ public abstract class Command {
                     /*if ((str.contains("{") && str.contains("(") && str.contains(")") && !str.contains(":")) || str.equals("\t\tcondition: {") || str.equals("\t\tsecondary: {")) {
                         func = true;
                     }*/
-                    if (str.startsWith("\t\t") && (str.endsWith("{") || str.endsWith("["))) func = true;
+                    if (str.startsWith("\t\t") && (!str.isEmpty() && (str.charAt(str.length() - 1) == '{' || str.charAt(str.length() - 1) == '[')))
+                        func = true;
                     if (str.equals("\t\t},") && func) {
                         func = false;
                     } else if (!str.startsWith("\t\t\t") && !func) b.append(str).append("\n");
@@ -1518,23 +1515,24 @@ public abstract class Command {
     }
 
     public static void awaitNextDay() {
-        Calendar c = Calendar.getInstance();
+        Calendar c = getInstance();
         c.add(DAY_OF_MONTH, 1);
-        c.set(Calendar.HOUR_OF_DAY, 0);
-        c.set(Calendar.MINUTE, 0);
-        c.set(Calendar.SECOND, 0);
+        c.set(HOUR_OF_DAY, 0);
+        c.set(MINUTE, 0);
+        c.set(SECOND, 0);
         long tilnextday = c.getTimeInMillis() - System.currentTimeMillis() + 1000;
         logger.info("System.currentTimeMillis() = " + System.currentTimeMillis());
         logger.info("tilnextday = " + tilnextday);
         logger.info("System.currentTimeMillis() + tilnextday = " + (System.currentTimeMillis() + tilnextday));
-        logger.info("SELECT REQUEST: " + "SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(DAY_OF_MONTH));
+        logger.info("SELECT REQUEST: " + "SELECT * FROM birthdays WHERE month = " + (c.get(MONTH) + 1) + " AND day = " + c.get(DAY_OF_MONTH));
         birthdayService.schedule(() -> {
-            ResultSet set = Database.select("SELECT * FROM birthdays WHERE month = " + (c.get(Calendar.MONTH) + 1) + " AND day = " + c.get(DAY_OF_MONTH));
+            ResultSet set = Database.select("SELECT * FROM birthdays WHERE month = " + (c.get(MONTH) + 1) + " AND day = " + c.get(DAY_OF_MONTH));
             try {
                 TextChannel tc = flegmonjda.getTextChannelById(605650587329232896L);
                 while (set.next()) {
-                    tc.sendMessage("Alles Gute zum " + (Calendar.getInstance().get(Calendar.YEAR) - set.getInt("year")) + ". Geburtstag, <@" + set.getLong("userid") + ">!").queue();
+                    tc.sendMessage("Alles Gute zum " + (getInstance().get(YEAR) - set.getInt("year")) + ". Geburtstag, <@" + set.getLong("userid") + ">!").queue();
                 }
+                set.close();
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
             }
@@ -1644,7 +1642,7 @@ public abstract class Command {
         emolgaChannel.put(747357029714231299L, new ArrayList<>(Arrays.asList(752802115096674306L, 762411109859852298L)));*/
             sdAnalyser.put(ASLID, (game, uid1, uid2, kills, deaths, args) -> {
                 if (true) return;
-                JSONObject drafts = getEmolgaJSON().getJSONObject("drafts");
+                JSONObject drafts = emolgajson.getJSONObject("drafts");
 
                 JSONObject league = null;
                 for (int i = 1; i <= 5; i++) {
@@ -1675,9 +1673,9 @@ public abstract class Command {
                         String kill = getNumber(kills.get(i), pick);
                         String death = getNumber(deaths.get(i), pick);
                         list.add(Arrays.asList(
-                                death.equals("") ? "-" : 1,
-                                kill.equals("") ? "-" : Integer.parseInt(kill),
-                                death.equals("") ? "-" : Integer.parseInt(death)
+                                death.isEmpty() ? "-" : 1,
+                                kill.isEmpty() ? "-" : Integer.parseInt(kill),
+                                death.isEmpty() ? "-" : Integer.parseInt(death)
                         ));
                     }
                     if (game[i].isWinner()) {
@@ -1701,7 +1699,7 @@ public abstract class Command {
                 saveEmolgaJSON();
             });
             sdAnalyser.put(FLPID, (game, uid1, uid2, kills, deaths, args) -> {
-                JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("WoolooCupS4");
+                JSONObject league = emolgajson.getJSONObject("drafts").getJSONObject("WoolooCupS4");
                 String sid = league.getString("sid");
                 int gameday = getGameDay(league, uid1, uid2);
                 if (gameday == -1) {
@@ -1724,9 +1722,9 @@ public abstract class Command {
                         String kill = getNumber(kills.get(i), pick);
                         String death = getNumber(deaths.get(i), pick);
                         list.add(Arrays.asList(
-                                death.equals("") ? "-" : 1,
-                                kill.equals("") ? "-" : Integer.parseInt(kill),
-                                death.equals("") ? "-" : Integer.parseInt(death)
+                                death.isEmpty() ? "-" : 1,
+                                kill.isEmpty() ? "-" : Integer.parseInt(kill),
+                                death.isEmpty() ? "-" : Integer.parseInt(death)
                         ));
                         x++;
                     }
@@ -1753,7 +1751,7 @@ public abstract class Command {
 
 
             sdAnalyser.put(NDSID, (game, uid1, uid2, kills, deaths, args) -> {
-                JSONObject json = getEmolgaJSON();
+                JSONObject json = emolgajson;
                 JSONObject league = json.getJSONObject("drafts").getJSONObject("NDS");
                 String sid = league.getString("sid");
                 List<String> users = Arrays.asList(uid1, uid2);
@@ -1794,10 +1792,10 @@ public abstract class Command {
                         String kill = getNumber(kills.get(i), s);
                         String death = getNumber(deaths.get(i), s);
                         String killloc = str + getAsXCoord(gameday + 5 + 1) + (x + 200);
-                        int killint = kill.equals("") ? 0 : Integer.parseInt(kill);
+                        int killint = kill.isEmpty() ? 0 : Integer.parseInt(kill);
                         b.addSingle(killloc, killint);
                         b.addSingle("Killliste!%s%d".formatted(getAsXCoord(gameday + 5 + 18), killlistloc.indexOf(s) + 1001), killint);
-                        int deathint = death.equals("") ? 0 : Integer.parseInt(death);
+                        int deathint = death.isEmpty() ? 0 : Integer.parseInt(death);
                         b.addSingle(str + getAsXCoord(gameday + 5 + 13) + (x + 200), deathint);
                         List<Object> l = new LinkedList<>();
                         l.add(s);
@@ -1851,7 +1849,7 @@ public abstract class Command {
     }
 
     public static com.google.api.services.sheets.v4.model.Color convertColor(int hexcode) {
-        java.awt.Color c = new java.awt.Color(hexcode);
+        Color c = new Color(hexcode);
         return new com.google.api.services.sheets.v4.model.Color()
                 .setRed((float) c.getRed() / (float) 255)
                 .setGreen((float) c.getGreen() / (float) 255)
@@ -1859,7 +1857,7 @@ public abstract class Command {
     }
 
     private static List<String> getSortedListOfMons(List<JSONObject> list) {
-        Comparator<JSONObject> comp = Comparator.<JSONObject, Integer>comparing(p1 -> Tierlist.getByGuild(Constants.ASLID).order.indexOf(p1.getString("tier"))).thenComparing(p -> p.getString("name"));
+        Comparator<JSONObject> comp = Comparator.<JSONObject, Integer>comparing(p1 -> Tierlist.getByGuild(ASLID).order.indexOf(p1.getString("tier"))).thenComparing(p -> p.getString("name"));
         list.sort(comp);
         return list.stream().map(o -> o.getString("name")).collect(Collectors.toList());
     }
@@ -1943,14 +1941,14 @@ public abstract class Command {
         int x = gameday - 1;
         logger.info("gameday = " + gameday);
         logger.info("index = " + index);
-        return "%s%d".formatted(getAsXCoord(x > 1 && x < 8 ? gameday % 3 * 4 + 3 : x % 2 * 4 + 5), gameday / 3 * 8 + index + 3);
+        return "%s%d".formatted(getAsXCoord(x > 1 && x < 8 ? (gameday % 3 << 2) + 3 : (x % 2 << 2) + 5), (gameday / 3 << 3) + index + 3);
     }
 
     private static String getASLS10GameplanCoords(int gameday, int index) {
         int x = gameday - 1;
         logger.info("gameday = " + gameday);
         logger.info("index = " + index);
-        return "%s%d".formatted(getAsXCoord(x > 1 && x < 8 ? gameday % 3 * 4 + 3 : x % 2 * 4 + 5), gameday / 3 * 6 + index + 4);
+        return "%s%d".formatted(getAsXCoord(x > 1 && x < 8 ? (gameday % 3 << 2) + 3 : (x % 2 << 2) + 5), gameday / 3 * 6 + index + 4);
     }
 
     private static String getASLGameplanCoords(int gameday, int index, int pk) {
@@ -1990,7 +1988,7 @@ public abstract class Command {
     }
 
     public static String getHelpDescripion(Guild g, Member mem) {
-        StringBuilder s = new StringBuilder();
+        StringBuilder s = new StringBuilder(100);
         for (CommandCategory cat : CommandCategory.getOrder()) {
             if (cat.allowsGuild(g) && cat.allowsMember(mem) && getWithCategory(cat, g, mem).size() > 0)
                 s/*.append(cat.isEmote() ? g.getJDA().getEmoteById(cat.emoji).getAsMention() : cat.emoji).append(" ")*/.append(cat.name).append("\n");
@@ -2024,9 +2022,9 @@ public abstract class Command {
         long gid = e.getGuild().getIdLong();
         Bot bot = Bot.byJDA(e.getJDA());
 
-        JSONObject cc = getEmolgaJSON().getJSONObject("customcommands");
-        if (msg.startsWith("!") && cc.has(msg.toLowerCase().substring(1))) {
-            JSONObject o = cc.getJSONObject(msg.toLowerCase().substring(1));
+        JSONObject customcommands = emolgajson.getJSONObject("customcommands");
+        if (!msg.isEmpty() && msg.charAt(0) == '!' && customcommands.has(msg.toLowerCase().substring(1))) {
+            JSONObject o = customcommands.getJSONObject(msg.toLowerCase().substring(1));
             String sendmsg = null;
             File f = null;
             if (!o.get("text").equals(false)) sendmsg = o.getString("text");
@@ -2078,7 +2076,7 @@ public abstract class Command {
                 }
             }
         }
-        Command command = commands.get(msg.split("\\s+")[0].toLowerCase());
+        Command command = commands.get(WHITESPACES_SPLITTER.split(msg)[0].toLowerCase());
         if (command != null) {
             if (command.disabled || command.onlySlash) return;
             if (!command.checkBot(e.getJDA(), gid)) return;
@@ -2089,9 +2087,6 @@ public abstract class Command {
                 return;
             }
             if (mem.getIdLong() != FLOID) {
-                if (!command.category.disabled.isEmpty()) {
-                    tco.sendMessage(command.category.disabled).queue();
-                }
                 if (command.wip) {
                     tco.sendMessage("Diese Funktion ist derzeit noch in Entwicklung und ist noch nicht einsatzbereit!").queue();
                     return;
@@ -2139,7 +2134,7 @@ public abstract class Command {
                 if (arg.hasCustomErrorMessage()) tco.sendMessage(arg.getCustomErrorMessage()).queue();
                 else {
                     tco.sendMessage("Das benötigte Argument `" + arg.getName() + "`, was eigentlich " + buildEnumeration(arg.getType().getName()) + " sein müsste, ist nicht vorhanden!\n" +
-                            "Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help " + command.getName() + "`.").queue();
+                                    "Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help " + command.name + "`.").queue();
                 }
                 if (mem.getIdLong() != FLOID) {
                     sendToMe("MissingArgument " + tco.getAsMention() + " Server: " + tco.getGuild().getName());
@@ -2152,7 +2147,7 @@ public abstract class Command {
     }
 
     public static String eachWordUpperCase(String s) {
-        StringBuilder st = new StringBuilder();
+        StringBuilder st = new StringBuilder(s.length());
         for (String str : s.split(" ")) {
             st.append(firstUpperCase(str)).append(" ");
         }
@@ -2160,7 +2155,7 @@ public abstract class Command {
     }
 
     public static String firstUpperCase(String s) {
-        return s.split("")[0].toUpperCase() + s.substring(1).toLowerCase();
+        return EMPTY_PATTERN.split(s)[0].toUpperCase() + s.substring(1).toLowerCase();
     }
 
     public static String getType(String str) {
@@ -2208,7 +2203,7 @@ public abstract class Command {
     }
 
     public static boolean moveFilter(String msg, String move) {
-        JSONObject o = getEmolgaJSON().getJSONObject("movefilter");
+        JSONObject o = emolgajson.getJSONObject("movefilter");
         for (String s : o.keySet()) {
             if (msg.toLowerCase().contains("--" + s) && !o.getJSONArray(s).toList().contains(move)) return false;
         }
@@ -2266,12 +2261,12 @@ public abstract class Command {
                     String moveengl = set.getString("englishid");
                     String move = set.getString("germanname");
                     //logger.info("move = " + move);
-                    if ((type.equals("") || atkdata.getJSONObject(moveengl).getString("type").equals(getEnglName(type))) &&
-                            (dmgclass.equals("") || atkdata.getJSONObject(moveengl).getString("category").equals(dmgclass)) &&
-                            (!msg.toLowerCase().contains("--prio") || atkdata.getJSONObject(moveengl).getInt("priority") > 0) &&
-                            containsGen(learnset, moveengl, maxgen) &&
-                            moveFilter(msg, move) &&
-                            !already.contains(move)) {
+                    if ((type.isEmpty() || atkdata.getJSONObject(moveengl).getString("type").equals(getEnglName(type))) &&
+                        (dmgclass.isEmpty() || atkdata.getJSONObject(moveengl).getString("category").equals(dmgclass)) &&
+                        (!msg.toLowerCase().contains("--prio") || atkdata.getJSONObject(moveengl).getInt("priority") > 0) &&
+                        containsGen(learnset, moveengl, maxgen) &&
+                        moveFilter(msg, move) &&
+                        !already.contains(move)) {
                         already.add(move);
                     }
                 }
@@ -2279,7 +2274,7 @@ public abstract class Command {
                 if (mon.has("prevo")) {
                     String s = mon.getString("prevo");
                     if (s.endsWith("-Alola") || s.endsWith("-Galar") || s.endsWith("-Unova"))
-                        str = s.replaceAll("-", "").toLowerCase();
+                        str = HYPHEN.matcher(s).replaceAll("").toLowerCase();
                     else str = s.toLowerCase();
                 } else str = null;
             }
@@ -2336,7 +2331,7 @@ public abstract class Command {
             i -= 26;
             x++;
         }
-        return (x > 0 ? (char) (x + 64) : "") + "" + (char) (i + 64);
+        return (x > 0 ? (char) (x + 64) : "") + String.valueOf((char) (i + 64));
     }
 
     private static String getSerebiiForm(String forme) {
@@ -2395,7 +2390,7 @@ public abstract class Command {
         for (int i = 1; i <= 5; i++) {
             JSONObject league = emolgajson.getJSONObject("drafts").getJSONObject("ASLS10L" + i);
             List<Long> table = league.getLongList("table");
-            if (table.containsAll(List.of(uid1, uid2)))
+            if (new HashSet<>(table).containsAll(List.of(uid1, uid2)))
                 return Arrays.asList(emolgajda.getTextChannelById(league.getLong("replay")), emolgajda.getTextChannelById(league.getLong("result")));
         }
         return Collections.emptyList();
@@ -2451,8 +2446,8 @@ public abstract class Command {
         }
         int aliveP1 = game[0].getTeamsize() - game[0].getTotalDeaths();
         int aliveP2 = game[1].getTeamsize() - game[1].getTotalDeaths();
-        StringBuilder t1 = new StringBuilder();
-        StringBuilder t2 = new StringBuilder();
+        StringBuilder t1 = new StringBuilder(50);
+        StringBuilder t2 = new StringBuilder(50);
         String winloose = aliveP1 + ":" + aliveP2;
         boolean p1wins = game[0].isWinner();
         List<Map<String, String>> kills = Arrays.asList(new HashMap<>(), new HashMap<>());
@@ -2465,7 +2460,7 @@ public abstract class Command {
         for (Pokemon p : game[0].getMons()) {
             logger.info("p.getPokemon() = " + p.getPokemon());
             String monName = getMonName(p.getPokemon(), gid);
-            if (monName.trim().endsWith("-")) {
+            if (!monName.trim().isEmpty() && monName.trim().charAt(monName.trim().length() - 1) == '-') {
                 sendToMe(p.getPokemon() + " SD - at End");
             }
             logger.info("monName = " + monName);
@@ -2488,7 +2483,7 @@ public abstract class Command {
         if (spoiler) t2.append("||");
         for (Pokemon p : game[1].getMons()) {
             String monName = getMonName(p.getPokemon(), gid);
-            if (monName.trim().endsWith("-")) {
+            if (!monName.trim().isEmpty() && monName.trim().charAt(monName.trim().length() - 1) == '-') {
                 sendToMe(p.getPokemon() + " SD - at End");
             }
             kills.get(1).put(monName, String.valueOf(p.getKills()));
@@ -2513,7 +2508,7 @@ public abstract class Command {
         logger.info(String.valueOf(deaths));
         String name1;
         String name2;
-        JSONObject json = getEmolgaJSON();
+        JSONObject json = emolgajson;
         //JSONObject showdown = json.getJSONObject("showdown").getJSONObject(String.valueOf(gid));
         logger.info("u1 = " + u1);
         logger.info("u2 = " + u2);
@@ -2530,10 +2525,10 @@ public abstract class Command {
         String str;
         if (spoiler) {
             str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1
-                    + "\n" + name2 + ": " + "\n" + t2;
+                  + "\n" + name2 + ": " + "\n" + t2;
         } else {
             str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1
-                    + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
+                  + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
         }
         if (customReplayChannel != null) customReplayChannel.sendMessage(url).queue();
         if (e != null) {
@@ -2561,11 +2556,11 @@ public abstract class Command {
         JSONObject data = getDataJSON();
         if (str.toLowerCase().startsWith("a-")) {
             String sdName = getSDName(str.substring(2));
-            if (sdName.equals("")) return "";
+            if (sdName.isEmpty()) return "";
             gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + "-a";
         } else if (str.toLowerCase().startsWith("g-")) {
             String sdName = getSDName(str.substring(2));
-            if (sdName.equals("")) return "";
+            if (sdName.isEmpty()) return "";
             gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + "-g";
         } else if (serebiiex.keySet().stream().anyMatch(str::equalsIgnoreCase)) {
             String ex = serebiiex.keySet().stream().filter(str::equalsIgnoreCase).collect(Collectors.joining(""));
@@ -2573,8 +2568,8 @@ public abstract class Command {
             gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + serebiiex.get(str);
         } else {
             String sdName = getSDName(str);
-            if (sdName.equals("")) return "";
-            gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + "";
+            if (sdName.isEmpty()) return "";
+            gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3);
         }
         String url = "https://www.serebii.net/pokedex-swsh/icon/" + gitname.toLowerCase() + ".png";
         logger.info("url = " + url);
@@ -2591,7 +2586,7 @@ public abstract class Command {
         } else if (serebiiex.containsKey(str)) {
             gitname = getWithZeros(data.getJSONObject(getSDName(str.split("-")[0])).getInt("num"), 3) + serebiiex.get(str);
         } else {
-            gitname = getWithZeros(data.getJSONObject(getSDName(str)).getInt("num"), 3) + "";
+            gitname = getWithZeros(data.getJSONObject(getSDName(str)).getInt("num"), 3);
         }
         return "https://www.serebii.net/swordshield/pokemon/" + gitname.toLowerCase() + ".png";
     }
@@ -2607,15 +2602,15 @@ public abstract class Command {
     public static long calculateTimer(DraftTimer draftTimer) {
         TimerInfo data = draftTimer.getTimerInfo();
         int delayinmins = draftTimer.getDelayInMins();
-        Calendar cal = Calendar.getInstance();
+        Calendar cal = getInstance();
         long currentTimeMillis = cal.getTimeInMillis();
         int elapsedMinutes = delayinmins;
         while (elapsedMinutes > 0) {
             TimerData p = data.get(cal.get(DAY_OF_WEEK));
-            int hour = cal.get(Calendar.HOUR_OF_DAY);
+            int hour = cal.get(HOUR_OF_DAY);
             if (hour >= p.from() && hour < p.to()) elapsedMinutes--;
             else if (elapsedMinutes == delayinmins) cal.set(SECOND, 0);
-            cal.add(Calendar.MINUTE, 1);
+            cal.add(MINUTE, 1);
         }
         return cal.getTimeInMillis() - currentTimeMillis;
     }
@@ -2629,10 +2624,10 @@ public abstract class Command {
     }
 
     public static int getLevelFromXP(long xp) {
-        long remaining_xp = xp;
+        long remainingXP = xp;
         int level = 0;
-        while (remaining_xp >= getXPNeeded(level)) {
-            remaining_xp -= getXPNeeded(level);
+        while (remainingXP >= getXPNeeded(level)) {
+            remainingXP -= getXPNeeded(level);
             level += 1;
         }
         return level;
@@ -2825,11 +2820,11 @@ public abstract class Command {
     }
 
     public static String toSDName(String s) {
-        return s.toLowerCase().replaceAll("[^a-zA-Z0-9äöüÄÖÜß♂♀é+]+", "");
+        return SD_NAME_PATTERN.matcher(s.toLowerCase()).replaceAll("");
     }
 
     public static String toUsername(String s) {
-        return s.toLowerCase().trim().replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss").replaceAll("[^a-zA-Z0-9]+", "");
+        return USERNAME_PATTERN.matcher(s.toLowerCase().trim().replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss")).replaceAll("");
     }
 
     public static boolean canLearn(String pokemon, String form, String atk, String msg, int maxgen, String mod) {
@@ -2973,7 +2968,7 @@ public abstract class Command {
     }
 
     public static String buildEnumeration(String... types) {
-        StringBuilder builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder(types.length << 3);
         for (int i = 0; i < types.length; i++) {
             if (i > 0) {
                 if (i + 1 == types.length)
@@ -3105,12 +3100,12 @@ public abstract class Command {
     }
 
     public String getHelp(Guild g) {
-        ArgumentManagerTemplate args = getArgumentTemplate();
+        ArgumentManagerTemplate args = argumentTemplate;
         if (args == null) {
-            return "`" + getPrefix() + getName() + "` " + overrideHelp.getOrDefault(g.getIdLong(), help);
+            return "`" + getPrefix() + name + "` " + overrideHelp.getOrDefault(g.getIdLong(), help);
         }
-        return "`" + (args.hasSyntax() ? args.getSyntax() : getPrefix() + getName() + (args.arguments.size() > 0 ? " " : "")
-                + args.arguments.stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" "))) + "` " + overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
+        return "`" + (args.hasSyntax() ? args.getSyntax() : getPrefix() + name + (args.arguments.size() > 0 ? " " : "")
+                                                            + args.arguments.stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" "))) + "` " + overrideHelp.getOrDefault(g.getIdLong(), help) + (wip ? " (**W.I.P.**)" : "");
     }
 
     public String getHelpWithoutCmd(Guild g) {
@@ -3127,9 +3122,9 @@ public abstract class Command {
             this.jda = jda;
         }
 
-        public static Bot byJDA(JDA jda) {
+        public static @Nullable Bot byJDA(JDA jda) {
             for (Bot value : values()) {
-                if (jda.getSelfUser().getIdLong() == value.getJDA().getSelfUser().getIdLong()) {
+                if (jda.getSelfUser().getIdLong() == value.jda.getSelfUser().getIdLong()) {
                     return value;
                 }
             }
@@ -3152,7 +3147,7 @@ public abstract class Command {
 
         String getName();
 
-        default String getCustomHelp() {
+        default @Nullable String getCustomHelp() {
             return null;
         }
 
@@ -3164,7 +3159,7 @@ public abstract class Command {
             return false;
         }
 
-        default List<String> autoCompleteList(String arg) {
+        default @Nullable List<String> autoCompleteList(String arg) {
             return null;
         }
     }
@@ -3329,7 +3324,7 @@ public abstract class Command {
         public static ArgumentType withPredicate(String name, Predicate<String> check, boolean female) {
             return new ArgumentType() {
                 @Override
-                public Object validate(String str, Object... params) {
+                public @Nullable Object validate(String str, Object... params) {
                     return check.test(str) ? str : null;
                 }
 
@@ -3358,7 +3353,7 @@ public abstract class Command {
         public static ArgumentType withPredicate(String name, Predicate<String> check, boolean female, Function<String, String> mapper, Function<String, List<String>> autoComplete) {
             return new ArgumentType() {
                 @Override
-                public Object validate(String str, Object... params) {
+                public @Nullable Object validate(String str, Object... params) {
                     if (check.test(str)) {
                         return mapper.apply(str);
                     }
@@ -3441,12 +3436,12 @@ public abstract class Command {
             return new ArgumentManager(map);
         }
 
-        public ArgumentManager construct(MessageReceivedEvent e) throws ArgumentException {
+        public @Nullable ArgumentManager construct(MessageReceivedEvent e) throws ArgumentException {
             if (noCheck) return null;
             Message m = e.getMessage();
             long mid = m.getIdLong();
             String raw = m.getContentRaw();
-            ArrayList<String> split = new ArrayList<>(Arrays.asList(raw.split("\\s+")));
+            ArrayList<String> split = new ArrayList<>(Arrays.asList(WHITESPACES_SPLITTER.split(raw)));
             split.remove(0);
             HashMap<ArgumentType, Integer> asFar = new HashMap<>();
             HashMap<String, Object> map = new HashMap<>();
@@ -3531,7 +3526,7 @@ public abstract class Command {
             }
 
             @Override
-            public Object validate(String str, Object... params) {
+            public @Nullable Object validate(String str, Object... params) {
                 if (pattern.matcher(str).find()) {
                     if (mentionable()) {
                         Message m = (Message) params[0];
@@ -3609,7 +3604,7 @@ public abstract class Command {
             }
 
             @Override
-            public String getCustomHelp() {
+            public @Nullable String getCustomHelp() {
                 if (any) return null;
                 return texts.stream().map(sc -> "`" + sc.getName() + "`" + sc.getHelp()).collect(Collectors.joining("\n"));
             }
@@ -3693,7 +3688,7 @@ public abstract class Command {
             }
 
             @Override
-            public Object validate(String str, Object... params) {
+            public @Nullable Object validate(String str, Object... params) {
                 if (Helpers.isNumeric(str)) {
                     int num = Integer.parseInt(str);
                     if (any) return num;
@@ -3733,7 +3728,7 @@ public abstract class Command {
             }
 
             @Override
-            public Object validate(String str, Object... params) {
+            public @Nullable Object validate(String str, Object... params) {
                 List<Message.Attachment> att = ((Message) params[0]).getAttachments();
                 if (att.size() == 0) return null;
                 Message.Attachment a = att.get((Integer) params[1]);
@@ -3749,7 +3744,7 @@ public abstract class Command {
             }
 
             @Override
-            public OptionType asOptionType() {
+            public @Nullable OptionType asOptionType() {
                 return null;
             }
 
@@ -3783,7 +3778,7 @@ public abstract class Command {
             public String getHelp() {
                 StringBuilder b = new StringBuilder(help);
                 if (type.getCustomHelp() == null) return b.toString();
-                if (!help.equals("")) {
+                if (!help.isEmpty()) {
                     b.append("\n");
                 }
                 return b.append("Möglichkeiten:\n").append(type.getCustomHelp()).toString();
@@ -3938,11 +3933,11 @@ public abstract class Command {
 
         public void print() {
             logger.info("Translation{" + "type=" + type +
-                    ", language=" + language +
-                    ", translation='" + translation + '\'' +
-                    ", empty=" + empty +
-                    ", otherLang='" + otherLang + '\'' +
-                    '}');
+                        ", language=" + language +
+                        ", translation='" + translation + '\'' +
+                        ", empty=" + empty +
+                        ", otherLang='" + otherLang + '\'' +
+                        '}');
         }
 
         public String getOtherLang() {
@@ -4022,13 +4017,13 @@ public abstract class Command {
             }
 
             public static Type fromId(String id) {
-                return Arrays.stream(values()).filter(t -> t.getId().equalsIgnoreCase(id)).findFirst().orElse(UNKNOWN);
+                return Arrays.stream(values()).filter(t -> t.id.equalsIgnoreCase(id)).findFirst().orElse(UNKNOWN);
             }
 
             public static ArgumentType of(Type... types) {
                 return new ArgumentType() {
                     @Override
-                    public Object validate(String str, Object... params) {
+                    public @Nullable Object validate(String str, Object... params) {
                         Translation t = params[0] == Language.GERMAN ? getGerName(str) : getEnglNameWithType(str);
                         if (t.isEmpty()) return null;
                         if (!Arrays.asList(types).contains(t.getType())) return null;
@@ -4097,7 +4092,7 @@ public abstract class Command {
             }
 
             @Override
-            public Object validate(String str, Object... params) {
+            public @Nullable Object validate(String str, Object... params) {
                 String mod = (String) params[1];
                 Translation t = params[0] == Language.GERMAN ? getGerName(str, mod, false) : getEnglNameWithType(str, mod);
                 if (t.isEmpty()) return null;

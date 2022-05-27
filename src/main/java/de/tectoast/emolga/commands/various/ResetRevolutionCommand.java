@@ -8,7 +8,11 @@ import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.GuildChannel;
 
+import java.util.regex.Pattern;
+
 public class ResetRevolutionCommand extends Command {
+    private static final Pattern REVOLUTION_PATTERN = Pattern.compile("(.*)-");
+
     public ResetRevolutionCommand() {
         super("resetrevolution", "Setzt die Diktatur zurück", CommandCategory.Various);
         setArgumentTemplate(ArgumentManagerTemplate.noArgs());
@@ -24,7 +28,7 @@ public class ResetRevolutionCommand extends Command {
             g.retrieveMemberById(s).submit().thenCompose(mem -> mem.modifyNickname(o.getString(s)).submit());
         }
         for (GuildChannel gc : g.getChannels()) {
-            gc.getManager().setName(gc.getName().replaceFirst("(.*)-", "")).queue();
+            gc.getManager().setName(REVOLUTION_PATTERN.matcher(gc.getName()).replaceFirst("")).queue();
         }
         g.getSelfMember().modifyNickname("Emolga").queue();
         JSONArray arr = getEmolgaJSON().getJSONArray("activerevolutions");

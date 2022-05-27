@@ -37,7 +37,7 @@ public class FullStatsManager extends DataManager {
     public UsageData getData(String mon) {
         return read(selectAll(POKEMON.check(mon)), r -> {
             if (!r.next()) {
-                return null;
+                return new UsageData(0, 0, 0, 0, 0);
             }
             return new UsageData(r.getInt("kills"), r.getInt("deaths"), r.getInt("uses"), r.getInt("wins"), r.getInt("looses"));
         });

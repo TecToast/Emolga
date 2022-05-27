@@ -4,6 +4,7 @@ import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,7 +39,7 @@ public class DexQuiz {
         activeQuizzes.put(tc.getIdLong(), this);
     }
 
-    public static Pair<String, String> getNewMon() {
+    public static @Nullable Pair<String, String> getNewMon() {
         try {
             if (cachedMons == null) {
                 File file = new File("./entwicklung.txt");

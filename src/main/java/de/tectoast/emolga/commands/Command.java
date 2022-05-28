@@ -13,6 +13,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import de.tectoast.emolga.buttons.ButtonListener;
 import de.tectoast.emolga.buttons.buttonsaves.MonData;
 import de.tectoast.emolga.buttons.buttonsaves.Nominate;
+import de.tectoast.emolga.buttons.buttonsaves.PrismaTeam;
 import de.tectoast.emolga.buttons.buttonsaves.TrainerData;
 import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.selectmenus.MenuListener;
@@ -187,6 +188,7 @@ public abstract class Command {
     public static final Map<Long, MonData> monDataButtons = new HashMap<>();
     public static final Map<Long, Nominate> nominateButtons = new HashMap<>();
     public static final Map<Long, SmogonSet> smogonMenu = new HashMap<>();
+    public static final Map<Long, PrismaTeam> prismaTeam = new HashMap<>();
     public static final List<Long> customResult = Collections.singletonList(NDSID);
     public static final Map<Long, CircularFifoQueue<byte[]>> clips = new HashMap<>();
     protected static final Map<Long, String> soullinkIds = Map.of(448542640850599947L, "Pascal", 726495601021157426L, "David", 867869302808248341L, "Jesse", 541214204926099477L, "Felix");

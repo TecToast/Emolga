@@ -20,7 +20,6 @@ public class DBManagers {
     public static final MuteManager MUTE = new MuteManager();
     public static final NaturalGiftManager NATURAL_GIFT = new NaturalGiftManager();
     public static final NatureManager NATURE = new NatureManager();
-    public static final NMLAnnouncementsManager NML_ANNOUNCEMENTS = new NMLAnnouncementsManager();
     public static final PokedexManager POKEDEX = new PokedexManager();
     public static final PredictionGameManager PREDICTION_GAME = new PredictionGameManager();
     public static final ReplayCheckManager REPLAY_CHECK = new ReplayCheckManager();

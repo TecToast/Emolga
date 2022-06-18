@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+@SuppressWarnings("unused")
 public record SorterData(List<String> formulaRange, List<String> pointRange, boolean directCompare,
                          Function<String, Integer> indexer, int... cols) {
     public SorterData(String formulaRange, String pointRange, boolean directCompare, Function<String, Integer> indexer, int... cols) {

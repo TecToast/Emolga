@@ -34,8 +34,8 @@ public abstract class DataManager {
     }
 
     public static int executeUpdate(String query) {
-        try {
-            Statement statement = getConnection().createStatement();
+        try (Connection conn = getConnection()) {
+            Statement statement = conn.createStatement();
             if (query.startsWith("INSERT INTO") || query.startsWith("UPDATE") || query.startsWith("DELETE")) {
                 logger.info("query = " + query);
             }
@@ -55,10 +55,11 @@ public abstract class DataManager {
     }
 
     public static void read(String query, ResultsConsumer rc) {
-        try {
-            Statement statement = getConnection().createStatement();
+        try (Connection conn = getConnection()) {
+            Statement statement = conn.createStatement();
             ResultSet results = statement.executeQuery(query);
             rc.consume(results);
+            statement.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -69,8 +70,8 @@ public abstract class DataManager {
     }
 
     public static <T> T read(String query, ResultsFunction<T> rf, T err) {
-        try {
-            Statement statement = getConnection().createStatement();
+        try (Connection conn = getConnection()) {
+            Statement statement = conn.createStatement();
             ResultSet results = statement.executeQuery(query);
             return rf.apply(results);
         } catch (SQLException e) {
@@ -80,8 +81,8 @@ public abstract class DataManager {
     }
 
     public static void readWrite(String query, ResultsConsumer rc) {
-        try {
-            Statement statement = getConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+        try (Connection conn = getConnection()) {
+            Statement statement = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
             ResultSet results = statement.executeQuery(query);
             rc.consume(results);
         } catch (SQLException e) {
@@ -90,8 +91,8 @@ public abstract class DataManager {
     }
 
     public static <T> T readWrite(String query, ResultsFunction<T> rf, T err) {
-        try {
-            ResultSet set = getConnection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE).executeQuery(query);
+        try (Connection conn = getConnection()) {
+            ResultSet set = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE).executeQuery(query);
             return rf.apply(set);
         } catch (SQLException e) {
             return err;
@@ -148,24 +149,12 @@ public abstract class DataManager {
         }
     }
 
-    public void update(SQLColumn<?> checkcolumn, Object checkvalue, SQLColumn<?> updateColumn, Object updateValue) {
-        executeUpdate("UPDATE " + tableName + " SET " + updateColumn.check(updateValue) + " WHERE " + checkcolumn.check(checkvalue));
-    }
-
     public void forAll(ResultsConsumer c) {
         read(selectAll(), rc -> {
             while (rc.next()) {
                 c.consume(rc);
             }
         });
-    }
-
-    public void update(SQLColumn<?> checkcolumn, Object checkvalue, SQLColumn<?>[] updateColumn, Object... updateValue) {
-        List<String> l = new LinkedList<>();
-        for (int i = 0; i < updateColumn.length; i++) {
-            l.add(updateColumn[i].check(updateValue[i]));
-        }
-        executeUpdate("UPDATE " + tableName + " SET " + String.join(",", l) + " WHERE " + checkcolumn.check(checkvalue));
     }
 
     public void addStatistics(String id, Object... defaultValues) {
@@ -187,9 +176,9 @@ public abstract class DataManager {
     }
 
     public void insertOrUpdate(Map<SQLColumn<?>, Function<String, String>> map, List<SQLColumn<?>> cols, Object... defaultValues) {
-        try {
+        try (Connection conn = getConnection()) {
             if (!ready) throw new IllegalStateException("DataManager " + this.tableName + " is not initialized!");
-            Statement stmt = getConnection().createStatement();
+            Statement stmt = conn.createStatement();
             String q = "INSERT INTO %s VALUES (%s) ON DUPLICATE KEY UPDATE %s".formatted(
                     tableName,
                     generateInsertString(defaultValues),
@@ -247,6 +236,7 @@ public abstract class DataManager {
         return "SELECT " + columns + " FROM " + tableName + (where == null ? "" : " WHERE " + where);
     }
 
+    @SuppressWarnings("unused")
     protected static class SelectBuilder {
         String columns;
         String where;

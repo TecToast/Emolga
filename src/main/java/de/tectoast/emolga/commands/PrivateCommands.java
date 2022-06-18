@@ -75,7 +75,6 @@ public class PrivateCommands {
     @PrivateCommand(name = "send")
     public static void send(GenericCommandEvent e) {
         Message message = e.getMessage();
-        String[] split = message.getContentDisplay().split(" ");
         logger.info(message.getContentRaw());
         String s = DOUBLE_BACKSLASH.matcher(message.getContentRaw().substring(24)).replaceAll("");
         TextChannel tc = e.getJDA().getTextChannelById(e.getArg(0));
@@ -89,7 +88,6 @@ public class PrivateCommands {
     @PrivateCommand(name = "sendpn")
     public static void sendPN(GenericCommandEvent e) {
         Message message = e.getMessage();
-        String[] split = message.getContentDisplay().split(" ");
         logger.info(message.getContentRaw());
         String s = DOUBLE_BACKSLASH.matcher(message.getContentRaw().substring(26)).replaceAll("");
         String userid = e.getArg(0);
@@ -145,13 +143,6 @@ public class PrivateCommands {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ZBSL" + e.getArg(0));
         sortZBS(league.getString("sid"), "Liga " + e.getArg(0), league);
     }
-
-    @PrivateCommand(name = "sortwooloo")
-    public static void sortWoolooCmd(GenericCommandEvent e) {
-        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("WoolooCupS3L" + e.getArg(0));
-        sortWooloo(league.getString("sid"), league);
-    }
-
     @PrivateCommand(name = "troll")
     public static void troll(GenericCommandEvent e) {
         Category category = e.getJDA().getCategoryById(e.getArg(0));
@@ -171,7 +162,6 @@ public class PrivateCommands {
 
     @PrivateCommand(name = "addreactions")
     public static void addReactions(GenericCommandEvent e) {
-        Message message = e.getMessage();
         e.getJDA().getTextChannelById(e.getArg(0)).retrieveMessageById(e.getArg(1)).queue(m -> {
             m.getReactions().forEach(mr -> {
                 MessageReaction.ReactionEmote emote = mr.getReactionEmote();
@@ -231,11 +221,6 @@ public class PrivateCommands {
         for (String arg : e.getArgs()) {
             Database.incrementPredictionCounter(Long.parseLong(arg));
         }
-    }
-
-    @PrivateCommand(name = "silentmove")
-    public static void silentMove(GenericCommandEvent e) {
-        VoiceChannel from = e.getJDA().getVoiceChannelById(e.getArg(0));
     }
 
     @PrivateCommand(name = "testvolume")
@@ -335,7 +320,7 @@ public class PrivateCommands {
         //BufferedWriter writer = new BufferedWriter(new FileWriter("ndskilllistorder.txt"));
         for (String s : picks.keySet()) {
             List<String> mons = getPicksAsList(picks.getJSONArray(s));
-            List<List<Object>> lists = Google.get(sid, "%s!B200:K%d".formatted(teamnames.getString(s), mons.size() + 199), false, false);
+            List<List<Object>> lists = Google.get(sid, "%s!B200:K%d".formatted(teamnames.getString(s), mons.size() + 199), false);
             for (int j = 0; j < mons.size(); j++) {
                 send.add(lists.get(j));
             }
@@ -361,7 +346,7 @@ public class PrivateCommands {
         HashMap<String, AtomicInteger> killstoadd = new HashMap<>();
         HashMap<String, AtomicInteger> deathstoadd = new HashMap<>();
         for (int i = 0; i < 6; i++) {
-            List<List<Object>> l = Google.get(sid, "RR Draft!%s5:%s28".formatted(getAsXCoord((i << 2) + 2), getAsXCoord((i << 2) + 4)), false, false);
+            List<List<Object>> l = Google.get(sid, "RR Draft!%s5:%s28".formatted(getAsXCoord((i << 2) + 2), getAsXCoord((i << 2) + 4)), false);
             int x = 0;
             for (List<Object> objects : l) {
                 if (x % 2 == 0) current = toid.getString(((String) objects.get(0)).trim());
@@ -369,9 +354,9 @@ public class PrivateCommands {
                     List<String> currorder = Arrays.stream(TRIPLE_HASHTAG.split(lastNom.getString(current))).flatMap(s -> Arrays.stream(s.split(";"))).map(s -> s.split(",")[0]).toList();
                     String teamname = teamnames.getString(current);
                     if (!currkills.containsKey(current))
-                        currkills.put(current, Google.get(sid, "%s!L200:L214".formatted(teamname), false, false).stream().map(li -> Integer.parseInt((String) li.get(0))).collect(Collectors.toList()));
+                        currkills.put(current, Google.get(sid, "%s!L200:L214".formatted(teamname), false).stream().map(li -> Integer.parseInt((String) li.get(0))).collect(Collectors.toList()));
                     if (!currdeaths.containsKey(current))
-                        currdeaths.put(current, Google.get(sid, "%s!X200:X214".formatted(teamname), false, false).stream().map(li -> Integer.parseInt((String) li.get(0))).collect(Collectors.toList()));
+                        currdeaths.put(current, Google.get(sid, "%s!X200:X214".formatted(teamname), false).stream().map(li -> Integer.parseInt((String) li.get(0))).collect(Collectors.toList()));
                     if (!killstoadd.containsKey(current))
                         killstoadd.put(current, new AtomicInteger());
                     if (!deathstoadd.containsKey(current))
@@ -467,7 +452,6 @@ public class PrivateCommands {
     @PrivateCommand(name = "asltierlist")
     public static void asltierlist(GenericCommandEvent e) {
         Tierlist t = Tierlist.getByGuild(518008523653775366L);
-        List<String> curr = new LinkedList<>();
         RequestBuilder b = new RequestBuilder("1wI291CWkKkWqQhY_KNu7GVfdincRz74omnCOvEVTDrc").withAdditionalSheets(
                 "1tFLd9Atl9QpMgCQBclpeU1WlMqSRGMeX8COUVDIf4TU",
                 "1A040AYoiqTus1wSq_3CXgZpgcY3ECpphVRJWHmXyxsQ",
@@ -627,14 +611,12 @@ public class PrivateCommands {
     public static void prepareNDSDoc() {
         JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
         JSONObject picks = nds.getJSONObject("picks");
-        List<String> tierorder = Arrays.asList("S", "A", "B", "C", "D");
-        Comparator<JSONObject> mc = Comparator.<JSONObject, Integer>comparing(o1 -> tierorder.indexOf(o1.getString("tier"))).thenComparing(o -> o.getString("name"));
         List<List<List<Object>>> get = new LinkedList<>();
         int temp = 0;
         String sid = "1ZwYlgwA7opD6Gdc5KmpjYk5JsnEZq3dZet2nJxB0EWQ";
         for (String s : picks.keySet()) {
             logger.info(MarkerFactory.getMarker("important"), "{} {}", temp, s);
-            get.add(Google.get(sid, nds.getJSONObject("teamnames").getString(s) + "!B15:O29", true, false));
+            get.add(Google.get(sid, nds.getJSONObject("teamnames").getString(s) + "!B15:O29", true));
             temp++;
         }
         int x = 0;
@@ -786,6 +768,13 @@ public class PrivateCommands {
     @PrivateCommand(name = "checkadmin")
     public static void checkAdmin(GenericCommandEvent e) {
         e.reply(String.valueOf(e.getJDA().getGuildById(e.getArg(0)).getSelfMember().hasPermission(Permission.ADMINISTRATOR)));
+    }
+
+    @PrivateCommand(name = "testdbspeed")
+    public static void testDBSpeed(GenericCommandEvent e) {
+        long l = System.nanoTime();
+        DBManagers.TRANSLATIONS.getTranslation(e.getArg(0), false);
+        e.reply(String.valueOf(System.nanoTime() - l));
     }
 
     public static void execute(Message message) {

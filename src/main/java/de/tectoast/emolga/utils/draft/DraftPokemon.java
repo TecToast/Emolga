@@ -26,10 +26,6 @@ public class DraftPokemon {
         this.tier = tier;
     }
 
-    public DraftPokemon copy() {
-        return new DraftPokemon(name, tier);
-    }
-
     @Override
     public String toString() {
         return "DraftPokemon{" +

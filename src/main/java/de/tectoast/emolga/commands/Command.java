@@ -24,7 +24,6 @@ import de.tectoast.emolga.utils.annotations.ToTest;
 import de.tectoast.emolga.utils.automation.collection.DocEntries;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
-import de.tectoast.emolga.utils.music.SoundSendHandler;
 import de.tectoast.emolga.utils.records.CalendarEntry;
 import de.tectoast.emolga.utils.records.DeferredSlashResponse;
 import de.tectoast.emolga.utils.records.TimerData;
@@ -40,7 +39,6 @@ import de.tectoast.toastilities.repeat.RepeatTask;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.audio.hooks.ConnectionListener;
 import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.*;
@@ -107,7 +105,6 @@ public abstract class Command {
      * NO PERMISSION Message
      */
     public static final String NOPERM = "Dafür hast du keine Berechtigung!";
-    public static final List<Long> NML_GUILDS = Collections.singletonList(786351922029527130L);
     /**
      * List of all commands of the bot
      */
@@ -125,10 +122,6 @@ public abstract class Command {
      */
     public static final List<Guild> music = new ArrayList<>();
     /**
-     * Contains all messages which are help messages by the bot
-     */
-    public static final Set<Message> helps = new HashSet<>();
-    /**
      * Saves the channel ids per server where emolgas commands work
      */
     public static final Map<Long, List<Long>> emolgaChannel = new HashMap<>();
@@ -140,14 +133,6 @@ public abstract class Command {
      * Some pokemon extensions for showdown
      */
     public static final Map<String, String> sdex = new HashMap<>();
-    /**
-     * saves when a user got xp
-     */
-    public static final Map<Long, Long> latestExp = new HashMap<>();
-    /**
-     * an optional xp multiplicator per user
-     */
-    public static final Map<Long, Double> expmultiplicator = new HashMap<>();
     /**
      * saves per guild a ReplayAnalyser, which does something with the result of a showdown match
      */
@@ -207,10 +192,6 @@ public abstract class Command {
      * Mapper for the DraftGerName
      */
     public static final Function<String, String> draftnamemapper = s -> getDraftGerName(s).getTranslation();
-    /**
-     * Path to the default Showdown Data
-     */
-    private static final String SDPATH = "./ShowdownData/";
     private static final JSONObject typeIcons = load("typeicons.json");
     public static final Pattern SD_NAME_PATTERN = Pattern.compile("[^a-zA-Z\\däöüÄÖÜß♂♀é+]+");
     public static final Pattern DURATION_PATTERN = Pattern.compile("\\d{1,8}[smhd]?");
@@ -222,10 +203,6 @@ public abstract class Command {
     public static final Pattern CUSTOM_GUILD_PATTERN = Pattern.compile("(\\d{18,})");
     public static final Pattern TRIPLE_HASHTAG = Pattern.compile("###");
     public static final int DEXQUIZ_BUDGET = 10;
-    /**
-     * JSONObject where pokemon sugimori sprite links are saved
-     */
-    public static JSONObject spritejson;
     /**
      * JSONObject of the main storage of the bot
      */
@@ -239,7 +216,6 @@ public abstract class Command {
      */
     public static JSONObject tokens;
     public static JSONObject catchrates;
-    public static Map<Long, SoundSendHandler> sendHandlers = new HashMap<>();
     public static final AtomicInteger replayCount = new AtomicInteger();
     protected static long lastClipUsed = -1;
     protected static ScheduledExecutorService calendarService = Executors.newScheduledThreadPool(5);
@@ -312,7 +288,6 @@ public abstract class Command {
     protected boolean onlySlash = false;
     protected final Collection<Long> slashGuilds = new LinkedList<>();
     protected final Map<String, Command> childCommands = new LinkedHashMap<>();
-    protected Command parent = null;
 
     /**
      * Creates a new command and adds is to the list. Each command should use this constructor for one time (see {@link #registerCommands()})
@@ -976,8 +951,8 @@ public abstract class Command {
 
     public static void sortWoolooS4(String sid, int leagu, JSONObject league) {
         String range = "Tabelle!%s%d:%s%d".formatted(getAsXCoord((leagu << 3) - 5), 22, getAsXCoord(leagu << 3), 27);
-        List<List<Object>> formula = Google.get(sid, range, true, false);
-        List<List<Object>> points = Google.get(sid, range, false, false);
+        List<List<Object>> formula = Google.get(sid, range, true);
+        List<List<Object>> points = Google.get(sid, range, false);
         List<List<Object>> orig = new ArrayList<>(points);
         List<List<Long>> ll = league.getLongListList("table" + leagu);
         points.sort((o1, o2) -> {
@@ -1029,8 +1004,8 @@ public abstract class Command {
 
     public static void sortOneASLS10(String sid, JSONObject league, int num) {
         String range = "Tabelle!C%d:J%d".formatted((num << 3) + 8, (num << 3) + 11);
-        List<List<Object>> formula = Google.get(sid, range, true, false);
-        List<List<Object>> points = Google.get(sid, range, false, false);
+        List<List<Object>> formula = Google.get(sid, range, true);
+        List<List<Object>> points = Google.get(sid, range, false);
         List<List<Object>> orig = new ArrayList<>(points);
         List<Long> table = league.getLongList("table");
         points.sort((o1, o2) -> {
@@ -1073,8 +1048,8 @@ public abstract class Command {
     }
 
     public static void sortZBS(String sid, String tablename, JSONObject league) {
-        List<List<Object>> formula = Google.get(sid, tablename + "!F14:M21", true, false);
-        List<List<Object>> points = Google.get(sid, tablename + "!F14:M21", false, false);
+        List<List<Object>> formula = Google.get(sid, tablename + "!F14:M21", true);
+        List<List<Object>> points = Google.get(sid, tablename + "!F14:M21", false);
         List<List<Object>> orig = new ArrayList<>(points);
         JSONObject docnames = emolgajson.getJSONObject("docnames");
         points.sort((o1, o2) -> {
@@ -1106,181 +1081,12 @@ public abstract class Command {
         logger.info("Done!");
     }
 
-    public static void sortFPL(String sid, String tablename, JSONObject league) {
-        List<List<Object>> formula = Google.get(sid, tablename + "!B2:H9", true, false);
-        List<List<Object>> points = Google.get(sid, tablename + "!B2:H9", false, false);
-        List<List<Object>> orig = new ArrayList<>(points);
-        JSONObject docnames = emolgajson.getJSONObject("docnames");
-        points.sort((o1, o2) -> {
-            return compareColumns(o1, o2, 1, 4, 2);
-            /*String u1 = docnames.getString((String) o1.get(0));
-            String u2 = docnames.getString((String) o2.get(0));
-            if (league.has("results")) {
-                JSONObject o = league.getJSONObject("results");
-                if (o.has(u1 + ";" + u2)) return o.getString(u1 + ";" + u2).equals(u1) ? 1 : -1;
-                if (o.has(u2 + ";" + u1)) return o.getString(u2 + ";" + u1).equals(u1) ? 1 : -1;
-            }*/
-            //return 0;
-        });
-        Collections.reverse(points);
-        //logger.info(points);
-        HashMap<Integer, List<Object>> namap = new HashMap<>();
-        int i = 0;
-        for (List<Object> objects : orig) {
-            namap.put(points.indexOf(objects), formula.get(i));
-            i++;
-        }
-        List<List<Object>> sendname = new ArrayList<>();
-        for (int j = 0; j < 8; j++) {
-            sendname.add(namap.get(j));
-        }
-        logger.info(String.valueOf(sendname));
-        RequestBuilder.updateAll(sid, tablename + "!B2", sendname, false);
-        logger.info("Done!");
-    }
-
-    public static void sortBADS(String sid, JSONObject league) {
-        List<List<Object>> formula = Google.get(sid, "Tabelle!B2:J11", true, false);
-        List<List<Object>> points = Google.get(sid, "Tabelle!C2:J11", false, false);
-        List<List<Object>> orig = new ArrayList<>(points);
-        JSONObject docnames = emolgajson.getJSONObject("docnames");
-        points.sort((o1, o2) -> {
-            int c = compareColumns(o1, o2, 1, 7, 5);
-            if (c != 0) return c;
-            String u1 = docnames.getString((String) o1.get(0));
-            String u2 = docnames.getString((String) o2.get(0));
-            if (league.has("results")) {
-                JSONObject o = league.getJSONObject("results");
-                if (o.has(u1 + ";" + u2)) return o.getString(u1 + ";" + u2).equals(u1) ? 1 : -1;
-                if (o.has(u2 + ";" + u1)) return o.getString(u2 + ";" + u1).equals(u1) ? 1 : -1;
-            }
-            return 0;
-        });
-        Collections.reverse(points);
-        //logger.info(points);
-        HashMap<Integer, List<Object>> namap = new HashMap<>();
-        int i = 0;
-        for (List<Object> objects : orig) {
-            namap.put(points.indexOf(objects), formula.get(i));
-            i++;
-        }
-        List<List<Object>> sendname = new ArrayList<>();
-        for (int j = 0; j < 10; j++) {
-            sendname.add(namap.get(j));
-        }
-        logger.info(String.valueOf(sendname));
-        RequestBuilder.updateAll(sid, "Tabelle!B2", sendname);
-        logger.info("Done!");
-    }
-
-    public static void sortNDS(String sid, JSONObject league) {
-        sortNDSSingle(sid, league, 0);
-        sortNDSSingle(sid, league, 1);
-    }
-
     public static @Nullable String reverseGet(JSONObject o, Object value) {
         for (String s : o.keySet()) {
             Object obj = o.get(s);
             if (obj.equals(value)) return s;
         }
         return null;
-    }
-
-    public static void sortNDSSingle(String sid, JSONObject league, int num) {
-        int start = (num << 3) + 3;
-        int end = (num << 3) + 8;
-        List<List<Object>> formula = Google.get(sid, "Tabelle RR!B" + start + ":K" + end, true, false);
-        List<List<Object>> points = Google.get(sid, "Tabelle RR!C" + start + ":K" + end, false, false);
-        List<List<Object>> orig = new ArrayList<>(points);
-        JSONObject docnames = emolgajson.getJSONObject("docnames");
-        JSONObject teamnames = league.getJSONObject("teamnames");
-        points.sort((o1, o2) -> {
-            int c = compareColumns(o1, o2, 1, 7, 5);
-            if (c != 0) return c;
-            String u1 = reverseGet(teamnames, String.valueOf(formula.get(points.indexOf(o1)).get(0)).split("'")[1]);
-            String u2 = reverseGet(teamnames, String.valueOf(formula.get(points.indexOf(o2)).get(0)).split("'")[1]);
-            if (league.has("results")) {
-                JSONObject o = league.getJSONObject("results");
-                if (o.has(u1 + ";" + u2)) return o.getString(u1 + ";" + u2).equals(u1) ? 1 : -1;
-                if (o.has(u2 + ";" + u1)) return o.getString(u2 + ";" + u1).equals(u1) ? 1 : -1;
-            }
-            return 0;
-        });
-        Collections.reverse(points);
-        //logger.info(points);
-        HashMap<Integer, List<Object>> namap = new HashMap<>();
-        int i = 0;
-        for (List<Object> objects : orig) {
-            namap.put(points.indexOf(objects), formula.get(i));
-            i++;
-        }
-        List<List<Object>> sendname = new ArrayList<>();
-        for (int j = 0; j < namap.size(); j++) {
-            sendname.add(namap.get(j));
-        }
-        logger.info(String.valueOf(sendname));
-        RequestBuilder.updateAll(sid, "Tabelle RR!B" + start, sendname);
-        logger.info("Done!");
-    }
-
-    public static void sortWooloo(String sid, JSONObject league) {
-        int i;
-        List<List<Object>> formula = Google.get(sid, "Tabelle!D3:P31", true, false);
-        List<List<Object>> p = Google.get(sid, "Tabelle!E3:P31", false, false);
-        //List<List<Object>> pf = Google.get(sid, "Tabelle!H3:H39", true, false);
-        ArrayList<List<Object>> points = new ArrayList<>();
-        for (i = 0; i < 32; i++) {
-            if ((i + 4) % 4 == 0) {
-                points.add(p.get(i));
-            }
-        }
-        //logger.info(points);
-        List<List<Object>> orig = new ArrayList<>(points);
-        JSONObject docnames = emolgajson.getJSONObject("docnames");
-        points.sort((o1, o2) -> {
-            int compare = compareColumns(o1, o2, 3, 11, 9);
-            if (compare != 0) return compare;
-            if (!league.has("results")) return 0;
-            JSONObject results = league.getJSONObject("results");
-            String n1 = docnames.getString((String) o1.get(0));
-            String n2 = docnames.getString((String) o2.get(0));
-            if (results.has(n1 + ":" + n2)) {
-                return results.getString(n1 + ":" + n2).equals(n1) ? 1 : -1;
-            }
-            if (results.has(n2 + ":" + n1)) {
-                return results.getString(n2 + ":" + n1).equals(n1) ? 1 : -1;
-            }
-            return 0;
-        });
-        Collections.reverse(points);
-        HashMap<Integer, List<Object>> valmap = new HashMap<>();
-        HashMap<Integer, List<Object>> namap = new HashMap<>();
-        HashMap<Integer, String> stMap = new HashMap<>();
-        i = 0;
-        for (List<Object> objects : orig) {
-            List<Object> list = formula.get(i << 2);
-            int index = points.indexOf(objects);
-            Object logo = list.remove(0);
-            Object name = list.remove(0);
-            list.subList(0, 2).clear();
-            valmap.put(index, list);
-            namap.put(index, Arrays.asList(logo, name));
-            i++;
-        }
-        List<List<Object>> senddata = new ArrayList<>();
-        List<List<Object>> sendname = new ArrayList<>();
-        for (int j = 0; j < 10; j++) {
-            senddata.add(valmap.get(j));
-            sendname.add(namap.get(j));
-            for (int k = 0; k < 3; k++) {
-                senddata.add(Collections.emptyList());
-                sendname.add(Collections.emptyList());
-            }
-        }
-        RequestBuilder b = new RequestBuilder(sid);
-        b.addAll("Tabelle!H3", senddata);
-        b.addAll("Tabelle!D3", sendname);
-        b.execute();
     }
 
     public static void loadAndPlay(final TextChannel channel, final String trackUrl, VoiceChannel vc) {
@@ -1491,10 +1297,6 @@ public abstract class Command {
         } catch (IOException ioException) {
             ioException.printStackTrace();
         }
-    }
-
-    public static JSONObject getSpriteJSON() {
-        return spritejson;
     }
 
     private static void registerCommands() {
@@ -1758,7 +1560,7 @@ public abstract class Command {
         }
     }
 
-    public static void generateResult(RequestBuilder b, Player[] game, JSONObject league, int gameday, String uid1, String sheet, String leaguename, String replay, Object... args) {
+    public static void generateResult(RequestBuilder b, Player[] game, JSONObject league, int gameday, String uid1, String sheet, String leaguename, String replay) {
         int aliveP1 = 0;
         int aliveP2 = 0;
         for (Pokemon p : game[0].getMons()) {
@@ -1780,7 +1582,7 @@ public abstract class Command {
         String coords = switch (leaguename) {
             case "ZBS" -> getZBSGameplanCoords(gameday, index);
             case "Wooloo" -> getWoolooGameplanCoords(gameday, index);
-            case "WoolooCupS4" -> getWoolooS4GameplanCoords(gameday, index, (Integer) args[0]);
+            case "WoolooCupS4" -> getWoolooS4GameplanCoords(gameday, index);
             case "ASLS10" -> getASLS10GameplanCoords(gameday, index);
             default -> null;
         };
@@ -1811,7 +1613,7 @@ public abstract class Command {
         return "I" + ((gameday - 6) * 6 + index - 2);
     }
 
-    private static String getWoolooS4GameplanCoords(int gameday, int index, int liga) {
+    private static String getWoolooS4GameplanCoords(int gameday, int index) {
         int x = gameday - 1;
         logger.info("gameday = " + gameday);
         logger.info("index = " + index);
@@ -1825,17 +1627,12 @@ public abstract class Command {
         return "%s%d".formatted(getAsXCoord(x > 1 && x < 8 ? (gameday % 3 << 2) + 3 : (x % 2 << 2) + 5), gameday / 3 * 6 + index + 4);
     }
 
-    private static String getASLGameplanCoords(int gameday, int index, int pk) {
-        return getAsXCoord(gameday * 5 - 3) + (index * 6 + pk + 3);
-    }
-
     public static void loadJSONFiles() {
         tokens = load("./tokens.json");
         new Thread(() -> {
             emolgajson = load("./emolgadata.json");
             //datajson = loadSD("pokedex.ts", 59);
             //movejson = loadSD("learnsets.ts", 62);
-            spritejson = load("./sprites.json");
             shinycountjson = load("./shinycount.json");
             catchrates = load("./catchrates.json");
             TypicalSets.init(load("./typicalsets.json"));
@@ -1874,7 +1671,6 @@ public abstract class Command {
         }*/
         EmbedBuilder builder = new EmbedBuilder();
         builder.setTitle("Commands").setColor(Color.CYAN);
-        Message m = null;
         //builder.setDescription(getHelpDescripion(tco.getGuild(), mem));
         MessageAction ma = tco.sendMessageEmbeds(builder.build());
         Guild g = tco.getGuild();
@@ -1882,10 +1678,6 @@ public abstract class Command {
     }
 
     public static void check(MessageReceivedEvent e) {
-        if (BOT_DISABLED) {
-            e.getChannel().sendMessage(DISABLED_TEXT).queue();
-            return;
-        }
         Member mem = e.getMember();
         String msg = e.getMessage().getContentDisplay();
         TextChannel tco = e.getTextChannel();
@@ -1957,6 +1749,10 @@ public abstract class Command {
                 return;
             }
             if (mem.getIdLong() != FLOID) {
+                if (BOT_DISABLED) {
+                    e.getChannel().sendMessage(DISABLED_TEXT).queue();
+                    return;
+                }
                 if (command.wip) {
                     tco.sendMessage("Diese Funktion ist derzeit noch in Entwicklung und ist noch nicht einsatzbereit!").queue();
                     return;
@@ -2074,10 +1870,6 @@ public abstract class Command {
         //return json.keySet().stream().filter(s -> s.startsWith(monname.toLowerCase()) && !s.endsWith("gmax") && (s.equalsIgnoreCase(monname) || json.getJSONObject(s).has("forme"))).sorted(Comparator.comparingInt(String::length)).map(json::getJSONObject).collect(Collectors.toList());
     }
 
-    public static List<String> getAttacksFrom(String pokemon, String msg, String form) {
-        return getAttacksFrom(pokemon, msg, form, 8);
-    }
-
     public static boolean moveFilter(String msg, String move) {
         JSONObject o = emolgajson.getJSONObject("movefilter");
         for (String s : o.keySet()) {
@@ -2095,7 +1887,6 @@ public abstract class Command {
 
     public static boolean canLearn(String monId, String moveId) {
         try {
-            LinkedList<String> already = new LinkedList<>();
             JSONObject movejson = getLearnsetJSON();
             JSONObject data = getDataJSON();
             JSONObject o = data.getJSONObject(monId);
@@ -2176,10 +1967,6 @@ public abstract class Command {
         Command.sendToMe(sw.toString());
     }
 
-    public static void sendToUser(Member mem, String msg) {
-        sendToUser(mem.getUser(), msg);
-    }
-
     public static void sendToUser(User user, String msg) {
         user.openPrivateChannel().flatMap(pc -> pc.sendMessage(msg)).queue();
     }
@@ -2208,23 +1995,6 @@ public abstract class Command {
             x++;
         }
         return (x > 0 ? (char) (x + 64) : "") + String.valueOf((char) (i + 64));
-    }
-
-    private static String getSerebiiForm(String forme) {
-        if (Helpers.isNumeric(forme)) {
-            return forme;
-        }
-        if (forme.equals("Fan")) return "s";
-        return String.valueOf(forme.toLowerCase().charAt(0));
-    }
-
-    public static String getSerebiiIcon(JSONObject o) {
-        int num = o.getInt("num");
-        return "=IMAGE(\"https://www.serebii.net/pokedex-swsh/icon/" + getWithZeros(num, 3) + (o.has("forme") ? "-" + getSerebiiForm(o.getString("forme")) : "") + ".png\"; 1)";
-    }
-
-    public static String getSerebiiIcon(String str) {
-        return getSerebiiIcon(getDataJSON().getJSONObject(getSDName(str)));
     }
 
     public static String getGen5SpriteWithoutGoogle(JSONObject o, boolean shiny) {
@@ -2266,205 +2036,153 @@ public abstract class Command {
         return c;
     }
 
-    private static List<TextChannel> resultChannelASL(long uid1, long uid2) {
-        for (int i = 1; i <= 5; i++) {
-            JSONObject league = emolgajson.getJSONObject("drafts").getJSONObject("ASLS10L" + i);
-            List<Long> table = league.getLongList("table");
-            if (new HashSet<>(table).containsAll(List.of(uid1, uid2)))
-                return Arrays.asList(emolgajda.getTextChannelById(league.getLong("replay")), emolgajda.getTextChannelById(league.getLong("result")));
-        }
-        return Collections.emptyList();
-    }
-
     public static void analyseReplay(String url, TextChannel customReplayChannel, TextChannel resultchannel, Message m, DeferredSlashResponse e) {
-        Player[] game;
-        if (BOT_DISABLED && resultchannel.getGuild().getIdLong() != MYSERVER) {
-            (m != null ? m.getChannel() : resultchannel).sendMessage(DISABLED_TEXT).queue();
-            return;
-        }
-        logger.info("REPLAY! Channel: {}", m != null ? m.getChannel().getId() : resultchannel.getId());
-        try {
-            game = new Analysis(url, m).analyse();
-            //game = Analysis.analyse(url, m);
-        } catch (Exception ex) {
-            String msg = "Beim Auswerten des Replays ist (vermutlich wegen eines Zoruas/Zoroarks) ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein und melde dich gegebenenfalls bei %s!".formatted(MYTAG);
-            if (e != null)
-                e.reply(msg);
-            else {
-                resultchannel.sendMessage(msg).queue();
+        new Thread(() -> {
+            Player[] game;
+            if (BOT_DISABLED && resultchannel.getGuild().getIdLong() != MYSERVER) {
+                (m != null ? m.getChannel() : resultchannel).sendMessage(DISABLED_TEXT).queue();
+                return;
             }
-            ex.printStackTrace();
-            return;
-        }
-        Guild g = resultchannel.getGuild();
-        long gid;
-        String msg = m != null ? m.getContentDisplay() : "";
-        if (m != null && m.getAuthor().getIdLong() == FLOID) {
-            Matcher matcher = CUSTOM_GUILD_PATTERN.matcher(msg);
-            if (matcher.find()) gid = Long.parseLong(matcher.group());
-            else gid = g.getIdLong();
-        } else {
-            gid = g.getIdLong();
-        }
-        String u1 = game[0].getNickname();
-        String u2 = game[1].getNickname();
-        long uid1 = DBManagers.SD_NAMES.getIDByName(u1);
-        long uid2 = DBManagers.SD_NAMES.getIDByName(u2);
-        logger.info("Analysed!");
-        //logger.info(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
-        for (Pokemon p : game[0].getMons()) {
-            game[0].addTotalKills(p.getKills());
-            game[0].addTotalDeaths(p.isDead() ? 1 : 0);
-        }
-        for (Pokemon p : game[1].getMons()) {
-            game[1].addTotalKills(p.getKills());
-            game[1].addTotalDeaths(p.isDead() ? 1 : 0);
-        }
-        int aliveP1 = game[0].getTeamsize() - game[0].getTotalDeaths();
-        int aliveP2 = game[1].getTeamsize() - game[1].getTotalDeaths();
-        StringBuilder t1 = new StringBuilder(50);
-        StringBuilder t2 = new StringBuilder(50);
-        String winloose = aliveP1 + ":" + aliveP2;
-        boolean p1wins = game[0].isWinner();
-        List<Map<String, String>> kills = Arrays.asList(new HashMap<>(), new HashMap<>());
-        List<Map<String, String>> deaths = Arrays.asList(new HashMap<>(), new HashMap<>());
-        ArrayList<String> p1mons = new ArrayList<>();
-        ArrayList<String> p2mons = new ArrayList<>();
-        boolean spoiler = spoilerTags.contains(gid);
-        TypicalSets typicalSets = TypicalSets.getInstance();
-        if (spoiler) t1.append("||");
-        for (Pokemon p : game[0].getMons()) {
-            logger.info("p.getPokemon() = " + p.getPokemon());
-            String monName = getMonName(p.getPokemon(), gid);
-            if (!monName.trim().isEmpty() && monName.trim().charAt(monName.trim().length() - 1) == '-') {
-                sendToMe(p.getPokemon() + " SD - at End");
-            }
-            logger.info("monName = " + monName);
-            kills.get(0).put(monName, String.valueOf(p.getKills()));
-            deaths.get(0).put(monName, p.isDead() ? "1" : "0");
-            p1mons.add(monName);
-            if (g.getIdLong() != MYSERVER) {
-                DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0, game[0].isWinner());
-                typicalSets.add(monName, p.getMoves(), p.getItem(), p.getAbility());
-                if (toUsername(game[0].getNickname()).equals("dasor54")) {
-                    DBManagers.DASOR_USAGE.addPokemon(monName);
+            logger.info("REPLAY! Channel: {}", m != null ? m.getChannel().getId() : resultchannel.getId());
+            try {
+                game = new Analysis(url, m).analyse();
+                //game = Analysis.analyse(url, m);
+            } catch (Exception ex) {
+                String msg = "Beim Auswerten des Replays ist (vermutlich wegen eines Zoruas/Zoroarks) ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein und melde dich gegebenenfalls bei %s!".formatted(MYTAG);
+                if (e != null)
+                    e.reply(msg);
+                else {
+                    resultchannel.sendMessage(msg).queue();
                 }
+                ex.printStackTrace();
+                return;
             }
-            t1.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (p1wins || spoiler) ? "X" : "").append("\n");
-        }
-        for (int i = 0; i < game[0].getTeamsize() - game[0].getMons().size(); i++) {
-            t1.append("_unbekannt_").append("\n");
-        }
-        if (spoiler) t1.append("||");
-        if (spoiler) t2.append("||");
-        for (Pokemon p : game[1].getMons()) {
-            String monName = getMonName(p.getPokemon(), gid);
-            if (!monName.trim().isEmpty() && monName.trim().charAt(monName.trim().length() - 1) == '-') {
-                sendToMe(p.getPokemon() + " SD - at End");
+            Guild g = resultchannel.getGuild();
+            long gid;
+            String msg = m != null ? m.getContentDisplay() : "";
+            if (m != null && m.getAuthor().getIdLong() == FLOID) {
+                Matcher matcher = CUSTOM_GUILD_PATTERN.matcher(msg);
+                if (matcher.find()) gid = Long.parseLong(matcher.group());
+                else gid = g.getIdLong();
+            } else {
+                gid = g.getIdLong();
             }
-            kills.get(1).put(monName, String.valueOf(p.getKills()));
-            deaths.get(1).put(monName, p.isDead() ? "1" : "0");
-            p2mons.add(monName);
-            if (g.getIdLong() != MYSERVER) {
-                DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0, game[1].isWinner());
-                typicalSets.add(monName, p.getMoves(), p.getItem(), p.getAbility());
-                if (toUsername(game[1].getNickname()).equals("dasor54")) {
-                    DBManagers.DASOR_USAGE.addPokemon(monName);
+            String u1 = game[0].getNickname();
+            String u2 = game[1].getNickname();
+            long uid1 = DBManagers.SD_NAMES.getIDByName(u1);
+            long uid2 = DBManagers.SD_NAMES.getIDByName(u2);
+            logger.info("Analysed!");
+            //logger.info(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
+            for (Pokemon p : game[0].getMons()) {
+                game[0].addTotalDeaths(p.isDead() ? 1 : 0);
+            }
+            for (Pokemon p : game[1].getMons()) {
+                game[1].addTotalDeaths(p.isDead() ? 1 : 0);
+            }
+            int aliveP1 = game[0].getTeamsize() - game[0].getTotalDeaths();
+            int aliveP2 = game[1].getTeamsize() - game[1].getTotalDeaths();
+            StringBuilder t1 = new StringBuilder(50);
+            StringBuilder t2 = new StringBuilder(50);
+            String winloose = aliveP1 + ":" + aliveP2;
+            boolean p1wins = game[0].isWinner();
+            List<Map<String, String>> kills = Arrays.asList(new HashMap<>(), new HashMap<>());
+            List<Map<String, String>> deaths = Arrays.asList(new HashMap<>(), new HashMap<>());
+            ArrayList<String> p1mons = new ArrayList<>();
+            ArrayList<String> p2mons = new ArrayList<>();
+            boolean spoiler = spoilerTags.contains(gid);
+            TypicalSets typicalSets = TypicalSets.getInstance();
+            if (spoiler) t1.append("||");
+            for (Pokemon p : game[0].getMons()) {
+                logger.info("p.getPokemon() = " + p.getPokemon());
+                String monName = getMonName(p.getPokemon(), gid);
+                if (!monName.trim().isEmpty() && monName.trim().charAt(monName.trim().length() - 1) == '-') {
+                    sendToMe(p.getPokemon() + " SD - at End");
                 }
+                logger.info("monName = " + monName);
+                kills.get(0).put(monName, String.valueOf(p.getKills()));
+                deaths.get(0).put(monName, p.isDead() ? "1" : "0");
+                p1mons.add(monName);
+                if (g.getIdLong() != MYSERVER) {
+                    DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0, game[0].isWinner());
+                    typicalSets.add(monName, p.getMoves(), p.getItem(), p.getAbility());
+                    if (toUsername(game[0].getNickname()).equals("dasor54")) {
+                        DBManagers.DASOR_USAGE.addPokemon(monName);
+                    }
+                }
+                t1.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (p1wins || spoiler) ? "X" : "").append("\n");
             }
-            t2.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (!p1wins || spoiler) ? "X" : "").append("\n");
-        }
-        for (int i = 0; i < game[1].getTeamsize() - game[1].getMons().size(); i++) {
-            t2.append("_unbekannt_").append("\n");
-        }
-        if (spoiler) t2.append("||");
-        logger.info("Kills");
-        logger.info(String.valueOf(kills));
-        logger.info("Deaths");
-        logger.info(String.valueOf(deaths));
-        String name1;
-        String name2;
-        JSONObject json = emolgajson;
-        //JSONObject showdown = json.getJSONObject("showdown").getJSONObject(String.valueOf(gid));
-        logger.info("u1 = " + u1);
-        logger.info("u2 = " + u2);
+            for (int i = 0; i < game[0].getTeamsize() - game[0].getMons().size(); i++) {
+                t1.append("_unbekannt_").append("\n");
+            }
+            if (spoiler) t1.append("||");
+            if (spoiler) t2.append("||");
+            for (Pokemon p : game[1].getMons()) {
+                String monName = getMonName(p.getPokemon(), gid);
+                if (!monName.trim().isEmpty() && monName.trim().charAt(monName.trim().length() - 1) == '-') {
+                    sendToMe(p.getPokemon() + " SD - at End");
+                }
+                kills.get(1).put(monName, String.valueOf(p.getKills()));
+                deaths.get(1).put(monName, p.isDead() ? "1" : "0");
+                p2mons.add(monName);
+                if (g.getIdLong() != MYSERVER) {
+                    DBManagers.FULL_STATS.add(monName, p.getKills(), p.isDead() ? 1 : 0, game[1].isWinner());
+                    typicalSets.add(monName, p.getMoves(), p.getItem(), p.getAbility());
+                    if (toUsername(game[1].getNickname()).equals("dasor54")) {
+                        DBManagers.DASOR_USAGE.addPokemon(monName);
+                    }
+                }
+                t2.append(monName).append(" ").append(p.getKills() > 0 ? p.getKills() + " " : "").append(p.isDead() && (!p1wins || spoiler) ? "X" : "").append("\n");
+            }
+            for (int i = 0; i < game[1].getTeamsize() - game[1].getMons().size(); i++) {
+                t2.append("_unbekannt_").append("\n");
+            }
+            if (spoiler) t2.append("||");
+            logger.info("Kills");
+            logger.info(String.valueOf(kills));
+            logger.info("Deaths");
+            logger.info(String.valueOf(deaths));
+            String name1;
+            String name2;
+            //JSONObject showdown = json.getJSONObject("showdown").getJSONObject(String.valueOf(gid));
+            logger.info("u1 = " + u1);
+            logger.info("u2 = " + u2);
             /*for (String s : showdown.keySet()) {
                 if (u1.equalsIgnoreCase(s)) uid1 = showdown.getString(s);
                 if (u2.equalsIgnoreCase(s)) uid2 = showdown.getString(s);
             }*/
 
-        //JSONObject teamnames = json.getJSONObject("drafts").getJSONObject("NDS").getJSONObject("teamnames");
-        name1 = /*uid1 != -1 && gid == NDSID ? teamnames.getString(String.valueOf(uid1)) : */game[0].getNickname();
-        name2 = /*uid2 != -1 && gid == NDSID ? teamnames.getString(String.valueOf(uid2)) : */game[1].getNickname();
-        logger.info("uid1 = " + uid1);
-        logger.info("uid2 = " + uid2);
-        String str;
-        if (spoiler) {
-            str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1
-                  + "\n" + name2 + ": " + "\n" + t2;
-        } else {
-            str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1
-                  + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
-        }
-        if (customReplayChannel != null) customReplayChannel.sendMessage(url).queue();
-        if (e != null) {
-            e.reply(str);
-        } else if (!customResult.contains(gid))
-            resultchannel.sendMessage(str).queue();
-        DBManagers.STATISTICS.increment("analysis");
-        for (int i = 0; i < 2; i++) {
-            if (game[i].getMons().stream().anyMatch(mon -> mon.getPokemon().equals("Zoroark") || mon.getPokemon().equals("Zorua")))
-                resultchannel.sendMessage("Im Team von " + game[i].getNickname() + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!").queue();
-        }
-        logger.info("In Emolga Listener!");
-        //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )
-        //  return;
-        typicalSets.save();
-        if (uid1 == -1 || uid2 == -1) return;
-        if (sdAnalyser.containsKey(gid)) {
-            sdAnalyser.get(gid).analyse(game, String.valueOf(uid1), String.valueOf(uid2), kills, deaths, new ArrayList[]{p1mons, p2mons}, url, str, resultchannel, t1, t2, customReplayChannel, m);
-        }
-    }
-
-    public static String getIconSprite(String str) {
-        logger.info("s = " + str);
-        String gitname;
-        JSONObject data = getDataJSON();
-        if (str.toLowerCase().startsWith("a-")) {
-            String sdName = getSDName(str.substring(2));
-            if (sdName.isEmpty()) return "";
-            gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + "-a";
-        } else if (str.toLowerCase().startsWith("g-")) {
-            String sdName = getSDName(str.substring(2));
-            if (sdName.isEmpty()) return "";
-            gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + "-g";
-        } else if (serebiiex.keySet().stream().anyMatch(str::equalsIgnoreCase)) {
-            String ex = serebiiex.keySet().stream().filter(str::equalsIgnoreCase).collect(Collectors.joining(""));
-            String sdName = getSDName(ex.split("-")[0]).substring(5);
-            gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3) + serebiiex.get(str);
-        } else {
-            String sdName = getSDName(str);
-            if (sdName.isEmpty()) return "";
-            gitname = getWithZeros(data.getJSONObject(sdName).getInt("num"), 3);
-        }
-        String url = "https://www.serebii.net/pokedex-swsh/icon/" + gitname.toLowerCase() + ".png";
-        logger.info("url = " + url);
-        return "=IMAGE(\"" + url + "\"; 1)";
-    }
-
-    public static String getSugiLink(String str) {
-        String gitname;
-        JSONObject data = getDataJSON();
-        if (str.startsWith("A-")) {
-            gitname = getWithZeros(data.getJSONObject(getSDName(str.substring(2))).getInt("num"), 3) + "-a";
-        } else if (str.startsWith("G-")) {
-            gitname = getWithZeros(data.getJSONObject(getSDName(str.substring(2))).getInt("num"), 3) + "-g";
-        } else if (serebiiex.containsKey(str)) {
-            gitname = getWithZeros(data.getJSONObject(getSDName(str.split("-")[0])).getInt("num"), 3) + serebiiex.get(str);
-        } else {
-            gitname = getWithZeros(data.getJSONObject(getSDName(str)).getInt("num"), 3);
-        }
-        return "https://www.serebii.net/swordshield/pokemon/" + gitname.toLowerCase() + ".png";
+            //JSONObject teamnames = json.getJSONObject("drafts").getJSONObject("NDS").getJSONObject("teamnames");
+            name1 = /*uid1 != -1 && gid == NDSID ? teamnames.getString(String.valueOf(uid1)) : */game[0].getNickname();
+            name2 = /*uid2 != -1 && gid == NDSID ? teamnames.getString(String.valueOf(uid2)) : */game[1].getNickname();
+            logger.info("uid1 = " + uid1);
+            logger.info("uid2 = " + uid2);
+            String str;
+            if (spoiler) {
+                str = name1 + " ||" + winloose + "|| " + name2 + "\n\n" + name1 + ":\n" + t1
+                      + "\n" + name2 + ": " + "\n" + t2;
+            } else {
+                str = name1 + " " + winloose + " " + name2 + "\n\n" + name1 + ": " + (!p1wins ? "(alle tot)" : "") + "\n" + t1
+                      + "\n" + name2 + ": " + (p1wins ? "(alle tot)" : "") + "\n" + t2;
+            }
+            if (customReplayChannel != null) customReplayChannel.sendMessage(url).queue();
+            if (e != null) {
+                e.reply(str);
+            } else if (!customResult.contains(gid))
+                resultchannel.sendMessage(str).queue();
+            DBManagers.STATISTICS.increment("analysis");
+            for (int i = 0; i < 2; i++) {
+                if (game[i].getMons().stream().anyMatch(mon -> mon.getPokemon().equals("Zoroark") || mon.getPokemon().equals("Zorua")))
+                    resultchannel.sendMessage("Im Team von " + game[i].getNickname() + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!").queue();
+            }
+            logger.info("In Emolga Listener!");
+            //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )
+            //  return;
+            typicalSets.save();
+            if (uid1 == -1 || uid2 == -1) return;
+            if (sdAnalyser.containsKey(gid)) {
+                sdAnalyser.get(gid).analyse(game, String.valueOf(uid1), String.valueOf(uid2), kills, deaths, new ArrayList[]{p1mons, p2mons}, url, str, resultchannel, t1, t2, customReplayChannel, m);
+            }
+        }).start();
     }
 
     public static long calculateDraftTimer() {
@@ -2491,31 +2209,14 @@ public abstract class Command {
         return cal.getTimeInMillis() - currentTimeMillis;
     }
 
-    public static long getXPNeeded(int level) {
-        return (long) (5 * Math.pow(level, 2) + 50L * level + 100);
-    }
-
-    public static int getLevelFromXP(int xp) {
-        return getLevelFromXP((long) xp);
-    }
-
-    public static int getLevelFromXP(long xp) {
-        long remainingXP = xp;
-        int level = 0;
-        while (remainingXP >= getXPNeeded(level)) {
-            remainingXP -= getXPNeeded(level);
-            level += 1;
-        }
-        return level;
-    }
-
     public static Translation getDraftGerName(String s) {
         logger.info("getDraftGerName s = " + s);
         Translation gerName = getGerName(s);
         if (gerName.isSuccess()) return gerName;
         String[] split = s.split("-");
         logger.info("getDraftGerName Arr = " + Arrays.toString(split));
-        if (s.toLowerCase().startsWith("m-")) {
+        String slower = s.toLowerCase();
+        if (slower.startsWith("m-")) {
             String sub = s.substring(2);
             Translation mon;
             if (s.endsWith("-X")) mon = getGerName(sub.substring(0, sub.length() - 2)).append("-X");
@@ -2523,11 +2224,11 @@ public abstract class Command {
             else mon = getGerName(sub);
             if (!mon.isFromType(Translation.Type.POKEMON)) return Translation.empty();
             return mon.before("M-");
-        } else if (s.toLowerCase().startsWith("a-")) {
+        } else if (slower.startsWith("a-")) {
             Translation mon = getGerName(s.substring(2));
             if (!mon.isFromType(Translation.Type.POKEMON)) return Translation.empty();
             return mon.before("A-");
-        } else if (s.toLowerCase().startsWith("g-")) {
+        } else if (slower.startsWith("g-")) {
             Translation mon = getGerName(s.substring(2));
             if (!mon.isFromType(Translation.Type.POKEMON)) return Translation.empty();
             return mon.before("G-");
@@ -2810,7 +2511,7 @@ public abstract class Command {
         if (s.equals("Thundurus")) return "Voltolos-I";
         if (s.equals("Landorus")) return "Demeteros-I";
         Translation gername = getGerName(s, true);
-        ArrayList<String> split = new ArrayList<>(Arrays.asList(s.split("-")));
+        List<String> split = new ArrayList<>(Arrays.asList(s.split("-")));
         if (gername.isFromType(Translation.Type.POKEMON)) {
             return gername.getTranslation();
         }
@@ -2852,7 +2553,6 @@ public abstract class Command {
     }
 
     private void addToChildren(Command c) {
-        parent = c;
         c.childCommands.put(name, this);
     }
 
@@ -2893,10 +2593,6 @@ public abstract class Command {
 
     protected void beta() {
         this.beta = true;
-    }
-
-    protected void setAdminOnly() {
-        setCustomPermissions(PermissionPreset.ADMIN);
     }
 
     public boolean allowsMember(Member mem) {
@@ -2953,10 +2649,6 @@ public abstract class Command {
 
     public void setArgumentTemplate(ArgumentManagerTemplate template) {
         this.argumentTemplate = template;
-    }
-
-    public CommandCategory getCategory() {
-        return category;
     }
 
     public String getHelp(Guild g) {
@@ -3025,9 +2717,6 @@ public abstract class Command {
     }
 
     public static final class PermissionPreset {
-        public static final Predicate<Member> OWNER = Member::isOwner;
-        public static final Predicate<Member> ADMIN = member -> member.hasPermission(Permission.ADMINISTRATOR);
-        public static final Predicate<Member> MODERATOR = ADMIN.or(m -> m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getIdLong())));
         public static final Predicate<Member> CULT = fromRole(781457314846343208L);
 
         public static Predicate<Member> fromRole(long roleId) {
@@ -3112,14 +2801,6 @@ public abstract class Command {
 
         public long getID(String key) {
             return (long) map.get(key);
-        }
-
-        public Role getRole(String key) {
-            return (Role) map.get(key);
-        }
-
-        public <C> boolean is(String key, Class<? extends C> cl) {
-            return cl.isInstance(map.get(key));
         }
 
         public int getInt(String key) {
@@ -3236,10 +2917,6 @@ public abstract class Command {
                     return true;
                 }
             };
-        }
-
-        public static ArgumentType withPredicate(String name, Predicate<String> check, boolean female, Function<String, String> mapper) {
-            return withPredicate(name, check, female, mapper, null);
         }
 
         public static ArgumentType withPredicate(String name, Predicate<String> check, boolean female, Function<String, String> mapper, Function<String, List<String>> autoComplete) {
@@ -3366,7 +3043,6 @@ public abstract class Command {
                 String str = argumentI + 1 == arguments.size() ? String.join(" ", split.subList(i, split.size())) : split.get(i);
                 ArgumentType type = a.getType();
                 Object o;
-                int count = 1;
                 if (type instanceof DiscordType || type instanceof DiscordFile) {
                     o = type.validate(str, m, asFar.getOrDefault(type, 0));
                     if (o != null) asFar.put(type, asFar.getOrDefault(type, 0) + 1);
@@ -3431,10 +3107,6 @@ public abstract class Command {
                 this.optionType = optionType;
             }
 
-            public Pattern getPattern() {
-                return pattern;
-            }
-
             @Override
             public @Nullable Object validate(String str, Object... params) {
                 if (pattern.matcher(str).find()) {
@@ -3475,20 +3147,17 @@ public abstract class Command {
 
             private final List<SubCommand> texts = new LinkedList<>();
             private final boolean any;
-            private final boolean withOf;
             private final boolean slashSubCmd;
             private Function<String, String> mapper = s -> s;
 
             private Text(List<SubCommand> possible, boolean slashSubCmd) {
                 texts.addAll(possible);
                 any = false;
-                withOf = true;
                 this.slashSubCmd = slashSubCmd;
             }
 
             private Text() {
                 any = true;
-                withOf = false;
                 slashSubCmd = false;
             }
 
@@ -3556,7 +3225,6 @@ public abstract class Command {
 
             private final LinkedList<Integer> numbers = new LinkedList<>();
             private final boolean any;
-            private final boolean withOf;
             private int from;
             private int to;
             private boolean hasRange;
@@ -3564,13 +3232,6 @@ public abstract class Command {
             private Number(Integer[] possible) {
                 numbers.addAll(Arrays.asList(possible));
                 any = false;
-                withOf = true;
-                hasRange = false;
-            }
-
-            private Number() {
-                any = true;
-                withOf = false;
                 hasRange = false;
             }
 
@@ -3586,9 +3247,6 @@ public abstract class Command {
                 return new Number(possible);
             }
 
-            public static Number any() {
-                return new Number();
-            }
 
             private Number setRange(int from, int to) {
                 this.from = from;
@@ -3596,15 +3254,6 @@ public abstract class Command {
                 this.hasRange = true;
                 return this;
             }
-
-            public int getFrom() {
-                return from;
-            }
-
-            public int getTo() {
-                return to;
-            }
-
             public boolean hasRange() {
                 return hasRange;
             }
@@ -3834,11 +3483,6 @@ public abstract class Command {
             return emptyTranslation;
         }
 
-        public static Translation fromOldString(String str) {
-            if (str == null) return empty();
-            String[] arr = str.split(";");
-            return new Translation(arr[1], Type.fromId(arr[0]), Language.GERMAN, getEnglName(arr[1]));
-        }
 
         @Override
         public String toString() {
@@ -3878,10 +3522,6 @@ public abstract class Command {
             return new Translation(str + this.translation, this.type, this.language, this.otherLang, this.forme);
         }
 
-        public Translation after(String str) {
-            return append(str);
-        }
-
         public boolean isFromType(Type type) {
             return this.type == type;
         }
@@ -3904,11 +3544,6 @@ public abstract class Command {
 
         public boolean isEmpty() {
             return empty;
-        }
-
-
-        public String toOldString() {
-            return type.getId() + ";" + translation;
         }
 
         public enum Language {

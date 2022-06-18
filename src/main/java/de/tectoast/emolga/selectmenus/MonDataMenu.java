@@ -8,8 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
@@ -51,8 +49,6 @@ public class MonDataMenu extends MenuListener {
         if (monname.equalsIgnoreCase("silvally") || monname.equalsIgnoreCase("arceus")) {
             builder.addField("Typen", "Normal", false);
         } else {
-            HashMap<String, ArrayList<String>> types = new HashMap<>();
-
             logger.info(String.valueOf(mon));
             String type = mon.getJSONArray("types").toList().stream().map(o -> {
                 if (o.equals("Psychic")) return "Psycho";
@@ -64,11 +60,9 @@ public class MonDataMenu extends MenuListener {
         builder.addField("Größe", mon.getDouble("heightm") + " m", true);
         builder.addField("Gewicht", mon.getDouble("weightkg") + " kg", true);
         builder.addField("Eigruppe", mon.getJSONArray("eggGroups").toList().stream().map(o -> getGerNameNoCheck("E_" + o)).collect(Collectors.joining(", ")), true);
-        String baseforme = mon.has("baseForme") ? mon.getString("baseForme") : "Normal";
         if (monname.equalsIgnoreCase("silvally") || monname.equalsIgnoreCase("arceus")) {
             builder.addField("Fähigkeiten", monname.equalsIgnoreCase("silvally") ? "Alpha-System" : "Variabilität", false);
         } else {
-            HashMap<String, ArrayList<String>> abis = new HashMap<>();
             JSONObject o = mon.getJSONObject("abilities");
             StringBuilder b = new StringBuilder();
             if (o.has("0")) {
@@ -109,9 +103,6 @@ public class MonDataMenu extends MenuListener {
                     Init: 120
                     Summe: 720""", false);
         } else {
-            HashMap<String, ArrayList<String>> stat = new HashMap<>();
-            HashMap<String, JSONObject> origname = new HashMap<>();
-
             JSONObject stats = mon.getJSONObject("baseStats");
             int kp = stats.getInt("hp");
             int atk = stats.getInt("atk");

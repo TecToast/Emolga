@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.utils.draft.Draft.getIndex;
 
+@SuppressWarnings("unused")
 public class PickCommand extends Command {
     private static final Logger logger = LoggerFactory.getLogger(PickCommand.class);
-    public static boolean isEnabled = true;
 
     public PickCommand() {
         super("pick", "Pickt das Pokemon", CommandCategory.Draft);
@@ -206,8 +206,6 @@ public class PickCommand extends Command {
         String teamname = league.getJSONObject("teamnames").getString(mem);
         String sdName = getSDName(pokemon);
         JSONObject o = getDataJSON().getJSONObject(sdName);
-        int i = d.picks.get(mem).size() + 14;
-        String gen5Sprite = getGen5Sprite(o);
         int y = league.getStringList("table").indexOf(teamname) * 17 + 1 + d.picks.get(mem).size();
         b.addSingle("Data!B%s".formatted(y), pokemon);
         b.addSingle("Data!AF%s".formatted(y), 2);
@@ -264,7 +262,7 @@ public class PickCommand extends Command {
         b.execute();
     }
 
-    private static void woolooDoc(Tierlist tierlist, String pokemon, Draft d, long mem, String tier, int round) {
+    private static void woolooDoc(Tierlist tierlist, String pokemon, Draft d, long mem, String tier) {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("WoolooCupS4");
         String sid = league.getString("sid");
         int x = 1;
@@ -303,7 +301,7 @@ public class PickCommand extends Command {
         b.execute();
     }
 
-    private static void aslCoachDoc(Tierlist tierlist, String pokemon, Draft d, Member mem, int needed, int round, @Nullable DraftPokemon removed) {
+    private static void aslCoachDoc(Tierlist tierlist, String pokemon, Draft d, Member mem, int needed, @Nullable DraftPokemon removed) {
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
         JSONObject league = asl.getJSONObject(d.name);
         String sid = asl.getString("sid");
@@ -362,7 +360,7 @@ public class PickCommand extends Command {
         b.execute();
     }
 
-    public static void ndsdoc(Tierlist tierlist, String pokemon, Draft d, long mem, String tier) {
+    public static void ndsdoc(Tierlist tierlist, String pokemon, Draft d, long mem) {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
 
         //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
@@ -400,7 +398,7 @@ public class PickCommand extends Command {
 
     }
 
-    private static void fpldoc(Tierlist tierlist, String pokemon, Draft d, Member mem, String tier, int num, int round) {
+    private static void fpldoc(Tierlist tierlist, String pokemon, Draft d, Member mem, String tier, int num) {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
         if (league.has("sid")) {
             String doc = league.getString("sid");
@@ -431,7 +429,7 @@ public class PickCommand extends Command {
         }
     }
 
-    private static void zbsdoc(Tierlist tierlist, String pokemon, Draft d, Member mem, String tier, int num, int round) {
+    private static void zbsdoc(Tierlist tierlist, String pokemon, Draft d, Member mem, String tier, int num) {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
         if (league.has("sid")) {
             String doc = league.getString("sid");
@@ -467,7 +465,7 @@ public class PickCommand extends Command {
         //aslnocoachdoc(tierlist, pokemon, d, mem, tier, league, pk);
     }*/
 
-    private static void woolooolddoc(Tierlist tierlist, String pokemon, Draft d, Member mem, int needed, @Nullable DraftPokemon removed, int num, int round) {
+    private static void woolooolddoc(Tierlist tierlist, String pokemon, Draft d, Member mem, @Nullable DraftPokemon removed, int num, int round) {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
         String sid = league.getString("sid");
         int x = 1;
@@ -545,7 +543,7 @@ public class PickCommand extends Command {
         b.execute();
     }
 
-    private static void aslnocoachdoc(Tierlist tierlist, String pokemon, Draft d, Member mem, int needed, @Nullable DraftPokemon removed) {
+    private static void aslnocoachdoc(Tierlist tierlist, String pokemon, Draft d, Member mem, @Nullable DraftPokemon removed) {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
         String sid = league.getString("sid");
         int x = 1;

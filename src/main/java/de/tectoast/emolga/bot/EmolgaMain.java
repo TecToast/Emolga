@@ -10,7 +10,6 @@ import jakarta.xml.bind.DatatypeConverter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.eclipse.jetty.http.HttpVersion;
@@ -38,22 +37,13 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.function.Consumer;
 
 import static de.tectoast.emolga.commands.Command.awaitNextDay;
 import static de.tectoast.emolga.commands.Command.updatePresence;
-import static de.tectoast.emolga.utils.Constants.MYSERVER;
 
 public class EmolgaMain {
 
     public static final ArrayList<Giveaway> todel = new ArrayList<>();
-    public static final ArrayList<String> alreadywritten = new ArrayList<>();
-    public static final HashMap<String, Consumer<String>> sdmessages = new HashMap<>();
     public static JDA emolgajda;
     public static JDA flegmonjda;
 
@@ -65,25 +55,17 @@ public class EmolgaMain {
                 .addEventListeners(new EmolgaListener())
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
-        emolgajda.addEventListener(new SlashListener(emolgajda));
+        emolgajda.addEventListener(new SlashListener());
         flegmonjda = JDABuilder.createDefault(Command.tokens.getString("discordflegmon"))
                 .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
                 .addEventListeners(new EmolgaListener())
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
-        flegmonjda.addEventListener(new SlashListener(emolgajda));
+        flegmonjda.addEventListener(new SlashListener());
         emolgajda.awaitReady();
         flegmonjda.awaitReady();
         logger.info("Discord Bots loaded!");
         setupJetty();
-        Guild g = emolgajda.getGuildById(MYSERVER);
-
-        /*g.updateCommands().addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() != CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new))
-                .queue();
-        emolgajda.getGuildById(695943416789598208L).updateCommands()
-                .addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() == CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new)).queue();*/
-
-
         awaitNextDay();
         flegmonjda.getPresence().setActivity(Activity.playing("mit seiner Rute"));
         updatePresence();
@@ -104,8 +86,6 @@ public class EmolgaMain {
                 .registerReaction("827608009571958806", "884567614918111233", "886748333484441650", "886746672120606771")
                 .registerReaction("827608009571958806", "884567614918111233", "886748333484441650", "886746672120606771")
                 .registerReaction("827608009571958806", "884567614918111233", "921389285188440115", "921387730200584222");
-        ScheduledExecutorService giveawayscheduler = new ScheduledThreadPoolExecutor(5);
-        Map<Long, ScheduledFuture<?>> giveawayFutures = new HashMap<>();
         DBManagers.GIVEAWAY.forAll(r -> new Giveaway(r.getLong("channelid"), r.getLong("hostid"), r.getTimestamp("end").toInstant(), r.getInt("winners"), r.getString("prize"), r.getLong("messageid")));
     }
 

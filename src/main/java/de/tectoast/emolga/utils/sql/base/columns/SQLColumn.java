@@ -25,7 +25,7 @@ public abstract class SQLColumn<T> {
     }
 
     public T retrieveValue(SQLColumn<?> checkcolumn, Object checkvalue) {
-        return manager.read(manager.select(checkcolumn.check(checkvalue), this), rs -> {
+        return DataManager.read(manager.select(checkcolumn.check(checkvalue), this), rs -> {
             if (rs.next()) {
                 return getValue(rs);
             }
@@ -34,14 +34,7 @@ public abstract class SQLColumn<T> {
     }
 
     public ResultSet getAll(T value) {
-        return manager.read(manager.selectAll(check(value)), rs -> rs);
-    }
-
-    public ResultSet getSingle(T value) {
-        return manager.read(manager.selectAll(check(value)), rs -> {
-            rs.next();
-            return rs;
-        });
+        return DataManager.read(manager.selectAll(check(value)), rs -> rs);
     }
 
     public boolean isAny(Object value) {
@@ -51,5 +44,4 @@ public abstract class SQLColumn<T> {
 
     public abstract T getValue(ResultSet set);
 
-    public abstract void update(ResultSet set, Object value);
 }

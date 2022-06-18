@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils.records;
 
 import static de.tectoast.emolga.commands.Command.getAsXCoord;
 
+@SuppressWarnings("unused")
 public record StatLocation(String sheet, String x, int y) {
     private static final StatLocation INVALD = new StatLocation(null, 0, 0);
 
@@ -16,5 +17,4 @@ public record StatLocation(String sheet, String x, int y) {
     public boolean isValid() {
         return sheet != null;
     }
-
 }

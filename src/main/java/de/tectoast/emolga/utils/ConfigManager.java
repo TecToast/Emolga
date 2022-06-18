@@ -16,12 +16,8 @@ public enum ConfigManager {
     private final ConfigSource configSource;
 
     ConfigManager(Function<String, Object> defaultValue) {
-        this(defaultValue, ConfigSource.JSON);
-    }
-
-    ConfigManager(Function<String, Object> defaultValue, ConfigSource configSource) {
         this.defaultValue = defaultValue;
-        this.configSource = configSource;
+        this.configSource = ConfigSource.JSON;
     }
 
     public Object getValue(long gid, String key) {

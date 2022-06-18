@@ -21,7 +21,6 @@ public class FinishDraftCommand extends Command {
 
     @Override
     public void process(GuildCommandEvent e) {
-        String msg = e.getMsg();
         TextChannel tco = e.getChannel();
         Member memberr = e.getMember();
         long member = memberr.getIdLong();
@@ -37,15 +36,10 @@ public class FinishDraftCommand extends Command {
             return;
         }
         long mem = d.current;
-        int round = d.round;
         if (e.getGuild().getIdLong() == Constants.NDSID && d.picks.get(mem).size() < 15) {
             e.reply("Du hast noch keine 15 Pokemon!");
             return;
         }
-        /*if (round < 12) {
-            e.reply("Du hast noch nicht 11 Pokemon!");
-            return;
-        }*/
         e.reply("Du hast den Draft für dich beendet!");
         d.order.values().forEach(l -> l.removeIf(me -> me == mem));
         league.put("finished", league.optString("finished") + mem + ",");

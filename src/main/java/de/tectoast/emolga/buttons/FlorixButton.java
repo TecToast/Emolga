@@ -8,12 +8,8 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 import java.awt.*;
 import java.io.IOException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 public class FlorixButton extends ButtonListener {
-
-    private final ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
 
     public FlorixButton() {
         super("florix");

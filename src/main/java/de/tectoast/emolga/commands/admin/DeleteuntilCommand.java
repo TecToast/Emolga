@@ -22,7 +22,6 @@ public class DeleteuntilCommand extends Command {
     @Override
     public void process(GuildCommandEvent e) {
         Message m = e.getMessage();
-        String msg = e.getMessage().getContentRaw();
         TextChannel tco = e.getChannel();
         TextChannel tc;
         List<TextChannel> channels = m.getMentions().getChannels(TextChannel.class);

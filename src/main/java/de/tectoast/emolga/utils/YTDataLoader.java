@@ -55,14 +55,6 @@ public class YTDataLoader {
         }
     }
 
-    public String getChannel() {
-        return channel;
-    }
-
-    public String getThumbnail() {
-        return thumbnail;
-    }
-
     public String getUrl() {
         return url;
     }

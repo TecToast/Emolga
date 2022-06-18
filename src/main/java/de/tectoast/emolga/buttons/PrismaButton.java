@@ -14,7 +14,7 @@ public class PrismaButton extends ButtonListener {
     }
 
     @Override
-    public void process(ButtonInteractionEvent e, String name) throws Exception {
+    public void process(ButtonInteractionEvent e, String name) {
         long id = e.getUser().getIdLong();
         if (id != 297010892678234114L && id != 213725720407441410L && id != Constants.FLOID) {
             e.reply("nö c:").setEphemeral(true).queue();

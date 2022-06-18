@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.sql.base;
 
+@SuppressWarnings("unused")
 public class Condition {
 
     public static String and(String con1, String con2) {

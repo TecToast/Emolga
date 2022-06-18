@@ -1,15 +1,17 @@
 package de.tectoast.emolga.database;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import de.tectoast.emolga.bot.EmolgaMain;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.sql.DBManagers;
 import de.tectoast.jsolf.JSONObject;
-import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -20,15 +22,13 @@ public class Database {
 
     private static final Logger logger = LoggerFactory.getLogger(Database.class);
     private static Database instance;
-    private long lastRequest;
-    MariaDbPoolDataSource dataSource;
+    final DataSource dataSource;
 
     public Database(String username, String password) {
-        try {
-            dataSource = new MariaDbPoolDataSource("jdbc:mariadb://localhost/emolga?user=%s&password=%s".formatted(username, password));
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        //dataSource = new MariaDbPoolDataSource("jdbc:mariadb://localhost/emolga?user=%s&password=%s&minPoolSize=1".formatted(username, password));
+        HikariConfig conf = new HikariConfig();
+        conf.setJdbcUrl("jdbc:mariadb://localhost/emolga?user=%s&password=%s&minPoolSize=1".formatted(username, password));
+        dataSource = new HikariDataSource(conf);
     }
 
     public static void init() {
@@ -46,12 +46,13 @@ public class Database {
     public static void incrementPredictionCounter(long userid) {
         new Thread(() -> {
             try {
-                PreparedStatement usernameInput = getConnection().prepareStatement("SELECT userid FROM predictiongame WHERE userid = ? ");
+                Connection conn = getConnection();
+                PreparedStatement usernameInput = conn.prepareStatement("SELECT userid FROM predictiongame WHERE userid = ? ");
                 usernameInput.setLong(1, userid);
                 if (usernameInput.executeQuery().next()) {
                     DBManagers.PREDICTION_GAME.addPoint(userid);
                 } else {
-                    PreparedStatement userDataInput = getConnection().prepareStatement("INSERT INTO predictiongame (userid, username, predictions) VALUES (?,?,?);");
+                    PreparedStatement userDataInput = conn.prepareStatement("INSERT INTO predictiongame (userid, username, predictions) VALUES (?,?,?);");
                     userDataInput.setLong(1, userid);
                     userDataInput.setString(2, EmolgaMain.emolgajda.getGuildById(Constants.ASLID).retrieveMemberById(userid).complete().getEffectiveName());
                     userDataInput.setInt(3, 1);
@@ -59,6 +60,7 @@ public class Database {
                     userDataInput.close();
                 }
                 usernameInput.close();
+                conn.close();
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
             }

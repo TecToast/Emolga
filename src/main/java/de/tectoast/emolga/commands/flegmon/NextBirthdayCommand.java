@@ -6,7 +6,6 @@ import de.tectoast.emolga.utils.sql.DBManagers;
 import de.tectoast.emolga.utils.sql.managers.BirthdayManager;
 import net.dv8tion.jda.api.entities.TextChannel;
 
-import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -20,7 +19,7 @@ public class NextBirthdayCommand extends PepeCommand {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws SQLException {
+    public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
         Calendar curr = Calendar.getInstance();
         curr.set(Calendar.HOUR_OF_DAY, 0);

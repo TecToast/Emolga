@@ -62,10 +62,6 @@ public class TrainerData {
         return Objects.equals(current, fight);
     }
 
-    public HashMap<String, List<TrainerMon>> getMons() {
-        return mons;
-    }
-
     public Collection<String> getMonsList() {
         return mons.keySet();
     }

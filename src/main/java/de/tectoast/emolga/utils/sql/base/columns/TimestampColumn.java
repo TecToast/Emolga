@@ -23,15 +23,6 @@ public class TimestampColumn extends SQLColumn<Timestamp> {
     }
 
     @Override
-    public void update(ResultSet set, Object value) {
-        try {
-            set.updateTimestamp(name, (Timestamp) value);
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-    }
-
-    @Override
     public String wrap(Object value) {
         return "\"" + value.toString() + "\"";
     }

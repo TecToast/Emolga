@@ -5,8 +5,6 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.commands.MusicCommand;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 public class NpCommand extends MusicCommand {
@@ -18,9 +16,6 @@ public class NpCommand extends MusicCommand {
     @Override
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
         GuildMusicManager manager = getGuildAudioPlayer(tco.getGuild());
         if (manager.player == null) {
             tco.sendMessage("Derzeit läuft kein Track!").queue();

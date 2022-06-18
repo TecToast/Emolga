@@ -24,7 +24,7 @@ public class RevealPrismaTeamCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         Member user = e.getArguments().getMember("user");
         JSONObject prisma = getEmolgaJSON().getJSONObject("drafts").getJSONObject("Prisma");
         JSONObject picks = prisma.getJSONObject("picks");

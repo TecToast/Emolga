@@ -22,6 +22,7 @@ import java.util.stream.IntStream;
 
 import static de.tectoast.emolga.utils.draft.Draft.getIndex;
 
+@SuppressWarnings("unused")
 public class SwitchCommand extends Command {
 
     private static final Logger logger = LoggerFactory.getLogger(SwitchCommand.class);
@@ -117,7 +118,7 @@ public class SwitchCommand extends Command {
         b.execute();
     }
 
-    private static void fpldoc(Tierlist tierlist, String pokemon, Draft d, long mem, String tier, int num, int round, String removed) {
+    private static void fpldoc(Tierlist tierlist, String pokemon, Draft d, long mem, String tier, int num, String removed) {
         JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
         if (league.has("sid")) {
             String doc = league.getString("sid");
@@ -150,8 +151,6 @@ public class SwitchCommand extends Command {
         String sdName = getSDName(pokemon);
         JSONObject o = getDataJSON().getJSONObject(sdName);
         List<DraftPokemon> picks = d.picks.get(mem);
-        int i = picks.size() + 14;
-        String gen5Sprite = getGen5Sprite(o);
         int y = league.getStringList("table").indexOf(teamname) * 17 + 2 + IntStream.range(0, picks.size()).filter(num -> picks.get(num).getName().equals(pokemon)).findFirst().orElse(-1);
         b.addSingle("Data!B%s".formatted(y), pokemon);
         b.addSingle("Data!AF%s".formatted(y), 2);
@@ -246,7 +245,6 @@ public class SwitchCommand extends Command {
                     mem = d.tc.getGuild().retrieveMemberById(allowed.getString(member.getId())).complete();
                 } else mem = member;
             } else mem = member;*/
-        Translation t;
         ArgumentManager args = e.getArguments();
         String oldmon = args.getText("oldmon");
         String newmon = args.getText("newmon");
@@ -288,7 +286,6 @@ public class SwitchCommand extends Command {
         }
         AtomicInteger oldindex = new AtomicInteger(-1);
         List<DraftPokemon> draftPokemons = d.picks.get(mem);
-        DraftPokemon oldMon = draftPokemons.stream().filter(draftMon -> draftMon.name.equalsIgnoreCase(oldmon)).peek(dp -> oldindex.set(draftPokemons.indexOf(dp))).map(DraftPokemon::copy).findFirst().orElse(null);
         Optional<DraftPokemon> drp = draftPokemons.stream().filter(dp -> dp.name.equalsIgnoreCase(oldmon)).findFirst();
         if (drp.isEmpty()) {
             logger.error("DRP NULL LINE 232 " + oldindex.get());

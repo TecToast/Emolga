@@ -5,7 +5,6 @@ import de.tectoast.emolga.commands.MusicCommand;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 public class DeepCommand extends MusicCommand {
@@ -17,8 +16,6 @@ public class DeepCommand extends MusicCommand {
     @Override
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
         Member member = e.getMember();
         Guild g = tco.getGuild();
         GuildMusicManager musicManager = getGuildAudioPlayer(g);

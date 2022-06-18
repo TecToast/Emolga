@@ -39,6 +39,7 @@ public enum DexQuizTip {
         this.tipFunction = tipFunction;
     }
 
+    @SuppressWarnings("SameReturnValue")
     private static Random random() {
         return random;
     }

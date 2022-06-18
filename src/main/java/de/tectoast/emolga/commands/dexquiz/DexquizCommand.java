@@ -15,7 +15,7 @@ public class DexquizCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
 
     }
 
@@ -29,7 +29,7 @@ public class DexquizCommand extends Command {
         }
 
         @Override
-        public void process(GuildCommandEvent e) throws Exception {
+        public void process(GuildCommandEvent e) {
             TextChannel tco = e.getChannel();
             DexQuiz quiz = DexQuiz.getByTC(tco);
             if (quiz != null) {
@@ -55,7 +55,7 @@ public class DexquizCommand extends Command {
         }
 
         @Override
-        public void process(GuildCommandEvent e) throws Exception {
+        public void process(GuildCommandEvent e) {
             TextChannel tco = e.getChannel();
             DexQuiz quiz = DexQuiz.getByTC(tco);
             if (quiz != null) {

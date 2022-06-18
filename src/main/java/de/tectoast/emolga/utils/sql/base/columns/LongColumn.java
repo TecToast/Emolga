@@ -5,7 +5,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
 
 public class LongColumn extends SQLColumn<Long> {
 
@@ -24,15 +23,6 @@ public class LongColumn extends SQLColumn<Long> {
     }
 
     @Override
-    public void update(ResultSet set, Object value) {
-        try {
-            set.updateLong(name, (Long) value);
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-    }
-
-    @Override
     public Long retrieveValue(SQLColumn<?> checkcolumn, Object checkvalue) {
         return DataManager.read(manager.select(checkcolumn.check(checkvalue), this), rs -> {
             if (rs.next()) {
@@ -42,7 +32,4 @@ public class LongColumn extends SQLColumn<Long> {
         });
     }
 
-    public void increment(SQLColumn<?> checkcolumn, Object checkvalue) {
-        this.manager.addStatisticsSpecified(checkvalue.toString(), List.of(checkcolumn, this), 1);
-    }
 }

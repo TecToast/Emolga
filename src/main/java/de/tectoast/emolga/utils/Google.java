@@ -8,7 +8,6 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.Request;
-import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.Playlist;
@@ -21,7 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -76,7 +74,7 @@ public class Google {
     }
 
 
-    public static @Nullable List<List<Object>> get(String spreadsheetId, String range, boolean formula, boolean recursive) throws IllegalArgumentException {
+    public static @Nullable List<List<Object>> get(String spreadsheetId, String range, boolean formula) throws IllegalArgumentException {
         try {
             return getSheetsService().spreadsheets().values().get(spreadsheetId, range).setValueRenderOption(formula ? "FORMULA" : "FORMATTED_VALUE").execute().getValues();
         } catch (IOException ex) {
@@ -96,27 +94,6 @@ public class Google {
         }
     }
 
-    public static @Nullable Spreadsheet getSheetData(String spreadsheetId, boolean recursive, String... range) throws IllegalArgumentException {
-        try {
-            Sheets.Spreadsheets.Get get = getSheetsService().spreadsheets().get(spreadsheetId).setIncludeGridData(true);
-            if (range != null) get.setRanges(Arrays.asList(range));
-            return get.execute();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        return null;
-    }
-
-
-    public static @Nullable List<ValueRange> batchGet(String spreadsheetId, List<String> range, boolean formula, boolean recursive) throws IllegalArgumentException {
-        try {
-            return getSheetsService().spreadsheets().values().batchGet(spreadsheetId).setRanges(range).setValueRenderOption(formula ? "FORMULA" : "FORMATTED_VALUE").execute().getValueRanges();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        logger.info("NULL");
-        return null;
-    }
 
     @Deprecated
     public static void batchUpdateRequest(String spreadsheetId, Request request, boolean recursive) throws IllegalArgumentException {

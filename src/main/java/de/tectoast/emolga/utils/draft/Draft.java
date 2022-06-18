@@ -5,7 +5,6 @@ import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.RequestBuilder;
 import de.tectoast.jsolf.JSONArray;
 import de.tectoast.jsolf.JSONObject;
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
@@ -15,7 +14,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -25,7 +27,6 @@ import static de.tectoast.emolga.commands.Command.*;
 public class Draft {
     public static final List<Draft> drafts = new ArrayList<>();
     private static final Logger logger = LoggerFactory.getLogger(Draft.class);
-    private static final ScheduledExecutorService predictionGamesService = Executors.newScheduledThreadPool(1);
     public final Map<Long, List<DraftPokemon>> picks = new HashMap<>();
     public final Map<Integer, List<Long>> order = new HashMap<>();
     public final Map<Integer, List<Long>> originalOrder = new HashMap<>();
@@ -297,12 +298,11 @@ public class Draft {
         }
     }
 
-    public static void init(JDA jda) {
+    public static void init() {
         Tierlist.setup();
     }
 
     public static @Nullable Draft getDraftByMember(long member, TextChannel tco) {
-        JSONObject json = getEmolgaJSON();
         //logger.info("member.getId() = " + member.getId());
         for (Draft draft : Draft.drafts) {
             //logger.info(draft.members.stream().map(mem -> mem.getId() + ":" + mem.getEffectiveName()).collect(Collectors.joining("\n")));
@@ -335,6 +335,7 @@ public class Draft {
         return null;
     }
 
+    @SuppressWarnings("unused")
     public static List<Long> getTeamMembers(long userid) {
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
         int index = getIndex(userid);
@@ -346,6 +347,7 @@ public class Draft {
         return l;
     }
 
+    @SuppressWarnings("unused")
     public static List<Long> getTeamMembers(String team) {
         JSONObject asl = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9");
         int index = asl.getStringList("teams").indexOf(team);
@@ -357,6 +359,7 @@ public class Draft {
         return l;
     }
 
+    @SuppressWarnings("unused")
     public static String getTeamName(long userid) {
         return getEmolgaJSON().getJSONObject("drafts").getJSONObject("ASLS9").getStringList("teams").get(getIndex(userid));
     }

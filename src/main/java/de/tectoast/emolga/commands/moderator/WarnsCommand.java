@@ -21,7 +21,7 @@ public class WarnsCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         long gid = e.getGuild().getIdLong();
         Member mem = e.getArguments().getMember("user");
         String str = DBManagers.WARNS.getWarnsFrom(mem.getIdLong(), gid);

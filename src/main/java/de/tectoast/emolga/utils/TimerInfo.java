@@ -5,6 +5,7 @@ import de.tectoast.emolga.utils.records.TimerData;
 import java.util.HashMap;
 import java.util.Map;
 
+@SuppressWarnings("unused")
 public class TimerInfo {
 
     private final Map<Integer, TimerData> map = new HashMap<>();

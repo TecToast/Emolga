@@ -9,8 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -52,8 +50,6 @@ public class MonDataButton extends ButtonListener {
         if (monname.equalsIgnoreCase("silvally") || monname.equalsIgnoreCase("arceus")) {
             builder.addField("Typen", "Normal", false);
         } else {
-            HashMap<String, ArrayList<String>> types = new HashMap<>();
-
             logger.info(mon.toString());
             String type = mon.getJSONArray("types").toList().stream().map(o -> {
                 if (o.equals("Psychic")) return "Psycho";
@@ -65,11 +61,9 @@ public class MonDataButton extends ButtonListener {
         builder.addField("Größe", mon.getDouble("heightm") + " m", true);
         builder.addField("Gewicht", mon.getDouble("weightkg") + " kg", true);
         builder.addField("Eigruppe", mon.getJSONArray("eggGroups").toList().stream().map(o -> getGerNameNoCheck("E_" + o)).collect(Collectors.joining(", ")), true);
-        String baseforme = mon.has("baseForme") ? mon.getString("baseForme") : "Normal";
         if (monname.equalsIgnoreCase("silvally") || monname.equalsIgnoreCase("arceus")) {
             builder.addField("Fähigkeiten", monname.equalsIgnoreCase("silvally") ? "Alpha-System" : "Variabilität", false);
         } else {
-            HashMap<String, ArrayList<String>> abis = new HashMap<>();
             JSONObject o = mon.getJSONObject("abilities");
             StringBuilder b = new StringBuilder();
             if (o.has("0")) {
@@ -100,8 +94,7 @@ public class MonDataButton extends ButtonListener {
                     SpAtk: 95
                     SpDef: 95
                     Init: 95
-                    Summe: 570"""
-                    : """
+                    Summe: 570""" : """
                     KP: 120
                     Atk: 120
                     Def: 120
@@ -110,8 +103,6 @@ public class MonDataButton extends ButtonListener {
                     Init: 120
                     Summe: 720""", false);
         } else {
-            HashMap<String, ArrayList<String>> stat = new HashMap<>();
-            HashMap<String, JSONObject> origname = new HashMap<>();
 
             JSONObject stats = mon.getJSONObject("baseStats");
             int kp = stats.getInt("hp");
@@ -120,8 +111,7 @@ public class MonDataButton extends ButtonListener {
             int spa = stats.getInt("spa");
             int spd = stats.getInt("spd");
             int spe = stats.getInt("spe");
-            String str = "KP: " + kp + "\nAtk: " + atk + "\nDef: " + def + "\nSpAtk: " + spa
-                    + "\nSpDef: " + spd + "\nInit: " + spe + "\nSumme: " + (kp + atk + def + spa + spd + spe);
+            String str = "KP: " + kp + "\nAtk: " + atk + "\nDef: " + def + "\nSpAtk: " + spa + "\nSpDef: " + spd + "\nInit: " + spe + "\nSumme: " + (kp + atk + def + spa + spd + spe);
 
                                 /*origname.put(toadd.toString(), obj);
                                 if (stat.containsKey(str)) stat.get(str).add(toadd.toString());
@@ -140,9 +130,7 @@ public class MonDataButton extends ButtonListener {
         builder.setTitle(getGerNameWithForm(monname));
         builder.setColor(Color.CYAN);
         List<JSONObject> list = dt.getList();
-        e.editMessageEmbeds(builder.build())
-                .setActionRows(getActionRows(list, o -> mon.getString("name").equals(o.getString("name")) ? Button.primary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name")))
-                        : Button.secondary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name"))))).queue();
+        e.editMessageEmbeds(builder.build()).setActionRows(getActionRows(list, o -> mon.getString("name").equals(o.getString("name")) ? Button.primary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name"))) : Button.secondary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name"))))).queue();
 
     }
 }

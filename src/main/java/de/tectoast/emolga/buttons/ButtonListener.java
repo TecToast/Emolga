@@ -21,10 +21,8 @@ public abstract class ButtonListener {
             Command.sendToMe("WRONG BUTTON KEY " + e.getComponentId());
         }
     };
-    final String name;
 
     public ButtonListener(String name) {
-        this.name = name;
         listener.put(name, this);
     }
 

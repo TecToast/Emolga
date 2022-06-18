@@ -49,7 +49,6 @@ import static de.tectoast.emolga.utils.Constants.EMOLGA_KI;
 import static de.tectoast.emolga.utils.Constants.MYSERVER;
 
 public class EmolgaListener extends ListenerAdapter {
-    public static final List<String> allowsCaps = Arrays.asList("712612442622001162", "752230819644440708", "732545253344804914");
     public static final String WELCOMEMESSAGE = """
             Hallo **{USERNAME}** und vielen Dank, dass du mich auf deinen Server **{SERVERNAME}** geholt hast!
             Vermutlich möchtest du für deinen Server hauptsächlich, dass die Ergebnisse von Showdown Replays in einen Channel geschickt werden.
@@ -192,7 +191,6 @@ public class EmolgaListener extends ListenerAdapter {
                         }
                     }
                 }
-                JSONObject json = getEmolgaJSON();
                 if (replayAnalysis.containsKey(tco.getIdLong()) && !e.getAuthor().getId().equals(e.getJDA().getSelfUser().getId()) && !msg.contains("!analyse ") && !msg.contains("!sets ")) {
                     TextChannel t = tco.getGuild().getTextChannelById(replayAnalysis.get(tco.getIdLong()));
                     //t.sendTyping().queue();
@@ -245,7 +243,7 @@ public class EmolgaListener extends ListenerAdapter {
         try {
             JDA jda = e.getJDA();
             if (jda.getSelfUser().getIdLong() == 723829878755164202L) {
-                Draft.init(jda);
+                Draft.init();
                 DBManagers.BAN.forAll(rs -> Command.banTimer(jda.getGuildById(rs.getLong("guildid")), Optional.ofNullable(rs.getTimestamp("expires")).map(Timestamp::getTime).orElse(-1L), rs.getLong("userid")));
                 DBManagers.MUTE.forAll(rs -> Command.muteTimer(jda.getGuildById(rs.getLong("guildid")), Optional.ofNullable(rs.getTimestamp("expires")).map(Timestamp::getTime).orElse(-1L), rs.getLong("userid")));
                 //new Draft(jda.getTextChannelById(837425828245667841L), "NDS", null, true, true);

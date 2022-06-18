@@ -18,7 +18,6 @@ public class EmolgaDiktaturCommand extends Command {
     public void process(GuildCommandEvent e) {
         Guild g = e.getGuild();
         JSONObject members = new JSONObject();
-        JSONObject channels = new JSONObject();
         e.getChannel().sendMessage("**Möge die Emolga-Diktatur beginnen!**").queue();
         g.loadMembers().onSuccess(list -> {
             for (Member member : list) {

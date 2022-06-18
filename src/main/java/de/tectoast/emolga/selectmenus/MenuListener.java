@@ -21,10 +21,8 @@ public abstract class MenuListener {
             Command.sendToMe("WRONG MENU KEY " + e.getComponentId());
         }
     };
-    final String name;
 
     public MenuListener(String name) {
-        this.name = name;
         listener.put(name, this);
     }
 

@@ -13,7 +13,10 @@ import org.slf4j.LoggerFactory;
 import java.awt.*;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -25,8 +28,6 @@ import static de.tectoast.emolga.commands.various.GcreateCommand.secondsToTime;
 
 public class Giveaway {
 
-    public static final Set<Giveaway> giveaways = new HashSet<>();
-    public static final Set<Giveaway> toadd = new HashSet<>();
     private static final Logger logger = LoggerFactory.getLogger(Giveaway.class);
     private static final ScheduledExecutorService giveawayExecutor = new ScheduledThreadPoolExecutor(5);
     private static final HashMap<Long, ScheduledFuture<?>> giveawayFutures = new HashMap<>();
@@ -55,7 +56,6 @@ public class Giveaway {
         this.end = end;
         this.winners = winners;
         this.prize = prize == null ? null : prize.isEmpty() ? null : prize;
-        long delay = end.toEpochMilli() - System.currentTimeMillis();
         logger.info(String.valueOf(end.toEpochMilli() - System.currentTimeMillis()));
         giveawayFutures.put(mid, giveawayExecutor.scheduleAtFixedRate(() -> {
             Instant now = Instant.now();
@@ -106,10 +106,6 @@ public class Giveaway {
         this.messageId = messageId;
     }
 
-    public boolean isEnded() {
-        return isEnded;
-    }
-
     public void saveToDB() {
         DBManagers.GIVEAWAY.saveGiveaway(this);
     }
@@ -131,10 +127,6 @@ public class Giveaway {
             eb.setTitle("Letzte Chance!!!", null);
         mb.setEmbeds(eb.build());
         return mb.build();
-    }
-
-    private String messageLink() {
-        return String.format("\n<https://discordapp.com/channels/%s/%s/%s>", emolgajda.getTextChannelById(channelId).getGuild().getIdLong(), channelId, messageId);
     }
 
     public void end() {

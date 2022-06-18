@@ -1,8 +1,5 @@
 package de.tectoast.emolga.utils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,8 +9,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class GPIOManager {
-
-    private static final Logger logger = LoggerFactory.getLogger(GPIOManager.class);
 
     private static final ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
 

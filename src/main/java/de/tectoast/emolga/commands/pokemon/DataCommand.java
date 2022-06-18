@@ -186,7 +186,7 @@ public class DataCommand extends Command {
                                         }).collect(Collectors.toList())
                                 ).build()));
                             }
-                        }, mes -> monDataButtons.put(mes.getIdLong(), new MonData(list, shiny)), ih -> monDataButtons.put(ih.getInteraction().getIdLong(), new MonData(list, shiny)));
+                        }, mes -> monDataButtons.put(mes.getIdLong(), new MonData(list)), ih -> monDataButtons.put(ih.getInteraction().getIdLong(), new MonData(list)));
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }

@@ -15,7 +15,7 @@ public class FullStatsCommand extends Command {
         super("fullstats", "Zeigt die volle Statistik von einem Pokemon an (Kills/Uses/etc)", CommandCategory.Showdown);
         setArgumentTemplate(ArgumentManagerTemplate.builder()
                 .add("mon", "Pokemon", "Das Pokemon",
-                        ArgumentManagerTemplate.withPredicate("Pokemon", s -> getDraftGerName(s).isFromType(Translation.Type.POKEMON), false, draftnamemapper), false, "Das ist kein Pokemon!")
+                        ArgumentManagerTemplate.draftPokemon(), false, "Das ist kein Pokemon!")
                 .setExample("!fullstats Primarina")
                 .build());
         slash();

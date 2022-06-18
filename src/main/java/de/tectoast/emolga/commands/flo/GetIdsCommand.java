@@ -3,8 +3,6 @@ package de.tectoast.emolga.commands.flo;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.TextChannel;
 
@@ -21,9 +19,7 @@ public class GetIdsCommand extends Command {
 
     @Override
     public void process(GuildCommandEvent e) {
-        Message m = e.getMessage();
         TextChannel tco = e.getChannel();
-        Member member = e.getMember();
         Role r = e.getJDA().getRoleById(e.getArguments().getID("role"));
         tco.getGuild().findMembers(mem -> mem.getRoles().contains(r)).onSuccess(members -> tco.sendMessage(members.stream().map(mem -> mem.getEffectiveName() + ": " + mem.getId()).collect(Collectors.joining("\n"))).queue()).onError(t -> {
             t.printStackTrace();

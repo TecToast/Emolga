@@ -36,14 +36,6 @@ public class DiscordAuthManager extends DataManager {
         return cookie;
     }
 
-    public void deleteCookie(String cookie) {
-        delete(COOKIE.check(cookie));
-    }
-
-    public long getUserByCookie(String cookie) {
-        return USERID.retrieveValue(COOKIE, cookie);
-    }
-
     public ResultSet getSessionByCookie(String cookie) {
         ResultSet resultSet = readWrite(selectAll(COOKIE.check(cookie)), r -> {
             logger.info("Mapping oder so");

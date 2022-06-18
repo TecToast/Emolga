@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("unused")
 public abstract class GenericCommandEvent {
     private static final Logger logger = LoggerFactory.getLogger(GenericCommandEvent.class);
     private final Message message;

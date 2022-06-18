@@ -12,6 +12,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("unused")
 public class SkipCommand extends Command {
 
     private static final Logger logger = LoggerFactory.getLogger(SkipCommand.class);
@@ -23,7 +24,6 @@ public class SkipCommand extends Command {
 
     @Override
     public void process(GuildCommandEvent e) {
-        String msg = e.getMsg();
         TextChannel tco = e.getChannel();
         Member memberr = e.getMember();
         long member = memberr.getIdLong();

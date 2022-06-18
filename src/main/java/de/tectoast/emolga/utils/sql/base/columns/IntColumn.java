@@ -24,15 +24,6 @@ public class IntColumn extends SQLColumn<Integer> {
     }
 
     @Override
-    public void update(ResultSet set, Object value) {
-        try {
-            set.updateInt(name, (Integer) value);
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-    }
-
-    @Override
     public Integer retrieveValue(SQLColumn<?> checkcolumn, Object checkvalue) {
         return DataManager.read(manager.select(checkcolumn.check(checkvalue), this), rs -> {
             if (rs.next()) {

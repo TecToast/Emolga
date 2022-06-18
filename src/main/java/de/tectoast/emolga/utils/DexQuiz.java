@@ -144,10 +144,6 @@ public class DexQuiz {
         return round > totalRounds;
     }
 
-    public TextChannel getChannel() {
-        return tc;
-    }
-
     public String getCurrentGerName() {
         return gerName;
     }

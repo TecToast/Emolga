@@ -24,7 +24,6 @@ public class RemindCommand extends Command {
             String[] split = WHITESPACES_SPLITTER.split(e.getMessage().getContentRaw(), 3);
             long expires = parseCalendarTime(split[1]);
             String message = split[2];
-            long uid = e.getAuthor().getIdLong();
             TextChannel calendarTc = e.getJDA().getTextChannelById(CALENDAR_TCID);
             DBManagers.CALENDAR.insertNewEntry(message, new Timestamp(expires / 1000 * 1000));
             scheduleCalendarEntry(expires, message);

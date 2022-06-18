@@ -14,10 +14,6 @@ public class SpoilerTagsManager extends DataManager {
         setColumns(GUILDID);
     }
 
-    public boolean check(long guildid) {
-        return GUILDID.isAny(guildid);
-    }
-
     public boolean delete(long guildid) {
         return delete(GUILDID.check(guildid)) != 0;
     }

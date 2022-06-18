@@ -29,7 +29,7 @@ public class ConfigurateCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws Exception {
+    public void process(GuildCommandEvent e) {
         String conf = e.getArguments().getText("configuration");
         logger.info("configurations = {}", configurations);
         logger.info("conf = {}", conf);

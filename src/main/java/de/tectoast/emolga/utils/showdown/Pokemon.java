@@ -168,10 +168,6 @@ public class Pokemon {
         return kills;
     }
 
-    public void setKills(int kills) {
-        this.kills = kills;
-    }
-
     public Pokemon getStatusedBy() {
         return statusedBy;
     }

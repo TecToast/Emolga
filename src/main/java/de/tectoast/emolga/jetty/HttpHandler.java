@@ -33,6 +33,7 @@ import static de.tectoast.emolga.bot.EmolgaMain.emolgajda;
 import static de.tectoast.emolga.utils.sql.DBManagers.DISCORD_AUTH;
 import static net.dv8tion.jda.api.entities.User.DEFAULT_AVATAR_URL;
 
+@SuppressWarnings("unused")
 public class HttpHandler extends AbstractHandler {
 
     private static final OkHttpClient client = new OkHttpClient().newBuilder().build();

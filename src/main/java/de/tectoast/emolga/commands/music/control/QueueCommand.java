@@ -6,8 +6,6 @@ import de.tectoast.emolga.commands.MusicCommand;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
 import de.tectoast.emolga.utils.music.TrackScheduler;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.util.LinkedList;
@@ -22,9 +20,6 @@ public class QueueCommand extends MusicCommand {
     @Override
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
         Guild g = tco.getGuild();
         GuildMusicManager musicManager = getGuildAudioPlayer(g);
         StringBuilder str = new StringBuilder();

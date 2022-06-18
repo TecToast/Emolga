@@ -5,12 +5,12 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
-import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.function.Predicate;
 
 public class RandomPickCommand extends Command {
@@ -33,7 +33,6 @@ public class RandomPickCommand extends Command {
             e.getChannel().sendMessage("Du Kek der Command funktioniert nur in einem Draft xD").queue();
             return;
         }
-        String msg = e.getMessage().getContentDisplay();
         Tierlist tierlist = d.getTierlist();
         ArgumentManager args = e.getArguments();
         String tier = tierlist.order.stream().filter(s -> args.getText("tier").equalsIgnoreCase(s)).findFirst().orElse("");
@@ -47,16 +46,7 @@ public class RandomPickCommand extends Command {
             return;
         }
         long mem = d.current;
-        JSONObject json = getEmolgaJSON();
-        //JSONObject league = json.getJSONObject("drafts").getJSONObject(d.name);
-        JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject(d.name);
-            /*if (asl.has("allowed")) {
-                JSONObject allowed = asl.getJSONObject("allowed");
-                if (allowed.has(member.getId())) {
-                    mem = d.tc.getGuild().retrieveMemberById(allowed.getString(member.getId())).complete();
-                } else mem = member;
-            } else mem = member;*/
-        ArrayList<String> list = new ArrayList<>(tierlist.tierlist.get(tier));
+        List<String> list = new ArrayList<>(tierlist.tierlist.get(tier));
         Collections.shuffle(list);
         Predicate<String> typecheck;
         if (args.has("type")) {

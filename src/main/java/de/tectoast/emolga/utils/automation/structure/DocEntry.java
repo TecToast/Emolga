@@ -21,6 +21,7 @@ import java.util.stream.IntStream;
 
 import static de.tectoast.emolga.commands.Command.*;
 
+@SuppressWarnings("unused")
 public class DocEntry implements ReplayAnalyser {
 
     private static final Logger logger = LoggerFactory.getLogger(DocEntry.class);
@@ -142,8 +143,8 @@ public class DocEntry implements ReplayAnalyser {
             RequestBuilder b = new RequestBuilder(sid);
             for (int num = 0; num < sorterData.formulaRange().size(); num++) {
                 String formulaRange = sorterData.formulaRange().get(num);
-                List<List<Object>> formula = Google.get(sid, formulaRange, true, false);
-                List<List<Object>> points = Google.get(sid, sorterData.pointRange().get(num), false, false);
+                List<List<Object>> formula = Google.get(sid, formulaRange, true);
+                List<List<Object>> points = Google.get(sid, sorterData.pointRange().get(num), false);
                 List<List<Object>> orig = new ArrayList<>(points);
                 List<Long> table = tableMapper.apply(league);
                 points.sort((o1, o2) -> {

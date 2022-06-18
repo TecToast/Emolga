@@ -31,7 +31,6 @@ public class ShowdownExportCommand extends Command {
         emolgajda.getGuildById(league.getString("guild")).retrieveMembersByIds(ids.toArray(new String[0])).get().forEach(mem -> names.put(mem.getId(), mem.getEffectiveName()));
         for (String id : ids) {
             JSONArray picksArr = picksObj.getJSONArray(id);
-            JSONArray oneUser = new JSONArray();
             b.append("=== [gen8nationaldexag-box] ").append(e.getArg(0)).append("/").append(names.get(id)).append(" ===\n\n");
             picksArr.toList().stream().map(o -> (String) ((HashMap<String, Object>) o).get("name"))
                     .sorted(Comparator.comparing(str -> getDataJSON().getJSONObject(getDataName((String) str)).getJSONObject("baseStats").getInt("spe")).reversed())

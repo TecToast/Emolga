@@ -12,7 +12,7 @@ public class SolutionButton extends ButtonListener {
     }
 
     @Override
-    public void process(ButtonInteractionEvent e, String name) throws Exception {
+    public void process(ButtonInteractionEvent e, String name) {
         String[] split = TRIPLE_HASHTAG.split(name);
         long tcid = Long.parseLong(split[0]);
         long uid = Long.parseLong(split[1]);

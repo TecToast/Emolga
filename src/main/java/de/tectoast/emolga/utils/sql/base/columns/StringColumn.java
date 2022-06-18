@@ -28,12 +28,4 @@ public class StringColumn extends SQLColumn<String> {
         return null;
     }
 
-    @Override
-    public void update(ResultSet set, Object value) {
-        try {
-            set.updateString(name, (String) value);
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-    }
 }

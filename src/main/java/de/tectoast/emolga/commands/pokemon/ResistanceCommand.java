@@ -5,8 +5,6 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.jsolf.JSONObject;
 
-import java.util.HashMap;
-
 public class ResistanceCommand extends Command {
     public ResistanceCommand() {
         super("resistance", "Zeigt alle Typen an, die der angegebene Typ resistiert", CommandCategory.Pokemon);
@@ -22,7 +20,6 @@ public class ResistanceCommand extends Command {
         Translation type = e.getArguments().getTranslation("type");
         if(type.isFromType(Translation.Type.TYPE)) {
             JSONObject json = getTypeJSON();
-            HashMap<String, Integer> map = new HashMap<>();
             StringBuilder b = new StringBuilder();
             JSONObject typejson = json.getJSONObject(type.getTranslation()).getJSONObject("damageTaken");
             typejson.keySet().forEach(str -> {

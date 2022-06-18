@@ -5,8 +5,6 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.sql.DBManagers;
 
-import java.sql.SQLException;
-
 public class NatureCommand extends Command {
 
     public NatureCommand() {
@@ -17,7 +15,7 @@ public class NatureCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws SQLException {
+    public void process(GuildCommandEvent e) {
         Translation t = e.getArguments().getTranslation("nature");
         e.reply(t.getOtherLang() + "/" + t.getTranslation() + ":\n" + DBManagers.NATURE.getNatureData(t.getTranslation()));
     }

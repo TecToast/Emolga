@@ -3,7 +3,6 @@ package de.tectoast.emolga.commands.flegmon;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.commands.PepeCommand;
 import de.tectoast.emolga.utils.sql.DBManagers;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 public class SetBirthdayCommand extends PepeCommand {
@@ -17,7 +16,6 @@ public class SetBirthdayCommand extends PepeCommand {
     @Override
     public void process(GuildCommandEvent e) {
         String msg = e.getMessage().getContentDisplay();
-        Member member = e.getMember();
         TextChannel tco = e.getChannel();
         String birthday = msg.split(" ")[1];
         String[] bd = birthday.split("\\.");

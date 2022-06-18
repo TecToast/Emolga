@@ -100,8 +100,8 @@ public class Analysis {
                         }).findFirst().orElse(null)));
                     }
                 } else {
-                    //unknownFormes.stream().filter(pokemon::contains).filter(str -> p.indexOfName(str + "-*") != 1).forEach(str -> p.getMons().get(p.indexOfName(str + "-*")).setPokemon(pokemon));
-                    if (pokemon.contains("Silvally") && p.indexOfName("Silvally-*") != -1) {//Silvally-Problem
+                    unknownFormes.stream().filter(pokemon::contains).filter(str -> p.indexOfName(str + "-*") != 1).forEach(str -> p.getMons().get(p.indexOfName(str + "-*")).setPokemon(pokemon));
+                    /*if (pokemon.contains("Silvally") && p.indexOfName("Silvally-*") != -1) {//Silvally-Problem
                         p.getMons().get(p.indexOfName("Silvally-*")).setPokemon(pokemon);
                     }
                     if (pokemon.contains("Arceus") && p.indexOfName("Arceus-*") != -1) {//Arceus-Problem
@@ -124,7 +124,7 @@ public class Analysis {
                     }
                     if (pokemon.contains("Xerneas") && p.indexOfName("Xerneas-*") != -1) {//Xerneas-Problem
                         p.getMons().get(p.indexOfName("Xerneas-*")).setPokemon(pokemon);
-                    }
+                    }*/
                 }
             });
             check(i -> s.contains("|switch|p" + i) || s.contains("|drag|p" + i) || s.contains("|replace|p" + i), i -> actMon.put(i, split[3].split(",")[0]));
@@ -219,7 +219,6 @@ public class Analysis {
             check(zoru::containsKey, i -> {
                 Pokemon activeP1 = activeP.get(i);
                 if (s.contains("|-damage|p" + i)) {
-                    Player p1 = pl.get(i);
                     int oldHP = activeP1.getHp();
                     String lifes = split[3].split("/")[0];
                     int newHp;
@@ -239,7 +238,6 @@ public class Analysis {
                 } else if (s.contains("|-heal|p" + i)) {
                     activeP1.setHp(Integer.parseInt(split[3].split("/")[0]), turn);
                 } else if (s.contains("|-activate|p" + i) && s.contains("|move: Sticky Web")) {
-                    Player p1 = pl.get(i);
                     JSONObject mon = Command.getDataJSON().getJSONObject(toSDName(activeP1.getPokemon()));
                     if (mon.getStringList("types").contains("Flying") || mon.getJSONObject("abilities").toMap().containsValue("Levitate"))
                         activeP.put(i, getZoro(i, "Sticky Web"));
@@ -507,15 +505,9 @@ public class Analysis {
         check(ch, i -> active.accept(activeP.get(i), activeP.get(3 - i)));
     }
 
-    private void checkPokemonOther(IntFunction<Boolean> ch, Consumer<Pokemon> active) {
-        check(ch, i -> active.accept(activeP.get(3 - i)));
-    }
 
     private void checkPlayer(IntFunction<Boolean> ch, Consumer<Player> player) {
         check(ch, i -> player.accept(pl.get(i)));
     }
 
-    private void checkPlayerBoth(IntFunction<Boolean> ch, BiConsumer<Player, Player> player) {
-        check(ch, i -> player.accept(pl.get(i), pl.get(3 - i)));
-    }
 }

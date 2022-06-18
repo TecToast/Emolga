@@ -33,16 +33,14 @@ public class PrismaTeamCommand extends PrivateCommand {
         //setIsAllowed(u -> Arrays.asList(Command.getEmolgaJSON().getJSONObject("drafts").getJSONObject("Prisma").getString("table").split(",")).contains(u.getId()));
         template = new InteractiveTemplate((u, tc, map) -> {
             current.remove(u.getIdLong());
-            String[] x = new String[]{};
-            String collect = String.join("", x);
-            JSONObject bads = Command.getEmolgaJSON().getJSONObject("drafts").getJSONObject("Prisma");
+            JSONObject league = Command.getEmolgaJSON().getJSONObject("drafts").getJSONObject("Prisma");
             JSONArray arr = new JSONArray();
             for (Map.Entry<String, Object> entry : map.entrySet()) {
                 String s = entry.getKey();
                 if (s.equals("check")) continue;
                 arr.put(new JSONObject().put("tier", String.valueOf(s.charAt(0))).put("name", entry.getValue()));
             }
-            bads.getJSONObject("picks").put(u.getId(), arr);
+            league.getJSONObject("picks").put(u.getId(), arr);
             Command.saveEmolgaJSON();
             tc.sendMessage("Dein Team wurde erfolgreich gespeichert!").queue();
         }, "Die Team-Eingabe wurde abgebrochen.");

@@ -13,7 +13,6 @@ public class GuildCommandEvent extends GenericCommandEvent {
     private final Member member;
     private final Guild guild;
     private final TextChannel tco;
-    private final MessageReceivedEvent event;
     private final String usedName;
     private Command.ArgumentManager manager;
 
@@ -22,7 +21,6 @@ public class GuildCommandEvent extends GenericCommandEvent {
         this.member = e.getMember();
         this.guild = e.getGuild();
         this.tco = e.getTextChannel();
-        event = e;
         Command.ArgumentManagerTemplate template = c.getArgumentTemplate();
         if (template != null)
             this.manager = template.construct(e, c);
@@ -42,7 +40,6 @@ public class GuildCommandEvent extends GenericCommandEvent {
         this.member = e.getMember();
         this.guild = e.getGuild();
         this.tco = e.getTextChannel();
-        this.event = null;
         this.usedName = e.getName();
         Command.ArgumentManagerTemplate template = c.getArgumentTemplate();
         if (template != null)
@@ -76,10 +73,6 @@ public class GuildCommandEvent extends GenericCommandEvent {
 
     public TextChannel getChannel() {
         return tco;
-    }
-
-    public MessageReceivedEvent getEvent() {
-        return event;
     }
 
     public void deleteMessage() {

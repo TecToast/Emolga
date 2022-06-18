@@ -14,10 +14,6 @@ public class SoundSendHandler implements AudioSendHandler {
 
     public final LinkedList<byte[]> bytes = new LinkedList<>();
 
-    public void loadSoundBytes(LinkedList<byte[]> l) {
-        bytes.addAll(l);
-    }
-
     @Override
     public boolean canProvide() {
         return bytes.size() > 0;

@@ -3,7 +3,6 @@ package de.tectoast.emolga.commands.music.custom;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.commands.MusicCommand;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 public class ByeCommand extends MusicCommand {
@@ -15,8 +14,6 @@ public class ByeCommand extends MusicCommand {
     @Override
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
         Member member = e.getMember();
         try {
             loadAndPlay(tco, "https://www.youtube.com/watch?v=TgqiSBxvdws", member, ":(");

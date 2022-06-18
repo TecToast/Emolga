@@ -4,8 +4,6 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.commands.MusicCommand;
 import de.tectoast.emolga.utils.music.GuildMusicManager;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 public class QlCommand extends MusicCommand {
@@ -17,9 +15,6 @@ public class QlCommand extends MusicCommand {
     @Override
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
         GuildMusicManager musicManager = getGuildAudioPlayer(tco.getGuild());
         long duration = musicManager.scheduler.queue.stream().mapToLong(AudioTrack::getDuration).sum() / 1000;
         int hours = (int) (duration / 3600);

@@ -23,15 +23,6 @@ public class BooleanColumn extends SQLColumn<Boolean> {
     }
 
     @Override
-    public void update(ResultSet set, Object value) {
-        try {
-            set.updateBoolean(name, (Boolean) value);
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-    }
-
-    @Override
     public Boolean retrieveValue(SQLColumn<?> checkcolumn, Object checkvalue) {
         return DataManager.read(manager.select(checkcolumn.check(checkvalue), this), rs -> {
             if (rs.next()) {

@@ -9,7 +9,6 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 
 import java.awt.*;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
@@ -24,7 +23,7 @@ public class UserInfoCommand extends Command {
     }
 
     @Override
-    public void process(GuildCommandEvent e) throws SQLException {
+    public void process(GuildCommandEvent e) {
         ArgumentManager args = e.getArguments();
         Member member = args.has("user") ? args.getMember("user") : e.getMember();
         User u = member.getUser();

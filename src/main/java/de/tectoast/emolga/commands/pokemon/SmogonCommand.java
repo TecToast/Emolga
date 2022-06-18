@@ -6,8 +6,6 @@ import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.selectmenus.selectmenusaves.SmogonSet;
 import de.tectoast.jsolf.JSONArray;
 import de.tectoast.jsolf.JSONObject;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -32,10 +30,6 @@ public class SmogonCommand extends Command {
     @Override
     public void process(GuildCommandEvent e) throws IOException {
         TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
-        Document wiki;
         ArgumentManager args = e.getArguments();
         String name = args.getTranslation("mon").getTranslation();
         String form = args.has("form") ? "-" + args.getText("form").toLowerCase() : "";

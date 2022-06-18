@@ -1,22 +1,17 @@
 package de.tectoast.emolga.utils.showdown;
 
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Player {
 
-    private static final Logger logger = LoggerFactory.getLogger(Player.class);
-
     private Pokemon spikesBy, tSpikesBy, rocksBy;
 
-    private List<Pokemon> mons = new ArrayList<>();
+    private final List<Pokemon> mons = new ArrayList<>();
     private String nickname;
     private boolean winner = false;
-    private int totalKills = 0;
     private int totalDeaths = 0;
     private int teamsize;
     private final int number;
@@ -79,10 +74,6 @@ public class Player {
         return mons;
     }
 
-    public void setMons(List<Pokemon> mons) {
-        this.mons = mons;
-    }
-
     public String getNickname() {
         return nickname;
     }
@@ -101,20 +92,8 @@ public class Player {
         return -1;
     }
 
-    public int getDisplayNumber() {
-        return mons.size() - totalDeaths;
-    }
-
-    public void addTotalKills(int totalKills) {
-        this.totalKills += totalKills;
-    }
-
     public void addTotalDeaths(int totalDeaths) {
         this.totalDeaths += totalDeaths;
-    }
-
-    public int getTotalKills() {
-        return totalKills;
     }
 
     public int getTotalDeaths() {

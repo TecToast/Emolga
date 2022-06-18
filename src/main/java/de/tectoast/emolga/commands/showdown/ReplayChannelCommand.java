@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.utils.sql.DBManagers;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
@@ -27,8 +26,6 @@ public class ReplayChannelCommand extends Command {
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
         if (e.getUsedName().equals("replay")) {
             sendToUser(e.getAuthor(), "Der Command wurde in !replaychannel umbenannt, damit er sich nicht mehr mit anderen Bots schneidet. !replay funktioniert weiterhin, jedoch sollte am besten !replaychannel verwendet werden.");
         }

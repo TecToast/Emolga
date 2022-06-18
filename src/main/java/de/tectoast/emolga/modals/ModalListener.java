@@ -21,10 +21,8 @@ public abstract class ModalListener {
             Command.sendToMe("WRONG MODAL KEY " + e.getModalId());
         }
     };
-    final String name;
 
     public ModalListener(String name) {
-        this.name = name;
         listener.put(name, this);
     }
 

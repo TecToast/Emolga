@@ -7,7 +7,6 @@ import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.DraftPokemon;
 import de.tectoast.jsolf.JSONArray;
 import de.tectoast.jsolf.JSONObject;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.util.ArrayList;
@@ -26,8 +25,6 @@ public class UpdatedatafromfileCommand extends Command {
     @Override
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
         String name = e.getArguments().getText("name");
         Optional<Draft> op = Draft.drafts.stream().filter(d -> d.name.equals(name)).findFirst();
         if (op.isEmpty()) {

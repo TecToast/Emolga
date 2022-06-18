@@ -22,11 +22,11 @@ public class AllLearnCommand extends Command {
         String mons = args.getText("mons");
         if (mons.contains("\n")) {
             for (String s : mons.split("\n")) {
-                str.append(Command.canLearn(s.startsWith("A-") || s.startsWith("G-") || s.startsWith("M-") ? s.substring(2) : s, s.startsWith("A-") ? "" : (s.startsWith("G-") ? "Galar" : "Normal"), atk, e.getMsg(), e.getGuild().getId().equals("747357029714231299") ? 5 : 8, getModByGuild(e)) ? s + "\n" : "");
+                str.append(Command.canLearn(s.startsWith("A-") || s.startsWith("G-") || s.startsWith("M-") ? s.substring(2) : s, s.startsWith("A-") ? "" : (s.startsWith("G-") ? "Galar" : "Normal"), atk, e.getMsg(), e.getGuild().getId().equals("747357029714231299") ? 5 : 8) ? s + "\n" : "");
             }
         } else {
             for (String s : mons.split(" ")) {
-                str.append(Command.canLearn(s.startsWith("A-") || s.startsWith("G-") || s.startsWith("M-") ? s.substring(2) : s, s.startsWith("A-") ? "" : (s.startsWith("G-") ? "Galar" : "Normal"), atk, e.getMsg(), e.getGuild().getId().equals("747357029714231299") ? 5 : 8, getModByGuild(e)) ? s + "\n" : "");
+                str.append(Command.canLearn(s.startsWith("A-") || s.startsWith("G-") || s.startsWith("M-") ? s.substring(2) : s, s.startsWith("A-") ? "" : (s.startsWith("G-") ? "Galar" : "Normal"), atk, e.getMsg(), e.getGuild().getId().equals("747357029714231299") ? 5 : 8) ? s + "\n" : "");
             }
         }
         if (str.toString().isEmpty()) str.append("Kein Pokemon kann diese Attacke erlernen!");

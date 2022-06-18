@@ -38,7 +38,7 @@ public class SpeedCommand extends Command {
                 mons = WHITESPACES_SPLITTER.split(s);
             else mons = WNW.split(s);
             ArrayList<SpeedMon> speedMons = new ArrayList<>();
-            JSONObject datajson = getDataJSON(getModByGuild(e));
+            JSONObject datajson = getDataJSON();
             for (String mon : mons) {
                 logger.info("mon = " + mon);
                 int bs;

@@ -1,14 +1,15 @@
 package de.tectoast.emolga.utils.sql.managers;
 
 import de.tectoast.emolga.commands.Command;
-import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.sql.base.DataManager;
 import de.tectoast.emolga.utils.sql.base.columns.BooleanColumn;
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn;
 
 import java.sql.ResultSet;
+import java.util.Collection;
 import java.util.LinkedList;
-import java.util.Objects;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.utils.sql.base.Condition.and;
 import static de.tectoast.emolga.utils.sql.base.Condition.or;
@@ -28,34 +29,36 @@ public class TranslationsManager extends DataManager {
 
     public TranslationsManager() {
         super("translations");
-        setColumns(ENGLISHID, GERMANID, ENGLISHNAME, GERMANNAME, TYPE, MODIFICATION, ISNICK, FORME);
+        setColumns(ENGLISHID, GERMANID, ENGLISHNAME, GERMANNAME, TYPE, MODIFICATION, ISNICK, FORME, CAP);
     }
 
-    public ResultSet getTranslation(String id, String mod, boolean checkOnlyEnglish) {
-        //String s = "(englishid=\"" + id + "\" or germanid=\"" + id + "\")" + (mod != null ? " and (modification=\"" + mod + "\"" + (!mod.equals("default") ? " or modification=\"default\"" : "") + ")" : "");
-
-        return Database.select(selectAll(
+    public ResultSet getTranslation(String id, boolean checkOnlyEnglish) {
+        return read(selectAll(
                 and(
                         or(ENGLISHID.check(id), GERMANID.check(id), !checkOnlyEnglish),
-                        or(MODIFICATION.check("default"), MODIFICATION.check(mod), !Objects.equals(mod, "default"))
-                        , Objects.nonNull(mod))
-        ));
+                        CAP.check(0)
+                )
+        ), r -> r);
+    }
+
+    public ResultSet getTranslationList(Collection<String> l) {
+        return read(selectAll("(%s)".formatted(l.stream().map(str -> "englishid=\"" + Command.toSDName(str) + "\"").collect(Collectors.joining(" or ")))), r -> r);
     }
 
     public void addNick(String nick, Command.Translation t) {
         String s = Command.toSDName(nick);
-        insertOrUpdateOld(ENGLISHID, s, s, s, t.getOtherLang(), t.getTranslation(), t.getType().getId(), "default", true, null);
+        replaceIfExists(s, s, t.getOtherLang(), t.getTranslation(), t.getType().getId(), "default", true, null, false);
     }
 
     public boolean removeNick(String nick) {
         String sd = Command.toSDName(nick);
         Command.removeNickFromCache(sd);
-        return delete(ENGLISHID.check(sd)) != 0;
+        return delete(and(ENGLISHID.check(sd), ISNICK.check(true))) != 0;
     }
 
     public void removeDuplicates() {
         readWrite(selectAll(TYPE.check("trainer")), set -> {
-            LinkedList<String> l = new LinkedList<>();
+            List<String> l = new LinkedList<>();
             while (set.next()) {
                 String value = ENGLISHID.getValue(set);
                 if (l.contains(value)) {
@@ -65,9 +68,5 @@ public class TranslationsManager extends DataManager {
                 }
             }
         });
-    }
-
-    public void cap(String name, String id) {
-        update(ENGLISHID, id, CAP, true);
     }
 }

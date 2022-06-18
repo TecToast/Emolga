@@ -6,7 +6,6 @@ import de.tectoast.emolga.utils.sql.base.columns.StringColumn;
 import de.tectoast.emolga.utils.sql.base.columns.TimestampColumn;
 
 import java.sql.Timestamp;
-import java.util.LinkedList;
 import java.util.List;
 
 public class CalendarManager extends DataManager {
@@ -24,12 +23,8 @@ public class CalendarManager extends DataManager {
     }
 
     public List<CalendarEntry> getAllEntries() {
-        return read(selectAll(), r -> {
-            List<CalendarEntry> l = new LinkedList<>();
-            while (r.next()) {
-                l.add(new CalendarEntry(MESSAGE.getValue(r), EXPIRES.getValue(r)));
-            }
-            return l;
+        return read(selectAll(), s -> {
+            return map(s, set -> new CalendarEntry(MESSAGE.getValue(set), EXPIRES.getValue(set)));
         });
     }
 

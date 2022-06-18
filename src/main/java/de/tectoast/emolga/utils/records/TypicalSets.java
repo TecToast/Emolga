@@ -1,4 +1,4 @@
-package de.tectoast.emolga.utils;
+package de.tectoast.emolga.utils.records;
 
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.jsolf.JSONObject;

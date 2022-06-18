@@ -144,7 +144,7 @@ public class Analysis {
             int t;
             boolean isZ = false;
             int x = 0;
-            JSONObject learnset = getLearnsetJSON("default");
+            JSONObject learnset = getLearnsetJSON();
             JSONObject dex = getDataJSON();
             for (String s : reversedGame) {
                 if (s.contains("|turn|")) {
@@ -486,7 +486,7 @@ public class Analysis {
                     }
                 }
             });
-            checkPokemonBoth(i -> (s.contains("|Explosion|") || s.contains("|Self-Destruct|")) && s.contains("|move|p" + i), (activeP1, activeP2) -> {
+            checkPokemonBoth(i -> (s.contains("|Explosion|") || s.contains("|Self-Destruct|") || s.contains("|Misty Explosion|")) && s.contains("|move|p" + i), (activeP1, activeP2) -> {
                 activeP1.setDead(line);
                 if (activeP1.getLastDmgBy() != null) {
                     activeP1.getLastDmgBy().killsPlus1(turn);

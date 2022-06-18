@@ -12,9 +12,12 @@ public class PredictionGameManager extends DataManager {
     final IntColumn PREDICTIONS = new IntColumn("predictions", this);
 
 
-
     public PredictionGameManager() {
         super("predictiongame");
         setColumns(USERID, USERNAME, PREDICTIONS);
+    }
+
+    public void addPoint(long userid) {
+        PREDICTIONS.increment(USERID, userid);
     }
 }

@@ -27,8 +27,8 @@ public class HelpCommand extends Command {
         ArgumentManagerTemplate template = c.getArgumentTemplate();
         builder.setDescription(c.getHelpWithoutCmd(e.getGuild()));
         builder.addField("Syntax", "```" + (template.hasSyntax() ? template.getSyntax() : c.getPrefix() + c.getName() + " "
-                + template.arguments.stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" "))) + "```", false);
-        for (ArgumentManagerTemplate.Argument a : template.arguments) {
+                                                                                          + template.getArguments().stream().map(a -> (a.isOptional() ? "[" : "<") + a.getName() + (a.isOptional() ? "]" : ">")).collect(Collectors.joining(" "))) + "```", false);
+        for (ArgumentManagerTemplate.Argument a : template.getArguments()) {
             builder.addField(a.getName(), (a.isOptional() ? "(Optional)\n" : "") + a.getHelp(), true);
         }
         builder.setFooter("Aufgerufen von " + e.getAuthor().getAsTag());

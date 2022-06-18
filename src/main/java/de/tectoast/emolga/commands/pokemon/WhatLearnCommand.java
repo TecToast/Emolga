@@ -62,7 +62,7 @@ public class WhatLearnCommand extends Command {
         String mon = toSDName(args.getTranslation("mon").getTranslation() + args.getOrDefault("form", ""));
         String type = args.getText("type");
         int gen = args.getOrDefault("gen", 8);
-        JSONObject learnset = getLearnsetJSON(getModByGuild(e)).getJSONObject(mon).getJSONObject("learnset");
+        JSONObject learnset = getLearnsetJSON().getJSONObject(mon).getJSONObject("learnset");
         LinkedList<String> list = new LinkedList<>();
         HashMap<Integer, List<String>> levels = new HashMap<>();
         boolean b = banane(learnset, gen, type, levels, list);

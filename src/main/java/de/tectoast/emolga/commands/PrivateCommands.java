@@ -6,6 +6,7 @@ import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.Google;
 import de.tectoast.emolga.utils.RequestBuilder;
 import de.tectoast.emolga.utils.annotations.PrivateCommand;
+import de.tectoast.emolga.utils.automation.collection.DocEntries;
 import de.tectoast.emolga.utils.draft.Draft;
 import de.tectoast.emolga.utils.draft.Tierlist;
 import de.tectoast.emolga.utils.records.Coord;
@@ -17,7 +18,13 @@ import de.tectoast.jsolf.JSONArray;
 import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -289,7 +296,7 @@ public class PrivateCommands {
 
     @PrivateCommand(name = "ndsnominate")
     public static void ndsNominate(GenericCommandEvent e) {
-        Draft.doNDSNominate();
+        Draft.doNDSNominate(Boolean.parseBoolean(e.getArg(0)));
     }
 
     @PrivateCommand(name = "ndsprediction")
@@ -314,7 +321,7 @@ public class PrivateCommands {
     @PrivateCommand(name = "sortnds")
     public static void sortNDSCmd(GenericCommandEvent e) {
         JSONObject nds = getEmolgaJSON().getJSONObject("drafts").getJSONObject("NDS");
-        sortNDS(nds.getString("sid"), nds);
+        DocEntries.NDS.sort(nds.getString("sid"), nds);
         e.done();
     }
 
@@ -734,6 +741,51 @@ public class PrivateCommands {
                 }
             }
         }
+    }
+
+    @PrivateCommand(name = "updateslashcommands")
+    public static void updateSlashCommands(GenericCommandEvent e) {
+        JDA jda = e.getJDA();
+        Map<Long, List<SlashCommandData>> map = new HashMap<>();
+        commands.values().stream().filter(Command::isSlash).filter(c -> !c.getSlashGuilds().isEmpty()).forEach(c -> {
+            SlashCommandData dt = Commands.slash(c.getName(), c.getHelp());
+            List<ArgumentManagerTemplate.Argument> mainCmdArgs = c.argumentTemplate.getArguments();
+            if (c.hasChildren()) {
+                Map<String, Command> childCommands = c.childCommands;
+                for (Command childCmd : childCommands.values()) {
+                    SubcommandData scd = new SubcommandData(childCmd.name, childCmd.help);
+                    scd.addOptions(buildOptionData(childCmd.argumentTemplate.getArguments()));
+                    dt.addSubcommands(scd);
+                }
+            } else if (!mainCmdArgs.isEmpty() && mainCmdArgs.get(0).getType().asOptionType() == OptionType.SUB_COMMAND) {
+                dt.addSubcommands(((ArgumentManagerTemplate.Text) mainCmdArgs.get(0).getType()).asSubCommandData());
+            } else {
+                dt.addOptions(buildOptionData(mainCmdArgs));
+            }
+            for (Long slashGuild : c.getSlashGuilds()) {
+                map.computeIfAbsent(slashGuild, k -> new LinkedList<>()).add(dt);
+            }
+        });
+        for (Map.Entry<Long, List<SlashCommandData>> entry : map.entrySet()) {
+            long guild = entry.getKey();
+            jda.getGuildById(guild).updateCommands().addCommands(entry.getValue()).queue(l -> {
+                logger.info("guild = {}", guild);
+                logger.info("l = {}", l.stream().map(net.dv8tion.jda.api.interactions.commands.Command::getName).collect(Collectors.joining(", ")));
+            }, Throwable::printStackTrace);
+        }
+        e.done();
+    }
+
+    private static List<OptionData> buildOptionData(List<ArgumentManagerTemplate.Argument> args) {
+        return args.stream().map(arg -> {
+            ArgumentType argType = arg.getType();
+            return new OptionData(argType.asOptionType(), arg.getName().toLowerCase(), arg.getHelp(), !arg.isOptional(), argType.hasAutoComplete());
+        }).toList();
+    }
+
+    @PrivateCommand(name = "checkadmin")
+    public static void checkAdmin(GenericCommandEvent e) {
+        e.reply(String.valueOf(e.getJDA().getGuildById(e.getArg(0)).getSelfMember().hasPermission(Permission.ADMINISTRATOR)));
     }
 
     public static void execute(Message message) {

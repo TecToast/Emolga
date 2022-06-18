@@ -3,7 +3,6 @@ package de.tectoast.emolga.commands.showdown;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import de.tectoast.emolga.database.Database;
 import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -38,7 +37,7 @@ public class ReplayChannelCommand extends Command {
         TextChannel tc = sameChannel ? tco : channels.get(0);
         ArgumentManager args = e.getArguments();
         if (args.has("action") && args.isText("action", "remove")) {
-            if (Database.update("DELETE FROM analysis WHERE replay = " + tco.getIdLong()) > 0) {
+            if (DBManagers.ANALYSIS.deleteChannel(tco.getIdLong())) {
                 e.reply("Dieser Channel ist nun kein Replaychannel mehr!");
                 replayAnalysis.remove(tco.getIdLong());
             } else {

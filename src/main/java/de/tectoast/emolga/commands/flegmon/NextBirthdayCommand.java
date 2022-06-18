@@ -2,15 +2,15 @@ package de.tectoast.emolga.commands.flegmon;
 
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.emolga.commands.PepeCommand;
-import de.tectoast.emolga.database.Database;
-import de.tectoast.jsolf.JSONObject;
+import de.tectoast.emolga.utils.sql.DBManagers;
+import de.tectoast.emolga.utils.sql.managers.BirthdayManager;
 import net.dv8tion.jda.api.entities.TextChannel;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Map;
 
 public class NextBirthdayCommand extends PepeCommand {
     public NextBirthdayCommand() {
@@ -21,29 +21,25 @@ public class NextBirthdayCommand extends PepeCommand {
 
     @Override
     public void process(GuildCommandEvent e) throws SQLException {
-        JSONObject json = getEmolgaJSON();
         TextChannel tco = e.getChannel();
         Calendar curr = Calendar.getInstance();
         curr.set(Calendar.HOUR_OF_DAY, 0);
         curr.set(Calendar.MINUTE, 0);
         curr.set(Calendar.SECOND, 0);
-        HashMap<Long, Calendar> map = new HashMap<>();
-        ResultSet set = Database.select("SELECT * FROM birthdays");
-        while (set.next()) {
-            long id = set.getLong("userid");
+        Map<Long, Calendar> map = new HashMap<>();
+        for (BirthdayManager.Data bData : DBManagers.BIRTHDAYS.getAll()) {
             Calendar c = Calendar.getInstance();
-            c.set(Calendar.DAY_OF_MONTH, set.getInt("day"));
-            c.set(Calendar.MONTH, set.getInt("month") - 1);
+            c.set(Calendar.DAY_OF_MONTH, bData.day());
+            c.set(Calendar.MONTH, bData.month() - 1);
             c.set(Calendar.YEAR, curr.getTimeInMillis() - c.getTimeInMillis() >= 0 ? c.get(Calendar.YEAR) + 1 : c.get(Calendar.YEAR));
             c.set(Calendar.HOUR_OF_DAY, 0);
             c.set(Calendar.MINUTE, 0);
             c.set(Calendar.SECOND, 0);
             long dif = c.getTimeInMillis() - curr.getTimeInMillis();
             if (dif <= 1209600000/* && dif >= -432000000*/) {
-                map.put(id, c);
+                map.put(bData.userid(), c);
             }
         }
-        set.close();
         if (map.isEmpty()) {
             tco.sendMessage("Es gibt keine nahegelegenen Geburtstage!").queue();
             return;

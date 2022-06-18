@@ -49,13 +49,10 @@ public class MovesCommand extends Command {
             } else if (args[1].toLowerCase().contains("galar")) {
                 pokemon = args[2];
                 form = "Galar";
-            } else if (args[1].toLowerCase().contains("unova") && getModByGuild(e).equals("nml")) {
-                pokemon = args[2];
-                form = "Unova";
             } else {
                 pokemon = args[1];
             }
-            Translation t = getGerName(pokemon, getModByGuild(e), false);
+            Translation t = getGerName(pokemon, false);
             if (!t.isFromType(Translation.Type.POKEMON)) {
                 tco.sendMessage("Das ist kein Pokemon!").queue();
                 return;
@@ -67,7 +64,7 @@ public class MovesCommand extends Command {
                 int gen = e.getGuild().getId().equals("747357029714231299") || args[0].equalsIgnoreCase("!moves5") ? 5 : 8;
                 //logger.info("args[0] = " + args[0]);
                 //logger.info("gen = " + gen);
-                attacks = getAttacksFrom(pokemon, msg, form, gen, getModByGuild(e));
+                attacks = getAttacksFrom(pokemon, msg, form, gen);
                 Collections.sort(attacks);
                 if (attacks.size() == 0) {
                     tco.sendMessage(pokemon + " kann keine Attacken mit den angegebenen Spezifikationen erlernen!").queue();

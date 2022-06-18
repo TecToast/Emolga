@@ -11,7 +11,7 @@ public class SmogonFormatMenu extends MenuListener {
     }
 
     @Override
-    public void process(SelectMenuInteractionEvent e) {
+    public void process(SelectMenuInteractionEvent e, String ignored) {
         SmogonSet smogon = Command.smogonMenu.get(e.getMessageIdLong());
         if (smogon == null) {
             e.reply("Dieses Smogon Set funktioniert nicht mehr, da der Bot seit der Erstellung neugestartet wurde. Bitte ruf den Command nochmal auf :)").setEphemeral(true).queue();

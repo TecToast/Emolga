@@ -6,7 +6,6 @@ import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.jsolf.JSONArray;
 import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 
@@ -21,7 +20,7 @@ public class CombinationCommand extends Command {
                 "!combination Water, Donnerblitz"));
     }
 
-    public static boolean containsNotAll(JSONObject mon, ArrayList<String> list) {
+    public static boolean containsNotAll(JSONObject mon, List<String> list) {
         ArrayList<String> l = new ArrayList<>(list);
         for (String s : mon.keySet()) {
             l.remove(mon.getString(s));
@@ -29,7 +28,7 @@ public class CombinationCommand extends Command {
         return l.size() != 0;
     }
 
-    public static boolean containsNotAll(JSONArray arr, ArrayList<String> list) {
+    public static boolean containsNotAll(JSONArray arr, List<String> list) {
         List<String> l = arr.toList().stream().map(o -> (String) o).toList();
         for (String s : list) {
             if (!l.contains(s)) return true;
@@ -37,7 +36,7 @@ public class CombinationCommand extends Command {
         return false;
     }
 
-    public static boolean containsNotAll(Set<String> set, ArrayList<String> list) {
+    public static boolean containsNotAll(Set<String> set, List<String> list) {
         for (String s : list) {
             if (!set.contains(s)) return true;
         }
@@ -49,30 +48,28 @@ public class CombinationCommand extends Command {
         TextChannel tco = e.getChannel();
         Message m = e.getMessage();
         String msg = m.getContentDisplay();
-        Member member = e.getMember();
         if (msg.length() <= 13) tco.sendMessage(getHelp()).queue();
         String args = msg.substring(13);
-        ArrayList<String> atks = new ArrayList<>();
-        ArrayList<String> abis = new ArrayList<>();
-        ArrayList<String> types = new ArrayList<>();
-        ArrayList<String> egg = new ArrayList<>();
-        String modByGuild = getModByGuild(e);
+        List<String> atks = new ArrayList<>();
+        List<String> abis = new ArrayList<>();
+        List<String> types = new ArrayList<>();
+        List<String> egg = new ArrayList<>();
         for (String s : args.split(",")) {
-            Translation t = getGerName(s.trim(), modByGuild, false);
+            Translation t = getGerName(s.trim());
             if (t.isEmpty() || t.isFromType(Translation.Type.POKEMON)) {
                 tco.sendMessage("**" + s + "** ist kein valides Argument!").queue();
                 return;
             }
             String trans = t.getTranslation();
-            if (t.isFromType(Translation.Type.MOVE)) atks.add(getSDName(trans, modByGuild));
-            else if (t.isFromType(Translation.Type.ABILITY)) abis.add(getEnglName(trans, modByGuild));
-            else if (t.isFromType(Translation.Type.TYPE)) types.add(getEnglName(trans, modByGuild));
-            else if (t.isFromType(Translation.Type.EGGGROUP)) egg.add(getEnglName(trans, modByGuild));
+            if (t.isFromType(Translation.Type.MOVE)) atks.add(getSDName(trans));
+            else if (t.isFromType(Translation.Type.ABILITY)) abis.add(getEnglName(trans));
+            else if (t.isFromType(Translation.Type.TYPE)) types.add(getEnglName(trans));
+            else if (t.isFromType(Translation.Type.EGGGROUP)) egg.add(getEnglName(trans));
         }
-        JSONObject data = getDataJSON(modByGuild);
-        JSONObject moves = getLearnsetJSON(modByGuild);
+        JSONObject data = getDataJSON();
+        JSONObject moves = getLearnsetJSON();
         ArrayList<String> mons = new ArrayList<>();
-        for (String s : getMonList(modByGuild)) {
+        for (String s : getMonList()) {
             JSONObject mon = data.getJSONObject(s);
             if (abis.size() > 0 && containsNotAll(mon.getJSONObject("abilities"), abis)) continue;
             if (types.size() > 0 && containsNotAll(mon.getJSONArray("types"), types)) continue;

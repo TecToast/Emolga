@@ -6,9 +6,6 @@ import de.tectoast.emolga.utils.sql.base.columns.IntColumn;
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn;
 import org.jetbrains.annotations.Nullable;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.LinkedList;
 import java.util.List;
 
 public class NaturalGiftManager extends DataManager {
@@ -23,26 +20,14 @@ public class NaturalGiftManager extends DataManager {
     }
 
     public @Nullable NGData fromName(String name) {
-        ResultSet set = NAME.getSingle(name);
-        try {
-            return new NGData(name, set.getString("type"), set.getInt("bp"));
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
+        return read(selectAll(NAME.check(name)), s -> {
+            return mapFirst(s, set -> new NGData(name, TYPE.getValue(set), BP.getValue(set)), null);
+        });
     }
 
     public @Nullable List<NGData> fromType(String type) {
-        ResultSet set = TYPE.getAll(type);
-        try {
-            List<NGData> list = new LinkedList<>();
-            while (set.next()) {
-                list.add(new NGData(set.getString("name"), type, set.getInt("bp")));
-            }
-            return list;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
+        return read(selectAll(TYPE.check(type)), s -> {
+            return map(s, set -> new NGData(NAME.getValue(set), type, BP.getValue(set)));
+        });
     }
 }

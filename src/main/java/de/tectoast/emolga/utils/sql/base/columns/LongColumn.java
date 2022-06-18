@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 public class LongColumn extends SQLColumn<Long> {
 
@@ -42,9 +43,6 @@ public class LongColumn extends SQLColumn<Long> {
     }
 
     public void increment(SQLColumn<?> checkcolumn, Object checkvalue) {
-        Long val = retrieveValue(checkcolumn, checkvalue);
-        if(val == null) val = 1L;
-        else val += 1;
-        this.manager.editOneValue(checkcolumn, checkvalue, this, val);
+        this.manager.addStatisticsSpecified(checkvalue.toString(), List.of(checkcolumn, this), 1);
     }
 }

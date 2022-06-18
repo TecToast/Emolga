@@ -26,9 +26,8 @@ public class CanlearnCommand extends Command {
         String pokemon = args.getTranslation("mon").getTranslation();
         String atk = args.getTranslation("move").getTranslation();
         String form = args.getOrDefault("form", "Normal");
-        if (form.equals("Unova") && !getModByGuild(e).equals("nml")) form = "Normal";
         try {
-            e.reply((form.equals("Normal") ? "" : form + "-") + pokemon + " kann " + atk + (canLearn(pokemon, form, atk, e.getMsg(), e.getGuild().getId().equals("747357029714231299") || e.getUsedName().equalsIgnoreCase("canlearn5") ? 5 : 8, getModByGuild(e)) ? "" : " nicht") + " erlernen!");
+            e.reply((form.equals("Normal") ? "" : form + "-") + pokemon + " kann " + atk + (canLearn(pokemon, form, atk, e.getMsg(), e.getGuild().getId().equals("747357029714231299") || e.getUsedName().equalsIgnoreCase("canlearn5") ? 5 : 8) ? "" : " nicht") + " erlernen!");
         } catch (Exception ex) {
             ex.printStackTrace();
         }

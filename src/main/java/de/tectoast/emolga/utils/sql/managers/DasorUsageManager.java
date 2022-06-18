@@ -19,7 +19,7 @@ public class DasorUsageManager extends DataManager {
     }
 
     public void addPokemon(String pokemon) {
-        insertOrUpdate(POKEMON, pokemon, results -> results.updateInt("uses", results.getInt("uses") + 1), pokemon, 1);
+        addStatistics(pokemon, 1);
     }
     public MessageEmbed buildMessage(){
         return new EmbedBuilder()

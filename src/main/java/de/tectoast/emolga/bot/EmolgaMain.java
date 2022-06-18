@@ -11,8 +11,6 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.eclipse.jetty.http.HttpVersion;
@@ -39,14 +37,16 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
-import static de.tectoast.emolga.commands.Command.*;
+import static de.tectoast.emolga.commands.Command.awaitNextDay;
+import static de.tectoast.emolga.commands.Command.updatePresence;
 import static de.tectoast.emolga.utils.Constants.MYSERVER;
 
 public class EmolgaMain {
@@ -74,32 +74,14 @@ public class EmolgaMain {
         flegmonjda.addEventListener(new SlashListener(emolgajda));
         emolgajda.awaitReady();
         flegmonjda.awaitReady();
+        logger.info("Discord Bots loaded!");
         setupJetty();
         Guild g = emolgajda.getGuildById(MYSERVER);
-        Function<Command, SlashCommandData> cmdmapper = c -> {
-            SlashCommandData dt = Commands.slash(c.getName(), c.getHelp());
-            List<ArgumentManagerTemplate.Argument> args = c.getArgumentTemplate().arguments;
-            for (ArgumentManagerTemplate.Argument arg : args) {
-                dt.addOption(arg.getType().asOptionType(), arg.getName().toLowerCase(), arg.getHelp(), !arg.isOptional(), arg.getType().hasAutoComplete());
-            }
-            return dt;
-        };
+
         /*g.updateCommands().addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() != CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new))
                 .queue();
         emolgajda.getGuildById(695943416789598208L).updateCommands()
                 .addCommands(commands.values().stream().filter(Command::isSlash).filter(c -> c.getCategory() == CommandCategory.Soullink).map(cmdmapper).toArray(CommandData[]::new)).queue();*/
-        Map<Long, List<SlashCommandData>> map = new HashMap<>();
-        commands.values().stream().filter(Command::isSlash).filter(c -> !c.getSlashGuilds().isEmpty()).forEach(c -> {
-            for (Long slashGuild : c.getSlashGuilds()) {
-                map.computeIfAbsent(slashGuild, k -> new LinkedList<>()).add(cmdmapper.apply(c));
-            }
-        });
-        /*for (Long guild : map.keySet()) {
-            emolgajda.getGuildById(guild).updateCommands().addCommands(map.get(guild)).queue(l -> {
-                logger.info("guild = {}", guild);
-                logger.info("l = {}", l.stream().map(net.dv8tion.jda.api.interactions.commands.Command::getName).collect(Collectors.joining(", ")));
-            }, Throwable::printStackTrace);
-        }*/
 
 
         awaitNextDay();

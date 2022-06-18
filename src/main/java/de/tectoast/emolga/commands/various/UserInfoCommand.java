@@ -3,13 +3,12 @@ package de.tectoast.emolga.commands.various;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import de.tectoast.emolga.database.Database;
+import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 
 import java.awt.*;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
@@ -29,20 +28,18 @@ public class UserInfoCommand extends Command {
         ArgumentManager args = e.getArguments();
         Member member = args.has("user") ? args.getMember("user") : e.getMember();
         User u = member.getUser();
-        ResultSet set = Database.select("select count(*) as warncount from warns where guildid = " + e.getGuild().getIdLong() + " and userid = " + u.getId());
-        set.next();
+        int warncount = DBManagers.WARNS.warnCount(u.getIdLong(), member.getGuild().getIdLong());
         SimpleDateFormat format = new SimpleDateFormat();
         e.getChannel().sendMessageEmbeds(
                 new EmbedBuilder()
                         .addField("Userinfo Command für " + u.getAsTag(), "UserID | " + u.getId(), true)
                         .addField("User Status", CommandCategory.Admin.allowsMember(member) ? "Admin" : CommandCategory.Moderator.allowsMember(member) ? "Moderator" : "User", true)
-                        .addField("Server Warns", String.valueOf(set.getInt("warncount")), true)
+                        .addField("Server Warns", String.valueOf(warncount), true)
                         .addField("Serverbeitritt", e.getGuild().retrieveMember(u).complete().getTimeJoined().format(DateTimeFormatter.ofPattern("dd.MM.yyyy hh:mm")) + " Uhr", true)
                         .addField("Discordbeitritt", u.getTimeCreated().format(DateTimeFormatter.ofPattern("dd.MM.yyyy hh:mm")) + " Uhr", true)
                         .addField("Boostet seit", member.getTimeBoosted() == null ? "Boostet nicht" : format.format(new Date(member.getTimeBoosted().toEpochSecond())), true)
                         .setFooter("Aufgerufen von " + e.getMember().getUser().getAsTag() + " | " + e.getMember().getId())
                         .setColor(Color.CYAN)
                         .setThumbnail(u.getEffectiveAvatarUrl()).build()).queue();
-        set.close();
     }
 }

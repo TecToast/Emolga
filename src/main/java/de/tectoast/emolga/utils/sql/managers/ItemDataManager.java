@@ -14,7 +14,7 @@ public class ItemDataManager extends DataManager {
         setColumns(NAME, DESCRIPTION);
     }
 
-    public String getData(String abiname) {
-        return DESCRIPTION.retrieveValue(NAME, Command.toSDName(abiname));
+    public String getData(String name) {
+        return DESCRIPTION.retrieveValue(NAME, Command.toSDName(name));
     }
 }

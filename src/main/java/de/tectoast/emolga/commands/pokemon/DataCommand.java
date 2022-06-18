@@ -5,11 +5,9 @@ import de.tectoast.emolga.buttons.buttonsaves.MonData;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
-import de.tectoast.emolga.database.Database;
+import de.tectoast.emolga.utils.sql.DBManagers;
 import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
@@ -18,9 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -74,26 +70,10 @@ public class DataCommand extends Command {
     @Override
     public void process(GuildCommandEvent e) {
         TextChannel tco = e.getChannel();
-        Message m = e.getMessage();
-        String msg = m.getContentDisplay();
-        Member member = e.getMember();
         try {
-            /*String[] args = msg.split(" ");
-            if (args.length < 2) {
-                tco.sendMessage("Syntax: !data <Name>").queue();
-                return;
-            }
-            String name = msg.startsWith("!dt") ? msg.substring(4) : msg.substring(6);
-            if (msg.toLowerCase().contains("shiny")) {
-                name = name.substring(6);
-            }
-
-            Translation gerName = getGerName(name, mod);
-            */
             ArgumentManager args = e.getArguments();
             Translation gerName = args.getTranslation("stuff");
             Translation.Type objtype = gerName.getType();
-            String mod = getModByGuild(e);
             String name = gerName.getTranslation();
             switch (objtype) {
                 case POKEMON:
@@ -119,7 +99,6 @@ public class DataCommand extends Command {
                         if (monname.equalsIgnoreCase("silvally") || monname.equalsIgnoreCase("arceus")) {
                             builder.addField("Typen", "Normal", false);
                         } else {
-                            HashMap<String, ArrayList<String>> types = new HashMap<>();
                             logger.info(mon.toString());
                             String type = mon.getJSONArray("types").toList().stream().map(o -> {
                                 if (o.equals("Psychic")) return "Psycho";
@@ -131,11 +110,9 @@ public class DataCommand extends Command {
                         builder.addField("Größe", mon.getDouble("heightm") + " m", true);
                         builder.addField("Gewicht", mon.getDouble("weightkg") + " kg", true);
                         builder.addField("Eigruppe", mon.getJSONArray("eggGroups").toList().stream().map(o -> getGerNameNoCheck("E_" + o)).collect(Collectors.joining(", ")), true);
-                        String baseforme = mon.has("baseForme") ? mon.getString("baseForme") : "Normal";
                         if (monname.equalsIgnoreCase("silvally") || monname.equalsIgnoreCase("arceus")) {
                             builder.addField("Fähigkeiten", monname.equalsIgnoreCase("silvally") ? "Alpha-System" : "Variabilität", false);
                         } else {
-                            HashMap<String, ArrayList<String>> abis = new HashMap<>();
                             JSONObject o = mon.getJSONObject("abilities");
                             StringBuilder b = new StringBuilder();
                             if (o.has("0")) {
@@ -149,15 +126,6 @@ public class DataCommand extends Command {
                             }
                             builder.addField("Fähigkeiten", b.toString(), false);
                         }
-                        /*if (mon.has("prevo")) {
-                            if(list.size() == 1) {
-                                builder.addField("Vorentwicklung", getPrevoInfo(mon), false);
-                            } else {
-                                for (JSONObject obj : list) {
-                                    builder.addField(name + "-" + (obj.optString("baseForme", obj.optString("forme", ""))), getPrevoInfo(obj), true);
-                                }
-                            }
-                        }*/
                         if (monname.equalsIgnoreCase("silvally") || monname.equalsIgnoreCase("arceus")) {
                             builder.addField(monname.equalsIgnoreCase("silvally") ? "Amigento" : "Arceus", monname.equalsIgnoreCase("silvally") ? """
                                     KP: 95
@@ -176,8 +144,6 @@ public class DataCommand extends Command {
                                     Init: 120
                                     Summe: 720""", false);
                         } else {
-                            HashMap<String, ArrayList<String>> stat = new HashMap<>();
-                            HashMap<String, JSONObject> origname = new HashMap<>();
 
                             JSONObject stats = mon.getJSONObject("baseStats");
                             int kp = stats.getInt("hp");
@@ -189,28 +155,20 @@ public class DataCommand extends Command {
                             String str = "KP: " + kp + "\nAtk: " + atk + "\nDef: " + def + "\nSpAtk: " + spa
                                     + "\nSpDef: " + spd + "\nInit: " + spe + "\nSumme: " + (kp + atk + def + spa + spd + spe);
 
-                                /*origname.put(toadd.toString(), obj);
-                                if (stat.containsKey(str)) stat.get(str).add(toadd.toString());
-                                else stat.put(str, new ArrayList<>(Collections.singletonList(toadd.toString())));*/
                             String prevoInfo = getPrevoInfo(mon);
                             if (!prevoInfo.isEmpty()) {
                                 builder.addField("Erhaltbarkeit", prevoInfo, false);
                             }
                             builder.addField("Basestats", str, false);
 
-                            /*for (String s : stat.keySet().stream().sorted(Comparator.comparing(o -> stat.get(o).stream().mapToInt(str -> formeNames.indexOf(toSDName(origname.get(str).getString("name")))).min().orElse(0))).collect(Collectors.toList())) {
-                                builder.addField(String.join(", ", stat.get(s)), stat.get(s).stream().map(origname::get).map(DataCommand::getPrevoInfo).collect(Collectors.joining("")) + s, true);
-                            }*/
                         }
                         boolean shiny = args.isTextIgnoreCase("shiny", "Shiny");
                         builder.setImage(getGen5SpriteWithoutGoogle(mon, shiny));
                         builder.setTitle(getGerNameWithForm(monname));
                         builder.setColor(Color.CYAN);
-                        List<JSONObject> list = getAllForms(name, mod);
+                        List<JSONObject> list = getAllForms(name);
                         e.reply(builder.build(), ma -> {
                             if (list.size() > 1) {
-                                /*ma.setActionRows(getActionRows(list, o -> mon.getString("name").equals(o.getString("name")) ? Button.primary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name")))
-                                        : Button.secondary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name")))));*/
                                 ma.setActionRows(ActionRow.of(SelectMenu.create("mondata").addOptions(
                                         list.stream().map(o -> {
                                             SelectOption so = SelectOption.of("Form: " + getGerNameWithForm(o.getString("name")), toSDName(o.getString("name")));
@@ -220,8 +178,6 @@ public class DataCommand extends Command {
                             }
                         }, ra -> {
                             if (list.size() > 1) {
-                                /*ra.addActionRows(getActionRows(list, o -> mon.getString("name").equals(o.getString("name")) ? Button.primary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name")))
-                                        : Button.secondary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name")))));*/
 
                                 ra.addActionRows(ActionRow.of(SelectMenu.create("mondata").addOptions(
                                         list.stream().map(o -> {
@@ -231,14 +187,6 @@ public class DataCommand extends Command {
                                 ).build()));
                             }
                         }, mes -> monDataButtons.put(mes.getIdLong(), new MonData(list, shiny)), ih -> monDataButtons.put(ih.getInteraction().getIdLong(), new MonData(list, shiny)));
-                        /*
-                        MessageAction ma = e.getChannel().sendMessage(builder.build());
-                        if (list.size() > 1)
-                            //noinspection ResultOfMethodCallIgnored
-                            ma.setActionRows(getActionRows(list, o -> mon.getString("name").equals(o.getString("name")) ? Button.primary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name")))
-                                    : Button.secondary("mondata;" + toSDName(o.getString("name")), getGerNameWithForm(o.getString("name")))));
-                        ma.queue(mes -> monDataButtons.put(mes.getIdLong(), new MonData(list, shiny)));
-*/
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -246,19 +194,22 @@ public class DataCommand extends Command {
                     break;
                 case MOVE:
                     name = gerName.getTranslation();
-                    JSONObject data = getMovesJSON(mod).getJSONObject(getSDName(name, mod));
+                    JSONObject data = getMovesJSON().getJSONObject(getSDName(name));
                     String type = data.getString("type");
                     if (type.equals("Psychic")) type = "Psycho";
                     else type = getGerNameNoCheck(type);
                     String p;
                     int maxPower;
+                    boolean isStatus = data.getString("category").equals("Status");
                     if (data.has("ohko")) {
                         p = "K.O.";
                         maxPower = 130;
                     } else {
                         int bp = data.getInt("basePower");
                         p = String.valueOf(bp);
-                        if (Arrays.asList("Gift", "Kampf").contains(type)) {
+                        if (isStatus) {
+                            maxPower = -1;
+                        } else if (Arrays.asList("Gift", "Kampf").contains(type)) {
                             if (bp >= 150) {
                                 maxPower = 100;
                             } else if (bp >= 110) {
@@ -307,17 +258,17 @@ public class DataCommand extends Command {
                     String pp = ppc + " (max. " + ((ppc << 3) / 5) + ")";
                     EmbedBuilder builder = new EmbedBuilder();
                     builder.setTitle(name)
-                            .addField("English", getEnglName(name, mod), true)
+                            .addField("English", getEnglName(name), true)
                             .addField("Power", p, true)
-                            .addField("Dyna-Power", String.valueOf(maxPower), true)
+                            .addField("Dyna-Power", String.valueOf(maxPower == -1 ? "-" : maxPower), true)
                             .addField("Accuracy", accuracy, true)
                             .addField("Category", category, true)
                             .addField("AP", pp, true)
                             .addField("Type", type, true)
                             .addField("Priority", String.valueOf(data.getInt("priority")), true)
                             .setColor(Color.CYAN)
-                            .setDescription(Database.getDescriptionFrom("atk", toSDName(name)));
-                    if (data.getString("category").equals("Status")) {
+                            .setDescription(DBManagers.ATK_DATA.getData(name));
+                    if (isStatus) {
                         String text;
                         JSONObject eff = data.getJSONObject("zMove");
                         if (eff.has("effect")) {
@@ -376,49 +327,16 @@ public class DataCommand extends Command {
                     break;
                 case ABILITY:
                     String abiname = gerName.getTranslation();
-                    tco.sendMessageEmbeds(new EmbedBuilder().setTitle(abiname).setDescription("Englisch: " + getEnglName(abiname) + "\n" + Database.getDescriptionFrom("abi", toSDName(name))).setColor(Color.CYAN).build()).queue();
+                    tco.sendMessageEmbeds(new EmbedBuilder().setTitle(abiname).setDescription("Englisch: " + getEnglName(abiname) + "\n" + DBManagers.ABI_DATA.getData(name)).setColor(Color.CYAN).build()).queue();
                     break;
                 case ITEM:
                     String itemname = gerName.getTranslation();
-                    tco.sendMessageEmbeds(new EmbedBuilder().setTitle(itemname).setDescription("Englisch: " + getEnglName(itemname) + "\n" + Database.getDescriptionFrom("item", toSDName(name))).setColor(Color.CYAN).build()).queue();
+                    tco.sendMessageEmbeds(new EmbedBuilder().setTitle(itemname).setDescription("Englisch: " + getEnglName(itemname) + "\n" + DBManagers.ITEM_DATA.getData(name)).setColor(Color.CYAN).build()).queue();
                     break;
                 default:
                     tco.sendMessage("Es gibt kein(e) Pokemon/Attacke/Fähigkeit/Item mit dem Namen " + name + "!").queue();
                     break;
             }
-            /*Document d;
-            try {
-                try {
-                    d = Jsoup.connect("https://www.pokewiki.de/" + name).get();
-                } catch (Exception ex) {
-                    d = Jsoup.connect("https://www.pokewiki.de/" + eachWordUpperCase(name)).get();
-                }
-            } catch (IOException ioException) {
-                tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
-                ioException.printStackTrace();
-                return;
-            }
-
-            // Dex
-            if (d.select("span[lang=\"en\"]").text().length() > 2) {
-                EmbedBuilder builder = new EmbedBuilder();
-                String gerNameWiki = d.select("h1").first().text();
-                String s;
-                if (!name.equalsIgnoreCase(gerNameWiki)) s = "Englisch: " + eachWordUpperCase(name) + "\n";
-                else s = "Englisch: " + d.select("span[lang=\"en\"]").text() + "\n";
-                if (name.equalsIgnoreCase("Verborgene Faust")) s = "Englisch: Unseen Fist\n";
-                if (name.equalsIgnoreCase("Unseen Fist")) s = "Englisch: Unseen Fist\n";
-                gerNameWiki = d.select("p").get(d.select("p").get(0).text().length() == 0 ? 2 : 1).text();
-                if (gerNameWiki.startsWith("Giga-") || d.text().contains("ist eine Z-Attacke"))
-                    gerNameWiki = d.select("p").get(2).text();
-                if (gerNameWiki.length() <= 2) gerNameWiki = "Keine Daten vorhanden";
-                builder.setTitle(d.select("h1").first().text()).setColor(Color.CYAN).setDescription(s + gerNameWiki);
-                tco.sendMessage(builder.build()).queue();
-            } else {
-                tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
-                logger.info("Text");
-                logger.info(d.select("span[lang=\"en\"]").text());
-            }*/
         } catch (Exception ex) {
             tco.sendMessage("Es ist ein Fehler aufgetreten!").queue();
             ex.printStackTrace();

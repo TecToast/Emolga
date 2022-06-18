@@ -361,7 +361,10 @@ public class RequestBuilder {
             batchFuture.complete(null);
         }, "ReqBuilder Batch").start();
         if (runnable != null) {
-            CompletableFuture.allOf(userEnteredFuture, rawFuture, batchFuture).whenComplete((unused, throwable) -> runnableService.schedule(() -> runnable.run(), delay, TimeUnit.MILLISECONDS));
+            CompletableFuture.allOf(userEnteredFuture, rawFuture, batchFuture).whenComplete((unused, throwable) -> {
+                logger.info("Start scheduling...");
+                runnableService.schedule(runnable, delay, TimeUnit.MILLISECONDS);
+            });
         }
     }
 

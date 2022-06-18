@@ -1,14 +1,20 @@
 package de.tectoast.emolga.utils;
 
+import de.tectoast.emolga.commands.dexquiz.DexQuizTip;
+import de.tectoast.emolga.utils.records.DexEntry;
 import de.tectoast.emolga.utils.sql.DBManagers;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
 import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -17,35 +23,62 @@ import static de.tectoast.emolga.commands.Command.*;
 public class DexQuiz {
     private static final Map<Long, DexQuiz> activeQuizzes = new HashMap<>();
     private static List<String> cachedMons;
-    private final int totalRounds;
+    private final long totalRounds;
     private final Map<Long, Integer> points = new HashMap<>();
     private final TextChannel tc;
     private String gerName;
     private String englName;
     private String edition;
-    private int round = 1;
+    private final Map<Long, Long> tipPoints = new HashMap<>();
     private boolean block = false;
+    private final Random random = new Random();
+    private long round = 1;
+    private long totalbudget;
 
-    public DexQuiz(TextChannel tc, String gerName, String englName, int rounds, String edition) {
+    public DexQuiz(TextChannel tc, long rounds) {
         this.tc = tc;
-        this.gerName = gerName;
-        this.englName = englName;
         this.totalRounds = rounds;
-        this.edition = edition;
         if (totalRounds <= 0) {
             tc.sendMessage("Du musst eine Mindestanzahl von einer Runde angeben!").queue();
             return;
         }
         activeQuizzes.put(tc.getIdLong(), this);
+        long gid = tc.getGuild().getIdLong();
+        totalbudget = (int) ConfigManager.DEXQUIZ.getValue(gid, "totalbudget") * this.totalRounds;
+        EmbedBuilder b = new EmbedBuilder()
+                .setTitle("Mögliche Tipps")
+                .setDescription("Alle möglichen Tipps mit Preisen aufgelistet, konfigurierbar mit `/configurate dexquiz`")
+                .setColor(Color.CYAN)
+                .addField("Punkte-Budget", String.valueOf(totalbudget), false);
+        DexQuizTip.buildEmbedFields(gid).forEach(b::addField);
+        tc.sendMessageEmbeds(b.build()).queue();
+        newMon(false);
     }
 
-    public static @Nullable Pair<String, String> getNewMon() {
+    public static DexQuiz getByTC(TextChannel tc) {
+        return getByTC(tc.getIdLong());
+    }
+
+    public static DexQuiz getByTC(long tcid) {
+        return activeQuizzes.get(tcid);
+    }
+
+    public long useTip(long user, String tipName) {
+        long gid = tc.getGuild().getIdLong();
+        int price = (int) ConfigManager.DEXQUIZ.getValue(gid, tipName);
+        if (price == -1) return -10;
+        if (!tipPoints.containsKey(user)) tipPoints.put(user, totalbudget);
+        if (tipPoints.get(user) - price < 0) return -1;
+        return tipPoints.compute(user, (k, i) -> i - price);
+    }
+
+    public @Nullable Pair<String, String> getNewMon() {
         try {
             if (cachedMons == null) {
                 File file = new File("./entwicklung.txt");
                 cachedMons = Files.readAllLines(file.toPath());
             }
-            String pokemon = cachedMons.get(new Random().nextInt(cachedMons.size()));
+            String pokemon = cachedMons.get(random.nextInt(cachedMons.size()));
             String englName = getEnglName(pokemon);
             return new ImmutablePair<>(pokemon, englName);
         } catch (IOException ioException) {
@@ -54,21 +87,13 @@ public class DexQuiz {
         return null;
     }
 
-    public static DexQuiz getByTC(TextChannel tc) {
-        return activeQuizzes.get(tc.getIdLong());
-    }
-
-    public static void removeByTC(long tc) {
-        activeQuizzes.remove(tc);
-    }
-
     public boolean check(String t) {
         return t.equalsIgnoreCase(gerName) || t.equalsIgnoreCase(englName);
     }
 
     public void end() {
         activeQuizzes.remove(tc.getIdLong());
-        if (points.size() == 0) {
+        if (points.isEmpty() && round > 1) {
             tc.sendMessage("Nur den Solution Command zu benutzen ist nicht der Sinn der Sache! xD").queue();
             return;
         }
@@ -90,21 +115,25 @@ public class DexQuiz {
     }
 
     public void newMon() {
+        newMon(true);
+    }
+
+    public void newMon(boolean withDelay) {
         Pair<String, String> mon = getNewMon();
         String pokemon = mon.getLeft();
         String englName = mon.getRight();
-            /*Document d = Jsoup.connect("https://www.pokewiki.de/" + pokemon).get();
-            Element table = d.select("table[class=\"round centered\"]").get(0);
-            Element element = table.select("td").get(new Random().nextInt(table.select("td").size()));*/
-        Pair<String, String> res = DBManagers.POKEDEX.getDexEntry(pokemon);
-        String entry = res.getLeft();
-        edition = res.getRight();
+        DexEntry dexEntry = DBManagers.POKEDEX.getDexEntry(pokemon);
+        String entry = dexEntry.entry();
+        edition = dexEntry.edition();
         gerName = pokemon;
         sendDexEntry(this.tc.getAsMention() + " " + pokemon);
         this.englName = englName;
         //ü = %C3%B6
         this.block = false;
-        this.tc.sendMessage("Runde " + round + ": " + trim(entry, pokemon) + "\nZu welchem Pokemon gehört dieser Dex-Eintrag?").queueAfter(3, TimeUnit.SECONDS);
+        MessageAction ma = this.tc.sendMessage("Runde %d/%d: %s\nZu welchem Pokemon gehört dieser Dex-Eintrag?".formatted(round, totalRounds, trim(entry, pokemon)));
+        if (withDelay)
+            ma.queueAfter(3, TimeUnit.SECONDS);
+        else ma.queue();
     }
 
     public void givePoint(long member) {
@@ -113,14 +142,6 @@ public class DexQuiz {
 
     public boolean isEnded() {
         return round > totalRounds;
-    }
-
-    public int getTotalRounds() {
-        return totalRounds;
-    }
-
-    public Map<Long, Integer> getPoints() {
-        return points;
     }
 
     public TextChannel getChannel() {
@@ -139,7 +160,7 @@ public class DexQuiz {
         return edition;
     }
 
-    public int getRound() {
+    public long getRound() {
         return round;
     }
 

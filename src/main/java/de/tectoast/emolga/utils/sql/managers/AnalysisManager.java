@@ -25,6 +25,10 @@ public class AnalysisManager extends DataManager {
         return -1;
     }
 
+    public boolean deleteChannel(long replayChannel) {
+        return delete(REPLAY.check(replayChannel)) > 0;
+    }
+
     public int removeUnused() {
         return readWrite(selectAll(), r -> {
             int x = 0;

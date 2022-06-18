@@ -25,11 +25,11 @@ public class GuildCommandEvent extends GenericCommandEvent {
         event = e;
         Command.ArgumentManagerTemplate template = c.getArgumentTemplate();
         if (template != null)
-            this.manager = template.construct(e);
+            this.manager = template.construct(e, c);
         this.usedName = Command.WHITESPACES_SPLITTER.split(getMsg())[0].substring(c.getPrefix().length());
         new Thread(() -> {
             try {
-                c.process(this);
+                (manager != null ? manager.executor() : c).process(this);
             } catch (Exception ex) {
                 ex.printStackTrace();
                 tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (%s).\n".formatted(MYTAG) + c.getHelp(e.getGuild()) + (member.getIdLong() == FLOID ? "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
@@ -46,8 +46,15 @@ public class GuildCommandEvent extends GenericCommandEvent {
         this.usedName = e.getName();
         Command.ArgumentManagerTemplate template = c.getArgumentTemplate();
         if (template != null)
-            this.manager = template.construct(e);
-        c.process(this);
+            this.manager = template.construct(e, c);
+        new Thread(() -> {
+            try {
+                (manager != null ? manager.executor() : c).process(this);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                tco.sendMessage("Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (%s).\n".formatted(MYTAG) + c.getHelp(e.getGuild()) + (member.getIdLong() == FLOID ? "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" : "")).queue();
+            }
+        }, "CMD " + c.getName()).start();
     }
 
 

@@ -23,8 +23,8 @@ public class AttackCommand extends Command {
 
     @Override
     public void process(GuildCommandEvent e) {
-        JSONObject ljson = getLearnsetJSON(getModByGuild(e));
-        JSONObject djson = getDataJSON(getModByGuild(e));
+        JSONObject ljson = getLearnsetJSON();
+        JSONObject djson = getDataJSON();
         ArrayList<String> mons = new ArrayList<>();
         String atk = e.getArguments().getTranslation("move").getTranslation();
         for (String s : djson.keySet()) {

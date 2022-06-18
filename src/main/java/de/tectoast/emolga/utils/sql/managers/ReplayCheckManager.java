@@ -14,6 +14,6 @@ public class ReplayCheckManager extends DataManager {
     }
 
     public void set(long tcid, long mid) {
-        insertOrUpdate(CHANNELID, tcid, tcid, mid);
+        replaceIfExists(tcid, mid);
     }
 }

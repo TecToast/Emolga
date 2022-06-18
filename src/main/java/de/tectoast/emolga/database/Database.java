@@ -6,15 +6,16 @@ import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.sql.DBManagers;
 import de.tectoast.jsolf.JSONObject;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Properties;
 
 import static de.tectoast.emolga.commands.Command.replayAnalysis;
-import static de.tectoast.emolga.commands.Command.spoilerTags;
 
 public class Database {
 
@@ -38,11 +39,7 @@ public class Database {
                 DBManagers.MUSIC_GUILDS.forAll(r -> CommandCategory.musicGuilds.add(r.getLong("guildid")));
                 DBManagers.CALENDAR.getAllEntries().forEach(Command::scheduleCalendarEntry);
                 logger.info("replayAnalysis.size() = " + replayAnalysis.size());
-                ResultSet spoiler = Database.select("select * from spoilertags");
-                while (spoiler.next()) {
-                    spoilerTags.add(spoiler.getLong("guildid"));
-                }
-                spoiler.close();
+                DBManagers.SPOILER_TAGS.addToList();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -54,39 +51,13 @@ public class Database {
         instance = new Database(cred.getString("username"), cred.getString("password"));
     }
 
-    public static @Nullable ResultSet select(String query, boolean suppressMessage) {
-        try {
-            updateConnection();
-            if (!suppressMessage) logger.info("SELECT REQUEST: " + query);
-            return instance.connection.createStatement().executeQuery(query);
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-        return null;
-    }
-
-    public static ResultSet select(String query) {
-        return select(query, false);
-    }
-
-    public static int update(String query) {
-        try {
-            updateConnection();
-            logger.info("UPDATE REQUEST: " + query);
-            return instance.connection.createStatement().executeUpdate(query);
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-        return -1;
-    }
-
     public static void incrementPredictionCounter(long userid) {
         new Thread(() -> {
             try {
                 PreparedStatement usernameInput = instance.connection.prepareStatement("SELECT userid FROM predictiongame WHERE userid = ? ");
                 usernameInput.setLong(1, userid);
                 if (usernameInput.executeQuery().next()) {
-                    update("UPDATE predictiongame SET predictions = (predictions + 1) WHERE userid = " + userid);
+                    DBManagers.PREDICTION_GAME.addPoint(userid);
                 } else {
                     PreparedStatement userDataInput = instance.connection.prepareStatement("INSERT INTO predictiongame (userid, username, predictions) VALUES (?,?,?);");
                     userDataInput.setLong(1, userid);
@@ -100,51 +71,6 @@ public class Database {
         }, "IncrPredCounter").start();
     }
 
-
-    public static void incrementStatistic(String name) {
-        new Thread(() -> {
-            try {
-                PreparedStatement usernameInput = instance.connection.prepareStatement("SELECT name FROM statistics WHERE name = ? ");
-                usernameInput.setString(1, name);
-                if (usernameInput.executeQuery().next()) {
-                    update("UPDATE statistics SET count = (count + 1) WHERE name = \"" + name + "\"");
-                } else {
-                    PreparedStatement userDataInput = instance.connection.prepareStatement("INSERT INTO statistics (name,count) VALUES (?,?);");
-                    userDataInput.setString(1, name);
-                    userDataInput.setInt(2, 1);
-                    userDataInput.executeUpdate();
-                }
-                if (name.equals("analysis")) Command.updatePresence();
-            } catch (SQLException throwables) {
-                throwables.printStackTrace();
-            }
-        }, "IncrStat").start();
-    }
-
-    public static @Nullable String getDescriptionFrom(String type, String id) {
-        try (ResultSet set = select("SELECT description from " + type + "data WHERE name = \"" + id + "\"")) {
-            set.next();
-            return set.getString("description");
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-        return null;
-    }
-
-    private static String getValue(Object o) {
-        if (o instanceof String) return "\"" + o + "\"";
-        return o.toString();
-    }
-
-    public static @Nullable Object getData(String table, String desiredcolumn, String checkcolumn, Object checkvalue) {
-        try (ResultSet set = select("SELECT " + desiredcolumn + " from " + table + " WHERE " + checkcolumn + " = " + getValue(checkvalue))) {
-            set.next();
-            return set.getObject(desiredcolumn);
-        } catch (SQLException throwables) {
-            //throwables.printStackTrace();
-        }
-        return null;
-    }
 
     public static void updateConnection() {
         if (System.currentTimeMillis() - instance.lastRequest >= 3600000) {

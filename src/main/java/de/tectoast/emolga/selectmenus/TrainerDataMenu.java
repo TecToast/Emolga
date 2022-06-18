@@ -15,7 +15,7 @@ public class TrainerDataMenu extends MenuListener {
     }
 
     @Override
-    public void process(SelectMenuInteractionEvent e) {
+    public void process(SelectMenuInteractionEvent e, String ignored) {
         TrainerData dt = trainerDataButtons.get(e.getMessageIdLong());
         if (dt == null) {
             e.editMessageEmbeds(new EmbedBuilder().setTitle("Ach Mensch " + e.getMember().getEffectiveName() + ", diese Trainer-Data funktioniert nicht mehr, da seitdem der Bot neugestartet wurde!").setColor(Color.CYAN).build()).queue();

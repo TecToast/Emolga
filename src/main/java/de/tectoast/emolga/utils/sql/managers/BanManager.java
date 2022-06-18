@@ -12,9 +12,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static de.tectoast.emolga.utils.sql.base.Condition.and;
 
@@ -42,18 +44,15 @@ public class BanManager extends DataManager {
 
     public JSONArray getBans(Guild g) {
         try {
-            ResultSet set = GUILDID.getAll(g.getIdLong());
-            JSONArray arr = new JSONArray();
-            List<JSONObject> l = new LinkedList<>();
-            while (set.next()) {
-                l.add(new JSONObject()
+            List<JSONObject> l = read(selectAll(GUILDID.check(g.getIdLong())), s -> {
+                return map(s, set -> new JSONObject()
                         .put("userid", USERID.getValue(set))
                         .put("username", USERNAME.getValue(set))
                         .put("modid", MODID.getValue(set))
                         .put("reason", REASON.getValue(set))
-                        .put("timestamp", TIMESTAMP.getValue(set).getTime())
-                );
-            }
+                        .put("timestamp", TIMESTAMP.getValue(set).getTime()));
+            });
+            JSONArray arr = new JSONArray();
             Set<Long> idstocheck = new HashSet<>();
             l.stream().map(j -> j.getLong("modid")).forEach(idstocheck::add);
             HashMap<Long, String> names = new HashMap<>();
@@ -74,7 +73,7 @@ public class BanManager extends DataManager {
         logger.info("userid = " + userid);
         logger.info("g.getIdLong() = " + g.getIdLong());
         g.unban(UserSnowflake.fromId(userid)).queue();
-        return delete(and(GUILDID.check(g.getIdLong()), USERID.check(userid))) > 0 ? o.put("success", "Entbannung erfolgreich!") : o.put("error", "Die Person war gar nicht gebannt!");
+        return unban(userid, g.getIdLong()) > 0 ? o.put("success", "Entbannung erfolgreich!") : o.put("error", "Die Person war gar nicht gebannt!");
     }
 
     public int unban(long userid, long guildid) {

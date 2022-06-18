@@ -24,7 +24,7 @@ public class MonDataMenu extends MenuListener {
     }
 
     @Override
-    public void process(SelectMenuInteractionEvent e) {
+    public void process(SelectMenuInteractionEvent e, String ignored) {
         /*e.reply("Dieses Menü funktioniert noch nicht, aber Flo arbeitet zurzeit daran :3").setEphemeral(true).queue();
         if (true) return;*/
         logger.info("e.getMessageIdLong() = " + e.getMessageIdLong());

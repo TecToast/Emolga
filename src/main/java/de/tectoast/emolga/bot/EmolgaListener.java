@@ -4,6 +4,7 @@ import de.tectoast.emolga.buttons.ButtonListener;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.PrivateCommand;
 import de.tectoast.emolga.commands.PrivateCommands;
+import de.tectoast.emolga.modals.ModalListener;
 import de.tectoast.emolga.selectmenus.MenuListener;
 import de.tectoast.emolga.utils.Constants;
 import de.tectoast.emolga.utils.DexQuiz;
@@ -42,7 +43,6 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static de.tectoast.emolga.commands.Command.*;
 import static de.tectoast.emolga.utils.Constants.EMOLGA_KI;
@@ -74,7 +74,8 @@ public class EmolgaListener extends ListenerAdapter {
 
     @Override
     public void onModalInteraction(@NotNull ModalInteractionEvent e) {
-        e.reply(e.getValues().stream().map(m -> "%s: %s (%s)".formatted(m.getId(), m.getAsString(), m.getType().toString())).collect(Collectors.joining("\n"))).queue();
+        //e.reply(e.getValues().stream().map(m -> "%s: %s (%s)".formatted(m.getId(), m.getAsString(), m.getType().toString())).collect(Collectors.joining("\n"))).queue();
+        ModalListener.check(e);
     }
 
     @Override
@@ -247,7 +248,7 @@ public class EmolgaListener extends ListenerAdapter {
                 Draft.init(jda);
                 DBManagers.BAN.forAll(rs -> Command.banTimer(jda.getGuildById(rs.getLong("guildid")), Optional.ofNullable(rs.getTimestamp("expires")).map(Timestamp::getTime).orElse(-1L), rs.getLong("userid")));
                 DBManagers.MUTE.forAll(rs -> Command.muteTimer(jda.getGuildById(rs.getLong("guildid")), Optional.ofNullable(rs.getTimestamp("expires")).map(Timestamp::getTime).orElse(-1L), rs.getLong("userid")));
-                new Draft(jda.getTextChannelById(837425828245667841L), "NDS", null, true, true);
+                //new Draft(jda.getTextChannelById(837425828245667841L), "NDS", null, true, true);
             }
         } catch (Exception ex) {
             ex.printStackTrace();

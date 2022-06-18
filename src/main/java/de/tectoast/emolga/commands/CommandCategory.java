@@ -30,7 +30,7 @@ public enum CommandCategory {
         Moderator.allowsMember = m -> Admin.allowsMember(m) || m.getRoles().stream().anyMatch(r -> Command.moderatorRoles.containsValue(r.getIdLong()));
         Music.allowsGuildId = musicGuilds::contains;
         Moderator.allowsGuildId = Command.moderatorRoles::containsKey;
-        Pepe.allowsGuildId = gid -> gid.equals(605632286179983360L);
+        Pepe.allowsGuildId = gid -> gid.equals(605632286179983360L) || gid == 817156502912761867L;
         Flo.allowsMember = mem -> mem.getIdLong() == Constants.FLOID;
         Admin.allowsMember = Flo.allowsMember;
         Soullink.allowsGuildId = gid -> gid.equals(695943416789598208L);

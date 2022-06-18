@@ -9,7 +9,10 @@ import de.tectoast.jsolf.JSONObject;
 import net.dv8tion.jda.api.entities.Guild;
 
 import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
 import java.util.*;
+
+import static de.tectoast.emolga.utils.sql.base.Condition.and;
 
 public class WarnsManager extends DataManager {
 
@@ -26,6 +29,21 @@ public class WarnsManager extends DataManager {
 
     public void warn(long userid, long modid, long guildid, String reason) {
         insert(userid, modid, guildid, reason, null);
+    }
+
+    public int warnCount(long userid, long guildid) {
+        return read(selectBuilder().count("warncount").where(and(USERID.check(userid), GUILDID.check(guildid))).build(this), s -> {
+            return mapFirst(s, set -> unwrapCount(set, "warncount"), 0);
+        });
+    }
+
+    public String getWarnsFrom(long userid, long guildid) {
+        SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+        return read(selectAll(and(USERID.check(userid), GUILDID.check(guildid))), set -> {
+            return String.join("\n\n", map(set, s -> "Von: <@%d>\nGrund: %s\nZeitpunkt: %s Uhr"
+                    .formatted(MODID.getValue(s), REASON.getValue(s), format.format(new Date(TIMESTAMP.getValue(s).getTime())))));
+
+        });
     }
 
     public JSONArray getWarns(Guild g) {
@@ -49,7 +67,7 @@ public class WarnsManager extends DataManager {
             for (JSONObject j : l) {
                 long uid = j.getLong("userid");
                 String name = names.get(uid);
-                if(name == null) continue;
+                if (name == null) continue;
                 arr.put(new JSONObject().put("name", name).put("id", String.valueOf(uid)).put("reason", j.getString("reason")).put("mod", names.get(j.getLong("modid"))).put("timestamp", j.getLong("timestamp")));
             }
             return arr;

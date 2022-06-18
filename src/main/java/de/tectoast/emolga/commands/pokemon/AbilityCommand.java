@@ -23,7 +23,7 @@ public class AbilityCommand extends Command {
 
     @Override
     public void process(GuildCommandEvent e) {
-        JSONObject json = getDataJSON(getModByGuild(e));
+        JSONObject json = getDataJSON();
         ArrayList<String> mons = new ArrayList<>();
         String abi = e.getArguments().getTranslation("abi").getTranslation();
         for (String s : json.keySet()) {

@@ -4,8 +4,6 @@ import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.CommandCategory;
 import de.tectoast.emolga.commands.GuildCommandEvent;
 import de.tectoast.jsolf.JSONObject;
-import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
-import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -39,8 +37,6 @@ public class WeaknessCommand extends Command {
     public void process(GuildCommandEvent e) {
         ArgumentManager args = e.getArguments();
         Translation gerName = args.getTranslation("stuff");
-        Translation.Type objtype = gerName.getType();
-        String mod = getModByGuild(e);
         String name = gerName.getTranslation();
         JSONObject mon = getDataJSON().optJSONObject(toSDName(gerName.getOtherLang() + args.getOrDefault("regform", "") + args.getOrDefault("form", "") + gerName.getForme()));
         JSONObject abijson = mon.getJSONObject("abilities");
@@ -55,7 +51,7 @@ public class WeaknessCommand extends Command {
         Set<String> x05 = new LinkedHashSet<>();
         Set<String> x0 = new LinkedHashSet<>();
         HashMap<String, String> immuneAbi = new HashMap<>();
-        HashMap<String, Pair<String, String>> changeAbi = new HashMap<>();
+        HashMap<String, EffectivenessChangeText> changeAbi = new HashMap<>();
         for (String type : getTypeJSON().keySet()) {
             if (getImmunity(type, types))
                 x0.add(((Translation) Translation.Type.TYPE.validate(type, Translation.Language.GERMAN, "default")).getTranslation());
@@ -77,18 +73,18 @@ public class WeaknessCommand extends Command {
                             case -2 -> x05.add("**" + t + "**");
                         }
                     }
-                    List<Pair<String, Integer>> pl = checkAbiChanges(type, abilities);
-                    for (Pair<String, Integer> p : pl) {
-                        int modified = typeMod + p.getRight();
-                        String abi = p.getLeft();
+                    List<EffectivenessChangeNum> pl = checkAbiChanges(type, abilities);
+                    for (EffectivenessChangeNum p : pl) {
+                        int modified = typeMod + p.value();
+                        String abi = p.ability();
                         if (modified != typeMod && !abi.isBlank()) {
                             String t = ((Translation) Translation.Type.TYPE.validate(type, Translation.Language.GERMAN, "default")).getTranslation();
                             switch (modified) {
-                                case 2 -> changeAbi.put(t, new ImmutablePair<>(abi, "vierfach-effektiv"));
-                                case 1 -> changeAbi.put(t, new ImmutablePair<>(abi, "sehr effektiv"));
-                                case 0 -> changeAbi.put(t, new ImmutablePair<>(abi, "neutral-effektiv"));
-                                case -1 -> changeAbi.put(t, new ImmutablePair<>(abi, "resistiert"));
-                                case -2 -> changeAbi.put(t, new ImmutablePair<>(abi, "vierfach-resistiert"));
+                                case 2 -> changeAbi.put(t, new EffectivenessChangeText(abi, "vierfach-effektiv"));
+                                case 1 -> changeAbi.put(t, new EffectivenessChangeText(abi, "sehr effektiv"));
+                                case 0 -> changeAbi.put(t, new EffectivenessChangeText(abi, "neutral-effektiv"));
+                                case -1 -> changeAbi.put(t, new EffectivenessChangeText(abi, "resistiert"));
+                                case -2 -> changeAbi.put(t, new EffectivenessChangeText(abi, "vierfach-resistiert"));
                             }
                         }
                     }
@@ -97,8 +93,8 @@ public class WeaknessCommand extends Command {
         }
         e.reply("**" + name + "**:\nSchwächen: " + String.join(", ", x2) + "\nResistenzen: " + String.join(", ", x05)
                 + (x0.size() > 0 ? "\nImmunitäten: " + String.join(", ", x0) : "")
-                + "\n" + immuneAbi.keySet().stream().map(s -> "Wenn " + name + " **" + s + "** hat, wird der Typ **" + immuneAbi.get(s) + "** immunisiert.").collect(Collectors.joining("\n"))
-                + "\n" + changeAbi.keySet().stream().map(s -> "Wenn " + name + " **" + changeAbi.get(s).getLeft() + "** hat, wird der Typ **" + s + " " + changeAbi.get(s).getRight() + "**.").collect(Collectors.joining("\n"))
+                + "\n" + immuneAbi.keySet().stream().map(Command::getGerNameNoCheck).map(s -> "Wenn " + name + " **" + s + "** hat, wird der Typ **" + immuneAbi.get(s) + "** immunisiert.").collect(Collectors.joining("\n"))
+                + "\n" + changeAbi.keySet().stream().map(Command::getGerNameNoCheck).map(s -> "Wenn " + name + " **" + changeAbi.get(s).ability() + "** hat, wird der Typ **" + s + " " + changeAbi.get(s).value() + "**.").collect(Collectors.joining("\n"))
         );
     }
 
@@ -112,10 +108,16 @@ public class WeaknessCommand extends Command {
         return getTypeJSON().getJSONObject(against[0]).getJSONObject("damageTaken").getInt(type) == 3;
     }
 
-    private List<Pair<String, Integer>> checkAbiChanges(String type, List<String> abilities) {
+    private List<EffectivenessChangeNum> checkAbiChanges(String type, List<String> abilities) {
         if (!resistances.containsKey(type)) return Collections.emptyList();
         Map<String, Integer> l = resistances.get(type);
-        return l.keySet().stream().filter(abilities::contains).map(s -> new ImmutablePair<>(s, l.get(s))).collect(Collectors.toList());
+        return l.keySet().stream().filter(abilities::contains).map(s -> new EffectivenessChangeNum(s, l.get(s))).collect(Collectors.toList());
+    }
+
+    private record EffectivenessChangeNum(String ability, int value) {
+    }
+
+    private record EffectivenessChangeText(String ability, String value) {
     }
 
     public static int getEffectiveness(String type, String... against) {

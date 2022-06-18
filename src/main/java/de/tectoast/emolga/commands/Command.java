@@ -245,6 +245,8 @@ public abstract class Command {
     protected static ScheduledExecutorService calendarService = Executors.newScheduledThreadPool(5);
     protected static final ScheduledExecutorService moderationService = Executors.newScheduledThreadPool(5);
     protected static final ScheduledExecutorService birthdayService = Executors.newScheduledThreadPool(1);
+    public static final boolean BOT_DISABLED = false;
+    public static final String DISABLED_TEXT = "Ich befinde mich derzeit im Wartungsmodus, versuche es später noch einmal :)";
     /**
      * List containing guild ids where this command is enabled, empty if it is enabled in all guilds
      */
@@ -1849,6 +1851,10 @@ public abstract class Command {
     }
 
     public static void updatePresence() {
+        if (BOT_DISABLED) {
+            emolgajda.getPresence().setPresence(OnlineStatus.DO_NOT_DISTURB, Activity.watching("auf den Wartungsmodus"));
+            return;
+        }
         int count = DBManagers.STATISTICS.getAnalysisCount();
         replayCount.set(count);
         if (count % 100 == 0) {
@@ -1876,6 +1882,10 @@ public abstract class Command {
     }
 
     public static void check(MessageReceivedEvent e) {
+        if (BOT_DISABLED) {
+            e.getChannel().sendMessage(DISABLED_TEXT).queue();
+            return;
+        }
         Member mem = e.getMember();
         String msg = e.getMessage().getContentDisplay();
         TextChannel tco = e.getTextChannel();
@@ -2268,10 +2278,10 @@ public abstract class Command {
 
     public static void analyseReplay(String url, TextChannel customReplayChannel, TextChannel resultchannel, Message m, DeferredSlashResponse e) {
         Player[] game;
-        /*if(resultchannel.getGuild().getIdLong() != MYSERVER) {
-            (m != null ? m.getChannel() : resultchannel).sendMessage("Ich befinde mich derzeit im Wartungsmodus, versuche es später noch einmal :)").queue();
+        if (BOT_DISABLED && resultchannel.getGuild().getIdLong() != MYSERVER) {
+            (m != null ? m.getChannel() : resultchannel).sendMessage(DISABLED_TEXT).queue();
             return;
-        }*/
+        }
         logger.info("REPLAY! Channel: {}", m != null ? m.getChannel().getId() : resultchannel.getId());
         try {
             game = new Analysis(url, m).analyse();

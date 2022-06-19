@@ -18,7 +18,7 @@ public class Tierlist {
     /**
      * All tierlists
      */
-    public static final ArrayList<Tierlist> list = new ArrayList<>();
+    public static final Map<Long, Tierlist> tierlists = new HashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(Tierlist.class);
     private static final Pattern REPLACE_NONSENSE = Pattern.compile("[^a-zA-Z\\d-:% ]");
     /**
@@ -111,6 +111,9 @@ public class Tierlist {
         }
         logger.error(guild + " RETURNED NULL");
         return null;
+    }
+    public void removeMon(String mon) {
+        tierlist.values().forEach(l -> l.removeIf(mon::equalsIgnoreCase));
     }
 
     public static Coord getLocation(String mon, int defX, int defY, List<String> tiercolumns) {

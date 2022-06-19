@@ -6,8 +6,6 @@ import de.tectoast.emolga.utils.sql.DBManagers;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
-import net.dv8tion.jda.internal.utils.tuple.ImmutablePair;
-import net.dv8tion.jda.internal.utils.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
@@ -72,7 +70,7 @@ public class DexQuiz {
         return tipPoints.compute(user, (k, i) -> i - price);
     }
 
-    public @Nullable Pair<String, String> getNewMon() {
+    public @Nullable DexPokemon getNewMon() {
         try {
             if (cachedMons == null) {
                 File file = new File("./entwicklung.txt");
@@ -80,7 +78,7 @@ public class DexQuiz {
             }
             String pokemon = cachedMons.get(random.nextInt(cachedMons.size()));
             String englName = getEnglName(pokemon);
-            return new ImmutablePair<>(pokemon, englName);
+            return new DexPokemon(pokemon, englName);
         } catch (IOException ioException) {
             ioException.printStackTrace();
         }
@@ -119,9 +117,9 @@ public class DexQuiz {
     }
 
     public void newMon(boolean withDelay) {
-        Pair<String, String> mon = getNewMon();
-        String pokemon = mon.getLeft();
-        String englName = mon.getRight();
+        DexPokemon mon = getNewMon();
+        String pokemon = mon.germanName();
+        String englName = mon.englName();
         DexEntry dexEntry = DBManagers.POKEDEX.getDexEntry(pokemon);
         String entry = dexEntry.entry();
         edition = dexEntry.edition();
@@ -170,5 +168,8 @@ public class DexQuiz {
 
     public void incrementRound() {
         round++;
+    }
+
+    private record DexPokemon(String germanName, String englName) {
     }
 }

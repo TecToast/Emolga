@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -32,7 +33,7 @@ public class Tierlist {
     /**
      * The guild of this tierlist
      */
-    public final String guild;
+    public final long guild;
     /**
      * List with all pokemon in the sheets tierlists, columns are separated by an "NEXT"
      */
@@ -59,7 +60,7 @@ public class Tierlist {
     public int points;
 
     public Tierlist(String guild) {
-        this.guild = guild.substring(0, guild.length() - 5);
+        this.guild = Long.parseLong(guild.substring(0, guild.length() - 5));
         JSONObject o = load("./Tierlists/" + guild);
         if (!o.has("mode")) {
             return;
@@ -74,7 +75,8 @@ public class Tierlist {
                 isPointBased = true;
             }
             case "tiers", "nothing" -> isPointBased = false;
-            default -> throw new IllegalArgumentException("Invalid mode! Has to be one of 'points', 'tiers' or 'nothing'!");
+            default ->
+                    throw new IllegalArgumentException("Invalid mode! Has to be one of 'points', 'tiers' or 'nothing'!");
         }
         JSONObject tiers = o.getJSONObject("tiers");
         for (String s : tiers.keySet()) {
@@ -89,11 +91,11 @@ public class Tierlist {
             JSONObject am = o.getJSONObject("additionalmons");
             am.keySet().forEach(k -> tierlist.get(k).addAll(am.getStringList(k)));
         }
-        list.add(this);
+        tierlists.put(this.guild, this);
     }
 
     public static void setup() {
-        list.clear();
+        tierlists.clear();
         File dir = new File("./Tierlists/");
         for (File file : dir.listFiles()) {
             if (file.isFile())
@@ -101,16 +103,12 @@ public class Tierlist {
         }
     }
 
-    public static Tierlist getByGuild(long guild) {
-        return getByGuild(String.valueOf(guild));
+    public static Tierlist getByGuild(String guild) {
+        return getByGuild(Long.parseLong(guild));
     }
 
-    public static @Nullable Tierlist getByGuild(String guild) {
-        for (Tierlist tierlist : list) {
-            if (tierlist.guild.equals(guild)) return tierlist;
-        }
-        logger.error(guild + " RETURNED NULL");
-        return null;
+    public static @Nullable Tierlist getByGuild(long guild) {
+        return tierlists.get(guild);
     }
     public void removeMon(String mon) {
         tierlist.values().forEach(l -> l.removeIf(mon::equalsIgnoreCase));

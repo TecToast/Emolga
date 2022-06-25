@@ -52,6 +52,10 @@ public class TrackScheduler extends AudioEventAdapter {
         return loop = !loop;
     }
 
+    public void enableLoop() {
+        loop = true;
+    }
+
     public boolean toggleQueueLoop() {
         if (queueLoop.size() > 0) {
             queueLoop.clear();

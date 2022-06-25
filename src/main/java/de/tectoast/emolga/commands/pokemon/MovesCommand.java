@@ -10,8 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 public class MovesCommand extends Command {
     private static final Logger logger = LoggerFactory.getLogger(MovesCommand.class);
@@ -58,7 +58,7 @@ public class MovesCommand extends Command {
             pokemon = t.getTranslation();
             logger.info(pokemon);
             try {
-                ArrayList<String> attacks;
+                List<String> attacks;
                 int gen = e.getGuild().getId().equals("747357029714231299") || args[0].equalsIgnoreCase("!moves5") ? 5 : 8;
                 //logger.info("args[0] = " + args[0]);
                 //logger.info("gen = " + gen);

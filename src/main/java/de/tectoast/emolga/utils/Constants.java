@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils;
 public class Constants {
 
     public static final long FLOID = 175910318608744448L;
+    public static final long DASORID = 694543579414134802L;
 
     public static final String APFELKUCHENMENTION = "<:Apfelkuchen:774817002636181535>";
 

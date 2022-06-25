@@ -100,7 +100,7 @@ public class Analysis {
                         }).findFirst().orElse(null)));
                     }
                 } else {
-                    unknownFormes.stream().filter(pokemon::contains).filter(str -> p.indexOfName(str + "-*") != 1).forEach(str -> p.getMons().get(p.indexOfName(str + "-*")).setPokemon(pokemon));
+                    unknownFormes.stream().filter(pokemon::contains).filter(str -> p.indexOfName(str + "-*") != -1).forEach(str -> p.getMons().get(p.indexOfName(str + "-*")).setPokemon(pokemon));
                     /*if (pokemon.contains("Silvally") && p.indexOfName("Silvally-*") != -1) {//Silvally-Problem
                         p.getMons().get(p.indexOfName("Silvally-*")).setPokemon(pokemon);
                     }

@@ -1832,32 +1832,32 @@ public abstract class Command {
 
     public static String getType(String str) {
         String s = str.toLowerCase();
-        if (s.contains("--normal")) return "Normal";
-        else if (s.contains("--kampf") || s.contains("--fighting")) return "Kampf";
-        else if (s.contains("--flug") || s.contains("--flying")) return "Flug";
-        else if (s.contains("--gift") || s.contains("--poison")) return "Gift";
-        else if (s.contains("--boden") || s.contains("--ground")) return "Boden";
-        else if (s.contains("--gestein") || s.contains("--rock")) return "Gestein";
-        else if (s.contains("--käfer") || s.contains("--bug")) return "Käfer";
-        else if (s.contains("--geist") || s.contains("--ghost")) return "Geist";
-        else if (s.contains("--stahl") || s.contains("--steel")) return "Stahl";
-        else if (s.contains("--feuer") || s.contains("--fire")) return "Feuer";
-        else if (s.contains("--wasser") || s.contains("--water")) return "Wasser";
-        else if (s.contains("--pflanze") || s.contains("--grass")) return "Pflanze";
-        else if (s.contains("--elektro") || s.contains("--electric")) return "Elektro";
-        else if (s.contains("--psycho") || s.contains("--psychic")) return "Psycho";
-        else if (s.contains("--eis") || s.contains("--ice")) return "Eis";
-        else if (s.contains("--drache") || s.contains("--dragon")) return "Drache";
-        else if (s.contains("--unlicht") || s.contains("--dark")) return "Unlicht";
-        else if (s.contains("--fee") || s.contains("--fairy")) return "Fee";
+        if (s.contains("-normal")) return "Normal";
+        else if (s.contains("-kampf") || s.contains("-fighting")) return "Kampf";
+        else if (s.contains("-flug") || s.contains("-flying")) return "Flug";
+        else if (s.contains("-gift") || s.contains("-poison")) return "Gift";
+        else if (s.contains("-boden") || s.contains("-ground")) return "Boden";
+        else if (s.contains("-gestein") || s.contains("-rock")) return "Gestein";
+        else if (s.contains("-käfer") || s.contains("-bug")) return "Käfer";
+        else if (s.contains("-geist") || s.contains("-ghost")) return "Geist";
+        else if (s.contains("-stahl") || s.contains("-steel")) return "Stahl";
+        else if (s.contains("-feuer") || s.contains("-fire")) return "Feuer";
+        else if (s.contains("-wasser") || s.contains("-water")) return "Wasser";
+        else if (s.contains("-pflanze") || s.contains("-grass")) return "Pflanze";
+        else if (s.contains("-elektro") || s.contains("-electric")) return "Elektro";
+        else if (s.contains("-psycho") || s.contains("-psychic")) return "Psycho";
+        else if (s.contains("-eis") || s.contains("-ice")) return "Eis";
+        else if (s.contains("-drache") || s.contains("-dragon")) return "Drache";
+        else if (s.contains("-unlicht") || s.contains("-dark")) return "Unlicht";
+        else if (s.contains("-fee") || s.contains("-fairy")) return "Fee";
         return "";
     }
 
     public static String getClass(String str) {
         String s = str.toLowerCase();
-        if (s.contains("--phys")) return "Physical";
-        else if (s.contains("--spez")) return "Special";
-        else if (s.contains("--status")) return "Status";
+        if (s.contains("-phys")) return "Physical";
+        else if (s.contains("-spez")) return "Special";
+        else if (s.contains("-status")) return "Status";
         return "";
     }
 
@@ -1911,8 +1911,8 @@ public abstract class Command {
         return false;
     }
 
-    public static ArrayList<String> getAttacksFrom(String pokemon, String msg, String form, int maxgen) {
-        ArrayList<String> already = new ArrayList<>();
+    public static List<String> getAttacksFrom(String pokemon, String msg, String form, int maxgen) {
+        List<String> already = new ArrayList<>();
         String type = getType(msg);
         String dmgclass = getClass(msg);
         JSONObject movejson = getLearnsetJSON();
@@ -1979,8 +1979,7 @@ public abstract class Command {
     }
 
     private static boolean containsGen(JSONObject learnset, String move, int gen) {
-        for (Object o : learnset.getJSONArray(move)) {
-            String s = (String) o;
+        for (String s : learnset.getStringList(move)) {
             for (int i = 1; i <= gen; i++) {
                 if (s.startsWith(String.valueOf(i))) return true;
             }

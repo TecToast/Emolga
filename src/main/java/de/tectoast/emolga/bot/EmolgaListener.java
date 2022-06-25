@@ -4,6 +4,7 @@ import de.tectoast.emolga.buttons.ButtonListener;
 import de.tectoast.emolga.commands.Command;
 import de.tectoast.emolga.commands.PrivateCommand;
 import de.tectoast.emolga.commands.PrivateCommands;
+import de.tectoast.emolga.commands.music.custom.WirklichGuteMusikCommand;
 import de.tectoast.emolga.modals.ModalListener;
 import de.tectoast.emolga.selectmenus.MenuListener;
 import de.tectoast.emolga.utils.Constants;
@@ -20,6 +21,7 @@ import net.dv8tion.jda.api.events.channel.ChannelCreateEvent;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceJoinEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceMoveEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
@@ -45,8 +47,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static de.tectoast.emolga.commands.Command.*;
-import static de.tectoast.emolga.utils.Constants.EMOLGA_KI;
-import static de.tectoast.emolga.utils.Constants.MYSERVER;
+import static de.tectoast.emolga.utils.Constants.*;
 
 public class EmolgaListener extends ListenerAdapter {
     public static final String WELCOMEMESSAGE = """
@@ -103,6 +104,15 @@ public class EmolgaListener extends ListenerAdapter {
     public void onGuildVoiceMove(@NotNull GuildVoiceMoveEvent e) {
         if (e.getChannelLeft().getMembers().size() == 1 && e.getGuild().getAudioManager().isConnected()) {
             e.getGuild().getAudioManager().closeAudioConnection();
+        }
+    }
+
+    @Override
+    public void onGuildVoiceJoin(@NotNull GuildVoiceJoinEvent e) {
+        if (e.getChannelJoined().getIdLong() == 979436321359683594L) {
+            long mid = e.getMember().getIdLong();
+            if (mid == e.getJDA().getSelfUser().getIdLong()) return;
+            WirklichGuteMusikCommand.doIt(e.getGuild().getTextChannelById(861558360104632330L), e.getMember(), mid == FLOID || mid == DASORID);
         }
     }
 

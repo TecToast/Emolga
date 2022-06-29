@@ -66,5 +66,5 @@ dependencies {
     implementation 'de.tectoast:jsolf:1.2'
     implementation 'net.dv8tion:JDA:5.0.0-alpha.13'
     implementation 'com.zaxxer:HikariCP:5.0.1'
-    implementation 'org.mariadb.jdbc:mariadb-java-client:3.0.5'
+    implementation 'org.mariadb.jdbc:mariadb-java-client:3.0.6'
 }

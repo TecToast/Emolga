@@ -1,7 +1,7 @@
 //file:noinspection GroovyAssignabilityCheck
 plugins {
     id 'com.github.johnrengelman.shadow' version '7.1.2'
-    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version '1.7.0'
 }
 compileJava.options.encoding = 'UTF-8'
 
@@ -9,7 +9,11 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
-apply plugin: "com.github.johnrengelman.shadow"
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of("16")) // "8"
+    }
+}
 
 group 'de.tectoast'
 version '1.0-SNAPSHOT'

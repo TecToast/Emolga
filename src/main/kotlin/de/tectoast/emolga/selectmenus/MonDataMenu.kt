@@ -1,0 +1,154 @@
+package de.tectoast.emolga.selectmenus
+
+import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.pokemon.DataCommand.Companion.getPrevoInfo
+import net.dv8tion.jda.api.EmbedBuilder
+import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent
+import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
+import net.dv8tion.jda.api.interactions.components.selections.SelectOption
+import org.slf4j.LoggerFactory
+import java.awt.Color
+import java.util.stream.Collectors
+
+class MonDataMenu : MenuListener("mondata") {
+    override fun process(e: SelectMenuInteractionEvent, menuname: String?) {
+        /*e.reply("Dieses Menü funktioniert noch nicht, aber Flo arbeitet zurzeit daran :3").setEphemeral(true).queue();
+        if (true) return;*/
+        logger.info("e.getMessageIdLong() = " + e.messageIdLong)
+        val name = e.values[0]
+        /*MonData dt = monDataButtons.get(e.getMessageIdLong());
+        if (dt == null) {
+            e.editMessageEmbeds(new EmbedBuilder().setTitle("Ach Mensch " + e.getMember().getEffectiveName() + ", diese Mon-Data funktioniert nicht mehr, da seitdem der Bot neugestartet wurde!").setColor(Color.CYAN).build()).queue();
+            return;
+        }*/
+        val mon = Command.dataJSON.getJSONObject(name)
+        val builder = EmbedBuilder()
+        builder.addField("Englisch", mon.getString("name"), true)
+        builder.addField("Dex", mon.getInt("num").toString(), true)
+        val gender: String = if (mon.has("genderRatio")) {
+            val gen = mon.getJSONObject("genderRatio")
+            (gen.getDouble("M") * 100).toString() + "% ♂ " + gen.getDouble("F") * 100 + "% ♀"
+        } else if (mon.has("gender")) {
+            if (mon.getString("gender") == "M") "100% ♂" else if (mon.getString("gender") == "F") "100% ♀" else "Unbekannt"
+        } else "50% ♂ 50% ♀"
+        builder.addField("Geschlecht", gender, true)
+        //list.forEach(j -> logger.info(j.toString(4)));
+        val monname = mon.getString("name")
+        if (monname.equals("silvally", ignoreCase = true) || monname.equals("arceus", ignoreCase = true)) {
+            builder.addField("Typen", "Normal", false)
+        } else {
+            logger.info(mon.toString())
+            val type = mon.getJSONArray("types").toList().stream().map { o: Any ->
+                if (o == "Psychic") return@map "Psycho"
+                Command.getGerNameNoCheck(o as String)
+            }.collect(Collectors.joining(" "))
+            builder.addField("Typen", type, false)
+        }
+        builder.addField("Größe", mon.getDouble("heightm").toString() + " m", true)
+        builder.addField("Gewicht", mon.getDouble("weightkg").toString() + " kg", true)
+        builder.addField("Eigruppe", mon.getJSONArray("eggGroups").toList().stream().map { o: Any ->
+            Command.getGerNameNoCheck(
+                "E_$o"
+            )
+        }.collect(Collectors.joining(", ")), true)
+        if (monname.equals("silvally", ignoreCase = true) || monname.equals("arceus", ignoreCase = true)) {
+            builder.addField(
+                "Fähigkeiten",
+                if (monname.equals("silvally", ignoreCase = true)) "Alpha-System" else "Variabilität",
+                false
+            )
+        } else {
+            val o = mon.getJSONObject("abilities")
+            val b = StringBuilder()
+            if (o.has("0")) {
+                b.append(Command.getGerNameNoCheck(o.getString("0"))).append("\n")
+            }
+            if (o.has("1")) {
+                b.append(Command.getGerNameNoCheck(o.getString("1"))).append("\n")
+            }
+            if (o.has("H")) {
+                b.append(Command.getGerNameNoCheck(o.getString("H"))).append(" (VF)")
+            }
+            builder.addField("Fähigkeiten", b.toString(), false)
+        }
+        /*if (mon.has("prevo")) {
+                            if(list.size() == 1) {
+                                builder.addField("Vorentwicklung", getPrevoInfo(mon), false);
+                            } else {
+                                for (JSONObject obj : list) {
+                                    builder.addField(name + "-" + (obj.optString("baseForme", obj.optString("forme", ""))), getPrevoInfo(obj), true);
+                                }
+                            }
+                        }*/if (monname.equals("silvally", ignoreCase = true) || monname.equals(
+                "arceus",
+                ignoreCase = true
+            )
+        ) {
+            builder.addField(
+                if (monname.equals("silvally", ignoreCase = true)) "Amigento" else "Arceus",
+                if (monname.equals("silvally", ignoreCase = true)) """
+                    KP: 95
+                    Atk: 95
+                    Def: 95
+                    SpAtk: 95
+                    SpDef: 95
+                    Init: 95
+                    Summe: 570
+                """.trimIndent() else """
+                    KP: 120
+                    Atk: 120
+                    Def: 120
+                    SpAtk: 120
+                    SpDef: 120
+                    Init: 120
+                    Summe: 720
+                """.trimIndent(),
+                false
+            )
+        } else {
+            val stats = mon.getJSONObject("baseStats")
+            val kp = stats.getInt("hp")
+            val atk = stats.getInt("atk")
+            val def = stats.getInt("def")
+            val spa = stats.getInt("spa")
+            val spd = stats.getInt("spd")
+            val spe = stats.getInt("spe")
+            val str = """
+                KP: $kp
+                Atk: $atk
+                Def: $def
+                SpAtk: $spa
+                SpDef: $spd
+                Init: $spe
+                Summe: ${kp + atk + def + spa + spd + spe}
+                """.trimIndent()
+
+            /*origname.put(toadd.toString(), obj);
+                                if (stat.containsKey(str)) stat.get(str).add(toadd.toString());
+                                else stat.put(str, new ArrayList<>(Collections.singletonList(toadd.toString())));*/
+            val prevoInfo = getPrevoInfo(mon)
+            if (prevoInfo.isNotEmpty()) {
+                builder.addField("Erhaltbarkeit", prevoInfo, false)
+            }
+            builder.addField("Basestats", str, false)
+
+            /*for (String s : stat.keySet().stream().sorted(Comparator.comparing(o -> stat.get(o).stream().mapToInt(str -> formeNames.indexOf(toSDName(origname.get(str).getString("name")))).min().orElse(0))).collect(Collectors.toList())) {
+                                builder.addField(String.join(", ", stat.get(s)), stat.get(s).stream().map(origname::get).map(DataCommand::getPrevoInfo).collect(Collectors.joining("")) + s, true);
+                            }*/
+        }
+        builder.setImage(Command.getGen5SpriteWithoutGoogle(mon))
+        builder.setTitle(Command.getGerNameWithForm(monname))
+        builder.setColor(Color.CYAN)
+        e.editMessageEmbeds(builder.build())
+            .setActionRow(SelectMenu.create("mondata").addOptions(e.selectMenu.options.stream().map { o: SelectOption ->
+                o.withDefault(
+                    o.value == name
+                )
+            }.collect(Collectors.toList())).build()).queue()
+        //e.getHook().editOriginalEmbeds(builder.build()).queue();
+    }
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(MonDataMenu::class.java)
+    }
+}

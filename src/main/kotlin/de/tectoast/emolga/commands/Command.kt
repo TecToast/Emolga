@@ -60,6 +60,7 @@ import net.dv8tion.jda.api.audio.hooks.ConnectionListener
 import net.dv8tion.jda.api.audio.hooks.ConnectionStatus
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.entities.Message.Attachment
+import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
@@ -2066,7 +2067,7 @@ abstract class Command(
                 .toTypedArray()) {
                 val m = counter.getJSONObject(method)
                 b.append(method).append(": ").append(
-                    emolgajda.getGuildById(745934535748747364)!!.getEmoteById(m.getString("emote"))!!.asMention
+                    emolgajda.getGuildById(745934535748747364)!!.getEmojiById(m.getString("emote"))!!.asMention
                 ).append("\n")
                 for (s in shinycountjson.getString("userorder").split(",".toRegex())) {
                     b.append(names.getString(s)).append(": ").append(m.optInt(s, 0)).append("\n")
@@ -2452,8 +2453,8 @@ abstract class Command(
             val message: Message =
                 emolgajda.getTextChannelById(predictiongame.getLong("channelid"))!!.retrieveMessageById(gd.getLong(key))
                     .complete()
-            val e1: List<User> = message.retrieveReactionUsers(emolgajda.getEmoteById(540970044297838597L)!!).complete()
-            val e2: List<User> = message.retrieveReactionUsers(emolgajda.getEmoteById(645622238757781505L)!!).complete()
+            val e1: List<User> = message.retrieveReactionUsers(emolgajda.getEmojiById(540970044297838597L)!!).complete()
+            val e2: List<User> = message.retrieveReactionUsers(emolgajda.getEmojiById(645622238757781505L)!!).complete()
             if (p1wins) {
                 for (user in e1) {
                     if (!e2.contains(user)) {
@@ -2598,8 +2599,8 @@ abstract class Command(
             }
                 .collect(Collectors.toList())) { s: CommandCategory ->
                 Button.primary("help;" + s.categoryName.lowercase(), s.categoryName).withEmoji(
-                    Emoji.fromEmote(
-                        g.jda.getEmoteById(s.emote)!!
+                    Emoji.fromCustom(
+                        g.jda.getEmojiById(s.emote)!!
                     )
                 )
             }

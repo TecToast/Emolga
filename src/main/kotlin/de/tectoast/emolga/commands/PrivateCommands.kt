@@ -22,7 +22,10 @@ import de.tectoast.jsolf.JSONArray
 import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
-import net.dv8tion.jda.api.entities.*
+import net.dv8tion.jda.api.entities.AudioChannel
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.UserSnowflake
+import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
@@ -72,7 +75,7 @@ object PrivateCommands {
         var s = DOUBLE_BACKSLASH.matcher(message.contentRaw.substring(24)).replaceAll("")
         val tc = e.jda.getTextChannelById(e.getArg(0))
         val g = tc!!.guild
-        for (emote in g.retrieveEmotes().complete()) {
+        for (emote in g.retrieveEmojis().complete()) {
             s = s.replace("<<" + emote.name + ">>", emote.asMention)
         }
         tc.sendMessage(s).queue()
@@ -97,11 +100,11 @@ object PrivateCommands {
             s = s.substring(1)
             logger.info("s = $s")
             val finalS = s
-            tc.guild.retrieveEmotes().complete().stream()
-                .filter { emote: ListedEmote -> emote.name.equals(finalS, ignoreCase = true) }
-                .forEach { emote: ListedEmote? -> m.addReaction(emote!!).queue() }
+            tc.guild.retrieveEmojis().complete().stream()
+                .filter { it.name.equals(finalS, ignoreCase = true) }
+                .forEach { m.addReaction(it!!).queue() }
         } else {
-            m.addReaction(s).queue()
+            m.addReaction(Emoji.fromUnicode(s)).queue()
         }
     }
 
@@ -152,9 +155,8 @@ object PrivateCommands {
     @PrivateCommand(name = "addreactions")
     fun addReactions(e: GenericCommandEvent) {
         e.jda.getTextChannelById(e.getArg(0))?.retrieveMessageById(e.getArg(1))?.queue { m: Message ->
-            m.reactions.forEach(Consumer { mr: MessageReaction ->
-                val emote = mr.reactionEmote
-                if (emote.isEmoji) m.addReaction(emote.emoji).queue() else m.addReaction(emote.emote).queue()
+            m.reactions.forEach(Consumer {
+                m.addReaction(it.emoji).queue()
             })
             e.done()
         }
@@ -729,14 +731,10 @@ object PrivateCommands {
             EmbedBuilder().setTitle("FlorixControl").setColor(Color.CYAN).build()
         ).setActionRow(
             Button.success("florix;startserver", "Server starten").withEmoji(
-                Emoji.fromEmote(
-                    jda.getEmoteById(964570148692443196L)!!
-                )
+                jda.getEmojiById(964570148692443196L)!!
             ),
             Button.secondary("florix;stopserver", "Server stoppen").withEmoji(
-                Emoji.fromEmote(
-                    jda.getEmoteById(964570147220254810L)!!
-                )
+                jda.getEmojiById(964570147220254810L)!!
             ),
             Button.danger("florix;poweroff", "PowerOff").withEmoji(Emoji.fromUnicode("⚠️")),
             Button.primary("florix;status", "Status").withEmoji(Emoji.fromUnicode("ℹ️"))
@@ -800,7 +798,7 @@ object PrivateCommands {
             .filter { it.isSlash }
 
         Command.commands.values.stream().filter { obj: Command -> obj.isSlash }
-            .filter { c: Command -> !c.slashGuilds.isEmpty() }.forEach { c: Command ->
+            .filter { c: Command -> c.slashGuilds.isNotEmpty() }.forEach { c: Command ->
                 val dt = Commands.slash(c.name, c.help)
                 val mainCmdArgs = c.argumentTemplate.arguments
                 if (c.hasChildren()) {

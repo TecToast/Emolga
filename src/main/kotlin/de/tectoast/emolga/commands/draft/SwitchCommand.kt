@@ -121,7 +121,6 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
         dp.tier = tierlist.getTierOf(newmon)
 
         //m.delete().queue();
-        d.update(mem)
         //aslNoCoachDoc(tierlist, newmon, d, mem, tier, pointsBack - newpoints, oldMon, oldindex.get(), d.originalOrder.get(d.round).indexOf(mem));
         ndss3Doc(newmon, d, mem, oldmon)
         league.getJSONObject("picks").put(d.current, d.getTeamAsArray(d.current))

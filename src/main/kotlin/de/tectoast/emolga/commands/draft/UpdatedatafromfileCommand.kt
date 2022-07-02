@@ -19,7 +19,7 @@ class UpdatedatafromfileCommand :
 
     override fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
-        val name = e.arguments!!.getText("name")
+        val name = e.arguments.getText("name")
         val op = Draft.drafts.stream().filter { d: Draft -> d.name == name }.findFirst()
         if (op.isEmpty) {
             tco.sendMessage("Dieser Draft existiert nicht!").queue()
@@ -51,14 +51,13 @@ class UpdatedatafromfileCommand :
                     monlist.add(DraftPokemon(obj.getString("name"), obj.getString("tier")))
                 }
                 d.picks[mem] = monlist
-                d.update(mem)
             } else {
                 d.picks[mem] = ArrayList()
             }
             if (d.isPointBased) {
-                d.points[mem] = d.tierlist!!.points
+                d.points[mem] = d.tierlist.points
                 for (mon in d.picks[mem]!!) {
-                    d.points[mem] = d.points[mem]!! - d.tierlist!!.prices[mon.tier]!!
+                    d.points[mem] = d.points[mem]!! - d.tierlist.prices[mon.tier]!!
                 }
             }
         }

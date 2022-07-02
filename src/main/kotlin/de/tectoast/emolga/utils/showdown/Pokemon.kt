@@ -92,8 +92,6 @@ class Pokemon(
             if (lastKillTurn == turn) return
             kills++
             lastKillTurn = turn
-            logger.info(MarkerFactory.getMarker("important"), "added kill to {} in turn {}", this.pokemon, turn)
-            Thread.dumpStack()
         }
     }
 

@@ -173,7 +173,6 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 if (!league.has("picks")) league.put("picks", JSONObject())
                 league.getJSONObject("picks").put(mem, d.getTeamAsArray(mem))
                 //m.delete().queue();
-                d.update(mem)
                 slashEvent?.reply("${slashEvent.member!!.effectiveName} hat $pokemon gepickt!")?.queue()
                 if (isRandom) {
                     tco.sendMessage("**<@$mem>** hat aus dem $tier-Tier ein **$pokemon** bekommen!").queue()

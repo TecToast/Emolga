@@ -43,7 +43,7 @@ class GcreateCommand : Command(
             val g = Giveaway(tchan!!.idLong, u.idLong, end, winners, prize)
             val message = g.render(now)
             tchan.sendMessage(message).queue { m: Message ->
-                m.addReaction(tco.jda.getEmoteById("772191611487780934")!!).queue()
+                m.addReaction(tco.jda.getEmojiById("772191611487780934")!!).queue()
                 g.messageId = m.idLong
                 tco.sendMessage("Das Giveaway wurde erstellt!").queue()
             }

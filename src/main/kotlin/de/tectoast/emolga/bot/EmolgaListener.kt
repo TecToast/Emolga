@@ -18,6 +18,7 @@ import de.tectoast.emolga.utils.sql.managers.BanManager
 import de.tectoast.emolga.utils.sql.managers.MuteManager
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.*
+import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.ReadyEvent
 import net.dv8tion.jda.api.events.channel.ChannelCreateEvent
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent
@@ -141,10 +142,10 @@ class EmolgaListener : ListenerAdapter() {
                     Command.help(tco, member)
                 }
                 if (Command.emoteSteal.contains(tco.idLong)) {
-                    val l = m.mentions.emotes
+                    val l = m.mentions.customEmojis
                     for (emote in l) {
                         try {
-                            g.createEmote(emote.name, Icon.from(URL(emote.imageUrl).openStream())).queue()
+                            g.createEmoji(emote.name, Icon.from(URL(emote.imageUrl).openStream())).queue()
                         } catch (ioException: IOException) {
                             ioException.printStackTrace()
                         }
@@ -191,7 +192,7 @@ class EmolgaListener : ListenerAdapter() {
                         "!analyse "
                     ) && !msg.contains("!sets ")
                 ) {
-                    val t = tco.guild.getTextChannelById(Command.replayAnalysis[tco.idLong]!!)!!
+                    val t = tco.guild.getTextChannelById(Command.replayAnalysis[tco.idLong]!!) ?: return
                     //t.sendTyping().queue();
                     if (msg.contains("https://") || msg.contains("http://")) {
                         val urlop = Arrays.stream(msg.split("\n".toRegex()).dropLastWhile { it.isEmpty() }

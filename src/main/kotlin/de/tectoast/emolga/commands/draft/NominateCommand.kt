@@ -6,9 +6,9 @@ import de.tectoast.emolga.commands.PrivateCommand
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.EmbedBuilder
-import net.dv8tion.jda.api.entities.Emoji
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button

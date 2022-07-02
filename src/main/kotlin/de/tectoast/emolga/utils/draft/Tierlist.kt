@@ -8,6 +8,7 @@ import java.util.*
 import java.util.function.Consumer
 import java.util.regex.Pattern
 import java.util.stream.Collectors
+import kotlin.reflect.KProperty
 
 class Tierlist(guild: String) {
     /**
@@ -169,6 +170,12 @@ class Tierlist(guild: String) {
         return ""
     }
 
+    class Delegate() {
+        operator fun getValue(thisRef: Draft, property: KProperty<*>): Tierlist {
+            return getByGuild(thisRef.guild)!!
+        }
+    }
+
     companion object {
         /**
          * All tierlists
@@ -179,7 +186,7 @@ class Tierlist(guild: String) {
         fun setup() {
             tierlists.clear()
             val dir = File("./Tierlists/")
-            for (file in dir.listFiles()) {
+            for (file in dir.listFiles()!!) {
                 if (file.isFile) Tierlist(file.name)
             }
         }

@@ -347,7 +347,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                             }
                         }
                         if (zpower == null) sendToMe("Fehler bei Z-$name!")
-                        builder.addField("Z-Power", zpower, true)
+                        builder.addField("Z-Power", zpower ?: "ERROR", true)
                     }
                     tco.sendMessageEmbeds(builder.build()).queue()
                 }

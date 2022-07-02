@@ -8,6 +8,8 @@ import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.MessageBuilder
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageReaction
+import net.dv8tion.jda.api.entities.emoji.CustomEmoji
+import net.dv8tion.jda.api.entities.emoji.Emoji
 import org.slf4j.LoggerFactory
 import java.awt.Color
 import java.time.Instant
@@ -103,9 +105,8 @@ Gehostet von: <@$userId>"""
         try {
             val opt: MessageReaction? = emolgajda.getTextChannelById(channelId)?.retrieveMessageById(messageId)
                 ?.complete()?.reactions?.let { mr ->
-                    mr.firstOrNull { it.reactionEmote.run { isEmote && emote.idLong == 967390962877870090 } }
+                    mr.firstOrNull { it.emoji.type == Emoji.Type.CUSTOM && (it.emoji as CustomEmoji).idLong == 967390962877870090 }
                 }
-
             val members = ArrayList<Long>()
             opt?.run {
                 retrieveUsers().complete().filter { !it.isBot && it.idLong != userId }

@@ -41,6 +41,7 @@ class Draft @JvmOverloads constructor(
     var cooldown: ScheduledFuture<*>? = null
     private var ts: TextChannel? = null
     var ended = false
+    val tierlist: Tierlist by Tierlist.Delegate()
 
     init {
         val json = Command.emolgaJSON
@@ -51,7 +52,7 @@ class Draft @JvmOverloads constructor(
             name
         )
         guild = if (league.has("guild")) league.getString("guild") else tc.guild.id
-        isPointBased = tierlist!!.isPointBased
+        isPointBased = tierlist.isPointBased
         logger.info("isPointBased = $isPointBased")
         val o = league.getJSONObject("order")
         Thread({
@@ -76,7 +77,7 @@ class Draft @JvmOverloads constructor(
                 league.put("skippedturns", JSONObject())
                 for (member in members) {
                     picks[member] = ArrayList()
-                    points[member] = tierlist!!.points
+                    points[member] = tierlist.points
                 }
                 if (ts != null) {
                     for (member in members) {
@@ -109,15 +110,13 @@ class Draft @JvmOverloads constructor(
                                 list.add(DraftPokemon(obj.getString("name"), obj.getString("tier")))
                             }
                             picks[member] = list
-                            update(member)
-                            logger.info("update end")
                         } else {
                             picks[member] = ArrayList()
                         }
                         if (isPointBased) {
-                            points[member] = tierlist!!.points
+                            points[member] = tierlist.points
                             for (mon in picks[member]!!) {
-                                points[member] = points[member]!! - tierlist!!.prices[mon.tier]!!
+                                points[member] = points[member]!! - tierlist.prices[mon.tier]!!
                             }
                         }
                     }
@@ -161,16 +160,14 @@ class Draft @JvmOverloads constructor(
                                 list.add(DraftPokemon(obj.getString("name"), obj.getString("tier")))
                             }
                             picks[member] = list
-                            update(member)
                         } else {
                             picks[member] = ArrayList()
                         }
                         if (isPointBased) {
-                            points[member] = tierlist!!.points
+                            points[member] = tierlist.points
                             for (mon in picks[member]!!) {
                                 val t = tierlist
-                                if (t == null) logger.info("TIERLISTNULL")
-                                if (t!!.prices[mon.tier] == null) {
+                                if (t.prices[mon.tier] == null) {
                                     logger.info(mon.name + " ERROR " + mon.tier)
                                 }
                                 points[member] = points[member]!! - t.prices[mon.tier]!!
@@ -236,9 +233,6 @@ class Draft @JvmOverloads constructor(
         Command.saveEmolgaJSON()
     }
 
-    val tierlist: Tierlist?
-        get() = Tierlist.getByGuild(guild)
-
     fun getMention(mem: Long): String {
         val league = league
         if (league.has("mentions")) {
@@ -293,30 +287,6 @@ class Draft @JvmOverloads constructor(
         return picks[mem]!!.stream().anyMatch { dp: DraftPokemon -> dp.name.equals(oldmon, ignoreCase = true) }
     }
 
-    fun update(mem: Long) {
-        if (ts == null) return
-        Thread({
-            val list = ArrayList<Message?>()
-            for (message in ts!!.iterableHistory) {
-                list.add(message)
-            }
-            list.reverse()
-            if (list.isEmpty()) {
-                for (member in members) {
-                    list.add(tc.sendMessage(getTeamMsg(mem)).complete())
-                }
-            }
-            var i = 0
-            for (member in members) {
-                if (member == mem) {
-                    list[i]!!.editMessage(getTeamMsg(mem)).queue()
-                    break
-                }
-                i++
-            }
-        }, "DraftMemberUpdate").start()
-    }
-
     @JvmOverloads
     fun timer(tr: TimerReason = TimerReason.REALTIMER) {
         if (ended) return
@@ -324,7 +294,7 @@ class Draft @JvmOverloads constructor(
         val league = drafts.getJSONObject(name)
         if (!league.has("skippedturns")) league.put("skippedturns", JSONObject())
         val st = league.getJSONObject("skippedturns")
-        val rounds = tierlist!!.rounds
+        val rounds = tierlist.rounds
         st.put(current, st.createOrGetArray(current).put(round))
         if (order[round]!!.size == 0) {
             if (round == rounds) {
@@ -367,24 +337,6 @@ class Draft @JvmOverloads constructor(
         return arr
     }
 
-    private fun getTeamMsg(member: Long): String {
-        val list = picks[member]!!
-        val msg = StringBuilder("**<@$member>**\n")
-        for (o in tierlist!!.order) {
-            val mons = list.stream().filter { s: DraftPokemon -> s.tier == o }.sorted(
-                Comparator.comparing(
-                    { o2: DraftPokemon -> o2.name })
-            ).collect(
-                Collectors.toCollection(
-                    { ArrayList() })
-            )
-            for (mon in mons) {
-                msg.append(o).append(": ").append(mon.name).append("\n")
-            }
-        }
-        return msg.toString()
-    }
-
     /*public static String getTeamMsgFromString(Guild g, String mem, String str) {
         Member member = g.retrieveMemberById(mem).complete();
         StringBuilder msg = new StringBuilder("**" + member.getEffectiveName() + "**\n");
@@ -398,7 +350,7 @@ class Draft @JvmOverloads constructor(
         return msg.toString();
     }*/
     fun getPossibleTiers(mem: Long): Map<String?, Int?> {
-        val possible: MutableMap<String?, Int?> = HashMap(tierlist!!.prices)
+        val possible: MutableMap<String?, Int?> = HashMap(tierlist.prices)
         for (mon in picks[mem]!!) {
             possible[mon.tier] = possible[mon.tier]!! - 1
         }
@@ -408,7 +360,7 @@ class Draft @JvmOverloads constructor(
     fun getPossibleTiersAsString(mem: Long): String {
         val possible = getPossibleTiers(mem)
         val list = ArrayList<String>()
-        for (s in tierlist!!.order) {
+        for (s in tierlist.order) {
             if (possible[s] == 0) continue
             list.add(possible[s].toString() + "x **" + s + "**")
         }
@@ -530,8 +482,8 @@ class Draft @JvmOverloads constructor(
                 val t2 = teamnames.getString(u2)
                 logger.info("t1 = $t1")
                 logger.info("t2 = $t2")
-                val e1 = g.getEmotesByName(Command.toSDName(t1), true)[0]
-                val e2 = g.getEmotesByName(Command.toSDName(t2), true)[0]
+                val e1 = g.getEmojisByName(Command.toSDName(t1), true)[0]
+                val e2 = g.getEmojisByName(Command.toSDName(t2), true)[0]
                 //logger.info("<@" + u1 + "> (" + e1.getAsMention() + ") vs. <@" + u2 + "> (" + e2.getAsMention() + ")");
                 tc.sendMessage("<@" + u1 + "> (" + e1.asMention + ") vs. <@" + u2 + "> (" + e2.asMention + ")")
                     .queue { m: Message ->
@@ -627,7 +579,7 @@ class Draft @JvmOverloads constructor(
             return levelJSON.getLongList("table").indexOf(userid)
         }
 
-        fun getLeagueStatic(name: String?): JSONObject {
+        fun getLeagueStatic(name: String): JSONObject {
             val drafts = Command.emolgaJSON.getJSONObject("drafts")
             val aslpattern = Pattern.compile("^S\\d")
             return if (aslpattern.matcher(name).find()) drafts.getJSONObject("ASLS9")

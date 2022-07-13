@@ -195,6 +195,7 @@ abstract class DataManager(private val tableName: String) {
             try {
                 connection.use { conn ->
                     val statement = conn.createStatement()
+                    logger.info(query)
                     val results = statement.executeQuery(query)
                     return rf.apply(results)
                 }

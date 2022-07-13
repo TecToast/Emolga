@@ -196,9 +196,7 @@ class Analysis(private val link: String, m: Message?) {
             s = currentLine
             split = s.split("\\|".toRegex())
             check({ i: Int ->
-                s.contains("|switch|p$i") || s.contains("|drag|p$i") || s.contains(
-                    "|replace|p$i"
-                )
+                s.contains("|switch|p$i") || s.contains("|drag|p$i") || s.contains("|replace|p$i")
             }) { i: Int ->
                 val mon =
                     pl.getValue(i).mons[pl.getValue(i)
@@ -252,43 +250,46 @@ class Analysis(private val link: String, m: Message?) {
                 if (p2.gettSpikesBy(activeP1) != null) p1.settSpikesBy(activeP1) else p1.settSpikesBy(null)
             }
             check({ key: Int -> zoru.containsKey(key) }) { i: Int ->
-                var activeP1 = activeP.getValue(i)
-                if (s.contains("|-damage|p$i")) {
-                    val oldHP = activeP1.hp
-                    val lifes = split[3].split("/".toRegex())[0]
-                    val newHp: Int = if (lifes.contains("fnt")) 0 else lifes.toInt()
-                    if (s.contains("[from] Stealth Rock")) {
-                        val dif = oldHP - newHp
-                        if (getEffectiveness(
-                                "Rock",
-                                *Command.dataJSON.getJSONObject(Command.toSDName(activeP1.pokemon))
-                                    .getStringList("types")
-                                    .toTypedArray()
-                            ) != 0 && dif > 10 && dif < 14
-                        ) activeP1 = getZoro(i, "Stealth Rock")
-                    } else if (s.contains("[from] Spikes")) {
+                //var activeP1 = activeP.getValue(i)
+                activeP[i]?.let { poke ->
+                    var activeP1 = poke
+                    if (s.contains("|-damage|p$i")) {
+                        val oldHP = activeP1.hp
+                        val lifes = split[3].split("/".toRegex())[0]
+                        val newHp: Int = if (lifes.contains("fnt")) 0 else lifes.toInt()
+                        if (s.contains("[from] Stealth Rock")) {
+                            val dif = oldHP - newHp
+                            if (getEffectiveness(
+                                    "Rock",
+                                    *Command.dataJSON.getJSONObject(Command.toSDName(activeP1.pokemon))
+                                        .getStringList("types")
+                                        .toTypedArray()
+                                ) != 0 && dif > 10 && dif < 14
+                            ) activeP1 = getZoro(i, "Stealth Rock")
+                        } else if (s.contains("[from] Spikes")) {
+                            val mon = Command.dataJSON.getJSONObject(Command.toSDName(activeP1.pokemon))
+                            if (mon.getStringList("types").contains("Flying") || mon.getJSONObject("abilities").toMap()
+                                    .containsValue("Levitate")
+                            ) activeP1 = getZoro(i, "Spikes")
+                        }
+                        activeP1.setHp(newHp, turn)
+                        activeP[i] = activeP1
+                    } else if (s.contains("|-heal|p$i")) {
+                        activeP1.setHp(split[3].split("/".toRegex()).dropLastWhile { it.isEmpty() }
+                            .toTypedArray()[0].toInt(), turn)
+                    } else if (s.contains("|-activate|p$i") && s.contains("|move: Sticky Web")) {
                         val mon = Command.dataJSON.getJSONObject(Command.toSDName(activeP1.pokemon))
                         if (mon.getStringList("types").contains("Flying") || mon.getJSONObject("abilities").toMap()
                                 .containsValue("Levitate")
-                        ) activeP1 = getZoro(i, "Spikes")
+                        ) activeP[i] = getZoro(i, "Sticky Web")
+                    } else if (s.contains("[from] ability:") && s.contains("[of] p$i")) {
+                        split.asSequence().filter { str: String -> str.contains("[from] ability:") }
+                            .map { str: String ->
+                                str.split(":".toRegex())[1].trim()
+                            }.forEach { str: String -> activeP.getValue(i).ability = str }
+                    } else if (s.contains("|-ability|p$i")) {
+                        activeP.getValue(i).ability = split[3].trim()
                     }
-                    activeP1.setHp(newHp, turn)
-                    activeP[i] = activeP1
-                } else if (s.contains("|-heal|p$i")) {
-                    activeP1.setHp(split[3].split("/".toRegex()).dropLastWhile { it.isEmpty() }
-                        .toTypedArray()[0].toInt(), turn)
-                } else if (s.contains("|-activate|p$i") && s.contains("|move: Sticky Web")) {
-                    val mon = Command.dataJSON.getJSONObject(Command.toSDName(activeP1.pokemon))
-                    if (mon.getStringList("types").contains("Flying") || mon.getJSONObject("abilities").toMap()
-                            .containsValue("Levitate")
-                    ) activeP[i] = getZoro(i, "Sticky Web")
-                } else if (s.contains("[from] ability:") && s.contains("[of] p$i")) {
-                    split.asSequence().filter { str: String -> str.contains("[from] ability:") }
-                        .map { str: String ->
-                            str.split(":".toRegex())[1].trim()
-                        }.forEach { str: String -> activeP.getValue(i).ability = str }
-                } else if (s.contains("|-ability|p$i")) {
-                    activeP.getValue(i).ability = split[3].trim()
                 }
             }
             checkPokemon({ i: Int -> s.contains("[from] ability:") && s.contains("[of] p$i") }) { p: Pokemon ->

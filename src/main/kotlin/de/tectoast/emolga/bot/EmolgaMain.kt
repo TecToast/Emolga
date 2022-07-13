@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.jetty.HttpHandler
 import de.tectoast.emolga.utils.Giveaway
 import de.tectoast.emolga.utils.sql.managers.GiveawayManager
-import de.tectoast.toastilities.managers.ReactionManager
 import jakarta.xml.bind.DatatypeConverter
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
@@ -63,7 +62,7 @@ object EmolgaMain {
         Command.awaitNextDay()
         flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
         Command.updatePresence()
-        val manager = ReactionManager(emolgajda)
+        /*val manager = ReactionManager(emolgajda)
         manager // BS
             .registerReaction("715249205186265178", "813025531779743774", "813025179114405898", "719928482544484352")
             .registerReaction("715249205186265178", "813025531779743774", "813025403098628097", "813005659619590184")
@@ -90,7 +89,7 @@ object EmolgaMain {
             .registerReaction("827608009571958806", "884567614918111233", "884565288564195348", "884565609663320086")
             .registerReaction("827608009571958806", "884567614918111233", "886748333484441650", "886746672120606771")
             .registerReaction("827608009571958806", "884567614918111233", "886748333484441650", "886746672120606771")
-            .registerReaction("827608009571958806", "884567614918111233", "921389285188440115", "921387730200584222")
+            .registerReaction("827608009571958806", "884567614918111233", "921389285188440115", "921387730200584222")*/
         GiveawayManager.forAll { r: ResultSet ->
             Giveaway(
                 r.getLong("channelid"),

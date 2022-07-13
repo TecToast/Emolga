@@ -3,6 +3,8 @@ package de.tectoast.emolga.commands
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command.ArgumentManagerTemplate
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
+import de.tectoast.emolga.commands.Command.Companion.load
+import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Translation
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.utils.Constants
@@ -857,6 +859,49 @@ object PrivateCommands {
         e.reply((System.nanoTime() - l).toString())
     }
 
+    @PrivateCommand(name = "buildenglishtierlist")
+    fun buildEnglishTierlist(e: GenericCommandEvent) {
+        val guild = e.getArg(0)
+        val t = Tierlist.getByGuild(guild)!!
+        val all: MutableList<String> = mutableListOf()
+        for (s in t.order) {
+            t.tierlist[s]!!.asSequence().map { str: String ->
+                if (str.startsWith("M-")) {
+                    if (str.endsWith("-X")) return@map "M-" + Command.getEnglName(
+                        str.substring(
+                            2,
+                            str.length - 2
+                        )
+                    ) + "-X"
+                    if (str.endsWith("-Y")) return@map "M-" + Command.getEnglName(
+                        str.substring(
+                            2,
+                            str.length - 2
+                        )
+                    ) + "-Y"
+                    return@map "M-" + Command.getEnglName(str.substring(2))
+                }
+                if (str.startsWith("A-")) return@map "A-" + Command.getEnglName(str.substring(2))
+                if (str.startsWith("G-")) return@map "G-" + Command.getEnglName(str.substring(2))
+                val engl = Command.getEnglNameWithType(str)
+                if (engl.isSuccess) return@map engl.translation
+                logger.info("str = {}", str)
+                when (str) {
+                    "Kapu-Riki" -> "Tapu Koko"
+                    "Kapu-Toro" -> "Tapu Bulu"
+                    "Kapu-Kime" -> "Tapu Fini"
+                    "Kapu-Fala" -> "Tapu Lele"
+                    "Furnifra" -> "Heatmor"
+                    else -> Command.getEnglName(str.split("-".toRegex())[0]) + "-" + str.split("-".toRegex())[1]
+                }
+            }.forEach { all.add(it) }
+        }
+        val path = "Tierlists/$guild.json"
+        val o = load(path)
+        o.put("englishNames", all)
+        save(o, path)
+    }
+
     fun execute(message: Message) {
         val msg = message.contentRaw
         for (method in PrivateCommands::class.java.declaredMethods) {
@@ -876,8 +921,8 @@ object PrivateCommands {
                 Thread({
                     try {
                         if (method.parameterCount == 0) {
-                            method.invoke(null)
-                        } else method.invoke(null, PrivateCommandEvent(message))
+                            method.invoke(this)
+                        } else method.invoke(this, PrivateCommandEvent(message))
                     } catch (e: IllegalAccessException) {
                         logger.error("PrivateCommand " + a.name, e)
                     } catch (e: InvocationTargetException) {

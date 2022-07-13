@@ -19,6 +19,7 @@ group 'de.tectoast'
 version '1.0-SNAPSHOT'
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven {
         url "https://m2.dv8tion.net/releases"
@@ -44,7 +45,6 @@ shadowJar {
     archiveBaseName.set('Bots')
     archiveClassifier.set('')
     archiveVersion.set('')
-    destinationDirectory.set(new File("C:\\Users\\Florian\\Desktop\\IntelliJ\\Emolga"))
     manifest {
         attributes "Main-Class": "de.tectoast.emolga.Main"
     }
@@ -66,7 +66,7 @@ dependencies {
     //implementation 'mysql:mysql-connector-java:8.0.29'
     implementation 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
     implementation 'org.glassfish.jaxb:jaxb-runtime:4.0.0'
-    implementation 'de.tectoast:toastilities:2.1'
+    implementation 'de.tectoast:toastilities:2.2'
     implementation 'de.tectoast:jsolf:1.2'
     implementation 'net.dv8tion:JDA:5.0.0-alpha.13'
     implementation 'com.zaxxer:HikariCP:5.0.1'

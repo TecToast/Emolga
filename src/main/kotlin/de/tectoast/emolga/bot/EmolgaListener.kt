@@ -325,7 +325,7 @@ class EmolgaListener : ListenerAdapter() {
             val arg = Command.byName(e.name)!!.argumentTemplate.find(focusedOption.name)!!
             val type = arg.type
             if (type.hasAutoComplete()) {
-                type.autoCompleteList(focusedOption.value).run {
+                type.autoCompleteList(focusedOption.value, e).run {
                     e.replyChoiceStrings(this ?: emptyList()).queue()
                 }
             }

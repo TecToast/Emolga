@@ -56,6 +56,14 @@ class Tierlist(guild: String) {
      * the possible points for a player
      */
     var points = 0
+    var allEnglNames: List<String>? = null
+
+    val autoComplete: Set<String> by lazy {
+        val all = mutableSetOf<String>()
+        all.addAll(tierlist.values.flatten())
+        allEnglNames?.run { all.addAll(this) }
+        all
+    }
 
     init {
         this.guild = guild.substring(0, guild.length - 5).toLong()
@@ -96,19 +104,10 @@ class Tierlist(guild: String) {
             val am = o.getJSONObject("additionalmons")
             am.keySet().forEach(Consumer { k: String -> tierlist[k]!!.addAll(am.getStringList(k)) })
         }
+        if (o.has("englishNames")) allEnglNames = o.getStringList("englishNames")
         tierlists[this.guild] = this
     }
 
-    fun removeMon(mon: String) {
-        tierlist.values.forEach(Consumer { l: MutableList<String> ->
-            l.removeIf { anotherString: String? ->
-                mon.equals(
-                    anotherString,
-                    ignoreCase = true
-                )
-            }
-        })
-    }
 
     fun getPointsNeeded(s: String): Int {
         for ((key, value) in tierlist) {
@@ -136,7 +135,7 @@ class Tierlist(guild: String) {
         val currtierlist: MutableList<String> = LinkedList()
         for ((x, monss) in mons.withIndex()) {
             val mon = monss.stream().map { obj: String -> obj.trim() }
-                .map { s: String? -> REPLACE_NONSENSE.matcher(s).replaceAll("") }
+                .map { s: String -> REPLACE_NONSENSE.matcher(s).replaceAll("") }
                 .toList()
             if (normal) {
                 if (nexttiers.contains(x)) {
@@ -170,7 +169,7 @@ class Tierlist(guild: String) {
         return ""
     }
 
-    class Delegate() {
+    class Delegate {
         operator fun getValue(thisRef: Draft, property: KProperty<*>): Tierlist {
             return getByGuild(thisRef.guild)!!
         }

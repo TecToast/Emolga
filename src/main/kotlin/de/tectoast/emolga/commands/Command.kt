@@ -61,6 +61,7 @@ import net.dv8tion.jda.api.audio.hooks.ConnectionStatus
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.entities.Message.Attachment
 import net.dv8tion.jda.api.entities.emoji.Emoji
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
@@ -91,10 +92,8 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.function.Consumer
+import java.util.function.*
 import java.util.function.Function
-import java.util.function.Predicate
-import java.util.function.Supplier
 import java.util.regex.Pattern
 import java.util.stream.Collectors
 import java.util.stream.IntStream
@@ -275,7 +274,7 @@ abstract class Command(
      */
     @Throws(Exception::class)
     abstract fun process(e: GuildCommandEvent)
-    
+
 
     fun getHelp(g: Guild?): String {
         val args = argumentTemplate //?: return "`" + prefix + name + "` " + overrideHelp.getOrDefault(g.idLong, help)
@@ -323,7 +322,7 @@ abstract class Command(
             return false
         }
 
-        fun autoCompleteList(arg: String): List<String>? {
+        fun autoCompleteList(arg: String, event: CommandAutoCompleteInteractionEvent): List<String>? {
             return null
         }
     }
@@ -525,10 +524,8 @@ abstract class Command(
                 if (argumentI >= arguments.size) break
                 val a = arguments[argumentI]
                 if (a.disabled.contains(mid)) break
-                val str = if (argumentI + 1 == arguments.size) java.lang.String.join(
-                    " ",
-                    split.subList(i, split.size)
-                ) else split[i]
+                val str =
+                    if (argumentI + 1 == arguments.size) split.subList(i, split.size).joinToString(" ") else split[i]
                 val type = a.type
                 var o: Any?
                 if (type is DiscordType || type is DiscordFile) {
@@ -548,7 +545,7 @@ abstract class Command(
                             arguments[argumentI + 1].disabled.add(mid)
                         }
                         if (b) {
-                            o = type.validate(java.lang.String.join(" ", split.subList(i, split.size)), a.language)
+                            o = type.validate(split.subList(i, split.size).joinToString(" "), a.language)
                         }
                     }
                 }
@@ -675,7 +672,7 @@ abstract class Command(
                 return !(slashSubCmd || texts.isEmpty())
             }
 
-            override fun autoCompleteList(arg: String): List<String> {
+            override fun autoCompleteList(arg: String, event: CommandAutoCompleteInteractionEvent): List<String> {
                 return texts.asSequence().filter { c: SubCommand -> c.name.lowercase().startsWith(arg) }
                     .map { obj: SubCommand -> obj.name }.toList()
             }
@@ -911,10 +908,9 @@ abstract class Command(
             }
 
             @JvmOverloads
-            fun draftPokemon(autoComplete: Function<String, List<String>?>? = null): ArgumentType {
+            fun draftPokemon(autoComplete: BiFunction<String, CommandAutoCompleteInteractionEvent, List<String>?>? = null): ArgumentType {
                 return withPredicate("Pokemon", { s: String ->
-                    getDraftGerName(s)
-                        .isFromType(Translation.Type.POKEMON)
+                    getDraftGerName(s).isFromType(Translation.Type.POKEMON)
                 }, false, draftnamemapper, autoComplete)
             }
 
@@ -943,7 +939,7 @@ abstract class Command(
                 check: Predicate<String>,
                 female: Boolean,
                 mapper: Function<String, String>,
-                autoComplete: Function<String, List<String>?>?
+                autoComplete: BiFunction<String, CommandAutoCompleteInteractionEvent, List<String>?>?
             ): ArgumentType {
                 return object : ArgumentType {
                     override fun validate(str: String, vararg params: Any): Any? {
@@ -968,8 +964,11 @@ abstract class Command(
                         return autoComplete != null
                     }
 
-                    override fun autoCompleteList(arg: String): List<String>? {
-                        return autoComplete!!.apply(arg)
+                    override fun autoCompleteList(
+                        arg: String,
+                        event: CommandAutoCompleteInteractionEvent
+                    ): List<String>? {
+                        return autoComplete!!.apply(arg, event)
                     }
                 }
             }
@@ -2423,7 +2422,7 @@ abstract class Command(
                 sdAnalyser[FLPID] = DocEntries.PRISMA
                 sdAnalyser[FPLID] = DocEntries.UPL
                 sdAnalyser[NDSID] = DocEntries.NDS
-                sdAnalyser[706794294127755324L] = DocEntries.BSL
+                //sdAnalyser[706794294127755324L] = DocEntries.BSL
             }, "Command Initialization").start()
         }
 
@@ -3027,7 +3026,7 @@ abstract class Command(
         }
 
         fun analyseReplay(
-            url: String?,
+            url: String,
             customReplayChannel: TextChannel?,
             resultchannel: TextChannel,
             m: Message?,
@@ -3040,7 +3039,7 @@ abstract class Command(
                 }
                 logger.info("REPLAY! Channel: {}", m?.channel?.id ?: resultchannel.id)
                 val game: Array<Player> = try {
-                    Analysis(url!!, m).analyse()
+                    Analysis(url, m).analyse()
                     //game = Analysis.analyse(url, m);
                 } catch (ex: Exception) {
                     val msg =
@@ -3049,6 +3048,7 @@ abstract class Command(
                         resultchannel.sendMessage(msg).queue()
                     }
                     ex.printStackTrace()
+                    sendToMe("Replay ERROR $url ${resultchannel.asMention}")
                     return@label
                 }
                 val g = resultchannel.guild

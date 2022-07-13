@@ -12,6 +12,7 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -25,13 +26,11 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 "pokemon",
                 "Pokemon",
                 "Das Pokemon, was du picken willst",
-                ArgumentManagerTemplate.draftPokemon { s: String ->
-                    val lol = Tierlist.getByGuild(Constants.FPLID)!!.tierlist["lol"]!!
-                    val strings = lol.stream().filter { str: String ->
-                        str.lowercase(Locale.getDefault()).startsWith(s.lowercase(Locale.getDefault()))
+                ArgumentManagerTemplate.draftPokemon { s: String, event: CommandAutoCompleteInteractionEvent ->
+                    val strings = Tierlist.getByGuild(event.guild!!.id)?.autoComplete?.filter { str: String ->
+                        str.lowercase().startsWith(s.lowercase())
                     }
-                        .toList()
-                    if (strings.size > 25) return@draftPokemon emptyList<String>()
+                    if (strings == null || strings.size > 25) return@draftPokemon emptyList<String>()
                     strings
                 },
                 false,
@@ -39,7 +38,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             ) //.add("tier", "Tier", "Das Tier", ArgumentManagerTemplate.Text.any(), true)
             .setExample("!pick Emolga")
             .build()
-        slash(false, Constants.FPLID)
+        slash(false, Constants.FPLID, Constants.NDSID)
     }
 
     override fun process(e: GuildCommandEvent) {
@@ -94,8 +93,9 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 val tier: String
                 val t: Translation
                 var pokemon: String
-                val tierlist = d.tierlist!!
-                if (d.picks[mem]!!.size == 15) {
+                val tierlist = d.tierlist
+                val picks = d.picks[mem]!!
+                if (picks.filter { it.name != "???" }.size == 15) {
                     tco.sendMessage("Du hast bereits 15 Mons!").queue()
                     return
                 }
@@ -131,7 +131,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 } else {
                     val origtier = tierlist.getTierOf(pokemon)
                     if (origtier.isEmpty()) {
-                        tco.sendMessage(memberr.asMention + " Das ist kein Pokemon!").queue()
+                        tco.sendMessage(memberr.asMention + " Das Pokemon steht nicht in der Tierliste!").queue()
                         return
                     }
                     if (tierlist.order.indexOf(origtier) < tierlist.order.indexOf(tier)) {
@@ -168,8 +168,11 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 /*if (d.isPointBased && (d.getTierlist().rounds - d.round) * d.getTierlist().prices.get(d.getTierlist().order.get(d.getTierlist().order.size() - 1)) > (d.points.get(mem) - needed)) {
                 tco.sendMessage(memberr.getAsMention() + " Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!").queue();
                 return;
-            }*/if (d.isPointBased) d.points[mem] = d.points[mem]!! - needed
-                d.picks[mem]!!.add(DraftPokemon(pokemon, tier))
+            }*/
+                if (d.isPointBased) d.points[mem] = d.points[mem]!! - needed
+                val firstUnknown = picks.first { it.name == "???" }
+                firstUnknown.name = pokemon
+                firstUnknown.tier = tier
                 if (!league.has("picks")) league.put("picks", JSONObject())
                 league.getJSONObject("picks").put(mem, d.getTeamAsArray(mem))
                 //m.delete().queue();
@@ -187,7 +190,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 //aslS10Doc(tierlist, pokemon, d, mem, tier, rd);
                 //ndsdoc(tierlist, pokemon, d, mem, tier);
                 //uplDoc(pokemon, league, d, d.members.size() - d.order.get(d.round).size(), mem);
-                ndss3Doc(pokemon, d, mem)
+                ndss3Doc(pokemon, d, mem, picks.indexOf(firstUnknown))
                 /*if (d.round == tierlist.rounds && d.picks.get(mem).size() < d.round) {
                 if (d.isPointBased)
                     //tco.sendMessage(getMention(current) + " (<@&" + asl.getLongList("roleids").get(getIndex(current.getIdLong())) + ">) ist dran! (" + points.get(current.getIdLong()) + " mögliche Punkte)").queue();
@@ -205,19 +208,20 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             }
         }
 
-        private fun ndss3Doc(pokemon: String, d: Draft, mem: Long) {
+        private fun ndss3Doc(pokemon: String, d: Draft, mem: Long, index: Int) {
             val league = emolgaJSON.getJSONObject("drafts").getJSONObject(d.name)
 
             //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
             val b = RequestBuilder(league.getString("sid"))
             val teamname = league.getJSONObject("teamnames").getString(mem)
             val picks = d.picks.getValue(mem)
-            val y = league.getStringList("table").indexOf(teamname) * 17 + 1 + picks.size
+            val y = league.getStringList("table").indexOf(teamname) * 17 + 2 + index
             b.addSingle("Data!B$y", pokemon)
             b.addSingle("Data!AF$y", 2)
             val tiers = listOf("S", "A", "B")
             b.addColumn("Data!F${league.getStringList("table").indexOf(teamname) * 17 + 2}", picks
                 .asSequence()
+                .filter { it.name != "???" }
                 .sortedWith(compareBy({ tiers.indexOf(it.tier) }, { it.name }))
                 .map { it.name }
                 .toList())

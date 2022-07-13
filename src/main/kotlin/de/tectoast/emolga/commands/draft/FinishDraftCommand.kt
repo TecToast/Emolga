@@ -29,7 +29,7 @@ class FinishDraftCommand :
             return
         }
         val mem = d.current
-        if (e.guild.idLong == Constants.NDSID && d.picks[mem]!!.size < 15) {
+        if (e.guild.idLong == Constants.NDSID && d.picks[mem]!!.filter { it.name != "???" }.size < 15) {
             e.reply("Du hast noch keine 15 Pokemon!")
             return
         }
@@ -38,7 +38,7 @@ class FinishDraftCommand :
         league.put("finished", league.optString("finished") + mem + ",")
         d.cooldown!!.cancel(false)
         if (d.order[d.round]!!.size == 0) {
-            if (d.round == d.tierlist!!.rounds) {
+            if (d.round == d.tierlist.rounds) {
                 tco.sendMessage("Der Draft ist vorbei!").queue()
                 d.ended = true
                 //wooloodoc(tierlist, pokemon, d, mem, needed, null, num, round);

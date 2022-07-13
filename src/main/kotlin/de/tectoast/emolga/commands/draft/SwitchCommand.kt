@@ -69,10 +69,10 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
                     mem = d.tc.getGuild().retrieveMemberById(allowed.getString(member.getId())).complete();
                 } else mem = member;
             } else mem = member;*/
-        val args = e.arguments!!
+        val args = e.arguments
         val oldmon = args.getText("oldmon")
         val newmon = args.getText("newmon")
-        val tierlist = d.tierlist!!
+        val tierlist = d.tierlist
         if (!d.isPickedBy(oldmon, mem)) {
             e.reply(memberr.asMention + " " + oldmon + " befindet sich nicht in deinem Kader!")
             return
@@ -110,13 +110,12 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
         }
         val oldindex = AtomicInteger(-1)
         val draftPokemons = d.picks[mem]!!
-        val drp =
-            draftPokemons.stream().filter { dp: DraftPokemon -> dp.name.equals(oldmon, ignoreCase = true) }.findFirst()
-        if (drp.isEmpty) {
-            logger.error("DRP NULL LINE 232 " + oldindex.get())
+        val dp =
+            draftPokemons.firstOrNull { dp: DraftPokemon -> dp.name.equals(oldmon, ignoreCase = true) }
+        if (dp == null) {
+            logger.error("DRP NULL LINE 116 " + oldindex.get())
             return
         }
-        val dp = drp.get()
         dp.name = newmon
         dp.tier = tierlist.getTierOf(newmon)
 
@@ -325,6 +324,8 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
                 .findFirst().orElse(-1)
             b.addSingle("Data!B$y", pokemon)
             b.addSingle("Data!AF$y", 2)
+            b.addSingle("Data!Q$y", "=SUMME(L$y:P$y)")
+            b.addSingle("Data!AC$y", "=SUMME(X$y:AB$y)")
             val tiers = listOf("S", "A", "B")
             b.addColumn("Data!F${league.getStringList("table").indexOf(teamname) * 17 + 2}", picks
                 .asSequence()

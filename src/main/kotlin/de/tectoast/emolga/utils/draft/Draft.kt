@@ -4,7 +4,6 @@ import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.draft.Draft
 import de.tectoast.jsolf.JSONArray
 import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.entities.Guild
@@ -349,10 +348,11 @@ class Draft @JvmOverloads constructor(
         }
         return msg.toString();
     }*/
-    fun getPossibleTiers(mem: Long): Map<String?, Int?> {
-        val possible: MutableMap<String?, Int?> = HashMap(tierlist.prices)
+    fun getPossibleTiers(mem: Long): Map<String, Int> {
+        val possible: MutableMap<String, Int> = HashMap(tierlist.prices)
         for (mon in picks[mem]!!) {
-            possible[mon.tier] = possible[mon.tier]!! - 1
+            if (mon.name != "???")
+                possible[mon.tier] = possible[mon.tier]!! - 1
         }
         return possible
     }
@@ -381,18 +381,22 @@ class Draft @JvmOverloads constructor(
             val teamnames = nds.getJSONObject("teamnames")
             val battleorder = nds.getJSONObject("battleorder").getString(gameday)
             val b = RequestBuilder(nds.getString("sid"))
-            for (battle in battleorder.split(";".toRegex())) {
+            for (battle in battleorder.split(";".toRegex()).dropLastWhile { it.isEmpty() }) {
+                logger.info("battle = {}", battle)
                 val users = battle.split(":".toRegex())
                 for (index in 0..1) {
-                    val team = teamnames.getString(users[index])
-                    val oppo = teamnames.getString(users[1 - index])
-                    b.addSingle("%s!B18".formatted(team), "={'%s'!B16:AE16}".formatted(oppo))
-                    b.addSingle("%s!B19".formatted(team), "={'%s'!B15:AE15}".formatted(oppo))
-                    b.addSingle("%s!B21".formatted(team), "={'%s'!B14:AF14}".formatted(oppo))
+                    println(users)
+                    val u1 = users[index]
+                    val u2 = users[1 - index]
+                    val team = teamnames.getString(u1)
+                    val oppo = teamnames.getString(u2)
+                    b.addSingle("$team!B18", "={'$oppo'!B16:AE16}")
+                    b.addSingle("$team!B19", "={'$oppo'!B15:AE15}")
+                    b.addSingle("$team!B21", "={'$oppo'!B14:AF14}")
                     b.addColumn(
-                        "%s!A18".formatted(team), listOf<Any>(
-                            "='%s'!Y2".formatted(oppo),
-                            "='%s'!B2".formatted(oppo)
+                        "$team!A18", listOf(
+                            "='$oppo'!Y2",
+                            "='$oppo'!B2"
                         )
                     )
                 }
@@ -443,7 +447,7 @@ class Draft @JvmOverloads constructor(
                 logger.info("mons = $mons")
                 logger.info("u = $u")
                 val index = table.indexOf(teamnames.getString(u))
-                b.addColumn("Data!F%d".formatted(index * 17 + 2), mons)
+                b.addColumn("Data!F${index * 17 + 2}", mons)
             }
             b.withRunnable {
                 emolgajda.getTextChannelById(837425690844201000L)!!

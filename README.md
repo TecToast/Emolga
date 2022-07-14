@@ -4,4 +4,4 @@ The main feature is the automatic analysis of Pokémon Showdown! replays.
 Examples are showing data of pokemon, moves, abilities etc. or leading drafts of draft leagues and many, many other features, for example kicking, warning and banning.
 This is my first GitHub repository so when you have tips for me then tell me :D
 
-[Analysis Engine](https://github.com/TecToast/Emolga/tree/master/src/main/java/de/tectoast/emolga/utils/showdown) based on [ShowdownReader](https://github.com/Icelimo/ShowdownReader) by [Icelimo](https://github.com/Icelimo)
+[Analysis Engine](https://github.com/TecToast/Emolga/tree/master/src/main/kotlin/de/tectoast/emolga/utils/showdown) based on [ShowdownReader](https://github.com/Icelimo/ShowdownReader) by [Icelimo](https://github.com/Icelimo)

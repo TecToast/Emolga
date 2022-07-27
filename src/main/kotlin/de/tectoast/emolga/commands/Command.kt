@@ -3301,11 +3301,11 @@ abstract class Command(
             return getGerName(s, false)
         }
 
-        fun getGerName(s: String, checkOnlyEnglish: Boolean): Translation {
+        fun getGerName(s: String, checkOnlyEnglish: Boolean, withCap: Boolean = false): Translation {
             logger.info("getGerName s = $s")
             val id = toSDName(s)
             if (translationsCacheGerman.containsKey(id)) return translationsCacheGerman.getValue(id)
-            val set = getTranslation(id, checkOnlyEnglish)
+            val set = getTranslation(id, checkOnlyEnglish, withCap)
             try {
                 if (set.next()) {
                     val t = Translation(
@@ -3385,8 +3385,8 @@ abstract class Command(
             return getTranslation(s, false)
         }
 
-        fun getTranslation(s: String?, checkOnlyEnglish: Boolean): ResultSet {
-            return TranslationsManager.getTranslation(s, checkOnlyEnglish)
+        fun getTranslation(s: String?, checkOnlyEnglish: Boolean, withCap: Boolean = false): ResultSet {
+            return TranslationsManager.getTranslation(s, checkOnlyEnglish, withCap)
         }
 
         fun getSDName(str: String): String {
@@ -3539,7 +3539,12 @@ abstract class Command(
             if (s == "Zygarde-10%") return "Zygarde-10%"
             if (s == "Zygarde-Complete") return "Zygarde-Optimum"
             if (s.endsWith("-Mega")) {
-                return "M-" + getGerName(s.substring(0, s.length - 5), true).translation
+                return "M-" + getGerName(s.substring(0, s.length - 5), true).translation.ifEmpty {
+                    s.substring(
+                        0,
+                        s.length - 5
+                    )
+                }
             } else if (s.endsWith("-Alola")) {
                 return "A-" + getGerName(s.substring(0, s.length - 6), true).translation
             } else if (s.endsWith("-Galar")) {
@@ -3566,9 +3571,12 @@ abstract class Command(
                 return gername.translation
             }
             val first: String = split.removeAt(0)
-            return getGerName(first, true).translation + "-" + java.lang.String.join(
-                "-$split"
-            )
+            return "${
+                getGerName(
+                    first,
+                    true
+                ).translation.takeIf { it.isNotBlank() } ?: first
+            }${if ("-" in s) "-" + split.joinToString("-") else ""}"
         }
 
         fun buildEnumeration(vararg types: ArgumentType): String {

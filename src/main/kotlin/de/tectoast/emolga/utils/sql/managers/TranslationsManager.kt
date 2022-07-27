@@ -28,12 +28,12 @@ object TranslationsManager : DataManager("translations") {
         setColumns(ENGLISHID, GERMANID, ENGLISHNAME, GERMANNAME, TYPE, MODIFICATION, ISNICK, FORME, CAP)
     }
 
-    fun getTranslation(id: String?, checkOnlyEnglish: Boolean): ResultSet {
+    fun getTranslation(id: String?, checkOnlyEnglish: Boolean, withCap: Boolean = false): ResultSet {
         return read(
             selectAll(
                 and(
                     or(ENGLISHID.check(id), GERMANID.check(id), !checkOnlyEnglish),
-                    CAP.check(0)
+                    CAP.check(withCap)
                 )
             ), ResultsFunction { r -> r })
     }

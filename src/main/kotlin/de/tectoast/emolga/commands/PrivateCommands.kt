@@ -128,7 +128,7 @@ object PrivateCommands {
 
     @PrivateCommand(name = "emolgajson", aliases = ["ej"])
     fun emolgajson(e: GenericCommandEvent) {
-        Command.emolgaJSON = Command.load("./emolgadata.json")
+        Command.emolgaJSON = load("./emolgadata.json")
         e.done()
     }
 
@@ -330,7 +330,7 @@ object PrivateCommands {
     @PrivateCommand(name = "ndsrr")
     fun ndsrr(e: GenericCommandEvent) {
         val lastNom =
-            Command.load("ndsdraft.json").getJSONObject("hinrunde").getJSONObject("nominations").getJSONObject("5")
+            load("ndsdraft.json").getJSONObject("hinrunde").getJSONObject("nominations").getJSONObject("5")
         val sid = "1vPYBY-IzVSPodd8W_ukVSLME0YGyWF0hT6p3kr-QvZU"
         //String sid = "1Lbeko-7ZFuuVon_qmgavDsht5JoWQPVk2TLMN6cCROo";
         var current = ""
@@ -437,7 +437,7 @@ object PrivateCommands {
             b.addSingle("$teamname!X215", "=SUMME(X199:X214)")
             b.addSingle("$teamname!X199", deathstoadd[s]!!.get())
         }
-        Command.save(Command.emolgaJSON, "ndstestemolga.json")
+        save(Command.emolgaJSON, "ndstestemolga.json")
         b.execute()
         e.done()
     }
@@ -775,7 +775,7 @@ object PrivateCommands {
     @PrivateCommand(name = "dasorlol")
     @Throws(IOException::class)
     fun dasorLol() {
-        val load = Command.load("dasorfights.json")
+        val load = load("dasorfights.json")
         val fights = load.getJSONList("fights")
         for (f in fights) {
             val id = f.getString("id")
@@ -839,7 +839,7 @@ object PrivateCommands {
             val argType = arg.type
             OptionData(
                 argType.asOptionType(),
-                arg.name.lowercase(Locale.getDefault()),
+                arg.name.lowercase().replace(" ", "-").replace(Regex("[^\\w-]"), ""),
                 arg.helpmsg,
                 !arg.isOptional,
                 argType.hasAutoComplete()

@@ -55,6 +55,7 @@ import de.tectoast.jsolf.JSONArray
 import de.tectoast.jsolf.JSONObject
 import de.tectoast.jsolf.JSONTokener
 import de.tectoast.toastilities.repeat.RepeatTask
+import kotlinx.serialization.json.Json
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.OnlineStatus
@@ -1268,6 +1269,9 @@ abstract class Command(
         private val customResult = emptyList<Long>()
         val clips: MutableMap<Long, CircularFifoQueue<ByteArray>> = HashMap()
         val uninitializedCommands: MutableList<String> = mutableListOf()
+        val JSON = Json {
+            prettyPrint = true
+        }
 
         @JvmStatic
         protected val soullinkIds = mapOf(
@@ -2256,6 +2260,7 @@ abstract class Command(
         @Synchronized
         fun saveEmolgaJSON() {
             save(emolgaJSON, "emolgadata.json")
+            //Files.writeString(Paths.get("emolgadatakotlin.json"), JSON.encodeToString(Emolga.get))
         }
 
         @JvmStatic
@@ -2553,6 +2558,7 @@ abstract class Command(
             tokens = load("./tokens.json")
             Thread({
                 emolgaJSON = load("./emolgadata.json")
+                //Emolga.get = JSON.decodeFromString(Files.readString(Paths.get("emolgadatakotlin.json")))
                 //datajson = loadSD("pokedex.ts", 59);
                 //movejson = loadSD("learnsets.ts", 62);
                 shinycountjson = load("./shinycount.json")

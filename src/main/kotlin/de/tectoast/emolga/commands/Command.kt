@@ -2311,14 +2311,14 @@ abstract class Command(
 
         private fun setupRepeatTasks() {
             RepeatTask(
-                Instant.ofEpochMilli(1657058400000L),
+                Instant.ofEpochMilli(1661292000000),
                 5,
                 Duration.ofDays(7L),
                 { doNDSNominate() },
                 true
             )
             RepeatTask(
-                Instant.ofEpochMilli(1656871200000L),
+                Instant.ofEpochMilli(1661104800000),
                 5,
                 Duration.ofDays(7L),
                 { day: Int -> doMatchUps(day.toString()) },

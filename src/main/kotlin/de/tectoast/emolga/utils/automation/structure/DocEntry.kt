@@ -8,7 +8,7 @@ import de.tectoast.emolga.commands.Command.Companion.indexPick
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.ReplayAnalyser
 import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.automation.structure.DocEntry.StatProcessor
+import de.tectoast.emolga.utils.automation.structure.DocEntry.BasicStatProcessor
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.records.StatLocation
 import de.tectoast.emolga.utils.showdown.Player
@@ -24,8 +24,8 @@ class DocEntry private constructor() : ReplayAnalyser {
     companion object {
         private val logger = LoggerFactory.getLogger(DocEntry::class.java)
 
-        private val invalidProcessor: StatProcessor =
-            StatProcessor { _: Int, _: Int, _: Int -> StatLocation.invalid() }
+        private val invalidProcessor: BasicStatProcessor =
+            BasicStatProcessor { _: Int, _: Int, _: Int -> StatLocation.invalid() }
 
         fun create(builder: DocEntry.() -> Unit): DocEntry {
             return DocEntry().apply(builder)
@@ -37,9 +37,9 @@ class DocEntry private constructor() : ReplayAnalyser {
     private var tableIndex =
         BiFunction { o: JSONObject, u: Long -> tableMapper.apply(o).indexOf(u) }
     var leagueFunction: LeagueFunction? = null
-    var killProcessor = invalidProcessor
-    var deathProcessor = invalidProcessor
-    var useProcessor = invalidProcessor
+    var killProcessor: StatProcessor = invalidProcessor
+    var deathProcessor: StatProcessor = invalidProcessor
+    var useProcessor: BasicStatProcessor = invalidProcessor
     var winProcessor: ResultStatProcessor? = null
     var looseProcessor: ResultStatProcessor? = null
     var resultCreator: ResultCreator? = null
@@ -71,13 +71,13 @@ class DocEntry private constructor() : ReplayAnalyser {
                         pick
                     )
                     if (death.isEmpty() && !setStatIfEmpty) continue
-                    val k = killProcessor.process(0, monIndex, gameday)
+                    val k = (killProcessor as BasicStatProcessor).process(0, monIndex, gameday)
                     if (k.isValid) b.addSingle(
                         k.toString(), numberMapper(
                             getNumber(kills[i], pick)
                         )
                     )
-                    val d = deathProcessor.process(0, monIndex, gameday)
+                    val d = (deathProcessor as BasicStatProcessor).process(0, monIndex, gameday)
                     if (d.isValid) b.addSingle(
                         d.toString(),
                         numberMapper(death)
@@ -98,26 +98,42 @@ class DocEntry private constructor() : ReplayAnalyser {
             val index = tableIndex.apply(league, uid)
             val picks = getPicksAsList(picksJson.getJSONArray(uid))
             var monIndex = -1
+            var totalKills = 0
+            var totalDeaths = 0
             for (pick in picks) {
                 monIndex++
                 val death = getNumber(deaths[i], pick)
                 if (death.isEmpty() && !setStatIfEmpty) continue
-                val k = killProcessor.process(index, monIndex, gameday)
-                if (k.isValid) b.addSingle(
-                    k.toString(), numberMapper(
-                        getNumber(
-                            kills[i],
-                            pick
+                if (killProcessor is BasicStatProcessor) {
+                    val k = (killProcessor as BasicStatProcessor).process(index, monIndex, gameday)
+                    if (k.isValid) b.addSingle(
+                        k.toString(), numberMapper(
+                            getNumber(
+                                kills[i],
+                                pick
+                            )
                         )
                     )
-                )
-                val d = deathProcessor.process(index, monIndex, gameday)
-                if (d.isValid) b.addSingle(d.toString(), numberMapper(death))
+                } else if (killProcessor is CombinedStatProcessor) {
+                    totalKills += getNumber(kills[i], pick).toInt()
+                }
+                if (deathProcessor is BasicStatProcessor) {
+                    val d = (deathProcessor as BasicStatProcessor).process(index, monIndex, gameday)
+                    if (d.isValid) b.addSingle(d.toString(), numberMapper(death))
+                } else if (deathProcessor is CombinedStatProcessor) {
+                    totalDeaths += death.toInt()
+                }
                 val u = useProcessor.process(index, monIndex, gameday)
                 if (u.isValid) b.addSingle(u.toString(), numberMapper("1"))
             }
-            val w = (if (game[i].isWinner) winProcessor else looseProcessor)!!.process(index, gameday)
-            b.addSingle(w.toString(), 1)
+            (if (game[i].isWinner) winProcessor else looseProcessor)?.process(index, gameday)
+                ?.run { b.addSingle(this.toString(), 1) }
+            if (killProcessor is CombinedStatProcessor) {
+                b.addSingle((killProcessor as CombinedStatProcessor).process(index, gameday).toString(), totalKills)
+            }
+            if (deathProcessor is CombinedStatProcessor) {
+                b.addSingle((deathProcessor as CombinedStatProcessor).process(index, gameday).toString(), totalDeaths)
+            }
             if (game[i].isWinner) {
                 league.createOrGetJSON("results").put("$uid1:$uid2", uid)
             }
@@ -156,7 +172,7 @@ class DocEntry private constructor() : ReplayAnalyser {
                 for (num in formulaRange.indices) {
                     val formulaRange = formulaRange[num]
                     val formula = Google[sid, formulaRange, true]
-                    val points = Google[sid, pointRange[num], false]!!.toMutableList()
+                    val points = Google[sid, formulaRange, false]!!.toMutableList()
                     val orig: List<List<Any>?> = ArrayList(points)
                     val table = tableMapper.apply(league)
                     points.sortWith { o1: List<Any>, o2: List<Any> ->
@@ -208,11 +224,18 @@ class DocEntry private constructor() : ReplayAnalyser {
     }
 
     fun interface LeagueFunction {
-        fun getLeague(uid1: Long?, uid2: Long?): JSONObject
+        fun getLeague(uid1: Long, uid2: Long): JSONObject
     }
 
-    fun interface StatProcessor {
+
+    interface StatProcessor
+
+    fun interface BasicStatProcessor : StatProcessor {
         fun process(plindex: Int, monindex: Int, gameday: Int): StatLocation
+    }
+
+    fun interface CombinedStatProcessor : StatProcessor {
+        fun process(plindex: Int, gameday: Int): StatLocation
     }
 
     fun interface ResultStatProcessor {

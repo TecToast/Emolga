@@ -32,6 +32,7 @@ import de.tectoast.emolga.utils.Constants.CULTID
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.Constants.FLPID
 import de.tectoast.emolga.utils.Constants.FPLID
+import de.tectoast.emolga.utils.Constants.GILDEID
 import de.tectoast.emolga.utils.Constants.MYSERVER
 import de.tectoast.emolga.utils.Constants.MYTAG
 import de.tectoast.emolga.utils.Constants.NDSID
@@ -2423,6 +2424,7 @@ abstract class Command(
                 sdAnalyser[FLPID] = DocEntries.PRISMA
                 sdAnalyser[FPLID] = DocEntries.UPL
                 sdAnalyser[NDSID] = DocEntries.NDS
+                sdAnalyser[GILDEID] = DocEntries.GDL
                 //sdAnalyser[706794294127755324L] = DocEntries.BSL
             }, "Command Initialization").start()
         }

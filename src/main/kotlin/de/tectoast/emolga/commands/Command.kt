@@ -18,6 +18,7 @@ import de.tectoast.emolga.buttons.buttonsaves.MonData
 import de.tectoast.emolga.buttons.buttonsaves.Nominate
 import de.tectoast.emolga.buttons.buttonsaves.PrismaTeam
 import de.tectoast.emolga.buttons.buttonsaves.TrainerData
+import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
 import de.tectoast.emolga.database.Database.Companion.incrementPredictionCounter
 import de.tectoast.emolga.modals.ModalListener
@@ -3585,3 +3586,8 @@ abstract class Command(
         }
     }
 }
+
+fun <T> T.indexedBy(list: List<T>) = list.indexOf(this)
+val embedColor = java.awt.Color.CYAN.rgb
+fun Int.x(factor: Int, summand: Int) = getAsXCoord(this * factor + summand)
+fun Int.y(factor: Int, summand: Int) = this * factor + summand

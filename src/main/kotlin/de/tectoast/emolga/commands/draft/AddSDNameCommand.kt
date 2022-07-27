@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.sql.managers.SDNamesManager
 import net.dv8tion.jda.api.entities.User
 
@@ -13,10 +14,11 @@ class AddSDNameCommand : Command("addsdname", "Registriert deinen Showdown-Namen
             .add("id", "Die ID (nur Flo)", "Nur für Flo", ArgumentManagerTemplate.DiscordType.ID, true)
             .setExample("!addsdname TecToast")
             .build()
+        slash(false, Constants.GILDEID)
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         if (args.has("id") && e.isNotFlo) {
             e.reply("Nur Flo darf den Command mit einer ID verwenden!")
             return
@@ -26,9 +28,9 @@ class AddSDNameCommand : Command("addsdname", "Registriert deinen Showdown-Namen
         if (b) {
             if (args.has("id")) {
                 e.jda.retrieveUserById(args.getID("id"))
-                    .queue { mem: User -> e.reply("Der Name `%s` wurde für %s registriert!".formatted(name, mem.name)) }
+                    .queue { mem: User -> e.reply("Der Name `$name` wurde für ${mem.name} registriert!") }
             } else {
-                e.reply("Der Name `%s` wurde für dich registriert!".formatted(name))
+                e.reply("Der Name `$name` wurde für dich registriert!")
             }
         } else {
             e.reply("Der Name ist bereits vergeben!")

@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils
 
 import java.util.*
 
+@Suppress("unused")
 enum class DraftTimer constructor(val timerInfo: TimerInfo, val delayInMins: Int = 120) {
     ASL(
         TimerInfo().add(10, 22, Calendar.SATURDAY, Calendar.SUNDAY)

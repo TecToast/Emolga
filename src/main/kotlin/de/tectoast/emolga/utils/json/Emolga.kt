@@ -5,6 +5,7 @@ import de.tectoast.emolga.utils.json.emolga.customcommand.CCData
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import kotlinx.serialization.Serializable
 
+@Suppress("unused")
 @Serializable
 class Emolga(
     val soullink: Soullink,

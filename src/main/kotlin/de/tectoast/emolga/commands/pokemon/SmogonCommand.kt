@@ -9,7 +9,6 @@ import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.requests.restaction.MessageAction
 import org.jsoup.Jsoup
 import java.io.IOException
-import java.util.*
 
 class SmogonCommand : Command("smogon", "Zeigt die vorgeschlagenen Smogon-Sets für Gen 8", CommandCategory.Pokemon) {
     init {
@@ -27,11 +26,11 @@ class SmogonCommand : Command("smogon", "Zeigt die vorgeschlagenen Smogon-Sets f
     @Throws(IOException::class)
     override fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
-        val args = e.arguments!!
+        val args = e.arguments
         val name = args.getTranslation("mon").translation
-        val form = if (args.has("form")) "-" + args.getText("form").lowercase(Locale.getDefault()) else ""
+        val form = if (args.has("form")) "-" + args.getText("form").lowercase() else ""
         var d =
-            Jsoup.connect("https://www.smogon.com/dex/ss/pokemon/" + name.lowercase(Locale.getDefault()) + form + "/")
+            Jsoup.connect("https://www.smogon.com/dex/ss/pokemon/" + name.lowercase() + form + "/")
                 .get()
         var obj =
             JSONObject(d.select("script")[1].data().trim().substring("dexSettings = ".length)).getJSONArray(
@@ -40,7 +39,7 @@ class SmogonCommand : Command("smogon", "Zeigt die vorgeschlagenen Smogon-Sets f
         if (obj.getJSONArray("strategies").length() == 0) {
             try {
                 d =
-                    Jsoup.connect("https://www.smogon.com/dex/sm/pokemon/" + name.lowercase(Locale.getDefault()) + form + "/")
+                    Jsoup.connect("https://www.smogon.com/dex/sm/pokemon/" + name.lowercase() + form + "/")
                         .get()
                 obj = JSONObject(
                     d.select("script")[1].data().trim()

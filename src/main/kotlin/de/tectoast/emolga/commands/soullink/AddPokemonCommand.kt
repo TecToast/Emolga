@@ -22,7 +22,7 @@ class AddPokemonCommand : Command("addpokemon", "Fügt ein Pokemon hinzu", Comma
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         val soullink = emolgaJSON.getJSONObject("soullink")
         val order = soullink.getStringList("order")
         val pokemon = args.getText("pokemon")

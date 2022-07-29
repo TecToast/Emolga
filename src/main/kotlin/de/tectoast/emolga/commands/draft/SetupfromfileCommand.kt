@@ -23,7 +23,7 @@ class SetupfromfileCommand :
 
     override fun process(e: GuildCommandEvent) {
         e.deleteMessage()
-        val args = e.arguments!!
+        val args = e.arguments
         Draft(e.textChannel, args.getText("name"), if (args.has("tc")) args.getChannel("tc").id else null, true)
     }
 }

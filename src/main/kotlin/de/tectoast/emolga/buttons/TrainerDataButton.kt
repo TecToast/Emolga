@@ -1,9 +1,8 @@
 package de.tectoast.emolga.buttons
 
 import de.tectoast.emolga.commands.Command
-import net.dv8tion.jda.api.EmbedBuilder
+import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
-import java.awt.Color
 
 class TrainerDataButton : ButtonListener("trainerdata") {
     override fun process(e: ButtonInteractionEvent, name: String) {
@@ -21,15 +20,9 @@ class TrainerDataButton : ButtonListener("trainerdata") {
             val title = e.message.embeds[0].title
             if (!title!!.contains("Und sollen die Moves etc auch angezeigt werden")) {
                 e.hook.editOriginalEmbeds(
-                    EmbedBuilder().setColor(Color.CYAN).setTitle(title).setDescription(
-                        dt.getMonsFrom(
-                            title, !withMoveset
-                        )
-                    ).build()
+                    Embed(title = title, description = dt.getMonsFrom(title, !withMoveset))
                 ).queue()
             }
-            //return;
         }
-        //e.editMessageEmbeds(new EmbedBuilder().setColor(Color.CYAN).setTitle(dt.getNormalName(name)).setDescription(dt.getMonsFrom(name, withMoveset)).build()).queue();
     }
 }

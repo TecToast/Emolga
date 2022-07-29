@@ -49,7 +49,6 @@ import de.tectoast.emolga.utils.records.DeferredSlashResponse
 import de.tectoast.emolga.utils.records.TypicalSets
 import de.tectoast.emolga.utils.showdown.Analysis
 import de.tectoast.emolga.utils.showdown.Player
-import de.tectoast.emolga.utils.showdown.Pokemon
 import de.tectoast.emolga.utils.sql.managers.*
 import de.tectoast.jsolf.JSONArray
 import de.tectoast.jsolf.JSONObject
@@ -78,7 +77,6 @@ import net.dv8tion.jda.internal.utils.Helpers
 import org.apache.commons.collections4.queue.CircularFifoQueue
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
-import java.awt.image.BufferedImage
 import java.io.*
 import java.lang.reflect.Modifier
 import java.nio.file.Files
@@ -95,12 +93,10 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.function.*
+import java.util.function.BiFunction
 import java.util.function.Function
+import java.util.function.Predicate
 import java.util.regex.Pattern
-import java.util.stream.Collectors
-import java.util.stream.IntStream
-import java.util.stream.Stream
 import javax.imageio.ImageIO
 import kotlin.math.max
 
@@ -132,7 +128,7 @@ abstract class Command(
     /**
      * HashMap containing a help for a guild id which should be shown for this command on that guild instead of the [.help]
      */
-    private val overrideHelp: Map<Long, String?> = HashMap()
+    private val overrideHelp: Map<Long, String> = HashMap()
 
     /**
      * HashMap containing a channel list which should be used for this command instead of [.emolgaChannel]
@@ -180,15 +176,12 @@ abstract class Command(
     protected var disabled = false
     protected var allowedBotId: Long = -1
     var isSlash = false
-        protected set
     protected var onlySlash = false
     val slashGuilds: MutableSet<Long> = HashSet()
     val childCommands: MutableMap<String, Command> = LinkedHashMap()
 
     init {
-        allowedGuilds = if (guilds.isEmpty()) ArrayList() else Arrays.stream(guilds).boxed().collect(
-            Collectors.toCollection { ArrayList() }
-        )
+        allowedGuilds = guilds.toList()
     }
 
     constructor(name: String, help: String) : this(name, help, null)
@@ -208,7 +201,7 @@ abstract class Command(
     }
 
     protected fun setCustomPermissions(predicate: Predicate<Member>) {
-        allowsMember = predicate.or { member: Member? -> member!!.idLong == FLOID }
+        allowsMember = predicate.or { it.idLong == FLOID }
         customPermissions = true
     }
 
@@ -242,8 +235,8 @@ abstract class Command(
         beta = true
     }
 
-    fun allowsMember(mem: Member?): Boolean {
-        return category!!.allowsMember(mem!!) && !customPermissions || allowsMember.test(mem)
+    fun allowsMember(mem: Member): Boolean {
+        return category!!.allowsMember(mem) && !customPermissions || allowsMember.test(mem)
     }
 
     fun allowsGuild(g: Guild): Boolean {
@@ -257,7 +250,7 @@ abstract class Command(
         )
     }
 
-    fun checkPermissions(gid: Long, mem: Member?): PermissionCheck {
+    fun checkPermissions(gid: Long, mem: Member): PermissionCheck {
         if (!allowsGuild(gid)) return PermissionCheck.GUILD_NOT_ALLOWED
         return if (!allowsMember(mem)) PermissionCheck.PERMISSION_DENIED else PermissionCheck.GRANTED
     }
@@ -281,13 +274,19 @@ abstract class Command(
 
     fun getHelp(g: Guild?): String {
         val args = argumentTemplate //?: return "`" + prefix + name + "` " + overrideHelp.getOrDefault(g.idLong, help)
-        return "`" + (if (args.hasSyntax()) args.syntax else prefix + name + (if (args.arguments.isNotEmpty()) " " else "")
-                + args.arguments.stream()
-            .map { a: ArgumentManagerTemplate.Argument? -> (if (a!!.isOptional) "[" else "<") + a.name + if (a.isOptional) "]" else ">" }
-            .collect(Collectors.joining(" "))) + "` " + overrideHelp.getOrDefault(
-            g?.idLong ?: -1,
-            help
-        ) + if (wip) " (**W.I.P.**)" else ""
+        return buildString {
+            append("`")
+            append(
+                (if (args.hasSyntax()) args.syntax else prefix + name + (if (args.arguments.isNotEmpty()) " " else "") + args.arguments.joinToString(
+                    " "
+                ) { "${if (it.isOptional) "[" else "<"}${it.name}${if (it.isOptional) "]" else ">"}" })
+            )
+            append("` ")
+            append(
+                (overrideHelp[g?.idLong ?: -1] ?: help)
+            )
+            append(if (wip) " (**W.I.P.**)" else "")
+        }
     }
 
     fun getHelpWithoutCmd(g: Guild): String {
@@ -333,11 +332,11 @@ abstract class Command(
     object PermissionPreset {
         val CULT = fromRole(781457314846343208L)
         fun fromRole(roleId: Long): Predicate<Member> {
-            return Predicate { member: Member -> member.roles.stream().anyMatch { r: Role -> r.idLong == roleId } }
+            return Predicate { it.roles.any { r -> r.idLong == roleId } }
         }
 
         fun fromIDs(vararg ids: Long): Predicate<Member> {
-            return Predicate { member: Member -> Arrays.stream(ids).anyMatch { l: Long -> member.idLong == l } }
+            return Predicate { ids.any { l: Long -> it.idLong == l } }
         }
     }
 
@@ -349,11 +348,11 @@ abstract class Command(
         var argument: ArgumentManagerTemplate.Argument? = null
         var subcommands: Set<String>? = null
 
-        constructor(argument: ArgumentManagerTemplate.Argument?) {
+        constructor(argument: ArgumentManagerTemplate.Argument) {
             this.argument = argument
         }
 
-        constructor(subcommands: Set<String>?) {
+        constructor(subcommands: Set<String>) {
             this.subcommands = subcommands
         }
 
@@ -362,68 +361,67 @@ abstract class Command(
     }
 
     class MissingArgumentException : ArgumentException {
-        constructor(argument: ArgumentManagerTemplate.Argument?) : super(argument)
-        constructor(subcommands: Set<String>?) : super(subcommands)
+        constructor(argument: ArgumentManagerTemplate.Argument) : super(argument)
+        constructor(subcommands: Set<String>) : super(subcommands)
     }
 
     class ArgumentManager(val map: Map<String, Any>, val executor: Command) {
-        fun getMember(key: String?): Member {
+        fun getMember(key: String): Member {
             return map[key] as Member
         }
 
-        fun getTranslation(key: String?): Translation {
+        fun getTranslation(key: String): Translation {
             return map[key] as Translation
         }
 
-        fun getText(key: String?): String {
+        fun getText(key: String): String {
             return map[key] as String
         }
 
-        fun isText(key: String?, text: String): Boolean {
+        fun isText(key: String, text: String): Boolean {
             return map.getOrDefault(key, "") == text
         }
 
-        fun isTextIgnoreCase(key: String?, text: String?): Boolean {
+        fun isTextIgnoreCase(key: String, text: String): Boolean {
             return (map.getOrDefault(key, "") as String).equals(text, ignoreCase = true)
         }
 
-        fun has(key: String?): Boolean {
+        fun has(key: String): Boolean {
             return map.containsKey(key)
         }
 
-        fun <T> getOrDefault(key: String?, defvalue: T): T {
-            @Suppress("UNCHECKED_CAST")
-            return map.getOrDefault(key, defvalue) as T
+        fun <T> getOrDefault(key: String, defvalue: T): T {
+            @Suppress("UNCHECKED_CAST") return map.getOrDefault(key, defvalue) as T
         }
 
-        fun getID(key: String?): Long {
+        fun getID(key: String): Long {
             return map[key] as Long
         }
 
-        fun getInt(key: String?): Int {
+        fun getInt(key: String): Int {
             return map[key] as Int
         }
 
-        fun getLong(key: String?): Long {
-            val o: Any? = map[key]
+        fun getLong(key: String): Long {
+            val o: Any = map[key]!!
             return if (o is Int) o.toLong() else o as Long
         }
 
-        fun getChannel(key: String?): TextChannel {
+        fun getChannel(key: String): TextChannel {
             return map[key] as TextChannel
         }
 
-        fun getAttachment(key: String?): Attachment {
+        fun getAttachment(key: String): Attachment {
             return map[key] as Attachment
         }
     }
 
-    class SubCommand(val name: String, val help: String?) {
+    class SubCommand(val name: String, val help: String) {
 
         companion object {
             @JvmOverloads
             fun of(name: String, help: String? = null): SubCommand {
-                return SubCommand(name, help)
+                return SubCommand(name, help ?: "")
             }
         }
     }
@@ -449,8 +447,7 @@ abstract class Command(
         }
 
         fun find(name: String): Argument? {
-            return arguments.stream().filter { a: Argument? -> a!!.name.equals(name, ignoreCase = true) }
-                .findFirst().orElse(null)
+            return arguments.firstOrNull { it.name.equals(name, ignoreCase = true) }
         }
 
         fun hasExample(): Boolean {
@@ -564,16 +561,14 @@ abstract class Command(
                 argumentI++
             }
             clearDisable(mid)
-            if (arguments.stream().anyMatch { argument: Argument? -> !argument!!.isOptional } && map.isEmpty()) {
-                throw MissingArgumentException(
-                    arguments.stream().filter { argument: Argument? -> !argument!!.isOptional }
-                        .findFirst().orElse(null))
+            if (map.isEmpty()) {
+                arguments.firstOrNull { !it.isOptional }?.let { throw MissingArgumentException(it) }
             }
             return ArgumentManager(map, c)
         }
 
         private fun clearDisable(l: Long) {
-            arguments.forEach(Consumer { a: Argument? -> a!!.disabled.remove(l) })
+            arguments.forEach { it.disabled.remove(l) }
         }
 
         enum class DiscordType(
@@ -583,10 +578,7 @@ abstract class Command(
             private val optionType: OptionType
         ) : ArgumentType {
             USER(
-                Pattern.compile("<@!*\\d{18,22}>"),
-                "User",
-                false,
-                OptionType.USER
+                Pattern.compile("<@!*\\d{18,22}>"), "User", false, OptionType.USER
             ),
             CHANNEL(Pattern.compile("<#*\\d{18,22}>"), "Channel", false, OptionType.CHANNEL), ROLE(
                 Pattern.compile("<@&*\\d{18,22}>"), "Rolle", true, OptionType.ROLE
@@ -659,9 +651,7 @@ abstract class Command(
             }
 
             override val customHelp: String?
-                get() = if (any) null else texts.stream()
-                    .map { sc: SubCommand -> "`" + sc.name + "`" + sc.help }
-                    .collect(Collectors.joining("\n"))
+                get() = if (any) null else texts.joinToString("\n") { sc: SubCommand -> "`" + sc.name + "`" + sc.help }
 
             override fun asOptionType(): OptionType {
                 return if (slashSubCmd) OptionType.SUB_COMMAND else OptionType.STRING
@@ -682,9 +672,7 @@ abstract class Command(
 
             fun asSubCommandData(): List<SubcommandData> {
                 check(slashSubCmd) { "Cannot call asSubCommandData on no SubCommand" }
-                return texts.stream()
-                    .map { sc -> SubcommandData(sc.name.lowercase(), sc.help!!) }
-                    .toList()
+                return texts.map { SubcommandData(it.name.lowercase(), it.help) }
             }
 
             companion object {
@@ -739,11 +727,10 @@ abstract class Command(
                 return "ein Text"
             }
 
-            override val customHelp: String?
+            override val customHelp: String
                 get() = if (hasRange()) {
                     "$from-$to"
-                } else numbers.stream().map { obj: Int? -> java.lang.String.valueOf(obj) }
-                    .collect(Collectors.joining(","))
+                } else numbers.joinToString()
 
             override fun asOptionType(): OptionType {
                 return OptionType.INTEGER
@@ -852,13 +839,7 @@ abstract class Command(
             ): Builder {
                 arguments.add(
                     Argument(
-                        id,
-                        name,
-                        help,
-                        type,
-                        optional,
-                        Translation.Language.ENGLISH,
-                        customErrorMessage
+                        id, name, help, type, optional, Translation.Language.ENGLISH, customErrorMessage
                     )
                 )
                 return this
@@ -895,18 +876,16 @@ abstract class Command(
                 return noCheckTemplate
             }
 
-            fun noSpecifiedArgs(syntax: String?, example: String?): ArgumentManagerTemplate {
+            fun noSpecifiedArgs(syntax: String, example: String): ArgumentManagerTemplate {
                 return ArgumentManagerTemplate(LinkedList(), true, example, syntax)
             }
 
             fun draft(): ArgumentType {
                 return withPredicate(
-                    "Draftname",
-                    { s: String? ->
-                        emolgaJSON.getJSONObject("drafts").has(s) || emolgaJSON.getJSONObject("drafts")
-                            .getJSONObject("ASLS9").has(s)
-                    },
-                    false
+                    "Draftname", {
+                        emolgaJSON.getJSONObject("drafts").has(it) || emolgaJSON.getJSONObject("drafts")
+                            .getJSONObject("ASLS9").has(it)
+                    }, false
                 )
             }
 
@@ -968,8 +947,7 @@ abstract class Command(
                     }
 
                     override fun autoCompleteList(
-                        arg: String,
-                        event: CommandAutoCompleteInteractionEvent
+                        arg: String, event: CommandAutoCompleteInteractionEvent
                     ): List<String>? {
                         return autoComplete!!.apply(arg, event)
                     }
@@ -1027,12 +1005,7 @@ abstract class Command(
 
         fun print() {
             logger.info(
-                "Translation{" + "type=" + type +
-                        ", language=" + language +
-                        ", translation='" + translation + '\'' +
-                        ", empty=" + isEmpty +
-                        ", otherLang='" + otherLang + '\'' +
-                        '}'
+                "Translation{type=$type, language=$language, translation='$translation', empty=$isEmpty, otherLang='$otherLang'}"
             )
         }
 
@@ -1057,14 +1030,10 @@ abstract class Command(
 
         enum class Type(val id: String, private val typeName: String, private val female: Boolean) : ArgumentType {
             ABILITY("abi", "Fähigkeit", true), EGGGROUP("egg", "Eigruppe", true), ITEM(
-                "item",
-                "Item",
-                false
+                "item", "Item", false
             ),
             MOVE("atk", "Attacke", true), NATURE("nat", "Wesen", false), POKEMON("pkmn", "Pokémon", false), TYPE(
-                "type",
-                "Typ",
-                false
+                "type", "Typ", false
             ),
             TRAINER("trainer", "Trainer", false), UNKNOWN("unknown", "Undefiniert", false);
 
@@ -1072,10 +1041,7 @@ abstract class Command(
                 return object : ArgumentType {
                     override fun validate(str: String, vararg params: Any): Any? {
                         return if (str == name) Translation(
-                            "Tom",
-                            TRAINER,
-                            Language.GERMAN,
-                            "Tom"
+                            "Tom", TRAINER, Language.GERMAN, "Tom"
                         ) else this@Type.validate(str, *params)
                     }
 
@@ -1120,9 +1086,8 @@ abstract class Command(
             }
 
             companion object {
-                fun fromId(id: String?): Type {
-                    return Arrays.stream(values()).filter { t: Type -> t.id.equals(id, ignoreCase = true) }
-                        .findFirst().orElse(UNKNOWN)
+                fun fromId(id: String): Type {
+                    return values().firstOrNull { it.id.equals(id, ignoreCase = true) } ?: UNKNOWN
                 }
 
                 fun of(vararg types: Type): ArgumentType {
@@ -1149,8 +1114,7 @@ abstract class Command(
                 }
 
                 fun all(): ArgumentType {
-                    return of(*Arrays.stream(values()).filter { t: Type -> t != UNKNOWN }
-                        .toArray { arrayOfNulls(it) })
+                    return of(*values().filter { t: Type -> t != UNKNOWN }.toTypedArray())
                 }
             }
         }
@@ -1377,8 +1341,7 @@ abstract class Command(
             if (split.size == 1) return getSDName(s)
             if (s.startsWith("M-")) {
                 return if (split.size == 3) {
-                    getSDName(split[1]) + "mega" + split[2]
-                        .lowercase()
+                    getSDName(split[1]) + "mega" + split[2].lowercase()
                 } else getSDName(split[1]) + "mega"
             }
             if (s.startsWith("A-")) return getSDName(split[1]) + "alola"
@@ -1386,29 +1349,22 @@ abstract class Command(
                 split[0]
             ) + toSDName(
                 sdex.getOrDefault(
-                    s,
-                    ""
+                    s, ""
                 )
             )
         }
 
         fun getFirstAfterUppercase(s: String): String {
-            return if (!s.contains("-")) s else s[0].toString() + s.substring(1, 2)
-                .uppercase() + s.substring(2)
+            return if (!s.contains("-")) s else s[0].toString() + s.substring(1, 2).uppercase() + s.substring(2)
         }
 
-        fun invertImage(mon: String, shiny: Boolean): File? {
+        fun invertImage(mon: String, shiny: Boolean): File {
             logger.info("mon = $mon")
-            val inputFile: BufferedImage = try {
-                val f = File(
-                    "../Showdown/sspclient/sprites/gen5" + (if (shiny) "-shiny" else "") + "/" + mon.lowercase() + ".png"
-                )
-                logger.info("f.getAbsolutePath() = " + f.absolutePath)
-                ImageIO.read(f)
-            } catch (e: IOException) {
-                e.printStackTrace()
-                return null
-            }
+            val f = File(
+                "../Showdown/sspclient/sprites/gen5" + (if (shiny) "-shiny" else "") + "/" + mon.lowercase() + ".png"
+            )
+            logger.info("f.getAbsolutePath() = " + f.absolutePath)
+            val inputFile = ImageIO.read(f)
             val width = inputFile.width
             val height = inputFile.height
             for (x in 0 until width) {
@@ -1416,21 +1372,14 @@ abstract class Command(
                     val rgba = inputFile.getRGB(x, y)
                     var col = java.awt.Color(rgba, true)
                     col = java.awt.Color(
-                        255 - col.red,
-                        255 - col.green,
-                        255 - col.blue
+                        255 - col.red, 255 - col.green, 255 - col.blue
                     )
                     inputFile.setRGB(x, y, col.rgb)
                 }
             }
-            try {
-                val outputFile = File("tempimages/invert-$mon.png")
-                ImageIO.write(inputFile, "png", outputFile)
-                return outputFile
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-            return null
+            val outputFile = File("tempimages/invert-$mon.png")
+            ImageIO.write(inputFile, "png", outputFile)
+            return outputFile
         }
 
         @JvmOverloads
@@ -1440,7 +1389,7 @@ abstract class Command(
             getPlayerManager(channel.guild).loadItemOrdered(musicManager, track, object : AudioLoadResultHandler {
                 override fun trackLoaded(track: AudioTrack) {}
                 override fun playlistLoaded(playlist: AudioPlaylist) {
-                    val toplay = LinkedList<AudioTrack?>()
+                    val toplay = LinkedList<AudioTrack>()
                     if (random) {
                         val list = ArrayList(playlist.tracks)
                         list.shuffle()
@@ -1467,11 +1416,13 @@ abstract class Command(
 
         @JvmStatic
         fun byName(name: String): Command? {
-            return commands.values.stream().filter { c: Command? ->
-                c!!.name.equals(name, ignoreCase = true) || c.aliases.stream()
-                    .anyMatch { anotherString: String? -> name.equals(anotherString, ignoreCase = true) }
+            return commands.values.firstOrNull {
+                it.name.equals(name, ignoreCase = true) || it.aliases.any { alias ->
+                    name.equals(
+                        alias, ignoreCase = true
+                    )
+                }
             }
-                .findFirst().orElse(null)
         }
 
         @Throws(IllegalArgumentException::class)
@@ -1627,8 +1578,8 @@ abstract class Command(
             return str
         }
 
-        private fun pluralise(x: Long, singular: String, plural: String?): String {
-            return if (x == 1L) singular else plural!!
+        private fun pluralise(x: Long, singular: String, plural: String): String {
+            return if (x == 1L) singular else plural
         }
 
         fun getGameDay(league: JSONObject, uid1: String, uid2: String): Int {
@@ -1647,10 +1598,7 @@ abstract class Command(
 
         @JvmStatic
         fun getPicksAsList(arr: JSONArray): List<String> {
-            return arr.toList().stream().map { o: Any -> (o as HashMap<*, *>)["name"] as String? }
-                .collect(
-                    Collectors.toCollection { ArrayList() }
-                )
+            return arr.toJSONList().map { it.getString("name") }
         }
 
         fun tempMute(tco: TextChannel, mod: Member, mem: Member, time: Int, reason: String) {
@@ -1672,8 +1620,7 @@ abstract class Command(
             val builder = EmbedBuilder()
             builder.setAuthor(
                 mem.effectiveName + " wurde für " + secondsToTime(time.toLong()).replace(
-                    "*",
-                    ""
+                    "*", ""
                 ) + " gemutet", null, mem.user.effectiveAvatarUrl
             )
             builder.setColor(java.awt.Color.CYAN)
@@ -1793,8 +1740,7 @@ abstract class Command(
             val builder = EmbedBuilder()
             builder.setAuthor(
                 mem.effectiveName + " wurde für " + secondsToTime(time.toLong()).replace(
-                    "*",
-                    ""
+                    "*", ""
                 ) + " gebannt", null, mem.user.effectiveAvatarUrl
             )
             builder.setColor(java.awt.Color.CYAN)
@@ -1835,15 +1781,9 @@ abstract class Command(
         fun getNumber(map: Map<String, String>, pick: String): String {
             //logger.info(map);
             for ((s, value) in map) {
-                if (s == pick || pick == "M-$s" || Stream.of("Amigento", "Wulaosu", "Arceus", "Deoxys", "Genesect")
-                        .anyMatch { str: String? ->
-                            s.contains(
-                                str!!
-                            ) && pick.contains(
-                                str
-                            )
-                        }
-                ) return value
+                if (s == pick || pick == "M-$s" || listOf("Amigento", "Wulaosu", "Arceus", "Deoxys", "Genesect").any {
+                        s.contains(it) && pick.contains(it)
+                    }) return value
             }
             return ""
         }
@@ -1910,15 +1850,13 @@ abstract class Command(
         @JvmStatic
         protected fun buildCalendar(): String {
             val f = SimpleDateFormat("dd.MM. HH:mm")
-            val str = CalendarManager.allEntries.stream()
-                .sorted(Comparator.comparing { o: CalendarEntry -> o.expires.time })
-                .map { o: CalendarEntry -> "**${f.format(o.expires)}:** ${o.message}" }
-                .collect(Collectors.joining("\n"))
-            return str.ifEmpty { "_leer_" }
+            return CalendarManager.allEntries.sortedBy { it.expires.time }
+                .joinToString("\n") { o: CalendarEntry -> "**${f.format(o.expires)}:** ${o.message}" }
+                .ifEmpty { "_leer_" }
         }
 
         @JvmStatic
-        protected fun scheduleCalendarEntry(expires: Long, message: String?) {
+        protected fun scheduleCalendarEntry(expires: Long, message: String) {
             calendarService.schedule({
                 val calendarTc: TextChannel = emolgajda.getTextChannelById(CALENDAR_TCID)!!
                 CalendarManager.delete(Timestamp(expires / 1000 * 1000))
@@ -1999,16 +1937,8 @@ abstract class Command(
             emolgajda.getTextChannelById(SOULLINK_TCID)!!.editMessageById(SOULLINK_MSGID, buildSoullink()).queue()
         }
 
-        private fun soullinkCols(): Supplier<Stream<String>> {
-            return Supplier { Stream.concat(soullinkNames.stream(), Stream.of("Fundort", "Status")) }
-        }
-
-        fun buildTable(list: List<List<String>>): String {
-            val colsizes = IntStream.range(0, list[0].size).mapToObj { i: Int ->
-                list.stream().mapToInt { l: List<String> -> l[i].length }
-                    .max().orElse(0)
-            }.toList()
-            return colsizes.toString()
+        private fun soullinkCols(): List<String> {
+            return listOf(*soullinkNames.toTypedArray(), "Fundort", "Status")
         }
 
         private fun buildSoullink(): String {
@@ -2016,35 +1946,29 @@ abstract class Command(
             val soullink = emolgaJSON.getJSONObject("soullink")
             val mons = soullink.getJSONObject("mons")
             val order = soullink.getStringList("order")
-            val maxlen = max(
-                order.stream().mapToInt { obj: String -> obj.length }.max().orElse(0),
-                max(mons.keySet().stream().map { key: String? -> mons.getJSONObject(key) }
-                    .flatMap { o: JSONObject ->
-                        o.keySet().stream().map { key: String? -> o.getString(key) }
-                            .toList().stream()
-                    }
-                    .map { obj: String -> obj.length }.max(Comparator.naturalOrder()).orElse(-1), 7)
-            ) + 1
+            val maxlen = max(order.maxOfOrNull { it.length } ?: -1,
+                max(mons.keySet().map { mons.getJSONObject(it) }.flatMap { o ->
+                    o.keySet().map { o.getString(it) }
+                }.maxOfOrNull { obj -> obj.length } ?: -1, 7)) + 1
             val b = StringBuilder("```")
-            soullinkCols().get().map { s: String -> ew(s, maxlen) }
-                .forEach { str: String? -> b.append(str) }
+            soullinkCols().map { ew(it, maxlen) }.forEach { b.append(it) }
             b.append("\n")
-            for (s in order.stream().sorted(Comparator.comparing { str: String? ->
+            for (s in order.sortedBy {
                 statusOrder.indexOf(
-                    mons.createOrGetJSON(str).optString("status", "Box")
+                    mons.createOrGetJSON(it).optString("status", "Box")
                 )
-            }).toList()) {
+            }) {
                 val o = mons.createOrGetJSON(s)
                 val status = o.optString("status", "Box")
-                b.append(soullinkCols().get().map { n: String? ->
+                b.append(soullinkCols().joinToString("") {
                     ew(
-                        when (n) {
+                        when (it) {
                             "Fundort" -> s
                             "Status" -> status
-                            else -> o.optString(n, "")
+                            else -> o.optString(it, "")
                         }!!, maxlen
                     )
-                }.collect(Collectors.joining(""))).append("\n")
+                }).append("\n")
             }
             return b.append("```").toString()
         }
@@ -2120,7 +2044,7 @@ abstract class Command(
             })
         }
 
-        fun play(guild: Guild, musicManager: GuildMusicManager, track: AudioTrack?, mem: Member, tc: TextChannel) {
+        fun play(guild: Guild, musicManager: GuildMusicManager, track: AudioTrack, mem: Member, tc: TextChannel) {
             val audioManager = guild.audioManager
             if (!audioManager.isConnected) {
                 if (mem.voiceState!!.inAudioChannel()) {
@@ -2129,10 +2053,10 @@ abstract class Command(
                     tc.sendMessage("Du musst dich in einem Voicechannel befinden!").queue()
                 }
             }
-            musicManager.scheduler.queue(track!!)
+            musicManager.scheduler.queue(track)
         }
 
-        fun play(guild: Guild, musicManager: GuildMusicManager, track: AudioTrack?) {
+        fun play(guild: Guild, musicManager: GuildMusicManager, track: AudioTrack) {
             val audioManager = guild.audioManager
             val mem: Member = guild.retrieveMemberById(FLOID).complete()
             if (!audioManager.isConnected) {
@@ -2142,15 +2066,15 @@ abstract class Command(
                     sendToMe("Du musst dich in einem Voicechannel befinden!")
                 }
             }
-            musicManager.scheduler.queue(track!!)
+            musicManager.scheduler.queue(track)
         }
 
-        fun play(guild: Guild, musicManager: GuildMusicManager, track: AudioTrack?, vc: AudioChannel?) {
+        fun play(guild: Guild, musicManager: GuildMusicManager, track: AudioTrack, vc: AudioChannel) {
             val audioManager = guild.audioManager
             if (!audioManager.isConnected) {
                 audioManager.openAudioConnection(vc)
             }
-            musicManager.scheduler.queue(track!!)
+            musicManager.scheduler.queue(track)
         }
 
         fun skipTrack(channel: TextChannel) {
@@ -2186,8 +2110,7 @@ abstract class Command(
 
         @JvmStatic
         fun trim(s: String, pokemon: String): String {
-            return s
-                .replace(pokemon.toRegex(), stars(pokemon.length))
+            return s.replace(pokemon.toRegex(), stars(pokemon.length))
                 .replace(pokemon.uppercase().toRegex(), stars(pokemon.length))
         }
 
@@ -2264,11 +2187,11 @@ abstract class Command(
         }
 
         @JvmStatic
-        fun save(json: JSONObject?, filename: String) {
+        fun save(json: JSONObject, filename: String) {
             try {
                 Files.copy(Paths.get(filename), Paths.get("$filename.bak"), StandardCopyOption.REPLACE_EXISTING)
                 val writer = BufferedWriter(FileWriter(filename))
-                writer.write(json!!.toString(4))
+                writer.write(json.toString(4))
                 writer.close()
             } catch (ioException: IOException) {
                 ioException.printStackTrace()
@@ -2296,17 +2219,15 @@ abstract class Command(
             return listOf(
                 ActionRow.of(
                     SelectMenu.create("trainerdata").addOptions(
-                        dt.monsList.stream().map { s: String? ->
+                        dt.monsList.map {
                             SelectOption.of(
-                                s!!, s
-                            ).withDefault(dt.isCurrent(s))
-                        }.collect(Collectors.toList())
+                                it, it
+                            ).withDefault(dt.isCurrent(it))
+                        }
                     ).build()
-                ),
-                ActionRow.of(
+                ), ActionRow.of(
                     if (withMoveset) Button.success(
-                        "trainerdata;CHANGEMODE",
-                        "Mit Moveset"
+                        "trainerdata;CHANGEMODE", "Mit Moveset"
                     ) else Button.secondary("trainerdata;CHANGEMODE", "Ohne Moveset")
                 )
             )
@@ -2318,11 +2239,7 @@ abstract class Command(
 
         private fun setupRepeatTasks() {
             RepeatTask(
-                Instant.ofEpochMilli(1661292000000),
-                5,
-                Duration.ofDays(7L),
-                { doNDSNominate() },
-                true
+                Instant.ofEpochMilli(1661292000000), 5, Duration.ofDays(7L), { doNDSNominate() }, true
             )
             RepeatTask(
                 Instant.ofEpochMilli(1661104800000),
@@ -2355,10 +2272,7 @@ abstract class Command(
                 }
                 val echannel = emolgaJSON.getJSONObject("emolgachannel")
                 for (s in echannel.keySet()) {
-                    emolgaChannel[s.toLong()] = echannel.getJSONArray(s).toList().stream().map { o: Any? -> o as Long? }
-                        .collect(
-                            Collectors.toCollection { ArrayList() }
-                        )
+                    emolgaChannel[s.toLong()] = echannel.getLongList(s)
                 }
                 serebiiex["Barschuft-B"] = "b"
                 serebiiex["Riffex-H"] = ""
@@ -2436,21 +2350,18 @@ abstract class Command(
 
         fun convertColor(hexcode: Int): Color {
             val c = java.awt.Color(hexcode)
-            return Color()
-                .setRed(c.red.toFloat() / 255f)
-                .setGreen(c.green.toFloat() / 255f)
+            return Color().setRed(c.red.toFloat() / 255f).setGreen(c.green.toFloat() / 255f)
                 .setBlue(c.blue.toFloat() / 255f)
         }
 
         private fun getSortedListOfMons(list: List<JSONObject>): List<String> {
-            return list.asSequence()
-                .sortedWith(compareBy({
-                    getByGuild(ASLID)!!.order.indexOf(
-                        it.getString("tier")
-                    )
-                }, {
-                    it.getString("name")
-                })).map { it.getString("name") }.toList()
+            return list.asSequence().sortedWith(compareBy({
+                getByGuild(ASLID)!!.order.indexOf(
+                    it.getString("tier")
+                )
+            }, {
+                it.getString("name")
+            })).map { it.getString("name") }.toList()
         }
 
         fun evaluatePredictions(league: JSONObject, p1wins: Boolean, gameday: Int, uid1: String, uid2: String) {
@@ -2499,8 +2410,8 @@ abstract class Command(
             var index = -1
             val battleorder = listOf(
                 *league.getJSONObject("battleorder").getString(gameday.toString()).split(";".toRegex())
-                    .dropLastWhile { it.isEmpty() }
-                    .toTypedArray())
+                    .dropLastWhile { it.isEmpty() }.toTypedArray()
+            )
             for (s in battleorder) {
                 if (s.contains(uid1)) {
                     str = s
@@ -2525,8 +2436,7 @@ abstract class Command(
         }
 
         val monList: List<String>
-            get() = dataJSON.keySet().stream().filter { s: String -> !s.endsWith("gmax") && !s.endsWith("totem") }
-                .collect(Collectors.toList())
+            get() = dataJSON.keySet().filter { s: String -> !s.endsWith("gmax") && !s.endsWith("totem") }
 
         private fun getZBSGameplanCoords(gameday: Int, index: Int): String {
             if (gameday < 4) return "C" + (gameday * 5 + index - 2)
@@ -2565,28 +2475,22 @@ abstract class Command(
                 catchrates = load("./catchrates.json")
                 val google = tokens.getJSONObject("google")
                 Google.setCredentials(
-                    google.getString("refreshtoken"),
-                    google.getString("clientid"),
-                    google.getString("clientsecret")
+                    google.getString("refreshtoken"), google.getString("clientid"), google.getString("clientsecret")
                 )
                 Google.generateAccessToken()
             }, "JSON Fileload").start()
         }
 
-        fun getWithCategory(category: CommandCategory, g: Guild, mem: Member?): List<Command> {
-            return commands.values.stream().filter { c: Command? ->
-                !c!!.disabled && c.category === category && c.allowsGuild(g) && c.allowsMember(mem)
-            }
-                .sorted(Comparator.comparing { obj: Command? -> obj!!.name }).collect(
-                    Collectors.toCollection { ArrayList() }
-                )
+        fun getWithCategory(category: CommandCategory, g: Guild, mem: Member): List<Command> {
+            return commands.values.filter {
+                !it.disabled && it.category === category && it.allowsGuild(g) && it.allowsMember(mem)
+            }.sortedBy { obj: Command -> obj.name }
         }
 
         @JvmStatic
         fun updatePresence() {
             if (BOT_DISABLED) {
-                emolgajda.presence
-                    .setPresence(OnlineStatus.DO_NOT_DISTURB, Activity.watching("auf den Wartungsmodus"))
+                emolgajda.presence.setPresence(OnlineStatus.DO_NOT_DISTURB, Activity.watching("auf den Wartungsmodus"))
                 return
             }
             val count = StatisticsManager.analysisCount
@@ -2595,17 +2499,15 @@ abstract class Command(
                 emolgajda.getTextChannelById(904481960527794217L)!!
                     .sendMessage(SimpleDateFormat("dd.MM.yyyy").format(Date()) + ": " + count).queue()
             }
-            emolgajda.presence
-                .setPresence(OnlineStatus.ONLINE, Activity.watching("auf $count analysierte Replays"))
+            emolgajda.presence.setPresence(OnlineStatus.ONLINE, Activity.watching("auf $count analysierte Replays"))
         }
 
-        fun getHelpButtons(g: Guild, mem: Member?): List<ActionRow> {
-            return getActionRows(order.stream().filter { cat: CommandCategory ->
+        fun getHelpButtons(g: Guild, mem: Member): List<ActionRow> {
+            return getActionRows(order.filter { cat: CommandCategory ->
                 cat.allowsGuild(g) && cat.allowsMember(
-                    mem!!
+                    mem
                 )
-            }
-                .collect(Collectors.toList())) { s: CommandCategory ->
+            }) { s: CommandCategory ->
                 Button.primary("help;" + s.categoryName.lowercase(), s.categoryName).withEmoji(
                     Emoji.fromCustom(
                         g.jda.getEmojiById(s.emote)!!
@@ -2614,7 +2516,7 @@ abstract class Command(
             }
         }
 
-        fun help(tco: TextChannel, mem: Member?) {
+        fun help(tco: TextChannel, mem: Member) {
             /*if(mem.getIdLong() != Constants.FLOID) {
             tco.sendMessage("Die Help-Funktion wird momentan umprogrammiert und steht deshalb nicht zur Verfügung.").queue();
             return;
@@ -2628,7 +2530,7 @@ abstract class Command(
         }
 
         fun check(e: MessageReceivedEvent) {
-            val mem = e.member
+            val mem = e.member!!
             val msg = e.message.contentDisplay
             val tco = e.textChannel
             val gid = e.guild.idLong
@@ -2657,7 +2559,7 @@ abstract class Command(
                     if (msg.equals("!" + file.name.split("\\.".toRegex()).dropLastWhile { it.isEmpty() }
                             .toTypedArray()[0], ignoreCase = true)) {
                         val voiceState = e.member!!.voiceState
-                        val pepe = mem!!.idLong == 349978348010733569L
+                        val pepe = mem.idLong == 349978348010733569L
                         if (voiceState!!.inAudioChannel() || pepe) {
                             val am = e.guild.audioManager
                             if (!am.isConnected) {
@@ -2669,9 +2571,7 @@ abstract class Command(
                                             logger.info("status = $status")
                                             if (status == ConnectionStatus.CONNECTED) {
                                                 playSound(
-                                                    voiceState.channel,
-                                                    "/home/florian/Discord/audio/clips/hi.mp3",
-                                                    tco
+                                                    voiceState.channel, "/home/florian/Discord/audio/clips/hi.mp3", tco
                                                 )
                                                 playSound(voiceState.channel, file.path, tco)
                                             }
@@ -2697,7 +2597,7 @@ abstract class Command(
                     tco.sendMessage(NOPERM).queue()
                     return
                 }
-                if (mem!!.idLong != FLOID) {
+                if (mem.idLong != FLOID) {
                     if (BOT_DISABLED) {
                         e.channel.sendMessage(DISABLED_TEXT).queue()
                         return
@@ -2753,8 +2653,8 @@ abstract class Command(
                     if (ex.isSubCmdMissing) {
                         val subcommands = ex.subcommands!!
                         tco.sendMessage(
-                            "Dieser Command beinhaltet Sub-Commands: " + subcommands.stream()
-                                .map { subcmd: String -> "`$subcmd`" }.collect(Collectors.joining(", "))
+                            "Dieser Command beinhaltet Sub-Commands: " + subcommands
+                                .joinToString { subcmd: String -> "`$subcmd`" }
                         ).queue()
                     } else {
                         val arg = ex.argument!!
@@ -2762,8 +2662,7 @@ abstract class Command(
                             tco.sendMessage(
                                 "Das benötigte Argument `" + arg.name + "`, was eigentlich " + buildEnumeration(
                                     arg.type.getName()
-                                ) + " sein müsste, ist nicht vorhanden!\n" +
-                                        "Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help " + command.name + "`."
+                                ) + " sein müsste, ist nicht vorhanden!\n" + "Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help " + command.name + "`."
                             ).queue()
                         }
                         if (mem.idLong != FLOID) {
@@ -2792,8 +2691,7 @@ abstract class Command(
         }
 
         private fun firstUpperCase(s: String): String {
-            return EMPTY_PATTERN.split(s)[0].uppercase() + s.substring(1)
-                .lowercase()
+            return EMPTY_PATTERN.split(s)[0].uppercase() + s.substring(1).lowercase()
         }
 
         private fun getType(str: String): String {
@@ -2839,31 +2737,28 @@ abstract class Command(
             val json = dataJSON
             val mon = json.getJSONObject(getSDName(monname))
             //logger.info("getAllForms mon = " + mon.toString(4));
-            return if (!mon.has("formeOrder")) listOf(mon) else mon.getJSONArray("formeOrder").toList().stream()
-                .map { o: Any -> toSDName(o as String) }
-                .distinct().filter { key: String? -> json.has(key) }.map { key: String? -> json.getJSONObject(key) }
-                .filter { o: JSONObject -> !o.optString("forme").endsWith("Totem") }.collect(Collectors.toList())
-            //return json.keySet().stream().filter(s -> s.startsWith(monname.toLowerCase()) && !s.endsWith("gmax") && (s.equalsIgnoreCase(monname) || json.getJSONObject(s).has("forme"))).sorted(Comparator.comparingInt(String::length)).map(json::getJSONObject).collect(Collectors.toList());
+            return if (!mon.has("formeOrder")) listOf(mon) else mon.getStringList("formeOrder").asSequence()
+                .map { toSDName(it) }.distinct()
+                .mapNotNull { json.optJSONObject(it) }
+                .filter { !it.optString("forme").endsWith("Totem") }.toList()
         }
 
-        private fun moveFilter(msg: String, move: String?): Boolean {
+        private fun moveFilter(msg: String, move: String): Boolean {
             val o = emolgaJSON.getJSONObject("movefilter")
             for (s in o.keySet()) {
-                if (msg.lowercase().contains("--$s") && !o.getJSONArray(s).toList()
-                        .contains(move)
-                ) return false
+                if (msg.lowercase().contains("--$s") && !o.getJSONArray(s).toList().contains(move)) return false
             }
             return true
         }
 
-        fun canLearnNDS(monId: String?, vararg moveId: String): String {
+        fun canLearnNDS(monId: String, vararg moveId: String): String {
             for (s in moveId) {
                 if (canLearn(monId, s)) return "JA"
             }
             return "NEIN"
         }
 
-        private fun canLearn(monId: String?, moveId: String): Boolean {
+        private fun canLearn(monId: String, moveId: String): Boolean {
             try {
                 val movejson = learnsetJSON
                 val data = dataJSON
@@ -2896,8 +2791,7 @@ abstract class Command(
             val atkdata = movesJSON
             val data = dataJSON
             try {
-                var str: String? =
-                    getSDName(pokemon) + if (form == "Normal") "" else form.lowercase()
+                var str: String? = getSDName(pokemon) + if (form == "Normal") "" else form.lowercase()
                 while (str != null) {
                     val learnset = movejson.getJSONObject(str).getJSONObject("learnset")
                     val set = TranslationsManager.getTranslationList(learnset.keySet())
@@ -2906,15 +2800,14 @@ abstract class Command(
                         val moveengl = set.getString("englishid")
                         val move = set.getString("germanname")
                         //logger.info("move = " + move);
-                        if (type.isEmpty() || atkdata.getJSONObject(moveengl).getString("type") == getEnglName(type) &&
-                            (dmgclass.isEmpty() || (atkdata.getJSONObject(
+                        if (type.isEmpty() || atkdata.getJSONObject(moveengl)
+                                .getString("type") == getEnglName(type) && (dmgclass.isEmpty() || (atkdata.getJSONObject(
                                 moveengl
-                            ).getString("category")) == dmgclass) &&
-                            (!msg.lowercase().contains("--prio") || atkdata.getJSONObject(moveengl)
-                                .getInt("priority") > 0) &&
-                            containsGen(learnset, moveengl, maxgen) &&
-                            moveFilter(msg, move) &&
-                            !already.contains(move)
+                            ).getString("category")) == dmgclass) && (!msg.lowercase()
+                                .contains("--prio") || atkdata.getJSONObject(moveengl)
+                                .getInt("priority") > 0) && containsGen(learnset, moveengl, maxgen) && moveFilter(
+                                msg, move
+                            ) && !already.contains(move)
                         ) {
                             already.add(move)
                         }
@@ -2933,7 +2826,7 @@ abstract class Command(
             return already
         }
 
-        fun sendToMe(msg: String?, vararg bot: Bot) {
+        fun sendToMe(msg: String, vararg bot: Bot) {
             sendToUser(FLOID, msg, *bot)
         }
 
@@ -2948,22 +2841,21 @@ abstract class Command(
             sendToMe(sw.toString())
         }
 
-        fun sendToUser(user: User, msg: String?) {
+        fun sendToUser(user: User, msg: String) {
             user.openPrivateChannel().flatMap { pc: PrivateChannel ->
                 pc.sendMessage(
-                    msg!!
+                    msg
                 )
             }.queue()
         }
 
-        fun sendToUser(id: Long, msg: String?, vararg bot: Bot) {
+        fun sendToUser(id: Long, msg: String, vararg bot: Bot) {
             val jda: JDA = if (bot.isEmpty()) emolgajda else bot[0].jDA
-            jda.retrieveUserById(id).flatMap { obj: User -> obj.openPrivateChannel() }
-                .flatMap { pc: PrivateChannel ->
-                    pc.sendMessage(
-                        msg!!
-                    )
-                }.queue()
+            jda.retrieveUserById(id).flatMap { obj: User -> obj.openPrivateChannel() }.flatMap { pc: PrivateChannel ->
+                pc.sendMessage(
+                    msg
+                )
+            }.queue()
         }
 
         private fun containsGen(learnset: JSONObject, move: String, gen: Int): Boolean {
@@ -3184,9 +3076,9 @@ abstract class Command(
                 StatisticsManager.increment("analysis")
                 var i = 0
                 while (i < 2) {
-                    if (game[i].mons.stream()
-                            .anyMatch { mon: Pokemon -> mon.pokemon == "Zoroark" || mon.pokemon == "Zorua" }
-                    ) resultchannel.sendMessage("Im Team von " + game[i].nickname + " befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!")
+                    if (game[i].mons
+                            .any { it.pokemon == "Zoroark" || it.pokemon == "Zorua" }
+                    ) resultchannel.sendMessage("Im Team von ${game[i].nickname} befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!")
                         .queue()
                     i++
                 }
@@ -3248,9 +3140,11 @@ abstract class Command(
             val slower = s.lowercase()
             if (slower.startsWith("m-")) {
                 val sub = s.substring(2)
-                val mon: Translation = if (s.endsWith("-X")) getGerName(sub.substring(0, sub.length - 2))
-                    .append("-X") else if (s.endsWith("-Y")) getGerName(sub.substring(0, sub.length - 2))
-                    .append("-Y") else getGerName(sub)
+                val mon: Translation =
+                    if (s.endsWith("-X")) getGerName(sub.substring(0, sub.length - 2)).append("-X") else if (s.endsWith(
+                            "-Y"
+                        )
+                    ) getGerName(sub.substring(0, sub.length - 2)).append("-Y") else getGerName(sub)
                 return if (!mon.isFromType(Translation.Type.POKEMON)) Translation.empty() else mon.before("M-")
             } else if (slower.startsWith("a-")) {
                 val mon = getGerName(s.substring(2))
@@ -3271,11 +3165,10 @@ abstract class Command(
             return Translation.empty()
         }
 
-        fun getGerNameWithForm(name: String?): String {
+        fun getGerNameWithForm(name: String): String {
             var toadd = StringBuilder(name)
             val split =
-                ArrayList(listOf(*toadd.toString().split("-".toRegex()).dropLastWhile { it.isEmpty() }
-                    .toTypedArray()))
+                ArrayList(listOf(*toadd.toString().split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()))
             if (toadd.toString().contains("-Alola")) {
                 toadd = StringBuilder("Alola-" + getGerNameNoCheck(split[0]))
                 for (i in 2 until split.size) {
@@ -3381,36 +3274,31 @@ abstract class Command(
             return Translation.empty()
         }
 
-        fun getTranslation(s: String?): ResultSet {
+        fun getTranslation(s: String): ResultSet {
             return getTranslation(s, false)
         }
 
-        fun getTranslation(s: String?, checkOnlyEnglish: Boolean, withCap: Boolean = false): ResultSet {
+        fun getTranslation(s: String, checkOnlyEnglish: Boolean, withCap: Boolean = false): ResultSet {
             return TranslationsManager.getTranslation(s, checkOnlyEnglish, withCap)
         }
 
         fun getSDName(str: String): String {
             logger.info("getSDName s = $str")
             val op =
-                sdex.keys.stream().filter { anotherString: String? -> str.equals(anotherString, ignoreCase = true) }
-                    .findFirst()
-            val gitname: String = if (op.isPresent) {
-                val ex = op.get()
-                val englname = getEnglName(ex.split("-".toRegex()).dropLastWhile { it.isEmpty() }
-                    .toTypedArray()[0])
+                sdex.keys.firstOrNull { anotherString: String -> str.equals(anotherString, ignoreCase = true) }
+            val gitname: String = if (op != null) {
+                val englname = getEnglName(op.split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[0])
                 return toSDName(englname + sdex[str])
             } else {
                 if (str.startsWith("M-")) {
                     val sub = str.substring(2)
                     if (str.endsWith("-X")) getEnglName(
                         sub.substring(
-                            0,
-                            sub.length - 2
+                            0, sub.length - 2
                         )
                     ) + "megax" else if (str.endsWith("-Y")) getEnglName(
                         sub.substring(
-                            0,
-                            sub.length - 2
+                            0, sub.length - 2
                         )
                     ) + "megay" else getEnglName(sub) + "mega"
                 } else if (str.startsWith("A-")) {
@@ -3418,8 +3306,7 @@ abstract class Command(
                 } else if (str.startsWith("G-")) {
                     getEnglName(str.substring(2)) + "galar"
                 } else if (str.startsWith("Amigento-")) {
-                    "silvally" + getEnglName(str.split("-".toRegex()).dropLastWhile { it.isEmpty() }
-                        .toTypedArray()[1])
+                    "silvally" + getEnglName(str.split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[1])
                 } else {
                     getEnglName(str)
                 }
@@ -3433,10 +3320,9 @@ abstract class Command(
         }
 
         @JvmStatic
-        fun toUsername(s: String?): String {
+        fun toUsername(s: String): String {
             return USERNAME_PATTERN.replace(
-                s!!.lowercase().trim()
-                    .replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss"), ""
+                s.lowercase().trim().replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss"), ""
             )
         }
 
@@ -3514,17 +3400,15 @@ abstract class Command(
             if (s == "Giratina-Origin") return s
             if (s.endsWith("-Zen")) return getMonName(s.substring(0, s.length - 4), gid, withDebug)
             if (s.contains("Silvally")) {
-                val split = s.split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+                val split = s.split("-".toRegex()).dropLastWhile { it.isEmpty() }
                 return if (split.size == 1 || s == "Silvally-*") "Amigento" else if (split[1] == "Psychic") "Amigento-Psycho" else "Amigento-" + getGerName(
-                    split[1],
-                    true
+                    split[1], true
                 ).translation
             }
             if (s.contains("Arceus")) {
-                val split = s.split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+                val split = s.split("-".toRegex()).dropLastWhile { it.isEmpty() }
                 return if (split.size == 1 || s == "Arceus-*") "Arceus" else if (split[1] == "Psychic") "Arceus-Psycho" else "Arceus-" + getGerName(
-                    split[1],
-                    true
+                    split[1], true
                 ).translation
             }
             if (s.contains("Basculin")) return "Barschuft"
@@ -3541,8 +3425,7 @@ abstract class Command(
             if (s.endsWith("-Mega")) {
                 return "M-" + getGerName(s.substring(0, s.length - 5), true).translation.ifEmpty {
                     s.substring(
-                        0,
-                        s.length - 5
+                        0, s.length - 5
                     )
                 }
             } else if (s.endsWith("-Alola")) {
@@ -3555,11 +3438,11 @@ abstract class Command(
                 return getGerName(s.substring(0, s.length - 8), true).translation + "-T"
             } else if (s.endsWith("-X")) {
                 return "M-" + getGerName(
-                    s.split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[0], true
+                    s.split("-".toRegex()).dropLastWhile { it.isEmpty() }[0], true
                 ).translation + "-X"
             } else if (s.endsWith("-Y")) {
                 return "M-" + getGerName(
-                    s.split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[0], true
+                    s.split("-".toRegex()).dropLastWhile { it.isEmpty() }[0], true
                 ).translation + "-Y"
             }
             if (s == "Tornadus") return "Boreos-I"
@@ -3573,18 +3456,16 @@ abstract class Command(
             val first: String = split.removeAt(0)
             return "${
                 getGerName(
-                    first,
-                    true
+                    first, true
                 ).translation.takeIf { it.isNotBlank() } ?: first
             }${if ("-" in s) "-" + split.joinToString("-") else ""}"
         }
 
         fun buildEnumeration(vararg types: ArgumentType): String {
-            return buildEnumeration(*Arrays.stream(types).map { obj: ArgumentType -> obj.getName() }
-                .toArray<String> { arrayOfNulls(it) })
+            return buildEnumeration(*types.map { it.getName() }.toTypedArray())
         }
 
-        fun buildEnumeration(vararg types: String?): String {
+        fun buildEnumeration(vararg types: String): String {
             val builder = StringBuilder(types.size shl 3)
             for (i in types.indices) {
                 if (i > 0) {
@@ -3597,8 +3478,7 @@ abstract class Command(
 
         fun isChannelAllowed(tc: TextChannel): Boolean {
             val gid = tc.guild.idLong
-            return !emolgaChannel.containsKey(gid) || emolgaChannel[gid]!!
-                .contains(tc.idLong) || emolgaChannel[gid]!!.isEmpty()
+            return !emolgaChannel.containsKey(gid) || emolgaChannel[gid]!!.contains(tc.idLong) || emolgaChannel[gid]!!.isEmpty()
         }
     }
 }
@@ -3606,4 +3486,6 @@ abstract class Command(
 fun <T> T.indexedBy(list: List<T>) = list.indexOf(this)
 val embedColor = java.awt.Color.CYAN.rgb
 fun Int.x(factor: Int, summand: Int) = getAsXCoord(this * factor + summand)
+
+@Suppress("unused")
 fun Int.y(factor: Int, summand: Int) = this * factor + summand

@@ -27,7 +27,7 @@ class ShowdownPokeFansCommand : Command(
     override fun process(e: GuildCommandEvent) {
         val tosend = JSONArray()
         //for (String id : ids) {
-        val paste = e.arguments!!.getText("paste")
+        val paste = e.arguments.getText("paste")
         val oneUser = JSONArray()
         oneUser.put("HierDenNamenÄndern")
         oneUser.put("HierDieLigaÄndern")

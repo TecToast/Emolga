@@ -3,7 +3,6 @@ package de.tectoast.emolga.commands.various
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import java.util.*
 
 class OffendCommand : Command("offend", "Offended Leute", CommandCategory.Various, 940283708953473075L) {
     init {
@@ -15,8 +14,8 @@ class OffendCommand : Command("offend", "Offended Leute", CommandCategory.Variou
 
     @Throws(Exception::class)
     override fun process(e: GuildCommandEvent) {
-        val person = e.arguments!!.getText("person")
-        when (person.lowercase(Locale.getDefault())) {
+        val person = e.arguments.getText("person")
+        when (person.lowercase()) {
             "emre" -> e.reply("Emre stinkt :^)")
             "discus" -> e.reply("Tower heißt Turret auf Englisch c:")
             "tobi" -> e.reply("Tobi kann Farben am Geruch erkennen \uD83D\uDC43")

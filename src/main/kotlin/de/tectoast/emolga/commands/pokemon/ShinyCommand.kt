@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import java.io.File
-import java.util.*
 
 class ShinyCommand : Command("shiny", "Zeigt das Shiny des Pokemons an", CommandCategory.Pokemon) {
     init {
@@ -22,12 +21,12 @@ class ShinyCommand : Command("shiny", "Zeigt das Shiny des Pokemons an", Command
 
     override fun process(e: GuildCommandEvent) {
         var suffix: String
-        val args = e.arguments!!
-        val monname = e.arguments!!.getTranslation("mon").translation
+        val args = e.arguments
+        val monname = args.getTranslation("mon").translation
         val mon = dataJSON.getJSONObject(toSDName(monname))
         suffix = if (args.has("regform")) {
             val form = args.getText("regform")
-            "-" + form.lowercase(Locale.getDefault())
+            "-" + form.lowercase()
         } else {
             ""
         }
@@ -37,18 +36,17 @@ class ShinyCommand : Command("shiny", "Zeigt das Shiny des Pokemons an", Command
                 e.reply("$monname besitzt keine **$form**-Form!")
                 return
             }
-            val otherFormes = mon.getJSONArray("otherFormes")
-            if (otherFormes.toList().stream().noneMatch { s: Any ->
-                    (s as String).lowercase(Locale.getDefault()).endsWith("-" + form.lowercase(Locale.getDefault()))
+            if (mon.getStringList("otherFormes").none {
+                    it.lowercase().endsWith("-" + form.lowercase())
                 }) {
                 e.reply("$monname besitzt keine **$form**-Form!")
                 return
             }
             if (suffix.isEmpty()) suffix = "-"
-            suffix += form.lowercase(Locale.getDefault())
+            suffix += form.lowercase()
         }
         val f =
-            File("../Showdown/sspclient/sprites/gen5-shiny/" + monname.lowercase(Locale.getDefault()) + suffix + ".png")
+            File("../Showdown/sspclient/sprites/gen5-shiny/" + monname.lowercase() + suffix + ".png")
         if (!f.exists()) {
             e.reply(mon.toString() + " hat keine " + args.getText("form") + "-Form!")
         }

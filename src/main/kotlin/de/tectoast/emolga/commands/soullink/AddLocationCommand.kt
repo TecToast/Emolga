@@ -17,10 +17,10 @@ class AddLocationCommand : Command("addlocation", "Fügt eine neue Location hinz
         val args = e.arguments
         val soullink = emolgaJSON.getJSONObject("soullink")
         val order = soullink.getStringList("order")
-        val location = eachWordUpperCase(args!!.getText("location"))
+        val location = eachWordUpperCase(args.getText("location"))
         if (!order.contains(location)) {
             soullink.getJSONArray("order").put(location)
-            e.reply("Die Location `%s` wurde eingetragen!".formatted(location))
+            e.reply("Die Location `$location` wurde eingetragen!")
             saveEmolgaJSON()
             updateSoullink()
             return

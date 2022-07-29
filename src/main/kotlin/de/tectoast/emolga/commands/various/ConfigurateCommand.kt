@@ -23,11 +23,11 @@ class ConfigurateCommand : Command("configurate", "Konfiguriert verschiedene Sac
                 ))
             .setExample("/configurate DexQuiz")
             .build()
-        slash(true, 918865966136455249L, Constants.FPLID)
+        slash(true, 918865966136455249L, Constants.FPLID, Constants.CULTID)
     }
 
     override fun process(e: GuildCommandEvent) {
-        val conf = e.arguments!!.getText("configuration")
+        val conf = e.arguments.getText("configuration")
         logger.info("configurations = {}", ModalConfigurators.configurations)
         logger.info("conf = {}", conf)
         ModalConfigurators.configurations[conf]!!.configurator().initialize(e.slashCommandEvent!!)

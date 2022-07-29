@@ -5,7 +5,6 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.sql.managers.SDNamesManager
-import net.dv8tion.jda.api.entities.User
 
 class AddSDNameCommand : Command("addsdname", "Registriert deinen Showdown-Namen bei Emolga", CommandCategory.Draft) {
     init {
@@ -24,11 +23,10 @@ class AddSDNameCommand : Command("addsdname", "Registriert deinen Showdown-Namen
             return
         }
         val name = args.getText("name")
-        val b = SDNamesManager.addIfAbsent(name, args.getOrDefault("id", e.author.idLong))
-        if (b) {
+        if (SDNamesManager.addIfAbsent(name, args.getOrDefault("id", e.author.idLong))) {
             if (args.has("id")) {
                 e.jda.retrieveUserById(args.getID("id"))
-                    .queue { mem: User -> e.reply("Der Name `$name` wurde für ${mem.name} registriert!") }
+                    .queue { e.reply("Der Name `$name` wurde für ${it.name} registriert!") }
             } else {
                 e.reply("Der Name `$name` wurde für dich registriert!")
             }

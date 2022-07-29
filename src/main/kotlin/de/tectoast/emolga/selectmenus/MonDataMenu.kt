@@ -8,7 +8,6 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import org.slf4j.LoggerFactory
 import java.awt.Color
-import java.util.stream.Collectors
 
 class MonDataMenu : MenuListener("mondata") {
     override fun process(e: SelectMenuInteractionEvent, menuname: String?) {
@@ -38,19 +37,19 @@ class MonDataMenu : MenuListener("mondata") {
             builder.addField("Typen", "Normal", false)
         } else {
             logger.info(mon.toString())
-            val type = mon.getJSONArray("types").toList().stream().map { o: Any ->
-                if (o == "Psychic") return@map "Psycho"
-                Command.getGerNameNoCheck(o as String)
-            }.collect(Collectors.joining(" "))
+            val type = mon.getJSONArray("types").toStringList().joinToString(" ") {
+                if (it == "Psychic") "Psycho"
+                else Command.getGerNameNoCheck(it)
+            }
             builder.addField("Typen", type, false)
         }
         builder.addField("Größe", mon.getDouble("heightm").toString() + " m", true)
         builder.addField("Gewicht", mon.getDouble("weightkg").toString() + " kg", true)
-        builder.addField("Eigruppe", mon.getJSONArray("eggGroups").toList().stream().map { o: Any ->
+        builder.addField("Eigruppe", mon.getJSONArray("eggGroups").toStringList().joinToString {
             Command.getGerNameNoCheck(
-                "E_$o"
+                "E_$it"
             )
-        }.collect(Collectors.joining(", ")), true)
+        }, true)
         if (monname.equals("silvally", ignoreCase = true) || monname.equals("arceus", ignoreCase = true)) {
             builder.addField(
                 "Fähigkeiten",
@@ -140,11 +139,11 @@ class MonDataMenu : MenuListener("mondata") {
         builder.setTitle(Command.getGerNameWithForm(monname))
         builder.setColor(Color.CYAN)
         e.editMessageEmbeds(builder.build())
-            .setActionRow(SelectMenu.create("mondata").addOptions(e.selectMenu.options.stream().map { o: SelectOption ->
+            .setActionRow(SelectMenu.create("mondata").addOptions(e.selectMenu.options.map { o: SelectOption ->
                 o.withDefault(
                     o.value == name
                 )
-            }.collect(Collectors.toList())).build()).queue()
+            }).build()).queue()
         //e.getHook().editOriginalEmbeds(builder.build()).queue();
     }
 

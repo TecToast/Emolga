@@ -8,13 +8,7 @@ class ByeCommand : MusicCommand("bye", ":^(", 700504340368064562L) {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
-        val tco = e.textChannel
-        val member = e.member
-        try {
-            loadAndPlay(tco, "https://www.youtube.com/watch?v=TgqiSBxvdws", member, ":(")
-        } catch (ex: IllegalArgumentException) {
-            ex.printStackTrace()
-        }
-    }
+    override fun process(e: GuildCommandEvent) =
+        loadAndPlay(e.textChannel, "https://www.youtube.com/watch?v=TgqiSBxvdws", e.member, ":(")
+
 }

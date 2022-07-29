@@ -4,6 +4,7 @@ import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.indexedBy
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.draft.Draft
@@ -16,8 +17,8 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import org.slf4j.LoggerFactory
 import java.util.*
-import java.util.stream.Collectors
 
+@Suppress("unused")
 class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) {
     init {
         //setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!pick <Pokemon> [Optionales Tier]", "!pick Emolga"));
@@ -106,8 +107,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                         return
                     }
                     pokemon = t.translation
-                    tier = tierlist.order.stream().filter { s: String? -> split[1].equals(s, ignoreCase = true) }
-                        .findFirst().orElse("")
+                    tier = tierlist.order.firstOrNull { split[1].equals(it, ignoreCase = true) } ?: ""
                 } else {
                     t = getDraftGerName(msg.substring(6))
                     if (!t.isFromType(Translation.Type.POKEMON)) {
@@ -274,17 +274,19 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 cengl.y + 5,
                 convertColor(0xFF0000)
             )
-            val finalComp = Comparator.comparing { p: DraftPokemon -> tierlist.order.indexOf(p.tier) }
+            Comparator.comparing { p: DraftPokemon -> tierlist.order.indexOf(p.tier) }
                 .thenComparing { p: DraftPokemon -> p.name }
             b.addAll("Teamseite HR!B${league.getLongList("table").indexOf(mem) * 15 + 4}",
-                d.picks[mem]!!.stream().sorted(finalComp).map { mon: DraftPokemon ->
-                    listOf(
-                        mon.tier, mon.name, dataJSON.getJSONObject(
-                            getSDName(mon.name)
-                        ).getJSONObject("baseStats").getInt("spe")
-                    )
-                }
-                    .collect(Collectors.toList()))
+                d.picks[mem]!!.asSequence().sortedWith(compareBy({ it.tier.indexedBy(tierlist.order) }, { it.name }))
+                    .map { mon: DraftPokemon ->
+                        listOf(
+                            mon.tier, mon.name, dataJSON.getJSONObject(
+                                getSDName(mon.name)
+                            ).getJSONObject("baseStats").getInt("spe")
+                        )
+                    }
+                    .toList()
+            )
             val rr = effectiveRound - 1
             logger.info("d.originalOrder = {}", d.originalOrder)
             logger.info("effectiveRound = {}", effectiveRound)
@@ -324,20 +326,17 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             var num = -1
             for (i in 1..2) {
                 val lists = league.getJSONArray("table$i").toLongListList()
-                val `in` =
-                    lists.stream().filter { l: List<Long> -> l.contains(mem) }.map { o: List<Long> -> lists.indexOf(o) }
-                        .findFirst().orElse(-1)
-                if (`in` == -1) continue
+                val idk = lists.indexOfFirst { mem in it }
+                if (idk == -1) continue
                 lea = if (i == 1) "Sonne" else "Hagel"
-                num = `in`
+                num = idk
             }
             b.addRow(
                 "Teamseite $lea!C${
                     num * 15L + 3 +
-                            (tierlist.order.indexOf(tier) * 3L + d.picks[mem]!!
-                                .stream().filter { p: DraftPokemon -> p.tier == tier }.count())
+                            (tierlist.order.indexOf(tier) * 3L + d.picks[mem]!!.count { it.tier == tier })
                 }",
-                listOf<Any>(
+                listOf(
                     pokemon,
                     dataJSON.getJSONObject(getSDName(pokemon)).getJSONObject("baseStats").getInt("spe")
                 )
@@ -409,18 +408,20 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 list.add((i shl 2) + 10)
             }
             b.addRow(
-                "$team!B$yc", listOf<Any>(getGen5Sprite(pokemon),
+                "$team!B$yc", listOf<Any>(
+                    getGen5Sprite(pokemon),
                     pokemon,
                     needed,
-                    "=" + list.stream().map { i: Int? ->
+                    "=" + list.joinToString(" + ") {
                         getAsXCoord(
-                            i!!
+                            it
                         ) + yc
-                    }.collect(Collectors.joining(" + ")),
-                    "=" + list.stream().map { i: Int -> getAsXCoord(i + 1) + yc }
-                        .collect(Collectors.joining(" + ")),
+                    },
+                    "=" + list.joinToString(" + ") { i: Int -> getAsXCoord(i + 1) + yc },
                     "=E$yc - F$yc",
-                    dataJSON.getJSONObject(getSDName(pokemon)).getJSONObject("baseStats").getInt("spe")))
+                    dataJSON.getJSONObject(getSDName(pokemon)).getJSONObject("baseStats").getInt("spe")
+                )
+            )
             b.execute()
         }
 
@@ -440,10 +441,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 .addSingle("$teamname!D$i", pokemon)
                 .addSingle("Tierliste!" + getAsXCoord(tl.x * 6 + 6) + (tl.y + 4), "='$teamname'!B2")
             val t: MutableList<Any> =
-                o.getStringList("types").stream().map { s: String? -> typeIcons.getString(s) }
-                    .collect(
-                        Collectors.toCollection { LinkedList() }
-                    )
+                o.getStringList("types").map { s: String? -> typeIcons.getString(s) }.toMutableList()
             if (t.size == 1) t.add("/")
             b.addRow("$teamname!F$i", t)
             b.addSingle("$teamname!H$i", o.getJSONObject("baseStats").getInt("spe"))
@@ -533,9 +531,9 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 b.addStrikethroughChange(856868721, d.round + 2, num + 2, true)
                 val user = league.getLongList("table").indexOf(mem.idLong)
                 val range = "Liga 2!" + getAsXCoord((if (tier == "S") 12 + d.picks[mem.idLong]!!
-                    .stream().filter { p: DraftPokemon -> p.tier == "S" }
-                    .count() else tierlist.order.indexOf(tier) * 3 + 11 + d.picks[mem.idLong]!!
-                    .stream().filter { p: DraftPokemon -> p.tier == tier }.count()).toInt()
+                    .count { it.tier == "S" }
+                else tierlist.order.indexOf(tier) * 3 + 11 + d.picks[mem.idLong]!!
+                    .count { it.tier == tier }).toInt()
                 ) + (user + 3)
                 logger.info("range = $range")
                 b.addSingle(range, getGen5Sprite(pokemon))

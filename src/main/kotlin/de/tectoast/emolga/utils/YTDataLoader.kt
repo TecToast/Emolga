@@ -42,7 +42,7 @@ class YTDataLoader {
     }
 
     fun buildEmbed(track: AudioTrack, mem: Member, musicManager: GuildMusicManager): MessageEmbed {
-        var duration = musicManager.scheduler.queue.stream().mapToLong { obj: AudioTrack -> obj.duration }.sum() / 1000
+        var duration = musicManager.scheduler.queue.sumOf { obj: AudioTrack -> obj.duration } / 1000
         if (musicManager.player.playingTrack != null) {
             duration += musicManager.player.playingTrack.duration - musicManager.player.playingTrack.position
         }
@@ -62,7 +62,7 @@ class YTDataLoader {
     }
 
     fun buildEmbed(playlist: AudioPlaylist, mem: Member, musicManager: GuildMusicManager): MessageEmbed {
-        var duration = musicManager.scheduler.queue.stream().mapToLong { obj: AudioTrack -> obj.duration }.sum() / 1000
+        var duration = musicManager.scheduler.queue.sumOf { obj: AudioTrack -> obj.duration } / 1000
         if (musicManager.player.playingTrack != null) {
             duration += musicManager.player.playingTrack.duration - musicManager.player.playingTrack.position
         }

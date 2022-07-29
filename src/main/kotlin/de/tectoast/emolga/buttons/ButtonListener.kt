@@ -4,8 +4,6 @@ import com.google.common.reflect.ClassPath
 import de.tectoast.emolga.commands.Command
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import org.slf4j.LoggerFactory
-import java.io.IOException
-import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Modifier
 
 abstract class ButtonListener(name: String) {
@@ -25,7 +23,6 @@ abstract class ButtonListener(name: String) {
             }
         }
 
-        @JvmStatic
         fun check(e: ButtonInteractionEvent) {
             logger.info("e.getComponentId() = {}", e.componentId)
             val split = e.componentId.split(";".toRegex())
@@ -36,25 +33,14 @@ abstract class ButtonListener(name: String) {
             }
         }
 
-        @JvmStatic
         fun init() {
             val loader = Thread.currentThread().contextClassLoader
-            try {
-                for (classInfo in ClassPath.from(loader).getTopLevelClassesRecursive("de.tectoast.emolga.buttons")) {
-                    val cl = classInfo.load()
-                    if (cl.superclass.simpleName.endsWith("ButtonListener") && !Modifier.isAbstract(cl.modifiers)) {
-                        //logger.info(classInfo.getName());
-                        cl.constructors[0].newInstance()
-                    }
+            for (classInfo in ClassPath.from(loader).getTopLevelClassesRecursive("de.tectoast.emolga.buttons")) {
+                val cl = classInfo.load()
+                if (cl.superclass.simpleName.endsWith("ButtonListener") && !Modifier.isAbstract(cl.modifiers)) {
+                    //logger.info(classInfo.getName());
+                    cl.constructors[0].newInstance()
                 }
-            } catch (e: IOException) {
-                e.printStackTrace()
-            } catch (e: IllegalAccessException) {
-                e.printStackTrace()
-            } catch (e: InstantiationException) {
-                e.printStackTrace()
-            } catch (e: InvocationTargetException) {
-                e.printStackTrace()
             }
         }
     }

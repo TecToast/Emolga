@@ -22,7 +22,7 @@ class DraftsetupCommand : Command("draftsetup", "Startet das Draften der Liga in
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         Draft(e.textChannel, args.getText("name"), if (args.has("tc")) args.getChannel("tc").id else null, false)
     }
 }

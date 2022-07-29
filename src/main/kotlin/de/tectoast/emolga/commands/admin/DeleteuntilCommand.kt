@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import net.dv8tion.jda.api.entities.Message
-import net.dv8tion.jda.api.entities.TextChannel
 
 class DeleteuntilCommand :
     Command("deleteuntil", "Löscht alle Nachrichten bis zur angegebenen ID", CommandCategory.Flo) {
@@ -13,7 +12,7 @@ class DeleteuntilCommand :
             .add(
                 "tc",
                 "Text-Channel",
-                "Der Channel, in dem gelöscht werden soll, sonst der, in dem der Command geschrieben wurde",
+                "Der Channel, dessen Nachrichten gelöscht werden sollen, sonst der, in dem der Command geschrieben wurde",
                 ArgumentManagerTemplate.DiscordType.CHANNEL,
                 true
             )
@@ -28,24 +27,21 @@ class DeleteuntilCommand :
     }
 
     override fun process(e: GuildCommandEvent) {
-        val m = e.message!!
-        val tco = e.textChannel
-        val tc: TextChannel
-        val channels = m.mentions.getChannels(TextChannel::class.java)
-        tc = if (channels.size > 0) channels[0] else tco
-        val mid = if (e.hasArg(1)) e.getArg(1) else e.getArg(0)
+        val args = e.arguments
+        val tc = args.getOrDefault("tc", e.textChannel)
+        val mid = args.getID("mid")
         try {
             tc.retrieveMessageById(mid).complete()
         } catch (ex: Exception) {
-            tco.sendMessage("In diesem Channel gibt es keine Nachricht mit dieser ID!").queue()
+            e.reply("Diese Nachricht existiert nicht!")
             return
         }
         val todel = ArrayList<Message>()
         for (message in tc.iterableHistory) {
-            if (message.id == mid) break
+            if (message.idLong == mid) break
             todel.add(message)
         }
         tc.deleteMessages(todel).queue()
-        tco.sendMessage("Success!").queue()
+        e.reply("Success!")
     }
 }

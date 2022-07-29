@@ -11,11 +11,9 @@ class RoundCommand : Command("round", "Zeigt die Runde des derzeitigen Drafts an
     }
 
     override fun process(e: GuildCommandEvent) {
-        val op = Draft.drafts.stream().filter { d: Draft -> d.tc.id == e.textChannel.id }.findFirst()
-        if (op.isEmpty) {
-            e.reply("In diesem Textchannel findet derzeit kein Draft statt!")
+        Draft.drafts.firstOrNull { d: Draft -> d.tc.id == e.textChannel.id }?.let {
+            e.reply("Der Draft ist in Runde " + it.round + "!")
             return
-        }
-        e.reply("Der Draft ist in Runde " + op.get().round + "!")
+        } ?: e.reply("In diesem Textchannel findet derzeit kein Draft statt!")
     }
 }

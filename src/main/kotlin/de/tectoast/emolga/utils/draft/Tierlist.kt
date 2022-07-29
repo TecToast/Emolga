@@ -2,7 +2,6 @@ package de.tectoast.emolga.utils.draft
 
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.utils.records.Coord
-import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.*
 import java.util.function.Consumer
@@ -56,7 +55,7 @@ class Tierlist(guild: String) {
      * the possible points for a player
      */
     var points = 0
-    var allEnglNames: List<String>? = null
+    private var allEnglNames: List<String>? = null
 
     val autoComplete: Set<String> by lazy {
         val all = mutableSetOf<String>()
@@ -180,7 +179,6 @@ class Tierlist(guild: String) {
          * All tierlists
          */
         val tierlists: MutableMap<Long, Tierlist> = HashMap()
-        private val logger = LoggerFactory.getLogger(Tierlist::class.java)
         private val REPLACE_NONSENSE = Pattern.compile("[^a-zA-Z\\d-:% ]")
         fun setup() {
             tierlists.clear()

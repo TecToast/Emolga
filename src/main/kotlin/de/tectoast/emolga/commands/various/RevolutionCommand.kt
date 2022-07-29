@@ -5,8 +5,6 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.entities.ChannelType
-import net.dv8tion.jda.api.entities.Member
-import java.util.*
 
 class RevolutionCommand : Command("revolution", "muhahahahaha", CommandCategory.Various) {
     init {
@@ -27,8 +25,8 @@ class RevolutionCommand : Command("revolution", "muhahahahaha", CommandCategory.
         val arr = emolgaJSON.getJSONArray("activerevolutions")
         val isRevo = arr.toList().contains(g.idLong)
         val o = JSONObject()
-        e.textChannel.sendMessage("Möge die **$name-Revolution** beginnen! :D").queue()
-        g.loadMembers().onSuccess { list: List<Member> ->
+        e.reply("Möge die **$name-Revolution** beginnen! :D")
+        g.loadMembers().onSuccess { list ->
             for (member in list) {
                 if (member.isOwner) continue
                 if (member.id == e.jda.selfUser.id) member.modifyNickname(name + "leader").queue()
@@ -37,7 +35,7 @@ class RevolutionCommand : Command("revolution", "muhahahahaha", CommandCategory.
                 member.modifyNickname(name).queue()
             }
             for (gc in g.channels) {
-                gc.manager.setName((if (gc.type == ChannelType.TEXT) name.lowercase(Locale.getDefault()) else name) + "-" + gc.name)
+                gc.manager.setName((if (gc.type == ChannelType.TEXT) name.lowercase() else name) + "-" + gc.name)
                     .queue()
             }
             if (!isRevo) {

@@ -2,16 +2,15 @@ package de.tectoast.emolga.buttons.buttonsaves
 
 import de.tectoast.emolga.commands.Command
 import de.tectoast.jsolf.JSONObject
-import java.util.function.Consumer
 
 class MonData(val list: List<JSONObject>) {
-    val data = LinkedHashMap<String, JSONObject>()
+    val data: MutableMap<String, JSONObject> = mutableMapOf()
 
     init {
-        list.forEach(Consumer { j: JSONObject -> data[Command.toSDName(j.getString("name"))] = j })
+        list.forEach { data[Command.toSDName(it.getString("name"))] = it }
     }
 
-    fun getData(id: String): JSONObject? {
-        return data[id]
+    fun getData(id: String): JSONObject {
+        return data.getValue(id)
     }
 }

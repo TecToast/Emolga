@@ -10,7 +10,6 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import java.awt.Color
 import java.util.function.Function
-import java.util.stream.Collectors
 
 class ModalConfigurator private constructor() {
     private val actionRows: MutableList<TextInput> = mutableListOf()
@@ -22,8 +21,7 @@ class ModalConfigurator private constructor() {
     fun buildModal(page: Int = 0): Modal {
         return Modal.create("modalconfigurator;$id", title!!)
             .addActionRows(
-                actionRows.stream().skip(page * 5L).limit(5).map { components: TextInput? -> ActionRow.of(components) }
-                    .toList())
+                actionRows.drop(page * 5).take(5).map { ActionRow.of(it) })
             .build()
     }
 
@@ -42,13 +40,10 @@ class ModalConfigurator private constructor() {
                 e.replyEmbeds(
                     EmbedBuilder()
                         .setTitle(
-                            "Das Argument %s ist ungültig für \"%s\"!".formatted(
-                                value, actionRows.stream()
-                                    .filter { ti: TextInput -> ti.id == id }.findFirst().orElseThrow().label
-                            )
+                            "Das Argument $value ist ungültig für \"${actionRows.first { it.id == id }.label}\"!"
                         )
                         .setColor(0xFF0000)
-                        .setFooter("Aufgerufen von %s (%s)".formatted(member.effectiveName, member.user.asTag))
+                        .setFooter("Aufgerufen von ${member.effectiveName} (${member.user.asTag})")
                         .build()
                 ).queue()
                 return
@@ -59,7 +54,7 @@ class ModalConfigurator private constructor() {
             EmbedBuilder()
                 .setTitle("Deine Konfiguration wurde erfolgreich gespeichert!")
                 .setColor(0x00FF00)
-                .setFooter("Aufgerufen von %s (%s)".formatted(member.effectiveName, member.user.asTag))
+                .setFooter("Aufgerufen von ${member.effectiveName} (${member.user.asTag}")
                 .build()
         ).queue()
         Command.saveEmolgaJSON()
@@ -78,8 +73,8 @@ class ModalConfigurator private constructor() {
             val realSite = i + 1
             embed.addField(
                 "Seite $realSite",
-                actionRows.stream().skip((i * 5).toLong()).limit(5)
-                    .map { obj: TextInput -> obj.label }.collect(Collectors.joining("\n")), false
+                actionRows.drop(i * 5).take(5)
+                    .joinToString("\n") { obj: TextInput -> obj.label }, false
             )
             sm.addOption("Seite $realSite", i.toString())
         }
@@ -98,6 +93,11 @@ class ModalConfigurator private constructor() {
 
     fun actionRows(vararg actionRows: TextInput): ModalConfigurator {
         this.actionRows.addAll(listOf(*actionRows))
+        return this
+    }
+
+    fun actionRows(actionRows: List<TextInput>): ModalConfigurator {
+        this.actionRows.addAll(actionRows)
         return this
     }
 

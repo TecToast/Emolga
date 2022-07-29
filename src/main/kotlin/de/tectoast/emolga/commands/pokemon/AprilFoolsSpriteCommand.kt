@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import java.io.File
-import java.util.*
 
 class AprilFoolsSpriteCommand : Command("aprilfoolsprite", "Zeigt den April-Fools-Sprite", CommandCategory.Pokemon) {
     init {
@@ -40,14 +39,14 @@ class AprilFoolsSpriteCommand : Command("aprilfoolsprite", "Zeigt den April-Fool
 
     override fun process(e: GuildCommandEvent) {
         val suffix: String
-        val args = e.arguments!!
+        val args = e.arguments
         suffix = if (args.has("form")) {
             val form = args.getText("form")
-            "-" + form.lowercase(Locale.getDefault())
+            "-" + form.lowercase()
         } else {
             ""
         }
-        val mon = e.arguments!!.getTranslation("mon").translation
+        val mon = args.getTranslation("mon").translation
         if (mon == "Popplio" || mon == "Primarina") {
             e.reply("Möchte da jemand gebannt werden? :^)")
             return
@@ -56,7 +55,7 @@ class AprilFoolsSpriteCommand : Command("aprilfoolsprite", "Zeigt den April-Fool
             "../Showdown/sspclient/sprites/afd"
                     + (if (args.isText("back", "Back")) "-back" else "")
                     + (if (args.isText("shiny", "Shiny")) "-shiny" else "")
-                    + "/" + mon.lowercase(Locale.getDefault()) + suffix + ".png"
+                    + "/" + mon.lowercase() + suffix + ".png"
         )
         if (!f.exists()) {
             e.reply(mon + " hat keine " + args.getText("form") + "-Form!")

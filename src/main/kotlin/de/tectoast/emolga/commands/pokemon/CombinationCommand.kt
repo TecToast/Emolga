@@ -7,7 +7,6 @@ import de.tectoast.jsolf.JSONArray
 import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.EmbedBuilder
 import java.awt.Color
-import java.util.*
 
 class CombinationCommand : Command(
     "combination",
@@ -59,7 +58,7 @@ class CombinationCommand : Command(
             var currentMon: String? = null
             var isRegion = false
             for (form in listOf("alola", "galar", "unova")) {
-                if (mon.optString("forme", "").lowercase(Locale.getDefault()).contains(form)) isRegion = true
+                if (mon.optString("forme", "").lowercase().contains(form)) isRegion = true
             }
             if (!isRegion) {
                 if (mon.has("baseSpecies")) currentMon = mon.getString("baseSpecies")
@@ -119,27 +118,16 @@ class CombinationCommand : Command(
     }
 
     companion object {
-        fun containsNotAll(mon: JSONObject, list: List<String>?): Boolean {
+        fun containsNotAll(mon: JSONObject, list: List<String>): Boolean {
             val l = ArrayList(list)
             for (s in mon.keySet()) {
                 l.remove(mon.getString(s))
             }
-            return l.size != 0
+            return l.isNotEmpty()
         }
 
-        fun containsNotAll(arr: JSONArray, list: List<String>): Boolean {
-            val l = arr.toList().stream().map { o: Any? -> o as String? }.toList()
-            for (s in list) {
-                if (!l.contains(s)) return true
-            }
-            return false
-        }
+        fun containsNotAll(arr: JSONArray, list: List<String>) = !arr.toStringList().containsAll(list)
 
-        fun containsNotAll(set: Set<String?>, list: List<String>): Boolean {
-            for (s in list) {
-                if (!set.contains(s)) return true
-            }
-            return false
-        }
+        fun containsNotAll(set: Set<String?>, list: List<String>) = !set.containsAll(list)
     }
 }

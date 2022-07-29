@@ -16,10 +16,10 @@ class QlCommand : MusicCommand("ql", "Zeigt die Länge der Queue an") {
         val hours = (duration / 3600).toInt()
         val minutes = ((duration - hours * 3600) / 60).toInt()
         val seconds = (duration - hours * 3600 - minutes * 60).toInt()
-        var str = ""
-        if (hours > 0) str += hours.toString() + "h "
-        str += minutes.toString() + "m "
-        str += seconds.toString() + "s"
-        tco.sendMessage(str).queue()
+        e.reply(buildString {
+            if (hours > 0) append(hours).append("h ")
+            append(minutes).append("m ")
+            append(seconds).append("s ")
+        })
     }
 }

@@ -19,13 +19,13 @@ class AddSoundCommand : PepeCommand("addsound", "Added einen Sound") {
     }
 
     override fun process(e: GuildCommandEvent) {
-        val a = e.arguments!!.getAttachment("sound")
+        val a = e.arguments.getAttachment("sound")
         val fileName = a.fileName
         val f = File("audio/clips/$fileName")
         if (f.exists()) {
             e.reply("Ein Sound mit dem Namen " + fileName.substring(0, fileName.length - 4) + " gibt es bereits!")
             return
         }
-        a.proxy.downloadToFile(f).thenAccept { file: File? -> e.reply("Der Sound wurde hinzugefügt!") }
+        a.proxy.downloadToFile(f).thenAccept { e.reply("Der Sound wurde hinzugefügt!") }
     }
 }

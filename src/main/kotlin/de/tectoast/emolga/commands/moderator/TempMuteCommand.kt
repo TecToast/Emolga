@@ -39,9 +39,7 @@ class TempMuteCommand : Command("tempmute", "Muted den User temporär", CommandC
                 time += parseShortTime(splitarr[i])
             } else reasonbuilder.append(splitarr[i]).append(" ")
         }
-        val reason =
-            if (reasonbuilder.toString().trim().isEmpty()) "Nicht angegeben" else reasonbuilder.toString()
-                .trim()
+        val reason = reasonbuilder.toString().trim().ifEmpty { "Nicht angegeben" }
         tempMute(tco, e.member, mem, time, reason)
     }
 }

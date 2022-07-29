@@ -18,12 +18,12 @@ class AllLearnCommand : Command(
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         val atk = args.getTranslation("move").translation
         val str = StringBuilder(2 shl 5)
         val mons = args.getText("mons")
         if (mons.contains("\n")) {
-            for (s in mons.split("\n".toRegex())) {
+            for (s in mons.split("\n")) {
                 str.append(
                     if (canLearn(
                             if (s.startsWith("A-") || s.startsWith("G-") || s.startsWith("M-")) s.substring(2) else s,
@@ -39,7 +39,7 @@ class AllLearnCommand : Command(
                 )
             }
         } else {
-            for (s in mons.split(" ".toRegex())) {
+            for (s in mons.split(" ")) {
                 str.append(
                     if (canLearn(
                             if (s.startsWith("A-") || s.startsWith("G-") || s.startsWith("M-")) s.substring(2) else s,
@@ -48,10 +48,7 @@ class AllLearnCommand : Command(
                             e.msg ?: "",
                             if (e.guild.id == "747357029714231299") 5 else 8
                         )
-                    ) """
-     $s
-     
-     """.trimIndent() else ""
+                    ) "$s\n" else ""
                 )
             }
         }

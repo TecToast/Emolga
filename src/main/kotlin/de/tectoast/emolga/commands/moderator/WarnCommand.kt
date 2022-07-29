@@ -20,7 +20,7 @@ class WarnCommand : Command("warn", "Verwarnt den User", CommandCategory.Moderat
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         warn(e.textChannel, e.member, args.getMember("user"), args.getOrDefault("reason", "Nicht angegeben"))
     }
 }

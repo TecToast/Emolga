@@ -11,8 +11,7 @@ class UpdateRemindersCommand : Command("updatereminders", "Updated die Reminder 
     override fun process(e: GuildCommandEvent) {
         calendarService.shutdownNow()
         newCalendarService()
-        val jda = e.jda
-        jda.getTextChannelById(CALENDAR_TCID)!!.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()
+        e.jda.getTextChannelById(CALENDAR_TCID)!!.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()
         CalendarManager.allEntries.forEach { scheduleCalendarEntry(it) }
         e.done()
     }

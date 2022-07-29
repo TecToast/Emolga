@@ -5,8 +5,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.jsolf.JSONObject
-import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 
 class RevealPrismaTeamCommand :
@@ -20,17 +18,18 @@ class RevealPrismaTeamCommand :
     }
 
     override fun process(e: GuildCommandEvent) {
-        val user = e.arguments!!.getMember("user")
+        val user = e.arguments.getMember("user")
         val prisma = emolgaJSON.getJSONObject("drafts").getJSONObject("Prisma")
         val picks = prisma.getJSONObject("picks")
         val jsonList = picks.getJSONList(user.id)
         jsonList.reverse()
         e.textChannel.sendMessage("**" + user.effectiveName + "**")
             .setActionRow(Button.primary("prisma;lol", "Nächstes Pokemon"))
-            .queue { m: Message ->
-                prismaTeam[m.idLong] = PrismaTeam(jsonList.stream()
-                    .map { o: JSONObject? -> o!!.getString("name") }
-                    .toList(), prisma.getLongList("table").indexOf(user.idLong))
+            .queue { message ->
+                prismaTeam[message.idLong] = PrismaTeam(
+                    jsonList
+                        .map { it!!.getString("name") }, prisma.getLongList("table").indexOf(user.idLong)
+                )
             }
     }
 }

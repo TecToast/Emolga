@@ -6,14 +6,11 @@ import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
-import net.dv8tion.jda.api.interactions.commands.OptionMapping
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.requests.restaction.MessageAction
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import org.slf4j.LoggerFactory
-import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
-import java.util.stream.Collectors
 
 abstract class GenericCommandEvent {
     val message: Message?
@@ -34,7 +31,7 @@ abstract class GenericCommandEvent {
         msg = message.contentDisplay
         channel = message.channel
         jda = message.jda
-        val mentions = this.message.getMentions()
+        val mentions = this.message.mentions
         mentionedChannels = mentions.getChannels(TextChannel::class.java)
         mentionedMembers = mentions.members
         mentionedRoles = mentions.roles
@@ -50,25 +47,20 @@ abstract class GenericCommandEvent {
         msg = null
         channel = e.channel
         jda = e.jda
-        args = e.options.stream().map { obj: OptionMapping -> obj.asString }.collect(Collectors.toList())
-        mentionedChannels = e.options.stream().filter { o: OptionMapping -> o.type == OptionType.CHANNEL }
-            .map { o: OptionMapping -> o.asMessageChannel as TextChannel? }.collect(Collectors.toList())
-        mentionedMembers = e.options.stream().filter { o: OptionMapping -> o.type == OptionType.USER }
-            .map { obj: OptionMapping -> obj.asMember }.collect(Collectors.toList())
-        mentionedRoles = e.options.stream().filter { o: OptionMapping -> o.type == OptionType.ROLE }
-            .map { obj: OptionMapping -> obj.asRole }.collect(Collectors.toList())
+        args = e.options.map { it.asString }.toMutableList()
+        mentionedChannels =
+            e.options.filter { it.type == OptionType.CHANNEL }.map { it.asMessageChannel as TextChannel }
+        mentionedMembers = e.options.filter { it.type == OptionType.USER }.map { it.asMember }
+        mentionedRoles = e.options.filter { it.type == OptionType.ROLE }.map { it.asRole }
         argsLength = args.size
         slashCommandEvent = e
     }
-
-    val raw: String
-        get() = message!!.contentRaw
 
     fun getArg(i: Int): String {
         return if (hasArg(i)) args[i] else ""
     }
 
-    fun hasArg(i: Int): Boolean {
+    private fun hasArg(i: Int): Boolean {
         return i < argsLength
     }
 
@@ -116,20 +108,10 @@ abstract class GenericCommandEvent {
         logger.info("QUEUED! " + System.currentTimeMillis())
     }
 
-    fun replyMessage(msg: String): CompletableFuture<Message>? {
-        if (msg.isEmpty()) return null
-        slashCommandEvent?.reply("\uD83D\uDC4D")?.setEphemeral(true)?.queue()
-        return channel.sendMessage(msg).submit()
-    }
-
     fun reply(message: MessageEmbed?) {
         if (slashCommandEvent != null) slashCommandEvent.replyEmbeds(message!!).queue() else channel.sendMessageEmbeds(
             message!!
         ).queue()
-    }
-
-    fun replyToMe(message: String?) {
-        Command.sendToMe(message, Command.Bot.byJDA(jda))
     }
 
     fun done() {

@@ -3,7 +3,7 @@ package de.tectoast.emolga.utils
 import de.tectoast.emolga.commands.Command.Companion.loadSD
 import de.tectoast.jsolf.JSONObject
 
-class ModManager(private val name: String, datapath: String) {
+class ModManager(name: String, datapath: String) {
     lateinit var dex: JSONObject
     lateinit var learnsets: JSONObject
     lateinit var moves: JSONObject
@@ -27,8 +27,5 @@ class ModManager(private val name: String, datapath: String) {
     companion object {
         private val modManagers = ArrayList<ModManager>()
         lateinit var default: ModManager
-        fun getByName(name: String): ModManager {
-            return modManagers.stream().filter { m: ModManager? -> m!!.name == name }.findFirst().orElse(null)
-        }
     }
 }

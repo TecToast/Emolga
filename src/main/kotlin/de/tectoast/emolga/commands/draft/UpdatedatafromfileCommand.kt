@@ -20,12 +20,10 @@ class UpdatedatafromfileCommand :
     override fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val name = e.arguments.getText("name")
-        val op = Draft.drafts.stream().filter { d: Draft -> d.name == name }.findFirst()
-        if (op.isEmpty) {
+        val d = Draft.drafts.firstOrNull { d: Draft -> d.name == name } ?: run {
             tco.sendMessage("Dieser Draft existiert nicht!").queue()
             return
         }
-        val d = op.get()
         val league = emolgaJSON.getJSONObject("drafts").getJSONObject(name)
         val lround = league.getInt("round")
         if (d.round != lround) {

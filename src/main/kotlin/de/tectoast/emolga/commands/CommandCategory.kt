@@ -4,7 +4,6 @@ import de.tectoast.emolga.utils.Constants
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import java.util.*
-import java.util.function.Predicate
 
 enum class CommandCategory {
     Admin(967390962877870090L), Moderator(967390963947438120L), Draft(967390964685602867L), Flo(967390966153609226L), Dexquiz(
@@ -18,8 +17,8 @@ enum class CommandCategory {
 
     val emote: Long
     val categoryName: String
-    private var allowsMember: Predicate<Member> = Predicate { true }
-    private var allowsGuildId: Predicate<Long> = Predicate { true }
+    private var allowsMember: (Member) -> Boolean = { true }
+    private var allowsGuildId: (Long) -> Boolean = { true }
     var isEverywhere = false
         private set
 
@@ -38,11 +37,11 @@ enum class CommandCategory {
     }
 
     fun allowsGuild(gid: Long): Boolean {
-        return gid == 447357526997073930L || allowsGuildId.test(gid)
+        return gid == 447357526997073930L || allowsGuildId(gid)
     }
 
     fun allowsMember(mem: Member): Boolean {
-        return mem.idLong == Constants.FLOID || allowsMember.test(mem)
+        return mem.idLong == Constants.FLOID || allowsMember(mem)
     }
 
     companion object {
@@ -53,19 +52,19 @@ enum class CommandCategory {
         val order = listOf(Flo, Admin, Moderator, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Music, Soullink)
 
         init {
-            Moderator.allowsMember = Predicate { m: Member ->
+            Moderator.allowsMember = { m: Member ->
                 Admin.allowsMember(m) || m.roles.stream()
                     .anyMatch { Command.moderatorRoles.containsValue(it.idLong) }
             }
-            Music.allowsGuildId = Predicate(musicGuilds::contains)
+            Music.allowsGuildId = musicGuilds::contains
             Moderator.allowsGuildId =
-                Predicate(Command.moderatorRoles::containsKey)
+                Command.moderatorRoles::containsKey
             Pepe.allowsGuildId =
-                Predicate { it == 605632286179983360L || it == 817156502912761867L }
+                { it == 605632286179983360L || it == 817156502912761867L }
             Flo.allowsMember =
-                Predicate { it.idLong == Constants.FLOID }
+                { it.idLong == Constants.FLOID }
             Admin.allowsMember = Flo.allowsMember
-            Soullink.allowsGuildId = Predicate { gid: Long? -> gid == 695943416789598208L }
+            Soullink.allowsGuildId = { gid: Long? -> gid == 695943416789598208L }
             Draft.isEverywhere = true
             Flo.isEverywhere = true
             Admin.isEverywhere = true

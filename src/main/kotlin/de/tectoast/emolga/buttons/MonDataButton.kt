@@ -1,31 +1,33 @@
 package de.tectoast.emolga.buttons
 
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.commands.pokemon.DataCommand
 import de.tectoast.jsolf.JSONObject
+import dev.minn.jda.ktx.messages.Embed
+import dev.minn.jda.ktx.messages.editMessage_
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import org.slf4j.LoggerFactory
 import java.awt.Color
-import java.util.stream.Collectors
 
 class MonDataButton : ButtonListener("mondata") {
     override fun process(e: ButtonInteractionEvent, name: String) {
         logger.info("e.getMessageIdLong() = " + e.messageIdLong)
         val dt = Command.monDataButtons[e.messageIdLong]
         if (dt == null) {
-            e.editMessageEmbeds(
-                EmbedBuilder().setTitle("Ach Mensch " + e.member!!.effectiveName + ", diese Mon-Data funktioniert nicht mehr, da seitdem der Bot neugestartet wurde!")
-                    .setColor(
-                        Color.CYAN
-                    ).build()
+            e.editMessage_(
+                embed = Embed(
+                    title = "Diese Mon-Data funktioniert nicht mehr, da seitdem der Bot neugestartet wurde!",
+                    color = embedColor
+                )
             ).queue()
             return
         }
         val mon = dt.getData(name)
         val builder = EmbedBuilder()
-        builder.addField("Englisch", mon!!.getString("name"), true)
+        builder.addField("Englisch", mon.getString("name"), true)
         builder.addField("Dex", mon.getInt("num").toString(), true)
         val gender: String = if (mon.has("genderRatio")) {
             val gen = mon.getJSONObject("genderRatio")
@@ -40,19 +42,20 @@ class MonDataButton : ButtonListener("mondata") {
             builder.addField("Typen", "Normal", false)
         } else {
             logger.info(mon.toString())
-            val type = mon.getJSONArray("types").toList().stream().map { o: Any ->
-                if (o == "Psychic") return@map "Psycho"
-                Command.getGerNameNoCheck(o as String)
-            }.collect(Collectors.joining(" "))
-            builder.addField("Typen", type, false)
+            builder.addField(
+                "Typen",
+                mon.getJSONArray("types").toStringList()
+                    .joinToString(" ") { if (it == "Psychic") "Psycho" else Command.getGerNameNoCheck(it) },
+                false
+            )
         }
         builder.addField("Größe", mon.getDouble("heightm").toString() + " m", true)
         builder.addField("Gewicht", mon.getDouble("weightkg").toString() + " kg", true)
-        builder.addField("Eigruppe", mon.getJSONArray("eggGroups").toList().stream().map { o: Any ->
+        builder.addField("Eigruppe", mon.getJSONArray("eggGroups").toStringList().joinToString(", ") {
             Command.getGerNameNoCheck(
-                "E_$o"
+                "E_$it"
             )
-        }.collect(Collectors.joining(", ")), true)
+        }, true)
         if (monname.equals("silvally", ignoreCase = true) || monname.equals("arceus", ignoreCase = true)) {
             builder.addField(
                 "Fähigkeiten",

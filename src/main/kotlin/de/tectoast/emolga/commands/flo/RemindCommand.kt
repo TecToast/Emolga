@@ -7,7 +7,6 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.CALENDAR_MSGID
 import de.tectoast.emolga.utils.Constants.CALENDAR_TCID
 import de.tectoast.emolga.utils.sql.managers.CalendarManager
-import net.dv8tion.jda.api.entities.TextChannel
 import java.sql.Timestamp
 
 class RemindCommand : Command("remind", "Setzt einen Reminder auf", CommandCategory.Flo, Constants.MYSERVER) {
@@ -16,11 +15,10 @@ class RemindCommand : Command("remind", "Setzt einen Reminder auf", CommandCateg
             val split = WHITESPACES_SPLITTER.split(e.message!!.contentRaw, 3)
             val expires = parseCalendarTime(split[1])
             val message = split[2]
-            val calendarTc: TextChannel = e.jda.getTextChannelById(CALENDAR_TCID)!!
             CalendarManager.insertNewEntry(message, Timestamp(expires / 1000 * 1000))
             scheduleCalendarEntry(expires, message)
             e.message.delete().queue()
-            calendarTc.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()
+            e.jda.getTextChannelById(CALENDAR_TCID)!!.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()
         } catch (ex: NumberFormatException) {
             e.textChannel.sendMessage("Das ist keine valide Zeitangabe!").queue()
             ex.printStackTrace()

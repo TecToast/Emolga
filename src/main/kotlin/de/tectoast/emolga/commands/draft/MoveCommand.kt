@@ -26,12 +26,12 @@ class MoveCommand : Command(
         val tco = e.textChannel
         val d = Draft.getDraftByMember(member, tco)
         if (d == null) {
-            tco.sendMessage(memberr.asMention + " Du bist in keinem Draft drin!").queue()
+            tco.sendMessage("${memberr.asMention} Du bist in keinem Draft drin!").queue()
             return
         }
         if (d.tc.id != tco.id) return
         if (d.isNotCurrent(member)) {
-            tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue()
+            tco.sendMessage("${d.getMention(member)} Du bist nicht dran!").queue()
             return
         }
         val mem = d.current
@@ -44,7 +44,7 @@ class MoveCommand : Command(
         if (!league.has("skippedturns")) league.put("skippedturns", JSONObject())
         val st = league.getJSONObject("skippedturns")
         st.put(mem, st.createOrGetArray(mem).put(d.round))
-        d.nextPlayer(tco, tierlist!!, league)
+        d.nextPlayer(tco, tierlist, league)
         //ndsdoc(tierlist, pokemon, d, mem, tier, round);
     }
 }

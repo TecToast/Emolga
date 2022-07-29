@@ -52,8 +52,7 @@ class Pokemon(
     }
 
     fun noAbilityTrigger(line: Int): Boolean {
-        return ability.isNotEmpty() && disabledAbi.get() != ability && !game[line + 1]!!
-            .contains("[from] ability: $ability")
+        return ability.isNotEmpty() && disabledAbi.get() != ability && !game[line + 1]!!.contains("[from] ability: $ability")
     }
 
     fun checkHPZoro(hp: Int): Boolean {
@@ -62,11 +61,10 @@ class Pokemon(
 
     fun setDead(line: Int) {
         if (game[line + 1]!!.contains("|replace|") && game[line + 1]!!.contains("|Zor")) {
-            player.mons.stream().filter { p: Pokemon? -> p!!.pokemon == "Zoroark" || p.pokemon == "Zorua" }
-                .findFirst().ifPresent { p: Pokemon? ->
-                    p!!.isDead = true
-                    zoru.remove(player.number)
-                }
+            player.mons.firstOrNull { it.pokemon == "Zoroark" || it.pokemon == "Zorua" }?.let {
+                it.isDead = true
+                zoru.remove(player.number)
+            }
         } else {
             isDead = true
         }
@@ -74,17 +72,17 @@ class Pokemon(
 
     fun setHp(hp: Int, turn: Int) {
         if (zoroTurns.contains(turn)) {
-            player.mons.stream().filter { p: Pokemon? -> p!!.pokemon == "Zoroark" || p.pokemon == "Zorua" }
-                .findFirst().ifPresent { p: Pokemon? -> p!!.hp = hp }
+            player.mons.firstOrNull { it.pokemon == "Zoroark" || it.pokemon == "Zorua" }
+                ?.let { p: Pokemon? -> p!!.hp = hp }
             logger.info(MarkerFactory.getMarker("important"), "set hp zoroark in turn {} to {}", turn, hp)
         } else this.hp = hp
     }
 
     fun killsPlus1(turn: Int) {
         if (zoroTurns.contains(turn)) {
-            player.mons.stream().filter { p: Pokemon? -> p!!.pokemon == "Zoroark" || p.pokemon == "Zorua" }
-                .findFirst().ifPresent { p: Pokemon? ->
-                    if (p!!.lastKillTurn == turn) return@ifPresent
+            player.mons.firstOrNull { p: Pokemon? -> p!!.pokemon == "Zoroark" || p.pokemon == "Zorua" }
+                ?.let { p: Pokemon? ->
+                    if (p!!.lastKillTurn == turn) return@let
                     p.kills++
                     p.lastKillTurn = turn
                 }

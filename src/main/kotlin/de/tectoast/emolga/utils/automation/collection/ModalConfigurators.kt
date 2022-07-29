@@ -7,8 +7,6 @@ import de.tectoast.emolga.utils.automation.structure.ModalConfigurator
 import de.tectoast.emolga.utils.records.ModalConfiguration
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
-import java.util.*
-import java.util.stream.Stream
 
 object ModalConfigurators {
     private val DEXQUIZ = ModalConfigurator.create()
@@ -19,20 +17,20 @@ object ModalConfigurators {
                 "totalbudget", "Größe an Tipp-Budget", TextInputStyle.SHORT
             ).setPlaceholder(Command.DEXQUIZ_BUDGET.toString()).setRequired(false).build()
         )
-        .actionRows(*buildActionRows())
-        .mapper({ s: String ->
-            try {
-                val i = s.toInt()
-                if (i < -1) return@mapper null
-                return@mapper i
-            } catch (e: NumberFormatException) {
-                return@mapper null
-            }
-        },
-            *Stream.concat(
-                Stream.of("totalbudget"),
-                Arrays.stream(DexQuizTip.values()).map { obj: DexQuizTip -> obj.name })
-                .toArray { arrayOfNulls(it) })
+        .actionRows(buildActionRows())
+        .mapper(
+            { s: String ->
+                try {
+                    val i = s.toInt()
+                    if (i < -1) return@mapper null
+                    return@mapper i
+                } catch (e: NumberFormatException) {
+                    return@mapper null
+                }
+            },
+            "totalbudget", *DexQuizTip.values().map { it.name }.toTypedArray()
+        )
+
     val configurations: Map<String, ModalConfiguration> = mapOf(
         Pair("dexquiz", ModalConfiguration("DexQuiz") { DEXQUIZ })
     )

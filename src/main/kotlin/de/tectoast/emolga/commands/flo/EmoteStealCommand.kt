@@ -11,11 +11,9 @@ class EmoteStealCommand : Command("emotesteal", "Stealt Emotes... lol", CommandC
 
     override fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
-        if (emoteSteal.remove(tco.idLong)) {
-            tco.sendMessage("Der EmoteSteal wurde deaktiviert!").queue()
-        } else {
-            emoteSteal.add(tco.idLong)
-            tco.sendMessage("Der EmoteSteal wurde aktiviert!").queue()
+        emoteSteal.remove(tco.idLong).also {
+            if (!it) emoteSteal.add(tco.idLong)
+            e.reply("Der EmoteSteal wurde ${if (it) "de" else ""}aktiviert!")
         }
     }
 }

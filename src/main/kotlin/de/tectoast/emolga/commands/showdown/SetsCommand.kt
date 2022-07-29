@@ -7,8 +7,6 @@ import de.tectoast.emolga.utils.showdown.Analysis
 import de.tectoast.emolga.utils.showdown.Player
 import de.tectoast.emolga.utils.showdown.Pokemon
 import okhttp3.OkHttpClient
-import java.io.IOException
-import java.util.*
 import java.util.regex.Pattern
 import java.util.stream.Collectors
 
@@ -24,33 +22,28 @@ class SetsCommand : Command("sets", "Zeigt die Sets von einem Showdown-Kampf an"
 
     @Throws(Exception::class)
     override fun process(e: GuildCommandEvent) {
-        val url = e.arguments!!.getText("url")
-        e.reply(Arrays.stream(Analysis(url, e.message).analyse()).map { p: Player ->
-            try {
-                val paste = buildPaste(p)
-                //e.reply("```" + paste + "```");
-                val res = client.newCall(
-                    okhttp3.Request.Builder()
-                        .url("https://pokepast.es/create")
-                        .method(
-                            "POST", okhttp3.FormBody.Builder()
-                                .add("paste", paste)
-                                .add("title", "Sets von " + p.nickname)
-                                .add("author", "Emolga")
-                                .add("notes", url)
-                                .build()
-                        )
-                        .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                        .build()
-                ).execute()
-                val returl = res.request.url.toString()
-                res.close()
-                return@map p.nickname + ": " + returl
-            } catch (ex: IOException) {
-                ex.printStackTrace()
-            }
-            ""
-        }.collect(Collectors.joining("\n")))
+        val url = e.arguments.getText("url")
+        e.reply(Analysis(url, e.message).analyse().joinToString("\n") { p: Player ->
+            val paste = buildPaste(p)
+            //e.reply("```" + paste + "```");
+            val res = client.newCall(
+                okhttp3.Request.Builder()
+                    .url("https://pokepast.es/create")
+                    .method(
+                        "POST", okhttp3.FormBody.Builder()
+                            .add("paste", paste)
+                            .add("title", "Sets von " + p.nickname)
+                            .add("author", "Emolga")
+                            .add("notes", url)
+                            .build()
+                    )
+                    .addHeader("Content-Type", "application/x-www-form-urlencoded")
+                    .build()
+            ).execute()
+            val returl = res.request.url.toString()
+            res.close()
+            p.nickname + ": " + returl
+        })
     }
 
     companion object {

@@ -3,7 +3,7 @@ package de.tectoast.emolga.utils.records
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 
 //String sheet, String x, int y
-class StatLocation(val sheet: String?, val x: String, val y: Int) {
+class StatLocation(private val sheet: String?, val x: String, private val y: Int) {
     constructor(sheet: String?, x: Int, y: Int) : this(sheet, getAsXCoord(x), y)
 
     val isValid: Boolean

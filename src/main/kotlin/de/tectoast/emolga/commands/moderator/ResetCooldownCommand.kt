@@ -25,7 +25,7 @@ class ResetCooldownCommand : Command(
     }
 
     override fun process(e: GuildCommandEvent) {
-        val mem = e.arguments!!.getMember("user")
+        val mem = e.arguments.getMember("user")
         val name = "**" + mem.effectiveName + "**"
         val c = emolgaJSON.getJSONObject("cooldowns")
         val gid = e.guild.id

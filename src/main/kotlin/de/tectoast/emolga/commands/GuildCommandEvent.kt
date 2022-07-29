@@ -31,9 +31,11 @@ class GuildCommandEvent : GenericCommandEvent {
             } catch (ex: Exception) {
                 ex.printStackTrace()
                 textChannel.sendMessage(
-                    "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (%s).\n".formatted(
-                        MYTAG
-                    ) + c.getHelp(e.guild) + if (member.idLong == FLOID) "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" else ""
+                    "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo ($MYTAG).\n${
+                        c.getHelp(
+                            e.guild
+                        )
+                    }${if (member.idLong == FLOID) "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" else ""}"
                 ).queue()
             }
         }, "CMD " + c.name).start()
@@ -48,13 +50,15 @@ class GuildCommandEvent : GenericCommandEvent {
         arguments = template.construct(e, c)
         Thread({
             try {
-                (if (arguments != null) arguments!!.executor else c).process(this)
+                arguments.executor.process(this)
             } catch (ex: Exception) {
                 ex.printStackTrace()
                 textChannel.sendMessage(
-                    "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (%s).\n".formatted(
-                        MYTAG
-                    ) + c.getHelp(guild) + if (member.idLong == FLOID) "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" else ""
+                    "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo ($MYTAG).\n${
+                        c.getHelp(
+                            guild
+                        )
+                    }${if (member.idLong == FLOID) "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" else ""}"
                 ).queue()
             }
         }, "CMD " + c.name).start()

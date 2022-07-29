@@ -8,7 +8,6 @@ import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.entities.MessageEmbed
 import java.awt.Color
 import java.util.function.Consumer
-import java.util.stream.Collectors
 
 object TypicalSets {
     val json: JSONObject = Command.load("./typicalsets.json")
@@ -48,31 +47,30 @@ object TypicalSets {
         }
         val mon: JSONObject = json.getJSONObject(pokemon)
         val uses = mon.getInt("uses").toDouble()
-        val comp = Comparator.comparing { (_, value): Map.Entry<String?, Any> -> value as Int }
-            .reversed()
+        val comp = compareByDescending<Map.Entry<String, Any>> { it.value as Int }
         return EmbedBuilder().addField(
             "Attacken",
-            mon.optJSONObject("moves", JSONObject()).toMap().entries.stream().sorted(comp)
+            mon.optJSONObject("moves", JSONObject()).toMap().entries.sortedWith(comp)
                 .map { (key, value): Map.Entry<String, Any> ->
                     val usesStr = (value as Int / uses * 100f).toString()
                     key + ": " + usesStr.substring(0, usesStr.length.coerceAtMost(5)) + "%"
-                }.limit(5).collect(Collectors.joining("\n")),
+                }.take(5).joinToString("\n"),
             true
         ).addField(
             "Items",
-            mon.optJSONObject("items", JSONObject()).toMap().entries.stream().sorted(comp)
+            mon.optJSONObject("items", JSONObject()).toMap().entries.sortedWith(comp)
                 .map { (key, value): Map.Entry<String, Any> ->
                     val itemsStr = (value as Int / uses * 100f).toString()
                     key + ": " + itemsStr.substring(0, itemsStr.length.coerceAtMost(5)) + "%"
-                }.limit(5).collect(Collectors.joining("\n")),
+                }.take(5).joinToString("\n"),
             true
         ).addField(
             "Fähigkeiten",
-            mon.optJSONObject("abilities", JSONObject()).toMap().entries.stream().sorted(comp)
+            mon.optJSONObject("abilities", JSONObject()).toMap().entries.sortedWith(comp)
                 .map { (key, value): Map.Entry<String, Any> ->
                     val abilitiesStr = (value as Int / uses * 100f).toString()
                     key + ": " + abilitiesStr.substring(0, abilitiesStr.length.coerceAtMost(5)) + "%"
-                }.limit(5).collect(Collectors.joining("\n")),
+                }.take(5).joinToString("\n"),
             true
         ).setColor(Color.CYAN).setTitle(pokemon).build()
     }

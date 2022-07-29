@@ -5,12 +5,13 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DexQuiz
+import dev.minn.jda.ktx.messages.reply_
 
 class DexquizCommand :
     Command("dexquiz", "Erstellt ein Dexquiz mit der angegebenen Anzahl an Einträgen", CommandCategory.Dexquiz) {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
-        slash(true, 918865966136455249L, Constants.FPLID)
+        slash(true, 918865966136455249L, Constants.FPLID, Constants.CULTID)
     }
 
     override fun process(e: GuildCommandEvent) {}
@@ -28,17 +29,16 @@ class DexquizCommand :
 
         override fun process(e: GuildCommandEvent) {
             val tco = e.textChannel
-            val quiz = DexQuiz.getByTC(tco)
-            if (quiz != null) {
+            if (DexQuiz.getByTC(tco) != null) {
                 e.reply("In diesem Channel läuft bereits ein Dexquiz! Wenn du dieses beenden möchtest, verwende `/dexquiz end`.")
                 return
             }
             try {
-                DexQuiz(tco, e.arguments!!.getLong("count"))
-                if (e.isSlash) e.slashCommandEvent!!.reply("\uD83D\uDC4D").setEphemeral(true).queue()
-            } catch (ioException: Exception) {
+                DexQuiz(tco, e.arguments.getLong("count"))
+                e.slashCommandEvent?.reply_("\uD83D\uDC4D", ephemeral = true)?.queue()
+            } catch (ex: Exception) {
                 tco.sendMessage("Es ist ein Fehler aufgetreten!").queue()
-                ioException.printStackTrace()
+                ex.printStackTrace()
             }
         }
     }
@@ -49,12 +49,10 @@ class DexquizCommand :
         }
 
         override fun process(e: GuildCommandEvent) {
-            val tco = e.textChannel
-            val quiz = DexQuiz.getByTC(tco)
-            if (quiz != null) {
-                e.reply("Die Lösung des alten Quizzes war " + quiz.currentGerName + "!")
-                quiz.end()
-            }
+            DexQuiz.getByTC(e.textChannel)?.let {
+                e.reply("Die Lösung des alten Quizzes war " + it.currentGerName + "!")
+                it.end()
+            } ?: e.reply("In diesem Channel findet zurzeit kein Dexquiz statt!")
         }
     }
 }

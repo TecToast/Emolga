@@ -20,7 +20,7 @@ class MuteCommand : Command("mute", "Mutet den User wegen des angegebenen Grunde
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         if (!args.has("user")) return
         mute(e.textChannel, e.member, args.getMember("user"), args.getOrDefault("reason", "Nicht angegeben"))
     }

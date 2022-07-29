@@ -12,15 +12,14 @@ class TeamCommand : Command("team", "lol", CommandCategory.Various) {
     }
 
     override fun process(e: GuildCommandEvent) {
-        e.guild.loadMembers().onSuccess { l: List<Member> ->
-            val list = ArrayList<Member?>()
-            for (mem in l) {
+        e.guild.loadMembers().onSuccess {
+            val list = ArrayList<Member>()
+            for (mem in it) {
                 if (mem.voiceState!!.inAudioChannel()) list.add(mem)
             }
             list.shuffle()
             e.reply(
-                list[0]!!.effectiveName + " und " + list[1]!!.effectiveName + " **VS** " + list[2]!!
-                    .effectiveName + " und " + list[3]!!.effectiveName
+                "${list[0].effectiveName} und ${list[1].effectiveName} **VS** ${list[2].effectiveName} und ${list[3].effectiveName}"
             )
         }
     }

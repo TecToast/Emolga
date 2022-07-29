@@ -10,7 +10,10 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 
 class MusicQuizCommand :
     Command("musicquiz", "Startet ein Musikquiz von Pokemon im angegebenen Channel", CommandCategory.Flo) {
-    private val links = HashMap<String, String>()
+    private val links = mapOf(
+        "Pokemon" to "https://www.youtube.com/playlist?list=PLZ0CBSZb0p0ZxmS4x96YeuetEyekhI5oD",
+        "Zelda" to "https://www.youtube.com/playlist?list=PLrwrdAXSpHC7uEBFqjXGJCNk-hgMD4Fe7"
+    )
 
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
@@ -26,15 +29,13 @@ class MusicQuizCommand :
             )
             .setExample("!musicquiz 744911735705829386 Pokemon")
             .build()
-        links["Pokemon"] = "https://www.youtube.com/playlist?list=PLZ0CBSZb0p0ZxmS4x96YeuetEyekhI5oD"
-        links["Zelda"] = "https://www.youtube.com/playlist?list=PLrwrdAXSpHC7uEBFqjXGJCNk-hgMD4Fe7"
     }
 
     override fun process(e: GuildCommandEvent) {
-        val vc = e.jda.getVoiceChannelById(e.arguments!!.getID("vid"))
+        val vc = e.jda.getVoiceChannelById(e.arguments.getID("vid"))
         vc!!.guild.audioManager.openAudioConnection(vc)
         val musicManager = getGuildAudioPlayer(vc.guild)
-        val playlistName = e.arguments!!.getText("playlist")
+        val playlistName = e.arguments.getText("playlist")
         getPlayerManager(vc.guild).loadItemOrdered(musicManager, links[playlistName], object : AudioLoadResultHandler {
             override fun trackLoaded(track: AudioTrack) {}
             override fun playlistLoaded(playlist: AudioPlaylist) {

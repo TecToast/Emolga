@@ -3,7 +3,6 @@ package de.tectoast.emolga.commands.various
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import java.util.*
 
 class DelCommandCommand : Command("delcommand", "Deleted nen Command oder so", CommandCategory.Flo) {
     init {
@@ -14,7 +13,7 @@ class DelCommandCommand : Command("delcommand", "Deleted nen Command oder so", C
     }
 
     override fun process(e: GuildCommandEvent) {
-        val name: String = e.arguments!!.getText("name").lowercase(Locale.getDefault())
+        val name: String = e.arguments.getText("name").lowercase()
         val json = emolgaJSON.getJSONObject("customcommands")
         if (!json.has(name)) {
             e.reply("Dieser Command existiert nicht!")

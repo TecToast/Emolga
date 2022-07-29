@@ -15,9 +15,6 @@ import de.tectoast.emolga.utils.showdown.Player
 import de.tectoast.emolga.utils.showdown.Pokemon
 import de.tectoast.jsolf.JSONObject
 import org.slf4j.LoggerFactory
-import java.util.*
-import java.util.function.BiFunction
-import java.util.function.Function
 import java.util.function.Supplier
 
 class DocEntry private constructor() : ReplayAnalyser {
@@ -32,10 +29,8 @@ class DocEntry private constructor() : ReplayAnalyser {
         }
     }
 
-    var tableMapper =
-        Function { o: JSONObject -> o.getLongList("table") }
-    private var tableIndex =
-        BiFunction { o: JSONObject, u: Long -> tableMapper.apply(o).indexOf(u) }
+    var tableMapper = { o: JSONObject -> o.getLongList("table") }
+    private var tableIndex = { o: JSONObject, u: Long -> tableMapper(o).indexOf(u) }
     var leagueFunction: LeagueFunction? = null
     var killProcessor: StatProcessor = invalidProcessor
     var deathProcessor: StatProcessor = invalidProcessor
@@ -46,7 +41,7 @@ class DocEntry private constructor() : ReplayAnalyser {
     var sorterData: SorterData? = null
     var setStatIfEmpty = false
     var numberMapper: (String) -> String = { s: String -> s.ifEmpty { "0" } }
-    var onlyKilllist: Supplier<List<String>>? = null
+    private var onlyKilllist: Supplier<List<String>>? = null
 
     fun execute(
         game: Array<Player>,
@@ -95,7 +90,7 @@ class DocEntry private constructor() : ReplayAnalyser {
         val uids = listOf(uid1, uid2)
         val picksJson = league.getJSONObject("picks")
         for ((i, uid) in uids.withIndex()) {
-            val index = tableIndex.apply(league, uid)
+            val index = tableIndex(league, uid)
             val picks = getPicksAsList(picksJson.getJSONArray(uid))
             var monIndex = -1
             var totalKills = 0
@@ -155,7 +150,7 @@ class DocEntry private constructor() : ReplayAnalyser {
                 val picks = (0..1).map(uids::get).map { getPicksAsList(picksJson.getJSONArray(it)) }
                 process(b, gameday - 1, battleindex, numbers[0], numbers[1], optionalArgs[1] as String,
                     monList,
-                    (0..1).map { tableIndex.apply(league, uids[it]) },
+                    (0..1).map { tableIndex(league, uids[it]) },
                     (0..1).map { monList[it].map { s -> indexPick(picks[it], s) } },
                     (0..1).map { deaths[it].values.map { s -> s == "1" } }
                 )
@@ -174,11 +169,9 @@ class DocEntry private constructor() : ReplayAnalyser {
                     val formula = Google[sid, formulaRange, true]
                     val points = Google[sid, formulaRange, false]!!.toMutableList()
                     val orig: List<List<Any>?> = ArrayList(points)
-                    val table = tableMapper.apply(league)
+                    val table = tableMapper(league)
                     points.sortWith { o1: List<Any>, o2: List<Any> ->
-                        val arr = Arrays.stream(
-                            cols
-                        ).boxed().toList()
+                        val arr = cols.toList()
                         val first =
                             if (directCompare) arr.subList(0, arr.indexOf(-1)) else arr
                         val c = compareColumns(
@@ -201,12 +194,12 @@ class DocEntry private constructor() : ReplayAnalyser {
                         }
                         val second: List<Int> = arr.subList(arr.indexOf(-1), arr.size)
                         if (second.size > 1) return@sortWith compareColumns(
-                            o1, o2, *second.stream().skip(1).mapToInt { i: Int? -> i!! }.toArray()
+                            o1, o2, *second.drop(1).toIntArray()
                         )
                         0
                     }
                     points.reverse()
-                    val namap = HashMap<Int, List<Any>>()
+                    val namap = mutableMapOf<Int, List<Any>>()
                     for ((i, objects) in orig.withIndex()) {
                         namap[points.indexOf(objects)] = formula!![i]
                     }

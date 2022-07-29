@@ -4,11 +4,10 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.slf4j.LoggerFactory
 import java.io.IOException
-import java.util.*
 import java.util.stream.Collectors
 
 class TrainerData(trainerName: String) {
-    val mons = LinkedHashMap<String?, List<TrainerMon>>()
+    val mons = LinkedHashMap<String, List<TrainerMon>>()
     var current: String? = null
     var isWithMoveset = false
         private set
@@ -21,15 +20,14 @@ class TrainerData(trainerName: String) {
             for (elele in elelist) {
                 val ele = elele.child(0).child(1)
                 val set = elele.child(0).child(0).text()
-                val list: MutableList<TrainerMon> = LinkedList()
+                val list: MutableList<TrainerMon> = mutableListOf()
                 for (child in ele.children()) {
                     val t = child.child(0).child(0)
                     val itm = t.child(t.children().size - 6).text().trim()
-                    val moves: MutableList<String> = LinkedList()
+                    val moves: MutableList<String> = mutableListOf()
                     for (i in 7..10) {
-                        val text = t.child(i - (11 - t.children().size)).child(0).text()
-                        if (text.trim() == "—") continue
-                        moves.add(text.trim())
+                        t.child(i - (11 - t.children().size)).child(0).text().trim().takeUnless { it == "—" }
+                            ?.let { moves.add(it) }
                     }
                     val alt = t.child(0).child(0).child(0).attr("alt")
                     val monname = if (alt.startsWith("Sugimori")) t.child(1).text() else alt
@@ -58,18 +56,16 @@ class TrainerData(trainerName: String) {
         return current == fight
     }
 
-    val monsList: Collection<String?>
+    val monsList: Collection<String>
         get() = mons.keys
 
     fun getMonsFrom(set: String, withMoveset: Boolean): String {
-        return mons[getNormalName(set)]!!
-            .stream().map { mon: TrainerMon -> mon.build(!withMoveset) }.collect(Collectors.joining("\n\n"))
+        return mons[getNormalName(set)]!!.joinToString("\n\n") { it.build(!withMoveset) }
     }
 
     fun getNormalName(name: String): String? {
         logger.info("getNormalName name = {}", name)
-        val s = mons.keys.stream().filter { anotherString: String? -> name.equals(anotherString, ignoreCase = true) }
-            .findFirst().orElse(null)
+        val s = mons.keys.firstOrNull { it.equals(name, ignoreCase = true) }
         logger.info("s = {}", s)
         return s
     }

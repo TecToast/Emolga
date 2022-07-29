@@ -4,13 +4,12 @@ import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.commands.Command
 import org.slf4j.LoggerFactory
 import java.io.IOException
-import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import java.util.stream.Collectors
 
+@Suppress("unused")
 class RequestBuilder
 /**
  * Creates a RequestBuilder
@@ -93,7 +92,7 @@ class RequestBuilder
     fun addColumn(range: String?, body: List<Any>, vararg raw: Boolean): RequestBuilder {
         return addAll(
             range,
-            body.stream().map { o: Any -> listOf(o) }.collect(Collectors.toList()),
+            body.map { listOf(it) },
             *raw
         )
     }
@@ -105,8 +104,8 @@ class RequestBuilder
      * @return this RequestBuilder
      */
     fun addBatch(vararg requests: Request): RequestBuilder {
-        Arrays.stream(requests).map { r: Request? -> MyRequest().setRequest(r) }
-            .forEach { e: MyRequest -> this.requests.add(e) }
+        requests.map { MyRequest().setRequest(it) }
+            .forEach { this.requests.add(it) }
         return this
     }
 
@@ -269,14 +268,14 @@ class RequestBuilder
     }
 
     private val userEntered: List<ValueRange>
-        private get() = requests.stream().filter { r: MyRequest -> r.valueInputOption == ValueInputOption.USER_ENTERED }
-            .map { obj: MyRequest -> obj.build() }.collect(Collectors.toList())
+        get() = requests.filter { it.valueInputOption == ValueInputOption.USER_ENTERED }
+            .map { it.build() }
     private val raw: List<ValueRange>
-        private get() = requests.stream().filter { r: MyRequest -> r.valueInputOption == ValueInputOption.RAW }
-            .map { obj: MyRequest -> obj.build() }.collect(Collectors.toList())
+        get() = requests.filter { it.valueInputOption == ValueInputOption.RAW }
+            .map { it.build() }
     private val batch: List<Request?>
-        private get() = requests.stream().filter { r: MyRequest -> r.valueInputOption == ValueInputOption.BATCH }
-            .map { obj: MyRequest -> obj.buildBatch() }.collect(Collectors.toList())
+        get() = requests.filter { it.valueInputOption == ValueInputOption.BATCH }
+            .map { it.buildBatch() }
 
     /**
      * Executes the request to the specified google sheet
@@ -360,11 +359,11 @@ class RequestBuilder
             }
             batchFuture.complete(null)
         }, "ReqBuilder Batch").start()
-        if (runnable != null) {
+        runnable?.let {
             CompletableFuture.allOf(userEnteredFuture, rawFuture, batchFuture)
-                .whenComplete { unused: Void?, throwable: Throwable? ->
+                .whenComplete { _, _ ->
                     logger.info("Start scheduling...")
-                    runnableService.schedule(runnable, delay, TimeUnit.MILLISECONDS)
+                    runnableService.schedule(it, delay, TimeUnit.MILLISECONDS)
                 }
         }
     }
@@ -454,12 +453,12 @@ class RequestBuilder
             }
         }
 
-        fun getColumnFromRange(range: String?): Int {
+        fun getColumnFromRange(range: String): Int {
             val chars = EVERYTHING_BUT_CHARS.matcher(range).replaceAll("").toCharArray()
             return if (chars.size == 1) chars[0].code - 65 else (chars[0].code - 64) * 26 + (chars[1].code - 65)
         }
 
-        fun getRowFromRange(range: String?): Int {
+        fun getRowFromRange(range: String): Int {
             return EVERYTHING_BUT_NUMBER.matcher(range).replaceAll("").toInt() - 1
         }
 

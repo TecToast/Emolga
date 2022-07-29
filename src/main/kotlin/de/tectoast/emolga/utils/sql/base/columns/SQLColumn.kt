@@ -14,10 +14,10 @@ abstract class SQLColumn<T>(val name: String, val manager: DataManager) {
 
     open fun retrieveValue(checkcolumn: SQLColumn<*>, checkvalue: Any): T? {
         return DataManager.read<T?>(manager.select(checkcolumn.check(checkvalue), this)) { rs: ResultSet ->
-            if (rs.next()) {
+            if (rs.next())
                 return@read getValue(rs)
-            }
-            null
+            else
+                null
         }
     }
 

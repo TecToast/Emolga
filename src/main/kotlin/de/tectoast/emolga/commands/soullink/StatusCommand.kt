@@ -21,7 +21,7 @@ class StatusCommand : Command("status", "Setzt den Status eines Encounters", Com
 
     override fun process(e: GuildCommandEvent) {
         val soullink = emolgaJSON.getJSONObject("soullink")
-        val args = e.arguments!!
+        val args = e.arguments
         val location = eachWordUpperCase(args.getText("location"))
         if (!soullink.getStringList("order").contains(location)) {
             e.reply("Diese Location ist derzeit nicht im System!")

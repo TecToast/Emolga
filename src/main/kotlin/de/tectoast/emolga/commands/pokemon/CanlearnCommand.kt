@@ -21,27 +21,24 @@ class CanlearnCommand :
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         val pokemon = args.getTranslation("mon").translation
         val atk = args.getTranslation("move").translation
         val form = args.getOrDefault("form", "Normal")
-        try {
-            e.reply(
-                (if (form == "Normal") "" else "$form-") + pokemon + " kann " + atk + (if (canLearn(
-                        pokemon,
-                        form,
-                        atk,
-                        e.msg ?: "",
-                        if (e.guild.id == "747357029714231299" || e.usedName.equals(
-                                "canlearn5",
-                                ignoreCase = true
-                            )
-                        ) 5 else 8
-                    )
-                ) "" else " nicht") + " erlernen!"
-            )
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-        }
+        e.reply(
+            (if (form == "Normal") "" else "$form-") + pokemon + " kann " + atk + (if (canLearn(
+                    pokemon,
+                    form,
+                    atk,
+                    e.msg ?: "",
+                    if (e.guild.id == "747357029714231299" || e.usedName.equals(
+                            "canlearn5",
+                            ignoreCase = true
+                        )
+                    ) 5 else 8
+                )
+            ) "" else " nicht") + " erlernen!"
+        )
+
     }
 }

@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import java.io.File
-import java.util.*
 
 class CompareShinyCommand : Command(
     "compareshiny",
@@ -26,12 +25,12 @@ class CompareShinyCommand : Command(
 
     override fun process(e: GuildCommandEvent) {
         var suffix: String
-        val args = e.arguments!!
+        val args = e.arguments
         val monname = args.getTranslation("mon").translation
         val mon = dataJSON.getJSONObject(toSDName(monname))
         suffix = if (args.has("regform")) {
             val form = args.getText("regform")
-            "-" + form.lowercase(Locale.getDefault())
+            "-" + form.lowercase()
         } else {
             ""
         }
@@ -42,18 +41,18 @@ class CompareShinyCommand : Command(
                 return
             }
             val otherFormes = mon.getJSONArray("otherFormes")
-            if (otherFormes.toList().stream().noneMatch { s: Any ->
-                    (s as String).lowercase(Locale.getDefault()).endsWith("-" + form.lowercase(Locale.getDefault()))
+            if (otherFormes.toStringList().none {
+                    it.lowercase().endsWith("-" + form.lowercase())
                 }) {
                 e.reply("$monname besitzt keine **$form**-Form!")
                 return
             }
             if (suffix.isEmpty()) suffix = "-"
-            suffix += form.lowercase(Locale.getDefault())
+            suffix += form.lowercase()
         }
-        val fn = File("../Showdown/sspclient/sprites/gen5/" + monname.lowercase(Locale.getDefault()) + suffix + ".png")
+        val fn = File("../Showdown/sspclient/sprites/gen5/" + monname.lowercase() + suffix + ".png")
         val fs =
-            File("../Showdown/sspclient/sprites/gen5-shiny/" + monname.lowercase(Locale.getDefault()) + suffix + ".png")
+            File("../Showdown/sspclient/sprites/gen5-shiny/" + monname.lowercase() + suffix + ".png")
         if (!fn.exists()) {
             e.reply(mon.toString() + " hat keine " + args.getText("form") + "-Form!")
         }

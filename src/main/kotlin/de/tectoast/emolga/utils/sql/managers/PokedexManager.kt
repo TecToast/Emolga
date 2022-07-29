@@ -14,7 +14,7 @@ object PokedexManager : DataManager("pokedex") {
         return read(
             selectAll(
                 POKEMONNAME.check(
-                    NO_CHARS.replace(name, "").lowercase(Locale.getDefault())
+                    NO_CHARS.replace(name, "").lowercase()
                 )
             ), ResultsFunction { set ->
                 set.next()

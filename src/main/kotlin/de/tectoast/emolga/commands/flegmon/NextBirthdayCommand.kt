@@ -41,22 +41,14 @@ class NextBirthdayCommand : PepeCommand("nextbirthday", "Zeigt die naheliegende 
         val names = HashMap<Long, String>()
         e.guild.retrieveMembersByIds(map.keys).get()
             .forEach(Consumer { mem: Member -> names[mem.idLong] = mem.effectiveName })
-        for (id in map.keys.stream().sorted(Comparator.comparing { s: Long ->
-            map[s]!!
-                .timeInMillis
-        }).toList()) {
-            val c = map[id]
+        map.keys.sortedBy { map[it]!!.timeInMillis }.forEach {
+            val c = map[it]
             str.append("`").append(getWithZeros(c!![Calendar.DAY_OF_MONTH], 2)).append(".").append(
                 getWithZeros(
                     c[Calendar.MONTH] + 1, 2
                 )
-            ).append(".").append("`: ").append(names[id]).append("\n")
+            ).append(".").append("`: ").append(names[it]).append("\n")
         }
         tco.sendMessage(str.toString()).queue()
-        /*(s1, s2) -> {
-            Calendar c1 = map.get(s1);
-            Calendar c2 = map.get(s2);
-            return Long.compare(c1.getTimeInMillis(), c2.getTimeInMillis());
-        }*/
     }
 }

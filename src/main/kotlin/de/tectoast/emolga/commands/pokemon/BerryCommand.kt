@@ -13,7 +13,7 @@ class BerryCommand : Command("berry", "Zeigt den Namen der Antibeere für diesen
     }
 
     override fun process(e: GuildCommandEvent) {
-        val ger = e.arguments!!.getTranslation("type").translation
+        val ger = e.arguments.getTranslation("type").translation
         val g: String
         val engl: String
         when (ger) {

@@ -22,9 +22,9 @@ class StartRedraftCommand : Command("startredraft", "Startet einen Redraft", Com
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         val fromFile = args.getOrDefault("file", "").equals("file", ignoreCase = true)
         Draft(e.textChannel, args.getText("name"), null, fromFile, true)
-        if (fromFile) e.message!!.delete().queue()
+        if (fromFile) e.deleteMessage()
     }
 }

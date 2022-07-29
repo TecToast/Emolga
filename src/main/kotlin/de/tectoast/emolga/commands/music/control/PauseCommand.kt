@@ -10,10 +10,6 @@ class PauseCommand : MusicCommand("pause", "Pausiert den derzeitigen Track oder 
 
     override fun process(e: GuildCommandEvent) {
         val manager = getGuildAudioPlayer(e.guild)
-        if (manager.player == null) {
-            e.reply("Derzeit läuft kein Track!")
-            return
-        }
         val player = manager.player
         if (player.playingTrack == null) {
             e.reply("Derzeit läuft kein Track!")

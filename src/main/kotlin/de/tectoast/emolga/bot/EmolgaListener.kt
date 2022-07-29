@@ -2,6 +2,7 @@ package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.buttons.ButtonListener.Companion.check
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.Command.Companion.replayAnalysis
 import de.tectoast.emolga.commands.PrivateCommand
 import de.tectoast.emolga.commands.PrivateCommands
 import de.tectoast.emolga.commands.music.custom.WirklichGuteMusikCommand.Companion.doIt
@@ -17,10 +18,11 @@ import de.tectoast.emolga.utils.draft.Draft
 import de.tectoast.emolga.utils.sql.managers.BanManager
 import de.tectoast.emolga.utils.sql.managers.MuteManager
 import net.dv8tion.jda.api.Permission
-import net.dv8tion.jda.api.entities.*
+import net.dv8tion.jda.api.entities.ChannelType
+import net.dv8tion.jda.api.entities.Icon
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.ReadyEvent
-import net.dv8tion.jda.api.events.channel.ChannelCreateEvent
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent
@@ -33,15 +35,10 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.events.role.RoleCreateEvent
-import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import org.slf4j.LoggerFactory
-import java.io.IOException
 import java.net.URL
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.util.*
 
 class EmolgaListener : ListenerAdapter() {
     override fun onButtonInteraction(e: ButtonInteractionEvent) {
@@ -49,7 +46,6 @@ class EmolgaListener : ListenerAdapter() {
     }
 
     override fun onModalInteraction(e: ModalInteractionEvent) {
-        //e.reply(e.getValues().stream().map(m -> "%s: %s (%s)".formatted(m.getId(), m.getAsString(), m.getType().toString())).collect(Collectors.joining("\n"))).queue();
         ModalListener.check(e)
     }
 
@@ -60,12 +56,8 @@ class EmolgaListener : ListenerAdapter() {
     override fun onGuildMemberJoin(e: GuildMemberJoinEvent) {
         val g = e.guild
         val mem = e.member
-        val gid = g.idLong
-        if (gid == Constants.BSID) {
-            g.addRoleToMember(mem, g.getRoleById(715242519528603708L)!!).queue()
-        }
-        if (gid == Constants.ASLID) {
-            g.getTextChannelById(615605820381593610L)!!.sendMessage(
+        when (g.idLong) {
+            Constants.ASLID -> g.getTextChannelById(615605820381593610L)!!.sendMessage(
                 """
                     Willkommen auf der ASL, ${mem.asMention}. <:hi:540969951608045578>
                     Dies ist ein Pokémon Server mit dem Fokus auf einem kompetetiven Draftligasystem. Mach dich mit dem <#635765395038666762> vertraut und beachte die vorgegebenen Themen der Kanäle. Viel Spaß! <:yay:540970044297838597>
@@ -75,9 +67,8 @@ class EmolgaListener : ListenerAdapter() {
     }
 
     override fun onGuildVoiceMove(e: GuildVoiceMoveEvent) {
-        if (e.channelLeft.members.size == 1 && e.guild.audioManager.isConnected) {
+        if (e.channelLeft.members.size == 1 && e.guild.audioManager.isConnected)
             e.guild.audioManager.closeAudioConnection()
-        }
     }
 
     override fun onGuildVoiceJoin(e: GuildVoiceJoinEvent) {
@@ -90,18 +81,21 @@ class EmolgaListener : ListenerAdapter() {
 
     override fun onGuildJoin(e: GuildJoinEvent) {
         val g = e.guild
-        g.retrieveOwner().flatMap { m: Member -> m.user.openPrivateChannel() }
-            .queue { pc: PrivateChannel ->
-                pc.sendMessage(
+        g.retrieveOwner()
+            .flatMap { it.user.openPrivateChannel() }
+            .flatMap {
+                it.sendMessage(
                     WELCOMEMESSAGE.replace(
                         "{USERNAME}", g.owner!!
                             .user.name
                     ).replace("{SERVERNAME}", g.name)
-                ).queue()
+                )
             }
-        e.jda.retrieveUserById(FLOID).flatMap { obj: User -> obj.openPrivateChannel() }
-            .flatMap { u: PrivateChannel ->
-                u.sendMessage("${g.name} (${g.id})").setActionRow(
+            .queue()
+        e.jda.retrieveUserById(FLOID)
+            .flatMap { it.openPrivateChannel() }
+            .flatMap {
+                it.sendMessage("${g.name} (${g.id})").setActionRow(
                     Button.primary("guildinvite;" + g.id, "Invite").withEmoji(
                         Emoji.fromUnicode("✉️")
                     )
@@ -111,8 +105,10 @@ class EmolgaListener : ListenerAdapter() {
     }
 
     override fun onRoleCreate(e: RoleCreateEvent) {
-        if (e.guild.id != "736555250118295622" && e.guild.id != "447357526997073930" && e.guild.id != "518008523653775366") return
-        e.role.manager.revokePermissions(Permission.CREATE_INSTANT_INVITE).queue()
+        when (e.guild.idLong) {
+            736555250118295622, 447357526997073930, 518008523653775366 -> e.role.manager.revokePermissions(Permission.CREATE_INSTANT_INVITE)
+                .queue()
+        }
     }
 
     override fun onMessageReceived(e: MessageReceivedEvent) {
@@ -122,9 +118,10 @@ class EmolgaListener : ListenerAdapter() {
                 val m = e.message
                 val msg = m.contentDisplay
                 val tco = e.textChannel
-                val member = e.member
+                val member = e.member!!
                 val g = e.guild
                 val gid = g.idLong
+                val tcoid = tco.idLong
                 Command.check(e)
                 if (gid == MYSERVER) {
                     PrivateCommands.execute(e.message)
@@ -133,36 +130,27 @@ class EmolgaListener : ListenerAdapter() {
                         e.jda.getTextChannelById(split[split.size - 1])!!.sendMessage(m.contentRaw).queue()
                     }
                 }
-                if (tco.idLong == 929841771276554260L) {
-                    g.addRoleToMember(member!!, g.getRoleById(934810601216147477L)!!).queue()
+                if (tcoid == 929841771276554260L) {
+                    g.addRoleToMember(member, g.getRoleById(934810601216147477L)!!).queue()
                 }
                 val raw = m.contentRaw
                 val id = e.jda.selfUser.idLong
                 if (raw == "<@!$id>" || raw == "<@$id>" && !e.author.isBot && Command.isChannelAllowed(tco)) {
                     Command.help(tco, member)
                 }
-                if (Command.emoteSteal.contains(tco.idLong)) {
+                if (tcoid in Command.emoteSteal) {
                     val l = m.mentions.customEmojis
                     for (emote in l) {
-                        try {
-                            g.createEmoji(emote.name, Icon.from(URL(emote.imageUrl).openStream())).queue()
-                        } catch (ioException: IOException) {
-                            ioException.printStackTrace()
-                        }
+                        g.createEmoji(emote.name, Icon.from(URL(emote.imageUrl).openStream())).queue()
                     }
                 }
-                if (tco.idLong == 778380440078647296L || tco.idLong == 919641011632881695L) {
-                    val split = msg.split(" ".toRegex())
+                if (tcoid == 778380440078647296L || tcoid == 919641011632881695L) {
+                    val split = msg.split(" ")
                     val counter = Command.shinycountjson.getJSONObject("counter")
-                    val mop = counter.keySet().stream().filter { s: String ->
-                        s.lowercase(Locale.getDefault()).startsWith(
-                            split[1].lowercase(Locale.getDefault())
-                        )
-                    }.findFirst()
-                    if (mop.isPresent) {
-                        val o = Command.shinycountjson.getJSONObject("counter").getJSONObject(mop.get())
+                    counter.keySet().firstOrNull { it.lowercase().startsWith(split[1].lowercase()) }?.let {
+                        val o = Command.shinycountjson.getJSONObject("counter").getJSONObject(it)
                         var isCmd = true
-                        val mid = if (member!!.id == "893773494578470922") "598199247124299776" else member.id
+                        val mid = if (member.id == "893773494578470922") "598199247124299776" else member.id
                         if (msg.contains("!set ")) {
                             o.put(mid, split[2].toInt())
                         } else if (msg.contains("!reset ")) {
@@ -172,84 +160,60 @@ class EmolgaListener : ListenerAdapter() {
                         } else isCmd = false
                         if (isCmd) {
                             m.delete().queue()
-                            Command.updateShinyCounts(tco.idLong)
+                            Command.updateShinyCounts(tcoid)
                         }
                     }
                 }
                 if (!e.author.isBot && !msg.startsWith("!dexquiz")) {
-                    val quiz = DexQuiz.getByTC(tco)
-                    if (quiz != null && quiz.nonBlocking()) {
-                        if (quiz.check(msg)) {
-                            quiz.block()
-                            tco.sendMessage(member!!.asMention + " hat das Pokemon erraten! Es war **" + quiz.currentGerName + "**! (Der Eintrag stammt aus **Pokemon " + quiz.currentEdition + "**)")
-                                .queue()
-                            quiz.givePoint(member.idLong)
-                            quiz.nextRound()
+                    DexQuiz.getByTC(tco)?.run {
+                        if (nonBlocking()) {
+                            if (check(msg)) {
+                                block()
+                                tco.sendMessage("${member.asMention} hat das Pokemon erraten! Es war **${currentGerName}**! (Der Eintrag stammt aus **Pokemon ${currentEdition}**)")
+                                    .queue()
+                                givePoint(member.idLong)
+                                nextRound()
+                            }
                         }
                     }
                 }
-                if (Command.replayAnalysis.containsKey(tco.idLong) && e.author.id != e.jda.selfUser.id && !msg.contains(
-                        "!analyse "
-                    ) && !msg.contains("!sets ")
+                if (replayAnalysis.containsKey(tcoid) && e.author.id != e.jda.selfUser.id && !msg.contains("!analyse ")
+                    && !msg.contains("!sets ")
                 ) {
-                    val t = tco.guild.getTextChannelById(Command.replayAnalysis[tco.idLong]!!) ?: return
+                    val t = tco.guild.getTextChannelById(replayAnalysis.getValue(tcoid)) ?: return
                     //t.sendTyping().queue();
-                    if (msg.contains("https://") || msg.contains("http://")) {
-                        val urlop = Arrays.stream(msg.split("\n".toRegex()).dropLastWhile { it.isEmpty() }
-                            .toTypedArray())
-                            .filter { s: String -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/") }
-                            .map { s: String ->
-                                s.substring(
-                                    s.indexOf("http"),
-                                    if (s.indexOf(' ', s.indexOf("http") + 1) == -1) s.length else s.indexOf(
-                                        ' ',
-                                        s.indexOf("http") + 1
-                                    )
-                                )
-                            }
-                            .findFirst()
-                        if (urlop.isPresent) {
-                            val url = urlop.get()
-                            logger.info(url)
-                            Command.analyseReplay(url, null, t, m, null)
-                        }
+                    urlRegex.find(msg)?.run {
+                        val url = groupValues[0]
+                        logger.info(url)
+                        Command.analyseReplay(url, null, t, m, null)
                     }
                 }
             } catch (ex: IllegalStateException) {
-                Command.sendToMe(e.channelType.name + " Illegal Argument Exception Channel")
+                Command.sendToMe(e.channelType.name + " IllegalStateException Channel")
             } catch (ex: Exception) {
                 ex.printStackTrace()
             }
         } else if (e.isFromType(ChannelType.PRIVATE)) {
-            if (!e.author.isBot && e.author.idLong != FLOID) e.jda.getTextChannelById(828044461379682314L)!!
-                .sendMessage(e.author.asMention + ": " + e.message.contentDisplay).queue()
+            if (e.author.isBot) return
+            if (e.author.idLong != FLOID) e.jda.getTextChannelById(828044461379682314L)
+                ?.sendMessage(e.author.asMention + ": " + e.message.contentDisplay)?.queue()
             if (e.author.idLong == FLOID) {
                 PrivateCommands.execute(e.message)
             }
             PrivateCommand.check(e)
             val msg = e.message.contentDisplay
             if (msg.contains("https://") || msg.contains("http://")) {
-                val urlop = msg.split("\n".toRegex()).asSequence()
-                    .filter { s: String -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/") }
-                    .map { s: String ->
-                        s.substring(
-                            s.indexOf("http"),
-                            if (s.indexOf(' ', s.indexOf("http") + 1) == -1) s.length else s.indexOf(
-                                ' ',
-                                s.indexOf("http") + 1
-                            )
-                        )
-                    }
-                    .firstOrNull()
-                urlop?.run {
-                    Command.analyseReplay(this, null, e.jda.getTextChannelById(820359155612254258L)!!, e.message, null)
+                urlRegex.find(msg)?.run {
+                    val url = groupValues[0]
+                    logger.info(url)
+                    Command.analyseReplay(url, null, e.jda.getTextChannelById(820359155612254258L)!!, e.message, null)
                 }
             }
         }
     }
 
     override fun onGuildVoiceLeave(e: GuildVoiceLeaveEvent) {
-        if (e.member.id == "723829878755164202") {
+        if (e.member.idLong == e.jda.selfUser.idLong) {
             val manager = Command.getGuildAudioPlayer(e.guild)
             manager.scheduler.queue.clear()
             manager.scheduler.nextTrack()
@@ -260,62 +224,43 @@ class EmolgaListener : ListenerAdapter() {
     }
 
     override fun onReady(e: ReadyEvent) {
-        try {
             Command.uninitializedCommands.forEach { Command.sendToMe("No Argument Manager Template: $it") }
             val jda = e.jda
             if (jda.selfUser.idLong == 723829878755164202L) {
                 Draft.init()
-                BanManager.forAll { rs: ResultSet ->
-                    jda.getGuildById(rs.getLong("guildid"))?.run {
+                BanManager.forAll { set ->
+                    jda.getGuildById(set.getLong("guildid"))?.run {
                         Command.banTimer(
                             this,
-                            Optional.ofNullable(rs.getTimestamp("expires")).map { obj: Timestamp -> obj.time }
-                                .orElse(-1L),
-                            rs.getLong("userid"))
+                            set.getTimestamp("expires")?.time ?: -1,
+                            set.getLong("userid")
+                        )
                     }
                 }
-                MuteManager.forAll { rs: ResultSet ->
-                    jda.getGuildById(rs.getLong("guildid"))?.run {
+                MuteManager.forAll { set ->
+                    jda.getGuildById(set.getLong("guildid"))?.run {
                         Command.muteTimer(
                             this,
-                            Optional.ofNullable(rs.getTimestamp("expires")).map { obj: Timestamp -> obj.time }
-                                .orElse(-1L),
-                            rs.getLong("userid"))
+                            set.getTimestamp("expires")?.time ?: -1,
+                            set.getLong("userid")
+                        )
                     }
                 }
-                //new Draft(jda.getTextChannelById(837425828245667841L), "NDS", null, true, true);
+                //Draft(jda.getTextChannelById(837425828245667841)!!, "NDS", null, fromFile = true, isSwitchDraft = true);
             }
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-        }
-    }
-
-    override fun onUserUpdateName(e: UserUpdateNameEvent) {
-        logger.info(e.oldName + " -> " + e.newName)
-        if (e.user.mutualGuilds.stream().map { obj: Guild -> obj.idLong }
-                .anyMatch { l: Long -> l == Constants.ASLID }) e.jda.getTextChannelById("728675253924003870")!!
-            .sendMessage(e.oldName + " hat sich auf ganz Discord in " + e.newName + " umbenannt!").queue()
-    }
-
-    override fun onChannelCreate(e: ChannelCreateEvent) {
-        if (e.channelType.isGuild) {
-            val g = e.guild
-            val channel = e.channel as GuildChannel
-            if (g.id == "447357526997073930") channel.permissionContainer.upsertPermissionOverride(g.getRoleById("761723664273899580")!!)
-                .setDenied(
-                    Permission.MESSAGE_SEND
-                ).queue()
-        }
     }
 
     override fun onGuildInviteCreate(e: GuildInviteCreateEvent) {
         val g = e.guild
-        if (g.idLong != Constants.ASLID) return
-        g.retrieveMember(e.invite.inviter!!).queue { mem: Member? ->
-            if (g.selfMember.canInteract(
-                    mem!!
-                )
-            ) e.invite.delete().queue()
+        when (g.idLong) {
+            Constants.ASLID -> {
+                g.retrieveMember(e.invite.inviter!!).queue { mem: Member? ->
+                    if (g.selfMember.canInteract(
+                            mem!!
+                        )
+                    ) e.invite.delete().queue()
+                }
+            }
         }
     }
 
@@ -350,5 +295,9 @@ class EmolgaListener : ListenerAdapter() {
             Falls du weitere Fragen oder Probleme hast, schreibe ${Constants.MYTAG} eine PN :)
         """.trimIndent()
         private val logger = LoggerFactory.getLogger(EmolgaListener::class.java)
+        val urlRegex = Regex(
+            "https://replay.pokemonshowdown.com\\b([-a-zA-Z\\d()@:%_+.~#?&/=]*)",
+            setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
+        )
     }
 }

@@ -13,19 +13,14 @@ class WirklichGuteMusikCommand :
     }
 
     companion object {
-        @JvmStatic
         fun doIt(tc: TextChannel, mem: Member, good: Boolean) {
-            try {
-                loadAndPlay(
-                    tc,
-                    if (good) "https://www.youtube.com/watch?v=4Diu2N8TGKA" else "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                    mem,
-                    "**ITS GUTE MUSIK TIME!**"
-                )
-                getGuildAudioPlayer(tc.guild).scheduler.enableLoop()
-            } catch (ex: IllegalArgumentException) {
-                ex.printStackTrace()
-            }
+            loadAndPlay(
+                tc,
+                if (good) "https://www.youtube.com/watch?v=4Diu2N8TGKA" else "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                mem,
+                "**ITS GUTE MUSIK TIME!**"
+            )
+            getGuildAudioPlayer(tc.guild).scheduler.enableLoop()
         }
     }
 

@@ -18,14 +18,12 @@ class SpoilerTagsCommand : Command(
     override fun process(e: GuildCommandEvent) {
         val gid = e.guild.idLong
         if (SpoilerTagsManager.delete(gid)) {
-            e.textChannel.sendMessage("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!")
-                .queue()
+            e.reply("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!")
             spoilerTags.remove(gid)
             return
         }
         SpoilerTagsManager.insert(gid)
         spoilerTags.add(gid)
-        e.textChannel.sendMessage("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **aktiviert**!")
-            .queue()
+        e.reply("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **aktiviert**!")
     }
 }

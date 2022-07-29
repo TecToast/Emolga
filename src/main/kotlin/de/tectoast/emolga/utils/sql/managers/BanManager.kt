@@ -14,7 +14,6 @@ import net.dv8tion.jda.api.entities.UserSnowflake
 import org.slf4j.LoggerFactory
 import java.sql.ResultSet
 import java.sql.Timestamp
-import java.util.function.Consumer
 
 object BanManager : DataManager("bans") {
     private val USERID = LongColumn("userid", this)
@@ -46,11 +45,9 @@ object BanManager : DataManager("bans") {
                 }
             })
             val arr = JSONArray()
-            val idstocheck: MutableSet<Long> = HashSet()
-            l.stream().map { j: JSONObject -> j.getLong("modid") }.forEach { e: Long -> idstocheck.add(e) }
             val names = HashMap<Long, String>()
-            g.retrieveMembersByIds(idstocheck).get()
-                .forEach(Consumer { mem: Member -> names[mem.idLong] = mem.effectiveName })
+            g.retrieveMembersByIds(l.map { it.getLong("modid") }).get()
+                .forEach { mem: Member -> names[mem.idLong] = mem.effectiveName }
             for (j in l) {
                 val uid = j.getLong("userid")
                 arr.put(

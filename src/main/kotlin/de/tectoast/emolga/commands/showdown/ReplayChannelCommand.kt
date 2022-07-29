@@ -47,7 +47,7 @@ class ReplayChannelCommand : Command(
         val channels = m.mentions.getChannels(TextChannel::class.java)
         val sameChannel = channels.size == 0
         val tc = if (sameChannel) tco else channels[0]
-        val args = e.arguments!!
+        val args = e.arguments
         if (args.has("action") && args.isText("action", "remove")) {
             if (AnalysisManager.deleteChannel(tco.idLong)) {
                 e.reply("Dieser Channel ist nun kein Replaychannel mehr!")
@@ -56,13 +56,12 @@ class ReplayChannelCommand : Command(
                 e.reply("Dieser Channel ist zurzeit kein Replaychannel!")
             }
         } else {
-            //Database.insert("analysis", "replay, result", tco.getIdLong(), tc.getIdLong());
             val l = AnalysisManager.insertChannel(tco, tc)
             if (l == -1L) {
                 e.reply(if (sameChannel) "Dieser Channel ist nun ein Replaychannel, somit werden alle Replay-Ergebnisse automatisch hier reingeschickt!" else "Alle Ergebnisse der Replays aus " + tco.asMention + " werden von nun an in den Channel " + tc.asMention + " geschickt!")
                 replayAnalysis[tco.idLong] = tc.idLong
             } else {
-                e.reply("Die Replays aus diesem Channel werden " + (if (l == tc.idLong) "bereits" else "zurzeit") + " in den Channel <#" + l + "> geschickt!")
+                e.reply("Die Replays aus diesem Channel werden ${if (l == tc.idLong) "bereits" else "zurzeit"} in den Channel <#$l> geschickt!")
             }
         }
     }

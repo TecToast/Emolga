@@ -15,13 +15,8 @@ class DexNumberCommand :
 
     override fun process(e: GuildCommandEvent) {
         val data = dataJSON
-        val num = e.arguments!!.getInt("num")
-        for (s in data.keySet()) {
-            val o = data.getJSONObject(s)
-            if (o.getInt("num") == num) {
-                e.reply(getGerNameNoCheck(o.getString("name")))
-                return
-            }
-        }
+        val num = e.arguments.getInt("num")
+        data.keySet().asSequence().map { data.getJSONObject(it) }.firstOrNull { it.getInt(num) == num }
+            ?.let { e.reply(getGerNameNoCheck(it.getString("name"))) } ?: e.reply("huch")
     }
 }

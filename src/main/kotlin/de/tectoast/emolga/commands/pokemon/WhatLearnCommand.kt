@@ -46,7 +46,7 @@ class WhatLearnCommand : Command(
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         val mon = toSDName(args.getTranslation("mon").translation + args.getOrDefault("form", ""))
         val type = args.getText("type")
         var gen = args.getOrDefault("gen", 8)
@@ -87,10 +87,10 @@ class WhatLearnCommand : Command(
         ): Boolean {
             for (s in learnset.keySet()) {
                 val arr = learnset.getJSONArray(s).toStringList()
-                if (arr.stream().anyMatch { t: String -> t.startsWith(gen.toString()) && t.contains(type) }) {
+                if (arr.any { t: String -> t.startsWith(gen.toString()) && t.contains(type) }) {
                     val name = getGerNameNoCheck(s)
                     if (type == "L") {
-                        arr.stream().filter { str: String -> str.startsWith(gen.toString() + "L") }
+                        arr.asSequence().filter { str: String -> str.startsWith(gen.toString() + "L") }
                             .map { str: String -> str.substring(str.indexOf('L') + 1) }
                             .map { it.toInt() }.forEach { i: Int ->
                                 if (!levels.containsKey(i)) levels[i] = ArrayList()

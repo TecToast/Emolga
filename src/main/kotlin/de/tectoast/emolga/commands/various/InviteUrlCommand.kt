@@ -14,7 +14,6 @@ class InviteUrlCommand : Command(
     }
 
     override fun process(e: GuildCommandEvent) {
-        e.textChannel.sendMessage("https://discord.com/api/oauth2/authorize?client_id=723829878755164202&permissions=8&scope=bot")
-            .queue()
+        e.reply("https://discord.com/api/oauth2/authorize?client_id=723829878755164202&permissions=8&scope=bot%20applications.commands")
     }
 }

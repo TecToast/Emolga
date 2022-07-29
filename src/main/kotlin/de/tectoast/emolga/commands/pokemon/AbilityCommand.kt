@@ -3,9 +3,8 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import net.dv8tion.jda.api.EmbedBuilder
-import java.awt.Color
-import java.util.*
+import de.tectoast.emolga.commands.embedColor
+import dev.minn.jda.ktx.messages.Embed
 
 class AbilityCommand :
     Command("ability", "Zeigt, welche Mons eine gewisse Fähigkeit haben können", CommandCategory.Pokemon) {
@@ -25,13 +24,12 @@ class AbilityCommand :
     override fun process(e: GuildCommandEvent) {
         val json = dataJSON
         val mons = ArrayList<String>()
-        val abi = e.arguments!!.getTranslation("abi").translation
+        val abi = e.arguments.getTranslation("abi").translation
         for (s in json.keySet()) {
             val data = json.getJSONObject(s)
             if (data.getInt("num") < 0) continue
-            if (data.getJSONObject("abilities").keySet().stream()
-                    .map { ability: String? -> data.getJSONObject("abilities").getString(ability) }
-                    .anyMatch { ability: String -> ability.equals(abi, ignoreCase = true) }
+            if (data.getJSONObject("abilities").keySet()
+                    .any { data.getJSONObject("abilities").getString(it).equals(abi, ignoreCase = true) }
             ) {
                 mons.add(
                     if (s == "nidoranf") "Nidoran-F" else if (s == "nidoranm") "Nidoran-M" else {
@@ -43,22 +41,27 @@ class AbilityCommand :
                 )
             }
         }
-        mons.removeIf { obj: String? -> Objects.isNull(obj) }
         mons.sort()
-        var s = StringBuilder(2 shl 11)
+        var s = StringBuilder()
         for (mon in mons) {
             s.append(mon).append("\n")
             if (s.length > 1900) {
                 e.reply(
-                    EmbedBuilder().setColor(Color.CYAN)
-                        .setTitle(e.arguments!!.getTranslation("abi").otherLang + " haben:").setDescription(s).build()
+                    Embed(
+                        title = "${e.arguments.getTranslation("abi").otherLang} haben:",
+                        color = embedColor,
+                        description = s.toString()
+                    )
                 )
-                s = StringBuilder(2 shl 11)
+                s = StringBuilder()
             }
         }
         e.reply(
-            EmbedBuilder().setColor(Color.CYAN).setTitle(e.arguments!!.getTranslation("abi").otherLang + " haben:")
-                .setDescription(s).build()
+            Embed(
+                title = "${e.arguments.getTranslation("abi").otherLang} haben:",
+                color = embedColor,
+                description = s.toString()
+            )
         )
         /*
         try {

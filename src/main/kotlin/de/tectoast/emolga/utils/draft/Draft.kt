@@ -17,8 +17,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 import java.util.regex.Pattern
-import java.util.stream.Collectors
 
+@Suppress("unused")
 class Draft @JvmOverloads constructor(
     val tc: TextChannel,
     val name: String,
@@ -59,9 +59,7 @@ class Draft @JvmOverloads constructor(
             for (i in o.keySet()) {
                 val arr = o.getJSONArray(i)
                 val list: List<Long> = if (arr[0] is JSONArray) {
-                    arr.toLongListList().stream().map { l: List<Long?> -> l[0] }.collect(
-                        Collectors.toCollection { mutableListOf() }
-                    )
+                    arr.toLongListList().map { it[0] }
                 } else {
                     arr.toLongList()
                 }
@@ -199,7 +197,7 @@ class Draft @JvmOverloads constructor(
                 if (afterDraft.isNotEmpty()) tco.sendMessage(
                     """
     Reihenfolge zum Nachdraften:
-    ${afterDraft.stream().map { mem: Long -> getMention(mem) }.collect(Collectors.joining("\n"))}
+    ${afterDraft.joinToString("\n") { mem: Long -> getMention(mem) }}
     """.trimIndent()
                 ).queue()
                 Command.saveEmolgaJSON()
@@ -253,11 +251,11 @@ class Draft @JvmOverloads constructor(
 
     fun isNotCurrent(mem: Long): Boolean {
         if (current == mem) return false
-        if (league.has("table1") && league.getJSONArray("table1").toLongListList().stream()
-                .anyMatch { l: List<Long?> -> l.contains(current) && l.contains(mem) }
+        if (league.has("table1") && league.getJSONArray("table1").toLongListList()
+                .any { it.contains(current) && it.contains(mem) }
         ) return false
-        if (league.has("table2") && league.getJSONArray("table2").toLongListList().stream()
-                .anyMatch { l: List<Long?> -> l.contains(current) && l.contains(mem) }
+        if (league.has("table2") && league.getJSONArray("table2").toLongListList()
+                .any { it.contains(current) && it.contains(mem) }
         ) return false
         if (mem == Constants.FLOID) return false
         //if (getTeamMembers(mem.getIdLong()).contains(current.getIdLong())) return false;
@@ -267,23 +265,23 @@ class Draft @JvmOverloads constructor(
     }
 
     fun hasMega(mem: Long): Boolean {
-        return picks[mem]!!.stream().anyMatch { mon: DraftPokemon -> mon.name.startsWith("M-") }
+        return picks[mem]!!.any { it.name.startsWith("M-") }
     }
 
     fun hasInAnotherForm(mem: Long, pokemon: String): Boolean {
         val regex = Regex("-")
         val split = pokemon.split(regex)
-        return picks[mem]!!.stream()
-            .anyMatch { split[0] == it.name.split(regex)[0] && !(split[0] == "Porygon" && it.name.split(regex)[0] == "Porygon") }
+        return picks[mem]!!
+            .any { split[0] == it.name.split(regex)[0] && !(split[0] == "Porygon" && it.name.split(regex)[0] == "Porygon") }
     }
 
     fun isPicked(pokemon: String?): Boolean {
-        return picks.values.stream().flatMap { obj: List<DraftPokemon> -> obj.stream() }
-            .anyMatch { mon: DraftPokemon -> mon.name.equals(pokemon, ignoreCase = true) }
+        return picks.values.flatten()
+            .any { it.name.equals(pokemon, ignoreCase = true) }
     }
 
     fun isPickedBy(oldmon: String?, mem: Long): Boolean {
-        return picks[mem]!!.stream().anyMatch { dp: DraftPokemon -> dp.name.equals(oldmon, ignoreCase = true) }
+        return picks[mem]!!.any { it.name.equals(oldmon, ignoreCase = true) }
     }
 
     @JvmOverloads
@@ -431,19 +429,20 @@ class Draft @JvmOverloads constructor(
                         val mons = picks.getJSONList(u)
                         val comp = Comparator.comparing { pk: JSONObject -> tiers.indexOf(pk.getString("tier")) }
                             .thenComparing { pk: JSONObject -> pk.getString("name") }
-                        o.put(u, mons.stream().sorted(comp).limit(11).map { obj: JSONObject -> obj.getString("name") }
-                            .collect(Collectors.joining(";")) + "###"
-                                + mons.stream().sorted(comp).skip(11).map { obj: JSONObject -> obj.getString("name") }
-                            .collect(Collectors.joining(";")))
+                        o.put(
+                            u,
+                            mons.sortedWith(comp).take(11)
+                                .joinToString(";") { obj: JSONObject -> obj.getString("name") } + "###"
+                                    + mons.sortedWith(comp).drop(11)
+                                .joinToString(";") { obj: JSONObject -> obj.getString("name") })
                     } else {
                         o.put(u, nom.getJSONObject((cday - 1).toString()).getString(u))
                     }
                 }
                 //logger.info("o.get(u) = " + o.get(u));
                 val str = o.getString(u)
-                val mons: MutableList<String> =
-                    Arrays.stream(str.replace("###", ";").split(";".toRegex()).dropLastWhile { it.isEmpty() }
-                        .toTypedArray()).collect(Collectors.toList())
+                val mons: List<String> = str.replace("###", ";").split(";".toRegex())
+
                 logger.info("mons = $mons")
                 logger.info("u = $u")
                 val index = table.indexOf(teamnames.getString(u))
@@ -507,12 +506,12 @@ class Draft @JvmOverloads constructor(
                 //logger.info(draft.members.stream().map(mem -> mem.getId() + ":" + mem.getEffectiveName()).collect(Collectors.joining("\n")));
                 if (draft.tc.id != tco.id) continue
                 if (member == Constants.FLOID) return draft
-                if (draft.members.stream().anyMatch { mem: Long -> mem == member }) return draft
-                if (draft.league.has("table1") && draft.league.getJSONArray("table1").toLongListList().stream()
-                        .anyMatch { l: List<Long?> -> l.contains(member) }
+                if (draft.members.any { it == member }) return draft
+                if (draft.league.has("table1") && draft.league.getJSONArray("table1").toLongListList()
+                        .any { it.contains(member) }
                 ) return draft
-                if (draft.league.has("table2") && draft.league.getJSONArray("table2").toLongListList().stream()
-                        .anyMatch { l: List<Long?> -> l.contains(member) }
+                if (draft.league.has("table2") && draft.league.getJSONArray("table2").toLongListList()
+                        .any { it.contains(member) }
                 ) return draft
                 /*if (getTeamMembers(member.getIdLong()).stream().anyMatch(l -> draft.members.stream().anyMatch(mem -> mem.getIdLong() == l)))
                 return draft;*/

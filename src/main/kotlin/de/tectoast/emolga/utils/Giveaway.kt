@@ -1,6 +1,5 @@
 package de.tectoast.emolga.utils
 
-import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.Command.Companion.secondsToTime
 import de.tectoast.emolga.utils.sql.managers.GiveawayManager
@@ -92,7 +91,7 @@ Gehostet von: <@$userId>"""
         return mb.build()
     }
 
-    fun end() {
+    private fun end() {
         isEnded = true
         GiveawayManager.removeGiveaway(this)
         val mb = MessageBuilder()
@@ -130,7 +129,6 @@ Gehostet von: <@$userId>"""
                 "Herzlichen Glückwunsch ${wins.joinToString { "<@$it>" }}! Ihr habt${if (prize == null) "" else " **$prize**"} gewonnen!"
             }
             mb.setEmbeds(eb.appendDescription("\nGehostet von: <@$userId>").build())
-            EmolgaMain.todel.add(this)
             emolgajda.getTextChannelById(channelId)?.editMessageById(messageId, mb.build())?.queue()
             emolgajda.getTextChannelById(channelId)?.sendMessage(toSend)?.queue()
         } catch (e: Exception) {

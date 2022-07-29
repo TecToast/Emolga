@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
-import net.dv8tion.jda.api.entities.Invite
 
 class InviteCommand :
     Command("invite", "Erstellt einen einmalig nutzbaren Invite", CommandCategory.Moderator, Constants.ASLID) {
@@ -14,7 +13,7 @@ class InviteCommand :
     }
 
     override fun process(e: GuildCommandEvent) {
-        e.textChannel.createInvite().setMaxUses(1).flatMap { inv: Invite -> e.textChannel.sendMessage(inv.url) }
-            .queue()
+        e.guild.defaultChannel?.createInvite()?.setMaxUses(1)?.map { e.reply(it.url) }
+            ?.queue() ?: e.reply("Kein Default Channel gefunden! Sollte nicht passieren, melde dich bei Flo")
     }
 }

@@ -19,6 +19,6 @@ class TypicalSetsCommand :
     }
 
     override fun process(e: GuildCommandEvent) {
-        e.reply(TypicalSets.buildPokemon(e.arguments!!.getText("mon")))
+        e.reply(TypicalSets.buildPokemon(e.arguments.getText("mon")))
     }
 }

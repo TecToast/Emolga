@@ -28,7 +28,7 @@ class SearchReplaysCommand :
     @Throws(IOException::class)
     override fun process(e: GuildCommandEvent) {
         var url: String? = "https://replay.pokemonshowdown.com/search.json?user="
-        val args = e.arguments!!
+        val args = e.arguments
         val user1 = args.getText("user1")
         url += if (args.has("user2")) toSDName(user1) + "&user2=" + toSDName(
             args.getText("user2")
@@ -49,7 +49,7 @@ class SearchReplaysCommand :
                 .append(": https://replay.pokemonshowdown.com/").append(o.getString("id")).append("\n")
         }
         logger.info(str.toString())
-        e.textChannel.sendMessage(str.toString()).queue()
+        e.reply(str.toString())
     }
 
     companion object {

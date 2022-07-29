@@ -11,9 +11,8 @@ import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.stream.Collectors
-import java.util.stream.IntStream
 
+@Suppress("unused")
 class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
@@ -240,10 +239,9 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
             //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
             val team = asl.getStringList("teams")[Draft.getIndex(mem)]
             val picks = d.picks[mem]!!
-            val index = IntStream.range(0, picks.size).filter { i: Int ->
-                logger.info("picks.get(" + i + ") = " + picks[i])
-                picks[i].name == pokemon
-            }.findFirst().orElse(-1)
+            val index = picks.indexOfFirst {
+                it.name == pokemon
+            }
             val yc = Draft.getLevel(mem) * 20 + index + 1
             val list: MutableList<Int> = LinkedList()
             for (i in 0..9) {
@@ -253,13 +251,10 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
                 "$team!B$yc", listOf<Any>(getGen5Sprite(pokemon),
                     pokemon,
                     needed,
-                    "=SUMME(" + list.stream().map { i: Int? ->
-                        getAsXCoord(
-                            i!!
-                        ) + yc
-                    }.collect(Collectors.joining(";")) + ")",
-                    "=SUMME(" + list.stream().map { i: Int -> getAsXCoord(i + 1) + yc }
-                        .collect(Collectors.joining(";")) + ")",
+                    "=SUMME(" + list.joinToString(";") {
+                        getAsXCoord(it) + yc
+                    } + ")",
+                    "=SUMME(" + list.joinToString(";") { i: Int -> getAsXCoord(i + 1) + yc } + ")",
                     "=E$yc - F$yc",
                     dataJSON.getJSONObject(getSDName(pokemon)).getJSONObject("baseStats").getInt("spe")))
             b.execute()
@@ -287,9 +282,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
                 b.addStrikethroughChange(league.getInt("draftorder"), d.round + 1, num + 6, true)
                 val user = league.getLongList("table").indexOf(mem)
                 val range = "Kader ${d.name.substring(5)}!${getAsXCoord(user / 4 * 22 + 2)}${
-                    user % 4 * 20 + 8 + d.picks[mem]!!
-                        .stream().filter { dp: DraftPokemon -> dp.name == pokemon }
-                        .map { dp: DraftPokemon? -> d.picks[mem]!!.indexOf(dp) }.findFirst().orElse(-1)
+                    user % 4 * 20 + 8 + d.picks[mem]!!.indexOfFirst { dp: DraftPokemon -> dp.name == pokemon }
                 }"
                 logger.info("range = $range")
                 b.addRow(
@@ -319,9 +312,8 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
             val sdName = getSDName(pokemon)
             dataJSON.getJSONObject(sdName)
             val picks = d.picks.getValue(mem)
-            val y = league.getStringList("table").indexOf(teamname) * 17 + 2 + IntStream.range(0, picks.size)
-                .filter { num: Int -> picks[num].name == pokemon }
-                .findFirst().orElse(-1)
+            val y = league.getStringList("table").indexOf(teamname) * 17 + 2 +
+                    picks.indexOfFirst { it.name == pokemon }
             b.addSingle("Data!B$y", pokemon)
             b.addSingle("Data!AF$y", 2)
             b.addSingle("Data!Q$y", "=SUMME(L$y:P$y)")
@@ -335,70 +327,6 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
             val numInRound = d.originalOrder[d.round]!!.indexOf(mem) + 1
             b.addSingle("Draft!${getAsXCoord(d.round * 5 - 1)}${numInRound * 5 + 2}", pokemon)
             b.addSingle("Draft!${getAsXCoord(d.round * 5 - 3)}${numInRound * 5 + 1}", removed)
-            logger.info("d.members.size() = " + d.members.size)
-            logger.info("d.order.size() = " + d.order[d.round]!!.size)
-            logger.info("d.members.size() - d.order.size() = $numInRound")
-            //if (d.members.size() - d.order.get(d.round).size() != 1 && isEnabled)
-            b.execute()
-        }
-
-        fun ndsdoc(tierlist: Tierlist, d: Draft, mem: Long, oldmon: DraftPokemon, newmon: DraftPokemon) {
-            val league = emolgaJSON.getJSONObject("drafts").getJSONObject(d.name)
-            logger.info("oldmon = {}", oldmon)
-            logger.info("newmon = {}", newmon)
-            //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
-            val b = RequestBuilder(league.getString("sid"))
-            val teamname = league.getJSONObject("teamnames").getString(mem)
-            val pokemon = newmon.name
-            val sdName = getSDName(pokemon)
-            val o = dataJSON.getJSONObject(sdName)
-            val i = d.picks[mem]!!.indexOf(newmon) + 15
-            val tl = tierlist.getLocation(pokemon, 0, 0)
-            val oldmonName = oldmon.name
-            val tlold = tierlist.getLocation(oldmonName, 0, 0)
-            val gen5Sprite = getGen5Sprite(o)
-            b
-                .addSingle("$teamname!B$i", gen5Sprite)
-                .addSingle("$teamname!D$i", pokemon)
-                .addSingle("Tierliste!" + getAsXCoord(tl.x * 6 + 6) + (tl.y + 4), "='$teamname'!B2")
-                .addSingle("Tierliste!" + getAsXCoord(tlold.x * 6 + 6) + (tlold.y + 4), "-frei-")
-            val t: MutableList<Any> =
-                o.getStringList("types").stream().map { s: String? -> typeIcons.getString(s) }
-                    .collect(
-                        Collectors.toCollection { LinkedList() }
-                    )
-            if (t.size == 1) t.add("/")
-            b.addRow("$teamname!F$i", t)
-            b.addSingle("$teamname!H$i", o.getJSONObject("baseStats").getInt("spe"))
-            b.addSingle("$teamname!I$i", tierlist.getPointsNeeded(pokemon))
-            b.addSingle("$teamname!J$i", "2")
-            b.addRow(
-                "$teamname!L$i",
-                listOf<Any>(
-                    canLearnNDS(sdName, "stealthrock"),
-                    canLearnNDS(sdName, "defog"),
-                    canLearnNDS(sdName, "rapidspin"),
-                    canLearnNDS(sdName, "voltswitch", "uturn", "flipturn", "batonpass", "teleport")
-                )
-            )
-            val numInRound = d.originalOrder[d.round]!!.indexOf(mem) + 1
-            b.addSingle("Draft!${getAsXCoord(d.round * 5 - 2)}${numInRound * 5 + 1}", "》》》》")
-                .addSingle("Draft!${getAsXCoord(d.round * 5 - 3)}${numInRound * 5 + 1}", oldmonName)
-                .addSingle(
-                    "Draft!${getAsXCoord(d.round * 5 - 4)}${numInRound * 5 + 1}",
-                    getGen5Sprite(oldmonName)
-                )
-                .addSingle(
-                    "Draft!${getAsXCoord(d.round * 5 - 4)}${numInRound * 5 + 3}",
-                    tierlist.prices[oldmon.tier]!!
-                )
-            b.addSingle("Draft!${getAsXCoord(d.round * 5 - 3)}${numInRound * 5 + 2}", "《《《《")
-                .addSingle("Draft!${getAsXCoord(d.round * 5 - 1)}${numInRound * 5 + 2}", pokemon)
-                .addSingle("Draft!${getAsXCoord(d.round * 5)}${numInRound * 5 + 1}", gen5Sprite)
-                .addSingle(
-                    "Draft!${getAsXCoord(d.round * 5)}${numInRound * 5 + 3}",
-                    tierlist.prices[newmon.tier]!!
-                )
             logger.info("d.members.size() = " + d.members.size)
             logger.info("d.order.size() = " + d.order[d.round]!!.size)
             logger.info("d.members.size() - d.order.size() = $numInRound")

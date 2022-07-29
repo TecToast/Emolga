@@ -17,7 +17,5 @@ class EnglCommand : Command("engl", "Zeigt den englischen Namen dieser Sache.", 
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
-        e.reply(e.arguments!!.getTranslation("stuff").translation)
-    }
+    override fun process(e: GuildCommandEvent) = e.reply(e.arguments.getTranslation("stuff").translation)
 }

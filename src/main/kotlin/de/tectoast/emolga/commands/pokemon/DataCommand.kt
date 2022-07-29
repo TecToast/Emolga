@@ -18,65 +18,42 @@ import net.dv8tion.jda.api.requests.restaction.MessageAction
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import org.slf4j.LoggerFactory
 import java.awt.Color
-import java.util.stream.Collectors
 
 class DataCommand : Command("data", "Zeigt Informationen über diese Sache", CommandCategory.Pokemon) {
     init {
         aliases.add("dt")
-        argumentTemplate = ArgumentManagerTemplate.builder()
-            .add(
-                "shiny",
-                "Shiny",
-                "",
-                ArgumentManagerTemplate.Text.of(
-                    SubCommand.of(
-                        "Shiny",
-                        "Wenn der Sprite des Mons als Shiny angezeigt werden soll"
-                    )
-                ),
-                true
-            )
-            .add(
-                "regform", "Form", "", ArgumentManagerTemplate.Text.of(
-                    SubCommand.of("Alola"), SubCommand.of("Galar"), SubCommand.of("Mega")
-                ), true
-            )
-            .add(
-                "stuff",
-                "Sache",
-                "Pokemon/Item/Whatever",
-                Translation.Type.of(
-                    Translation.Type.POKEMON,
-                    Translation.Type.MOVE,
-                    Translation.Type.ITEM,
-                    Translation.Type.ABILITY
+        argumentTemplate = ArgumentManagerTemplate.builder().add(
+            "shiny", "Shiny", "", ArgumentManagerTemplate.Text.of(
+                SubCommand.of(
+                    "Shiny", "Wenn der Sprite des Mons als Shiny angezeigt werden soll"
                 )
+            ), true
+        ).add(
+            "regform", "Form", "", ArgumentManagerTemplate.Text.of(
+                SubCommand.of("Alola"), SubCommand.of("Galar"), SubCommand.of("Mega")
+            ), true
+        ).add(
+            "stuff", "Sache", "Pokemon/Item/Whatever", Translation.Type.of(
+                Translation.Type.POKEMON, Translation.Type.MOVE, Translation.Type.ITEM, Translation.Type.ABILITY
             )
-            .add(
-                "form",
-                "Sonderform",
-                "Sonderform, bspw. `Heat` bei Rotom",
-                ArgumentManagerTemplate.Text.any(),
-                true
-            )
-            .setExample("!dt Shiny Primarene")
-            .build()
+        ).add(
+            "form", "Sonderform", "Sonderform, bspw. `Heat` bei Rotom", ArgumentManagerTemplate.Text.any(), true
+        ).setExample("!dt Shiny Primarene").build()
     }
 
     override fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         try {
-            val args = e.arguments!!
+            val args = e.arguments
             val gerName = args.getTranslation("stuff")
             val objtype = gerName.type
             var name = gerName.translation
             when (objtype) {
-                Translation.Type.POKEMON -> try {
+                Translation.Type.POKEMON -> {
                     val mon = dataJSON.optJSONObject(
                         toSDName(
                             gerName.otherLang + args.getOrDefault(
-                                "regform",
-                                ""
+                                "regform", ""
                             ) + args.getOrDefault("form", "") + (gerName.forme ?: "")
                         )
                     )
@@ -100,19 +77,18 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                         builder.addField("Typen", "Normal", false)
                     } else {
                         logger.info(mon.toString())
-                        val type = mon.getJSONArray("types").toList().stream().map { o: Any ->
-                            if (o == "Psychic") return@map "Psycho"
-                            getGerNameNoCheck(o as String)
-                        }.collect(Collectors.joining(" "))
-                        builder.addField("Typen", type, false)
+                        builder.addField("Typen", mon.getJSONArray("types").toStringList().joinToString(" ") {
+                            if (it == "Psychic") "Psycho"
+                            else getGerNameNoCheck(it as String)
+                        }, false)
                     }
                     builder.addField("Größe", mon.getDouble("heightm").toString() + " m", true)
                     builder.addField("Gewicht", mon.getDouble("weightkg").toString() + " kg", true)
-                    builder.addField("Eigruppe", mon.getJSONArray("eggGroups").toList().stream().map { o: Any ->
+                    builder.addField("Eigruppe", mon.getJSONArray("eggGroups").toStringList().joinToString { o: Any ->
                         getGerNameNoCheck(
                             "E_$o"
                         )
-                    }.collect(Collectors.joining(", ")), true)
+                    }, true)
                     if (monname.equals("silvally", ignoreCase = true) || monname.equals("arceus", ignoreCase = true)) {
                         builder.addField(
                             "Fähigkeiten",
@@ -183,47 +159,40 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                     builder.setTitle(getGerNameWithForm(monname))
                     builder.setColor(Color.CYAN)
                     val list = getAllForms(name)
-                    e.reply(
-                        builder.build(),
-                        ma = { ma: MessageAction ->
-                            if (list.size > 1) {
-                                ma.setActionRows(
-                                    ActionRow.of(
-                                        SelectMenu.create("mondata").addOptions(
-                                            list.stream().map { o: JSONObject ->
-                                                val so = SelectOption.of(
-                                                    "Form: " + getGerNameWithForm(o.getString("name")),
-                                                    toSDName(o.getString("name"))
-                                                )
-                                                if (mon.getString("name") == o.getString("name")) so.withDefault(true) else so
-                                            }.collect(Collectors.toList())
-                                        ).build()
-                                    )
+                    e.reply(builder.build(), ma = { ma: MessageAction ->
+                        if (list.size > 1) {
+                            ma.setActionRows(
+                                ActionRow.of(
+                                    SelectMenu.create("mondata").addOptions(
+                                        list.map {
+                                            SelectOption.of(
+                                                "Form: " + getGerNameWithForm(it.getString("name")),
+                                                toSDName(it.getString("name"))
+                                            ).withDefault(mon.getString("name") == it.getString("name"))
+                                        }
+                                    ).build()
                                 )
-                            }
-                        },
-                        ra = { ra: ReplyCallbackAction ->
-                            if (list.size > 1) {
-                                ra.addActionRows(
-                                    ActionRow.of(
-                                        SelectMenu.create("mondata").addOptions(
-                                            list.stream().map { o: JSONObject ->
-                                                val so = SelectOption.of(
-                                                    "Form: " + getGerNameWithForm(o.getString("name")),
-                                                    toSDName(o.getString("name"))
-                                                )
-                                                if (mon.getString("name") == o.getString("name")) so.withDefault(true) else so
-                                            }.collect(Collectors.toList())
-                                        ).build()
-                                    )
+                            )
+                        }
+                    }, ra = { ra: ReplyCallbackAction ->
+                        if (list.size > 1) {
+                            ra.addActionRows(
+                                ActionRow.of(
+                                    SelectMenu.create("mondata").addOptions(
+                                        list.map {
+                                            val so = SelectOption.of(
+                                                "Form: " + getGerNameWithForm(it.getString("name")),
+                                                toSDName(it.getString("name"))
+                                            )
+                                            if (mon.getString("name") == it.getString("name")) so.withDefault(true) else so
+                                        }
+                                    ).build()
                                 )
-                            }
-                        },
-                        m = { mes: Message ->
-                            monDataButtons[mes.idLong] = MonData(list)
-                        }, ih = { ih: InteractionHook -> monDataButtons[ih.interaction.idLong] = MonData(list) })
-                } catch (ex: Exception) {
-                    ex.printStackTrace()
+                            )
+                        }
+                    }, m = { mes: Message ->
+                        monDataButtons[mes.idLong] = MonData(list)
+                    }, ih = { ih: InteractionHook -> monDataButtons[ih.interaction.idLong] = MonData(list) })
                 }
                 Translation.Type.MOVE -> {
                     name = gerName.translation
@@ -241,7 +210,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                         p = bp.toString()
                         maxPower = if (isStatus) {
                             -1
-                        } else if (listOf("Gift", "Kampf").contains(type)) {
+                        } else if (type in listOf("Gift", "Kampf")) {
                             if (bp >= 150) {
                                 100
                             } else if (bp >= 110) {
@@ -287,16 +256,11 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                     val ppc = data.getInt("pp")
                     val pp = ppc.toString() + " (max. " + (ppc shl 3) / 5 + ")"
                     val builder = EmbedBuilder()
-                    builder.setTitle(name)
-                        .addField("English", getEnglName(name), true)
-                        .addField("Power", p, true)
+                    builder.setTitle(name).addField("English", getEnglName(name), true).addField("Power", p, true)
                         .addField("Dyna-Power", if (maxPower == -1) "-" else maxPower.toString(), true)
-                        .addField("Accuracy", accuracy, true)
-                        .addField("Category", category, true)
-                        .addField("AP", pp, true)
-                        .addField("Type", type, true)
-                        .addField("Priority", data.getInt("priority").toString(), true)
-                        .setColor(Color.CYAN)
+                        .addField("Accuracy", accuracy, true).addField("Category", category, true)
+                        .addField("AP", pp, true).addField("Type", type, true)
+                        .addField("Priority", data.getInt("priority").toString(), true).setColor(Color.CYAN)
                         .setDescription(AtkDataManager.getData(name))
                     if (isStatus) {
                         val text: String
@@ -338,12 +302,10 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                             } else {
                                 val power = p.toInt()
                                 if (power <= 55) zpower = "100" else if (power in 60..65) zpower =
-                                    "120" else if (power in 70..75) zpower =
-                                    "140" else if (power in 80..85) zpower =
-                                    "160" else if (power in 90..95) zpower =
-                                    "175" else if (power == 100) zpower = "180" else if (power == 110) zpower =
-                                    "185" else if (power == 120) zpower = "190" else if (power == 130) zpower =
-                                    "195" else if (power >= 140) zpower = "200"
+                                    "120" else if (power in 70..75) zpower = "140" else if (power in 80..85) zpower =
+                                    "160" else if (power in 90..95) zpower = "175" else if (power == 100) zpower =
+                                    "180" else if (power == 110) zpower = "185" else if (power == 120) zpower =
+                                    "190" else if (power == 130) zpower = "195" else if (power >= 140) zpower = "200"
                             }
                         }
                         if (zpower == null) sendToMe("Fehler bei Z-$name!")

@@ -47,7 +47,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Consumer
 import java.util.regex.Pattern
-import java.util.stream.Collectors
 
 object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
@@ -102,7 +101,7 @@ object PrivateCommands {
             s = s.substring(1)
             logger.info("s = $s")
             val finalS = s
-            tc.guild.retrieveEmojis().complete().stream()
+            tc.guild.retrieveEmojis().complete()
                 .filter { it.name.equals(finalS, ignoreCase = true) }
                 .forEach { m.addReaction(it!!).queue() }
         } else {
@@ -293,8 +292,7 @@ object PrivateCommands {
         val nominations = nds.getJSONObject("nominations")
         nominations.getJSONObject(nominations.getInt("currentDay")).keySet()
             .forEach(Consumer { o: String -> table.remove(o) })
-        logger.info(MarkerFactory.getMarker("important"), table.stream().map { l: String -> "<@$l>" }
-            .collect(Collectors.joining(", ")))
+        logger.info(MarkerFactory.getMarker("important"), table.joinToString { l: String -> "<@$l>" })
     }
 
     @PrivateCommand(name = "matchups")
@@ -349,23 +347,19 @@ object PrivateCommands {
             for ((x, objects) in l!!.withIndex()) {
                 if (x % 2 == 0) current = toid.getString((objects[0] as String).trim()) else {
                     val currorder =
-                        Arrays.stream(TRIPLE_HASHTAG.split(lastNom.getString(current))).flatMap { s: String ->
-                            Arrays.stream(s.split(";".toRegex()).dropLastWhile { it.isEmpty() }
-                                .toTypedArray())
+                        TRIPLE_HASHTAG.split(lastNom.getString(current)).flatMap { s: String ->
+                            s.split(";".toRegex())
                         }
                             .map { s: String ->
-                                s.split(",".toRegex()).dropLastWhile { it.isEmpty() }
-                                    .toTypedArray()[0]
+                                s.split(",")[0]
                             }.toList()
                     val teamname = teamnames.getString(current)
                     if (!currkills.containsKey(current)) currkills[current] =
                         Google[sid, "$teamname!L200:L214", false]!!
-                            .stream().map { (it[0] as String).toInt() }
-                            .collect(Collectors.toList())
+                            .map { (it[0] as String).toInt() }
                     if (!currdeaths.containsKey(current)) currdeaths[current] =
                         Google[sid, "$teamname!X200:X214", false]!!
-                            .stream().map { (it[0] as String).toInt() }
-                            .collect(Collectors.toList())
+                            .map { (it[0] as String).toInt() }
                     if (!killstoadd.containsKey(current)) killstoadd[current] = AtomicInteger()
                     if (!deathstoadd.containsKey(current)) deathstoadd[current] = AtomicInteger()
                     val raus = objects[0] as String
@@ -407,11 +401,9 @@ object PrivateCommands {
                             listOf<Any>(rein, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
                         )
                         b.addRow(teamname + "!N" + (index + 200), listOf<Any>(0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
-                        val t: MutableList<Any> = data.getStringList("types").stream()
+                        val t: MutableList<Any> = data.getStringList("types")
                             .map { s: String? -> Command.typeIcons.getString(s) }
-                            .collect(
-                                Collectors.toCollection { LinkedList() }
-                            )
+                            .toMutableList()
                         if (t.size == 1) t.add("/")
                         b.addRow("$teamname!F$currindex", t)
                         b.addSingle("$teamname!H$currindex", data.getJSONObject("baseStats").getInt("spe"))
@@ -484,7 +476,7 @@ object PrivateCommands {
         )
         var x = 0
         for (s in t!!.order) {
-            val mons = t.tierlist[s]!!.stream().map { str: String ->
+            val mons = t.tierlist[s]!!.map { str: String ->
                 if (str.startsWith("M-")) {
                     if (str.endsWith("-X")) return@map "M-" + Command.getEnglName(
                         str.substring(
@@ -513,9 +505,7 @@ object PrivateCommands {
                         .toTypedArray()[0]) + "-" + str.split("-".toRegex()).dropLastWhile { it.isEmpty() }
                         .toTypedArray()[1]
                 }
-            }.sorted().collect(
-                Collectors.toCollection { LinkedList() }
-            )
+            }.sorted().toMutableList()
             if (s != "D") b.addColumn(
                 "Tierliste [englisch]!${getAsXCoord((x shl 1) + 1)}5",
                 mons
@@ -655,7 +645,7 @@ object PrivateCommands {
         val mc = Comparator.comparing { o1: JSONObject -> tierorder.indexOf(o1.getString("tier")) }
             .thenComparing { o: JSONObject -> o.getString("name") }
         for (s in picks.keySet()) {
-            picks.put(s, picks.getJSONList(s).stream().sorted(mc).collect(Collectors.toList()))
+            picks.put(s, picks.getJSONList(s).sortedWith(mc))
         }
         Command.saveEmolgaJSON()
     }
@@ -681,7 +671,7 @@ object PrivateCommands {
                 .reversed().thenComparing { l: List<Any> -> l[2].toString() }
             builder.addAll(
                 range, get[x]!!
-                    .stream().filter { n: List<Any> -> n[2] != "" }.sorted(comp).collect(Collectors.toList())
+                    .filter { n: List<Any> -> n[2] != "" }.sortedWith(comp)
             )
         }
         builder.execute()
@@ -695,7 +685,7 @@ object PrivateCommands {
         val mc = Comparator.comparing { o1: JSONObject -> tierorder.indexOf(o1.getString("tier")) }
             .thenComparing { o: JSONObject -> o.getString("name") }
         val s = e.getArg(1)
-        picks.put(s, picks.getJSONList(s).stream().sorted(mc).collect(Collectors.toList()))
+        picks.put(s, picks.getJSONList(s).sortedWith(mc))
         Command.saveEmolgaJSON()
     }
 
@@ -709,9 +699,8 @@ object PrivateCommands {
         for (s in table) {
             b.addColumn(
                 "$s!A200",
-                picks.getJSONList(Command.reverseGet(teamnames, s)).stream()
-                    .map { o: JSONObject -> o.getString("name") }
-                    .collect(Collectors.toList()))
+                picks.getJSONList(Command.reverseGet(teamnames, s))
+                    .map { it.getString("name") })
         }
         b.execute()
     }
@@ -741,22 +730,6 @@ object PrivateCommands {
             Button.danger("florix;poweroff", "PowerOff").withEmoji(Emoji.fromUnicode("⚠️")),
             Button.primary("florix;status", "Status").withEmoji(Emoji.fromUnicode("ℹ️"))
         ).queue()
-    }
-
-    @PrivateCommand(name = "buildtabletest")
-    fun buildTableTest(e: GenericCommandEvent) {
-        e.reply(
-            Command.buildTable(
-                listOf(
-                    listOf("Pascal", "David", "Jesse", "Felix", "Fundort", "Status"),
-                    listOf("", "Rutena", "", "", "Route 2", "Team"),
-                    listOf("", "Floette", "", "", "Illumina City", "Team"),
-                    listOf("", "Garados", "", "", "Route 22", "Team"),
-                    listOf("", "Togetic", "", "", "Route 5", "Team"),
-                    listOf("", "Zirpeise", "", "", "Route 3", "Box")
-                )
-            )
-        )
     }
 
     @PrivateCommand(name = "createki")
@@ -799,8 +772,8 @@ object PrivateCommands {
         Command.commands.values.asSequence()
             .filter { it.isSlash }
 
-        Command.commands.values.stream().filter { obj: Command -> obj.isSlash }
-            .filter { c: Command -> c.slashGuilds.isNotEmpty() }.forEach { c: Command ->
+        Command.commands.values.filter { it.isSlash }
+            .filter { it.slashGuilds.isNotEmpty() }.forEach { c: Command ->
                 val dt = Commands.slash(c.name, c.help)
                 val mainCmdArgs = c.argumentTemplate.arguments
                 if (c.hasChildren()) {
@@ -825,9 +798,7 @@ object PrivateCommands {
                     logger.info("guild = {}", guild)
                     logger.info(
                         "l = {}",
-                        l.stream()
-                            .map { it.name }
-                            .collect(Collectors.joining(", "))
+                        l.joinToString { it.name }
                     )
                 }) { obj: Throwable -> obj.printStackTrace() }
         }
@@ -835,7 +806,7 @@ object PrivateCommands {
     }
 
     private fun buildOptionData(args: List<ArgumentManagerTemplate.Argument>): List<OptionData> {
-        return args.stream().map { arg: ArgumentManagerTemplate.Argument ->
+        return args.map { arg: ArgumentManagerTemplate.Argument ->
             val argType = arg.type
             OptionData(
                 argType.asOptionType(),
@@ -844,7 +815,7 @@ object PrivateCommands {
                 !arg.isOptional,
                 argType.hasAutoComplete()
             )
-        }.toList()
+        }
     }
 
     @PrivateCommand(name = "checkadmin")
@@ -908,14 +879,14 @@ object PrivateCommands {
             val a = method.getAnnotation(
                 PrivateCommand::class.java
             ) ?: continue
-            if (msg.lowercase(Locale.getDefault())
-                    .startsWith("!" + a.name.lowercase(Locale.getDefault()) + " ") || msg.equals(
+            if (msg.lowercase()
+                    .startsWith("!" + a.name.lowercase() + " ") || msg.equals(
                     "!" + a.name,
                     ignoreCase = true
-                ) || Arrays.stream(a.aliases).anyMatch { s: String ->
+                ) || a.aliases.any {
                     msg.startsWith(
-                        "!$s "
-                    ) || msg.equals("!$s", ignoreCase = true)
+                        "!$it "
+                    ) || msg.equals("!$it", ignoreCase = true)
                 }
             ) {
                 Thread({

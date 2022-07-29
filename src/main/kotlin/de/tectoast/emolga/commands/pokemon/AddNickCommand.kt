@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.sql.managers.TranslationsManager
-import java.util.*
 
 class AddNickCommand : Command(
     "addnick",
@@ -31,9 +30,9 @@ class AddNickCommand : Command(
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         val nickorig = args.getText("nick")
-        val nick: String = nickorig.lowercase(Locale.getDefault())
+        val nick: String = nickorig.lowercase()
         val tr = getGerName(nick)
         if (tr.isSuccess && e.isNotFlo) {
             e.reply("**" + nickorig + "** ist bereits als **" + tr.translation + "** hinterlegt!")

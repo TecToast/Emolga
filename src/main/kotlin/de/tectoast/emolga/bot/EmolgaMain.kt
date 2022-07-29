@@ -16,7 +16,6 @@ import org.eclipse.jetty.util.ssl.SslContextFactory
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.File
-import java.io.IOException
 import java.nio.file.Files
 import java.security.KeyFactory
 import java.security.KeyStore
@@ -33,28 +32,23 @@ import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 
 object EmolgaMain {
-    @JvmField
-    val todel = ArrayList<Giveaway>()
-    lateinit var emolgajda: JDA
 
+    lateinit var emolgajda: JDA
     lateinit var flegmonjda: JDA
     private val logger = LoggerFactory.getLogger(EmolgaMain::class.java)
 
-    @JvmStatic
     @Throws(Exception::class)
     fun start() {
         emolgajda = JDABuilder.createDefault(Command.tokens.getString("discord"))
             .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
-            .addEventListeners(EmolgaListener())
+            .addEventListeners(EmolgaListener(), SlashListener())
             .setMemberCachePolicy(MemberCachePolicy.ALL)
             .build()
-        emolgajda.addEventListener(SlashListener())
         flegmonjda = JDABuilder.createDefault(Command.tokens.getString("discordflegmon"))
             .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
-            .addEventListeners(EmolgaListener())
+            .addEventListeners(EmolgaListener(), SlashListener())
             .setMemberCachePolicy(MemberCachePolicy.ALL)
             .build()
-        flegmonjda.addEventListener(SlashListener())
         emolgajda.awaitReady()
         flegmonjda.awaitReady()
         logger.info("Discord Bots loaded!")
@@ -64,26 +58,6 @@ object EmolgaMain {
         Command.updatePresence()
         /*val manager = ReactionManager(emolgajda)
         manager // BS
-            .registerReaction("715249205186265178", "813025531779743774", "813025179114405898", "719928482544484352")
-            .registerReaction("715249205186265178", "813025531779743774", "813025403098628097", "813005659619590184")
-            .registerReaction(
-                "715249205186265178",
-                "813025531779743774",
-                "813025709232488480",
-                "813027599743713320"
-            ) // ASL Minecraft
-            .registerReaction(
-                "540899923789611018",
-                "820784528888561715",
-                "820781668586618901",
-                "820783085976420372"
-            ) // ASL D&D
-            .registerReaction(
-                "830146866812420116",
-                "830391184459300915",
-                "540969934457667613",
-                "830392346348355594"
-            ) // Müslistrikers
             .registerReaction("827608009571958806", "884567614918111233", "884564674744561684", "884565654227812364")
             .registerReaction("827608009571958806", "884567614918111233", "884564533295869962", "884565697479458826")
             .registerReaction("827608009571958806", "884567614918111233", "884565288564195348", "884565609663320086")
@@ -128,40 +102,35 @@ object EmolgaMain {
         server.start()
     }
 
-    private val context: SSLContext?
+    private val context: SSLContext
         get() {
-            var context: SSLContext?
             val tokens = Command.tokens.getJSONObject("website")
             val password = tokens.getString("password")
             val pathname = tokens.getString("path")
-            try {
-                context = SSLContext.getInstance("TLS")
-                val certBytes = parseDERFromPEM(
-                    getBytes(File(pathname + File.separator + "cert.pem")),
-                    "-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----"
-                )
-                val keyBytes = parseDERFromPEM(
-                    getBytes(File(pathname + File.separator + "privkey.pem")),
-                    "-----BEGIN PRIVATE KEY-----", "-----END PRIVATE KEY-----"
-                )
-                val cert = generateCertificateFromDER(certBytes)
-                val key = generatePrivateKeyFromDER(keyBytes)
-                val keystore = KeyStore.getInstance("JKS")
-                keystore.load(null)
-                keystore.setCertificateEntry("cert-alias", cert)
-                keystore.setKeyEntry("key-alias", key, password.toCharArray(), arrayOf<Certificate>(cert))
-                val kmf = KeyManagerFactory.getInstance("SunX509")
-                kmf.init(keystore, password.toCharArray())
-                val km = kmf.keyManagers
-                context.init(km, null, null)
-            } catch (e: Exception) {
-                context = null
-            }
+            val context: SSLContext = SSLContext.getInstance("TLS")
+            val certBytes = parseDERFromPEM(
+                getBytes(File(pathname + File.separator + "cert.pem")),
+                "-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----"
+            )
+            val keyBytes = parseDERFromPEM(
+                getBytes(File(pathname + File.separator + "privkey.pem")),
+                "-----BEGIN PRIVATE KEY-----", "-----END PRIVATE KEY-----"
+            )
+            val cert = generateCertificateFromDER(certBytes)
+            val key = generatePrivateKeyFromDER(keyBytes)
+            val keystore = KeyStore.getInstance("JKS")
+            keystore.load(null)
+            keystore.setCertificateEntry("cert-alias", cert)
+            keystore.setKeyEntry("key-alias", key, password.toCharArray(), arrayOf<Certificate>(cert))
+            val kmf = KeyManagerFactory.getInstance("SunX509")
+            kmf.init(keystore, password.toCharArray())
+            val km = kmf.keyManagers
+            context.init(km, null, null)
             return context
         }
 
-    private fun parseDERFromPEM(pem: ByteArray?, beginDelimiter: String, endDelimiter: String): ByteArray {
-        val data = String(pem!!)
+    private fun parseDERFromPEM(pem: ByteArray, beginDelimiter: String, endDelimiter: String): ByteArray {
+        val data = String(pem)
         var tokens = data.split(beginDelimiter.toRegex())
         tokens = tokens[1].split(endDelimiter.toRegex())
         return DatatypeConverter.parseBase64Binary(tokens[0])
@@ -180,12 +149,7 @@ object EmolgaMain {
         return factory.generateCertificate(ByteArrayInputStream(certBytes)) as X509Certificate
     }
 
-    private fun getBytes(file: File): ByteArray? {
-        try {
-            return Files.readAllBytes(file.toPath())
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-        return null
+    private fun getBytes(file: File): ByteArray {
+        return Files.readAllBytes(file.toPath())
     }
 }

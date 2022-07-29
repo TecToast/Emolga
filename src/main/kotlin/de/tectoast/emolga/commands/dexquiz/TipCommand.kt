@@ -6,7 +6,6 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.dexquiz.DexQuizTip.TipData
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DexQuiz
-import java.util.*
 
 class TipCommand : Command("tip", "Zeigt einen Tipp für den derzeitigen Eintrag", CommandCategory.Dexquiz) {
     init {
@@ -18,14 +17,14 @@ class TipCommand : Command("tip", "Zeigt einen Tipp für den derzeitigen Eintrag
             )
             .setExample("/tip anfangsbuchstabe")
             .build()
-        slash(true, 918865966136455249L, Constants.FPLID)
+        slash(true, 918865966136455249L, Constants.FPLID, Constants.CULTID)
     }
 
     override fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val quiz = DexQuiz.getByTC(tco)
         if (quiz != null) {
-            val tip: String = e.arguments!!.getText("tip").uppercase(Locale.getDefault())
+            val tip: String = e.arguments.getText("tip").uppercase()
             val newBudget = quiz.useTip(e.author.idLong, tip)
             if (newBudget == -10L) {
                 e.reply(
@@ -39,7 +38,7 @@ class TipCommand : Command("tip", "Zeigt einen Tipp für den derzeitigen Eintrag
                 return
             }
             e.reply(
-                DexQuizTip.valueOf(tip).tipFunction.apply(
+                DexQuizTip.valueOf(tip).tipFunction(
                     TipData(
                         quiz.currentGerName, quiz.currentEnglName, quiz.currentEdition,
                         getDataObject(quiz.currentGerName)

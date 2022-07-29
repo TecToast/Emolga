@@ -7,7 +7,7 @@ import java.util.*
 import java.util.function.Predicate
 
 abstract class PrivateCommand(val name: String) {
-    val aliases: List<String> = LinkedList()
+    val aliases: List<String> = mutableListOf()
     var isAllowed = Predicate<User> { true }
 
     init {
@@ -15,20 +15,17 @@ abstract class PrivateCommand(val name: String) {
     }
 
     fun setIsAllowed(isAllowed: Predicate<User>) {
-        this.isAllowed = isAllowed.or { user: User -> user.idLong == Constants.FLOID }
+        this.isAllowed = isAllowed.or { it.idLong == Constants.FLOID }
     }
 
     private fun checkPrefix(msg: String): Boolean {
-        return (msg.lowercase(Locale.getDefault())
-            .startsWith("!" + name.lowercase(Locale.getDefault()) + " ") || aliases.stream().anyMatch { s: String ->
-            msg.lowercase(Locale.getDefault()).startsWith("!" + s.lowercase(Locale.getDefault()) + " ")
-        }
-                || msg.equals("!" + name.lowercase(Locale.getDefault()), ignoreCase = true) || aliases.stream()
-            .anyMatch { s: String ->
-                msg.equals(
-                    "!$s", ignoreCase = true
-                )
-            })
+        return (msg.lowercase().startsWith("!" + name.lowercase() + " ") || aliases.any {
+            msg.lowercase().startsWith("!" + it.lowercase() + " ")
+        } || msg.equals("!" + name.lowercase(), ignoreCase = true) || aliases.any {
+            msg.equals(
+                "!$it", ignoreCase = true
+            )
+        })
     }
 
     abstract fun process(e: MessageReceivedEvent)

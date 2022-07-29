@@ -30,7 +30,7 @@ class EmolgaChannelCommand : Command(
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         val action = args.getText("action")
         val tc = args.getChannel("channel")
         val ec = emolgaJSON.getJSONObject("emolgachannel")
@@ -38,10 +38,9 @@ class EmolgaChannelCommand : Command(
         val tid = tc.idLong
         if (!ec.has(gid)) ec.put(gid, JSONArray())
         val arr = ec.getJSONArray(gid)
-        val l = arr.toLongList()
         val gidl = e.guild.idLong
         if (action == "add") {
-            if (l.contains(tid)) {
+            if (arr.toLongList().contains(tid)) {
                 e.reply(tc.asMention + " wurde bereits als Channel eingestellt!")
                 return
             }

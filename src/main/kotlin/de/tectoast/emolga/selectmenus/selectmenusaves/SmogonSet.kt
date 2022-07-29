@@ -6,7 +6,6 @@ import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
-import java.util.stream.Collectors
 
 class SmogonSet(val arr: JSONArray) {
     private var format: JSONObject
@@ -25,8 +24,7 @@ class SmogonSet(val arr: JSONArray) {
     }
 
     fun changeFormat(format: String) {
-        this.format = arr.toJSONList().stream().filter { o: JSONObject -> o.getString("format") == format }.findFirst()
-            .orElse(null)
+        this.format = arr.toJSONList().first { o: JSONObject -> o.getString("format") == format }
         set = this.format.getJSONArray("movesets").getJSONObject(0)
         ev = set.getJSONArray("evconfigs").getJSONObject(0)
         iv = if (set.getJSONArray("ivconfigs").length() > 0) set.getJSONArray("ivconfigs")
@@ -35,9 +33,7 @@ class SmogonSet(val arr: JSONArray) {
     }
 
     fun changeSet(set: String) {
-        this.set =
-            format.getJSONList("movesets").stream().filter { o: JSONObject -> o.getString("name") == set }.findFirst()
-                .orElse(null)
+        this.set = format.getJSONList("movesets").first { o: JSONObject -> o.getString("name") == set }
         ev = this.set.getJSONArray("evconfigs").getJSONObject(0)
         iv = if (this.set.getJSONArray("ivconfigs").length() > 0) this.set.getJSONArray("ivconfigs")
             .getJSONObject(0) else JSONObject()
@@ -82,17 +78,18 @@ class SmogonSet(val arr: JSONArray) {
 
     fun buildActionRows(): List<ActionRow> {
         return listOf(
-            ActionRow.of(SelectMenu.create("smogonformat").addOptions(
-                arr.toJSONList().stream().map { o: JSONObject -> o.getString("format") }
-                    .map { s: String ->
+            ActionRow.of(
+                SelectMenu.create("smogonformat")
+                    .addOptions(arr.toJSONList().map { o: JSONObject -> o.getString("format") }.map { s: String ->
                         SelectOption.of("Format: $s", s).withDefault(format.getString("format") == s)
-                    }
-                    .collect(Collectors.toList())
-            ).build()),
-            ActionRow.of(SelectMenu.create("smogonset").addOptions(
-                format.getJSONList("movesets").stream().map { o: JSONObject -> o.getString("name") }
-                    .map { s: String -> SelectOption.of("Set: $s", s).withDefault(set.getString("name") == s) }
-                    .collect(Collectors.toList())
-            ).build()))
+                    }).build()
+            ),
+            ActionRow.of(
+                SelectMenu.create("smogonset")
+                    .addOptions(format.getJSONList("movesets").map { o: JSONObject -> o.getString("name") }
+                        .map { s: String -> SelectOption.of("Set: $s", s).withDefault(set.getString("name") == s) })
+                    .build()
+            )
+        )
     }
 }

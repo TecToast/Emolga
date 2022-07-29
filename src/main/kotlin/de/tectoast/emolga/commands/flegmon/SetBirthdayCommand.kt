@@ -14,8 +14,8 @@ class SetBirthdayCommand : PepeCommand("setbirthday", "Trägt deinen Geburtstag 
     override fun process(e: GuildCommandEvent) {
         val msg = e.message!!.contentDisplay
         val tco = e.textChannel
-        val birthday = msg.split(" ".toRegex())[1]
-        val bd = birthday.split("\\.".toRegex())
+        val birthday = msg.split(" ")[1]
+        val bd = birthday.split(".")
         if (bd.size != 3) {
             e.reply("Das ist kein valides Datum!")
             return
@@ -39,9 +39,7 @@ class SetBirthdayCommand : PepeCommand("setbirthday", "Trägt deinen Geburtstag 
             return
         }
         val uid = e.author.idLong
-        /*if (Database.update("UPDATE birthdays SET year = " + year + ", month = " + month + ", day = " + day + " WHERE userid = " + uid) == 0) {
-            Database.insertBuilder("birthdays", "userid, year, month, day", uid, year, month, day);
-        }*/BirthdayManager.addOrUpdateBirthday(uid, year, month, day)
+        BirthdayManager.addOrUpdateBirthday(uid, year, month, day)
         tco.sendMessage(
             "Dein Geburtstag wurde erfolgreich auf den " + getWithZeros(day, 2) + "." + getWithZeros(
                 month,

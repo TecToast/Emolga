@@ -13,7 +13,6 @@ import net.dv8tion.jda.api.entities.Member
 import java.sql.ResultSet
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.function.Consumer
 
 object WarnsManager : DataManager("warns") {
     private val USERID = LongColumn("userid", this)
@@ -72,11 +71,11 @@ object WarnsManager : DataManager("warns") {
                 )
             }
             val idstocheck: MutableSet<Long> = HashSet()
-            l.stream().map { j: JSONObject -> j.getLong("userid") }.forEach { e: Long -> idstocheck.add(e) }
-            l.stream().map { j: JSONObject -> j.getLong("modid") }.forEach { e: Long -> idstocheck.add(e) }
+            l.map { it.getLong("userid") }.forEach { e -> idstocheck.add(e) }
+            l.map { it.getLong("modid") }.forEach { e -> idstocheck.add(e) }
             val names = HashMap<Long, String>()
             g.retrieveMembersByIds(idstocheck).get()
-                .forEach(Consumer { mem: Member -> names[mem.idLong] = mem.effectiveName })
+                .forEach { mem: Member -> names[mem.idLong] = mem.effectiveName }
             for (j in l) {
                 val uid = j.getLong("userid")
                 val name = names[uid] ?: continue

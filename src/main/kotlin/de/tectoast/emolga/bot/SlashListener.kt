@@ -16,12 +16,11 @@ class SlashListener : ListenerAdapter() {
             GuildCommandEvent(command, e)
         } catch (ex: MissingArgumentException) {
             val arg = ex.argument!!
-            if (arg.hasCustomErrorMessage()) e.reply(arg.customErrorMessage!!).queue() else {
-                e.reply(
-                    """Das benötigte Argument `${arg.name}`, was eigentlich ${Command.buildEnumeration(arg.type.getName())} sein müsste, ist nicht vorhanden!
-Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help ${command.name}`."""
-                ).queue()
-            }
+            e.reply(
+                arg.customErrorMessage
+                    ?: """Das benötigte Argument `${arg.name}`, was eigentlich ${Command.buildEnumeration(arg.type.getName())} sein müsste, ist nicht vorhanden!
+Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help ${command.name}`.""".trimIndent()
+            )
             if (u.idLong != FLOID) {
                 Command.sendToMe("MissingArgument " + tco.asMention + " Server: " + tco.guild.name)
             }

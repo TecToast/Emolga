@@ -14,7 +14,6 @@ import java.io.IOException
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.TimeUnit
-import java.util.function.Consumer
 
 class DexQuiz(tc: TextChannel, rounds: Long) {
     private val totalRounds: Long
@@ -49,7 +48,7 @@ class DexQuiz(tc: TextChannel, rounds: Long) {
             .setColor(Color.CYAN)
             .addField("Punkte-Budget", totalbudget.toString(), false)
         DexQuizTip.buildEmbedFields(gid)
-            .forEach(Consumer { field: MessageEmbed.Field -> b.addField(field) })
+            .forEach { field: MessageEmbed.Field -> b.addField(field) }
         tc.sendMessageEmbeds(b.build()).queue()
         newMon(false)
     }
@@ -117,11 +116,7 @@ class DexQuiz(tc: TextChannel, rounds: Long) {
         //ü = %C3%B6
         block = false
         val ma: MessageAction = tc.sendMessage(
-            "Runde %d/%d: %s\nZu welchem Pokemon gehört dieser Dex-Eintrag?".formatted(
-                round,
-                totalRounds,
-                Command.trim(entry, pokemon)
-            )
+            "Runde $round/$totalRounds: ${Command.trim(entry, pokemon)}\nZu welchem Pokemon gehört dieser Dex-Eintrag?"
         )
         if (withDelay) ma.queueAfter(3, TimeUnit.SECONDS) else ma.queue()
     }

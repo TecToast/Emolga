@@ -11,7 +11,6 @@ import de.tectoast.emolga.utils.sql.base.columns.BooleanColumn
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn
 import java.sql.ResultSet
 import java.util.*
-import java.util.stream.Collectors
 
 object TranslationsManager : DataManager("translations") {
     private val ENGLISHID = StringColumn("englishid", this)
@@ -42,11 +41,11 @@ object TranslationsManager : DataManager("translations") {
         return read(
             selectAll(
                 "(${
-                    l.stream().map { str: String? ->
+                    l.joinToString(" or ") { str: String? ->
                         "englishid=\"" + toSDName(
                             str!!
                         ) + "\""
-                    }.collect(Collectors.joining(" or "))
+                    }
                 })"
             ), ResultsFunction { r -> r })
     }

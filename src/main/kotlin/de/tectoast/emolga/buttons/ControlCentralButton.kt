@@ -1,6 +1,7 @@
 package de.tectoast.emolga.buttons
 
 import de.tectoast.emolga.commands.Command
+import dev.minn.jda.ktx.messages.reply_
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class ControlCentralButton : ButtonListener("controlcentral") {
@@ -11,7 +12,6 @@ class ControlCentralButton : ButtonListener("controlcentral") {
             "saveemolgajson" -> Command.saveEmolgaJSON()
             else -> b = false
         }
-        if (b) e.reply("Done!").setEphemeral(true).queue() else e.reply("Not recognized! $name").setEphemeral(true)
-            .queue()
+        e.reply_(if (b) "Done!" else "Not recognized! $name", ephemeral = true)
     }
 }

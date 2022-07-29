@@ -34,13 +34,13 @@ class GcreateCommand : Command(
         argumentTemplate = ArgumentManagerTemplate.noArgs()
         template = InteractiveTemplate({ u: User, tco: MessageChannel, l: LinkedHashMap<String?, Any?> ->
             current.remove(tco.id)
-            val tchan = l["channel"] as TextChannel?
+            val tchan = l["channel"] as TextChannel
             val seconds = l["seconds"] as Int
             val winners = l["winners"] as Int
-            val prize = l["prize"] as String?
+            val prize = l["prize"] as String
             val now = Instant.now()
             val end = now.plusSeconds(seconds.toLong())
-            val g = Giveaway(tchan!!.idLong, u.idLong, end, winners, prize)
+            val g = Giveaway(tchan.idLong, u.idLong, end, winners, prize)
             val message = g.render(now)
             tchan.sendMessage(message).queue { m: Message ->
                 m.addReaction(tco.jda.getEmojiById("772191611487780934")!!).queue()

@@ -1,6 +1,7 @@
 package de.tectoast.emolga.buttons
 
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.x
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.RequestBuilder
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -19,8 +20,9 @@ class PrismaButton : ButtonListener("prisma") {
         }
         val pokemonData = pt.nextMon()
         RequestBuilder.updateSingle(
-            "1nCPIc-R5hAsoDXvTGSuGyk2c1K8DQqTBm1NGvLyYYm0", "Teamübersicht!%s%d"
-                .formatted(Command.getAsXCoord(pt.index * 3 + 2), pokemonData.ycoord), pokemonData.pokemon
+            "1nCPIc-R5hAsoDXvTGSuGyk2c1K8DQqTBm1NGvLyYYm0",
+            "Teamübersicht!${pt.index.x(3, 2)}${pokemonData.ycoord}",
+            pokemonData.pokemon
         )
         e.reply("+1").setEphemeral(true).queue()
     }

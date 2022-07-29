@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.jsolf.JSONObject
-import net.dv8tion.jda.api.entities.Member
 
 class EmolgaDiktaturCommand : Command("emolgadiktatur", "EMOLGADIKTATUR", CommandCategory.Flo) {
     init {
@@ -15,10 +14,10 @@ class EmolgaDiktaturCommand : Command("emolgadiktatur", "EMOLGADIKTATUR", Comman
         val g = e.guild
         val members = JSONObject()
         e.textChannel.sendMessage("**Möge die Emolga-Diktatur beginnen!**").queue()
-        g.loadMembers().onSuccess { list: List<Member> ->
-            for (member in list) {
+        g.loadMembers().onSuccess {
+            for (member in it) {
                 if (member.isOwner) continue
-                if (member.id == e.jda.selfUser.id) member.modifyNickname("Diktator").queue()
+                if (member.idLong == e.jda.selfUser.idLong) member.modifyNickname("Diktator").queue()
                 if (!g.selfMember.canInteract(member)) continue
                 members.put(member.id, member.effectiveName)
                 member.modifyNickname("Emolga-Anhänger").queue()

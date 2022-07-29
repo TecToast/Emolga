@@ -11,10 +11,6 @@ class NpCommand : MusicCommand("np", "Zeigt, welcher Track gerade läuft") {
     override fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val manager = getGuildAudioPlayer(tco.guild)
-        if (manager.player == null) {
-            tco.sendMessage("Derzeit läuft kein Track!").queue()
-            return
-        }
         val player = manager.player
         if (player.playingTrack == null) {
             tco.sendMessage("Derzeit läuft kein Track!").queue()
@@ -28,8 +24,9 @@ class NpCommand : MusicCommand("np", "Zeigt, welcher Track gerade läuft") {
         val dm = (d / 60000).toInt()
         val ds = ((d - dm * 60000) / 1000).toInt()
         tco.sendMessage(
-            """`${t.info.title}`
-${getWithZeros(cm, 2)}:${getWithZeros(cs, 2)} / ${getWithZeros(dm, 2)}:${getWithZeros(ds, 2)}"""
+            "`${t.info.title}`\n${getWithZeros(cm, 2)}:${getWithZeros(cs, 2)} / ${
+                getWithZeros(dm, 2)
+            }:${getWithZeros(ds, 2)}"
         ).queue()
     }
 }

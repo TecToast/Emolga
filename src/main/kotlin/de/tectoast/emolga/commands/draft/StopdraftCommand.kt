@@ -14,12 +14,8 @@ class StopdraftCommand : Command("stopdraft", "Beendet den Draft", CommandCatego
     }
 
     override fun process(e: GuildCommandEvent) {
-        if (Draft.drafts.removeIf { d: Draft ->
-                if (d.name == e.arguments!!.getText("draftname")) {
-                    d.cooldown!!.cancel(false)
-                    return@removeIf true
-                }
-                false
+        if (Draft.drafts.removeIf { d ->
+                (d.name == e.arguments.getText("draftname")).also { if (it) d.cooldown!!.cancel(false) }
             }) {
             e.reply("Dieser Draft wurde beendet!")
         } else {

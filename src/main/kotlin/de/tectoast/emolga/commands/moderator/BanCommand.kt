@@ -20,7 +20,7 @@ class BanCommand : Command("ban", "Bannt den User", CommandCategory.Moderator) {
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         if (!args.has("user")) return
         ban(e.textChannel, e.member, args.getMember("user"), args.getOrDefault("reason", "Nicht angegeben"))
     }

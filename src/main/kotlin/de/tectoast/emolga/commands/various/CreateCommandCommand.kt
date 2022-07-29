@@ -5,7 +5,6 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.jsolf.JSONObject
 import java.io.File
-import java.util.*
 
 class CreateCommandCommand : Command("createcommand", "Erstellt einen Command", CommandCategory.Various) {
     init {
@@ -25,8 +24,8 @@ class CreateCommandCommand : Command("createcommand", "Erstellt einen Command", 
 
     @Throws(Exception::class)
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
-        val cmdname: String = args.getText("cmdname").lowercase(Locale.getDefault())
+        val args = e.arguments
+        val cmdname: String = args.getText("cmdname").lowercase()
         val o = emolgaJSON.getJSONObject("customcommands")
         if (o.has(cmdname) || byName(cmdname) != null) {
             e.reply("Es existiert bereits ein !$cmdname Command!")

@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import org.slf4j.LoggerFactory
-import java.util.stream.Collectors
 
 class SpeedCommand : Command(
     "speed",
@@ -69,13 +68,11 @@ class SpeedCommand : Command(
                         ) else speedMons.add(SpeedMon(mon, 86, 298))
                         continue
                     }
-                    val op = sdex.keys.stream()
-                        .filter { anotherString: String? -> mon.equals(anotherString, ignoreCase = true) }
-                        .findFirst()
-                    if (op.isPresent) {
-                        ger = op.get()
-                        val englname = getEnglName(ger.split("-".toRegex()).dropLastWhile { it.isEmpty() }
-                            .toTypedArray()[0])
+                    val op =
+                        sdex.keys.firstOrNull { anotherString: String? -> mon.equals(anotherString, ignoreCase = true) }
+                    if (op != null) {
+                        ger = op
+                        val englname = getEnglName(ger.split("-")[0])
                         bs = datajson.getJSONObject(toSDName(englname + sdex[mon])).getJSONObject("baseStats")
                             .getInt("spe")
                     } else {
@@ -95,8 +92,7 @@ class SpeedCommand : Command(
                 speedMons.add(SpeedMon(prefix + ger, bs, speed))
             }
             speedMons.sort()
-            tco.sendMessage(speedMons.stream().map { obj: SpeedMon -> obj.toString() }
-                .collect(Collectors.joining("\n"))).queue()
+            tco.sendMessage(speedMons.joinToString("\n")).queue()
         } catch (ex: Exception) {
             ex.printStackTrace()
             tco.sendMessage("Es ist ein Fehler aufgetreten!").queue()

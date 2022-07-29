@@ -123,13 +123,11 @@ class HttpHandler : AbstractHandler() {
                     val dis = userinfo.getString("discriminator").toInt()
                     String.format(User.DEFAULT_AVATAR_URL, dis % 5)
                 } else {
-                    "https://cdn.discordapp.com/avatars/%s/%s"
-                        .formatted(
-                            userinfo.getString("id"),
-                            userinfo.getString("avatar") + if (userinfo.getString("avatar")
-                                    .startsWith("a_")
-                            ) ".gif" else ".png"
-                        )
+                    "https://cdn.discordapp.com/avatars/${userinfo.getString("id")}/${
+                        userinfo.getString("avatar") + if (userinfo.getString("avatar")
+                                .startsWith("a_")
+                        ) ".gif" else ".png"
+                    }"
                 }
                 val json = put.put("avatarurl", avatarurl)
                 userCache[cookie] = json
@@ -152,7 +150,7 @@ class HttpHandler : AbstractHandler() {
                 val token = getAccessToken(session)
                 val guilds = getGuilds(token)
                 logger.info("token = $token")
-                val gl: List<String> = emolgajda.guilds.stream().map { it.id }.toList()
+                val gl: List<String> = emolgajda.guilds.map { it.id }
                 val arr = JSONArray()
                 val joined: MutableList<JSONObject> = LinkedList()
                 val notJoined: MutableList<JSONObject> = LinkedList()
@@ -262,7 +260,7 @@ class HttpHandler : AbstractHandler() {
 
         @Throws(IOException::class)
         fun replyError(res: HttpServletResponse, msg: String, vararg args: Any?) {
-            res.writer.println(JSONObject().put("error", msg.formatted(*args)))
+            res.writer.println(JSONObject().put("error", msg.format(*args)))
         }
 
         private fun getQueryMap(query: String?): Map<String, String> {

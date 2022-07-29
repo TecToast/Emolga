@@ -3,7 +3,6 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import java.util.stream.Collectors
 
 class WeaknessCommand :
     Command("weakness", "Zeigt die Schwächen und Resistenzen eines Pokémons an", CommandCategory.Pokemon) {
@@ -37,7 +36,7 @@ class WeaknessCommand :
     }
 
     override fun process(e: GuildCommandEvent) {
-        val args = e.arguments!!
+        val args = e.arguments
         val gerName = args.getTranslation("stuff")
         val name = gerName.translation
         val mon = dataJSON.optJSONObject(
@@ -49,8 +48,7 @@ class WeaknessCommand :
             )
         )
         val abijson = mon!!.getJSONObject("abilities")
-        val abilities = abijson.keySet().stream().map { key: String? -> abijson.getString(key) }
-            .collect(Collectors.toList())
+        val abilities = abijson.keySet().map { key: String? -> abijson.getString(key) }
         val oneabi = abilities.size == 1
         val types = mon.getStringList("types").toTypedArray()
         val x2: MutableSet<String> = LinkedHashSet()
@@ -113,29 +111,23 @@ class WeaknessCommand :
                 }
             }
         }
-        e.reply("""
-    **$name**:
-    Schwächen: ${java.lang.String.join(", ", x2)}
-    Resistenzen: ${java.lang.String.join(", ", x05)}
-    """.trimIndent()
-                + (if (x0.size > 0) """
-     
-     Immunitäten: ${java.lang.String.join(", ", x0)}
-     """.trimIndent() else "")
-                + "\n" + immuneAbi.keys.stream().map { s: String -> getGerNameNoCheck(s) }
-            .map { s: String -> "Wenn " + name + " **" + s + "** hat, wird der Typ **" + immuneAbi[s] + "** immunisiert." }
-            .collect(Collectors.joining("\n"))
-                + "\n" + changeAbi.keys.stream().map { s: String -> getGerNameNoCheck(s) }
-            .map { s: String -> "Wenn " + name + " **" + changeAbi[s]!!.ability + "** hat, wird der Typ **" + s + " " + changeAbi[s]!!.value + "**." }
-            .collect(Collectors.joining("\n"))
+        e.reply(
+            "**$name**:\nSchwächen: ${x2.joinToString()}\nResistenzen: ${
+                x05.joinToString()
+            }"
+                    + (if (x0.size > 0) "\nImmunitäten: ${x0.joinToString()}" else "")
+                    + "\n" + immuneAbi.keys.map { s: String -> getGerNameNoCheck(s) }
+                .joinToString("\n") { s: String -> "Wenn " + name + " **" + s + "** hat, wird der Typ **" + immuneAbi[s] + "** immunisiert." }
+                    + "\n" + changeAbi.keys.map { s: String -> getGerNameNoCheck(s) }
+                .joinToString("\n") { s: String -> "Wenn " + name + " **" + changeAbi[s]!!.ability + "** hat, wird der Typ **" + s + " " + changeAbi[s]!!.value + "**." }
         )
     }
 
     private fun checkAbiChanges(type: String, abilities: List<String>): List<EffectivenessChangeNum> {
         if (!resistances.containsKey(type)) return emptyList()
         val l = resistances[type]!!
-        return l.keys.stream().filter { o: String -> abilities.contains(o) }
-            .map { s: String -> EffectivenessChangeNum(s, l[s]!!) }.collect(Collectors.toList())
+        return l.keys.asSequence().filter { abilities.contains(it) }
+            .map { EffectivenessChangeNum(it, l[it]!!) }.toList()
     }
 
     private inner class EffectivenessChangeNum(val ability: String, val value: Int)
@@ -144,7 +136,7 @@ class WeaknessCommand :
     private fun checkAbiImmunity(type: String, abilities: List<String>): String? {
         if (!immunities.containsKey(type)) return null
         val l = immunities[type]!!
-        return l.stream().filter { o: String -> abilities.contains(o) }.collect(Collectors.joining(" oder "))
+        return l.filter { o: String -> abilities.contains(o) }.joinToString(" oder ")
     }
 
     companion object {

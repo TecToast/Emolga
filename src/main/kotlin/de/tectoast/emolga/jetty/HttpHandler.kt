@@ -63,12 +63,7 @@ class HttpHandler : AbstractHandler() {
                     l.add(matcher.group(i))
                 }
                 try {
-                    if (l.size > 0) method.invoke(null, auth, request, response, l) else method.invoke(
-                        null,
-                        auth,
-                        request,
-                        response
-                    )
+                    method.invoke(null, Data(auth ?: "", request, response, l))
                 } catch (e: IllegalAccessException) {
                     e.printStackTrace()
                 } catch (e: InvocationTargetException) {
@@ -79,6 +74,13 @@ class HttpHandler : AbstractHandler() {
         }
     }
 
+    data class Data(
+        val cookie: String,
+        val req: HttpServletRequest,
+        val res: HttpServletResponse,
+        val args: List<String>
+    )
+
     companion object {
         private val client = OkHttpClient().newBuilder().build()
         private val guildCache = HashMap<String, JSONArray>()
@@ -86,8 +88,10 @@ class HttpHandler : AbstractHandler() {
         private val logger = LoggerFactory.getLogger(HttpHandler::class.java)
 
         @Route(route = "/discordauth", needsCookie = false)
+        @JvmStatic
         @Throws(IOException::class)
-        fun exchangeCodeRoute(cookie: String, req: HttpServletRequest, res: HttpServletResponse) {
+        fun exchangeCodeRoute(dt: Data) {
+            val (_, req, res, _) = dt
             val map = getQueryMap(req.queryString)
             if (!map.containsKey("code")) {
                 res.sendRedirect("http://localhost:4200")
@@ -108,8 +112,10 @@ class HttpHandler : AbstractHandler() {
         }
 
         @Route(route = "/userdata")
+        @JvmStatic
         @Throws(SQLException::class, IOException::class)
-        fun userData(cookie: String, req: HttpServletRequest?, res: HttpServletResponse) {
+        fun userData(dt: Data) {
+            val (cookie, _, res, _) = dt
             if (userCache.containsKey(cookie)) {
                 res.writer.println(userCache[cookie])
                 return
@@ -138,8 +144,10 @@ class HttpHandler : AbstractHandler() {
         }
 
         @Route(route = "/guilds")
+        @JvmStatic
         @Throws(SQLException::class, IOException::class)
-        fun guilds(cookie: String, req: HttpServletRequest?, res: HttpServletResponse) {
+        fun guilds(dt: Data) {
+            val (cookie, _, res, _) = dt
             if (guildCache.containsKey(cookie)) {
                 logger.info("FROM CACHE")
                 res.writer.println(guildCache[cookie])
@@ -180,9 +188,11 @@ class HttpHandler : AbstractHandler() {
         }
 
         @Route(route = "/guilddata/(\\d+)/banned")
+        @JvmStatic
         @Throws(SQLException::class, IOException::class)
-        fun bannedUsers(cookie: String?, req: HttpServletRequest?, res: HttpServletResponse, args: List<String>) {
-            val session = DiscordAuthManager.getSessionByCookie(cookie!!)
+        fun bannedUsers(dt: Data) {
+            val (cookie, _, res, args) = dt
+            val session = DiscordAuthManager.getSessionByCookie(cookie)
             if (session.next()) {
                 val gid = args[0].toLong()
                 val g: Guild? = emolgajda.getGuildById(gid)
@@ -203,9 +213,11 @@ class HttpHandler : AbstractHandler() {
         }
 
         @Route(route = "/guilddata/(\\d+)/warned")
+        @JvmStatic
         @Throws(SQLException::class, IOException::class)
-        fun warnedUsers(cookie: String?, req: HttpServletRequest?, res: HttpServletResponse, args: List<String>) {
-            val session = DiscordAuthManager.getSessionByCookie(cookie!!)
+        fun warnedUsers(dt: Data) {
+            val (cookie, _, res, args) = dt
+            val session = DiscordAuthManager.getSessionByCookie(cookie)
             if (session.next()) {
                 val gid = args[0].toLong()
                 val g: Guild? = emolgajda.getGuildById(gid)
@@ -235,9 +247,11 @@ class HttpHandler : AbstractHandler() {
         }
 
         @Route(route = "/unban", method = "POST")
+        @JvmStatic
         @Throws(SQLException::class, IOException::class)
-        fun unban(cookie: String?, req: HttpServletRequest, res: HttpServletResponse) {
-            val session = DiscordAuthManager.getSessionByCookie(cookie!!)
+        fun unban(dt: Data) {
+            val (cookie, req, res, _) = dt
+            val session = DiscordAuthManager.getSessionByCookie(cookie)
             if (session.next()) {
                 val body = getBody(req)
                 val gid = body!!.getString("guild").toLong()

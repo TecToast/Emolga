@@ -12,6 +12,6 @@ class ControlCentralButton : ButtonListener("controlcentral") {
             "saveemolgajson" -> Command.saveEmolgaJSON()
             else -> b = false
         }
-        e.reply_(if (b) "Done!" else "Not recognized! $name", ephemeral = true)
+        e.reply_(if (b) "Done!" else "Not recognized! $name", ephemeral = true).queue()
     }
 }

@@ -14,7 +14,6 @@ import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.Constants.MYSERVER
 import de.tectoast.emolga.utils.DexQuiz
-import de.tectoast.emolga.utils.draft.Draft
 import de.tectoast.emolga.utils.sql.managers.BanManager
 import de.tectoast.emolga.utils.sql.managers.MuteManager
 import net.dv8tion.jda.api.Permission
@@ -117,7 +116,7 @@ class EmolgaListener : ListenerAdapter() {
                 if (e.isWebhookMessage) return
                 val m = e.message
                 val msg = m.contentDisplay
-                val tco = e.textChannel
+                val tco = e.channel.asTextChannel()
                 val member = e.member!!
                 val g = e.guild
                 val gid = g.idLong
@@ -126,7 +125,7 @@ class EmolgaListener : ListenerAdapter() {
                 if (gid == MYSERVER) {
                     PrivateCommands.execute(e.message)
                     if (tco.parentCategoryIdLong == EMOLGA_KI) {
-                        val split = tco.name.split("-".toRegex())
+                        val split = tco.name.split("-")
                         e.jda.getTextChannelById(split[split.size - 1])!!.sendMessage(m.contentRaw).queue()
                     }
                 }
@@ -224,30 +223,29 @@ class EmolgaListener : ListenerAdapter() {
     }
 
     override fun onReady(e: ReadyEvent) {
-            Command.uninitializedCommands.forEach { Command.sendToMe("No Argument Manager Template: $it") }
-            val jda = e.jda
-            if (jda.selfUser.idLong == 723829878755164202L) {
-                Draft.init()
-                BanManager.forAll { set ->
-                    jda.getGuildById(set.getLong("guildid"))?.run {
-                        Command.banTimer(
-                            this,
-                            set.getTimestamp("expires")?.time ?: -1,
-                            set.getLong("userid")
-                        )
-                    }
+        Command.uninitializedCommands.forEach { Command.sendToMe("No Argument Manager Template: $it") }
+        val jda = e.jda
+        if (jda.selfUser.idLong == 723829878755164202L) {
+            BanManager.forAll { set ->
+                jda.getGuildById(set.getLong("guildid"))?.run {
+                    Command.banTimer(
+                        this,
+                        set.getTimestamp("expires")?.time ?: -1,
+                        set.getLong("userid")
+                    )
                 }
-                MuteManager.forAll { set ->
-                    jda.getGuildById(set.getLong("guildid"))?.run {
-                        Command.muteTimer(
-                            this,
-                            set.getTimestamp("expires")?.time ?: -1,
-                            set.getLong("userid")
-                        )
-                    }
-                }
-                //Draft(jda.getTextChannelById(837425828245667841)!!, "NDS", null, fromFile = true, isSwitchDraft = true);
             }
+            MuteManager.forAll { set ->
+                jda.getGuildById(set.getLong("guildid"))?.run {
+                    Command.muteTimer(
+                        this,
+                        set.getTimestamp("expires")?.time ?: -1,
+                        set.getLong("userid")
+                    )
+                }
+            }
+            //Draft(jda.getTextChannelById(837425828245667841)!!, "NDS", null, fromFile = true, isSwitchDraft = true);
+        }
     }
 
     override fun onGuildInviteCreate(e: GuildInviteCreateEvent) {

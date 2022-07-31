@@ -67,13 +67,13 @@ class Analysis(private val link: String, m: Message?) {
         val time = System.currentTimeMillis()
         for (currentLine in game) {
             s = currentLine
-            split = s.split("\\|".toRegex())
+            split = s.split("|")
             checkPlayer({ i: Int -> s.contains("|player|p$i") && s.length > 11 }) { p: Player ->
                 logger.info("setting nickname ${split[3]} for ${p.number}")
                 p.nickname = split[3]
             }
             check({ i: Int -> s.contains("|poke|p$i") }) { i: Int ->
-                val spl = split[3].split(",".toRegex())
+                val spl = split[3].split(",")
                 val poke = spl[0]
                 pl.getValue(i).mons.add(
                     Pokemon(
@@ -90,7 +90,7 @@ class Analysis(private val link: String, m: Message?) {
             }
             checkPlayer({ i: Int -> s.contains("|teamsize|p$i") }) { p: Player -> p.teamsize = split[3].toInt() }
             check({ i: Int -> s.contains("|switch|p$i") || s.contains("|drag|p$i") }) { i: Int ->
-                val spl = split[3].split(",".toRegex())
+                val spl = split[3].split(",")
                 val pokemon = spl[0]
                 val p = pl.getValue(i)
                 if (p.mons.size == 0 && !randomBattle) randomBattle = true
@@ -148,7 +148,7 @@ class Analysis(private val link: String, m: Message?) {
                 s.contains("|switch|p$i") || s.contains("|drag|p$i") || s.contains(
                     "|replace|p$i"
                 )
-            }) { i: Int -> actMon[i] = split[3].split(",".toRegex())[0] }
+            }) { i: Int -> actMon[i] = split[3].split(",")[0] }
             for (i in 1..2) {
                 actMons.computeIfAbsent(i) { mutableListOf() }.add(actMon.getOrDefault(i, ""))
             }
@@ -178,7 +178,7 @@ class Analysis(private val link: String, m: Message?) {
                     if (!learnset.getJSONObject(Command.toSDName(o.optString("baseSpecies", o.getString("name"))))
                             .getJSONObject("learnset").keySet().contains(
                                 Command.toSDName(
-                                    s.split("\\|".toRegex())[3]
+                                    s.split("|")[3]
                                 )
                             )
                     ) {
@@ -194,20 +194,20 @@ class Analysis(private val link: String, m: Message?) {
         for (currentLine in game) {
             line++
             s = currentLine
-            split = s.split("\\|".toRegex())
+            split = s.split("|")
             check({ i: Int ->
                 s.contains("|switch|p$i") || s.contains("|drag|p$i") || s.contains("|replace|p$i")
             }) { i: Int ->
                 val mon =
                     pl.getValue(i).mons[pl.getValue(i)
-                        .indexOfName(split[3].split(",".toRegex()).dropLastWhile { it.isEmpty() }
+                        .indexOfName(split[3].split(",").dropLastWhile { it.isEmpty() }
                             .toTypedArray()[0])]
                 mon.nickname =
-                    split[2].split(":".toRegex())[1].trim()
+                    split[2].split(":")[1].trim()
                 lastMove = null
                 if (!s.contains("|replace|") && zoru.containsKey(i)) {
                     val noabi = mon.noAbilityTrigger(line)
-                    if (noabi || mon.checkHPZoro(split[4].split("/".toRegex()).dropLastWhile { it.isEmpty() }
+                    if (noabi || mon.checkHPZoro(split[4].split("/").dropLastWhile { it.isEmpty() }
                             .toTypedArray()[0].toInt())) {
                         activeP[i] = getZoro(i, if (noabi) "NoAbilityTrigger" else "HPZoro")
                     } else {
@@ -235,7 +235,7 @@ class Analysis(private val link: String, m: Message?) {
                 turn = s.substring(6).toInt()
             }
             checkPokemon({ i: Int -> s.contains("|detailschange|p$i") }) { p: Pokemon ->
-                p.pokemon = split[3].split(",".toRegex())[0]
+                p.pokemon = split[3].split(",")[0]
             }
             check({ i: Int -> s.contains("|-activate|p$i") && s.contains("move: Court Change") }) { i: Int ->
                 val p1 = pl.getValue(i)
@@ -255,7 +255,7 @@ class Analysis(private val link: String, m: Message?) {
                     var activeP1 = poke
                     if (s.contains("|-damage|p$i")) {
                         val oldHP = activeP1.hp
-                        val lifes = split[3].split("/".toRegex())[0]
+                        val lifes = split[3].split("/")[0]
                         val newHp: Int = if (lifes.contains("fnt")) 0 else lifes.toInt()
                         if (s.contains("[from] Stealth Rock")) {
                             val dif = oldHP - newHp
@@ -275,7 +275,7 @@ class Analysis(private val link: String, m: Message?) {
                         activeP1.setHp(newHp, turn)
                         activeP[i] = activeP1
                     } else if (s.contains("|-heal|p$i")) {
-                        activeP1.setHp(split[3].split("/".toRegex()).dropLastWhile { it.isEmpty() }
+                        activeP1.setHp(split[3].split("/").dropLastWhile { it.isEmpty() }
                             .toTypedArray()[0].toInt(), turn)
                     } else if (s.contains("|-activate|p$i") && s.contains("|move: Sticky Web")) {
                         val mon = Command.dataJSON.getJSONObject(Command.toSDName(activeP1.pokemon))
@@ -285,7 +285,7 @@ class Analysis(private val link: String, m: Message?) {
                     } else if (s.contains("[from] ability:") && s.contains("[of] p$i")) {
                         split.asSequence().filter { str: String -> str.contains("[from] ability:") }
                             .map { str: String ->
-                                str.split(":".toRegex())[1].trim()
+                                str.split(":")[1].trim()
                             }.forEach { str: String -> activeP.getValue(i).ability = str }
                     } else if (s.contains("|-ability|p$i")) {
                         activeP.getValue(i).ability = split[3].trim()
@@ -295,7 +295,7 @@ class Analysis(private val link: String, m: Message?) {
             checkPokemon({ i: Int -> s.contains("[from] ability:") && s.contains("[of] p$i") }) { p: Pokemon ->
                 split.asSequence().filter { str: String -> str.contains("[from] ability:") }
                     .map { str: String ->
-                        str.split(":".toRegex()).dropLastWhile { it.isEmpty() }
+                        str.split(":").dropLastWhile { it.isEmpty() }
                             .toTypedArray()[1].trim()
                     }.forEach { ability: String -> p.ability = ability }
             }
@@ -462,7 +462,7 @@ class Analysis(private val link: String, m: Message?) {
                 (if (s.contains("[of] p" + (3 - i))) activeP.getValue(3 - i) else activeP.getValue(i)).item = (
                         split.asSequence().filter { str: String -> str.contains("[from] item") }
                             .map { str: String ->
-                                str.split(":".toRegex())[1].trim()
+                                str.split(":")[1].trim()
                             }.firstOrNull()
                         )
             }

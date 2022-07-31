@@ -4,4 +4,4 @@ import kotlinx.serialization.Serializable
 
 @Suppress("unused")
 @Serializable
-class CCData(val image: String, val text: String?)
+data class CCData(var image: String? = null, var text: String? = null)

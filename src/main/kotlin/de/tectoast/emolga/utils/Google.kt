@@ -50,7 +50,7 @@ object Google {
         try {
             val id =
                 (if (url.contains("youtu.be")) url.substring("https://youtu.be/".length) else url.substring("https://www.youtube.com/watch?v=".length)).split(
-                    "&".toRegex()
+                    "&"
                 ).dropLastWhile { it.isEmpty() }
                     .toTypedArray()[0]
             return youTubeService.videos().list(listOf("snippet")).setId(listOf(id)).setMaxResults(1L)
@@ -67,7 +67,7 @@ object Google {
     @JvmStatic
     fun getPlaylistByURL(url: String): Playlist? {
         try {
-            val id = url.substring("https://www.youtube.com/playlist?list=".length).split("&".toRegex())
+            val id = url.substring("https://www.youtube.com/playlist?list=".length).split("&")
                 .dropLastWhile { it.isEmpty() }
                 .toTypedArray()[0]
             return youTubeService.playlists().list(listOf("snippet")).setId(listOf(id)).setMaxResults(1L)

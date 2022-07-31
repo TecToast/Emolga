@@ -30,19 +30,20 @@ import de.tectoast.emolga.utils.Constants.CALENDAR_MSGID
 import de.tectoast.emolga.utils.Constants.CALENDAR_TCID
 import de.tectoast.emolga.utils.Constants.CULTID
 import de.tectoast.emolga.utils.Constants.FLOID
-import de.tectoast.emolga.utils.Constants.FLPID
-import de.tectoast.emolga.utils.Constants.FPLID
-import de.tectoast.emolga.utils.Constants.GILDEID
 import de.tectoast.emolga.utils.Constants.MYSERVER
 import de.tectoast.emolga.utils.Constants.MYTAG
 import de.tectoast.emolga.utils.Constants.NDSID
 import de.tectoast.emolga.utils.Constants.SOULLINK_MSGID
 import de.tectoast.emolga.utils.Constants.SOULLINK_TCID
 import de.tectoast.emolga.utils.annotations.ToTest
-import de.tectoast.emolga.utils.automation.collection.DocEntries
-import de.tectoast.emolga.utils.draft.Draft.Companion.doMatchUps
-import de.tectoast.emolga.utils.draft.Draft.Companion.doNDSNominate
+import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.Tierlist.Companion.getByGuild
+import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.emolga.draft.GDL
+import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.emolga.draft.NDS
+import de.tectoast.emolga.utils.json.emolga.draft.Prisma
 import de.tectoast.emolga.utils.music.GuildMusicManager
 import de.tectoast.emolga.utils.records.CalendarEntry
 import de.tectoast.emolga.utils.records.DeferredSlashResponse
@@ -54,7 +55,12 @@ import de.tectoast.jsolf.JSONArray
 import de.tectoast.jsolf.JSONObject
 import de.tectoast.jsolf.JSONTokener
 import de.tectoast.toastilities.repeat.RepeatTask
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
+import kotlinx.serialization.modules.subclass
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.OnlineStatus
@@ -62,6 +68,7 @@ import net.dv8tion.jda.api.audio.hooks.ConnectionListener
 import net.dv8tion.jda.api.audio.hooks.ConnectionStatus
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.entities.Message.Attachment
+import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -366,6 +373,11 @@ abstract class Command(
     }
 
     class ArgumentManager(val map: Map<String, Any>, val executor: Command) {
+
+        inline operator fun <reified T> get(key: String): T {
+            return map[key] as T
+        }
+
         fun getMember(key: String): Member {
             return map[key] as Member
         }
@@ -481,7 +493,7 @@ abstract class Command(
                         } else {
                             obj = when (o.type) {
                                 OptionType.ROLE -> o.asRole
-                                OptionType.CHANNEL -> o.asGuildChannel
+                                OptionType.CHANNEL -> o.asChannel
                                 OptionType.USER -> o.asUser
                                 OptionType.INTEGER -> o.asLong
                                 OptionType.BOOLEAN -> o.asBoolean
@@ -616,6 +628,17 @@ abstract class Command(
             override fun needsValidate(): Boolean {
                 return false
             }
+        }
+
+        object ArgumentBoolean : ArgumentType {
+            override fun validate(str: String, vararg params: Any) = str.toBooleanStrictOrNull()
+
+            override fun getName() = "Wahrheitswert"
+
+            override fun asOptionType() = OptionType.BOOLEAN
+
+            override fun needsValidate() = false
+
         }
 
         class Text : ArgumentType {
@@ -882,10 +905,7 @@ abstract class Command(
 
             fun draft(): ArgumentType {
                 return withPredicate(
-                    "Draftname", {
-                        emolgaJSON.getJSONObject("drafts").has(it) || emolgaJSON.getJSONObject("drafts")
-                            .getJSONObject("ASLS9").has(it)
-                    }, false
+                    "Draftname", { it in Emolga.get.drafts }, false
                 )
             }
 
@@ -1235,6 +1255,13 @@ abstract class Command(
         val uninitializedCommands: MutableList<String> = mutableListOf()
         val JSON = Json {
             prettyPrint = true
+            serializersModule = SerializersModule {
+                polymorphic(League::class) {
+                    subclass(NDS::class)
+                    subclass(GDL::class)
+                    subclass(Prisma::class)
+                }
+            }
         }
 
         @JvmStatic
@@ -1263,10 +1290,6 @@ abstract class Command(
         val TRIPLE_HASHTAG = Regex("###")
         const val DEXQUIZ_BUDGET = 10
 
-        /**
-         * JSONObject of the main storage of the bot
-         */
-        lateinit var emolgaJSON: JSONObject
 
         /**
          * Used for a shiny counter
@@ -1326,7 +1349,7 @@ abstract class Command(
         }
 
         fun getFirst(str: String): String {
-            return str.split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[0]
+            return str.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()[0]
         }
 
         fun getDataName(s: String): String {
@@ -1337,7 +1360,7 @@ abstract class Command(
             if (s == "Sen-Long") return "drampa"
             if (s == "Ho-Oh") return "hooh"
             if (s.startsWith("Kapu-")) return getSDName(s)
-            val split = s.split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+            val split = s.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()
             if (split.size == 1) return getSDName(s)
             if (s.startsWith("M-")) {
                 return if (split.size == 3) {
@@ -1356,6 +1379,88 @@ abstract class Command(
 
         fun getFirstAfterUppercase(s: String): String {
             return if (!s.contains("-")) s else s[0].toString() + s.substring(1, 2).uppercase() + s.substring(2)
+        }
+
+        fun doMatchUps(gameday: Int) {
+            val nds = Emolga.get.nds()
+            val teamnames = nds.teamnames
+            val battleorder = nds.battleorder[gameday]!!
+            val b = RequestBuilder(nds.sid)
+            for (battle in battleorder.split(";").dropLastWhile { it.isEmpty() }) {
+                logger.info("battle = {}", battle)
+                val users = battle.split(":")
+                for (index in 0..1) {
+                    println(users)
+                    val u1 = users[index]
+                    val u2 = users[1 - index]
+                    val team = teamnames[u1.toLong()]!!
+                    val oppo = teamnames[u2.toLong()]!!
+                    b.addSingle("$team!B18", "={'$oppo'!B16:AE16}")
+                    b.addSingle("$team!B19", "={'$oppo'!B15:AE15}")
+                    b.addSingle("$team!B21", "={'$oppo'!B14:AF14}")
+                    b.addColumn(
+                        "$team!A18", listOf(
+                            "='$oppo'!Y2", "='$oppo'!B2"
+                        )
+                    )
+                }
+            }
+            b.withRunnable {
+                emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
+                    "Jo, kurzer Reminder, die Matchups des nächsten Spieltages sind im Doc, vergesst das Nominieren nicht :)\n<@&856205147754201108>"
+                ).queue()
+            }.execute()
+        }
+
+        @JvmStatic
+        @JvmOverloads
+        fun doNDSNominate(prevDay: Boolean = false) {
+            val nds = Emolga.get.nds()
+            val nom = nds.nominations
+            val teamnames = nds.teamnames
+            val table = nds.teamtable
+            var cday = nom.currentDay
+            if (prevDay) cday--
+            val o = nom.nominated[cday]!!
+            val picks = nds.picks
+            val sid = nds.sid
+            val b = RequestBuilder(sid)
+            val tiers = listOf("S", "A", "B")
+            for (u in picks.keys) {
+                //String u = "297010892678234114";
+                if (u !in o) {
+                    if (cday == 1) {
+                        val mons = picks[u]!!
+                        val comp = compareBy<DraftPokemon>({ it.tier.indexedBy(tiers) }, { it.name })
+                        o[u] = (buildString {
+                            append(mons.sortedWith(comp).take(11).joinToString(";") { it.name })
+                            append("###")
+                            append(mons.sortedWith(comp).drop(11).joinToString(";") { it.name })
+                        })
+                    } else {
+                        o[u] = nom.nominated[cday - 1]!![u]!!
+                    }
+                }
+                //logger.info("o.get(u) = " + o.get(u));
+                val str = o[u]!!
+                val mons: List<String> = str.replace("###", ";").split(";")
+
+                logger.info("mons = $mons")
+                logger.info("u = $u")
+                val index = table.indexOf(teamnames[u])
+                b.addColumn("Data!F${index.y(17, 2)}", mons)
+            }
+            b.withRunnable {
+                emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
+                    """
+                Jo ihr alten Zipfelklatscher! Eure jämmerlichen Versuche eine Liga zu gewinnen werden scheitern ihr Arschgeigen, da ihr zu inkompetent seid euch zu merken, wann alles nach meiner Schwerstarbeit automatisch eingetragen wird. Daher erinnere ich euer Erbsenhirn mithilfe dieser noch nett formulierten Nachricht daran, dass ihr nun anfangen könnt zu builden. Dann bis nächste Woche Mittwoch!
+                PS: Bannt Henny, der Typ ist broken! Und gebt ihm keinen Gehstocktänzer!
+
+                _written by Henny_""".trimIndent()
+                ).queue()
+            }.execute()
+            if (!prevDay) nom.currentDay++
+            saveEmolgaJSON()
         }
 
         fun invertImage(mon: String, shiny: Boolean): File {
@@ -1426,8 +1531,7 @@ abstract class Command(
         }
 
         @Throws(IllegalArgumentException::class)
-        fun loadAndPlay(channel: TextChannel, track: String, mem: Member, cm: String?) {
-            /*if (track.startsWith("https://www.youtube.com/playlist")) {
+        fun loadAndPlay(channel: TextChannel, track: String, mem: Member, cm: String?) {/*if (track.startsWith("https://www.youtube.com/playlist")) {
             loadPlaylist(channel, track, mem, cm);
             return;
         }*/
@@ -1473,7 +1577,7 @@ abstract class Command(
             })
         }
 
-        fun playSound(vc: AudioChannel?, path: String?, tc: TextChannel) {
+        fun playSound(vc: AudioChannel?, path: String?, tc: MessageChannelUnion) {
             val flegmon = vc!!.jda.selfUser.idLong != 723829878755164202L
             if (System.currentTimeMillis() - lastClipUsed < 10000 && flegmon) {
                 tc.sendMessage("Warte bitte noch kurz...").queue()
@@ -1519,15 +1623,18 @@ abstract class Command(
                     multiplier *= 60
                     timestr = timestr.substring(0, timestr.length - 1)
                 }
+
                 'h' -> {
                     multiplier *= 60
                     multiplier *= 60
                     timestr = timestr.substring(0, timestr.length - 1)
                 }
+
                 'm' -> {
                     multiplier *= 60
                     timestr = timestr.substring(0, timestr.length - 1)
                 }
+
                 's' -> timestr = timestr.substring(0, timestr.length - 1)
                 else -> {}
             }
@@ -1582,19 +1689,13 @@ abstract class Command(
             return if (x == 1L) singular else plural
         }
 
-        fun getGameDay(league: JSONObject, uid1: String, uid2: String): Int {
+        fun getGameDay(league: League, uid1: String, uid2: String): Int {
             return getGameDay(league, uid1.toLong(), uid2.toLong())
         }
 
-        @JvmStatic
-        fun getGameDay(league: JSONObject, uid1: Long, uid2: Long): Int {
-            val battleorder = league.getJSONObject("battleorder")
-            for (s in battleorder.keySet()) {
-                val str = battleorder.getString(s)
-                if (str.contains("$uid1:$uid2") || str.contains("$uid2:$uid1")) return s.toInt()
-            }
-            return -1
-        }
+        fun getGameDay(league: League, uid1: Long, uid2: Long): Int = league.battleorder.asIterable()
+            .firstNotNullOfOrNull { if (it.value.contains("$uid1:$uid2") || it.value.contains("$uid2:$uid1")) it.key else null }
+            ?: -1
 
         @JvmStatic
         fun getPicksAsList(arr: JSONArray): List<String> {
@@ -1878,7 +1979,7 @@ abstract class Command(
                 val calendar = Calendar.getInstance()
                 calendar[Calendar.SECOND] = 0
                 var hoursSet = false
-                for (s in str.split(";".toRegex())) {
+                for (s in str.split(";")) {
                     val split = DURATION_SPLITTER.split(s)
                     if (s.contains(".")) {
                         calendar[Calendar.DAY_OF_MONTH] = split[0].toInt()
@@ -1904,21 +2005,25 @@ abstract class Command(
                     multiplier *= 60
                     timestr = timestr.substring(0, timestr.length - 1)
                 }
+
                 'd' -> {
                     multiplier *= 24
                     multiplier *= 60
                     multiplier *= 60
                     timestr = timestr.substring(0, timestr.length - 1)
                 }
+
                 'h' -> {
                     multiplier *= 60
                     multiplier *= 60
                     timestr = timestr.substring(0, timestr.length - 1)
                 }
+
                 'm' -> {
                     multiplier *= 60
                     timestr = timestr.substring(0, timestr.length - 1)
                 }
+
                 's' -> timestr = timestr.substring(0, timestr.length - 1)
             }
             return System.currentTimeMillis() + multiplier.toLong() * timestr.toInt()
@@ -1943,30 +2048,29 @@ abstract class Command(
 
         private fun buildSoullink(): String {
             val statusOrder = listOf("Team", "Box", "RIP")
-            val soullink = emolgaJSON.getJSONObject("soullink")
-            val mons = soullink.getJSONObject("mons")
-            val order = soullink.getStringList("order")
+            val soullink = Emolga.get.soullink
+            val mons = soullink.mons
+            val order = soullink.order
             val maxlen = max(order.maxOfOrNull { it.length } ?: -1,
-                max(mons.keySet().map { mons.getJSONObject(it) }.flatMap { o ->
-                    o.keySet().map { o.getString(it) }
-                }.maxOfOrNull { obj -> obj.length } ?: -1, 7)) + 1
+                max(mons.values.flatMap { o -> o.values }.maxOfOrNull { obj -> obj.length } ?: -1, 7)) + 1
             val b = StringBuilder("```")
             soullinkCols().map { ew(it, maxlen) }.forEach { b.append(it) }
             b.append("\n")
             for (s in order.sortedBy {
                 statusOrder.indexOf(
-                    mons.createOrGetJSON(it).optString("status", "Box")
+                    //    mons.createOrGetJSON(it).optString("status", "Box")
+                    mons.getOrPut(it) { mutableMapOf() }["status"] ?: "Box"
                 )
             }) {
-                val o = mons.createOrGetJSON(s)
-                val status = o.optString("status", "Box")
+                val o = mons.getOrPut(s) { mutableMapOf() }
+                val status = o["status"] ?: "Box"
                 b.append(soullinkCols().joinToString("") {
                     ew(
                         when (it) {
                             "Fundort" -> s
                             "Status" -> status
-                            else -> o.optString(it, "")
-                        }!!, maxlen
+                            else -> o[it] ?: ""
+                        }, maxlen
                     )
                 }).append("\n")
             }
@@ -1992,27 +2096,19 @@ abstract class Command(
             val b = StringBuilder(50)
             val counter = shinycountjson.getJSONObject("counter")
             val names = shinycountjson.getJSONObject("names")
-            for (method in shinycountjson.getString("methodorder").split(",".toRegex()).dropLastWhile { it.isEmpty() }
+            for (method in shinycountjson.getString("methodorder").split(",").dropLastWhile { it.isEmpty() }
                 .toTypedArray()) {
                 val m = counter.getJSONObject(method)
                 b.append(method).append(": ").append(
                     emolgajda.getGuildById(745934535748747364)!!.getEmojiById(m.getString("emote"))!!.asMention
                 ).append("\n")
-                for (s in shinycountjson.getString("userorder").split(",".toRegex())) {
+                for (s in shinycountjson.getString("userorder").split(",")) {
                     b.append(names.getString(s)).append(": ").append(m.optInt(s, 0)).append("\n")
                 }
                 b.append("\n")
             }
             save(shinycountjson, "shinycount.json")
             return b.toString()
-        }
-
-        fun reverseGet(o: JSONObject, value: Any): String? {
-            for (s in o.keySet()) {
-                val obj = o[s]
-                if (obj == value) return s
-            }
-            return null
         }
 
         fun loadAndPlay(channel: TextChannel, trackUrl: String, vc: VoiceChannel) {
@@ -2110,8 +2206,7 @@ abstract class Command(
 
         @JvmStatic
         fun trim(s: String, pokemon: String): String {
-            return s.replace(pokemon.toRegex(), stars(pokemon.length))
-                .replace(pokemon.uppercase().toRegex(), stars(pokemon.length))
+            return s.replace(pokemon, stars(pokemon.length)).replace(pokemon.uppercase(), stars(pokemon.length))
         }
 
         private fun stars(n: Int): String {
@@ -2143,8 +2238,7 @@ abstract class Command(
                 for ((i, s) in l.withIndex()) {
                     val str: String =
                         if (i == 0) s.substring(sub) else if (i == l.size - 1) s.substring(0, s.length - 1) else s
-                    if (path.endsWith("moves.ts")) {
-                        /*if ((str.contains("{") && str.contains("(") && str.contains(")") && !str.contains(":")) || str.equals("\t\tcondition: {") || str.equals("\t\tsecondary: {")) {
+                    if (path.endsWith("moves.ts")) {/*if ((str.contains("{") && str.contains("(") && str.contains(")") && !str.contains(":")) || str.equals("\t\tcondition: {") || str.equals("\t\tsecondary: {")) {
                         func = true;
                     }*/
                         if (str.startsWith("\t\t") && str.isNotEmpty() && (str[str.length - 1] == '{' || str[str.length - 1] == '[')) func =
@@ -2182,8 +2276,12 @@ abstract class Command(
 
         @Synchronized
         fun saveEmolgaJSON() {
-            save(emolgaJSON, "emolgadata.json")
-            //Files.writeString(Paths.get("emolgadatakotlin.json"), JSON.encodeToString(Emolga.get))
+            //save(emolgaJSON, "emolgadata.json")
+            Files.writeString(Paths.get("emolgadata.json"),
+                JSON.encodeToString(Emolga.get).replace(Regex("\\{\n\\s+(.*,)\n\\s+(.*)\n\\s+}")) {
+                    val gv = it.groupValues
+                    "{${gv[1]} ${gv[2]}}"
+                })
         }
 
         @JvmStatic
@@ -2217,15 +2315,11 @@ abstract class Command(
 
         fun getTrainerDataActionRow(dt: TrainerData, withMoveset: Boolean): Collection<ActionRow> {
             return listOf(
-                ActionRow.of(
-                    SelectMenu.create("trainerdata").addOptions(
-                        dt.monsList.map {
-                            SelectOption.of(
-                                it, it
-                            ).withDefault(dt.isCurrent(it))
-                        }
-                    ).build()
-                ), ActionRow.of(
+                ActionRow.of(SelectMenu.create("trainerdata").addOptions(dt.monsList.map {
+                    SelectOption.of(
+                        it, it
+                    ).withDefault(dt.isCurrent(it))
+                }).build()), ActionRow.of(
                     if (withMoveset) Button.success(
                         "trainerdata;CHANGEMODE", "Mit Moveset"
                     ) else Button.secondary("trainerdata;CHANGEMODE", "Ohne Moveset")
@@ -2245,35 +2339,26 @@ abstract class Command(
                 Instant.ofEpochMilli(1661104800000),
                 5,
                 Duration.ofDays(7L),
-                { day: Int -> doMatchUps(day.toString()) },
+                { doMatchUps(it) },
                 true
             )
         }
 
-        @Suppress("ConstantConditionIf")
         @JvmStatic
         fun init() {
             loadJSONFiles()
             ModManager("default", "./ShowdownData/")
             ModManager("nml", "../Showdown/sspserver/data/")
+            Tierlist.setup()
             Thread({
                 ButtonListener.init()
                 MenuListener.init()
                 ModalListener.init()
                 registerCommands()
                 setupRepeatTasks()
-                val mute = emolgaJSON.getJSONObject("mutedroles")
-                for (s in mute.keySet()) {
-                    mutedRoles[s.toLong()] = mute.getLong(s)
-                }
-                val mod = emolgaJSON.getJSONObject("moderatorroles")
-                for (s in mod.keySet()) {
-                    moderatorRoles[s.toLong()] = mod.getLong(s)
-                }
-                val echannel = emolgaJSON.getJSONObject("emolgachannel")
-                for (s in echannel.keySet()) {
-                    emolgaChannel[s.toLong()] = echannel.getLongList(s)
-                }
+                mutedRoles.putAll(Emolga.get.mutedroles)
+                moderatorRoles.putAll(Emolga.get.moderatorroles)
+                emolgaChannel.putAll(Emolga.get.emolgachannel)
                 serebiiex["Barschuft-B"] = "b"
                 serebiiex["Riffex-H"] = ""
                 serebiiex["Riffex-T"] = "-l"
@@ -2333,18 +2418,12 @@ abstract class Command(
                 sdex["Psiaugon-W"] = "f"
                 sdex["Psiaugon-M"] = ""
                 sdex["Nidoran-M"] = "m"
-                sdex["Nidoran-F"] = "f"
-                /*emolgaChannel.put(Constants.ASLID, new ArrayList<>(Arrays.asList(728680506098712579L, 736501675447025704L)));
+                sdex["Nidoran-F"] = "f"/*emolgaChannel.put(Constants.ASLID, new ArrayList<>(Arrays.asList(728680506098712579L, 736501675447025704L)));
         emolgaChannel.put(Constants.BSID, new ArrayList<>(Arrays.asList(732545253344804914L, 735076688144105493L)));
         emolgaChannel.put(709877545708945438L, new ArrayList<>(Collections.singletonList(738893933462945832L)));
         emolgaChannel.put(677229415629062180L, new ArrayList<>(Collections.singletonList(731455491527540777L)));
         emolgaChannel.put(694256540642705408L, new ArrayList<>(Collections.singletonList(695157832072560651L)));
         emolgaChannel.put(747357029714231299L, new ArrayList<>(Arrays.asList(752802115096674306L, 762411109859852298L)));*/
-                sdAnalyser[FLPID] = DocEntries.PRISMA
-                sdAnalyser[FPLID] = DocEntries.UPL
-                sdAnalyser[NDSID] = DocEntries.NDS
-                sdAnalyser[GILDEID] = DocEntries.GDL
-                //sdAnalyser[706794294127755324L] = DocEntries.BSL
             }, "Command Initialization").start()
         }
 
@@ -2409,7 +2488,7 @@ abstract class Command(
             var str: String? = null
             var index = -1
             val battleorder = listOf(
-                *league.getJSONObject("battleorder").getString(gameday.toString()).split(";".toRegex())
+                *league.getJSONObject("battleorder").getString(gameday.toString()).split(";")
                     .dropLastWhile { it.isEmpty() }.toTypedArray()
             )
             for (s in battleorder) {
@@ -2426,7 +2505,7 @@ abstract class Command(
                 "ASLS10" -> getASLS10GameplanCoords(gameday, index)
                 else -> ""
             }
-            if (str!!.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[0] == uid1) {
+            if (str!!.split(":").dropLastWhile { it.isEmpty() }.toTypedArray()[0] == uid1) {
                 b.addSingle("$sheet!$coords", "=HYPERLINK(\"$replay\"; \"$aliveP1:$aliveP2\")")
                 //b.addSingle(sheet + "!" + coords, aliveP1 + ":" + aliveP2);
             } else {
@@ -2467,8 +2546,8 @@ abstract class Command(
         fun loadJSONFiles() {
             tokens = load("./tokens.json")
             Thread({
-                emolgaJSON = load("./emolgadata.json")
-                //Emolga.get = JSON.decodeFromString(Files.readString(Paths.get("emolgadatakotlin.json")))
+                //emolgaJSON = load("./emolgadata.json")
+                loadEmolgaJSON()
                 //datajson = loadSD("pokedex.ts", 59);
                 //movejson = loadSD("learnsets.ts", 62);
                 shinycountjson = load("./shinycount.json")
@@ -2516,8 +2595,7 @@ abstract class Command(
             }
         }
 
-        fun help(tco: TextChannel, mem: Member) {
-            /*if(mem.getIdLong() != Constants.FLOID) {
+        fun help(tco: TextChannel, mem: Member) {/*if(mem.getIdLong() != Constants.FLOID) {
             tco.sendMessage("Die Help-Funktion wird momentan umprogrammiert und steht deshalb nicht zur Verfügung.").queue();
             return;
         }*/
@@ -2532,32 +2610,32 @@ abstract class Command(
         fun check(e: MessageReceivedEvent) {
             val mem = e.member!!
             val msg = e.message.contentDisplay
-            val tco = e.textChannel
+            val tco = e.channel
             val gid = e.guild.idLong
             val bot = Bot.byJDA(e.jda)
-            val customcommands = emolgaJSON.getJSONObject("customcommands")
-            if (msg.isNotEmpty() && msg[0] == '!' && customcommands.has(
-                    msg.lowercase().substring(1)
-                )
-            ) {
-                val o = customcommands.getJSONObject(msg.lowercase().substring(1))
-                var sendmsg: String? = null
-                var f: File? = null
-                if (o["text"] != false) sendmsg = o.getString("text")
-                if (o["image"] != false) f = File(o.getString("image"))
-                if (sendmsg == null) {
-                    tco.sendFile(f!!).queue()
-                } else {
-                    var ac = tco.sendMessage(sendmsg)
-                    if (f != null) ac = ac.addFile(f)
-                    ac.queue()
+            val customcommands = Emolga.get.customcommands
+            if (msg.isNotEmpty() && msg[0] == '!') {
+                customcommands[msg.lowercase().substring(1)]?.let { o ->
+                    val f: File? = o.image?.let { File(it) }
+                    val sendmsg = o.text
+                    if (sendmsg == null) {
+                        tco.sendFile(f!!).queue()
+                    } else {
+                        val ac = tco.sendMessage(sendmsg)
+                        if (f != null) ac.addFile(f)
+                        ac.queue()
+                    }
+
                 }
             }
             if (bot == Bot.FLEGMON || gid == 745934535748747364L) {
                 val dir = File("audio/clips/")
                 for (file in dir.listFiles()!!) {
-                    if (msg.equals("!" + file.name.split("\\.".toRegex()).dropLastWhile { it.isEmpty() }
-                            .toTypedArray()[0], ignoreCase = true)) {
+                    if (msg.equals(
+                            "!" + file.name.split(".").dropLastWhile { it.isEmpty() }.toTypedArray()[0],
+                            ignoreCase = true
+                        )
+                    ) {
                         val voiceState = e.member!!.voiceState
                         val pepe = mem.idLong == 349978348010733569L
                         if (voiceState!!.inAudioChannel() || pepe) {
@@ -2652,10 +2730,8 @@ abstract class Command(
                 } catch (ex: MissingArgumentException) {
                     if (ex.isSubCmdMissing) {
                         val subcommands = ex.subcommands!!
-                        tco.sendMessage(
-                            "Dieser Command beinhaltet Sub-Commands: " + subcommands
-                                .joinToString { subcmd: String -> "`$subcmd`" }
-                        ).queue()
+                        tco.sendMessage("Dieser Command beinhaltet Sub-Commands: " + subcommands.joinToString { subcmd: String -> "`$subcmd`" })
+                            .queue()
                     } else {
                         val arg = ex.argument!!
                         if (arg.hasCustomErrorMessage()) tco.sendMessage(arg.customErrorMessage!!).queue() else {
@@ -2666,7 +2742,7 @@ abstract class Command(
                             ).queue()
                         }
                         if (mem.idLong != FLOID) {
-                            sendToMe("MissingArgument " + tco.asMention + " Server: " + tco.guild.name)
+                            sendToMe("MissingArgument " + tco.asMention + " Server: " + tco.asGuildMessageChannel().guild.name)
                         }
                     }
                 } catch (ex: Exception) {
@@ -2684,7 +2760,7 @@ abstract class Command(
 
         fun eachWordUpperCase(s: String): String {
             val st = StringBuilder(s.length)
-            for (str in s.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()) {
+            for (str in s.split(" ").dropLastWhile { it.isEmpty() }.toTypedArray()) {
                 st.append(firstUpperCase(str)).append(" ")
             }
             return st.substring(0, st.length - 1)
@@ -2738,15 +2814,14 @@ abstract class Command(
             val mon = json.getJSONObject(getSDName(monname))
             //logger.info("getAllForms mon = " + mon.toString(4));
             return if (!mon.has("formeOrder")) listOf(mon) else mon.getStringList("formeOrder").asSequence()
-                .map { toSDName(it) }.distinct()
-                .mapNotNull { json.optJSONObject(it) }
+                .map { toSDName(it) }.distinct().mapNotNull { json.optJSONObject(it) }
                 .filter { !it.optString("forme").endsWith("Totem") }.toList()
         }
 
         private fun moveFilter(msg: String, move: String): Boolean {
-            val o = emolgaJSON.getJSONObject("movefilter")
-            for (s in o.keySet()) {
-                if (msg.lowercase().contains("--$s") && !o.getJSONArray(s).toList().contains(move)) return false
+            val o = Emolga.get.movefilter
+            for (s in o.keys) {
+                if (msg.lowercase().contains("--$s") && move !in o[s]!!) return false
             }
             return true
         }
@@ -3053,8 +3128,7 @@ abstract class Command(
                 val name2: String?
                 //JSONObject showdown = json.getJSONObject("showdown").getJSONObject(String.valueOf(gid));
                 logger.info("u1 = $u1")
-                logger.info("u2 = $u2")
-                /*for (String s : showdown.keySet()) {
+                logger.info("u2 = $u2")/*for (String s : showdown.keySet()) {
                         if (u1.equalsIgnoreCase(s)) uid1 = showdown.getString(s);
                         if (u2.equalsIgnoreCase(s)) uid2 = showdown.getString(s);
                     }*/
@@ -3076,10 +3150,9 @@ abstract class Command(
                 StatisticsManager.increment("analysis")
                 var i = 0
                 while (i < 2) {
-                    if (game[i].mons
-                            .any { it.pokemon == "Zoroark" || it.pokemon == "Zorua" }
-                    ) resultchannel.sendMessage("Im Team von ${game[i].nickname} befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!")
-                        .queue()
+                    if (game[i].mons.any { it.pokemon == "Zoroark" || it.pokemon == "Zorua" }) resultchannel.sendMessage(
+                        "Im Team von ${game[i].nickname} befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!"
+                    ).queue()
                     i++
                 }
                 logger.info("In Emolga Listener!")
@@ -3087,23 +3160,21 @@ abstract class Command(
                 //  return;
                 typicalSets.save()
                 if (uid1 == -1L || uid2 == -1L) return@label
-                if (sdAnalyser.containsKey(gid)) {
-                    sdAnalyser[gid]!!.analyse(
-                        game,
-                        uid1.toString(),
-                        uid2.toString(),
-                        kills,
-                        deaths,
-                        arrayOf<ArrayList<*>>(p1mons, p2mons),
-                        url,
-                        str,
-                        resultchannel,
-                        t1,
-                        t2,
-                        customReplayChannel,
-                        m
-                    )
-                }
+                Emolga.get.leagueByGuild(gid)?.docEntry?.analyse(
+                    game,
+                    uid1.toString(),
+                    uid2.toString(),
+                    kills,
+                    deaths,
+                    arrayOf<ArrayList<*>>(p1mons, p2mons),
+                    url,
+                    str,
+                    resultchannel,
+                    t1,
+                    t2,
+                    customReplayChannel,
+                    m
+                )
             }).start()
         }
 
@@ -3135,7 +3206,7 @@ abstract class Command(
             logger.info("getDraftGerName s = $s")
             val gerName = getGerName(s)
             if (gerName.isSuccess) return gerName
-            val split = s.split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+            val split = s.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()
             logger.info("getDraftGerName Arr = " + split.contentToString())
             val slower = s.lowercase()
             if (slower.startsWith("m-")) {
@@ -3167,8 +3238,7 @@ abstract class Command(
 
         fun getGerNameWithForm(name: String): String {
             var toadd = StringBuilder(name)
-            val split =
-                ArrayList(listOf(*toadd.toString().split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()))
+            val split = ArrayList(listOf(*toadd.toString().split("-").dropLastWhile { it.isEmpty() }.toTypedArray()))
             if (toadd.toString().contains("-Alola")) {
                 toadd = StringBuilder("Alola-" + getGerNameNoCheck(split[0]))
                 for (i in 2 until split.size) {
@@ -3284,10 +3354,9 @@ abstract class Command(
 
         fun getSDName(str: String): String {
             logger.info("getSDName s = $str")
-            val op =
-                sdex.keys.firstOrNull { anotherString: String -> str.equals(anotherString, ignoreCase = true) }
+            val op = sdex.keys.firstOrNull { anotherString: String -> str.equals(anotherString, ignoreCase = true) }
             val gitname: String = if (op != null) {
-                val englname = getEnglName(op.split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[0])
+                val englname = getEnglName(op.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()[0])
                 return toSDName(englname + sdex[str])
             } else {
                 if (str.startsWith("M-")) {
@@ -3306,7 +3375,7 @@ abstract class Command(
                 } else if (str.startsWith("G-")) {
                     getEnglName(str.substring(2)) + "galar"
                 } else if (str.startsWith("Amigento-")) {
-                    "silvally" + getEnglName(str.split("-".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[1])
+                    "silvally" + getEnglName(str.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()[1])
                 } else {
                     getEnglName(str)
                 }
@@ -3400,13 +3469,13 @@ abstract class Command(
             if (s == "Giratina-Origin") return s
             if (s.endsWith("-Zen")) return getMonName(s.substring(0, s.length - 4), gid, withDebug)
             if (s.contains("Silvally")) {
-                val split = s.split("-".toRegex()).dropLastWhile { it.isEmpty() }
+                val split = s.split("-").dropLastWhile { it.isEmpty() }
                 return if (split.size == 1 || s == "Silvally-*") "Amigento" else if (split[1] == "Psychic") "Amigento-Psycho" else "Amigento-" + getGerName(
                     split[1], true
                 ).translation
             }
             if (s.contains("Arceus")) {
-                val split = s.split("-".toRegex()).dropLastWhile { it.isEmpty() }
+                val split = s.split("-").dropLastWhile { it.isEmpty() }
                 return if (split.size == 1 || s == "Arceus-*") "Arceus" else if (split[1] == "Psychic") "Arceus-Psycho" else "Arceus-" + getGerName(
                     split[1], true
                 ).translation
@@ -3438,18 +3507,18 @@ abstract class Command(
                 return getGerName(s.substring(0, s.length - 8), true).translation + "-T"
             } else if (s.endsWith("-X")) {
                 return "M-" + getGerName(
-                    s.split("-".toRegex()).dropLastWhile { it.isEmpty() }[0], true
+                    s.split("-").dropLastWhile { it.isEmpty() }[0], true
                 ).translation + "-X"
             } else if (s.endsWith("-Y")) {
                 return "M-" + getGerName(
-                    s.split("-".toRegex()).dropLastWhile { it.isEmpty() }[0], true
+                    s.split("-").dropLastWhile { it.isEmpty() }[0], true
                 ).translation + "-Y"
             }
             if (s == "Tornadus") return "Boreos-I"
             if (s == "Thundurus") return "Voltolos-I"
             if (s == "Landorus") return "Demeteros-I"
             val gername = getGerName(s, true)
-            val split = s.split("-".toRegex()).toMutableList()
+            val split = s.split("-").toMutableList()
             if (gername.isFromType(Translation.Type.POKEMON)) {
                 return gername.translation
             }
@@ -3480,6 +3549,10 @@ abstract class Command(
             val gid = tc.guild.idLong
             return !emolgaChannel.containsKey(gid) || emolgaChannel[gid]!!.contains(tc.idLong) || emolgaChannel[gid]!!.isEmpty()
         }
+
+        fun loadEmolgaJSON() {
+            Emolga.get = JSON.decodeFromString(Files.readString(Paths.get("emolgadata.json")))
+        }
     }
 }
 
@@ -3489,3 +3562,13 @@ fun Int.x(factor: Int, summand: Int) = getAsXCoord(this * factor + summand)
 
 @Suppress("unused")
 fun Int.y(factor: Int, summand: Int) = this * factor + summand
+
+fun <T> MutableList<T>.replace(toreplace: T, replacer: T) {
+    this[this.indexOf(toreplace)] = replacer
+}
+
+fun <T, R> Map<T, R>.reverseGet(value: R): T? = this.entries.firstOrNull { it.value == value }?.key
+
+fun List<DraftPokemon>?.names() = this!!.map { it.name }
+
+fun String.toSDName() = Command.toSDName(this)

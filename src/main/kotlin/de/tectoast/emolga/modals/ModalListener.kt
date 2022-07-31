@@ -27,7 +27,7 @@ abstract class ModalListener(name: String) {
         fun check(e: ModalInteractionEvent) {
             logger.info("e.getModalId() = " + e.modalId)
             val id = e.modalId
-            val split = id.split(";".toRegex())
+            val split = id.split(";")
             val noArgs = split.size == 1
             val str = if (noArgs) id else split[0]
             listener.getOrDefault(str, NULL).process(e, if (noArgs) null else split[1])

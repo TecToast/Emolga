@@ -1,14 +1,16 @@
 package de.tectoast.emolga.utils.draft
 
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.toSDName
+import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.records.Coord
 import java.io.File
 import java.util.*
 import java.util.function.Consumer
 import java.util.regex.Pattern
-import java.util.stream.Collectors
 import kotlin.reflect.KProperty
 
+@Suppress("unused")
 class Tierlist(guild: String) {
     /**
      * HashMap containing<br></br>Keys: Tiers<br></br>Values: Lists with the mons
@@ -18,7 +20,7 @@ class Tierlist(guild: String) {
     /**
      * The price for each tier
      */
-    val prices: MutableMap<String?, Int?> = HashMap()
+    val prices: MutableMap<String, Int> = HashMap()
 
     /**
      * The guild of this tierlist
@@ -28,12 +30,12 @@ class Tierlist(guild: String) {
     /**
      * List with all pokemon in the sheets tierlists, columns are separated by an "NEXT"
      */
-    val tiercolumns = LinkedList<String>()
+    private val tiercolumns = LinkedList<String>()
 
     /**
      * List with all pokemon in the sheets tierlists, columns are separated by an "NEXT" SORTED BY ENGLISCH NAMES
      */
-    val tiercolumnsEngl = LinkedList<String>()
+    private val tiercolumnsEngl = LinkedList<String>()
 
     /**
      * Order of the tiers, from highest to lowest
@@ -78,6 +80,7 @@ class Tierlist(guild: String) {
                 points = o.getInt("points")
                 isPointBased = true
             }
+
             "tiers", "nothing" -> isPointBased = false
             else -> throw IllegalArgumentException("Invalid mode! Has to be one of 'points', 'tiers' or 'nothing'!")
         }
@@ -108,20 +111,10 @@ class Tierlist(guild: String) {
     }
 
 
-    fun getPointsNeeded(s: String): Int {
-        for ((key, value) in tierlist) {
-            if (value.stream()
-                    .anyMatch { anotherString: String? -> s.equals(anotherString, ignoreCase = true) }
-            ) return prices[key]!!
-        }
-        return -1
-    }
+    fun getPointsNeeded(s: String): Int = prices[getTierOf(s)] ?: -1
 
     fun getTierOf(s: String): String {
-        for ((key, value) in tierlist) {
-            if (value.stream().anyMatch { str: String -> Command.toSDName(str) == Command.toSDName(s) }) return key
-        }
-        return ""
+        return tierlist.entries.firstOrNull { e -> e.value.any { s.toSDName() == it.toSDName() } }?.key ?: ""
     }
 
     private fun setupTiercolumns(
@@ -133,9 +126,8 @@ class Tierlist(guild: String) {
         var currtier = 0
         val currtierlist: MutableList<String> = LinkedList()
         for ((x, monss) in mons.withIndex()) {
-            val mon = monss.stream().map { obj: String -> obj.trim() }
-                .map { s: String -> REPLACE_NONSENSE.matcher(s).replaceAll("") }
-                .toList()
+            val mon = monss.map { it.trim() }
+                .map { REPLACE_NONSENSE.matcher(it).replaceAll("") }
             if (normal) {
                 if (nexttiers.contains(x)) {
                     val key = order[currtier++]
@@ -151,25 +143,8 @@ class Tierlist(guild: String) {
         tiercolumns.removeLast()
     }
 
-    fun getLocation(mon: String?): Coord {
-        return getLocation(mon, 0, 0)
-    }
-
-    fun getLocation(mon: String?, defX: Int, defY: Int): Coord {
-        return getLocation(mon, defX, defY, tiercolumns)
-    }
-
-    fun getNameOf(s: String): String {
-        for ((_, value) in tierlist) {
-            val str = value.stream().filter { anotherString: String? -> s.equals(anotherString, ignoreCase = true) }
-                .collect(Collectors.joining(""))
-            if (str.isNotEmpty()) return str
-        }
-        return ""
-    }
-
     class Delegate {
-        operator fun getValue(thisRef: Draft, property: KProperty<*>): Tierlist {
+        operator fun getValue(thisRef: League, property: KProperty<*>): Tierlist {
             return getByGuild(thisRef.guild)!!
         }
     }

@@ -27,7 +27,7 @@ abstract class MenuListener(name: String) {
         fun check(e: SelectMenuInteractionEvent) {
             logger.info("e.getComponentId() = " + e.componentId)
             val id = e.componentId
-            val split = id.split(";".toRegex())
+            val split = id.split(";")
             val noArgs = split.size == 1
             val str = if (noArgs) id else split[0]
             listener.getOrDefault(str, NULL).process(e, if (noArgs) null else split[1])

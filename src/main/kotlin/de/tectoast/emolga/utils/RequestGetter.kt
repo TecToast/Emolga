@@ -21,7 +21,7 @@ class RequestGetter(private val sid: String) {
         val ret: MutableList<List<List<String>>> = ArrayList(ranges.size)
         for (range in ranges) {
             logger.info("range = {}", range)
-            val sheetname = range.split("!".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()[0]
+            val sheetname = range.split("!").dropLastWhile { it.isEmpty() }.toTypedArray()[0]
             ret.add(
                 sh.sheets.first { it.properties.title == sheetname }.data[map.computeIfAbsent(sheetname) {
                     AtomicInteger(

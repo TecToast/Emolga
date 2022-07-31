@@ -4,7 +4,8 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.draft.Draft
+import de.tectoast.emolga.commands.names
+import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.jsolf.JSONArray
 import java.util.regex.Pattern
 
@@ -20,20 +21,20 @@ class PokeFansExportCommand : Command("pokefansexport", "Macht Pokefans Export l
     }
 
     override fun process(e: GuildCommandEvent) {
-        val league = Draft.getLeagueStatic(e.arguments.getText("draft"))
-        val picksObj = league.getJSONObject("picks")
+        val league = Emolga.get.league(e.arguments.getText("draft"))
+        val picksObj = league.picks
         val tosend = JSONArray()
-        val ids = ArrayList(picksObj.keySet())
-        val names = HashMap<String, String>()
-        EmolgaMain.emolgajda.getGuildById(league.getString("guild"))!!.retrieveMembersByIds(*ids.toTypedArray()).get()
-            .forEach { names[it.id] = it.effectiveName }
+        val ids = ArrayList(picksObj.keys)
+        val names = mutableMapOf<Long, String>()
+        EmolgaMain.emolgajda.getGuildById(league.guild)!!.retrieveMembersByIds(ids).get()
+            .forEach { names[it.idLong] = it.effectiveName }
         for (id in ids) {
-            val picksArr = picksObj.getJSONArray(id)
+            val picksArr = picksObj[id].names()
             val oneUser = JSONArray()
             oneUser.put(JUST_CHARS_AND_WHITESPACES.matcher(names[id]!!).replaceAll(""))
             oneUser.put(e.getArg(0))
             val mons = JSONArray()
-            picksArr.toJSONList().asSequence().map { it.getString("name") }.sortedWith(compareByDescending {
+            picksArr.asSequence().sortedWith(compareByDescending {
                 dataJSON.getJSONObject(getDataName(it)).getJSONObject("baseStats").getInt("spe")
             }).map {
                 it.replace("Boreos-T", "Boreos Tiergeistform").replace("Voltolos-T", "Voltolos Tiergeistform")

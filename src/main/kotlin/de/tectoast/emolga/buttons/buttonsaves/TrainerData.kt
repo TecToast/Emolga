@@ -4,7 +4,6 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.slf4j.LoggerFactory
 import java.io.IOException
-import java.util.stream.Collectors
 
 class TrainerData(trainerName: String) {
     val mons = LinkedHashMap<String, List<TrainerMon>>()
@@ -86,7 +85,7 @@ class TrainerData(trainerName: String) {
                 append("Level: ")
                 append(level)
                 append("\n")
-                append(moves.stream().map { "- $it" }.collect(Collectors.joining("\n")))
+                append(moves.joinToString("\n") { "- $it" })
             }
         }
     }

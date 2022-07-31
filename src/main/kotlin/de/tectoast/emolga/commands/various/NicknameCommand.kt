@@ -38,7 +38,7 @@ class NicknameCommand : Command(
         val g = tco.guild
 
         //secondsToTime()
-        val map = Emolga.get.cooldowns.computeIfAbsent(g.id) { mutableMapOf() }
+        val map = Emolga.get.cooldowns.getOrPut(g.idLong) { mutableMapOf() }
         map[member.id]?.run {
             val expiresIn = this - System.currentTimeMillis()
             if (expiresIn <= 0) return@run

@@ -40,12 +40,12 @@ object EmolgaMain {
     @Throws(Exception::class)
     fun start() {
         emolgajda = JDABuilder.createDefault(Command.tokens.getString("discord"))
-            .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
+            .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES, GatewayIntent.MESSAGE_CONTENT)
             .addEventListeners(EmolgaListener(), SlashListener())
             .setMemberCachePolicy(MemberCachePolicy.ALL)
             .build()
         flegmonjda = JDABuilder.createDefault(Command.tokens.getString("discordflegmon"))
-            .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES)
+            .enableIntents(GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_PRESENCES, GatewayIntent.MESSAGE_CONTENT)
             .addEventListeners(EmolgaListener(), SlashListener())
             .setMemberCachePolicy(MemberCachePolicy.ALL)
             .build()
@@ -131,8 +131,8 @@ object EmolgaMain {
 
     private fun parseDERFromPEM(pem: ByteArray, beginDelimiter: String, endDelimiter: String): ByteArray {
         val data = String(pem)
-        var tokens = data.split(beginDelimiter.toRegex())
-        tokens = tokens[1].split(endDelimiter.toRegex())
+        var tokens = data.split(beginDelimiter)
+        tokens = tokens[1].split(endDelimiter)
         return DatatypeConverter.parseBase64Binary(tokens[0])
     }
 

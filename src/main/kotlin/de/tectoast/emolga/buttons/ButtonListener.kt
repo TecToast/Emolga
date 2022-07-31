@@ -25,7 +25,7 @@ abstract class ButtonListener(name: String) {
 
         fun check(e: ButtonInteractionEvent) {
             logger.info("e.getComponentId() = {}", e.componentId)
-            val split = e.componentId.split(";".toRegex())
+            val split = e.componentId.split(";")
             try {
                 listener.getOrDefault(split[0], NULL).process(e, split[1])
             } catch (ex: Exception) {

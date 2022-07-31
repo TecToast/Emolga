@@ -4,7 +4,6 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.pattern.color.ANSIConstants
 import ch.qos.logback.core.pattern.color.ForegroundCompositeConverterBase
-import org.slf4j.Marker
 
 class CorrectColorsConverter : ForegroundCompositeConverterBase<ILoggingEvent>() {
     override fun getForegroundColorCode(e: ILoggingEvent): String {
@@ -17,7 +16,7 @@ class CorrectColorsConverter : ForegroundCompositeConverterBase<ILoggingEvent>()
 
     companion object {
         private fun hasMarker(marker: String = "important", e: ILoggingEvent): Boolean {
-            return e.markerList != null && e.markerList.stream().anyMatch { m: Marker -> m.name == marker }
+            return e.markerList != null && e.markerList.any { it.name == marker }
         }
     }
 }

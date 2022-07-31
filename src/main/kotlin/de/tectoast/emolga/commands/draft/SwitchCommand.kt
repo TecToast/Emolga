@@ -3,14 +3,9 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.draft.Draft
-import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.json.emolga.draft.League
+import net.dv8tion.jda.api.entities.Member
 import org.slf4j.LoggerFactory
-import org.slf4j.MarkerFactory
-import java.util.*
-import java.util.concurrent.atomic.AtomicInteger
 
 @Suppress("unused")
 class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.Draft) {
@@ -36,48 +31,25 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
     }
 
     override fun process(e: GuildCommandEvent) {
-        val msg = e.msg
-        val tco = e.textChannel
-        val memberr = e.member
-        val member = memberr.idLong
-        val d = Draft.getDraftByMember(member, tco)
-        if (d == null) {
-            tco.sendMessage(memberr.asMention + " Du bist in keinem Draft drin!").queue()
-            return
-        }
-        if (d.tc.id != tco.id) return
+        exec(DraftEvent(e), e.member, e.arguments)
+    }
+
+    private fun exec(e: DraftEvent, memberr: Member, args: ArgumentManager) {
+        val d = League.byChannel(e.tc, memberr.idLong, e) ?: return
         if (!d.isSwitchDraft) {
             e.reply("Dieser Draft ist kein Switch-Draft, daher wird !switch nicht unterstützt!")
             return
         }
-        if (msg == "!switch") {
-            e.reply("Willst du vielleicht noch zwei Pokemon dahinter schreiben? xD")
-            return
-        }
-        if (d.isNotCurrent(member)) {
-            tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue()
-            return
-        }
         val mem = d.current
-        val json = emolgaJSON
-        val league = json.getJSONObject("drafts").getJSONObject(d.name)
-        //JSONObject league = getEmolgaJSON().getJSONObject("drafts").getJSONObject("ZBSL2");
-        /*if (asl.has("allowed")) {
-                JSONObject allowed = asl.getJSONObject("allowed");
-                if (allowed.has(member.getId())) {
-                    mem = d.tc.getGuild().retrieveMemberById(allowed.getString(member.getId())).complete();
-                } else mem = member;
-            } else mem = member;*/
-        val args = e.arguments
         val oldmon = args.getText("oldmon")
         val newmon = args.getText("newmon")
         val tierlist = d.tierlist
         if (!d.isPickedBy(oldmon, mem)) {
-            e.reply(memberr.asMention + " " + oldmon + " befindet sich nicht in deinem Kader!")
+            e.reply("$oldmon befindet sich nicht in deinem Kader!")
             return
         }
         if (d.isPicked(newmon)) {
-            e.reply(memberr.asMention + " " + newmon + " wurde bereits gepickt!")
+            e.reply("$newmon wurde bereits gepickt!")
             return
         }
         val pointsBack = tierlist.getPointsNeeded(oldmon)
@@ -97,41 +69,41 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
             d.points[mem] = d.points[mem]!! + pointsBack
             if (d.points[mem]!! - newpoints < 0) {
                 d.points[mem] = d.points[mem]!! - pointsBack
-                e.reply(memberr.asMention + " Du kannst dir " + newmon + " nicht leisten!")
+                e.reply("Du kannst dir $newmon nicht leisten!")
                 return
             }
             d.points[mem] = d.points[mem]!! - newpoints
         } else {
             if ((d.getPossibleTiers(mem)[tier]!! < 0 || d.getPossibleTiers(mem)[tier] == 0) && tierlist.getTierOf(oldmon) != tier) {
-                e.reply(memberr.asMention + " Du kannst dir kein " + tier + "-Tier mehr holen!")
+                e.reply("Du kannst dir kein $tier-Tier mehr holen!")
                 return
             }
         }
-        val oldindex = AtomicInteger(-1)
         val draftPokemons = d.picks[mem]!!
-        val dp =
-            draftPokemons.firstOrNull { dp: DraftPokemon -> dp.name.equals(oldmon, ignoreCase = true) }
-        if (dp == null) {
-            logger.error("DRP NULL LINE 116 " + oldindex.get())
-            return
+        draftPokemons.first { it.name == oldmon }.apply {
+            this.name = newmon
+            this.tier = tierlist.getTierOf(newmon)
         }
-        dp.name = newmon
-        dp.tier = tierlist.getTierOf(newmon)
-
-        //m.delete().queue();
-        //aslNoCoachDoc(tierlist, newmon, d, mem, tier, pointsBack - newpoints, oldMon, oldindex.get(), d.originalOrder.get(d.round).indexOf(mem));
-        ndss3Doc(newmon, d, mem, oldmon)
-        league.getJSONObject("picks").put(d.current, d.getTeamAsArray(d.current))
+        d.switchDoc(
+            SwitchData(
+                oldmon,
+                tierlist.getTierOf(oldmon),
+                newmon,
+                tierlist.getTierOf(newmon),
+                mem,
+                d.indexInRound(),
+                draftPokemons.indexOfFirst { it.name == newmon })
+        )
         if (newmon == "Emolga") {
-            tco.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
+            e.tc.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
                 .queue()
         }
-        d.nextPlayer(tco, tierlist, league)
+        d.nextPlayer()
     }
 
     companion object {
         private val logger = LoggerFactory.getLogger(SwitchCommand::class.java)
-        private fun aslNoCoachDoc(
+        /*private fun aslNoCoachDoc(
             tierlist: Tierlist,
             pokemon: String,
             d: Draft,
@@ -332,6 +304,17 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
             logger.info("d.members.size() - d.order.size() = $numInRound")
             //if (d.members.size() - d.order.get(d.round).size() != 1 && isEnabled)
             b.execute()
-        }
+        }*/
     }
 }
+
+@Suppress("unused")
+class SwitchData(
+    val oldmon: String,
+    val oldtier: String,
+    val newmon: String,
+    val newtier: String,
+    val mem: Long,
+    val indexInRound: Int,
+    val changedIndex: Int
+)

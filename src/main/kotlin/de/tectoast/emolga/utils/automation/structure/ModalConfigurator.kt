@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.automation.structure
 
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.utils.json.Emolga
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -27,9 +28,7 @@ class ModalConfigurator private constructor() {
 
     fun handle(e: ModalInteractionEvent) {
         val values = e.values
-        val o = Command.emolgaJSON.createOrGetJSON("configuration").createOrGetJSON(
-            e.guild!!.idLong
-        ).createOrGetJSON(id)
+        val o = Emolga.get.configuration.getOrPut(e.guild!!.idLong) { mutableMapOf() }.getOrPut(id!!) { mutableMapOf() }
         val member = e.member!!
         for (mm in values) {
             val id = mm.id
@@ -48,7 +47,10 @@ class ModalConfigurator private constructor() {
                 ).queue()
                 return
             }
-            o.put(id, mappedValue)
+            o[id] = mappedValue.toString().toLongOrNull() ?: run {
+                Command.sendToMe("$mappedValue in $id is not a long")
+                return
+            }
         }
         e.replyEmbeds(
             EmbedBuilder()

@@ -30,7 +30,7 @@ class TempMuteCommand : Command("tempmute", "Muted den User temporär", CommandC
             return
         }
         val mem = members[0]
-        val splitarr = raw.split(" ".toRegex())
+        val splitarr = raw.split(" ")
         //ArrayList<String> split = new ArrayList<>(Arrays.asList(splitarr));
         val reasonbuilder = StringBuilder()
         var time = 0

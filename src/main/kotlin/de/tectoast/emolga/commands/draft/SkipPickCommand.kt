@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.draft.Draft
+import de.tectoast.emolga.utils.json.emolga.draft.League
 import net.dv8tion.jda.api.Permission
 
 class SkipPickCommand : Command("skippick", "Skippe eine Person beim Draft", CommandCategory.Draft) {
@@ -16,7 +16,7 @@ class SkipPickCommand : Command("skippick", "Skippe eine Person beim Draft", Com
 
     override fun process(e: GuildCommandEvent) {
         val tc = e.textChannel
-        val d = Draft.getDraftByChannel(tc)
-        d?.timer(Draft.TimerReason.SKIP)
+        val d = League.onlyChannel(tc) ?: return
+        d.triggerTimer(League.TimerReason.SKIP)
     }
 }

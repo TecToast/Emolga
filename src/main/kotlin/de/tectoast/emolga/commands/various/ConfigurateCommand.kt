@@ -12,13 +12,12 @@ class ConfigurateCommand : Command("configurate", "Konfiguriert verschiedene Sac
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("configuration", "Konfiguration", "Die Konfiguration, die du ändern möchtest",
                 ArgumentManagerTemplate.Text.of(
-                    ModalConfigurators.configurations.keys.stream()
-                        .map { c: String ->
+                    ModalConfigurators.configurations.keys
+                        .map {
                             SubCommand(
-                                c, "Einstellungen für \"${ModalConfigurators.configurations[c]!!.name}\""
+                                it, "Einstellungen für \"${ModalConfigurators.configurations[it]!!.name}\""
                             )
-                        }
-                        .toList(),
+                        },
                     true
                 ))
             .setExample("/configurate DexQuiz")

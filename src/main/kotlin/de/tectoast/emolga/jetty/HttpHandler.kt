@@ -280,8 +280,8 @@ class HttpHandler : AbstractHandler() {
         private fun getQueryMap(query: String?): Map<String, String> {
             val map = HashMap<String, String>()
             if (query == null) return map
-            for (s in query.split("&".toRegex())) {
-                val sp = s.split("=".toRegex())
+            for (s in query.split("&")) {
+                val sp = s.split("=")
                 map[sp[0]] = sp[1]
             }
             return map

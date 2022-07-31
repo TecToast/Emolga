@@ -32,7 +32,7 @@ class ShowdownPokeFansCommand : Command(
         oneUser.put("HierDenNamenÄndern")
         oneUser.put("HierDieLigaÄndern")
         val pmons: MutableList<String> = LinkedList()
-        for (s in paste.split("\n".toRegex())) {
+        for (s in paste.split("\n")) {
             if (s.isBlank()) continue
             if (s.contains(":") && !s.contains("Type: Null")) continue
             logger.info("s = $s")
@@ -45,7 +45,7 @@ class ShowdownPokeFansCommand : Command(
                 dataJSON.getJSONObject(toSDName(it)).getJSONObject("baseStats").getInt("spe")
             }
             .map { s: String ->
-                val split = s.split("-".toRegex())
+                val split = s.split("-")
                 getGerNameNoCheck(split[0]) + if (split.size > 1) "-" + split[1] else ""
             }
             .map { str: String ->

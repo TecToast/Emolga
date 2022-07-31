@@ -1,6 +1,5 @@
 package de.tectoast.emolga.commands
 
-import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command.ArgumentManagerTemplate
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.commands.Command.Companion.load
@@ -13,15 +12,13 @@ import de.tectoast.emolga.utils.Constants.MYSERVER
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.annotations.PrivateCommand
-import de.tectoast.emolga.utils.automation.collection.DocEntries
-import de.tectoast.emolga.utils.draft.Draft
 import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.showdown.Analysis
 import de.tectoast.emolga.utils.sql.managers.AnalysisManager
 import de.tectoast.emolga.utils.sql.managers.DasorUsageManager
 import de.tectoast.emolga.utils.sql.managers.TranslationsManager
 import de.tectoast.jsolf.JSONArray
-import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.AudioChannel
@@ -44,14 +41,12 @@ import java.nio.file.Paths
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Consumer
 import java.util.regex.Pattern
 
 object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
-    private val TRIPLE_HASHTAG = Pattern.compile("###")
 
     @PrivateCommand(name = "updatetierlist")
     fun updateTierlist(e: GenericCommandEvent) {
@@ -127,7 +122,7 @@ object PrivateCommands {
 
     @PrivateCommand(name = "emolgajson", aliases = ["ej"])
     fun emolgajson(e: GenericCommandEvent) {
-        Command.emolgaJSON = load("./emolgadata.json")
+        Command.loadEmolgaJSON()
         e.done()
     }
 
@@ -165,29 +160,26 @@ object PrivateCommands {
 
     @PrivateCommand(name = "replaceplayer")
     fun replacePlayer(e: GenericCommandEvent) {
-        val league = Command.emolgaJSON.getJSONObject("drafts").getJSONObject(e.getArg(0))
-        val battleOrder = league.getJSONObject("battleorder")
+        val league = Emolga.get.league(e.getArg(0))
+        val battleOrder = league.battleorder
         val oldid = e.getArg(1)
         val newid = e.getArg(2)
-        for (i in 1..battleOrder.length()) {
-            battleOrder.put(i.toString(), battleOrder.getString(i.toString()).replace(oldid, newid))
-        }
-        league.put("table", league.getString("table").replace(oldid, newid))
-        val order = league.getJSONObject("order")
-        for (i in 1..order.length()) {
-            order.put(i, order.getString(i.toString()).replace(oldid, newid))
-        }
-        val picks = league.getJSONObject("picks")
-        picks.put(newid, picks.getJSONArray(oldid))
-        picks.remove(oldid)
-        if (league.has("results")) {
-            val results = league.getJSONObject("results")
-            val keys = ArrayList(results.keySet())
-            for (key in keys) {
-                if (key.contains(oldid)) {
-                    results.put(key.replace(oldid, newid), results.getString(key))
-                    results.remove(key)
-                }
+        val old = oldid.toLong()
+        val new = newid.toLong()
+        battleOrder.replaceAll { _, u -> u.replace(oldid, newid) }
+        league.table[league.table.indexOf(old)] = new
+        league.table.replace(old, new)
+        league.order.values.forEach { it.replace(old, new) }
+        val picks = league.picks
+        picks[new] = picks[old]!!
+        picks.remove(old)
+
+        val results = league.results
+        val keys = ArrayList(results.keys)
+        for (key in keys) {
+            if (key.contains(oldid)) {
+                results[key.replace(oldid, newid)] = results[key]!!
+                results.remove(key)
             }
         }
         Command.saveEmolgaJSON()
@@ -197,19 +189,6 @@ object PrivateCommands {
     @PrivateCommand(name = "saveemolgajson")
     fun saveEmolga(e: GenericCommandEvent) {
         Command.saveEmolgaJSON()
-        e.done()
-    }
-
-    @PrivateCommand(name = "pdg")
-    fun pdg(e: GenericCommandEvent) {
-        Command.evaluatePredictions(
-            Command.emolgaJSON.getJSONObject("drafts").getJSONObject(e.getArg(0)),
-            e.getArg(1).toBooleanStrict(),
-            e.getArg(2)
-                .toInt(),
-            e.getArg(3),
-            e.getArg(4)
-        )
         e.done()
     }
 
@@ -277,161 +256,12 @@ object PrivateCommands {
 
     @PrivateCommand(name = "ndsnominate")
     fun ndsNominate(e: GenericCommandEvent) {
-        Draft.doNDSNominate(e.getArg(0).toBooleanStrict())
-    }
-
-    @PrivateCommand(name = "ndsprediction")
-    fun ndsPrediction() {
-        Draft.doNDSPredictionGame()
-    }
-
-    @PrivateCommand(name = "ndsreminder")
-    fun ndsReminder() {
-        val nds = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS")
-        val table: MutableCollection<String> = nds.getJSONObject("picks").keySet()
-        val nominations = nds.getJSONObject("nominations")
-        nominations.getJSONObject(nominations.getInt("currentDay")).keySet()
-            .forEach(Consumer { o: String -> table.remove(o) })
-        logger.info(MarkerFactory.getMarker("important"), table.joinToString { l: String -> "<@$l>" })
+        Command.doNDSNominate(e.getArg(0).toBooleanStrict())
     }
 
     @PrivateCommand(name = "matchups")
     fun matchUps(e: GenericCommandEvent) {
-        Draft.doMatchUps(e.getArg(0))
-    }
-
-    @PrivateCommand(name = "sortnds")
-    fun sortNDSCmd(e: GenericCommandEvent) {
-        val nds = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS")
-        DocEntries.NDS.sort(nds.getString("sid"), nds)
-        e.done()
-    }
-
-    @PrivateCommand(name = "ndskilllist")
-    fun ndskilllist() {
-        val send: MutableList<List<Any>> = LinkedList()
-        val sid = "1vPYBY-IzVSPodd8W_ukVSLME0YGyWF0hT6p3kr-QvZU"
-        val nds = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS")
-        val picks = nds.getJSONObject("picks")
-        val teamnames = nds.getJSONObject("teamnames")
-        //BufferedWriter writer = new BufferedWriter(new FileWriter("ndskilllistorder.txt"));
-        for (s in picks.keySet()) {
-            val mons = Command.getPicksAsList(picks.getJSONArray(s))
-            val lists = Google[sid, "${teamnames.getString(s)}!B200:K${mons.size + 199}", false]
-            for (j in mons.indices) {
-                send.add(lists!![j])
-            }
-        }
-        RequestBuilder.updateAll(sid, "Killliste!S1001", send)
-    }
-
-    @PrivateCommand(name = "ndsrr")
-    fun ndsrr(e: GenericCommandEvent) {
-        val lastNom =
-            load("ndsdraft.json").getJSONObject("hinrunde").getJSONObject("nominations").getJSONObject("5")
-        val sid = "1vPYBY-IzVSPodd8W_ukVSLME0YGyWF0hT6p3kr-QvZU"
-        //String sid = "1Lbeko-7ZFuuVon_qmgavDsht5JoWQPVk2TLMN6cCROo";
-        var current = ""
-        val nds = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS")
-        val allpicks = nds.getJSONObject("picks")
-        val toid = nds.getJSONObject("nametoid")
-        val teamnames = nds.getJSONObject("teamnames")
-        val b = RequestBuilder(sid)
-        val tierlist = Tierlist.getByGuild(Constants.NDSID)
-        val currkills = HashMap<String, List<Int>>()
-        val currdeaths = HashMap<String, List<Int>>()
-        val killstoadd = HashMap<String, AtomicInteger>()
-        val deathstoadd = HashMap<String, AtomicInteger>()
-        for (i in 0..5) {
-            val l = Google[sid, "RR Draft!${getAsXCoord((i shl 2) + 2)}5:${getAsXCoord((i shl 2) + 4)}28", false]
-            for ((x, objects) in l!!.withIndex()) {
-                if (x % 2 == 0) current = toid.getString((objects[0] as String).trim()) else {
-                    val currorder =
-                        TRIPLE_HASHTAG.split(lastNom.getString(current)).flatMap { s: String ->
-                            s.split(";".toRegex())
-                        }
-                            .map { s: String ->
-                                s.split(",")[0]
-                            }.toList()
-                    val teamname = teamnames.getString(current)
-                    if (!currkills.containsKey(current)) currkills[current] =
-                        Google[sid, "$teamname!L200:L214", false]!!
-                            .map { (it[0] as String).toInt() }
-                    if (!currdeaths.containsKey(current)) currdeaths[current] =
-                        Google[sid, "$teamname!X200:X214", false]!!
-                            .map { (it[0] as String).toInt() }
-                    if (!killstoadd.containsKey(current)) killstoadd[current] = AtomicInteger()
-                    if (!deathstoadd.containsKey(current)) deathstoadd[current] = AtomicInteger()
-                    val raus = objects[0] as String
-                    val rein = objects[2] as String
-                    val arr = allpicks.getJSONArray(current)
-                    if (raus.trim() != "/" && rein.trim() != "/") {
-                        val picks = Command.getPicksAsList(arr)
-                        logger.info("picks = $picks")
-                        logger.info("raus = $raus")
-                        logger.info("rein = $rein")
-                        val index = picks.indexOf(raus)
-                        killstoadd[current]!!.addAndGet(currkills[current]!![index])
-                        deathstoadd[current]!!.addAndGet(currdeaths[current]!![index])
-                        val o = arr.getJSONObject(index)
-                        o.put("name", rein)
-                        o.put("tier", tierlist!!.getTierOf(rein))
-                        val sdName = Command.getSDName(rein)
-                        val data = Command.dataJSON.getJSONObject(sdName)
-                        val currindex = currorder.indexOf(raus) + 15
-                        val outloc = tierlist.getLocation(raus)
-                        val inloc = tierlist.getLocation(rein)
-                        b
-                            .addSingle("$teamname!B$currindex", Command.getGen5Sprite(data))
-                            .addSingle("$teamname!D$currindex", rein)
-                        if (outloc.valid) {
-                            b.addSingle(
-                                "Tierliste!" + getAsXCoord((outloc.x + 1) * 6) + (outloc.y + 4),
-                                "-frei-"
-                            )
-                        }
-                        if (inloc.valid) {
-                            b.addSingle(
-                                "Tierliste!" + getAsXCoord((inloc.x + 1) * 6) + (inloc.y + 4),
-                                "='$teamname'!B2"
-                            )
-                        }
-                        b.addRow(
-                            teamname + "!A" + (index + 200),
-                            listOf<Any>(rein, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-                        )
-                        b.addRow(teamname + "!N" + (index + 200), listOf<Any>(0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
-                        val t: MutableList<Any> = data.getStringList("types")
-                            .map { s: String? -> Command.typeIcons.getString(s) }
-                            .toMutableList()
-                        if (t.size == 1) t.add("/")
-                        b.addRow("$teamname!F$currindex", t)
-                        b.addSingle("$teamname!H$currindex", data.getJSONObject("baseStats").getInt("spe"))
-                        b.addSingle("$teamname!I$currindex", tierlist.getPointsNeeded(rein))
-                        b.addSingle("$teamname!J$currindex", "2")
-                        b.addRow(
-                            "$teamname!L$currindex",
-                            listOf<Any>(
-                                Command.canLearnNDS(sdName, "stealthrock"),
-                                Command.canLearnNDS(sdName, "defog"),
-                                Command.canLearnNDS(sdName, "rapidspin"),
-                                Command.canLearnNDS(sdName, "voltswitch", "uturn", "flipturn", "batonpass", "teleport")
-                            )
-                        )
-                    }
-                }
-            }
-        }
-        for ((s, value) in killstoadd) {
-            val teamname = teamnames.getString(s)
-            b.addSingle("$teamname!L215", "=SUMME(L199:L214)")
-            b.addSingle("$teamname!L199", value.get())
-            b.addSingle("$teamname!X215", "=SUMME(X199:X214)")
-            b.addSingle("$teamname!X199", deathstoadd[s]!!.get())
-        }
-        save(Command.emolgaJSON, "ndstestemolga.json")
-        b.execute()
-        e.done()
+        Command.doMatchUps(e.getArg(0).toInt())
     }
 
     @PrivateCommand(name = "checktierlist")
@@ -501,8 +331,8 @@ object PrivateCommands {
                     "Kapu-Riki" -> "Tapu Koko"
                     "Kapu-Toro" -> "Tapu Bulu"
                     "Kapu-Kime" -> "Tapu Fini"
-                    else -> Command.getEnglName(str.split("-".toRegex()).dropLastWhile { it.isEmpty() }
-                        .toTypedArray()[0]) + "-" + str.split("-".toRegex()).dropLastWhile { it.isEmpty() }
+                    else -> Command.getEnglName(str.split("-").dropLastWhile { it.isEmpty() }
+                        .toTypedArray()[0]) + "-" + str.split("-").dropLastWhile { it.isEmpty() }
                         .toTypedArray()[1]
                 }
             }.sorted().toMutableList()
@@ -524,43 +354,12 @@ object PrivateCommands {
         b.execute()
     }
 
-    @PrivateCommand(name = "ndsdraft")
-    fun ndsdraft(e: GenericCommandEvent) {
-        Draft(e.jda.getTextChannelById(837425828245667841L)!!, "NDS", null, fromFile = true, isSwitchDraft = true)
-    }
-
-    @PrivateCommand(name = "ndsgeneratekilllist")
-    @Throws(IOException::class)
-    fun ndsgenerateKilllist() {
-        val nds = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS")
-        val picks = nds.getJSONObject("picks")
-        val send: MutableList<List<Any>> = LinkedList()
-        var x = 1001
-        val l: MutableList<String> = ArrayList(15 * 12)
-        for (s in picks.keySet()) {
-            for (mon in Command.getPicksAsList(picks.getJSONArray(s))) {
-                send.add(
-                    listOf<Any>(
-                        Command.getGen5Sprite(mon),
-                        mon.uppercase(),
-                        "=SUMME(S$x:AB$x)",
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-                    )
-                )
-                l.add(mon)
-                x++
-            }
-        }
-        RequestBuilder.updateAll(nds.getString("sid"), "Killliste!P1001", send)
-        Files.writeString(Paths.get("ndskilllistorder.txt"), java.lang.String.join("\n", l))
-    }
-
     @PrivateCommand(name = "ndsteamsite")
     fun ndsTeamsite() {
-        val nds = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS")
-        val picks = nds.getJSONObject("picks")
-        val teamnames = nds.getJSONObject("teamnames")
-        val b = RequestBuilder(nds.getString("sid"))
+        val nds = Emolga.get.nds()
+        val picks = nds.picks
+        val teamnames = nds.teamnames
+        val b = RequestBuilder(nds.sid)
         val clear: MutableList<List<Any>> = LinkedList()
         val temp: MutableList<Any> = LinkedList()
         for (j in 0..9) {
@@ -569,11 +368,11 @@ object PrivateCommands {
         for (i in 0..14) {
             clear.add(temp)
         }
-        for (s in picks.keySet()) {
-            val teamname = teamnames.getString(s)
+        for (s in picks.keys) {
+            val teamname = teamnames[s]
             b.addColumn(
                 "$teamname!A200",
-                Command.getPicksAsList(picks.getJSONArray(s))
+                picks[s]!!.map { it.name }
             )
             b.addAll("$teamname!B200", clear)
             b.addAll("$teamname!N200", clear)
@@ -591,7 +390,7 @@ object PrivateCommands {
         for (m in tc!!.iterableHistory) {
             val msg = m.contentDisplay
             if (msg.contains("https://") || msg.contains("http://")) {
-                msg.split("\n".toRegex()).asSequence()
+                msg.split("\n").asSequence()
                     .filter { s: String -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/") }
                     .map { s: String ->
                         s.substring(
@@ -617,7 +416,7 @@ object PrivateCommands {
         for (m in tc!!.iterableHistory) {
             val msg = m.contentDisplay
             if (msg.contains("https://") || msg.contains("http://")) {
-                msg.split("\n".toRegex()).asSequence()
+                msg.split("\n").asSequence()
                     .filter { s: String -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/") }
                     .map { s: String ->
                         s.substring(
@@ -639,32 +438,30 @@ object PrivateCommands {
 
     @PrivateCommand(name = "ndsprepares2rrjson")
     fun prepareNDSJSON() {
-        val nds = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS")
-        val picks = nds.getJSONObject("picks")
+        val nds = Emolga.get.nds()
+        val picks = nds.picks
         val tierorder = listOf("S", "A", "B", "C", "D")
-        val mc = Comparator.comparing { o1: JSONObject -> tierorder.indexOf(o1.getString("tier")) }
-            .thenComparing { o: JSONObject -> o.getString("name") }
-        for (s in picks.keySet()) {
-            picks.put(s, picks.getJSONList(s).sortedWith(mc))
+        for (s in picks.keys) {
+            picks[s]!!.sortWith(compareBy({ it.tier.indexedBy(tierorder) }, { it.name }))
         }
         Command.saveEmolgaJSON()
     }
 
     @PrivateCommand(name = "ndsprepares2rrdoc")
     fun prepareNDSDoc() {
-        val nds = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS")
-        val picks = nds.getJSONObject("picks")
+        val nds = Emolga.get.nds()
+        val picks = nds.picks
         val get: MutableList<List<List<Any>>?> = LinkedList()
         val sid = "1ZwYlgwA7opD6Gdc5KmpjYk5JsnEZq3dZet2nJxB0EWQ"
-        for ((temp, s) in picks.keySet().withIndex()) {
+        for ((temp, s) in picks.keys.withIndex()) {
             logger.info(MarkerFactory.getMarker("important"), "{} {}", temp, s)
-            get.add(Google[sid, nds.getJSONObject("teamnames").getString(s) + "!B15:O29", true])
+            get.add(Google[sid, nds.teamnames[s] + "!B15:O29", true])
         }
         val builder = RequestBuilder(sid)
-        for ((x, u) in picks.keySet().withIndex()) {
+        for ((x, u) in picks.keys.withIndex()) {
             //String u = "297010892678234114";
             //logger.info("o.get(u) = " + o.get(u));
-            val range = nds.getJSONObject("teamnames").getString(u) + "!B15:O29"
+            val range = nds.teamnames[u] + "!B15:O29"
             logger.info("u = $u")
             logger.info("range = $range")
             val comp = Comparator.comparing { l1: List<Any> -> l1[7].toString().toInt() }
@@ -679,40 +476,28 @@ object PrivateCommands {
 
     @PrivateCommand(name = "asls10fixswitches")
     fun asls10fixswitches(e: GenericCommandEvent) {
-        val nds = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("ASLS10L" + e.getArg(0))
-        val picks = nds.getJSONObject("picks")
+        val league = Emolga.get.league("ASLS10L${e.getArg(0)}")
+        val picks = league.picks
         val tierorder = listOf("S", "A", "B", "C", "D")
-        val mc = Comparator.comparing { o1: JSONObject -> tierorder.indexOf(o1.getString("tier")) }
-            .thenComparing { o: JSONObject -> o.getString("name") }
         val s = e.getArg(1)
-        picks.put(s, picks.getJSONList(s).sortedWith(mc))
+        picks[s.toLong()]!!.sortWith(compareBy({ it.tier.indexedBy(tierorder) }, { it.name }))
         Command.saveEmolgaJSON()
     }
 
     @PrivateCommand(name = "ndscorrectpkmnnames")
     fun ndscorrektpkmnnames() {
-        val nds = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS")
-        val picks = nds.getJSONObject("picks")
-        val table = nds.getStringList("table")
-        val b = RequestBuilder(nds.getString("sid"))
-        val teamnames = nds.getJSONObject("teamnames")
+        val nds = Emolga.get.nds()
+        val picks = nds.picks
+        val table = nds.teamtable
+        val b = RequestBuilder(nds.sid)
+        val teamnames = nds.teamnames
         for (s in table) {
             b.addColumn(
                 "$s!A200",
-                picks.getJSONList(Command.reverseGet(teamnames, s))
-                    .map { it.getString("name") })
+                picks[teamnames.reverseGet(s)!!.toLong()]!!.map { it.name }
+            )
         }
         b.execute()
-    }
-
-    @PrivateCommand(name = "asls10start")
-    fun asls10startredraft() {
-        val jda = EmolgaMain.emolgajda
-        Draft(jda.getTextChannelById(938744915209359361L)!!, "ASLS10L1", null, fromFile = true, isSwitchDraft = true)
-        Draft(jda.getTextChannelById(938745041403379743L)!!, "ASLS10L2", null, fromFile = true, isSwitchDraft = true)
-        Draft(jda.getTextChannelById(938745240829968444L)!!, "ASLS10L3", null, fromFile = true, isSwitchDraft = true)
-        Draft(jda.getTextChannelById(938745399819251713L)!!, "ASLS10L4", null, fromFile = true, isSwitchDraft = true)
-        Draft(jda.getTextChannelById(938745673908645909L)!!, "ASLS10L5", null, fromFile = true, isSwitchDraft = true)
     }
 
     @PrivateCommand(name = "setupflorixcontrol")
@@ -769,9 +554,6 @@ object PrivateCommands {
     fun updateSlashCommands(e: GenericCommandEvent) {
         val jda = e.jda
         val map: MutableMap<Long, MutableList<SlashCommandData>> = HashMap()
-        Command.commands.values.asSequence()
-            .filter { it.isSlash }
-
         Command.commands.values.filter { it.isSlash }
             .filter { it.slashGuilds.isNotEmpty() }.forEach { c: Command ->
                 val dt = Commands.slash(c.name, c.help)
@@ -800,7 +582,7 @@ object PrivateCommands {
                         "l = {}",
                         l.joinToString { it.name }
                     )
-                }) { obj: Throwable -> obj.printStackTrace() }
+                }) { it.printStackTrace() }
         }
         e.done()
     }
@@ -863,7 +645,7 @@ object PrivateCommands {
                     "Kapu-Kime" -> "Tapu Fini"
                     "Kapu-Fala" -> "Tapu Lele"
                     "Furnifra" -> "Heatmor"
-                    else -> Command.getEnglName(str.split("-".toRegex())[0]) + "-" + str.split("-".toRegex())[1]
+                    else -> Command.getEnglName(str.split("-")[0]) + "-" + str.split("-")[1]
                 }
             }.forEach { all.add(it) }
         }

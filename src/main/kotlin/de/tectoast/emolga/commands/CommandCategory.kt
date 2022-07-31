@@ -3,7 +3,6 @@ package de.tectoast.emolga.commands
 import de.tectoast.emolga.utils.Constants
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
-import java.util.*
 
 enum class CommandCategory {
     Admin(967390962877870090L), Moderator(967390963947438120L), Draft(967390964685602867L), Flo(967390966153609226L), Dexquiz(
@@ -17,8 +16,8 @@ enum class CommandCategory {
 
     val emote: Long
     val categoryName: String
-    private var allowsMember: (Member) -> Boolean = { true }
-    private var allowsGuildId: (Long) -> Boolean = { true }
+    private var allowsMemberFun: (Member) -> Boolean = { true }
+    private var allowsGuildIdFun: (Long) -> Boolean = { true }
     var isEverywhere = false
         private set
 
@@ -37,11 +36,11 @@ enum class CommandCategory {
     }
 
     fun allowsGuild(gid: Long): Boolean {
-        return gid == 447357526997073930L || allowsGuildId(gid)
+        return gid == 447357526997073930L || allowsGuildIdFun(gid)
     }
 
     fun allowsMember(mem: Member): Boolean {
-        return mem.idLong == Constants.FLOID || allowsMember(mem)
+        return mem.idLong == Constants.FLOID || this.allowsMemberFun(mem)
     }
 
     companion object {
@@ -52,19 +51,18 @@ enum class CommandCategory {
         val order = listOf(Flo, Admin, Moderator, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Music, Soullink)
 
         init {
-            Moderator.allowsMember = { m: Member ->
-                Admin.allowsMember(m) || m.roles.stream()
-                    .anyMatch { Command.moderatorRoles.containsValue(it.idLong) }
+            Moderator.allowsMemberFun = { m: Member ->
+                Admin.allowsMember(m) || m.roles.any { Command.moderatorRoles.containsValue(it.idLong) }
             }
-            Music.allowsGuildId = musicGuilds::contains
-            Moderator.allowsGuildId =
+            Music.allowsGuildIdFun = musicGuilds::contains
+            Moderator.allowsGuildIdFun =
                 Command.moderatorRoles::containsKey
-            Pepe.allowsGuildId =
+            Pepe.allowsGuildIdFun =
                 { it == 605632286179983360L || it == 817156502912761867L }
-            Flo.allowsMember =
+            Flo.allowsMemberFun =
                 { it.idLong == Constants.FLOID }
-            Admin.allowsMember = Flo.allowsMember
-            Soullink.allowsGuildId = { gid: Long? -> gid == 695943416789598208L }
+            Admin.allowsMemberFun = Flo.allowsMemberFun
+            Soullink.allowsGuildIdFun = { gid: Long? -> gid == 695943416789598208L }
             Draft.isEverywhere = true
             Flo.isEverywhere = true
             Admin.isEverywhere = true
@@ -74,14 +72,13 @@ enum class CommandCategory {
 
         //(gid.equals("700504340368064562") || gid.equals("712035338846994502") || gid.equals("673833176036147210")
         fun byName(name: String?): CommandCategory? {
-            return Arrays.stream(values())
-                .filter { commandCategory: CommandCategory? ->
+            return values()
+                .firstOrNull { commandCategory: CommandCategory? ->
                     commandCategory!!.categoryName.equals(
                         name,
                         ignoreCase = true
                     )
                 }
-                .findFirst().orElse(null)
         }
     }
 }

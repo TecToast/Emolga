@@ -2,7 +2,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     kotlin("jvm") version "1.7.10"
-    kotlin("plugin.serialization") version "1.6.21"
+    kotlin("plugin.serialization") version "1.7.10"
     id("com.github.johnrengelman.shadow") version "7.1.2"
 }
 
@@ -19,12 +19,12 @@ tasks {
 
 kotlin {
     jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(16))
+        languageVersion.set(JavaLanguageVersion.of(18))
     }
 }
 
 group = "de.tectoast"
-version = "1.0-SNAPSHOT"
+version = "1.0-JSONTEST"
 
 val gprUser: String by project
 val gprPassword: String by project

@@ -10,7 +10,6 @@ import java.sql.SQLException
 import java.util.*
 import java.util.function.Consumer
 import java.util.function.Function
-import java.util.stream.Collectors
 
 @Suppress("unused", "unused", "unused", "unused", "unused", "unused", "unused", "unused")
 abstract class DataManager(private val tableName: String) {
@@ -100,7 +99,7 @@ abstract class DataManager(private val tableName: String) {
     }
 
     fun select(where: String?, vararg cols: SQLColumn<*>): String {
-        return select(where, Arrays.stream(cols).map { s: SQLColumn<*> -> s.name }.collect(Collectors.joining(", ")))
+        return select(where, cols.joinToString { s: SQLColumn<*> -> s.name })
     }
 
     fun selectAll(where: String?): String {
@@ -120,7 +119,7 @@ abstract class DataManager(private val tableName: String) {
         private var where: String? = null
         private var orderBy: String? = null
         fun cols(vararg cols: SQLColumn<*>): SelectBuilder {
-            this.cols = Arrays.stream(cols).map { s: SQLColumn<*> -> s.name }.collect(Collectors.joining(", "))
+            this.cols = cols.joinToString { s: SQLColumn<*> -> s.name }
             return this
         }
 

@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils.json
 import de.tectoast.emolga.utils.json.emolga.Soullink
 import de.tectoast.emolga.utils.json.emolga.customcommand.CCData
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import kotlinx.serialization.Serializable
 
 @Suppress("unused")
@@ -10,14 +11,19 @@ import kotlinx.serialization.Serializable
 class Emolga(
     val soullink: Soullink,
     val drafts: Map<String, League>,
-    val emolgachannel: MutableMap<String, MutableList<Long>>,
-    val cooldowns: MutableMap<String, MutableMap<String, Long>>,
-    val moderatorRoles: Map<String, Long>,
+    val emolgachannel: MutableMap<Long, MutableList<Long>>,
+    val cooldowns: MutableMap<Long, MutableMap<String, Long>>,
+    val moderatorroles: Map<Long, Long>,
     val movefilter: Map<String, List<String>>,
-    val mutedRoles: Map<String, Long>,
-    val customCommands: Map<String, CCData>,
-    val configuration: MutableMap<String, MutableMap<String, MutableMap<String, Long>>>
+    val mutedroles: Map<Long, Long>,
+    val customcommands: MutableMap<String, CCData>,
+    val configuration: MutableMap<Long, MutableMap<String, MutableMap<String, Long>>>
 ) {
+    fun league(name: String) = drafts[name]!!
+    fun nds() = drafts["NDS"]!! as NDS
+
+    fun leagueByGuild(gid: Long) = drafts.values.firstOrNull { it.guild == gid }
+
     companion object {
         lateinit var get: Emolga
     }

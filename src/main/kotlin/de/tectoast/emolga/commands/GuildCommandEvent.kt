@@ -21,7 +21,7 @@ class GuildCommandEvent : GenericCommandEvent {
     constructor(c: Command, e: MessageReceivedEvent) : super(e.message) {
         member = e.member!!
         guild = e.guild
-        this.textChannel = e.textChannel
+        this.textChannel = e.guildChannel.asTextChannel()
         val template = c.argumentTemplate
         arguments = template.construct(e, c)
         usedName = Command.WHITESPACES_SPLITTER.split(msg!!)[0].substring(c.prefix.length)
@@ -44,7 +44,7 @@ class GuildCommandEvent : GenericCommandEvent {
     constructor(c: Command, e: SlashCommandInteractionEvent) : super(e) {
         member = e.member!!
         guild = e.guild!!
-        this.textChannel = e.textChannel
+        this.textChannel = e.guildChannel.asTextChannel()
         usedName = e.name
         val template = c.argumentTemplate
         arguments = template.construct(e, c)

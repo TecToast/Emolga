@@ -11,7 +11,7 @@ class SlashListener : ListenerAdapter() {
     override fun onSlashCommandInteraction(e: SlashCommandInteractionEvent) {
         val command = Command.byName(e.name)!!
         val u = e.user
-        val tco = e.textChannel
+        val tco = e.channel.asTextChannel()
         try {
             GuildCommandEvent(command, e)
         } catch (ex: MissingArgumentException) {

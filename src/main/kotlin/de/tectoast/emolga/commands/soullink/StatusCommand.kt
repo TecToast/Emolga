@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.soullink
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.utils.json.Emolga
 
 class StatusCommand : Command("status", "Setzt den Status eines Encounters", CommandCategory.Soullink) {
     init {
@@ -20,14 +21,14 @@ class StatusCommand : Command("status", "Setzt den Status eines Encounters", Com
     }
 
     override fun process(e: GuildCommandEvent) {
-        val soullink = emolgaJSON.getJSONObject("soullink")
+        val soullink = Emolga.get.soullink
         val args = e.arguments
         val location = eachWordUpperCase(args.getText("location"))
-        if (!soullink.getStringList("order").contains(location)) {
+        if (location !in soullink.order) {
             e.reply("Diese Location ist derzeit nicht im System!")
             return
         }
-        soullink.getJSONObject("mons").getJSONObject(location).put("status", args.getText("status"))
+        soullink.mons[location]!!["status"] = args.getText("status")
         e.reply("\uD83D\uDC4D")
         saveEmolgaJSON()
         updateSoullink()

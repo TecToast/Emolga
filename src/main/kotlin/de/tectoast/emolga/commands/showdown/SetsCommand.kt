@@ -8,7 +8,6 @@ import de.tectoast.emolga.utils.showdown.Player
 import de.tectoast.emolga.utils.showdown.Pokemon
 import okhttp3.OkHttpClient
 import java.util.regex.Pattern
-import java.util.stream.Collectors
 
 class SetsCommand : Command("sets", "Zeigt die Sets von einem Showdown-Kampf an", CommandCategory.Showdown) {
     private val client = OkHttpClient().newBuilder().build()
@@ -50,11 +49,11 @@ class SetsCommand : Command("sets", "Zeigt die Sets von einem Showdown-Kampf an"
         private val BEGIN_RETURN = Pattern.compile("^\\r\\n")
         private val END_RETURN = Pattern.compile("\\r\\n$")
         private fun buildPaste(p: Player): String {
-            return p.mons.stream().map { pokemon: Pokemon -> buildPokemon(pokemon) }
-                .map { string: String ->
-                    END_RETURN.matcher(BEGIN_RETURN.matcher(string).replaceAll("")).replaceAll("")
+            return p.mons.map { buildPokemon(it) }
+                .joinToString("\r\n\r\n") {
+                    END_RETURN.matcher(BEGIN_RETURN.matcher(it).replaceAll("")).replaceAll("")
                 }
-                .collect(Collectors.joining("\r\n\r\n"))
+
         }
 
         private fun buildPokemon(p: Pokemon): String {
@@ -65,7 +64,7 @@ class SetsCommand : Command("sets", "Zeigt die Sets von einem Showdown-Kampf an"
                 append("  \nAbility: ")
                 append(p.ability.ifEmpty { "unknown" })
                 append("  \n")
-                append(p.moves.stream().map { s: String -> "- $s  " }.collect(Collectors.joining("\r\n")))
+                append(p.moves.joinToString("\r\n") { "- $it  " })
             }
         }
     }

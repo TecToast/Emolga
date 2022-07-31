@@ -1,44 +1,36 @@
 package de.tectoast.emolga.commands.draft
 
-import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.indexedBy
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.draft.Draft
-import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.jsolf.JSONObject
+import de.tectoast.emolga.utils.json.emolga.draft.League
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.TextChannel
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import org.slf4j.LoggerFactory
-import java.util.*
 
 @Suppress("unused")
 class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) {
     init {
         //setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!pick <Pokemon> [Optionales Tier]", "!pick Emolga"));
-        argumentTemplate = ArgumentManagerTemplate.builder()
-            .add(
-                "pokemon",
-                "Pokemon",
-                "Das Pokemon, was du picken willst",
-                ArgumentManagerTemplate.draftPokemon { s: String, event: CommandAutoCompleteInteractionEvent ->
-                    val strings = Tierlist.getByGuild(event.guild!!.id)?.autoComplete?.filter { str: String ->
-                        str.lowercase().startsWith(s.lowercase())
-                    }
-                    if (strings == null || strings.size > 25) return@draftPokemon emptyList<String>()
-                    strings
-                },
-                false,
-                "Das ist kein Pokemon!"
-            ) //.add("tier", "Tier", "Das Tier", ArgumentManagerTemplate.Text.any(), true)
-            .setExample("!pick Emolga")
-            .build()
+        argumentTemplate = ArgumentManagerTemplate.builder().add(
+            "pokemon",
+            "Pokemon",
+            "Das Pokemon, was du picken willst",
+            ArgumentManagerTemplate.draftPokemon { s: String, event: CommandAutoCompleteInteractionEvent ->
+                val strings = Tierlist.getByGuild(event.guild!!.id)?.autoComplete?.filter { str: String ->
+                    str.lowercase().startsWith(s.lowercase())
+                }
+                if (strings == null || strings.size > 25) return@draftPokemon emptyList<String>()
+                strings
+            },
+            false,
+            "Das ist kein Pokemon!"
+        ) //.add("tier", "Tier", "Das Tier", ArgumentManagerTemplate.Text.any(), true)
+            .setExample("!pick Emolga").build()
         slash(false, Constants.FPLID, Constants.NDSID)
     }
 
@@ -51,59 +43,38 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
         } else {
             msg = e.msg!!
         }
-        exec(e.textChannel, msg, e.member, false, sc)
+        exec(DraftEvent(e.textChannel, sc, e.member.asMention), msg, e.member, false)
     }
+
 
     companion object {
         private val logger = LoggerFactory.getLogger(PickCommand::class.java)
 
-        @JvmOverloads
         fun exec(
-            tco: TextChannel,
-            msg: String,
-            memberr: Member,
-            isRandom: Boolean,
-            slashEvent: SlashCommandInteractionEvent? = null,
+            e: DraftEvent, msg: String, memberr: Member, isRandom: Boolean
         ) {
             try {
                 val member = memberr.idLong
                 if (msg.trim() == "!pick") {
-                    if (isRandom) {
-                        tco.sendMessage("Jedes Pokemon aus dem Tier mit dem Typen ist bereits weg!").queue()
-                    } else {
-                        tco.sendMessage("Willst du vielleicht noch ein Pokemon dahinter schreiben? xD").queue()
-                    }
+                    e.reply(if (isRandom) "Jedes Pokemon aus dem Tier mit dem Typen ist bereits weg!" else "Willst du vielleicht noch ein Pokemon dahinter schreiben? xD")
                     return
                 }
-                val d = Draft.getDraftByMember(member, tco)
-                if (d == null) {
-                    tco.sendMessage(memberr.asMention + " Du bist in keinem Draft drin!").queue()
-                    return
-                }
-                if (d.tc.id != tco.id) return
-                /*if (d.isSwitchDraft) {
-                tco.sendMessage("Dieser Draft ist ein Switch-Draft, daher wird !pick nicht unterstützt!").queue();
-                return;
-            }*/if (d.isNotCurrent(member)) {
-                    tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue()
-                    return
-                }
+                val d = League.byChannel(e.tc, member, e) ?: return
                 val mem = d.current
-                val league = emolgaJSON.getJSONObject("drafts").getJSONObject(d.name)
-                val split = msg.substring(6).split(" ".toRegex())
+                val split = msg.substring(6).split(" ")
                 val tier: String
                 val t: Translation
-                var pokemon: String
+                val pokemon: String
                 val tierlist = d.tierlist
                 val picks = d.picks[mem]!!
                 if (picks.filter { it.name != "???" }.size == 15) {
-                    tco.sendMessage("Du hast bereits 15 Mons!").queue()
+                    e.reply("Du hast bereits 15 Mons!")
                     return
                 }
                 if (split.size == 2 && !d.isPointBased) {
                     t = getDraftGerName(split[0])
                     if (!t.isFromType(Translation.Type.POKEMON)) {
-                        tco.sendMessage("Das ist kein Pokemon!").queue()
+                        e.reply("Das ist kein Pokemon!")
                         return
                     }
                     pokemon = t.translation
@@ -111,7 +82,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 } else {
                     t = getDraftGerName(msg.substring(6))
                     if (!t.isFromType(Translation.Type.POKEMON)) {
-                        tco.sendMessage("Das ist kein Pokemon!").queue()
+                        e.reply("Das ist kein Pokemon!")
                         return
                     }
                     pokemon = t.translation
@@ -119,70 +90,51 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 }
                 if (d.isPicked(pokemon)) {
                     //tco.sendMessage(member.getAsMention() + " Junge bist du scheiße oder was?! (Dieses Pokemon wurde bereits gepickt!)").queue();
-                    tco.sendMessage(memberr.asMention + " Dieses Pokemon wurde bereits gepickt!").queue()
+                    e.reply("Dieses Pokemon wurde bereits gepickt!")
                     return
                 }
                 val needed = tierlist.getPointsNeeded(pokemon)
                 if (d.isPointBased) {
                     if (needed == -1) {
-                        tco.sendMessage(memberr.asMention + " Das Pokemon steht nicht in der Tierliste!").queue()
+                        e.reply("Das Pokemon steht nicht in der Tierliste!")
                         return
                     }
                 } else {
                     val origtier = tierlist.getTierOf(pokemon)
                     if (origtier.isEmpty()) {
-                        tco.sendMessage(memberr.asMention + " Das Pokemon steht nicht in der Tierliste!").queue()
+                        e.reply("Das Pokemon steht nicht in der Tierliste!")
                         return
                     }
                     if (tierlist.order.indexOf(origtier) < tierlist.order.indexOf(tier)) {
-                        tco.sendMessage("Du kannst ein $origtier-Mon nicht ins $tier hochdraften!").queue()
+                        e.reply("Du kannst ein $origtier-Mon nicht ins $tier hochdraften!")
                         return
                     }
                     val map = d.getPossibleTiers(mem)
                     if (!map.containsKey(tier)) {
-                        tco.sendMessage("Das Tier `$tier` existiert nicht!").queue()
+                        e.reply("Das Tier `$tier` existiert nicht!")
                         return
                     }
                     if (map[tier]!! <= 0) {
                         if (tierlist.prices[tier] == 0) {
-                            tco.sendMessage("Ein Pokemon aus dem $tier-Tier musst du in ein anderes Tier hochdraften!")
-                                .queue()
+                            e.reply("Ein Pokemon aus dem $tier-Tier musst du in ein anderes Tier hochdraften!")
                             return
                         }
-                        tco.sendMessage("Du kannst dir kein $tier-Pokemon mehr picken!").queue()
+                        e.reply("Du kannst dir kein $tier-Pokemon mehr picken!")
                         return
                     }
                 }
-                pokemon = tierlist.getNameOf(pokemon)
-                /*if (d.hasMega(mem) && pokemon.startsWith("M-")) {
-                tco.sendMessage(member.getAsMention() + " Du hast bereits ein Mega!").complete().getId();
-                return;
-            }
-            / *if (d.hasInAnotherForm(mem, pokemon)) {
-                tco.sendMessage(member.getAsMention() + " Damit würdest du gegen die Species Clause verstoßen!").queue();
-                return;
-            }*/if (d.isPointBased && d.points[mem]!! - needed < 0) {
-                    tco.sendMessage(memberr.asMention + " Dafür hast du nicht genug Punkte!").queue()
-                    return
-                }
-                /*if (d.isPointBased && (d.getTierlist().rounds - d.round) * d.getTierlist().prices.get(d.getTierlist().order.get(d.getTierlist().order.size() - 1)) > (d.points.get(mem) - needed)) {
-                tco.sendMessage(memberr.getAsMention() + " Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!").queue();
-                return;
-            }*/
-                if (d.isPointBased) d.points[mem] = d.points[mem]!! - needed
-                val firstUnknown = picks.first { it.name == "???" }
-                firstUnknown.name = pokemon
-                firstUnknown.tier = tier
-                if (!league.has("picks")) league.put("picks", JSONObject())
-                league.getJSONObject("picks").put(mem, d.getTeamAsArray(mem))
+                if (d.handlePoints(e, needed)) return
+                d.savePick(picks, pokemon, tier)
                 //m.delete().queue();
-                slashEvent?.reply("${slashEvent.member!!.effectiveName} hat $pokemon gepickt!")?.queue()
+                e.slashEvent?.reply("${e.mention} hat $pokemon gepickt!")?.queue()
                 if (isRandom) {
-                    tco.sendMessage("**<@$mem>** hat aus dem $tier-Tier ein **$pokemon** bekommen!").queue()
+                    e.reply("**<@$mem>** hat aus dem $tier-Tier ein **$pokemon** bekommen!")
                 } else if (pokemon == "Emolga") {
-                    tco.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
+                    e.tc.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
                         .queue()
                 }
+                d.pickDoc(PickData(pokemon, tier, mem, d.indexInRound(), picks.indexOfFirst { it.name == pokemon }))
+                d.nextPlayer()
                 //zbsdoc(tierlist, pokemon, d, mem, tier, d.members.size() - d.order.get(d.round).size(), d.round);
                 //fpldoc(tierlist, pokemon, d, mem, tier, d.members.size() - d.order.get(d.round).size(), d.round);
                 //woolooDoc(tierlist, pokemon, d, mem, tier, d.round);
@@ -190,25 +142,25 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 //aslS10Doc(tierlist, pokemon, d, mem, tier, rd);
                 //ndsdoc(tierlist, pokemon, d, mem, tier);
                 //uplDoc(pokemon, league, d, d.members.size() - d.order.get(d.round).size(), mem);
-                ndss3Doc(pokemon, d, mem, picks.indexOf(firstUnknown))
+                //ndss3Doc(pokemon, d, mem, picks.indexOf(firstUnknown))
                 /*if (d.round == tierlist.rounds && d.picks.get(mem).size() < d.round) {
                 if (d.isPointBased)
                     //tco.sendMessage(getMention(current) + " (<@&" + asl.getLongList("roleids").get(getIndex(current.getIdLong())) + ">) ist dran! (" + points.get(current.getIdLong()) + " mögliche Punkte)").queue();
                     tco.sendMessage(d.getMention(mem) + " ist dran! (" + d.points.get(mem) + " mögliche Punkte)").queue();
                 else
                     tco.sendMessage(d.getMention(mem) + " ist dran! (Mögliche Tiers: " + d.getPossibleTiersAsString(mem) + ")").queue();
-            } else {*/d.nextPlayer(tco, tierlist, league)
+            } else {*/
+
                 //}
                 //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, toremove);
                 //ndsdoc(tierlist, pokemon, d, mem, tier, round);
             } catch (ex: Exception) {
-                tco.sendMessage("Es ist ein Fehler aufgetreten!").queue()
-                slashEvent?.reply("Da ist wohl was schiefgelaufen :(")?.setEphemeral(true)?.queue()
+                e.reply("Es ist ein Fehler aufgetreten!")
                 ex.printStackTrace()
             }
         }
 
-        private fun ndss3Doc(pokemon: String, d: Draft, mem: Long, index: Int) {
+        /*private fun ndss3Doc(pokemon: String, d: Draft, mem: Long, index: Int) {
             val league = emolgaJSON.getJSONObject("drafts").getJSONObject(d.name)
 
             //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
@@ -295,7 +247,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             logger.info("index = {}", index)
             b.addRow(
                 "Draft!${getAsXCoord((rr % 6 shl 2) + 3)}${rr / 6 * 10 + 4 + index}",
-                listOf(pokemon, tierlist.prices.getValue(tier)!!)
+                listOf(pokemon, tierlist.prices.getValue(tier))
             )
             b.execute()
         }
@@ -657,7 +609,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 )
             //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
             b.addBatch(req)
-            val user = listOf(*league.getString("table").split(",".toRegex()).dropLastWhile { it.isEmpty() }
+            val user = listOf(*league.getString("table").split(",").dropLastWhile { it.isEmpty() }
                 .toTypedArray()).indexOf(mem.id)
             val picks = d.picks[mem.idLong]!!
             for (i in 0..12) {
@@ -757,7 +709,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 b.addBatch(request)
             }
             //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
-            val user = listOf(*league.getString("table").split(",".toRegex()).dropLastWhile { it.isEmpty() }
+            val user = listOf(*league.getString("table").split(",").dropLastWhile { it.isEmpty() }
                 .toTypedArray()).indexOf(mem.id)
             val picks = d.picks[mem.idLong]!!
             for (i in 0..11) {
@@ -776,6 +728,15 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 )
             }
             b.execute()
-        }
+        }*/
     }
 }
+
+class DraftEvent(val tc: TextChannel, val slashEvent: SlashCommandInteractionEvent?, val mention: String) {
+
+    constructor(e: GuildCommandEvent) : this(e.textChannel, e.slashCommandEvent, e.author.asMention)
+
+    fun reply(msg: String) = msg.let { slashEvent?.reply(it)?.queue() ?: tc.sendMessage("$mention $it").queue() }
+}
+
+class PickData(val pokemon: String, val tier: String, val mem: Long, val indexInRound: Int, val changedIndex: Int)

@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.draft.PickCommand.Companion.exec
-import de.tectoast.emolga.utils.draft.Draft
+import de.tectoast.emolga.utils.json.emolga.draft.League
 
 class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", CommandCategory.Draft) {
     init {
@@ -16,42 +16,26 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
 
     override fun process(e: GuildCommandEvent) {
         val memberr = e.member
-        val member = memberr.idLong
-        val tco = e.textChannel
-        val d = Draft.getDraftByMember(member, tco)
-        if (d == null) {
-            e.textChannel.sendMessage("Du Kek der Command funktioniert nur in einem Draft xD").queue()
-            return
-        }
+        val d = League.byChannel(e.textChannel, memberr.idLong, DraftEvent(e)) ?: return
         val tierlist = d.tierlist
         val args = e.arguments
-        val tier = tierlist.order.stream().filter { s: String? -> args.getText("tier").equals(s, ignoreCase = true) }
-            .findFirst().orElse("")
-        if (tier.isEmpty()) {
-            tco.sendMessage("Das ist kein Tier!").queue()
+        val tier = tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: run {
+            e.reply("Das ist kein Tier!")
             return
         }
-        if (d.tc.id != tco.id) return
-        if (d.isNotCurrent(member)) {
-            tco.sendMessage(d.getMention(member) + " Du bist nicht dran!").queue()
-            return
-        }
-        val mem = d.current
         val list: MutableList<String> = tierlist.tierlist[tier]!!.toMutableList()
         list.shuffle()
         val typecheck: (String) -> Boolean = if (args.has("type")) {
             val type = args.getTranslation("type");
             {
-                dataJSON.getJSONObject(getSDName(it)).getJSONArray("types").toList().contains(type.translation)
+                type.translation in dataJSON.getJSONObject(getSDName(it)).getStringList("types")
             }
         } else {
             { true }
         }
         exec(
-            tco, "!pick " + (list.firstOrNull { str: String ->
-                !d.isPicked(str) && !d.hasInAnotherForm(
-                    mem, str
-                ) && (!d.hasMega(mem) || !str.startsWith("M-")) && typecheck(str)
+            DraftEvent(e), "!pick " + (list.firstOrNull { str: String ->
+                !d.isPicked(str) && typecheck(str)
             }?.trim() ?: ""), memberr, true
         )
     }

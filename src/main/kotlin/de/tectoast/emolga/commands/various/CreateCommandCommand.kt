@@ -3,7 +3,8 @@ package de.tectoast.emolga.commands.various
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.jsolf.JSONObject
+import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.emolga.customcommand.CCData
 import java.io.File
 
 class CreateCommandCommand : Command("createcommand", "Erstellt einen Command", CommandCategory.Various) {
@@ -26,20 +27,18 @@ class CreateCommandCommand : Command("createcommand", "Erstellt einen Command", 
     override fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val cmdname: String = args.getText("cmdname").lowercase()
-        val o = emolgaJSON.getJSONObject("customcommands")
-        if (o.has(cmdname) || byName(cmdname) != null) {
+        val o = Emolga.get.customcommands
+        if (cmdname in o || byName(cmdname) != null) {
             e.reply("Es existiert bereits ein !$cmdname Command!")
             return
         }
         val m = e.message!!
-        val json = JSONObject()
-        json.put("text", false)
-        json.put("image", false)
         var file: File? = null
+        val cc = CCData()
         if (m.attachments.size > 0) {
             val a = m.attachments[0]
             file = a.proxy.downloadToFile(File("customcommandimages/" + a.fileName)).get()
-            json.put("image", file.absolutePath)
+            cc.image = file.absolutePath
         }
         if (!args.has("text")) {
             if (file == null) {
@@ -47,9 +46,9 @@ class CreateCommandCommand : Command("createcommand", "Erstellt einen Command", 
                 return
             }
         } else {
-            json.put("text", args.getText("text"))
+            cc.text = args.getText("text")
         }
-        o.put(cmdname, json)
+        o[cmdname] = cc
         saveEmolgaJSON()
         e.reply("Der Command wurde erfolgreich registriert!")
     }

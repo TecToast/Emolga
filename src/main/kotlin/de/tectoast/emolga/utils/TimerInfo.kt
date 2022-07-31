@@ -3,7 +3,7 @@ package de.tectoast.emolga.utils
 import de.tectoast.emolga.utils.records.TimerData
 
 class TimerInfo {
-    private val map: MutableMap<Int, TimerData> = HashMap()
+    private val map: MutableMap<Int, TimerData> = mutableMapOf()
     fun add(from: Int, to: Int, vararg days: Int): TimerInfo {
         for (day in days) {
             map[day] = TimerData(from, to)

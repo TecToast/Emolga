@@ -110,7 +110,7 @@ class RequestBuilder
     }
 
     private fun addBGColorChange(sheetId: Int, range: String, c: Color?): RequestBuilder {
-        val split = range.split(":".toRegex())
+        val split = range.split(":")
         val s1 = split[0]
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
@@ -134,7 +134,7 @@ class RequestBuilder
     }
 
     fun addNoteChange(sheetId: Int, range: String, note: String?): RequestBuilder {
-        val split = range.split(":".toRegex())
+        val split = range.split(":")
         val s1 = split[0]
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
@@ -154,7 +154,7 @@ class RequestBuilder
     }
 
     fun addHorizontalAlignmentChange(sheetId: Int, range: String, alignment: String?): RequestBuilder {
-        val split = range.split(":".toRegex())
+        val split = range.split(":")
         val s1 = split[0]
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
@@ -174,7 +174,7 @@ class RequestBuilder
     }
 
     fun addVerticalAlignmentChange(sheetId: Int, range: String, alignment: String?): RequestBuilder {
-        val split = range.split(":".toRegex())
+        val split = range.split(":")
         val s1 = split[0]
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
@@ -194,7 +194,7 @@ class RequestBuilder
     }
 
     fun addFontChange(sheetId: Int, range: String, font: String?): RequestBuilder {
-        val split = range.split(":".toRegex())
+        val split = range.split(":")
         val s1 = split[0]
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
@@ -214,7 +214,7 @@ class RequestBuilder
     }
 
     private fun addStrikethroughChange(sheetId: Int, range: String, strikethrough: Boolean): RequestBuilder {
-        val split = range.split(":".toRegex())
+        val split = range.split(":")
         val s1 = split[0]
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
@@ -244,7 +244,7 @@ class RequestBuilder
     }
 
     private fun addFGColorChange(sheetId: Int, range: String, c: Color?): RequestBuilder {
-        val split = range.split(":".toRegex())
+        val split = range.split(":")
         val s1 = split[0]
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
@@ -463,7 +463,7 @@ class RequestBuilder
         }
 
         fun buildGridRange(expr: String, sheetId: Int): GridRange {
-            val split = expr.split(":".toRegex())
+            val split = expr.split(":")
             val s1 = split[0]
             val s2 = if (split.size == 1) s1 else split[1]
             val r = GridRange()

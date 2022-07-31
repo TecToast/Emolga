@@ -30,7 +30,7 @@ class CombinationCommand : Command(
         val abis: MutableList<String> = ArrayList()
         val types: MutableList<String> = ArrayList()
         val egg: MutableList<String> = ArrayList()
-        for (s in args.split(",".toRegex())) {
+        for (s in args.split(",")) {
             val t = getGerName(s.trim())
             if (t.isEmpty || t.isFromType(Translation.Type.POKEMON)) {
                 tco.sendMessage("**$s** ist kein valides Argument!").queue()
@@ -75,7 +75,7 @@ class CombinationCommand : Command(
             }
             if (mon.getInt("num") < 0) continue
             val name = data.getJSONObject(s).getString("name")
-            val split = name.split("-".toRegex())
+            val split = name.split("-")
             if (split.size > 1) mons.add(getGerNameNoCheck(split[0]) + "-" + split[1]) else mons.add(
                 getGerNameNoCheck(
                     name

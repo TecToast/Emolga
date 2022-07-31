@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.json.Emolga
 
 class ResetCooldownCommand : Command(
     "resetcooldown",
@@ -27,25 +28,25 @@ class ResetCooldownCommand : Command(
     override fun process(e: GuildCommandEvent) {
         val mem = e.arguments.getMember("user")
         val name = "**" + mem.effectiveName + "**"
-        val c = emolgaJSON.getJSONObject("cooldowns")
-        val gid = e.guild.id
-        if (!c.has(gid)) {
+        val c = Emolga.get.cooldowns
+        val gid = e.guild.idLong
+        if (gid !in c) {
             e.reply("Auf diesem Server hat noch nie jemand seinen Namen geändert!")
             return
         }
         val mid = mem.id
-        val o = c.getJSONObject(gid)
-        if (!o.has(mid)) {
+        val o = c[gid]!!
+        if (mid !in o) {
             e.reply("$name hat noch nie seinen Nickname geändert!")
             return
         }
-        val l = o.getString(mid).toLong()
+        val l = o[mid]!!
         val untilnow = System.currentTimeMillis() - l
         if (untilnow >= 604800000) {
             e.reply("$name darf seinen Namen bereits wieder ändern!")
             return
         }
-        o.put(mid, "-1")
+        o[mid] = -1
         e.reply("Der Cooldown von $name wurde resettet!")
         saveEmolgaJSON()
     }

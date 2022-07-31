@@ -18,8 +18,8 @@ object NatureManager : DataManager("natures") {
     fun getNatureData(str: String): String {
         return read(selectAll(NAME.check(str)), ResultsFunction { s ->
             mapFirst(s, { set: ResultSet ->
-                val plus = PLUS.getValue(set)
-                val minus = MINUS.getValue(set)
+                val plus = PLUS.getNullableValue(set)
+                val minus = MINUS.getNullableValue(set)
                 if (plus != null) {
                     return@mapFirst """
                 ${statnames[plus]}+

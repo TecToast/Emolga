@@ -3,7 +3,9 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.Command.Translation
 import de.tectoast.emolga.commands.PrivateCommand
+import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.jsolf.JSONArray
 import de.tectoast.jsolf.JSONObject
 import de.tectoast.toastilities.interactive.ErrorMessage
@@ -24,13 +26,14 @@ class PrismaTeamCommand : PrivateCommand("prismateam") {
         //setIsAllowed(u -> Arrays.asList(Command.getEmolgaJSON().getJSONObject("drafts").getJSONObject("Prisma").getString("table").split(",")).contains(u.getId()));
         template = InteractiveTemplate({ u: User, tc: MessageChannel, map: LinkedHashMap<String, Any?> ->
             current.remove(u.idLong)
-            val league = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("Prisma")
+            val league = Emolga.get.league("Prisma")
             val arr = JSONArray()
             for ((s, value) in map) {
                 if (s == "check") continue
                 arr.put(JSONObject().put("tier", s[0].toString()).put("name", value))
             }
-            league.getJSONObject("picks").put(u.id, arr)
+            league.picks[u.idLong] = map.entries.filterNot { it.key == "check" }
+                .map { DraftPokemon(it.value as String, it.key[0].toString()) }.toMutableList()
             Command.saveEmolgaJSON()
             tc.sendMessage("Dein Team wurde erfolgreich gespeichert!").queue()
         }, "Die Team-Eingabe wurde abgebrochen.")
@@ -75,8 +78,8 @@ class PrismaTeamCommand : PrivateCommand("prismateam") {
     }
 
     override fun process(e: MessageReceivedEvent) {
-        val picks = Command.emolgaJSON.getJSONObject("drafts").createOrGetJSON("Prisma").createOrGetJSON("picks")
-        if (picks.has(e.author.id)) {
+        val picks = Emolga.get.league("Prisma").picks
+        if (e.author.idLong in picks) {
             e.channel.sendMessage("Du hast dein Team bereits eingegeben! Wenn du wirklich einen Fehler gemacht haben solltest, melde dich bitte bei Flo.")
                 .queue()
             return

@@ -9,4 +9,18 @@ enum class DraftTimer constructor(val timerInfo: TimerInfo, val delayInMins: Int
             .add(12, 22, Calendar.MONDAY, Calendar.TUESDAY, Calendar.WEDNESDAY, Calendar.THURSDAY, Calendar.FRIDAY)
     ),
     NDS(TimerInfo().set(12, 22), 180);
+
+    fun calc(): Long {
+        val cal = Calendar.getInstance()
+        val currentTimeMillis = cal.timeInMillis
+        var elapsedMinutes = delayInMins
+        while (elapsedMinutes > 0) {
+            val p = timerInfo[cal[Calendar.DAY_OF_WEEK]]
+            val hour = cal[Calendar.HOUR_OF_DAY]
+            if (hour >= p.from && hour < p.to) elapsedMinutes-- else if (elapsedMinutes == delayInMins) cal[Calendar.SECOND] =
+                0
+            cal.add(Calendar.MINUTE, 1)
+        }
+        return cal.timeInMillis - currentTimeMillis
+    }
 }

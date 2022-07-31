@@ -8,7 +8,7 @@ class ControlCentralButton : ButtonListener("controlcentral") {
     override fun process(e: ButtonInteractionEvent, name: String) {
         var b = true
         when (name) {
-            "ej" -> Command.emolgaJSON = Command.load("./emolgadata.json")
+            "ej" -> /*Command.emolgaJSON = Command.load("./emolgadata.json")*/Command.loadEmolgaJSON()
             "saveemolgajson" -> Command.saveEmolgaJSON()
             else -> b = false
         }

@@ -11,4 +11,8 @@ class StringColumn(name: String, manager: DataManager) : SQLColumn<String?>(name
     override fun getValue(set: ResultSet): String {
         return set.getString(name)
     }
+
+    fun getNullableValue(set: ResultSet): String? {
+        return set.getString(name)
+    }
 }

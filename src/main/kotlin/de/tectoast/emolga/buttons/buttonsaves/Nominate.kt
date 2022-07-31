@@ -3,7 +3,8 @@ package de.tectoast.emolga.buttons.buttonsaves
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.commands.indexedBy
-import de.tectoast.jsolf.JSONObject
+import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.json.Emolga
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage_
 import dev.minn.jda.ktx.messages.into
@@ -13,42 +14,42 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 
-class Nominate(val mons: List<JSONObject>) {
-    private val nominated: MutableList<JSONObject>
-    private val notNominated: MutableList<JSONObject>
+class Nominate(val mons: List<DraftPokemon>) {
+    private val nominated: MutableList<DraftPokemon>
+    private val notNominated: MutableList<DraftPokemon>
 
     init {
         nominated = ArrayList(mons)
         notNominated = ArrayList(mons.size)
     }
 
-    fun unnominate(name: String) = mons.first { it.getString("name") == name }.let {
+    fun unnominate(name: String) = mons.first { it.name == name }.let {
         nominated.remove(it)
         notNominated.add(it)
     }
 
 
-    fun nominate(name: String) = mons.first { it.getString("name") == name }.let {
+    fun nominate(name: String) = mons.first { it.name == name }.let {
         notNominated.remove(it)
         nominated.add(it)
     }
 
-    private fun isNominated(s: String) = nominated.any { it.getString("name") == s }
+    private fun isNominated(s: String) = nominated.any { it.name == s }
 
     companion object {
         private val tiers = listOf("S", "A", "B")
     }
 
-    private fun List<JSONObject>.toMessage() = this
-        .sortedWith(compareBy({ it.getString("tier").indexedBy(tiers) }, { it.getString("name") }))
+    private fun List<DraftPokemon>.toMessage() = this
+        .sortedWith(compareBy({ it.tier.indexedBy(tiers) }, { it.name }))
         .joinToString("\n") {
-            "${it.getString("tier")}: ${it.getString("name")}"
+            "${it.tier}: ${it.name}"
         }
 
-    private fun List<JSONObject>.toJSON() = this
-        .sortedWith(compareBy({ it.getString("tier").indexedBy(tiers) }, { it.getString("name") }))
+    private fun List<DraftPokemon>.toJSON() = this
+        .sortedWith(compareBy({ it.tier.indexedBy(tiers) }, { it.name }))
         .joinToString(";") {
-            it.getString("name")
+            it.name
         }
 
     fun generateDescription(): String {
@@ -64,7 +65,7 @@ class Nominate(val mons: List<JSONObject>) {
 
         e.editMessageEmbeds(
             Embed(title = "Nominierungen", color = embedColor, description = generateDescription())
-        ).setActionRows(Command.getActionRows(mons.map { it.getString("name") }) {
+        ).setActionRows(Command.getActionRows(mons.map { it.name }) {
             if (isNominated(it)) Button.primary(
                 "nominate;$it", it
             ) else Button.secondary("nominate;$it", it)
@@ -83,7 +84,7 @@ class Nominate(val mons: List<JSONObject>) {
 
     fun finish(e: ButtonInteractionEvent, now: Boolean) {
         if (now) {
-            val nom = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS").getJSONObject("nominations")
+            /*val nom = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS").getJSONObject("nominations")
             val day = nom.getJSONObject(nom.getInt("currentDay"))
             if (day.has(e.user.id)) {
                 e.reply("Du hast dein Team bereits für diesen Spieltag nominiert!").queue()
@@ -91,7 +92,17 @@ class Nominate(val mons: List<JSONObject>) {
             }
             day.put(e.user.id, buildJSONString())
             Command.saveEmolgaJSON()
-            e.reply("Deine Nominierung wurde gespeichert!").queue()
+            e.reply("Deine Nominierung wurde gespeichert!").queue()*/
+            val nom = Emolga.get.nds().nominations
+            val day = nom.current()
+            val uid = e.user.idLong
+            if (uid in day) {
+                e.reply_("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!").queue()
+                return
+            }
+            day[uid] = buildJSONString()
+            Command.saveEmolgaJSON()
+            e.reply_("Deine Nominierung wurde gespeichert!").queue()
             return
         }
         if (nominated.size != 11) {

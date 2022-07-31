@@ -49,7 +49,7 @@ abstract class GenericCommandEvent {
         jda = e.jda
         args = e.options.map { it.asString }.toMutableList()
         mentionedChannels =
-            e.options.filter { it.type == OptionType.CHANNEL }.map { it.asMessageChannel as TextChannel }
+            e.options.filter { it.type == OptionType.CHANNEL }.map { it.asChannel.asTextChannel() }
         mentionedMembers = e.options.filter { it.type == OptionType.USER }.map { it.asMember }
         mentionedRoles = e.options.filter { it.type == OptionType.ROLE }.map { it.asRole }
         argsLength = args.size

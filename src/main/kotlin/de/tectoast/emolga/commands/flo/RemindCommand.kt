@@ -17,7 +17,7 @@ class RemindCommand : Command("remind", "Setzt einen Reminder auf", CommandCateg
             val message = split[2]
             CalendarManager.insertNewEntry(message, Timestamp(expires / 1000 * 1000))
             scheduleCalendarEntry(expires, message)
-            e.message.delete().queue()
+            e.deleteMessage()
             e.jda.getTextChannelById(CALENDAR_TCID)!!.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()
         } catch (ex: NumberFormatException) {
             e.textChannel.sendMessage("Das ist keine valide Zeitangabe!").queue()

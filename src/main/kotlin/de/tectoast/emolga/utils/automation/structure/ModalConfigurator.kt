@@ -47,7 +47,7 @@ class ModalConfigurator private constructor() {
                 ).queue()
                 return
             }
-            o[id] = mappedValue.toString().toLongOrNull() ?: run {
+            o[id] = mappedValue.toString().toIntOrNull() ?: run {
                 Command.sendToMe("$mappedValue in $id is not a long")
                 return
             }

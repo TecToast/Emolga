@@ -3,6 +3,7 @@ package de.tectoast.emolga.bot
 import de.tectoast.emolga.buttons.ButtonListener
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.Command.Companion.replayAnalysis
+import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PrivateCommand
 import de.tectoast.emolga.commands.PrivateCommands
 import de.tectoast.emolga.commands.music.custom.WirklichGuteMusikCommand
@@ -34,6 +35,7 @@ import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceMoveEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
@@ -50,6 +52,36 @@ object EmolgaListener : ListenerAdapter() {
         jda.listener<ModalInteractionEvent> { ModalListener.check(it) }
         jda.listener<SelectMenuInteractionEvent> { MenuListener.check(it) }
         jda.listener<MessageReceivedEvent> { messageReceived(it) }
+        jda.listener<SlashCommandInteractionEvent> { slashCommandInteractionEvent(it) }
+    }
+
+    private suspend fun slashCommandInteractionEvent(e: SlashCommandInteractionEvent) {
+        val command = Command.byName(e.name) ?: return
+        val u = e.user
+        val tco = e.channel.asTextChannel()
+        try {
+            GuildCommandEvent(command, e).execute()
+        } catch (ex: Command.MissingArgumentException) {
+            val arg = ex.argument!!
+            e.reply(
+                arg.customErrorMessage
+                    ?: """Das benötigte Argument `${arg.name}`, was eigentlich ${Command.buildEnumeration(arg.type.getName())} sein müsste, ist nicht vorhanden!
+Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help ${command.name}`.""".trimIndent()
+            )
+            if (u.idLong != FLOID) {
+                Command.sendToMe("MissingArgument " + tco.asMention + " Server: " + tco.guild.name)
+            }
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            e.hook.sendMessage(
+                """
+    Es ist ein Fehler beim Ausführen des Commands aufgetreten!
+    Wenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo/TecToast.
+    ${command.getHelp(e.guild)}${if (u.idLong == FLOID) "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" else ""}
+    """.trimIndent()
+            ).queue()
+        }
+
     }
 
     override fun onGuildMemberJoin(e: GuildMemberJoinEvent) {

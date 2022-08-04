@@ -18,7 +18,7 @@ class Emolga(
     val movefilter: Map<String, List<String>>,
     val mutedroles: Map<Long, Long>,
     val customcommands: MutableMap<String, CCData>,
-    val configuration: MutableMap<Long, MutableMap<String, MutableMap<String, Long>>>,
+    val configuration: MutableMap<Long, MutableMap<String, MutableMap<String, Int>>>,
     val asls11nametoid: List<Long>
 ) {
     fun league(name: String) = drafts[name]!!

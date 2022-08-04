@@ -9,26 +9,14 @@ import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
 
 object ModalConfigurators {
-    private val DEXQUIZ = ModalConfigurator.create()
-        .id("dexquiz")
-        .title("DexQuiz (Preis von -1 bedeutet deaktiviert)")
-        .actionRows(
+    private val DEXQUIZ =
+        ModalConfigurator.create().id("dexquiz").title("DexQuiz (Preis von -1 bedeutet deaktiviert)").actionRows(
             TextInput.create(
                 "totalbudget", "Größe an Tipp-Budget", TextInputStyle.SHORT
             ).setPlaceholder(Command.DEXQUIZ_BUDGET.toString()).setRequired(false).build()
-        )
-        .actionRows(buildActionRows())
-        .mapper(
-            { s: String ->
-                try {
-                    val i = s.toInt()
-                    if (i < -1) return@mapper null
-                    return@mapper i
-                } catch (e: NumberFormatException) {
-                    return@mapper null
-                }
-            },
-            "totalbudget", *DexQuizTip.values().map { it.name }.toTypedArray()
+        ).actionRows(buildActionRows()).mapper({ str ->
+            str.toIntOrNull()?.let { if (it < -1) null else it }
+        }, "totalbudget", *DexQuizTip.values().map { it.name }.toTypedArray()
         )
 
     val configurations: Map<String, ModalConfiguration> = mapOf(

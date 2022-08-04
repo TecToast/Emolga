@@ -50,12 +50,12 @@ object EmolgaMain {
     fun start() {
         emolgajda = default(Command.tokens.getString("discord")) {
             intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
-            addEventListeners(EmolgaListener, SlashListener())
+            addEventListeners(EmolgaListener)
             setMemberCachePolicy(MemberCachePolicy.ALL)
         }
         flegmonjda = default(Command.tokens.getString("discordflegmon")) {
             intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
-            addEventListeners(EmolgaListener, SlashListener())
+            addEventListeners(EmolgaListener)
             setMemberCachePolicy(MemberCachePolicy.ALL)
         }
         initializeASLS11(emolgajda)

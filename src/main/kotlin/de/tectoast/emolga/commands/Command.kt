@@ -1101,7 +1101,10 @@ abstract class Command(
             }
 
             override fun validate(str: String, vararg params: Any): Any? {
-                val t = if (params[0] === Language.GERMAN) getGerName(str, false) else getEnglNameWithType(str)
+                val t = if (params.isEmpty() || params[0] === Language.GERMAN) getGerName(
+                    str,
+                    false
+                ) else getEnglNameWithType(str)
                 if (t.isEmpty) return null
                 if (t.translation == "Psychic" || t.otherLang == "Psychic") {
                     if (this == TYPE) {

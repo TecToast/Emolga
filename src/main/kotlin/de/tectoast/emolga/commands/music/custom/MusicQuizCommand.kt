@@ -31,7 +31,7 @@ class MusicQuizCommand :
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val vc = e.jda.getVoiceChannelById(e.arguments.getID("vid"))
         vc!!.guild.audioManager.openAudioConnection(vc)
         val musicManager = getGuildAudioPlayer(vc.guild)
@@ -49,7 +49,7 @@ class MusicQuizCommand :
                         continue
                     }
                     if (i < 20) builder.append(audioTrack!!.info.title).append("\n")
-                    play(vc.guild, musicManager, audioTrack)
+                    playFlo(vc.guild, musicManager, audioTrack, e.member)
                     i++
                 }
                 e.reply("Loaded MusicQuiz!")

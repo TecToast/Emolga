@@ -17,6 +17,6 @@ class PlayCommand : MusicCommand("p", "Fügt das Lied der Queue hinzu") {
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) =
+    override suspend fun process(e: GuildCommandEvent) =
         loadAndPlay(e.textChannel, e.arguments.getText("video"), e.member, null)
 }

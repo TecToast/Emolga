@@ -34,7 +34,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
         slash(false, Constants.FPLID, Constants.NDSID)
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val msg: String
         var sc: SlashCommandInteractionEvent? = null
         if (e.isSlash) {

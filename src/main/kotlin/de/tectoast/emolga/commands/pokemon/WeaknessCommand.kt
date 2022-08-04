@@ -35,7 +35,7 @@ class WeaknessCommand :
         resistances["Ice"] = java.util.Map.of("Thick Fat", -1)
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val gerName = args.getTranslation("stuff")
         val name = gerName.translation
@@ -68,7 +68,7 @@ class WeaknessCommand :
                     x0.add(immunities[type]!![0] + " **(wegen " + abilities[0] + ")**")
                 } else {
                     val abii = checkAbiImmunity(type, abilities)
-                    if (abii != null && abii.isNotBlank()) {
+                    if (!abii.isNullOrBlank()) {
                         immuneAbi[abii] = (Translation.Type.TYPE.validate(
                             type,
                             Translation.Language.GERMAN,

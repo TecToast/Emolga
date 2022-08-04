@@ -29,7 +29,7 @@ class AddNickCommand : Command(
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val nickorig = args.getText("nick")
         val nick: String = nickorig.lowercase()

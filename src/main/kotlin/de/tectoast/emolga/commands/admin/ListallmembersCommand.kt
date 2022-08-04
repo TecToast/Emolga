@@ -9,7 +9,7 @@ class ListallmembersCommand : Command("listallmembers", "Zeigt alle Mitglieder d
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         tco.guild.loadMembers().onSuccess { list ->
             e.reply(list.joinToString("\n") { it.effectiveName })

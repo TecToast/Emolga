@@ -13,7 +13,7 @@ class NextBirthdayCommand : PepeCommand("nextbirthday", "Zeigt die naheliegende 
         aliases.add("nextbirthdays")
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val curr = Calendar.getInstance()
         curr[Calendar.HOUR_OF_DAY] = 0

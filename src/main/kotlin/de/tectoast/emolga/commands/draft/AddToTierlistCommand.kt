@@ -17,7 +17,7 @@ class AddToTierlistCommand :
         setCustomPermissions(PermissionPreset.fromRole(702233714360582154L))
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val id = e.guild.id
         val o = load("./Tierlists/$id.json")
         val mon = e.arguments.getText("mon")

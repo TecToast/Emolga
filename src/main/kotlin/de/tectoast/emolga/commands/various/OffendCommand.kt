@@ -13,7 +13,7 @@ class OffendCommand : Command("offend", "Offended Leute", CommandCategory.Variou
     }
 
     @Throws(Exception::class)
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val person = e.arguments.getText("person")
         when (person.lowercase()) {
             "emre" -> e.reply("Emre stinkt :^)")

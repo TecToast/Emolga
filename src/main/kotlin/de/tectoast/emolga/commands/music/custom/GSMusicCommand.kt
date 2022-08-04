@@ -8,6 +8,6 @@ class GSMusicCommand : MusicCommand("gsmusic", "Spielt die GamerSquad Playlist a
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) =
+    override suspend fun process(e: GuildCommandEvent) =
         manageCustomPlaylist("https://www.youtube.com/playlist?list=PLrwrdAXSpHC5Mr2zC-q_dWKONVybk6JO6", music, e)
 }

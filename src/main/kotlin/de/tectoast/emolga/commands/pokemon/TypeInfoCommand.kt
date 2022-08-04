@@ -13,7 +13,7 @@ class TypeInfoCommand : Command("typeinfo", "Zeigt dir Informationen über einen
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tt = e.arguments.getTranslation("type")
         val type = tt.translation
         val json = typeJSON

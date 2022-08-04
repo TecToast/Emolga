@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class CounterButton : ButtonListener("counter") {
-    override fun process(e: ButtonInteractionEvent, name: String) {
+    override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val split = name.split(":")
         val method = split[0]
         val mem = e.member!!

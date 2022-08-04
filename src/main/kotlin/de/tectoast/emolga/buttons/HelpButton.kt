@@ -8,7 +8,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import java.awt.Color
 
 class HelpButton : ButtonListener("help") {
-    override fun process(e: ButtonInteractionEvent, name: String) {
+    override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val g = e.guild!!
         val mem = e.member!!
         val c = CommandCategory.byName(name)!!

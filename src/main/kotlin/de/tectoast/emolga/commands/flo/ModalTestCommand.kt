@@ -14,7 +14,7 @@ class ModalTestCommand : Command("modaltest", "Testet Modals", CommandCategory.F
         slash(true)
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val email = TextInput.create("email", "Email", TextInputStyle.SHORT)
             .setPlaceholder("Enter your E-mail")
             .setMinLength(10)

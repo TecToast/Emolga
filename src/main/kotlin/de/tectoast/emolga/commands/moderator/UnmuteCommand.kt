@@ -12,7 +12,7 @@ class UnmuteCommand : Command("unmute", "Entmutet den User", CommandCategory.Mod
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         unmute(e.textChannel, e.arguments.getMember("user"))
     }
 }

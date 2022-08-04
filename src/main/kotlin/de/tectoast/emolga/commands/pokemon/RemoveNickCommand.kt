@@ -13,6 +13,6 @@ class RemoveNickCommand : Command("removenick", "Removed den Nick", CommandCateg
         setCustomPermissions(PermissionPreset.fromIDs(452575044070277122L, 535095576136515605L))
     }
 
-    override fun process(e: GuildCommandEvent) =
+    override suspend fun process(e: GuildCommandEvent) =
         e.reply(if (TranslationsManager.removeNick(e.arguments.getText("nick"))) "Dieser Nickname wurde entfernt!" else "Dieser Nickname existiert nicht!")
 }

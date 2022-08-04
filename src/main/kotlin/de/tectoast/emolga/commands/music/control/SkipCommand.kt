@@ -10,7 +10,7 @@ class SkipCommand : MusicCommand("s", "Skippt den derzeitigen Track") {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         skipTrack(e.textChannel)
     }
 }

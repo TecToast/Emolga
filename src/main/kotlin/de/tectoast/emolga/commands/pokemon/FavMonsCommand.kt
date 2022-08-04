@@ -9,7 +9,7 @@ class FavMonsCommand : Command("favmons", "Erstelle eine Liste deiner Fav Mons",
         wip()
     }
 
-    override fun process(e: GuildCommandEvent) {}
+    override suspend fun process(e: GuildCommandEvent) {}
 
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()

@@ -11,7 +11,7 @@ class TeamCommand : Command("team", "lol", CommandCategory.Various) {
         setCustomPermissions(PermissionPreset.CULT)
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         e.guild.loadMembers().onSuccess {
             val list = ArrayList<Member>()
             for (mem in it) {

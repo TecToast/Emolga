@@ -14,7 +14,7 @@ class TierCommand :
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val pkmn = getDraftGerName(e.arguments.getText("mon")).translation
         val tierlist = Tierlist.getByGuild(e.guild.id) ?: run {
             e.reply("Auf diesem Server ist keine Tierliste hinterlegt! Wenn du dies tun möchtest, melde dich bei Flo/TecToast.")

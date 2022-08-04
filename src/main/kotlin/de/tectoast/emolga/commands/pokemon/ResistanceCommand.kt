@@ -19,7 +19,7 @@ class ResistanceCommand :
         disable()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val type = e.arguments.getTranslation("type")
         if (type.isFromType(Translation.Type.TYPE)) {
             val json = typeJSON

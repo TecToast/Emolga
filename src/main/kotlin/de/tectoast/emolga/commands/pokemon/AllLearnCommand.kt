@@ -17,7 +17,7 @@ class AllLearnCommand : Command(
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val atk = args.getTranslation("move").translation
         val str = StringBuilder(2 shl 5)

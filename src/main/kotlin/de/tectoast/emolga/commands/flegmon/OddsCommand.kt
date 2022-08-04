@@ -8,7 +8,7 @@ class OddsCommand : PepeCommand("odds", "Bin zu faul Help Nachrichten zu schreib
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val uid = e.author.idLong
         if (uid == 322755315953172485) {
             e.reply("hm, joa, das sind zu viele Nullen nach dem Komma zum zählen :c")

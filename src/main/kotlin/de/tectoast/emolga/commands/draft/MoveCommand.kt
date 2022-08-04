@@ -19,7 +19,7 @@ class MoveCommand : Command(
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val memberr = e.member
         val member = memberr.idLong
         e.textChannel

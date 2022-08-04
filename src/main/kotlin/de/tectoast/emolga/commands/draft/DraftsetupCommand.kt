@@ -35,7 +35,7 @@ class DraftsetupCommand : Command("draftsetup", "Startet das Draften der Liga in
         setCustomPermissions(PermissionPreset.fromIDs(297010892678234114L))
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         Emolga.get.league(args.getText("name")).startDraft(
             e.textChannel,

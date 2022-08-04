@@ -6,7 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.sql.managers.MusicGuildsManager
 
 class EnableMusicCommand : Command("enablemusic", "Enabled Musik auf einem Server", CommandCategory.Flo) {
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val id = e.guild.idLong
         MusicGuildsManager.addGuild(id)
         CommandCategory.musicGuilds.add(id)

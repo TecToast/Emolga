@@ -5,7 +5,7 @@ import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class TrainerDataButton : ButtonListener("trainerdata") {
-    override fun process(e: ButtonInteractionEvent, name: String) {
+    override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val dt = Command.trainerDataButtons[e.messageIdLong]
         if (dt == null) {
             e.reply("Dieses Trainer-Data funktioniert nicht mehr, da der Bot seit der Erstellung neugestartet wurde. Bitte ruf den Command nochmal auf :)")

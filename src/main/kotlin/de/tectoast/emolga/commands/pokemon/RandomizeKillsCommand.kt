@@ -10,7 +10,7 @@ class RandomizeKillsCommand : Command("randomizekills", "Randomized die Kills au
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val l: MutableList<Int> = LinkedList()
         val r = Random()
         for (i in 0..5) {

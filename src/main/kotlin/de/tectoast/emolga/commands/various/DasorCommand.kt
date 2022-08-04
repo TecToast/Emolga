@@ -10,7 +10,7 @@ class DasorCommand : Command("dasor", "ist cool", CommandCategory.Various) {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         e.reply(DasorUsageManager.buildMessage())
     }
 }

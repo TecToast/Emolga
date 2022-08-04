@@ -19,7 +19,7 @@ class KickCommand : Command("kick", "Kickt den User", CommandCategory.Moderator)
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         if (!args.has("user")) return
         kick(e.textChannel, e.member, args.getMember("user"), args.getOrDefault("reason", "Nicht angegeben"))

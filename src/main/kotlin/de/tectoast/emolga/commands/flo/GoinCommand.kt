@@ -14,7 +14,7 @@ class GoinCommand : Command("goin", "Spielt das YT-Video im Voice ab", CommandCa
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         loadAndPlay(e.textChannel, args.getText("link"), EmolgaMain.emolgajda.getVoiceChannelById(args.getID("vid"))!!)
     }

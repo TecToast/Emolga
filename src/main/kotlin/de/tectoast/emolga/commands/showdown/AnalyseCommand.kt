@@ -13,7 +13,7 @@ class AnalyseCommand :
         slash()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         analyseReplay(e.arguments.getText("url"), null, tco, null, e.deferReply())
     }

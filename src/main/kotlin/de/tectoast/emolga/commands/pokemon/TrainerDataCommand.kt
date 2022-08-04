@@ -20,7 +20,7 @@ class TrainerDataCommand :
             ).setExample("!trainerdata Skyla").build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val trainer = e.arguments.getTranslation("trainer").translation
         if (trainer == "Tom") {
             e.reply("Kleinstein und Machollo auf Level 11 :) Machollo hat die beste Fähigkeit im Spiel :D")

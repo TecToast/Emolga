@@ -16,7 +16,7 @@ class AddSDNameCommand : Command("addsdname", "Registriert deinen Showdown-Namen
         slash(false, Constants.GILDEID)
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         if (args.has("id") && e.isNotFlo) {
             e.reply("Nur Flo darf den Command mit einer ID verwenden!")

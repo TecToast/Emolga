@@ -20,7 +20,7 @@ class StatusCommand : Command("status", "Setzt den Status eines Encounters", Com
         slash(true, 695943416789598208L)
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val soullink = Emolga.get.soullink
         val args = e.arguments
         val location = eachWordUpperCase(args.getText("location"))

@@ -5,6 +5,8 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.emolga.customcommand.CCData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class CreateCommandCommand : Command("createcommand", "Erstellt einen Command", CommandCategory.Various) {
@@ -24,7 +26,7 @@ class CreateCommandCommand : Command("createcommand", "Erstellt einen Command", 
     }
 
     @Throws(Exception::class)
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val cmdname: String = args.getText("cmdname").lowercase()
         val o = Emolga.get.customcommands
@@ -37,7 +39,9 @@ class CreateCommandCommand : Command("createcommand", "Erstellt einen Command", 
         val cc = CCData()
         if (m.attachments.size > 0) {
             val a = m.attachments[0]
-            file = a.proxy.downloadToFile(File("customcommandimages/" + a.fileName)).get()
+            file = withContext(Dispatchers.IO) {
+                a.proxy.downloadToFile(File("customcommandimages/" + a.fileName)).get()
+            }
             cc.image = file.absolutePath
         }
         if (!args.has("text")) {

@@ -24,7 +24,7 @@ class SmogonCommand : Command("smogon", "Zeigt die vorgeschlagenen Smogon-Sets f
     }
 
     @Throws(IOException::class)
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val args = e.arguments
         val name = args.getTranslation("mon").translation

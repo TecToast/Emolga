@@ -20,7 +20,7 @@ class CanlearnCommand :
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val pokemon = args.getTranslation("mon").translation
         val atk = args.getTranslation("move").translation

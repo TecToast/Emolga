@@ -14,7 +14,7 @@ class ResistedCommand :
         disable()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val type = e.arguments.getTranslation("type")
         val json = typeJSON
         val b = StringBuilder()

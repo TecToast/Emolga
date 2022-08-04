@@ -12,7 +12,7 @@ class BerryCommand : Command("berry", "Zeigt den Namen der Antibeere für diesen
                 .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val ger = e.arguments.getTranslation("type").translation
         val g: String
         val engl: String
@@ -21,6 +21,7 @@ class BerryCommand : Command("berry", "Zeigt den Namen der Antibeere für diesen
                 g = "Koakobeere"
                 engl = "Occa Berry"
             }
+
             "Wasser" -> {
                 g = "Foepasbeere"
                 engl = "Passho Berry"

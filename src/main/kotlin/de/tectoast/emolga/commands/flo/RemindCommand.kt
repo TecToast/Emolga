@@ -10,7 +10,7 @@ import de.tectoast.emolga.utils.sql.managers.CalendarManager
 import java.sql.Timestamp
 
 class RemindCommand : Command("remind", "Setzt einen Reminder auf", CommandCategory.Flo, Constants.MYSERVER) {
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         try {
             val split = WHITESPACES_SPLITTER.split(e.message!!.contentRaw, 3)
             val expires = parseCalendarTime(split[1])

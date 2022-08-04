@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter
 
 class SlashListener : ListenerAdapter() {
     override fun onSlashCommandInteraction(e: SlashCommandInteractionEvent) {
-        val command = Command.byName(e.name)!!
+        val command = Command.byName(e.name) ?: return
         val u = e.user
         val tco = e.channel.asTextChannel()
         try {

@@ -5,7 +5,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 class NominateButton : ButtonListener("nominate") {
-    override fun process(e: ButtonInteractionEvent, name: String) {
+    override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val n = Command.nominateButtons[e.messageIdLong]
         if (n == null) {
             e.reply("Diese Nachricht ist veraltet! Nutze erneut `!nominate`!").queue()

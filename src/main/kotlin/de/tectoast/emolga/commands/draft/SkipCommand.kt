@@ -18,7 +18,7 @@ class SkipCommand : Command(
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val ev = DraftEvent(e)
         val d = League.byChannel(e.textChannel, e.member.idLong, ev) ?: return
         if (!d.isSwitchDraft) {

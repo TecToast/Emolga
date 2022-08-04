@@ -45,7 +45,7 @@ class WhatLearnCommand : Command(
         aliases.add("howlearn")
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val mon = toSDName(args.getTranslation("mon").translation + args.getOrDefault("form", ""))
         val type = args.getText("type")

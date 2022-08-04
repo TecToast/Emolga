@@ -41,7 +41,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
         ).setExample("!dt Shiny Primarene").build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         try {
             val args = e.arguments

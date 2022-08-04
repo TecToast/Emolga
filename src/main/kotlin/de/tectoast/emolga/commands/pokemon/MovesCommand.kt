@@ -23,7 +23,7 @@ class MovesCommand : Command(
             .setNoCheck(true).build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val m = e.message!!
         val msg = m.contentDisplay
         val args = e.arguments

@@ -13,7 +13,7 @@ class StatisticsCommand :
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         e.reply(
             Embed(title = "Anzahl der Nutzung", color = embedColor, description = StatisticsManager.buildDescription(e))
         )

@@ -12,18 +12,18 @@ abstract class ButtonListener(name: String) {
     }
 
     @Throws(Exception::class)
-    abstract fun process(e: ButtonInteractionEvent, name: String)
+    abstract suspend fun process(e: ButtonInteractionEvent, name: String)
 
     companion object {
         val listener: MutableMap<String, ButtonListener> = HashMap()
         private val logger = LoggerFactory.getLogger(ButtonListener::class.java)
         private val NULL: ButtonListener = object : ButtonListener("NULL") {
-            override fun process(e: ButtonInteractionEvent, name: String) {
+            override suspend fun process(e: ButtonInteractionEvent, name: String) {
                 Command.sendToMe("WRONG BUTTON KEY " + e.componentId)
             }
         }
 
-        fun check(e: ButtonInteractionEvent) {
+        suspend fun check(e: ButtonInteractionEvent) {
             logger.info("e.getComponentId() = {}", e.componentId)
             val split = e.componentId.split(";")
             try {

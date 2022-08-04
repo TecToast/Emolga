@@ -3,6 +3,8 @@ package de.tectoast.emolga.utils.showdown
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.pokemon.WeaknessCommand.Companion.getEffectiveness
 import de.tectoast.emolga.utils.sql.managers.ReplayCheckManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import net.dv8tion.jda.api.entities.Message
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
@@ -54,13 +56,15 @@ class Analysis(private val link: String, m: Message?) {
     }
 
     @Throws(IOException::class)
-    fun analyse(): Array<Player> {
+    suspend fun analyse(): Array<Player> {
         logger.info("Reading URL... {}", link)
         val game = BufferedReader(
             InputStreamReader(
-                URL(
-                    "$link.log"
-                ).openConnection().getInputStream()
+                withContext(Dispatchers.IO) {
+                    URL(
+                        "$link.log"
+                    ).openConnection().getInputStream()
+                }
             )
         ).lines().toList()
         logger.info("Starting analyse!")

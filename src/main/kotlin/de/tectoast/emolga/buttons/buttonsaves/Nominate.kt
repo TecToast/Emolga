@@ -118,7 +118,7 @@ class Nominate(val mons: List<DraftPokemon>) {
                     Button.success("nominate;FINISHNOW", "Ja"),
                     Button.danger("nominate;CANCEL", "Nein")
                 ).into()
-            )
+            ).queue()
         }
     }
 }

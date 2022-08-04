@@ -16,10 +16,10 @@ class AllowCommand : Command(
             .setExample("!allow @Flo").build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val drafts = Emolga.get.drafts
         val gid = e.guild.idLong
-        (if (gid == Constants.NDSID) Emolga.get.nds() else drafts.values.firstOrNull() { it.guild == gid })?.takeIf { e.author.idLong in it.picks }
+        (if (gid == Constants.NDSID) Emolga.get.nds() else drafts.values.firstOrNull { it.guild == gid })?.takeIf { e.author.idLong in it.picks }
             ?.let { l ->
                 val mem = e.arguments.get<Member>("user")
                 val id = mem.idLong

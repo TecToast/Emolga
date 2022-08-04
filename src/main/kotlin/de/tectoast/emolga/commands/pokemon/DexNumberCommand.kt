@@ -13,7 +13,7 @@ class DexNumberCommand :
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val data = dataJSON
         val num = e.arguments.getInt("num")
         data.keySet().asSequence().map { data.getJSONObject(it) }.firstOrNull { it.getInt(num) == num }

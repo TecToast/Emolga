@@ -8,7 +8,7 @@ class RickRollCommand : MusicCommand("rickroll", ":^)") {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) =
+    override suspend fun process(e: GuildCommandEvent) =
         loadAndPlay(
             e.textChannel,
             "https://www.youtube.com/watch?v=dQw4w9WgXcQ",

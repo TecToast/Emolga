@@ -20,7 +20,7 @@ class TipCommand : Command("tip", "Zeigt einen Tipp für den derzeitigen Eintrag
         slash(true, 918865966136455249L, Constants.FPLID, Constants.CULTID)
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val quiz = DexQuiz.getByTC(tco)
         if (quiz != null) {

@@ -8,7 +8,7 @@ class LoopCommand : MusicCommand("loop", "Loopt den derzeitigen Track oder beend
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         e.reply("Loop wurde ${if (getGuildAudioPlayer(e.guild).scheduler.toggleLoop()) "" else "de"}aktiviert!")
     }
 }

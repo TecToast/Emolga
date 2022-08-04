@@ -20,7 +20,7 @@ class WarnsCommand : Command("warns", "Zeigt alle Verwarnungen des Users an", Co
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val mem = e.arguments.getMember("user")
         val str = WarnsManager.getWarnsFrom(mem.idLong, e.guild.idLong)
         if (str.isEmpty()) {

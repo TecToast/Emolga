@@ -8,7 +8,7 @@ class FlegmonGehBitteCommand : PepeCommand("flegmongehbitte", "Sagt Flegmon, das
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val am = e.guild.audioManager
         if (am.isConnected) {
             am.closeAudioConnection()

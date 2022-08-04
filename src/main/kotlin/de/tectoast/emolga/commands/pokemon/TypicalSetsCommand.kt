@@ -18,7 +18,7 @@ class TypicalSetsCommand :
         slash()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         e.reply(TypicalSets.buildPokemon(e.arguments.getText("mon")))
     }
 }

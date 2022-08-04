@@ -2,11 +2,9 @@ package de.tectoast.emolga.utils
 
 import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.commands.Command
+import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import java.io.IOException
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 @Suppress("unused")
@@ -91,9 +89,7 @@ class RequestBuilder
 
     fun addColumn(range: String?, body: List<Any>, vararg raw: Boolean): RequestBuilder {
         return addAll(
-            range,
-            body.map { listOf(it) },
-            *raw
+            range, body.map { listOf(it) }, *raw
         )
     }
 
@@ -104,8 +100,7 @@ class RequestBuilder
      * @return this RequestBuilder
      */
     fun addBatch(vararg requests: Request): RequestBuilder {
-        requests.map { MyRequest().setRequest(it) }
-            .forEach { this.requests.add(it) }
+        requests.map { MyRequest().setRequest(it) }.forEach { this.requests.add(it) }
         return this
     }
 
@@ -115,10 +110,8 @@ class RequestBuilder
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
             Request().setUpdateCells(
-                UpdateCellsRequest()
-                    .setRange(buildGridRange(range, sheetId))
-                    .setFields("userEnteredFormat.backgroundColor")
-                    .setRows(
+                UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
+                    .setFields("userEnteredFormat.backgroundColor").setRows(
                         Command.getCellsAsRowData(
                             CellData().setUserEnteredFormat(CellFormat().setBackgroundColor(c)),
                             getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
@@ -139,16 +132,13 @@ class RequestBuilder
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
             Request().setUpdateCells(
-                UpdateCellsRequest()
-                    .setRange(buildGridRange(range, sheetId))
-                    .setFields("note")
-                    .setRows(
-                        Command.getCellsAsRowData(
-                            CellData().setNote(note),
-                            getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
-                            getRowFromRange(s2) - getRowFromRange(s1) + 1
-                        )
+                UpdateCellsRequest().setRange(buildGridRange(range, sheetId)).setFields("note").setRows(
+                    Command.getCellsAsRowData(
+                        CellData().setNote(note),
+                        getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
+                        getRowFromRange(s2) - getRowFromRange(s1) + 1
                     )
+                )
             )
         )
     }
@@ -159,10 +149,8 @@ class RequestBuilder
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
             Request().setUpdateCells(
-                UpdateCellsRequest()
-                    .setRange(buildGridRange(range, sheetId))
-                    .setFields("userEnteredFormat.horizontalAlignment")
-                    .setRows(
+                UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
+                    .setFields("userEnteredFormat.horizontalAlignment").setRows(
                         Command.getCellsAsRowData(
                             CellData().setUserEnteredFormat(CellFormat().setHorizontalAlignment(alignment)),
                             getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
@@ -179,10 +167,8 @@ class RequestBuilder
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
             Request().setUpdateCells(
-                UpdateCellsRequest()
-                    .setRange(buildGridRange(range, sheetId))
-                    .setFields("userEnteredFormat.verticalAlignment")
-                    .setRows(
+                UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
+                    .setFields("userEnteredFormat.verticalAlignment").setRows(
                         Command.getCellsAsRowData(
                             CellData().setUserEnteredFormat(CellFormat().setVerticalAlignment(alignment)),
                             getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
@@ -199,10 +185,8 @@ class RequestBuilder
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
             Request().setUpdateCells(
-                UpdateCellsRequest()
-                    .setRange(buildGridRange(range, sheetId))
-                    .setFields("userEnteredFormat.textFormat.fontFamily")
-                    .setRows(
+                UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
+                    .setFields("userEnteredFormat.textFormat.fontFamily").setRows(
                         Command.getCellsAsRowData(
                             CellData().setUserEnteredFormat(CellFormat().setTextFormat(TextFormat().setFontFamily(font))),
                             getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
@@ -219,10 +203,8 @@ class RequestBuilder
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
             Request().setUpdateCells(
-                UpdateCellsRequest()
-                    .setRange(buildGridRange(range, sheetId))
-                    .setFields("userEnteredFormat.textFormat.strikethrough")
-                    .setRows(
+                UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
+                    .setFields("userEnteredFormat.textFormat.strikethrough").setRows(
                         Command.getCellsAsRowData(
                             CellData().setUserEnteredFormat(
                                 CellFormat().setTextFormat(
@@ -249,10 +231,8 @@ class RequestBuilder
         val s2 = if (split.size == 1) s1 else split[1]
         return addBatch(
             Request().setUpdateCells(
-                UpdateCellsRequest()
-                    .setRange(buildGridRange(range, sheetId))
-                    .setFields("userEnteredFormat.textFormat.foregroundColor")
-                    .setRows(
+                UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
+                    .setFields("userEnteredFormat.textFormat.foregroundColor").setRows(
                         Command.getCellsAsRowData(
                             CellData().setUserEnteredFormat(CellFormat().setTextFormat(TextFormat().setForegroundColor(c))),
                             getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
@@ -268,14 +248,11 @@ class RequestBuilder
     }
 
     private val userEntered: List<ValueRange>
-        get() = requests.filter { it.valueInputOption == ValueInputOption.USER_ENTERED }
-            .map { it.build() }
+        get() = requests.filter { it.valueInputOption == ValueInputOption.USER_ENTERED }.map { it.build() }
     private val raw: List<ValueRange>
-        get() = requests.filter { it.valueInputOption == ValueInputOption.RAW }
-            .map { it.build() }
+        get() = requests.filter { it.valueInputOption == ValueInputOption.RAW }.map { it.build() }
     private val batch: List<Request?>
-        get() = requests.filter { it.valueInputOption == ValueInputOption.BATCH }
-            .map { it.buildBatch() }
+        get() = requests.filter { it.valueInputOption == ValueInputOption.BATCH }.map { it.buildBatch() }
 
     /**
      * Executes the request to the specified google sheet
@@ -293,78 +270,70 @@ class RequestBuilder
         val raw = raw
         val batch = batch
         val service = Google.sheetsService
-        val userEnteredFuture = CompletableFuture<Any?>()
-        val rawFuture = CompletableFuture<Any?>()
-        val batchFuture = CompletableFuture<Any?>()
-        if (!onlyBatch) Thread({
-            if (userentered.isNotEmpty()) {
-                if (!suppressMessages) for (i in userentered.indices) {
-                    val range = userentered[i]
-                    logger.info("{}: {} -> {}", i, range.range, range.getValues())
-                }
-                try {
-                    service!!.spreadsheets().values().batchUpdate(
-                        sid,
-                        BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")
-                    ).execute()
-                    if (additionalSheets != null) {
-                        for (sidd in additionalSheets!!) {
-                            service.spreadsheets().values().batchUpdate(
-                                sidd,
-                                BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")
+        val job = scope.launch {
+            if (!onlyBatch) {
+                launch {
+                    if (userentered.isNotEmpty()) {
+                        if (!suppressMessages) for (i in userentered.indices) {
+                            val range = userentered[i]
+                            logger.info("{}: {} -> {}", i, range.range, range.getValues())
+                        }
+                        try {
+                            service!!.spreadsheets().values().batchUpdate(
+                                sid, BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")
                             ).execute()
+                            additionalSheets?.forEach {
+                                service.spreadsheets().values().batchUpdate(
+                                    it,
+                                    BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")
+                                ).execute()
+                            }
+                        } catch (e: IOException) {
+                            e.printStackTrace()
+                            Command.sendStacktraceToMe(e)
                         }
                     }
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                    Command.sendStacktraceToMe(e)
+                }
+                launch {
+                    if (raw.isNotEmpty()) {
+                        try {
+                            service!!.spreadsheets().values()
+                                .batchUpdate(sid, BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW"))
+                                .execute()
+                            additionalSheets?.forEach {
+                                service.spreadsheets().values().batchUpdate(
+                                    it, BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW")
+                                ).execute()
+                            }
+                        } catch (e: IOException) {
+                            e.printStackTrace()
+                            Command.sendStacktraceToMe(e)
+                        }
+                    }
                 }
             }
-            userEnteredFuture.complete(null)
-        }, "ReqBuilder User").start()
-        if (!onlyBatch) Thread({
-            if (raw.isNotEmpty()) {
-                try {
-                    service!!.spreadsheets().values()
-                        .batchUpdate(sid, BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW")).execute()
-                    if (additionalSheets != null) {
-                        for (sidd in additionalSheets!!) {
-                            service.spreadsheets().values()
-                                .batchUpdate(sidd, BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW"))
+            launch {
+                if (batch.isNotEmpty()) {
+                    try {
+                        service!!.spreadsheets().batchUpdate(sid, BatchUpdateSpreadsheetRequest().setRequests(batch))
+                            .execute()
+                        additionalSheets?.forEach {
+                            service.spreadsheets().batchUpdate(it, BatchUpdateSpreadsheetRequest().setRequests(batch))
                                 .execute()
                         }
+                    } catch (e: IOException) {
+                        e.printStackTrace()
+                        Command.sendStacktraceToMe(e)
                     }
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                    Command.sendStacktraceToMe(e)
                 }
             }
-            rawFuture.complete(null)
-        }, "ReqBuilder Raw").start()
-        Thread({
-            if (batch.isNotEmpty()) {
-                try {
-                    service!!.spreadsheets().batchUpdate(sid, BatchUpdateSpreadsheetRequest().setRequests(batch))
-                        .execute()
-                    if (additionalSheets != null) {
-                        for (sidd in additionalSheets!!) {
-                            service.spreadsheets().batchUpdate(sidd, BatchUpdateSpreadsheetRequest().setRequests(batch))
-                                .execute()
-                        }
-                    }
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                    Command.sendStacktraceToMe(e)
-                }
-            }
-            batchFuture.complete(null)
-        }, "ReqBuilder Batch").start()
+        }
         runnable?.let {
-            CompletableFuture.allOf(userEnteredFuture, rawFuture, batchFuture)
-                .whenComplete { _, _ ->
-                    logger.info("Start scheduling...")
-                    runnableService.schedule(it, delay, TimeUnit.MILLISECONDS)
-                }
+            scope.launch {
+                job.join()
+                delay(delay)
+                it.run()
+            }
         }
     }
 
@@ -407,19 +376,15 @@ class RequestBuilder
         }
 
         override fun toString(): String {
-            return "Request{" +
-                    "range='" + range + '\'' +
-                    ", send=" + send +
-                    ", valueInputOption='" + valueInputOption + '\'' +
-                    '}'
+            return "Request{range='$range', send=$send, valueInputOption='$valueInputOption'}"
         }
     }
 
     companion object {
         private val logger = LoggerFactory.getLogger(RequestBuilder::class.java)
-        private val runnableService = Executors.newScheduledThreadPool(1)
         private val EVERYTHING_BUT_NUMBER = Pattern.compile("\\D")
         private val EVERYTHING_BUT_CHARS = Pattern.compile("[^a-zA-Z]")
+        private val scope = CoroutineScope(Dispatchers.IO + CoroutineName("RequestBuilder"))
         fun updateSingle(sid: String?, range: String?, value: Any, vararg raw: Boolean) {
             updateRow(sid, range, listOf(value), *raw)
         }
@@ -432,8 +397,7 @@ class RequestBuilder
         fun updateAll(sid: String?, range: String?, values: List<List<Any>?>?, vararg raw: Boolean) {
             Thread({
                 try {
-                    Google.sheetsService!!
-                        .spreadsheets().values().update(sid, range, ValueRange().setValues(values))
+                    Google.sheetsService!!.spreadsheets().values().update(sid, range, ValueRange().setValues(values))
                         .setValueInputOption(if (raw.isEmpty() || !raw[0]) "USER_ENTERED" else "RAW").execute()
                 } catch (e: IOException) {
                     e.printStackTrace()
@@ -445,8 +409,7 @@ class RequestBuilder
             if (requests.isEmpty()) return
             try {
                 Google.sheetsService!!.spreadsheets().batchUpdate(
-                    sid, BatchUpdateSpreadsheetRequest()
-                        .setRequests(listOf(*requests))
+                    sid, BatchUpdateSpreadsheetRequest().setRequests(listOf(*requests))
                 ).execute()
             } catch (e: IOException) {
                 e.printStackTrace()

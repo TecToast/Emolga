@@ -14,7 +14,7 @@ class DexquizCommand :
         slash(true, 918865966136455249L, Constants.FPLID, Constants.CULTID)
     }
 
-    override fun process(e: GuildCommandEvent) {}
+    override suspend fun process(e: GuildCommandEvent) {}
     class Start : Command("start", "Startet ein Dexquiz") {
         init {
             argumentTemplate = ArgumentManagerTemplate.builder()
@@ -27,7 +27,7 @@ class DexquizCommand :
                 .build()
         }
 
-        override fun process(e: GuildCommandEvent) {
+        override suspend fun process(e: GuildCommandEvent) {
             val tco = e.textChannel
             if (DexQuiz.getByTC(tco) != null) {
                 e.reply("In diesem Channel läuft bereits ein Dexquiz! Wenn du dieses beenden möchtest, verwende `/dexquiz end`.")
@@ -48,7 +48,7 @@ class DexquizCommand :
             argumentTemplate = ArgumentManagerTemplate.noArgs()
         }
 
-        override fun process(e: GuildCommandEvent) {
+        override suspend fun process(e: GuildCommandEvent) {
             DexQuiz.getByTC(e.textChannel)?.let {
                 e.reply("Die Lösung des alten Quizzes war " + it.currentGerName + "!")
                 it.end()

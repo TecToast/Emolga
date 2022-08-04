@@ -8,7 +8,7 @@ class DcCommand : MusicCommand("dc", "Lässt den Bot disconnecten") {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val m = e.message!!
         val msg = m.contentDisplay

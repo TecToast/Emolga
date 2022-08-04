@@ -15,7 +15,7 @@ class SpoilerTagsCommand : Command(
         everywhere = true
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val gid = e.guild.idLong
         if (SpoilerTagsManager.delete(gid)) {
             e.reply("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!")

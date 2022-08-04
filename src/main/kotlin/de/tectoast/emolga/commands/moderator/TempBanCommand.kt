@@ -20,7 +20,7 @@ class TempBanCommand : Command("tempban", "Tempbannt den User", CommandCategory.
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val m = e.message!!
         val raw = m.contentRaw
         val tco = e.textChannel

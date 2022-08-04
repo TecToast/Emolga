@@ -11,7 +11,7 @@ class SetBirthdayCommand : PepeCommand("setbirthday", "Trägt deinen Geburtstag 
             .setExample("!setbirthday 30.01.2005").build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val msg = e.message!!.contentDisplay
         val tco = e.textChannel
         val birthday = msg.split(" ")[1]

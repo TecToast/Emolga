@@ -17,7 +17,7 @@ class GetIdsCommand : Command("getids", "Holt die Namen und die IDs der Leute mi
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val r = e.jda.getRoleById(e.arguments.getID("role"))
         tco.guild.findMembers { it.roles.contains(r) }.onSuccess { members ->

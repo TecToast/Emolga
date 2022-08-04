@@ -6,7 +6,7 @@ import dev.minn.jda.ktx.messages.reply_
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class SolutionButton : ButtonListener("solution") {
-    override fun process(e: ButtonInteractionEvent, name: String) {
+    override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val split = Command.TRIPLE_HASHTAG.split(name)
         val round = split[2].toInt()
         if (e.user.idLong == split[1].toLong()) {

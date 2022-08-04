@@ -14,7 +14,7 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
             .setExample("!randompick A").build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val memberr = e.member
         val d = League.byChannel(e.textChannel, memberr.idLong, DraftEvent(e)) ?: return
         val tierlist = d.tierlist

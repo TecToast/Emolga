@@ -13,7 +13,7 @@ class SoundsCommand : PepeCommand("sounds", "Zeigt alle Sound-Snippets an, die d
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         e.reply(
             Embed(
                 title = "Sounds",

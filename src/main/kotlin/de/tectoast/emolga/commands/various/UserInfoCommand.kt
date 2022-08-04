@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.utils.sql.managers.WarnsManager
+import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.Permission
 import java.text.SimpleDateFormat
@@ -24,7 +25,7 @@ class UserInfoCommand :
         ).setExample("!userinfo @Flo").build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val member = if (args.has("user")) args.getMember("user") else e.member
         val u = member.user
@@ -45,7 +46,7 @@ class UserInfoCommand :
             field(
                 "Serverbeitritt",
                 e.guild.retrieveMember(u)
-                    .complete().timeJoined.atZoneSameInstant(ZoneId.systemDefault())
+                    .await().timeJoined.atZoneSameInstant(ZoneId.systemDefault())
                     .format(DateTimeFormatter.ofPattern("dd.MM.yyyy hh:mm")) + " Uhr",
                 true
             )

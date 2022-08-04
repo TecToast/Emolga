@@ -9,7 +9,7 @@ class EmoteStealCommand : Command("emotesteal", "Stealt Emotes... lol", CommandC
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         emoteSteal.remove(tco.idLong).also {
             if (!it) emoteSteal.add(tco.idLong)

@@ -8,7 +8,7 @@ class ByeCommand : MusicCommand("bye", ":^(", 700504340368064562L) {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) =
+    override suspend fun process(e: GuildCommandEvent) =
         loadAndPlay(e.textChannel, "https://www.youtube.com/watch?v=TgqiSBxvdws", e.member, ":(")
 
 }

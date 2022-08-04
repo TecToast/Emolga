@@ -8,6 +8,6 @@ class DeepCommand : MusicCommand("deep", "Spielt die Deepplaylist ab", 700504340
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) =
+    override suspend fun process(e: GuildCommandEvent) =
         manageCustomPlaylist("https://www.youtube.com/playlist?list=PLaduIcpkVIbrBbU1vxkMSvKdOKo0GJx65", deep, e)
 }

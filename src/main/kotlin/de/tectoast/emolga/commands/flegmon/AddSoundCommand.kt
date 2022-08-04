@@ -18,7 +18,7 @@ class AddSoundCommand : PepeCommand("addsound", "Added einen Sound") {
         wip()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val a = e.arguments.getAttachment("sound")
         val fileName = a.fileName
         val f = File("audio/clips/$fileName")

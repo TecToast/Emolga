@@ -21,7 +21,7 @@ class NicknameCommand : Command(
         disable()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val m = e.message!!
         val msg = m.contentDisplay

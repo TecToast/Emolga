@@ -9,7 +9,7 @@ class QueueCommand : MusicCommand("q", "Zeigt die Queue an") {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val g = tco.guild
         val musicManager = getGuildAudioPlayer(g)

@@ -24,7 +24,7 @@ class ShowdownPokeFansCommand : Command(
         disable()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tosend = JSONArray()
         //for (String id : ids) {
         val paste = e.arguments.getText("paste")

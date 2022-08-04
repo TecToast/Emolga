@@ -8,7 +8,7 @@ class NpCommand : MusicCommand("np", "Zeigt, welcher Track gerade läuft") {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val manager = getGuildAudioPlayer(tco.guild)
         val player = manager.player

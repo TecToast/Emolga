@@ -13,7 +13,7 @@ class AttackCommand : Command("attack", "Zeigt, welche Mons eine Attacke erlerne
             .setExample("!attack Tarnsteine").build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val ljson = learnsetJSON
         val djson = dataJSON
         val mons = ArrayList<String>()

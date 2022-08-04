@@ -15,7 +15,7 @@ class RandomTeamCommand : Command("randomteam", "Generiert ein Random Team", Com
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         e.reply(
             buildString(e.author.idLong),
             ma = {

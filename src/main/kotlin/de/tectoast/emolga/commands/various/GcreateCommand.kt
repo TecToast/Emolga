@@ -99,7 +99,7 @@ class GcreateCommand : Command(
         template.setOnCancel { i: Interactive -> current.remove(i.tco.id) }
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         if (current.contains(tco.id)) return
         current.add(tco.id)

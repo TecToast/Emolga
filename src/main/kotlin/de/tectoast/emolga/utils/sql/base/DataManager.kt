@@ -11,7 +11,7 @@ import java.util.*
 import java.util.function.Consumer
 import java.util.function.Function
 
-@Suppress("unused", "unused", "unused", "unused", "unused", "unused", "unused", "unused")
+@Suppress("unused")
 abstract class DataManager(private val tableName: String) {
     private lateinit var cols: Array<out SQLColumn<*>>
     private val ready: Boolean

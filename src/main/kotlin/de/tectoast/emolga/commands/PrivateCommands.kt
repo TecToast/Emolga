@@ -19,6 +19,9 @@ import de.tectoast.emolga.utils.sql.managers.AnalysisManager
 import de.tectoast.emolga.utils.sql.managers.DasorUsageManager
 import de.tectoast.emolga.utils.sql.managers.TranslationsManager
 import de.tectoast.jsolf.JSONArray
+import dev.minn.jda.ktx.coroutines.await
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.AudioChannel
@@ -43,6 +46,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 import java.util.regex.Pattern
+import kotlin.reflect.full.callSuspend
+import kotlin.reflect.full.declaredMemberFunctions
+import kotlin.reflect.full.findAnnotation
 
 object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
@@ -65,13 +71,13 @@ object PrivateCommands {
     }
 
     @PrivateCommand(name = "send")
-    fun send(e: GenericCommandEvent) {
+    suspend fun send(e: GenericCommandEvent) {
         val message = e.message
         logger.info(message!!.contentRaw)
         var s = DOUBLE_BACKSLASH.matcher(message.contentRaw.substring(24)).replaceAll("")
         val tc = e.jda.getTextChannelById(e.getArg(0))
         val g = tc!!.guild
-        for (emote in g.retrieveEmojis().complete()) {
+        for (emote in g.retrieveEmojis().await()) {
             s = s.replace("<<" + emote.name + ">>", emote.asMention)
         }
         tc.sendMessage(s).queue()
@@ -87,16 +93,16 @@ object PrivateCommands {
     }
 
     @PrivateCommand(name = "react")
-    fun react(e: GenericCommandEvent) {
+    suspend fun react(e: GenericCommandEvent) {
         val msg = e.msg
         var s = msg!!.substring(45)
         val tc = e.jda.getTextChannelById(e.getArg(0))
-        val m = tc!!.retrieveMessageById(e.getArg(1)).complete()!!
+        val m = tc!!.retrieveMessageById(e.getArg(1)).await()!!
         if (s.contains("<")) {
             s = s.substring(1)
             logger.info("s = $s")
             val finalS = s
-            tc.guild.retrieveEmojis().complete()
+            tc.guild.retrieveEmojis().await()
                 .filter { it.name.equals(finalS, ignoreCase = true) }
                 .forEach { m.addReaction(it!!).queue() }
         } else {
@@ -132,10 +138,10 @@ object PrivateCommands {
     }
 
     @PrivateCommand(name = "troll")
-    fun troll(e: GenericCommandEvent) {
+    suspend fun troll(e: GenericCommandEvent) {
         val category = e.jda.getCategoryById(e.getArg(0))
         val g = category!!.guild
-        val user = g.retrieveMemberById(e.getArg(1)).complete()
+        val user = g.retrieveMemberById(e.getArg(1)).await()
         val list: MutableList<AudioChannel?> = ArrayList(category.voiceChannels)
         list.shuffle()
         val old = user.voiceState!!.channel
@@ -239,12 +245,16 @@ object PrivateCommands {
     }
 
     @PrivateCommand(name = "inviteme")
-    fun inviteMe(e: GenericCommandEvent) {
-        for (guild in e.jda.guilds) {
-            try {
-                guild.retrieveMemberById(Constants.FLOID).complete()
-            } catch (exception: Exception) {
-                Command.sendToMe(guild.textChannels[0].createInvite().complete().url)
+    suspend fun inviteMe(e: GenericCommandEvent) {
+        coroutineScope {
+            for (guild in e.jda.guilds) {
+                launch {
+                    try {
+                        guild.retrieveMemberById(Constants.FLOID).await()
+                    } catch (exception: Exception) {
+                        Command.sendToMe(guild.textChannels[0].createInvite().await().url)
+                    }
+                }
             }
         }
     }
@@ -532,7 +542,7 @@ object PrivateCommands {
 
     @PrivateCommand(name = "dasorlol")
     @Throws(IOException::class)
-    fun dasorLol() {
+    suspend fun dasorLol() {
         val load = load("dasorfights.json")
         val fights = load.getJSONList("fights")
         for (f in fights) {
@@ -655,12 +665,10 @@ object PrivateCommands {
         save(o, path)
     }
 
-    fun execute(message: Message) {
+    suspend fun execute(message: Message) {
         val msg = message.contentRaw
-        for (method in PrivateCommands::class.java.declaredMethods) {
-            val a = method.getAnnotation(
-                PrivateCommand::class.java
-            ) ?: continue
+        for (method in PrivateCommands::class.declaredMemberFunctions) {
+            val a = method.findAnnotation<PrivateCommand>() ?: continue
             if (msg.lowercase()
                     .startsWith("!" + a.name.lowercase() + " ") || msg.equals(
                     "!" + a.name,
@@ -671,17 +679,17 @@ object PrivateCommands {
                     ) || msg.equals("!$it", ignoreCase = true)
                 }
             ) {
-                Thread({
-                    try {
-                        if (method.parameterCount == 0) {
-                            method.invoke(this)
-                        } else method.invoke(this, PrivateCommandEvent(message))
-                    } catch (e: IllegalAccessException) {
-                        logger.error("PrivateCommand " + a.name, e)
-                    } catch (e: InvocationTargetException) {
-                        logger.error("PrivateCommand " + a.name, e)
-                    }
-                }, "PrivateCommand " + a.name).start()
+                //Thread({
+                try {
+                    if (method.parameters.isEmpty()) {
+                        method.callSuspend(PrivateCommands)
+                    } else method.callSuspend(PrivateCommands, PrivateCommandEvent(message))
+                } catch (e: IllegalAccessException) {
+                    logger.error("PrivateCommand " + a.name, e)
+                } catch (e: InvocationTargetException) {
+                    logger.error("PrivateCommand " + a.name, e)
+                }
+                //}, "PrivateCommand " + a.name).start()
             }
         }
     }

@@ -17,7 +17,7 @@ class GerCommand : Command("ger", "Zeigt den deutschen Namen dieser Sache.", Com
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val stuff = e.arguments.getTranslation("stuff").translation
         e.reply(if (stuff == "Psychokinese") "Psychokinese/Psycho" else stuff)
     }

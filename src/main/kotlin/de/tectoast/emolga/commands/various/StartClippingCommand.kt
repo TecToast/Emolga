@@ -10,7 +10,7 @@ import org.apache.commons.collections4.queue.CircularFifoQueue
 
 class StartClippingCommand :
     Command("startclipping", "Startet die Clip-Funktion c:", CommandCategory.Flo, 919639507740020846L) {
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val am = e.guild.audioManager
         am.openAudioConnection(e.member.voiceState!!.channel)
         clips[e.guild.idLong] = CircularFifoQueue(1500)

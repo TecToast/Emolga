@@ -13,7 +13,7 @@ class DelCommandCommand : Command("delcommand", "Deleted nen Command oder so", C
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val name: String = e.arguments.getText("name").lowercase()
         val json = Emolga.get.customcommands
         if (name !in json) {

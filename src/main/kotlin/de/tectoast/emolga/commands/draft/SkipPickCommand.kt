@@ -14,7 +14,7 @@ class SkipPickCommand : Command("skippick", "Skippe eine Person beim Draft", Com
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tc = e.textChannel
         val d = League.onlyChannel(tc) ?: return
         d.triggerTimer(League.TimerReason.SKIP)

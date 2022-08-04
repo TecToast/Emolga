@@ -21,7 +21,7 @@ class FullStatsCommand :
         slash()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val mon = e.arguments.getText("mon")
         val data = FullStatsManager.getData(mon)
         var kpu = (data.kills.toDouble() / data.uses.toDouble()).toString()

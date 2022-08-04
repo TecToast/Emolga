@@ -14,7 +14,7 @@ class AddLocationCommand : Command("addlocation", "Fügt eine neue Location hinz
         slash(true, 695943416789598208L)
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val soullink = Emolga.get.soullink
         val order = soullink.order

@@ -25,7 +25,7 @@ class ConfigurateCommand : Command("configurate", "Konfiguriert verschiedene Sac
         slash(true, 918865966136455249L, Constants.FPLID, Constants.CULTID)
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val conf = e.arguments.getText("configuration")
         logger.info("configurations = {}", ModalConfigurators.configurations)
         logger.info("conf = {}", conf)

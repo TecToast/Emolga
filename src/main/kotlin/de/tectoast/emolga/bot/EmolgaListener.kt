@@ -1,11 +1,11 @@
 package de.tectoast.emolga.bot
 
-import de.tectoast.emolga.buttons.ButtonListener.Companion.check
+import de.tectoast.emolga.buttons.ButtonListener
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.Command.Companion.replayAnalysis
 import de.tectoast.emolga.commands.PrivateCommand
 import de.tectoast.emolga.commands.PrivateCommands
-import de.tectoast.emolga.commands.music.custom.WirklichGuteMusikCommand.Companion.doIt
+import de.tectoast.emolga.commands.music.custom.WirklichGuteMusikCommand
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
 import de.tectoast.emolga.utils.Constants
@@ -16,6 +16,10 @@ import de.tectoast.emolga.utils.Constants.MYSERVER
 import de.tectoast.emolga.utils.DexQuiz
 import de.tectoast.emolga.utils.sql.managers.BanManager
 import de.tectoast.emolga.utils.sql.managers.MuteManager
+import dev.minn.jda.ktx.events.listener
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.ChannelType
 import net.dv8tion.jda.api.entities.Icon
@@ -39,17 +43,13 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button
 import org.slf4j.LoggerFactory
 import java.net.URL
 
-class EmolgaListener : ListenerAdapter() {
-    override fun onButtonInteraction(e: ButtonInteractionEvent) {
-        check(e)
-    }
+object EmolgaListener : ListenerAdapter() {
 
-    override fun onModalInteraction(e: ModalInteractionEvent) {
-        ModalListener.check(e)
-    }
-
-    override fun onSelectMenuInteraction(e: SelectMenuInteractionEvent) {
-        MenuListener.check(e)
+    fun registerEvents(jda: JDA) {
+        jda.listener<ButtonInteractionEvent> { ButtonListener.check(it) }
+        jda.listener<ModalInteractionEvent> { ModalListener.check(it) }
+        jda.listener<SelectMenuInteractionEvent> { MenuListener.check(it) }
+        jda.listener<MessageReceivedEvent> { messageReceived(it) }
     }
 
     override fun onGuildMemberJoin(e: GuildMemberJoinEvent) {
@@ -74,7 +74,11 @@ class EmolgaListener : ListenerAdapter() {
         if (e.channelJoined.idLong == 979436321359683594L) {
             val mid = e.member.idLong
             if (mid == e.jda.selfUser.idLong) return
-            doIt(e.guild.getTextChannelById(861558360104632330L)!!, e.member, mid == FLOID || mid == DASORID)
+            WirklichGuteMusikCommand.doIt(
+                e.guild.getTextChannelById(861558360104632330L)!!,
+                e.member,
+                mid == FLOID || mid == DASORID
+            )
         }
     }
 
@@ -110,7 +114,7 @@ class EmolgaListener : ListenerAdapter() {
         }
     }
 
-    override fun onMessageReceived(e: MessageReceivedEvent) {
+    private suspend fun messageReceived(e: MessageReceivedEvent) {
         if (e.channelType == ChannelType.TEXT) {
             try {
                 if (e.isWebhookMessage) return
@@ -140,7 +144,9 @@ class EmolgaListener : ListenerAdapter() {
                 if (tcoid in Command.emoteSteal) {
                     val l = m.mentions.customEmojis
                     for (emote in l) {
-                        g.createEmoji(emote.name, Icon.from(URL(emote.imageUrl).openStream())).queue()
+                        g.createEmoji(emote.name, Icon.from(withContext(Dispatchers.IO) {
+                            URL(emote.imageUrl).openStream()
+                        })).queue()
                     }
                 }
                 if (tcoid == 778380440078647296L || tcoid == 919641011632881695L) {
@@ -275,8 +281,7 @@ class EmolgaListener : ListenerAdapter() {
         }
     }
 
-    companion object {
-        val WELCOMEMESSAGE: String = """
+    private val WELCOMEMESSAGE: String = """
             Hallo **{USERNAME}** und vielen Dank, dass du mich auf deinen Server **{SERVERNAME}** geholt hast!
             Vermutlich möchtest du für deinen Server hauptsächlich, dass die Ergebnisse von Showdown Replays in einen Channel geschickt werden.
             Um mich zu konfigurieren gibt es folgende Möglichkeiten:
@@ -292,10 +297,10 @@ class EmolgaListener : ListenerAdapter() {
             Ich habe übrigens noch viele weitere Funktionen! Wenn du mich pingst, zeige ich dir eine Übersicht aller Commands :)
             Falls du weitere Fragen oder Probleme hast, schreibe ${Constants.MYTAG} eine PN :)
         """.trimIndent()
-        private val logger = LoggerFactory.getLogger(EmolgaListener::class.java)
-        val urlRegex = Regex(
-            "https://replay.pokemonshowdown.com\\b([-a-zA-Z\\d()@:%_+.~#?&/=]*)",
-            setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
-        )
-    }
+    private val logger = LoggerFactory.getLogger(EmolgaListener::class.java)
+    private val urlRegex = Regex(
+        "https://replay.pokemonshowdown.com\\b([-a-zA-Z\\d()@:%_+.~#?&/=]*)",
+        setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
+    )
+
 }

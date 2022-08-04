@@ -8,7 +8,7 @@ class QlCommand : MusicCommand("ql", "Zeigt die Länge der Queue an") {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val musicManager = getGuildAudioPlayer(tco.guild)
         val duration = musicManager.scheduler.queue.sumOf { it.duration } / 1000

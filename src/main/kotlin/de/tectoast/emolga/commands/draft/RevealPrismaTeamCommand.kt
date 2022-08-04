@@ -18,7 +18,7 @@ class RevealPrismaTeamCommand :
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val user = e.arguments.getMember("user")
         val prisma = Emolga.get.league("Prisma")
         val picks = prisma.picks

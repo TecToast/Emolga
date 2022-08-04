@@ -13,7 +13,7 @@ class CatchRateCommand :
                 .setExample("!catchrate Primarene").build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val mon = e.arguments.getTranslation("mon").translation
         e.reply("**" + mon + "** hat eine Catchrate von **" + catchrates.getString(mon) + "**!")
     }

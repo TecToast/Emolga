@@ -27,13 +27,13 @@ sealed class League {
     val battleorder: MutableMap<Int, String> = mutableMapOf()
     val results: MutableMap<String, Long> = mutableMapOf()
     val allowed: MutableMap<Long, Long> = mutableMapOf()
-    val mentions: Map<Long, Long> = emptyMap()
+    private val mentions: Map<Long, Long> = emptyMap()
     val guild: Long = -1
 
     val finished: MutableList<Long> = mutableListOf()
     var round = 1
     var current = -1L
-    var cooldown = -1L
+    private var cooldown = -1L
     val points: MutableMap<Long, Int> = mutableMapOf()
 
     @SerialName("order")
@@ -54,7 +54,7 @@ sealed class League {
 
     @Transient
     var cooldownFuture: ScheduledFuture<*>? = null
-    var ended = false
+    private var ended = false
     val members: List<Long>
         get() = originalOrder.getValue(1)
     private val timer: DraftTimer = DraftTimer.ASL
@@ -155,7 +155,7 @@ sealed class League {
         drafts.add(this)
     }
 
-    fun restartTimer(delay: Long = timer.calc()) {
+    private fun restartTimer(delay: Long = timer.calc()) {
         cooldownFuture = scheduler.schedule(
             { triggerTimer() },
             delay.also { cooldown = System.currentTimeMillis() + it },
@@ -163,11 +163,11 @@ sealed class League {
         )
     }
 
-    fun sendRound() {
+    private fun sendRound() {
         tc.sendMessage("Runde $round!").queue()
     }
 
-    fun announcePlayer() {
+    private fun announcePlayer() {
         if (isPointBased) tc.sendMessage(getMention(current) + " ist dran! (" + points[current] + " mögliche Punkte)")
             .queue() else tc.sendMessage(
             getMention(current) + " ist dran! (Mögliche Tiers: " + getPossibleTiersAsString(current) + ")"
@@ -181,12 +181,12 @@ sealed class League {
         possible
     }
 
-    fun getPossibleTiersAsString(mem: Long) =
+    private fun getPossibleTiersAsString(mem: Long) =
         getPossibleTiers(mem).entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
             .joinToString { "${it.value}x **${it.key}**" }
 
 
-    fun getMention(mem: Long) = "<@${mentions[mem] ?: mem}>"
+    private fun getMention(mem: Long) = "<@${mentions[mem] ?: mem}>"
     fun isPickedBy(mon: String, mem: Long): Boolean = picks[mem]!!.any { it.name == mon }
     fun indexInRound(): Int = originalOrder[round]!!.indexOf(current)
     fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER) {

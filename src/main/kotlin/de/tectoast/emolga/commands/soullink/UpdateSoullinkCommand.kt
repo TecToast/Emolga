@@ -10,7 +10,7 @@ class UpdateSoullinkCommand : Command("updatesoullink", "Updated die Message", C
         slash(true, 695943416789598208L)
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         updateSoullink()
         e.reply("Done!", true)
     }

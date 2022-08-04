@@ -3,6 +3,11 @@ package de.tectoast.emolga.utils
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.Command.Companion.secondsToTime
 import de.tectoast.emolga.utils.sql.managers.GiveawayManager
+import dev.minn.jda.ktx.coroutines.await
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.MessageBuilder
 import net.dv8tion.jda.api.entities.Message
@@ -51,7 +56,9 @@ class Giveaway {
                 giveawayFinalizes[mid] = giveawayExecutor.scheduleAtFixedRate(
                     inner@{
                         if (now.until(end, ChronoUnit.MILLIS) < 1000) {
-                            end()
+                            coroutineScope.launch {
+                                end()
+                            }
                             giveawayFinalizes[mid]!!.cancel(false)
                             giveawayFinalizes.remove(mid)
                             return@inner
@@ -91,7 +98,7 @@ Gehostet von: <@$userId>"""
         return mb.build()
     }
 
-    private fun end() {
+    private suspend fun end() {
         isEnded = true
         GiveawayManager.removeGiveaway(this)
         val mb = MessageBuilder()
@@ -103,12 +110,12 @@ Gehostet von: <@$userId>"""
         if (prize != null) eb.setAuthor(prize, null, null)
         try {
             val opt: MessageReaction? = emolgajda.getTextChannelById(channelId)?.retrieveMessageById(messageId)
-                ?.complete()?.reactions?.let { mr ->
+                ?.await()?.reactions?.let { mr ->
                     mr.firstOrNull { it.emoji.type == Emoji.Type.CUSTOM && (it.emoji as CustomEmoji).idLong == 967390962877870090 }
                 }
             val members = ArrayList<Long>()
             opt?.run {
-                retrieveUsers().complete().filter { !it.isBot && it.idLong != userId }
+                retrieveUsers().await().filter { !it.isBot && it.idLong != userId }
             }
             val wins = ArrayList<Long>()
             if (members.size > 0) for (i in 0 until winners) {
@@ -158,5 +165,6 @@ Gehostet von: <@$userId>"""
         private val giveawayExecutor: ScheduledExecutorService = ScheduledThreadPoolExecutor(5)
         private val giveawayFutures = HashMap<Long, ScheduledFuture<*>>()
         private val giveawayFinalizes = HashMap<Long, ScheduledFuture<*>>()
+        private val coroutineScope = CoroutineScope(Dispatchers.Default + CoroutineName("Giveaway"))
     }
 }

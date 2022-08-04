@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory
 import java.awt.Color
 
 class MonDataButton : ButtonListener("mondata") {
-    override fun process(e: ButtonInteractionEvent, name: String) {
+    override suspend fun process(e: ButtonInteractionEvent, name: String) {
         logger.info("e.getMessageIdLong() = " + e.messageIdLong)
         val dt = Command.monDataButtons[e.messageIdLong]
         if (dt == null) {

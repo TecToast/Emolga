@@ -5,7 +5,7 @@ import dev.minn.jda.ktx.messages.reply_
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class RandomTeamButton : ButtonListener("randomteam") {
-    override fun process(e: ButtonInteractionEvent, name: String) {
+    override suspend fun process(e: ButtonInteractionEvent, name: String) {
         if (e.user.idLong != (e.message.mentions.users.firstOrNull()?.idLong)) {
             e.reply_("Das ist nicht dein Team ._.", ephemeral = true).queue()
             return

@@ -17,7 +17,7 @@ class ListmembersCommand : Command("listmembers", "Zeigt alle User an, die diese
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val args = e.arguments
         val r = e.jda.getRoleById(args.getID("role")) ?: run {
@@ -25,16 +25,17 @@ class ListmembersCommand : Command("listmembers", "Zeigt alle User an, die diese
             return
         }
         tco.guild.findMembers { it.roles.contains(r) }.onSuccess {
-            e.reply("User mit der Rolle ${r.name}:\n${
-                buildString {
-                    append(it.joinToString("\n") { mem -> mem.effectiveName })
-                    if (isEmpty()) {
-                        tco.sendMessage("Kein Member hat die Rolle " + r.name + "!").queue()
-                        return@onSuccess
+            e.reply(
+                "User mit der Rolle ${r.name}:\n${
+                    buildString {
+                        append(it.joinToString("\n") { mem -> mem.effectiveName })
+                        if (isEmpty()) {
+                            tco.sendMessage("Kein Member hat die Rolle " + r.name + "!").queue()
+                            return@onSuccess
+                        }
+                        append("\nInsgesamt: ").append(it.size)
                     }
-                    append("\nInsgesamt: ").append(it.size)
-                }
-            }")
+                }")
         }.onError {
             it.printStackTrace()
             e.reply("Es ist ein Fehler beim Laden der Member aufgetreten!")

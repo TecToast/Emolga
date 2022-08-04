@@ -29,7 +29,7 @@ class EmolgaChannelCommand : Command(
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val action = args.getText("action")
         val tc = args.getChannel("channel")

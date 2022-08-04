@@ -26,7 +26,7 @@ class InvertColorsCommand :
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val f = invertImage(args.getTranslation("mon").translation, args.isText("shiny", "Shiny"))
         e.textChannel.sendFile(f).queue { f.delete() }

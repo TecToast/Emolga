@@ -19,7 +19,7 @@ class NaturalGiftCommand : Command(
         ).setExample("!naturalgift Water").build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val t = e.arguments.getTranslation("stuff")
         val translation = t.translation
         if (t.isFromType(Translation.Type.ITEM)) {

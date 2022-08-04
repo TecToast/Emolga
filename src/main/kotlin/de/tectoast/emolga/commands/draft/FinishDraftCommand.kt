@@ -13,7 +13,7 @@ class FinishDraftCommand :
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val memberr = e.member
         val member = memberr.idLong

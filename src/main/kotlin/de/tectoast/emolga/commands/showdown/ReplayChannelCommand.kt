@@ -35,7 +35,7 @@ class ReplayChannelCommand : Command(
         aliases.add("replay")
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
         val m = e.message!!
         if (e.usedName == "replay") {

@@ -7,7 +7,6 @@ import de.tectoast.emolga.utils.json.emolga.draft.League
 import net.dv8tion.jda.api.entities.Member
 import org.slf4j.LoggerFactory
 
-@Suppress("unused")
 class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
@@ -30,7 +29,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
             .setExample("!switch Gufa Emolga").build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         exec(DraftEvent(e), e.member, e.arguments)
     }
 

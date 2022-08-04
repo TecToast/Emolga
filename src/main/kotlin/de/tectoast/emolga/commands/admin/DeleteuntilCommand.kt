@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.admin
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.entities.Message
 
 class DeleteuntilCommand :
@@ -26,12 +27,12 @@ class DeleteuntilCommand :
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val tc = args.getOrDefault("tc", e.textChannel)
         val mid = args.getID("mid")
         try {
-            tc.retrieveMessageById(mid).complete()
+            tc.retrieveMessageById(mid).await()
         } catch (ex: Exception) {
             e.reply("Diese Nachricht existiert nicht!")
             return

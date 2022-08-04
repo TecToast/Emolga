@@ -8,7 +8,7 @@ import de.tectoast.emolga.utils.Constants.CALENDAR_TCID
 import de.tectoast.emolga.utils.sql.managers.CalendarManager
 
 class UpdateRemindersCommand : Command("updatereminders", "Updated die Reminder lol", CommandCategory.Flo) {
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         calendarService.shutdownNow()
         newCalendarService()
         e.jda.getTextChannelById(CALENDAR_TCID)!!.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()

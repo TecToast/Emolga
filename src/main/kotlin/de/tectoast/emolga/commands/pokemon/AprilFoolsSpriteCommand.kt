@@ -37,7 +37,7 @@ class AprilFoolsSpriteCommand : Command("aprilfoolsprite", "Zeigt den April-Fool
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val suffix: String
         val args = e.arguments
         suffix = if (args.has("form")) {

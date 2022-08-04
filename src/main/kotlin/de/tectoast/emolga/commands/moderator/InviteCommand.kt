@@ -12,7 +12,7 @@ class InviteCommand :
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         e.guild.defaultChannel?.createInvite()?.setMaxUses(1)?.map { e.reply(it.url) }
             ?.queue() ?: e.reply("Kein Default Channel gefunden! Sollte nicht passieren, melde dich bei Flo")
     }

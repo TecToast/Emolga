@@ -17,7 +17,7 @@ class StartServerCommand : Command(
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val pc = GPIOManager.PC.FLORIX_2
         if (GPIOManager.isOn(pc)) {
             e.reply("Der Server ist bereits an!")

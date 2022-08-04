@@ -19,7 +19,7 @@ class ShowdownExportCommand : Command("showdownexport", "Macht Showdown Export l
         setCustomPermissions(PermissionPreset.CULT)
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val league = Emolga.get.league(e.arguments.getText("draft"))
         val picksObj = league.picks
         val b = StringBuilder()

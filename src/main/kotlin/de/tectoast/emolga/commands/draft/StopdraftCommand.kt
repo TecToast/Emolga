@@ -13,7 +13,7 @@ class StopdraftCommand : Command("stopdraft", "Beendet den Draft", CommandCatego
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) =
+    override suspend fun process(e: GuildCommandEvent) =
         e.reply(if (League.drafts.removeIf { l ->
                 (l.tc.idLong == e.arguments.getChannel("draftchannel").idLong).also {
                     if (it) l.cooldownFuture!!.cancel(

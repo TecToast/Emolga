@@ -13,7 +13,7 @@ class NatureCommand : Command("nature", "Zeigt an, welche Werte dieses Wesen bee
                 .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val t = e.arguments.getTranslation("nature")
         e.reply(
             "${t.otherLang}/${t.translation}:\n${NatureManager.getNatureData(t.translation)}"

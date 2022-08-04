@@ -16,7 +16,7 @@ class FloHelpCommand : Command(
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         sendToMe(
             "${e.textChannel.asMention} - ${e.member.asMention}:\n${e.message!!.contentRaw.substring(9)}"
         )

@@ -17,7 +17,7 @@ class HelpCommand : Command("help", "Zeigt Hilfe über einen Command", CommandCa
         ).build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val cmdname = e.arguments.getText("cmd")
         val c = byName(cmdname)!!
         val builder = EmbedBuilder()

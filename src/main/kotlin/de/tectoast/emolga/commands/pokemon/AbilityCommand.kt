@@ -21,7 +21,7 @@ class AbilityCommand :
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         val json = dataJSON
         val mons = ArrayList<String>()
         val abi = e.arguments.getTranslation("abi").translation

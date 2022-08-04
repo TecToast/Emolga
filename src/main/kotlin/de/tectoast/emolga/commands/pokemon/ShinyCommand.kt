@@ -19,7 +19,7 @@ class ShinyCommand : Command("shiny", "Zeigt das Shiny des Pokemons an", Command
             .build()
     }
 
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         var suffix: String
         val args = e.arguments
         val monname = args.getTranslation("mon").translation

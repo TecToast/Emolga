@@ -5,6 +5,8 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.jsolf.JSONArray
 import de.tectoast.jsolf.JSONTokener
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.net.URL
@@ -26,7 +28,7 @@ class SearchReplaysCommand :
     }
 
     @Throws(IOException::class)
-    override fun process(e: GuildCommandEvent) {
+    override suspend fun process(e: GuildCommandEvent) {
         var url: String? = "https://replay.pokemonshowdown.com/search.json?user="
         val args = e.arguments
         val user1 = args.getText("user1")
@@ -34,7 +36,9 @@ class SearchReplaysCommand :
             args.getText("user2")
         ) else toSDName(user1)
         logger.info(url)
-        val array = JSONArray(JSONTokener(URL(url).openStream()))
+        val array = JSONArray(JSONTokener(withContext(Dispatchers.IO) {
+            URL(url).openStream()
+        }))
         logger.info(array.toString(4))
         val str = StringBuilder()
         if (array.length() == 0) {

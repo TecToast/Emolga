@@ -13,7 +13,7 @@ import java.io.IOException
 
 class FlorixButton : ButtonListener("florix") {
     @Throws(IOException::class)
-    override fun process(e: ButtonInteractionEvent, name: String) {
+    override suspend fun process(e: ButtonInteractionEvent, name: String) {
         if (e.user.idLong != Constants.FLOID || e.guild!!.idLong != Constants.MYSERVER) return
         val mid = e.messageIdLong
         val split = name.split(":")

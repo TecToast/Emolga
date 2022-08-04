@@ -5,7 +5,7 @@ import dev.minn.jda.ktx.messages.reply_
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class ControlCentralButton : ButtonListener("controlcentral") {
-    override fun process(e: ButtonInteractionEvent, name: String) {
+    override suspend fun process(e: ButtonInteractionEvent, name: String) {
         var b = true
         when (name) {
             "ej" -> /*Command.emolgaJSON = Command.load("./emolgadata.json")*/Command.loadEmolgaJSON()

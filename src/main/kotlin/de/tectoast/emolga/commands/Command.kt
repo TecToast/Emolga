@@ -846,9 +846,9 @@ abstract class Command(
 
         class Builder {
             private val arguments: MutableList<Argument> = LinkedList()
-            private var noCheck = false
-            private var example: String? = null
-            private var customDescription: String? = null
+            var noCheck = false
+            var example: String? = null
+            var customDescription: String? = null
 
             @JvmOverloads
             fun add(
@@ -906,6 +906,8 @@ abstract class Command(
             fun builder(): Builder {
                 return Builder()
             }
+
+            fun create(b: Builder.() -> Unit) = Builder().apply(b).build()
 
             fun noArgs(): ArgumentManagerTemplate {
                 return noCheckTemplate

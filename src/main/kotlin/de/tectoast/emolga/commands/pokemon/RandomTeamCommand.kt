@@ -4,10 +4,10 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import dev.minn.jda.ktx.interactions.components.primary
 import net.dv8tion.jda.api.entities.emoji.Emoji
-import kotlin.random.Random
 
 class RandomTeamCommand : Command("randomteam", "Generiert ein Random Team", CommandCategory.Pokemon, Constants.ASLID) {
 
@@ -39,17 +39,20 @@ class RandomTeamCommand : Command("randomteam", "Generiert ein Random Team", Com
             mapOf("S" to 2, "A" to 3, "B" to 2, "C" to 3, "D" to 2),
         )
 
-        fun buildString(id: Long): String {
+        fun buildString(id: Long): String =
+            "Team für <@$id>:\n" + generateTeam().joinToString("\n") { "${it.tier}: ${it.name}" }
+
+        fun generateTeam(): List<DraftPokemon> {
             val tl = Tierlist.getByGuild(Constants.ASLID)!!.tierlist
-            return "Team für <@$id>:\n" + sets.random().entries.filterNot { it.value == 0 }.joinToString("\n") { en ->
+            return sets.random().entries.filterNot { it.value == 0 }.map { en ->
                 val tier = en.key
-                val list: MutableList<String> = mutableListOf()
                 val possible = tl[tier]!!.toMutableList()
-                for (i in 0 until en.value) {
-                    list.add(possible.removeAt(Random.nextInt(possible.size)))
+                buildList {
+                    repeat(en.value) {
+                        add(DraftPokemon(possible.random().also { possible.remove(it) }, tier))
+                    }
                 }
-                list.joinToString("\n") { "$tier: $it" }
-            }
+            }.flatten()
         }
     }
 }

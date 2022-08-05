@@ -56,6 +56,7 @@ import de.tectoast.jsolf.JSONObject
 import de.tectoast.jsolf.JSONTokener
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -110,6 +111,7 @@ import java.util.function.Predicate
 import java.util.regex.Pattern
 import javax.imageio.ImageIO
 import kotlin.math.max
+import kotlin.random.Random
 import kotlin.system.measureTimeMillis
 
 @Suppress("unused", "SameParameterValue")
@@ -218,7 +220,7 @@ abstract class Command(
     }
 
     protected fun addCustomChannel(guildId: Long, vararg channelIds: Long) {
-        val l = overrideChannel.computeIfAbsent(guildId) { LinkedList() }
+        val l = overrideChannel.computeIfAbsent(guildId) { mutableListOf() }
         for (channelId in channelIds) {
             l.add(channelId)
         }
@@ -343,6 +345,7 @@ abstract class Command(
 
     object PermissionPreset {
         val CULT = fromRole(781457314846343208L)
+        val EMOLGAMOD = fromIDs(Constants.DASORID)
         fun fromRole(roleId: Long): Predicate<Member> {
             return Predicate { it.roles.any { r -> r.idLong == roleId } }
         }
@@ -460,7 +463,7 @@ abstract class Command(
 
         private constructor() {
             noCheck = true
-            arguments = LinkedList()
+            arguments = mutableListOf()
         }
 
         fun find(name: String): Argument? {
@@ -647,7 +650,7 @@ abstract class Command(
         }
 
         class Text : ArgumentType {
-            private val texts: MutableList<SubCommand> = LinkedList()
+            private val texts: MutableList<SubCommand> = mutableListOf()
             private val any: Boolean
             private val slashSubCmd: Boolean
             private var mapper = Function { s: String -> s }
@@ -719,7 +722,7 @@ abstract class Command(
         }
 
         class Number private constructor(possible: Array<Int>) : ArgumentType {
-            private val numbers = LinkedList<Int>()
+            private val numbers = mutableListOf<Int>()
             private val any: Boolean
             private var from = 0
             private var to = 0
@@ -775,7 +778,7 @@ abstract class Command(
 
             companion object {
                 fun range(from: Int, to: Int): Number {
-                    val l = LinkedList<Int>()
+                    val l = mutableListOf<Int>()
                     for (i in from..to) {
                         l.add(i)
                     }
@@ -828,7 +831,7 @@ abstract class Command(
             val language: Translation.Language,
             val customErrorMessage: String?
         ) {
-            val disabled: MutableList<Long> = LinkedList()
+            val disabled: MutableList<Long> = mutableListOf()
 
             fun buildHelp(): String {
                 val b = StringBuilder(helpmsg)
@@ -845,7 +848,7 @@ abstract class Command(
         }
 
         class Builder {
-            private val arguments: MutableList<Argument> = LinkedList()
+            private val arguments: MutableList<Argument> = mutableListOf()
             var noCheck = false
             var example: String? = null
             var customDescription: String? = null
@@ -914,7 +917,7 @@ abstract class Command(
             }
 
             fun noSpecifiedArgs(syntax: String, example: String): ArgumentManagerTemplate {
-                return ArgumentManagerTemplate(LinkedList(), true, example, syntax)
+                return ArgumentManagerTemplate(mutableListOf(), true, example, syntax)
             }
 
             fun draft(): ArgumentType {
@@ -1245,7 +1248,7 @@ abstract class Command(
         /**
          * Order of the cached items, used to delete the oldest after enough caching
          */
-        val translationsCacheOrderGerman = LinkedList<String>()
+        val translationsCacheOrderGerman = mutableListOf<String>()
 
         /**
          * Cache for english translations
@@ -1255,7 +1258,7 @@ abstract class Command(
         /**
          * Order of the cached items, used to delete the oldest after enough caching
          */
-        val translationsCacheOrderEnglish = LinkedList<String>()
+        val translationsCacheOrderEnglish = mutableListOf<String>()
 
         /**
          * MusicManagers for Lavaplayer
@@ -1375,6 +1378,7 @@ abstract class Command(
             if (s == "Porygon-Z") return "porygonz"
             if (s == "Sen-Long") return "drampa"
             if (s == "Ho-Oh") return "hooh"
+            if (s.startsWith("Furnifra")) return "heatmor"
             if (s.startsWith("Kapu-")) return getSDName(s)
             val split = s.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()
             if (split.size == 1) return getSDName(s)
@@ -1510,7 +1514,7 @@ abstract class Command(
             getPlayerManager(channel.guild).loadItemOrdered(musicManager, track, object : AudioLoadResultHandler {
                 override fun trackLoaded(track: AudioTrack) {}
                 override fun playlistLoaded(playlist: AudioPlaylist) {
-                    val toplay = LinkedList<AudioTrack>()
+                    val toplay = mutableListOf<AudioTrack>()
                     if (random) {
                         val list = ArrayList(playlist.tracks)
                         list.shuffle()
@@ -1945,7 +1949,7 @@ abstract class Command(
         }
 
         fun getCellsAsRowData(`object`: CellData, x: Int, y: Int): List<RowData> {
-            val list: MutableList<RowData> = LinkedList()
+            val list: MutableList<RowData> = mutableListOf()
             for (i in 0 until y) {
                 list.add(RowData().setValues(getXTimes(`object`, x)))
             }
@@ -2456,6 +2460,7 @@ abstract class Command(
                 it.getString("name")
             })).map { it.getString("name") }.toList()
         }
+
         fun evaluatePredictions(league: JSONObject, p1wins: Boolean, gameday: Int, uid1: String, uid2: String) {
             defaultScope.launch {
                 val predictiongame = league.getJSONObject("predictiongame")
@@ -2733,7 +2738,7 @@ abstract class Command(
                 }
                 try {
                     StatisticsManager.increment("cmd_" + command.name)
-                    val randnum = Random().nextInt(4096)
+                    val randnum = Random.nextInt(4096)
                     logger.info("randnum = $randnum")
                     if (randnum == 133) {
                         e.channel.sendMessage("No, I don't think I will :^)\n||Gib mal den Command nochmal ein, die Wahrscheinlichkeit, dass diese Nachricht auftritt, liegt bei 1:4096 :D||")
@@ -2967,7 +2972,7 @@ abstract class Command(
             return (if (x > 0) (x + 64).toChar() else "").toString() + (i + 64).toChar().toString()
         }
 
-        fun getGen5SpriteWithoutGoogle(o: JSONObject, shiny: Boolean): String {
+        fun getGen5SpriteWithoutGoogle(o: JSONObject, shiny: Boolean = false): String {
             return "https://play.pokemonshowdown.com/sprites/gen5" + (if (shiny) "-shiny" else "") + "/" + toSDName(
                 if (o.has(
                         "baseSpecies"
@@ -2976,8 +2981,21 @@ abstract class Command(
             ) + (if (o.has("forme")) "-" + toSDName(o.getString("forme")) else "") + ".png"
         }
 
-        fun getGen5SpriteWithoutGoogle(o: JSONObject): String {
-            return getGen5SpriteWithoutGoogle(o, false)
+        fun getSpriteForTeamGraphic(str: String, data: RandomTeamData): String {
+            if (str == "Sen-Long") data.hasDrampa = true
+            val o = getDataObject(str)
+            val odds = Emolga.get.config.teamgraphicShinyOdds
+            return buildString {
+                append("gen5_cropped")
+                if (Random.nextInt(odds) == 0) {
+                    append("_shiny")
+                    data.shinyCount.incrementAndGet()
+                }
+                append("/")
+                append(toSDName(if (o.has("baseSpecies")) o.getString("baseSpecies") else o.getString("name")))
+                append((if (o.has("forme")) "-" + toSDName(o.getString("forme")) else ""))
+                append(".png")
+            }
         }
 
         private fun getGen5Sprite(o: JSONObject): String {
@@ -2997,16 +3015,16 @@ abstract class Command(
         }
 
         fun <T> getActionRows(c: Collection<T>, mapper: Function<T, Button>): List<ActionRow> {
-            val currRow = LinkedList<Button>()
-            val rows = LinkedList<ActionRow>()
+            val currRow = mutableListOf<Button>()
+            val rows = mutableListOf<ActionRow>()
             for (s in c) {
                 currRow.add(mapper.apply(s))
                 if (currRow.size == 5) {
-                    rows.add(ActionRow.of(currRow))
+                    rows.addAll(currRow.into())
                     currRow.clear()
                 }
             }
-            if (currRow.size > 0) rows.add(ActionRow.of(currRow))
+            if (currRow.size > 0) rows.addAll(currRow.into())
             return rows
         }
 
@@ -3573,9 +3591,9 @@ abstract class Command(
 
 fun <T> T.indexedBy(list: List<T>) = list.indexOf(this)
 val embedColor = java.awt.Color.CYAN.rgb
-fun Int.x(factor: Int, summand: Int) = getAsXCoord(this * factor + summand)
-fun Int.xdiv(divident: Int, summand: Int, factor: Int = 1) = getAsXCoord((this / divident) * factor + summand)
-fun Int.xmod(mod: Int, summand: Int, factor: Int = 1) = getAsXCoord((this % mod) * factor + summand)
+fun Int.x(factor: Int, summand: Int) = getAsXCoord(y(factor, summand))
+fun Int.xdiv(divident: Int, summand: Int, factor: Int = 1) = getAsXCoord(ydiv(divident, summand, factor))
+fun Int.xmod(mod: Int, summand: Int, factor: Int = 1) = getAsXCoord(ymod(mod, summand, factor))
 
 @Suppress("unused")
 fun Int.xc() = getAsXCoord(this)
@@ -3597,3 +3615,6 @@ fun String.toSDName() = Command.toSDName(this)
 val defaultScope = CoroutineScope(Dispatchers.Default)
 
 fun saveEmolgaJSON() = Command.saveEmolgaJSON()
+fun String.file() = File(this)
+
+data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)

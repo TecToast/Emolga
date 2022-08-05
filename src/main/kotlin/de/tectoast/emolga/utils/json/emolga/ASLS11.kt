@@ -31,10 +31,10 @@ class ASLS11(
         }
         val (x, y) = Emolga.get.asls11nametoid.indexOf(user.idLong).let { it.xdiv(24, 20) to it.ymod(24, 20) }
         table.indexOf(teamnameByCoach(coach)).let {
-            RequestBuilder.updateSingle(
-                sid, "Menschenhandel!${it.xmod(6, 2, 3)}${it.ydiv(6, 14 + level, 17)}",
-                "=$x$y"
-            )
+            RequestBuilder(sid).addRow(
+                "Menschenhandel!${it.xmod(6, 2, 3)}${it.ydiv(6, 14 + level, 17)}",
+                listOf("=$x$y", prize)
+            ).addStrikethroughChange(0, "$x$y", true).execute()
         }
     }
 
@@ -84,7 +84,7 @@ class ASLS11(
 @Suppress("unused")
 @Serializable
 class TeamData(val members: MutableMap<Int, Long> = mutableMapOf(), var points: Int = 6000, val roleId: Long = -1) {
-    fun pointsToSpend(): Int = points - ((5 - members.size) * 50)
+    fun pointsToSpend(): Int = points - ((4 - members.size) * 100)
 
 }
 

@@ -9,6 +9,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 class Emolga(
+    val config: Config,
+    val statistics: Statistics,
     val asls11: ASLS11,
     val soullink: Soullink,
     val drafts: Map<String, League>,
@@ -30,3 +32,9 @@ class Emolga(
         lateinit var get: Emolga
     }
 }
+
+@Serializable
+class Config(val teamgraphicShinyOdds: Int)
+
+@Serializable
+class Statistics(var drampaCounter: Int)

@@ -197,7 +197,7 @@ class RequestBuilder
         )
     }
 
-    private fun addStrikethroughChange(sheetId: Int, range: String, strikethrough: Boolean): RequestBuilder {
+    fun addStrikethroughChange(sheetId: Int, range: String, strikethrough: Boolean): RequestBuilder {
         val split = range.split(":")
         val s1 = split[0]
         val s2 = if (split.size == 1) s1 else split[1]

@@ -681,12 +681,11 @@ object PrivateCommands {
             ) {
                 //Thread({
                 try {
-                    logger.info(method.parameters.joinToString {
-                        "${it.name} -> ${it.type.classifier}"
-                    })
-                    if (method.parameters.isEmpty() || method.parameters[0].name == null) {
+                    if (method.parameters.run { isEmpty() || size == 1 })
                         method.callSuspend(PrivateCommands)
-                    } else method.callSuspend(PrivateCommands, PrivateCommandEvent(message))
+                    else method.callSuspend(
+                        PrivateCommands, PrivateCommandEvent(message)
+                    )
                 } catch (e: IllegalAccessException) {
                     logger.error("PrivateCommand " + a.name, e)
                 } catch (e: InvocationTargetException) {

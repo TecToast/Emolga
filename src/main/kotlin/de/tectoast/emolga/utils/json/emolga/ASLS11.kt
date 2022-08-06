@@ -28,6 +28,8 @@ class ASLS11(
             points -= prize
             //if(members.size == 5) order.values.forEach { l -> l.removeIf { it == table.indexOf(data.reverseGet(this))} }
             if (members.size == 5) originalorder.remove(table.indexOf(data.reverseGet(this)))
+            prefix?.let { user.modifyNickname("[$prefix] ${user.effectiveName}").queue() }
+            user.guild.addRoleToMember(user, user.jda.getRoleById(role)!!).queue()
         }
         val (x, y) = Emolga.get.asls11nametoid.indexOf(user.idLong).let { it.xdiv(24, 20) to it.ymod(24, 20) }
         table.indexOf(teamnameByCoach(coach)).let {
@@ -83,7 +85,12 @@ class ASLS11(
 
 @Suppress("unused")
 @Serializable
-class TeamData(val members: MutableMap<Int, Long> = mutableMapOf(), var points: Int = 6000, val roleId: Long = -1) {
+class TeamData(
+    val members: MutableMap<Int, Long> = mutableMapOf(),
+    var points: Int = 6000,
+    val role: Long,
+    val prefix: String? = null
+) {
     fun pointsToSpend(): Int = points - ((4 - members.size) * 100)
 
 }

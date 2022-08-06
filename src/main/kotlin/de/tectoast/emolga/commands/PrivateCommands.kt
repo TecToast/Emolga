@@ -308,12 +308,12 @@ object PrivateCommands {
     @PrivateCommand(name = "asltierlist")
     fun asltierlist() {
         val t = Tierlist.getByGuild(518008523653775366L)
-        val b = RequestBuilder("1wI291CWkKkWqQhY_KNu7GVfdincRz74omnCOvEVTDrc").withAdditionalSheets(
+        val b = /*RequestBuilder("1wI291CWkKkWqQhY_KNu7GVfdincRz74omnCOvEVTDrc").withAdditionalSheets(
             "1tFLd9Atl9QpMgCQBclpeU1WlMqSRGMeX8COUVDIf4TU",
             "1A040AYoiqTus1wSq_3CXgZpgcY3ECpphVRJWHmXyxsQ",
             "1p8DSvd3vS5s5z-1UGPjKUhFVskYjQyrn-HbvU0pb5WE",
             "1nEJvV5UESfuJvsJplXi_RXXnq9lY2vD5NyrTF3ObcvU"
-        )
+        )*/ RequestBuilder("1VWjAc370NQvuybaQZOTQ2uBVGC36D2_n63DOghkoE2k")
         var x = 0
         for (s in t!!.order) {
             val mons = t.tierlist[s]!!.map { str: String ->
@@ -681,7 +681,10 @@ object PrivateCommands {
             ) {
                 //Thread({
                 try {
-                    if (method.parameters.isEmpty()) {
+                    logger.info(method.parameters.joinToString {
+                        "${it.name} -> ${it.type.classifier}"
+                    })
+                    if (method.parameters.isEmpty() || method.parameters[0].name == null) {
                         method.callSuspend(PrivateCommands)
                     } else method.callSuspend(PrivateCommands, PrivateCommandEvent(message))
                 } catch (e: IllegalAccessException) {

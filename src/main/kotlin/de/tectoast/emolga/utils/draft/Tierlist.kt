@@ -1,112 +1,89 @@
 package de.tectoast.emolga.utils.draft
 
-import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.toSDName
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.records.Coord
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.*
-import java.util.function.Consumer
 import java.util.regex.Pattern
 import kotlin.reflect.KProperty
 
 @Suppress("unused")
-class Tierlist(guild: String) {
+@Serializable
+class Tierlist(val guild: Long) {
     /**
      * HashMap containing<br></br>Keys: Tiers<br></br>Values: Lists with the mons
      */
-    val tierlist: MutableMap<String, MutableList<String>> = LinkedHashMap()
+    @Transient
+    val tierlist: MutableMap<String, MutableList<String>> = mutableMapOf()
 
     /**
      * The price for each tier
      */
-    val prices: MutableMap<String, Int> = HashMap()
-
-    /**
-     * The guild of this tierlist
-     */
-    val guild: Long
+    val prices: MutableMap<String, Int> = mutableMapOf()
+    private val nexttiers: List<Int> = listOf()
 
     /**
      * List with all pokemon in the sheets tierlists, columns are separated by an "NEXT"
      */
-    private val tiercolumns = LinkedList<String>()
+    private val tiercolumns: MutableList<MutableList<String>> = mutableListOf()
+    private val trashmons: List<String> = emptyList()
+    private val additionalMons: Map<String, List<String>> = emptyMap()
+    private val englishnames: List<String> = emptyList()
 
-    /**
-     * List with all pokemon in the sheets tierlists, columns are separated by an "NEXT" SORTED BY ENGLISCH NAMES
-     */
-    private val tiercolumnsEngl = LinkedList<String>()
 
-    /**
-     * Order of the tiers, from highest to lowest
-     */
-    @JvmField
-    val order: MutableList<String> = ArrayList()
+    val order: List<String>
+        get() = prices.keys.toList()
 
     /**
      * the amount of rounds in the draft
      */
-    var rounds: Int
+    val rounds: Int = 0
+
+    private val mode: TierlistMode = TierlistMode.POINTS
 
     /**
      * if this tierlist is pointbased
      */
-    var isPointBased = false
+    val isPointBased: Boolean
+        get() = mode == TierlistMode.POINTS
 
     /**
      * the possible points for a player
      */
-    var points = 0
-    private var allEnglNames: List<String>? = null
+    val points = 0
+
 
     val autoComplete: Set<String> by lazy {
         val all = mutableSetOf<String>()
         all.addAll(tierlist.values.flatten())
-        allEnglNames?.run { all.addAll(this) }
+        all.addAll(englishnames)
         all
     }
 
     init {
-        this.guild = guild.substring(0, guild.length - 5).toLong()
-        val o = Command.load("./Tierlists/$guild")
-        if (!o.has("mode")) {
-            throw IllegalStateException("Mode not set")
-        }
-        rounds = o.optInt("rounds", -1)
-        val mode = o.getString("mode")
-        require(!(rounds == -1 && mode != "nothing")) { "BRUDER OLF IST DAS DEIN SCHEIß ERNST" }
-        when (mode) {
-            "points" -> {
-                points = o.getInt("points")
-                isPointBased = true
+        require(!(rounds == -1 && mode != TierlistMode.NOTHING)) { "BRUDER OLF IST DAS DEIN SCHEIß ERNST" }
+        val currtierlist: MutableList<String> = mutableListOf()
+        var currtier = 0
+        for ((x, monss) in tiercolumns.withIndex()) {
+            val mon = monss.map { it.trim() }
+                .map { REPLACE_NONSENSE.matcher(it).replaceAll("") }
+            if (nexttiers.contains(x)) {
+                val key = order[currtier++]
+                tierlist[key] = ArrayList(currtierlist)
+                currtierlist.clear()
             }
-
-            "tiers", "nothing" -> isPointBased = false
-            else -> throw IllegalArgumentException("Invalid mode! Has to be one of 'points', 'tiers' or 'nothing'!")
+            currtierlist.addAll(mon)
         }
-        val tiers = o.getJSONObject("tiers")
-        for (s in tiers.keySet()) {
-            order.add(s)
-            prices[s] = tiers.getInt(s)
+        tierlist[order[currtier]] = ArrayList(currtierlist)
+        if (trashmons.isNotEmpty()) tierlist[order.last()]!!.addAll(trashmons)
+        if (additionalMons.isNotEmpty()) {
+            additionalMons.keys.forEach { tierlist[it]!!.addAll(additionalMons[it]!!) }
         }
-        setupTiercolumns(
-            o.getJSONArray("mons").toListList(String::class.java),
-            o.getIntList("nexttiers"),
-            tiercolumns,
-            true
-        )
-        if (o.has("monsengl")) setupTiercolumns(
-            o.getJSONArray("monsengl").toListList(String::class.java),
-            o.getIntList("nexttiers"),
-            tiercolumnsEngl,
-            false
-        )
-        if (o.has("trashmons")) tierlist[order[order.size - 1]]!!.addAll(o.getStringList("trashmons"))
-        if (o.has("additionalmons")) {
-            val am = o.getJSONObject("additionalmons")
-            am.keySet().forEach(Consumer { k: String -> tierlist[k]!!.addAll(am.getStringList(k)) })
-        }
-        if (o.has("englishNames")) allEnglNames = o.getStringList("englishNames")
         tierlists[this.guild] = this
     }
 
@@ -120,7 +97,7 @@ class Tierlist(guild: String) {
     private fun setupTiercolumns(
         mons: List<List<String>>,
         nexttiers: List<Int>,
-        tiercols: MutableList<String>,
+        tiercols: MutableList<List<String>>,
         normal: Boolean
     ) {
         var currtier = 0
@@ -136,8 +113,7 @@ class Tierlist(guild: String) {
                 }
                 currtierlist.addAll(mon)
             }
-            tiercols.addAll(mon)
-            tiercols.add("NEXT")
+            tiercols.add(mon)
         }
         if (normal) tierlist[order[currtier]] = ArrayList(currtierlist)
         tiercolumns.removeLast()
@@ -154,12 +130,14 @@ class Tierlist(guild: String) {
          * All tierlists
          */
         val tierlists: MutableMap<Long, Tierlist> = HashMap()
-        private val REPLACE_NONSENSE = Pattern.compile("[^a-zA-Z\\d-:% ]")
+        private val REPLACE_NONSENSE = Pattern.compile("[^a-zA-Z\\d-:%ß ]")
         fun setup() {
             tierlists.clear()
             val dir = File("./Tierlists/")
             for (file in dir.listFiles()!!) {
-                if (file.isFile) Tierlist(file.name)
+                if (file.isFile) /*Tierlist(file.name.substringBefore(".").toLong())*/ Json.decodeFromString<Tierlist>(
+                    file.readText()
+                )
             }
         }
 
@@ -190,4 +168,11 @@ class Tierlist(guild: String) {
             return Coord(x, y, valid)
         }
     }
+}
+
+@Suppress("unused")
+enum class TierlistMode {
+    POINTS,
+    TIERS,
+    NOTHING
 }

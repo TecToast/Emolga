@@ -20,7 +20,9 @@ object TeamGraphics {
         "emolga",
         "trapinch",
         "lapras",
-        "stantler"
+        "stantler",
+        "wooloo",
+        "eevee"
     )
 
 
@@ -100,8 +102,8 @@ class TeamGraphic {
         val img = BufferedImage(/*410 * mons.values.maxOf { it.size }*//* maxOffset*/ /*+ offset * mons.keys.size*/
             //mons.maxOf { it.size } * 397 + 42,
             //maxOffset,
-            mons.mapIndexed { index, list -> list.size * 397 + indexToStartX[index]!!/* - 210 + 31*/ }.max(),
-            390 * mons.size,
+            mons.mapIndexed { index, list -> list.size * 397 + indexToStartX[index]!! /* - 210 + 31*/ }.max(),
+            360 * mons.size + 112,
             BufferedImage.TYPE_INT_ARGB
         )
         //val img = BufferedImage(5000, 5000, BufferedImage.TYPE_INT_ARGB )

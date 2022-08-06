@@ -395,14 +395,14 @@ class RequestBuilder
 
         @JvmStatic
         fun updateAll(sid: String?, range: String?, values: List<List<Any>?>?, vararg raw: Boolean) {
-            Thread({
+            scope.launch {
                 try {
                     Google.sheetsService!!.spreadsheets().values().update(sid, range, ValueRange().setValues(values))
                         .setValueInputOption(if (raw.isEmpty() || !raw[0]) "USER_ENTERED" else "RAW").execute()
                 } catch (e: IOException) {
                     e.printStackTrace()
                 }
-            }, "ReqBuilder").start()
+            }
         }
 
         fun batchUpdate(sid: String?, vararg requests: Request?) {

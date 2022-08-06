@@ -2,6 +2,9 @@ package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.commands.Command.Companion.loadSD
 import de.tectoast.jsolf.JSONObject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class ModManager(name: String, datapath: String) {
     lateinit var dex: JSONObject
@@ -10,16 +13,10 @@ class ModManager(name: String, datapath: String) {
     lateinit var typechart: JSONObject
 
     init {
-        Thread({ dex = loadSD(datapath + "pokedex.ts", Constants.DEXJSONSUB) }, "ModManager $name Dex").start()
-        Thread(
-            { learnsets = loadSD(datapath + "learnsets.ts", Constants.LEARNSETJSONSUB) },
-            "ModManager $name Learnsets"
-        ).start()
-        Thread({ moves = loadSD(datapath + "moves.ts", Constants.MOVESJSONSUB) }, "ModManager $name Moves").start()
-        Thread(
-            { typechart = loadSD(datapath + "typechart.ts", Constants.TYPESJSONSUB) },
-            "ModManager $name Typechart"
-        ).start()
+        scope.launch { dex = loadSD(datapath + "pokedex.ts", Constants.DEXJSONSUB) }
+        scope.launch { learnsets = loadSD(datapath + "learnsets.ts", Constants.LEARNSETJSONSUB) }
+        scope.launch { moves = loadSD(datapath + "moves.ts", Constants.MOVESJSONSUB) }
+        scope.launch { typechart = loadSD(datapath + "typechart.ts", Constants.TYPESJSONSUB) }
         if (name == "default") default = this
         modManagers.add(this)
     }
@@ -27,5 +24,6 @@ class ModManager(name: String, datapath: String) {
     companion object {
         private val modManagers = ArrayList<ModManager>()
         lateinit var default: ModManager
+        val scope = CoroutineScope(Dispatchers.IO)
     }
 }

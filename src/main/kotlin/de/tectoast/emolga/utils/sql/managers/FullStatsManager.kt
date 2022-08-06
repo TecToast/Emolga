@@ -5,6 +5,9 @@ import de.tectoast.emolga.utils.sql.base.DataManager
 import de.tectoast.emolga.utils.sql.base.DataManager.ResultsFunction
 import de.tectoast.emolga.utils.sql.base.columns.IntColumn
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.sql.ResultSet
 
@@ -15,6 +18,7 @@ object FullStatsManager : DataManager("fullstats") {
     private val USES = IntColumn("uses", this)
     private val WINS = IntColumn("wins", this)
     private val LOOSES = IntColumn("looses", this)
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     init {
         setColumns(POKEMON, KILLS, DEATHS, USES, WINS, LOOSES)
@@ -22,8 +26,7 @@ object FullStatsManager : DataManager("fullstats") {
 
     fun add(pokemon: String, kills: Int, deaths: Int, win: Boolean) {
         logger.debug("Adding to FSM {} {} {}", pokemon, kills, deaths)
-        Thread(
-            { addStatistics(pokemon, kills, deaths, 1, if (win) 1 else 0, if (win) 0 else 1) }, "AddFullStat").start()
+        scope.launch { addStatistics(pokemon, kills, deaths, 1, if (win) 1 else 0, if (win) 0 else 1) }
     }
 
     fun getData(mon: String?): UsageData {

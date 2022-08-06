@@ -2368,7 +2368,7 @@ abstract class Command(
             ModManager("default", "./ShowdownData/")
             ModManager("nml", "../Showdown/sspserver/data/")
             Tierlist.setup()
-            Thread({
+            defaultScope.launch {
                 ButtonListener.init()
                 MenuListener.init()
                 ModalListener.init()
@@ -2442,7 +2442,7 @@ abstract class Command(
         emolgaChannel.put(677229415629062180L, new ArrayList<>(Collections.singletonList(731455491527540777L)));
         emolgaChannel.put(694256540642705408L, new ArrayList<>(Collections.singletonList(695157832072560651L)));
         emolgaChannel.put(747357029714231299L, new ArrayList<>(Arrays.asList(752802115096674306L, 762411109859852298L)));*/
-            }, "Command Initialization").start()
+            }
         }
 
         fun convertColor(hexcode: Int): Color {
@@ -2568,9 +2568,9 @@ abstract class Command(
 
         fun loadJSONFiles() {
             tokens = load("./tokens.json")
-            Thread({
+            loadEmolgaJSON()
+            defaultScope.launch {
                 //emolgaJSON = load("./emolgadata.json")
-                loadEmolgaJSON()
                 //datajson = loadSD("pokedex.ts", 59);
                 //movejson = loadSD("learnsets.ts", 62);
                 shinycountjson = load("./shinycount.json")
@@ -2580,7 +2580,7 @@ abstract class Command(
                     google.getString("refreshtoken"), google.getString("clientid"), google.getString("clientsecret")
                 )
                 Google.generateAccessToken()
-            }, "JSON Fileload").start()
+            }
         }
 
         fun getWithCategory(category: CommandCategory, g: Guild, mem: Member): List<Command> {

@@ -4,6 +4,11 @@ plugins {
     kotlin("jvm") version "1.7.10"
     kotlin("plugin.serialization") version "1.7.10"
     id("com.github.johnrengelman.shadow") version "7.1.2"
+    application
+}
+
+application {
+    mainClass.set("de.tectoast.emolga.Main")
 }
 
 tasks {
@@ -75,5 +80,6 @@ dependencies {
     implementation("com.github.minndevelopment:jda-ktx:03b07e7")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0-RC")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.6.4")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.10")
 }

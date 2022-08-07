@@ -57,7 +57,7 @@ repositories {
     maven("https://jitpack.io/")
 }
 dependencies {
-    implementation("org.slf4j:slf4j-api:2.0.0-alpha7")
+    implementation("org.slf4j:slf4j-api:2.0.0-beta1")
     implementation("org.eclipse.jetty:jetty-server:11.0.11")
     implementation("org.eclipse.jetty:jetty-util:11.0.11")
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")

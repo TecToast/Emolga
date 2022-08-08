@@ -27,7 +27,11 @@ class ASLS11(
             members[level] = user.idLong
             points -= prize
             //if(members.size == 5) order.values.forEach { l -> l.removeIf { it == table.indexOf(data.reverseGet(this))} }
-            if (members.size == 5) originalorder.remove(table.indexOf(data.reverseGet(this)))
+            if (members.size == 5) {
+                val toremove = table.indexOf(data.reverseGet(this))
+                originalorder.remove(toremove)
+                order.remove(toremove)
+            }
             prefix?.let { user.modifyNickname("[$prefix] ${user.effectiveName}").queue() }
             user.guild.addRoleToMember(user, user.jda.getRoleById(role)!!).queue()
         }
@@ -43,7 +47,9 @@ class ASLS11(
     private fun teamByIndex(index: Int) = table[index].let { it to data[it]!! }
 
     fun isPlayer(mem: Member) = mem.roles.any { it.idLong in levelIds }
-    fun isTaken(mem: Long) = data.values.any { datas -> datas.members.values.any { it == mem } }
+    fun isTaken(mem: Long) =
+        data.values.any { datas -> (1..4).any { datas.members[it] == mem } }/*.values.drop(1).any { it == mem } }*/
+
     fun getLevelByMember(mem: Member): Int =
         levelIds.indexOfFirst { id -> mem.roles.any { it.idLong == id } } + 1
 

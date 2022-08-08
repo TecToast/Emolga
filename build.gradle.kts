@@ -80,6 +80,5 @@ dependencies {
     implementation("com.github.minndevelopment:jda-ktx:03b07e7")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0-RC")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.6.4")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.10")
 }

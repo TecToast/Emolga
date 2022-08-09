@@ -102,4 +102,4 @@ class TeamData(
 }
 
 @Serializable
-class Config(val waitFor: Long = 15000, val countdownSeconds: Int = 15)
+class Config(val waitFor: Long = 15000, val countdownSeconds: Int = 15, val sendOn: List<Int> = listOf(5, 15))

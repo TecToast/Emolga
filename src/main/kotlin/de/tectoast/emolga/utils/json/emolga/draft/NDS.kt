@@ -25,6 +25,11 @@ class NDS : League() {
     val teamnames: Map<Long, String> = mapOf()
     val teamtable: List<String> = emptyList()
 
+    override fun isFinishedForbidden() = false
+
+    override fun checkFinishedForbidden(mem: Long) =
+        if (picks[mem]!!.filter { it.name != "???" }.size < 15) "Du hast noch keine 15 Pokemon!" else null
+
     override fun savePick(picks: MutableList<DraftPokemon>, pokemon: String, tier: String) {
         picks.first { it.name == "???" }.apply {
             this.name = pokemon

@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.Command.Translation
 import de.tectoast.emolga.commands.PrivateCommand
+import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.Emolga
@@ -34,7 +35,7 @@ class PrismaTeamCommand : PrivateCommand("prismateam") {
             }
             league.picks[u.idLong] = map.entries.filterNot { it.key == "check" }
                 .map { DraftPokemon(it.value as String, it.key[0].toString()) }.toMutableList()
-            Command.saveEmolgaJSON()
+            saveEmolgaJSON()
             tc.sendMessage("Dein Team wurde erfolgreich gespeichert!").queue()
         }, "Die Team-Eingabe wurde abgebrochen.")
         template.addCancelCommand("!cancel")

@@ -61,6 +61,16 @@ object TranslationsManager : DataManager("translations") {
         return delete(and(ENGLISHID.check(sd), ISNICK.check(true))) != 0
     }
 
+    fun getAllMonNicks(): Map<String, String> {
+        val map = mutableMapOf<String, String>()
+        readWrite(selectAll(and(TYPE.check("pkmn"), ISNICK.check(true))), ResultsFunction { set ->
+            forEach(set) { res ->
+                map[res.getString("englishid").replaceFirstChar { it.uppercaseChar() }] = res.getString("germanname")
+            }
+        })
+        return map
+    }
+
     fun removeDuplicates() {
         readWrite<Any>(selectAll(TYPE.check("trainer"))) { set: ResultSet ->
             val l: MutableList<String> = LinkedList()

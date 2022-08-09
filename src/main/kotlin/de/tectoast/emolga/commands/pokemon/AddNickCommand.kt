@@ -41,6 +41,5 @@ class AddNickCommand : Command(
         val t = args.getTranslation("stuff")
         TranslationsManager.addNick(nick, t)
         e.reply("**" + t.translation + "** kann ab jetzt auch mit **" + nickorig + "** abgefragt werden!")
-        saveEmolgaJSON()
     }
 }

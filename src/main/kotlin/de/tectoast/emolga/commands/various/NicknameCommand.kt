@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.various
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.Emolga
 
@@ -16,9 +17,7 @@ class NicknameCommand : Command(
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("name", "Neuer Name", "Der neue Nickname", ArgumentManagerTemplate.Text.any())
-            .setExample("!nickname IchMagEmolga")
-            .build()
-        disable()
+            .setExample("!nickname IchMagEmolga").build()
     }
 
     override suspend fun process(e: GuildCommandEvent) {
@@ -43,16 +42,16 @@ class NicknameCommand : Command(
             val expiresIn = this - System.currentTimeMillis()
             if (expiresIn <= 0) return@run
             tco.sendMessage(
-                """${member.asMention} Du kannst deinen Namen noch nicht wieder ändern!
-Cooldown: ${secondsToTime(expiresIn / 1000)}""".trimIndent()
+                "${member.asMention} Du kannst deinen Namen noch nicht wieder ändern!\nCooldown: ${
+                    secondsToTime(expiresIn / 1000)
+                }"
             ).queue()
             return
         }
         val oldname = member.effectiveName
         member.modifyNickname(nickname).queue {
             if (g.idLong == Constants.ASLID) g.getTextChannelById("728675253924003870")!!
-                .sendMessage("$oldname hat sich in $nickname umbenannt!")
-                .queue()
+                .sendMessage("$oldname hat sich in $nickname umbenannt!").queue()
             tco.sendMessage(member.asMention + " Dein Nickname wurde erfolgreich geändert!").queue()
             map[member.id] = System.currentTimeMillis() + 604800000
             saveEmolgaJSON()

@@ -164,37 +164,9 @@ object PrivateCommands {
         }
     }
 
-    @PrivateCommand(name = "replaceplayer")
-    fun replacePlayer(e: GenericCommandEvent) {
-        val league = Emolga.get.league(e.getArg(0))
-        val battleOrder = league.battleorder
-        val oldid = e.getArg(1)
-        val newid = e.getArg(2)
-        val old = oldid.toLong()
-        val new = newid.toLong()
-        battleOrder.replaceAll { _, u -> u.replace(oldid, newid) }
-        league.table[league.table.indexOf(old)] = new
-        league.table.replace(old, new)
-        league.order.values.forEach { it.replace(old, new) }
-        val picks = league.picks
-        picks[new] = picks[old]!!
-        picks.remove(old)
-
-        val results = league.results
-        val keys = ArrayList(results.keys)
-        for (key in keys) {
-            if (key.contains(oldid)) {
-                results[key.replace(oldid, newid)] = results[key]!!
-                results.remove(key)
-            }
-        }
-        Command.saveEmolgaJSON()
-        e.done()
-    }
-
     @PrivateCommand(name = "saveemolgajson")
     fun saveEmolga(e: GenericCommandEvent) {
-        Command.saveEmolgaJSON()
+        saveEmolgaJSON()
         e.done()
     }
 
@@ -454,7 +426,7 @@ object PrivateCommands {
         for (s in picks.keys) {
             picks[s]!!.sortWith(compareBy({ it.tier.indexedBy(tierorder) }, { it.name }))
         }
-        Command.saveEmolgaJSON()
+        saveEmolgaJSON()
     }
 
     @PrivateCommand(name = "ndsprepares2rrdoc")
@@ -491,7 +463,7 @@ object PrivateCommands {
         val tierorder = listOf("S", "A", "B", "C", "D")
         val s = e.getArg(1)
         picks[s.toLong()]!!.sortWith(compareBy({ it.tier.indexedBy(tierorder) }, { it.name }))
-        Command.saveEmolgaJSON()
+        saveEmolgaJSON()
     }
 
     @PrivateCommand(name = "ndscorrectpkmnnames")
@@ -564,12 +536,12 @@ object PrivateCommands {
     fun updateSlashCommands(e: GenericCommandEvent) {
         val jda = e.jda
         val map: MutableMap<Long, MutableList<SlashCommandData>> = HashMap()
-        Command.commands.values.filter { it.isSlash }
-            .filter { it.slashGuilds.isNotEmpty() }.forEach { c: Command ->
-                val dt = Commands.slash(c.name, c.help)
-                val mainCmdArgs = c.argumentTemplate.arguments
-                if (c.hasChildren()) {
-                    val childCommands = c.childCommands
+        Command.commands.values.filter { it.isSlash }.distinct()
+            .filter { it.slashGuilds.isNotEmpty() }.forEach {
+                val dt = Commands.slash(it.name, it.help)
+                val mainCmdArgs = it.argumentTemplate.arguments
+                if (it.hasChildren()) {
+                    val childCommands = it.childCommands
                     for (childCmd in childCommands.values) {
                         val scd = SubcommandData(childCmd.name, childCmd.help)
                         scd.addOptions(buildOptionData(childCmd.argumentTemplate.arguments))
@@ -580,7 +552,7 @@ object PrivateCommands {
                 } else {
                     dt.addOptions(buildOptionData(mainCmdArgs))
                 }
-                for (slashGuild in c.slashGuilds) {
+                for (slashGuild in it.slashGuilds) {
                     map.computeIfAbsent(slashGuild) { LinkedList() }.add(dt)
                 }
             }

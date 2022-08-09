@@ -8,10 +8,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.sql.managers.*
 import dev.minn.jda.ktx.coroutines.await
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import java.sql.Connection
 import java.sql.ResultSet
@@ -31,7 +28,11 @@ class Database(username: String, password: String) {
     companion object {
         private val logger = LoggerFactory.getLogger(Database::class.java)
         private var instance: Database? = null
-        private val dbScope = CoroutineScope(Dispatchers.IO + CoroutineName("DBScope"))
+        private val dbScope =
+            CoroutineScope(Dispatchers.IO + CoroutineName("DBScope") + CoroutineExceptionHandler { _, t ->
+                logger.error("ERROR IN DATABASE SCOPE", t)
+                Command.sendToMe("Error in database scope, look in console")
+            })
 
         @JvmStatic
         fun init() {

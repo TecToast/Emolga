@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.draft.PickCommand.Companion.exec
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
 class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", CommandCategory.Draft) {
@@ -12,11 +13,11 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
             .add("tier", "Tier", "Das Tier, in dem gepickt werden soll", ArgumentManagerTemplate.Text.any())
             .addEngl("type", "Typ", "Der Typ, von dem random gepickt werden soll", Translation.Type.TYPE, true)
             .setExample("!randompick A").build()
+        slash(true, Constants.ASLID)
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val memberr = e.member
-        val d = League.byChannel(e.textChannel, memberr.idLong, DraftEvent(e)) ?: return
+        val d = League.byChannel(e) ?: return
         val tierlist = d.tierlist
         val args = e.arguments
         val tier = tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: run {
@@ -33,10 +34,14 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
         } else {
             { true }
         }
-        exec(
-            DraftEvent(e), "!pick " + (list.firstOrNull { str: String ->
-                !d.isPicked(str) && typecheck(str)
-            }?.trim() ?: ""), memberr, true
-        )
+        e.arguments.map.apply {
+            put(
+                "pokemon", (list.firstOrNull { str: String ->
+                    !d.isPicked(str) && typecheck(str)
+                }?.trim() ?: e.reply("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")
+                    .also { return })
+            )
+        }
+        exec(e, true)
     }
 }

@@ -1,13 +1,11 @@
 package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
+import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.Command.Companion.secondsToTime
 import de.tectoast.emolga.utils.sql.managers.GiveawayManager
 import dev.minn.jda.ktx.coroutines.await
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.MessageBuilder
 import net.dv8tion.jda.api.entities.Message
@@ -165,6 +163,10 @@ Gehostet von: <@$userId>"""
         private val giveawayExecutor: ScheduledExecutorService = ScheduledThreadPoolExecutor(5)
         private val giveawayFutures = HashMap<Long, ScheduledFuture<*>>()
         private val giveawayFinalizes = HashMap<Long, ScheduledFuture<*>>()
-        private val coroutineScope = CoroutineScope(Dispatchers.Default + CoroutineName("Giveaway"))
+        private val coroutineScope =
+            CoroutineScope(Dispatchers.Default + CoroutineName("Giveaway") + CoroutineExceptionHandler { _, t ->
+                logger.error("ERROR IN GIVEAWAY SCOPE", t)
+                Command.sendToMe("Error in giveaway scope, look in console")
+            })
     }
 }

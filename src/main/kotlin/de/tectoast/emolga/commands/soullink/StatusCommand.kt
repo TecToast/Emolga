@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.soullink
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.json.Emolga
 
 class StatusCommand : Command("status", "Setzt den Status eines Encounters", CommandCategory.Soullink) {

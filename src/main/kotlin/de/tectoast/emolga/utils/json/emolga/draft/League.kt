@@ -1,16 +1,15 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.draft.DraftEvent
+import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.draft.PickData
 import de.tectoast.emolga.commands.draft.SwitchData
 import de.tectoast.emolga.commands.indexedBy
+import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.entities.TextChannel
@@ -30,17 +29,15 @@ sealed class League {
     private val mentions: Map<Long, Long> = emptyMap()
     val guild: Long = -1
 
-    val finished: MutableList<Long> = mutableListOf()
+    private val finished: MutableList<Int> = mutableListOf()
     var round = 1
     var current = -1L
     private var cooldown = -1L
     val points: MutableMap<Long, Int> = mutableMapOf()
 
-    @SerialName("order")
-    val originalOrder: Map<Int, MutableList<Long>> = mapOf()
+    private val originalorder: Map<Int, MutableList<Int>> = mapOf()
 
-    @Transient
-    val order: MutableMap<Int, MutableList<Long>> = mutableMapOf()
+    val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
 
     @Transient
     lateinit var tc: TextChannel
@@ -56,36 +53,28 @@ sealed class League {
     var cooldownFuture: ScheduledFuture<*>? = null
     private var ended = false
     val members: List<Long>
-        get() = originalOrder.getValue(1)
+        get() = table
     private val timer: DraftTimer = DraftTimer.ASL
+    val isLastRound: Boolean get() = round == tierlist.rounds
 
     @Transient
     var isSwitchDraft = false
 
     val table: MutableList<Long> = mutableListOf()
 
-    fun isNotCurrent(user: Long): Boolean {
-        if (current == user || user == Constants.FLOID) return false
-        return allowed[user]?.equals(current) == false
-    }
+    open fun isFinishedForbidden() = true
 
-    fun isPicked(mon: String) = picks.values.any { l -> l.any { it.name == mon } }
-
-    fun handlePoints(e: DraftEvent, needed: Int): Boolean {
-        if (isPointBased && points[current]!! - needed < 0) {
-            e.reply("Dafür hast du nicht genug Punkte!")
-            return true
-        }
-        /*if (d.isPointBased && (d.getTierlist().rounds - d.round) * d.getTierlist().prices.get(d.getTierlist().order.get(d.getTierlist().order.size() - 1)) > (d.points.get(mem) - needed)) {
-        tco.sendMessage(memberr.getAsMention() + " Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!").queue();
-        return;
-    }*/
-        if (isPointBased) points[current] = points[current]!! - needed
-        return false
-    }
+    open fun checkFinishedForbidden(mem: Long): String? = null
 
     open fun savePick(picks: MutableList<DraftPokemon>, pokemon: String, tier: String) {
         picks.add(DraftPokemon(pokemon, tier))
+    }
+
+    open fun saveSwitch(picks: MutableList<DraftPokemon>, oldmon: String, newmon: String, tierOf: String) {
+        picks.first { it.name == oldmon }.apply {
+            this.name = newmon
+            this.tier = tierlist.getTierOf(newmon)
+        }
     }
 
     open fun pickDoc(data: PickData) {
@@ -96,62 +85,77 @@ sealed class League {
 
     }
 
+
+    fun isNotCurrent(user: Long): Boolean {
+        if (current == user || user == Constants.FLOID) return false
+        return allowed[user]?.equals(current) == false
+    }
+
+    fun isPicked(mon: String) = picks.values.any { l -> l.any { it.name == mon } }
+
+    fun handlePoints(e: GuildCommandEvent, needed: Int): Boolean {
+        if (isPointBased) {
+            if (points[current]!! - needed < 0) {
+                e.reply("Dafür hast du nicht genug Punkte!")
+                return true
+            }/*if (d.isPointBased && (d.getTierlist().rounds - d.round) * d.getTierlist().prices.get(d.getTierlist().order.get(d.getTierlist().order.size() - 1)) > (d.points.get(mem) - needed)) {
+        tco.sendMessage(memberr.getAsMention() + " Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!").queue();
+        return;
+    }*/
+            points[current] = points[current]!! - needed
+        }
+        return false
+    }
+
+
     fun nextPlayer() {
-        if (order[round]!!.size == 0) {
+        if (order[round]!!.isEmpty()) {
             if (round == tierlist.rounds) {
                 tc.sendMessage("Der Draft ist vorbei!").queue()
                 ended = true
                 //ndsdoc(tierlist, pokemon, d, mem, tier, round);
                 //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
-                Command.saveEmolgaJSON()
+                saveEmolgaJSON()
                 drafts.remove(this)
                 return
             }
             round++
-            if (order[round]!!.size == 0) {
+            if (order[round]!!.isEmpty()) {
                 tc.sendMessage("Da alle bereits ihre Drafts beendet haben, ist der Draft vorbei!").queue()
-                Command.saveEmolgaJSON()
+                saveEmolgaJSON()
                 return
             }
             tc.sendMessage("Runde $round!").queue()
         }
-        current = order[round]!!.removeAt(0)
+        current = order[round]!!.nextCurrent()
         cooldownFuture!!.cancel(false)
         announcePlayer()
         restartTimer()
-        Command.saveEmolgaJSON()
+        saveEmolgaJSON()
     }
+
+    private fun MutableList<Int>.nextCurrent() = table[this.removeAt(0)]
 
     fun startDraft(tc: TextChannel, isSwitchDraft: Boolean, fromFile: Boolean) {
         this.tc = tc
         this.isSwitchDraft = isSwitchDraft
-        order.putAll(originalOrder)
         for (member in members) {
-            if (fromFile)
-                picks.putIfAbsent(member, mutableListOf())
+            if (fromFile) picks.putIfAbsent(member, mutableListOf())
             else picks[member] = mutableListOf()
-            if (isPointBased)
-                points[member] = tierlist.points - picks[member]!!.sumOf { tierlist.prices[it.tier]!! }
+            if (isPointBased) points[member] = tierlist.points - picks[member]!!.sumOf { tierlist.prices[it.tier]!! }
         }
         if (!fromFile) {
-            current = order[1]!!.removeAt(0)
+            order.putAll(originalorder)
+            current = order[1]!!.nextCurrent()
             restartTimer()
             sendRound()
             announcePlayer()
         } else {
-            var x = 0
-            for (member in order[round]!!) {
-                x++
-                if (current == member) break
-            }
-            if (x > 0) {
-                order[round]!!.subList(0, x).clear()
-            }
             finished.forEach { fin -> order.values.forEach { l -> l.removeIf { it == fin } } }
             val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer.calc()
             restartTimer(delay)
         }
-        Command.saveEmolgaJSON()
+        saveEmolgaJSON()
         drafts.add(this)
     }
 
@@ -188,32 +192,45 @@ sealed class League {
 
     private fun getMention(mem: Long) = "<@${mentions[mem] ?: mem}>"
     fun isPickedBy(mon: String, mem: Long): Boolean = picks[mem]!!.any { it.name == mon }
-    fun indexInRound(): Int = originalOrder[round]!!.indexOf(current)
+    fun indexInRound(): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
     fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER) {
         if (ended) return
-        if (order[round]!!.size == 0) {
+        if (order[round]!!.isEmpty()) {
             if (round == tierlist.rounds) {
-                Command.saveEmolgaJSON()
+                saveEmolgaJSON()
                 tc.sendMessage("Der Draft ist vorbei!").queue()
                 drafts.remove(this)
                 return
             }
             round++
             tc.sendMessage("Runde $round!").queue()
-        }
-        /*String msg = tr == TimerReason.REALTIMER ? "**" + current.getEffectiveName() + "** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " (<@&" + asl.getLongList("roleids").get(getIndex(order.get(round).get(0).getIdLong())) + ">) dran! "
+        }/*String msg = tr == TimerReason.REALTIMER ? "**" + current.getEffectiveName() + "** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " (<@&" + asl.getLongList("roleids").get(getIndex(order.get(round).get(0).getIdLong())) + ">) dran! "
                 : "Der Pick von " + current.getEffectiveName() + " wurde " + (isSwitchDraft ? "geskippt" : "verschoben") + " und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran!";*/
-        var msg = if (tr == TimerReason.REALTIMER) "**<@$current>** war zu langsam und deshalb ist jetzt " + getMention(
-            order[round]!![0]
-        ) + " dran! " else "Der Pick von <@" + current + "> wurde " + (if (isSwitchDraft) "geskippt" else "verschoben") + " und deshalb ist jetzt " + getMention(
-            order[round]!![0]
-        ) + " dran!"
-        current = order[round]!!.removeAt(0)
-        msg += if (isPointBased) "(" + points[current] + " mögliche Punkte)" else "(Mögliche Tiers: " + getPossibleTiersAsString(
-            current
-        ) + ")"
-        tc.sendMessage(msg).queue()
+        val oldcurrent = current
+        current = order[round]!!.nextCurrent()
+        tc.sendMessage(buildString {
+            if (tr == TimerReason.REALTIMER) append(
+                "**<@$oldcurrent>** war zu langsam und deshalb ist jetzt ${
+                    getMention(current)
+                } dran!"
+            )
+            else append(
+                "Der Pick von <@$oldcurrent> wurde ${if (isSwitchDraft) "geskippt" else "verschoben"} und deshalb ist jetzt ${
+                    getMention(current)
+                } dran!"
+            )
+            if (isPointBased) append(" (${points[current]} mögliche Punkte)")
+            else append(
+                "(Mögliche Tiers: " + getPossibleTiersAsString(current) + ")"
+            )
+        }).queue()
         restartTimer()
+    }
+
+    fun addFinished(mem: Long) {
+        val index = mem.indexedBy(table)
+        order.values.forEach { it.remove(index) }
+        finished.add(index)
     }
 
     abstract val docEntry: DocEntry?
@@ -221,8 +238,8 @@ sealed class League {
     companion object {
         val drafts: MutableList<League> = mutableListOf()
 
-        fun byChannel(tc: TextChannel, mem: Long, e: DraftEvent) = onlyChannel(tc)?.apply {
-            if (isNotCurrent(mem)) {
+        fun byChannel(e: GuildCommandEvent) = onlyChannel(e.textChannel)?.apply {
+            if (isNotCurrent(e.member.idLong)) {
                 e.reply("Du bist nicht dran!")
                 return null
             }

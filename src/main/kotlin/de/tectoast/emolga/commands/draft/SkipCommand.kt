@@ -19,10 +19,9 @@ class SkipCommand : Command(
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val ev = DraftEvent(e)
-        val d = League.byChannel(e.textChannel, e.member.idLong, ev) ?: return
+        val d = League.byChannel(e) ?: return
         if (!d.isSwitchDraft) {
-            ev.reply("Dieser Draft ist kein Switch-Draft, daher wird !skip nicht unterstützt!")
+            e.reply("Dieser Draft ist kein Switch-Draft, daher wird !skip nicht unterstützt!")
             return
         }
         d.nextPlayer()

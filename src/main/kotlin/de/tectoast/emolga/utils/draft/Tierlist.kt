@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils.draft
 import de.tectoast.emolga.commands.toSDName
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.records.Coord
+import de.tectoast.emolga.utils.sql.managers.TranslationsManager
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.decodeFromString
@@ -59,10 +60,14 @@ class Tierlist(val guild: Long) {
 
 
     val autoComplete: Set<String> by lazy {
-        val all = mutableSetOf<String>()
-        all.addAll(tierlist.values.flatten())
-        all.addAll(englishnames)
-        all
+        (tierlist.values.flatten() + englishnames).toSet()
+    }
+
+    val pickableNicknames: Set<String> by lazy {
+        TranslationsManager.getAllMonNicks().flatMap { mon ->
+            tierlist.values.flatten().filter { it.substringAfter("-") == mon.value }
+                .map { it.replace(mon.value, mon.key) }
+        }.toSet()
     }
 
     init {

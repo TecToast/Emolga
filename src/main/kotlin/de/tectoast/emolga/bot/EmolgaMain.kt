@@ -1,6 +1,7 @@
 package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.jetty.HttpHandler
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Giveaway
@@ -68,8 +69,7 @@ object EmolgaMain {
         setupJetty()
         Command.awaitNextDay()
         flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
-        Command.updatePresence()
-        /*val manager = ReactionManager(emolgajda)
+        Command.updatePresence()/*val manager = ReactionManager(emolgajda)
         manager // BS
             .registerReaction("827608009571958806", "884567614918111233", "884564674744561684", "884565654227812364")
             .registerReaction("827608009571958806", "884567614918111233", "884564533295869962", "884565697479458826")
@@ -90,7 +90,10 @@ object EmolgaMain {
     }
 
     private fun initializeASLS11(jda: JDA) {
-        val scope = CoroutineScope(Dispatchers.Default)
+        val scope = CoroutineScope(Dispatchers.Default + CoroutineExceptionHandler { _, t ->
+            logger.error("ERROR IN ASL SCOPE", t)
+            Command.sendToMe("Error in asl scope, look in console")
+        })
         jda.listener<SlashCommandInteractionEvent> { e ->
             if (e.name != "bet") return@listener
             Emolga.get.asls11.textChannel.let {
@@ -136,8 +139,7 @@ object EmolgaMain {
                 }
             }
             e.reply(
-                "${e.user.asMention} hat ${togain.asMention} (**Stufe $level**) für **$startbet Punkte** in den Ring geworfen!\n" +
-                        "Lasset das Versteigern beginnen!"
+                "${e.user.asMention} hat ${togain.asMention} (**Stufe $level**) für **$startbet Punkte** in den Ring geworfen!\n" + "Lasset das Versteigern beginnen!"
             ).queue()
             var maxBet: Pair<Long, Int> = slashUserId to startbet
             val countdown = AtomicInteger(Emolga.get.asls11.config.countdownSeconds)
@@ -146,25 +148,26 @@ object EmolgaMain {
             var alreadyLaunched = false
             while (!finished) {
                 val res = withTimeoutOrNull(Emolga.get.asls11.config.waitFor) {
-                    val me = jda.await<MessageReceivedEvent> { event ->
-                        !event.author.isBot
-                                && event.channel.idLong == e.channel.idLong
-                                && event.member!!.roles.any { it.idLong == 998164505529950258 }
-                    }
-                    val newbet = me.message.contentDisplay.toIntOrNull() ?: -1
-                    val teamByCoach = Emolga.get.asls11.teamByCoach(me.author.idLong)
-                    if (!newbet.validBet() || newbet <= maxBet.second || ((teamByCoach
-                            ?.pointsToSpend() ?: -1) < newbet).also {
-                            if (it) Command.sendToUser(me.author, "So viel kannst du nicht mehr bieten!")
-                        } || (teamByCoach?.members?.contains(level) == true).also {
-                            if (it) Command.sendToUser(
-                                me.author,
-                                "Du kannst hier nicht mitbieten, da du bereits einen Sklaven aus Stufe $level hast, du Kek!"
-                            )
+                    val me: MessageReceivedEvent
+                    var newbet: Int = -1
+                    me = jda.await { event ->
+                        if (event.author.isBot || event.channel.idLong != e.channel.idLong) return@await false
+                        val t = Emolga.get.asls11.teamByCoach(event.author.idLong)
+                        val nbet = event.message.contentDisplay.toIntOrNull() ?: -1
+                        if (t == null || !nbet.validBet() || nbet <= maxBet.second || (t.pointsToSpend() < nbet).also {
+                                if (it) Command.sendToUser(event.author, "So viel kannst du nicht mehr bieten!")
+                            } || (level in t.members).also {
+                                if (it) Command.sendToUser(
+                                    event.author,
+                                    "Du kannst hier nicht mitbieten, da du bereits einen Sklaven aus Stufe $level hast, du Kek! (Henny wollte, dass ich das so schreibe)"
+                                )
+                            }) {
+                            event.message.delete().queue()
+                            return@await false
                         }
-                    ) {
-                        me.message.delete().queue()
-                        return@withTimeoutOrNull null
+                        newbet = nbet
+                        true
+                        //&& event.member!!.roles.any { it.idLong == 998164505529950258 }
                     }
                     if (!finished) {
                         countdownJob?.cancel()
@@ -172,7 +175,6 @@ object EmolgaMain {
                         countdown.set(Emolga.get.asls11.config.countdownSeconds)
                         maxBet = me.author.idLong to newbet
                     }
-                    return@withTimeoutOrNull Unit
                 }
                 logger.info("WithTimeout returns $res")
 
@@ -181,18 +183,15 @@ object EmolgaMain {
                     countdownJob = scope.launch {
                         while (countdown.get() > 0) {
                             val get = countdown.getAndDecrement()
-                            if (get in listOf(
-                                    5,
-                                    15
-                                )
-                            ) e.channel.sendMessage("$get Sekunde${if (get != 1) "n" else ""}...").queue()
+                            if (get in Emolga.get.asls11.config.sendOn) e.channel.sendMessage("$get Sekunde${if (get != 1) "n" else ""}...")
+                                .queue()
                             delay(1000)
                         }
                         finished = true
                         e.channel.sendMessage("${togain.asMention} gehört jetzt <@${maxBet.first}>, welcher für **${maxBet.second} Punkte** einen neuen Menschen versklavt hat!")
                             .queue()
                         Emolga.get.asls11.addUserToTeam(togain, maxBet.first, maxBet.second)
-                        Command.saveEmolgaJSON()
+                        saveEmolgaJSON()
                         delay(5000)
                         Emolga.get.asls11.nextCoach()
                     }
@@ -237,11 +236,13 @@ object EmolgaMain {
             val context: SSLContext = SSLContext.getInstance("TLS")
             val certBytes = parseDERFromPEM(
                 getBytes(File(pathname + File.separator + "cert.pem")),
-                "-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----"
+                "-----BEGIN CERTIFICATE-----",
+                "-----END CERTIFICATE-----"
             )
             val keyBytes = parseDERFromPEM(
                 getBytes(File(pathname + File.separator + "privkey.pem")),
-                "-----BEGIN PRIVATE KEY-----", "-----END PRIVATE KEY-----"
+                "-----BEGIN PRIVATE KEY-----",
+                "-----END PRIVATE KEY-----"
             )
             val cert = generateCertificateFromDER(certBytes)
             val key = generatePrivateKeyFromDER(keyBytes)

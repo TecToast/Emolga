@@ -3,6 +3,7 @@ package de.tectoast.emolga.buttons.buttonsaves
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.commands.indexedBy
+import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.Emolga
 import dev.minn.jda.ktx.messages.Embed
@@ -91,7 +92,7 @@ class Nominate(val mons: List<DraftPokemon>) {
                 return
             }
             day.put(e.user.id, buildJSONString())
-            Command.saveEmolgaJSON()
+            saveEmolgaJSON()
             e.reply("Deine Nominierung wurde gespeichert!").queue()*/
             val nom = Emolga.get.nds().nominations
             val day = nom.current()
@@ -101,7 +102,7 @@ class Nominate(val mons: List<DraftPokemon>) {
                 return
             }
             day[uid] = buildJSONString()
-            Command.saveEmolgaJSON()
+            saveEmolgaJSON()
             e.reply_("Deine Nominierung wurde gespeichert!").queue()
             return
         }

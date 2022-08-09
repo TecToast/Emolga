@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
@@ -14,19 +15,21 @@ class FinishDraftCommand :
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val tco = e.textChannel
+        e.textChannel
         val memberr = e.member
-        val member = memberr.idLong
-        val ev = DraftEvent(e)
-        val d = League.byChannel(tco, member, ev) ?: return
-        val mem = d.current
-        if (e.guild.idLong == Constants.NDSID && d.picks[mem]!!.filter { it.name != "???" }.size < 15) {
-            ev.reply("Du hast noch keine 15 Pokemon!")
+        memberr.idLong
+        val d = League.byChannel(e) ?: return
+        if (d.isFinishedForbidden()) {
+            e.reply("Dieser Draft unterstützt /finish nicht!")
             return
         }
-        ev.reply("Du hast den Draft für dich beendet!")
-        d.order.values.forEach { it.removeIf(mem::equals) }
-        d.finished.add(mem)
+        val mem = d.current
+        d.checkFinishedForbidden(mem)?.let {
+            e.reply(it)
+            return
+        }
+        e.reply("Du hast den Draft für dich beendet!")
+        d.addFinished(mem)
         d.nextPlayer()
         saveEmolgaJSON()
     }

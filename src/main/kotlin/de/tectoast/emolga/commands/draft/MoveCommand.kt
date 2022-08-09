@@ -17,17 +17,17 @@ class MoveCommand : Command(
     init {
         aliases.add("verschieben")
         argumentTemplate = ArgumentManagerTemplate.noArgs()
+        slash(true, Constants.ASLID)
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val memberr = e.member
-        val member = memberr.idLong
-        e.textChannel
-        /*if(d.round == tierlist.rounds) {
-            e.reply("Der Draft befindet sich bereits in Runde " + d.round + ", somit kann der Pick nicht mehr verschoben werden!");
-            return;
-        }*/
-        League.byChannel(e.textChannel, member, DraftEvent(e))?.nextPlayer()
+        League.byChannel(e)?.let {
+            if (it.isLastRound) {
+                e.reply("Der Draft befindet sich bereits in Runde ${it.round}, somit kann der Pick nicht mehr verschoben werden!")
+                return
+            }
+            it.nextPlayer()
+        }
         //ndsdoc(tierlist, pokemon, d, mem, tier, round);
     }
 }

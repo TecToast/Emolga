@@ -19,6 +19,7 @@ import de.tectoast.emolga.buttons.buttonsaves.Nominate
 import de.tectoast.emolga.buttons.buttonsaves.PrismaTeam
 import de.tectoast.emolga.buttons.buttonsaves.TrainerData
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
+import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
 import de.tectoast.emolga.database.Database.Companion.incrementPredictionCounter
 import de.tectoast.emolga.modals.ModalListener
@@ -57,6 +58,8 @@ import de.tectoast.jsolf.JSONTokener
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.util.SLF4J
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -87,6 +90,7 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.internal.utils.Helpers
 import org.apache.commons.collections4.queue.CircularFifoQueue
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 import java.io.*
@@ -112,7 +116,6 @@ import java.util.regex.Pattern
 import javax.imageio.ImageIO
 import kotlin.math.max
 import kotlin.random.Random
-import kotlin.system.measureTimeMillis
 
 @Suppress("unused", "SameParameterValue")
 abstract class Command(
@@ -380,7 +383,7 @@ abstract class Command(
         constructor(subcommands: Set<String>) : super(subcommands)
     }
 
-    class ArgumentManager(val map: Map<String, Any>, val executor: Command) {
+    class ArgumentManager(val map: MutableMap<String, Any>, val executor: Command) {
 
         inline operator fun <reified T> get(key: String): T {
             return map[key] as T
@@ -533,7 +536,7 @@ abstract class Command(
                 map[arguments[0].id] = split[0]
                 return ArgumentManager(map, c)
             }
-            if (noCheck) return ArgumentManager(emptyMap(), c)
+            if (noCheck) return ArgumentManager(mutableMapOf(), c)
             val asFar: MutableMap<ArgumentType, Int> = HashMap()
             var argumentI = 0
             var i = 0
@@ -1273,15 +1276,7 @@ abstract class Command(
         private val customResult = emptyList<Long>()
         val clips: MutableMap<Long, CircularFifoQueue<ByteArray>> = HashMap()
         val uninitializedCommands: MutableList<String> = mutableListOf()
-        private val JSON = Json {
-            serializersModule = SerializersModule {
-                polymorphic(League::class) {
-                    subclass(NDS::class)
-                    subclass(GDL::class)
-                    subclass(Prisma::class)
-                }
-            }
-        }
+
 
         @JvmStatic
         protected val soullinkIds = mapOf(
@@ -1292,6 +1287,7 @@ abstract class Command(
         )
         protected val soullinkNames = listOf("Pascal", "David", "Jesse", "Felix")
         private val logger = LoggerFactory.getLogger(Command::class.java)
+        private val otherFormatRegex = Regex("(\\S+)-(Mega|Alola|Galar)")
 
         /**
          * Mapper for the DraftGerName
@@ -2293,15 +2289,6 @@ abstract class Command(
         val movesJSON: JSONObject
             get() = ModManager.default.moves
 
-        @Synchronized
-        fun saveEmolgaJSON() {
-            //save(emolgaJSON, "emolgadata.json")
-            val str: String
-            logger.info(measureTimeMillis { str = JSONObject(JSON.encodeToString(Emolga.get)).toString(4) }.toString())
-            Files.writeString(Paths.get("emolgadata.json"), str)
-            //workaround for better formatting
-        }
-
         @JvmStatic
         fun save(json: JSONObject, filename: String) {
             try {
@@ -3234,12 +3221,13 @@ abstract class Command(
             return cal.timeInMillis - currentTimeMillis
         }
 
-        fun getDraftGerName(s: String): Translation {
+        fun getDraftGerName(sArg: String): Translation {
+            val s = sArg.replace(otherFormatRegex) { mr ->
+                mr.groupValues.let { "${it[2][0]}-${it[1]}" }
+            }
             logger.info("getDraftGerName s = $s")
-            val gerName = getGerName(s)
-            if (gerName.isSuccess) return gerName
-            val split = s.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()
-            logger.info("getDraftGerName Arr = " + split.contentToString())
+            val split = s.split("-").dropLastWhile { it.isEmpty() }
+            logger.info("getDraftGerName Arr = {}", split)
             val slower = s.lowercase()
             if (slower.startsWith("m-")) {
                 val sub = s.substring(2)
@@ -3256,6 +3244,8 @@ abstract class Command(
                 val mon = getGerName(s.substring(2))
                 return if (!mon.isFromType(Translation.Type.POKEMON)) Translation.empty() else mon.before("G-")
             }
+            val gerName = getGerName(s)
+            if (gerName.isSuccess) return gerName
             logger.info("split[0] = " + split[0])
             val t = getGerName(split[0])
             print("DraftGer Trans ")
@@ -3612,9 +3602,28 @@ fun List<DraftPokemon>?.names() = this!!.map { it.name }
 
 fun String.toSDName() = Command.toSDName(this)
 
-val defaultScope = CoroutineScope(Dispatchers.Default)
+private val logger: Logger by SLF4J
 
-fun saveEmolgaJSON() = Command.saveEmolgaJSON()
+val defaultScope = CoroutineScope(Dispatchers.Default + CoroutineExceptionHandler { _, t ->
+    logger.error("ERROR IN DEFAULT SCOPE", t)
+    sendToMe("Error in default scope, look in console")
+})
+private val JSON = Json {
+    serializersModule = SerializersModule {
+        polymorphic(League::class) {
+            subclass(NDS::class)
+            subclass(GDL::class)
+            subclass(Prisma::class)
+        }
+    }
+}
+
+fun saveEmolgaJSON() {
+    Files.writeString(Paths.get("emolgadata.json"), JSONObject(JSON.encodeToString(Emolga.get)).toString(4))
+}
+
 fun String.file() = File(this)
+
+fun Collection<String>.startsAnyIgnoreCase(other: String) = filter { it.startsWith(other, ignoreCase = true) }
 
 data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)

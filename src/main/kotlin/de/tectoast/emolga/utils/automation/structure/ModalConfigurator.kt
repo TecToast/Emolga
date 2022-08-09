@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.automation.structure
 
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.json.Emolga
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
@@ -59,7 +60,7 @@ class ModalConfigurator private constructor() {
                 .setFooter("Aufgerufen von ${member.effectiveName} (${member.user.asTag}")
                 .build()
         ).queue()
-        Command.saveEmolgaJSON()
+        saveEmolgaJSON()
     }
 
     fun initialize(e: SlashCommandInteractionEvent) {

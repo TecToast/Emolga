@@ -1,10 +1,12 @@
 package de.tectoast.emolga.utils.sql.managers
 
+import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.utils.records.UsageData
 import de.tectoast.emolga.utils.sql.base.DataManager
 import de.tectoast.emolga.utils.sql.base.DataManager.ResultsFunction
 import de.tectoast.emolga.utils.sql.base.columns.IntColumn
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -18,7 +20,10 @@ object FullStatsManager : DataManager("fullstats") {
     private val USES = IntColumn("uses", this)
     private val WINS = IntColumn("wins", this)
     private val LOOSES = IntColumn("looses", this)
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(Dispatchers.IO + CoroutineExceptionHandler { _, t ->
+        logger.error("ERROR IN FULLSTATS SCOPE", t)
+        Command.sendToMe("Error in fullstats scope, look in console")
+    })
 
     init {
         setColumns(POKEMON, KILLS, DEATHS, USES, WINS, LOOSES)

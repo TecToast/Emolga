@@ -20,6 +20,12 @@ class ASLS11(
     var round: Int = 0
 ) {
     fun teamByCoach(mem: Long): TeamData? = data.values.firstOrNull { it.members[0]!! == mem }
+    fun indexOfMember(mem: Long): Triple<Int, Int, String> = data.entries.first { mem in it.value.members.values }
+        .let { en -> Triple(en.value.members.entries.first { it.value == mem }.key, en.key.indexedBy(table), en.key) }
+
+    fun roleIdByMember(mem: Long) = data.values.first { mem in it.members.values }.role
+
+    fun teammembersByMember(mem: Long) = data.values.first { mem in it.members.values }.members.values
     private fun teamnameByCoach(mem: Long): String = data.entries.first { it.value.members[0]!! == mem }.key
     fun addUserToTeam(user: Member, coach: Long, prize: Int) {
         val level = getLevelByMember(user)
@@ -38,8 +44,7 @@ class ASLS11(
         val (x, y) = Emolga.get.asls11nametoid.indexOf(user.idLong).let { it.xdiv(24, 20) to it.ymod(24, 20) }
         table.indexOf(teamnameByCoach(coach)).let {
             RequestBuilder(sid).addRow(
-                "Menschenhandel!${it.xmod(6, 2, 3)}${it.ydiv(6, 14 + level, 17)}",
-                listOf("=$x$y", prize)
+                "Menschenhandel!${it.xmod(6, 2, 3)}${it.ydiv(6, 14 + level, 17)}", listOf("=$x$y", prize)
             ).addStrikethroughChange(0, "$x$y", true).execute()
         }
     }
@@ -50,8 +55,7 @@ class ASLS11(
     fun isTaken(mem: Long) =
         data.values.any { datas -> (1..4).any { datas.members[it] == mem } }/*.values.drop(1).any { it == mem } }*/
 
-    fun getLevelByMember(mem: Member): Int =
-        levelIds.indexOfFirst { id -> mem.roles.any { it.idLong == id } } + 1
+    fun getLevelByMember(mem: Member): Int = levelIds.indexOfFirst { id -> mem.roles.any { it.idLong == id } } + 1
 
     fun nextCoach() {
 
@@ -73,8 +77,7 @@ class ASLS11(
     private fun refillOrderIfEmpty() {
         if (order.isEmpty()) {
             order.addAll(originalorder.let {
-                if (round++ % 2 != 0)
-                    it.reversed()
+                if (round++ % 2 != 0) it.reversed()
                 else it
             })
         }

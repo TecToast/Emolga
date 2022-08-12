@@ -81,7 +81,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
                 newmon,
                 tierlist.getTierOf(newmon),
                 mem,
-                d.indexInRound(),
+                d.indexInRound(d.round),
                 draftPokemons.indexOfFirst { it.name == newmon })
         )
         if (newmon == "Emolga") {

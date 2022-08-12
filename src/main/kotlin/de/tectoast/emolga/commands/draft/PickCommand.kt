@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.startsAnyIgnoreCase
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import org.slf4j.LoggerFactory
@@ -34,7 +35,8 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             },
             false,
             "Das ist kein Pokemon!"
-        ) //.add("tier", "Tier", "Das Tier", ArgumentManagerTemplate.Text.any(), true)
+        )//.add("tier", "Tier", "Das Tier", ArgumentManagerTemplate.Text.any(), true)
+            //.add("free", "Free-Pick", "Ob dieser Pick ein Freepick ist", ArgumentManagerTemplate.ArgumentBoolean, true)
             .setExample("!pick Emolga").build()
         slash(true, Constants.FPLID, Constants.NDSID, Constants.ASLID)
     }
@@ -45,13 +47,12 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
     companion object {
         private val logger = LoggerFactory.getLogger(PickCommand::class.java)
 
-        fun exec(
+        suspend fun exec(
             e: GuildCommandEvent, isRandom: Boolean
         ) {
             val args = e.arguments
             val d = League.byChannel(e) ?: return
             val mem = d.current
-            val tier: String
             val pokemon = args.getText("pokemon")
             val tierlist = d.tierlist
             val picks = d.picks[mem]!!
@@ -59,11 +60,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 e.reply("Du hast bereits 15 Mons!")
                 return
             }
-            tier = if (args.has("tier") && !d.isPointBased) {
-                tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: ""
-            } else {
-                tierlist.getTierOf(pokemon)
-            }
+            val tier: String = d.getTierOf(args, pokemon)
             if (d.isPicked(pokemon)) {
                 e.reply("Dieses Pokemon wurde bereits gepickt!")
                 return
@@ -101,17 +98,47 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             if (d.handlePoints(e, needed)) return
             d.savePick(picks, pokemon, tier)
             //m.delete().queue();
-            if (!isRandom) e.reply("${e.member.asMention} hat $pokemon gepickt!")
+            if (!isRandom) d.replyPick(e, pokemon, mem)
             if (isRandom) {
-                e.reply("**<@$mem>** hat aus dem $tier-Tier ein **$pokemon** bekommen!")
+                d.replyRandomPick(e, pokemon, mem, tier)
             } else if (pokemon == "Emolga") {
                 e.textChannel.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
                     .queue()
             }
-            d.pickDoc(PickData(pokemon, tier, mem, d.indexInRound(), picks.indexOfFirst { it.name == pokemon }))
-            d.nextPlayer()
+            val round = d.round.let {
+                if (it != 12) it
+                else {
+                    val mt = d.movedTurns()
+                    if (12 - picks.size < mt.size) {
+                        mt.removeFirst()
+                    } else it
+                }
+            }
+            d.pickDoc(
+                PickData(
+                    pokemon,
+                    tier,
+                    mem,
+                    d.indexInRound(round),
+                    picks.indexOfFirst { it.name == pokemon },
+                    picks,
+                    round
+                )
+            )
+            if (d.isLastRound && d.hasMovedTurns()) {
+                d.announcePlayer()
+            } else
+                d.nextPlayer()
         }
     }
 }
 
-class PickData(val pokemon: String, val tier: String, val mem: Long, val indexInRound: Int, val changedIndex: Int)
+class PickData(
+    val pokemon: String,
+    val tier: String,
+    val mem: Long,
+    val indexInRound: Int,
+    val changedIndex: Int,
+    val picks: MutableList<DraftPokemon>,
+    val round: Int
+)

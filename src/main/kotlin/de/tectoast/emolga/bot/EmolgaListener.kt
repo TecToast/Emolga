@@ -15,9 +15,11 @@ import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.Constants.MYSERVER
 import de.tectoast.emolga.utils.DexQuiz
+import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.sql.managers.BanManager
 import de.tectoast.emolga.utils.sql.managers.MuteManager
 import dev.minn.jda.ktx.events.listener
+import dev.minn.jda.ktx.messages.reply_
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.dv8tion.jda.api.JDA
@@ -53,12 +55,42 @@ object EmolgaListener : ListenerAdapter() {
         jda.listener<SelectMenuInteractionEvent> { MenuListener.check(it) }
         jda.listener<MessageReceivedEvent> { messageReceived(it) }
         jda.listener<SlashCommandInteractionEvent> { slashCommandInteractionEvent(it) }
+        jda.listener<ReadyEvent> { e ->
+            if (e.jda.selfUser.idLong == 723829878755164202) {
+                Emolga.get.drafts.values.filter { it.current != -1L }.forEach {
+                    it.startDraft(
+                        null, true
+                    )
+                }
+            }
+        }
     }
 
     private suspend fun slashCommandInteractionEvent(e: SlashCommandInteractionEvent) {
         val command = Command.byName(e.name) ?: return
         val u = e.user
         val tco = e.channel.asTextChannel()
+        val mem = e.member!!
+        if (command.disabled) return
+        val gid = e.guild!!.idLong
+        if (!command.checkBot(e.jda, gid)) return
+        val check = command.checkPermissions(gid, mem)
+        if (check == Command.PermissionCheck.GUILD_NOT_ALLOWED) return
+        if (check == Command.PermissionCheck.PERMISSION_DENIED) {
+            e.reply_(Command.NOPERM, ephemeral = true).queue()
+            return
+        }
+        if (mem.idLong != FLOID) {
+            if (Command.BOT_DISABLED) {
+                e.reply(Command.DISABLED_TEXT).queue()
+                return
+            }
+            if (command.wip) {
+                e.reply("Diese Funktion ist derzeit noch in Entwicklung und ist noch nicht einsatzbereit!")
+                    .queue()
+                return
+            }
+        }
         try {
             GuildCommandEvent(command, e).execute()
         } catch (ex: Command.MissingArgumentException) {
@@ -67,7 +99,7 @@ object EmolgaListener : ListenerAdapter() {
                 arg.customErrorMessage
                     ?: """Das benötigte Argument `${arg.name}`, was eigentlich ${Command.buildEnumeration(arg.type.getName())} sein müsste, ist nicht vorhanden!
 Nähere Informationen über die richtige Syntax für den Command erhältst du unter `e!help ${command.name}`.""".trimIndent()
-            )
+            ).queue()
             if (u.idLong != FLOID) {
                 Command.sendToMe("MissingArgument " + tco.asMention + " Server: " + tco.guild.name)
             }

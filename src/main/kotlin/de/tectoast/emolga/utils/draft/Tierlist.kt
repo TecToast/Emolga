@@ -179,5 +179,6 @@ class Tierlist(val guild: Long) {
 enum class TierlistMode {
     POINTS,
     TIERS,
+    MIX,
     NOTHING
 }

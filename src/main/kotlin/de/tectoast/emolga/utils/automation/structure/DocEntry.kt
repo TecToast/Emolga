@@ -4,9 +4,9 @@ import de.tectoast.emolga.commands.Command.Companion.compareColumns
 import de.tectoast.emolga.commands.Command.Companion.getGameDay
 import de.tectoast.emolga.commands.Command.Companion.getNumber
 import de.tectoast.emolga.commands.Command.Companion.indexPick
+import de.tectoast.emolga.commands.ReplayData
 import de.tectoast.emolga.commands.names
 import de.tectoast.emolga.utils.Google
-import de.tectoast.emolga.utils.ReplayAnalyser
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.records.SorterData
@@ -16,7 +16,7 @@ import de.tectoast.emolga.utils.showdown.Pokemon
 import org.slf4j.LoggerFactory
 import java.util.function.Supplier
 
-class DocEntry private constructor() : ReplayAnalyser {
+class DocEntry private constructor() {
     companion object {
         private val logger = LoggerFactory.getLogger(DocEntry::class.java)
 
@@ -40,13 +40,13 @@ class DocEntry private constructor() : ReplayAnalyser {
     var numberMapper: (String) -> String = { s: String -> s.ifEmpty { "0" } }
     private var onlyKilllist: Supplier<List<String>>? = null
 
-    fun execute(
+    fun analyse(
         game: Array<Player>,
         uid1: Long,
         uid2: Long,
         kills: List<Map<String, String>>,
         deaths: List<Map<String, String>>,
-        optionalArgs: Array<out Any?>
+        replayData: ReplayData
     ) {
         val league = leagueFunction!!.getLeague(uid1, uid2)
         val gameday = getGameDay(league, uid1, uid2)
@@ -141,11 +141,11 @@ class DocEntry private constructor() : ReplayAnalyser {
             .toList()
         resultCreator?.run {
             if (this is BasicResultCreator) {
-                process(b, gameday - 1, battleindex, numbers[0], numbers[1], optionalArgs[1] as String)
+                process(b, gameday - 1, battleindex, numbers[0], numbers[1], replayData.url)
             } else if (this is AdvancedResultCreator) {
                 val monList = (0..1).map { deaths[it].keys }.map { it.toList() }
                 val picks = (0..1).map(uids::get).map { picksJson[it].names() }
-                process(b, gameday - 1, battleindex, numbers[0], numbers[1], optionalArgs[1] as String,
+                process(b, gameday - 1, battleindex, numbers[0], numbers[1], replayData.url,
                     monList,
                     (0..1).map { league.table.indexOf(uids[it]) },
                     (0..1).map { monList[it].map { s -> indexPick(picks[it], s) } },
@@ -206,18 +206,6 @@ class DocEntry private constructor() : ReplayAnalyser {
         } catch (ex: Exception) {
             logger.error("I hate my life", ex)
         }
-    }
-
-
-    override fun analyse(
-        game: Array<Player>,
-        uid1: String,
-        uid2: String,
-        kills: List<Map<String, String>>,
-        deaths: List<Map<String, String>>,
-        vararg optionalArgs: Any?
-    ) {
-        execute(game, uid1.toLong(), uid2.toLong(), kills, deaths, optionalArgs)
     }
 }
 

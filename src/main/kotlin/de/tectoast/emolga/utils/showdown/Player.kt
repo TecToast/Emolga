@@ -11,8 +11,9 @@ class Player(val number: Int) {
         private set
     var teamsize = 0
 
+    fun isInitialized() = this::nickname.isInitialized
     fun checkNickname(): String {
-        return if (this::nickname.isInitialized) this.nickname else "#"
+        return if (isInitialized()) this.nickname else "#"
     }
 
     fun getSpikesBy(other: Pokemon?): Pokemon? {

@@ -1,18 +1,22 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.draft.PickData
 import de.tectoast.emolga.commands.draft.SwitchData
-import de.tectoast.emolga.commands.indexedBy
-import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DraftTimer
+import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.json.Emolga
+import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.entities.TextChannel
+import org.slf4j.Logger
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.ScheduledThreadPoolExecutor
@@ -28,19 +32,23 @@ sealed class League {
     val allowed: MutableMap<Long, Long> = mutableMapOf()
     private val mentions: Map<Long, Long> = emptyMap()
     val guild: Long = -1
-
-    private val finished: MutableList<Int> = mutableListOf()
     var round = 1
     var current = -1L
     private var cooldown = -1L
     val points: MutableMap<Long, Int> = mutableMapOf()
 
-    private val originalorder: Map<Int, MutableList<Int>> = mapOf()
+    private val originalorder: Map<Int, List<Int>> = mapOf()
 
     val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
 
+    val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
+
+    private val names: MutableMap<Long, String> = mutableMapOf()
+
     @Transient
     lateinit var tc: TextChannel
+
+    var tcid: Long = -1
 
     val tierlist: Tierlist by Tierlist.Delegate()
     val isPointBased
@@ -57,7 +65,6 @@ sealed class League {
     private val timer: DraftTimer = DraftTimer.ASL
     val isLastRound: Boolean get() = round == tierlist.rounds
 
-    @Transient
     var isSwitchDraft = false
 
     val table: MutableList<Long> = mutableListOf()
@@ -86,9 +93,9 @@ sealed class League {
     }
 
 
-    fun isNotCurrent(user: Long): Boolean {
-        if (current == user || user == Constants.FLOID) return false
-        return allowed[user]?.equals(current) == false
+    open fun isCurrent(user: Long): Boolean {
+        if (current == user || user == Constants.FLOID) return true
+        return allowed[user] == current
     }
 
     fun isPicked(mon: String) = picks.values.any { l -> l.any { it.name == mon } }
@@ -98,10 +105,11 @@ sealed class League {
             if (points[current]!! - needed < 0) {
                 e.reply("Dafür hast du nicht genug Punkte!")
                 return true
-            }/*if (d.isPointBased && (d.getTierlist().rounds - d.round) * d.getTierlist().prices.get(d.getTierlist().order.get(d.getTierlist().order.size() - 1)) > (d.points.get(mem) - needed)) {
-        tco.sendMessage(memberr.getAsMention() + " Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!").queue();
-        return;
-    }*/
+            }
+            if ((tierlist.rounds - (picks[current]!!.size + 1)) * tierlist.prices.values.min() > points[current]!! - needed) {
+                e.reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!")
+                return true
+            }
             points[current] = points[current]!! - needed
         }
         return false
@@ -136,27 +144,34 @@ sealed class League {
 
     private fun MutableList<Int>.nextCurrent() = table[this.removeAt(0)]
 
-    fun startDraft(tc: TextChannel, isSwitchDraft: Boolean, fromFile: Boolean) {
-        this.tc = tc
-        this.isSwitchDraft = isSwitchDraft
+    suspend fun startDraft(tc: TextChannel?, fromFile: Boolean) {
+        logger.info("Starting draft ${Emolga.get.drafts.reverseGet(this)}...")
+        logger.info(tcid.toString())
+        this.tc = tc ?: EmolgaMain.emolgajda.getTextChannelById(tcid)!!
+        if (names.isEmpty()) names.putAll(
+            this.tc.guild.retrieveMembersByIds(members).await().associate { it.idLong to it.effectiveName })
+        logger.info(names.toString())
+        if (tc != null)
+            this.tcid = tc.idLong
         for (member in members) {
             if (fromFile) picks.putIfAbsent(member, mutableListOf())
             else picks[member] = mutableListOf()
             if (isPointBased) points[member] = tierlist.points - picks[member]!!.sumOf { tierlist.prices[it.tier]!! }
         }
         if (!fromFile) {
-            order.putAll(originalorder)
+            order.clear()
+            order.putAll(originalorder.mapValues { it.value.toMutableList() })
             current = order[1]!!.nextCurrent()
             restartTimer()
             sendRound()
             announcePlayer()
         } else {
-            finished.forEach { fin -> order.values.forEach { l -> l.removeIf { it == fin } } }
             val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer.calc()
             restartTimer(delay)
         }
         saveEmolgaJSON()
         drafts.add(this)
+        logger.info("Started!")
     }
 
     private fun restartTimer(delay: Long = timer.calc()) {
@@ -171,7 +186,7 @@ sealed class League {
         tc.sendMessage("Runde $round!").queue()
     }
 
-    private fun announcePlayer() {
+    open fun announcePlayer() {
         if (isPointBased) tc.sendMessage(getMention(current) + " ist dran! (" + points[current] + " mögliche Punkte)")
             .queue() else tc.sendMessage(
             getMention(current) + " ist dran! (Mögliche Tiers: " + getPossibleTiersAsString(current) + ")"
@@ -189,12 +204,30 @@ sealed class League {
         getPossibleTiers(mem).entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
             .joinToString { "${it.value}x **${it.key}**" }
 
+    fun getTierOf(args: Command.ArgumentManager, pokemon: String) = if (args.has("tier") && !isPointBased) {
+        tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: ""
+    } else {
+        tierlist.getTierOf(pokemon)
+    }
 
-    private fun getMention(mem: Long) = "<@${mentions[mem] ?: mem}>"
+    fun triggerMove() {
+        moved.getOrPut(current) { mutableListOf() }.add(round)
+    }
+
+    fun hasMovedTurns() = movedTurns().isNotEmpty()
+    fun movedTurns() = moved[current] ?: mutableListOf()
+    protected open fun getMention(mem: Long): String {
+        mentions[mem]?.let { "<@$it> (${getName(mem)})" }
+        return "<@${mentions[mem] ?: mem}>"
+    }
+
+    private fun getName(mem: Long) = names[mem]!!
+
     fun isPickedBy(mon: String, mem: Long): Boolean = picks[mem]!!.any { it.name == mon }
-    fun indexInRound(): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
+    fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
     fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER) {
         if (ended) return
+        triggerMove()
         if (order[round]!!.isEmpty()) {
             if (round == tierlist.rounds) {
                 saveEmolgaJSON()
@@ -225,21 +258,37 @@ sealed class League {
             )
         }).queue()
         restartTimer()
+        saveEmolgaJSON()
     }
 
     fun addFinished(mem: Long) {
         val index = mem.indexedBy(table)
         order.values.forEach { it.remove(index) }
-        finished.add(index)
     }
 
     abstract val docEntry: DocEntry?
 
+    fun builder() = RequestBuilder(sid)
+    suspend fun replyPick(e: GuildCommandEvent, pokemon: String, mem: Long) {
+        e.slashCommandEvent!!.reply(
+            "${e.member.asMention} hat${
+                if (e.author.idLong != mem) " für **${getName(mem)}**" else ""
+            } $pokemon gepickt!"
+        ).await()
+    }
+
+    suspend fun replyRandomPick(e: GuildCommandEvent, pokemon: String, mem: Long, tier: String) {
+        e.slashCommandEvent!!.reply(
+            if (e.author.idLong != mem) "${e.member.asMention} hat für **${getName(mem)}** einen Random-Pick gemacht und **$pokemon** bekommen!" else "**<@${e.member.asMention}>** hat aus dem $tier-Tier ein **$pokemon** bekommen!"
+        ).await()
+    }
+
     companion object {
         val drafts: MutableList<League> = mutableListOf()
+        val logger: Logger by SLF4J
 
         fun byChannel(e: GuildCommandEvent) = onlyChannel(e.textChannel)?.apply {
-            if (isNotCurrent(e.member.idLong)) {
+            if (!isCurrent(e.member.idLong)) {
                 e.reply("Du bist nicht dran!")
                 return null
             }

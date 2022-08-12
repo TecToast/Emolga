@@ -41,10 +41,7 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.Tierlist.Companion.getByGuild
 import de.tectoast.emolga.utils.json.Emolga
-import de.tectoast.emolga.utils.json.emolga.draft.GDL
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.NDS
-import de.tectoast.emolga.utils.json.emolga.draft.Prisma
+import de.tectoast.emolga.utils.json.emolga.draft.*
 import de.tectoast.emolga.utils.music.GuildMusicManager
 import de.tectoast.emolga.utils.records.CalendarEntry
 import de.tectoast.emolga.utils.records.DeferredSlashResponse
@@ -130,7 +127,7 @@ abstract class Command(
     /**
      * The [CommandCategory] which this command is in
      */
-    protected val category: CommandCategory?, vararg guilds: Long
+    val category: CommandCategory?, vararg guilds: Long
 ) {
     /**
      * List containing guild ids where this command is enabled, empty if it is enabled in all guilds
@@ -165,7 +162,7 @@ abstract class Command(
     /**
      * If true, this command is only allowed for me because I'm working on it
      */
-    protected var wip = false
+    var wip = false
 
     /**
      * If true, sends a beta information when using this command
@@ -190,7 +187,7 @@ abstract class Command(
     /**
      * If true, this command is disabled and cannot be used
      */
-    protected var disabled = false
+    var disabled = false
     protected var allowedBotId: Long = -1
     var isSlash = false
     protected var onlySlash = false
@@ -496,22 +493,20 @@ abstract class Command(
                     }
                     val type = arg.type
                     val o = e.getOption(arg.name.lowercase())
-                    var obj: Any?
                     if (o != null) {
-                        if (type.needsValidate()) {
-                            obj = type.validate(o.asString, arg.language)
-                            if (obj == null) throw MissingArgumentException(arg)
-                        } else {
-                            obj = when (o.type) {
-                                OptionType.ROLE -> o.asRole
-                                OptionType.CHANNEL -> o.asChannel
-                                OptionType.USER -> o.asUser
-                                OptionType.INTEGER -> o.asLong
-                                OptionType.BOOLEAN -> o.asBoolean
-                                else -> o.asString
+                        map[arg.id] =
+                            if (type.needsValidate()) {
+                                type.validate(o.asString, arg.language) ?: throw MissingArgumentException(arg)
+                            } else {
+                                when (o.type) {
+                                    OptionType.ROLE -> o.asRole
+                                    OptionType.CHANNEL -> o.asChannel
+                                    OptionType.USER -> o.asUser
+                                    OptionType.INTEGER -> o.asLong
+                                    OptionType.BOOLEAN -> o.asBoolean
+                                    else -> o.asString
+                                }
                             }
-                        }
-                        map[arg.id] = obj
                     }
                 }
             }
@@ -642,7 +637,7 @@ abstract class Command(
         }
 
         object ArgumentBoolean : ArgumentType {
-            override fun validate(str: String, vararg params: Any) = str.toBooleanStrictOrNull()
+            override fun validate(str: String, vararg params: Any) = str.toBoolean()
 
             override fun getName() = "Wahrheitswert"
 
@@ -1175,7 +1170,7 @@ abstract class Command(
         /**
          * NO PERMISSION Message
          */
-        private const val NOPERM = "Dafür hast du keine Berechtigung!"
+        const val NOPERM = "Dafür hast du keine Berechtigung!"
 
         /**
          * List of all commands of the bot
@@ -1212,10 +1207,6 @@ abstract class Command(
          */
         val sdex: MutableMap<String, String> = HashMap()
 
-        /**
-         * saves per guild a ReplayAnalyser, which does something with the result of a showdown match
-         */
-        private val sdAnalyser: MutableMap<Long, ReplayAnalyser> = HashMap()
 
         /**
          * saves all channels where emoteSteal is enabled
@@ -1323,8 +1314,8 @@ abstract class Command(
         protected var calendarService: ScheduledExecutorService = Executors.newScheduledThreadPool(5)
         protected val moderationService: ScheduledExecutorService = Executors.newScheduledThreadPool(5)
         protected val birthdayService: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
-        private const val BOT_DISABLED = false
-        private const val DISABLED_TEXT = "Ich befinde mich derzeit im Wartungsmodus, versuche es später noch einmal :)"
+        const val BOT_DISABLED = false
+        const val DISABLED_TEXT = "Ich befinde mich derzeit im Wartungsmodus, versuche es später noch einmal :)"
 
         @JvmStatic
         fun newCalendarService() {
@@ -2985,7 +2976,7 @@ abstract class Command(
             }
         }
 
-        private fun getGen5Sprite(o: JSONObject): String {
+        fun getGen5Sprite(o: JSONObject): String {
             return "=IMAGE(\"https://play.pokemonshowdown.com/sprites/gen5/" + toSDName(
                 if (o.has("baseSpecies")) o.getString(
                     "baseSpecies"
@@ -3034,11 +3025,13 @@ abstract class Command(
                 }
                 logger.info("REPLAY! Channel: {}", m?.channel?.id ?: resultchannel.id)
                 val game: Array<Player> = try {
-                    Analysis(url, m).analyse()
+                    val analysis = Analysis(url, m).analyse()
+                    if (!analysis[0].isInitialized()) throw RuntimeException("Nickname is missing")
+                    analysis
                     //game = Analysis.analyse(url, m);
                 } catch (ex: Exception) {
                     val msg =
-                        "Beim Auswerten des Replays ist (vermutlich wegen eines Zoruas/Zoroarks) ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein und melde dich gegebenenfalls bei $MYTAG!"
+                        "Beim Auswerten des Replays ist ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein und melde dich gegebenenfalls bei $MYTAG!"
                     if (e != null) e.reply(msg) else {
                         resultchannel.sendMessage(msg).queue()
                     }
@@ -3179,20 +3172,22 @@ abstract class Command(
                 //  return;
                 typicalSets.save()
                 if (uid1 == -1L || uid2 == -1L) return@launch
-                Emolga.get.leagueByGuild(gid)?.docEntry?.analyse(
+                Emolga.get.leagueByGuild(gid, uid1, uid2)?.docEntry?.analyse(
                     game,
-                    uid1.toString(),
-                    uid2.toString(),
+                    uid1,
+                    uid2,
                     kills,
                     deaths,
-                    arrayOf<ArrayList<*>>(p1mons, p2mons),
-                    url,
-                    str,
-                    resultchannel,
-                    t1,
-                    t2,
-                    customReplayChannel,
-                    m
+                    ReplayData(
+                        listOf(p1mons, p2mons),
+                        url,
+                        str,
+                        resultchannel,
+                        t1,
+                        t2,
+                        customReplayChannel,
+                        m
+                    )
                 )
             }
         }
@@ -3614,6 +3609,7 @@ private val JSON = Json {
             subclass(NDS::class)
             subclass(GDL::class)
             subclass(Prisma::class)
+            subclass(ASL::class)
         }
     }
 }
@@ -3627,3 +3623,14 @@ fun String.file() = File(this)
 fun Collection<String>.startsAnyIgnoreCase(other: String) = filter { it.startsWith(other, ignoreCase = true) }
 
 data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)
+
+data class ReplayData(
+    val mons: List<List<String>>,
+    val url: String,
+    val str: String,
+    val resultchannel: TextChannel,
+    val t1: StringBuilder,
+    val t2: StringBuilder,
+    val customReplayChannel: TextChannel?,
+    val m: Message?
+)

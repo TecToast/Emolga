@@ -81,13 +81,13 @@ class Pokemon(
     fun killsPlus1(turn: Int) {
         if (zoroTurns.contains(turn)) {
             player.mons.firstOrNull { p: Pokemon? -> p!!.pokemon == "Zoroark" || p.pokemon == "Zorua" }
-                ?.let { p: Pokemon? ->
-                    if (p!!.lastKillTurn == turn) return@let
-                    p.kills++
-                    p.lastKillTurn = turn
+                ?.let {
+                    //if (p!!.lastKillTurn == turn) return@let
+                    it.kills++
+                    it.lastKillTurn = turn
                 }
         } else {
-            if (lastKillTurn == turn) return
+            //if (lastKillTurn == turn) return
             kills++
             lastKillTurn = turn
         }

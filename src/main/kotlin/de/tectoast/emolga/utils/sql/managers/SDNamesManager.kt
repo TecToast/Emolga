@@ -13,8 +13,8 @@ object SDNamesManager : DataManager("sdnames") {
         setColumns(NAME, ID)
     }
 
-    fun getIDByName(name: String): Long? {
-        return ID.retrieveValue(NAME, toUsername(name))
+    fun getIDByName(name: String): Long {
+        return ID.retrieveValue(NAME, toUsername(name)) ?: -1
     }
 
     fun addIfAbsent(name: String, id: Long): Boolean {

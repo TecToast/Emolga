@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.Emolga
 
 class DraftsetupCommand : Command("draftsetup", "Startet das Draften der Liga in diesem Channel", CommandCategory.Flo) {
@@ -17,13 +18,6 @@ class DraftsetupCommand : Command("draftsetup", "Startet das Draften der Liga in
                 true
             )
             .add(
-                "switch",
-                "Switch-Draft",
-                "Ob es ein Switch-Draft sein soll",
-                ArgumentManagerTemplate.ArgumentBoolean,
-                optional = true
-            )
-            .add(
                 "fromfile",
                 "Datei",
                 "Ob alte Daten verwendet werden sollen",
@@ -33,14 +27,15 @@ class DraftsetupCommand : Command("draftsetup", "Startet das Draften der Liga in
             .setExample("!draftsetup Emolga-Conference #emolga-teamübersicht")
             .build()
         setCustomPermissions(PermissionPreset.fromIDs(297010892678234114L))
+        slash(false, Constants.ASLID)
     }
 
     override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         Emolga.get.league(args.getText("name")).startDraft(
             e.textChannel,
-            isSwitchDraft = args.getOrDefault("switch", false),
             fromFile = args.getOrDefault("fromfile", false)
         )
+        e.reply("+1", ephermal = true)
     }
 }

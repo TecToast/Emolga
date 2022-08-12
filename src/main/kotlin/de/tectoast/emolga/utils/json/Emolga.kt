@@ -12,8 +12,8 @@ class Emolga(
     val config: Config,
     val statistics: Statistics,
     val asls11: ASLS11,
-    val soullink: Soullink,
     val drafts: Map<String, League>,
+    val soullink: Soullink,
     val emolgachannel: MutableMap<Long, MutableList<Long>>,
     val cooldowns: MutableMap<Long, MutableMap<String, Long>>,
     val moderatorroles: Map<Long, Long>,
@@ -26,7 +26,11 @@ class Emolga(
     fun league(name: String) = drafts[name]!!
     fun nds() = drafts["NDS"]!! as NDS
 
-    fun leagueByGuild(gid: Long) = drafts.values.firstOrNull { it.guild == gid }
+    fun leagueByGuild(gid: Long, uid1: Long, uid2: Long) = drafts.values.firstOrNull {
+        it.guild == gid && it.table.containsAll(
+            listOf(uid1, uid2)
+        )
+    }
 
     companion object {
         lateinit var get: Emolga

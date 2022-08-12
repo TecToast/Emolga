@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import dev.minn.jda.ktx.coroutines.await
 
 class MoveCommand : Command(
     "move",
@@ -26,6 +27,8 @@ class MoveCommand : Command(
                 e.reply("Der Draft befindet sich bereits in Runde ${it.round}, somit kann der Pick nicht mehr verschoben werden!")
                 return
             }
+            it.triggerMove()
+            e.slashCommandEvent!!.reply("Du hast deinen Pick verschoben!").await()
             it.nextPlayer()
         }
         //ndsdoc(tierlist, pokemon, d, mem, tier, round);

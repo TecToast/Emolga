@@ -18,6 +18,7 @@ enum class CommandCategory {
     val categoryName: String
     private var allowsMemberFun: (Member) -> Boolean = { true }
     private var allowsGuildIdFun: (Long) -> Boolean = { true }
+    var isAdmin: Boolean = false
     var isEverywhere = false
         private set
 
@@ -43,6 +44,7 @@ enum class CommandCategory {
         return mem.idLong == Constants.FLOID || this.allowsMemberFun(mem)
     }
 
+
     companion object {
         @JvmField
         val musicGuilds: MutableList<Long> = mutableListOf()
@@ -67,6 +69,9 @@ enum class CommandCategory {
             Flo.isEverywhere = true
             Admin.isEverywhere = true
             Moderator.isEverywhere = true
+            Flo.isAdmin = true
+            Admin.isAdmin = true
+            Moderator.isAdmin = true
             //Music.disabled = "Die Musikfunktionen wurden aufgrund einer Fehlfunktion komplett deaktiviert!";
         }
 

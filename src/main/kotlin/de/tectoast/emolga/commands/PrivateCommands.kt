@@ -2,6 +2,7 @@ package de.tectoast.emolga.commands
 
 import de.tectoast.emolga.commands.Command.ArgumentManagerTemplate
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
+import de.tectoast.emolga.commands.Command.Companion.getDataObject
 import de.tectoast.emolga.commands.Command.Companion.load
 import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Translation
@@ -28,6 +29,7 @@ import net.dv8tion.jda.api.entities.AudioChannel
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.entities.emoji.Emoji
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
@@ -539,6 +541,9 @@ object PrivateCommands {
         Command.commands.values.filter { it.isSlash }.distinct()
             .filter { it.slashGuilds.isNotEmpty() }.forEach {
                 val dt = Commands.slash(it.name, it.help)
+                if (it.category!!.isAdmin)
+                    dt.defaultPermissions = DefaultMemberPermissions.DISABLED
+                logger.info(it.name)
                 val mainCmdArgs = it.argumentTemplate.arguments
                 if (it.hasChildren()) {
                     val childCommands = it.childCommands
@@ -567,6 +572,18 @@ object PrivateCommands {
                 }) { it.printStackTrace() }
         }
         e.done()
+    }
+
+    @PrivateCommand("startasls11drafts")
+    suspend fun startasls11drafts(e: GenericCommandEvent) {
+        val jda = e.jda
+        Emolga.get.apply {
+            league("ASLS11L0").startDraft(jda.getTextChannelById(999775837106745415), false)
+            league("ASLS11L1").startDraft(jda.getTextChannelById(1000773968418054164), false)
+            league("ASLS11L2").startDraft(jda.getTextChannelById(999775875761438740), false)
+            league("ASLS11L3").startDraft(jda.getTextChannelById(999775925610750022), false)
+            league("ASLS11L4").startDraft(jda.getTextChannelById(999775970498199592), false)
+        }
     }
 
     private fun buildOptionData(args: List<ArgumentManagerTemplate.Argument>): List<OptionData> {
@@ -635,6 +652,25 @@ object PrivateCommands {
         val o = load(path)
         o.put("englishNames", all)
         save(o, path)
+    }
+
+    @PrivateCommand("asls11data")
+    fun asls11DataSheet() {
+        val tl = Tierlist.getByGuild(Constants.ASLID)!!
+        val b = RequestBuilder("1VWjAc370NQvuybaQZOTQ2uBVGC36D2_n63DOghkoE2k")
+        val send = tl.tierlist.entries.flatMap { en ->
+            en.value.map {
+                val data = getDataObject(it)
+                listOf(
+                    it,
+                    en.key,
+                    tl.prices[en.key]!!,
+                    data.getJSONObject("baseStats").getInt("spe"),
+                    Command.getGen5Sprite(data)
+                )
+            }
+        }
+        b.addAll("Data!A1", send).execute()
     }
 
     suspend fun execute(message: Message) {

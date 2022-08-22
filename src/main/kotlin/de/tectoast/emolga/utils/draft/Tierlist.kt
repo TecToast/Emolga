@@ -124,6 +124,10 @@ class Tierlist(val guild: Long) {
         tiercolumns.removeLast()
     }
 
+    fun getNameOf(mon: String): String? {
+        return tierlist.values.flatten().firstOrNull { it.equals(mon, ignoreCase = true) }
+    }
+
     class Delegate {
         operator fun getValue(thisRef: League, property: KProperty<*>): Tierlist {
             return getByGuild(thisRef.guild)!!

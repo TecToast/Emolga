@@ -279,7 +279,7 @@ class RequestBuilder
                             logger.info("{}: {} -> {}", i, range.range, range.getValues())
                         }
                         try {
-                            service!!.spreadsheets().values().batchUpdate(
+                            service.spreadsheets().values().batchUpdate(
                                 sid, BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")
                             ).execute()
                             additionalSheets?.forEach {
@@ -297,7 +297,7 @@ class RequestBuilder
                 launch {
                     if (raw.isNotEmpty()) {
                         try {
-                            service!!.spreadsheets().values()
+                            service.spreadsheets().values()
                                 .batchUpdate(sid, BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW"))
                                 .execute()
                             additionalSheets?.forEach {
@@ -315,7 +315,7 @@ class RequestBuilder
             launch {
                 if (batch.isNotEmpty()) {
                     try {
-                        service!!.spreadsheets().batchUpdate(sid, BatchUpdateSpreadsheetRequest().setRequests(batch))
+                        service.spreadsheets().batchUpdate(sid, BatchUpdateSpreadsheetRequest().setRequests(batch))
                             .execute()
                         additionalSheets?.forEach {
                             service.spreadsheets().batchUpdate(it, BatchUpdateSpreadsheetRequest().setRequests(batch))
@@ -397,7 +397,7 @@ class RequestBuilder
         fun updateAll(sid: String?, range: String?, values: List<List<Any>?>?, vararg raw: Boolean) {
             scope.launch {
                 try {
-                    Google.sheetsService!!.spreadsheets().values().update(sid, range, ValueRange().setValues(values))
+                    Google.sheetsService.spreadsheets().values().update(sid, range, ValueRange().setValues(values))
                         .setValueInputOption(if (raw.isEmpty() || !raw[0]) "USER_ENTERED" else "RAW").execute()
                 } catch (e: IOException) {
                     e.printStackTrace()
@@ -408,7 +408,7 @@ class RequestBuilder
         fun batchUpdate(sid: String?, vararg requests: Request?) {
             if (requests.isEmpty()) return
             try {
-                Google.sheetsService!!.spreadsheets().batchUpdate(
+                Google.sheetsService.spreadsheets().batchUpdate(
                     sid, BatchUpdateSpreadsheetRequest().setRequests(listOf(*requests))
                 ).execute()
             } catch (e: IOException) {

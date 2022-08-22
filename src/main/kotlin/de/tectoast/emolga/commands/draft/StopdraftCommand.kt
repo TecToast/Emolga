@@ -3,7 +3,9 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.commands.saveEmolgaJSON
+import de.tectoast.emolga.utils.json.Emolga
+import kotlinx.coroutines.cancel
 
 class StopdraftCommand : Command("stopdraft", "Beendet den Draft", CommandCategory.Flo) {
     init {
@@ -14,11 +16,13 @@ class StopdraftCommand : Command("stopdraft", "Beendet den Draft", CommandCatego
     }
 
     override suspend fun process(e: GuildCommandEvent) =
-        e.reply(if (League.drafts.removeIf { l ->
+        e.reply(if (Emolga.get.drafts.values.any { l ->
                 (l.tc.idLong == e.arguments.getChannel("draftchannel").idLong).also {
-                    if (it) l.cooldownFuture!!.cancel(
-                        false
-                    )
+                    if (it) {
+                        l.cooldownJob!!.cancel("Draft stopped by command")
+                        l.isRunning = false
+                        saveEmolgaJSON()
+                    }
                 }
             }) "Der Draft wurde beendet!" else "In diesem Channel läuft derzeit kein Draft!")
 }

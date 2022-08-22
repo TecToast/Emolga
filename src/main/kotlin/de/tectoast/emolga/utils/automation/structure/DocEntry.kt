@@ -164,7 +164,7 @@ class DocEntry private constructor() {
                 for (num in formulaRange.indices) {
                     val formulaRange = formulaRange[num]
                     val formula = Google[sid, formulaRange, true]
-                    val points = Google[sid, formulaRange, false]!!.toMutableList()
+                    val points = Google[sid, formulaRange, false].toMutableList()
                     val orig: List<List<Any>?> = ArrayList(points)
                     val table = league.table
                     points.sortWith { o1: List<Any>, o2: List<Any> ->
@@ -177,7 +177,7 @@ class DocEntry private constructor() {
                         if (c != 0) return@sortWith c
                         if (!directCompare) return@sortWith 0
                         val u1 =
-                            table[indexer!!.apply(formula!![orig.indexOf(o1)][0].toString())]
+                            table[indexer!!.apply(formula[orig.indexOf(o1)][0].toString())]
                         val u2 =
                             table[indexer.apply(formula[orig.indexOf(o2)][0].toString())]
 
@@ -193,7 +193,7 @@ class DocEntry private constructor() {
                     points.reverse()
                     val namap = mutableMapOf<Int, List<Any>>()
                     for ((i, objects) in orig.withIndex()) {
-                        namap[points.indexOf(objects)] = formula!![i]
+                        namap[points.indexOf(objects)] = formula[i]
                     }
                     val sendname: MutableList<List<Any>?> = ArrayList()
                     for (j in points.indices) {

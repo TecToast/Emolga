@@ -13,8 +13,10 @@ import de.tectoast.emolga.utils.Constants.MYSERVER
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.annotations.PrivateCommand
+import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.emolga.draft.ASL
 import de.tectoast.emolga.utils.showdown.Analysis
 import de.tectoast.emolga.utils.sql.managers.AnalysisManager
 import de.tectoast.emolga.utils.sql.managers.DasorUsageManager
@@ -522,7 +524,7 @@ object PrivateCommands {
         for (f in fights) {
             val id = f.getString("id")
             if (id.contains("doubles")) continue
-            val game = Analysis("https://replay.pokemonshowdown.com/$id", null).analyse()
+            val game = Analysis("https://replay.pokemonshowdown.com/$id", null).analyse(null)
             for (player in game) {
                 if (Command.toUsername(player.nickname) == "dasor54") {
                     for (mon in player.mons) {
@@ -671,6 +673,28 @@ object PrivateCommands {
             }
         }
         b.addAll("Data!A1", send).execute()
+    }
+
+    @PrivateCommand("asls11doc")
+    fun asls11doc(e: GenericCommandEvent) {
+        val sid = "1VWjAc370NQvuybaQZOTQ2uBVGC36D2_n63DOghkoE2k"
+        val b = RequestBuilder(sid)
+        val tindex = e.args[0].toInt()
+        val level = e.args[1].toInt()
+        val asl = Emolga.get.asls11
+        val team = asl.table[tindex]
+        val uid = asl.data[team]!!.members[level]!!
+        val aslleague = Emolga.get.leagueByGuild(Constants.ASLID, uid, uid)!!
+        val mons = Google[sid, "Data$level!B${tindex.y(15, 3)}:B${tindex.y(15, 14)}", false].map { it[0] as String }
+        val picks = aslleague.picks[uid]!!
+        val tl = Tierlist.getByGuild(Constants.ASLID)!!
+        picks.clear()
+        picks.addAll(mons.map { DraftPokemon(it, tl.getTierOf(it)) })
+        b.addColumn("$team!C${level.y(26, 23)}", picks.let { pi ->
+            pi.sortedWith((aslleague as ASL).comparator).map { it.indexedBy(pi) }
+                .map { "=Data$level!B${tindex.y(15, 3) + it}" }
+        })
+        b.execute()
     }
 
     suspend fun execute(message: Message) {

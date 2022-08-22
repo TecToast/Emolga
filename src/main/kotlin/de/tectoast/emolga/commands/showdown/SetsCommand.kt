@@ -22,7 +22,7 @@ class SetsCommand : Command("sets", "Zeigt die Sets von einem Showdown-Kampf an"
     @Throws(Exception::class)
     override suspend fun process(e: GuildCommandEvent) {
         val url = e.arguments.getText("url")
-        e.reply(Analysis(url, e.message).analyse().joinToString("\n") { p: Player ->
+        e.reply(Analysis(url, e.message).analyse(e.channel).joinToString("\n") { p: Player ->
             val paste = buildPaste(p)
             //e.reply("```" + paste + "```");
             val res = client.newCall(

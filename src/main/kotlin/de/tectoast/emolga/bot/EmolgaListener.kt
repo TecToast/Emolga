@@ -57,7 +57,7 @@ object EmolgaListener : ListenerAdapter() {
         jda.listener<SlashCommandInteractionEvent> { slashCommandInteractionEvent(it) }
         jda.listener<ReadyEvent> { e ->
             if (e.jda.selfUser.idLong == 723829878755164202) {
-                Emolga.get.drafts.values.filter { it.current != -1L }.forEach {
+                Emolga.get.drafts.values.filter { it.isRunning }.forEach {
                     it.startDraft(
                         null, true
                     )
@@ -86,8 +86,7 @@ object EmolgaListener : ListenerAdapter() {
                 return
             }
             if (command.wip) {
-                e.reply("Diese Funktion ist derzeit noch in Entwicklung und ist noch nicht einsatzbereit!")
-                    .queue()
+                e.reply("Diese Funktion ist derzeit noch in Entwicklung und ist noch nicht einsatzbereit!").queue()
                 return
             }
         }
@@ -130,8 +129,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
     }
 
     override fun onGuildVoiceMove(e: GuildVoiceMoveEvent) {
-        if (e.channelLeft.members.size == 1 && e.guild.audioManager.isConnected)
-            e.guild.audioManager.closeAudioConnection()
+        if (e.channelLeft.members.size == 1 && e.guild.audioManager.isConnected) e.guild.audioManager.closeAudioConnection()
     }
 
     override fun onGuildVoiceJoin(e: GuildVoiceJoinEvent) {
@@ -139,36 +137,27 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
             val mid = e.member.idLong
             if (mid == e.jda.selfUser.idLong) return
             WirklichGuteMusikCommand.doIt(
-                e.guild.getTextChannelById(861558360104632330L)!!,
-                e.member,
-                mid == FLOID || mid == DASORID
+                e.guild.getTextChannelById(861558360104632330L)!!, e.member, mid == FLOID || mid == DASORID
             )
         }
     }
 
     override fun onGuildJoin(e: GuildJoinEvent) {
         val g = e.guild
-        g.retrieveOwner()
-            .flatMap { it.user.openPrivateChannel() }
-            .flatMap {
-                it.sendMessage(
-                    WELCOMEMESSAGE.replace(
-                        "{USERNAME}", g.owner!!
-                            .user.name
-                    ).replace("{SERVERNAME}", g.name)
+        g.retrieveOwner().flatMap { it.user.openPrivateChannel() }.flatMap {
+            it.sendMessage(
+                WELCOMEMESSAGE.replace(
+                    "{USERNAME}", g.owner!!.user.name
+                ).replace("{SERVERNAME}", g.name)
+            )
+        }.queue()
+        e.jda.retrieveUserById(FLOID).flatMap { it.openPrivateChannel() }.flatMap {
+            it.sendMessage("${g.name} (${g.id})").setActionRow(
+                Button.primary("guildinvite;" + g.id, "Invite").withEmoji(
+                    Emoji.fromUnicode("✉️")
                 )
-            }
-            .queue()
-        e.jda.retrieveUserById(FLOID)
-            .flatMap { it.openPrivateChannel() }
-            .flatMap {
-                it.sendMessage("${g.name} (${g.id})").setActionRow(
-                    Button.primary("guildinvite;" + g.id, "Invite").withEmoji(
-                        Emoji.fromUnicode("✉️")
-                    )
-                )
-            }
-            .queue()
+            )
+        }.queue()
     }
 
     override fun onRoleCreate(e: RoleCreateEvent) {
@@ -197,9 +186,18 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                         e.jda.getTextChannelById(split[split.size - 1])!!.sendMessage(m.contentRaw).queue()
                     }
                 }
-                if (tcoid == 929841771276554260L) {
-                    g.addRoleToMember(member, g.getRoleById(934810601216147477L)!!).queue()
+                when (tcoid) {
+                    929841771276554260 -> g.addRoleToMember(member, g.getRoleById(934810601216147477L)!!).queue()
+                    1006493531608723517, 714941684839874600 -> {
+                        if (msg.startsWith("!entweder", ignoreCase = true)) {
+                            val split = msg.substringAfter(" ").split(" oder ").toMutableList()
+                            if (split.size > 1) {
+                                tco.sendMessage(split.random().replace("?", "") + "!").queue()
+                            }
+                        }
+                    }
                 }
+
                 val raw = m.contentRaw
                 val id = e.jda.selfUser.idLong
                 if (raw == "<@!$id>" || raw == "<@$id>" && !e.author.isBot && Command.isChannelAllowed(tco)) {
@@ -246,8 +244,9 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                         }
                     }
                 }
-                if (replayAnalysis.containsKey(tcoid) && e.author.id != e.jda.selfUser.id && !msg.contains("!analyse ")
-                    && !msg.contains("!sets ")
+                if (replayAnalysis.containsKey(tcoid) && e.author.id != e.jda.selfUser.id && !msg.contains("!analyse ") && !msg.contains(
+                        "!sets "
+                    )
                 ) {
                     val t = tco.guild.getTextChannelById(replayAnalysis.getValue(tcoid)) ?: return
                     //t.sendTyping().queue();
@@ -299,18 +298,14 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
             BanManager.forAll { set ->
                 jda.getGuildById(set.getLong("guildid"))?.run {
                     Command.banTimer(
-                        this,
-                        set.getTimestamp("expires")?.time ?: -1,
-                        set.getLong("userid")
+                        this, set.getTimestamp("expires")?.time ?: -1, set.getLong("userid")
                     )
                 }
             }
             MuteManager.forAll { set ->
                 jda.getGuildById(set.getLong("guildid"))?.run {
                     Command.muteTimer(
-                        this,
-                        set.getTimestamp("expires")?.time ?: -1,
-                        set.getLong("userid")
+                        this, set.getTimestamp("expires")?.time ?: -1, set.getLong("userid")
                     )
                 }
             }

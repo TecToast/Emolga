@@ -13,18 +13,16 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.Emolga
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.util.SLF4J
+import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.entities.TextChannel
 import org.slf4j.Logger
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.ScheduledThreadPoolExecutor
-import java.util.concurrent.TimeUnit
 
 
 @Serializable
 sealed class League {
+    var isRunning: Boolean = false
     val sid: String = "yay"
     val picks: MutableMap<Long, MutableList<DraftPokemon>> = mutableMapOf()
     val battleorder: MutableMap<Int, String> = mutableMapOf()
@@ -41,25 +39,29 @@ sealed class League {
 
     val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
 
-    val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
+    private val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
 
     private val names: MutableMap<Long, String> = mutableMapOf()
 
     @Transient
     lateinit var tc: TextChannel
 
-    var tcid: Long = -1
+    private var tcid: Long = -1
 
     val tierlist: Tierlist by Tierlist.Delegate()
     val isPointBased
         get() = tierlist.isPointBased
 
     @Transient
-    val scheduler: ScheduledExecutorService = ScheduledThreadPoolExecutor(2)
+    val timerScope = CoroutineScope(Dispatchers.Default + CoroutineExceptionHandler { _, t ->
+        logger.error(
+            "ERROR EXECUTING TIMER",
+            t
+        )
+    })
 
     @Transient
-    var cooldownFuture: ScheduledFuture<*>? = null
-    private var ended = false
+    var cooldownJob: Job? = null
     val members: List<Long>
         get() = table
     private val timer: DraftTimer = DraftTimer.ASL
@@ -98,7 +100,7 @@ sealed class League {
         return allowed[user] == current
     }
 
-    fun isPicked(mon: String) = picks.values.any { l -> l.any { it.name == mon } }
+    fun isPicked(mon: String) = picks.values.any { l -> l.any { it.name.equals(mon, ignoreCase = true) } }
 
     fun handlePoints(e: GuildCommandEvent, needed: Int): Boolean {
         if (isPointBased) {
@@ -117,26 +119,9 @@ sealed class League {
 
 
     fun nextPlayer() {
-        if (order[round]!!.isEmpty()) {
-            if (round == tierlist.rounds) {
-                tc.sendMessage("Der Draft ist vorbei!").queue()
-                ended = true
-                //ndsdoc(tierlist, pokemon, d, mem, tier, round);
-                //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
-                saveEmolgaJSON()
-                drafts.remove(this)
-                return
-            }
-            round++
-            if (order[round]!!.isEmpty()) {
-                tc.sendMessage("Da alle bereits ihre Drafts beendet haben, ist der Draft vorbei!").queue()
-                saveEmolgaJSON()
-                return
-            }
-            tc.sendMessage("Runde $round!").queue()
-        }
+        if (endOfTurn()) return
         current = order[round]!!.nextCurrent()
-        cooldownFuture!!.cancel(false)
+        cooldownJob!!.cancel("Timer runs out")
         announcePlayer()
         restartTimer()
         saveEmolgaJSON()
@@ -170,20 +155,20 @@ sealed class League {
             restartTimer(delay)
         }
         saveEmolgaJSON()
-        drafts.add(this)
+        isRunning = true
         logger.info("Started!")
     }
 
     private fun restartTimer(delay: Long = timer.calc()) {
-        cooldownFuture = scheduler.schedule(
-            { triggerTimer() },
-            delay.also { cooldown = System.currentTimeMillis() + it },
-            TimeUnit.MILLISECONDS
-        )
+        cooldown = System.currentTimeMillis() + delay
+        cooldownJob = timerScope.launch {
+            delay(delay)
+            triggerTimer()
+        }
     }
 
     private fun sendRound() {
-        tc.sendMessage("Runde $round!").queue()
+        tc.sendMessage("**=== Runde $round ===**").queue()
     }
 
     open fun announcePlayer() {
@@ -216,6 +201,29 @@ sealed class League {
 
     fun hasMovedTurns() = movedTurns().isNotEmpty()
     fun movedTurns() = moved[current] ?: mutableListOf()
+
+    private fun endOfTurn(): Boolean {
+        if (order[round]!!.isEmpty()) {
+
+            if (round == tierlist.rounds) {
+                tc.sendMessage("Der Draft ist vorbei!").queue()
+                //ndsdoc(tierlist, pokemon, d, mem, tier, round);
+                //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
+                saveEmolgaJSON()
+                isRunning = false
+                return true
+            }
+            round++
+            if (order[round]!!.isEmpty()) {
+                tc.sendMessage("Da alle bereits ihre Drafts beendet haben, ist der Draft vorbei!").queue()
+                saveEmolgaJSON()
+                return true
+            }
+            sendRound()
+        }
+        return false
+    }
+
     protected open fun getMention(mem: Long): String {
         mentions[mem]?.let { "<@$it> (${getName(mem)})" }
         return "<@${mentions[mem] ?: mem}>"
@@ -226,18 +234,9 @@ sealed class League {
     fun isPickedBy(mon: String, mem: Long): Boolean = picks[mem]!!.any { it.name == mon }
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
     fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER) {
-        if (ended) return
         triggerMove()
-        if (order[round]!!.isEmpty()) {
-            if (round == tierlist.rounds) {
-                saveEmolgaJSON()
-                tc.sendMessage("Der Draft ist vorbei!").queue()
-                drafts.remove(this)
-                return
-            }
-            round++
-            tc.sendMessage("Runde $round!").queue()
-        }/*String msg = tr == TimerReason.REALTIMER ? "**" + current.getEffectiveName() + "** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " (<@&" + asl.getLongList("roleids").get(getIndex(order.get(round).get(0).getIdLong())) + ">) dran! "
+        if (endOfTurn()) return
+        /*String msg = tr == TimerReason.REALTIMER ? "**" + current.getEffectiveName() + "** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " (<@&" + asl.getLongList("roleids").get(getIndex(order.get(round).get(0).getIdLong())) + ">) dran! "
                 : "Der Pick von " + current.getEffectiveName() + " wurde " + (isSwitchDraft ? "geskippt" : "verschoben") + " und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran!";*/
         val oldcurrent = current
         current = order[round]!!.nextCurrent()
@@ -284,7 +283,6 @@ sealed class League {
     }
 
     companion object {
-        val drafts: MutableList<League> = mutableListOf()
         val logger: Logger by SLF4J
 
         fun byChannel(e: GuildCommandEvent) = onlyChannel(e.textChannel)?.apply {
@@ -294,7 +292,8 @@ sealed class League {
             }
         }
 
-        fun onlyChannel(tc: TextChannel) = drafts.firstOrNull { it.tc.idLong == tc.idLong }
+        fun onlyChannel(tc: TextChannel) =
+            Emolga.get.drafts.values.firstOrNull { it.isRunning && it.tc.idLong == tc.idLong }
     }
 
     enum class TimerReason {

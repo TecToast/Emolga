@@ -3,9 +3,12 @@ package de.tectoast.emolga.utils.showdown
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.pokemon.WeaknessCommand.Companion.getEffectiveness
 import de.tectoast.emolga.utils.sql.managers.ReplayCheckManager
+import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.MessageChannel
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 import java.io.BufferedReader
@@ -16,6 +19,7 @@ import java.util.function.BiConsumer
 import java.util.function.Consumer
 import java.util.function.IntFunction
 import java.util.function.Supplier
+import kotlin.time.Duration.Companion.seconds
 
 class Analysis(private val link: String, m: Message?) {
     private val pl: MutableMap<Int, Player> = mutableMapOf()
@@ -56,18 +60,29 @@ class Analysis(private val link: String, m: Message?) {
     }
 
     @Throws(IOException::class)
-    suspend fun analyse(): Array<Player> {
+    suspend fun analyse(mc: MessageChannel?): Array<Player> {
         logger.info("Reading URL... {}", link)
-        val game = BufferedReader(
-            InputStreamReader(
-                withContext(Dispatchers.IO) {
-                    URL(
-                        "$link.log"
-                    ).openConnection().getInputStream()
-                }
-            )
-        ).lines().toList()
+        var gameNullable: List<String>? = null
+        for (i in 0..1) {
+            gameNullable = BufferedReader(
+                InputStreamReader(
+                    withContext(Dispatchers.IO) {
+                        URL(
+                            "$link.log"
+                        ).openConnection().getInputStream()
+                    }
+                )
+            ).lines().toList()
+            if (gameNullable.size == 1) {
+                val m =
+                    mc?.sendMessage("Der Showdown-Server antwortet gerade nicht, ich versuche es in 10 Sekunden nochmal...")
+                        ?.await()
+                delay(10.seconds)
+                m?.delete()?.queue()
+            } else break
+        }
         logger.info("Starting analyse!")
+        val game = gameNullable ?: throw IOException("Could not read game")
         val time = System.currentTimeMillis()
         for (currentLine in game) {
             s = currentLine

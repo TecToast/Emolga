@@ -53,8 +53,11 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             val args = e.arguments
             val d = League.byChannel(e) ?: return
             val mem = d.current
-            val pokemon = args.getText("pokemon")
             val tierlist = d.tierlist
+            val pokemon = tierlist.getNameOf(args.getText("pokemon")) ?: run {
+                e.reply("Das Pokemon steht nicht in der Tierliste!")
+                return
+            }
             val picks = d.picks[mem]!!
             if (picks.filter { it.name != "???" }.size == 15) {
                 e.reply("Du hast bereits 15 Mons!")
@@ -78,10 +81,6 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                     return
                 }
                 val origtier = tierlist.getTierOf(pokemon)
-                if (origtier.isEmpty()) {
-                    e.reply("Das Pokemon steht nicht in der Tierliste!")
-                    return
-                }
                 if (tierlist.order.indexOf(origtier) < tierlist.order.indexOf(tier)) {
                     e.reply("Du kannst ein $origtier-Mon nicht ins $tier hochdraften!")
                     return

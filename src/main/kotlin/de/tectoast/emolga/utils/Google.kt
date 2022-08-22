@@ -51,8 +51,7 @@ object Google {
             val id =
                 (if (url.contains("youtu.be")) url.substring("https://youtu.be/".length) else url.substring("https://www.youtube.com/watch?v=".length)).split(
                     "&"
-                ).dropLastWhile { it.isEmpty() }
-                    .toTypedArray()[0]
+                ).dropLastWhile { it.isEmpty() }.toTypedArray()[0]
             return youTubeService.videos().list(listOf("snippet")).setId(listOf(id)).setMaxResults(1L)
                 .execute().items[0]
         } catch (ex: GeneralSecurityException) {
@@ -67,9 +66,9 @@ object Google {
     @JvmStatic
     fun getPlaylistByURL(url: String): Playlist? {
         try {
-            val id = url.substring("https://www.youtube.com/playlist?list=".length).split("&")
-                .dropLastWhile { it.isEmpty() }
-                .toTypedArray()[0]
+            val id =
+                url.substring("https://www.youtube.com/playlist?list=".length).split("&").dropLastWhile { it.isEmpty() }
+                    .toTypedArray()[0]
             return youTubeService.playlists().list(listOf("snippet")).setId(listOf(id)).setMaxResults(1L)
                 .execute().items[0]
         } catch (ex: GeneralSecurityException) {
@@ -82,16 +81,10 @@ object Google {
     }
 
     @Throws(IllegalArgumentException::class)
-    operator fun get(spreadsheetId: String?, range: String?, formula: Boolean): List<List<Any>>? {
-        try {
-            return sheetsService!!.spreadsheets()
-                .values()[spreadsheetId, range].setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
-                .execute().getValues()
-        } catch (ex: IOException) {
-            ex.printStackTrace()
-        }
-        logger.info("NULL")
-        return null
+    operator fun get(spreadsheetId: String?, range: String?, formula: Boolean): List<List<Any>> {
+        return sheetsService.spreadsheets()
+            .values()[spreadsheetId, range].setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
+            .execute().getValues()
     }
 
     @Deprecated("")
@@ -101,7 +94,7 @@ object Google {
     )
     fun updateRequest(spreadsheetId: String?, range: String?, values: List<List<Any?>?>?, raw: Boolean) {
         try {
-            sheetsService!!.spreadsheets().values().update(spreadsheetId, range, ValueRange().setValues(values))
+            sheetsService.spreadsheets().values().update(spreadsheetId, range, ValueRange().setValues(values))
                 .setValueInputOption(if (raw) "RAW" else "USER_ENTERED").execute()
         } catch (ex: IOException) {
             ex.printStackTrace()
@@ -112,9 +105,8 @@ object Google {
     @Throws(IllegalArgumentException::class)
     fun batchUpdateRequest(spreadsheetId: String?, request: Request) {
         try {
-            sheetsService!!.spreadsheets().batchUpdate(
-                spreadsheetId, BatchUpdateSpreadsheetRequest()
-                    .setRequests(listOf(request))
+            sheetsService.spreadsheets().batchUpdate(
+                spreadsheetId, BatchUpdateSpreadsheetRequest().setRequests(listOf(request))
             ).execute()
         } catch (ex: IOException) {
             ex.printStackTrace()
@@ -122,25 +114,16 @@ object Google {
     }
 
     @JvmStatic
-    val sheetsService: Sheets?
+    val sheetsService: Sheets
         get() {
             refreshTokenIfNotPresent()
-            try {
-                return Sheets.Builder(
-                    GoogleNetHttpTransport.newTrustedTransport(),
-                    GsonFactory.getDefaultInstance(),
-                    Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(
-                        accesstoken
-                    )
+            return Sheets.Builder(
+                GoogleNetHttpTransport.newTrustedTransport(),
+                GsonFactory.getDefaultInstance(),
+                Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(
+                    accesstoken
                 )
-                    .setApplicationName("emolga")
-                    .build()
-            } catch (e: GeneralSecurityException) {
-                e.printStackTrace()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-            return null
+            ).setApplicationName("emolga").build()
         }
 
     @get:Throws(GeneralSecurityException::class, IOException::class)
@@ -153,9 +136,7 @@ object Google {
                 Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(
                     accesstoken
                 )
-            )
-                .setApplicationName("emolga")
-                .build()
+            ).setApplicationName("emolga").build()
         }
 
     private fun refreshTokenIfNotPresent() {

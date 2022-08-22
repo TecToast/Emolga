@@ -15,7 +15,7 @@ class RequestGetter(private val sid: String) {
     }
 
     fun execute(): List<List<List<String>>> {
-        val sh = sheetsService!!.spreadsheets()[sid].setIncludeGridData(true).setRanges(ranges)
+        val sh = sheetsService.spreadsheets()[sid].setIncludeGridData(true).setRanges(ranges)
             .execute() //Google.getSheetsService().spreadsheets().values().batchGet("").
         val map = HashMap<String, AtomicInteger>()
         val ret: MutableList<List<List<String>>> = ArrayList(ranges.size)

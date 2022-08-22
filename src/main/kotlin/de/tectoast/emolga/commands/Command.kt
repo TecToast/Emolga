@@ -3025,8 +3025,11 @@ abstract class Command(
                 }
                 logger.info("REPLAY! Channel: {}", m?.channel?.id ?: resultchannel.id)
                 val game: Array<Player> = try {
-                    val analysis = Analysis(url, m).analyse()
-                    if (!analysis[0].isInitialized()) throw RuntimeException("Nickname is missing")
+                    val analysis = Analysis(url, m).analyse(resultchannel)
+                    if (!analysis[0].isInitialized()) {
+                        sendToMe("Replay ERROR $url ${resultchannel.asMention}")
+                        return@launch
+                    }
                     analysis
                     //game = Analysis.analyse(url, m);
                 } catch (ex: Exception) {

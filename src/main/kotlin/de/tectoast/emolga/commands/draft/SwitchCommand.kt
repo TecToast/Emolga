@@ -8,24 +8,21 @@ import org.slf4j.LoggerFactory
 
 class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.Draft) {
     init {
-        argumentTemplate = ArgumentManagerTemplate.builder()
-            .add(
-                "oldmon",
-                "Altes Mon",
-                "Das Pokemon, was rausgeschmissen werden soll",
-                ArgumentManagerTemplate.draftPokemon(),
-                false,
-                "Das, was du rauswerfen möchtest, ist kein Pokemon!"
-            )
-            .add(
-                "newmon",
-                "Neues Mon",
-                "Das Pokemon, was stattdessen reinkommen soll",
-                ArgumentManagerTemplate.draftPokemon(),
-                false,
-                "Das, was du haben möchtest, ist kein Pokemon!"
-            )
-            .setExample("!switch Gufa Emolga").build()
+        argumentTemplate = ArgumentManagerTemplate.builder().add(
+            "oldmon",
+            "Altes Mon",
+            "Das Pokemon, was rausgeschmissen werden soll",
+            ArgumentManagerTemplate.draftPokemon(),
+            false,
+            "Das, was du rauswerfen möchtest, ist kein Pokemon!"
+        ).add(
+            "newmon",
+            "Neues Mon",
+            "Das Pokemon, was stattdessen reinkommen soll",
+            ArgumentManagerTemplate.draftPokemon(),
+            false,
+            "Das, was du haben möchtest, ist kein Pokemon!"
+        ).setExample("!switch Gufa Emolga").build()
     }
 
     override suspend fun process(e: GuildCommandEvent) {
@@ -36,9 +33,15 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
         }
         val mem = d.current
         val args = e.arguments
-        val oldmon = args.getText("oldmon")
-        val newmon = args.getText("newmon")
         val tierlist = d.tierlist
+        val oldmon = tierlist.getNameOf(args.getText("oldmon")) ?: run {
+            e.reply("Das, was du rauswerfen möchtest, steht nicht in der Tierliste!")
+            return
+        }
+        val newmon = tierlist.getNameOf(args.getText("newmon")) ?: run {
+            e.reply("Das, was du haben möchtest, steht nicht in der Tierliste!")
+            return
+        }
         if (!d.isPickedBy(oldmon, mem)) {
             e.reply("$oldmon befindet sich nicht in deinem Kader!")
             return
@@ -48,17 +51,9 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
             return
         }
         val pointsBack = tierlist.getPointsNeeded(oldmon)
-        if (pointsBack == -1) {
-            e.reply("Das, was du rauswerfen möchtest, steht nicht in der Tierliste!")
-            return
-        }
         logger.info("oldmon = $oldmon")
         logger.info("newmon = $newmon")
         val newpoints = tierlist.getPointsNeeded(newmon)
-        if (newpoints == -1) {
-            e.reply("Das, was du haben möchtest, steht nicht in der Tierliste!")
-            return
-        }
         val tier = tierlist.getTierOf(newmon)
         if (d.isPointBased) {
             if (d.points[mem]!! + pointsBack - newpoints < 0) {
@@ -75,8 +70,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
         val draftPokemons = d.picks[mem]!!
         d.saveSwitch(draftPokemons, oldmon, newmon, tierlist.getTierOf(newmon))
         d.switchDoc(
-            SwitchData(
-                oldmon,
+            SwitchData(oldmon,
                 tierlist.getTierOf(oldmon),
                 newmon,
                 tierlist.getTierOf(newmon),

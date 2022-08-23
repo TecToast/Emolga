@@ -9,7 +9,7 @@ import de.tectoast.emolga.utils.json.Emolga
 import net.dv8tion.jda.api.entities.Member
 
 class AllowCommand : Command(
-    "allow", "Erlaubt einem anderen User, für dich zu picken", CommandCategory.Draft, Constants.ASLID, Constants.NDSID
+    "allow", "Erlaubt einem anderen User, für dich zu picken", CommandCategory.Draft, Constants.G.ASL, Constants.G.NDS
 ) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
@@ -20,7 +20,7 @@ class AllowCommand : Command(
     override suspend fun process(e: GuildCommandEvent) {
         val drafts = Emolga.get.drafts
         val gid = e.guild.idLong
-        (if (gid == Constants.NDSID) Emolga.get.nds() else drafts.values.firstOrNull { it.guild == gid })?.takeIf { e.author.idLong in it.picks }
+        (if (gid == Constants.G.NDS) Emolga.get.nds() else drafts.values.firstOrNull { it.guild == gid })?.takeIf { e.author.idLong in it.picks }
             ?.let { l ->
                 val mem = e.arguments.get<Member>("user")
                 val id = mem.idLong

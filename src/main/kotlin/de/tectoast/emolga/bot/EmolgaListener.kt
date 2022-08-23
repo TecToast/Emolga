@@ -13,7 +13,6 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.DASORID
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.Constants.FLOID
-import de.tectoast.emolga.utils.Constants.MYSERVER
 import de.tectoast.emolga.utils.DexQuiz
 import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.sql.managers.BanManager
@@ -107,7 +106,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
             e.hook.sendMessage(
                 """
     Es ist ein Fehler beim Ausführen des Commands aufgetreten!
-    Wenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo/TecToast.
+    Wenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei ${Constants.MYTAG}.
     ${command.getHelp(e.guild)}${if (u.idLong == FLOID) "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" else ""}
     """.trimIndent()
             ).queue()
@@ -119,7 +118,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
         val g = e.guild
         val mem = e.member
         when (g.idLong) {
-            Constants.ASLID -> g.getTextChannelById(615605820381593610L)!!.sendMessage(
+            Constants.G.ASL -> g.getTextChannelById(615605820381593610L)!!.sendMessage(
                 """
                     Willkommen auf der ASL, ${mem.asMention}. <:hi:540969951608045578>
                     Dies ist ein Pokémon Server mit dem Fokus auf einem kompetetiven Draftligasystem. Mach dich mit dem <#635765395038666762> vertraut und beachte die vorgegebenen Themen der Kanäle. Viel Spaß! <:yay:540970044297838597>
@@ -179,7 +178,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                 val gid = g.idLong
                 val tcoid = tco.idLong
                 Command.check(e)
-                if (gid == MYSERVER) {
+                if (gid == Constants.G.MY) {
                     PrivateCommands.execute(e.message)
                     if (tco.parentCategoryIdLong == EMOLGA_KI) {
                         val split = tco.name.split("-")
@@ -316,7 +315,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
     override fun onGuildInviteCreate(e: GuildInviteCreateEvent) {
         val g = e.guild
         when (g.idLong) {
-            Constants.ASLID -> {
+            Constants.G.ASL -> {
                 g.retrieveMember(e.invite.inviter!!).queue { mem: Member? ->
                     if (g.selfMember.canInteract(
                             mem!!

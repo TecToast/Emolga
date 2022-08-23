@@ -41,10 +41,10 @@ class ASLS11(
             prefix?.let { user.modifyNickname("[$prefix] ${user.effectiveName}").queue() }
             user.guild.addRoleToMember(user, user.jda.getRoleById(role)!!).queue()
         }
-        val (x, y) = Emolga.get.asls11nametoid.indexOf(user.idLong).let { it.xdiv(24, 20) to it.ymod(24, 20) }
+        val (x, y) = Emolga.get.asls11nametoid.indexOf(user.idLong).let { it.xdiv(24, 1, 20) to it.ymod(24, 1, 20) }
         table.indexOf(teamnameByCoach(coach)).let {
             RequestBuilder(sid).addRow(
-                "Menschenhandel!${it.xmod(6, 2, 3)}${it.ydiv(6, 14 + level, 17)}", listOf("=$x$y", prize)
+                "Menschenhandel!${it.xmod(6, 3, 2)}${it.ydiv(6, 17, 14 + level)}", listOf("=$x$y", prize)
             ).addStrikethroughChange(0, "$x$y", true).execute()
         }
     }

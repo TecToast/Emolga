@@ -170,6 +170,7 @@ abstract class DataManager(private val tableName: String) {
             }
         }
 
+
         @JvmStatic
         protected fun selectBuilder(): SelectBuilder {
             return SelectBuilder()
@@ -216,7 +217,7 @@ abstract class DataManager(private val tableName: String) {
             }
         }
 
-        @JvmStatic
+
         fun <T> readWrite(query: String?, rf: ResultsFunction<T>): T {
             try {
                 connection.use { conn ->
@@ -229,7 +230,7 @@ abstract class DataManager(private val tableName: String) {
             }
         }
 
-        @JvmStatic
+
         fun <T> map(set: ResultSet, mapper: Function<ResultSet, T>): List<T> {
             val l: MutableList<T> = LinkedList()
             try {
@@ -243,7 +244,7 @@ abstract class DataManager(private val tableName: String) {
             return l
         }
 
-        @JvmStatic
+
         fun <T> mapFirst(set: ResultSet, mapper: Function<ResultSet, T>, orElse: T): T {
             try {
                 if (set.next()) {
@@ -257,7 +258,7 @@ abstract class DataManager(private val tableName: String) {
             return orElse
         }
 
-        @JvmStatic
+
         fun <T> mapFirst(set: ResultSet, mapper: Function<ResultSet, T>): T {
             try {
                 if (set.next()) {
@@ -271,7 +272,7 @@ abstract class DataManager(private val tableName: String) {
             throw RuntimeException("MapFirst returns null")
         }
 
-        @JvmStatic
+
         fun unwrapCount(set: ResultSet, alias: String): Int? {
             try {
                 return set.getInt(alias)
@@ -281,7 +282,7 @@ abstract class DataManager(private val tableName: String) {
             return null
         }
 
-        @JvmStatic
+
         fun forEach(set: ResultSet, consumer: Consumer<ResultSet>) {
             try {
                 while (set.next()) {

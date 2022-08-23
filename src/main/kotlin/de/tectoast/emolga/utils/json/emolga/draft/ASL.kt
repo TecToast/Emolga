@@ -49,6 +49,18 @@ class ASL : League() {
 
     override fun getMention(mem: Long) = "<@$mem> (<@&${Emolga.get.asls11.roleIdByMember(mem)}>)"
 
+    override fun getPickRound(): Int {
+        return round.let {
+            if (it != 12) it
+            else {
+                val mt = movedTurns()
+                if (12 - picks.size < mt.size) {
+                    mt.removeFirst()
+                } else it
+            }
+        }
+    }
+
     override fun isCurrent(user: Long): Boolean {
         if (current == user || user == Constants.FLOID) return true
         return user in Emolga.get.asls11.teammembersByMember(current)

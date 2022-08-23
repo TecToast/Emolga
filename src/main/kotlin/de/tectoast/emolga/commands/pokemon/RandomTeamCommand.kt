@@ -9,7 +9,7 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import dev.minn.jda.ktx.interactions.components.primary
 import net.dv8tion.jda.api.entities.emoji.Emoji
 
-class RandomTeamCommand : Command("randomteam", "Generiert ein Random Team", CommandCategory.Pokemon, Constants.ASLID) {
+class RandomTeamCommand : Command("randomteam", "Generiert ein Random Team", CommandCategory.Pokemon, Constants.G.ASL) {
 
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
@@ -43,7 +43,7 @@ class RandomTeamCommand : Command("randomteam", "Generiert ein Random Team", Com
             "Team für <@$id>:\n" + generateTeam().joinToString("\n") { "${it.tier}: ${it.name}" }
 
         fun generateTeam(): List<DraftPokemon> {
-            val tl = Tierlist.getByGuild(Constants.ASLID)!!.tierlist
+            val tl = Tierlist.getByGuild(Constants.G.ASL)!!.tierlist
             return sets.random().entries.filterNot { it.value == 0 }.map { en ->
                 val tier = en.key
                 val possible = tl[tier]!!.toMutableList()

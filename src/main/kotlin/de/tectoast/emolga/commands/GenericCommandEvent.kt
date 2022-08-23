@@ -64,7 +64,7 @@ abstract class GenericCommandEvent {
         return i < argsLength
     }
 
-    @JvmOverloads
+
     fun reply(msg: String, ephermal: Boolean = false) {
         if (msg.isEmpty()) return
         if (slashCommandEvent != null) slashCommandEvent.reply(msg).setEphemeral(ephermal)

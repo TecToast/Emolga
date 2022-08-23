@@ -11,7 +11,7 @@ class StartMenschenhandelCommand : Command(
     "startmenschenhandel",
     "Startet die beste Sache einer Coach-Season",
     CommandCategory.Draft,
-    Constants.ASLID
+    Constants.G.ASL
 ) {
 
     init {

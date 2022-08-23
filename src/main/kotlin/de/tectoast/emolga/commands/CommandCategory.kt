@@ -46,10 +46,8 @@ enum class CommandCategory {
 
 
     companion object {
-        @JvmField
-        val musicGuilds: MutableList<Long> = mutableListOf()
 
-        @JvmStatic
+        val musicGuilds: MutableList<Long> = mutableListOf()
         val order = listOf(Flo, Admin, Moderator, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Music, Soullink)
 
         init {

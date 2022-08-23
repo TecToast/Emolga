@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.draft
 
+import de.tectoast.emolga.commands.DraftNamePreference
 import de.tectoast.emolga.commands.toSDName
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.records.Coord
@@ -10,7 +11,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.*
-import java.util.regex.Pattern
+import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 @Suppress("unused")
@@ -25,27 +26,30 @@ class Tierlist(val guild: Long) {
     /**
      * The price for each tier
      */
-    val prices: MutableMap<String, Int> = mutableMapOf()
+    val prices: Map<String, Int> = mapOf()
+    private val freepicks: Map<String, Int> = mapOf()
     private val nexttiers: List<Int> = listOf()
+    val namepreference: DraftNamePreference = DraftNamePreference.SINGLE_CHAR_BEFORE
 
     /**
      * List with all pokemon in the sheets tierlists, columns are separated by an "NEXT"
      */
     private val tiercolumns: MutableList<MutableList<String>> = mutableListOf()
-    private val trashmons: List<String> = emptyList()
-    private val additionalMons: Map<String, List<String>> = emptyMap()
-    private val englishnames: List<String> = emptyList()
-
-
-    val order: List<String>
-        get() = prices.keys.toList()
+    private val trashmons: List<String> = listOf()
+    private val additionalMons: Map<String, List<String>> = mapOf()
+    private val englishnames: List<String> = listOf()
 
     /**
      * the amount of rounds in the draft
      */
     val rounds: Int = 0
+    val mode: TierlistMode = TierlistMode.POINTS
+    val points = 0
 
-    private val mode: TierlistMode = TierlistMode.POINTS
+
+    val order: List<String>
+        get() = prices.keys.toList()
+
 
     /**
      * if this tierlist is pointbased
@@ -56,7 +60,6 @@ class Tierlist(val guild: Long) {
     /**
      * the possible points for a player
      */
-    val points = 0
 
 
     val autoComplete: Set<String> by lazy {
@@ -76,7 +79,7 @@ class Tierlist(val guild: Long) {
         var currtier = 0
         for ((x, monss) in tiercolumns.withIndex()) {
             val mon = monss.map { it.trim() }
-                .map { REPLACE_NONSENSE.matcher(it).replaceAll("") }
+                .map { REPLACE_NONSENSE.replace(it, "") }
             if (nexttiers.contains(x)) {
                 val key = order[currtier++]
                 tierlist[key] = ArrayList(currtierlist)
@@ -93,7 +96,11 @@ class Tierlist(val guild: Long) {
     }
 
 
-    fun getPointsNeeded(s: String): Int = prices[getTierOf(s)] ?: -1
+    fun getPointsNeeded(s: String): Int = when (mode) {
+        TierlistMode.POINTS -> prices[getTierOf(s)] ?: -1
+        TierlistMode.MIX -> freepicks[getTierOf(s)] ?: -1
+        else -> -1
+    }
 
     fun getTierOf(s: String): String {
         return tierlist.entries.firstOrNull { e -> e.value.any { s.toSDName() == it.toSDName() } }?.key ?: ""
@@ -109,7 +116,7 @@ class Tierlist(val guild: Long) {
         val currtierlist: MutableList<String> = LinkedList()
         for ((x, monss) in mons.withIndex()) {
             val mon = monss.map { it.trim() }
-                .map { REPLACE_NONSENSE.matcher(it).replaceAll("") }
+                .map { REPLACE_NONSENSE.replace(it, "") }
             if (normal) {
                 if (nexttiers.contains(x)) {
                     val key = order[currtier++]
@@ -128,18 +135,12 @@ class Tierlist(val guild: Long) {
         return tierlist.values.flatten().firstOrNull { it.equals(mon, ignoreCase = true) }
     }
 
-    class Delegate {
-        operator fun getValue(thisRef: League, property: KProperty<*>): Tierlist {
-            return getByGuild(thisRef.guild)!!
-        }
-    }
-
-    companion object {
+    companion object : ReadOnlyProperty<League, Tierlist> {
         /**
          * All tierlists
          */
         val tierlists: MutableMap<Long, Tierlist> = HashMap()
-        private val REPLACE_NONSENSE = Pattern.compile("[^a-zA-Z\\d-:%ß ]")
+        private val REPLACE_NONSENSE = Regex("[^a-zA-Z\\d-:%ßäöüÄÖÜé ]")
         fun setup() {
             tierlists.clear()
             val dir = File("./Tierlists/")
@@ -154,7 +155,7 @@ class Tierlist(val guild: Long) {
             return getByGuild(guild.toLong())
         }
 
-        @JvmStatic
+
         fun getByGuild(guild: Long): Tierlist? {
             return tierlists[guild]
         }
@@ -176,6 +177,10 @@ class Tierlist(val guild: Long) {
             }
             return Coord(x, y, valid)
         }
+
+        override fun getValue(thisRef: League, property: KProperty<*>): Tierlist {
+            return getByGuild(thisRef.guild)!!
+        }
     }
 }
 
@@ -184,5 +189,9 @@ enum class TierlistMode {
     POINTS,
     TIERS,
     MIX,
-    NOTHING
+    NOTHING;
+
+    fun isPoints() = this == POINTS
+    fun isTiers() = this == TIERS
+    fun isMix() = this == MIX
 }

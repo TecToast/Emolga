@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 
 class TierCommand :
@@ -17,7 +18,7 @@ class TierCommand :
     override suspend fun process(e: GuildCommandEvent) {
         val pkmn = getDraftGerName(e.arguments.getText("mon")).translation
         val tierlist = Tierlist.getByGuild(e.guild.id) ?: run {
-            e.reply("Auf diesem Server ist keine Tierliste hinterlegt! Wenn du dies tun möchtest, melde dich bei Flo/TecToast.")
+            e.reply("Auf diesem Server ist keine Tierliste hinterlegt! Wenn du dies tun möchtest, melde dich bei ${Constants.MYTAG}.")
             return
         }
         val tier = tierlist.getTierOf(pkmn)

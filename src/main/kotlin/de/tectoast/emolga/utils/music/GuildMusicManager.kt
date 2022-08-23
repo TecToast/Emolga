@@ -4,13 +4,13 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 
 class GuildMusicManager(manager: AudioPlayerManager) {
-    @JvmField
+
     val player: AudioPlayer
 
     /**
      * Track scheduler for the player.
      */
-    @JvmField
+
     val scheduler: TrackScheduler
 
     init {

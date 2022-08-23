@@ -11,14 +11,14 @@ class MoveCommand : Command(
     "move",
     "Verschiebt deinen Pick",
     CommandCategory.Draft,
-    Constants.ASLID,
-    Constants.CULTID,
+    Constants.G.ASL,
+    Constants.G.CULT,
     821350264152784896L
 ) {
     init {
         aliases.add("verschieben")
         argumentTemplate = ArgumentManagerTemplate.noArgs()
-        slash(true, Constants.ASLID)
+        slash(true, Constants.G.ASL)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

@@ -12,7 +12,7 @@ class ShowdownPokeFansCommand : Command(
     "showdownpokefans",
     "Nimmt ein Showdown-Paste und wandelt es in ein Pokefans-Paste um",
     CommandCategory.Draft,
-    Constants.CULTID,
+    Constants.G.CULT,
     821350264152784896L
 ) {
     init {

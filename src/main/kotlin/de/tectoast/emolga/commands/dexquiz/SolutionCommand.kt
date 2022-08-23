@@ -14,7 +14,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button
 class SolutionCommand : Command("solution", "Zeigt die Lösung des derzeitigen Eintrags", CommandCategory.Dexquiz) {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
-        slash(true, 918865966136455249L, Constants.FPLID, Constants.CULTID)
+        slash(true, 918865966136455249L, Constants.G.FPL, Constants.G.CULT)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

@@ -33,7 +33,7 @@ abstract class ModalListener(name: String) {
             listener.getOrDefault(str, NULL).process(e, if (noArgs) null else split[1])
         }
 
-        @JvmStatic
+
         fun init() {
             val loader = Thread.currentThread().contextClassLoader
             try {

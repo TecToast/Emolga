@@ -13,7 +13,7 @@ class AddSDNameCommand : Command("addsdname", "Registriert deinen Showdown-Namen
             .add("id", "Die ID (nur Flo)", "Nur für Flo", ArgumentManagerTemplate.DiscordType.ID, true)
             .setExample("!addsdname TecToast")
             .build()
-        slash(false, Constants.GILDEID)
+        slash(false, Constants.G.GILDE)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

@@ -9,7 +9,7 @@ import de.tectoast.emolga.utils.Constants.CALENDAR_TCID
 import de.tectoast.emolga.utils.sql.managers.CalendarManager
 import java.sql.Timestamp
 
-class RemindCommand : Command("remind", "Setzt einen Reminder auf", CommandCategory.Flo, Constants.MYSERVER) {
+class RemindCommand : Command("remind", "Setzt einen Reminder auf", CommandCategory.Flo, Constants.G.MY) {
     override suspend fun process(e: GuildCommandEvent) {
         try {
             val split = WHITESPACES_SPLITTER.split(e.message!!.contentRaw, 3)

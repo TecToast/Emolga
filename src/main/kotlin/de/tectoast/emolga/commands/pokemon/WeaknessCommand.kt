@@ -10,22 +10,13 @@ class WeaknessCommand :
     private val resistances: MutableMap<String, Map<String, Int>> = HashMap()
 
     init {
-        argumentTemplate = ArgumentManagerTemplate.builder()
-            .add(
-                "regform", "Form", "", ArgumentManagerTemplate.Text.of(
-                    SubCommand.of("Alola"), SubCommand.of("Galar"), SubCommand.of("Mega")
-                ), true
-            )
-            .add("stuff", "Pokemon", "Pokemon/Item/Whatever", Translation.Type.POKEMON)
-            .add(
-                "form",
-                "Sonderform",
-                "Sonderform, bspw. `Heat` bei Rotom",
-                ArgumentManagerTemplate.Text.any(),
-                true
-            )
-            .setExample("!weakness Primarina")
-            .build()
+        argumentTemplate = ArgumentManagerTemplate.builder().add(
+            "regform", "Form", "", ArgumentManagerTemplate.Text.of(
+                SubCommand.of("Alola"), SubCommand.of("Galar"), SubCommand.of("Mega")
+            ), true
+        ).add("stuff", "Pokemon", "Pokemon/Item/Whatever", Translation.Type.POKEMON).add(
+            "form", "Sonderform", "Sonderform, bspw. `Heat` bei Rotom", ArgumentManagerTemplate.Text.any(), true
+        ).setExample("!weakness Primarina").build()
         immunities["Electric"] = listOf("Elektro", "Lightning Rod", "Volt Absorb", "Motor Drive")
         immunities["Fire"] = listOf("Feuer", "Flash Fire")
         immunities["Water"] = listOf("Wasser", "Water Absorb", "Storm Drain", "Dry Skin")
@@ -42,8 +33,7 @@ class WeaknessCommand :
         val mon = dataJSON.optJSONObject(
             toSDName(
                 gerName.otherLang + args.getOrDefault(
-                    "regform",
-                    ""
+                    "regform", ""
                 ) + args.getOrDefault("form", "") + (gerName.forme ?: "")
             )
         )
@@ -57,31 +47,18 @@ class WeaknessCommand :
         val immuneAbi = HashMap<String, String>()
         val changeAbi = HashMap<String, EffectivenessChangeText>()
         for (type in typeJSON.keySet()) {
-            if (getImmunity(type, *types)) x0.add(
-                (Translation.Type.TYPE.validate(
-                    type,
-                    Translation.Language.GERMAN,
-                    "default"
-                ) as Translation?)!!.translation
-            ) else {
+            val typeName = getTypeGerName(type)
+            if (getImmunity(type, *types)) x0.add(typeName) else {
                 if (oneabi && immunities.containsKey(type) && immunities[type]!!.contains(abilities[0])) {
                     x0.add(immunities[type]!![0] + " **(wegen " + abilities[0] + ")**")
                 } else {
                     val abii = checkAbiImmunity(type, abilities)
                     if (!abii.isNullOrBlank()) {
-                        immuneAbi[abii] = (Translation.Type.TYPE.validate(
-                            type,
-                            Translation.Language.GERMAN,
-                            "default"
-                        ) as Translation?)!!.translation
+                        immuneAbi[abii] = typeName
                     }
                     val typeMod = getEffectiveness(type, *types)
                     if (typeMod != 0) {
-                        val t = (Translation.Type.TYPE.validate(
-                            type,
-                            Translation.Language.GERMAN,
-                            "default"
-                        ) as Translation?)!!.translation
+                        val t = typeName
                         when (typeMod) {
                             1 -> x2.add(t)
                             2 -> x2.add("**$t**")
@@ -94,11 +71,7 @@ class WeaknessCommand :
                         val modified: Int = typeMod + p.value
                         val abi: String = p.ability
                         if (modified != typeMod && abi.isNotBlank()) {
-                            val t = (Translation.Type.TYPE.validate(
-                                type,
-                                Translation.Language.GERMAN,
-                                "default"
-                            ) as Translation?)!!.translation
+                            val t = typeName
                             when (modified) {
                                 2 -> changeAbi[t] = EffectivenessChangeText(abi, "vierfach-effektiv")
                                 1 -> changeAbi[t] = EffectivenessChangeText(abi, "sehr effektiv")
@@ -111,23 +84,26 @@ class WeaknessCommand :
                 }
             }
         }
-        e.reply(
-            "**$name**:\nSchwächen: ${x2.joinToString()}\nResistenzen: ${
-                x05.joinToString()
-            }"
-                    + (if (x0.size > 0) "\nImmunitäten: ${x0.joinToString()}" else "")
-                    + "\n" + immuneAbi.keys.map { s: String -> getGerNameNoCheck(s) }
-                .joinToString("\n") { s: String -> "Wenn " + name + " **" + s + "** hat, wird der Typ **" + immuneAbi[s] + "** immunisiert." }
-                    + "\n" + changeAbi.keys.map { s: String -> getGerNameNoCheck(s) }
-                .joinToString("\n") { s: String -> "Wenn " + name + " **" + changeAbi[s]!!.ability + "** hat, wird der Typ **" + s + " " + changeAbi[s]!!.value + "**." }
-        )
+        e.reply("**$name**:\nSchwächen: ${x2.joinToString()}\nResistenzen: ${
+            x05.joinToString()
+        }" + (if (x0.size > 0) "\nImmunitäten: ${x0.joinToString()}" else "") + "\n" + immuneAbi.keys.map { s: String ->
+            getGerNameNoCheck(
+                s
+            )
+        }
+            .joinToString("\n") { s: String -> "Wenn " + name + " **" + s + "** hat, wird der Typ **" + immuneAbi[s] + "** immunisiert." } + "\n" + changeAbi.keys.map { s: String ->
+            getGerNameNoCheck(
+                s
+            )
+        }
+            .joinToString("\n") { s: String -> "Wenn " + name + " **" + changeAbi[s]!!.ability + "** hat, wird der Typ **" + s + " " + changeAbi[s]!!.value + "**." })
     }
 
     private fun checkAbiChanges(type: String, abilities: List<String>): List<EffectivenessChangeNum> {
         if (!resistances.containsKey(type)) return emptyList()
         val l = resistances[type]!!
-        return l.keys.asSequence().filter { abilities.contains(it) }
-            .map { EffectivenessChangeNum(it, l[it]!!) }.toList()
+        return l.keys.asSequence().filter { abilities.contains(it) }.map { EffectivenessChangeNum(it, l[it]!!) }
+            .toList()
     }
 
     private inner class EffectivenessChangeNum(val ability: String, val value: Int)
@@ -150,7 +126,7 @@ class WeaknessCommand :
             return typeJSON.getJSONObject(against[0]).getJSONObject("damageTaken").getInt(type) == 3
         }
 
-        @JvmStatic
+
         fun getEffectiveness(type: String?, vararg against: String?): Int {
             var totalTypeMod = 0
             if (against.size > 1) {

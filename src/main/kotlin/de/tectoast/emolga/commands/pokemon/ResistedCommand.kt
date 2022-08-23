@@ -22,13 +22,7 @@ class ResistedCommand :
             val damageTaken = json.getJSONObject(it).getJSONObject("damageTaken").getInt(type.translation)
             if (damageTaken > 1) {
                 if (damageTaken == 3) b.append("**")
-                b.append(
-                    (Translation.Type.TYPE.validate(
-                        it,
-                        Translation.Language.GERMAN,
-                        "default"
-                    ) as Translation).translation
-                )
+                b.append(getTypeGerName(it))
                 if (damageTaken == 3) b.append("**")
                 b.append("\n")
             }

@@ -13,7 +13,7 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
             .add("tier", "Tier", "Das Tier, in dem gepickt werden soll", ArgumentManagerTemplate.Text.any())
             .addEngl("type", "Typ", "Der Typ, von dem random gepickt werden soll", Translation.Type.TYPE, true)
             .setExample("!randompick A").build()
-        slash(true, Constants.ASLID)
+        slash(true, Constants.G.ASL)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

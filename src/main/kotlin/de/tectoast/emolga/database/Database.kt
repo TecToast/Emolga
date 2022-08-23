@@ -11,7 +11,6 @@ import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import java.sql.Connection
-import java.sql.ResultSet
 import java.sql.SQLException
 import javax.sql.DataSource
 
@@ -27,23 +26,21 @@ class Database(username: String, password: String) {
 
     companion object {
         private val logger = LoggerFactory.getLogger(Database::class.java)
-        private var instance: Database? = null
+        lateinit var instance: Database
         private val dbScope =
             CoroutineScope(Dispatchers.IO + CoroutineName("DBScope") + CoroutineExceptionHandler { _, t ->
                 logger.error("ERROR IN DATABASE SCOPE", t)
                 Command.sendToMe("Error in database scope, look in console")
             })
 
-        @JvmStatic
+
         fun init() {
             val cred = Command.tokens.getJSONObject("database")
             logger.info("Creating DataSource...")
             instance = Database(cred.getString("username"), cred.getString("password"))
             logger.info("Retrieving all startup information...")
-            AnalysisManager.forAll { r: ResultSet ->
-                Command.replayAnalysis[r.getLong("replay")] = r.getLong("result")
-            }
-            MusicGuildsManager.forAll { r -> CommandCategory.musicGuilds.add(r.getLong("guildid")) }
+            AnalysisManager.forAll { Command.replayAnalysis[it.getLong("replay")] = it.getLong("result") }
+            MusicGuildsManager.forAll { CommandCategory.musicGuilds.add(it.getLong("guildid")) }
             CalendarManager.allEntries.forEach { Command.scheduleCalendarEntry(it) }
             logger.info("replayAnalysis.size() = " + Command.replayAnalysis.size)
             SpoilerTagsManager.addToList()
@@ -63,7 +60,7 @@ class Database(username: String, password: String) {
                             conn.prepareStatement("INSERT INTO predictiongame (userid, username, predictions) VALUES (?,?,?);")
                         userDataInput.setLong(1, userid)
                         userDataInput.setString(
-                            2, EmolgaMain.emolgajda.getGuildById(Constants.ASLID)!!
+                            2, EmolgaMain.emolgajda.getGuildById(Constants.G.ASL)!!
                                 .retrieveMemberById(userid).await().effectiveName
                         )
                         userDataInput.setInt(3, 1)
@@ -78,12 +75,7 @@ class Database(username: String, password: String) {
             }
         }
 
-        @JvmStatic
         val connection: Connection
-            get() = try {
-                instance!!.dataSource.connection
-            } catch (e: SQLException) {
-                throw RuntimeException(e)
-            }
+            get() = instance.dataSource.connection
     }
 }

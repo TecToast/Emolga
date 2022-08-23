@@ -9,7 +9,7 @@ import de.tectoast.emolga.utils.json.Emolga
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 
 class RevealPrismaTeamCommand :
-    Command("revealprismateam", "Revealt die Prisma Teams lol", CommandCategory.Draft, Constants.FLPID) {
+    Command("revealprismateam", "Revealt die Prisma Teams lol", CommandCategory.Draft, Constants.G.FLP) {
     init {
         setCustomPermissions(PermissionPreset.fromIDs(297010892678234114L))
         argumentTemplate = ArgumentManagerTemplate.builder()

@@ -7,15 +7,12 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 class ResistanceCommand :
     Command("resistance", "Zeigt alle Typen an, die der angegebene Typ resistiert", CommandCategory.Pokemon) {
     init {
-        argumentTemplate = ArgumentManagerTemplate.builder()
-            .addEngl(
-                "type",
-                "Typ",
-                "Typ, bei dem geschaut werden soll, was er resistiert",
-                Translation.Type.of(Translation.Type.TYPE, Translation.Type.POKEMON)
-            )
-            .setExample("!resistance Feuer")
-            .build()
+        argumentTemplate = ArgumentManagerTemplate.builder().addEngl(
+            "type",
+            "Typ",
+            "Typ, bei dem geschaut werden soll, was er resistiert",
+            Translation.Type.of(Translation.Type.TYPE, Translation.Type.POKEMON)
+        ).setExample("!resistance Feuer").build()
         disable()
     }
 
@@ -28,13 +25,12 @@ class ResistanceCommand :
             typejson.keySet().forEach { str: String ->
                 val damageTaken = typejson.getInt(str)
                 if (damageTaken > 1) {
-                    val t = Translation.Type.TYPE.validate(str, Translation.Language.GERMAN, "default") as Translation?
-                    if (t != null) {
-                        if (damageTaken == 3) b.append("**")
-                        b.append(t.translation)
-                        if (damageTaken == 3) b.append("**")
-                        b.append("\n")
-                    }
+                    val t = getTypeGerName(str)
+                    if (damageTaken == 3) b.append("**")
+                    b.append(t)
+                    if (damageTaken == 3) b.append("**")
+                    b.append("\n")
+
                 }
             }
             if (b.isEmpty()) {

@@ -63,7 +63,7 @@ class SmogonCommand : Command("smogon", "Zeigt die vorgeschlagenen Smogon-Sets f
     }
 
     companion object {
-        @JvmField
+
         val statnames =
             mapOf("hp" to "HP", "atk" to "Atk", "def" to "Def", "spa" to "SpA", "spd" to "SpD", "spe" to "Spe")
     }

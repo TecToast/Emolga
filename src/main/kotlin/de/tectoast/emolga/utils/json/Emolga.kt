@@ -26,10 +26,8 @@ class Emolga(
     fun league(name: String) = drafts[name]!!
     fun nds() = drafts["NDS"]!! as NDS
 
-    fun leagueByGuild(gid: Long, uid1: Long, uid2: Long) = drafts.values.firstOrNull {
-        it.guild == gid && it.table.containsAll(
-            listOf(uid1, uid2)
-        )
+    fun leagueByGuild(gid: Long, vararg uids: Long) = drafts.values.firstOrNull {
+        it.guild == gid && it.table.containsAll(uids.toList())
     }
 
     companion object {

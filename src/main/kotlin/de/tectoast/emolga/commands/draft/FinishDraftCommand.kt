@@ -8,7 +8,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
 class FinishDraftCommand :
-    Command("finishdraft", "Beendet für dich den Draft", CommandCategory.Draft, Constants.NDSID, Constants.ASLID) {
+    Command("finishdraft", "Beendet für dich den Draft", CommandCategory.Draft, Constants.G.NDS, Constants.G.ASL) {
     init {
         aliases.add("finish")
         argumentTemplate = ArgumentManagerTemplate.noArgs()

@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.entities.Member
 import java.time.format.DateTimeFormatter
 
 class ServerInfoCommand :
-    Command("serverinfo", "Zeigt Infos über diesen Server", CommandCategory.Various, Constants.ASLID) {
+    Command("serverinfo", "Zeigt Infos über diesen Server", CommandCategory.Various, Constants.G.ASL) {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }

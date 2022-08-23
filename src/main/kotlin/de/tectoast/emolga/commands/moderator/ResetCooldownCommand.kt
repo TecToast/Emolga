@@ -11,8 +11,8 @@ class ResetCooldownCommand : Command(
     "resetcooldown",
     "Resettet den Cooldown der angegebenen Person",
     CommandCategory.Moderator,
-    Constants.BSID,
-    Constants.ASLID
+    Constants.G.BS,
+    Constants.G.ASL
 ) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()

@@ -92,7 +92,7 @@ object HttpHandler : AbstractHandler() {
     private val logger = LoggerFactory.getLogger(HttpHandler::class.java)
 
     @Route(route = "/discordauth", needsCookie = false)
-    @JvmStatic
+
     @Throws(IOException::class)
     fun exchangeCodeRoute(dt: Data) {
         val (_, req, res, _) = dt
@@ -116,7 +116,7 @@ object HttpHandler : AbstractHandler() {
     }
 
     @Route(route = "/userdata")
-    @JvmStatic
+
     @Throws(SQLException::class, IOException::class)
     fun userData(dt: Data) {
         val (cookie, _, res, _) = dt
@@ -148,7 +148,7 @@ object HttpHandler : AbstractHandler() {
     }
 
     @Route(route = "/guilds")
-    @JvmStatic
+
     @Throws(SQLException::class, IOException::class)
     fun guilds(dt: Data) {
         val (cookie, _, res, _) = dt
@@ -192,7 +192,7 @@ object HttpHandler : AbstractHandler() {
     }
 
     @Route(route = "/guilddata/(\\d+)/banned")
-    @JvmStatic
+
     @Throws(SQLException::class, IOException::class)
     suspend fun bannedUsers(dt: Data) {
         val (cookie, _, res, args) = dt
@@ -217,7 +217,7 @@ object HttpHandler : AbstractHandler() {
     }
 
     @Route(route = "/guilddata/(\\d+)/warned")
-    @JvmStatic
+
     @Throws(SQLException::class, IOException::class)
     suspend fun warnedUsers(dt: Data) {
         val (cookie, _, res, args) = dt
@@ -251,7 +251,7 @@ object HttpHandler : AbstractHandler() {
     }
 
     @Route(route = "/unban", method = "POST")
-    @JvmStatic
+
     @Throws(SQLException::class, IOException::class)
     suspend fun unban(dt: Data) {
         val (cookie, req, res, _) = dt

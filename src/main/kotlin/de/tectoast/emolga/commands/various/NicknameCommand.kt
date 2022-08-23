@@ -11,8 +11,8 @@ class NicknameCommand : Command(
     "nickname",
     "Ändert deinen Nickname (funktioniert nur 1x pro Woche)",
     CommandCategory.Various,
-    Constants.BSID,
-    Constants.ASLID
+    Constants.G.BS,
+    Constants.G.ASL
 ) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
@@ -50,7 +50,7 @@ class NicknameCommand : Command(
         }
         val oldname = member.effectiveName
         member.modifyNickname(nickname).queue {
-            if (g.idLong == Constants.ASLID) g.getTextChannelById("728675253924003870")!!
+            if (g.idLong == Constants.G.ASL) g.getTextChannelById("728675253924003870")!!
                 .sendMessage("$oldname hat sich in $nickname umbenannt!").queue()
             tco.sendMessage(member.asMention + " Dein Nickname wurde erfolgreich geändert!").queue()
             map[member.id] = System.currentTimeMillis() + 604800000

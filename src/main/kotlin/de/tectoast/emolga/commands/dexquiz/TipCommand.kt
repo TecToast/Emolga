@@ -17,7 +17,7 @@ class TipCommand : Command("tip", "Zeigt einen Tipp für den derzeitigen Eintrag
             )
             .setExample("/tip anfangsbuchstabe")
             .build()
-        slash(true, 918865966136455249L, Constants.FPLID, Constants.CULTID)
+        slash(true, 918865966136455249L, Constants.G.FPL, Constants.G.CULT)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

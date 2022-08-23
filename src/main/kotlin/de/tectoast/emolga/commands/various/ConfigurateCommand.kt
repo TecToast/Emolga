@@ -22,7 +22,7 @@ class ConfigurateCommand : Command("configurate", "Konfiguriert verschiedene Sac
                 ))
             .setExample("/configurate DexQuiz")
             .build()
-        slash(true, 918865966136455249L, Constants.FPLID, Constants.CULTID)
+        slash(true, 918865966136455249L, Constants.G.FPL, Constants.G.CULT)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

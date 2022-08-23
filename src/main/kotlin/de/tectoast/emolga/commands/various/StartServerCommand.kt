@@ -10,7 +10,7 @@ class StartServerCommand : Command(
     "startserver",
     "Startet den Server (und damit Terraria)",
     CommandCategory.Various,
-    Constants.GENSHINEMPIRESID
+    Constants.G.GENSHINEMPIRES
 ) {
 
     init {

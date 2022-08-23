@@ -26,14 +26,9 @@ import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
 import de.tectoast.emolga.selectmenus.selectmenusaves.SmogonSet
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.Constants.ASLID
 import de.tectoast.emolga.utils.Constants.CALENDAR_MSGID
 import de.tectoast.emolga.utils.Constants.CALENDAR_TCID
-import de.tectoast.emolga.utils.Constants.CULTID
 import de.tectoast.emolga.utils.Constants.FLOID
-import de.tectoast.emolga.utils.Constants.MYSERVER
-import de.tectoast.emolga.utils.Constants.MYTAG
-import de.tectoast.emolga.utils.Constants.NDSID
 import de.tectoast.emolga.utils.Constants.SOULLINK_MSGID
 import de.tectoast.emolga.utils.Constants.SOULLINK_TCID
 import de.tectoast.emolga.utils.annotations.ToTest
@@ -106,7 +101,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.function.BiFunction
 import java.util.function.Function
 import java.util.function.Predicate
 import java.util.regex.Pattern
@@ -234,7 +228,7 @@ abstract class Command(
         this.onlySlash = onlySlash
         isSlash = true
         slashGuilds.addAll(guilds.toList())
-        slashGuilds.add(MYSERVER)
+        slashGuilds.add(Constants.G.MY)
     }
 
     protected fun slash() {
@@ -258,7 +252,7 @@ abstract class Command(
     }
 
     private fun allowsGuild(gid: Long): Boolean {
-        if (gid == MYSERVER) return true
+        if (gid == Constants.G.MY) return true
         return if (allowedGuilds.isEmpty() && category!!.allowsGuild(gid)) true else allowedGuilds.isNotEmpty() && allowedGuilds.contains(
             gid
         )
@@ -270,7 +264,7 @@ abstract class Command(
     }
 
     fun checkBot(jda: JDA, guildid: Long): Boolean {
-        return allowedBotId == -1L || allowedBotId == jda.selfUser.idLong || guildid == CULTID
+        return allowedBotId == -1L || allowedBotId == jda.selfUser.idLong || guildid == Constants.G.CULT
     }
 
     val prefix: String
@@ -326,8 +320,15 @@ abstract class Command(
         GRANTED, PERMISSION_DENIED, GUILD_NOT_ALLOWED
     }
 
+    class ValidationData(
+        val guildId: Long = -1,
+        val language: Translation.Language = Translation.Language.GERMAN,
+        val message: Message? = null,
+        val asFar: Int = -1
+    )
+
     interface ArgumentType {
-        fun validate(str: String, vararg params: Any): Any?
+        fun validate(str: String, data: ValidationData): Any?
         fun getName(): String
         val customHelp: String?
             get() = null
@@ -386,6 +387,10 @@ abstract class Command(
             return map[key] as T
         }
 
+        inline fun <reified T> getNullable(key: String): T? {
+            return map[key] as? T?
+        }
+
         fun getMember(key: String): Member {
             return map[key] as Member
         }
@@ -414,6 +419,17 @@ abstract class Command(
             @Suppress("UNCHECKED_CAST") return map.getOrDefault(key, defvalue) as T
         }
 
+        fun <T> getOrDefault(key: String, defvalue: () -> T): T {
+            return if (key in map) {
+                @Suppress("UNCHECKED_CAST")
+                map[key] as T
+            } else {
+                defvalue()
+            }
+        }
+
+        fun optString(key: String): String? = map[key] as? String
+
         fun getID(key: String): Long {
             return map[key] as Long
         }
@@ -439,7 +455,7 @@ abstract class Command(
     class SubCommand(val name: String, val help: String) {
 
         companion object {
-            @JvmOverloads
+
             fun of(name: String, help: String? = null): SubCommand {
                 return SubCommand(name, help ?: "")
             }
@@ -494,19 +510,23 @@ abstract class Command(
                     val type = arg.type
                     val o = e.getOption(arg.name.lowercase())
                     if (o != null) {
-                        map[arg.id] =
-                            if (type.needsValidate()) {
-                                type.validate(o.asString, arg.language) ?: throw MissingArgumentException(arg)
-                            } else {
-                                when (o.type) {
-                                    OptionType.ROLE -> o.asRole
-                                    OptionType.CHANNEL -> o.asChannel
-                                    OptionType.USER -> o.asUser
-                                    OptionType.INTEGER -> o.asLong
-                                    OptionType.BOOLEAN -> o.asBoolean
-                                    else -> o.asString
-                                }
+                        map[arg.id] = if (type.needsValidate()) {
+                            type.validate(
+                                o.asString, ValidationData(
+                                    guildId = e.guild?.idLong ?: -1,
+                                    language = arg.language
+                                )
+                            ) ?: throw MissingArgumentException(arg)
+                        } else {
+                            when (o.type) {
+                                OptionType.ROLE -> o.asRole
+                                OptionType.CHANNEL -> o.asChannel
+                                OptionType.USER -> o.asUser
+                                OptionType.INTEGER -> o.asLong
+                                OptionType.BOOLEAN -> o.asBoolean
+                                else -> o.asString
                             }
+                        }
                     }
                 }
             }
@@ -547,10 +567,20 @@ abstract class Command(
                 val type = a.type
                 var o: Any?
                 if (type is DiscordType || type is DiscordFile) {
-                    o = type.validate(str, m, asFar.getOrDefault(type, 0))
+                    o = type.validate(
+                        str, ValidationData(
+                            message = m,
+                            asFar = asFar.getOrDefault(type, 0)
+                        )
+                    )
                     if (o != null) asFar[type] = asFar.getOrDefault(type, 0) + 1
                 } else {
-                    o = type.validate(str, a.language)
+                    o = type.validate(
+                        str, ValidationData(
+                            guildId = if (e.isFromGuild) e.guild.idLong else -1,
+                            language = a.language
+                        )
+                    )
                     if (o == null) {
                         var b = true
                         for (j in argumentI + 1 until arguments.size) {
@@ -563,7 +593,12 @@ abstract class Command(
                             arguments[argumentI + 1].disabled.add(mid)
                         }
                         if (b) {
-                            o = type.validate(split.subList(i, split.size).joinToString(" "), a.language)
+                            o = type.validate(
+                                split.subList(i, split.size).joinToString(" "), ValidationData(
+                                    guildId = if (e.isFromGuild) e.guild.idLong else -1,
+                                    language = a.language
+                                )
+                            )
                         }
                     }
                 }
@@ -605,11 +640,11 @@ abstract class Command(
                 Pattern.compile("\\d{1,9}"), "Zahl", true, OptionType.INTEGER
             );
 
-            override fun validate(str: String, vararg params: Any): Any? {
+            override fun validate(str: String, data: ValidationData): Any? {
                 if (pattern.matcher(str).find()) {
                     if (mentionable()) {
-                        val m = params[0] as Message
-                        val soFar = params[1] as Int
+                        val m = data.message ?: error("Message is not set in discord validation")
+                        val soFar = data.asFar
                         val mentions = m.mentions
                         return if (this == USER) mentions.members[soFar] else if (this == CHANNEL) mentions.channels[soFar] else mentions.roles[soFar]
                     }
@@ -637,7 +672,7 @@ abstract class Command(
         }
 
         object ArgumentBoolean : ArgumentType {
-            override fun validate(str: String, vararg params: Any) = str.toBoolean()
+            override fun validate(str: String, data: ValidationData) = str.toBoolean()
 
             override fun getName() = "Wahrheitswert"
 
@@ -669,7 +704,7 @@ abstract class Command(
                 return this
             }
 
-            override fun validate(str: String, vararg params: Any): Any? {
+            override fun validate(str: String, data: ValidationData): Any? {
                 return if (any) str else texts.asSequence().map { obj: SubCommand -> obj.name }
                     .filter { scName: String -> scName.equals(str, ignoreCase = true) }.map { mapper.apply(it) }
                     .firstOrNull()
@@ -748,7 +783,7 @@ abstract class Command(
                 return hasRange
             }
 
-            override fun validate(str: String, vararg params: Any): Any? {
+            override fun validate(str: String, data: ValidationData): Any? {
                 if (Helpers.isNumeric(str)) {
                     val num = str.toInt()
                     if (any) return num
@@ -792,10 +827,10 @@ abstract class Command(
         }
 
         class DiscordFile(private val fileType: String) : ArgumentType {
-            override fun validate(str: String, vararg params: Any): Any? {
-                val att = (params[0] as Message).attachments
+            override fun validate(str: String, data: ValidationData): Any? {
+                val att = (data.message ?: error("Message is null")).attachments
                 if (att.size == 0) return null
-                val a = att[(params[1] as Int)]
+                val a = att[data.asFar]
                 return if (a.fileName.endsWith(".$fileType") || fileType == "*") {
                     a
                 } else null
@@ -851,7 +886,7 @@ abstract class Command(
             var example: String? = null
             var customDescription: String? = null
 
-            @JvmOverloads
+
             fun add(
                 id: String,
                 name: String,
@@ -864,7 +899,7 @@ abstract class Command(
                 return this
             }
 
-            @JvmOverloads
+
             fun addEngl(
                 id: String,
                 name: String,
@@ -924,16 +959,18 @@ abstract class Command(
                 )
             }
 
-            @JvmOverloads
-            fun draftPokemon(autoComplete: BiFunction<String, CommandAutoCompleteInteractionEvent, List<String>?>? = null): ArgumentType {
-                return withPredicate("Pokemon", { s: String ->
-                    getDraftGerName(s).isFromType(Translation.Type.POKEMON)
-                }, false, draftnamemapper, autoComplete)
+            fun draftPokemon(
+                autoComplete: ((String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null,
+                preference: (ValidationData) -> DraftNamePreference = { DraftNamePreference.SINGLE_CHAR_BEFORE }
+            ): ArgumentType {
+                return withPredicate("Pokemon", { str: String, data: ValidationData ->
+                    getDraftGerName(str, preference(data)).isFromType(Translation.Type.POKEMON)
+                }, false, { str, data -> getDraftGerName(str, preference(data)).translation }, autoComplete)
             }
 
             fun withPredicate(name: String, check: Predicate<String>, female: Boolean): ArgumentType {
                 return object : ArgumentType {
-                    override fun validate(str: String, vararg params: Any): Any? {
+                    override fun validate(str: String, data: ValidationData): Any? {
                         return if (check.test(str)) str else null
                     }
 
@@ -953,15 +990,15 @@ abstract class Command(
 
             private fun withPredicate(
                 name: String,
-                check: Predicate<String>,
+                check: (String, ValidationData) -> Boolean,
                 female: Boolean,
-                mapper: Function<String, String>,
-                autoComplete: BiFunction<String, CommandAutoCompleteInteractionEvent, List<String>?>?
+                mapper: (String, ValidationData) -> String,
+                autoComplete: ((String, CommandAutoCompleteInteractionEvent) -> List<String>?)?
             ): ArgumentType {
                 return object : ArgumentType {
-                    override fun validate(str: String, vararg params: Any): Any? {
-                        return if (check.test(str)) {
-                            mapper.apply(str)
+                    override fun validate(str: String, data: ValidationData): Any? {
+                        return if (check(str, data)) {
+                            mapper(str, data)
                         } else null
                     }
 
@@ -984,7 +1021,7 @@ abstract class Command(
                     override fun autoCompleteList(
                         arg: String, event: CommandAutoCompleteInteractionEvent
                     ): List<String>? {
-                        return autoComplete!!.apply(arg, event)
+                        return autoComplete!!(arg, event)
                     }
                 }
             }
@@ -1074,10 +1111,10 @@ abstract class Command(
 
             fun or(name: String): ArgumentType {
                 return object : ArgumentType {
-                    override fun validate(str: String, vararg params: Any): Any? {
+                    override fun validate(str: String, data: ValidationData): Any? {
                         return if (str == name) Translation(
                             "Tom", TRAINER, Language.GERMAN, "Tom"
-                        ) else this@Type.validate(str, *params)
+                        ) else this@Type.validate(str, data)
                     }
 
                     override fun getName(): String {
@@ -1101,10 +1138,9 @@ abstract class Command(
                 return true
             }
 
-            override fun validate(str: String, vararg params: Any): Any? {
-                val t = if (params.isEmpty() || params[0] === Language.GERMAN) getGerName(
-                    str,
-                    false
+            override fun validate(str: String, data: ValidationData): Any? {
+                val t = if (data.language == Language.GERMAN) getGerName(
+                    str, false
                 ) else getEnglNameWithType(str)
                 if (t.isEmpty) return null
                 if (t.translation == "Psychic" || t.otherLang == "Psychic") {
@@ -1130,8 +1166,8 @@ abstract class Command(
 
                 fun of(vararg types: Type): ArgumentType {
                     return object : ArgumentType {
-                        override fun validate(str: String, vararg params: Any): Any? {
-                            val t = if (params[0] === Language.GERMAN) getGerName(str) else getEnglNameWithType(str)
+                        override fun validate(str: String, data: ValidationData): Any? {
+                            val t = if (data.language === Language.GERMAN) getGerName(str) else getEnglNameWithType(str)
                             if (t.isEmpty) return null
                             return if (!listOf(*types).contains(t.type)) null else t
                         }
@@ -1231,7 +1267,7 @@ abstract class Command(
         /**
          * saves all guilds where spoiler tags should be used in the showdown results
          */
-        @JvmField
+
         val spoilerTags: MutableList<Long> = ArrayList()
 
         /**
@@ -1310,6 +1346,7 @@ abstract class Command(
         val replayCount = AtomicInteger()
         protected var lastClipUsed: Long = -1
 
+
         @JvmStatic
         protected var calendarService: ScheduledExecutorService = Executors.newScheduledThreadPool(5)
         protected val moderationService: ScheduledExecutorService = Executors.newScheduledThreadPool(5)
@@ -1317,13 +1354,12 @@ abstract class Command(
         const val BOT_DISABLED = false
         const val DISABLED_TEXT = "Ich befinde mich derzeit im Wartungsmodus, versuche es später noch einmal :)"
 
-        @JvmStatic
+
         fun newCalendarService() {
             calendarService = Executors.newScheduledThreadPool(5)
         }
 
 
-        @JvmStatic
         fun registerCommands() {
             val loader = Thread.currentThread().contextClassLoader
             try {
@@ -1419,8 +1455,7 @@ abstract class Command(
             }.execute()
         }
 
-        @JvmStatic
-        @JvmOverloads
+
         fun doNDSNominate(prevDay: Boolean = false) {
             val nds = Emolga.get.nds()
             val nom = nds.nominations
@@ -1494,7 +1529,7 @@ abstract class Command(
             return outputFile
         }
 
-        @JvmOverloads
+
         fun loadPlaylist(channel: TextChannel, track: String, mem: Member, cm: String?, random: Boolean = false) {
             val musicManager = getGuildAudioPlayer(channel.guild)
             logger.info(track)
@@ -1526,7 +1561,7 @@ abstract class Command(
             })
         }
 
-        @JvmStatic
+
         fun byName(name: String): Command? {
             return commands.values.firstOrNull {
                 it.name.equals(name, ignoreCase = true) || it.aliases.any { alias ->
@@ -1648,7 +1683,7 @@ abstract class Command(
             return multiplier * timestr.toInt()
         }
 
-        @JvmStatic
+
         fun secondsToTime(timesec: Long): String {
             var timeseconds = timesec
             val builder = StringBuilder(20)
@@ -1704,7 +1739,7 @@ abstract class Command(
             .firstNotNullOfOrNull { if (it.value.contains("$uid1:$uid2") || it.value.contains("$uid2:$uid1")) it.key else null }
             ?: -1
 
-        @JvmStatic
+
         fun getPicksAsList(arr: JSONArray): List<String> {
             return arr.toJSONList().map { it.getString("name") }
         }
@@ -1885,7 +1920,7 @@ abstract class Command(
             WarnsManager.warn(mem.idLong, mod.idLong, tco.guild.idLong, reason)
         }
 
-        @JvmStatic
+
         fun getNumber(map: Map<String, String>, pick: String): String {
             //logger.info(map);
             for ((s, value) in map) {
@@ -1896,7 +1931,7 @@ abstract class Command(
             return ""
         }
 
-        @JvmStatic
+
         fun indexPick(picks: List<String>, mon: String): Int {
             for (pick in picks) {
                 if (pick.equals(mon, ignoreCase = true) || pick.substring(2)
@@ -1907,7 +1942,7 @@ abstract class Command(
             return -1
         }
 
-        @JvmStatic
+
         fun formatToTime(toformat: Long): String {
             var l = toformat
             l /= 1000
@@ -1943,7 +1978,7 @@ abstract class Command(
             return list
         }
 
-        @JvmStatic
+
         fun compareColumns(o1: List<Any>, o2: List<Any>, vararg columns: Int): Int {
             for (column in columns) {
                 val i1: Int = if (o1[column] is Int) o1[column] as Int else (o1[column] as String).toInt()
@@ -1955,6 +1990,7 @@ abstract class Command(
             return 0
         }
 
+
         @JvmStatic
         protected fun buildCalendar(): String {
             val f = SimpleDateFormat("dd.MM. HH:mm")
@@ -1962,6 +1998,7 @@ abstract class Command(
                 .joinToString("\n") { o: CalendarEntry -> "**${f.format(o.expires)}:** ${o.message}" }
                 .ifEmpty { "_leer_" }
         }
+
 
         @JvmStatic
         protected fun scheduleCalendarEntry(expires: Long, message: String) {
@@ -1977,6 +2014,7 @@ abstract class Command(
         fun scheduleCalendarEntry(e: CalendarEntry) {
             scheduleCalendarEntry(e.expires.time, e.message)
         }
+
 
         @JvmStatic
         @Throws(NumberFormatException::class)
@@ -2210,7 +2248,7 @@ abstract class Command(
             return playerManager
         }
 
-        @JvmStatic
+
         fun trim(s: String, pokemon: String): String {
             return s.replace(pokemon, stars(pokemon.length)).replace(pokemon.uppercase(), stars(pokemon.length))
         }
@@ -2233,7 +2271,7 @@ abstract class Command(
             }
         }
 
-        @JvmStatic
+
         fun loadSD(path: String, sub: Int): JSONObject {
             try {
                 val f = File(path)
@@ -2280,7 +2318,7 @@ abstract class Command(
         val movesJSON: JSONObject
             get() = ModManager.default.moves
 
-        @JvmStatic
+
         fun save(json: JSONObject, filename: String) {
             try {
                 Files.copy(Paths.get(filename), Paths.get("$filename.bak"), StandardCopyOption.REPLACE_EXISTING)
@@ -2332,15 +2370,11 @@ abstract class Command(
                 Instant.ofEpochMilli(1661292000000), 5, Duration.ofDays(7L), { doNDSNominate() }, true
             )
             RepeatTask(
-                Instant.ofEpochMilli(1661104800000),
-                5,
-                Duration.ofDays(7L),
-                { doMatchUps(it) },
-                true
+                Instant.ofEpochMilli(1661104800000), 5, Duration.ofDays(7L), { doMatchUps(it) }, true
             )
         }
 
-        @JvmStatic
+
         fun init() {
             loadJSONFiles()
             ModManager("default", "./ShowdownData/")
@@ -2414,8 +2448,8 @@ abstract class Command(
                 sdex["Psiaugon-W"] = "f"
                 sdex["Psiaugon-M"] = ""
                 sdex["Nidoran-M"] = "m"
-                sdex["Nidoran-F"] = "f"/*emolgaChannel.put(Constants.ASLID, new ArrayList<>(Arrays.asList(728680506098712579L, 736501675447025704L)));
-        emolgaChannel.put(Constants.BSID, new ArrayList<>(Arrays.asList(732545253344804914L, 735076688144105493L)));
+                sdex["Nidoran-F"] = "f"/*emolgaChannel.put(Constants.Guild.ASL, new ArrayList<>(Arrays.asList(728680506098712579L, 736501675447025704L)));
+        emolgaChannel.put(Constants.Guild.BS, new ArrayList<>(Arrays.asList(732545253344804914L, 735076688144105493L)));
         emolgaChannel.put(709877545708945438L, new ArrayList<>(Collections.singletonList(738893933462945832L)));
         emolgaChannel.put(677229415629062180L, new ArrayList<>(Collections.singletonList(731455491527540777L)));
         emolgaChannel.put(694256540642705408L, new ArrayList<>(Collections.singletonList(695157832072560651L)));
@@ -2431,7 +2465,7 @@ abstract class Command(
 
         private fun getSortedListOfMons(list: List<JSONObject>): List<String> {
             return list.asSequence().sortedWith(compareBy({
-                getByGuild(ASLID)!!.order.indexOf(
+                getByGuild(Constants.G.ASL)!!.order.indexOf(
                     it.getString("tier")
                 )
             }, {
@@ -2444,10 +2478,8 @@ abstract class Command(
                 val predictiongame = league.getJSONObject("predictiongame")
                 val gd = predictiongame.getJSONObject("ids").getJSONObject((gameday + 7).toString())
                 val key = if (gd.has("$uid1:$uid2")) "$uid1:$uid2" else "$uid2:$uid1"
-                val message: Message =
-                    emolgajda.getTextChannelById(predictiongame.getLong("channelid"))!!
-                        .retrieveMessageById(gd.getLong(key))
-                        .await()
+                val message: Message = emolgajda.getTextChannelById(predictiongame.getLong("channelid"))!!
+                    .retrieveMessageById(gd.getLong(key)).await()
                 val e1: List<User> =
                     message.retrieveReactionUsers(emolgajda.getEmojiById(540970044297838597L)!!).await()
                 val e2: List<User> =
@@ -2567,7 +2599,7 @@ abstract class Command(
             }.sortedBy { it.name }
         }
 
-        @JvmStatic
+
         fun updatePresence() {
             if (BOT_DISABLED) {
                 emolgajda.presence.setPresence(OnlineStatus.DO_NOT_DISTURB, Activity.watching("auf den Wartungsmodus"))
@@ -2725,7 +2757,7 @@ abstract class Command(
                         return
                     }
                     if (command.beta) e.channel.sendMessage(
-                        "Dieser Command befindet sich zurzeit in der Beta-Phase! Falls Fehler auftreten, kontaktiert bitte $MYTAG durch einen Ping oder eine PN!"
+                        "Dieser Command befindet sich zurzeit in der Beta-Phase! Falls Fehler auftreten, kontaktiert bitte $Constants.G.MYTAG durch einen Ping oder eine PN!"
                     ).queue()
                     GuildCommandEvent(command, e).execute()
                 } catch (ex: MissingArgumentException) {
@@ -2749,7 +2781,7 @@ abstract class Command(
                 } catch (ex: Exception) {
                     ex.printStackTrace()
                     tco.sendMessage(
-                        "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo ($MYTAG).\n${
+                        "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo ($Constants.G.MYTAG).\n${
                             command.getHelp(
                                 e.guild
                             )
@@ -2906,7 +2938,7 @@ abstract class Command(
             sendToUser(FLOID, msg, *bot)
         }
 
-        @JvmStatic
+
         fun sendDexEntry(msg: String) {
             emolgajda.getTextChannelById(839540004908957707L)!!.sendMessage(msg).queue()
         }
@@ -2939,7 +2971,7 @@ abstract class Command(
             return false
         }
 
-        @JvmStatic
+
         fun getAsXCoord(xc: Int): String {
             var i = xc
             var x = 0
@@ -3019,7 +3051,7 @@ abstract class Command(
             e: DeferredSlashResponse?
         ) {
             defaultScope.launch {
-                if (BOT_DISABLED && resultchannel.guild.idLong != MYSERVER) {
+                if (BOT_DISABLED && resultchannel.guild.idLong != Constants.G.MY) {
                     (m?.channel ?: resultchannel).sendMessage(DISABLED_TEXT).queue()
                     return@launch
                 }
@@ -3034,7 +3066,7 @@ abstract class Command(
                     //game = Analysis.analyse(url, m);
                 } catch (ex: Exception) {
                     val msg =
-                        "Beim Auswerten des Replays ist ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein und melde dich gegebenenfalls bei $MYTAG!"
+                        "Beim Auswerten des Replays ist ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein und melde dich gegebenenfalls bei $Constants.G.MYTAG!"
                     if (e != null) e.reply(msg) else {
                         resultchannel.sendMessage(msg).queue()
                     }
@@ -3089,7 +3121,7 @@ abstract class Command(
                     kills[0][monName] = p.kills.toString()
                     deaths[0][monName] = if (p.isDead) "1" else "0"
                     p1mons.add(monName)
-                    if (g.idLong != MYSERVER) {
+                    if (g.idLong != Constants.G.MY) {
                         FullStatsManager.add(monName, p.kills, if (p.isDead) 1 else 0, game[0].isWinner)
                         typicalSets.add(monName, p.moves, p.item, p.ability)
                         if (toUsername(game[0].nickname) == "dasor54") {
@@ -3117,7 +3149,7 @@ abstract class Command(
                     kills[1][monName] = p.kills.toString()
                     deaths[1][monName] = if (p.isDead) "1" else "0"
                     p2mons.add(monName)
-                    if (g.idLong != MYSERVER) {
+                    if (g.idLong != Constants.G.MY) {
                         FullStatsManager.add(monName, p.kills, if (p.isDead) 1 else 0, game[1].isWinner)
                         typicalSets.add(monName, p.moves, p.item, p.ability)
                         if (toUsername(game[1].nickname) == "dasor54") {
@@ -3176,20 +3208,8 @@ abstract class Command(
                 typicalSets.save()
                 if (uid1 == -1L || uid2 == -1L) return@launch
                 Emolga.get.leagueByGuild(gid, uid1, uid2)?.docEntry?.analyse(
-                    game,
-                    uid1,
-                    uid2,
-                    kills,
-                    deaths,
-                    ReplayData(
-                        listOf(p1mons, p2mons),
-                        url,
-                        str,
-                        resultchannel,
-                        t1,
-                        t2,
-                        customReplayChannel,
-                        m
+                    game, uid1, uid2, kills, deaths, ReplayData(
+                        listOf(p1mons, p2mons), url, str, resultchannel, t1, t2, customReplayChannel, m
                     )
                 )
             }
@@ -3219,42 +3239,55 @@ abstract class Command(
             return cal.timeInMillis - currentTimeMillis
         }
 
-        fun getDraftGerName(sArg: String): Translation {
-            val s = sArg.replace(otherFormatRegex) { mr ->
-                mr.groupValues.let { "${it[2][0]}-${it[1]}" }
+        val possibleForms = listOf("Mega", "Alola", "Galar")
+
+        fun getDraftGerName(
+            sArg: String, preference: DraftNamePreference = DraftNamePreference.SINGLE_CHAR_BEFORE
+        ): Translation {
+            when (preference) {
+                DraftNamePreference.SINGLE_CHAR_BEFORE -> {
+                    val s = sArg.replace(otherFormatRegex) { mr ->
+                        mr.groupValues.let { "${it[2][0]}-${it[1]}" }
+                    }
+                    val split = s.split("-").dropLastWhile { it.isEmpty() }
+                    logger.info("getDraftGerName Arr = {}", split)
+                    possibleForms.firstOrNull { s.startsWith("${it[0]}-", ignoreCase = true) }?.also { form ->
+                        return getGerName(split[1]).takeIf { mon -> mon.isFromType(Translation.Type.POKEMON) }
+                            ?.before(form[0] + "-")?.append(split.getOrNull(2)?.let { "-${it}" } ?: "")
+                            ?: Translation.empty()
+                    }
+                    null
+                }
+
+                DraftNamePreference.FULL_FORM_BEFORE -> {
+                    val s = sArg.replace(otherFormatRegex) { mr ->
+                        mr.groupValues.let { "${it[2]}-${it[1]}" }
+                    }
+                    val split = s.split("-").dropLastWhile { it.isEmpty() }
+                    logger.info("getDraftGerName Arr = {}", split)
+                    possibleForms.firstOrNull { s.startsWith("$it-", ignoreCase = true) }?.also { form ->
+                        return getGerName(split[1]).takeIf { mon -> mon.isFromType(Translation.Type.POKEMON) }
+                            ?.before("$form-")?.append(split.getOrNull(2)?.let { "-${it}" } ?: "")
+                            ?: Translation.empty()
+                    }
+                    null
+                }
+            } ?: run {
+                val split = sArg.split("-").dropLastWhile { it.isEmpty() }
+                val gerName = getGerName(sArg)
+                if (gerName.isFromType(Translation.Type.POKEMON)) return gerName
+                val t = getGerName(split[0])
+                print("DraftGer Trans ")
+                t.print()
+                if (t.isSuccess) {
+                    val tr = t.append("-" + split[1])
+                    logger.info("getDraftGerName ret = $tr")
+                    return tr
+                }
+                return Translation.empty()
             }
-            logger.info("getDraftGerName s = $s")
-            val split = s.split("-").dropLastWhile { it.isEmpty() }
-            logger.info("getDraftGerName Arr = {}", split)
-            val slower = s.lowercase()
-            if (slower.startsWith("m-")) {
-                val sub = s.substring(2)
-                val mon: Translation =
-                    if (s.endsWith("-X")) getGerName(sub.substring(0, sub.length - 2)).append("-X") else if (s.endsWith(
-                            "-Y"
-                        )
-                    ) getGerName(sub.substring(0, sub.length - 2)).append("-Y") else getGerName(sub)
-                return if (!mon.isFromType(Translation.Type.POKEMON)) Translation.empty() else mon.before("M-")
-            } else if (slower.startsWith("a-")) {
-                val mon = getGerName(s.substring(2))
-                return if (!mon.isFromType(Translation.Type.POKEMON)) Translation.empty() else mon.before("A-")
-            } else if (slower.startsWith("g-")) {
-                val mon = getGerName(s.substring(2))
-                return if (!mon.isFromType(Translation.Type.POKEMON)) Translation.empty() else mon.before("G-")
-            }
-            val gerName = getGerName(s)
-            if (gerName.isSuccess) return gerName
-            logger.info("split[0] = " + split[0])
-            val t = getGerName(split[0])
-            print("DraftGer Trans ")
-            t.print()
-            if (t.isSuccess) {
-                val tr = t.append("-" + split[1])
-                logger.info("getDraftGerName ret = $tr")
-                return tr
-            }
-            return Translation.empty()
         }
+
 
         fun getGerNameWithForm(name: String): String {
             var toadd = StringBuilder(name)
@@ -3307,7 +3340,7 @@ abstract class Command(
             return Translation.empty()
         }
 
-        @JvmStatic
+
         fun getGerNameNoCheck(s: String): String {
             return getGerName(s).translation
         }
@@ -3328,7 +3361,7 @@ abstract class Command(
             }
         }
 
-        @JvmStatic
+
         fun removeNickFromCache(sd: String) {
             translationsCacheGerman.remove(sd)
             translationsCacheEnglish.remove(sd)
@@ -3336,7 +3369,7 @@ abstract class Command(
             translationsCacheOrderEnglish.remove(sd)
         }
 
-        @JvmStatic
+
         fun getEnglName(s: String): String {
             val str = getEnglNameWithType(s)
             return if (str.isEmpty) "" else str.translation
@@ -3363,6 +3396,9 @@ abstract class Command(
             }
             return Translation.empty()
         }
+
+        fun getTypeGerName(type: String): String =
+            (Translation.Type.TYPE.validate(type, ValidationData()) as Translation).translation
 
         fun getTranslation(s: String): ResultSet {
             return getTranslation(s, false)
@@ -3403,12 +3439,12 @@ abstract class Command(
             return toSDName(gitname)
         }
 
-        @JvmStatic
+
         fun toSDName(s: String): String {
-            return SD_NAME_PATTERN.replace(s.lowercase(), "")
+            return SD_NAME_PATTERN.replace(s.lowercase().replace('é', 'e'), "")
         }
 
-        @JvmStatic
+
         fun toUsername(s: String): String {
             return USERNAME_PATTERN.replace(
                 s.lowercase().trim().replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss"), ""
@@ -3468,7 +3504,7 @@ abstract class Command(
             if (s.contains("Gastrodon")) return "Gastrodon"
             if (s.contains("Eiscue")) return "Kubuin"
             if (s.contains("Oricorio")) return "Choreogel"
-            if ((gid == ASLID || gid == NDSID || s == "Urshifu-Rapid-Strike") && s.contains("Urshifu")) return "Wulaosu-Wasser"
+            if ((gid == Constants.G.ASL || gid == Constants.G.NDS || s == "Urshifu-Rapid-Strike") && s.contains("Urshifu")) return "Wulaosu-Wasser"
             if (s == "Urshifu") return "Wulaosu-Unlicht"
             if (s.contains("Urshifu")) return "Wulaosu"
             if (s.contains("Gourgeist")) return "Pumpdjinn"
@@ -3580,15 +3616,21 @@ abstract class Command(
 fun <T> T.indexedBy(list: List<T>) = list.indexOf(this)
 val embedColor = java.awt.Color.CYAN.rgb
 fun Int.x(factor: Int, summand: Int) = getAsXCoord(y(factor, summand))
-fun Int.xdiv(divident: Int, summand: Int, factor: Int = 1) = getAsXCoord(ydiv(divident, summand, factor))
-fun Int.xmod(mod: Int, summand: Int, factor: Int = 1) = getAsXCoord(ymod(mod, summand, factor))
+fun Int.xdiv(divident: Int, factor: Int, summand: Int) = getAsXCoord(ydiv(divident, factor, summand))
+fun Int.xmod(mod: Int, factor: Int, summand: Int) = getAsXCoord(ymod(mod, factor, summand))
 
 @Suppress("unused")
 fun Int.xc() = getAsXCoord(this)
 
 fun Int.y(factor: Int, summand: Int) = this * factor + summand
-fun Int.ydiv(divident: Int, summand: Int, factor: Int = 1) = (this / divident) * factor + summand
-fun Int.ymod(mod: Int, summand: Int, factor: Int = 1) = (this % mod) * factor + summand
+fun Int.ydiv(divident: Int, factor: Int, summand: Int) = (this / divident) * factor + summand
+fun Int.ymod(mod: Int, factor: Int, summand: Int) = (this % mod) * factor + summand
+fun coord(sheet: String, x: String, y: Int) = "$sheet!$x$y"
+fun Int.coordXMod(sheet: String, num: Int, xFactor: Int, xSummand: Int, yFactor: Int, ySummand: Int) =
+    coord(sheet, this.xmod(num, xFactor, xSummand), this.ydiv(num, yFactor, ySummand))
+
+fun Int.coordYMod(sheet: String, num: Int, xFactor: Int, xSummand: Int, yFactor: Int, ySummand: Int) =
+    coord(sheet, this.xdiv(num, xFactor, xSummand), this.ymod(num, yFactor, ySummand))
 
 fun <T> MutableList<T>.replace(toreplace: T, replacer: T) {
     this[this.indexOf(toreplace)] = replacer
@@ -3613,6 +3655,7 @@ private val JSON = Json {
             subclass(GDL::class)
             subclass(Prisma::class)
             subclass(ASL::class)
+            subclass(DoR::class)
         }
     }
 }
@@ -3623,7 +3666,7 @@ fun saveEmolgaJSON() {
 
 fun String.file() = File(this)
 
-fun Collection<String>.startsAnyIgnoreCase(other: String) = filter { it.startsWith(other, ignoreCase = true) }
+fun Collection<String>.filterStartsWithIgnoreCase(other: String) = filter { it.startsWith(other, ignoreCase = true) }
 
 data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)
 
@@ -3637,3 +3680,7 @@ data class ReplayData(
     val customReplayChannel: TextChannel?,
     val m: Message?
 )
+
+enum class DraftNamePreference {
+    SINGLE_CHAR_BEFORE, FULL_FORM_BEFORE
+}

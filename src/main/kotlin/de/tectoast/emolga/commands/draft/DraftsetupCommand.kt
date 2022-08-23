@@ -27,7 +27,7 @@ class DraftsetupCommand : Command("draftsetup", "Startet das Draften der Liga in
             .setExample("!draftsetup Emolga-Conference #emolga-teamübersicht")
             .build()
         setCustomPermissions(PermissionPreset.fromIDs(297010892678234114L))
-        slash(false, Constants.ASLID)
+        slash(false, Constants.G.ASL)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

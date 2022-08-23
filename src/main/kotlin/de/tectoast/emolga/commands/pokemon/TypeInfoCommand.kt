@@ -21,14 +21,10 @@ class TypeInfoCommand : Command("typeinfo", "Zeigt dir Informationen über einen
         val resistedBy: MutableList<String> = LinkedList()
         val weakAgainst: MutableList<String> = LinkedList()
         val resisted: MutableList<String> = LinkedList()
-        json.keySet().forEach { str: String ->
-            val damageTaken = json.getJSONObject(str).getJSONObject("damageTaken").getInt(type)
+        json.keySet().forEach {
+            val damageTaken = json.getJSONObject(it).getJSONObject("damageTaken").getInt(type)
             if (damageTaken > 0) {
-                val t = (Translation.Type.TYPE.validate(
-                    str,
-                    Translation.Language.GERMAN,
-                    "default"
-                ) as Translation?)!!.translation
+                val t = getTypeGerName(it)
                 if (damageTaken > 1) {
                     if (damageTaken == 3) resistedBy.add("$t **(immun)**") else resistedBy.add(t)
                 } else {
@@ -40,14 +36,13 @@ class TypeInfoCommand : Command("typeinfo", "Zeigt dir Informationen über einen
         typejson.keySet().forEach {
             val damageTaken = typejson.getInt(it)
             if (damageTaken > 0) {
-                val t = Translation.Type.TYPE.validate(it, Translation.Language.GERMAN, "default") as Translation?
-                if (t != null) {
+                val t = getTypeGerName(it)
                     if (damageTaken > 1) {
-                        if (damageTaken == 3) resisted.add(t.translation + " **(immun)**") else resisted.add(t.translation)
+                        if (damageTaken == 3) resisted.add("$t **(immun)**") else resisted.add(t)
                     } else {
-                        weakAgainst.add(t.translation)
+                        weakAgainst.add(t)
                     }
-                }
+
             }
         }
         e.reply(

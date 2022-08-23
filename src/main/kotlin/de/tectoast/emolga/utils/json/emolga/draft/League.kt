@@ -48,15 +48,14 @@ sealed class League {
 
     private var tcid: Long = -1
 
-    val tierlist: Tierlist by Tierlist.Delegate()
+    val tierlist: Tierlist by Tierlist
     val isPointBased
         get() = tierlist.isPointBased
 
     @Transient
     val timerScope = CoroutineScope(Dispatchers.Default + CoroutineExceptionHandler { _, t ->
         logger.error(
-            "ERROR EXECUTING TIMER",
-            t
+            "ERROR EXECUTING TIMER", t
         )
     })
 
@@ -102,19 +101,47 @@ sealed class League {
 
     fun isPicked(mon: String) = picks.values.any { l -> l.any { it.name.equals(mon, ignoreCase = true) } }
 
-    fun handlePoints(e: GuildCommandEvent, needed: Int): Boolean {
-        if (isPointBased) {
-            if (points[current]!! - needed < 0) {
-                e.reply("Dafür hast du nicht genug Punkte!")
+    open fun handlePoints(e: GuildCommandEvent, needed: Int): Boolean {
+        if (tierlist.mode.isTiers()) return false
+        if (e.arguments.getNullable<Boolean>("free") != true && !tierlist.mode.isPoints()) return false
+        if (points[current]!! - needed < 0) {
+            e.reply("Dafür hast du nicht genug Punkte!")
+            return true
+        }
+        if ((tierlist.rounds - (picks[current]!!.size + 1)) * tierlist.prices.values.min() > points[current]!! - needed) {
+            e.reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!")
+            return true
+        }
+        points[current] = points[current]!! - needed
+        return false
+    }
+
+    open fun handleTiers(e: GuildCommandEvent, tier: String, origtier: String): Boolean {
+        if (tierlist.mode.isPoints()) return false
+        val map = getPossibleTiers(current)
+        if (!map.containsKey(tier)) {
+            e.reply("Das Tier `$tier` existiert nicht!")
+            return true
+        }
+        if (tierlist.order.indexOf(origtier) < tierlist.order.indexOf(tier)) {
+            e.reply("Du kannst ein $origtier-Mon nicht ins $tier hochdraften!")
+            return true
+        }
+        if (map[tier]!! <= 0) {
+            if (tierlist.prices[tier] == 0) {
+                e.reply("Ein Pokemon aus dem $tier-Tier musst du in ein anderes Tier hochdraften!")
                 return true
             }
-            if ((tierlist.rounds - (picks[current]!!.size + 1)) * tierlist.prices.values.min() > points[current]!! - needed) {
-                e.reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!")
-                return true
-            }
-            points[current] = points[current]!! - needed
+            e.reply("Du kannst dir kein $tier-Pokemon mehr picken!")
+            return true
         }
         return false
+    }
+
+    open fun afterPick() {
+        if (isLastRound && hasMovedTurns()) {
+            announcePlayer()
+        } else nextPlayer()
     }
 
 
@@ -136,8 +163,7 @@ sealed class League {
         if (names.isEmpty()) names.putAll(
             this.tc.guild.retrieveMembersByIds(members).await().associate { it.idLong to it.effectiveName })
         logger.info(names.toString())
-        if (tc != null)
-            this.tcid = tc.idLong
+        if (tc != null) this.tcid = tc.idLong
         for (member in members) {
             if (fromFile) picks.putIfAbsent(member, mutableListOf())
             else picks[member] = mutableListOf()
@@ -189,10 +215,24 @@ sealed class League {
         getPossibleTiers(mem).entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
             .joinToString { "${it.value}x **${it.key}**" }
 
-    fun getTierOf(args: Command.ArgumentManager, pokemon: String) = if (args.has("tier") && !isPointBased) {
-        tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: ""
-    } else {
-        tierlist.getTierOf(pokemon)
+    fun getTierOf(args: Command.ArgumentManager, pokemon: String): Pair<String, String> {
+        val real = tierlist.getTierOf(pokemon)
+        return if (args.has("tier") && !isPointBased) {
+            (tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: "") to real
+        } else {
+            real to real
+        }
+    }
+
+    fun getTierInsertIndex(picks: List<DraftPokemon>, tier: String): Int {
+        var index = 0
+        for (entry in tierlist.prices.entries) {
+            if (entry.key == tier) {
+                return picks.count { it.tier == tier } + index - 1
+            }
+            index += entry.value
+        }
+        error("Tier $tier not found by user $current")
     }
 
     fun triggerMove() {
@@ -235,8 +275,7 @@ sealed class League {
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
     fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER) {
         triggerMove()
-        if (endOfTurn()) return
-        /*String msg = tr == TimerReason.REALTIMER ? "**" + current.getEffectiveName() + "** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " (<@&" + asl.getLongList("roleids").get(getIndex(order.get(round).get(0).getIdLong())) + ">) dran! "
+        if (endOfTurn()) return/*String msg = tr == TimerReason.REALTIMER ? "**" + current.getEffectiveName() + "** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " (<@&" + asl.getLongList("roleids").get(getIndex(order.get(round).get(0).getIdLong())) + ">) dran! "
                 : "Der Pick von " + current.getEffectiveName() + " wurde " + (isSwitchDraft ? "geskippt" : "verschoben") + " und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran!";*/
         val oldcurrent = current
         current = order[round]!!.nextCurrent()
@@ -281,6 +320,9 @@ sealed class League {
             if (e.author.idLong != mem) "${e.member.asMention} hat für **${getName(mem)}** einen Random-Pick gemacht und **$pokemon** bekommen!" else "**<@${e.member.asMention}>** hat aus dem $tier-Tier ein **$pokemon** bekommen!"
         ).await()
     }
+
+    open fun getPickRound() = round
+
 
     companion object {
         val logger: Logger by SLF4J

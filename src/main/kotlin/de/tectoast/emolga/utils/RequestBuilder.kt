@@ -393,7 +393,7 @@ class RequestBuilder
             updateAll(sid, range, listOf(values), *raw)
         }
 
-        @JvmStatic
+
         fun updateAll(sid: String?, range: String?, values: List<List<Any>?>?, vararg raw: Boolean) {
             scope.launch {
                 try {

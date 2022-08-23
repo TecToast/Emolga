@@ -346,7 +346,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
     companion object {
         private val logger = LoggerFactory.getLogger(DataCommand::class.java)
 
-        @JvmStatic
+
         fun getPrevoInfo(obj: JSONObject): String {
             if (obj.optString("forme") == "Mega") return "Megaentwicklung von " + getGerNameNoCheck(obj.getString("baseSpecies"))
             if (!obj.has("prevo")) return ""

@@ -9,7 +9,6 @@ import de.tectoast.emolga.commands.Command.Translation
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
-import de.tectoast.emolga.utils.Constants.MYSERVER
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.annotations.PrivateCommand
@@ -528,7 +527,7 @@ object PrivateCommands {
             for (player in game) {
                 if (Command.toUsername(player.nickname) == "dasor54") {
                     for (mon in player.mons) {
-                        val monName = Command.getMonName(mon.pokemon, MYSERVER)
+                        val monName = Command.getMonName(mon.pokemon, Constants.G.MY)
                         DasorUsageManager.addPokemon(monName)
                     }
                 }
@@ -620,23 +619,11 @@ object PrivateCommands {
         val all: MutableList<String> = mutableListOf()
         for (s in t.order) {
             t.tierlist[s]!!.asSequence().map { str: String ->
-                if (str.startsWith("M-")) {
-                    if (str.endsWith("-X")) return@map "M-" + Command.getEnglName(
-                        str.substring(
-                            2,
-                            str.length - 2
-                        )
-                    ) + "-X"
-                    if (str.endsWith("-Y")) return@map "M-" + Command.getEnglName(
-                        str.substring(
-                            2,
-                            str.length - 2
-                        )
-                    ) + "-Y"
-                    return@map "M-" + Command.getEnglName(str.substring(2))
+                val split = str.split("-")
+                Command.possibleForms.firstOrNull { str.startsWith("$it-", ignoreCase = true) }?.also { form ->
+                    return@map "$form-${Command.getEnglName(split[1])}${split.getOrNull(2)?.let { "-${it}" } ?: ""}"
                 }
-                if (str.startsWith("A-")) return@map "A-" + Command.getEnglName(str.substring(2))
-                if (str.startsWith("G-")) return@map "G-" + Command.getEnglName(str.substring(2))
+                logger.info(str)
                 val engl = Command.getEnglNameWithType(str)
                 if (engl.isSuccess) return@map engl.translation
                 logger.info("str = {}", str)
@@ -646,19 +633,19 @@ object PrivateCommands {
                     "Kapu-Kime" -> "Tapu Fini"
                     "Kapu-Fala" -> "Tapu Lele"
                     "Furnifra" -> "Heatmor"
-                    else -> Command.getEnglName(str.split("-")[0]) + "-" + str.split("-")[1]
+                    else -> Command.getEnglName(split[0]) + "-" + split[1]
                 }
             }.forEach { all.add(it) }
         }
         val path = "Tierlists/$guild.json"
         val o = load(path)
-        o.put("englishNames", all)
+        o.put("englishnames", all)
         save(o, path)
     }
 
     @PrivateCommand("asls11data")
     fun asls11DataSheet() {
-        val tl = Tierlist.getByGuild(Constants.ASLID)!!
+        val tl = Tierlist.getByGuild(Constants.G.ASL)!!
         val b = RequestBuilder("1VWjAc370NQvuybaQZOTQ2uBVGC36D2_n63DOghkoE2k")
         val send = tl.tierlist.entries.flatMap { en ->
             en.value.map {
@@ -684,10 +671,10 @@ object PrivateCommands {
         val asl = Emolga.get.asls11
         val team = asl.table[tindex]
         val uid = asl.data[team]!!.members[level]!!
-        val aslleague = Emolga.get.leagueByGuild(Constants.ASLID, uid, uid)!!
+        val aslleague = Emolga.get.leagueByGuild(Constants.G.ASL, uid)!!
         val mons = Google[sid, "Data$level!B${tindex.y(15, 3)}:B${tindex.y(15, 14)}", false].map { it[0] as String }
         val picks = aslleague.picks[uid]!!
-        val tl = Tierlist.getByGuild(Constants.ASLID)!!
+        val tl = Tierlist.getByGuild(Constants.G.ASL)!!
         picks.clear()
         picks.addAll(mons.map { DraftPokemon(it, tl.getTierOf(it)) })
         b.addColumn("$team!C${level.y(26, 23)}", picks.let { pi ->
@@ -695,6 +682,11 @@ object PrivateCommands {
                 .map { "=Data$level!B${tindex.y(15, 3) + it}" }
         })
         b.execute()
+    }
+
+    @PrivateCommand("breakpoint")
+    fun breakpoint(e: GenericCommandEvent) {
+        e.done()
     }
 
     suspend fun execute(message: Message) {

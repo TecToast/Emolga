@@ -31,7 +31,7 @@ object Google {
         CLIENTSECRET = clientSecret
     }
 
-    @JvmStatic
+
     @Throws(IllegalArgumentException::class)
     fun getVidByQuery(vid: String?): SearchResult? {
         try {
@@ -45,7 +45,7 @@ object Google {
         return null
     }
 
-    @JvmStatic
+
     fun getVidByURL(url: String): Video? {
         try {
             val id =
@@ -63,7 +63,7 @@ object Google {
         return null
     }
 
-    @JvmStatic
+
     fun getPlaylistByURL(url: String): Playlist? {
         try {
             val id =
@@ -113,7 +113,7 @@ object Google {
         }
     }
 
-    @JvmStatic
+
     val sheetsService: Sheets
         get() {
             refreshTokenIfNotPresent()

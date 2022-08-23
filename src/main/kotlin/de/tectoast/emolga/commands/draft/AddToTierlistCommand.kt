@@ -7,7 +7,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 
 class AddToTierlistCommand :
-    Command("addtotierlist", "Fügt ein Mon ins D-Tier ein", CommandCategory.Draft, Constants.ASLID) {
+    Command("addtotierlist", "Fügt ein Mon ins D-Tier ein", CommandCategory.Draft, Constants.G.ASL) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("mon", "Mon", "Das Mon", ArgumentManagerTemplate.draftPokemon(), false, "Das ist kein Pokemon!")

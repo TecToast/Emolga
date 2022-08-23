@@ -1,6 +1,7 @@
 package de.tectoast.emolga.commands.dexquiz
 
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.Command.Companion.getTypeGerName
 import de.tectoast.emolga.commands.Command.SubCommand
 import de.tectoast.emolga.utils.ConfigManager
 import de.tectoast.jsolf.JSONObject
@@ -24,15 +25,13 @@ enum class DexQuizTip(
     POKEMON_SINGLETYPE("Preis für einen Typen des Pokemons", "Ein Typ des Pokemons", 25, { td ->
         val types: List<String> = td.monData.getStringList("types")
         "Das Pokemon besitzt mindestens folgenden Typen: **${
-            Command.Translation.Type.TYPE.validate(types.random())
-                .let { it as Command.Translation }.translation
+            getTypeGerName(types.random())
         }**"
     }),
     POKEMON_BOTHTYPES("Preis für das Typing des Pokemons", "Der Typ/Die Typen des Pokemons", 40, { td ->
         "Das Pokemon besitzt folgende Typen: **${
             td.monData.getStringList("types").joinToString(" ") { t ->
-                Command.Translation.Type.TYPE.validate(t)
-                    .let { it as Command.Translation }.translation
+                getTypeGerName(t)
             }
         }**"
     }),

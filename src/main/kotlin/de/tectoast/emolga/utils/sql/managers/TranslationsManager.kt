@@ -65,7 +65,8 @@ object TranslationsManager : DataManager("translations") {
         val map = mutableMapOf<String, String>()
         readWrite(selectAll(and(TYPE.check("pkmn"), ISNICK.check(true))), ResultsFunction { set ->
             forEach(set) { res ->
-                map[res.getString("englishid").replaceFirstChar { it.uppercaseChar() }] = res.getString("germanname")
+                map[res.getString("englishid").replaceFirstChar { it.uppercaseChar() }] =
+                    res.getString("germanname") + (set.getString("forme")?.let { "-${it}" } ?: "")
             }
         })
         return map

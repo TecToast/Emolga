@@ -7,7 +7,7 @@ import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.TextChannel
 
 class WirklichGuteMusikCommand :
-    MusicCommand("gutemusik", "Wirklich Gute Musik (Empfohlen von Flo und Dasor :) )", Constants.FPLID) {
+    MusicCommand("gutemusik", "Wirklich Gute Musik (Empfohlen von Flo und Dasor :) )", Constants.G.FPL) {
     override suspend fun process(e: GuildCommandEvent) {
         doIt(e.textChannel, e.member, true)
     }

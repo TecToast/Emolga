@@ -19,7 +19,7 @@ class ModalConfigurator private constructor() {
     private var id: String? = null
     private var title: String? = null
 
-    @JvmOverloads
+
     fun buildModal(page: Int = 0): Modal {
         return Modal.create("modalconfigurator;$id", title!!)
             .addActionRows(

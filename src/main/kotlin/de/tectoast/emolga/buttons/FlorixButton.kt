@@ -14,7 +14,7 @@ import java.io.IOException
 class FlorixButton : ButtonListener("florix") {
     @Throws(IOException::class)
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
-        if (e.user.idLong != Constants.FLOID || e.guild!!.idLong != Constants.MYSERVER) return
+        if (e.user.idLong != Constants.FLOID || e.guild!!.idLong != Constants.G.MY) return
         val mid = e.messageIdLong
         val split = name.split(":")
         val pc = PC.byMessage(if (name.contains(":")) split[1].toLong() else mid)

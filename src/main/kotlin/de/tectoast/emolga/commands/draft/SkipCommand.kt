@@ -10,9 +10,9 @@ class SkipCommand : Command(
     "skip",
     "Überspringt deinen Zug",
     CommandCategory.Draft,
-    Constants.ASLID,
-    Constants.FPLID,
-    Constants.NDSID
+    Constants.G.ASL,
+    Constants.G.FPL,
+    Constants.G.NDS
 ) {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()

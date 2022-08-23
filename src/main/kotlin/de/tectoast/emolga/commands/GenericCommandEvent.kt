@@ -7,7 +7,7 @@ import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.commands.OptionType
-import net.dv8tion.jda.api.requests.restaction.MessageAction
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import org.slf4j.LoggerFactory
 import java.util.function.Consumer
@@ -73,7 +73,7 @@ abstract class GenericCommandEvent {
 
     fun reply(
         msg: String,
-        ma: Consumer<MessageAction>? = null,
+        ma: Consumer<MessageCreateAction>? = null,
         ra: Consumer<ReplyCallbackAction>? = null,
         m: Consumer<Message>? = null,
         ih: Consumer<InteractionHook>? = null
@@ -91,7 +91,7 @@ abstract class GenericCommandEvent {
 
     fun reply(
         msg: MessageEmbed?,
-        ma: Consumer<MessageAction>? = null,
+        ma: Consumer<MessageCreateAction>? = null,
         ra: Consumer<ReplyCallbackAction>? = null,
         m: Consumer<Message>? = null,
         ih: Consumer<InteractionHook>? = null

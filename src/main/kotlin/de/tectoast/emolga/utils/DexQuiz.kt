@@ -7,7 +7,6 @@ import de.tectoast.emolga.utils.sql.managers.PokedexManager
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.TextChannel
-import net.dv8tion.jda.api.requests.restaction.MessageAction
 import java.awt.Color
 import java.io.File
 import java.io.IOException
@@ -115,7 +114,7 @@ class DexQuiz(tc: TextChannel, rounds: Long) {
         currentEnglName = englName
         //ü = %C3%B6
         block = false
-        val ma: MessageAction = tc.sendMessage(
+        val ma = tc.sendMessage(
             "Runde $round/$totalRounds: ${Command.trim(entry, pokemon)}\nZu welchem Pokemon gehört dieser Dex-Eintrag?"
         )
         if (withDelay) ma.queueAfter(3, TimeUnit.SECONDS) else ma.queue()

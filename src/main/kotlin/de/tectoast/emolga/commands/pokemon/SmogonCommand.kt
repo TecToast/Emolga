@@ -5,8 +5,6 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.selectmenus.selectmenusaves.SmogonSet
 import de.tectoast.jsolf.JSONObject
-import net.dv8tion.jda.api.entities.Message
-import net.dv8tion.jda.api.requests.restaction.MessageAction
 import org.jsoup.Jsoup
 import java.io.IOException
 
@@ -55,9 +53,9 @@ class SmogonCommand : Command("smogon", "Zeigt die vorgeschlagenen Smogon-Sets f
         val smogon = SmogonSet(arr)
         e.reply(
             smogon.buildMessage(),
-            { ma: MessageAction -> ma.setActionRows(smogon.buildActionRows()) },
+            { ma -> ma.setComponents(smogon.buildActionRows()) },
             null,
-            { mes: Message -> smogonMenu[mes.idLong] = smogon },
+            { mes -> smogonMenu[mes.idLong] = smogon },
             null
         )
     }

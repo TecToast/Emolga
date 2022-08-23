@@ -13,6 +13,6 @@ class SmogonSetMenu : MenuListener("smogonset") {
             return
         }
         smogon.changeSet(e.values[0])
-        e.editMessage(smogon.buildMessage()).setActionRows(smogon.buildActionRows()).queue()
+        e.editMessage(smogon.buildMessage()).setComponents(smogon.buildActionRows()).queue()
     }
 }

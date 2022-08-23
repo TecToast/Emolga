@@ -49,7 +49,9 @@ import de.tectoast.jsolf.JSONObject
 import de.tectoast.jsolf.JSONTokener
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -80,6 +82,7 @@ import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
+import net.dv8tion.jda.api.utils.FileUpload
 import net.dv8tion.jda.internal.utils.Helpers
 import org.apache.commons.collections4.queue.CircularFifoQueue
 import org.slf4j.Logger
@@ -2628,17 +2631,11 @@ abstract class Command(
             }
         }
 
-        fun help(tco: TextChannel, mem: Member) {/*if(mem.getIdLong() != Constants.FLOID) {
-            tco.sendMessage("Die Help-Funktion wird momentan umprogrammiert und steht deshalb nicht zur Verfügung.").queue();
-            return;
-        }*/
-            val builder = EmbedBuilder()
-            builder.setTitle("Commands").setColor(java.awt.Color.CYAN)
-            //builder.setDescription(getHelpDescripion(tco.getGuild(), mem));
-            val ma = tco.sendMessageEmbeds(builder.build())
-            val g = tco.guild
-            ma.setActionRows(getHelpButtons(g, mem)).queue()
-        }
+        fun help(tco: TextChannel, mem: Member) =
+            tco.send(
+                embeds = Embed(title = "Commands", color = embedColor).into(),
+                components = getHelpButtons(tco.guild, mem)
+            ).queue()
 
         suspend fun check(e: MessageReceivedEvent) {
             val mem = e.member!!
@@ -2649,13 +2646,13 @@ abstract class Command(
             val customcommands = Emolga.get.customcommands
             if (msg.isNotEmpty() && msg[0] == '!') {
                 customcommands[msg.lowercase().substring(1)]?.let { o ->
-                    val f: File? = o.image?.let { File(it) }
+                    val f = o.image?.let { FileUpload.fromData(File(it)) }
                     val sendmsg = o.text
                     if (sendmsg == null) {
-                        tco.sendFile(f!!).queue()
+                        tco.sendFiles(f!!).queue()
                     } else {
                         val ac = tco.sendMessage(sendmsg)
-                        if (f != null) ac.addFile(f)
+                        if (f != null) ac.addFiles(f)
                         ac.queue()
                     }
 

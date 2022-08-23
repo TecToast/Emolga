@@ -41,15 +41,13 @@ class Nominate(val mons: List<DraftPokemon>) {
         private val tiers = listOf("S", "A", "B")
     }
 
-    private fun List<DraftPokemon>.toMessage() = this
-        .sortedWith(compareBy({ it.tier.indexedBy(tiers) }, { it.name }))
-        .joinToString("\n") {
+    private fun List<DraftPokemon>.toMessage() =
+        this.sortedWith(compareBy({ it.tier.indexedBy(tiers) }, { it.name })).joinToString("\n") {
             "${it.tier}: ${it.name}"
         }
 
-    private fun List<DraftPokemon>.toJSON() = this
-        .sortedWith(compareBy({ it.tier.indexedBy(tiers) }, { it.name }))
-        .joinToString(";") {
+    private fun List<DraftPokemon>.toJSON() =
+        this.sortedWith(compareBy({ it.tier.indexedBy(tiers) }, { it.name })).joinToString(";") {
             it.name
         }
 
@@ -63,10 +61,9 @@ class Nominate(val mons: List<DraftPokemon>) {
     }
 
     fun render(e: ButtonInteractionEvent) {
-
-        e.editMessageEmbeds(
-            Embed(title = "Nominierungen", color = embedColor, description = generateDescription())
-        ).setActionRows(Command.getActionRows(mons.map { it.name }) {
+        e.editMessage_(embeds = Embed(
+            title = "Nominierungen", color = embedColor, description = generateDescription()
+        ).into(), components = Command.getActionRows(mons.map { it.name }) {
             if (isNominated(it)) Button.primary(
                 "nominate;$it", it
             ) else Button.secondary("nominate;$it", it)
@@ -84,8 +81,7 @@ class Nominate(val mons: List<DraftPokemon>) {
     }
 
     fun finish(e: ButtonInteractionEvent, now: Boolean) {
-        if (now) {
-            /*val nom = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS").getJSONObject("nominations")
+        if (now) {/*val nom = Command.emolgaJSON.getJSONObject("drafts").getJSONObject("NDS").getJSONObject("nominations")
             val day = nom.getJSONObject(nom.getInt("currentDay"))
             if (day.has(e.user.id)) {
                 e.reply("Du hast dein Team bereits für diesen Spieltag nominiert!").queue()
@@ -110,14 +106,12 @@ class Nominate(val mons: List<DraftPokemon>) {
             e.reply_(content = "Du musst exakt 11 Pokemon nominieren!", ephemeral = true).queue()
         } else {
             e.editMessage_(
-                embed = Embed(
+                embeds = Embed(
                     title = "Bist du dir wirklich sicher? Die Nominierung kann nicht rückgängig gemacht werden!",
                     color = embedColor,
                     description = generateDescription()
-                ),
-                components = listOf(
-                    Button.success("nominate;FINISHNOW", "Ja"),
-                    Button.danger("nominate;CANCEL", "Nein")
+                ).into(), components = listOf(
+                    Button.success("nominate;FINISHNOW", "Ja"), Button.danger("nominate;CANCEL", "Nein")
                 ).into()
             ).queue()
         }

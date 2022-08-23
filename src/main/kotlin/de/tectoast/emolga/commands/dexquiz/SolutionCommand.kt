@@ -22,11 +22,11 @@ class SolutionCommand : Command("solution", "Zeigt die Lösung des derzeitigen E
         //val quiz = DexQuiz.getByTC(tco)
         DexQuiz.getByTC(tco)?.let { quiz ->
             e.slashCommandEvent!!.reply_(
-                embed = Embed(
+                embeds = Embed(
                     title = "${e.member.effectiveName} hat vorgeschlagen, die Lösung aufzudecken!",
                     description = "Wenn eine weitere Person auf den Button drückt, wird die Lösung aufgedeckt!",
                     color = embedColor
-                ), components = Button.primary(
+                ).into(), components = Button.primary(
                     "solution;${tco.idLong}###${e.author.idLong}###${quiz.round}", "Lösung aufdecken"
                 ).into()
             ).queue()

@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import net.dv8tion.jda.api.utils.FileUpload
 import java.io.File
 
 class ShinyCommand : Command("shiny", "Zeigt das Shiny des Pokemons an", CommandCategory.Pokemon) {
@@ -51,6 +52,6 @@ class ShinyCommand : Command("shiny", "Zeigt das Shiny des Pokemons an", Command
             e.reply(mon.toString() + " hat keine " + args.getText("form") + "-Form!")
         }
         //if(!f.exists()) f = new File("../Showdown/sspclient/sprites/gen5-shiny/" + mon.split(";")[1].toLowerCase() + ".png");
-        e.textChannel.sendFile(f).queue()
+        e.textChannel.sendFiles(FileUpload.fromData(f)).queue()
     }
 }

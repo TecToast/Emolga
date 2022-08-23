@@ -34,10 +34,10 @@ class FlorixButton : ButtonListener("florix") {
                     return
                 }
                 e.reply_(
-                    embed = Embed(
+                    embeds = Embed(
                         title = "Bist du dir sicher, dass du den Server herunterfahren möchtest?",
                         color = Color.RED.rgb
-                    ), components = listOf(
+                    ).into(), components = listOf(
                         Button.danger(
                             "florix;stopserverreal:$mid", "Ja"
                         ), Button.success("florix;no", "Nein")
@@ -51,10 +51,10 @@ class FlorixButton : ButtonListener("florix") {
                     return
                 }
                 e.reply_(
-                    embed = Embed(
+                    embeds = Embed(
                         title = "Bist du dir sicher, dass POWEROFF aktiviert werden soll?",
                         color = Color.RED.rgb
-                    ), components = listOf(
+                    ).into(), components = listOf(
                         Button.danger(
                             "florix;poweroffreal:$mid", "Ja"
                         ), Button.success("florix;no", "Nein")

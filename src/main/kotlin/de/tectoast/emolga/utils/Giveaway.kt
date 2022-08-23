@@ -7,11 +7,12 @@ import de.tectoast.emolga.utils.sql.managers.GiveawayManager
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.*
 import net.dv8tion.jda.api.EmbedBuilder
-import net.dv8tion.jda.api.MessageBuilder
-import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageReaction
 import net.dv8tion.jda.api.entities.emoji.CustomEmoji
 import net.dv8tion.jda.api.entities.emoji.Emoji
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder
+import net.dv8tion.jda.api.utils.messages.MessageCreateData
+import net.dv8tion.jda.api.utils.messages.MessageEditBuilder
 import org.slf4j.LoggerFactory
 import java.awt.Color
 import java.time.Instant
@@ -76,11 +77,11 @@ class Giveaway {
         GiveawayManager.saveGiveaway(this)
     }
 
-    fun render(now: Instant): Message {
-        val mb = MessageBuilder()
+    fun render(now: Instant): MessageCreateData {
+        val mb = MessageCreateBuilder()
         val close = now.plusSeconds(9).isAfter(end)
-        mb.append("\uD83C\uDF89").append(if (close) " **G I V E A W A Y** " else "   **GIVEAWAY**   ")
-            .append("\uD83C\uDF89")
+        mb.addContent("\uD83C\uDF89").addContent(if (close) " **G I V E A W A Y** " else "   **GIVEAWAY**   ")
+            .addContent("\uD83C\uDF89")
         val eb = EmbedBuilder()
         eb.setColor(Color.CYAN)
         eb.setFooter((if (winners == 1) "" else "$winners Gewinner | ") + "Endet", null)
@@ -99,8 +100,8 @@ Gehostet von: <@$userId>"""
     private suspend fun end() {
         isEnded = true
         GiveawayManager.removeGiveaway(this)
-        val mb = MessageBuilder()
-        mb.append("\uD83C\uDF89").append(" **GIVEAWAY ZU ENDE** ").append("\uD83C\uDF89")
+        val mb = MessageEditBuilder()
+        mb.setContent("\uD83C\uDF89 **GIVEAWAY ZU ENDE** \uD83C\uDF89")
         val eb = EmbedBuilder()
         eb.setColor(Color.CYAN) // dark theme background
         eb.setFooter((if (winners == 1) "" else "$winners Gewinner | ") + "Endete", null)

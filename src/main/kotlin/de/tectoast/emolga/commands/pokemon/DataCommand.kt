@@ -14,7 +14,6 @@ import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
-import net.dv8tion.jda.api.requests.restaction.MessageAction
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import org.slf4j.LoggerFactory
 import java.awt.Color
@@ -159,9 +158,9 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                     builder.setTitle(getGerNameWithForm(monname))
                     builder.setColor(Color.CYAN)
                     val list = getAllForms(name)
-                    e.reply(builder.build(), ma = { ma: MessageAction ->
+                    e.reply(builder.build(), ma = { ma ->
                         if (list.size > 1) {
-                            ma.setActionRows(
+                            ma.setComponents(
                                 ActionRow.of(
                                     SelectMenu.create("mondata").addOptions(
                                         list.map {
@@ -176,7 +175,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                         }
                     }, ra = { ra: ReplyCallbackAction ->
                         if (list.size > 1) {
-                            ra.addActionRows(
+                            ra.setComponents(
                                 ActionRow.of(
                                     SelectMenu.create("mondata").addOptions(
                                         list.map {

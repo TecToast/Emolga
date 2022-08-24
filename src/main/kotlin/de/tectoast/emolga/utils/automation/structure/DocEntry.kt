@@ -14,7 +14,6 @@ import de.tectoast.emolga.utils.records.StatLocation
 import de.tectoast.emolga.utils.showdown.Player
 import de.tectoast.emolga.utils.showdown.Pokemon
 import org.slf4j.LoggerFactory
-import java.util.function.Supplier
 
 class DocEntry private constructor() {
     companion object {
@@ -28,7 +27,7 @@ class DocEntry private constructor() {
         }
     }
 
-    var leagueFunction: LeagueFunction? = null
+    lateinit var league: League
     var killProcessor: StatProcessor = invalidProcessor
     var deathProcessor: StatProcessor = invalidProcessor
     var useProcessor: BasicStatProcessor = invalidProcessor
@@ -37,8 +36,8 @@ class DocEntry private constructor() {
     var resultCreator: ResultCreator? = null
     var sorterData: SorterData? = null
     var setStatIfEmpty = false
-    var numberMapper: (String) -> String = { s: String -> s.ifEmpty { "0" } }
-    private var onlyKilllist: Supplier<List<String>>? = null
+    var numberMapper: (String) -> String = { it.ifEmpty { "0" } }
+    private var onlyKilllist: (() -> List<String>)? = null
 
     fun analyse(
         game: Array<Player>,
@@ -48,12 +47,11 @@ class DocEntry private constructor() {
         deaths: List<Map<String, String>>,
         replayData: ReplayData
     ) {
-        val league = leagueFunction!!.getLeague(uid1, uid2)
         val gameday = getGameDay(league, uid1, uid2)
         val sid = league.sid
         val b = RequestBuilder(sid)
         onlyKilllist?.run {
-            val mons = get()
+            val mons = this()
             var monIndex = -1
             for (pick in mons) {
                 monIndex++
@@ -207,10 +205,6 @@ class DocEntry private constructor() {
             logger.error("I hate my life", ex)
         }
     }
-}
-
-fun interface LeagueFunction {
-    fun getLeague(uid1: Long, uid2: Long): League
 }
 
 

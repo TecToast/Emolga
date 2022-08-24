@@ -143,14 +143,14 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
 
     override fun onGuildJoin(e: GuildJoinEvent) {
         val g = e.guild
-        g.retrieveOwner().flatMap { it.user.openPrivateChannel() }.flatMap {
+        e.jda.openPrivateChannelById(g.ownerIdLong).flatMap {
             it.sendMessage(
                 WELCOMEMESSAGE.replace(
                     "{USERNAME}", g.owner!!.user.name
                 ).replace("{SERVERNAME}", g.name)
             )
         }.queue()
-        e.jda.retrieveUserById(FLOID).flatMap { it.openPrivateChannel() }.flatMap {
+        e.jda.openPrivateChannelById(FLOID).flatMap {
             it.sendMessage("${g.name} (${g.id})").setActionRow(
                 Button.primary("guildinvite;" + g.id, "Invite").withEmoji(
                     Emoji.fromUnicode("✉️")
@@ -273,7 +273,13 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                 urlRegex.find(msg)?.run {
                     val url = groupValues[0]
                     logger.info(url)
-                    Command.analyseReplay(url, null, e.jda.getTextChannelById(820359155612254258L)!!, e.message, null)
+                    Command.analyseReplay(
+                        url,
+                        e.jda.getTextChannelById(999779545316069396),
+                        e.jda.getTextChannelById(999779578799202324)!!,
+                        e.message,
+                        null
+                    )
                 }
             }
         }

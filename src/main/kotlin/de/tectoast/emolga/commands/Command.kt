@@ -3087,6 +3087,10 @@ abstract class Command(
                 val uid1 = SDNamesManager.getIDByName(u1)
                 val uid2 = SDNamesManager.getIDByName(u2)
                 logger.info("Analysed!")
+                val league = Emolga.get.leagueByGuild(gid, uid1, uid2)
+                logger.info("uid1 = $uid1")
+                logger.info("uid2 = $uid2")
+                if (gid == Constants.G.ASL && league == null) return@launch
                 //logger.info(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
                 for (p in game[0].mons) {
                     game[0].addTotalDeaths(if (p.isDead) 1 else 0)
@@ -3180,8 +3184,6 @@ abstract class Command(
                 //JSONObject teamnames = json.getJSONObject("drafts").getJSONObject("NDS").getJSONObject("teamnames");
                 name1 =  /*uid1 != -1 && gid == NDSID ? teamnames.getString(String.valueOf(uid1)) : */game[0].nickname
                 name2 =  /*uid2 != -1 && gid == NDSID ? teamnames.getString(String.valueOf(uid2)) : */game[1].nickname
-                logger.info("uid1 = $uid1")
-                logger.info("uid2 = $uid2")
                 val str: String = if (spoiler) {
                     "$name1 ||$winloose|| $name2\n\n$name1:\n$t1\n$name2:\n$t2"
                 } else {
@@ -3204,7 +3206,7 @@ abstract class Command(
                 //  return;
                 typicalSets.save()
                 if (uid1 == -1L || uid2 == -1L) return@launch
-                Emolga.get.leagueByGuild(gid, uid1, uid2)?.docEntry?.analyse(
+                league?.docEntry?.analyse(
                     game, uid1, uid2, kills, deaths, ReplayData(
                         listOf(p1mons, p2mons), url, str, resultchannel, t1, t2, customReplayChannel, m
                     )

@@ -2,8 +2,10 @@ package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.automation.structure.*
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.automation.structure.BasicResultCreator
+import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
+import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.records.StatLocation
 import kotlinx.serialization.SerialName
@@ -16,9 +18,7 @@ class Prisma : League() {
 
     @Transient
     override val docEntry = DocEntry.create {
-        leagueFunction = LeagueFunction { _: Long, _: Long ->
-            Emolga.get.league("Prisma")
-        }
+        league = this@Prisma
         killProcessor = BasicStatProcessor { plindex: Int, monindex: Int, gameday: Int ->
             StatLocation(
                 "Data",

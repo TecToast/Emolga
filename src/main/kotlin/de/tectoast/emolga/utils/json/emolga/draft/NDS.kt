@@ -32,7 +32,7 @@ class NDS : League() {
     override fun checkFinishedForbidden(mem: Long) =
         if (picks[mem]!!.filter { it.name != "???" }.size < 15) "Du hast noch keine 15 Pokemon!" else null
 
-    override fun savePick(picks: MutableList<DraftPokemon>, pokemon: String, tier: String) {
+    override fun savePick(picks: MutableList<DraftPokemon>, pokemon: String, tier: String, free: Boolean) {
         picks.first { it.name == "???" }.apply {
             this.name = pokemon
             this.tier = tier

@@ -4,10 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.Command.Companion.loadSD
 import de.tectoast.jsolf.JSONObject
 import dev.minn.jda.ktx.util.SLF4J
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.slf4j.Logger
 
 class ModManager(name: String, datapath: String) {
@@ -29,7 +26,7 @@ class ModManager(name: String, datapath: String) {
         private val modManagers = ArrayList<ModManager>()
         private val logger: Logger by SLF4J
         lateinit var default: ModManager
-        val scope = CoroutineScope(Dispatchers.IO + CoroutineExceptionHandler { _, t ->
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineExceptionHandler { _, t ->
             logger.error("ERROR IN MODMANAGER SCOPE", t)
             Command.sendToMe("Error in modmanager scope, look in console")
         })

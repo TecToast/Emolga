@@ -11,6 +11,6 @@ class RoundCommand : Command("round", "Zeigt die Runde des derzeitigen Drafts an
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        League.onlyChannel(e.textChannel)?.let { e.reply("Der Draft ist in Runde ${it.round}!") }
+        League.onlyChannel(e.textChannel.idLong)?.let { e.reply("Der Draft ist in Runde ${it.round}!") }
     }
 }

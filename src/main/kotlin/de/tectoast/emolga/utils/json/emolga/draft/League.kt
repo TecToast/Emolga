@@ -1,6 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.draft.PickData
 import de.tectoast.emolga.commands.draft.SwitchData
@@ -10,6 +10,7 @@ import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.Emolga
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.util.SLF4J
@@ -43,8 +44,8 @@ sealed class League {
 
     private val names: MutableMap<Long, String> = mutableMapOf()
 
-    @Transient
-    lateinit var tc: TextChannel
+
+    val tc: TextChannel get() = emolgajda.getTextChannelById(tcid) ?: error("No text channel found for guild $guild")
 
     private var tcid: Long = -1
 
@@ -53,7 +54,7 @@ sealed class League {
         get() = tierlist.isPointBased
 
     @Transient
-    val timerScope = CoroutineScope(Dispatchers.Default + CoroutineExceptionHandler { _, t ->
+    val timerScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
         logger.error(
             "ERROR EXECUTING TIMER", t
         )
@@ -74,8 +75,8 @@ sealed class League {
 
     open fun checkFinishedForbidden(mem: Long): String? = null
 
-    open fun savePick(picks: MutableList<DraftPokemon>, pokemon: String, tier: String) {
-        picks.add(DraftPokemon(pokemon, tier))
+    open fun savePick(picks: MutableList<DraftPokemon>, pokemon: String, tier: String, free: Boolean) {
+        picks.add(DraftPokemon(pokemon, tier, free))
     }
 
     open fun saveSwitch(picks: MutableList<DraftPokemon>, oldmon: String, newmon: String, tierOf: String) {
@@ -95,20 +96,27 @@ sealed class League {
 
 
     open fun isCurrent(user: Long): Boolean {
-        if (current == user || user == Constants.FLOID) return true
+        if (current == user || user in listOf(Constants.FLOID, Constants.DASORID)) return true
         return allowed[user] == current
     }
 
     fun isPicked(mon: String) = picks.values.any { l -> l.any { it.name.equals(mon, ignoreCase = true) } }
 
-    open fun handlePoints(e: GuildCommandEvent, needed: Int): Boolean {
+    open fun handlePoints(e: GuildCommandEvent, needed: Int, free: Boolean): Boolean {
         if (tierlist.mode.isTiers()) return false
-        if (e.arguments.getNullable<Boolean>("free") != true && !tierlist.mode.isPoints()) return false
+        if (!free && !tierlist.mode.isPoints()) return false
         if (points[current]!! - needed < 0) {
             e.reply("Dafür hast du nicht genug Punkte!")
             return true
         }
-        if ((tierlist.rounds - (picks[current]!!.size + 1)) * tierlist.prices.values.min() > points[current]!! - needed) {
+        if (when (tierlist.mode) {
+                TierlistMode.POINTS -> (tierlist.rounds - (picks[current]!!.size + 1)) * tierlist.prices.values.min() > points[current]!! - needed
+                TierlistMode.MIX -> (tierlist.freePicksAmount - (picks[current]!!.count { it.free } + 1)) * tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" }
+                    .minOf { it.value } > points[current]!! - needed
+
+                else -> false
+            }
+        ) {
             e.reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!")
             return true
         }
@@ -118,7 +126,7 @@ sealed class League {
 
     open fun handleTiers(e: GuildCommandEvent, tier: String, origtier: String): Boolean {
         if (tierlist.mode.isPoints()) return false
-        val map = getPossibleTiers(current)
+        val map = getPossibleTiers()
         if (!map.containsKey(tier)) {
             e.reply("Das Tier `$tier` existiert nicht!")
             return true
@@ -159,20 +167,22 @@ sealed class League {
     suspend fun startDraft(tc: TextChannel?, fromFile: Boolean) {
         logger.info("Starting draft ${Emolga.get.drafts.reverseGet(this)}...")
         logger.info(tcid.toString())
-        this.tc = tc ?: EmolgaMain.emolgajda.getTextChannelById(tcid)!!
-        if (names.isEmpty()) names.putAll(
-            this.tc.guild.retrieveMembersByIds(members).await().associate { it.idLong to it.effectiveName })
+        if (names.isEmpty()) names.putAll(emolgajda.getGuildById(this.guild)!!.retrieveMembersByIds(members).await()
+            .associate { it.idLong to it.effectiveName })
         logger.info(names.toString())
         if (tc != null) this.tcid = tc.idLong
         for (member in members) {
             if (fromFile) picks.putIfAbsent(member, mutableListOf())
             else picks[member] = mutableListOf()
-            if (isPointBased) points[member] = tierlist.points - picks[member]!!.sumOf { tierlist.prices[it.tier]!! }
+            if (!tierlist.mode.isTiers()) points[member] =
+                tierlist.points - picks[member]!!.sumOf { if (it.free) tierlist.freepicks[it.tier]!! else 0 }
         }
         if (!fromFile) {
             order.clear()
             order.putAll(originalorder.mapValues { it.value.toMutableList() })
             current = order[1]!!.nextCurrent()
+            round = 1
+            moved.clear()
             restartTimer()
             sendRound()
             announcePlayer()
@@ -200,20 +210,23 @@ sealed class League {
     open fun announcePlayer() {
         if (isPointBased) tc.sendMessage(getMention(current) + " ist dran! (" + points[current] + " mögliche Punkte)")
             .queue() else tc.sendMessage(
-            getMention(current) + " ist dran! (Mögliche Tiers: " + getPossibleTiersAsString(current) + ")"
+            getMention(current) + " ist dran! (Mögliche Tiers: " + getPossibleTiersAsString() + ")"
         ).queue()
     }
 
-    fun getPossibleTiers(mem: Long): Map<String, Int> = tierlist.prices.toMutableMap().let { possible ->
-        picks[mem]!!.forEach { pick ->
-            pick.takeUnless { it.name == "???" }?.let { possible[it.tier] = possible[it.tier]!! - 1 }
+    fun getPossibleTiers(): Map<String, Int> = tierlist.prices.toMutableMap().let { possible ->
+        picks[current]!!.forEach { pick ->
+            pick.takeUnless { it.name == "???" || it.free }?.let { possible[it.tier] = possible[it.tier]!! - 1 }
         }
         possible
     }
 
-    private fun getPossibleTiersAsString(mem: Long) =
-        getPossibleTiers(mem).entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
-            .joinToString { "${it.value}x **${it.key}**" }
+    private fun getPossibleTiersAsString() =
+        getPossibleTiers().entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
+            .joinToString { "${it.value}x **Tier ${it.key}**" }.let { str ->
+                if (tierlist.mode.isMix()) str + "; ${tierlist.freePicksAmount - picks[current]!!.count { it.free }}x **Free Pick**"
+                else str
+            }
 
     fun getTierOf(args: Command.ArgumentManager, pokemon: String): Pair<String, String> {
         val real = tierlist.getTierOf(pokemon)
@@ -228,7 +241,7 @@ sealed class League {
         var index = 0
         for (entry in tierlist.prices.entries) {
             if (entry.key == tier) {
-                return picks.count { it.tier == tier } + index - 1
+                return picks.count { !it.free && it.tier == tier } + index - 1
             }
             index += entry.value
         }
@@ -292,7 +305,7 @@ sealed class League {
             )
             if (isPointBased) append(" (${points[current]} mögliche Punkte)")
             else append(
-                "(Mögliche Tiers: " + getPossibleTiersAsString(current) + ")"
+                " (Mögliche Tiers: " + getPossibleTiersAsString() + ")"
             )
         }).queue()
         restartTimer()
@@ -327,15 +340,14 @@ sealed class League {
     companion object {
         val logger: Logger by SLF4J
 
-        fun byChannel(e: GuildCommandEvent) = onlyChannel(e.textChannel)?.apply {
+        fun byChannel(e: GuildCommandEvent) = onlyChannel(e.textChannel.idLong)?.apply {
             if (!isCurrent(e.member.idLong)) {
                 e.reply("Du bist nicht dran!")
                 return null
             }
         }
 
-        fun onlyChannel(tc: TextChannel) =
-            Emolga.get.drafts.values.firstOrNull { it.isRunning && it.tc.idLong == tc.idLong }
+        fun onlyChannel(tc: Long) = Emolga.get.drafts.values.firstOrNull { it.isRunning && it.tc.idLong == tc }
     }
 
     enum class TimerReason {

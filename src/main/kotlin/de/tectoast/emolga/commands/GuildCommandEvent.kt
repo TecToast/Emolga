@@ -50,9 +50,7 @@ class GuildCommandEvent : GenericCommandEvent {
         "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (${Constants.MYTAG}).\n${
             command.getHelp(guild)
         }${if (member.idLong == Constants.FLOID) "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" else ""}".let {
-            if (slashCommandEvent != null && !slashCommandAcknowlegded) {
-                slashCommandEvent.reply(it)
-            } else channel.sendMessage(it).queue()
+            slashCommandEvent?.reply(it) ?: channel.sendMessage(it).queue()
         }
     }
 

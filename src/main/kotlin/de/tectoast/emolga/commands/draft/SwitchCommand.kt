@@ -62,7 +62,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
             }
             d.points[mem] = d.points[mem]!! + pointsBack - newpoints
         } else {
-            if (d.getPossibleTiers(mem)[tier]!! <= 0 && tierlist.getTierOf(oldmon) != tier) {
+            if (d.getPossibleTiers()[tier]!! <= 0 && tierlist.getTierOf(oldmon) != tier) {
                 e.reply("Du kannst dir kein $tier-Tier mehr holen!")
                 return
             }

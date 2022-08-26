@@ -384,7 +384,7 @@ class RequestBuilder
         private val logger = LoggerFactory.getLogger(RequestBuilder::class.java)
         private val EVERYTHING_BUT_NUMBER = Pattern.compile("\\D")
         private val EVERYTHING_BUT_CHARS = Pattern.compile("[^a-zA-Z]")
-        private val scope = CoroutineScope(Dispatchers.IO + CoroutineName("RequestBuilder"))
+        private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineName("RequestBuilder"))
         fun updateSingle(sid: String?, range: String?, value: Any, vararg raw: Boolean) {
             updateRow(sid, range, listOf(value), *raw)
         }

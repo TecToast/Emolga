@@ -1,5 +1,6 @@
 package de.tectoast.emolga.commands
 
+import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command.ArgumentManagerTemplate
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.commands.Command.Companion.getDataObject
@@ -105,8 +106,7 @@ object PrivateCommands {
             s = s.substring(1)
             logger.info("s = $s")
             val finalS = s
-            tc.guild.retrieveEmojis().await()
-                .filter { it.name.equals(finalS, ignoreCase = true) }
+            tc.guild.retrieveEmojis().await().filter { it.name.equals(finalS, ignoreCase = true) }
                 .forEach { m.addReaction(it!!).queue() }
         } else {
             m.addReaction(Emoji.fromUnicode(s)).queue()
@@ -295,14 +295,12 @@ object PrivateCommands {
                 if (str.startsWith("M-")) {
                     if (str.endsWith("-X")) return@map "M-" + Command.getEnglName(
                         str.substring(
-                            2,
-                            str.length - 2
+                            2, str.length - 2
                         )
                     ) + "-X"
                     if (str.endsWith("-Y")) return@map "M-" + Command.getEnglName(
                         str.substring(
-                            2,
-                            str.length - 2
+                            2, str.length - 2
                         )
                     ) + "-Y"
                     return@map "M-" + Command.getEnglName(str.substring(2))
@@ -317,13 +315,11 @@ object PrivateCommands {
                     "Kapu-Toro" -> "Tapu Bulu"
                     "Kapu-Kime" -> "Tapu Fini"
                     else -> Command.getEnglName(str.split("-").dropLastWhile { it.isEmpty() }
-                        .toTypedArray()[0]) + "-" + str.split("-").dropLastWhile { it.isEmpty() }
-                        .toTypedArray()[1]
+                        .toTypedArray()[0]) + "-" + str.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()[1]
                 }
             }.sorted().toMutableList()
             if (s != "D") b.addColumn(
-                "Tierliste [englisch]!${getAsXCoord((x shl 1) + 1)}5",
-                mons
+                "Tierliste [englisch]!${getAsXCoord((x shl 1) + 1)}5", mons
             ) else {
                 val size = mons.size / 3
                 for (i in 0..2) {
@@ -355,10 +351,7 @@ object PrivateCommands {
         }
         for (s in picks.keys) {
             val teamname = teamnames[s]
-            b.addColumn(
-                "$teamname!A200",
-                picks[s]!!.map { it.name }
-            )
+            b.addColumn("$teamname!A200", picks[s]!!.map { it.name })
             b.addAll("$teamname!B200", clear)
             b.addAll("$teamname!N200", clear)
             b.addSingle("$teamname!L199", 0)
@@ -379,14 +372,11 @@ object PrivateCommands {
                     .filter { s: String -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/") }
                     .map { s: String ->
                         s.substring(
-                            s.indexOf("http"),
-                            if (s.indexOf(' ', s.indexOf("http") + 1) == -1) s.length else s.indexOf(
-                                ' ',
-                                s.indexOf("http") + 1
+                            s.indexOf("http"), if (s.indexOf(' ', s.indexOf("http") + 1) == -1) s.length else s.indexOf(
+                                ' ', s.indexOf("http") + 1
                             )
                         )
-                    }
-                    .firstOrNull()?.run {
+                    }.firstOrNull()?.run {
                         logger.info(this)
                         Command.analyseReplay(this, null, e.jda.getTextChannelById(837425749770240001L)!!, m, null)
                     }
@@ -405,14 +395,11 @@ object PrivateCommands {
                     .filter { s: String -> s.contains("https://replay.pokemonshowdown.com") || s.contains("http://florixserver.selfhost.eu:228/") }
                     .map { s: String ->
                         s.substring(
-                            s.indexOf("http"),
-                            if (s.indexOf(' ', s.indexOf("http") + 1) == -1) s.length else s.indexOf(
-                                ' ',
-                                s.indexOf("http") + 1
+                            s.indexOf("http"), if (s.indexOf(' ', s.indexOf("http") + 1) == -1) s.length else s.indexOf(
+                                ' ', s.indexOf("http") + 1
                             )
                         )
-                    }
-                    .firstOrNull()?.run {
+                    }.firstOrNull()?.run {
                         logger.info(this)
                         Command.analyseReplay(this, null, e.jda.getTextChannelById(929686912048975882L)!!, m, null)
                     }
@@ -449,11 +436,10 @@ object PrivateCommands {
             val range = nds.teamnames[u] + "!B15:O29"
             logger.info("u = $u")
             logger.info("range = $range")
-            val comp = Comparator.comparing { l1: List<Any> -> l1[7].toString().toInt() }
-                .reversed().thenComparing { l: List<Any> -> l[2].toString() }
+            val comp = Comparator.comparing { l1: List<Any> -> l1[7].toString().toInt() }.reversed()
+                .thenComparing { l: List<Any> -> l[2].toString() }
             builder.addAll(
-                range, get[x]!!
-                    .filter { n: List<Any> -> n[2] != "" }.sortedWith(comp)
+                range, get[x]!!.filter { n: List<Any> -> n[2] != "" }.sortedWith(comp)
             )
         }
         builder.execute()
@@ -477,10 +463,7 @@ object PrivateCommands {
         val b = RequestBuilder(nds.sid)
         val teamnames = nds.teamnames
         for (s in table) {
-            b.addColumn(
-                "$s!A200",
-                picks[teamnames.reverseGet(s)!!.toLong()]!!.map { it.name }
-            )
+            b.addColumn("$s!A200", picks[teamnames.reverseGet(s)!!.toLong()]!!.map { it.name })
         }
         b.execute()
     }
@@ -536,43 +519,37 @@ object PrivateCommands {
     }
 
     @PrivateCommand(name = "updateslashcommands")
-    fun updateSlashCommands(e: GenericCommandEvent) {
-        val jda = e.jda
+    fun updateSlashCommands() {
+        val jda = EmolgaMain.emolgajda
         val map: MutableMap<Long, MutableList<SlashCommandData>> = HashMap()
-        Command.commands.values.filter { it.isSlash }.distinct()
-            .filter { it.slashGuilds.isNotEmpty() }.forEach {
-                val dt = Commands.slash(it.name, it.help)
-                if (it.category!!.isAdmin)
-                    dt.defaultPermissions = DefaultMemberPermissions.DISABLED
-                logger.info(it.name)
-                val mainCmdArgs = it.argumentTemplate.arguments
-                if (it.hasChildren()) {
-                    val childCommands = it.childCommands
-                    for (childCmd in childCommands.values) {
-                        val scd = SubcommandData(childCmd.name, childCmd.help)
-                        scd.addOptions(buildOptionData(childCmd.argumentTemplate.arguments))
-                        dt.addSubcommands(scd)
-                    }
-                } else if (mainCmdArgs.isNotEmpty() && mainCmdArgs[0].type.asOptionType() == OptionType.SUB_COMMAND) {
-                    dt.addSubcommands((mainCmdArgs[0].type as ArgumentManagerTemplate.Text).asSubCommandData())
-                } else {
-                    dt.addOptions(buildOptionData(mainCmdArgs))
+        Command.commands.values.filter { it.isSlash }.distinct().filter { it.slashGuilds.isNotEmpty() }.forEach {
+            val dt = Commands.slash(it.name, it.help)
+            if (it.category!!.isAdmin) dt.defaultPermissions = DefaultMemberPermissions.DISABLED
+            logger.info(it.name)
+            val mainCmdArgs = it.argumentTemplate.arguments
+            if (it.hasChildren()) {
+                val childCommands = it.childCommands
+                for (childCmd in childCommands.values) {
+                    val scd = SubcommandData(childCmd.name, childCmd.help)
+                    scd.addOptions(buildOptionData(childCmd.argumentTemplate.arguments))
+                    dt.addSubcommands(scd)
                 }
-                for (slashGuild in it.slashGuilds) {
-                    map.computeIfAbsent(slashGuild) { LinkedList() }.add(dt)
-                }
+            } else if (mainCmdArgs.isNotEmpty() && mainCmdArgs[0].type.asOptionType() == OptionType.SUB_COMMAND) {
+                dt.addSubcommands((mainCmdArgs[0].type as ArgumentManagerTemplate.Text).asSubCommandData())
+            } else {
+                dt.addOptions(buildOptionData(mainCmdArgs))
             }
+            for (slashGuild in it.slashGuilds) {
+                map.computeIfAbsent(slashGuild) { LinkedList() }.add(dt)
+            }
+        }
         for ((guild, value) in map) {
-            jda.getGuildById(guild)!!.updateCommands().addCommands(value)
+            (if (guild == -1L) jda.updateCommands() else jda.getGuildById(guild)!!.updateCommands()).addCommands(value)
                 .queue({ l ->
                     logger.info("guild = {}", guild)
-                    logger.info(
-                        "l = {}",
-                        l.joinToString { it.name }
-                    )
+                    logger.info("l = {}", l.joinToString { it.name })
                 }) { it.printStackTrace() }
         }
-        e.done()
     }
 
     @PrivateCommand("startasls11drafts")
@@ -693,10 +670,8 @@ object PrivateCommands {
         val msg = message.contentRaw
         for (method in PrivateCommands::class.declaredMemberFunctions) {
             val a = method.findAnnotation<PrivateCommand>() ?: continue
-            if (msg.lowercase()
-                    .startsWith("!" + a.name.lowercase() + " ") || msg.equals(
-                    "!" + a.name,
-                    ignoreCase = true
+            if (msg.lowercase().startsWith("!" + a.name.lowercase() + " ") || msg.equals(
+                    "!" + a.name, ignoreCase = true
                 ) || a.aliases.any {
                     msg.startsWith(
                         "!$it "
@@ -705,8 +680,7 @@ object PrivateCommands {
             ) {
                 //Thread({
                 try {
-                    if (method.parameters.run { isEmpty() || size == 1 })
-                        method.callSuspend(PrivateCommands)
+                    if (method.parameters.run { isEmpty() || size == 1 }) method.callSuspend(PrivateCommands)
                     else method.callSuspend(
                         PrivateCommands, PrivateCommandEvent(message)
                     )

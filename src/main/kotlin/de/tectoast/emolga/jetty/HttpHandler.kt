@@ -75,7 +75,7 @@ object HttpHandler : AbstractHandler() {
     }
 
     private val coroutineScope =
-        CoroutineScope(Dispatchers.Default + CoroutineName("HttpHandler") + CoroutineExceptionHandler { _, t ->
+        CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineName("HttpHandler") + CoroutineExceptionHandler { _, t ->
             logger.error("Exception occured while evaluating http request", t)
         })
 

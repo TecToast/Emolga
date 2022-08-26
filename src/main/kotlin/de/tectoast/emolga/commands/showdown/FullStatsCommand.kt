@@ -22,6 +22,8 @@ class FullStatsCommand :
     }
 
     override suspend fun process(e: GuildCommandEvent) {
+        e.slashCommandEvent?.hook?.sendMessage("hello world :)")?.queue()
+        if (e.isSlash) return
         val mon = e.arguments.getText("mon")
         val data = FullStatsManager.getData(mon)
         var kpu = (data.kills.toDouble() / data.uses.toDouble()).toString()

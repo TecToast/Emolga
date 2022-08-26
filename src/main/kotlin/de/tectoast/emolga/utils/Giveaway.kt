@@ -165,7 +165,7 @@ Gehostet von: <@$userId>"""
         private val giveawayFutures = HashMap<Long, ScheduledFuture<*>>()
         private val giveawayFinalizes = HashMap<Long, ScheduledFuture<*>>()
         private val coroutineScope =
-            CoroutineScope(Dispatchers.Default + CoroutineName("Giveaway") + CoroutineExceptionHandler { _, t ->
+            CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineName("Giveaway") + CoroutineExceptionHandler { _, t ->
                 logger.error("ERROR IN GIVEAWAY SCOPE", t)
                 Command.sendToMe("Error in giveaway scope, look in console")
             })

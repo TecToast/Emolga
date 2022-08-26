@@ -15,12 +15,12 @@ object AnalysisManager : DataManager("analysis") {
         setColumns(REPLAY, RESULT, GUILD)
     }
 
-    fun insertChannel(replayChannel: TextChannel, resultChannel: TextChannel): Long {
+    fun insertChannel(replayChannel: TextChannel, resultChannel: Long): Long {
         val l = RESULT.retrieveValue(REPLAY, replayChannel.idLong)
         if (l != null) {
             return l
         }
-        insert(replayChannel.idLong, resultChannel.idLong, replayChannel.guild.idLong)
+        insert(replayChannel.idLong, resultChannel, replayChannel.guild.idLong)
         return -1
     }
 

@@ -6,10 +6,7 @@ import de.tectoast.emolga.utils.sql.base.DataManager
 import de.tectoast.emolga.utils.sql.base.DataManager.ResultsFunction
 import de.tectoast.emolga.utils.sql.base.columns.IntColumn
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import java.sql.ResultSet
 
@@ -20,7 +17,7 @@ object FullStatsManager : DataManager("fullstats") {
     private val USES = IntColumn("uses", this)
     private val WINS = IntColumn("wins", this)
     private val LOOSES = IntColumn("looses", this)
-    private val scope = CoroutineScope(Dispatchers.IO + CoroutineExceptionHandler { _, t ->
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineExceptionHandler { _, t ->
         logger.error("ERROR IN FULLSTATS SCOPE", t)
         Command.sendToMe("Error in fullstats scope, look in console")
     })

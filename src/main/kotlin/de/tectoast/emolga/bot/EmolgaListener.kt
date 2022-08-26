@@ -146,7 +146,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
         e.jda.openPrivateChannelById(g.ownerIdLong).flatMap {
             it.sendMessage(
                 WELCOMEMESSAGE.replace(
-                    "{USERNAME}", g.owner!!.user.name
+                    "{USERNAME}", "<@${g.ownerIdLong}>"
                 ).replace("{SERVERNAME}", g.name)
             )
         }.queue()
@@ -178,7 +178,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                 val gid = g.idLong
                 val tcoid = tco.idLong
                 Command.check(e)
-                if (gid == Constants.G.MY) {
+                if (gid == Constants.G.MY && member.idLong == FLOID) {
                     PrivateCommands.execute(e.message)
                     if (tco.parentCategoryIdLong == EMOLGA_KI) {
                         val split = tco.name.split("-")
@@ -264,9 +264,6 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
             if (e.author.isBot) return
             if (e.author.idLong != FLOID) e.jda.getTextChannelById(828044461379682314L)
                 ?.sendMessage(e.author.asMention + ": " + e.message.contentDisplay)?.queue()
-            if (e.author.idLong == FLOID) {
-                PrivateCommands.execute(e.message)
-            }
             PrivateCommand.check(e)
             val msg = e.message.contentDisplay
             if (msg.contains("https://") || msg.contains("http://")) {

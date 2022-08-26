@@ -27,7 +27,7 @@ class Tierlist(val guild: Long) {
      * The price for each tier
      */
     val prices: Map<String, Int> = mapOf()
-    private val freepicks: Map<String, Int> = mapOf()
+    val freepicks: Map<String, Int> = mapOf()
     private val nexttiers: List<Int> = listOf()
     val namepreference: DraftNamePreference = DraftNamePreference.SINGLE_CHAR_BEFORE
 
@@ -56,6 +56,8 @@ class Tierlist(val guild: Long) {
      */
     val isPointBased: Boolean
         get() = mode == TierlistMode.POINTS
+
+    val freePicksAmount: Int get() = freepicks["#AMOUNT#"] ?: 0
 
     /**
      * the possible points for a player

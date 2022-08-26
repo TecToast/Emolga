@@ -209,6 +209,7 @@ class Analysis(private val link: String, m: Message?) {
             }
         }
         line = -1
+        logger.info(MarkerFactory.getMarker("important"), "zoroTurns.get(0) = {}", zoroTurns[0])
         logger.info(MarkerFactory.getMarker("important"), "zoroTurns.get(1) = {}", zoroTurns[1])
         for (currentLine in game) {
             line++

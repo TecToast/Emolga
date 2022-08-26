@@ -16,10 +16,15 @@ tasks {
     withType(JavaCompile::class.java) {
         options.encoding = "UTF-8"
     }
-    withType<ShadowJar> {
+    withType<Jar> {
         manifest {
-            attributes("Main-Class" to "de.tectoast.emolga.Main")
+            attributes("Main-Class" to "de.tectoast.emolga.Main", "Class-Path" to "Emolga-all.jar")
         }
+        exclude("natives/linux-arm/libconnector.so")
+    }
+    withType<ShadowJar> {
+        exclude("de/tectoast/emolga/**")
+        archiveVersion.set("")
     }
     withType(KotlinCompile::class.java) {
         dependsOn("clean")

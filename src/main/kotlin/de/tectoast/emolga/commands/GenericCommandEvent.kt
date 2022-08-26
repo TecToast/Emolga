@@ -1,7 +1,6 @@
 package de.tectoast.emolga.commands
 
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.records.DeferredSlashResponse
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -24,7 +23,7 @@ abstract class GenericCommandEvent {
     private val mentionedRoles: List<Role>
     private val argsLength: Int
     val slashCommandEvent: SlashCommandInteractionEvent?
-    var slashCommandAcknowlegded = false
+
     constructor(message: Message) {
         this.message = message
         author = message.author
@@ -48,8 +47,7 @@ abstract class GenericCommandEvent {
         channel = e.channel
         jda = e.jda
         args = e.options.map { it.asString }.toMutableList()
-        mentionedChannels =
-            e.options.filter { it.type == OptionType.CHANNEL }.map { it.asChannel.asTextChannel() }
+        mentionedChannels = e.options.mapNotNull { it.runCatching { asChannel.asTextChannel() }.getOrNull() }
         mentionedMembers = e.options.filter { it.type == OptionType.USER }.map { it.asMember }
         mentionedRoles = e.options.filter { it.type == OptionType.ROLE }.map { it.asRole }
         argsLength = args.size
@@ -68,7 +66,7 @@ abstract class GenericCommandEvent {
     fun reply(msg: String, ephermal: Boolean = false) {
         if (msg.isEmpty()) return
         if (slashCommandEvent != null) slashCommandEvent.reply(msg).setEphemeral(ephermal)
-            .queue().also { slashCommandAcknowlegded = true } else channel.sendMessage(msg).queue()
+            .queue() else channel.sendMessage(msg).queue()
     }
 
     fun reply(
@@ -81,7 +79,7 @@ abstract class GenericCommandEvent {
         if (slashCommandEvent != null) {
             val reply = slashCommandEvent.reply(msg)
             ra?.accept(reply)
-            reply.queue(ih).also { slashCommandAcknowlegded = true }
+            reply.queue(ih)
         } else {
             val ac = channel.sendMessage(msg)
             ma?.accept(ac)
@@ -99,7 +97,7 @@ abstract class GenericCommandEvent {
         if (slashCommandEvent != null) {
             val reply = slashCommandEvent.replyEmbeds(msg!!)
             ra?.accept(reply)
-            reply.queue(ih).also { slashCommandAcknowlegded = true }
+            reply.queue(ih)
         } else {
             val ac = channel.sendMessageEmbeds(msg!!)
             ma?.accept(ac)
@@ -109,8 +107,7 @@ abstract class GenericCommandEvent {
     }
 
     fun reply(message: MessageEmbed?) {
-        if (slashCommandEvent != null) slashCommandEvent.replyEmbeds(message!!).queue()
-            .also { slashCommandAcknowlegded = true } else channel.sendMessageEmbeds(
+        if (slashCommandEvent != null) slashCommandEvent.replyEmbeds(message!!).queue() else channel.sendMessageEmbeds(
             message!!
         ).queue()
     }
@@ -122,10 +119,8 @@ abstract class GenericCommandEvent {
     val isNotFlo: Boolean
         get() = author.idLong != Constants.FLOID
 
-    fun deferReply(): DeferredSlashResponse? {
-        return if (slashCommandEvent != null) DeferredSlashResponse(
-            slashCommandEvent.deferReply().submit()
-        ).also { slashCommandAcknowlegded = true } else null
+    fun deferReply() {
+        slashCommandEvent?.deferReply()?.queue()
     }
 
     val isSlash: Boolean

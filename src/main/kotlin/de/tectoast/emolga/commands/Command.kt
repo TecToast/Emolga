@@ -39,7 +39,6 @@ import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.emolga.draft.*
 import de.tectoast.emolga.utils.music.GuildMusicManager
 import de.tectoast.emolga.utils.records.CalendarEntry
-import de.tectoast.emolga.utils.records.DeferredSlashResponse
 import de.tectoast.emolga.utils.records.TypicalSets
 import de.tectoast.emolga.utils.showdown.Analysis
 import de.tectoast.emolga.utils.showdown.Player
@@ -53,10 +52,7 @@ import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import dev.minn.jda.ktx.util.SLF4J
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -76,6 +72,7 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import net.dv8tion.jda.api.interactions.components.ActionRow
@@ -327,7 +324,8 @@ abstract class Command(
         val guildId: Long = -1,
         val language: Translation.Language = Translation.Language.GERMAN,
         val message: Message? = null,
-        val asFar: Int = -1
+        val asFar: Int = -1,
+        val channel: MessageChannel? = null
     )
 
     interface ArgumentType {
@@ -517,7 +515,8 @@ abstract class Command(
                             type.validate(
                                 o.asString, ValidationData(
                                     guildId = e.guild?.idLong ?: -1,
-                                    language = arg.language
+                                    language = arg.language,
+                                    channel = e.channel
                                 )
                             ) ?: throw MissingArgumentException(arg)
                         } else {
@@ -573,7 +572,8 @@ abstract class Command(
                     o = type.validate(
                         str, ValidationData(
                             message = m,
-                            asFar = asFar.getOrDefault(type, 0)
+                            asFar = asFar.getOrDefault(type, 0),
+                            channel = e.channel
                         )
                     )
                     if (o != null) asFar[type] = asFar.getOrDefault(type, 0) + 1
@@ -581,7 +581,8 @@ abstract class Command(
                     o = type.validate(
                         str, ValidationData(
                             guildId = if (e.isFromGuild) e.guild.idLong else -1,
-                            language = a.language
+                            language = a.language,
+                            channel = e.channel
                         )
                     )
                     if (o == null) {
@@ -599,7 +600,8 @@ abstract class Command(
                             o = type.validate(
                                 split.subList(i, split.size).joinToString(" "), ValidationData(
                                     guildId = if (e.isFromGuild) e.guild.idLong else -1,
-                                    language = a.language
+                                    language = a.language,
+                                    channel = e.channel
                                 )
                             )
                         }
@@ -690,6 +692,7 @@ abstract class Command(
             private val any: Boolean
             private val slashSubCmd: Boolean
             private var mapper = Function { s: String -> s }
+            private var autoComplete: ((String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
 
             private constructor(possible: List<SubCommand>, slashSubCmd: Boolean) {
                 texts.addAll(possible)
@@ -729,10 +732,13 @@ abstract class Command(
             }
 
             override fun hasAutoComplete(): Boolean {
-                return !(slashSubCmd || texts.isEmpty())
+                return !(slashSubCmd || texts.isEmpty()) || autoComplete != null
             }
 
-            override fun autoCompleteList(arg: String, event: CommandAutoCompleteInteractionEvent): List<String> {
+            override fun autoCompleteList(arg: String, event: CommandAutoCompleteInteractionEvent): List<String>? {
+                if (autoComplete != null) {
+                    return autoComplete!!(arg, event)
+                }
                 return texts.asSequence().filter { c: SubCommand -> c.name.lowercase().startsWith(arg) }
                     .map { obj: SubCommand -> obj.name }.toList()
             }
@@ -753,6 +759,19 @@ abstract class Command(
 
                 fun any(): Text {
                     return Text()
+                }
+
+                fun withAutocomplete(autoComplete: ((String, CommandAutoCompleteInteractionEvent) -> List<String>?)?): Text {
+                    return Text().apply {
+                        this.autoComplete = autoComplete
+                    }
+                }
+
+                fun draftTiers(): Text {
+                    return withAutocomplete { _, event ->
+                        League.onlyChannel(event.channel!!.idLong)?.getPossibleTiers()?.filter { it.value > 0 }
+                            ?.map { it.key }
+                    }
                 }
             }
         }
@@ -2754,7 +2773,7 @@ abstract class Command(
                         return
                     }
                     if (command.beta) e.channel.sendMessage(
-                        "Dieser Command befindet sich zurzeit in der Beta-Phase! Falls Fehler auftreten, kontaktiert bitte $Constants.G.MYTAG durch einen Ping oder eine PN!"
+                        "Dieser Command befindet sich zurzeit in der Beta-Phase! Falls Fehler auftreten, kontaktiert bitte ${Constants.MYTAG} durch einen Ping oder eine PN!"
                     ).queue()
                     GuildCommandEvent(command, e).execute()
                 } catch (ex: MissingArgumentException) {
@@ -2778,7 +2797,7 @@ abstract class Command(
                 } catch (ex: Exception) {
                     ex.printStackTrace()
                     tco.sendMessage(
-                        "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo ($Constants.G.MYTAG).\n${
+                        "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (${Constants.MYTAG}).\n${
                             command.getHelp(
                                 e.guild
                             )
@@ -3045,7 +3064,7 @@ abstract class Command(
             customReplayChannel: TextChannel?,
             resultchannel: TextChannel,
             m: Message?,
-            e: DeferredSlashResponse?
+            e: InteractionHook?
         ) {
             defaultScope.launch {
                 if (BOT_DISABLED && resultchannel.guild.idLong != Constants.G.MY) {
@@ -3063,8 +3082,8 @@ abstract class Command(
                     //game = Analysis.analyse(url, m);
                 } catch (ex: Exception) {
                     val msg =
-                        "Beim Auswerten des Replays ist ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein und melde dich gegebenenfalls bei $Constants.G.MYTAG!"
-                    if (e != null) e.reply(msg) else {
+                        "Beim Auswerten des Replays ist ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein und melde dich gegebenenfalls bei ${Constants.MYTAG}!"
+                    if (e != null) e.sendMessage(msg).queue() else {
                         resultchannel.sendMessage(msg).queue()
                     }
                     ex.printStackTrace()
@@ -3074,14 +3093,8 @@ abstract class Command(
                 val g = resultchannel.guild
                 val gid: Long
                 val msg = m?.contentDisplay ?: ""
-                gid = if (m != null && m.author.idLong == FLOID) {
-                    val matcher = CUSTOM_GUILD_PATTERN.find(msg)
-                    matcher?.let {
-                        matcher.groupValues[1].toLong()
-                    } ?: g.idLong
-                } else {
-                    g.idLong
-                }
+                gid = (if (m?.author?.idLong == FLOID) CUSTOM_GUILD_PATTERN.find(msg)?.groupValues?.get(1)?.toLong()
+                    ?: g.idLong else g.idLong)
                 val u1 = game[0].nickname
                 val u2 = game[1].nickname
                 val uid1 = SDNamesManager.getIDByName(u1)
@@ -3191,7 +3204,7 @@ abstract class Command(
                 }
                 customReplayChannel?.sendMessage(url)?.queue()
                 if (e != null) {
-                    e.reply(str)
+                    e.sendMessage(str).queue()
                 } else if (!customResult.contains(gid)) resultchannel.sendMessage(str).queue()
                 StatisticsManager.increment("analysis")
                 var i = 0
@@ -3643,7 +3656,7 @@ fun String.toSDName() = Command.toSDName(this)
 
 private val logger: Logger by SLF4J
 
-val defaultScope = CoroutineScope(Dispatchers.Default + CoroutineExceptionHandler { _, t ->
+val defaultScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
     logger.error("ERROR IN DEFAULT SCOPE", t)
     sendToMe("Error in default scope, look in console")
 })

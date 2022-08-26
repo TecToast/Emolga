@@ -90,7 +90,7 @@ object EmolgaMain {
     }
 
     private fun initializeASLS11(jda: JDA) {
-        val scope = CoroutineScope(Dispatchers.Default + CoroutineExceptionHandler { _, t ->
+        val scope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
             logger.error("ERROR IN ASL SCOPE", t)
             Command.sendToMe("Error in asl scope, look in console")
         })

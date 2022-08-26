@@ -25,7 +25,8 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             "Pokemon",
             "Das Pokemon, was du picken willst",
             ArgumentManagerTemplate.draftPokemon({ s, event ->
-                val tl = Tierlist.getByGuild(event.guild!!.id)
+                val gid = event.guild!!.idLong
+                val tl = Tierlist.getByGuild(League.onlyChannel(event.channel!!.idLong)?.guild ?: gid)
                 val strings = tl?.autoComplete?.let { acl ->
                     val ac = acl + tl.pickableNicknames
                     ac.filter {
@@ -37,12 +38,12 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 if (strings == null || strings.size > 25) emptyList()
                 else strings.sorted()
             }, {
-                Tierlist.getByGuild(it.guildId)?.namepreference
+                Tierlist.getByGuild(League.onlyChannel(it.channel!!.idLong)?.guild ?: it.guildId)?.namepreference
                     ?: DraftNamePreference.SINGLE_CHAR_BEFORE
             }),
             false,
             "Das ist kein Pokemon!"
-        ).add("tier", "Tier", "Das Tier", ArgumentManagerTemplate.Text.any(), true)
+        ).add("tier", "Tier", "Das Tier", ArgumentManagerTemplate.Text.draftTiers(), true)
             .add("free", "Free-Pick", "Ob dieser Pick ein Freepick ist", ArgumentManagerTemplate.ArgumentBoolean, true)
             .setExample("!pick Emolga").build()
         slash(true, Constants.G.FPL, Constants.G.NDS, Constants.G.ASL, Constants.G.BLOCKI)
@@ -76,9 +77,10 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 return
             }
             val needed = tierlist.getPointsNeeded(pokemon)
+            val free = args.getOrDefault("free", false)
             if (d.handleTiers(e, tier, origtier)) return
-            if (d.handlePoints(e, needed)) return
-            d.savePick(picks, pokemon, tier)
+            if (d.handlePoints(e, needed, free)) return
+            d.savePick(picks, pokemon, tier, free)
             //m.delete().queue();
             if (!isRandom) d.replyPick(e, pokemon, mem)
             if (isRandom) {
@@ -98,7 +100,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                     picks,
                     round,
                     d.table.indexOf(mem),
-                    args.getOrDefault("free", false)
+                    free
                 )
             )
             d.afterPick()

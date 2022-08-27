@@ -49,20 +49,6 @@ repositories {
     maven {
         url = uri("https://m2.dv8tion.net/releases")
     }
-    maven {
-        url = uri("https://maven.pkg.github.com/TecToast/Toastilities")
-        credentials {
-            username = gprUser
-            password = gprPassword
-        }
-    }
-    maven {
-        url = uri("https://maven.pkg.github.com/TecToast/JSOLF")
-        credentials {
-            username = gprUser
-            password = gprPassword
-        }
-    }
     maven("https://jitpack.io/")
 }
 dependencies {
@@ -81,8 +67,8 @@ dependencies {
     //implementation("mysql:mysql-connector-java:8.0.29")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.0")
-    implementation("de.tectoast:toastilities:2.2")
-    implementation("com.github.TecToast:JSOLF:-SNAPSHOT")
+    implementation("com.github.TecToast:Toastilities:7e571a5d9d")
+    implementation("com.github.TecToast:JSOLF:a43c3e06c7")
     implementation("net.dv8tion:JDA:5.0.0-alpha.18")
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.0.7")

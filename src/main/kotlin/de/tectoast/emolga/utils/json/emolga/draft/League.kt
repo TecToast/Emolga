@@ -28,8 +28,7 @@ sealed class League {
     val picks: MutableMap<Long, MutableList<DraftPokemon>> = mutableMapOf()
     val battleorder: MutableMap<Int, String> = mutableMapOf()
     val results: MutableMap<String, Long> = mutableMapOf()
-    val allowed: MutableMap<Long, Long> = mutableMapOf()
-    private val mentions: Map<Long, Long> = emptyMap()
+    val allowed: MutableMap<Long, MutableList<AllowedData>> = mutableMapOf()
     val guild: Long = -1
     var round = 1
     var current = -1L
@@ -54,17 +53,10 @@ sealed class League {
         get() = tierlist.isPointBased
 
     @Transient
-    val timerScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
-        logger.error(
-            "ERROR EXECUTING TIMER", t
-        )
-    })
-
-    @Transient
     var cooldownJob: Job? = null
     val members: List<Long>
         get() = table
-    private val timer: DraftTimer = DraftTimer.ASL
+    abstract val timer: DraftTimer
     val isLastRound: Boolean get() = round == tierlist.rounds
 
     var isSwitchDraft = false
@@ -97,7 +89,7 @@ sealed class League {
 
     open fun isCurrent(user: Long): Boolean {
         if (current == user || user in listOf(Constants.FLOID, Constants.DASORID)) return true
-        return allowed[user] == current
+        return allowed[current]?.any { it.u == user } ?: false
     }
 
     fun isPicked(mon: String) = picks.values.any { l -> l.any { it.name.equals(mon, ignoreCase = true) } }
@@ -156,7 +148,7 @@ sealed class League {
     fun nextPlayer() {
         if (endOfTurn()) return
         current = order[round]!!.nextCurrent()
-        cooldownJob!!.cancel("Timer runs out")
+        cooldownJob?.cancel("Timer runs out")
         announcePlayer()
         restartTimer()
         saveEmolgaJSON()
@@ -190,13 +182,14 @@ sealed class League {
             val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer.calc()
             restartTimer(delay)
         }
-        saveEmolgaJSON()
         isRunning = true
+        saveEmolgaJSON()
         logger.info("Started!")
     }
 
     private fun restartTimer(delay: Long = timer.calc()) {
         cooldown = System.currentTimeMillis() + delay
+        logger.info("important".marker, "cooldown = {}", cooldown)
         cooldownJob = timerScope.launch {
             delay(delay)
             triggerTimer()
@@ -228,10 +221,10 @@ sealed class League {
                 else str
             }
 
-    fun getTierOf(args: Command.ArgumentManager, pokemon: String): Pair<String, String> {
+    fun getTierOf(pokemon: String, insertedTier: String?): Pair<String, String> {
         val real = tierlist.getTierOf(pokemon)
-        return if (args.has("tier") && !isPointBased) {
-            (tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: "") to real
+        return if (insertedTier != null && !isPointBased) {
+            (tierlist.order.firstOrNull { insertedTier.equals(it, ignoreCase = true) } ?: "") to real
         } else {
             real to real
         }
@@ -278,8 +271,7 @@ sealed class League {
     }
 
     protected open fun getMention(mem: Long): String {
-        mentions[mem]?.let { "<@$it> (${getName(mem)})" }
-        return "<@${mentions[mem] ?: mem}>"
+        return allowed[mem]?.firstOrNull { it.mention }?.u?.let { "<@$it> (für ${getName(mem)})" } ?: "<@$mem>"
     }
 
     private fun getName(mem: Long) = names[mem]!!
@@ -287,9 +279,15 @@ sealed class League {
     fun isPickedBy(mon: String, mem: Long): Boolean = picks[mem]!!.any { it.name == mon }
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
     fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER) {
+        logger.info("TriggerTimer 1")
+        if (!isRunning) return
+        logger.info("TriggerTimer 2")
         triggerMove()
+        logger.info("TriggerTimer 3")
         if (endOfTurn()) return/*String msg = tr == TimerReason.REALTIMER ? "**" + current.getEffectiveName() + "** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " (<@&" + asl.getLongList("roleids").get(getIndex(order.get(round).get(0).getIdLong())) + ">) dran! "
                 : "Der Pick von " + current.getEffectiveName() + " wurde " + (isSwitchDraft ? "geskippt" : "verschoben") + " und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran!";*/
+
+        logger.info("TriggerTimer 4")
         val oldcurrent = current
         current = order[round]!!.nextCurrent()
         tc.sendMessage(buildString {
@@ -320,11 +318,11 @@ sealed class League {
     abstract val docEntry: DocEntry?
 
     fun builder() = RequestBuilder(sid)
-    suspend fun replyPick(e: GuildCommandEvent, pokemon: String, mem: Long) {
+    suspend fun replyPick(e: GuildCommandEvent, pokemon: String, mem: Long, free: Boolean) {
         e.slashCommandEvent!!.reply(
             "${e.member.asMention} hat${
                 if (e.author.idLong != mem) " für **${getName(mem)}**" else ""
-            } $pokemon gepickt!"
+            } $pokemon gepickt!".condAppend(free, " (Free-Pick)")
         ).await()
     }
 
@@ -340,6 +338,27 @@ sealed class League {
     companion object {
         val logger: Logger by SLF4J
 
+        var timerScope = scopebuilder()
+
+        private fun scopebuilder() =
+            CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
+                logger.error(
+                    "ERROR EXECUTING TIMER", t
+                )
+            })
+
+        fun restart() {
+            timerScope.cancel("Restart")
+            timerScope = scopebuilder()
+            Emolga.get.drafts.values.forEach {
+                with(it) {
+                    if (!isRunning) return@forEach
+                    val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer.calc()
+                    restartTimer(delay)
+                }
+            }
+        }
+
         fun byChannel(e: GuildCommandEvent) = onlyChannel(e.textChannel.idLong)?.apply {
             if (!isCurrent(e.member.idLong)) {
                 e.reply("Du bist nicht dran!")
@@ -354,3 +373,6 @@ sealed class League {
         REALTIMER, SKIP
     }
 }
+
+@Serializable
+data class AllowedData(val u: Long, var mention: Boolean = false)

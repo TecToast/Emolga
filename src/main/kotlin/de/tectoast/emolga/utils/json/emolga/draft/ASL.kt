@@ -6,6 +6,7 @@ import de.tectoast.emolga.commands.indexedBy
 import de.tectoast.emolga.commands.x
 import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.automation.structure.BasicResultCreator
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
@@ -53,6 +54,7 @@ class ASL(val level: Int = -1) : League() {
         sorterData = SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), false, null, 2, 8, 6)
 
     }
+    override val timer = DraftTimer.ASL
 
     @Transient
     val comparator: Comparator<DraftPokemon> = compareBy({ it.tier.indexedBy(tierlist.order) }, { it.name })

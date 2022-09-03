@@ -32,5 +32,6 @@ class GDL : League() {
                 )
             }
     }
+    override val timer get() = error("not implemented")
 
 }

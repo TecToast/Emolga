@@ -31,7 +31,6 @@ import net.dv8tion.jda.api.entities.AudioChannel
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.entities.emoji.Emoji
-import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
@@ -126,12 +125,6 @@ object PrivateCommands {
     @PrivateCommand(name = "updatedatabase")
     fun updateDatabase(e: GenericCommandEvent) {
         Command.loadJSONFiles()
-        e.done()
-    }
-
-    @PrivateCommand(name = "emolgajson", aliases = ["ej"])
-    fun emolgajson(e: GenericCommandEvent) {
-        Command.loadEmolgaJSON()
         e.done()
     }
 
@@ -524,7 +517,7 @@ object PrivateCommands {
         val map: MutableMap<Long, MutableList<SlashCommandData>> = HashMap()
         Command.commands.values.filter { it.isSlash }.distinct().filter { it.slashGuilds.isNotEmpty() }.forEach {
             val dt = Commands.slash(it.name, it.help)
-            if (it.category!!.isAdmin) dt.defaultPermissions = DefaultMemberPermissions.DISABLED
+            //if (it.category!!.isAdmin) dt.defaultPermissions = DefaultMemberPermissions.DISABLED
             logger.info(it.name)
             val mainCmdArgs = it.argumentTemplate.arguments
             if (it.hasChildren()) {

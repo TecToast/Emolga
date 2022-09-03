@@ -62,5 +62,6 @@ class Prisma : League() {
             true, { s: String -> s.substring("=Data!W".length).toInt() / 11 - 1 }, 1, -1, 7
         )
     }
+    override val timer get() = error("not implemented")
 
 }

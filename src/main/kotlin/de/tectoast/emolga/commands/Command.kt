@@ -505,11 +505,12 @@ abstract class Command(
                 map[arguments[0].id] = e.subcommandName!!
             } else {
                 for (arg in arguments) {
-                    if (e.getOption(arg.name.lowercase()) == null && !arg.isOptional) {
+                    val argName = arg.name.lowercase().replace(" ", "-").replace(Regex("[^\\w-]"), "")
+                    if (e.getOption(argName) == null && !arg.isOptional) {
                         throw MissingArgumentException(arg)
                     }
                     val type = arg.type
-                    val o = e.getOption(arg.name.lowercase())
+                    val o = e.getOption(argName)
                     if (o != null) {
                         map[arg.id] = if (type.needsValidate()) {
                             type.validate(
@@ -523,7 +524,7 @@ abstract class Command(
                             when (o.type) {
                                 OptionType.ROLE -> o.asRole
                                 OptionType.CHANNEL -> o.asChannel
-                                OptionType.USER -> o.asUser
+                                OptionType.USER -> o.asMember!!
                                 OptionType.INTEGER -> o.asLong
                                 OptionType.BOOLEAN -> o.asBoolean
                                 else -> o.asString
@@ -1353,6 +1354,7 @@ abstract class Command(
         private val CUSTOM_GUILD_PATTERN = Regex("(\\d{18,})")
         val TRIPLE_HASHTAG = Regex("###")
         const val DEXQUIZ_BUDGET = 10
+        val draftGuilds = arrayOf(Constants.G.FPL, Constants.G.NDS, Constants.G.ASL, Constants.G.BLOCKI)
 
 
         /**
@@ -3679,6 +3681,11 @@ fun saveEmolgaJSON() {
 fun String.file() = File(this)
 
 fun Collection<String>.filterStartsWithIgnoreCase(other: String) = filter { it.startsWith(other, ignoreCase = true) }
+
+val String.marker get() = MarkerFactory.getMarker(this)
+
+fun String.condAppend(check: Boolean, value: String) = if (check) this + value else this
+fun String.condAppend(check: Boolean, value: () -> String) = if (check) this + value() else this
 
 data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)
 

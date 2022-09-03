@@ -1,7 +1,6 @@
 package de.tectoast.emolga.commands.draft
 
 import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -46,7 +45,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
         ).add("tier", "Tier", "Das Tier", ArgumentManagerTemplate.Text.draftTiers(), true)
             .add("free", "Free-Pick", "Ob dieser Pick ein Freepick ist", ArgumentManagerTemplate.ArgumentBoolean, true)
             .setExample("!pick Emolga").build()
-        slash(true, Constants.G.FPL, Constants.G.NDS, Constants.G.ASL, Constants.G.BLOCKI)
+        slash(true, *draftGuilds.toLongArray())
     }
 
     override suspend fun process(e: GuildCommandEvent) = exec(e, false)
@@ -71,18 +70,18 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 e.reply("Du hast bereits 15 Mons!")
                 return
             }
-            val (tier, origtier) = d.getTierOf(args, pokemon)
+            val (tier, origtier) = d.getTierOf(pokemon, args.getNullable("tier"))
             if (d.isPicked(pokemon)) {
                 e.reply("Dieses Pokemon wurde bereits gepickt!")
                 return
             }
             val needed = tierlist.getPointsNeeded(pokemon)
-            val free = args.getOrDefault("free", false)
-            if (d.handleTiers(e, tier, origtier)) return
+            val free = args.getOrDefault("free", false).takeIf { tierlist.mode.isMix() } ?: false
+            if (!free && d.handleTiers(e, tier, origtier)) return
             if (d.handlePoints(e, needed, free)) return
             d.savePick(picks, pokemon, tier, free)
             //m.delete().queue();
-            if (!isRandom) d.replyPick(e, pokemon, mem)
+            if (!isRandom) d.replyPick(e, pokemon, mem, free)
             if (isRandom) {
                 d.replyRandomPick(e, pokemon, mem, tier)
             } else if (pokemon == "Emolga") {

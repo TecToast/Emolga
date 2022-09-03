@@ -3,10 +3,10 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.Emolga
 
-class DraftsetupCommand : Command("draftsetup", "Startet das Draften der Liga in diesem Channel", CommandCategory.Flo) {
+class DraftsetupCommand :
+    Command("draftsetup", "Startet das Draften der Liga in diesem Channel (nur Flo)", CommandCategory.Flo) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("name", "Name", "Der Name der Liga/des Drafts", ArgumentManagerTemplate.Text.any())
@@ -27,7 +27,7 @@ class DraftsetupCommand : Command("draftsetup", "Startet das Draften der Liga in
             .setExample("!draftsetup Emolga-Conference #emolga-teamübersicht")
             .build()
         setCustomPermissions(PermissionPreset.fromIDs(297010892678234114L))
-        slash(false, Constants.G.ASL)
+        slash(false, *draftGuilds.toLongArray())
     }
 
     override suspend fun process(e: GuildCommandEvent) {

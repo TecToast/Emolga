@@ -1,11 +1,8 @@
 package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.buttons.ButtonListener
-import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.Command.Companion.replayAnalysis
-import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.PrivateCommand
-import de.tectoast.emolga.commands.PrivateCommands
 import de.tectoast.emolga.commands.music.custom.WirklichGuteMusikCommand
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
@@ -15,6 +12,7 @@ import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.DexQuiz
 import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.Shinycount
 import de.tectoast.emolga.utils.sql.managers.BanManager
 import de.tectoast.emolga.utils.sql.managers.MuteManager
 import dev.minn.jda.ktx.events.listener
@@ -212,7 +210,25 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                 }
                 if (tcoid == 778380440078647296L || tcoid == 919641011632881695L) {
                     val split = msg.split(" ")
-                    val counter = Command.shinycountjson.getJSONObject("counter")
+                    val counter = Shinycount.get.counter
+                    counter.entries.firstOrNull { it.key.startsWith(split[1], ignoreCase = true) }?.value?.let { map ->
+                        var isCmd = true
+                        val mem = member.idLong.ifMatches(598199247124299776) { it == 893773494578470922 }.toString()
+                        if (msg.startsWith("!set ", ignoreCase = true)) {
+                            map[mem] = split[2].toLong()
+                        } else if (msg.startsWith("!add ", ignoreCase = true)) {
+                            map.compute(mem) { _, v -> (v ?: 0) + split[2].toLong() }
+                        } else if (msg.startsWith("!reset", ignoreCase = true)) {
+                            map[mem] = 0
+                        } else {
+                            isCmd = false
+                        }
+                        if (isCmd) {
+                            m.delete().queue()
+                            Command.updateShinyCounts(tcoid)
+                        }
+                    }
+                    /*val counter = Command.shinycountjson.getJSONObject("counter")
                     counter.keySet().firstOrNull { it.lowercase().startsWith(split[1].lowercase()) }?.let {
                         val o = Command.shinycountjson.getJSONObject("counter").getJSONObject(it)
                         var isCmd = true
@@ -228,7 +244,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                             m.delete().queue()
                             Command.updateShinyCounts(tcoid)
                         }
-                    }
+                    }*/
                 }
                 if (!e.author.isBot && !msg.startsWith("!dexquiz")) {
                     DexQuiz.getByTC(tco)?.run {

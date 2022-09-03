@@ -1,6 +1,5 @@
 package de.tectoast.emolga.commands.pokemon
 
-import de.tectoast.emolga.buttons.buttonsaves.MonData
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
@@ -9,8 +8,6 @@ import de.tectoast.emolga.utils.sql.managers.AtkDataManager
 import de.tectoast.emolga.utils.sql.managers.ItemDataManager
 import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.EmbedBuilder
-import net.dv8tion.jda.api.entities.Message
-import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
@@ -189,9 +186,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                                 )
                             )
                         }
-                    }, m = { mes: Message ->
-                        monDataButtons[mes.idLong] = MonData(list)
-                    }, ih = { ih: InteractionHook -> monDataButtons[ih.interaction.idLong] = MonData(list) })
+                    })
                 }
 
                 Translation.Type.MOVE -> {

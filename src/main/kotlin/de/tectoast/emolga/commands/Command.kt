@@ -14,11 +14,11 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.buttons.ButtonListener
-import de.tectoast.emolga.buttons.buttonsaves.MonData
 import de.tectoast.emolga.buttons.buttonsaves.Nominate
 import de.tectoast.emolga.buttons.buttonsaves.PrismaTeam
 import de.tectoast.emolga.buttons.buttonsaves.TrainerData
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
+import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
 import de.tectoast.emolga.database.Database.Companion.incrementPredictionCounter
@@ -36,6 +36,7 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.Tierlist.Companion.getByGuild
 import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.Shinycount
 import de.tectoast.emolga.utils.json.emolga.draft.*
 import de.tectoast.emolga.utils.music.GuildMusicManager
 import de.tectoast.emolga.utils.records.CalendarEntry
@@ -84,6 +85,7 @@ import net.dv8tion.jda.internal.utils.Helpers
 import org.apache.commons.collections4.queue.CircularFifoQueue
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.slf4j.Marker
 import org.slf4j.MarkerFactory
 import java.io.*
 import java.lang.reflect.Modifier
@@ -1319,7 +1321,6 @@ abstract class Command(
         val musicManagers: MutableMap<Long, GuildMusicManager> = HashMap()
         private val playerManagers: MutableMap<Long, AudioPlayerManager> = HashMap()
         val trainerDataButtons: MutableMap<Long, TrainerData> = HashMap()
-        val monDataButtons: MutableMap<Long, MonData> = HashMap()
         val nominateButtons: MutableMap<Long, Nominate> = HashMap()
         val smogonMenu: MutableMap<Long, SmogonSet> = HashMap()
         val prismaTeam: MutableMap<Long, PrismaTeam> = HashMap()
@@ -1355,12 +1356,6 @@ abstract class Command(
         val TRIPLE_HASHTAG = Regex("###")
         const val DEXQUIZ_BUDGET = 10
         val draftGuilds = arrayOf(Constants.G.FPL, Constants.G.NDS, Constants.G.ASL, Constants.G.BLOCKI)
-
-
-        /**
-         * Used for a shiny counter
-         */
-        lateinit var shinycountjson: JSONObject
 
         /**
          * JSONObject containing all credentials (Discord Token, Google OAuth Token)
@@ -2162,22 +2157,25 @@ abstract class Command(
         }
 
         private fun buildAndSaveShinyCounts(): String {
-            val b = StringBuilder(50)
-            val counter = shinycountjson.getJSONObject("counter")
-            val names = shinycountjson.getJSONObject("names")
-            for (method in shinycountjson.getString("methodorder").split(",").dropLastWhile { it.isEmpty() }
-                .toTypedArray()) {
-                val m = counter.getJSONObject(method)
-                b.append(method).append(": ").append(
-                    emolgajda.getGuildById(745934535748747364)!!.getEmojiById(m.getString("emote"))!!.asMention
-                ).append("\n")
-                for (s in shinycountjson.getString("userorder").split(",")) {
-                    b.append(names.getString(s)).append(": ").append(m.optInt(s, 0)).append("\n")
+            return buildString {
+                Shinycount.get.run {
+                    methodorder.forEach { method ->
+                        val m = counter[method]!!
+                        append(method)
+                        append(": ")
+                        append(emolgajda.getGuildById(745934535748747364)!!.getEmojiById(m["emote"]!!)!!.asMention)
+                        append("\n")
+                        userorder.forEach {
+                            append(names[it])
+                            append(": ")
+                            append(m[it.toString()] ?: 0)
+                            append("\n")
+                        }
+                        append("\n")
+                    }
+                    save(this, "shinycount.json")
                 }
-                b.append("\n")
             }
-            save(shinycountjson, "shinycount.json")
-            return b.toString()
         }
 
         fun loadAndPlay(channel: TextChannel, trackUrl: String, vc: VoiceChannel) {
@@ -2352,6 +2350,13 @@ abstract class Command(
             } catch (ioException: IOException) {
                 ioException.printStackTrace()
             }
+        }
+
+        fun save(data: Any, path: String) {
+            Files.writeString(
+                Paths.get(path),
+                JSONObject(JSON.encodeToString(data)).toString(4)
+            )
         }
 
         fun awaitNextDay() {
@@ -2607,7 +2612,9 @@ abstract class Command(
                 //emolgaJSON = load("./emolgadata.json")
                 //datajson = loadSD("pokedex.ts", 59);
                 //movejson = loadSD("learnsets.ts", 62);
-                shinycountjson = load("./shinycount.json")
+                Shinycount.get = JSON.decodeFromString(withContext(Dispatchers.IO) {
+                    Files.readString(Paths.get("shinycount.json"))
+                })
                 catchrates = load("./catchrates.json")
                 val google = tokens.getJSONObject("google")
                 Google.setCredentials(
@@ -3656,6 +3663,8 @@ fun List<DraftPokemon>?.names() = this!!.map { it.name }
 
 fun String.toSDName() = Command.toSDName(this)
 
+inline fun <T> T.ifMatches(value: T, predicate: (T) -> Boolean) = if (predicate(this)) value else this
+
 private val logger: Logger by SLF4J
 
 val defaultScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
@@ -3675,14 +3684,14 @@ private val JSON = Json {
 }
 
 fun saveEmolgaJSON() {
-    Files.writeString(Paths.get("emolgadata.json"), JSONObject(JSON.encodeToString(Emolga.get)).toString(4))
+    save(Emolga.get, "emolgadata.json")
 }
 
 fun String.file() = File(this)
 
 fun Collection<String>.filterStartsWithIgnoreCase(other: String) = filter { it.startsWith(other, ignoreCase = true) }
 
-val String.marker get() = MarkerFactory.getMarker(this)
+val String.marker: Marker get() = MarkerFactory.getMarker(this)
 
 fun String.condAppend(check: Boolean, value: String) = if (check) this + value else this
 fun String.condAppend(check: Boolean, value: () -> String) = if (check) this + value() else this

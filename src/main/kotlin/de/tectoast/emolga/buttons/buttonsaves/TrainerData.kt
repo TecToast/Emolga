@@ -1,49 +1,42 @@
 package de.tectoast.emolga.buttons.buttonsaves
 
 import org.jsoup.Jsoup
-import org.jsoup.nodes.Document
 import org.slf4j.LoggerFactory
-import java.io.IOException
 
 class TrainerData(trainerName: String) {
-    val mons = LinkedHashMap<String, List<TrainerMon>>()
+    val mons = mutableMapOf<String, List<TrainerMon>>()
     var current: String? = null
     var isWithMoveset = false
         private set
 
     init {
-        val d: Document
-        try {
-            d = Jsoup.connect("https://www.pokewiki.de/$trainerName").get()
-            val elelist = d.select("table[class=\"lightBg1 round darkBorder1\"]")
-            for (elele in elelist) {
-                val ele = elele.child(0).child(1)
-                val set = elele.child(0).child(0).text()
-                val list: MutableList<TrainerMon> = mutableListOf()
-                for (child in ele.children()) {
-                    val t = child.child(0).child(0)
-                    val itm = t.child(t.children().size - 6).text().trim()
-                    val moves: MutableList<String> = mutableListOf()
-                    for (i in 7..10) {
-                        t.child(i - (11 - t.children().size)).child(0).text().trim().takeUnless { it == "—" }
-                            ?.let { moves.add(it) }
-                    }
-                    val alt = t.child(0).child(0).child(0).attr("alt")
-                    val monname = if (alt.startsWith("Sugimori")) t.child(1).text() else alt
-                    list.add(
-                        TrainerMon(
-                            monname,
-                            t.child(2).child(0).child(0).text().substring(4),
-                            if (t.children().size == 11) t.child(4).text() else null,
-                            if (!itm.contains("Kein Item")) itm else null,
-                            moves
-                        )
-                    )
+        val d = Jsoup.connect("https://www.pokewiki.de/$trainerName").get()
+        val elelist = d.select("table[class=\"lightBg1 round darkBorder1\"]")
+        for (elele in elelist) {
+            val ele = elele.child(0).child(1)
+            val set = elele.child(0).child(0).text()
+            val list: MutableList<TrainerMon> = mutableListOf()
+            for (child in ele.children()) {
+                val t = child.child(0).child(0)
+                val itm = t.child(t.children().size - 6).text().trim()
+                val moves: MutableList<String> = mutableListOf()
+                for (i in 7..10) {
+                    t.child(i - (11 - t.children().size)).child(0).text().trim().takeUnless { it == "—" }
+                        ?.let { moves.add(it) }
                 }
-                mons[set.replace("*", "").trim()] = list
+                val alt = t.child(0).child(0).child(0).attr("alt")
+                val monname = if (alt.startsWith("Sugimori")) t.child(1).text() else alt
+                list.add(
+                    TrainerMon(
+                        monname,
+                        t.child(2).child(0).child(0).text().substring(4),
+                        if (t.children().size == 11) t.child(4).text() else null,
+                        if (!itm.contains("Kein Item")) itm else null,
+                        moves
+                    )
+                )
             }
-        } catch (e: IOException) {
-            e.printStackTrace()
+            mons[set.replace("*", "").trim()] = list
         }
     }
 
@@ -69,7 +62,7 @@ class TrainerData(trainerName: String) {
         return s
     }
 
-    inner class TrainerMon(
+    class TrainerMon(
         val name: String,
         private val level: String,
         val ability: String?,

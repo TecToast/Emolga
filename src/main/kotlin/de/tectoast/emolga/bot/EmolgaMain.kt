@@ -37,7 +37,6 @@ import java.security.cert.X509Certificate
 import java.security.interfaces.RSAPrivateKey
 import java.security.spec.InvalidKeySpecException
 import java.security.spec.PKCS8EncodedKeySpec
-import java.sql.ResultSet
 import java.util.concurrent.atomic.AtomicInteger
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
@@ -77,14 +76,14 @@ object EmolgaMain {
             .registerReaction("827608009571958806", "884567614918111233", "886748333484441650", "886746672120606771")
             .registerReaction("827608009571958806", "884567614918111233", "886748333484441650", "886746672120606771")
             .registerReaction("827608009571958806", "884567614918111233", "921389285188440115", "921387730200584222")*/
-        GiveawayManager.forAll { r: ResultSet ->
+        GiveawayManager.forAll {
             Giveaway(
-                r.getLong("channelid"),
-                r.getLong("hostid"),
-                r.getTimestamp("end").toInstant(),
-                r.getInt("winners"),
-                r.getString("prize"),
-                r.getLong("messageid")
+                it.getLong("channelid"),
+                it.getLong("hostid"),
+                it.getTimestamp("end").toInstant(),
+                it.getInt("winners"),
+                it.getString("prize"),
+                it.getLong("messageid")
             )
         }
     }
@@ -205,27 +204,33 @@ object EmolgaMain {
     @Throws(Exception::class)
     private fun setupJetty() {
         val server = Server()
-        val httpConfig = HttpConfiguration()
-        httpConfig.secureScheme = "https"
-        httpConfig.securePort = 51216
-        httpConfig.outputBufferSize = 32768
-        val sslContextFactory = SslContextFactory.Server()
-        sslContextFactory.sslContext = context
+        val httpConfig = HttpConfiguration().apply {
+            secureScheme = "https"
+            securePort = 51216
+            outputBufferSize = 32768
+        }
+        val sslContextFactory = SslContextFactory.Server().apply {
+            sslContext = context
+        }
         val httpsConfig = HttpConfiguration(httpConfig)
-        val src = SecureRequestCustomizer()
-        src.stsMaxAge = 2000
-        src.isStsIncludeSubDomains = true
+        val src = SecureRequestCustomizer().apply {
+            stsMaxAge = 2000
+            isStsIncludeSubDomains = true
+        }
         httpsConfig.addCustomizer(src)
         val https = ServerConnector(
             server,
             SslConnectionFactory(sslContextFactory, HttpVersion.HTTP_1_1.asString()),
             HttpConnectionFactory(httpsConfig)
-        )
-        https.port = 51216
-        https.idleTimeout = 500000
-        server.connectors = arrayOf<Connector>(https)
-        server.handler = HttpHandler
-        server.start()
+        ).apply {
+            port = 51216
+            idleTimeout = 500000
+        }
+        server.apply {
+            connectors = arrayOf<Connector>(https)
+            handler = HttpHandler
+            start()
+        }
     }
 
     private val context: SSLContext

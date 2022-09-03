@@ -25,11 +25,8 @@ abstract class ButtonListener(name: String) {
 
         suspend fun check(e: ButtonInteractionEvent) {
             logger.info("e.getComponentId() = {}", e.componentId)
-            val split = e.componentId.split(";")
-            try {
-                listener.getOrDefault(split[0], NULL).process(e, split[1])
-            } catch (ex: Exception) {
-                ex.printStackTrace()
+            e.componentId.split(";").let {
+                listener.getOrDefault(it[0], NULL).process(e, it[1])
             }
         }
 
@@ -38,7 +35,6 @@ abstract class ButtonListener(name: String) {
             for (classInfo in ClassPath.from(loader).getTopLevelClassesRecursive("de.tectoast.emolga.buttons")) {
                 val cl = classInfo.load()
                 if (cl.superclass.simpleName.endsWith("ButtonListener") && !Modifier.isAbstract(cl.modifiers)) {
-                    //logger.info(classInfo.getName());
                     cl.constructors[0].newInstance()
                 }
             }

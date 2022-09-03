@@ -16,16 +16,20 @@ class NominateButton : ButtonListener("nominate") {
                 n.unnominate(name)
                 n.render(e)
             }
+
             ButtonStyle.SECONDARY -> {
                 n.nominate(name)
                 n.render(e)
             }
+
             ButtonStyle.SUCCESS -> {
                 n.finish(e, name == "FINISHNOW")
             }
+
             ButtonStyle.DANGER -> {
                 n.render(e)
             }
+
             else -> {}
         }
     }

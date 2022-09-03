@@ -37,11 +37,11 @@ class TypeInfoCommand : Command("typeinfo", "Zeigt dir Informationen über einen
             val damageTaken = typejson.getInt(it)
             if (damageTaken > 0) {
                 val t = getTypeGerName(it)
-                    if (damageTaken > 1) {
-                        if (damageTaken == 3) resisted.add("$t **(immun)**") else resisted.add(t)
-                    } else {
-                        weakAgainst.add(t)
-                    }
+                if (damageTaken > 1) {
+                    if (damageTaken == 3) resisted.add("$t **(immun)**") else resisted.add(t)
+                } else {
+                    weakAgainst.add(t)
+                }
 
             }
         }

@@ -10,7 +10,8 @@ import org.slf4j.LoggerFactory
 class ConfigurateCommand : Command("configurate", "Konfiguriert verschiedene Sachen", CommandCategory.Various) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
-            .add("configuration", "Konfiguration", "Die Konfiguration, die du ändern möchtest",
+            .add(
+                "configuration", "Konfiguration", "Die Konfiguration, die du ändern möchtest",
                 ArgumentManagerTemplate.Text.of(
                     ModalConfigurators.configurations.keys
                         .map {
@@ -19,7 +20,8 @@ class ConfigurateCommand : Command("configurate", "Konfiguriert verschiedene Sac
                             )
                         },
                     true
-                ))
+                )
+            )
             .setExample("/configurate DexQuiz")
             .build()
         slash(true, 918865966136455249L, Constants.G.FPL, Constants.G.CULT)

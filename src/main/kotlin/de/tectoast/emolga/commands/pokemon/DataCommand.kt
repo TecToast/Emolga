@@ -193,6 +193,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                         monDataButtons[mes.idLong] = MonData(list)
                     }, ih = { ih: InteractionHook -> monDataButtons[ih.interaction.idLong] = MonData(list) })
                 }
+
                 Translation.Type.MOVE -> {
                     name = gerName.translation
                     val data = movesJSON.getJSONObject(getSDName(name))
@@ -312,6 +313,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                     }
                     tco.sendMessageEmbeds(builder.build()).queue()
                 }
+
                 Translation.Type.ABILITY -> {
                     val abiname = gerName.translation
                     tco.sendMessageEmbeds(
@@ -323,6 +325,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                         ).setColor(Color.CYAN).build()
                     ).queue()
                 }
+
                 Translation.Type.ITEM -> {
                     val itemname = gerName.translation
                     tco.sendMessageEmbeds(
@@ -334,6 +337,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                         ).setColor(Color.CYAN).build()
                     ).queue()
                 }
+
                 else -> tco.sendMessage("Es gibt kein(e) Pokemon/Attacke/Fähigkeit/Item mit dem Namen $name!").queue()
             }
         } catch (ex: Exception) {

@@ -28,6 +28,7 @@ class FlorixButton : ButtonListener("florix") {
                 GPIOManager.startServer(pc)
                 e.reply_("Der Server wurde gestartet!", ephemeral = true).queue()
             }
+
             "stopserver" -> {
                 if (!on) {
                     e.reply_("Der Server ist bereits aus!", ephemeral = true).queue()
@@ -45,6 +46,7 @@ class FlorixButton : ButtonListener("florix") {
                 )
                     .queue()
             }
+
             "poweroff" -> {
                 if (!on) {
                     e.reply_("Der Server ist bereits aus!", ephemeral = true).queue()
@@ -62,6 +64,7 @@ class FlorixButton : ButtonListener("florix") {
                 )
                     .queue()
             }
+
             "status" -> e.reply_("Der Server ist ${if (on) "an" else "aus"}!", ephemeral = true).queue()
             "stopserverreal" -> {
                 if (!on) {
@@ -72,6 +75,7 @@ class FlorixButton : ButtonListener("florix") {
                 e.reply_("Der Server wurde heruntergefahren!", ephemeral = true)
                     .queue { it.deleteMessageById(e.messageId).queue() }
             }
+
             "poweroffreal" -> {
                 if (!on) {
                     e.reply_("Der Server ist bereits aus!", ephemeral = true).queue()

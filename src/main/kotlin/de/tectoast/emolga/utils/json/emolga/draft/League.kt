@@ -255,8 +255,8 @@ sealed class League {
                 tc.sendMessage("Der Draft ist vorbei!").queue()
                 //ndsdoc(tierlist, pokemon, d, mem, tier, round);
                 //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
-                saveEmolgaJSON()
                 isRunning = false
+                saveEmolgaJSON()
                 return true
             }
             round++

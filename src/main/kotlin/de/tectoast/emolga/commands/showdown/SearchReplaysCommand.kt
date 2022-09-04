@@ -1,62 +1,63 @@
 package de.tectoast.emolga.commands.showdown
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
-import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.jsolf.JSONArray
-import de.tectoast.jsolf.JSONTokener
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import de.tectoast.emolga.commands.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import org.slf4j.LoggerFactory
 import java.io.IOException
-import java.net.URL
 
 class SearchReplaysCommand :
     Command("searchreplays", "Sucht nach Replays der angegebenen Showdownbenutzernamen", CommandCategory.Showdown) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
-            .add("user1", "User 1", "Der Showdown-Username von jemandem", ArgumentManagerTemplate.Text.any())
-            .add(
+            .add("user1", "User 1", "Der Showdown-Username von jemandem", ArgumentManagerTemplate.Text.any()).add(
                 "user2",
                 "User 2",
                 "Der Showdown-Username eines potenziellen zweiten Users",
                 ArgumentManagerTemplate.Text.any(),
                 true
-            )
-            .setExample("!searchreplays TecToast")
-            .build()
+            ).setExample("!searchreplays TecToast").build()
+        slash(false)
     }
 
     @Throws(IOException::class)
     override suspend fun process(e: GuildCommandEvent) {
-        var url: String? = "https://replay.pokemonshowdown.com/search.json?user="
         val args = e.arguments
-        val user1 = args.getText("user1")
-        url += if (args.has("user2")) toSDName(user1) + "&user2=" + toSDName(
-            args.getText("user2")
-        ) else toSDName(user1)
-        logger.info(url)
-        val array = JSONArray(JSONTokener(withContext(Dispatchers.IO) {
-            URL(url).openStream()
-        }))
-        logger.info(array.toString(4))
-        val str = StringBuilder()
-        if (array.length() == 0) {
-            if (args.has("user2")) e.reply("Es wurde kein Kampf zwischen " + user1 + " und " + args.getText("user2") + " hochgeladen!") else e.reply(
-                "Es wurde kein Kampf von $user1 hochgeladen!"
-            )
-            return
+        val u1 = args.getText("user1")
+        val u2 = args.getNullable<String>("user2")
+        e.deferReply()
+        val body = getBody(u1, u2)
+        logger.info(body)
+        val jsonstring = if (body.length < 30) {
+            e.hook.sendMessage("Verbindung mit dem Showdown-Server fehlgeschlagen, ich versuche es in 10 Sekunden erneut...")
+                .queue()
+            delay(10000)
+            getBody(u1, u2)
+        } else body
+        try {
+            e.hook.sendMessage(
+                JSON.decodeFromString<List<Replay>>(jsonstring).take(15)
+                    .joinToString("\n") { "${it.p1} vs ${it.p2}: https://replay.pokemonshowdown.com/${it.id}" }
+                    .ifEmpty { "Es wurde kein Kampf ${u2?.let { "zwischen $u1 und $it" } ?: "von $u1"} hochgeladen!" })
+                .queue()
+        } catch (ex: Exception) {
+            e.hook.sendMessage("Es konnte keine Verbindung zum Showdown-Server hergestellt werden!").queue()
         }
-        for (i in 0 until array.length()) {
-            val o = array.getJSONObject(i)
-            str.append(o.getString("p1")).append(" vs ").append(o.getString("p2"))
-                .append(": https://replay.pokemonshowdown.com/").append(o.getString("id")).append("\n")
-        }
-        logger.info(str.toString())
-        e.reply(str.toString())
     }
+
+    private suspend fun getBody(u1: String, u2: String?) = httpClient.get(
+        "https://replay.pokemonshowdown.com/search.json?user=${toUsername(u1)}".notNullAppend(u2?.let {
+            "&user2=${toUsername(it)}"
+        }).also { logger.info(it) }
+    ).bodyAsText()
 
     companion object {
         private val logger = LoggerFactory.getLogger(SearchReplaysCommand::class.java)
     }
+
+    @Serializable
+    data class Replay(val id: String, val p1: String, val p2: String, val uploadtime: Long, val format: String)
 }

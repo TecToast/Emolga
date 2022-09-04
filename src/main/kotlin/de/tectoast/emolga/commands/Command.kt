@@ -53,6 +53,10 @@ import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import dev.minn.jda.ktx.util.SLF4J
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -2788,7 +2792,7 @@ abstract class Command(
                 } catch (ex: MissingArgumentException) {
                     if (ex.isSubCmdMissing) {
                         val subcommands = ex.subcommands!!
-                        tco.sendMessage("Dieser Command beinhaltet Sub-Commands: " + subcommands.joinToString { subcmd: String -> "`$subcmd`" })
+                        tco.sendMessage("Dieser Command beinhaltet Sub-Commands: " + subcommands.joinToString { "`$it`" })
                             .queue()
                     } else {
                         val arg = ex.argument!!
@@ -3667,11 +3671,17 @@ inline fun <T> T.ifMatches(value: T, predicate: (T) -> Boolean) = if (predicate(
 
 private val logger: Logger by SLF4J
 
+val httpClient = HttpClient(CIO) {
+    install(ContentNegotiation) {
+        json()
+    }
+}
+
 val defaultScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
     logger.error("ERROR IN DEFAULT SCOPE", t)
     sendToMe("Error in default scope, look in console")
 })
-private val JSON = Json {
+val JSON = Json {
     serializersModule = SerializersModule {
         polymorphic(League::class) {
             subclass(NDS::class)
@@ -3695,6 +3705,8 @@ val String.marker: Marker get() = MarkerFactory.getMarker(this)
 
 fun String.condAppend(check: Boolean, value: String) = if (check) this + value else this
 fun String.condAppend(check: Boolean, value: () -> String) = if (check) this + value() else this
+
+fun String.notNullAppend(value: String?) = if (value != null) this + value else this
 
 data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)
 

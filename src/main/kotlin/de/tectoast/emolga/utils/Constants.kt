@@ -13,7 +13,7 @@ object Constants {
     const val CALENDAR_MSGID = 964920267598098433
     const val SOULLINK_TCID = 967720855415185418
     const val SOULLINK_MSGID = 967721129278054480
-    const val MYTAG = "Flooo#2535"
+    const val MYTAG = "Flo | TecToast#2535"
 
     object G {
         const val ASL = 518008523653775366

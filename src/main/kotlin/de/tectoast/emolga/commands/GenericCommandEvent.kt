@@ -23,6 +23,7 @@ abstract class GenericCommandEvent {
     private val mentionedRoles: List<Role>
     private val argsLength: Int
     val slashCommandEvent: SlashCommandInteractionEvent?
+    val hook: InteractionHook get() = slashCommandEvent!!.hook
 
     constructor(message: Message) {
         this.message = message

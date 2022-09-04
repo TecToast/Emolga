@@ -1,20 +1,18 @@
 package de.tectoast.emolga.utils.showdown
 
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.httpClient
 import de.tectoast.emolga.commands.pokemon.WeaknessCommand.Companion.getEffectiveness
 import de.tectoast.emolga.utils.sql.managers.ReplayCheckManager
 import dev.minn.jda.ktx.coroutines.await
-import kotlinx.coroutines.Dispatchers
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageChannel
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
-import java.io.BufferedReader
 import java.io.IOException
-import java.io.InputStreamReader
-import java.net.URL
 import java.util.function.BiConsumer
 import java.util.function.Consumer
 import java.util.function.IntFunction
@@ -64,15 +62,7 @@ class Analysis(private val link: String, m: Message?) {
         logger.info("Reading URL... {}", link)
         var gameNullable: List<String>? = null
         for (i in 0..1) {
-            gameNullable = BufferedReader(
-                InputStreamReader(
-                    withContext(Dispatchers.IO) {
-                        URL(
-                            "$link.log"
-                        ).openConnection().getInputStream()
-                    }
-                )
-            ).lines().toList()
+            gameNullable = httpClient.get("$link.log").bodyAsText().split("\n")
             if (gameNullable.size == 1) {
                 val m =
                     mc?.sendMessage("Der Showdown-Server antwortet gerade nicht, ich versuche es in 10 Sekunden nochmal...")

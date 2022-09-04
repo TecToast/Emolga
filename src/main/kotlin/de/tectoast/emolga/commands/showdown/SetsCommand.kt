@@ -3,14 +3,20 @@ package de.tectoast.emolga.commands.showdown
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.httpClient
 import de.tectoast.emolga.utils.showdown.Analysis
 import de.tectoast.emolga.utils.showdown.Player
 import de.tectoast.emolga.utils.showdown.Pokemon
-import okhttp3.OkHttpClient
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import java.util.regex.Pattern
 
 class SetsCommand : Command("sets", "Zeigt die Sets von einem Showdown-Kampf an", CommandCategory.Showdown) {
-    private val client = OkHttpClient().newBuilder().build()
 
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
@@ -22,37 +28,27 @@ class SetsCommand : Command("sets", "Zeigt die Sets von einem Showdown-Kampf an"
     @Throws(Exception::class)
     override suspend fun process(e: GuildCommandEvent) {
         val url = e.arguments.getText("url")
-        e.reply(Analysis(url, e.message).analyse(e.channel).joinToString("\n") { p: Player ->
-            val paste = buildPaste(p)
-            //e.reply("```" + paste + "```");
-            val res = client.newCall(
-                okhttp3.Request.Builder()
-                    .url("https://pokepast.es/create")
-                    .method(
-                        "POST", okhttp3.FormBody.Builder()
-                            .add("paste", paste)
-                            .add("title", "Sets von " + p.nickname)
-                            .add("author", "Emolga")
-                            .add("notes", url)
-                            .build()
-                    )
-                    .addHeader("Content-Type", "application/x-www-form-urlencoded")
-                    .build()
-            ).execute()
-            val returl = res.request.url.toString()
-            res.close()
-            p.nickname + ": " + returl
-        })
+        e.reply(Analysis(url, e.message).analyse(e.channel).asFlow().map {
+            val paste = buildPaste(it)
+            val res = httpClient.post("https://pokepast.es/create") {
+                setBody(FormDataContent(Parameters.build {
+                    append("paste", paste)
+                    append("title", "Sets von ${it.nickname}")
+                    append("author", "Emolga")
+                    append("notes", url)
+                }))
+            }
+            it.nickname + ": " + res.request.url.toString()
+        }.toList().joinToString("\n"))
     }
 
     companion object {
         private val BEGIN_RETURN = Pattern.compile("^\\r\\n")
         private val END_RETURN = Pattern.compile("\\r\\n$")
         private fun buildPaste(p: Player): String {
-            return p.mons.map { buildPokemon(it) }
-                .joinToString("\r\n\r\n") {
-                    END_RETURN.matcher(BEGIN_RETURN.matcher(it).replaceAll("")).replaceAll("")
-                }
+            return p.mons.map { buildPokemon(it) }.joinToString("\r\n\r\n") {
+                END_RETURN.matcher(BEGIN_RETURN.matcher(it).replaceAll("")).replaceAll("")
+            }
 
         }
 

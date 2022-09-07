@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.notNullAppend
 import de.tectoast.emolga.utils.sql.managers.AbiDataManager
 import de.tectoast.emolga.utils.sql.managers.AtkDataManager
 import de.tectoast.emolga.utils.sql.managers.ItemDataManager
@@ -359,10 +360,12 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                 str = when (obj.getString("evoType")) {
                     "useItem" -> "mit dem Item \"" + getGerNameNoCheck(obj.getString("evoItem")) + "\""
                     "levelFriendship" -> "durch Freundschaft"
-                    "trade" -> "durch Tausch"
+                    "trade" -> "durch Tausch".notNullAppend(obj.optString("evoItem").ifEmpty { null }
+                        ?.let { " mit dem Item \"${getGerNameNoCheck(it)}\"" })
+
                     "levelExtra" -> ""
-                    "levelHold" -> "durch ein Level-Up, wenn es das Item \"" + getGerNameNoCheck(obj.getString("evoItem")) + "\" trägt"
-                    "levelMove" -> "durch ein Level-Up, wenn es die Attacke \"" + getGerNameNoCheck(obj.getString("evoMove")) + "\" beherrscht"
+                    "levelHold" -> "durch ein Level-Up, wenn es das Item \"${getGerNameNoCheck(obj.getString("evoItem"))}\" trägt"
+                    "levelMove" -> "durch ein Level-Up, wenn es die Attacke \"${getGerNameNoCheck(obj.getString("evoMove"))}\" beherrscht"
                     else -> str
                 }
             }

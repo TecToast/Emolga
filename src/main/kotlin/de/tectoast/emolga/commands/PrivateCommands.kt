@@ -503,7 +503,7 @@ object PrivateCommands {
             for (player in game) {
                 if (Command.toUsername(player.nickname) == "dasor54") {
                     for (mon in player.mons) {
-                        val monName = Command.getMonName(mon.pokemon, Constants.G.MY)
+                        val monName = Command.getMonName(mon.pokemon, DraftNamePreference.SINGLE_CHAR_BEFORE)
                         DasorUsageManager.addPokemon(monName)
                     }
                 }

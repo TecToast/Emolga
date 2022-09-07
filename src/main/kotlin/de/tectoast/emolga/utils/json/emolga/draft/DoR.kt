@@ -34,6 +34,7 @@ class DoR : League() {
                     listOf(numberOne, "=HYPERLINK(\"$url\"; \":\")", numberTwo)
                 )
             }
+        monsOrder = { l -> l.sortedWith(compareBy({ it.free }, { if (it.free) "" else it.tier })).map { it.name } }
     }
     override val timer = DraftTimer.DoR
 

@@ -18,6 +18,7 @@ import de.tectoast.emolga.buttons.buttonsaves.Nominate
 import de.tectoast.emolga.buttons.buttonsaves.PrismaTeam
 import de.tectoast.emolga.buttons.buttonsaves.TrainerData
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
+import de.tectoast.emolga.commands.Command.Companion.getGerNameNoCheck
 import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
@@ -112,6 +113,7 @@ import java.util.function.Predicate
 import java.util.regex.Pattern
 import javax.imageio.ImageIO
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.random.Random
 
 @Suppress("unused", "SameParameterValue")
@@ -1263,11 +1265,6 @@ abstract class Command(
         val emolgaChannel: MutableMap<Long, MutableList<Long>> = HashMap()
 
         /**
-         * Some pokemon extensions for serebii
-         */
-        private val serebiiex: MutableMap<String, String> = HashMap()
-
-        /**
          * Some pokemon extensions for showdown
          */
         val sdex: MutableMap<String, String> = HashMap()
@@ -1947,9 +1944,7 @@ abstract class Command(
         fun getNumber(map: Map<String, String>, pick: String): String {
             //logger.info(map);
             for ((s, value) in map) {
-                if (s == pick || pick == "M-$s" || listOf("Amigento", "Wulaosu", "Arceus", "Deoxys", "Genesect").any {
-                        s.contains(it) && pick.contains(it)
-                    }) return value
+                if (s == pick || pick == "M-$s" || s.split("-").first() == pick.split("-").first()) return value
             }
             return ""
         }
@@ -2356,7 +2351,7 @@ abstract class Command(
             }
         }
 
-        fun save(data: Any, path: String) {
+        inline fun <reified T> save(data: T, path: String) {
             Files.writeString(
                 Paths.get(path),
                 JSONObject(JSON.encodeToString(data)).toString(4)
@@ -2419,38 +2414,6 @@ abstract class Command(
                 ModalListener.init()
                 registerCommands()
                 setupRepeatTasks()
-                mutedRoles.putAll(Emolga.get.mutedroles)
-                moderatorRoles.putAll(Emolga.get.moderatorroles)
-                emolgaChannel.putAll(Emolga.get.emolgachannel)
-                serebiiex["Barschuft-B"] = "b"
-                serebiiex["Riffex-H"] = ""
-                serebiiex["Riffex-T"] = "-l"
-                serebiiex["Wolwerock-Tag"] = ""
-                serebiiex["Wolwerock-Nacht"] = "-m"
-                serebiiex["Wolwerock-Dusk"] = "-d"
-                serebiiex["Barschuft-R"] = ""
-                serebiiex["Wulaosu-Unlicht"] = ""
-                serebiiex["Wulaosu-Wasser"] = "-r"
-                serebiiex["Basculin-B"] = "b"
-                serebiiex["Toxtricity-H"] = ""
-                serebiiex["Toxtricity-T"] = "-l"
-                serebiiex["Lycanroc-Tag"] = ""
-                serebiiex["Lycanroc-Nacht"] = "-m"
-                serebiiex["Lycanroc-Dusk"] = "-d"
-                serebiiex["Basculin-R"] = ""
-                serebiiex["Urshifu-Unlicht"] = ""
-                serebiiex["Urshifu-Wasser"] = "-r"
-                serebiiex["Rotom-Wash"] = "-w"
-                serebiiex["Rotom-Heat"] = "-h"
-                serebiiex["Rotom-Fan"] = "-s"
-                serebiiex["Rotom-Mow"] = "-m"
-                serebiiex["Rotom-Frost"] = "-f"
-                serebiiex["Demeteros-T"] = "-s"
-                serebiiex["Voltolos-T"] = "-s"
-                serebiiex["Boreos-I"] = ""
-                serebiiex["Burmadame-Pflz"] = ""
-                serebiiex["Burmadame-Sand"] = "-c"
-                serebiiex["Burmadame-Lumpen"] = "-s"
                 sdex["Burmadame-Pflz"] = ""
                 sdex["Burmadame-Pflanze"] = ""
                 sdex["Burmadame-Sand"] = "-sandy"
@@ -2481,12 +2444,7 @@ abstract class Command(
                 sdex["Psiaugon-W"] = "f"
                 sdex["Psiaugon-M"] = ""
                 sdex["Nidoran-M"] = "m"
-                sdex["Nidoran-F"] = "f"/*emolgaChannel.put(Constants.Guild.ASL, new ArrayList<>(Arrays.asList(728680506098712579L, 736501675447025704L)));
-        emolgaChannel.put(Constants.Guild.BS, new ArrayList<>(Arrays.asList(732545253344804914L, 735076688144105493L)));
-        emolgaChannel.put(709877545708945438L, new ArrayList<>(Collections.singletonList(738893933462945832L)));
-        emolgaChannel.put(677229415629062180L, new ArrayList<>(Collections.singletonList(731455491527540777L)));
-        emolgaChannel.put(694256540642705408L, new ArrayList<>(Collections.singletonList(695157832072560651L)));
-        emolgaChannel.put(747357029714231299L, new ArrayList<>(Arrays.asList(752802115096674306L, 762411109859852298L)));*/
+                sdex["Nidoran-F"] = "f"
             }
         }
 
@@ -2986,7 +2944,7 @@ abstract class Command(
             val jda: JDA = if (bot.isEmpty()) emolgajda else bot[0].jDA
             jda.retrieveUserById(id).flatMap { obj: User -> obj.openPrivateChannel() }.flatMap { pc: PrivateChannel ->
                 pc.sendMessage(
-                    msg
+                    msg.substring(0, min(msg.length, 2000))
                 )
             }.queue()
         }
@@ -3135,11 +3093,11 @@ abstract class Command(
                 val p1mons = ArrayList<String>()
                 val p2mons = ArrayList<String>()
                 val spoiler = spoilerTags.contains(gid)
-                val typicalSets = TypicalSets
+                val preference = getByGuild(gid)?.namepreference ?: DraftNamePreference.SINGLE_CHAR_BEFORE
                 if (spoiler) t1.append("||")
                 for (p in game[0].mons) {
                     logger.info("p.getPokemon() = " + p.pokemon)
-                    val monName = getMonName(p.pokemon, gid)
+                    val monName = getMonName(p.pokemon, preference)
                     if (monName.trim { it <= ' ' }
                             .isNotEmpty() && monName.trim { it <= ' ' }[monName.trim { it <= ' ' }.length - 1] == '-') {
                         sendToMe(p.pokemon + " SD - at End")
@@ -3150,7 +3108,7 @@ abstract class Command(
                     p1mons.add(monName)
                     if (g.idLong != Constants.G.MY) {
                         FullStatsManager.add(monName, p.kills, if (p.isDead) 1 else 0, game[0].isWinner)
-                        typicalSets.add(monName, p.moves, p.item, p.ability)
+                        TypicalSets.add(monName, p.moves, p.item, p.ability)
                         if (toUsername(game[0].nickname) == "dasor54") {
                             DasorUsageManager.addPokemon(monName)
                         }
@@ -3168,7 +3126,7 @@ abstract class Command(
                 if (spoiler) t1.append("||")
                 if (spoiler) t2.append("||")
                 for (p in game[1].mons) {
-                    val monName = getMonName(p.pokemon, gid)
+                    val monName = getMonName(p.pokemon, preference)
                     if (monName.trim { it <= ' ' }
                             .isNotEmpty() && monName.trim { it <= ' ' }[monName.trim { it <= ' ' }.length - 1] == '-') {
                         sendToMe(p.pokemon + " SD - at End")
@@ -3178,7 +3136,7 @@ abstract class Command(
                     p2mons.add(monName)
                     if (g.idLong != Constants.G.MY) {
                         FullStatsManager.add(monName, p.kills, if (p.isDead) 1 else 0, game[1].isWinner)
-                        typicalSets.add(monName, p.moves, p.item, p.ability)
+                        TypicalSets.add(monName, p.moves, p.item, p.ability)
                         if (toUsername(game[1].nickname) == "dasor54") {
                             DasorUsageManager.addPokemon(monName)
                         }
@@ -3230,7 +3188,7 @@ abstract class Command(
                 logger.info("In Emolga Listener!")
                 //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )
                 //  return;
-                typicalSets.save()
+                TypicalSets.save()
                 if (uid1 == -1L || uid2 == -1L) return@launch
                 league?.docEntry?.analyse(
                     game, uid1, uid2, kills, deaths, ReplayData(
@@ -3437,7 +3395,7 @@ abstract class Command(
             logger.info("getSDName s = $str")
             val op = sdex.keys.firstOrNull { anotherString: String -> str.equals(anotherString, ignoreCase = true) }
             val gitname: String = if (op != null) {
-                val englname = getEnglName(op.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()[0])
+                val englname = getEnglName(op.split("-")[0])
                 return toSDName(englname + sdex[str])
             } else {
                 if (str.startsWith("M-")) {
@@ -3480,31 +3438,8 @@ abstract class Command(
             return getAttacksFrom(pokemon, msg, form, maxgen).contains(atk)
         }
 
-        fun getMonName(s: String, gid: Long): String {
-            return getMonName(s, gid, true)
-        }
-
-        private fun getMonName(s: String, gid: Long, withDebug: Boolean): String {
+        fun getMonName(s: String, preference: DraftNamePreference, withDebug: Boolean = true): String {
             if (withDebug) logger.info("s = $s")
-            if (gid == 709877545708945438L) {
-                if (s.endsWith("-Alola")) {
-                    return "Alola-" + getGerName(s.substring(0, s.length - 6), true).translation
-                } else if (s.endsWith("-Galar")) {
-                    return "Galar-" + getGerName(s.substring(0, s.length - 6), true).translation
-                }
-                when (s) {
-                    "Oricorio" -> return "Choreogel-Feuer"
-                    "Oricorio-Pa'u" -> return "Choreogel-Psycho"
-                    "Oricorio-Pom-Pom" -> return "Choreogel-Elektro"
-                    "Oricorio-Sensu" -> return "Choreogel-Geist"
-                    "Gourgeist" -> return "Pumpdjinn"
-                    "Gourgeist-Small" -> return "Pumpdjinn-Small"
-                    "Indeedee" -> return "Servol-M"
-                    "Indeedee-F" -> return "Servol-W"
-                    "Meowstic" -> return "Psiaugon-M"
-                    "Meowstic-F" -> return "Psiaugon-W"
-                }
-            }
             if (s == "Calyrex-Shadow") return "Coronospa-Rappenreiter"
             if (s == "Calyrex-Ice") return "Coronospa-Schimmelreiter"
             if (s == "Shaymin-Sky") return "Shaymin-Sky"
@@ -3528,9 +3463,9 @@ abstract class Command(
             if (s.contains("Keldeo")) return "Keldeo"
             if (s.contains("Gastrodon")) return "Gastrodon"
             if (s.contains("Eiscue")) return "Kubuin"
-            if (s.contains("Oricorio")) return "Choreogel"
-            if ((gid == Constants.G.ASL || gid == Constants.G.NDS || s == "Urshifu-Rapid-Strike") && s.contains("Urshifu")) return "Wulaosu-Wasser"
+            if (s == "Urshifu-Rapid-Strike") return "Wulaosu-Wasser"
             if (s == "Urshifu") return "Wulaosu-Unlicht"
+            if (s == "Urshifu-*") return "Wulaosu-*"
             if (s.contains("Urshifu")) return "Wulaosu"
             if (s.contains("Gourgeist")) return "Pumpdjinn"
             if (s.contains("Pumpkaboo")) return "Irrbis"
@@ -3549,7 +3484,7 @@ abstract class Command(
             if (s.contains("Floette")) return "Floette"
             if (s.contains("Flabébé")) return "Flabébé"
             if (s == "Giratina-Origin") return s
-            if (s.endsWith("-Zen")) return getMonName(s.substring(0, s.length - 4), gid, withDebug)
+            if (s.endsWith("-Zen")) return getMonName(s.substring(0, s.length - 4), preference, withDebug)
             if (s.contains("Silvally")) {
                 val split = s.split("-").dropLastWhile { it.isEmpty() }
                 return if (split.size == 1 || s == "Silvally-*") "Amigento" else if (split[1] == "Psychic") "Amigento-Psycho" else "Amigento-" + getGerName(
@@ -3573,19 +3508,8 @@ abstract class Command(
             if (s == "Zygarde") return "Zygarde-50%"
             if (s == "Zygarde-10%") return "Zygarde-10%"
             if (s == "Zygarde-Complete") return "Zygarde-Optimum"
-            if (s.endsWith("-Mega")) {
-                return "M-" + getGerName(s.substring(0, s.length - 5), true).translation.ifEmpty {
-                    s.substring(
-                        0, s.length - 5
-                    )
-                }
-            } else if (s.endsWith("-Alola")) {
-                return "A-" + getGerName(s.substring(0, s.length - 6), true).translation
-            } else if (s.endsWith("-Galar")) {
-                return "G-" + getGerName(s.substring(0, s.length - 6), true).translation
-            } else if (s.endsWith("-NML")) {
-                return "NML-" + getGerName(s.substring(0, s.length - 6), true).translation
-            } else if (s.endsWith("-Therian")) {
+            SpecialForm.checkFormes(s, preference)?.let { return it }
+            if (s.endsWith("-Therian")) {
                 return getGerName(s.substring(0, s.length - 8), true).translation + "-T"
             } else if (s.endsWith("-X")) {
                 return "M-" + getGerName(
@@ -3721,6 +3645,35 @@ data class ReplayData(
     val m: Message?
 )
 
-enum class DraftNamePreference {
-    SINGLE_CHAR_BEFORE, FULL_FORM_BEFORE
+enum class DraftNamePreference(val map: Map<SpecialForm, Pair<String, Boolean>>) {
+    SINGLE_CHAR_BEFORE(
+        mapOf(SpecialForm.ALOLA to ("A" to true), SpecialForm.GALAR to ("G" to true), SpecialForm.MEGA to ("M" to true))
+    ),
+    FULL_FORM_BEFORE(
+        mapOf(
+            SpecialForm.ALOLA to ("Alola" to true),
+            SpecialForm.GALAR to ("Galar" to true),
+            SpecialForm.MEGA to ("Mega" to true)
+        )
+    )
+}
+
+enum class SpecialForm(private val sdname: String) {
+    ALOLA("Alola"), GALAR("Galar"), MEGA("Mega");
+
+    companion object {
+        fun checkFormes(name: String, preference: DraftNamePreference): String? {
+            values().forEach { pref ->
+                if (name.endsWith(pref.sdname)) {
+                    val orig = name.split("-").dropLast(1).joinToString("-")
+                    return getGerNameNoCheck(orig).let {
+                        val (ex, begin) = preference.map[pref]!!
+                        val tr = it.ifEmpty { orig }
+                        if (begin) "$ex-$tr" else "$tr-$ex"
+                    }
+                }
+            }
+            return null
+        }
+    }
 }

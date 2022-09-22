@@ -71,7 +71,7 @@ dependencies {
     implementation("com.github.TecToast:JSOLF:a43c3e06c7")
     implementation("net.dv8tion:JDA:5.0.0-alpha.20")
     implementation("com.zaxxer:HikariCP:5.0.1")
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.0.7")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.0.8")
     implementation("com.github.MinnDevelopment:jda-ktx:-SNAPSHOT")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")

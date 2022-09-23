@@ -40,7 +40,6 @@ class DocEntry private constructor() {
         val numDays = size - 1
         val halfSize = size / 2
         val list = league.table.run { listOf(indexOf(u1), indexOf(u2)) }
-
         for (day in 0 until numDays) {
             val teamIdx = day % numDays + 1
             if (0 in list) {
@@ -48,7 +47,6 @@ class DocEntry private constructor() {
                 continue
             }
             for (idx in 1 until halfSize) {
-                println("idx = $idx")
                 val firstTeam = (day + idx) % numDays + 1
                 val secondTeam = (day + numDays - idx) % numDays + 1
                 if (firstTeam in list) {

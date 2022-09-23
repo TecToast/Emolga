@@ -6,8 +6,8 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.embedColor
 import dev.minn.jda.ktx.messages.Embed
+import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
-import dev.minn.jda.ktx.messages.send
 
 class TrainerDataCommand :
     Command("trainerdata", "Zeigt die Pokemon eines Arenaleiters/Top 4 Mitglieds an", CommandCategory.Pokemon) {
@@ -28,11 +28,13 @@ class TrainerDataCommand :
             return
         }
         val dt = TrainerData(trainer)
-        e.textChannel.send(
-            embeds = Embed(
-                title = "Welches Team möchtest du sehen? Und sollen die Moves etc auch angezeigt werden?",
-                color = embedColor
-            ).into(), components = getTrainerDataActionRow(dt, false)
+        e.textChannel.sendMessage(
+            MessageCreate(
+                embeds = Embed(
+                    title = "Welches Team möchtest du sehen? Und sollen die Moves etc auch angezeigt werden?",
+                    color = embedColor
+                ).into(), components = getTrainerDataActionRow(dt, false)
+            )
         ).queue { trainerDataButtons[it.idLong] = dt }
     }
 }

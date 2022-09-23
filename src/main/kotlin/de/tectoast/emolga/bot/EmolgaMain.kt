@@ -2,11 +2,10 @@ package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.saveEmolgaJSON
+import de.tectoast.emolga.database.exposed.Giveaway
 import de.tectoast.emolga.jetty.HttpHandler
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.Giveaway
 import de.tectoast.emolga.utils.json.Emolga
-import de.tectoast.emolga.utils.sql.managers.GiveawayManager
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.jdabuilder.default
@@ -76,7 +75,7 @@ object EmolgaMain {
             .registerReaction("827608009571958806", "884567614918111233", "886748333484441650", "886746672120606771")
             .registerReaction("827608009571958806", "884567614918111233", "886748333484441650", "886746672120606771")
             .registerReaction("827608009571958806", "884567614918111233", "921389285188440115", "921387730200584222")*/
-        GiveawayManager.forAll {
+        /*GiveawayManager.forAll {
             Giveaway(
                 it.getLong("channelid"),
                 it.getLong("hostid"),
@@ -85,7 +84,8 @@ object EmolgaMain {
                 it.getString("prize"),
                 it.getLong("messageid")
             )
-        }
+        }*/
+        Giveaway.init()
     }
 
     private fun initializeASLS11(jda: JDA) {

@@ -51,8 +51,8 @@ import de.tectoast.jsolf.JSONTokener
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
+import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
-import dev.minn.jda.ktx.messages.send
 import dev.minn.jda.ktx.util.SLF4J
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -86,7 +86,6 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.utils.FileUpload
-import net.dv8tion.jda.internal.utils.Helpers
 import org.apache.commons.collections4.queue.CircularFifoQueue
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -237,6 +236,10 @@ abstract class Command(
         isSlash = true
         slashGuilds.addAll(guilds.toList())
         slashGuilds.add(Constants.G.MY)
+    }
+
+    protected fun slashInAllowedGuilds(onlySlash: Boolean) {
+        slash(onlySlash, *allowedGuilds.toLongArray())
     }
 
     protected fun slash() {
@@ -428,9 +431,9 @@ abstract class Command(
             @Suppress("UNCHECKED_CAST") return map.getOrDefault(key, defvalue) as T
         }
 
+        @Suppress("UNCHECKED_CAST")
         fun <T> getOrDefault(key: String, defvalue: () -> T): T {
             return if (key in map) {
-                @Suppress("UNCHECKED_CAST")
                 map[key] as T
             } else {
                 defvalue()
@@ -523,9 +526,7 @@ abstract class Command(
                         map[arg.id] = if (type.needsValidate()) {
                             type.validate(
                                 o.asString, ValidationData(
-                                    guildId = e.guild?.idLong ?: -1,
-                                    language = arg.language,
-                                    channel = e.channel
+                                    guildId = e.guild?.idLong ?: -1, language = arg.language, channel = e.channel
                                 )
                             ) ?: throw MissingArgumentException(arg)
                         } else {
@@ -580,9 +581,7 @@ abstract class Command(
                 if (type is DiscordType || type is DiscordFile) {
                     o = type.validate(
                         str, ValidationData(
-                            message = m,
-                            asFar = asFar.getOrDefault(type, 0),
-                            channel = e.channel
+                            message = m, asFar = asFar.getOrDefault(type, 0), channel = e.channel
                         )
                     )
                     if (o != null) asFar[type] = asFar.getOrDefault(type, 0) + 1
@@ -815,16 +814,17 @@ abstract class Command(
             }
 
             override fun validate(str: String, data: ValidationData): Any? {
-                if (Helpers.isNumeric(str)) {
-                    val num = str.toInt()
-                    if (any) return num
-                    return if (numbers.contains(num)) num else null
+                return str.toIntOrNull()?.let { num ->
+                    if (any) num else if (hasRange()) {
+                        if (num in from..to) num else null
+                    } else {
+                        if (num in numbers) num else null
+                    }
                 }
-                return null
             }
 
             override fun getName(): String {
-                return "ein Text"
+                return "eine Zahl"
             }
 
             override val customHelp: String
@@ -842,11 +842,7 @@ abstract class Command(
 
             companion object {
                 fun range(from: Int, to: Int): Number {
-                    val l = mutableListOf<Int>()
-                    for (i in from..to) {
-                        l.add(i)
-                    }
-                    return of(*l.toTypedArray().toIntArray()).setRange(from, to)
+                    return of().setRange(from, to)
                 }
 
                 fun of(vararg possible: Int): Number {
@@ -1944,7 +1940,12 @@ abstract class Command(
         fun getNumber(map: Map<String, String>, pick: String): String {
             //logger.info(map);
             for ((s, value) in map) {
-                if (s == pick || pick == "M-$s" || s.split("-").first() == pick.split("-").first()) return value
+                if (s == pick || pick == "M-$s" || s.split("-").first().let {
+                        when (it) {
+                            "A", "Alola", "G", "Galar", "M", "Mega", "Kapu" -> null
+                            else -> it
+                        }
+                    } == pick.split("-").first()) return value
             }
             return ""
         }
@@ -2353,8 +2354,7 @@ abstract class Command(
 
         inline fun <reified T> save(data: T, path: String) {
             Files.writeString(
-                Paths.get(path),
-                JSONObject(JSON.encodeToString(data)).toString(4)
+                Paths.get(path), JSONObject(JSON.encodeToString(data)).toString(4)
             )
         }
 
@@ -2621,11 +2621,14 @@ abstract class Command(
             }
         }
 
-        fun help(tco: TextChannel, mem: Member) =
-            tco.send(
-                embeds = Embed(title = "Commands", color = embedColor).into(),
-                components = getHelpButtons(tco.guild, mem)
+        fun help(tco: TextChannel, mem: Member) {
+            tco.sendMessage(
+                MessageCreate(
+                    embeds = Embed(title = "Commands", color = embedColor).into(),
+                    components = getHelpButtons(tco.guild, mem)
+                )
             ).queue()
+        }
 
         suspend fun check(e: MessageReceivedEvent) {
             val mem = e.member!!
@@ -2779,15 +2782,11 @@ abstract class Command(
         }
 
         fun eachWordUpperCase(s: String): String {
-            val st = StringBuilder(s.length)
-            for (str in s.split(" ").dropLastWhile { it.isEmpty() }.toTypedArray()) {
-                st.append(firstUpperCase(str)).append(" ")
-            }
-            return st.substring(0, st.length - 1)
+            return s.split(" ").joinToString(" ") { firstUpperCase(it) }
         }
 
         private fun firstUpperCase(s: String): String {
-            return EMPTY_PATTERN.split(s)[0].uppercase() + s.substring(1).lowercase()
+            return s.firstOrNull()?.uppercaseChar()?.plus(s.drop(1)) ?: ""
         }
 
         private fun getType(str: String): String {
@@ -3031,11 +3030,7 @@ abstract class Command(
         }
 
         fun analyseReplay(
-            url: String,
-            customReplayChannel: TextChannel?,
-            resultchannel: TextChannel,
-            m: Message?,
-            e: InteractionHook?
+            url: String, customReplayChannel: TextChannel?, resultchannel: TextChannel, m: Message?, e: InteractionHook?
         ) {
             defaultScope.launch {
                 if (BOT_DISABLED && resultchannel.guild.idLong != Constants.G.MY) {
@@ -3052,6 +3047,12 @@ abstract class Command(
                     analysis
                     //game = Analysis.analyse(url, m);
                 } catch (ex: Exception) {
+                    if (ex is DoublesReplayException) {
+                        "Doubles Replays sind zurzeit noch nicht supportet, kommen demnächst.".let {
+                            e?.sendMessage(it)?.queue() ?: resultchannel.sendMessage(it).queue()
+                        }
+                        return@launch
+                    }
                     val msg =
                         "Beim Auswerten des Replays ist ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein und melde dich gegebenenfalls bei ${Constants.MYTAG}!"
                     if (e != null) e.sendMessage(msg).queue() else {
@@ -3677,3 +3678,5 @@ enum class SpecialForm(private val sdname: String) {
         }
     }
 }
+
+object DoublesReplayException : Exception()

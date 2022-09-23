@@ -16,7 +16,7 @@ class DexNumberCommand :
     override suspend fun process(e: GuildCommandEvent) {
         val data = dataJSON
         val num = e.arguments.getInt("num")
-        data.keySet().asSequence().map { data.getJSONObject(it) }.firstOrNull { it.getInt(num) == num }
+        data.keySet().asSequence().map { data.getJSONObject(it) }.firstOrNull { it.getInt("num") == num }
             ?.let { e.reply(getGerNameNoCheck(it.getString("name"))) } ?: e.reply("huch")
     }
 }

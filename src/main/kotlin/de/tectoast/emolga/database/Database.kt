@@ -38,6 +38,7 @@ class Database(username: String, password: String) {
             val cred = Command.tokens.getJSONObject("database")
             logger.info("Creating DataSource...")
             instance = Database(cred.getString("username"), cred.getString("password"))
+            org.jetbrains.exposed.sql.Database.connect(instance.dataSource)
             logger.info("Retrieving all startup information...")
             AnalysisManager.forAll { Command.replayAnalysis[it.getLong("replay")] = it.getLong("result") }
             MusicGuildsManager.forAll { CommandCategory.musicGuilds.add(it.getLong("guildid")) }

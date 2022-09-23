@@ -66,7 +66,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 return
             }
             val picks = d.picks[mem]!!
-            if (picks.filter { it.name != "???" }.size == 15) {
+            if (picks.count { it.name != "???" } == 15) {
                 e.reply("Du hast bereits 15 Mons!")
                 return
             }

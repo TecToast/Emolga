@@ -364,10 +364,10 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
             Um mich zu konfigurieren gibt es folgende Möglichkeiten:
 
             **1. Die Ergebnisse sollen in den gleichen Channel geschickt werden:**
-            Einfach `!replaychannel` in den jeweiligen Channel schreiben
+            Einfach `/replaychannel add` in den jeweiligen Channel schreiben
 
             **2. Die Ergebnisse sollen in einen anderen Channel geschickt werden:**
-            `!replaychannel #Ergebnischannel` in den Channel schicken, wo später die Replays reingeschickt werden sollen (Der #Ergebnischannel ist logischerweise der Channel, wo später die Ergebnisse reingeschickt werden sollen)
+            `/replaychannel add #Ergebnischannel` in den Channel schicken, wo später die Replays reingeschickt werden sollen (Der #Ergebnischannel ist logischerweise der Channel, wo später die Ergebnisse reingeschickt werden sollen)
 
             Falls die Ergebnisse in ||Spoilertags|| geschickt werden sollen, schick irgendwo auf dem Server den Command `!spoilertags` rein. Dies gilt dann serverweit.
 

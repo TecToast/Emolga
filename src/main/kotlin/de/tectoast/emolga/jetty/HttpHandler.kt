@@ -92,7 +92,6 @@ object HttpHandler : AbstractHandler() {
     private val logger = LoggerFactory.getLogger(HttpHandler::class.java)
 
     @Route(route = "/discordauth", needsCookie = false)
-
     @Throws(IOException::class)
     fun exchangeCodeRoute(dt: Data) {
         val (_, req, res, _) = dt

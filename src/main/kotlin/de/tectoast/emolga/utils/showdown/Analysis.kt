@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.showdown
 
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.DoublesReplayException
 import de.tectoast.emolga.commands.httpClient
 import de.tectoast.emolga.commands.pokemon.WeaknessCommand.Companion.getEffectiveness
 import de.tectoast.emolga.utils.sql.managers.ReplayCheckManager
@@ -75,6 +76,7 @@ class Analysis(private val link: String, m: Message?) {
         val game = gameNullable ?: throw IOException("Could not read game")
         val time = System.currentTimeMillis()
         for (currentLine in game) {
+            if (currentLine == "|gametype|doubles") throw DoublesReplayException
             s = currentLine
             split = s.split("|")
             checkPlayer({ i: Int -> s.contains("|player|p$i") && s.length > 11 }) { p: Player ->

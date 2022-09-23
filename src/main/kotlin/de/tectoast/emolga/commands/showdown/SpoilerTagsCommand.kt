@@ -13,6 +13,7 @@ class SpoilerTagsCommand : Command(
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
         everywhere = true
+        slash(false, -1)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

@@ -9,8 +9,8 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.Emolga
 import dev.minn.jda.ktx.messages.Embed
+import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
-import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
@@ -35,19 +35,17 @@ class NominateCommand : PrivateCommand("nominate") {
             return
         }
         val list =
-            nds.picks[if (e.author.idLong == Constants.FLOID) Command.WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toLong() else e.author.idLong]!!
-                .sortedWith(tiercomparator)
+            nds.picks[if (e.author.idLong == Constants.FLOID) Command.WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toLong() else e.author.idLong]!!.sortedWith(
+                tiercomparator
+            )
         val n = Nominate(list)
-        e.channel.send(
-            embeds = Embed(
-                title = "Nominierungen",
-                color = embedColor,
-                description = n.generateDescription()
-            ).into(), components = Command.getActionRows(list.map { it.name }) {
-                Button.primary(
-                    "nominate;$it", it
-                )
-            }.toMutableList().also { it.add(ActionRow.of(Button.success("nominate;FINISH", Emoji.fromUnicode("✅")))) })
-            .queue { Command.nominateButtons[it.idLong] = n }
+        e.channel.sendMessage(MessageCreate(embeds = Embed(
+            title = "Nominierungen", color = embedColor, description = n.generateDescription()
+        ).into(), components = Command.getActionRows(list.map { it.name }) {
+            Button.primary(
+                "nominate;$it", it
+            )
+        }.toMutableList().also { it.add(ActionRow.of(Button.success("nominate;FINISH", Emoji.fromUnicode("✅")))) })
+        ).queue { Command.nominateButtons[it.idLong] = n }
     }
 }

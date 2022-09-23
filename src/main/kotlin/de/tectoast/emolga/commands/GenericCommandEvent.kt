@@ -3,6 +3,8 @@ package de.tectoast.emolga.commands
 import de.tectoast.emolga.utils.Constants
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.*
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.commands.OptionType

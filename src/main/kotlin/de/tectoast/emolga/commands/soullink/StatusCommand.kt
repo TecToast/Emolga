@@ -9,7 +9,10 @@ import de.tectoast.emolga.utils.json.Emolga
 class StatusCommand : Command("status", "Setzt den Status eines Encounters", CommandCategory.Soullink) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
-            .add("location", "Location", "Die Location", ArgumentManagerTemplate.Text.any())
+            .add("location", "Location", "Die Location", ArgumentManagerTemplate.Text.withAutocomplete { s, _ ->
+                val locs = Emolga.get.soullink.order
+                locs.filter { it.startsWith(s, ignoreCase = true) }
+            })
             .add(
                 "status",
                 "Status",

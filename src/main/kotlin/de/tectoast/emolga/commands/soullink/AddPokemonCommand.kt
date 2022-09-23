@@ -9,7 +9,10 @@ import de.tectoast.emolga.utils.json.Emolga
 class AddPokemonCommand : Command("addpokemon", "Fügt ein Pokemon hinzu", CommandCategory.Soullink) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
-            .add("location", "Location", "Die Location", ArgumentManagerTemplate.Text.any())
+            .add("location", "Location", "Die Location", ArgumentManagerTemplate.Text.withAutocomplete { s, _ ->
+                val locs = Emolga.get.soullink.order
+                locs.filter { it.startsWith(s, ignoreCase = true) }
+            })
             .add("pokemon", "Pokemon", "Das Pokemon", ArgumentManagerTemplate.draftPokemon())
             .add(
                 "status", "Status", "Der Status", ArgumentManagerTemplate.Text.of(

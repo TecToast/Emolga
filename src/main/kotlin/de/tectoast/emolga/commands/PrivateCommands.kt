@@ -27,9 +27,9 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
-import net.dv8tion.jda.api.entities.AudioChannel
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.UserSnowflake
+import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.Commands
@@ -114,12 +114,13 @@ object PrivateCommands {
 
     @PrivateCommand(name = "ban")
     fun ban(e: GenericCommandEvent) {
-        e.jda.getGuildById(e.getArg(0))?.ban(UserSnowflake.fromId(e.getArg(1)), 0)?.queue()
+        e.jda.getGuildById(e.getArg(0))?.ban(UserSnowflake.fromId(e.getArg(1)), 0, TimeUnit.SECONDS)?.queue()
     }
 
     @PrivateCommand(name = "banwithreason")
     fun banwithreason(e: GenericCommandEvent) {
-        e.jda.getGuildById(e.getArg(0))?.ban(UserSnowflake.fromId(e.getArg(1)), 0, e.msg?.substring(53))?.queue()
+        e.jda.getGuildById(e.getArg(0))?.ban(UserSnowflake.fromId(e.getArg(1)), 0, TimeUnit.SECONDS)
+            ?.reason(e.msg?.substring(53))?.queue()
     }
 
     @PrivateCommand(name = "updatedatabase")

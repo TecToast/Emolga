@@ -6,7 +6,7 @@ import de.tectoast.emolga.utils.records.DexEntry
 import de.tectoast.emolga.utils.sql.managers.PokedexManager
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.entities.MessageEmbed
-import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import java.awt.Color
 import java.io.File
 import java.io.IOException

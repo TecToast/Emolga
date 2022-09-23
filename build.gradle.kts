@@ -67,7 +67,7 @@ dependencies {
     //implementation("mysql:mysql-connector-java:8.0.29")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.1")
-    implementation("com.github.TecToast:Toastilities:7e571a5d9d")
+    implementation("com.github.TecToast:Toastilities:96e360b1f8")
     implementation("com.github.TecToast:JSOLF:a43c3e06c7")
     implementation("net.dv8tion:JDA:5.0.0-alpha.20")
     implementation("com.zaxxer:HikariCP:5.0.1")

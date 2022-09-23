@@ -72,6 +72,10 @@ import net.dv8tion.jda.api.audio.hooks.ConnectionListener
 import net.dv8tion.jda.api.audio.hooks.ConnectionStatus
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.entities.Message.Attachment
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel
+import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
@@ -1815,7 +1819,7 @@ abstract class Command(
                 tco.sendMessageEmbeds(builder.build()).queue()
                 return
             }
-            g.kick(mem, reason).queue()
+            g.kick(mem).reason(reason).queue()
             val builder = EmbedBuilder()
             builder.setAuthor(mem.effectiveName + " wurde gekickt", null, mem.user.effectiveAvatarUrl)
             builder.setColor(java.awt.Color.CYAN)
@@ -1841,7 +1845,7 @@ abstract class Command(
                 tco.sendMessageEmbeds(builder.build()).queue()
                 return
             }
-            g.ban(mem, 0, reason).queue()
+            g.ban(mem, 0, TimeUnit.SECONDS).reason(reason).queue()
             val builder = EmbedBuilder()
             builder.setAuthor(mem.effectiveName + " wurde gebannt", null, mem.user.effectiveAvatarUrl)
             builder.setColor(java.awt.Color.CYAN)
@@ -1893,7 +1897,7 @@ abstract class Command(
                 tco.sendMessageEmbeds(builder.build()).queue()
                 return
             }
-            g.ban(mem, 0, reason).queue()
+            g.ban(mem, 0, TimeUnit.SECONDS).reason(reason).queue()
             val expires = System.currentTimeMillis() + time * 1000L
             banTimer(g, expires, mem.idLong)
             val builder = EmbedBuilder()
@@ -2941,7 +2945,7 @@ abstract class Command(
 
         fun sendToUser(id: Long, msg: String, vararg bot: Bot) {
             val jda: JDA = if (bot.isEmpty()) emolgajda else bot[0].jDA
-            jda.retrieveUserById(id).flatMap { obj: User -> obj.openPrivateChannel() }.flatMap { pc: PrivateChannel ->
+            jda.retrieveUserById(id).flatMap { obj: User -> obj.openPrivateChannel() }.flatMap { pc ->
                 pc.sendMessage(
                     msg.substring(0, min(msg.length, 2000))
                 )

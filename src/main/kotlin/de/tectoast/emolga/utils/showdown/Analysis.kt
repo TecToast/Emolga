@@ -10,7 +10,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.delay
 import net.dv8tion.jda.api.entities.Message
-import net.dv8tion.jda.api.entities.MessageChannel
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 import java.io.IOException

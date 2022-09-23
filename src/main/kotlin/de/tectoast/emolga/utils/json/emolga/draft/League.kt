@@ -17,7 +17,7 @@ import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import org.slf4j.Logger
 
 

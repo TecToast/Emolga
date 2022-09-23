@@ -5,7 +5,7 @@ import de.tectoast.emolga.utils.sql.base.DataManager
 import de.tectoast.emolga.utils.sql.base.DataManager.ResultsFunction
 import de.tectoast.emolga.utils.sql.base.columns.IntColumn
 import de.tectoast.emolga.utils.sql.base.columns.LongColumn
-import net.dv8tion.jda.api.entities.MessageChannel
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import java.sql.ResultSet
 import java.util.*
 

@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.MusicCommand
 import de.tectoast.emolga.utils.Constants
 import net.dv8tion.jda.api.entities.Member
-import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 
 class WirklichGuteMusikCommand :
     MusicCommand("gutemusik", "Wirklich Gute Musik (Empfohlen von Flo und Dasor :) )", Constants.G.FPL) {

@@ -4,8 +4,8 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.sql.managers.AnalysisManager
-import net.dv8tion.jda.api.entities.GuildChannel
-import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel
 
 class ReplayChannelCommand : Command(
     "replaychannel",

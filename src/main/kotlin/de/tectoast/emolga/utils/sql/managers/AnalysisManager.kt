@@ -3,7 +3,7 @@ package de.tectoast.emolga.utils.sql.managers
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.utils.sql.base.DataManager
 import de.tectoast.emolga.utils.sql.base.columns.LongColumn
-import net.dv8tion.jda.api.entities.TextChannel
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import java.sql.ResultSet
 
 object AnalysisManager : DataManager("analysis") {

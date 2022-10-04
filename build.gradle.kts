@@ -57,7 +57,7 @@ dependencies {
     implementation("org.eclipse.jetty:jetty-util:11.0.12")
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
     implementation("com.google.apis:google-api-services-docs:v1-rev20220609-2.0.0")
-    implementation("com.google.apis:google-api-services-sheets:v4-rev20220620-2.0.0")
+    implementation("com.google.apis:google-api-services-sheets:v4-rev20220927-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20220926-2.0.0")
     implementation("org.jsoup:jsoup:1.15.3")
     implementation("com.sedmelluq:lavaplayer:1.3.78")

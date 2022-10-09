@@ -25,13 +25,10 @@ import net.dv8tion.jda.api.entities.Icon
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.emoji.Emoji
-import net.dv8tion.jda.api.events.ReadyEvent
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent
-import net.dv8tion.jda.api.events.guild.voice.GuildVoiceJoinEvent
-import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent
-import net.dv8tion.jda.api.events.guild.voice.GuildVoiceMoveEvent
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -39,6 +36,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.events.role.RoleCreateEvent
+import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import org.slf4j.LoggerFactory
@@ -125,17 +123,25 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
         }
     }
 
-    override fun onGuildVoiceMove(e: GuildVoiceMoveEvent) {
-        if (e.channelLeft.members.size == 1 && e.guild.audioManager.isConnected) e.guild.audioManager.closeAudioConnection()
-    }
-
-    override fun onGuildVoiceJoin(e: GuildVoiceJoinEvent) {
-        if (e.channelJoined.idLong == 979436321359683594L) {
-            val mid = e.member.idLong
-            if (mid == e.jda.selfUser.idLong) return
-            WirklichGuteMusikCommand.doIt(
-                e.guild.getTextChannelById(861558360104632330L)!!, e.member, mid == FLOID || mid == DASORID
-            )
+    override fun onGuildVoiceUpdate(e: GuildVoiceUpdateEvent) {
+        e.channelLeft?.let {
+            if (it.members.size == 1 && e.guild.audioManager.isConnected) {
+                e.guild.audioManager.closeAudioConnection()
+            }
+            if (e.channelJoined == null && e.member.idLong == e.jda.selfUser.idLong) {
+                val manager = Command.getGuildAudioPlayer(e.guild)
+                manager.scheduler.queue.clear()
+                manager.scheduler.nextTrack()
+            }
+        }
+        e.channelJoined?.let {
+            if (it.idLong == 979436321359683594L) {
+                val mid = e.member.idLong
+                if (mid == e.jda.selfUser.idLong) return
+                WirklichGuteMusikCommand.doIt(
+                    e.guild.getTextChannelById(861558360104632330L)!!, e.member, mid == FLOID || mid == DASORID
+                )
+            }
         }
     }
 
@@ -295,17 +301,6 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                     )
                 }
             }
-        }
-    }
-
-    override fun onGuildVoiceLeave(e: GuildVoiceLeaveEvent) {
-        if (e.member.idLong == e.jda.selfUser.idLong) {
-            val manager = Command.getGuildAudioPlayer(e.guild)
-            manager.scheduler.queue.clear()
-            manager.scheduler.nextTrack()
-        }
-        if (e.channelLeft.members.size == 1 && e.guild.audioManager.isConnected) {
-            e.guild.audioManager.closeAudioConnection()
         }
     }
 

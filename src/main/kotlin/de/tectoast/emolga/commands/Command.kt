@@ -2423,7 +2423,7 @@ abstract class Command(
             Emolga.get.drafts.entries.forEach { l ->
                 l.value.takeIf { it.docEntry != null }?.tipgame?.let { tip ->
                     val duration = Duration.ofSeconds(parseShortTime(tip.interval).toLong())
-                    RepeatTask(tip.lastSending.toInstant(), tip.amount, duration) { num ->
+                    RepeatTask(tip.lastSending.toInstant(), tip.amount, duration, { num ->
                         defaultScope.launch {
                             val league = l.value
                             val docEntry = league.docEntry!!
@@ -2454,7 +2454,7 @@ abstract class Command(
                                 ).queue()
                             }
                         }
-                    }
+                    }, true)
                     RepeatTask(tip.lastLockButtons.toInstant(), tip.amount, duration) {
                         defaultScope.launch {
                             emolgajda.getTextChannelById(tip.channel)!!.iterableHistory.takeAsync(l.value.table.size / 2)

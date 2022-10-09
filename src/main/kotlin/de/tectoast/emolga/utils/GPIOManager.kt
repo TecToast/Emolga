@@ -51,8 +51,8 @@ object GPIOManager {
     }
 
     enum class PC(private val writePin: Int, private val readPin: Int, private val messageId: Long) {
-        FLORIX_2(2, 24, 964571226964115496L),
-        FLORIX_3(3, 25, 975076826588282962L),
+        FLORIX_2(2, 24, 964571226964115496),
+        FLORIX_3(3, 25, 975076826588282962),
         DUMMY(-1, -1, -1);
 
         fun getWritePin(): String {

@@ -21,8 +21,9 @@ class ResistedCommand :
         json.keySet().forEach {
             val damageTaken = json.getJSONObject(it).getJSONObject("damageTaken").getInt(type.translation)
             if (damageTaken > 1) {
+                val gername = getTypeGerNameOrNull(it) ?: return@forEach
                 if (damageTaken == 3) b.append("**")
-                b.append(getTypeGerName(it))
+                b.append(gername)
                 if (damageTaken == 3) b.append("**")
                 b.append("\n")
             }

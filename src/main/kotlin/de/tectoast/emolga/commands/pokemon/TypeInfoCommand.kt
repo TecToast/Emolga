@@ -24,7 +24,7 @@ class TypeInfoCommand : Command("typeinfo", "Zeigt dir Informationen über einen
         json.keySet().forEach {
             val damageTaken = json.getJSONObject(it).getJSONObject("damageTaken").getInt(type)
             if (damageTaken > 0) {
-                val t = getTypeGerName(it)
+                val t = getTypeGerNameOrNull(it) ?: return@forEach
                 if (damageTaken > 1) {
                     if (damageTaken == 3) resistedBy.add("$t **(immun)**") else resistedBy.add(t)
                 } else {
@@ -36,7 +36,7 @@ class TypeInfoCommand : Command("typeinfo", "Zeigt dir Informationen über einen
         typejson.keySet().forEach {
             val damageTaken = typejson.getInt(it)
             if (damageTaken > 0) {
-                val t = getTypeGerName(it)
+                val t = getTypeGerNameOrNull(it) ?: return@forEach
                 if (damageTaken > 1) {
                     if (damageTaken == 3) resisted.add("$t **(immun)**") else resisted.add(t)
                 } else {

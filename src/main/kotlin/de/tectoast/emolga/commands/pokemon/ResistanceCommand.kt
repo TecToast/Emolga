@@ -25,7 +25,7 @@ class ResistanceCommand :
             typejson.keySet().forEach { str: String ->
                 val damageTaken = typejson.getInt(str)
                 if (damageTaken > 1) {
-                    val t = getTypeGerName(str)
+                    val t = getTypeGerNameOrNull(str) ?: return@forEach
                     if (damageTaken == 3) b.append("**")
                     b.append(t)
                     if (damageTaken == 3) b.append("**")

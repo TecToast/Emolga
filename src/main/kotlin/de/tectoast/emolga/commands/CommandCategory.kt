@@ -1,6 +1,7 @@
 package de.tectoast.emolga.commands
 
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.json.Emolga
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 
@@ -52,35 +53,36 @@ enum class CommandCategory {
 
         init {
             Moderator.allowsMemberFun = { m: Member ->
-                Admin.allowsMember(m) || m.roles.any { Command.moderatorRoles.containsValue(it.idLong) }
+                Admin.allowsMember(m) || m.roles.any { Emolga.get.moderatorroles.containsValue(it.idLong) }
             }
             Music.allowsGuildIdFun = musicGuilds::contains
             Moderator.allowsGuildIdFun =
-                Command.moderatorRoles::containsKey
+                Emolga.get.moderatorroles::containsKey
             Pepe.allowsGuildIdFun =
                 { it == 605632286179983360L || it == 817156502912761867L }
             Flo.allowsMemberFun =
                 { it.idLong == Constants.FLOID }
             Admin.allowsMemberFun = Flo.allowsMemberFun
             Soullink.allowsGuildIdFun = { gid: Long? -> gid == 695943416789598208L }
-            Draft.isEverywhere = true
-            Flo.isEverywhere = true
-            Admin.isEverywhere = true
-            Moderator.isEverywhere = true
-            Flo.isAdmin = true
-            Admin.isAdmin = true
-            Moderator.isAdmin = true
+            enableEverywhere(Draft, Flo, Admin, Moderator)
+            enableAdminOnly(Flo, Admin, Moderator)
             //Music.disabled = "Die Musikfunktionen wurden aufgrund einer Fehlfunktion komplett deaktiviert!";
         }
+
+        private fun enableEverywhere(vararg categories: CommandCategory) {
+            categories.forEach { it.isEverywhere = true }
+        }
+
+        private fun enableAdminOnly(vararg categories: CommandCategory) {
+            categories.forEach { it.isAdmin = true }
+        }
+
 
         //(gid.equals("700504340368064562") || gid.equals("712035338846994502") || gid.equals("673833176036147210")
         fun byName(name: String?): CommandCategory? {
             return values()
-                .firstOrNull { commandCategory: CommandCategory? ->
-                    commandCategory!!.categoryName.equals(
-                        name,
-                        ignoreCase = true
-                    )
+                .firstOrNull {
+                    it.categoryName.equals(name, ignoreCase = true)
                 }
         }
     }

@@ -105,7 +105,6 @@ import java.sql.SQLException
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.Duration
-import java.time.Instant
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -1278,16 +1277,6 @@ abstract class Command(
         val emoteSteal: MutableList<Long> = ArrayList()
 
         /**
-         * saves all Muted Roles per guild
-         */
-        private val mutedRoles: MutableMap<Long, Long> = HashMap()
-
-        /**
-         * saves all Moderator Roles per guild
-         */
-        val moderatorRoles: MutableMap<Long, Long> = HashMap()
-
-        /**
          * saves all replay channel with their result channel
          */
         val replayAnalysis: MutableMap<Long, Long> = HashMap()
@@ -1803,11 +1792,7 @@ abstract class Command(
                 tco.sendMessageEmbeds(builder.build()).queue()
                 return
             }
-            if (mutedRoles.containsKey(g.idLong)) g.addRoleToMember(
-                mem, g.getRoleById(
-                    mutedRoles[g.idLong]!!
-                )!!
-            ).queue()
+            Emolga.get.mutedroles[g.idLong]?.let { g.addRoleToMember(mem, g.getRoleById(it)!!).queue() }
             val expires = (System.currentTimeMillis() + time * 1000L) / 1000 * 1000
             muteTimer(g, expires, mem.idLong)
             val builder = EmbedBuilder()
@@ -1828,7 +1813,9 @@ abstract class Command(
             moderationService.schedule({
                 val gid = g.idLong
                 if (MuteManager.unmute(mem, gid) != 0) {
-                    g.removeRoleFromMember(UserSnowflake.fromId(mem), g.getRoleById(mutedRoles[gid]!!)!!).queue()
+                    Emolga.get.mutedroles[gid]?.let {
+                        g.removeRoleFromMember(mem.usersnowflake, g.getRoleById(it)!!).queue()
+                    }
                 }
             }, expires - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
         }
@@ -1894,9 +1881,7 @@ abstract class Command(
                 tco.sendMessageEmbeds(builder.build()).queue()
                 return
             }
-            if (mutedRoles.containsKey(gid)) {
-                g.addRoleToMember(mem, g.getRoleById(mutedRoles[gid]!!)!!).queue()
-            }
+            Emolga.get.mutedroles[gid]?.let { g.addRoleToMember(mem, g.getRoleById(it)!!).queue() }
             val builder = EmbedBuilder()
             builder.setAuthor(mem.effectiveName + " wurde gemutet", null, mem.user.effectiveAvatarUrl)
             builder.setColor(java.awt.Color.CYAN)
@@ -1908,9 +1893,7 @@ abstract class Command(
         fun unmute(tco: TextChannel, mem: Member) {
             val g = tco.guild
             val gid = g.idLong
-            if (mutedRoles.containsKey(gid)) {
-                g.removeRoleFromMember(mem, g.getRoleById(mutedRoles[gid]!!)!!).queue()
-            }
+            Emolga.get.mutedroles[gid]?.let { g.removeRoleFromMember(mem, g.getRoleById(it)!!).queue() }
             val builder = EmbedBuilder()
             builder.setAuthor(mem.effectiveName + " wurde entmutet", null, mem.user.effectiveAvatarUrl)
             builder.setColor(java.awt.Color.CYAN)

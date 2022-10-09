@@ -52,7 +52,7 @@ repositories {
     maven("https://jitpack.io/")
 }
 dependencies {
-    implementation("org.slf4j:slf4j-api:2.0.2")
+    implementation("org.slf4j:slf4j-api:2.0.3")
     implementation("org.eclipse.jetty:jetty-server:11.0.12")
     implementation("org.eclipse.jetty:jetty-util:11.0.12")
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
@@ -69,7 +69,7 @@ dependencies {
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.1")
     implementation("com.github.TecToast:Toastilities:96e360b1f8")
     implementation("com.github.TecToast:JSOLF:a43c3e06c7")
-    implementation("net.dv8tion:JDA:5.0.0-alpha.20")
+    implementation("net.dv8tion:JDA:5.0.0-alpha.21")
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.0.8")
     implementation("com.github.MinnDevelopment:jda-ktx:-SNAPSHOT")
@@ -79,10 +79,10 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.10")
     implementation("io.ktor:ktor-client-core:2.1.2")
     implementation("io.ktor:ktor-client-cio:2.1.1")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.1.1")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.1.2")
     implementation("io.ktor:ktor-client-content-negotiation:2.1.2")
     implementation("org.jetbrains.exposed:exposed-core:0.40.1")
-    implementation("org.jetbrains.exposed:exposed-dao:0.39.2")
+    implementation("org.jetbrains.exposed:exposed-dao:0.40.1")
     implementation("org.jetbrains.exposed:exposed-jdbc:0.40.1")
     implementation("org.jetbrains.exposed:exposed-java-time:0.39.2")
 }

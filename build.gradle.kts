@@ -63,7 +63,7 @@ dependencies {
     implementation("com.sedmelluq:lavaplayer:1.3.78")
     //implementation("org.slf4j:slf4j-simple:1.7.32")
 
-    implementation("ch.qos.logback:logback-classic:1.4.1")
+    implementation("ch.qos.logback:logback-classic:1.4.3")
     //implementation("mysql:mysql-connector-java:8.0.29")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.1")

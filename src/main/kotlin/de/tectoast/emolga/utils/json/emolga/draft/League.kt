@@ -66,6 +66,8 @@ sealed class League {
 
     val table: MutableList<Long> = mutableListOf()
 
+    val tipgame: TipGame? = null
+
     open fun isFinishedForbidden() = true
 
     open fun checkFinishedForbidden(mem: Long): String? = null

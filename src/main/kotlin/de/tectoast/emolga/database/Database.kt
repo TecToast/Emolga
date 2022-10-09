@@ -27,7 +27,7 @@ class Database(username: String, password: String) {
     companion object {
         private val logger = LoggerFactory.getLogger(Database::class.java)
         lateinit var instance: Database
-        private val dbScope =
+        val dbScope =
             CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineName("DBScope") + CoroutineExceptionHandler { _, t ->
                 logger.error("ERROR IN DATABASE SCOPE", t)
                 Command.sendToMe("Error in database scope, look in console")

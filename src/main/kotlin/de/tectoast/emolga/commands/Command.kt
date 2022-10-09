@@ -50,17 +50,25 @@ import de.tectoast.jsolf.JSONObject
 import de.tectoast.jsolf.JSONTokener
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
 import dev.minn.jda.ktx.util.SLF4J
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -2411,11 +2419,70 @@ abstract class Command(
         }
 
         private fun setupRepeatTasks() {
+            setupManualRepeatTasks()
+            Emolga.get.drafts.entries.forEach { l ->
+                l.value.takeIf { it.docEntry != null }?.tipgame?.let { tip ->
+                    val duration = Duration.ofSeconds(parseShortTime(tip.interval).toLong())
+                    RepeatTask(tip.lastSending.toInstant(), tip.amount, duration) { num ->
+                        defaultScope.launch {
+                            val league = l.value
+                            val docEntry = league.docEntry!!
+                            val channel = emolgajda.getTextChannelById(tip.channel)!!
+                            val matchups = docEntry.getMatchups(num)
+                            val names =
+                                emolgajda.getGuildById(league.guild)!!.retrieveMembersByIds(matchups.flatten()).await()
+                                    .associate { it.idLong to it.effectiveName }
+                            val table = league.table
+                            channel.send(
+                                embeds = Embed(
+                                    title = "Spieltag $num",
+                                    color = java.awt.Color.YELLOW.rgb
+                                ).into()
+                            ).queue()
+                            for ((index, matchup) in matchups.withIndex()) {
+                                val u1 = matchup[0]
+                                val u2 = matchup[1]
+                                val baseid = "tipgame;${league.name}:$num:$index"
+                                channel.send(
+                                    embeds = Embed(
+                                        title = "${names[u1]} vs. ${names[u2]}",
+                                        color = embedColor
+                                    ).into(), components = ActionRow.of(
+                                        primary("$baseid:${u1.indexedBy(table)}", names[u1]),
+                                        primary("$baseid:${u2.indexedBy(table)}", names[u2]),
+                                    ).into()
+                                ).queue()
+                            }
+                        }
+                    }
+                    RepeatTask(tip.lastLockButtons.toInstant(), tip.amount, duration) {
+                        defaultScope.launch {
+                            emolgajda.getTextChannelById(tip.channel)!!.iterableHistory.takeAsync(l.value.table.size / 2)
+                                .await().forEach {
+                                    it.editMessageComponents(
+                                        ActionRow.of(it.actionRows[0].buttons.map { button -> button.asDisabled() })
+                                    ).queue()
+                                }
+                        }
+                    }
+                }
+            }
+        }
+
+        private fun setupManualRepeatTasks() {
             RepeatTask(
-                Instant.ofEpochMilli(1661292000000), 5, Duration.ofDays(7L), { doNDSNominate() }, true
+                defaultTimeFormat.parse("01.11.2022 23:00").toInstant(),
+                5,
+                Duration.ofDays(7L),
+                { doNDSNominate() },
+                true
             )
             RepeatTask(
-                Instant.ofEpochMilli(1661104800000), 5, Duration.ofDays(7L), { doMatchUps(it) }, true
+                defaultTimeFormat.parse("30.10.2022 19:00").toInstant(),
+                5,
+                Duration.ofDays(7L),
+                { doMatchUps(it) },
+                true
             )
         }
 

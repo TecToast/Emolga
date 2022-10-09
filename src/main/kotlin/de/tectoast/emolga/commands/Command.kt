@@ -498,8 +498,10 @@ abstract class Command(
             arguments = mutableListOf()
         }
 
-        fun find(name: String): Argument? {
-            return arguments.firstOrNull { it.name.equals(name, ignoreCase = true) }
+        fun findForAutoComplete(name: String): Argument? {
+            return arguments.firstOrNull {
+                it.name.lowercase().replace(" ", "-").replace(Regex("[^\\w-]"), "").equals(name, ignoreCase = true)
+            }
         }
 
         fun hasExample(): Boolean {
@@ -1357,6 +1359,35 @@ abstract class Command(
         val TRIPLE_HASHTAG = Regex("###")
         const val DEXQUIZ_BUDGET = 10
         val draftGuilds = arrayOf(Constants.G.FPL, Constants.G.NDS, Constants.G.ASL, Constants.G.BLOCKI)
+        private val draftPrefixes = mapOf(
+            "M" to "Mega",
+            "A" to "Alola",
+            "G" to "Galar",
+            "Mega" to "Mega",
+            "Alola" to "Alola",
+            "Galar" to "Galar"
+        )
+        val draftPokemonArgumentType = ArgumentManagerTemplate.draftPokemon({ s, event ->
+            val gid = event.guild!!.idLong
+            val league = League.onlyChannel(event.channel!!.idLong)
+            //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
+            val tl = getByGuild(league?.guild ?: gid)
+            val strings = tl?.autoComplete?.let { acl ->
+                val ac = acl/*.map {
+                    it.condAppend(it in alreadyPicked, " (gepickt)")
+                }*/ + tl.pickableNicknames
+                ac.filter {
+                    it.lowercase().startsWith(s.lowercase())
+                } + ((draftPrefixes.entries.asSequence()
+                    .map { it to ac.filterStartsWithIgnoreCase("${it.key}-${s}") }).flatMap { pair -> pair.second.map { pair.first to it } }
+                    .map { "${it.second.substringAfter("-")}-${it.first.value}" })
+            }
+            if (strings == null || strings.size > 25) emptyList()
+            else strings.sorted()
+        }, {
+            getByGuild(League.onlyChannel(it.channel!!.idLong)?.guild ?: it.guildId)?.namepreference
+                ?: DraftNamePreference.SINGLE_CHAR_BEFORE
+        })
 
         /**
          * JSONObject containing all credentials (Discord Token, Google OAuth Token)

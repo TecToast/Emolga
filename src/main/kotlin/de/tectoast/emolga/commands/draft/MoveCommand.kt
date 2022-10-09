@@ -23,6 +23,10 @@ class MoveCommand : Command(
 
     override suspend fun process(e: GuildCommandEvent) {
         League.byChannel(e)?.let {
+            if (it.isSwitchDraft) {
+                e.reply("Dieser Draft ist ein Switch-Draft, daher wird /move nicht unterstützt!")
+                return
+            }
             if (it.isLastRound) {
                 e.reply("Der Draft befindet sich bereits in Runde ${it.round}, somit kann der Pick nicht mehr verschoben werden!")
                 return

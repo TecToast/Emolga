@@ -56,7 +56,7 @@ object EmolgaListener : ListenerAdapter() {
             if (e.jda.selfUser.idLong == 723829878755164202) {
                 Emolga.get.drafts.values.filter { it.isRunning }.forEach {
                     it.startDraft(
-                        null, true
+                        null, true, null
                     )
                 }
             }
@@ -348,7 +348,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
     override fun onCommandAutoCompleteInteraction(e: CommandAutoCompleteInteractionEvent) {
         if (e.commandType == net.dv8tion.jda.api.interactions.commands.Command.Type.SLASH) {
             val focusedOption = e.focusedOption
-            val arg = Command.byName(e.name)!!.argumentTemplate.find(focusedOption.name)!!
+            val arg = Command.byName(e.name)!!.argumentTemplate.findForAutoComplete(focusedOption.name)!!
             val type = arg.type
             if (type.hasAutoComplete()) {
                 type.autoCompleteList(focusedOption.value, e).run {

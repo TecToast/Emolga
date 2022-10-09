@@ -550,11 +550,21 @@ object PrivateCommands {
     suspend fun startasls11drafts(e: GenericCommandEvent) {
         val jda = e.jda
         Emolga.get.apply {
-            league("ASLS11L0").startDraft(jda.getTextChannelById(999775837106745415), false)
-            league("ASLS11L1").startDraft(jda.getTextChannelById(1000773968418054164), false)
-            league("ASLS11L2").startDraft(jda.getTextChannelById(999775875761438740), false)
-            league("ASLS11L3").startDraft(jda.getTextChannelById(999775925610750022), false)
-            league("ASLS11L4").startDraft(jda.getTextChannelById(999775970498199592), false)
+            league("ASLS11L0").startDraft(
+                jda.getTextChannelById(999775837106745415), fromFile = false, switchDraft = true
+            )
+            league("ASLS11L1").startDraft(
+                jda.getTextChannelById(1000773968418054164), fromFile = false, switchDraft = true
+            )
+            league("ASLS11L2").startDraft(
+                jda.getTextChannelById(999775875761438740), fromFile = false, switchDraft = true
+            )
+            league("ASLS11L3").startDraft(
+                jda.getTextChannelById(999775925610750022), fromFile = false, switchDraft = true
+            )
+            league("ASLS11L4").startDraft(
+                jda.getTextChannelById(999775970498199592), fromFile = false, switchDraft = true
+            )
         }
     }
 
@@ -591,9 +601,10 @@ object PrivateCommands {
         for (s in t.order) {
             t.tierlist[s]!!.asSequence().map { str: String ->
                 val split = str.split("-")
-                Command.possibleForms.firstOrNull { str.startsWith("$it-", ignoreCase = true) }?.also { form ->
-                    return@map "$form-${Command.getEnglName(split[1])}${split.getOrNull(2)?.let { "-${it}" } ?: ""}"
-                }
+                Command.possibleForms.plusFirstChars().firstOrNull { str.startsWith("$it-", ignoreCase = true) }
+                    ?.also { form ->
+                        return@map "$form-${Command.getEnglName(split[1])}${split.getOrNull(2)?.let { "-${it}" } ?: ""}"
+                    }
                 logger.info(str)
                 val engl = Command.getEnglNameWithType(str)
                 if (engl.isSuccess) return@map engl.translation

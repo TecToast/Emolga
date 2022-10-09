@@ -4,14 +4,14 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.saveEmolgaJSON
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
 class FinishDraftCommand :
-    Command("finishdraft", "Beendet für dich den Draft", CommandCategory.Draft, Constants.G.NDS, Constants.G.ASL) {
+    Command("finishdraft", "Beendet für dich den Draft", CommandCategory.Draft) {
     init {
         aliases.add("finish")
         argumentTemplate = ArgumentManagerTemplate.noArgs()
+        slash(true, *draftGuilds.toLongArray())
     }
 
     override suspend fun process(e: GuildCommandEvent) {

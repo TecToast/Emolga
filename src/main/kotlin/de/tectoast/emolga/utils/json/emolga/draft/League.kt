@@ -2,8 +2,6 @@ package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.commands.draft.PickData
-import de.tectoast.emolga.commands.draft.SwitchData
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
@@ -23,6 +21,8 @@ import org.slf4j.Logger
 
 @Serializable
 sealed class League {
+    val name: String
+        get() = Emolga.get.drafts.reverseGet(this)!!
     var isRunning: Boolean = false
     val sid: String = "yay"
     val picks: MutableMap<Long, MutableList<DraftPokemon>> = mutableMapOf()
@@ -54,6 +54,9 @@ sealed class League {
 
     @Transient
     var cooldownJob: Job? = null
+
+    @Transient
+    open val allowPickDuringSwitch = false
     val members: List<Long>
         get() = table
     abstract val timer: DraftTimer
@@ -87,8 +90,12 @@ sealed class League {
     }
 
 
-    open fun isCurrent(user: Long): Boolean {
+    fun isCurrentCheck(user: Long): Boolean {
         if (current == user || user in listOf(Constants.FLOID, Constants.DASORID)) return true
+        return isCurrent(user)
+    }
+
+    open fun isCurrent(user: Long): Boolean {
         return allowed[current]?.any { it.u == user } ?: false
     }
 
@@ -156,18 +163,24 @@ sealed class League {
 
     private fun MutableList<Int>.nextCurrent() = table[this.removeAt(0)]
 
-    suspend fun startDraft(tc: TextChannel?, fromFile: Boolean) {
-        logger.info("Starting draft ${Emolga.get.drafts.reverseGet(this)}...")
+    suspend fun startDraft(tc: TextChannel?, fromFile: Boolean, switchDraft: Boolean?) {
+        switchDraft?.let { this.isSwitchDraft = it }
+        logger.info("Starting draft $name...")
         logger.info(tcid.toString())
         if (names.isEmpty()) names.putAll(emolgajda.getGuildById(this.guild)!!.retrieveMembersByIds(members).await()
             .associate { it.idLong to it.effectiveName })
         logger.info(names.toString())
         if (tc != null) this.tcid = tc.idLong
         for (member in members) {
-            if (fromFile) picks.putIfAbsent(member, mutableListOf())
+            if (fromFile || isSwitchDraft) picks.putIfAbsent(member, mutableListOf())
             else picks[member] = mutableListOf()
+            val isPoints = tierlist.mode.isPoints()
             if (!tierlist.mode.isTiers()) points[member] =
-                tierlist.points - picks[member]!!.sumOf { if (it.free) tierlist.freepicks[it.tier]!! else 0 }
+                tierlist.points - picks[member]!!.sumOf {
+                    if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
+                        it.tier
+                    ) else 0
+                }
         }
         if (!fromFile) {
             order.clear()
@@ -282,7 +295,7 @@ sealed class League {
         logger.info("TriggerTimer 1")
         if (!isRunning) return
         logger.info("TriggerTimer 2")
-        triggerMove()
+        if (!isSwitchDraft) triggerMove()
         logger.info("TriggerTimer 3")
         if (endOfTurn()) return/*String msg = tr == TimerReason.REALTIMER ? "**" + current.getEffectiveName() + "** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " (<@&" + asl.getLongList("roleids").get(getIndex(order.get(round).get(0).getIdLong())) + ">) dran! "
                 : "Der Pick von " + current.getEffectiveName() + " wurde " + (isSwitchDraft ? "geskippt" : "verschoben") + " und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran!";*/
@@ -332,6 +345,18 @@ sealed class League {
         ).await()
     }
 
+    suspend fun replySwitch(e: GuildCommandEvent, oldmon: String, newmon: String) {
+        e.slashCommandEvent!!.reply("${e.member.asMention} hat ".condAppend(e.author.idLong != current) {
+            "für **${getName(current)}** "
+        } + "$oldmon gegen $newmon getauscht!").await()
+    }
+
+    suspend fun replySkip(e: GuildCommandEvent) {
+        e.slashCommandEvent!!.reply("${e.member.asMention} hat ".condAppend(e.author.idLong != current) {
+            "für **${getName(current)}** "
+        } + "den Pick übersprungen!").await()
+    }
+
     open fun getPickRound() = round
 
 
@@ -360,7 +385,7 @@ sealed class League {
         }
 
         fun byChannel(e: GuildCommandEvent) = onlyChannel(e.textChannel.idLong)?.apply {
-            if (!isCurrent(e.member.idLong)) {
+            if (!isCurrentCheck(e.member.idLong)) {
                 e.reply("Du bist nicht dran!")
                 return null
             }
@@ -376,3 +401,40 @@ sealed class League {
 
 @Serializable
 data class AllowedData(val u: Long, var mention: Boolean = false)
+
+sealed class DraftData(
+    val pokemon: String,
+    val tier: String,
+    val mem: Long,
+    val indexInRound: Int,
+    val changedIndex: Int,
+    val picks: MutableList<DraftPokemon>,
+    val round: Int,
+    val memIndex: Int,
+)
+
+class PickData(
+    pokemon: String,
+    tier: String,
+    mem: Long,
+    indexInRound: Int,
+    changedIndex: Int,
+    picks: MutableList<DraftPokemon>,
+    round: Int,
+    memIndex: Int,
+    val freePick: Boolean
+) : DraftData(pokemon, tier, mem, indexInRound, changedIndex, picks, round, memIndex)
+
+@Suppress("unused")
+class SwitchData(
+    pokemon: String,
+    tier: String,
+    mem: Long,
+    indexInRound: Int,
+    changedIndex: Int,
+    picks: MutableList<DraftPokemon>,
+    round: Int,
+    memIndex: Int,
+    val oldmon: String,
+    val oldtier: String
+) : DraftData(pokemon, tier, mem, indexInRound, changedIndex, picks, round, memIndex)

@@ -197,6 +197,25 @@ class RequestBuilder
         )
     }
 
+    fun addCopyPasteChange(sheetId: Int, range: String, target: String, pasteType: String): RequestBuilder {
+        return addBatch(
+            Request().setCopyPaste(
+                CopyPasteRequest().setSource(buildGridRange(range, sheetId))
+                    .setDestination(buildGridRange(target, sheetId)).setPasteType(pasteType)
+                    .setPasteOrientation("NORMAL")
+            )
+        )
+    }
+
+    fun addCutPasteChange(sheetId: Int, range: String, target: String, pasteType: String): RequestBuilder {
+        return addBatch(
+            Request().setCutPaste(
+                CutPasteRequest().setSource(buildGridRange(range, sheetId))
+                    .setDestination(buildGridCoordinate(target, sheetId)).setPasteType(pasteType)
+            )
+        )
+    }
+
     fun addStrikethroughChange(sheetId: Int, range: String, strikethrough: Boolean): RequestBuilder {
         val split = range.split(":")
         val s1 = split[0]
@@ -271,6 +290,21 @@ class RequestBuilder
         val batch = batch
         val service = Google.sheetsService
         val job = scope.launch {
+            launch {
+                if (batch.isNotEmpty()) {
+                    try {
+                        service.spreadsheets().batchUpdate(sid, BatchUpdateSpreadsheetRequest().setRequests(batch))
+                            .execute()
+                        additionalSheets?.forEach {
+                            service.spreadsheets().batchUpdate(it, BatchUpdateSpreadsheetRequest().setRequests(batch))
+                                .execute()
+                        }
+                    } catch (e: IOException) {
+                        e.printStackTrace()
+                        Command.sendStacktraceToMe(e)
+                    }
+                }
+            }
             if (!onlyBatch) {
                 launch {
                     if (userentered.isNotEmpty()) {
@@ -309,21 +343,6 @@ class RequestBuilder
                             e.printStackTrace()
                             Command.sendStacktraceToMe(e)
                         }
-                    }
-                }
-            }
-            launch {
-                if (batch.isNotEmpty()) {
-                    try {
-                        service.spreadsheets().batchUpdate(sid, BatchUpdateSpreadsheetRequest().setRequests(batch))
-                            .execute()
-                        additionalSheets?.forEach {
-                            service.spreadsheets().batchUpdate(it, BatchUpdateSpreadsheetRequest().setRequests(batch))
-                                .execute()
-                        }
-                    } catch (e: IOException) {
-                        e.printStackTrace()
-                        Command.sendStacktraceToMe(e)
                     }
                 }
             }
@@ -433,11 +452,19 @@ class RequestBuilder
             r.sheetId = sheetId
             r.setStartColumnIndex(getColumnFromRange(s1)).startRowIndex = getRowFromRange(s1)
             r.setEndColumnIndex(getColumnFromRange(s2) + 1).endRowIndex = getRowFromRange(s2) + 1
-            try {
-                logger.info("r = {}", r.toPrettyString())
-            } catch (e: IOException) {
-                e.printStackTrace()
+            logger.info("r = {}", r.toPrettyString())
+            return r
+        }
+
+        fun buildGridCoordinate(expr: String, sheetId: Int): GridCoordinate {
+            val split = expr.split(":")
+            val s1 = split[0]
+            val r = GridCoordinate().apply {
+                this.sheetId = sheetId
+                columnIndex = getColumnFromRange(s1)
+                rowIndex = getRowFromRange(s1)
             }
+            logger.info("r = {}", r.toPrettyString())
             return r
         }
     }

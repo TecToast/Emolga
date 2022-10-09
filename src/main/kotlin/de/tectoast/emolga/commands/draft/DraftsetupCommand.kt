@@ -24,7 +24,13 @@ class DraftsetupCommand :
                 ArgumentManagerTemplate.ArgumentBoolean,
                 optional = true
             )
-            .setExample("!draftsetup Emolga-Conference #emolga-teamübersicht")
+            .add(
+                "switchdraft",
+                "Switchdraft",
+                "Ob dieser Draft ein Switchdraft ist",
+                ArgumentManagerTemplate.ArgumentBoolean,
+                optional = true
+            )
             .build()
         setCustomPermissions(PermissionPreset.fromIDs(297010892678234114L))
         slash(false, *draftGuilds.toLongArray())
@@ -34,7 +40,8 @@ class DraftsetupCommand :
         val args = e.arguments
         Emolga.get.league(args.getText("name")).startDraft(
             e.textChannel,
-            fromFile = args.getOrDefault("fromfile", false)
+            fromFile = args.getOrDefault("fromfile", false),
+            switchDraft = args.getOrDefault("switchdraft", false)
         )
         e.reply("+1", ephermal = true)
     }

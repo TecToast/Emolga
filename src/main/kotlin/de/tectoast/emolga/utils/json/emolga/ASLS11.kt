@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils.json.emolga
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.utils.RequestBuilder
+import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.Emolga
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.Member
@@ -11,13 +12,14 @@ import net.dv8tion.jda.api.entities.Member
 class ASLS11(
     val table: List<String> = emptyList(),
     val data: MutableMap<String, TeamData> = mutableMapOf(),
-    val sid: String,
+    private val sid: String,
     val order: MutableList<Int> = mutableListOf(),
     private val originalorder: MutableList<Int> = mutableListOf(),
     val config: Config = Config(),
     var textChannel: Long = 820359155612254258,
     var currentCoach: Long = -1,
-    var round: Int = 0
+    var round: Int = 0,
+    val yeetedmons: MutableMap<Long, MutableList<DraftPokemon>> = mutableMapOf()
 ) {
     fun teamByCoach(mem: Long): TeamData? = data.values.firstOrNull { it.members[0]!! == mem }
     fun indexOfMember(mem: Long): Triple<Int, Int, String> = data.entries.first { mem in it.value.members.values }

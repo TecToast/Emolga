@@ -8,7 +8,7 @@ enum class DraftTimer constructor(val timerInfo: TimerInfo, val delayInMins: Int
             .add(12, 22, Calendar.MONDAY, Calendar.TUESDAY, Calendar.WEDNESDAY, Calendar.THURSDAY, Calendar.FRIDAY)
     ),*/
     ASL(TimerInfo().set(12, 22), 120),
-    NDS(TimerInfo().set(12, 22), 180),
+    NDS(TimerInfo().set(10, 22), 180),
     DoR(TimerInfo().set(12, 22), 60);
 
     fun calc(): Long {

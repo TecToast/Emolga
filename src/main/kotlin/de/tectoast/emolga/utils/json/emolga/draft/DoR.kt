@@ -3,7 +3,6 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.coordXMod
-import de.tectoast.emolga.commands.draft.PickData
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.automation.structure.BasicResultCreator

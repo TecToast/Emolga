@@ -1411,7 +1411,7 @@ abstract class Command(
         }
 
 
-        fun registerCommands() {
+        private fun registerCommands() {
             val loader = Thread.currentThread().contextClassLoader
             try {
                 for (classInfo in ClassPath.from(loader).getTopLevelClassesRecursive("de.tectoast.emolga.commands")) {
@@ -1526,9 +1526,8 @@ abstract class Command(
                         val mons = picks[u]!!
                         val comp = compareBy<DraftPokemon>({ it.tier.indexedBy(tiers) }, { it.name })
                         o[u] = (buildString {
-                            append(mons.sortedWith(comp).take(11).joinToString(";") { it.name })
-                            append("###")
-                            append(mons.sortedWith(comp).drop(11).joinToString(";") { it.name })
+                            append(mons.sortedWith(comp).map { it.name }.chunked(11) { it.joinToString(";") }
+                                .joinToString("###"))
                         })
                     } else {
                         o[u] = nom.nominated[cday - 1]!![u]!!
@@ -3419,6 +3418,9 @@ abstract class Command(
         fun getTypeGerName(type: String): String =
             (Translation.Type.TYPE.validate(type, ValidationData()) as Translation).translation
 
+        fun getTypeGerNameOrNull(type: String): String? =
+            (Translation.Type.TYPE.validate(type, ValidationData()) as Translation?)?.translation
+
         fun getTranslation(s: String): ResultSet {
             return getTranslation(s, false)
         }
@@ -3649,7 +3651,22 @@ val JSON = Json {
             subclass(Prisma::class)
             subclass(ASL::class)
             subclass(DoR::class)
+            subclass(FPL::class)
         }
+    }
+}
+
+val defaultTimeFormat = SimpleDateFormat("dd.MM.yyyy HH:mm")
+
+object DateToStringSerializer : KSerializer<Date> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Date", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: Date) {
+        encoder.encodeString(defaultTimeFormat.format(value))
+    }
+
+    override fun deserialize(decoder: Decoder): Date {
+        return defaultTimeFormat.parse(decoder.decodeString())
     }
 }
 
@@ -3667,6 +3684,10 @@ fun String.condAppend(check: Boolean, value: String) = if (check) this + value e
 fun String.condAppend(check: Boolean, value: () -> String) = if (check) this + value() else this
 
 fun String.notNullAppend(value: String?) = if (value != null) this + value else this
+
+fun Collection<String>.plusFirstChars() = this + this.mapNotNull { it.firstOrNull()?.toString() }
+
+val Long.usersnowflake: UserSnowflake get() = UserSnowflake.fromId(this)
 
 data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)
 

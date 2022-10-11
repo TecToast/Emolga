@@ -15,19 +15,18 @@ import de.tectoast.emolga.utils.records.StatLocation
 import de.tectoast.emolga.utils.showdown.Player
 import org.slf4j.LoggerFactory
 
-class DocEntry private constructor() {
+class DocEntry private constructor(val league: League) {
     companion object {
         private val logger = LoggerFactory.getLogger(DocEntry::class.java)
 
         private val invalidProcessor: BasicStatProcessor =
             BasicStatProcessor { _: Int, _: Int, _: Int -> StatLocation.invalid() }
 
-        fun create(builder: DocEntry.() -> Unit): DocEntry {
-            return DocEntry().apply(builder)
+        fun create(league: League, builder: DocEntry.() -> Unit): DocEntry {
+            return DocEntry(league).apply(builder)
         }
     }
 
-    lateinit var league: League
     var killProcessor: StatProcessor = invalidProcessor
     var deathProcessor: StatProcessor = invalidProcessor
     var useProcessor: BasicStatProcessor = invalidProcessor
@@ -222,13 +221,14 @@ class DocEntry private constructor() {
             }
         }
         saveEmolgaJSON()
-        b.withRunnable(3000) { sort(sid, league) }.execute()
+        b.withRunnable(3000) { sort() }.execute()
     }
 
-    fun sort(sid: String?, league: League) {
+    fun sort() {
         try {
             sorterData?.run {
-                val b = RequestBuilder(sid!!)
+                val sid = league.sid
+                val b = RequestBuilder(sid)
                 logger.info("Start sorting...")
                 for (num in formulaRange.indices) {
                     val formulaRange = formulaRange[num]

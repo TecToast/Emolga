@@ -76,36 +76,35 @@ class NDS : League() {
     override val allowPickDuringSwitch = true
 
     @Transient
-    override val docEntry = DocEntry.create {
-        league = this@NDS
+    override val docEntry = DocEntry.create(this) {
         killProcessor = BasicStatProcessor { plindex: Int, monindex: Int, gameday: Int ->
             StatLocation(
-                "Data", gameday + 6 + 5, plindex * 17 + 2 + monindex
+                "Data", gameday + 6 + rrSummand, plindex * 17 + 2 + monindex
             )
         }
         deathProcessor = BasicStatProcessor { plindex: Int, monindex: Int, gameday: Int ->
             StatLocation(
-                "Data", gameday + 18 + 5, plindex * 17 + 2 + monindex
+                "Data", gameday + 18 + rrSummand, plindex * 17 + 2 + monindex
             )
         }
         winProcessor = ResultStatProcessor { plindex: Int, gameday: Int ->
             StatLocation(
-                "Data", gameday + 6 + 5, plindex * 17 + 18
+                "Data", gameday + 6 + rrSummand, plindex * 17 + 18
             )
         }
         looseProcessor = ResultStatProcessor { plindex: Int, gameday: Int ->
             StatLocation(
-                "Data", gameday + 18 + 5, plindex * 17 + 18
+                "Data", gameday + 18 + rrSummand, plindex * 17 + 18
             )
         }
         resultCreator = BasicResultCreator { b: RequestBuilder, gdi: Int, index: Int, _: Int, _: Int, url: String? ->
             b.addSingle(
-                "Spielplan RR!${Command.getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
+                "Spielplan HR!${Command.getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
             )
         }
         setStatIfEmpty = false
         sorterData = SorterData(
-            listOf("Tabelle RR!C3:K8", "Tabelle RR!C12:K17"),
+            listOf("Tabelle HR!C3:K8", "Tabelle HR!C12:K17"),
             true,
             { it.substring("=Data!F$".length).toInt() / 17 - 1 },
             2,
@@ -117,5 +116,6 @@ class NDS : League() {
     companion object {
         val logger: Logger by SLF4J
         val tiers = listOf("S", "A", "B")
+        const val rrSummand = 0
     }
 }

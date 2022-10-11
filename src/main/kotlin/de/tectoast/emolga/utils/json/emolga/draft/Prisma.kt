@@ -17,8 +17,7 @@ import kotlinx.serialization.Transient
 class Prisma : League() {
 
     @Transient
-    override val docEntry = DocEntry.create {
-        league = this@Prisma
+    override val docEntry = DocEntry.create(this) {
         killProcessor = BasicStatProcessor { plindex: Int, monindex: Int, gameday: Int ->
             StatLocation(
                 "Data",

@@ -21,8 +21,7 @@ import kotlinx.serialization.Transient
 @SerialName("ASL")
 class ASL(val level: Int = -1, private val sheetid: Int = -1) : League() {
     @Transient
-    override val docEntry = DocEntry.create {
-        league = this@ASL
+    override val docEntry = DocEntry.create(this) {
         val sheet = "Data$level"
         killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
             StatLocation(

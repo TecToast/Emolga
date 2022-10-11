@@ -18,8 +18,7 @@ class FPL(val level: Int) : League() {
     override val timer get() = error("not implemented")
 
     @Transient
-    override val docEntry = DocEntry.create {
-        league = this@FPL
+    override val docEntry = DocEntry.create(this) {
         killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
             StatLocation(
                 "Data$level",

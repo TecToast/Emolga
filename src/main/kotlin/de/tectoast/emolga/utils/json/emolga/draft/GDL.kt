@@ -16,8 +16,7 @@ import kotlinx.serialization.Transient
 @SerialName("GDL")
 class GDL : League() {
     @Transient
-    override val docEntry = DocEntry.create {
-        league = this@GDL
+    override val docEntry = DocEntry.create(this) {
         killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
             StatLocation("Kader", plindex % 2 * 14 + 5 + gameday, plindex / 2 * 15 + 5 + monindex)
         }

@@ -500,10 +500,10 @@ object PrivateCommands {
         for (f in fights) {
             val id = f.getString("id")
             if (id.contains("doubles")) continue
-            val game = Analysis("https://replay.pokemonshowdown.com/$id", null).analyse(null)
+            val game = Analysis.analyse("https://replay.pokemonshowdown.com/$id")
             for (player in game) {
                 if (Command.toUsername(player.nickname) == "dasor54") {
-                    for (mon in player.mons) {
+                    for (mon in player.pokemon) {
                         val monName = Command.getMonName(mon.pokemon, DraftNamePreference.SINGLE_CHAR_BEFORE)
                         DasorUsageManager.addPokemon(monName)
                     }

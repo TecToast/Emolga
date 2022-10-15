@@ -29,6 +29,7 @@ import de.tectoast.emolga.selectmenus.selectmenusaves.SmogonSet
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.Constants.CALENDAR_MSGID
 import de.tectoast.emolga.utils.Constants.CALENDAR_TCID
+import de.tectoast.emolga.utils.Constants.DASORID
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.Constants.SOULLINK_MSGID
 import de.tectoast.emolga.utils.Constants.SOULLINK_TCID
@@ -43,7 +44,8 @@ import de.tectoast.emolga.utils.music.GuildMusicManager
 import de.tectoast.emolga.utils.records.CalendarEntry
 import de.tectoast.emolga.utils.records.TypicalSets
 import de.tectoast.emolga.utils.showdown.Analysis
-import de.tectoast.emolga.utils.showdown.Player
+import de.tectoast.emolga.utils.showdown.SDPlayer
+import de.tectoast.emolga.utils.showdown.SDPokemon
 import de.tectoast.emolga.utils.sql.managers.*
 import de.tectoast.jsolf.JSONArray
 import de.tectoast.jsolf.JSONObject
@@ -369,7 +371,7 @@ abstract class Command(
 
     object PermissionPreset {
         val CULT = fromRole(781457314846343208L)
-        val EMOLGAMOD = fromIDs(Constants.DASORID)
+        val EMOLGAMOD = fromIDs(DASORID)
         fun fromRole(roleId: Long): Predicate<Member> {
             return Predicate { it.roles.any { r -> r.idLong == roleId } }
         }
@@ -1068,40 +1070,14 @@ abstract class Command(
         }
     }
 
-    class Translation {
-        val type: Type
-        val language: Language
-        val translation: String
+    class Translation(
+        val translation: String,
+        val type: Type,
+        val language: Language,
+        val otherLang: String = "",
+        val forme: String? = null
+    ) {
         val isEmpty: Boolean
-        val otherLang: String
-        val forme: String?
-
-        constructor(translation: String, type: Type, language: Language) {
-            this.translation = translation
-            this.type = type
-            this.language = language
-            isEmpty = type == Type.UNKNOWN
-            otherLang = ""
-            forme = null
-        }
-
-        constructor(translation: String, type: Type, language: Language, otherLang: String) {
-            this.translation = translation
-            this.type = type
-            this.language = language
-            this.otherLang = otherLang
-            isEmpty = false
-            forme = null
-        }
-
-        constructor(translation: String, type: Type, language: Language, otherLang: String, forme: String?) {
-            this.translation = translation
-            this.type = type
-            this.language = language
-            this.otherLang = otherLang
-            this.forme = forme
-            isEmpty = false
-        }
 
         override fun toString(): String {
             val sb = StringBuilder("Translation{")
@@ -1240,6 +1216,10 @@ abstract class Command(
                 return emptyTranslation
             }
         }
+
+        init {
+            this.isEmpty = type == Type.UNKNOWN
+        }
     }
 
     companion object {
@@ -1357,12 +1337,7 @@ abstract class Command(
         const val DEXQUIZ_BUDGET = 10
         val draftGuilds = arrayOf(Constants.G.FPL, Constants.G.NDS, Constants.G.ASL, Constants.G.BLOCKI)
         private val draftPrefixes = mapOf(
-            "M" to "Mega",
-            "A" to "Alola",
-            "G" to "Galar",
-            "Mega" to "Mega",
-            "Alola" to "Alola",
-            "Galar" to "Galar"
+            "M" to "Mega", "A" to "Alola", "G" to "Galar", "Mega" to "Mega", "Alola" to "Alola", "Galar" to "Galar"
         )
         val draftPokemonArgumentType = ArgumentManagerTemplate.draftPokemon({ s, event ->
             val gid = event.guild!!.idLong
@@ -1962,7 +1937,7 @@ abstract class Command(
         }
 
 
-        fun getNumber(map: Map<String, String>, pick: String): String {
+        fun getNumber(map: Map<String, Int>, pick: String): String {
             //logger.info(map);
             for ((s, value) in map) {
                 if (s == pick || pick == "M-$s" || s.split("-").first().let {
@@ -1970,7 +1945,7 @@ abstract class Command(
                             "A", "Alola", "G", "Galar", "M", "Mega", "Kapu" -> null
                             else -> it
                         }
-                    } == pick.split("-").first()) return value
+                    } == pick.split("-").first()) return value.toString()
             }
             return ""
         }
@@ -2435,8 +2410,7 @@ abstract class Command(
                             val table = league.table
                             channel.send(
                                 embeds = Embed(
-                                    title = "Spieltag $num",
-                                    color = java.awt.Color.YELLOW.rgb
+                                    title = "Spieltag $num", color = java.awt.Color.YELLOW.rgb
                                 ).into()
                             ).queue()
                             for ((index, matchup) in matchups.withIndex()) {
@@ -2445,8 +2419,7 @@ abstract class Command(
                                 val baseid = "tipgame;${league.name}:$num:$index"
                                 channel.send(
                                     embeds = Embed(
-                                        title = "${names[u1]} vs. ${names[u2]}",
-                                        color = embedColor
+                                        title = "${names[u1]} vs. ${names[u2]}", color = embedColor
                                     ).into(), components = ActionRow.of(
                                         primary("$baseid:${u1.indexedBy(table)}", names[u1]),
                                         primary("$baseid:${u2.indexedBy(table)}", names[u2]),
@@ -2577,7 +2550,7 @@ abstract class Command(
 
         fun generateResult(
             b: RequestBuilder,
-            game: Array<Player>,
+            game: List<SDPlayer>,
             league: JSONObject,
             gameday: Int,
             uid1: String,
@@ -2587,10 +2560,10 @@ abstract class Command(
         ) {
             var aliveP1 = 0
             var aliveP2 = 0
-            for (p in game[0].mons) {
+            for (p in game[0].pokemon) {
                 if (!p.isDead) aliveP1++
             }
-            for (p in game[1].mons) {
+            for (p in game[1].pokemon) {
                 if (!p.isDead) aliveP2++
             }
             var str: String? = null
@@ -2782,7 +2755,7 @@ abstract class Command(
                     tco.sendMessage(NOPERM).queue()
                     return
                 }
-                if (mem.idLong != FLOID) {
+                if (mem.idLong != FLOID && mem.idLong != DASORID) {
                     if (BOT_DISABLED) {
                         e.channel.sendMessage(DISABLED_TEXT).queue()
                         return
@@ -3122,28 +3095,17 @@ abstract class Command(
                     return@launch
                 }
                 logger.info("REPLAY! Channel: {}", m?.channel?.id ?: resultchannel.id)
-                val game: Array<Player> = try {
-                    val analysis = Analysis(url, m).analyse(resultchannel)
-                    if (!analysis[0].isInitialized()) {
-                        sendToMe("Replay ERROR $url ${resultchannel.asMention}")
-                        return@launch
-                    }
-                    analysis
+                val game: List<SDPlayer> = try {
+                    Analysis.analyse(url)
                     //game = Analysis.analyse(url, m);
                 } catch (ex: Exception) {
-                    if (ex is DoublesReplayException) {
-                        "Doubles Replays sind zurzeit noch nicht supportet, kommen demnächst.".let {
-                            e?.sendMessage(it)?.queue() ?: resultchannel.sendMessage(it).queue()
-                        }
-                        return@launch
-                    }
                     val msg =
-                        "Beim Auswerten des Replays ist ein Fehler aufgetreten! Bitte trage das Ergebnis selbst ein und melde dich gegebenenfalls bei ${Constants.MYTAG}!"
+                        "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
+                    sendToMe("Fehler beim Auswerten des Replays: $url ${resultchannel.guild.name} ${resultchannel.asMention} ChannelID: ${resultchannel.id}")
                     if (e != null) e.sendMessage(msg).queue() else {
                         resultchannel.sendMessage(msg).queue()
                     }
                     ex.printStackTrace()
-                    sendToMe("Replay ERROR $url ${resultchannel.asMention}")
                     return@launch
                 }
                 val g = resultchannel.guild
@@ -3161,111 +3123,40 @@ abstract class Command(
                 logger.info("uid2 = $uid2")
                 if (gid == Constants.G.ASL && league == null) return@launch
                 //logger.info(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
-                for (p in game[0].mons) {
-                    game[0].addTotalDeaths(if (p.isDead) 1 else 0)
-                }
-                for (p in game[1].mons) {
-                    game[1].addTotalDeaths(if (p.isDead) 1 else 0)
-                }
-                val aliveP1 = game[0].teamsize - game[0].totalDeaths
-                val aliveP2 = game[1].teamsize - game[1].totalDeaths
-                val t1 = StringBuilder(50)
-                val t2 = StringBuilder(50)
-                val winloose = "$aliveP1:$aliveP2"
-                val p1wins = game[0].isWinner
-                val kills = listOf<MutableMap<String, String>>(HashMap(), HashMap())
-                val deaths = listOf<MutableMap<String, String>>(HashMap(), HashMap())
-                val p1mons = ArrayList<String>()
-                val p2mons = ArrayList<String>()
                 val spoiler = spoilerTags.contains(gid)
                 val preference = getByGuild(gid)?.namepreference ?: DraftNamePreference.SINGLE_CHAR_BEFORE
-                if (spoiler) t1.append("||")
-                for (p in game[0].mons) {
-                    logger.info("p.getPokemon() = " + p.pokemon)
-                    val monName = getMonName(p.pokemon, preference)
-                    if (monName.trim { it <= ' ' }
-                            .isNotEmpty() && monName.trim { it <= ' ' }[monName.trim { it <= ' ' }.length - 1] == '-') {
-                        sendToMe(p.pokemon + " SD - at End")
-                    }
-                    logger.info("monName = $monName")
-                    kills[0][monName] = p.kills.toString()
-                    deaths[0][monName] = if (p.isDead) "1" else "0"
-                    p1mons.add(monName)
-                    if (g.idLong != Constants.G.MY) {
-                        FullStatsManager.add(monName, p.kills, if (p.isDead) 1 else 0, game[0].isWinner)
-                        TypicalSets.add(monName, p.moves, p.item, p.ability)
-                        if (toUsername(game[0].nickname) == "dasor54") {
-                            DasorUsageManager.addPokemon(monName)
+                game.forEach {
+                    it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
+                }
+                val monNames: MutableMap<String, String> = mutableMapOf()
+                val str = game.mapIndexed { index, sdPlayer ->
+                    mutableListOf(
+                        sdPlayer.nickname,
+                        sdPlayer.pokemon.count { !it.isDead }).apply { if (spoiler) add(1, "||") }
+                        .let { if (index % 2 > 0) it.asReversed() else it }
+                }
+                    .joinToString(":") { it.joinToString(" ") } + "\n\n" +
+                        game.joinToString("\n\n") { player ->
+                            "${player.nickname}:".condAppend(
+                                player.allMonsDead && !spoiler,
+                                " (alle tot)"
+                            ) + "\n".condAppend(spoiler, "||") + player.pokemon.joinToString("\n") { mon ->
+                                getMonName(mon.pokemon, preference).also { monNames[mon.pokemon] = it }
+                                    .condAppend(mon.kills > 0, " ${mon.kills}")
+                                    .condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
+                            }.condAppend(spoiler, "||")
                         }
-                    }
-                    t1.append(monName).append(" ").append(if (p.kills > 0) p.kills.toString() + " " else "")
-                        .append(if (p.isDead && (p1wins || spoiler)) "X" else "").append("\n")
-                }
-                run {
-                    var i = 0
-                    while (i < game[0].teamsize - game[0].mons.size) {
-                        t1.append("_unbekannt_").append("\n")
-                        i++
-                    }
-                }
-                if (spoiler) t1.append("||")
-                if (spoiler) t2.append("||")
-                for (p in game[1].mons) {
-                    val monName = getMonName(p.pokemon, preference)
-                    if (monName.trim { it <= ' ' }
-                            .isNotEmpty() && monName.trim { it <= ' ' }[monName.trim { it <= ' ' }.length - 1] == '-') {
-                        sendToMe(p.pokemon + " SD - at End")
-                    }
-                    kills[1][monName] = p.kills.toString()
-                    deaths[1][monName] = if (p.isDead) "1" else "0"
-                    p2mons.add(monName)
-                    if (g.idLong != Constants.G.MY) {
-                        FullStatsManager.add(monName, p.kills, if (p.isDead) 1 else 0, game[1].isWinner)
-                        TypicalSets.add(monName, p.moves, p.item, p.ability)
-                        if (toUsername(game[1].nickname) == "dasor54") {
-                            DasorUsageManager.addPokemon(monName)
-                        }
-                    }
-                    t2.append(monName).append(" ").append(if (p.kills > 0) p.kills.toString() + " " else "")
-                        .append(if (p.isDead && (!p1wins || spoiler)) "X" else "").append("\n")
-                }
-                run {
-                    var i = 0
-                    while (i < game[1].teamsize - game[1].mons.size) {
-                        t2.append("_unbekannt_").append("\n")
-                        i++
-                    }
-                }
-                if (spoiler) t2.append("||")
-                logger.info("Kills")
-                logger.info(kills.toString())
-                logger.info("Deaths")
-                logger.info(deaths.toString())
-                val name1: String?
-                val name2: String?
-                //JSONObject showdown = json.getJSONObject("showdown").getJSONObject(String.valueOf(gid));
                 logger.info("u1 = $u1")
-                logger.info("u2 = $u2")/*for (String s : showdown.keySet()) {
-                        if (u1.equalsIgnoreCase(s)) uid1 = showdown.getString(s);
-                        if (u2.equalsIgnoreCase(s)) uid2 = showdown.getString(s);
-                    }*/
-
-                //JSONObject teamnames = json.getJSONObject("drafts").getJSONObject("NDS").getJSONObject("teamnames");
-                name1 =  /*uid1 != -1 && gid == NDSID ? teamnames.getString(String.valueOf(uid1)) : */game[0].nickname
-                name2 =  /*uid2 != -1 && gid == NDSID ? teamnames.getString(String.valueOf(uid2)) : */game[1].nickname
-                val str: String = if (spoiler) {
-                    "$name1 ||$winloose|| $name2\n\n$name1:\n$t1\n$name2:\n$t2"
-                } else {
-                    "$name1 $winloose $name2\n\n$name1: ${if (!p1wins) "(alle tot)" else ""}\n$t1\n$name2: ${if (p1wins) "(alle tot)" else ""}\n$t2"
-                }
+                logger.info("u2 = $u2")
                 customReplayChannel?.sendMessage(url)?.queue()
                 if (e != null) {
                     e.sendMessage(str).queue()
                 } else if (!customResult.contains(gid)) resultchannel.sendMessage(str).queue()
-                StatisticsManager.increment("analysis")
+                if (resultchannel.guild.idLong != Constants.G.MY)
+                    StatisticsManager.increment("analysis")
                 var i = 0
                 while (i < 2) {
-                    if (game[i].mons.any { it.pokemon == "Zoroark" || it.pokemon == "Zorua" }) resultchannel.sendMessage(
+                    if (game[i].pokemon.any { it.pokemon == "Zoroark" || it.pokemon == "Zorua" }) resultchannel.sendMessage(
                         "Im Team von ${game[i].nickname} befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!"
                     ).queue()
                     i++
@@ -3273,11 +3164,24 @@ abstract class Command(
                 logger.info("In Emolga Listener!")
                 //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )
                 //  return;
+                val kills = game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!! to mon.kills } }
+                val deaths =
+                    game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!! to if (mon.isDead) 1 else 0 } }
                 TypicalSets.save()
                 if (uid1 == -1L || uid2 == -1L) return@launch
                 league?.docEntry?.analyse(
-                    game, uid1, uid2, kills, deaths, ReplayData(
-                        listOf(p1mons, p2mons), url, str, resultchannel, t1, t2, customReplayChannel, m
+                    ReplayData(
+                        game,
+                        uid1,
+                        uid2,
+                        kills,
+                        deaths,
+                        game.map { it.pokemon.map { mon -> monNames[mon.pokemon]!! } },
+                        url,
+                        str,
+                        resultchannel,
+                        customReplayChannel,
+                        m
                     )
                 )
             }
@@ -3742,12 +3646,15 @@ val Long.usersnowflake: UserSnowflake get() = UserSnowflake.fromId(this)
 data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)
 
 data class ReplayData(
+    val game: List<SDPlayer>,
+    val uid1: Long,
+    val uid2: Long,
+    val kills: List<Map<String, Int>>,
+    val deaths: List<Map<String, Int>>,
     val mons: List<List<String>>,
     val url: String,
     val str: String,
     val resultchannel: TextChannel,
-    val t1: StringBuilder,
-    val t2: StringBuilder,
     val customReplayChannel: TextChannel?,
     val m: Message?
 )
@@ -3785,4 +3692,3 @@ enum class SpecialForm(private val sdname: String) {
     }
 }
 
-object DoublesReplayException : Exception()

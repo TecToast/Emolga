@@ -75,7 +75,7 @@ object EmolgaListener : ListenerAdapter() {
             e.reply_(Command.NOPERM, ephemeral = true).queue()
             return
         }
-        if (mem.idLong != FLOID) {
+        if (mem.idLong != FLOID && mem.idLong != DASORID) {
             if (Command.BOT_DISABLED) {
                 e.reply(Command.DISABLED_TEXT).queue()
                 return

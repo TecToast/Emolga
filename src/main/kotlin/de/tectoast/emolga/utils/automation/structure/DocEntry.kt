@@ -12,7 +12,6 @@ import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.records.StatLocation
-import de.tectoast.emolga.utils.showdown.Player
 import org.slf4j.LoggerFactory
 
 class DocEntry private constructor(val league: League) {
@@ -92,13 +91,9 @@ class DocEntry private constructor(val league: League) {
 
 
     fun analyse(
-        game: Array<Player>,
-        uid1: Long,
-        uid2: Long,
-        kills: List<Map<String, String>>,
-        deaths: List<Map<String, String>>,
         replayData: ReplayData
     ) {
+        val (game, uid1, uid2, kills, deaths, _, url, _, _, _, _) = replayData
         var battleind = -1
         var u1IsSecond = false
         val gameday = if (league.battleorder.isNotEmpty()) league.battleorder.asIterable()
@@ -170,7 +165,7 @@ class DocEntry private constructor(val league: League) {
                 val u = useProcessor.process(index, monIndex, gameday)
                 if (u.isValid) b.addSingle(u.toString(), numberMapper("1"))
             }
-            (if (game[i].isWinner) winProcessor else looseProcessor)?.process(index, gameday)
+            (if (game[i].winner) winProcessor else looseProcessor)?.process(index, gameday)
                 ?.run { b.addSingle(this.toString(), 1) }
             if (killProcessor is CombinedStatProcessor) {
                 b.addSingle((killProcessor as CombinedStatProcessor).process(index, gameday).toString(), totalKills)
@@ -178,7 +173,7 @@ class DocEntry private constructor(val league: League) {
             if (deathProcessor is CombinedStatProcessor) {
                 b.addSingle((deathProcessor as CombinedStatProcessor).process(index, gameday).toString(), totalDeaths)
             }
-            if (game[i].isWinner) {
+            if (game[i].winner) {
                 league.results["$uid1:$uid2"] = uid
             }
         }
@@ -186,14 +181,14 @@ class DocEntry private constructor(val league: League) {
             val battleorder = league.battleorder[gameday]!!.split(";")
             val battleusers = (battleorder.firstOrNull { it.contains(uid1.toString()) } ?: "").split(":")
             (battleorder.indices.firstOrNull { battleorder[it].contains(uid1.toString()) } ?: -1) to (0..1).asSequence()
-                .sortedBy { battleusers.indexOf(uids[it].toString()) }.map { game[it].mons.count { m -> !m.isDead } }
+                .sortedBy { battleusers.indexOf(uids[it].toString()) }.map { game[it].pokemon.count { m -> !m.isDead } }
                 .toList()
         } ?: run {
-            battleind to (0..1).map { game[it].mons.count { m -> !m.isDead } }
+            battleind to (0..1).map { game[it].pokemon.count { m -> !m.isDead } }
                 .let { if (u1IsSecond) it.reversed() else it }
         }
         run {
-            val winningIndex = (if (game[0].isWinner) uid1 else uid2).indexedBy(league.table)
+            val winningIndex = (if (game[0].winner) uid1 else uid2).indexedBy(league.table)
             val leagueName = league.name
             val gamedayTips = league.tipgame?.tips?.get(gameday)
             if (gamedayTips?.evaluated?.contains(battleindex) == true) return@run
@@ -204,7 +199,7 @@ class DocEntry private constructor(val league: League) {
         }
         resultCreator?.run {
             if (this is BasicResultCreator) {
-                process(b, gameday - 1, battleindex, numbers[0], numbers[1], replayData.url)
+                process(b, gameday - 1, battleindex, numbers[0], numbers[1], url)
             } else if (this is AdvancedResultCreator) {
                 val monList = (0..1).map { deaths[it].keys }.map { it.toList() }
                 val picks = (0..1).map(uids::get).map { picksJson[it].names() }
@@ -213,11 +208,11 @@ class DocEntry private constructor(val league: League) {
                     battleindex,
                     numbers[0],
                     numbers[1],
-                    replayData.url,
+                    url,
                     monList,
                     (0..1).map { league.table.indexOf(uids[it]) },
                     (0..1).map { monList[it].map { s -> indexPick(picks[it], s) } },
-                    (0..1).map { deaths[it].values.map { s -> s == "1" } })
+                    (0..1).map { deaths[it].values.map { s -> s == 1 } })
             }
         }
         saveEmolgaJSON()

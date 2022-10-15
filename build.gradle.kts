@@ -1,5 +1,4 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.7.20"
@@ -26,9 +25,9 @@ tasks {
         exclude("de/tectoast/emolga/**")
         archiveVersion.set("")
     }
-    withType(KotlinCompile::class.java) {
+    /*withType(KotlinCompile::class.java) {
         dependsOn("clean")
-    }
+    }*/
 }
 
 kotlin {

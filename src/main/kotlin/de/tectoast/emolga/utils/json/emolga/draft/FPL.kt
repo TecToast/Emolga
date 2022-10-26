@@ -2,7 +2,6 @@ package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.commands.coordYMod
 import de.tectoast.emolga.commands.y
-import de.tectoast.emolga.utils.automation.structure.BasicResultCreator
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
@@ -47,7 +46,7 @@ class FPL(val level: Int) : League() {
                 plindex.y(25, 25)
             )
         }
-        resultCreator = BasicResultCreator { b, gdi, index, numberOne, numberTwo, url ->
+        resultCreator = {
             b.addRow(
                 gdi.coordYMod("Spielplan L$level Spoiler", 4, 6, 4, 6, 6 + index),
                 listOf(numberOne, "=HYPERLINK(\"$url\"; \":\")", numberTwo)

@@ -10,7 +10,7 @@ import kotlin.time.Duration.Companion.seconds
 
 object Analysis {
     // generate a new analysis engine
-    suspend fun analyse(link: String): List<SDPlayer> {
+    suspend fun analyse(link: String): Pair<List<SDPlayer>, BattleContext> {
         logger.info("Reading URL... {}", link)
         var gameNullable: List<String>? = null
         for (i in 0..1) {
@@ -23,32 +23,58 @@ object Analysis {
         logger.info("Starting analyse!")
         val game = gameNullable ?: throw IOException("Could not read game")
         var amount = 1
-        val allMons: MutableList<SDPokemon> = mutableListOf()
-        val nicknames: MutableList<String> = mutableListOf()
+        val nicknames: MutableMap<Int, String> = mutableMapOf()
         var playerCount = 2
-        for (line in game) {
+        val allMons = mutableMapOf<Int, MutableList<SDPokemon>>()
+        var randomBattle = false
+        for ((index, line) in game.withIndex()) {
             val split = line.cleanSplit()
             if (line.startsWith("|poke|")) {
-                allMons.add(SDPokemon(split[2].substringBefore(","), split[1][1].digitToInt() - 1))
+                val player = split[1][1].digitToInt() - 1
+                allMons.getOrPut(player) { mutableListOf() }.add(
+                    SDPokemon(
+                        split[2].substringBefore(","),
+                        player
+                    )
+                )
             }
             if (line == "|gametype|doubles") amount = 2
             if (line == "|gametype|freeforall") playerCount = 4
-            if (line.startsWith("|player|")) nicknames += split[2]
-            if (line == "|teampreview") break
+            if (line.startsWith("|player|")) nicknames[split[1][1].digitToInt() - 1] = split[2]
+            if (line.startsWith("|switch")) {
+                val (player, _) = split[1].parsePokemonLocation()
+                val monName = split[2].substringBefore(",")
+                if (player !in allMons && !randomBattle) randomBattle = true
+                if (randomBattle) {
+                    allMons[player]?.any { it.pokemon == monName } == true || allMons.getOrPut(player) { mutableListOf() }
+                        .add(SDPokemon(monName, player))
+                }
+            }
+            if (line.startsWith("|replace|")) {
+                val (player, _) = split[1].parsePokemonLocation()
+                val monloc = split[1].substringBefore(":")
+                val monname = split[2].substringBefore(",")
+                val mon = allMons[player]!!.firstOrNull { it.pokemon == monname } ?: SDPokemon(
+                    monname,
+                    player
+                ).also { allMons.getOrPut(player) { mutableListOf() }.add(it) }
+                var downIndex = index - 1
+                while (!game[downIndex].startsWith("|switch|$monloc")) downIndex--
+                allMons[player]!!.first { it.pokemon == game[downIndex].cleanSplit()[2].substringBefore(",") }.zoroLines[downIndex..index] =
+                    mon
+            }
         }
-        val distinctedNicknames = nicknames.distinct()
-        val bothMons = allMons.groupBy { it.player }
-        println(allMons.joinToString { "${it.pokemon} ${it.player}" })
         return with(
             BattleContext(
                 List(playerCount) { buildDummys(amount) },
                 "",
                 (0 until playerCount).map {
                     SDPlayer(
-                        distinctedNicknames[it],
-                        bothMons[it].orEmpty().toMutableList()
+                        nicknames[it]!!,
+                        allMons[it].orEmpty().toMutableList()
                     )
-                }
+                },
+                randomBattle = randomBattle
             )
         ) {
             for (line in game) {
@@ -56,10 +82,11 @@ object Analysis {
                 if (split.isEmpty()) continue
                 val operation = split[0]
                 if (operation == "move") lastMove = line
+                currentLineIndex++
                 SDEffect.effects[operation]?.let { it.forEach { e -> e.execute(split, this) } }
                 lastLine = line
             }
-            sdPlayers
+            sdPlayers to this
         }
     }
 

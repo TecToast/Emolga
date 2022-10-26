@@ -128,7 +128,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
-@Suppress("unused", "SameParameterValue")
+@Suppress("unused", "SameParameterValue", "MemberVisibilityCanBePrivate")
 abstract class Command(
     /**
      * The name of the command, used to check if the command was used in [.check]
@@ -1418,7 +1418,6 @@ abstract class Command(
         }
 
         fun getDataName(s: String): String {
-            logger.info("s = $s")
             if (s == "Wie-Shu") return "mienshao"
             if (s == "Lin-Fu") return "mienfoo"
             if (s == "Porygon-Z") return "porygonz"
@@ -1517,10 +1516,8 @@ abstract class Command(
             b.withRunnable {
                 emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
                     """
-                Jo ihr alten Zipfelklatscher! Eure jämmerlichen Versuche eine Liga zu gewinnen werden scheitern ihr Arschgeigen, da ihr zu inkompetent seid euch zu merken, wann alles nach meiner Schwerstarbeit automatisch eingetragen wird. Daher erinnere ich euer Erbsenhirn mithilfe dieser noch nett formulierten Nachricht daran, dass ihr nun anfangen könnt zu builden. Dann bis nächste Woche Mittwoch!
-                PS: Bannt Henny, der Typ ist broken! Und gebt ihm keinen Gehstocktänzer!
-
-                _written by Henny_""".trimIndent()
+                Guten Abend ihr Teilnehmer. Der nächste Spieltag öffnet seine Pforten...Was? Du hast vergessen zu nominieren? Dann hast du wieder mal Pech gehabt. Ab jetzt könnt ihr euch die Nominierungen im Dokument anschauen und verzweifelt feststellen, dass ihr völlig lost gewesen seid bei eurer Entscheidung hehe. Wie dem auch sei, viel Spaß beim Teambuilding. Und passt auf Maxis Mega-Gewaldro auf! Warte, er hat keins mehr? Meine ganzen Konstanten im Leben wurden durchkreuzt...egal, wir hören uns nächste Woche wieder!
+_written by Maxifcn_""".trimIndent()
                 ).queue()
             }.execute()
             if (!prevDay) nom.currentDay++
@@ -2390,54 +2387,78 @@ abstract class Command(
         }
 
         fun getGenerationFromDexNumber(dexnumber: Int): Int {
-            return if (dexnumber <= 151) 1 else if (dexnumber <= 251) 2 else if (dexnumber <= 386) 3 else if (dexnumber <= 493) 4 else if (dexnumber <= 649) 5 else if (dexnumber <= 721) 6 else if (dexnumber <= 809) 7 else 8
+            return when (dexnumber) {
+                in 1..151 -> 1
+                in 152..251 -> 2
+                in 252..386 -> 3
+                in 387..493 -> 4
+                in 494..649 -> 5
+                in 650..721 -> 6
+                in 722..809 -> 7
+                in 810..898 -> 8
+                else -> 0
+            }
         }
 
-        private fun setupRepeatTasks() {
+        fun executeTipGameSending(league: League, num: Int) {
+            defaultScope.launch {
+                val docEntry = league.docEntry!!
+                val tip = league.tipgame!!
+                val channel = emolgajda.getTextChannelById(tip.channel)!!
+                val matchups = docEntry.getMatchups(num)
+                val names =
+                    emolgajda.getGuildById(league.guild)!!.retrieveMembersByIds(matchups.flatten()).await()
+                        .associate { it.idLong to it.effectiveName }
+                val table = league.table
+                channel.send(
+                    embeds = Embed(
+                        title = "Spieltag $num", color = java.awt.Color.YELLOW.rgb
+                    ).into()
+                ).queue()
+                for ((index, matchup) in matchups.withIndex()) {
+                    val u1 = matchup[0]
+                    val u2 = matchup[1]
+                    val baseid = "tipgame;${league.name}:$num:$index"
+                    channel.send(
+                        embeds = Embed(
+                            title = "${names[u1]} vs. ${names[u2]}", color = embedColor
+                        ).into(), components = ActionRow.of(
+                            primary("$baseid:${u1.indexedBy(table)}", names[u1]),
+                            primary("$baseid:${u2.indexedBy(table)}", names[u2]),
+                        ).into()
+                    ).queue()
+                }
+            }
+        }
+
+        fun executeTipGameLockButtons(league: League) {
+            defaultScope.launch {
+                emolgajda.getTextChannelById(league.tipgame!!.channel)!!.iterableHistory.takeAsync(league.table.size / 2)
+                    .await().forEach {
+                        it.editMessageComponents(
+                            ActionRow.of(it.actionRows[0].buttons.map { button -> button.asDisabled() })
+                        ).queue()
+                    }
+            }
+        }
+
+        fun setupRepeatTasks() {
             setupManualRepeatTasks()
             Emolga.get.drafts.entries.forEach { l ->
                 l.value.takeIf { it.docEntry != null }?.tipgame?.let { tip ->
                     val duration = Duration.ofSeconds(parseShortTime(tip.interval).toLong())
-                    RepeatTask(tip.lastSending.toInstant(), tip.amount, duration, { num ->
-                        defaultScope.launch {
-                            val league = l.value
-                            val docEntry = league.docEntry!!
-                            val channel = emolgajda.getTextChannelById(tip.channel)!!
-                            val matchups = docEntry.getMatchups(num)
-                            val names =
-                                emolgajda.getGuildById(league.guild)!!.retrieveMembersByIds(matchups.flatten()).await()
-                                    .associate { it.idLong to it.effectiveName }
-                            val table = league.table
-                            channel.send(
-                                embeds = Embed(
-                                    title = "Spieltag $num", color = java.awt.Color.YELLOW.rgb
-                                ).into()
-                            ).queue()
-                            for ((index, matchup) in matchups.withIndex()) {
-                                val u1 = matchup[0]
-                                val u2 = matchup[1]
-                                val baseid = "tipgame;${league.name}:$num:$index"
-                                channel.send(
-                                    embeds = Embed(
-                                        title = "${names[u1]} vs. ${names[u2]}", color = embedColor
-                                    ).into(), components = ActionRow.of(
-                                        primary("$baseid:${u1.indexedBy(table)}", names[u1]),
-                                        primary("$baseid:${u2.indexedBy(table)}", names[u2]),
-                                    ).into()
-                                ).queue()
-                            }
-                        }
-                    }, true)
-                    RepeatTask(tip.lastLockButtons.toInstant(), tip.amount, duration) {
-                        defaultScope.launch {
-                            emolgajda.getTextChannelById(tip.channel)!!.iterableHistory.takeAsync(l.value.table.size / 2)
-                                .await().forEach {
-                                    it.editMessageComponents(
-                                        ActionRow.of(it.actionRows[0].buttons.map { button -> button.asDisabled() })
-                                    ).queue()
-                                }
-                        }
-                    }
+                    RepeatTask(
+                        tip.lastSending.toInstant(),
+                        tip.amount,
+                        duration,
+                        { executeTipGameSending(l.value, it) },
+                        true
+                    )
+                    RepeatTask(
+                        tip.lastLockButtons.toInstant(),
+                        tip.amount,
+                        duration
+                    ) { executeTipGameLockButtons(l.value) }
                 }
             }
         }
@@ -3095,7 +3116,7 @@ abstract class Command(
                     return@launch
                 }
                 logger.info("REPLAY! Channel: {}", m?.channel?.id ?: resultchannel.id)
-                val game: List<SDPlayer> = try {
+                val (game, ctx) = try {
                     Analysis.analyse(url)
                     //game = Analysis.analyse(url, m);
                 } catch (ex: Exception) {
@@ -3132,10 +3153,11 @@ abstract class Command(
                 val str = game.mapIndexed { index, sdPlayer ->
                     mutableListOf(
                         sdPlayer.nickname,
-                        sdPlayer.pokemon.count { !it.isDead }).apply { if (spoiler) add(1, "||") }
+                        sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
+                    ).apply { if (spoiler) add(1, "||") }
                         .let { if (index % 2 > 0) it.asReversed() else it }
                 }
-                    .joinToString(":") { it.joinToString(" ") } + "\n\n" +
+                    .joinToString(":") { it.joinToString(" ") }.condAppend(ctx.vgc, "\n(VGC)") + "\n\n" +
                         game.joinToString("\n\n") { player ->
                             "${player.nickname}:".condAppend(
                                 player.allMonsDead && !spoiler,
@@ -3152,8 +3174,19 @@ abstract class Command(
                 if (e != null) {
                     e.sendMessage(str).queue()
                 } else if (!customResult.contains(gid)) resultchannel.sendMessage(str).queue()
-                if (resultchannel.guild.idLong != Constants.G.MY)
+                if (resultchannel.guild.idLong != Constants.G.MY) {
                     StatisticsManager.increment("analysis")
+                    game.forEach { player ->
+                        player.pokemon.forEach {
+                            FullStatsManager.add(
+                                monNames[it.pokemon]!!,
+                                it.kills,
+                                if (it.isDead) 1 else 0,
+                                player.winner
+                            )
+                        }
+                    }
+                }
                 var i = 0
                 while (i < 2) {
                     if (game[i].pokemon.any { it.pokemon == "Zoroark" || it.pokemon == "Zorua" }) resultchannel.sendMessage(
@@ -3290,7 +3323,6 @@ abstract class Command(
         }
 
         fun getGerName(s: String, checkOnlyEnglish: Boolean, withCap: Boolean = false): Translation {
-            logger.info("getGerName s = $s")
             val id = toSDName(s)
             if (translationsCacheGerman.containsKey(id)) return translationsCacheGerman.getValue(id)
             val set = getTranslation(id, checkOnlyEnglish, withCap)
@@ -3430,7 +3462,7 @@ abstract class Command(
             return getAttacksFrom(pokemon, msg, form, maxgen).contains(atk)
         }
 
-        fun getMonName(s: String, preference: DraftNamePreference, withDebug: Boolean = true): String {
+        fun getMonName(s: String, preference: DraftNamePreference, withDebug: Boolean = false): String {
             if (withDebug) logger.info("s = $s")
             if (s == "Calyrex-Shadow") return "Coronospa-Rappenreiter"
             if (s == "Calyrex-Ice") return "Coronospa-Schimmelreiter"
@@ -3657,7 +3689,9 @@ data class ReplayData(
     val resultchannel: TextChannel,
     val customReplayChannel: TextChannel?,
     val m: Message?
-)
+) {
+    val uids by lazy { listOf(uid1, uid2) }
+}
 
 enum class DraftNamePreference(val map: Map<SpecialForm, Pair<String, Boolean>>) {
     SINGLE_CHAR_BEFORE(

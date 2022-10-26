@@ -5,13 +5,11 @@ import de.tectoast.emolga.commands.indexedBy
 import de.tectoast.emolga.commands.x
 import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.DraftTimer
-import de.tectoast.emolga.utils.automation.structure.BasicResultCreator
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.Emolga
-import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.records.StatLocation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -42,13 +40,13 @@ class ASL(val level: Int = -1, private val sheetid: Int = -1) : League() {
             ResultStatProcessor { plindex, gameday -> StatLocation(sheet, gameday + 2, plindex.y(15, 15)) }
         looseProcessor =
             ResultStatProcessor { plindex, gameday -> StatLocation(sheet, gameday + 12, plindex.y(15, 15)) }
-        resultCreator = BasicResultCreator { b, gdi, index, numberOne, numberTwo, url ->
+        resultCreator = {
             b.addSingle(
                 coord("Spielplan", gdi.x(5, 2), index.y(7, 5 + level)),
                 "=HYPERLINK(\"$url\"; \"$numberOne:$numberTwo\")"
             )
         }
-        sorterData = SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), false, null, 2, 8, 6)
+        //sorterData = SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), false, null, 2, 8, 6)
 
     }
     override val timer = DraftTimer.ASL

@@ -31,7 +31,7 @@ class DocEntry private constructor(val league: League) {
     var useProcessor: BasicStatProcessor = invalidProcessor
     var winProcessor: ResultStatProcessor? = null
     var looseProcessor: ResultStatProcessor? = null
-    var resultCreator: ResultCreator? = null
+    var resultCreator: (AdvancedResult.() -> Unit)? = null
     var sorterData: SorterData? = null
     var setStatIfEmpty = false
     var numberMapper: (String) -> String = { it.ifEmpty { "0" } }
@@ -197,23 +197,17 @@ class DocEntry private constructor(val league: League) {
             }
             gamedayTips?.evaluated?.add(battleindex)
         }
-        resultCreator?.run {
-            if (this is BasicResultCreator) {
-                process(b, gameday - 1, battleindex, numbers[0], numbers[1], url)
-            } else if (this is AdvancedResultCreator) {
-                val monList = (0..1).map { deaths[it].keys }.map { it.toList() }
-                val picks = (0..1).map(uids::get).map { picksJson[it].names() }
-                process(b,
-                    gameday - 1,
-                    battleindex,
-                    numbers[0],
-                    numbers[1],
-                    url,
-                    monList,
-                    (0..1).map { league.table.indexOf(uids[it]) },
-                    (0..1).map { monList[it].map { s -> indexPick(picks[it], s) } },
-                    (0..1).map { deaths[it].values.map { s -> s == 1 } })
-            }
+        resultCreator?.let {
+            AdvancedResult(
+                b,
+                gameday - 1,
+                battleindex,
+                numbers[0],
+                numbers[1],
+                url,
+                replayData,
+                league
+            ).it()
         }
         saveEmolgaJSON()
         b.withRunnable(3000) { sort() }.execute()
@@ -290,18 +284,33 @@ fun interface BasicResultCreator : ResultCreator {
 }
 
 fun interface AdvancedResultCreator : ResultCreator {
-    fun process(
-        b: RequestBuilder?,
-        gdi: Int,
-        index: Int,
-        numberOne: Int,
-        numberTwo: Int,
-        url: String?,
-        mons: List<List<String?>?>?,
-        tableIndexes: List<Int?>?,
-        monIndexes: List<List<Int?>?>?,
-        dead: List<List<Boolean?>?>?
-    )
+    fun process(result: AdvancedResult)
+}
+
+data class AdvancedResult(
+    val b: RequestBuilder,
+    val gdi: Int,
+    val index: Int,
+    val numberOne: Int,
+    val numberTwo: Int,
+    val url: String,
+    val replayData: ReplayData,
+    val league: League
+) {
+    val tableIndexes by lazy {
+        (0..1).map { league.table.indexOf(replayData.uids[it]) }
+    }
+    val monIndexes by lazy {
+        (0..1).map { num -> replayData.mons[num].map { indexPick(league.picks[replayData.uids[num]].names(), it) } }
+    }
+    val deaths by lazy {
+        (0..1).map { replayData.deaths[it].values.map { s -> s == 1 } }
+    }
+    val kills by lazy {
+        (0..1).map {
+            replayData.kills[it].values.toList()
+        }
+    }
 }
 
 interface ResultCreator

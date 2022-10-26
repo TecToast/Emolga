@@ -500,7 +500,7 @@ object PrivateCommands {
         for (f in fights) {
             val id = f.getString("id")
             if (id.contains("doubles")) continue
-            val game = Analysis.analyse("https://replay.pokemonshowdown.com/$id")
+            val (game, _) = Analysis.analyse("https://replay.pokemonshowdown.com/$id")
             for (player in game) {
                 if (Command.toUsername(player.nickname) == "dasor54") {
                     for (mon in player.pokemon) {

@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils
 
 import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.Command.Companion.getCellsAsRowData
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import java.io.IOException
@@ -114,6 +115,24 @@ class RequestBuilder
                     .setFields("userEnteredFormat.backgroundColor").setRows(
                         Command.getCellsAsRowData(
                             CellData().setUserEnteredFormat(CellFormat().setBackgroundColor(c)),
+                            getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
+                            getRowFromRange(s2) - getRowFromRange(s1) + 1
+                        )
+                    )
+            )
+        )
+    }
+
+    fun addCellFormatChange(sheetId: Int, range: String, format: CellFormat, vararg fields: String): RequestBuilder {
+        val split = range.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+        val s1 = split[0]
+        val s2 = if (split.size == 1) s1 else split[1]
+        return addBatch(
+            Request().setUpdateCells(
+                UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
+                    .setFields("userEnteredFormat(${fields.joinToString(",")})").setRows(
+                        getCellsAsRowData(
+                            CellData().setUserEnteredFormat(format),
                             getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
                             getRowFromRange(s2) - getRowFromRange(s1) + 1
                         )

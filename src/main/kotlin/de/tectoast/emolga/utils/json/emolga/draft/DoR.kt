@@ -4,8 +4,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.coordXMod
 import de.tectoast.emolga.utils.DraftTimer
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.automation.structure.BasicResultCreator
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.CombinedStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
@@ -25,13 +23,12 @@ class DoR : League() {
         deathProcessor = CombinedStatProcessor { plindex, gameday ->
             StatLocation("Kader", plindex % 2 * 14 + 5 + gameday, plindex / 2 * 17 + 18)
         }
-        resultCreator =
-            BasicResultCreator { b: RequestBuilder, gdi: Int, index: Int, numberOne: Int, numberTwo: Int, url: String ->
-                b.addRow(
-                    "Spielplan!${Command.getAsXCoord(gdi / 5 * 6 + 3)}${gdi % 5 * 10 + 7 + index + (index / 2)}",
-                    listOf(numberOne, "=HYPERLINK(\"$url\"; \":\")", numberTwo)
-                )
-            }
+        resultCreator = {
+            b.addRow(
+                "Spielplan!${Command.getAsXCoord(gdi / 5 * 6 + 3)}${gdi % 5 * 10 + 7 + index + (index / 2)}",
+                listOf(numberOne, "=HYPERLINK(\"$url\"; \":\")", numberTwo)
+            )
+        }
         monsOrder = { l -> l.sortedWith(compareBy({ it.free }, { if (it.free) "" else it.tier })).map { it.name } }
     }
     override val timer = DraftTimer.DoR

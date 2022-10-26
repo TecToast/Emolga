@@ -33,7 +33,7 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
-import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.events.role.RoleCreateEvent
 import net.dv8tion.jda.api.events.session.ReadyEvent
@@ -47,7 +47,7 @@ object EmolgaListener : ListenerAdapter() {
     fun registerEvents(jda: JDA) {
         jda.listener<ButtonInteractionEvent> { ButtonListener.check(it) }
         jda.listener<ModalInteractionEvent> { ModalListener.check(it) }
-        jda.listener<SelectMenuInteractionEvent> { MenuListener.check(it) }
+        jda.listener<StringSelectInteractionEvent> { MenuListener.check(it) }
         jda.listener<MessageReceivedEvent> { messageReceived(it) }
         jda.listener<SlashCommandInteractionEvent> { slashCommandInteractionEvent(it) }
         jda.listener<ReadyEvent> { e ->

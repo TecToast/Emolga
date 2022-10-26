@@ -97,8 +97,8 @@ import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
-import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.utils.FileUpload
 import org.apache.commons.collections4.queue.CircularFifoQueue
 import org.slf4j.Logger
@@ -2374,7 +2374,7 @@ _written by Maxifcn_""".trimIndent()
 
         fun getTrainerDataActionRow(dt: TrainerData, withMoveset: Boolean): Collection<ActionRow> {
             return listOf(
-                ActionRow.of(SelectMenu.create("trainerdata").addOptions(dt.monsList.map {
+                ActionRow.of(StringSelectMenu.create("trainerdata").addOptions(dt.monsList.map {
                     SelectOption.of(
                         it, it
                     ).withDefault(dt.isCurrent(it))

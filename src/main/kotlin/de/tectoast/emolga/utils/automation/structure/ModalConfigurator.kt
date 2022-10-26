@@ -7,9 +7,9 @@ import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.Modal
-import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.interactions.components.text.TextInput
+import net.dv8tion.jda.api.interactions.modals.Modal
 import java.awt.Color
 import java.util.function.Function
 
@@ -71,7 +71,7 @@ class ModalConfigurator private constructor() {
         val embed = EmbedBuilder()
             .setTitle("Welche Seite möchtest du sehen?")
             .setColor(Color.CYAN)
-        val sm = SelectMenu.create("modalconfigurator;$id")
+        val sm = StringSelectMenu.create("modalconfigurator;$id")
         for (i in 0 until actionRows.size / 5 + 1) {
             val realSite = i + 1
             embed.addField(

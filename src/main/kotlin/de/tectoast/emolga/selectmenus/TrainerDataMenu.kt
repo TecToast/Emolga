@@ -5,10 +5,10 @@ import de.tectoast.emolga.commands.embedColor
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage_
 import dev.minn.jda.ktx.messages.into
-import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 
 class TrainerDataMenu : MenuListener("trainerdata") {
-    override fun process(e: SelectMenuInteractionEvent, menuname: String?) {
+    override fun process(e: StringSelectInteractionEvent, menuname: String?) {
         val dt = Command.trainerDataButtons[e.messageIdLong]
         if (dt == null) {
             e.editMessage_(

@@ -10,8 +10,8 @@ import de.tectoast.emolga.utils.sql.managers.ItemDataManager
 import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import org.slf4j.LoggerFactory
 import java.awt.Color
@@ -160,7 +160,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                         if (list.size > 1) {
                             ma.setComponents(
                                 ActionRow.of(
-                                    SelectMenu.create("mondata").addOptions(
+                                    StringSelectMenu.create("mondata").addOptions(
                                         list.map {
                                             SelectOption.of(
                                                 "Form: " + getGerNameWithForm(it.getString("name")),
@@ -175,7 +175,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                         if (list.size > 1) {
                             ra.setComponents(
                                 ActionRow.of(
-                                    SelectMenu.create("mondata").addOptions(
+                                    StringSelectMenu.create("mondata").addOptions(
                                         list.map {
                                             val so = SelectOption.of(
                                                 "Form: " + getGerNameWithForm(it.getString("name")),

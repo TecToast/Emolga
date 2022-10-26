@@ -4,8 +4,8 @@ import de.tectoast.emolga.commands.pokemon.SmogonCommand
 import de.tectoast.jsolf.JSONArray
 import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 
 class SmogonSet(val arr: JSONArray) {
     private var format: JSONObject
@@ -79,13 +79,13 @@ class SmogonSet(val arr: JSONArray) {
     fun buildActionRows(): List<ActionRow> {
         return listOf(
             ActionRow.of(
-                SelectMenu.create("smogonformat")
+                StringSelectMenu.create("smogonformat")
                     .addOptions(arr.toJSONList().map { o: JSONObject -> o.getString("format") }.map { s: String ->
                         SelectOption.of("Format: $s", s).withDefault(format.getString("format") == s)
                     }).build()
             ),
             ActionRow.of(
-                SelectMenu.create("smogonset")
+                StringSelectMenu.create("smogonset")
                     .addOptions(format.getJSONList("movesets").map { o: JSONObject -> o.getString("name") }
                         .map { s: String -> SelectOption.of("Set: $s", s).withDefault(set.getString("name") == s) })
                     .build()

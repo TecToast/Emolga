@@ -3,14 +3,14 @@ package de.tectoast.emolga.selectmenus
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.pokemon.DataCommand.Companion.getPrevoInfo
 import net.dv8tion.jda.api.EmbedBuilder
-import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent
-import net.dv8tion.jda.api.interactions.components.selections.SelectMenu
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import org.slf4j.LoggerFactory
 import java.awt.Color
 
 class MonDataMenu : MenuListener("mondata") {
-    override fun process(e: SelectMenuInteractionEvent, menuname: String?) {
+    override fun process(e: StringSelectInteractionEvent, menuname: String?) {
         /*e.reply("Dieses Menü funktioniert noch nicht, aber Flo arbeitet zurzeit daran :3").setEphemeral(true).queue();
         if (true) return;*/
         logger.info("e.getMessageIdLong() = " + e.messageIdLong)
@@ -139,7 +139,7 @@ class MonDataMenu : MenuListener("mondata") {
         builder.setTitle(Command.getGerNameWithForm(monname))
         builder.setColor(Color.CYAN)
         e.editMessageEmbeds(builder.build())
-            .setActionRow(SelectMenu.create("mondata").addOptions(e.selectMenu.options.map { o: SelectOption ->
+            .setActionRow(StringSelectMenu.create("mondata").addOptions(e.selectMenu.options.map { o: SelectOption ->
                 o.withDefault(
                     o.value == name
                 )

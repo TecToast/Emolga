@@ -4,7 +4,9 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants.G
-import dev.minn.jda.ktx.interactions.components.Modal
+import net.dv8tion.jda.api.interactions.components.text.TextInput
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
+import net.dv8tion.jda.api.interactions.modals.Modal
 
 class GcreateCommand : Command(
     "gcreate",
@@ -25,16 +27,31 @@ class GcreateCommand : Command(
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        e.slashCommandEvent!!.replyModal(Modal("gcreate", "Giveaway-Erstellung") {
-            short(
-                id = "time",
-                label = "Dauer des Giveaways",
-                required = true,
-                placeholder = "5h",
-                requiredLength = 1..20
-            )
-            short(id = "winners", label = "Anzahl der Gewinner", required = true, value = "1", requiredLength = 1..2)
-            paragraph(id = "prize", label = "Preis", required = true, placeholder = "Kekse", requiredLength = 1..100)
-        }).queue()
+        e.slashCommandEvent!!.replyModal(
+            Modal.create("gcreate", "Giveaway-Erstellung")
+                .apply {
+                    addActionRow(
+                        TextInput.create("time", "Dauer des Giveaways", TextInputStyle.SHORT)
+                            .setPlaceholder("5h")
+                            .setRequired(true)
+                            .setRequiredRange(1, 20)
+                            .build()
+                    )
+                    addActionRow(
+                        TextInput.create("winners", "Anzahl der Gewinner", TextInputStyle.SHORT)
+                            .setPlaceholder("1")
+                            .setRequired(true)
+                            .setRequiredRange(1, 2)
+                            .build()
+                    )
+                    addActionRow(
+                        TextInput.create("prize", "Preis", TextInputStyle.PARAGRAPH)
+                            .setPlaceholder("Kekse")
+                            .setRequired(true)
+                            .setRequiredRange(1, 100)
+                            .build()
+                    )
+                }.build()
+        )
     }
 }

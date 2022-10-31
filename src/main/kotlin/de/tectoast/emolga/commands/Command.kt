@@ -23,6 +23,7 @@ import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
 import de.tectoast.emolga.database.Database.Companion.incrementPredictionCounter
+import de.tectoast.emolga.encryption.TokenEncrypter
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
 import de.tectoast.emolga.selectmenus.selectmenusaves.SmogonSet
@@ -2481,8 +2482,8 @@ _written by Maxifcn_""".trimIndent()
         }
 
 
-        fun init() {
-            loadJSONFiles()
+        fun init(key: String, iv: String) {
+            loadJSONFiles(key, iv)
             ModManager("default", "./ShowdownData/")
             ModManager("nml", "../Showdown/sspserver/data/")
             Tierlist.setup()
@@ -2645,8 +2646,10 @@ _written by Maxifcn_""".trimIndent()
             return "${getAsXCoord(if (x in 2..7) (gameday % 3 shl 2) + 3 else (x % 2 shl 2) + 5)}${gameday / 3 * 6 + index + 4}"
         }
 
-        fun loadJSONFiles() {
-            tokens = load("./tokens.json")
+        fun loadJSONFiles(key: String? = null, iv: String? = null) {
+            key?.let {
+                tokens = TokenEncrypter.decrypt(it, iv!!)
+            }
             loadEmolgaJSON()
             defaultScope.launch {
                 //emolgaJSON = load("./emolgadata.json")

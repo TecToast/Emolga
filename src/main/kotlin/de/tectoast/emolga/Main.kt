@@ -13,11 +13,11 @@ object Main {
     @JvmStatic
     fun main(args: Array<String>) {
         logger.info("Starting Bot...")
-        val scanner = Scanner(System.`in`)
+        val console = System.console()
         println("Enter Token Key:")
-        val key = scanner.nextLine()
+        val key = String(console.readPassword())
         println("Enter Token IV:")
-        val iv = scanner.nextLine()
+        val iv = String(console.readPassword())
         Command.init(key, iv)
         logger.info("Starting DB...")
         Database.init()

@@ -3,7 +3,6 @@ package de.tectoast.emolga.bot
 import de.tectoast.emolga.buttons.ButtonListener
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.Command.Companion.replayAnalysis
-import de.tectoast.emolga.commands.music.custom.WirklichGuteMusikCommand
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
 import de.tectoast.emolga.utils.Constants
@@ -18,6 +17,7 @@ import de.tectoast.emolga.utils.sql.managers.MuteManager
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.messages.reply_
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.Permission
@@ -134,15 +134,6 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                 manager.scheduler.nextTrack()
             }
         }
-        e.channelJoined?.let {
-            if (it.idLong == 979436321359683594L) {
-                val mid = e.member.idLong
-                if (mid == e.jda.selfUser.idLong) return
-                WirklichGuteMusikCommand.doIt(
-                    e.guild.getTextChannelById(861558360104632330L)!!, e.member, mid == FLOID || mid == DASORID
-                )
-            }
-        }
     }
 
     override fun onGuildJoin(e: GuildJoinEvent) {
@@ -187,6 +178,14 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                     if (tco.parentCategoryIdLong == EMOLGA_KI) {
                         val split = tco.name.split("-")
                         e.jda.getTextChannelById(split[split.size - 1])!!.sendMessage(m.contentRaw).queue()
+                    }
+                    if (tco.idLong == 1036944739435548722) {
+                        val jda = e.jda
+                        val text = m.contentRaw
+                        for (key in replayAnalysis.keys) {
+                            runCatching { jda.getTextChannelById(key)?.sendMessage(text)?.queue() }
+                            delay(3000)
+                        }
                     }
                 }
                 when (tcoid) {
@@ -274,7 +273,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                     urlRegex.find(msg)?.run {
                         val url = groupValues[0]
                         logger.info(url)
-                        Command.analyseReplay(url, null, t, m, null)
+                        Command.analyseReplay(url = url, resultchannel = t, message = m)
                     }
                 }
             } catch (ex: IllegalStateException) {
@@ -293,11 +292,10 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                     val url = groupValues[0]
                     logger.info(url)
                     Command.analyseReplay(
-                        url,
-                        e.jda.getTextChannelById(999779545316069396),
-                        e.jda.getTextChannelById(999779578799202324)!!,
-                        e.message,
-                        null
+                        url = url,
+                        customReplayChannel = e.jda.getTextChannelById(999779545316069396),
+                        resultchannel = e.jda.getTextChannelById(999779578799202324)!!,
+                        message = e.message
                     )
                 }
             }

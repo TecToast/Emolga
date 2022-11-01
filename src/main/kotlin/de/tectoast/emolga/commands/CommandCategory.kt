@@ -9,7 +9,7 @@ enum class CommandCategory {
     Admin(967390962877870090L), Moderator(967390963947438120L), Draft(967390964685602867L), Flo(967390966153609226L), Dexquiz(
         967392435565105172L
     ),
-    Music(967392953934966844L, "Musik"), Pokemon(967390967550332968L, "Pokémon"), Various(
+    Pokemon(967390967550332968L, "Pokémon"), Various(
         967390968670191717L,
         "Verschiedenes"
     ),
@@ -49,13 +49,12 @@ enum class CommandCategory {
     companion object {
 
         val musicGuilds: MutableList<Long> = mutableListOf()
-        val order = listOf(Flo, Admin, Moderator, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Music, Soullink)
+        val order = listOf(Flo, Admin, Moderator, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Soullink)
 
         init {
             Moderator.allowsMemberFun = { m: Member ->
                 Admin.allowsMember(m) || m.roles.any { Emolga.get.moderatorroles.containsValue(it.idLong) }
             }
-            Music.allowsGuildIdFun = musicGuilds::contains
             Moderator.allowsGuildIdFun =
                 Emolga.get.moderatorroles::containsKey
             Pepe.allowsGuildIdFun =

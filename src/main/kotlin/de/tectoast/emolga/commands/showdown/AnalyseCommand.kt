@@ -15,6 +15,9 @@ class AnalyseCommand :
 
     override suspend fun process(e: GuildCommandEvent) {
         val tco = e.textChannel
-        analyseReplay(e.arguments.getText("url"), null, tco, null, e.run { deferReply(); slashCommandEvent?.hook })
+        analyseReplay(
+            url = e.arguments.getText("url"),
+            resultchannel = tco,
+            fromAnalyseCommand = e.run { deferReply(); slashCommandEvent?.hook })
     }
 }

@@ -96,7 +96,7 @@ class DocEntry private constructor(val league: League) {
         val (game, uid1, uid2, kills, deaths, _, url, _, _, _, _) = replayData
         var battleind = -1
         var u1IsSecond = false
-        val gameday = if (league.battleorder.isNotEmpty()) league.battleorder.asIterable()
+        val gameday = if (league.battleorder.isNotEmpty()) league.battleorder.asIterable().reversed()
             .firstNotNullOfOrNull { if (it.value.contains("$uid1:$uid2") || it.value.contains("$uid2:$uid1")) it.key else null }
             ?: -1 else gameplanCoords(uid1, uid2).also {
             battleind = it.second
@@ -279,14 +279,7 @@ fun interface ResultStatProcessor {
     fun process(plindex: Int, gameday: Int): StatLocation
 }
 
-fun interface BasicResultCreator : ResultCreator {
-    fun process(b: RequestBuilder, gdi: Int, index: Int, numberOne: Int, numberTwo: Int, url: String)
-}
-
-fun interface AdvancedResultCreator : ResultCreator {
-    fun process(result: AdvancedResult)
-}
-
+@Suppress("unused")
 data class AdvancedResult(
     val b: RequestBuilder,
     val gdi: Int,
@@ -313,4 +306,3 @@ data class AdvancedResult(
     }
 }
 
-interface ResultCreator

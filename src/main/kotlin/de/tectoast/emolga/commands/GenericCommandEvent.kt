@@ -122,8 +122,8 @@ abstract class GenericCommandEvent {
     val isNotFlo: Boolean
         get() = author.idLong != Constants.FLOID
 
-    fun deferReply() {
-        slashCommandEvent?.deferReply()?.queue()
+    fun deferReply(ephermal: Boolean = false) {
+        slashCommandEvent?.deferReply()?.setEphemeral(ephermal)?.queue()
     }
 
     val isSlash: Boolean

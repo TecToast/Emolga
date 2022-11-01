@@ -269,7 +269,7 @@ abstract class Command(
     }
 
     fun allowsMember(mem: Member): Boolean {
-        return category!!.allowsMember(mem) && (!customPermissions || allowsMember.test(mem))
+        return category!!.allowsMember(mem) || (customPermissions && allowsMember.test(mem))
     }
 
     fun allowsGuild(g: Guild): Boolean {
@@ -310,7 +310,7 @@ abstract class Command(
         return buildString {
             append("`")
             append(
-                (if (args.hasSyntax()) args.syntax else prefix + name + (if (args.arguments.isNotEmpty()) " " else "") + args.arguments.joinToString(
+                (if (args.hasSyntax()) args.syntax else (if (isSlash) "/" else prefix) + name + (if (args.arguments.isNotEmpty()) " " else "") + args.arguments.joinToString(
                     " "
                 ) { "${if (it.isOptional) "[" else "<"}${it.name}${if (it.isOptional) "]" else ">"}" })
             )
@@ -1424,6 +1424,11 @@ abstract class Command(
             if (s == "Porygon-Z") return "porygonz"
             if (s == "Sen-Long") return "drampa"
             if (s == "Ho-Oh") return "hooh"
+            if (s == "eF-eM") return "noibat"
+            if (s == "Pam-Pam") return "pancham"
+            if (s == "Nidoran♂") return "nidoranm"
+            if (s == "Nidoran♀") return "nidoranf"
+            if (s == "Nidoran") return "nidoranm"
             if (s.startsWith("Furnifra")) return "heatmor"
             if (s.startsWith("Kapu-")) return getSDName(s)
             val split = s.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()
@@ -2466,14 +2471,14 @@ _written by Maxifcn_""".trimIndent()
 
         private fun setupManualRepeatTasks() {
             RepeatTask(
-                defaultTimeFormat.parse("01.11.2022 23:00").toInstant(),
+                defaultTimeFormat.parse("02.11.2022 00:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
                 { doNDSNominate() },
                 true
             )
             RepeatTask(
-                defaultTimeFormat.parse("30.10.2022 19:00").toInstant(),
+                defaultTimeFormat.parse("30.10.2022 20:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
                 { doMatchUps(it) },
@@ -2668,7 +2673,7 @@ _written by Maxifcn_""".trimIndent()
         }
 
         fun getWithCategory(category: CommandCategory, g: Guild, mem: Member): List<Command> {
-            return commands.values.filter {
+            return commands.values.toSet().filter {
                 !it.disabled && it.category === category && it.allowsGuild(g) && it.allowsMember(mem)
             }.sortedBy { it.name }
         }
@@ -2817,19 +2822,19 @@ _written by Maxifcn_""".trimIndent()
                         }
                     }
                 }
+                StatisticsManager.increment("cmd_" + command.name)
+                val randnum = Random.nextInt(4096)
+                logger.info("randnum = $randnum")
+                if (randnum == 133) {
+                    e.channel.sendMessage("No, I don't think I will :^)\n||Gib mal den Command nochmal ein, die Wahrscheinlichkeit, dass diese Nachricht auftritt, liegt bei 1:4096 :D||")
+                        .queue()
+                    sendToMe(e.guild.name + " " + e.channel.asMention + " " + e.author.id + " " + e.author.asMention + " HAT IM LOTTO GEWONNEN!")
+                    return
+                }
+                if (command.beta) e.channel.sendMessage(
+                    "Dieser Command befindet sich zurzeit in der Beta-Phase! Falls Fehler auftreten, kontaktiert bitte ${Constants.MYTAG} durch einen Ping oder eine PN!"
+                ).queue()
                 try {
-                    StatisticsManager.increment("cmd_" + command.name)
-                    val randnum = Random.nextInt(4096)
-                    logger.info("randnum = $randnum")
-                    if (randnum == 133) {
-                        e.channel.sendMessage("No, I don't think I will :^)\n||Gib mal den Command nochmal ein, die Wahrscheinlichkeit, dass diese Nachricht auftritt, liegt bei 1:4096 :D||")
-                            .queue()
-                        sendToMe(e.guild.name + " " + e.channel.asMention + " " + e.author.id + " " + e.author.asMention + " HAT IM LOTTO GEWONNEN!")
-                        return
-                    }
-                    if (command.beta) e.channel.sendMessage(
-                        "Dieser Command befindet sich zurzeit in der Beta-Phase! Falls Fehler auftreten, kontaktiert bitte ${Constants.MYTAG} durch einen Ping oder eine PN!"
-                    ).queue()
                     GuildCommandEvent(command, e).execute()
                 } catch (ex: MissingArgumentException) {
                     if (ex.isSubCmdMissing) {
@@ -2849,16 +2854,8 @@ _written by Maxifcn_""".trimIndent()
                             sendToMe("MissingArgument " + tco.asMention + " Server: " + tco.asGuildMessageChannel().guild.name)
                         }
                     }
-                } catch (ex: Exception) {
-                    ex.printStackTrace()
-                    tco.sendMessage(
-                        "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (${Constants.MYTAG}).\n${
-                            command.getHelp(
-                                e.guild
-                            )
-                        }${if (mem.idLong == FLOID) "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" else ""}"
-                    ).queue()
                 }
+
             }
         }
 

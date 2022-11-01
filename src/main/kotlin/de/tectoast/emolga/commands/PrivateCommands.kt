@@ -40,6 +40,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 import java.awt.Color
+import java.io.File
 import java.io.IOException
 import java.lang.reflect.InvocationTargetException
 import java.nio.file.Files
@@ -372,7 +373,11 @@ object PrivateCommands {
                         )
                     }.firstOrNull()?.run {
                         logger.info(this)
-                        Command.analyseReplay(this, null, e.jda.getTextChannelById(837425749770240001L)!!, m, null)
+                        Command.analyseReplay(
+                            url = this,
+                            resultchannel = e.jda.getTextChannelById(837425749770240001L)!!,
+                            message = m
+                        )
                     }
             }
             if (m.idLong == 944309573383245904L) break
@@ -395,7 +400,11 @@ object PrivateCommands {
                         )
                     }.firstOrNull()?.run {
                         logger.info(this)
-                        Command.analyseReplay(this, null, e.jda.getTextChannelById(929686912048975882L)!!, m, null)
+                        Command.analyseReplay(
+                            url = this,
+                            resultchannel = e.jda.getTextChannelById(929686912048975882L)!!,
+                            message = m
+                        )
                     }
             }
             if (m.idLong == 946505526060122112L) break
@@ -669,6 +678,13 @@ object PrivateCommands {
     @PrivateCommand("breakpoint")
     fun breakpoint(e: GenericCommandEvent) {
         e.done()
+    }
+
+    @PrivateCommand("showallcommands")
+    fun showAllCommands() {
+        Command.commands.values.toSet().groupBy { it.category }.toList().joinToString("\n\n") { (cat, cmds) ->
+            "$cat:\n${cmds.sortedBy { it.name }.joinToString("\n") { it.getHelp(null) }}"
+        }.let { File("allcommands.txt").writeText(it) }
     }
 
     suspend fun execute(message: Message) {

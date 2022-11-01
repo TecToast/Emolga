@@ -40,18 +40,21 @@ class GuildCommandEvent : GenericCommandEvent {
                     arguments.executor.process(this@GuildCommandEvent)
                 } catch (ex: Exception) {
                     ex.printStackTrace()
-                    sendErrorMessage()
+                    send(
+                        "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (${Constants.MYTAG}).\n${
+                            command.getHelp(
+                                guild
+                            )
+                        }${if (member.idLong == Constants.FLOID) "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" else ""}"
+                    )
+                    Command.sendToMe("Error " + textChannel.asMention + " Server: " + textChannel.guild.name + " Msg: " + msg + " View Console")
                 }
             }
         }
     }
 
-    private fun sendErrorMessage() {
-        "Es ist ein Fehler beim Ausführen des Commands aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (${Constants.MYTAG}).\n${
-            command.getHelp(guild)
-        }${if (member.idLong == Constants.FLOID) "\nJa Flo, du sollst dich auch bei ihm melden du Kek! :^)" else ""}".let {
-            slashCommandEvent?.reply(it) ?: channel.sendMessage(it).queue()
-        }
+    private fun send(msg: String) {
+        slashCommandEvent?.reply(msg) ?: textChannel.sendMessage(msg).queue()
     }
 
     constructor(c: Command, e: SlashCommandInteractionEvent) : super(e) {

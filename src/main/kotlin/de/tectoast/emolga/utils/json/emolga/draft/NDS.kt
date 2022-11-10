@@ -136,7 +136,7 @@ class NDS : League() {
     companion object {
         val logger: Logger by SLF4J
         val tiers = listOf("S", "A", "B")
-        private const val rr = false
+        private const val rr = true
         val rrSummand: Int
             get() = if (rr) 5 else 0
         val gameplanName: String

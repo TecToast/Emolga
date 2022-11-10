@@ -8,6 +8,7 @@ import de.tectoast.emolga.commands.Command.Companion.load
 import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Translation
 import de.tectoast.emolga.database.Database
+import de.tectoast.emolga.database.exposed.TipGames
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.Google
@@ -37,6 +38,9 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import net.dv8tion.jda.api.interactions.components.buttons.Button
+import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 import java.awt.Color
@@ -547,7 +551,9 @@ object PrivateCommands {
             }
         }
         for ((guild, value) in map) {
-            (if (guild == -1L) jda.updateCommands() else jda.getGuildById(guild)!!.updateCommands()).addCommands(value)
+            (if (guild == -1L) jda.updateCommands() else if (guild == Constants.G.PEPE) EmolgaMain.flegmonjda.getGuildById(
+                Constants.G.PEPE
+            )!!.updateCommands() else jda.getGuildById(guild)!!.updateCommands()).addCommands(value)
                 .queue({ l ->
                     logger.info("guild = {}", guild)
                     logger.info("l = {}", l.joinToString { it.name })
@@ -686,6 +692,37 @@ object PrivateCommands {
             "$cat:\n${cmds.sortedBy { it.name }.joinToString("\n") { it.getHelp(null) }}"
         }.let { File("allcommands.txt").writeText(it) }
     }
+
+    @PrivateCommand("printtipgame")
+    suspend fun printTipGame() {
+        newSuspendedTransaction {
+            TipGames.run {
+                selectAll().orderBy(this.correctGuesses, SortOrder.DESC).forEach {
+                    println("<@${it[this.userid]}>: ${it[this.correctGuesses]}")
+                }
+
+            }
+        }
+    }
+
+    @PrivateCommand("printerentipgame")
+    fun printEnterTipGame() {
+        val nds = Emolga.get.nds()
+        val tips = nds.tipgame!!.tips
+        val battleorder = nds.battleorder
+        val table = nds.table
+        for ((gameday, gddata) in tips.entries) {
+            val battleindex = battleorder[gameday]!!.split(";").indexOfFirst { "602694069583609867" in it }
+            println("Spieltag $gameday:")
+            for ((voter, votes) in gddata.userdata.entries) {
+                votes[battleindex]?.let { vote ->
+                    println("<@${voter}>: <@${table[vote]}>")
+                }
+            }
+            println()
+        }
+    }
+
 
     suspend fun execute(message: Message) {
         val msg = message.contentRaw

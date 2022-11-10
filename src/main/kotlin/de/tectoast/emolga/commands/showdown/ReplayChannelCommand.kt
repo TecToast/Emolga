@@ -15,7 +15,6 @@ class ReplayChannelCommand : Command(
     init {
         everywhere = true
         argumentTemplate = ArgumentManagerTemplate.noArgs()
-        aliases.add("replay")
         slash(true, -1)
     }
 

@@ -49,9 +49,10 @@ object EmolgaMain {
     @Throws(Exception::class)
     fun start() {
         emolgajda = default(Command.tokens.getString("discord")) {
-            intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
+            //intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
+            intents -= GatewayIntent.MESSAGE_CONTENT
             addEventListeners(EmolgaListener)
-            setMemberCachePolicy(MemberCachePolicy.ALL)
+            setMemberCachePolicy(MemberCachePolicy.DEFAULT)
         }
         flegmonjda = default(Command.tokens.getString("discordflegmon")) {
             intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
@@ -64,7 +65,7 @@ object EmolgaMain {
         emolgajda.awaitReady()
         flegmonjda.awaitReady()
         logger.info("Discord Bots loaded!")
-        setupJetty()
+        //Ktor.start()
         Command.awaitNextDay()
         flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
         Command.updatePresence()/*val manager = ReactionManager(emolgajda)

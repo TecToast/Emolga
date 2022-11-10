@@ -1,27 +1,22 @@
 package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.buttons.ButtonListener
-import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.commands.Command.Companion.replayAnalysis
+import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.PrivateCommand
+import de.tectoast.emolga.commands.PrivateCommands
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.DASORID
-import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.Constants.FLOID
-import de.tectoast.emolga.utils.DexQuiz
 import de.tectoast.emolga.utils.json.Emolga
-import de.tectoast.emolga.utils.json.Shinycount
 import de.tectoast.emolga.utils.sql.managers.BanManager
 import de.tectoast.emolga.utils.sql.managers.MuteManager
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.messages.reply_
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.Permission
-import net.dv8tion.jda.api.entities.Icon
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -40,7 +35,6 @@ import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import org.slf4j.LoggerFactory
-import java.net.URL
 
 object EmolgaListener : ListenerAdapter() {
 
@@ -163,129 +157,21 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
 
     private suspend fun messageReceived(e: MessageReceivedEvent) {
         if (e.channelType == ChannelType.TEXT) {
-            try {
-                if (e.isWebhookMessage) return
-                val m = e.message
-                val msg = m.contentDisplay
-                val tco = e.channel.asTextChannel()
-                val member = e.member!!
-                val g = e.guild
-                val gid = g.idLong
-                val tcoid = tco.idLong
-                Command.check(e)
-                if (gid == Constants.G.MY && member.idLong == FLOID) {
-                    PrivateCommands.execute(e.message)
-                    if (tco.parentCategoryIdLong == EMOLGA_KI) {
-                        val split = tco.name.split("-")
-                        e.jda.getTextChannelById(split[split.size - 1])!!.sendMessage(m.contentRaw).queue()
-                    }
-                    if (tco.idLong == 1036944739435548722) {
-                        val jda = e.jda
-                        val text = m.contentRaw
-                        for (key in replayAnalysis.keys) {
-                            runCatching { jda.getTextChannelById(key)?.sendMessage(text)?.queue() }
-                            delay(3000)
-                        }
-                    }
+            if (e.isWebhookMessage) return
+            if (e.message.mentions.isMentioned(e.jda.selfUser)) {
+                val raw = e.message.contentRaw
+                val botid = e.jda.selfUser.idLong
+                val tc = e.channel.asTextChannel()
+                if (raw == "<@!$botid>" || raw == "<@$botid>" && !e.author.isBot && Command.isChannelAllowed(tc)) {
+                    Command.help(tc, e.member!!)
                 }
-                when (tcoid) {
-                    929841771276554260 -> g.addRoleToMember(member, g.getRoleById(934810601216147477L)!!).queue()
-                    1006493531608723517, 714941684839874600 -> {
-                        if (msg.startsWith("!entweder", ignoreCase = true)) {
-                            val split = msg.substringAfter(" ").split(" oder ").toMutableList()
-                            if (split.size > 1) {
-                                tco.sendMessage(split.random().replace("?", "") + "!").queue()
-                            }
-                        }
-                    }
-                }
-
-                val raw = m.contentRaw
-                val id = e.jda.selfUser.idLong
-                if (raw == "<@!$id>" || raw == "<@$id>" && !e.author.isBot && Command.isChannelAllowed(tco)) {
-                    Command.help(tco, member)
-                }
-                if (tcoid in Command.emoteSteal) {
-                    val l = m.mentions.customEmojis
-                    for (emote in l) {
-                        g.createEmoji(emote.name, Icon.from(withContext(Dispatchers.IO) {
-                            URL(emote.imageUrl).openStream()
-                        })).queue()
-                    }
-                }
-                if (tcoid == 778380440078647296L || tcoid == 919641011632881695L) {
-                    val split = msg.split(" ")
-                    val counter = Shinycount.get.counter
-                    counter.entries.firstOrNull { it.key.startsWith(split[1], ignoreCase = true) }?.value?.let { map ->
-                        var isCmd = true
-                        val mem = member.idLong.ifMatches(598199247124299776) { it == 893773494578470922 }.toString()
-                        if (msg.startsWith("!set ", ignoreCase = true)) {
-                            map[mem] = split[2].toLong()
-                        } else if (msg.startsWith("!add ", ignoreCase = true)) {
-                            map.compute(mem) { _, v -> (v ?: 0) + split[2].toLong() }
-                        } else if (msg.startsWith("!reset", ignoreCase = true)) {
-                            map[mem] = 0
-                        } else {
-                            isCmd = false
-                        }
-                        if (isCmd) {
-                            m.delete().queue()
-                            Command.updateShinyCounts(tcoid)
-                        }
-                    }
-                    /*val counter = Command.shinycountjson.getJSONObject("counter")
-                    counter.keySet().firstOrNull { it.lowercase().startsWith(split[1].lowercase()) }?.let {
-                        val o = Command.shinycountjson.getJSONObject("counter").getJSONObject(it)
-                        var isCmd = true
-                        val mid = if (member.id == "893773494578470922") "598199247124299776" else member.id
-                        if (msg.contains("!set ")) {
-                            o.put(mid, split[2].toInt())
-                        } else if (msg.contains("!reset ")) {
-                            o.put(mid, 0)
-                        } else if (msg.contains("!add ")) {
-                            o.put(mid, o.optInt(mid, 0) + split[2].toInt())
-                        } else isCmd = false
-                        if (isCmd) {
-                            m.delete().queue()
-                            Command.updateShinyCounts(tcoid)
-                        }
-                    }*/
-                }
-                if (!e.author.isBot && !msg.startsWith("!dexquiz")) {
-                    DexQuiz.getByTC(tco)?.run {
-                        if (nonBlocking()) {
-                            if (check(msg)) {
-                                block()
-                                tco.sendMessage("${member.asMention} hat das Pokemon erraten! Es war **${currentGerName}**! (Der Eintrag stammt aus **Pokemon ${currentEdition}**)")
-                                    .queue()
-                                givePoint(member.idLong)
-                                nextRound()
-                            }
-                        }
-                    }
-                }
-                if (replayAnalysis.containsKey(tcoid) && e.author.id != e.jda.selfUser.id && !msg.contains("!analyse ") && !msg.contains(
-                        "!sets "
-                    )
-                ) {
-                    val t = tco.guild.getTextChannelById(replayAnalysis.getValue(tcoid)) ?: return
-                    //t.sendTyping().queue();
-                    urlRegex.find(msg)?.run {
-                        val url = groupValues[0]
-                        logger.info(url)
-                        Command.analyseReplay(url = url, resultchannel = t, message = m)
-                    }
-                }
-            } catch (ex: IllegalStateException) {
-                Command.sendToMe(e.channelType.name + " IllegalStateException Channel")
-            } catch (ex: Exception) {
-                ex.printStackTrace()
             }
         } else if (e.isFromType(ChannelType.PRIVATE)) {
             if (e.author.isBot) return
             if (e.author.idLong != FLOID) e.jda.getTextChannelById(828044461379682314L)
                 ?.sendMessage(e.author.asMention + ": " + e.message.contentDisplay)?.queue()
             PrivateCommand.check(e)
+            PrivateCommands.execute(e.message)
             val msg = e.message.contentDisplay
             if (msg.contains("https://") || msg.contains("http://")) {
                 urlRegex.find(msg)?.run {
@@ -360,12 +246,14 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
             Einfach `/replaychannel add` in den jeweiligen Channel schreiben
 
             **2. Die Ergebnisse sollen in einen anderen Channel geschickt werden:**
-            `/replaychannel add #Ergebnischannel` in den Channel schicken, wo später die Replays reingeschickt werden sollen (Der #Ergebnischannel ist logischerweise der Channel, wo später die Ergebnisse reingeschickt werden sollen)
+            `/replaychannel add #Ergebnischannel` in den Channel schicken, wo später die Replays reingeschickt werden sollen (Der #Ergebnischannel ist logischerweise der Channel, wo später die Ergebnisse reingeschickt werden sollen)       
+            
+            Wenn die Channel eingerichtet worden sind, muss man einfach /replay mit dem Replay-Link in einen Replay-Channel schicken und ich erledige den Rest.
 
-            Falls die Ergebnisse in ||Spoilertags|| geschickt werden sollen, schick irgendwo auf dem Server den Command `!spoilertags` rein. Dies gilt dann serverweit.
+            Falls die Ergebnisse in ||Spoilertags|| geschickt werden sollen, schick irgendwo auf dem Server den Command `/spoilertags` rein. Dies gilt dann serverweit.
 
             Ich habe übrigens noch viele weitere Funktionen! Wenn du mich pingst, zeige ich dir eine Übersicht aller Commands :)
-            Falls du weitere Fragen oder Probleme hast, schreibe ${Constants.MYTAG} eine PN :)
+            Falls du weitere Fragen oder Probleme hast, schreibe ${Constants.MYTAG} eine PN oder komme auf den Support-Server, dessen Link in meinem Profil steht :)
         """.trimIndent()
     private val logger = LoggerFactory.getLogger(EmolgaListener::class.java)
     private val urlRegex = Regex(

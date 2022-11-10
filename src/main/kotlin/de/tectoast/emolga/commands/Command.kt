@@ -3108,14 +3108,20 @@ _written by Maxifcn_""".trimIndent()
         }
 
         fun analyseReplay(
-            url: String, customReplayChannel: TextChannel?, resultchannel: TextChannel, m: Message?, e: InteractionHook?
+            url: String,
+            customReplayChannel: TextChannel? = null,
+            resultchannel: TextChannel,
+            message: Message? = null,
+            fromAnalyseCommand: InteractionHook? = null,
+            fromReplayCommand: InteractionHook? = null,
+            customGuild: Long? = null
         ) {
             defaultScope.launch {
                 if (BOT_DISABLED && resultchannel.guild.idLong != Constants.G.MY) {
-                    (m?.channel ?: resultchannel).sendMessage(DISABLED_TEXT).queue()
+                    (message?.channel ?: resultchannel).sendMessage(DISABLED_TEXT).queue()
                     return@launch
                 }
-                logger.info("REPLAY! Channel: {}", m?.channel?.id ?: resultchannel.id)
+                logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannel.id)
                 val (game, ctx) = try {
                     Analysis.analyse(url)
                     //game = Analysis.analyse(url, m);
@@ -3123,17 +3129,13 @@ _written by Maxifcn_""".trimIndent()
                     val msg =
                         "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
                     sendToMe("Fehler beim Auswerten des Replays: $url ${resultchannel.guild.name} ${resultchannel.asMention} ChannelID: ${resultchannel.id}")
-                    if (e != null) e.sendMessage(msg).queue() else {
-                        resultchannel.sendMessage(msg).queue()
-                    }
+                    fromReplayCommand?.sendMessage(msg)?.queue() ?: fromAnalyseCommand?.sendMessage(msg)?.queue()
+                    ?: resultchannel.sendMessage(msg).queue()
                     ex.printStackTrace()
                     return@launch
                 }
                 val g = resultchannel.guild
-                val gid: Long
-                val msg = m?.contentDisplay ?: ""
-                gid = (if (m?.author?.idLong == FLOID) CUSTOM_GUILD_PATTERN.find(msg)?.groupValues?.get(1)?.toLong()
-                    ?: g.idLong else g.idLong)
+                val gid = customGuild ?: g.idLong
                 val u1 = game[0].nickname
                 val u2 = game[1].nickname
                 val uid1 = SDNamesManager.getIDByName(u1)
@@ -3171,8 +3173,9 @@ _written by Maxifcn_""".trimIndent()
                 logger.info("u1 = $u1")
                 logger.info("u2 = $u2")
                 customReplayChannel?.sendMessage(url)?.queue()
-                if (e != null) {
-                    e.sendMessage(str).queue()
+                fromReplayCommand?.sendMessage(url)?.queue()
+                if (fromAnalyseCommand != null) {
+                    fromAnalyseCommand.sendMessage(str).queue()
                 } else if (!customResult.contains(gid)) resultchannel.sendMessage(str).queue()
                 if (resultchannel.guild.idLong != Constants.G.MY) {
                     StatisticsManager.increment("analysis")
@@ -3214,7 +3217,7 @@ _written by Maxifcn_""".trimIndent()
                         str,
                         resultchannel,
                         customReplayChannel,
-                        m
+                        message
                     )
                 )
             }

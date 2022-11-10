@@ -19,6 +19,7 @@ object Constants {
     const val MYTAG = "Flo | TecToast#2535"
 
     object G {
+        const val PEPE = 605632286179983360
         const val ASL = 518008523653775366
         const val NDS = 837425304896536596
         const val BS = 712035338846994502

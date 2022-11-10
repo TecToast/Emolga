@@ -457,7 +457,7 @@ abstract class Command(
         fun optString(key: String): String? = map[key] as? String
 
         fun getID(key: String): Long {
-            return map[key] as Long
+            return (map[key] as String).toLong()
         }
 
         fun getInt(key: String): Int {
@@ -803,8 +803,7 @@ abstract class Command(
         class Number private constructor(possible: Array<Int>) : ArgumentType {
             private val numbers = mutableListOf<Int>()
             private val any: Boolean
-            private var from = 0
-            private var to = 0
+            private var range: IntRange? = null
             private var hasRange: Boolean
 
             init {
@@ -818,9 +817,8 @@ abstract class Command(
                 }
             }
 
-            private fun setRange(from: Int, to: Int): Number {
-                this.from = from
-                this.to = to
+            private fun setRange(range: IntRange): Number {
+                this.range = range
                 hasRange = true
                 return this
             }
@@ -832,7 +830,7 @@ abstract class Command(
             override fun validate(str: String, data: ValidationData): Any? {
                 return str.toIntOrNull()?.let { num ->
                     if (any) num else if (hasRange()) {
-                        if (num in from..to) num else null
+                        if (num in range!!) num else null
                     } else {
                         if (num in numbers) num else null
                     }
@@ -845,7 +843,7 @@ abstract class Command(
 
             override val customHelp: String
                 get() = if (hasRange()) {
-                    "$from-$to"
+                    range!!.run { "$first-$last" }
                 } else numbers.joinToString()
 
             override fun asOptionType(): OptionType {
@@ -857,8 +855,8 @@ abstract class Command(
             }
 
             companion object {
-                fun range(from: Int, to: Int): Number {
-                    return of().setRange(from, to)
+                fun range(range: IntRange): Number {
+                    return of().setRange(range)
                 }
 
                 fun of(vararg possible: Int): Number {

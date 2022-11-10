@@ -8,7 +8,7 @@ class DexNumberCommand :
     Command("dexnumber", "Zeigt das Pokemon, dass zur Dex-Nummer gehört", CommandCategory.Pokemon) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
-            .add("num", "Dex-Nummer", "Die Dex-Nummer", ArgumentManagerTemplate.Number.range(1, 898))
+            .add("num", "Dex-Nummer", "Die Dex-Nummer", ArgumentManagerTemplate.Number.range(1..898))
             .setExample("!dexnumber 730")
             .build()
     }

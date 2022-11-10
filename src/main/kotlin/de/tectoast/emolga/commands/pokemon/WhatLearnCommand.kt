@@ -37,7 +37,7 @@ class WhatLearnCommand : Command(
                 "gen",
                 "Generation",
                 "Die Generation, sonst Gen 8",
-                ArgumentManagerTemplate.Number.range(1, 8),
+                ArgumentManagerTemplate.Number.range(1..8),
                 true
             )
             .setExample("!howlearn Emolga Level 6")

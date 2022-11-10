@@ -23,9 +23,10 @@ class AddSDNameCommand : Command("addsdname", "Registriert deinen Showdown-Namen
             return
         }
         val name = args.getText("name")
-        if (SDNamesManager.addIfAbsent(name, args.getOrDefault("id", e.author.idLong))) {
+        val id = if (args.has("id")) args.getID("id") else e.author.idLong
+        if (SDNamesManager.addIfAbsent(name, id)) {
             if (args.has("id")) {
-                e.jda.retrieveUserById(args.getID("id"))
+                e.jda.retrieveUserById(id)
                     .queue { e.reply("Der Name `$name` wurde für ${it.name} registriert!") }
             } else {
                 e.reply("Der Name `$name` wurde für dich registriert!")

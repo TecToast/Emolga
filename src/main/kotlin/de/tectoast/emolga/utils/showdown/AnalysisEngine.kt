@@ -5,7 +5,7 @@ class SDPokemon(var pokemon: String, val player: Int) {
     val volatileEffects: MutableMap<String, SDPokemon> = mutableMapOf()
     var kills = 0
     var isDead = false
-    var selfKills = 0
+    private var selfKills = 0
     var lastDamageBy: SDPokemon? = null
     var itemObtainedFrom: SDPokemon? = null
     var targetForTrick: SDPokemon? = null
@@ -105,8 +105,7 @@ sealed class SDEffect(vararg val types: String) {
                 val playerSide = sdPlayers[damagedMon.player]
                 val fainted = "fnt" in split[2]
                 val hazards = playerSide.fieldConditions
-                if (split.size > 4 && split[3].substringAfter("[from] ")
-                        .substringAfter("move: ") !in damagedMon.volatileEffects
+                if (split.size > 4 && split[3].substringAfter("[from] ") !in damagedMon.volatileEffects
                 ) {
                     println(split)
                     split[4].parsePokemon(ctx).claimDamage(damagedMon, fainted, ctx)
@@ -236,7 +235,7 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>, ctx: BattleContext) {
             split[1].parsePokemon(ctx).run {
                 split.getSource(ctx)?.let {
-                    addVolatileEffect(split[2].substringAfter(": "), it, ctx)
+                    addVolatileEffect(split[2], it, ctx)
                 }
             }
         }

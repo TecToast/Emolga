@@ -40,7 +40,11 @@ object Analysis {
             }
             if (line == "|gametype|doubles") amount = 2
             if (line == "|gametype|freeforall") playerCount = 4
-            if (line.startsWith("|player|")) nicknames[split[1][1].digitToInt() - 1] = split[2]
+            if (line.startsWith("|player|")) {
+                val i = split[1][1].digitToInt() - 1
+                if (i !in nicknames)
+                    nicknames[i] = split[2]
+            }
             if (line.startsWith("|switch")) {
                 val (player, _) = split[1].parsePokemonLocation()
                 val monName = split[2].substringBefore(",")

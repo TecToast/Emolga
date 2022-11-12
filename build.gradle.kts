@@ -50,6 +50,24 @@ repositories {
     }
     maven("https://jitpack.io/")
 }
+
+val ktorVersion = "2.1.3"
+val ktorDependencies = listOf(
+    // Client
+    "ktor-client-core",
+    "ktor-client-cio",
+    "ktor-serialization-kotlinx-json",
+    "ktor-client-content-negotiation",
+    // Server
+    "ktor-server-core",
+    "ktor-server-netty",
+    "ktor-server-auth",
+    "ktor-server-sessions",
+    "ktor-server-content-negotiation",
+    "ktor-serialization-kotlinx-json",
+    "ktor-server-cors"
+)
+
 dependencies {
     implementation("org.slf4j:slf4j-api:2.0.3")
     implementation("org.eclipse.jetty:jetty-server:11.0.12")
@@ -76,12 +94,21 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.20")
-    implementation("io.ktor:ktor-client-core:2.1.2")
-    implementation("io.ktor:ktor-client-cio:2.1.2")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.1.2")
-    implementation("io.ktor:ktor-client-content-negotiation:2.1.2")
+    implementation("io.ktor:ktor-server-auth-jvm:2.1.3")
+    implementation("io.ktor:ktor-server-locations-jvm:2.1.3")
+    implementation("io.ktor:ktor-server-core-jvm:2.1.3")
+    implementation("io.ktor:ktor-client-core-jvm:2.1.3")
+    implementation("io.ktor:ktor-client-apache-jvm:2.1.3")
+    implementation("io.ktor:ktor-server-cors-jvm:2.1.3")
+    ktor()
     implementation("org.jetbrains.exposed:exposed-core:0.40.1")
     implementation("org.jetbrains.exposed:exposed-dao:0.40.1")
     implementation("org.jetbrains.exposed:exposed-jdbc:0.40.1")
     implementation("org.jetbrains.exposed:exposed-java-time:0.40.1")
+}
+
+fun DependencyHandler.ktor() {
+    ktorDependencies.forEach {
+        implementation("io.ktor:$it:$ktorVersion")
+    }
 }

@@ -1,11 +1,14 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
+val kVersion = "1.7.10"
 plugins {
-    kotlin("jvm") version "1.7.20"
-    kotlin("plugin.serialization") version "1.7.20"
+    val kVersion = "1.7.10"
+    kotlin("jvm") version kVersion
+    kotlin("plugin.serialization") version kVersion
     id("com.github.johnrengelman.shadow") version "7.1.2"
     application
 }
+
 
 application {
     mainClass.set("de.tectoast.emolga.Main")
@@ -93,7 +96,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.20")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
     implementation("io.ktor:ktor-server-auth-jvm:2.1.3")
     implementation("io.ktor:ktor-server-locations-jvm:2.1.3")
     implementation("io.ktor:ktor-server-core-jvm:2.1.3")

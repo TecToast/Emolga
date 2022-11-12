@@ -11,16 +11,15 @@ import javax.crypto.spec.SecretKeySpec
 
 object TokenEncrypter {
 
-    fun decrypt(password: String, ivStr: String): JSONObject {
-        val cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING")
-        val key = run {
-            val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-            val spec = PBEKeySpec(password.toCharArray(), password.toByteArray(), 65536, 256)
-            SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
+    fun decrypt(password: String): JSONObject {
+        return with(Cipher.getInstance("AES/CBC/PKCS5PADDING")) {
+            val lines = File("tokens.txt").readLines()
+            init(Cipher.DECRYPT_MODE, run {
+                val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+                val spec = PBEKeySpec(password.toCharArray(), password.toByteArray(), 65536, 256)
+                SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
+            }, IvParameterSpec(lines[1].toByteArray()))
+            JSONObject(String(doFinal(Base64.getDecoder().decode(lines[0]))))
         }
-        val iv = ivStr.toByteArray()
-        val spec = IvParameterSpec(iv)
-        cipher.init(Cipher.DECRYPT_MODE, key, spec)
-        return JSONObject(String(cipher.doFinal(Base64.getDecoder().decode(File("tokens.txt").readText().trim()))))
     }
 }

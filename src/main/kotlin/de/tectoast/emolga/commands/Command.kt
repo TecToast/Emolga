@@ -2485,8 +2485,8 @@ _written by Maxifcn_""".trimIndent()
         }
 
 
-        fun init(key: String, iv: String) {
-            loadJSONFiles(key, iv)
+        fun init(key: String) {
+            loadJSONFiles(key)
             ModManager("default", "./ShowdownData/")
             ModManager("nml", "../Showdown/sspserver/data/")
             Tierlist.setup()
@@ -2649,9 +2649,9 @@ _written by Maxifcn_""".trimIndent()
             return "${getAsXCoord(if (x in 2..7) (gameday % 3 shl 2) + 3 else (x % 2 shl 2) + 5)}${gameday / 3 * 6 + index + 4}"
         }
 
-        fun loadJSONFiles(key: String? = null, iv: String? = null) {
+        fun loadJSONFiles(key: String? = null) {
             key?.let {
-                tokens = TokenEncrypter.decrypt(it, iv!!)
+                tokens = TokenEncrypter.decrypt(it)
             }
             loadEmolgaJSON()
             defaultScope.launch {

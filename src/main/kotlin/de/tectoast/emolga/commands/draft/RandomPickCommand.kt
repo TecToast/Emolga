@@ -28,9 +28,7 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
         list.shuffle()
         val typecheck: (String) -> Boolean = if (args.has("type")) {
             val type = args.getTranslation("type");
-            {
-                type.translation in dataJSON.getJSONObject(getSDName(it)).getStringList("types")
-            }
+            { type.translation in getDataObject(it).types }
         } else {
             { true }
         }

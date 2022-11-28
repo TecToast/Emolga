@@ -3,8 +3,6 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.jsolf.JSONArray
-import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.EmbedBuilder
 import java.awt.Color
 
@@ -50,31 +48,25 @@ class CombinationCommand : Command(
         val moves = learnsetJSON
         val mons = ArrayList<String>()
         for (s in monList) {
-            val mon = data.getJSONObject(s)
-            if (abis.size > 0 && containsNotAll(mon.getJSONObject("abilities"), abis)) continue
-            if (types.size > 0 && containsNotAll(mon.getJSONArray("types"), types)) continue
-            if (egg.size > 0 && containsNotAll(mon.getJSONArray("eggGroups"), egg)) continue
+            val mon = data[s]!!
+            if (mon.num < 0) continue
+            if (abis.size > 0 && !mon.abilities.values.containsAll(abis)) continue
+            if (types.size > 0 && !mon.types.containsAll(types)) continue
+            if (egg.size > 0 && !mon.eggGroups.containsAll(egg)) continue
             //logger.info("s = " + s);
-            var currentMon: String? = null
-            var isRegion = false
-            for (form in listOf("alola", "galar", "unova")) {
-                if (mon.optString("forme", "").lowercase().contains(form)) isRegion = true
+            val currentMon: String = kotlin.run {
+                var ret: String? = null
+                for (form in listOf("alola", "galar", "unova")) {
+                    if (mon.forme?.lowercase()?.contains(form) == true) mon.baseSpecies?.let { ret = it }
+                }
+                ret ?: s
             }
-            if (!isRegion) {
-                if (mon.has("baseSpecies")) currentMon = mon.getString("baseSpecies")
-            }
-            if (currentMon == null) currentMon = s
             if (atks.size > 0) {
-                if (!moves.has(toSDName(currentMon))) continue
-                if (!moves.getJSONObject(toSDName(currentMon)).has("learnset")) continue
-                if (containsNotAll(
-                        moves.getJSONObject(toSDName(currentMon)).getJSONObject("learnset").keySet(),
-                        atks
-                    )
-                ) continue
+                if (!moves.contains(toSDName(currentMon))) continue
+                val learnset = moves[toSDName(currentMon)]?.learnset ?: continue
+                if (learnset.keys.containsAll(atks)) continue
             }
-            if (mon.getInt("num") < 0) continue
-            val name = data.getJSONObject(s).getString("name")
+            val name = data[s]!!.name
             val split = name.split("-")
             if (split.size > 1) mons.add(getGerNameNoCheck(split[0]) + "-" + split[1]) else mons.add(
                 getGerNameNoCheck(
@@ -115,19 +107,5 @@ class CombinationCommand : Command(
                     .setDescription(java.lang.String.join("\n", mons)).build()
             ).queue()
         }
-    }
-
-    companion object {
-        fun containsNotAll(mon: JSONObject, list: List<String>): Boolean {
-            val l = ArrayList(list)
-            for (s in mon.keySet()) {
-                l.remove(mon.getString(s))
-            }
-            return l.isNotEmpty()
-        }
-
-        fun containsNotAll(arr: JSONArray, list: List<String>) = !arr.toStringList().containsAll(list)
-
-        fun containsNotAll(set: Set<String?>, list: List<String>) = !set.containsAll(list)
     }
 }

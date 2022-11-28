@@ -28,7 +28,7 @@ class CompareShinyCommand : Command(
         var suffix: String
         val args = e.arguments
         val monname = args.getTranslation("mon").translation
-        val mon = dataJSON.getJSONObject(toSDName(monname))
+        val mon = getDataObject(monname)
         suffix = if (args.has("regform")) {
             val form = args.getText("regform")
             "-" + form.lowercase()
@@ -37,12 +37,11 @@ class CompareShinyCommand : Command(
         }
         if (args.has("form")) {
             val form = args.getText("form")
-            if (!mon.has("otherFormes")) {
+            val otherFormes = mon.otherFormes ?: run {
                 e.reply("$monname besitzt keine **$form**-Form!")
                 return
             }
-            val otherFormes = mon.getJSONArray("otherFormes")
-            if (otherFormes.toStringList().none {
+            if (otherFormes.none {
                     it.lowercase().endsWith("-" + form.lowercase())
                 }) {
                 e.reply("$monname besitzt keine **$form**-Form!")

@@ -30,23 +30,22 @@ class WeaknessCommand :
         val args = e.arguments
         val gerName = args.getTranslation("stuff")
         val name = gerName.translation
-        val mon = dataJSON.optJSONObject(
-            toSDName(
-                gerName.otherLang + args.getOrDefault(
-                    "regform", ""
-                ) + args.getOrDefault("form", "") + (gerName.forme ?: "")
-            )
-        )
-        val abijson = mon!!.getJSONObject("abilities")
-        val abilities = abijson.keySet().map { key: String? -> abijson.getString(key) }
+        val mon = dataJSON[
+                toSDName(
+                    gerName.otherLang + args.getOrDefault(
+                        "regform", ""
+                    ) + args.getOrDefault("form", "") + (gerName.forme ?: "")
+                )
+        ]!!
+        val abilities = mon.abilities.values.toList()
         val oneabi = abilities.size == 1
-        val types = mon.getStringList("types").toTypedArray()
+        val types = mon.types.toTypedArray()
         val x2: MutableSet<String> = LinkedHashSet()
         val x05: MutableSet<String> = LinkedHashSet()
         val x0: MutableSet<String> = LinkedHashSet()
         val immuneAbi = HashMap<String, String>()
         val changeAbi = HashMap<String, EffectivenessChangeText>()
-        for (type in typeJSON.keySet()) {
+        for (type in typeJSON.keys) {
             val typeName = getTypeGerName(type)
             if (getImmunity(type, *types)) x0.add(typeName) else {
                 if (oneabi && immunities.containsKey(type) && immunities[type]!!.contains(abilities[0])) {
@@ -58,12 +57,11 @@ class WeaknessCommand :
                     }
                     val typeMod = getEffectiveness(type, *types)
                     if (typeMod != 0) {
-                        val t = typeName
                         when (typeMod) {
-                            1 -> x2.add(t)
-                            2 -> x2.add("**$t**")
-                            -1 -> x05.add(t)
-                            -2 -> x05.add("**$t**")
+                            1 -> x2.add(typeName)
+                            2 -> x2.add("**$typeName**")
+                            -1 -> x05.add(typeName)
+                            -2 -> x05.add("**$typeName**")
                         }
                     }
                     val pl = checkAbiChanges(type, abilities)
@@ -71,13 +69,12 @@ class WeaknessCommand :
                         val modified: Int = typeMod + p.value
                         val abi: String = p.ability
                         if (modified != typeMod && abi.isNotBlank()) {
-                            val t = typeName
                             when (modified) {
-                                2 -> changeAbi[t] = EffectivenessChangeText(abi, "vierfach-effektiv")
-                                1 -> changeAbi[t] = EffectivenessChangeText(abi, "sehr effektiv")
-                                0 -> changeAbi[t] = EffectivenessChangeText(abi, "neutral-effektiv")
-                                -1 -> changeAbi[t] = EffectivenessChangeText(abi, "resistiert")
-                                -2 -> changeAbi[t] = EffectivenessChangeText(abi, "vierfach-resistiert")
+                                2 -> changeAbi[typeName] = EffectivenessChangeText(abi, "vierfach-effektiv")
+                                1 -> changeAbi[typeName] = EffectivenessChangeText(abi, "sehr effektiv")
+                                0 -> changeAbi[typeName] = EffectivenessChangeText(abi, "neutral-effektiv")
+                                -1 -> changeAbi[typeName] = EffectivenessChangeText(abi, "resistiert")
+                                -2 -> changeAbi[typeName] = EffectivenessChangeText(abi, "vierfach-resistiert")
                             }
                         }
                     }
@@ -123,7 +120,7 @@ class WeaknessCommand :
                 }
                 return false
             }
-            return typeJSON.getJSONObject(against[0]).getJSONObject("damageTaken").getInt(type) == 3
+            return typeJSON[against[0]]!!.damageTaken[type] == 3
         }
 
 
@@ -135,8 +132,8 @@ class WeaknessCommand :
                 }
                 return totalTypeMod
             }
-            val typeData = typeJSON.optJSONObject(against[0]) ?: return 0
-            return when (typeData.getJSONObject("damageTaken").getInt(type)) {
+            val typeData = typeJSON[against[0]] ?: return 0
+            return when (typeData.damageTaken[type]) {
                 1 -> 1
                 2 -> -1
                 else -> 0

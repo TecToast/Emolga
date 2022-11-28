@@ -35,9 +35,9 @@ class Database(username: String, password: String) {
 
 
         fun init() {
-            val cred = Command.tokens.getJSONObject("database")
+            val cred = Command.tokens.database
             logger.info("Creating DataSource...")
-            instance = Database(cred.getString("username"), cred.getString("password"))
+            instance = Database(cred.username, cred.password)
             org.jetbrains.exposed.sql.Database.connect(instance.dataSource)
             logger.info("Retrieving all startup information...")
             AnalysisManager.forAll { Command.replayAnalysis[it.getLong("replay")] = it.getLong("result") }

@@ -30,7 +30,7 @@ class TierlistSearchCommand :
         }
         val searchType = args.getTranslation("type")
         val searchTypeEnglish = searchType.translation
-        val filteredList = mons.filter { searchTypeEnglish in getDataObject(it).getStringList("types") }
+        val filteredList = mons.filter { searchTypeEnglish in getDataObject(it).types }
         e.reply("All diese Mons aus dem ${tier}-Tier besitzen den Typen ${searchType.otherLang}:\n${filteredList.joinToString("\n")}")
     }
 

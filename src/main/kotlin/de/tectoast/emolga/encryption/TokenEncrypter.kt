@@ -1,6 +1,8 @@
 package de.tectoast.emolga.encryption
 
-import de.tectoast.jsolf.JSONObject
+import de.tectoast.emolga.commands.myJSON
+import de.tectoast.emolga.utils.json.Tokens
+import kotlinx.serialization.decodeFromString
 import java.io.File
 import java.util.*
 import javax.crypto.Cipher
@@ -11,7 +13,7 @@ import javax.crypto.spec.SecretKeySpec
 
 object TokenEncrypter {
 
-    fun decrypt(password: String): JSONObject {
+    fun decrypt(password: String): Tokens {
         return with(Cipher.getInstance("AES/CBC/PKCS5PADDING")) {
             val lines = File("tokens.txt").readLines()
             init(Cipher.DECRYPT_MODE, run {
@@ -19,7 +21,7 @@ object TokenEncrypter {
                 val spec = PBEKeySpec(password.toCharArray(), password.toByteArray(), 65536, 256)
                 SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
             }, IvParameterSpec(lines[1].toByteArray()))
-            JSONObject(String(doFinal(Base64.getDecoder().decode(lines[0]))))
+            myJSON.decodeFromString(String(doFinal(Base64.getDecoder().decode(lines[0]))))
         }
     }
 }

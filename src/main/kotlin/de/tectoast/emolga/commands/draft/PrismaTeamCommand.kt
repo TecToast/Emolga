@@ -7,8 +7,6 @@ import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.Emolga
-import de.tectoast.jsolf.JSONArray
-import de.tectoast.jsolf.JSONObject
 import de.tectoast.toastilities.interactive.ErrorMessage
 import de.tectoast.toastilities.interactive.Interactive
 import de.tectoast.toastilities.interactive.InteractiveTemplate
@@ -28,11 +26,6 @@ class PrismaTeamCommand : PrivateCommand("prismateam") {
         template = InteractiveTemplate({ u: User, tc: MessageChannel, map: LinkedHashMap<String, Any?> ->
             current.remove(u.idLong)
             val league = Emolga.get.league("Prisma")
-            val arr = JSONArray()
-            for ((s, value) in map) {
-                if (s == "check") continue
-                arr.put(JSONObject().put("tier", s[0].toString()).put("name", value))
-            }
             league.picks[u.idLong] = map.entries.filterNot { it.key == "check" }
                 .map { DraftPokemon(it.value as String, it.key[0].toString()) }.toMutableList()
             saveEmolgaJSON()

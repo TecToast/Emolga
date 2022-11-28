@@ -18,26 +18,17 @@ class AttackCommand : Command("attack", "Zeigt, welche Mons eine Attacke erlerne
         val djson = dataJSON
         val mons = ArrayList<String>()
         val atk = e.arguments.getTranslation("move").translation
-        for (s in djson.keySet()) {
+        for ((s, data) in djson.entries) {
             if (s.endsWith("totem")) continue
-            val data = djson.getJSONObject(s)
-            if (data.getInt("num") <= 0) continue
-            if (!ljson.has(s)) continue
-            if (!ljson.getJSONObject(s).has("learnset")) continue
-            if (ljson.getJSONObject(s).getJSONObject("learnset").keySet().contains(toSDName(atk))) {
-                /*if (s.endsWith("alola")) name = getGerNameNoCheck(s.substring(0, s.length() - 5)) + "-Alola";
-                else if (s.endsWith("galar")) name = getGerNameNoCheck(s.substring(0, s.length() - 5)) + "-Galar";
-                else if (s.endsWith("unova")) name = getGerNameNoCheck(s.substring(0, s.length() - 5)) + "-Unova";
-                else {*/
-                //}
-                /*String[] split = name.split("-");
-                logger.info("name = " + name);
-                if (split.length > 1) mons.add(getGerNameNoCheck(split[0]) + "-" + split[1]);
-                else mons.add(getGerNameNoCheck(name));*/mons.add(
+            if (data.num <= 0) continue
+            if (s !in ljson) continue
+            val learnset = ljson[s]?.learnset ?: continue
+            if (learnset.keys.contains(toSDName(atk))) {
+                mons.add(
                     if (s == "nidoranf") "Nidoran-F" else if (s == "nidoranm") "Nidoran-M" else {
                         val gerName = getGerName(s)
                         if (gerName.isSuccess) gerName.translation else {
-                            getGerNameNoCheck(data.getString("baseSpecies")) + "-" + data.getString("forme")
+                            data.baseSpeciesAndForme
                         }
                     }
                 )

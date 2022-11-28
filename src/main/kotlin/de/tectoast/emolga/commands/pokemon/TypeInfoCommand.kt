@@ -21,8 +21,8 @@ class TypeInfoCommand : Command("typeinfo", "Zeigt dir Informationen über einen
         val resistedBy: MutableList<String> = LinkedList()
         val weakAgainst: MutableList<String> = LinkedList()
         val resisted: MutableList<String> = LinkedList()
-        json.keySet().forEach {
-            val damageTaken = json.getJSONObject(it).getJSONObject("damageTaken").getInt(type)
+        json.entries.forEach { (it, typeData) ->
+            val damageTaken = typeData.damageTaken[type] ?: return@forEach
             if (damageTaken > 0) {
                 val t = getTypeGerNameOrNull(it) ?: return@forEach
                 if (damageTaken > 1) {
@@ -32,9 +32,8 @@ class TypeInfoCommand : Command("typeinfo", "Zeigt dir Informationen über einen
                 }
             }
         }
-        val typejson = json.getJSONObject(type).getJSONObject("damageTaken")
-        typejson.keySet().forEach {
-            val damageTaken = typejson.getInt(it)
+        val typejson = json[type]!!.damageTaken
+        typejson.entries.forEach { (it, damageTaken) ->
             if (damageTaken > 0) {
                 val t = getTypeGerNameOrNull(it) ?: return@forEach
                 if (damageTaken > 1) {
@@ -42,7 +41,6 @@ class TypeInfoCommand : Command("typeinfo", "Zeigt dir Informationen über einen
                 } else {
                     weakAgainst.add(t)
                 }
-
             }
         }
         e.reply(

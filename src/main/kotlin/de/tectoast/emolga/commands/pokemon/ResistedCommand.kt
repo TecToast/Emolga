@@ -18,8 +18,8 @@ class ResistedCommand :
         val type = e.arguments.getTranslation("type")
         val json = typeJSON
         val b = StringBuilder()
-        json.keySet().forEach {
-            val damageTaken = json.getJSONObject(it).getJSONObject("damageTaken").getInt(type.translation)
+        json.entries.forEach { (it, typeData) ->
+            val damageTaken = typeData.damageTaken[type.translation] ?: return@forEach
             if (damageTaken > 1) {
                 val gername = getTypeGerNameOrNull(it) ?: return@forEach
                 if (damageTaken == 3) b.append("**")

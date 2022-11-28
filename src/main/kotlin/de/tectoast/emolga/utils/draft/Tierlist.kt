@@ -35,9 +35,9 @@ class Tierlist(val guild: Long) {
      * List with all pokemon in the sheets tierlists, columns are separated by an "NEXT"
      */
     private val tiercolumns: MutableList<MutableList<String>> = mutableListOf()
-    private val trashmons: List<String> = listOf()
-    private val additionalMons: Map<String, List<String>> = mapOf()
-    private val englishnames: List<String> = listOf()
+    val trashmons: MutableList<String> = mutableListOf()
+    val additionalMons: MutableMap<String, MutableList<String>> = mutableMapOf()
+    var englishnames: List<String> = listOf()
 
     /**
      * the amount of rounds in the draft

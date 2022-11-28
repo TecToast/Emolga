@@ -6,7 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.utils.sql.managers.FullStatsManager
 import dev.minn.jda.ktx.messages.Embed
-import kotlin.math.min
+import kotlin.math.roundToInt
 
 class FullStatsCommand :
     Command("fullstats", "Zeigt die volle Statistik von einem Pokemon an (Kills/Uses/etc)", CommandCategory.Showdown) {
@@ -22,14 +22,8 @@ class FullStatsCommand :
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        e.slashCommandEvent?.hook?.sendMessage("hello world :)")?.queue()
-        if (e.isSlash) return
         val mon = e.arguments.getText("mon")
         val data = FullStatsManager.getData(mon)
-        var kpu = (data.kills.toDouble() / data.uses.toDouble()).toString()
-        kpu = kpu.substring(0, kpu.indexOf('.') + min(kpu.length - 1, 6))
-        var wpu = (data.wins.toDouble() / data.uses.toDouble()).toString()
-        wpu = wpu.substring(0, wpu.indexOf('.') + min(wpu.length - 1, 6))
         e.reply(
             Embed {
                 color = embedColor
@@ -39,8 +33,16 @@ class FullStatsCommand :
                 field("Uses", data.uses.toString(), false)
                 field("Wins", data.wins.toString(), false)
                 field("Looses", data.looses.toString(), false)
-                field("Kills/Use", kpu, false)
-                field("Wins/Use", wpu, false)
+                field(
+                    "Kills/Use",
+                    "${(data.kills.toDouble() / data.uses.toDouble() * 100.0).roundToInt() / 100.0}",
+                    false
+                )
+                field(
+                    "Wins/Use",
+                    "${(data.wins.toDouble() / data.uses.toDouble() * 100.0).roundToInt() / 100.0}",
+                    false
+                )
             }
         )
     }

@@ -21,16 +21,14 @@ class ResistanceCommand :
         if (type.isFromType(Translation.Type.TYPE)) {
             val json = typeJSON
             val b = StringBuilder()
-            val typejson = json.getJSONObject(type.translation).getJSONObject("damageTaken")
-            typejson.keySet().forEach { str: String ->
-                val damageTaken = typejson.getInt(str)
+            val typejson = json[type.translation]!!.damageTaken
+            typejson.entries.forEach { (str, damageTaken) ->
                 if (damageTaken > 1) {
                     val t = getTypeGerNameOrNull(str) ?: return@forEach
                     if (damageTaken == 3) b.append("**")
                     b.append(t)
                     if (damageTaken == 3) b.append("**")
                     b.append("\n")
-
                 }
             }
             if (b.isEmpty()) {

@@ -19,11 +19,11 @@ class AddToTierlistCommand :
 
     override suspend fun process(e: GuildCommandEvent) {
         val id = e.guild.id
-        val o = load("./Tierlists/$id.json")
+        val o: Tierlist = load("./Tierlists/$id.json")
         val mon = e.arguments.getText("mon")
-        if (e.arguments.has("tier")) o.createOrGetJSON("additionalmons")
-            .createOrGetArray(e.arguments.getText("tier"))
-            .put(mon) else o.getJSONArray("trashmons").put(mon)
+        if (e.arguments.has("tier")) o.additionalMons
+            .getOrPut(e.arguments.getText("tier")) { mutableListOf() }.add(mon)
+        else o.trashmons.add(mon)
         save(o, "./Tierlists/$id.json")
         Tierlist.setup()
         e.reply("`$mon` ist nun pickable!")

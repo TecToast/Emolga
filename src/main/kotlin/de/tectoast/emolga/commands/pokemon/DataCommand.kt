@@ -1,13 +1,12 @@
 package de.tectoast.emolga.commands.pokemon
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
-import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.notNullAppend
+import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.sql.managers.AbiDataManager
 import de.tectoast.emolga.utils.sql.managers.AtkDataManager
 import de.tectoast.emolga.utils.sql.managers.ItemDataManager
-import de.tectoast.jsolf.JSONObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
@@ -47,44 +46,37 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
             var name = gerName.translation
             when (objtype) {
                 Translation.Type.POKEMON -> {
-                    val mon = dataJSON.optJSONObject(
-                        toSDName(
-                            gerName.otherLang + args.getOrDefault(
-                                "regform", ""
-                            ) + args.getOrDefault("form", "") + (gerName.forme ?: "")
-                        )
-                    )
-                    if (mon == null) {
+                    val mon = dataJSON[toSDName(
+                        gerName.otherLang + args.getOrDefault(
+                            "regform", ""
+                        ) + args.getOrDefault("form", "") + (gerName.forme ?: "")
+                    )] ?: run {
                         e.reply("$name besitzt diese Form nicht!")
                         return
                     }
                     val builder = EmbedBuilder()
-                    builder.addField("Englisch", mon.getString("name"), true)
-                    builder.addField("Dex", mon.getInt("num").toString(), true)
-                    val gender: String = if (mon.has("genderRatio")) {
-                        val gen = mon.getJSONObject("genderRatio")
-                        (gen.getDouble("M") * 100).toString() + "% ♂ " + gen.getDouble("F") * 100 + "% ♀"
-                    } else if (mon.has("gender")) {
-                        if (mon.getString("gender") == "M") "100% ♂" else if (mon.getString("gender") == "F") "100% ♀" else "Unbekannt"
-                    } else "50% ♂ 50% ♀"
-                    builder.addField("Geschlecht", gender, true)
+                    builder.addField("Englisch", mon.name, true)
+                    builder.addField("Dex", mon.num.toString(), true)
+                    builder.addField(
+                        "Geschlecht",
+                        mon.genderRatio?.let { "${it["M"]!! * 100}% ♂ ${it["F"]!! * 100}% ♀" }
+                            ?: mon.gender?.let { if (it == "M") "100% ♂" else "100% ♀" } ?: "50% ♂ 50% ♀",
+                        true)
                     //list.forEach(j -> logger.info(j.toString(4)));
-                    val monname = mon.getString("name")
+                    val monname = mon.name
                     if (monname.equals("silvally", ignoreCase = true) || monname.equals("arceus", ignoreCase = true)) {
                         builder.addField("Typen", "Normal", false)
                     } else {
                         logger.info(mon.toString())
-                        builder.addField("Typen", mon.getJSONArray("types").toStringList().joinToString(" ") {
+                        builder.addField("Typen", mon.types.joinToString(" ") {
                             if (it == "Psychic") "Psycho"
-                            else getGerNameNoCheck(it as String)
+                            else getGerNameNoCheck(it)
                         }, false)
                     }
-                    builder.addField("Größe", mon.getDouble("heightm").toString() + " m", true)
-                    builder.addField("Gewicht", mon.getDouble("weightkg").toString() + " kg", true)
-                    builder.addField("Eigruppe", mon.getJSONArray("eggGroups").toStringList().joinToString { o: Any ->
-                        getGerNameNoCheck(
-                            "E_$o"
-                        )
+                    builder.addField("Größe", "${mon.heightm} m", true)
+                    builder.addField("Gewicht", "${mon.weightkg} kg", true)
+                    builder.addField("Eigruppe", mon.eggGroups.joinToString {
+                        getGerNameNoCheck("E_$it")
                     }, true)
                     if (monname.equals("silvally", ignoreCase = true) || monname.equals("arceus", ignoreCase = true)) {
                         builder.addField(
@@ -93,18 +85,9 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                             false
                         )
                     } else {
-                        val o = mon.getJSONObject("abilities")
-                        val b = StringBuilder()
-                        if (o.has("0")) {
-                            b.append(getGerNameNoCheck(o.getString("0"))).append("\n")
-                        }
-                        if (o.has("1")) {
-                            b.append(getGerNameNoCheck(o.getString("1"))).append("\n")
-                        }
-                        if (o.has("H")) {
-                            b.append(getGerNameNoCheck(o.getString("H"))).append(" (VF)")
-                        }
-                        builder.addField("Fähigkeiten", b.toString(), false)
+                        builder.addField("Fähigkeiten", mon.abilities.entries.joinToString("\n") {
+                            getGerNameNoCheck(it.value).condAppend(it.key == "H", " (VF)")
+                        }, false)
                     }
                     if (monname.equals("silvally", ignoreCase = true) || monname.equals("arceus", ignoreCase = true)) {
                         builder.addField(
@@ -129,22 +112,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                             false
                         )
                     } else {
-                        val stats = mon.getJSONObject("baseStats")
-                        val kp = stats.getInt("hp")
-                        val atk = stats.getInt("atk")
-                        val def = stats.getInt("def")
-                        val spa = stats.getInt("spa")
-                        val spd = stats.getInt("spd")
-                        val spe = stats.getInt("spe")
-                        val str = """
-                            KP: $kp
-                            Atk: $atk
-                            Def: $def
-                            SpAtk: $spa
-                            SpDef: $spd
-                            Init: $spe
-                            Summe: ${kp + atk + def + spa + spd + spe}
-                            """.trimIndent()
+                        val str = mon.buildStatString()
                         val prevoInfo = getPrevoInfo(mon)
                         if (prevoInfo.isNotEmpty()) {
                             builder.addField("Erhaltbarkeit", prevoInfo, false)
@@ -158,51 +126,40 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                     val list = getAllForms(name)
                     e.reply(builder.build(), ma = { ma ->
                         if (list.size > 1) {
-                            ma.setComponents(
-                                ActionRow.of(
-                                    StringSelectMenu.create("mondata").addOptions(
-                                        list.map {
-                                            SelectOption.of(
-                                                "Form: " + getGerNameWithForm(it.getString("name")),
-                                                toSDName(it.getString("name"))
-                                            ).withDefault(mon.getString("name") == it.getString("name"))
-                                        }
-                                    ).build()
-                                )
-                            )
+                            ma.setComponents(ActionRow.of(StringSelectMenu.create("mondata").addOptions(list.map {
+                                SelectOption.of(
+                                    "Form: " + getGerNameWithForm(it.name),
+                                    toSDName(it.name)
+                                ).withDefault(mon.name == it.name)
+                            }).build()))
                         }
                     }, ra = { ra: ReplyCallbackAction ->
                         if (list.size > 1) {
-                            ra.setComponents(
-                                ActionRow.of(
-                                    StringSelectMenu.create("mondata").addOptions(
-                                        list.map {
-                                            val so = SelectOption.of(
-                                                "Form: " + getGerNameWithForm(it.getString("name")),
-                                                toSDName(it.getString("name"))
-                                            )
-                                            if (mon.getString("name") == it.getString("name")) so.withDefault(true) else so
-                                        }
-                                    ).build()
+                            ra.setComponents(ActionRow.of(StringSelectMenu.create("mondata").addOptions(list.map {
+                                val so = SelectOption.of(
+                                    "Form: " + getGerNameWithForm(it.name),
+                                    toSDName(it.name)
                                 )
-                            )
+                                if (mon.name == it.name) so.withDefault(true) else so
+                            }).build()))
                         }
                     })
                 }
 
                 Translation.Type.MOVE -> {
                     name = gerName.translation
-                    val data = movesJSON.getJSONObject(getSDName(name))
-                    var type = data.getString("type")
+                    val data = movesJSON[getSDName(name)]!!.jsonObject
+                    var type = data["type"].string
                     type = if (type == "Psychic") "Psycho" else getGerNameNoCheck(type)
                     val p: String
                     val maxPower: Int
-                    val isStatus = data.getString("category") == "Status"
-                    if (data.has("ohko")) {
+                    val cat = data["category"].string
+                    val isStatus = cat == "Status"
+                    if ("ohko" in data) {
                         p = "K.O."
                         maxPower = 130
                     } else {
-                        val bp = data.getInt("basePower")
+                        val bp = data["basePower"].int
                         p = bp.toString()
                         maxPower = if (isStatus) {
                             -1
@@ -240,72 +197,64 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                             }
                         }
                     }
-                    val accuracy: String
-                    val acc = data["accuracy"]
-                    accuracy = if (acc is Boolean) "-" else "$acc%"
-                    val category = when (data.getString("category")) {
+                    val acc = data["accuracy"]!!.jsonPrimitive
+                    val accuracy = if (acc.isString) "$acc%" else "-"
+                    val category = when (cat) {
                         "Physical" -> "Physisch"
                         "Special" -> "Speziell"
                         "Status" -> "Status"
                         else -> "ERROR"
                     }
-                    val ppc = data.getInt("pp")
+                    val ppc = data["pp"].int
                     val pp = ppc.toString() + " (max. " + (ppc shl 3) / 5 + ")"
                     val builder = EmbedBuilder()
                     builder.setTitle(name).addField("English", getEnglName(name), true).addField("Power", p, true)
                         .addField("Dyna-Power", if (maxPower == -1) "-" else maxPower.toString(), true)
                         .addField("Accuracy", accuracy, true).addField("Category", category, true)
                         .addField("AP", pp, true).addField("Type", type, true)
-                        .addField("Priority", data.getInt("priority").toString(), true).setColor(Color.CYAN)
+                        .addField("Priority", data["priority"].string, true).setColor(Color.CYAN)
                         .setDescription(AtkDataManager.getData(name))
                     if (isStatus) {
-                        val text: String
-                        val eff = data.getJSONObject("zMove")
-                        if (eff.has("effect")) {
-                            when (eff.getString("effect")) {
-                                "clearnegativeboost" -> text = "Negative Statusveränderungen werden zurückgesetzt"
-                                "crit2" -> text = "Critchance +2"
-                                "heal" -> text = "Volle Heilung"
-                                "curse" -> text = "Volle Heilung beim Geist Typ, sonst Atk +1"
-                                "redirect" -> text = "Spotlight"
-                                "healreplacement" -> text = "Heilt eingewechseltes Mon voll"
+                        val eff = data["zMove"]!!.jsonObject
+                        builder.addField("Z-Effect", eff["effect"]?.string?.let {
+                            when (it) {
+                                "clearnegativeboost" -> "Negative Statusveränderungen werden zurückgesetzt"
+                                "crit2" -> "Critchance +2"
+                                "heal" -> "Volle Heilung"
+                                "curse" -> "Volle Heilung beim Geist Typ, sonst Atk +1"
+                                "redirect" -> "Spotlight"
+                                "healreplacement" -> "Heilt eingewechseltes Mon voll"
                                 else -> {
-                                    text = "Error"
-                                    logger.info(eff.toString(4))
+                                    logger.info(eff.toString())
+                                    "Error"
                                 }
                             }
-                        } else {
-                            val boosts = eff.getJSONObject("boost")
-                            val stat = boosts.keys().next()
-                            text = when (stat) {
-                                "atk" -> "Atk +" + boosts.getInt(stat)
-                                "def" -> "Def +" + boosts.getInt(stat)
-                                "spa" -> "SpAtk +" + boosts.getInt(stat)
-                                "spd" -> "SpDef +" + boosts.getInt(stat)
-                                "spe" -> "Init +" + boosts.getInt(stat)
-                                "accuracy" -> "Genauigkeit +" + boosts.getInt(stat)
-                                "evasion" -> "Ausweichwert +" + boosts.getInt(stat)
+                        } ?: run {
+                            val boosts = eff["boost"]!!.jsonObject
+                            val stat = boosts.keys.first()
+                            when (stat) {
+                                "atk" -> "Atk"
+                                "def" -> "Def"
+                                "spa" -> "SpAtk"
+                                "spd" -> "SpDef"
+                                "spe" -> "Init"
+                                "accuracy" -> "Genauigkeit"
+                                "evasion" -> "Ausweichwert"
                                 else -> "Error"
-                            }
-                        }
-                        builder.addField("Z-Effect", text, true)
+                            } + " +${boosts[stat].int}"
+                        }, true)
+
                     } else {
-                        var zpower: String? = null
-                        if (data.has("zpower")) zpower = data.getInt("zpower").toString() else {
-                            if (p.equals("K.O.", ignoreCase = true)) zpower = "180"
-                            if (p.equals("variiert", ignoreCase = true)) {
-                                zpower = "variiert"
-                            } else {
-                                val power = p.toInt()
-                                if (power <= 55) zpower = "100" else if (power in 60..65) zpower =
-                                    "120" else if (power in 70..75) zpower = "140" else if (power in 80..85) zpower =
-                                    "160" else if (power in 90..95) zpower = "175" else if (power == 100) zpower =
-                                    "180" else if (power == 110) zpower = "185" else if (power == 120) zpower =
-                                    "190" else if (power == 130) zpower = "195" else if (power >= 140) zpower = "200"
+                        builder.addField("Z-Power", data["zpower"]?.string ?: run {
+                            when (p) {
+                                "K.O." -> "180"
+                                "variiert" -> "variiert"
+                                else -> {
+                                    val power = p.toInt()
+                                    zMovePowers.entries.first { power in it.key }.value.toString()
+                                }
                             }
-                        }
-                        if (zpower == null) sendToMe("Fehler bei Z-$name!")
-                        builder.addField("Z-Power", zpower ?: "ERROR", true)
+                        }, true)
                     }
                     tco.sendMessageEmbeds(builder.build()).queue()
                 }
@@ -345,36 +294,47 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
     companion object {
         private val logger = LoggerFactory.getLogger(DataCommand::class.java)
 
+        val zMovePowers: Map<IntRange, Int> = mapOf(
+            1..55 to 100,
+            60..65 to 120,
+            70..75 to 140,
+            80..85 to 160,
+            90..95 to 175,
+            100..100 to 180,
+            110..110 to 185,
+            120..120 to 190,
+            130..130 to 195,
+            140..200 to 200
+        )
 
-        fun getPrevoInfo(obj: JSONObject): String {
-            if (obj.optString("forme") == "Mega") return "Megaentwicklung von " + getGerNameNoCheck(obj.getString("baseSpecies"))
-            if (!obj.has("prevo")) return ""
-            var str = "ERROR (Wenn du das siehst, melde dich bitte bei Flo)"
-            val prev = obj.getString("prevo")
+        fun getPrevoInfo(obj: Pokemon): String {
+            if (obj.forme == "Mega") return "Megaentwicklung von " + getGerNameNoCheck(obj.baseSpecies!!)
+            val prev = obj.prevo ?: return ""
             //String prevo = getGerNameNoCheck(obj.getString("prevo"));
-            val prevo: String =
+            return "Entwickelt sich aus ${
                 if (prev.endsWith("-Alola") || prev.endsWith("-Galar")) prev.substring(prev.length - 5) + "-" + getGerNameNoCheck(
                     prev.substring(0, prev.length - 6)
                 ) else getGerNameNoCheck(prev)
-            if (obj.has("evoLevel")) str = "auf Level " + obj.getInt("evoLevel") else if (obj.has("evoType")) {
-                str = when (obj.getString("evoType")) {
-                    "useItem" -> "mit dem Item \"" + getGerNameNoCheck(obj.getString("evoItem")) + "\""
-                    "levelFriendship" -> "durch Freundschaft"
-                    "trade" -> "durch Tausch".notNullAppend(obj.optString("evoItem").ifEmpty { null }
-                        ?.let { " mit dem Item \"${getGerNameNoCheck(it)}\"" })
+            } ${
+                obj.evoLevel?.let { "auf Level $it" } ?: obj.evoType?.let {
+                    when (it) {
+                        "useItem" -> "mit dem Item \"${getGerNameNoCheck(obj.evoItem!!)}\""
+                        "levelFriendship" -> "durch Freundschaft"
+                        "trade" -> "durch Tausch".notNullAppend(obj.evoItem?.let { itm ->
+                            " mit dem Item \"${
+                                getGerNameNoCheck(
+                                    itm
+                                )
+                            }\""
+                        })
 
-                    "levelExtra" -> ""
-                    "levelHold" -> "durch ein Level-Up, wenn es das Item \"${getGerNameNoCheck(obj.getString("evoItem"))}\" trägt"
-                    "levelMove" -> "durch ein Level-Up, wenn es die Attacke \"${getGerNameNoCheck(obj.getString("evoMove"))}\" beherrscht"
-                    else -> str
-                }
-            }
-            var condition = ""
-            if (obj.has("evoCondition")) condition = """
-     
-     Bedingung: ${obj.getString("evoCondition")}
-     """.trimIndent()
-            return "Entwickelt sich aus $prevo $str$condition"
+                        "levelExtra" -> ""
+                        "levelHold" -> "durch ein Level-Up, wenn es das Item \"${getGerNameNoCheck(obj.evoItem!!)}\" trägt"
+                        "levelMove" -> "durch ein Level-Up, wenn es die Attacke \"${getGerNameNoCheck(obj.evoMove!!)}\" beherrscht"
+                        else -> null
+                    }
+                } ?: "ERROR (Wenn du das siehst, melde dich bitte bei Flo)"
+            }".notNullAppend(obj.evoCondition?.let { "\nBedingung: $it" })
         }
     }
 }

@@ -37,7 +37,7 @@ class SpeedCommand : Command(
                         return
                     }
                     ger = st.translation
-                    bs = datajson.getJSONObject(getSDName(ger) + "mega").getJSONObject("baseStats").getInt("spe")
+                    bs = datajson[getSDName(ger) + "mega"]!!.speed
                 } else if (mon.startsWith("A-")) {
                     val st = getGerName(mon.substring(2))
                     if (st.isEmpty || !st.isFromType(Translation.Type.POKEMON)) {
@@ -45,7 +45,7 @@ class SpeedCommand : Command(
                         return
                     }
                     ger = st.translation
-                    bs = datajson.getJSONObject(getSDName(ger) + "alola").getJSONObject("baseStats").getInt("spe")
+                    bs = datajson[getSDName(ger) + "alola"]!!.speed
                 } else if (mon.startsWith("G-")) {
                     val st = getGerName(mon.substring(2))
                     if (st.isEmpty || !st.isFromType(Translation.Type.POKEMON)) {
@@ -53,7 +53,7 @@ class SpeedCommand : Command(
                         return
                     }
                     ger = st.translation
-                    bs = datajson.getJSONObject(getSDName(ger) + "galar").getJSONObject("baseStats").getInt("spe")
+                    bs = datajson[getSDName(ger) + "galar"]!!.speed
                 } else {
                     if (mon.startsWith("Amigento") || mon.startsWith("Silvally")) {
                         speedMons.add(SpeedMon("Amigento", 95, 317))
@@ -73,8 +73,7 @@ class SpeedCommand : Command(
                     if (op != null) {
                         ger = op
                         val englname = getEnglName(ger.split("-")[0])
-                        bs = datajson.getJSONObject(toSDName(englname + sdex[mon])).getJSONObject("baseStats")
-                            .getInt("spe")
+                        bs = datajson[toSDName(englname + sdex[mon])]!!.speed
                     } else {
                         val t = getGerName(mon)
                         if (t.isEmpty || !t.isFromType(Translation.Type.POKEMON)) {
@@ -82,7 +81,7 @@ class SpeedCommand : Command(
                             return
                         }
                         ger = t.translation
-                        bs = datajson.getJSONObject(getSDName(ger)).getJSONObject("baseStats").getInt("spe")
+                        bs = datajson[getSDName(ger)]!!.speed
                     }
                 }
                 val speed = ((2 * bs + 99) * 1.1).toInt()

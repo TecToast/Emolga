@@ -3,7 +3,6 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.jsolf.JSONObject
 import net.dv8tion.jda.api.EmbedBuilder
 import java.awt.Color
 import java.util.*
@@ -50,7 +49,7 @@ class WhatLearnCommand : Command(
         val mon = toSDName(args.getTranslation("mon").translation + args.getOrDefault("form", ""))
         val type = args.getText("type")
         var gen = args.getOrDefault("gen", 8)
-        val learnset = learnsetJSON.getJSONObject(mon).getJSONObject("learnset")
+        val learnset = learnsetJSON[mon]!!()
         val list = LinkedList<String>()
         val levels = HashMap<Int, MutableList<String>>()
         val b = banane(learnset, gen, type, levels, list)
@@ -79,25 +78,22 @@ class WhatLearnCommand : Command(
 
     companion object {
         fun banane(
-            learnset: JSONObject,
+            learnset: Map<String, List<String>>,
             gen: Int,
             type: String,
             levels: HashMap<Int, MutableList<String>>,
             list: LinkedList<String>
         ): Boolean {
-            for (s in learnset.keySet()) {
-                val arr = learnset.getJSONArray(s).toStringList()
-                if (arr.any { t: String -> t.startsWith(gen.toString()) && t.contains(type) }) {
+            for ((s, arr) in learnset.entries) {
+                if (arr.any { it.startsWith(gen.toString()) && type in it }) {
                     val name = getGerNameNoCheck(s)
-                    if (type == "L") {
-                        arr.asSequence().filter { str: String -> str.startsWith(gen.toString() + "L") }
-                            .map { str: String -> str.substring(str.indexOf('L') + 1) }
-                            .map { it.toInt() }.forEach { i: Int ->
-                                if (!levels.containsKey(i)) levels[i] = ArrayList()
-                                val l = levels[i]!!
-                                l.add(name)
-                            }
-                    } else list.add(name)
+                    if (type == "L") arr.asSequence().filter { it.startsWith(gen.toString() + "L") }
+                        .map { it.substring(it.indexOf('L') + 1) }
+                        .map { it.toInt() }.forEach {
+                            if (!levels.containsKey(it)) levels[it] = ArrayList()
+                            val l = levels[it]!!
+                            l.add(name)
+                        } else list.add(name)
                 }
             }
             return levels.size > 0

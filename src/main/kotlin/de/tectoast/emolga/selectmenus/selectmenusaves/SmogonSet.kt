@@ -15,81 +15,54 @@ class SmogonSet(val arr: JSONArray) {
     private var moveslots: JSONArray
 
     init {
-        format = arr.getJSONObject(0)
-        set = format.getJSONArray("movesets").getJSONObject(0)
-        ev = set.getJSONArray("evconfigs").getJSONObject(0)
-        iv = if (set.getJSONArray("ivconfigs").length() > 0) set.getJSONArray("ivconfigs")
-            .getJSONObject(0) else JSONObject()
-        moveslots = set.getJSONArray("moveslots")
+        format = strategies.first()
+        set = format.movesets.first()
     }
 
     fun changeFormat(format: String) {
-        this.format = arr.toJSONList().first { o: JSONObject -> o.getString("format") == format }
-        set = this.format.getJSONArray("movesets").getJSONObject(0)
-        ev = set.getJSONArray("evconfigs").getJSONObject(0)
-        iv = if (set.getJSONArray("ivconfigs").length() > 0) set.getJSONArray("ivconfigs")
-            .getJSONObject(0) else JSONObject()
-        moveslots = set.getJSONArray("moveslots")
+        this.format = strategies.first { it.format == format }
+        set = this.format.movesets.first()
     }
 
     fun changeSet(set: String) {
-        this.set = format.getJSONList("movesets").first { o: JSONObject -> o.getString("name") == set }
-        ev = this.set.getJSONArray("evconfigs").getJSONObject(0)
-        iv = if (this.set.getJSONArray("ivconfigs").length() > 0) this.set.getJSONArray("ivconfigs")
-            .getJSONObject(0) else JSONObject()
-        moveslots = this.set.getJSONArray("moveslots")
+        this.set = format.movesets.first { it.name == set }
+    }
+
+    companion object {
+        val statnames =
+            mapOf("hp" to "HP", "atk" to "Atk", "def" to "Def", "spa" to "SpA", "spd" to "SpD", "spe" to "Spe")
     }
 
     fun buildMessage(): String {
-        return """
-                ${set.getString("pokemon")} @ ${set.getStringList("items").joinToString(" / ")}
-                Ability: ${set.getStringList("abilities").joinToString(" / ")}
-                EVs: ${
-            ev.keySet().asSequence().filter { ev.getInt(it) > 0 }
-                .map { "${ev.getInt(it)} ${SmogonCommand.statnames[it]}" }.joinToString(" / ")
-        }${
-            if (iv.length() == 0) "" else "IVs: ${
-                iv.keySet().asSequence().filter { ev.getInt(it) > 0 }
-                    .map { "${ev.getInt(it)} ${SmogonCommand.statnames[it]}" }.joinToString(" / ")
-            }"
+        return buildString {
+            append("${set.pokemon} ")
+            if ("No Item" !in set.items) {
+                append(set.items.joinToString(" / ", prefix = "@ "))
+            }
+            append(set.abilities.joinToString(" / ", prefix = "\nAbility: "))
+            append(set.evconfigs.first().entries.filter { it.value > 0 }
+                .joinToString(" / ", prefix = "\nEVs: ") { "${it.value} ${statnames[it.key]}" })
+            set.ivconfigs.firstOrNull()?.entries?.filter { it.value < 31 }
+                ?.joinToString(" / ", prefix = "\nIVs: ") { "${it.value} ${statnames[it.key]}" }?.let {
+                    append(it)
+                }
+            append(set.natures.joinToString(" / ", prefix = "\n", postfix = " Nature"))
+            append(set.moveslots.joinToString("\n", prefix = "\n") { moves ->
+                moves.joinToString(" / ", prefix = "- ") { move ->
+                    move.move.notNullAppend(move.type?.let { " $it" })
+                }
+            })
         }
-                ${set.getStringList("natures").joinToString(" / ")} Nature
-                - ${
-            moveslots.getJSONArray(0).toJSONList().asSequence()
-                .map { "${it.getString("move")}${if (!it.isNull("type")) " ${it.getString("type")}" else ""}" }
-                .joinToString(" / ")
-        }
-                - ${
-            moveslots.getJSONArray(1).toJSONList().asSequence()
-                .map { "${it.getString("move")}${if (!it.isNull("type")) " ${it.getString("type")}" else ""}" }
-                .joinToString(" / ")
-        }
-                - ${
-            moveslots.getJSONArray(2).toJSONList().asSequence()
-                .map { "${it.getString("move")}${if (!it.isNull("type")) " ${it.getString("type")}" else ""}" }
-                .joinToString(" / ")
-        }
-                - ${
-            moveslots.getJSONArray(3).toJSONList().asSequence()
-                .map { "${it.getString("move")}${if (!it.isNull("type")) " ${it.getString("type")}" else ""}" }
-                .joinToString(" / ")
-        }""".trimIndent()
     }
 
-    fun buildActionRows(): List<ActionRow> {
-        return listOf(
-            ActionRow.of(
-                StringSelectMenu.create("smogonformat")
-                    .addOptions(arr.toJSONList().map { o: JSONObject -> o.getString("format") }.map { s: String ->
-                        SelectOption.of("Format: $s", s).withDefault(format.getString("format") == s)
-                    }).build()
-            ),
-            ActionRow.of(
-                StringSelectMenu.create("smogonset")
-                    .addOptions(format.getJSONList("movesets").map { o: JSONObject -> o.getString("name") }
-                        .map { s: String -> SelectOption.of("Set: $s", s).withDefault(set.getString("name") == s) })
-                    .build()
-            )
+    fun buildActionRows(id: String): List<ActionRow> = listOf(
+        ActionRow.of(
+            StringSelectMenu.create("smogonformat;$id").addOptions(strategies.map { it.format }.map {
+                SelectOption.of("Format: $it", it).withDefault(format.format == it)
+            }).build()
+        ), ActionRow.of(
+            StringSelectMenu.create("smogonset;$id").addOptions(format.movesets.map { it.name }
+                .map { SelectOption.of("Set: $it", it).withDefault(set.name == it) }).build()
         )
-    }
+    )
 }

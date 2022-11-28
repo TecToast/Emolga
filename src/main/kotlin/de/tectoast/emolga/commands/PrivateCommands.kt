@@ -18,11 +18,8 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.emolga.draft.ASL
-import de.tectoast.emolga.utils.showdown.Analysis
 import de.tectoast.emolga.utils.sql.managers.AnalysisManager
-import de.tectoast.emolga.utils.sql.managers.DasorUsageManager
 import de.tectoast.emolga.utils.sql.managers.TranslationsManager
-import de.tectoast.jsolf.JSONArray
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -45,10 +42,7 @@ import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 import java.awt.Color
 import java.io.File
-import java.io.IOException
 import java.lang.reflect.InvocationTargetException
-import java.nio.file.Files
-import java.nio.file.Paths
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -260,23 +254,6 @@ object PrivateCommands {
             }
         }
         if (mons.isEmpty()) e.reply("Oh, du bist wohl kein Dasor :3") else e.reply(java.lang.String.join("\n", mons))
-    }
-
-    @PrivateCommand(name = "converttierlist")
-    @Throws(IOException::class)
-    fun convertTierlist(e: GenericCommandEvent) {
-        val arr = JSONArray()
-        val curr: MutableList<String?> = LinkedList()
-        for (tiercolumn in Files.readAllLines(Paths.get("Tierlists", e.getArg(0), "tiercolumns.txt"))) {
-            if (tiercolumn == "NEXT") {
-                arr.put(curr)
-                curr.clear()
-            } else {
-                curr.add(tiercolumn)
-            }
-        }
-        arr.put(curr)
-        logger.info(arr.toString())
     }
 
     @PrivateCommand(name = "asltierlist")
@@ -505,26 +482,6 @@ object PrivateCommands {
         e.reply("Deleted: " + AnalysisManager.removeUnused())
     }
 
-    @PrivateCommand(name = "dasorlol")
-    @Throws(IOException::class)
-    suspend fun dasorLol() {
-        val load = load("dasorfights.json")
-        val fights = load.getJSONList("fights")
-        for (f in fights) {
-            val id = f.getString("id")
-            if (id.contains("doubles")) continue
-            val (game, _) = Analysis.analyse("https://replay.pokemonshowdown.com/$id")
-            for (player in game) {
-                if (Command.toUsername(player.nickname) == "dasor54") {
-                    for (mon in player.pokemon) {
-                        val monName = Command.getMonName(mon.pokemon, DraftNamePreference.SINGLE_CHAR_BEFORE)
-                        DasorUsageManager.addPokemon(monName)
-                    }
-                }
-            }
-        }
-    }
-
     @PrivateCommand(name = "updateslashcommands")
     fun updateSlashCommands() {
         val jda = EmolgaMain.emolgajda
@@ -551,9 +508,14 @@ object PrivateCommands {
             }
         }
         for ((guild, value) in map) {
-            (if (guild == -1L) jda.updateCommands() else if (guild == Constants.G.PEPE) EmolgaMain.flegmonjda.getGuildById(
-                Constants.G.PEPE
-            )!!.updateCommands() else jda.getGuildById(guild)!!.updateCommands()).addCommands(value)
+            (when (guild) {
+                -1L -> jda.updateCommands()
+                Constants.G.PEPE -> EmolgaMain.flegmonjda.getGuildById(
+                    Constants.G.PEPE
+                )!!.updateCommands()
+
+                else -> jda.getGuildById(guild)!!.updateCommands()
+            }).addCommands(value)
                 .queue({ l ->
                     logger.info("guild = {}", guild)
                     logger.info("l = {}", l.joinToString { it.name })
@@ -635,8 +597,8 @@ object PrivateCommands {
             }.forEach { all.add(it) }
         }
         val path = "Tierlists/$guild.json"
-        val o = load(path)
-        o.put("englishnames", all)
+        val o: Tierlist = load(path)
+        o.englishnames = all
         save(o, path)
     }
 
@@ -651,7 +613,7 @@ object PrivateCommands {
                     it,
                     en.key,
                     tl.prices[en.key]!!,
-                    data.getJSONObject("baseStats").getInt("spe"),
+                    data.speed,
                     Command.getGen5Sprite(data)
                 )
             }

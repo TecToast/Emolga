@@ -1,23 +1,26 @@
 package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.Command.Companion.loadSD
-import de.tectoast.jsolf.JSONObject
+import de.tectoast.emolga.commands.Command.Companion.load
+import de.tectoast.emolga.utils.json.showdown.Learnset
+import de.tectoast.emolga.utils.json.showdown.Pokemon
+import de.tectoast.emolga.utils.json.showdown.TypeData
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
+import kotlinx.serialization.json.JsonObject
 import org.slf4j.Logger
 
 class ModManager(name: String, datapath: String) {
-    lateinit var dex: JSONObject
-    lateinit var learnsets: JSONObject
-    lateinit var moves: JSONObject
-    lateinit var typechart: JSONObject
+    lateinit var dex: Map<String, Pokemon>
+    lateinit var learnsets: Map<String, Learnset>
+    lateinit var moves: JsonObject
+    lateinit var typechart: Map<String, TypeData>
 
     init {
-        scope.launch { dex = loadSD(datapath + "pokedex.ts", Constants.DEXJSONSUB) }
-        scope.launch { learnsets = loadSD(datapath + "learnsets.ts", Constants.LEARNSETJSONSUB) }
-        scope.launch { moves = loadSD(datapath + "moves.ts", Constants.MOVESJSONSUB) }
-        scope.launch { typechart = loadSD(datapath + "typechart.ts", Constants.TYPESJSONSUB) }
+        scope.launch { dex = load(datapath + "pokedex.json") }
+        scope.launch { learnsets = load(datapath + "learnsets.json") }
+        scope.launch { moves = load(datapath + "moves.json") }
+        scope.launch { typechart = load(datapath + "typechart.json") }
         if (name == "default") default = this
         modManagers.add(this)
     }

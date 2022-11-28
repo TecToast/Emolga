@@ -39,7 +39,7 @@ class SearchReplaysCommand :
         } else body
         try {
             e.hook.sendMessage(
-                JSON.decodeFromString<List<Replay>>(jsonstring).take(15)
+                myJSON.decodeFromString<List<Replay>>(jsonstring).take(15)
                     .joinToString("\n") { "${it.p1} vs ${it.p2}: https://replay.pokemonshowdown.com/${it.id}" }
                     .ifEmpty { "Es wurde kein Kampf ${u2?.let { "zwischen $u1 und $it" } ?: "von $u1"} hochgeladen!" })
                 .queue()

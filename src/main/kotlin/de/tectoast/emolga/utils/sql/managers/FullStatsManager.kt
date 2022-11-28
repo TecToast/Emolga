@@ -8,7 +8,6 @@ import de.tectoast.emolga.utils.sql.base.columns.IntColumn
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
-import java.sql.ResultSet
 
 object FullStatsManager : DataManager("fullstats") {
     private val POKEMON = StringColumn("pokemon", this)
@@ -34,11 +33,11 @@ object FullStatsManager : DataManager("fullstats") {
     fun getData(mon: String?): UsageData {
         return read(selectAll(POKEMON.check(mon)), ResultsFunction { s ->
             mapFirst(
-                s, { r: ResultSet? ->
+                s, {
                     UsageData(
                         KILLS.getValue(
-                            r!!
-                        ), DEATHS.getValue(r), USES.getValue(r), WINS.getValue(r), LOOSES.getValue(r)
+                            it
+                        ), DEATHS.getValue(it), USES.getValue(it), WINS.getValue(it), LOOSES.getValue(it)
                     )
                 },
                 UsageData(0, 0, 0, 0, 0)

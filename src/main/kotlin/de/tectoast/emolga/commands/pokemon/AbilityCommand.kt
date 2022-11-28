@@ -25,17 +25,15 @@ class AbilityCommand :
         val json = dataJSON
         val mons = ArrayList<String>()
         val abi = e.arguments.getTranslation("abi").translation
-        for (s in json.keySet()) {
-            val data = json.getJSONObject(s)
-            if (data.getInt("num") < 0) continue
-            if (data.getJSONObject("abilities").keySet()
-                    .any { data.getJSONObject("abilities").getString(it).equals(abi, ignoreCase = true) }
+        for ((s, data) in json.entries) {
+            if (data.num < 0) continue
+            if (data.abilities.values.any { it.equals(abi, ignoreCase = true) }
             ) {
                 mons.add(
                     if (s == "nidoranf") "Nidoran-F" else if (s == "nidoranm") "Nidoran-M" else {
                         val gerName = getGerName(s)
                         if (gerName.isSuccess) gerName.translation else {
-                            getGerNameNoCheck(data.getString("baseSpecies")) + "-" + data.getString("forme")
+                            data.baseSpeciesAndForme
                         }
                     }
                 )

@@ -22,7 +22,6 @@ import de.tectoast.emolga.commands.Command.Companion.getGerNameNoCheck
 import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
-import de.tectoast.emolga.database.Database.Companion.incrementPredictionCounter
 import de.tectoast.emolga.encryption.TokenEncrypter
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
@@ -40,7 +39,11 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.Tierlist.Companion.getByGuild
 import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.Shinycount
+import de.tectoast.emolga.utils.json.Tokens
 import de.tectoast.emolga.utils.json.emolga.draft.*
+import de.tectoast.emolga.utils.json.showdown.Learnset
+import de.tectoast.emolga.utils.json.showdown.Pokemon
+import de.tectoast.emolga.utils.json.showdown.TypeData
 import de.tectoast.emolga.utils.music.GuildMusicManager
 import de.tectoast.emolga.utils.records.CalendarEntry
 import de.tectoast.emolga.utils.records.TypicalSets
@@ -48,9 +51,6 @@ import de.tectoast.emolga.utils.showdown.Analysis
 import de.tectoast.emolga.utils.showdown.SDPlayer
 import de.tectoast.emolga.utils.showdown.SDPokemon
 import de.tectoast.emolga.utils.sql.managers.*
-import de.tectoast.jsolf.JSONArray
-import de.tectoast.jsolf.JSONObject
-import de.tectoast.jsolf.JSONTokener
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.primary
@@ -72,7 +72,7 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.*
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
@@ -110,7 +110,6 @@ import java.io.*
 import java.lang.reflect.Modifier
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Timestamp
@@ -125,6 +124,7 @@ import java.util.function.Function
 import java.util.function.Predicate
 import java.util.regex.Pattern
 import javax.imageio.ImageIO
+import kotlin.io.path.writeText
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
@@ -1323,7 +1323,7 @@ abstract class Command(
          * Mapper for the DraftGerName
          */
         val draftnamemapper = Function { s: String -> getDraftGerName(s).translation }
-        val typeIcons = load("typeicons.json")
+        val typeIcons: Map<String, String> = load("typeicons.json")
         private val SD_NAME_PATTERN = Regex("[^a-zA-Z\\däöüÄÖÜß♂♀é+]+")
         private val DURATION_PATTERN = Regex("\\d{1,8}[smhd]?")
         private val DURATION_SPLITTER = Regex("[.|:]")
@@ -1363,8 +1363,8 @@ abstract class Command(
         /**
          * JSONObject containing all credentials (Discord Token, Google OAuth Token)
          */
-        lateinit var tokens: JSONObject
-        lateinit var catchrates: JSONObject
+        lateinit var tokens: Tokens
+        lateinit var catchrates: Map<String, Int>
         val replayCount = AtomicInteger()
         protected var lastClipUsed: Long = -1
 
@@ -1664,18 +1664,6 @@ _written by Maxifcn_""".trimIndent()
             })
         }
 
-        fun removeFromJSONArray(arr: JSONArray, value: Any): Boolean {
-            var success = false
-            var i = 0
-            while (i < arr.length()) {
-                if (arr[i] == value) {
-                    arr.remove(i)
-                    success = true
-                } else i++
-            }
-            return success
-        }
-
         fun parseShortTime(timestring: String): Int {
             var timestr = timestring
             timestr = timestr.lowercase()
@@ -1761,11 +1749,6 @@ _written by Maxifcn_""".trimIndent()
         fun getGameDay(league: League, uid1: Long, uid2: Long): Int = league.battleorder.asIterable()
             .firstNotNullOfOrNull { if (it.value.contains("$uid1:$uid2") || it.value.contains("$uid2:$uid1")) it.key else null }
             ?: -1
-
-
-        fun getPicksAsList(arr: JSONArray): List<String> {
-            return arr.toJSONList().map { it.getString("name") }
-        }
 
         fun tempMute(tco: TextChannel, mod: Member, mem: Member, time: Int, reason: String) {
             val g = tco.guild
@@ -2280,83 +2263,30 @@ _written by Maxifcn_""".trimIndent()
             return "+".repeat(0.coerceAtLeast(n))
         }
 
-        fun load(filename: String): JSONObject {
-            try {
-                val f = File(filename)
-                if (f.createNewFile()) {
-                    val writer = BufferedWriter(FileWriter(f))
-                    writer.write("{}")
-                    writer.close()
-                }
-                return JSONObject(JSONTokener(FileReader(filename)))
-            } catch (e: IOException) {
-                throw e
+        inline fun <reified T> load(filename: String, json: Json = otherJSON): T {
+            if (T::class.simpleName == "JsonObject") {
+                return json.parseToJsonElement(filename.file().readText()) as T
             }
+            return json.decodeFromString(filename.file().readText())
         }
 
-
-        fun loadSD(path: String, sub: Int): JSONObject {
-            try {
-                val f = File(path)
-                logger.info("path = $path")
-                val l = Files.readAllLines(f.toPath())
-                val b = StringBuilder(1000)
-                var func = false
-                for ((i, s) in l.withIndex()) {
-                    val str: String =
-                        if (i == 0) s.substring(sub) else if (i == l.size - 1) s.substring(0, s.length - 1) else s
-                    if (path.endsWith("moves.ts")) {/*if ((str.contains("{") && str.contains("(") && str.contains(")") && !str.contains(":")) || str.equals("\t\tcondition: {") || str.equals("\t\tsecondary: {")) {
-                        func = true;
-                    }*/
-                        if (str.startsWith("\t\t") && str.isNotEmpty() && (str[str.length - 1] == '{' || str[str.length - 1] == '[')) func =
-                            true
-                        if (str == "\t\t}," && func) {
-                            func = false
-                        } else if (!str.startsWith("\t\t\t") && !func) b.append(str).append("\n")
-                    } else {
-                        b.append(str).append("\n")
-                    }
-                }
-                if (path.endsWith("moves.ts")) {
-                    //BufferedWriter writer = new BufferedWriter(new FileWriter("ichbineinwirklichtollertest.json"));
-                    val writer2 = BufferedWriter(FileWriter("ichbineinbesserertest.txt"))
-                    //writer.write(object.toString(4));
-                    writer2.write(b.toString())
-                    //writer.close();
-                    writer2.close()
-                }
-                return JSONObject(b.toString())
-            } catch (e: Exception) {
-                logger.info("STACKTRACE $path")
-                throw e
-            }
-        }
-
-        val dataJSON: JSONObject
+        val dataJSON: Map<String, Pokemon>
             get() = ModManager.default.dex
-        val typeJSON: JSONObject
+
+        operator fun Map<String, Pokemon>.invoke(name: String): Pokemon {
+            return this[name]!!
+        }
+
+        val typeJSON: Map<String, TypeData>
             get() = ModManager.default.typechart
-        val learnsetJSON: JSONObject
+        val learnsetJSON: Map<String, Learnset>
             get() = ModManager.default.learnsets
-        val movesJSON: JSONObject
+        val movesJSON: JsonObject
             get() = ModManager.default.moves
 
 
-        fun save(json: JSONObject, filename: String) {
-            try {
-                Files.copy(Paths.get(filename), Paths.get("$filename.bak"), StandardCopyOption.REPLACE_EXISTING)
-                val writer = BufferedWriter(FileWriter(filename))
-                writer.write(json.toString(4))
-                writer.close()
-            } catch (ioException: IOException) {
-                ioException.printStackTrace()
-            }
-        }
-
         inline fun <reified T> save(data: T, path: String) {
-            Files.writeString(
-                Paths.get(path), JSONObject(JSON.encodeToString(data)).toString(4)
-            )
+            Paths.get(path).writeText(myJSON.encodeToString(data), Charsets.UTF_8)
         }
 
         fun awaitNextDay() {
@@ -2536,118 +2466,8 @@ _written by Maxifcn_""".trimIndent()
                 .setBlue(c.blue.toFloat() / 255f)
         }
 
-        private fun getSortedListOfMons(list: List<JSONObject>): List<String> {
-            return list.asSequence().sortedWith(compareBy({
-                getByGuild(Constants.G.ASL)!!.order.indexOf(
-                    it.getString("tier")
-                )
-            }, {
-                it.getString("name")
-            })).map { it.getString("name") }.toList()
-        }
-
-        fun evaluatePredictions(league: JSONObject, p1wins: Boolean, gameday: Int, uid1: String, uid2: String) {
-            defaultScope.launch {
-                val predictiongame = league.getJSONObject("predictiongame")
-                val gd = predictiongame.getJSONObject("ids").getJSONObject((gameday + 7).toString())
-                val key = if (gd.has("$uid1:$uid2")) "$uid1:$uid2" else "$uid2:$uid1"
-                val message: Message = emolgajda.getTextChannelById(predictiongame.getLong("channelid"))!!
-                    .retrieveMessageById(gd.getLong(key)).await()
-                val e1: List<User> =
-                    message.retrieveReactionUsers(emolgajda.getEmojiById(540970044297838597L)!!).await()
-                val e2: List<User> =
-                    message.retrieveReactionUsers(emolgajda.getEmojiById(645622238757781505L)!!).await()
-                if (p1wins) {
-                    for (user in e1) {
-                        if (!e2.contains(user)) {
-                            incrementPredictionCounter(user.idLong)
-                        }
-                    }
-                } else {
-                    for (user in e2) {
-                        if (!e1.contains(user)) {
-                            incrementPredictionCounter(user.idLong)
-                        }
-                    }
-                }
-            }
-        }
-
-        fun generateResult(
-            b: RequestBuilder,
-            game: List<SDPlayer>,
-            league: JSONObject,
-            gameday: Int,
-            uid1: String,
-            sheet: String,
-            leaguename: String?,
-            replay: String
-        ) {
-            var aliveP1 = 0
-            var aliveP2 = 0
-            for (p in game[0].pokemon) {
-                if (!p.isDead) aliveP1++
-            }
-            for (p in game[1].pokemon) {
-                if (!p.isDead) aliveP2++
-            }
-            var str: String? = null
-            var index = -1
-            val battleorder = listOf(
-                *league.getJSONObject("battleorder").getString(gameday.toString()).split(";")
-                    .dropLastWhile { it.isEmpty() }.toTypedArray()
-            )
-            for (s in battleorder) {
-                if (s.contains(uid1)) {
-                    str = s
-                    index = battleorder.indexOf(s)
-                    break
-                }
-            }
-            val coords: String = when (leaguename) {
-                "ZBS" -> getZBSGameplanCoords(gameday, index)
-                "Wooloo" -> getWoolooGameplanCoords(gameday, index)
-                "WoolooCupS4" -> getWoolooS4GameplanCoords(gameday, index)
-                "ASLS10" -> getASLS10GameplanCoords(gameday, index)
-                else -> ""
-            }
-            if (str!!.split(":").dropLastWhile { it.isEmpty() }.toTypedArray()[0] == uid1) {
-                b.addSingle("$sheet!$coords", "=HYPERLINK(\"$replay\"; \"$aliveP1:$aliveP2\")")
-                //b.addSingle(sheet + "!" + coords, aliveP1 + ":" + aliveP2);
-            } else {
-                b.addSingle("$sheet!$coords", "=HYPERLINK(\"$replay\"; \"$aliveP2:$aliveP1\")")
-                //b.addSingle(sheet + "!" + coords, aliveP2 + ":" + aliveP1);
-            }
-        }
-
         val monList: List<String>
-            get() = dataJSON.keySet().filter { s: String -> !s.endsWith("gmax") && !s.endsWith("totem") }
-
-        private fun getZBSGameplanCoords(gameday: Int, index: Int): String {
-            if (gameday < 4) return "C" + (gameday * 5 + index - 2)
-            return if (gameday < 7) "F" + ((gameday - 3) * 5 + index - 2) else "I" + (index + 3)
-        }
-
-        private fun getWoolooGameplanCoords(gameday: Int, index: Int): String {
-            logger.info("gameday = $gameday")
-            logger.info("index = $index")
-            if (gameday < 4) return "C" + (gameday * 6 + index - 2)
-            return if (gameday < 7) "F" + ((gameday - 3) * 6 + index - 2) else "I" + ((gameday - 6) * 6 + index - 2)
-        }
-
-        private fun getWoolooS4GameplanCoords(gameday: Int, index: Int): String {
-            val x = gameday - 1
-            logger.info("gameday = $gameday")
-            logger.info("index = $index")
-            return "${getAsXCoord(if (x in 2..7) (gameday % 3 shl 2) + 3 else (x % 2 shl 2) + 5)}${(gameday / 3 shl 3) + index + 3}"
-        }
-
-        private fun getASLS10GameplanCoords(gameday: Int, index: Int): String {
-            val x = gameday - 1
-            logger.info("gameday = $gameday")
-            logger.info("index = $index")
-            return "${getAsXCoord(if (x in 2..7) (gameday % 3 shl 2) + 3 else (x % 2 shl 2) + 5)}${gameday / 3 * 6 + index + 4}"
-        }
+            get() = dataJSON.keys.filter { !it.endsWith("gmax") && !it.endsWith("totem") }
 
         fun loadJSONFiles(key: String? = null) {
             key?.let {
@@ -2658,15 +2478,14 @@ _written by Maxifcn_""".trimIndent()
                 //emolgaJSON = load("./emolgadata.json")
                 //datajson = loadSD("pokedex.ts", 59);
                 //movejson = loadSD("learnsets.ts", 62);
-                Shinycount.get = JSON.decodeFromString(withContext(Dispatchers.IO) {
+                Shinycount.get = myJSON.decodeFromString(withContext(Dispatchers.IO) {
                     Files.readString(Paths.get("shinycount.json"))
                 })
                 catchrates = load("./catchrates.json")
-                val google = tokens.getJSONObject("google")
-                Google.setCredentials(
-                    google.getString("refreshtoken"), google.getString("clientid"), google.getString("clientsecret")
-                )
-                Google.generateAccessToken()
+                with(tokens.google) {
+                    Google.setCredentials(refreshtoken, clientid, clientsecret)
+                    Google.generateAccessToken()
+                }
             }
         }
 
@@ -2904,13 +2723,11 @@ _written by Maxifcn_""".trimIndent()
             return ""
         }
 
-        fun getAllForms(monname: String): List<JSONObject> {
+        fun getAllForms(monname: String): List<Pokemon> {
             val json = dataJSON
-            val mon = json.getJSONObject(getSDName(monname))
-            //logger.info("getAllForms mon = " + mon.toString(4));
-            return if (!mon.has("formeOrder")) listOf(mon) else mon.getStringList("formeOrder").asSequence()
-                .map { toSDName(it) }.distinct().mapNotNull { json.optJSONObject(it) }
-                .filter { !it.optString("forme").endsWith("Totem") }.toList()
+            val mon = json[getSDName(monname)]!!
+            return mon.formeOrder?.asSequence()?.map { toSDName(it) }?.distinct()?.mapNotNull { json[it] }
+                ?.filterNot { it.forme?.endsWith("Totem") == true }?.toList() ?: listOf(mon)
         }
 
         private fun moveFilter(msg: String, move: String): Boolean {
@@ -2919,38 +2736,6 @@ _written by Maxifcn_""".trimIndent()
                 if (msg.lowercase().contains("--$s") && move !in o[s]!!) return false
             }
             return true
-        }
-
-        fun canLearnNDS(monId: String, vararg moveId: String): String {
-            for (s in moveId) {
-                if (canLearn(monId, s)) return "JA"
-            }
-            return "NEIN"
-        }
-
-        private fun canLearn(monId: String, moveId: String): Boolean {
-            try {
-                val movejson = learnsetJSON
-                val data = dataJSON
-                val o = data.getJSONObject(monId)
-                var str: String?
-                str = if (o.has("baseSpecies")) toSDName(o.getString("baseSpecies")) else monId
-                while (str != null) {
-                    val learnset = movejson.getJSONObject(str).getJSONObject("learnset")
-                    val set = TranslationsManager.getTranslationList(learnset.keySet())
-                    while (set.next()) {
-                        val moveengl = set.getString("englishid")
-                        if (moveengl == moveId) return true
-                    }
-                    val mon = data.getJSONObject(str)
-                    str = if (mon.has("prevo")) {
-                        toSDName(mon.getString("prevo"))
-                    } else null
-                }
-            } catch (ex: Exception) {
-                ex.printStackTrace()
-            }
-            return false
         }
 
         fun getAttacksFrom(pokemon: String, msg: String, form: String, maxgen: Int): List<String> {
@@ -2963,31 +2748,33 @@ _written by Maxifcn_""".trimIndent()
             try {
                 var str: String? = getSDName(pokemon) + if (form == "Normal") "" else form.lowercase()
                 while (str != null) {
-                    val learnset = movejson.getJSONObject(str).getJSONObject("learnset")
-                    val set = TranslationsManager.getTranslationList(learnset.keySet())
+                    val learnset = movejson[str]!!()
+                    val set = TranslationsManager.getTranslationList(learnset.keys)
                     while (set.next()) {
                         //logger.info("moveengl = " + moveengl);
                         val moveengl = set.getString("englishid")
                         val move = set.getString("germanname")
                         //logger.info("move = " + move);
-                        if (type.isEmpty() || atkdata.getJSONObject(moveengl)
-                                .getString("type") == getEnglName(type) && (dmgclass.isEmpty() || (atkdata.getJSONObject(
-                                moveengl
-                            ).getString("category")) == dmgclass) && (!msg.lowercase()
-                                .contains("--prio") || atkdata.getJSONObject(moveengl)
-                                .getInt("priority") > 0) && containsGen(learnset, moveengl, maxgen) && moveFilter(
+                        val moveData = atkdata[moveengl]!!.jsonObject
+                        if (type.isEmpty() || moveData["type"].string == getEnglName(type) && (dmgclass.isEmpty() || moveData["category"].string == dmgclass) && (!msg.lowercase()
+                                .contains("--prio") || moveData["priority"].int > 0) && containsGen(
+                                learnset,
+                                moveengl,
+                                maxgen
+                            ) && moveFilter(
                                 msg, move
                             ) && !already.contains(move)
                         ) {
                             already.add(move)
                         }
                     }
-                    val mon = data.getJSONObject(str)
-                    str = if (mon.has("prevo")) {
-                        val s = mon.getString("prevo")
-                        if (s.endsWith("-Alola") || s.endsWith("-Galar") || s.endsWith("-Unova")) HYPHEN.replace(s, "")
-                            .lowercase() else s.lowercase()
-                    } else null
+                    val mon = data[str]!!
+                    str = mon.prevo?.let {
+                        (if (it.endsWith("-Alola") || it.endsWith("-Galar") || it.endsWith("-Unova")) HYPHEN.replace(
+                            it,
+                            ""
+                        ) else it).lowercase()
+                    }
                 }
             } catch (ex: Exception) {
                 sendToMe("Schau in die Konsole du kek!")
@@ -3024,8 +2811,8 @@ _written by Maxifcn_""".trimIndent()
             }.queue()
         }
 
-        private fun containsGen(learnset: JSONObject, move: String, gen: Int): Boolean {
-            for (s in learnset.getStringList(move)) {
+        private fun containsGen(learnset: Map<String, List<String>>, move: String, gen: Int): Boolean {
+            for (s in learnset[move]!!) {
                 for (i in 1..gen) {
                     if (s.startsWith(i.toString())) return true
                 }
@@ -3044,13 +2831,10 @@ _written by Maxifcn_""".trimIndent()
             return (if (x > 0) (x + 64).toChar() else "").toString() + (i + 64).toChar().toString()
         }
 
-        fun getGen5SpriteWithoutGoogle(o: JSONObject, shiny: Boolean = false): String {
+        fun getGen5SpriteWithoutGoogle(o: Pokemon, shiny: Boolean = false): String {
             return "https://play.pokemonshowdown.com/sprites/gen5" + (if (shiny) "-shiny" else "") + "/" + toSDName(
-                if (o.has(
-                        "baseSpecies"
-                    )
-                ) o.getString("baseSpecies") else o.getString("name")
-            ) + (if (o.has("forme")) "-" + toSDName(o.getString("forme")) else "") + ".png"
+                o.baseSpeciesOrName
+            ).notNullAppend(o.formeSuffix) + ".png"
         }
 
         fun getSpriteForTeamGraphic(str: String, data: RandomTeamData): String {
@@ -3064,26 +2848,31 @@ _written by Maxifcn_""".trimIndent()
                     data.shinyCount.incrementAndGet()
                 }
                 append("/")
-                append(toSDName(if (o.has("baseSpecies")) o.getString("baseSpecies") else o.getString("name")))
-                append((if (o.has("forme")) "-" + toSDName(o.getString("forme")) else ""))
+                append((o.baseSpecies ?: o.name).toSDName())
+                o.forme?.let {
+                    append("-${it.toSDName()}")
+                }
                 append(".png")
             }
         }
 
-        fun getGen5Sprite(o: JSONObject): String {
-            return "=IMAGE(\"https://play.pokemonshowdown.com/sprites/gen5/" + toSDName(
-                if (o.has("baseSpecies")) o.getString(
-                    "baseSpecies"
-                ) else o.getString("name")
-            ) + (if (o.has("forme")) "-" + toSDName(o.getString("forme")) else "") + ".png\"; 1)"
+        fun getGen5Sprite(o: Pokemon): String {
+            return buildString {
+                append("=IMAGE(\"https://play.pokemonshowdown.com/sprites/gen5/")
+                append(
+                    (o.baseSpecies
+                        ?: o.name).toSDName().notNullAppend(o.forme?.toSDName())
+                )
+                append(".png\"; 1)")
+            }
         }
 
         fun getGen5Sprite(str: String): String {
             return getGen5Sprite(getDataObject(str))
         }
 
-        fun getDataObject(mon: String): JSONObject {
-            return dataJSON.getJSONObject(getDataName(mon))
+        fun getDataObject(mon: String): Pokemon {
+            return dataJSON[getDataName(mon)]!!
         }
 
         fun <T> getActionRows(c: Collection<T>, mapper: Function<T, Button>): List<ActionRow> {
@@ -3582,7 +3371,7 @@ _written by Maxifcn_""".trimIndent()
         }
 
         fun loadEmolgaJSON() {
-            Emolga.get = JSON.decodeFromString(Files.readString(Paths.get("emolgadata.json")))
+            Emolga.get = load("emolgadata.json", myJSON)
         }
     }
 }
@@ -3630,7 +3419,7 @@ val defaultScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + Corout
     logger.error("ERROR IN DEFAULT SCOPE", t)
     sendToMe("Error in default scope, look in console")
 })
-val JSON = Json {
+val myJSON = Json {
     serializersModule = SerializersModule {
         polymorphic(League::class) {
             subclass(NDS::class)
@@ -3641,6 +3430,12 @@ val JSON = Json {
             subclass(FPL::class)
         }
     }
+    prettyPrint = true
+}
+
+val otherJSON = Json {
+    isLenient = true
+    ignoreUnknownKeys = true
 }
 
 val defaultTimeFormat = SimpleDateFormat("dd.MM.yyyy HH:mm")
@@ -3675,6 +3470,18 @@ fun String.notNullAppend(value: String?) = if (value != null) this + value else 
 fun Collection<String>.plusFirstChars() = this + this.mapNotNull { it.firstOrNull()?.toString() }
 
 val Long.usersnowflake: UserSnowflake get() = UserSnowflake.fromId(this)
+
+val JsonElement?.string: String get() = this!!.jsonPrimitive.content
+val JsonElement?.int: Int get() = this!!.jsonPrimitive.int
+
+val User.isFlo: Boolean get() = this.idLong == FLOID
+val User.isNotFlo: Boolean get() = !isFlo
+
+fun <K> MutableMap<K, Int>.increment(key: K) = add(key, 1)
+
+fun <K> MutableMap<K, Int>.add(key: K, value: Int) = compute(key) { _, v ->
+    v?.plus(value) ?: value
+}
 
 data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)
 

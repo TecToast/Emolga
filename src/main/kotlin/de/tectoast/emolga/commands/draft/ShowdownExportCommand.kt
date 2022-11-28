@@ -32,7 +32,7 @@ class ShowdownExportCommand : Command("showdownexport", "Macht Showdown Export l
             b.append("=== [gen8nationaldexag-box] ").append(e.getArg(0)).append("/").append(names[id])
                 .append(" ===\n\n")
             picksArr.asSequence().map { it.name }
-                .sortedByDescending { dataJSON.getJSONObject(getDataName(it)).getJSONObject("baseStats").getInt("spe") }
+                .sortedByDescending { getDataObject(it).speed }
                 .map { str: String ->
                     (if (sdex.containsKey(str)) {
                         "${getEnglName(getFirst(str))}${getFirstAfterUppercase(sdex.getValue(str))}"
@@ -44,7 +44,7 @@ class ShowdownExportCommand : Command("showdownexport", "Macht Showdown Export l
                         "${getEnglName(str.substring(2))}-Mega"
                     } else getEnglName(str)) + " \n" +
                             "Ability: ${
-                                dataJSON.getJSONObject(getDataName(str)).getJSONObject("abilities").getString("0")
+                                getDataObject(str).abilities["0"]
                             }"
                 }.forEach { b.append(it).append("\n\n") }
             b.append("\n")

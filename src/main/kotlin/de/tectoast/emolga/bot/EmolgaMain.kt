@@ -48,13 +48,13 @@ object EmolgaMain {
 
     @Throws(Exception::class)
     fun start() {
-        emolgajda = default(Command.tokens.getString("discord")) {
+        emolgajda = default(Command.tokens.discord) {
             //intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
             intents -= GatewayIntent.MESSAGE_CONTENT
             addEventListeners(EmolgaListener)
             setMemberCachePolicy(MemberCachePolicy.DEFAULT)
         }
-        flegmonjda = default(Command.tokens.getString("discordflegmon")) {
+        flegmonjda = default(Command.tokens.discordflegmon) {
             intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
             addEventListeners(EmolgaListener)
             setMemberCachePolicy(MemberCachePolicy.ALL)

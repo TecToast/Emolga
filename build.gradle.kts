@@ -78,7 +78,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.20")
     implementation("io.ktor:ktor-client-core:2.1.2")
     implementation("io.ktor:ktor-client-cio:2.1.2")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.1.2")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.2.1")
     implementation("io.ktor:ktor-client-content-negotiation:2.1.2")
     implementation("org.jetbrains.exposed:exposed-core:0.40.1")
     implementation("org.jetbrains.exposed:exposed-dao:0.40.1")

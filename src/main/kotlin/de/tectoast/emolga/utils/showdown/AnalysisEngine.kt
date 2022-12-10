@@ -58,7 +58,7 @@ sealed class SDEffect(vararg val types: String) {
             it.itemObtainedFrom.takeIf { "item:" in inlined[0] } ?: it
         }
         this.firstOrNull { it.startsWith("[of] p") }?.let { return it.parsePokemon(ctx) }
-        val last = ctx.lastMove.cleanSplit()
+        val last = ctx.lastLine.cleanSplit()
         if (last.getOrNull(0) == "move") return last.getOrNull(1)?.parsePokemon(ctx)
         return null
     }
@@ -224,7 +224,7 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>, ctx: BattleContext) {
             split[1].parsePokemon(ctx).run {
                 val tspikes = ctx.sdPlayers[player].fieldConditions[Hazards.ToxicSpikes]
-                (if (ctx.lastLine.startsWith("|switch")) tspikes else split.getSource(ctx) ?: tspikes)?.let {
+                (split.getSource(ctx) ?: tspikes)?.let {
                     addEffect(Status, it, ctx)
                 }
             }

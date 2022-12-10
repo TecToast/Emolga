@@ -18,8 +18,10 @@ object SDNamesManager : DataManager("sdnames") {
     }
 
     fun addIfAbsent(name: String, id: Long): Boolean {
-        if (!NAME.isAny(name)) {
-            insert(toUsername(name), id)
+        val username = toUsername(name)
+        if (username.isEmpty()) return false
+        if (!NAME.isAny(username)) {
+            insert(username, id)
             return true
         }
         return false

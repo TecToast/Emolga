@@ -102,7 +102,7 @@ dependencies {
     implementation("io.ktor:ktor-server-core-jvm:2.1.3")
     implementation("io.ktor:ktor-client-core-jvm:2.1.3")
     implementation("io.ktor:ktor-client-apache-jvm:2.1.3")
-    implementation("io.ktor:ktor-server-cors-jvm:2.1.3")
+    implementation("io.ktor:ktor-server-cors-jvm:2.2.1")
     ktor()
     implementation("org.jetbrains.exposed:exposed-core:0.40.1")
     implementation("org.jetbrains.exposed:exposed-dao:0.40.1")

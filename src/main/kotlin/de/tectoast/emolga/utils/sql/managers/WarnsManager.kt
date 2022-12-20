@@ -6,10 +6,6 @@ import de.tectoast.emolga.utils.sql.base.DataManager.ResultsFunction
 import de.tectoast.emolga.utils.sql.base.columns.LongColumn
 import de.tectoast.emolga.utils.sql.base.columns.StringColumn
 import de.tectoast.emolga.utils.sql.base.columns.TimestampColumn
-import de.tectoast.jsolf.JSONArray
-import de.tectoast.jsolf.JSONObject
-import net.dv8tion.jda.api.entities.Guild
-import net.dv8tion.jda.api.entities.Member
 import java.sql.ResultSet
 import java.text.SimpleDateFormat
 import java.util.*
@@ -54,40 +50,5 @@ object WarnsManager : DataManager("warns") {
                 } Uhr"
             }.joinToString(separator = "\n\n")
         })
-    }
-
-    fun getWarns(g: Guild): JSONArray {
-        try {
-            val set = GUILDID.getAll(g.idLong)
-            val arr = JSONArray()
-            val l: MutableList<JSONObject> = LinkedList()
-            while (set!!.next()) {
-                l.add(
-                    JSONObject()
-                        .put("userid", USERID.getValue(set))
-                        .put("modid", MODID.getValue(set))
-                        .put("reason", REASON.getValue(set))
-                        .put("timestamp", TIMESTAMP.getValue(set).time)
-                )
-            }
-            val idstocheck: MutableSet<Long> = HashSet()
-            l.map { it.getLong("userid") }.forEach { e -> idstocheck.add(e) }
-            l.map { it.getLong("modid") }.forEach { e -> idstocheck.add(e) }
-            val names = HashMap<Long, String>()
-            g.retrieveMembersByIds(idstocheck).get()
-                .forEach { mem: Member -> names[mem.idLong] = mem.effectiveName }
-            for (j in l) {
-                val uid = j.getLong("userid")
-                val name = names[uid] ?: continue
-                arr.put(
-                    JSONObject().put("name", name).put("id", uid.toString()).put("reason", j.getString("reason"))
-                        .put("mod", names[j.getLong("modid")]).put("timestamp", j.getLong("timestamp"))
-                )
-            }
-            return arr
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-        }
-        return JSONArray().put(JSONObject().put("name", "ERROR"))
     }
 }

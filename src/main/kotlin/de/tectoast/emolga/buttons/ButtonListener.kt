@@ -26,7 +26,7 @@ abstract class ButtonListener(name: String) {
         suspend fun check(e: ButtonInteractionEvent) {
             logger.info("e.getComponentId() = {}", e.componentId)
             e.componentId.split(";").let {
-                listener.getOrDefault(it[0], NULL).process(e, it[1])
+                listener.getOrDefault(it[0], NULL).process(e, it.getOrNull(1) ?: "")
             }
         }
 

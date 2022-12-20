@@ -52,13 +52,13 @@ sealed class League {
     val isPointBased
         get() = tierlist.isPointBased
 
+    val monCount by lazy { picks.values.first().size }
+
     @Transient
     var cooldownJob: Job? = null
 
     @Transient
     open val allowPickDuringSwitch = false
-    val members: List<Long>
-        get() = table
     abstract val timer: DraftTimer
     val isLastRound: Boolean get() = round == tierlist.rounds
 
@@ -169,11 +169,11 @@ sealed class League {
         switchDraft?.let { this.isSwitchDraft = it }
         logger.info("Starting draft $name...")
         logger.info(tcid.toString())
-        if (names.isEmpty()) names.putAll(emolgajda.getGuildById(this.guild)!!.retrieveMembersByIds(members).await()
+        if (names.isEmpty()) names.putAll(emolgajda.getGuildById(this.guild)!!.retrieveMembersByIds(table).await()
             .associate { it.idLong to it.effectiveName })
         logger.info(names.toString())
         if (tc != null) this.tcid = tc.idLong
-        for (member in members) {
+        for (member in table) {
             if (fromFile || isSwitchDraft) picks.putIfAbsent(member, mutableListOf())
             else picks[member] = mutableListOf()
             val isPoints = tierlist.mode.isPoints()
@@ -330,7 +330,10 @@ sealed class League {
         order.values.forEach { it.remove(index) }
     }
 
-    abstract val docEntry: DocEntry?
+    @Transient
+    open val docEntry: DocEntry? = null
+
+    val dataSheet: String? = null
 
     fun builder() = RequestBuilder(sid)
     suspend fun replyPick(e: GuildCommandEvent, pokemon: String, mem: Long, free: Boolean) {

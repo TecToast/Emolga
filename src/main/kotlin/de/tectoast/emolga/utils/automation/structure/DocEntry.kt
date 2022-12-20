@@ -19,7 +19,7 @@ class DocEntry private constructor(val league: League) {
         private val logger = LoggerFactory.getLogger(DocEntry::class.java)
 
         private val invalidProcessor: BasicStatProcessor =
-            BasicStatProcessor { _: Int, _: Int, _: Int -> StatLocation.invalid() }
+            BasicStatProcessor { _, _, _ -> StatLocation.invalid() }
 
         fun create(league: League, builder: DocEntry.() -> Unit): DocEntry {
             return DocEntry(league).apply(builder)
@@ -38,6 +38,43 @@ class DocEntry private constructor(val league: League) {
     var monsOrder: (List<DraftPokemon>) -> List<String> = { l -> l.map { it.name } }
     private var onlyKilllist: (() -> List<String>)? = null
     var randomGamedayMapper: (Int) -> Int = { it }
+    private val gamedays: Int by lazy { league.battleorder.let { if (it.isEmpty()) league.table.size - 1 else it.size } }
+
+    fun newSystem(sorterData: SorterData, resultCreator: (AdvancedResult.() -> Unit)) {
+        val dataSheet = league.dataSheet ?: error("No data sheet set using new system!")
+        val monAmount = league.picks.values.first().size
+        val gap = monAmount + 3
+        killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
+            StatLocation(
+                sheet = dataSheet,
+                gameday + 2,
+                plindex.y(gap, monindex + 3)
+            )
+        }
+        deathProcessor = BasicStatProcessor { plindex, monindex, gameday ->
+            StatLocation(
+                sheet = dataSheet,
+                gameday + 4 + gamedays,
+                plindex.y(gap, monindex + 3)
+            )
+        }
+        winProcessor = ResultStatProcessor { plindex, gameday ->
+            StatLocation(
+                sheet = dataSheet,
+                gameday + 2,
+                plindex.y(gap, gap)
+            )
+        }
+        looseProcessor = ResultStatProcessor { plindex, gameday ->
+            StatLocation(
+                sheet = dataSheet,
+                gameday + 4 + gamedays,
+                plindex.y(gap, gap)
+            )
+        }
+        this.resultCreator = resultCreator
+        this.sorterData = sorterData
+    }
 
 
     private fun generateForDay(size: Int, dayParam: Int): List<List<Long>> {
@@ -85,7 +122,8 @@ class DocEntry private constructor(val league: League) {
     }
 
     fun getMatchups(gameday: Int) =
-        league.battleorder[gameday]?.split(";")?.map { mu -> mu.split(":").map { it.toLong() } } ?: generateForDay(
+        league.battleorder[gameday]?.split(";")?.filterNot { it.isBlank() }
+            ?.map { mu -> mu.split(":").map { it.toLong() } } ?: generateForDay(
             league.table.size, gameday
         )
 
@@ -221,8 +259,9 @@ class DocEntry private constructor(val league: League) {
                 logger.info("Start sorting...")
                 for (num in formulaRange.indices) {
                     val formulaRange = formulaRange[num]
-                    val formula = Google[sid, formulaRange, true]
-                    val points = Google[sid, formulaRange, false].toMutableList()
+                    val formula =
+                        Google[sid, formulaRange.run { if (newMethod) "$sheet!$xStart$yStart:$xStart$yEnd" else toString() }, true]
+                    val points = Google[sid, formulaRange.toString(), false].toMutableList()
                     val orig: List<List<Any>?> = ArrayList(points)
                     val table = league.table
                     points.sortWith { o1: List<Any>, o2: List<Any> ->
@@ -233,9 +272,12 @@ class DocEntry private constructor(val league: League) {
                         )
                         if (c != 0) return@sortWith c
                         if (!directCompare) return@sortWith 0
-                        val u1 = table[indexer!!.apply(formula[orig.indexOf(o1)][0].toString())]
-                        val u2 = table[indexer.apply(formula[orig.indexOf(o2)][0].toString())]
-
+                        val indexerToUse: (String) -> Int = if (newMethod) { str: String ->
+                            str.substring(league.dataSheet!!.length + 4).substringBefore(":").toInt()
+                                .minus(league.monCount + 4).div(league.monCount + 3)
+                        } else indexer!!
+                        val u1 = table[indexerToUse(formula[orig.indexOf(o1)][0].toString())]
+                        val u2 = table[indexerToUse(formula[orig.indexOf(o2)][0].toString())]
                         val o = league.results
                         o["$u1:$u2"]?.let { return@sortWith if (it == u1) 1 else -1 }
                         o["$u2:$u1"]?.let { return@sortWith if (it == u1) 1 else -1 }
@@ -254,7 +296,7 @@ class DocEntry private constructor(val league: League) {
                     for (j in points.indices) {
                         sendname.add(namap[j])
                     }
-                    b.addAll(formulaRange.substring(0, formulaRange.indexOf(':')), sendname)
+                    b.addAll(formulaRange.firstHalf, sendname)
                 }
                 b.execute()
             }

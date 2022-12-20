@@ -52,6 +52,6 @@ class GcreateCommand : Command(
                             .build()
                     )
                 }.build()
-        )
+        ).queue()
     }
 }

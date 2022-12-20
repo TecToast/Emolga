@@ -3,7 +3,6 @@ package de.tectoast.emolga.utils.sql.base
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.utils.sql.base.columns.SQLColumn
 import org.slf4j.LoggerFactory
-import org.slf4j.MarkerFactory
 import java.sql.Connection
 import java.sql.ResultSet
 import java.sql.SQLException
@@ -66,7 +65,7 @@ abstract class DataManager(private val tableName: String) {
                             "${sc.name}=${(map[sc] ?: Function { _ -> sc.wrap(defaultValues[it]) }).apply(sc.name)}"
                         }
                     }"
-                logger.info(MarkerFactory.getMarker("important"), "q = {}", q)
+                //logger.info(MarkerFactory.getMarker("important"), "q = {}", q)
                 stmt.executeUpdate(q)
             }
         } catch (e: SQLException) {

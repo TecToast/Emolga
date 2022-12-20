@@ -36,7 +36,8 @@ class PrivCommand : Command("priv", "Executet einen Priv Command", CommandCatego
             else method.callSuspend(
                 PrivateCommands, PrivateCommandEvent(e.slashCommandEvent!!)
             )
-        }
-        e.reply("Command ausgeführt!", ephermal = true)
+            if (method.findAnnotation<PrivateCommand>()?.ack == false)
+                e.reply("Command ausgeführt!", ephermal = true)
+        } ?: e.reply("Command nicht gefunden!", ephermal = true)
     }
 }

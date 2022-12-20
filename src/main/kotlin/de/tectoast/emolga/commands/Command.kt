@@ -93,6 +93,7 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.interactions.Interaction
 import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
@@ -1301,7 +1302,7 @@ abstract class Command(
         private val playerManagers: MutableMap<Long, AudioPlayerManager> = HashMap()
         val trainerDataButtons: MutableMap<Long, TrainerData> = HashMap()
         val nominateButtons: MutableMap<Long, Nominate> = HashMap()
-        val smogonMenu: MutableMap<Long, SmogonSet> = HashMap()
+        val smogonMenu: MutableMap<String, SmogonSet> = HashMap()
         val prismaTeam: MutableMap<Long, PrismaTeam> = HashMap()
         private val customResult = emptyList<Long>()
         val clips: MutableMap<Long, CircularFifoQueue<ByteArray>> = HashMap()
@@ -2385,28 +2386,28 @@ _written by Maxifcn_""".trimIndent()
                         tip.lastSending.toInstant(),
                         tip.amount,
                         duration,
-                        { executeTipGameSending(l.value, it) },
+                        { executeTipGameSending(Emolga.get.league(l.key), it) },
                         true
                     )
                     RepeatTask(
                         tip.lastLockButtons.toInstant(),
                         tip.amount,
                         duration
-                    ) { executeTipGameLockButtons(l.value) }
+                    ) { executeTipGameLockButtons(Emolga.get.league(l.key)) }
                 }
             }
         }
 
         private fun setupManualRepeatTasks() {
             RepeatTask(
-                defaultTimeFormat.parse("02.11.2022 00:00").toInstant(),
+                defaultTimeFormat.parse("14.12.2022 00:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
                 { doNDSNominate() },
                 true
             )
             RepeatTask(
-                defaultTimeFormat.parse("30.10.2022 20:00").toInstant(),
+                defaultTimeFormat.parse("11.12.2022 20:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
                 { doMatchUps(it) },
@@ -2418,7 +2419,6 @@ _written by Maxifcn_""".trimIndent()
         fun init(key: String) {
             loadJSONFiles(key)
             ModManager("default", "./ShowdownData/")
-            ModManager("nml", "../Showdown/sspserver/data/")
             Tierlist.setup()
             defaultScope.launch {
                 ButtonListener.init()
@@ -3428,6 +3428,7 @@ val myJSON = Json {
             subclass(ASL::class)
             subclass(DoR::class)
             subclass(FPL::class)
+            subclass(Paldea::class)
         }
     }
     prettyPrint = true
@@ -3474,8 +3475,11 @@ val Long.usersnowflake: UserSnowflake get() = UserSnowflake.fromId(this)
 val JsonElement?.string: String get() = this!!.jsonPrimitive.content
 val JsonElement?.int: Int get() = this!!.jsonPrimitive.int
 
-val User.isFlo: Boolean get() = this.idLong == FLOID
-val User.isNotFlo: Boolean get() = !isFlo
+inline val User.isFlo: Boolean get() = this.idLong == FLOID
+inline val User.isNotFlo: Boolean
+    get() = !isFlo
+inline val Interaction.fromFlo: Boolean get() = this.user.isFlo
+inline val Interaction.notFromFlo: Boolean get() = !this.fromFlo
 
 fun <K> MutableMap<K, Int>.increment(key: K) = add(key, 1)
 
@@ -3484,6 +3488,29 @@ fun <K> MutableMap<K, Int>.add(key: K, value: Int) = compute(key) { _, v ->
 }
 
 data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)
+
+data class DocRange(val sheet: String, val xStart: String, val yStart: Int, val xEnd: String, val yEnd: Int) {
+    override fun toString() = "$sheet!$xStart$yStart:$xEnd$yEnd"
+    val firstHalf: String get() = "$sheet!$xStart$yStart"
+
+    companion object {
+        private val numbers = Regex("[0-9]")
+        private val chars = Regex("[A-Z]")
+        operator fun get(string: String): DocRange {
+            val split = string.split('!')
+            val range = split[1].split(':')
+            return DocRange(
+                split[0],
+                range[0].replace(numbers, ""),
+                range[0].replace(chars, "").toInt(),
+                range[1].replace(numbers, ""),
+                range[1].replace(chars, "").toInt()
+            )
+        }
+    }
+}
+
+fun String.toDocRange() = DocRange[this]
 
 data class ReplayData(
     val game: List<SDPlayer>,
@@ -3515,7 +3542,7 @@ enum class DraftNamePreference(val map: Map<SpecialForm, Pair<String, Boolean>>)
 }
 
 enum class SpecialForm(private val sdname: String) {
-    ALOLA("Alola"), GALAR("Galar"), MEGA("Mega");
+    ALOLA("Alola"), GALAR("Galar"), MEGA("Mega"), PALDEA("Paldea");
 
     companion object {
         fun checkFormes(name: String, preference: DraftNamePreference): String? {

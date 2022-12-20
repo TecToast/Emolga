@@ -158,6 +158,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
     private suspend fun messageReceived(e: MessageReceivedEvent) {
         if (e.channelType == ChannelType.TEXT) {
             if (e.isWebhookMessage) return
+            if (e.jda.selfUser.idLong == 849569577343385601) Command.check(e)
             if (e.message.mentions.isMentioned(e.jda.selfUser)) {
                 val raw = e.message.contentRaw
                 val botid = e.jda.selfUser.idLong
@@ -252,7 +253,6 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
 
             Falls die Ergebnisse in ||Spoilertags|| geschickt werden sollen, schick irgendwo auf dem Server den Command `/spoilertags` rein. Dies gilt dann serverweit.
 
-            Ich habe übrigens noch viele weitere Funktionen! Wenn du mich pingst, zeige ich dir eine Übersicht aller Commands :)
             Falls du weitere Fragen oder Probleme hast, schreibe ${Constants.MYTAG} eine PN oder komme auf den Support-Server, dessen Link in meinem Profil steht :)
         """.trimIndent()
     private val logger = LoggerFactory.getLogger(EmolgaListener::class.java)

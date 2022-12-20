@@ -1,18 +1,15 @@
 package de.tectoast.emolga.selectmenus.selectmenusaves
 
-import de.tectoast.emolga.commands.pokemon.SmogonCommand
-import de.tectoast.jsolf.JSONArray
-import de.tectoast.jsolf.JSONObject
+import de.tectoast.emolga.commands.notNullAppend
+import de.tectoast.emolga.utils.json.showdown.Moveset
+import de.tectoast.emolga.utils.json.showdown.Strategy
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 
-class SmogonSet(val arr: JSONArray) {
-    private var format: JSONObject
-    var set: JSONObject
-    private var ev: JSONObject
-    private var iv: JSONObject
-    private var moveslots: JSONArray
+class SmogonSet(private val strategies: List<Strategy>) {
+    private var format: Strategy
+    var set: Moveset
 
     init {
         format = strategies.first()

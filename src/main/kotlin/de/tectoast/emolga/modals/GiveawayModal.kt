@@ -32,6 +32,7 @@ class GiveawayModal : ModalListener("gcreate") {
             e.reply_("Du musst einen Preis angegeben!", ephemeral = true).queue()
             return
         }
+        e.reply_("Giveaway erstellt!", ephemeral = true).queue()
         val end = Instant.ofEpochMilli(System.currentTimeMillis() + time * 1000)
         val message = e.channel.sendMessageEmbeds(Embed {
             color = embedColor

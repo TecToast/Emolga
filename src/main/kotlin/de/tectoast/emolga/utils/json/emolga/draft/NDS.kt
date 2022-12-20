@@ -3,11 +3,8 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import com.google.api.services.sheets.v4.model.CellFormat
 import com.google.api.services.sheets.v4.model.ColorStyle
 import com.google.api.services.sheets.v4.model.TextFormat
-import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.Command.Companion.convertColor
-import de.tectoast.emolga.commands.coord
-import de.tectoast.emolga.commands.x
-import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.automation.structure.*
@@ -124,12 +121,10 @@ class NDS : League() {
         }
         setStatIfEmpty = false
         sorterData = SorterData(
-            listOf("$tableName!C3:K8", "$tableName!C12:K17"),
-            true,
-            { it.substring("=Data!F$".length).toInt() / 17 - 1 },
-            2,
-            8,
-            -1
+            formulaRange = listOf("$tableName!C3:K8".toDocRange(), "$tableName!C12:K17".toDocRange()),
+            directCompare = true,
+            indexer = { it.substring("=Data!F$".length).toInt() / 17 - 1 },
+            cols = listOf(2, 8, -1)
         )
     }
 
@@ -142,7 +137,7 @@ class NDS : League() {
         val gameplanName: String
             get() = if (rr) "Spielplan RR" else "Spielplan HR"
         val gameplanSheet: Int
-            get() = if (rr) -1 else 453772599
+            get() = if (rr) 1634614187 else 453772599
         val tableName: String
             get() = if (rr) "Tabelle RR" else "Tabelle HR"
 

@@ -1,21 +1,23 @@
 package de.tectoast.emolga.utils.records
 
-import java.util.function.Function
+import de.tectoast.emolga.commands.DocRange
 
 class SorterData(
-    val formulaRange: List<String>,
-    val directCompare: Boolean,
-    val indexer: Function<String, Int>?,
-    vararg val cols: Int
+    val formulaRange: List<DocRange>,
+    val directCompare: Boolean = false,
+    val indexer: ((String) -> Int)? = null,
+    val newMethod: Boolean = false,
+    val cols: List<Int>
 ) {
     constructor(
-        formulaRange: String,
-        directCompare: Boolean,
-        indexer: Function<String, Int>?,
-        vararg cols: Int
+        formulaRange: DocRange,
+        directCompare: Boolean = false,
+        indexer: ((String) -> Int)? = null,
+        newMethod: Boolean = false,
+        cols: List<Int>
     ) : this(
-        listOf<String>(formulaRange),
-        directCompare, indexer, *cols
+        listOf(formulaRange),
+        directCompare, indexer, newMethod, cols
     )
 }
 

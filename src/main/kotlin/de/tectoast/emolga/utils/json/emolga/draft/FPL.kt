@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.commands.coordYMod
+import de.tectoast.emolga.commands.toDocRange
 import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
@@ -52,7 +53,7 @@ class FPL(val level: Int) : League() {
                 listOf(numberOne, "=HYPERLINK(\"$url\"; \":\")", numberTwo)
             )
         }
-        sorterData = SorterData("Tabelle L$level!B2:H9", false, null, 1, 4, 2)
+        sorterData = SorterData("Tabelle L$level!B2:H9".toDocRange(), false, null, cols = listOf(1, 4, 2))
         randomGamedayMapper = {
             if (level == 1) {
                 when (it) {

@@ -72,7 +72,7 @@ val ktorDependencies = listOf(
 )
 
 dependencies {
-    implementation("org.slf4j:slf4j-api:2.0.3")
+    implementation("org.slf4j:slf4j-api:2.0.5")
     implementation("org.eclipse.jetty:jetty-server:11.0.12")
     implementation("org.eclipse.jetty:jetty-util:11.0.12")
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
@@ -83,16 +83,16 @@ dependencies {
     implementation("com.sedmelluq:lavaplayer:1.3.78")
     //implementation("org.slf4j:slf4j-simple:1.7.32")
 
-    implementation("ch.qos.logback:logback-classic:1.4.4")
+    implementation("ch.qos.logback:logback-classic:1.4.5")
     //implementation("mysql:mysql-connector-java:8.0.29")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.1")
     implementation("com.github.TecToast:Toastilities:96e360b1f8")
     //implementation("com.github.TecToast:JSOLF:a43c3e06c7")
-    implementation("net.dv8tion:JDA:5.0.0-alpha.22")
+    implementation("net.dv8tion:JDA:5.0.0-beta.2")
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.0.8")
-    implementation("com.github.MinnDevelopment:jda-ktx:-SNAPSHOT")
+    implementation("com.github.MinnDevelopment:jda-ktx:0.9.6-alpha.22")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")

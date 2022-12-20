@@ -8,28 +8,26 @@ import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
-import org.jetbrains.exposed.dao.LongEntity
-import org.jetbrains.exposed.dao.LongEntityClass
+import org.jetbrains.exposed.dao.IntEntity
+import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.javatime.timestamp
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-object Giveaways : IdTable<Long>("giveaways") {
+object Giveaways : IntIdTable("giveaways") {
     val messageid = long("messageid")
     val channelid = long("channelid")
     val hostid = long("hostid")
     val prize = text("prize")
     val end = timestamp("end")
     val winners = integer("winners")
-    override val id = messageid.entityId()
-
 }
 
-class Giveaway(id: EntityID<Long>) : LongEntity(id) {
-    companion object : LongEntityClass<Giveaway>(Giveaways) {
+class Giveaway(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<Giveaway>(Giveaways) {
         val logger by SLF4J
         private val coroutineScope =
             CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineName("Giveaway") + CoroutineExceptionHandler { _, t ->

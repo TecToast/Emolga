@@ -21,6 +21,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.ASL
 import de.tectoast.emolga.utils.sql.managers.AnalysisManager
 import de.tectoast.emolga.utils.sql.managers.TranslationsManager
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.interactions.components.Modal
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.EmbedBuilder
@@ -683,6 +684,15 @@ object PrivateCommands {
             }
             println()
         }
+    }
+
+    @PrivateCommand("addsdnamemodal", ack = true)
+    fun sdNameAdd(e: GenericCommandEvent) {
+        e.slashCommandEvent!!.replyModal(Modal("addsdnamecreate", "Showdown-Namen-Button hinzufügen") {
+            short("tc", "Text-Channel", required = true)
+            paragraph("msg", "Nachricht", required = true)
+            short("buttonname", "Button-Name", required = true)
+        }).queue()
     }
 
 

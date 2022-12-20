@@ -3,7 +3,6 @@ package de.tectoast.emolga.bot
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.database.exposed.Giveaway
-import de.tectoast.emolga.jetty.HttpHandler
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.Emolga
 import dev.minn.jda.ktx.events.await
@@ -11,7 +10,6 @@ import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.jdabuilder.default
 import dev.minn.jda.ktx.jdabuilder.intents
 import dev.minn.jda.ktx.messages.reply_
-import jakarta.xml.bind.DatatypeConverter
 import kotlinx.coroutines.*
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Activity
@@ -19,26 +17,9 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
-import org.eclipse.jetty.http.HttpVersion
 import org.eclipse.jetty.server.*
-import org.eclipse.jetty.util.ssl.SslContextFactory
 import org.slf4j.LoggerFactory
-import java.io.ByteArrayInputStream
-import java.io.File
-import java.nio.file.Files
-import java.security.KeyFactory
-import java.security.KeyStore
-import java.security.NoSuchAlgorithmException
-import java.security.cert.Certificate
-import java.security.cert.CertificateException
-import java.security.cert.CertificateFactory
-import java.security.cert.X509Certificate
-import java.security.interfaces.RSAPrivateKey
-import java.security.spec.InvalidKeySpecException
-import java.security.spec.PKCS8EncodedKeySpec
 import java.util.concurrent.atomic.AtomicInteger
-import javax.net.ssl.KeyManagerFactory
-import javax.net.ssl.SSLContext
 
 object EmolgaMain {
 
@@ -201,89 +182,4 @@ object EmolgaMain {
     }
 
     private fun Int.validBet() = this > 0 && this % 100 == 0
-
-    @Throws(Exception::class)
-    private fun setupJetty() {
-        val server = Server()
-        val httpConfig = HttpConfiguration().apply {
-            secureScheme = "https"
-            securePort = 51216
-            outputBufferSize = 32768
-        }
-        val sslContextFactory = SslContextFactory.Server().apply {
-            sslContext = context
-        }
-        val httpsConfig = HttpConfiguration(httpConfig)
-        val src = SecureRequestCustomizer().apply {
-            stsMaxAge = 2000
-            isStsIncludeSubDomains = true
-        }
-        httpsConfig.addCustomizer(src)
-        val https = ServerConnector(
-            server,
-            SslConnectionFactory(sslContextFactory, HttpVersion.HTTP_1_1.asString()),
-            HttpConnectionFactory(httpsConfig)
-        ).apply {
-            port = 51216
-            idleTimeout = 500000
-        }
-        server.apply {
-            connectors = arrayOf<Connector>(https)
-            handler = HttpHandler
-            start()
-        }
-    }
-
-    private val context: SSLContext
-        get() {
-            val tokens = Command.tokens.getJSONObject("website")
-            val password = tokens.getString("password")
-            val pathname = tokens.getString("path")
-            val context: SSLContext = SSLContext.getInstance("TLS")
-            val certBytes = parseDERFromPEM(
-                getBytes(File(pathname + File.separator + "cert.pem")),
-                "-----BEGIN CERTIFICATE-----",
-                "-----END CERTIFICATE-----"
-            )
-            val keyBytes = parseDERFromPEM(
-                getBytes(File(pathname + File.separator + "privkey.pem")),
-                "-----BEGIN PRIVATE KEY-----",
-                "-----END PRIVATE KEY-----"
-            )
-            val cert = generateCertificateFromDER(certBytes)
-            val key = generatePrivateKeyFromDER(keyBytes)
-            val keystore = KeyStore.getInstance("JKS")
-            keystore.load(null)
-            keystore.setCertificateEntry("cert-alias", cert)
-            keystore.setKeyEntry("key-alias", key, password.toCharArray(), arrayOf<Certificate>(cert))
-            val kmf = KeyManagerFactory.getInstance("SunX509")
-            kmf.init(keystore, password.toCharArray())
-            val km = kmf.keyManagers
-            context.init(km, null, null)
-            return context
-        }
-
-    private fun parseDERFromPEM(pem: ByteArray, beginDelimiter: String, endDelimiter: String): ByteArray {
-        val data = String(pem)
-        var tokens = data.split(beginDelimiter)
-        tokens = tokens[1].split(endDelimiter)
-        return DatatypeConverter.parseBase64Binary(tokens[0])
-    }
-
-    @Throws(InvalidKeySpecException::class, NoSuchAlgorithmException::class)
-    private fun generatePrivateKeyFromDER(keyBytes: ByteArray): RSAPrivateKey {
-        val spec = PKCS8EncodedKeySpec(keyBytes)
-        val factory = KeyFactory.getInstance("RSA")
-        return factory.generatePrivate(spec) as RSAPrivateKey
-    }
-
-    @Throws(CertificateException::class)
-    private fun generateCertificateFromDER(certBytes: ByteArray): X509Certificate {
-        val factory = CertificateFactory.getInstance("X.509")
-        return factory.generateCertificate(ByteArrayInputStream(certBytes)) as X509Certificate
-    }
-
-    private fun getBytes(file: File): ByteArray {
-        return Files.readAllBytes(file.toPath())
-    }
 }

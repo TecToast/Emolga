@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.toDocRange
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
@@ -44,7 +45,10 @@ class Prisma : League() {
         }
         setStatIfEmpty = false
         sorterData = SorterData(
-            "Tabelle!B2:I9", true, { s: String -> s.substring("=Data!W".length).toInt() / 11 - 1 }, 1, -1, 7
+            "Tabelle!B2:I9".toDocRange(),
+            true,
+            { it.substring("=Data!W".length).toInt() / 11 - 1 },
+            cols = listOf(1, -1, 7)
         )
     }
     override val timer get() = error("not implemented")

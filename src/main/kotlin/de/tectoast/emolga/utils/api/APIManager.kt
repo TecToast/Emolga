@@ -1,8 +1,8 @@
 package de.tectoast.emolga.utils.api
 
-import de.tectoast.jsolf.JSONObject
-import de.tectoast.jsolf.JSONTokener
-import java.net.URL
+import de.tectoast.emolga.commands.httpClient
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 
 enum class APIManager(val baseUrl: String) {
 
@@ -10,9 +10,9 @@ enum class APIManager(val baseUrl: String) {
 
     operator fun get(path: String) = Endpoint(path)
 
-    inner class Endpoint(private val path: String) {
-        operator fun invoke(vararg args: Pair<String, String>) =
-            JSONObject(JSONTokener(URL("$baseUrl$path?${args.joinToString("&") { "${it.first}=${it.second}" }}").openStream()))
+    inner class Endpoint(val path: String) {
+        suspend inline operator fun <reified T> invoke(vararg args: Pair<String, String>): T =
+            httpClient.get("$baseUrl$path?${args.joinToString("&") { "${it.first}=${it.second}" }}").body()
     }
 }
 

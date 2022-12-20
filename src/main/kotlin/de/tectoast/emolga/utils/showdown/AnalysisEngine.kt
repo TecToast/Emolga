@@ -117,7 +117,7 @@ sealed class SDEffect(vararg val types: String) {
                             damagedMon.getEffectSource(Status)?.claimDamage(damagedMon, fainted, ctx)
                         }
 
-                        "Recoil", "mindblown", "steelbeam", "item: Life Orb" -> {
+                        "Recoil", "recoil", "mindblown", "steelbeam", "item: Life Orb" -> {
                             val (pl, idx) = split[1].parsePokemonLocation()
                             (damagedMon.lastDamageBy ?: monsOnField.getOrNull(1 - pl)?.let { field ->
                                 field.getOrElse(1 - idx) { field[idx] }

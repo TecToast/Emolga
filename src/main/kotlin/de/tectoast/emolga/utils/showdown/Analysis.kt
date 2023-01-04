@@ -65,7 +65,7 @@ object Analysis {
                 var downIndex = index - 1
                 while (!game[downIndex].startsWith("|switch|$monloc")) downIndex--
                 allMons[player]!!.first {
-                    game[downIndex].cleanSplit()[2].substringBefore(",").startsWith(it.pokemon)
+                    game[downIndex].cleanSplit()[2].substringBefore(",").startsWith(it.pokemon.replace("-*", ""))
                 }.zoroLines[downIndex..index] = mon
             }
         }

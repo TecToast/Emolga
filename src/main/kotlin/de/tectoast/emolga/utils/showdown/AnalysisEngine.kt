@@ -4,12 +4,15 @@ class SDPokemon(var pokemon: String, val player: Int) {
     private val effects: MutableMap<SDEffect, SDPokemon> = mutableMapOf()
     val volatileEffects: MutableMap<String, SDPokemon> = mutableMapOf()
     var kills = 0
+    var activeKills = 0
     var isDead = false
     private var selfKills = 0
     var lastDamageBy: SDPokemon? = null
     var itemObtainedFrom: SDPokemon? = null
     var targetForTrick: SDPokemon? = null
     val zoroLines = mutableMapOf<IntRange, SDPokemon>()
+
+    val passiveKills get() = kills - activeKills
 
     companion object {
         private fun SDPokemon.withZoroCheck(ctx: BattleContext): SDPokemon =
@@ -28,11 +31,16 @@ class SDPokemon(var pokemon: String, val player: Int) {
         return effects[type]
     }
 
-    fun claimDamage(damagedMon: SDPokemon, fainted: Boolean, ctx: BattleContext) {
+    private fun addKill(active: Boolean) {
+        kills++
+        if (active) activeKills++
+    }
+
+    fun claimDamage(damagedMon: SDPokemon, fainted: Boolean, ctx: BattleContext, activeKill: Boolean = false) {
         val claimer = this.withZoroCheck(ctx)
         if (fainted) {
-            if (damagedMon.player == claimer.player) damagedMon.lastDamageBy?.let { it.kills++ }
-                ?: run { claimer.selfKills++ } else claimer.kills++
+            if (damagedMon.player == claimer.player) damagedMon.lastDamageBy?.addKill(activeKill)
+                ?: run { claimer.selfKills++ } else claimer.addKill(activeKill)
         }
         if (damagedMon.player != claimer.player) damagedMon.lastDamageBy = claimer
     }
@@ -107,7 +115,6 @@ sealed class SDEffect(vararg val types: String) {
                 val hazards = playerSide.fieldConditions
                 if (split.size > 4 && split[3].substringAfter("[from] ") !in damagedMon.volatileEffects
                 ) {
-                    println(split)
                     split[4].parsePokemon(ctx).claimDamage(damagedMon, fainted, ctx)
                     return
                 }
@@ -145,7 +152,7 @@ sealed class SDEffect(vararg val types: String) {
                         }
                     }
                     // TODO: Future Moves work in FFA
-                    lastMove.parsePokemon(this).claimDamage(damagedMon, fainted, ctx)
+                    lastMove.parsePokemon(this).claimDamage(damagedMon, fainted, ctx, activeKill = true)
                 }
             }
         }
@@ -187,7 +194,15 @@ sealed class SDEffect(vararg val types: String) {
             }
         }
 
-        private val explosionMoves = listOf("Explosion", "Self-Destruct", "Memento", "Final Gambit", "Misty Explosion")
+        private val explosionMoves = listOf(
+            "Explosion",
+            "Self-Destruct",
+            "Memento",
+            "Final Gambit",
+            "Misty Explosion",
+            "Healing Wish",
+            "Lunar Dance"
+        )
     }
 
     object Trickeroo : SDEffect("-item", "-activate") {

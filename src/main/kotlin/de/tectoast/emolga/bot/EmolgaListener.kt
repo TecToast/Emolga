@@ -190,9 +190,9 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
     }
 
     override fun onReady(e: ReadyEvent) {
-        Command.uninitializedCommands.forEach { Command.sendToMe("No Argument Manager Template: $it") }
         val jda = e.jda
         if (jda.selfUser.idLong == 723829878755164202L) {
+            Command.uninitializedCommands.forEach { Command.sendToMe("No Argument Manager Template: $it") }
             BanManager.forAll { set ->
                 jda.getGuildById(set.getLong("guildid"))?.run {
                     Command.banTimer(

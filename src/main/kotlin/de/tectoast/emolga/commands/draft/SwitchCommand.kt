@@ -13,7 +13,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
             "oldmon",
             "Altes Mon",
             "Das Pokemon, was rausgeschmissen werden soll",
-            ArgumentManagerTemplate.draftPokemon({ s, e ->
+            ArgumentManagerTemplate.draftPokemon { s, e ->
                 League.onlyChannel(e.channel!!.idLong)?.let {
                     it.picks[it.current]!!.sortedWith(
                         compareBy(
@@ -21,7 +21,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
                             { mon -> mon.name })
                     ).map { mon -> mon.name }.filter { mon -> mon.startsWith(s, true) }
                 }
-            }),
+            },
             false,
             "Das, was du rauswerfen möchtest, ist kein Pokemon!"
         ).add(

@@ -60,7 +60,8 @@ sealed class League {
     @Transient
     open val allowPickDuringSwitch = false
     abstract val timer: DraftTimer
-    val isLastRound: Boolean get() = round == tierlist.rounds
+    val isLastRound: Boolean get() = round == totalRounds
+    val totalRounds: Int get() = originalorder.size
 
     var isSwitchDraft = false
 
@@ -111,8 +112,8 @@ sealed class League {
             return true
         }
         if (when (tierlist.mode) {
-                TierlistMode.POINTS -> (tierlist.rounds - (picks[current]!!.size + 1)) * tierlist.prices.values.min() > points[current]!! - needed
-                TierlistMode.MIX -> (tierlist.freePicksAmount - (picks[current]!!.count { it.free } + 1)) * tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" }
+                TierlistMode.POINTS -> (totalRounds - (picks[current]!!.size + 1)) * tierlist.prices.values.min() > points[current]!! - needed
+                TierlistMode.TIERS_WITH_FREE -> (tierlist.freePicksAmount - (picks[current]!!.count { it.free } + 1)) * tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" }
                     .minOf { it.value } > points[current]!! - needed
 
                 else -> false
@@ -232,7 +233,7 @@ sealed class League {
     private fun getPossibleTiersAsString() =
         getPossibleTiers().entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
             .joinToString { "${it.value}x **Tier ${it.key}**" }.let { str ->
-                if (tierlist.mode.isMix()) str + "; ${tierlist.freePicksAmount - picks[current]!!.count { it.free }}x **Free Pick**"
+                if (tierlist.mode.isTiersWithFree()) str + "; ${tierlist.freePicksAmount - picks[current]!!.count { it.free }}x **Free Pick**"
                 else str
             }
 
@@ -266,7 +267,7 @@ sealed class League {
     private fun endOfTurn(): Boolean {
         if (order[round]!!.isEmpty()) {
 
-            if (round == tierlist.rounds) {
+            if (round == totalRounds) {
                 tc.sendMessage("Der Draft ist vorbei!").queue()
                 //ndsdoc(tierlist, pokemon, d, mem, tier, round);
                 //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);

@@ -42,7 +42,7 @@ object Analysis {
             if (line == "|gametype|freeforall") playerCount = 4
             if (line.startsWith("|player|")) {
                 val i = split[1][1].digitToInt() - 1
-                if (i !in nicknames)
+                //if (i !in nicknames)
                     nicknames[i] = split[2]
             }
             if (line.startsWith("|switch")) {

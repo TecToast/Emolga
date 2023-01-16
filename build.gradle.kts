@@ -90,7 +90,7 @@ dependencies {
     implementation("net.dv8tion:JDA:5.0.0-beta.2")
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.1.1")
-    implementation("com.github.MinnDevelopment:jda-ktx:0.9.6-alpha.22")
+    implementation("com.github.MinnDevelopment:jda-ktx:0.10.0-beta.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")

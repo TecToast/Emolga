@@ -18,7 +18,8 @@ abstract class ModalListener(name: String) {
         private val logger = LoggerFactory.getLogger(ModalListener::class.java)
         private val NULL: ModalListener = object : ModalListener("NULL") {
             override suspend fun process(e: ModalInteractionEvent, name: String?) {
-                Command.sendToMe("WRONG MODAL KEY " + e.modalId)
+                if (!e.modalId.first().isDigit())
+                    Command.sendToMe("WRONG MODAL KEY " + e.modalId)
             }
         }
 

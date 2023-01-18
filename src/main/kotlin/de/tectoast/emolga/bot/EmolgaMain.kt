@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.database.exposed.Giveaway
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import de.tectoast.emolga.utils.json.Emolga
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.events.listener
@@ -17,7 +18,6 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
-import org.eclipse.jetty.server.*
 import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -29,22 +29,24 @@ object EmolgaMain {
 
     @Throws(Exception::class)
     fun start() {
+        val eventListeners = listOf(EmolgaListener, DConfiguratorManager)
         emolgajda = default(Command.tokens.discord) {
             //intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
             intents -= GatewayIntent.MESSAGE_CONTENT
-            addEventListeners(EmolgaListener)
+            addEventListeners(*eventListeners.toTypedArray())
             setMemberCachePolicy(MemberCachePolicy.DEFAULT)
         }
         flegmonjda = default(Command.tokens.discordflegmon) {
             intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
-            addEventListeners(EmolgaListener)
+            addEventListeners(*eventListeners.toTypedArray())
             setMemberCachePolicy(MemberCachePolicy.ALL)
         }
         initializeASLS11(emolgajda)
-        EmolgaListener.registerEvents(emolgajda)
-        EmolgaListener.registerEvents(flegmonjda)
-        emolgajda.awaitReady()
-        flegmonjda.awaitReady()
+        for (jda in listOf(emolgajda, flegmonjda)) {
+            EmolgaListener.registerEvents(jda)
+            DConfiguratorManager.registerEvent(jda)
+            jda.awaitReady()
+        }
         logger.info("Discord Bots loaded!")
         //Ktor.start()
         Command.awaitNextDay()

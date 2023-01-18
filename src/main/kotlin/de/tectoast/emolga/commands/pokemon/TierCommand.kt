@@ -16,11 +16,12 @@ class TierCommand :
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val pkmn = getDraftGerName(e.arguments.getText("mon")).translation
-        val tierlist = Tierlist.getByGuild(e.guild.id) ?: run {
+        fun replyError() =
             e.reply("Auf diesem Server ist keine Tierliste hinterlegt! Wenn du dies tun möchtest, melde dich bei ${Constants.MYTAG}.")
-            return
-        }
+
+        val tierlist = Tierlist.getByGuild(e.guild.id)
+            ?: return replyError()
+        val pkmn = getDraftGerName(e.arguments.getText("mon"), e.guild.idLong)?.tlName ?: return replyError()
         val tier = tierlist.getTierOf(pkmn)
         e.reply(if (tier.isNotEmpty()) "$pkmn ist im $tier-Tier!" else "$pkmn befindet sich nicht in der Tierliste!")
     }

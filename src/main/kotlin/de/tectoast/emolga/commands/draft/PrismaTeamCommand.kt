@@ -1,9 +1,9 @@
 package de.tectoast.emolga.commands.draft
 
 import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.Command.Translation
 import de.tectoast.emolga.commands.PrivateCommand
 import de.tectoast.emolga.commands.saveEmolgaJSON
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.Emolga
@@ -94,12 +94,12 @@ class PrismaTeamCommand : PrivateCommand("prismateam") {
             if (msg.equals("!badsteam", ignoreCase = true)) {
                 return ErrorMessage("")
             }
-            val t = Command.getDraftGerName(msg)
+            val t = Command.getDraftGerName(msg, Constants.G.FLP)
             logger.info("msg = $msg, i = ${i.user.idLong} reqtier = $reqtier")
-            if (!t.isFromType(Translation.Type.POKEMON)) {
+            if (t == null) {
                 return ErrorMessage("Das ist kein Pokemon!")
             }
-            return t.translation
+            return t.tlName
         }
 
         val tierlist: Tierlist

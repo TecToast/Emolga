@@ -19,7 +19,8 @@ abstract class ButtonListener(name: String) {
         private val logger = LoggerFactory.getLogger(ButtonListener::class.java)
         private val NULL: ButtonListener = object : ButtonListener("NULL") {
             override suspend fun process(e: ButtonInteractionEvent, name: String) {
-                Command.sendToMe("WRONG BUTTON KEY " + e.componentId)
+                if (!e.componentId.first().isDigit() && !e.componentId.startsWith("reopen"))
+                    Command.sendToMe("WRONG BUTTON KEY " + e.componentId)
             }
         }
 

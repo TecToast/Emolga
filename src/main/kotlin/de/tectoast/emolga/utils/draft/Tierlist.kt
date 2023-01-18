@@ -3,7 +3,6 @@ package de.tectoast.emolga.utils.draft
 import de.tectoast.emolga.commands.DraftNamePreference
 import de.tectoast.emolga.commands.toSDName
 import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.sql.managers.TranslationsManager
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -26,38 +25,32 @@ class Tierlist(val guild: Long) {
     /**
      * The price for each tier
      */
-    val prices: Map<String, Int> = mapOf()
-    val freepicks: Map<String, Int> = mapOf()
-    private val nexttiers: List<Int> = listOf()
+    val prices: MutableMap<String, Int> = mutableMapOf()
+    val freepicks: MutableMap<String, Int> = mutableMapOf()
+    val nexttiers: MutableList<Int> = mutableListOf()
     val namepreference: DraftNamePreference = DraftNamePreference.SINGLE_CHAR_BEFORE
 
     /**
      * List with all pokemon in the sheets tierlists, columns are separated by an "NEXT"
      */
-    private val tiercolumns: MutableList<MutableList<String>> = mutableListOf()
+    val tiercolumns: MutableList<List<String>> = mutableListOf()
     val trashmons: MutableList<String> = mutableListOf()
     val additionalMons: MutableMap<String, MutableList<String>> = mutableMapOf()
-    var englishnames: List<String> = listOf()
+    var englishnames: MutableList<String> = mutableListOf()
 
-    /**
-     * the amount of rounds in the draft
-     */
-    val rounds: Int = 0
     val mode: TierlistMode = TierlistMode.POINTS
-    val points = 0
+    var points = 0
 
 
-    val order: List<String>
-        get() = prices.keys.toList()
+    val order get() = prices.keys.toList()
 
 
     /**
      * if this tierlist is pointbased
      */
-    val isPointBased: Boolean
-        get() = mode == TierlistMode.POINTS
+    val isPointBased get() = mode == TierlistMode.POINTS
 
-    val freePicksAmount: Int get() = freepicks["#AMOUNT#"] ?: 0
+    val freePicksAmount get() = freepicks["#AMOUNT#"] ?: 0
 
     /**
      * the possible points for a player
@@ -75,8 +68,7 @@ class Tierlist(val guild: Long) {
         }.toSet()
     }
 
-    init {
-        require(!(rounds == -1 && mode != TierlistMode.NOTHING)) { "BRUDER OLF IST DAS DEIN SCHEIß ERNST" }
+    fun setup() {
         val currtierlist: MutableList<String> = mutableListOf()
         var currtier = 0
         for ((x, monss) in tiercolumns.withIndex()) {
@@ -100,7 +92,7 @@ class Tierlist(val guild: Long) {
 
     fun getPointsNeeded(s: String): Int = when (mode) {
         TierlistMode.POINTS -> prices[getTierOf(s)] ?: -1
-        TierlistMode.MIX -> freepicks[getTierOf(s)] ?: -1
+        TierlistMode.TIERS_WITH_FREE -> freepicks[getTierOf(s)] ?: -1
         else -> -1
     }
 
@@ -141,15 +133,12 @@ class Tierlist(val guild: Long) {
         /**
          * All tierlists
          */
-        val tierlists: MutableMap<Long, Tierlist> = HashMap()
+        val tierlists: MutableMap<Long, Tierlist> = mutableMapOf()
         private val REPLACE_NONSENSE = Regex("[^a-zA-Z\\d-:%ßäöüÄÖÜé ]")
         fun setup() {
             tierlists.clear()
-            val dir = File("./Tierlists/")
-            for (file in dir.listFiles()!!) {
-                if (file.isFile) /*Tierlist(file.name.substringBefore(".").toLong())*/ Json.decodeFromString<Tierlist>(
-                    file.readText()
-                )
+            for (file in File("./Tierlists/").listFiles()!!) {
+                if (file.isFile) Json.decodeFromString<Tierlist>(file.readText()).setup()
             }
         }
 
@@ -162,24 +151,6 @@ class Tierlist(val guild: Long) {
             return tierlists[guild]
         }
 
-        fun getLocation(mon: String?, defX: Int, defY: Int, tiercolumns: List<String>): Coord {
-            var x = defX
-            var y = defY
-            var valid = false
-            for (s in tiercolumns) {
-                if (s.equals(mon, ignoreCase = true)) {
-                    valid = true
-                    break
-                }
-                //logger.info(s + " " + y);
-                if (s == "NEXT") {
-                    x++
-                    y = defY
-                } else y++
-            }
-            return Coord(x, y, valid)
-        }
-
         override fun getValue(thisRef: League, property: KProperty<*>): Tierlist {
             return getByGuild(thisRef.guild)!!
         }
@@ -190,10 +161,10 @@ class Tierlist(val guild: Long) {
 enum class TierlistMode {
     POINTS,
     TIERS,
-    MIX,
+    TIERS_WITH_FREE,
     NOTHING;
 
     fun isPoints() = this == POINTS
     fun isTiers() = this == TIERS
-    fun isMix() = this == MIX
+    fun isTiersWithFree() = this == TIERS_WITH_FREE
 }

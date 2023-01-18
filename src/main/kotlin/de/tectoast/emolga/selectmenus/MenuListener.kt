@@ -18,7 +18,8 @@ abstract class MenuListener(name: String) {
         private val logger = LoggerFactory.getLogger(MenuListener::class.java)
         private val NULL: MenuListener = object : MenuListener("NULL") {
             override fun process(e: StringSelectInteractionEvent, menuname: String?) {
-                Command.sendToMe("WRONG MENU KEY " + e.componentId)
+                if (!e.componentId.first().isDigit())
+                    Command.sendToMe("WRONG MENU KEY " + e.componentId)
             }
         }
 

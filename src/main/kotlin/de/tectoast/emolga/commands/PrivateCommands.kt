@@ -2,12 +2,14 @@ package de.tectoast.emolga.commands
 
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command.ArgumentManagerTemplate
+import de.tectoast.emolga.commands.Command.Companion.dataJSON
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.commands.Command.Companion.getDataObject
 import de.tectoast.emolga.commands.Command.Companion.load
 import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Translation
 import de.tectoast.emolga.database.Database
+import de.tectoast.emolga.database.exposed.NameConventions
 import de.tectoast.emolga.database.exposed.TipGames
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
@@ -246,15 +248,9 @@ object PrivateCommands {
     @PrivateCommand(name = "checktierlist")
     fun checkTierlist(e: GenericCommandEvent) {
         val tierlist = Tierlist.getByGuild(e.getArg(0))!!
-        val mons: MutableList<String> = LinkedList()
-        for (s in tierlist.order) {
-            for (str in tierlist.tierlist[s]!!) {
-                if (!Command.getDraftGerName(str).isFromType(Translation.Type.POKEMON)) {
-                    mons.add(str)
-                }
-            }
-        }
-        if (mons.isEmpty()) e.reply("Oh, du bist wohl kein Dasor :3") else e.reply(java.lang.String.join("\n", mons))
+        e.reply(tierlist.order.flatMap { tierlist.tierlist[it]!! }
+            .filter { Command.getDraftGerName(it, e.getArg(0).toLong()) == null }.joinToString("\n")
+            .ifEmpty { "Oh, du bist wohl kein Dasor :3" })
     }
 
     @PrivateCommand(name = "asltierlist")
@@ -356,9 +352,7 @@ object PrivateCommands {
                     }.firstOrNull()?.run {
                         logger.info(this)
                         Command.analyseReplay(
-                            url = this,
-                            resultchannel = e.jda.getTextChannelById(837425749770240001L)!!,
-                            message = m
+                            url = this, resultchannel = e.jda.getTextChannelById(837425749770240001L)!!, message = m
                         )
                     }
             }
@@ -383,9 +377,7 @@ object PrivateCommands {
                     }.firstOrNull()?.run {
                         logger.info(this)
                         Command.analyseReplay(
-                            url = this,
-                            resultchannel = e.jda.getTextChannelById(929686912048975882L)!!,
-                            message = m
+                            url = this, resultchannel = e.jda.getTextChannelById(929686912048975882L)!!, message = m
                         )
                     }
             }
@@ -516,11 +508,10 @@ object PrivateCommands {
                 )!!.updateCommands()
 
                 else -> jda.getGuildById(guild)!!.updateCommands()
-            }).addCommands(value)
-                .queue({ l ->
-                    logger.info("guild = {}", guild)
-                    logger.info("l = {}", l.joinToString { it.name })
-                }) { it.printStackTrace() }
+            }).addCommands(value).queue({ l ->
+                logger.info("guild = {}", guild)
+                logger.info("l = {}", l.joinToString { it.name })
+            }) { it.printStackTrace() }
         }
     }
 
@@ -611,11 +602,7 @@ object PrivateCommands {
             en.value.map {
                 val data = getDataObject(it)
                 listOf(
-                    it,
-                    en.key,
-                    tl.prices[en.key]!!,
-                    data.speed,
-                    Command.getGen5Sprite(data)
+                    it, en.key, tl.prices[en.key]!!, data.speed, Command.getGen5Sprite(data)
                 )
             }
         }
@@ -693,6 +680,21 @@ object PrivateCommands {
             paragraph("msg", "Nachricht", required = true)
             short("buttonname", "Button-Name", required = true)
         }).queue()
+    }
+
+    @PrivateCommand("createconventions")
+    suspend fun createConventions() {
+        dataJSON.values.asSequence().filterNot { it.num <= 0 }.map {
+            val translated = Command.getGerName(it.baseSpecies ?: it.name).translation
+            it.name to translated.condAppend(it.forme != null) { "-${it.forme}" }
+        }.forEach { NameConventions.insertDefault(it.first, it.second) }
+    }
+
+    @PrivateCommand("allgermanhyphen")
+    fun allGermanHyphen() {
+        dataJSON.values.asSequence().filter { it.baseSpecies == null }.mapNotNull {
+            Command.getGerName(it.name).translation.takeIf { c -> c.contains('-') }
+        }.joinToString("\n").let { "noforms.txt".file().writeText(it) }
     }
 
 

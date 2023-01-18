@@ -22,6 +22,8 @@ import de.tectoast.emolga.commands.Command.Companion.getGerNameNoCheck
 import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
+import de.tectoast.emolga.database.exposed.ActivePassiveKills
+import de.tectoast.emolga.database.exposed.NameConventions
 import de.tectoast.emolga.encryption.TokenEncrypter
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
@@ -53,12 +55,8 @@ import de.tectoast.emolga.utils.showdown.SDPokemon
 import de.tectoast.emolga.utils.sql.managers.*
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.interactions.components.primary
-import dev.minn.jda.ktx.messages.Embed
-import dev.minn.jda.ktx.messages.MessageCreate
-import dev.minn.jda.ktx.messages.into
-import dev.minn.jda.ktx.messages.send
-import dev.minn.jda.ktx.util.SLF4J
+import dev.minn.jda.ktx.interactions.components.*
+import dev.minn.jda.ktx.messages.*
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -103,7 +101,6 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.utils.FileUpload
 import org.apache.commons.collections4.queue.CircularFifoQueue
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import org.slf4j.MarkerFactory
@@ -1002,12 +999,11 @@ abstract class Command(
             }
 
             fun draftPokemon(
-                autoComplete: ((String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null,
-                preference: (ValidationData) -> DraftNamePreference = { DraftNamePreference.SINGLE_CHAR_BEFORE }
+                autoComplete: ((String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
             ): ArgumentType {
                 return withPredicate("Pokemon", { str: String, data: ValidationData ->
-                    getDraftGerName(str, preference(data)).isFromType(Translation.Type.POKEMON)
-                }, false, { str, data -> getDraftGerName(str, preference(data)).translation }, autoComplete)
+                    getDraftGerName(str, data.guildId) != null
+                }, false, { str, data -> getDraftGerName(str, data.guildId)!!.toArgumentString() }, autoComplete)
             }
 
             fun withPredicate(name: String, check: Predicate<String>, female: Boolean): ArgumentType {
@@ -1319,11 +1315,6 @@ abstract class Command(
         protected val soullinkNames = listOf("Pascal", "David", "Jesse", "Felix")
         private val logger = LoggerFactory.getLogger(Command::class.java)
         private val otherFormatRegex = Regex("(\\S+)-(Mega|Alola|Galar)")
-
-        /**
-         * Mapper for the DraftGerName
-         */
-        val draftnamemapper = Function { s: String -> getDraftGerName(s).translation }
         val typeIcons: Map<String, String> = load("typeicons.json")
         private val SD_NAME_PATTERN = Regex("[^a-zA-Z\\däöüÄÖÜß♂♀é+]+")
         private val DURATION_PATTERN = Regex("\\d{1,8}[smhd]?")
@@ -1339,7 +1330,7 @@ abstract class Command(
         private val draftPrefixes = mapOf(
             "M" to "Mega", "A" to "Alola", "G" to "Galar", "Mega" to "Mega", "Alola" to "Alola", "Galar" to "Galar"
         )
-        val draftPokemonArgumentType = ArgumentManagerTemplate.draftPokemon({ s, event ->
+        val draftPokemonArgumentType = ArgumentManagerTemplate.draftPokemon { s, event ->
             val gid = event.guild!!.idLong
             val league = League.onlyChannel(event.channel!!.idLong)
             //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
@@ -1356,10 +1347,7 @@ abstract class Command(
             }
             if (strings == null || strings.size > 25) emptyList()
             else strings.sorted()
-        }, {
-            getByGuild(League.onlyChannel(it.channel!!.idLong)?.guild ?: it.guildId)?.namepreference
-                ?: DraftNamePreference.SINGLE_CHAR_BEFORE
-        })
+        }
 
         /**
          * JSONObject containing all credentials (Discord Token, Google OAuth Token)
@@ -2028,7 +2016,7 @@ _written by Maxifcn_""".trimIndent()
                 val calendar = Calendar.getInstance()
                 calendar[Calendar.SECOND] = 0
                 var hoursSet = false
-                for (s in str.split(";")) {
+                for (s in str.split(";", " ")) {
                     val split = DURATION_SPLITTER.split(s)
                     if (s.contains(".")) {
                         calendar[Calendar.DAY_OF_MONTH] = split[0].toInt()
@@ -2341,9 +2329,8 @@ _written by Maxifcn_""".trimIndent()
                 val tip = league.tipgame!!
                 val channel = emolgajda.getTextChannelById(tip.channel)!!
                 val matchups = docEntry.getMatchups(num)
-                val names =
-                    emolgajda.getGuildById(league.guild)!!.retrieveMembersByIds(matchups.flatten()).await()
-                        .associate { it.idLong to it.effectiveName }
+                val names = emolgajda.getGuildById(league.guild)!!.retrieveMembersByIds(matchups.flatten()).await()
+                    .associate { it.idLong to it.effectiveName }
                 val table = league.table
                 channel.send(
                     embeds = Embed(
@@ -2390,9 +2377,7 @@ _written by Maxifcn_""".trimIndent()
                         true
                     )
                     RepeatTask(
-                        tip.lastLockButtons.toInstant(),
-                        tip.amount,
-                        duration
+                        tip.lastLockButtons.toInstant(), tip.amount, duration
                     ) { executeTipGameLockButtons(Emolga.get.league(l.key)) }
                 }
             }
@@ -2758,9 +2743,7 @@ _written by Maxifcn_""".trimIndent()
                         val moveData = atkdata[moveengl]!!.jsonObject
                         if (type.isEmpty() || moveData["type"].string == getEnglName(type) && (dmgclass.isEmpty() || moveData["category"].string == dmgclass) && (!msg.lowercase()
                                 .contains("--prio") || moveData["priority"].int > 0) && containsGen(
-                                learnset,
-                                moveengl,
-                                maxgen
+                                learnset, moveengl, maxgen
                             ) && moveFilter(
                                 msg, move
                             ) && !already.contains(move)
@@ -2771,8 +2754,7 @@ _written by Maxifcn_""".trimIndent()
                     val mon = data[str]!!
                     str = mon.prevo?.let {
                         (if (it.endsWith("-Alola") || it.endsWith("-Galar") || it.endsWith("-Unova")) HYPHEN.replace(
-                            it,
-                            ""
+                            it, ""
                         ) else it).lowercase()
                     }
                 }
@@ -2860,8 +2842,7 @@ _written by Maxifcn_""".trimIndent()
             return buildString {
                 append("=IMAGE(\"https://play.pokemonshowdown.com/sprites/gen5/")
                 append(
-                    (o.baseSpecies
-                        ?: o.name).toSDName().notNullAppend(o.forme?.toSDName())
+                    (o.baseSpecies ?: o.name).toSDName().notNullAppend(o.forme?.toSDName())
                 )
                 append(".png\"; 1)")
             }
@@ -2939,24 +2920,26 @@ _written by Maxifcn_""".trimIndent()
                     it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
                 }
                 val monNames: MutableMap<String, String> = mutableMapOf()
+                val activePassive = ActivePassiveKills.hasEnabled(gid)
                 val str = game.mapIndexed { index, sdPlayer ->
                     mutableListOf(
-                        sdPlayer.nickname,
-                        sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
-                    ).apply { if (spoiler) add(1, "||") }
-                        .let { if (index % 2 > 0) it.asReversed() else it }
+                        sdPlayer.nickname, sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
+                    ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
+                }.joinToString(":") { it.joinToString(" ") }
+                    .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.joinToString("\n\n") { player ->
+                    "${player.nickname}:".condAppend(
+                        player.allMonsDead && !spoiler, " (alle tot)"
+                    ) + "\n".condAppend(spoiler, "||") + player.pokemon.joinToString("\n") { mon ->
+                        getMonName(mon.pokemon, preference).also { monNames[mon.pokemon] = it }.let {
+                            if (activePassive) {
+                                "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
+                            } else {
+                                it.condAppend(mon.kills > 0, " ${mon.kills}")
+                            }
+                        }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
+                    }.condAppend(spoiler, "||")
                 }
-                    .joinToString(":") { it.joinToString(" ") }.condAppend(ctx.vgc, "\n(VGC)") + "\n\n" +
-                        game.joinToString("\n\n") { player ->
-                            "${player.nickname}:".condAppend(
-                                player.allMonsDead && !spoiler,
-                                " (alle tot)"
-                            ) + "\n".condAppend(spoiler, "||") + player.pokemon.joinToString("\n") { mon ->
-                                getMonName(mon.pokemon, preference).also { monNames[mon.pokemon] = it }
-                                    .condAppend(mon.kills > 0, " ${mon.kills}")
-                                    .condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
-                            }.condAppend(spoiler, "||")
-                        }
+                // Tornupto (4 aktive Kills, 2 passive Kills) X
                 logger.info("u1 = $u1")
                 logger.info("u2 = $u2")
                 customReplayChannel?.sendMessage(url)?.queue()
@@ -2969,10 +2952,7 @@ _written by Maxifcn_""".trimIndent()
                     game.forEach { player ->
                         player.pokemon.forEach {
                             FullStatsManager.add(
-                                monNames[it.pokemon]!!,
-                                it.kills,
-                                if (it.isDead) 1 else 0,
-                                player.winner
+                                monNames[it.pokemon]!!, it.kills, if (it.isDead) 1 else 0, player.winner
                             )
                         }
                     }
@@ -3037,51 +3017,8 @@ _written by Maxifcn_""".trimIndent()
         val possibleForms = listOf("Mega", "Alola", "Galar")
 
         fun getDraftGerName(
-            sArg: String, preference: DraftNamePreference = DraftNamePreference.SINGLE_CHAR_BEFORE
-        ): Translation {
-            when (preference) {
-                DraftNamePreference.SINGLE_CHAR_BEFORE -> {
-                    val s = sArg.replace(otherFormatRegex) { mr ->
-                        mr.groupValues.let { "${it[2][0]}-${it[1]}" }
-                    }
-                    val split = s.split("-").dropLastWhile { it.isEmpty() }
-                    logger.info("getDraftGerName Arr = {}", split)
-                    possibleForms.firstOrNull { s.startsWith("${it[0]}-", ignoreCase = true) }?.also { form ->
-                        return getGerName(split[1]).takeIf { mon -> mon.isFromType(Translation.Type.POKEMON) }
-                            ?.before(form[0] + "-")?.append(split.getOrNull(2)?.let { "-${it}" } ?: "")
-                            ?: Translation.empty()
-                    }
-                    null
-                }
-
-                DraftNamePreference.FULL_FORM_BEFORE -> {
-                    val s = sArg.replace(otherFormatRegex) { mr ->
-                        mr.groupValues.let { "${it[2]}-${it[1]}" }
-                    }
-                    val split = s.split("-").dropLastWhile { it.isEmpty() }
-                    logger.info("getDraftGerName Arr = {}", split)
-                    possibleForms.firstOrNull { s.startsWith("$it-", ignoreCase = true) }?.also { form ->
-                        return getGerName(split[1]).takeIf { mon -> mon.isFromType(Translation.Type.POKEMON) }
-                            ?.before("$form-")?.append(split.getOrNull(2)?.let { "-${it}" } ?: "")
-                            ?: Translation.empty()
-                    }
-                    null
-                }
-            } ?: run {
-                val split = sArg.split("-").dropLastWhile { it.isEmpty() }
-                val gerName = getGerName(sArg)
-                if (gerName.isFromType(Translation.Type.POKEMON)) return gerName
-                val t = getGerName(split[0])
-                print("DraftGer Trans ")
-                t.print()
-                if (t.isSuccess) {
-                    val tr = t.append("-" + split[1])
-                    logger.info("getDraftGerName ret = $tr")
-                    return tr
-                }
-                return Translation.empty()
-            }
-        }
+            sArg: String, guildId: Long
+        ) = NameConventions.getTranslation(sArg, guildId)
 
 
         fun getGerNameWithForm(name: String): String {
@@ -3407,8 +3344,6 @@ fun String.toSDName() = Command.toSDName(this)
 
 inline fun <T> T.ifMatches(value: T, predicate: (T) -> Boolean) = if (predicate(this)) value else this
 
-private val logger: Logger by SLF4J
-
 val httpClient = HttpClient(CIO) {
     install(ContentNegotiation) {
         json()
@@ -3416,7 +3351,7 @@ val httpClient = HttpClient(CIO) {
 }
 
 val defaultScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
-    logger.error("ERROR IN DEFAULT SCOPE", t)
+    t.printStackTrace()
     sendToMe("Error in default scope, look in console")
 })
 val myJSON = Json {
@@ -3464,7 +3399,7 @@ fun Collection<String>.filterStartsWithIgnoreCase(other: String) = filter { it.s
 val String.marker: Marker get() = MarkerFactory.getMarker(this)
 
 fun String.condAppend(check: Boolean, value: String) = if (check) this + value else this
-fun String.condAppend(check: Boolean, value: () -> String) = if (check) this + value() else this
+inline fun String.condAppend(check: Boolean, value: () -> String) = if (check) this + value() else this
 
 fun String.notNullAppend(value: String?) = if (value != null) this + value else this
 
@@ -3476,8 +3411,6 @@ val JsonElement?.string: String get() = this!!.jsonPrimitive.content
 val JsonElement?.int: Int get() = this!!.jsonPrimitive.int
 
 inline val User.isFlo: Boolean get() = this.idLong == FLOID
-inline val User.isNotFlo: Boolean
-    get() = !isFlo
 inline val Interaction.fromFlo: Boolean get() = this.user.isFlo
 inline val Interaction.notFromFlo: Boolean get() = !this.fromFlo
 
@@ -3528,15 +3461,22 @@ data class ReplayData(
     val uids by lazy { listOf(uid1, uid2) }
 }
 
+@Suppress("unused")
 enum class DraftNamePreference(val map: Map<SpecialForm, Pair<String, Boolean>>) {
     SINGLE_CHAR_BEFORE(
-        mapOf(SpecialForm.ALOLA to ("A" to true), SpecialForm.GALAR to ("G" to true), SpecialForm.MEGA to ("M" to true))
+        mapOf(
+            SpecialForm.ALOLA to ("A" to true),
+            SpecialForm.GALAR to ("G" to true),
+            SpecialForm.MEGA to ("M" to true),
+            SpecialForm.PALDEA to ("P" to true)
+        )
     ),
     FULL_FORM_BEFORE(
         mapOf(
             SpecialForm.ALOLA to ("Alola" to true),
             SpecialForm.GALAR to ("Galar" to true),
-            SpecialForm.MEGA to ("Mega" to true)
+            SpecialForm.MEGA to ("Mega" to true),
+            SpecialForm.PALDEA to ("Paldea" to true)
         )
     )
 }

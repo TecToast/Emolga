@@ -14,26 +14,23 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.callloging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
-import io.ktor.util.*
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.User
-import java.io.File
-import java.security.KeyStore
+import org.slf4j.event.Level
 
 object Ktor {
 
-    val guildCache = mutableMapOf<String, GuildData>()
-
     fun start() {
         embeddedServer(Netty, applicationEngineEnvironment {
-            val (keystoreFile, password, keyAlias) = Command.tokens.getJSONObject("website").let {
-                Triple(File(it.getString("path")), it.getString("password"), it.getString("keyalias"))
+            /*val (keystoreFile, password, keyAlias) = Command.tokens.website.let {
+                Triple(File(it.path), it.password, it.keyalias)
             }
             val keystore = KeyStore.getInstance("JKS").apply {
                 load(keystoreFile.inputStream(), password.toCharArray())
@@ -45,12 +42,15 @@ object Ktor {
                 privateKeyPassword = { password.toCharArray() }) {
                 port = 51216
                 keyStorePath = keystoreFile
+            }*/
+            connector {
+                port = 51216
             }
             module {
                 install(Sessions) {
                     cookie<UserSession>("user_session", DiscordAuth) {
-                        cookie.secure = true
                         cookie.extensions["SameSite"] = "None"
+                        cookie.httpOnly = true
                     }
                 }
                 install(ContentNegotiation) {
@@ -67,17 +67,20 @@ object Ktor {
                     allowHost("localhost:4200")
                     allowCredentials = true
                 }
+                install(CallLogging) {
+                    level = Level.INFO
+                }
                 authentication {
                     oauth("auth-oauth-discord") {
-                        urlProvider = { "https://emolga.tectoast.de:51216/discordauth" }
+                        urlProvider = { "https://emolga.tectoast.de/api/discordauth" }
                         providerLookup = {
                             OAuthServerSettings.OAuth2ServerSettings(
                                 name = "discord",
-                                authorizeUrl = "https://discord.com/api/oauth2/authorize?client_id=723829878755164202&redirect_uri=https%3A%2F%2Femolga.tectoast.de%3A51216%2Fdiscordauth&response_type=code&scope=identify%20guilds",
+                                authorizeUrl = "https://discord.com/api/oauth2/authorize?client_id=723829878755164202&redirect_uri=https%3A%2F%2Femolga.tectoast.de%2Fapi%2Fdiscordauth&response_type=code&scope=identify%20guilds",
                                 accessTokenUrl = "https://discord.com/api/oauth2/token",
                                 requestMethod = HttpMethod.Post,
                                 clientId = "723829878755164202",
-                                clientSecret = Command.tokens.getJSONObject("oauth2").getString("clientsecret"),
+                                clientSecret = Command.tokens.oauth2.clientsecret,
                                 defaultScopes = listOf("identify", "guilds"),
                                 extraAuthParameters = listOf("grant_type" to "authorization_code")
                             )
@@ -87,7 +90,8 @@ object Ktor {
                 }
                 routing {
                     authenticate("auth-oauth-discord") {
-                        get("/discordauth") {
+                        get("/api/login") {}
+                        get("/api/discordauth") {
                             val principal: OAuthAccessTokenResponse.OAuth2 = call.principal() ?: run {
                                 call.response.status(HttpStatusCode.BadRequest)
                                 return@get

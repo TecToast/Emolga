@@ -68,7 +68,8 @@ val ktorDependencies = listOf(
     "ktor-server-sessions",
     "ktor-server-content-negotiation",
     "ktor-serialization-kotlinx-json",
-    "ktor-server-cors"
+    "ktor-server-cors",
+    "ktor-server-call-logging"
 )
 
 dependencies {
@@ -93,6 +94,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
+    implementation("io.ktor:ktor-server-call-logging-jvm:2.2.2")
     ktor()
     implementation("org.jetbrains.exposed:exposed-core:0.41.1")
     implementation("org.jetbrains.exposed:exposed-dao:0.41.1")

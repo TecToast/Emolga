@@ -49,9 +49,7 @@ import de.tectoast.emolga.utils.json.showdown.TypeData
 import de.tectoast.emolga.utils.music.GuildMusicManager
 import de.tectoast.emolga.utils.records.CalendarEntry
 import de.tectoast.emolga.utils.records.TypicalSets
-import de.tectoast.emolga.utils.showdown.Analysis
-import de.tectoast.emolga.utils.showdown.SDPlayer
-import de.tectoast.emolga.utils.showdown.SDPokemon
+import de.tectoast.emolga.utils.showdown.*
 import de.tectoast.emolga.utils.sql.managers.*
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
@@ -2890,16 +2888,32 @@ _written by Maxifcn_""".trimIndent()
                     return@launch
                 }
                 logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannel.id)
+                fun send(msg: String) {
+                    fromReplayCommand?.sendMessage(msg)?.queue() ?: fromAnalyseCommand?.sendMessage(msg)
+                        ?.queue()
+                    ?: resultchannel.sendMessage(msg).queue()
+                }
                 val (game, ctx) = try {
-                    Analysis.analyse(url)
+                    Analysis.analyse(url, ::send)
                     //game = Analysis.analyse(url, m);
                 } catch (ex: Exception) {
-                    val msg =
-                        "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
-                    sendToMe("Fehler beim Auswerten des Replays: $url ${resultchannel.guild.name} ${resultchannel.asMention} ChannelID: ${resultchannel.id}")
-                    fromReplayCommand?.sendMessage(msg)?.queue() ?: fromAnalyseCommand?.sendMessage(msg)?.queue()
-                    ?: resultchannel.sendMessage(msg).queue()
-                    ex.printStackTrace()
+                    when (ex) {
+                        is ShowdownDoesNotAnswerException -> {
+                            send("Showdown antwortet nicht. Versuche es später nochmal.")
+                        }
+
+                        is ShowdownParseException -> {
+                            send("Das Replay konnte nicht analysiert werden! Sicher dass es ein valides Replay ist? Wenn ja, melde dich bitte auf meinem im Profil verlinkten Support-Server.")
+                        }
+
+                        else -> {
+                            val msg =
+                                "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
+                            sendToMe("Fehler beim Auswerten des Replays: $url ${resultchannel.guild.name} ${resultchannel.asMention} ChannelID: ${resultchannel.id}")
+                            send(msg)
+                            ex.printStackTrace()
+                        }
+                    }
                     return@launch
                 }
                 val g = resultchannel.guild

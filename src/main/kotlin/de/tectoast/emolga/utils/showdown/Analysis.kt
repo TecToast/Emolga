@@ -5,23 +5,23 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
-import java.io.IOException
 import kotlin.time.Duration.Companion.seconds
 
 object Analysis {
     // generate a new analysis engine
-    suspend fun analyse(link: String): Pair<List<SDPlayer>, BattleContext> {
+    suspend fun analyse(link: String, answer: ((String) -> Unit)? = null): Pair<List<SDPlayer>, BattleContext> {
         logger.info("Reading URL... {}", link)
         var gameNullable: List<String>? = null
         for (i in 0..1) {
             gameNullable = httpClient.get("$link.log").bodyAsText().split("\n")
             if (gameNullable.size == 1) {
                 println("Showdown antwortet nicht")
+                answer?.invoke("Der Showdown-Server antwortet nicht, ich versuche es in 10 Sekunden erneut...")
                 delay(10.seconds)
             } else break
         }
         logger.info("Starting analyse!")
-        val game = gameNullable ?: throw IOException("Could not read game")
+        val game = gameNullable ?: throw ShowdownDoesNotAnswerException()
         var amount = 1
         val nicknames: MutableMap<Int, String> = mutableMapOf()
         var playerCount = 2
@@ -43,7 +43,7 @@ object Analysis {
             if (line.startsWith("|player|")) {
                 val i = split[1][1].digitToInt() - 1
                 //if (i !in nicknames)
-                    nicknames[i] = split[2]
+                nicknames[i] = split[2]
             }
             if (line.startsWith("|switch")) {
                 val (player, _) = split[1].parsePokemonLocation()
@@ -75,7 +75,9 @@ object Analysis {
                 "",
                 (0 until playerCount).map {
                     SDPlayer(
-                        nicknames[it]!!,
+                        nicknames[it] ?: run {
+                            throw ShowdownParseException()
+                        },
                         allMons[it].orEmpty().toMutableList()
                     )
                 },
@@ -101,3 +103,7 @@ object Analysis {
     private fun buildDummys(amount: Int) = MutableList(amount) { dummyPokemon }
 
 }
+
+abstract class ShowdownException : Exception()
+class ShowdownDoesNotAnswerException : ShowdownException()
+class ShowdownParseException : ShowdownException()

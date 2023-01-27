@@ -1,6 +1,6 @@
 package de.tectoast.emolga.utils.showdown
 
-class SDPokemon(var pokemon: String, val player: Int) {
+data class SDPokemon(var pokemon: String, val player: Int) {
     private val effects: MutableMap<SDEffect, SDPokemon> = mutableMapOf()
     val volatileEffects: MutableMap<String, SDPokemon> = mutableMapOf()
     var kills = 0
@@ -263,14 +263,14 @@ sealed class SDEffect(vararg val types: String) {
         object DoomDesire : FutureMoves("Doom Desire")
 
         override fun execute(split: List<String>, ctx: BattleContext) {
-            if (split[0] == "start") {
+            if (split[0] == "-start") {
                 if (split.getOrNull(2) == "move: $moveName") {
                     ctx.sdPlayers[split[1].parsePokemonLocation().first].fieldConditions[this] =
                         split[1].parsePokemon(ctx)
                 }
-            } else if (split[0] == "end") {
+            } else if (split[0] == "-end") {
                 if (split.getOrNull(2) == "move: $moveName") {
-                    ctx.sdPlayers[split[1].parsePokemonLocation().first].hittingFutureMoves += this
+                    ctx.sdPlayers.getOrNull(1 - split[1].parsePokemonLocation().first)?.hittingFutureMoves?.add(this)
                 }
             }
         }

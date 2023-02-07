@@ -42,10 +42,8 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             }
             val mem = d.current
             val tierlist = d.tierlist
-            val pokemon = tierlist.getNameOf(args.getText("pokemon")) ?: run {
-                e.reply("Das Pokemon steht nicht in der Tierliste!")
-                return
-            }
+            d.beforePick()?.let { e.reply(it); return }
+            val pokemon = args.getText("pokemon")
             val picks = d.picks[mem]!!
             if (picks.count { it.name != "???" } == 15) {
                 e.reply("Du hast bereits 15 Mons!")
@@ -62,14 +60,14 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             if (d.handlePoints(e, needed, free)) return
             d.savePick(picks, pokemon, tier, free)
             //m.delete().queue();
-            if (!isRandom) d.replyPick(e, pokemon, mem, free)
+            if (!isRandom) d.replyPick(e, pokemon, free)
             if (isRandom) {
-                d.replyRandomPick(e, pokemon, mem, tier)
+                d.replyRandomPick(e, pokemon, tier)
             } else if (pokemon == "Emolga") {
                 e.textChannel.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
                     .queue()
             }
-            val round = d.getPickRound()
+            val round = d.getPickRoundOfficial()
             d.pickDoc(
                 PickData(
                     pokemon,
@@ -83,7 +81,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                     free
                 )
             )
-            d.afterPick()
+            d.afterPickOfficial()
         }
     }
 }

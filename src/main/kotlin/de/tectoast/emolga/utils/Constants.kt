@@ -7,10 +7,6 @@ object Constants {
     const val GIVEAWAY_EMOTE_ID = 967390966153609226
     const val GIVEAWAY_EMOTE_NAME = "Happy"
     const val GIVEAWAY_EMOTE_MENTION = "<:$GIVEAWAY_EMOTE_NAME:$GIVEAWAY_EMOTE_ID>"
-    const val DEXJSONSUB = 59
-    const val LEARNSETJSONSUB = 62
-    const val MOVESJSONSUB = 51
-    const val TYPESJSONSUB = 50
     const val EMOLGA_KI = 972778235265962014
     const val CALENDAR_TCID = 938156657706418176
     const val CALENDAR_MSGID = 964920267598098433
@@ -30,5 +26,6 @@ object Constants {
         const val GENSHINEMPIRES = 895689011773972490
         const val GILDE = 940283708953473075
         const val BLOCKI = 536061856910147595
+        const val VIP = 651152835425075218
     }
 }

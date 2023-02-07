@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils.dconfigurator.impl
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.database.exposed.NameConventions
 import de.tectoast.emolga.utils.dconfigurator.*
+import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.Emolga
@@ -18,8 +19,10 @@ import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionE
 import net.dv8tion.jda.api.interactions.callbacks.IDeferrableCallback
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.transactions.transaction
 
 class TierlistBuilderConfigurator(
     userId: Long, channelId: Long, guildId: Long, val mons: List<String>, val tierlistcols: List<List<String>>
@@ -218,8 +221,8 @@ class TierlistBuilderConfigurator(
             }
             println("Testing $mon <=> $regForm")
             if (!NameConventions.checkIfExists(
-                    regForm ?: mon
-                ) && (regForm == null || !NameConventions.checkIfExists(mon))
+                    regForm ?: mon, guildId
+                ) && (regForm == null || !NameConventions.checkIfExists(mon, guildId))
             ) {
                 e.hook.send("`$mon` wurde nicht gefunden, bitte gib den Namen in meinem Format über /addconvention an.".condAppend(
                     sendRegionalInfo
@@ -261,16 +264,23 @@ class TierlistBuilderConfigurator(
         "Tierlists/$guildId.json".file().writeText(myJSON.encodeToString(Tierlist(guildId).apply {
             this.prices += this@TierlistBuilderConfigurator.prices!!
             this@TierlistBuilderConfigurator.freepicks?.let { this.freepicks += it }
-            var currentTier = tiermapping[0]
-            for (i in tierlistcols.indices) {
-                if (tiermapping[i] != currentTier) {
-                    currentTier = tiermapping[i]!!
-                    this.nexttiers.add(i)
-                }
-            }
-            this.tiercolumns += this@TierlistBuilderConfigurator.tierlistcols
             this@TierlistBuilderConfigurator.points?.let { this.points = it }
+            this.mode = this@TierlistBuilderConfigurator.tierlistMode!!
         }))
+        transaction {
+            Tierlist.batchInsert(tierlistcols.flatMapIndexed { index, strings ->
+                strings.map {
+                    DraftPokemon(
+                        it,
+                        tiermapping[index]!!
+                    )
+                }
+            }, shouldReturnGeneratedValues = false) {
+                this[Tierlist.guild] = guildId
+                this[Tierlist.pokemon] = it.name
+                this[Tierlist.tier] = it.tier
+            }
+        }
     }
 
     companion object {
@@ -281,5 +291,8 @@ class TierlistBuilderConfigurator(
                 SelectOption("Tiers mit Free-Picks", "mix", "Ein Draft mit festgelegten Tiers und Free-Picks")
             )
         ).into()
+
+
+        val enabledGuilds = setOf(1054161634895069215, 651152835425075218)
     }
 }

@@ -22,7 +22,7 @@ class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste
                 )
             }
         }
-        slash(false, 1054161634895069215)
+        slash(false, *TierlistBuilderConfigurator.enabledGuilds.toLongArray())
     }
 
     override suspend fun process(e: GuildCommandEvent) {

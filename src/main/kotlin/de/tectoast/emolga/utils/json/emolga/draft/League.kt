@@ -28,13 +28,18 @@ sealed class League {
     val picks: MutableMap<Long, MutableList<DraftPokemon>> = mutableMapOf()
     val battleorder: MutableMap<Int, String> = mutableMapOf()
     val results: MutableMap<String, Long> = mutableMapOf()
-    val allowed: MutableMap<Long, MutableList<AllowedData>> = mutableMapOf()
-    val guild: Long = -1
+    val allowed: MutableMap<Long, MutableSet<AllowedData>> = mutableMapOf()
+    val guild = -1L
     var round = 1
     var current = -1L
     private var cooldown = -1L
-    val points: MutableMap<Long, Int> = mutableMapOf()
 
+    @Transient
+    val points: MutableMap<Long, Int> = mutableMapOf()
+    val noAutoStart = false
+
+    @Transient
+    open val timerSkipMode: TimerSkipMode? = null
     private val originalorder: Map<Int, List<Int>> = mapOf()
 
     val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
@@ -61,7 +66,7 @@ sealed class League {
     open val allowPickDuringSwitch = false
     abstract val timer: DraftTimer
     val isLastRound: Boolean get() = round == totalRounds
-    val totalRounds: Int get() = originalorder.size
+    val totalRounds by lazy { originalorder.size }
 
     var isSwitchDraft = false
 
@@ -149,10 +154,10 @@ sealed class League {
     }
 
     open fun afterPick() {
-        if (isLastRound && hasMovedTurns()) {
-            announcePlayer()
-        } else nextPlayer()
+        nextPlayer()
     }
+
+    fun afterPickOfficial() = timerSkipMode?.afterPick(this) ?: afterPick()
 
 
     fun nextPlayer() {
@@ -173,12 +178,12 @@ sealed class League {
         if (names.isEmpty()) names.putAll(emolgajda.getGuildById(this.guild)!!.retrieveMembersByIds(table).await()
             .associate { it.idLong to it.effectiveName })
         logger.info(names.toString())
-        if (tc != null) this.tcid = tc.idLong
+        tc?.let { this.tcid = it.idLong }
         for (member in table) {
             if (fromFile || isSwitchDraft) picks.putIfAbsent(member, mutableListOf())
             else picks[member] = mutableListOf()
             val isPoints = tierlist.mode.isPoints()
-            if (!tierlist.mode.isTiers()) points[member] =
+            if (tierlist.mode.withPoints) points[member] =
                 tierlist.points - picks[member]!!.sumOf {
                     if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
                         it.tier
@@ -191,6 +196,7 @@ sealed class League {
             current = order[1]!!.nextCurrent()
             round = 1
             moved.clear()
+            reset()
             restartTimer()
             sendRound()
             announcePlayer()
@@ -202,6 +208,8 @@ sealed class League {
         saveEmolgaJSON()
         logger.info("Started!")
     }
+
+    open fun reset() {}
 
     private fun restartTimer(delay: Long = timer.calc()) {
         cooldown = System.currentTimeMillis() + delay
@@ -217,13 +225,25 @@ sealed class League {
     }
 
     open fun announcePlayer() {
-        if (isPointBased) tc.sendMessage(getMention(current) + " ist dran! (" + points[current] + " mögliche Punkte)")
-            .queue() else tc.sendMessage(
-            getMention(current) + " ist dran! (Mögliche Tiers: " + getPossibleTiersAsString() + ")"
+        val mode = tierlist.mode
+        tc.sendMessage(
+            "${getCurrentMention()} ist dran! " +
+                    buildList {
+                        if (mode.withTiers) this.add("Mögliche Tiers: " + getPossibleTiersAsString())
+                        if (mode.withPoints) this.add(
+                            "${points[current]} mögliche Punkte".condAppend(
+                                mode.isTiersWithFree(),
+                                " für Free-Picks"
+                            )
+                        )
+                    }.joinToString(prefix = "(", postfix = ")")
+                        .condAppend(hasMovedTurns()) { "**${movedTurns().firstOrNull()} Picks**" }
         ).queue()
     }
 
-    fun getPossibleTiers(): Map<String, Int> = tierlist.prices.toMutableMap().let { possible ->
+    open fun beforePick(): String? = null
+
+    fun getPossibleTiers() = tierlist.prices.toMutableMap().let { possible ->
         picks[current]!!.forEach { pick ->
             pick.takeUnless { it.name == "???" || it.free }?.let { possible[it.tier] = possible[it.tier]!! - 1 }
         }
@@ -232,7 +252,8 @@ sealed class League {
 
     private fun getPossibleTiersAsString() =
         getPossibleTiers().entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
-            .joinToString { "${it.value}x **Tier ${it.key}**" }.let { str ->
+            .joinToString { "${it.value}x **".condAppend(it.key.toIntOrNull() != null, "Tier ") + "${it.key}**" }
+            .let { str ->
                 if (tierlist.mode.isTiersWithFree()) str + "; ${tierlist.freePicksAmount - picks[current]!!.count { it.free }}x **Free Pick**"
                 else str
             }
@@ -246,15 +267,15 @@ sealed class League {
         }
     }
 
-    fun getTierInsertIndex(picks: List<DraftPokemon>, tier: String): Int {
+    fun getTierInsertIndex(data: PickData): Int {
         var index = 0
         for (entry in tierlist.prices.entries) {
-            if (entry.key == tier) {
-                return picks.count { !it.free && it.tier == tier } + index - 1
+            if (entry.key == data.tier) {
+                return data.picks.count { !it.free && it.tier == data.tier } + index - 1
             }
             index += entry.value
         }
-        error("Tier $tier not found by user $current")
+        error("Tier ${data.tier} not found by user $current")
     }
 
     fun triggerMove() {
@@ -286,35 +307,30 @@ sealed class League {
         return false
     }
 
-    protected open fun getMention(mem: Long): String {
-        return allowed[mem]?.firstOrNull { it.mention }?.u?.let { "<@$it> (für ${getName(mem)})" } ?: "<@$mem>"
+    protected open fun getCurrentMention(): String {
+        return (allowed[current]?.filter { it.mention }?.joinToString { "<@${it.u}>" }
+            ?.let { it + " (für ${getCurrentName()})" } ?: "<@$current>")
     }
 
-    private fun getName(mem: Long) = names[mem]!!
+    private fun getCurrentName() = names[current]!!
 
     fun isPickedBy(mon: String, mem: Long): Boolean = picks[mem]!!.any { it.name == mon }
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
     fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER) {
-        logger.info("TriggerTimer 1")
         if (!isRunning) return
-        logger.info("TriggerTimer 2")
         if (!isSwitchDraft) triggerMove()
-        logger.info("TriggerTimer 3")
-        if (endOfTurn()) return/*String msg = tr == TimerReason.REALTIMER ? "**" + current.getEffectiveName() + "** war zu langsam und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " (<@&" + asl.getLongList("roleids").get(getIndex(order.get(round).get(0).getIdLong())) + ">) dran! "
-                : "Der Pick von " + current.getEffectiveName() + " wurde " + (isSwitchDraft ? "geskippt" : "verschoben") + " und deshalb ist jetzt " + getMention(order.get(round).get(0)) + " dran!";*/
-
-        logger.info("TriggerTimer 4")
+        if (endOfTurn()) return
         val oldcurrent = current
         current = order[round]!!.nextCurrent()
         tc.sendMessage(buildString {
             if (tr == TimerReason.REALTIMER) append(
                 "**<@$oldcurrent>** war zu langsam und deshalb ist jetzt ${
-                    getMention(current)
+                    getCurrentMention()
                 } dran!"
             )
             else append(
                 "Der Pick von <@$oldcurrent> wurde ${if (isSwitchDraft) "geskippt" else "verschoben"} und deshalb ist jetzt ${
-                    getMention(current)
+                    getCurrentMention()
                 } dran!"
             )
             if (isPointBased) append(" (${points[current]} mögliche Punkte)")
@@ -337,33 +353,34 @@ sealed class League {
     val dataSheet: String? = null
 
     fun builder() = RequestBuilder(sid)
-    suspend fun replyPick(e: GuildCommandEvent, pokemon: String, mem: Long, free: Boolean) {
+    suspend fun replyPick(e: GuildCommandEvent, pokemon: String, free: Boolean) =
+        replyGeneral(e, "$pokemon gepickt!".condAppend(free, " (Free-Pick)"))
+
+    suspend fun replyGeneral(e: GuildCommandEvent, msg: String) {
         e.slashCommandEvent!!.reply(
             "${e.member.asMention} hat${
-                if (e.author.idLong != mem) " für **${getName(mem)}**" else ""
-            } $pokemon gepickt!".condAppend(free, " (Free-Pick)")
-        ).await()
+                if (e.author.idLong != current) " für **${getCurrentName()}**" else ""
+            } $msg"
+        )
+            .await()
     }
 
-    suspend fun replyRandomPick(e: GuildCommandEvent, pokemon: String, mem: Long, tier: String) {
-        e.slashCommandEvent!!.reply(
-            if (e.author.idLong != mem) "${e.member.asMention} hat für **${getName(mem)}** einen Random-Pick gemacht und **$pokemon** bekommen!" else "**<@${e.member.asMention}>** hat aus dem $tier-Tier ein **$pokemon** bekommen!"
-        ).await()
-    }
+    suspend fun replyRandomPick(e: GuildCommandEvent, pokemon: String, tier: String) = replyGeneral(
+        e,
+        "einen Random-Pick im $tier gemacht und **$pokemon** bekommen!"
+    )
 
     suspend fun replySwitch(e: GuildCommandEvent, oldmon: String, newmon: String) {
-        e.slashCommandEvent!!.reply("${e.member.asMention} hat ".condAppend(e.author.idLong != current) {
-            "für **${getName(current)}** "
-        } + "$oldmon gegen $newmon getauscht!").await()
+        replyGeneral(e, "$oldmon gegen $newmon getauscht!")
     }
 
     suspend fun replySkip(e: GuildCommandEvent) {
-        e.slashCommandEvent!!.reply("${e.member.asMention} hat ".condAppend(e.author.idLong != current) {
-            "für **${getName(current)}** "
-        } + "den Pick übersprungen!").await()
+        replyGeneral(e, "den Pick übersprungen!")
     }
 
     open fun getPickRound() = round
+
+    fun getPickRoundOfficial() = timerSkipMode?.getPickRound(this) ?: getPickRound()
 
 
     companion object {
@@ -444,3 +461,42 @@ class SwitchData(
     val oldmon: String,
     val oldtier: String
 ) : DraftData(pokemon, tier, mem, indexInRound, changedIndex, picks, round, memIndex)
+
+enum class TimerSkipMode {
+    AT_THE_END {
+        override fun afterPick(l: League) {
+            with(l) {
+                if (isLastRound && hasMovedTurns()) {
+                    announcePlayer()
+                } else nextPlayer()
+            }
+        }
+
+        override fun getPickRound(l: League) = with(l) {
+            round.let {
+                if (it != totalRounds) it
+                else {
+                    val mt = movedTurns()
+                    if (totalRounds - picks.size < mt.size) {
+                        mt.removeFirst()
+                    } else it
+                }
+            }
+        }
+    },
+    NEXT_PICK {
+        override fun afterPick(l: League) {
+            with(l) {
+                if (hasMovedTurns()) {
+                    announcePlayer()
+                    movedTurns().removeFirstOrNull()
+                } else nextPlayer()
+            }
+        }
+
+        override fun getPickRound(l: League) = with(l) { movedTurns().firstOrNull() ?: round }
+    };
+
+    abstract fun afterPick(l: League)
+    abstract fun getPickRound(l: League): Int
+}

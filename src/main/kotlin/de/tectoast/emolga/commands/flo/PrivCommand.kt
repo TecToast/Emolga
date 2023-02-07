@@ -2,17 +2,13 @@ package de.tectoast.emolga.commands.flo
 
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.annotations.PrivateCommand
 import kotlin.reflect.full.callSuspend
 import kotlin.reflect.full.declaredMemberFunctions
-import kotlin.reflect.full.findAnnotation
 
 class PrivCommand : Command("priv", "Executet einen Priv Command", CommandCategory.Flo) {
 
     private val privCommands by lazy {
-        PrivateCommands::class.declaredMemberFunctions.mapNotNull {
-            it.findAnnotation<PrivateCommand>()?.let { anno -> anno.name to it }
-        }.toMap()
+        PrivateCommands::class.declaredMemberFunctions.associateBy { it.name }
     }
 
     init {
@@ -36,7 +32,7 @@ class PrivCommand : Command("priv", "Executet einen Priv Command", CommandCatego
             else method.callSuspend(
                 PrivateCommands, PrivateCommandEvent(e.slashCommandEvent!!)
             )
-            if (method.findAnnotation<PrivateCommand>()?.ack == false)
+            if (!e.slashCommandEvent!!.isAcknowledged)
                 e.reply("Command ausgeführt!", ephermal = true)
         } ?: e.reply("Command nicht gefunden!", ephermal = true)
     }

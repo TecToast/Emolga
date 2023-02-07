@@ -7,6 +7,7 @@ import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.Command.Companion.convertColor
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
+import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.emolga.Nominations
@@ -29,7 +30,9 @@ class NDS : League() {
     val teamtable: List<String> = emptyList()
 
     override fun isFinishedForbidden() = false
-    override val timer = DraftTimer.NDS
+
+    @Transient
+    override val timer = DraftTimer(TimerInfo(10, 22), 180)
 
     override fun checkFinishedForbidden(mem: Long) = when {
         picks[mem]!!.filter { it.name != "???" }.size < 15 -> "Du hast noch keine 15 Pokemon!"

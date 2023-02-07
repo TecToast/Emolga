@@ -24,7 +24,7 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
             e.reply("Das ist kein Tier!")
             return
         }
-        val list: MutableList<String> = tierlist.tierlist[tier]!!.toMutableList()
+        val list: MutableList<String> = tierlist.getByTier(tier)!!.toMutableList()
         list.shuffle()
         val typecheck: (String) -> Boolean = if (args.has("type")) {
             val type = args.getTranslation("type");

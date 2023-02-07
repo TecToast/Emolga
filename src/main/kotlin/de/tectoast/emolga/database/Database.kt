@@ -20,7 +20,8 @@ class Database(username: String, password: String) {
     init {
         //dataSource = new MariaDbPoolDataSource("jdbc:mariadb://localhost/emolga?user=%s&password=%s&minPoolSize=1".formatted(username, password));
         val conf = HikariConfig()
-        conf.jdbcUrl = "jdbc:mariadb://localhost/emolga?user=$username&password=$password&minPoolSize=1"
+        conf.jdbcUrl =
+            "jdbc:mariadb://localhost/emolga?user=$username&password=$password&minPoolSize=1&rewriteBatchedStatements=true"
         dataSource = HikariDataSource(conf)
     }
 

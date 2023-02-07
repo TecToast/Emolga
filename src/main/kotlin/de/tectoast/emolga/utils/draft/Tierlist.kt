@@ -1,13 +1,13 @@
 package de.tectoast.emolga.utils.draft
 
-import de.tectoast.emolga.commands.DraftNamePreference
-import de.tectoast.emolga.commands.toSDName
+import de.tectoast.emolga.database.exposed.NameConventions
 import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.sql.managers.TranslationsManager
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Random
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.File
 import java.util.*
 import kotlin.properties.ReadOnlyProperty
@@ -16,29 +16,14 @@ import kotlin.reflect.KProperty
 @Suppress("unused")
 @Serializable
 class Tierlist(val guild: Long) {
-    /**
-     * HashMap containing<br></br>Keys: Tiers<br></br>Values: Lists with the mons
-     */
-    @Transient
-    val tierlist: MutableMap<String, MutableList<String>> = mutableMapOf()
 
     /**
      * The price for each tier
      */
     val prices: MutableMap<String, Int> = mutableMapOf()
     val freepicks: MutableMap<String, Int> = mutableMapOf()
-    val nexttiers: MutableList<Int> = mutableListOf()
-    val namepreference: DraftNamePreference = DraftNamePreference.SINGLE_CHAR_BEFORE
 
-    /**
-     * List with all pokemon in the sheets tierlists, columns are separated by an "NEXT"
-     */
-    val tiercolumns: MutableList<List<String>> = mutableListOf()
-    val trashmons: MutableList<String> = mutableListOf()
-    val additionalMons: MutableMap<String, MutableList<String>> = mutableMapOf()
-    var englishnames: MutableList<String> = mutableListOf()
-
-    val mode: TierlistMode = TierlistMode.POINTS
+    var mode: TierlistMode = TierlistMode.POINTS
     var points = 0
 
 
@@ -52,40 +37,11 @@ class Tierlist(val guild: Long) {
 
     val freePicksAmount get() = freepicks["#AMOUNT#"] ?: 0
 
-    /**
-     * the possible points for a player
-     */
-
-
     val autoComplete: Set<String> by lazy {
-        (tierlist.values.flatten() + englishnames).toSet()
-    }
-
-    val pickableNicknames: Set<String> by lazy {
-        TranslationsManager.getAllMonNicks().flatMap { mon ->
-            tierlist.values.flatten().filter { it.substringAfter("-") == mon.value }
-                .map { it.replace(mon.value, mon.key) }
-        }.toSet()
+        getAllForAutoComplete(guild)
     }
 
     fun setup() {
-        val currtierlist: MutableList<String> = mutableListOf()
-        var currtier = 0
-        for ((x, monss) in tiercolumns.withIndex()) {
-            val mon = monss.map { it.trim() }
-                .map { REPLACE_NONSENSE.replace(it, "") }
-            if (nexttiers.contains(x)) {
-                val key = order[currtier++]
-                tierlist[key] = ArrayList(currtierlist)
-                currtierlist.clear()
-            }
-            currtierlist.addAll(mon)
-        }
-        tierlist[order[currtier]] = ArrayList(currtierlist)
-        if (trashmons.isNotEmpty()) tierlist[order.last()]!!.addAll(trashmons)
-        if (additionalMons.isNotEmpty()) {
-            additionalMons.keys.forEach { tierlist[it]!!.addAll(additionalMons[it]!!) }
-        }
         tierlists[this.guild] = this
     }
 
@@ -97,42 +53,47 @@ class Tierlist(val guild: Long) {
     }
 
     fun getTierOf(s: String): String {
-        return tierlist.entries.firstOrNull { e -> e.value.any { s.toSDName() == it.toSDName() } }?.key ?: ""
+        return getTier(guild, s) ?: ""
     }
 
-    private fun setupTiercolumns(
-        mons: List<List<String>>,
-        nexttiers: List<Int>,
-        tiercols: MutableList<List<String>>,
-        normal: Boolean
-    ) {
-        var currtier = 0
-        val currtierlist: MutableList<String> = LinkedList()
-        for ((x, monss) in mons.withIndex()) {
-            val mon = monss.map { it.trim() }
-                .map { REPLACE_NONSENSE.replace(it, "") }
-            if (normal) {
-                if (nexttiers.contains(x)) {
-                    val key = order[currtier++]
-                    tierlist[key] = ArrayList(currtierlist)
-                    currtierlist.clear()
-                }
-                currtierlist.addAll(mon)
-            }
-            tiercols.add(mon)
+    fun addPokemon(mon: String, tier: String) = transaction {
+        insert {
+            it[guild] = this@Tierlist.guild
+            it[pokemon] = mon
+            it[this.tier] = tier
         }
-        if (normal) tierlist[order[currtier]] = ArrayList(currtierlist)
-        tiercolumns.removeLast()
     }
 
-    fun getNameOf(mon: String): String? {
-        return tierlist.values.flatten().firstOrNull { it.equals(mon, ignoreCase = true) }
+    fun getByTier(tier: String): List<String>? {
+        return transaction {
+            Tierlist.select { Tierlist.guild eq guild and (Tierlist.tier eq tier) }.map { it[pokemon] }.ifEmpty { null }
+        }
     }
 
-    companion object : ReadOnlyProperty<League, Tierlist> {
+    companion object : ReadOnlyProperty<League, Tierlist>, Table("tierlists") {
         /**
          * All tierlists
          */
+        val guild = long("guild")
+        val pokemon = varchar("pokemon", 30)
+        val tier = varchar("tier", 8)
+
+        fun getAllForAutoComplete(guildId: Long) = transaction {
+            val list = select { guild eq guildId }.map { it[pokemon] }
+            (list + NameConventions.getAllEnglishSpecified(list)).toSet()
+        }
+
+        fun getTier(guildId: Long, mon: String) = transaction {
+            select { guild eq guildId and (pokemon eq mon) }.firstOrNull()?.get(tier)
+        }
+
+        fun retrieveTierlistMap(guildId: Long, map: Map<String, Int>) = transaction {
+            map.entries.flatMap { (tier, amount) ->
+                select { guild eq guildId and (this@Companion.tier eq tier) }.orderBy(Random()).limit(amount)
+                    .map { DraftPokemon(it[pokemon], tier) }
+            }
+        }
+
         val tierlists: MutableMap<Long, Tierlist> = mutableMapOf()
         private val REPLACE_NONSENSE = Regex("[^a-zA-Z\\d-:%ßäöüÄÖÜé ]")
         fun setup() {
@@ -158,13 +119,13 @@ class Tierlist(val guild: Long) {
 }
 
 @Suppress("unused")
-enum class TierlistMode {
-    POINTS,
-    TIERS,
-    TIERS_WITH_FREE,
-    NOTHING;
+enum class TierlistMode(val withPoints: Boolean, val withTiers: Boolean) {
+    POINTS(true, false),
+    TIERS(false, true),
+    TIERS_WITH_FREE(true, true);
 
     fun isPoints() = this == POINTS
     fun isTiers() = this == TIERS
     fun isTiersWithFree() = this == TIERS_WITH_FREE
+
 }

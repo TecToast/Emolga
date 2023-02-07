@@ -17,6 +17,7 @@ import kotlinx.serialization.encoding.Encoder
 class Emolga(
     val config: Config,
     val statistics: Statistics,
+    val signups: MutableMap<Long, LigaStartData> = mutableMapOf(),
     val drafts: Map<String, League>,
     val soullink: Soullink,
     val emolgachannel: MutableMap<Long, MutableList<Long>>,
@@ -48,6 +49,27 @@ class Config(val teamgraphicShinyOdds: Int)
 
 @Serializable
 class Statistics(var drampaCounter: Int)
+
+@Serializable
+data class LigaStartData(
+    val users: MutableMap<Long, SignUpData> = mutableMapOf(),
+    val signupChannel: Long,
+    val logoChannel: Long,
+    var conferences: List<String> = listOf(),
+    var shiftMessageIds: List<Long> = listOf(),
+    var shiftChannel: Long? = null,
+    val maxUsers: Int,
+    val announceChannel: Long,
+    val announceMessageId: Long,
+)
+
+@Serializable
+data class SignUpData(
+    val teamname: String,
+    val sdname: String,
+    var logoUrl: String = "",
+    var conference: String? = null
+)
 
 object RegexSerializer : KSerializer<Regex> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Regex", PrimitiveKind.STRING)

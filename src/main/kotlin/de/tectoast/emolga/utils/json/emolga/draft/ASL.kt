@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.indexedBy
 import de.tectoast.emolga.commands.x
 import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.DraftTimer
+import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
@@ -49,7 +50,11 @@ class ASL(val level: Int = -1, private val sheetid: Int = -1) : League() {
         //sorterData = SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), false, null, 2, 8, 6)
 
     }
-    override val timer = DraftTimer.ASL
+
+    @Transient
+    override val timer = DraftTimer(TimerInfo(12, 22), 120)
+
+    override val timerSkipMode = TimerSkipMode.AT_THE_END
 
     override fun isFinishedForbidden() = false
 
@@ -124,23 +129,11 @@ class ASL(val level: Int = -1, private val sheetid: Int = -1) : League() {
     }
 
     override fun announcePlayer() {
-        tc.sendMessage("${getMention(current)} ist dran! (${points[current]} mögliche Punkte)")
+        tc.sendMessage("${getCurrentMention()} ist dran! (${points[current]} mögliche Punkte)")
             .queue()
     }
 
-    override fun getMention(mem: Long) = "<@$mem> (<@&${Emolga.get.asls11.roleIdByMember(mem)}>)"
-
-    override fun getPickRound(): Int {
-        return round.let {
-            if (it != 12) it
-            else {
-                val mt = movedTurns()
-                if (12 - picks.size < mt.size) {
-                    mt.removeFirst()
-                } else it
-            }
-        }
-    }
+    override fun getCurrentMention() = "<@$current> (<@&${Emolga.get.asls11.roleIdByMember(current)}>)"
 
     override fun isCurrent(user: Long): Boolean {
         return user in Emolga.get.asls11.teammembersByMember(current)

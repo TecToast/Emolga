@@ -68,8 +68,12 @@ abstract class GenericCommandEvent {
 
     fun reply(msg: String, ephermal: Boolean = false) {
         if (msg.isEmpty()) return
-        if (slashCommandEvent != null) slashCommandEvent.reply(msg).setEphemeral(ephermal)
-            .queue() else channel.sendMessage(msg).queue()
+        if (slashCommandEvent != null) {
+            if (slashCommandEvent.isAcknowledged) slashCommandEvent.hook.sendMessage(msg).setEphemeral(ephermal)
+                .queue() else
+                slashCommandEvent.reply(msg).setEphemeral(ephermal)
+                    .queue()
+        } else channel.sendMessage(msg).queue()
     }
 
     fun reply(
@@ -125,9 +129,6 @@ abstract class GenericCommandEvent {
     fun deferReply(ephermal: Boolean = false) {
         slashCommandEvent?.deferReply()?.setEphemeral(ephermal)?.queue()
     }
-
-    val isSlash: Boolean
-        get() = slashCommandEvent != null
 
     companion object {
         private val logger = LoggerFactory.getLogger(GenericCommandEvent::class.java)

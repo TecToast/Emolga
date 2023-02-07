@@ -160,7 +160,12 @@ sealed class SDEffect(vararg val types: String) {
 
     object Faint : SDEffect("faint") {
         override fun execute(split: List<String>, ctx: BattleContext) {
-            split[1].parsePokemon(ctx).isDead = true
+            val fainted = split[1].parsePokemon(ctx)
+            fainted.isDead = true
+            val lastLine = ctx.lastLine.cleanSplit()
+            if (lastLine.getOrNull(0) == "-activate" && lastLine.getOrNull(2) == "move: Destiny Bond") {
+                lastLine.getOrNull(1)?.parsePokemon(ctx)?.claimDamage(fainted, true, ctx, activeKill = false)
+            }
         }
     }
 

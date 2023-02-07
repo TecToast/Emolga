@@ -17,10 +17,13 @@ data class Pokemon(
     val abilities: Map<String, String>,
     val eggGroups: List<String>,
     val otherFormes: List<String>? = null,
+    val cosmeticFormes: List<String>? = null,
     val genderRatio: Map<String, Double>? = null,
     val gender: String? = null,
     val heightm: Double,
     val weightkg: Double,
+
+    val requiredAbility: String? = null,
 
     val evoLevel: Int? = null,
     val evoType: String? = null,

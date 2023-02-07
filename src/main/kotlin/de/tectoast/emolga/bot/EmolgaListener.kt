@@ -4,7 +4,6 @@ import de.tectoast.emolga.buttons.ButtonListener
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PrivateCommand
-import de.tectoast.emolga.commands.PrivateCommands
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
 import de.tectoast.emolga.utils.Constants
@@ -46,7 +45,7 @@ object EmolgaListener : ListenerAdapter() {
         jda.listener<SlashCommandInteractionEvent> { slashCommandInteractionEvent(it) }
         jda.listener<ReadyEvent> { e ->
             if (e.jda.selfUser.idLong == 723829878755164202) {
-                Emolga.get.drafts.values.filter { it.isRunning }.forEach {
+                Emolga.get.drafts.values.filter { it.isRunning && !it.noAutoStart }.forEach {
                     it.startDraft(
                         null, true, null
                     )
@@ -172,7 +171,6 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
             if (e.author.idLong != FLOID) e.jda.getTextChannelById(828044461379682314L)
                 ?.sendMessage(e.author.asMention + ": " + e.message.contentDisplay)?.queue()
             PrivateCommand.check(e)
-            PrivateCommands.execute(e.message)
             val msg = e.message.contentDisplay
             if (msg.contains("https://") || msg.contains("http://")) {
                 urlRegex.find(msg)?.run {

@@ -24,7 +24,7 @@ class TierlistSearchCommand :
             return
         }
         val tier = args.getText("tier")
-        val mons = tierlist.tierlist[tier] ?: run {
+        val mons = tierlist.getByTier(tier) ?: run {
             e.reply("Das Tier existiert auf diesem Server nicht!")
             return
         }

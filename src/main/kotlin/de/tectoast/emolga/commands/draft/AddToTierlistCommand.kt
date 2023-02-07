@@ -3,29 +3,42 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
+import org.jetbrains.exposed.exceptions.ExposedSQLException
+import java.sql.SQLIntegrityConstraintViolationException
 
 class AddToTierlistCommand :
-    Command("addtotierlist", "Fügt ein Mon ins D-Tier ein", CommandCategory.Draft, Constants.G.ASL) {
+    Command("addtotierlist", "Fügt ein Mon in die Tierliste ein", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("mon", "Mon", "Das Mon", ArgumentManagerTemplate.draftPokemon(), false, "Das ist kein Pokemon!")
             .add("tier", "Tier", "Das Tier, sonst das unterste", ArgumentManagerTemplate.Text.any(), true)
-            .setExample("!addtotierlist Chimstix")
+            .setExample("/addtotierlist Chimstix")
             .build()
         setCustomPermissions(PermissionPreset.fromRole(702233714360582154L))
+        slash()
     }
 
     override suspend fun process(e: GuildCommandEvent) {
         val id = e.guild.id
-        val o: Tierlist = load("./Tierlists/$id.json")
+        val tierlist = Tierlist.getByGuild(id) ?: return e.reply("Es gibt keine Tierlist für diesen Server!")
         val mon = e.arguments.getText("mon")
-        if (e.arguments.has("tier")) o.additionalMons
-            .getOrPut(e.arguments.getText("tier")) { mutableListOf() }.add(mon)
-        else o.trashmons.add(mon)
-        save(o, "./Tierlists/$id.json")
-        Tierlist.setup()
+        val tier = e.arguments.getNullable<String>("tier") ?: tierlist.prices.keys.last()
+        if (tier !in tierlist.prices) {
+            e.reply("Das Tier $tier existiert nicht!")
+            return
+        }
+        try {
+            tierlist.addPokemon(mon, tier)
+        } catch (ex: ExposedSQLException) {
+            if (ex.cause is SQLIntegrityConstraintViolationException) {
+                e.reply("Das Pokemon $mon existiert bereits!")
+                return
+            }
+            e.reply("Es ist ein unbekannter Fehler aufgetreten!")
+            ex.printStackTrace()
+            return
+        }
         e.reply("`$mon` ist nun pickable!")
     }
 }

@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.database.exposed.NameConventions
+import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -25,7 +26,7 @@ class AddConventionCommand : Command(
                 }
             })
         }
-        slash(true, 1054161634895069215)
+        slash(true, *TierlistBuilderConfigurator.enabledGuilds.toLongArray())
     }
 
     override suspend fun process(e: GuildCommandEvent) {

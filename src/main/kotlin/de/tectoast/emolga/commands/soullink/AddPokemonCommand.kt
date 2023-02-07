@@ -13,7 +13,7 @@ class AddPokemonCommand : Command("addpokemon", "Fügt ein Pokemon hinzu", Comma
                 val locs = Emolga.get.soullink.order
                 locs.filter { it.startsWith(s, ignoreCase = true) }
             })
-            .add("pokemon", "Pokemon", "Das Pokemon", ArgumentManagerTemplate.draftPokemon())
+            .add("pokemon", "Pokemon", "Das Pokemon", draftPokemonArgumentType)
             .add(
                 "status", "Status", "Der Status", ArgumentManagerTemplate.Text.of(
                     SubCommand.of("Team"),

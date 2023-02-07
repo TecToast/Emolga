@@ -3,10 +3,6 @@ package de.tectoast.emolga.commands
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command.ArgumentManagerTemplate
 import de.tectoast.emolga.commands.Command.Companion.dataJSON
-import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
-import de.tectoast.emolga.commands.Command.Companion.getDataObject
-import de.tectoast.emolga.commands.Command.Companion.load
-import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Translation
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.NameConventions
@@ -15,20 +11,26 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.annotations.PrivateCommand
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.emolga.draft.ASL
 import de.tectoast.emolga.utils.sql.managers.AnalysisManager
 import de.tectoast.emolga.utils.sql.managers.TranslationsManager
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Modal
+import dev.minn.jda.ktx.interactions.components.primary
+import dev.minn.jda.ktx.messages.Embed
+import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
+import io.ktor.server.application.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -37,6 +39,7 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
+import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.selectAll
@@ -45,37 +48,34 @@ import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 import java.awt.Color
 import java.io.File
-import java.lang.reflect.InvocationTargetException
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 import java.util.regex.Pattern
-import kotlin.reflect.full.callSuspend
-import kotlin.reflect.full.declaredMemberFunctions
-import kotlin.reflect.full.findAnnotation
 
+@Suppress("unused")
 object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
 
-    @PrivateCommand(name = "updatetierlist")
+
     fun updateTierlist(e: GenericCommandEvent) {
         Tierlist.setup()
         e.reply("Die Tierliste wurde aktualisiert!")
     }
 
-    @PrivateCommand(name = "checkguild")
+
     fun checkGuild(e: GenericCommandEvent) {
         e.jda.getGuildById(e.getArg(0))?.let { e.reply(it.name) }
     }
 
-    @PrivateCommand(name = "edit")
+
     fun edit(e: GenericCommandEvent) {
         e.msg?.let { e.jda.getTextChannelById(e.getArg(0))?.editMessageById(e.getArg(1), it.substring(43))?.queue() }
     }
 
-    @PrivateCommand(name = "send")
+
     suspend fun send(e: GenericCommandEvent) {
         val message = e.message
         logger.info(message!!.contentRaw)
@@ -88,7 +88,7 @@ object PrivateCommands {
         tc.sendMessage(s).queue()
     }
 
-    @PrivateCommand(name = "sendpn")
+
     fun sendPN(e: GenericCommandEvent) {
         val message = e.message
         logger.info(message!!.contentRaw)
@@ -97,7 +97,7 @@ object PrivateCommands {
         Command.sendToUser(userid.toLong(), s)
     }
 
-    @PrivateCommand(name = "react")
+
     suspend fun react(e: GenericCommandEvent) {
         val msg = e.msg
         var s = msg!!.substring(45)
@@ -114,29 +114,29 @@ object PrivateCommands {
         }
     }
 
-    @PrivateCommand(name = "ban")
+
     fun ban(e: GenericCommandEvent) {
         e.jda.getGuildById(e.getArg(0))?.ban(UserSnowflake.fromId(e.getArg(1)), 0, TimeUnit.SECONDS)?.queue()
     }
 
-    @PrivateCommand(name = "banwithreason")
+
     fun banwithreason(e: GenericCommandEvent) {
         e.jda.getGuildById(e.getArg(0))?.ban(UserSnowflake.fromId(e.getArg(1)), 0, TimeUnit.SECONDS)
             ?.reason(e.msg?.substring(53))?.queue()
     }
 
-    @PrivateCommand(name = "updatedatabase")
+
     fun updateDatabase(e: GenericCommandEvent) {
         Command.loadJSONFiles()
         e.done()
     }
 
-    @PrivateCommand(name = "del")
+
     fun del(e: GenericCommandEvent) {
         e.jda.getTextChannelById(e.getArg(0))?.deleteMessageById(e.getArg(1))?.queue()
     }
 
-    @PrivateCommand(name = "troll")
+
     suspend fun troll(e: GenericCommandEvent) {
         val category = e.jda.getCategoryById(e.getArg(0))
         val g = category!!.guild
@@ -153,7 +153,7 @@ object PrivateCommands {
         service.schedule({ g.moveVoiceMember(user, old).queue() }, x.toLong(), TimeUnit.SECONDS)
     }
 
-    @PrivateCommand(name = "addreactions")
+
     fun addReactions(e: GenericCommandEvent) {
         e.jda.getTextChannelById(e.getArg(0))?.retrieveMessageById(e.getArg(1))?.queue { m: Message ->
             m.reactions.forEach(Consumer {
@@ -163,27 +163,27 @@ object PrivateCommands {
         }
     }
 
-    @PrivateCommand(name = "saveemolgajson")
+
     fun saveEmolga(e: GenericCommandEvent) {
         saveEmolgaJSON()
         e.done()
     }
 
-    @PrivateCommand(name = "incrpdg")
+
     fun incrPdg(e: GenericCommandEvent) {
         for (arg in e.args) {
             Database.incrementPredictionCounter(arg.toLong())
         }
     }
 
-    @PrivateCommand(name = "testvolume")
+
     fun testVolume(e: GenericCommandEvent) {
         logger.info("Start!")
         Command.musicManagers[673833176036147210L]!!.player.volume = e.getArg(0).toInt()
         logger.info("musicManagers.get(673833176036147210L).player.getVolume() = " + Command.musicManagers[673833176036147210L]!!.player.volume)
     }
 
-    @PrivateCommand(name = "printcache")
+
     fun printCache(e: GenericCommandEvent) {
         Command.translationsCacheGerman.forEach { (str: String?, t: Translation) ->
             logger.info(str)
@@ -201,7 +201,7 @@ object PrivateCommands {
         e.done()
     }
 
-    @PrivateCommand(name = "clearcache")
+
     fun clearCache(e: GenericCommandEvent) {
         Command.translationsCacheGerman.clear()
         Command.translationsCacheOrderGerman.clear()
@@ -210,12 +210,12 @@ object PrivateCommands {
         e.done()
     }
 
-    @PrivateCommand(name = "getguildbytc")
+
     fun getGuildCmd(e: GenericCommandEvent) {
         e.jda.getTextChannelById(e.getArg(0))?.guild?.let { e.reply(it.name) }
     }
 
-    @PrivateCommand(name = "inviteme")
+
     suspend fun inviteMe(e: GenericCommandEvent) {
         coroutineScope {
             for (guild in e.jda.guilds) {
@@ -230,85 +230,22 @@ object PrivateCommands {
         }
     }
 
-    @PrivateCommand(name = "removeduplicates")
+
     fun removeDuplicates() {
         TranslationsManager.removeDuplicates()
     }
 
-    @PrivateCommand(name = "ndsnominate")
+
     fun ndsNominate(e: GenericCommandEvent) {
         Command.doNDSNominate(e.getArg(0).toBooleanStrict())
     }
 
-    @PrivateCommand(name = "matchups")
+
     fun matchUps(e: GenericCommandEvent) {
         Command.doMatchUps(e.getArg(0).toInt())
     }
 
-    @PrivateCommand(name = "checktierlist")
-    fun checkTierlist(e: GenericCommandEvent) {
-        val tierlist = Tierlist.getByGuild(e.getArg(0))!!
-        e.reply(tierlist.order.flatMap { tierlist.tierlist[it]!! }
-            .filter { Command.getDraftGerName(it, e.getArg(0).toLong()) == null }.joinToString("\n")
-            .ifEmpty { "Oh, du bist wohl kein Dasor :3" })
-    }
 
-    @PrivateCommand(name = "asltierlist")
-    fun asltierlist() {
-        val t = Tierlist.getByGuild(518008523653775366L)
-        val b = /*RequestBuilder("1wI291CWkKkWqQhY_KNu7GVfdincRz74omnCOvEVTDrc").withAdditionalSheets(
-            "1tFLd9Atl9QpMgCQBclpeU1WlMqSRGMeX8COUVDIf4TU",
-            "1A040AYoiqTus1wSq_3CXgZpgcY3ECpphVRJWHmXyxsQ",
-            "1p8DSvd3vS5s5z-1UGPjKUhFVskYjQyrn-HbvU0pb5WE",
-            "1nEJvV5UESfuJvsJplXi_RXXnq9lY2vD5NyrTF3ObcvU"
-        )*/ RequestBuilder("1VWjAc370NQvuybaQZOTQ2uBVGC36D2_n63DOghkoE2k")
-        var x = 0
-        for (s in t!!.order) {
-            val mons = t.tierlist[s]!!.map { str: String ->
-                if (str.startsWith("M-")) {
-                    if (str.endsWith("-X")) return@map "M-" + Command.getEnglName(
-                        str.substring(
-                            2, str.length - 2
-                        )
-                    ) + "-X"
-                    if (str.endsWith("-Y")) return@map "M-" + Command.getEnglName(
-                        str.substring(
-                            2, str.length - 2
-                        )
-                    ) + "-Y"
-                    return@map "M-" + Command.getEnglName(str.substring(2))
-                }
-                if (str.startsWith("A-")) return@map "A-" + Command.getEnglName(str.substring(2))
-                if (str.startsWith("G-")) return@map "G-" + Command.getEnglName(str.substring(2))
-                val engl = Command.getEnglNameWithType(str)
-                if (engl.isSuccess) return@map engl.translation
-                logger.info("str = {}", str)
-                when (str) {
-                    "Kapu-Riki" -> "Tapu Koko"
-                    "Kapu-Toro" -> "Tapu Bulu"
-                    "Kapu-Kime" -> "Tapu Fini"
-                    else -> Command.getEnglName(str.split("-").dropLastWhile { it.isEmpty() }
-                        .toTypedArray()[0]) + "-" + str.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()[1]
-                }
-            }.sorted().toMutableList()
-            if (s != "D") b.addColumn(
-                "Tierliste [englisch]!${getAsXCoord((x shl 1) + 1)}5", mons
-            ) else {
-                val size = mons.size / 3
-                for (i in 0..2) {
-                    val col: MutableList<Any> = LinkedList()
-                    for (j in 0 until size) {
-                        col.add(mons.removeFirst())
-                    }
-                    b.addColumn("Tierliste [englisch]!${getAsXCoord((x++ shl 1) + 1)}5", col)
-                }
-            }
-            x++
-        }
-        b.execute()
-    }
-
-    @PrivateCommand(name = "ndsteamsite")
     fun ndsTeamsite() {
         val nds = Emolga.get.nds()
         val picks = nds.picks
@@ -335,7 +272,7 @@ object PrivateCommands {
         b.execute()
     }
 
-    @PrivateCommand(name = "ndsgameplanfix")
+
     fun ndsgameplanfix(e: GenericCommandEvent) {
         val tc = e.jda.getTextChannelById(837425772288540682L)
         for (m in tc!!.iterableHistory) {
@@ -360,7 +297,7 @@ object PrivateCommands {
         }
     }
 
-    @PrivateCommand(name = "wooloogameplanfix")
+
     fun wooloogameplanfix(e: GenericCommandEvent) {
         val tc = e.jda.getTextChannelById(929686889332604969L)
         for (m in tc!!.iterableHistory) {
@@ -385,7 +322,7 @@ object PrivateCommands {
         }
     }
 
-    @PrivateCommand(name = "ndsprepares2rrjson")
+
     fun prepareNDSJSON() {
         val nds = Emolga.get.nds()
         val picks = nds.picks
@@ -396,7 +333,7 @@ object PrivateCommands {
         saveEmolgaJSON()
     }
 
-    @PrivateCommand(name = "ndsprepares2rrdoc")
+
     fun prepareNDSDoc() {
         val nds = Emolga.get.nds()
         val picks = nds.picks
@@ -422,7 +359,7 @@ object PrivateCommands {
         builder.execute()
     }
 
-    @PrivateCommand(name = "asls10fixswitches")
+
     fun asls10fixswitches(e: GenericCommandEvent) {
         val league = Emolga.get.league("ASLS10L${e.getArg(0)}")
         val picks = league.picks
@@ -432,7 +369,7 @@ object PrivateCommands {
         saveEmolgaJSON()
     }
 
-    @PrivateCommand(name = "ndscorrectpkmnnames")
+
     fun ndscorrektpkmnnames() {
         val nds = Emolga.get.nds()
         val picks = nds.picks
@@ -445,7 +382,7 @@ object PrivateCommands {
         b.execute()
     }
 
-    @PrivateCommand(name = "setupflorixcontrol")
+
     fun setupFlorixControl(e: GenericCommandEvent) {
         val jda = e.jda
         jda.getTextChannelById(964528154549055558L)!!.sendMessageEmbeds(
@@ -462,7 +399,7 @@ object PrivateCommands {
         ).queue()
     }
 
-    @PrivateCommand(name = "createki")
+
     fun createKI(e: GenericCommandEvent) {
         val jda = e.jda
         val tc = jda.getTextChannelById(e.getArg(0))
@@ -470,12 +407,13 @@ object PrivateCommands {
         e.done()
     }
 
-    @PrivateCommand(name = "deleteunusedreplaychannels")
+
     fun deleteUnused(e: GenericCommandEvent) {
         e.reply("Deleted: " + AnalysisManager.removeUnused())
     }
 
-    @PrivateCommand(name = "updateslashcommands")
+
+    private val guildsToUpdate = listOf(Constants.G.FLP)
     fun updateSlashCommands() {
         val jda = EmolgaMain.emolgajda
         val map: MutableMap<Long, MutableList<SlashCommandData>> = HashMap()
@@ -501,6 +439,7 @@ object PrivateCommands {
             }
         }
         for ((guild, value) in map) {
+            if (guildsToUpdate.isNotEmpty() && guild !in guildsToUpdate) continue
             (when (guild) {
                 -1L -> jda.updateCommands()
                 Constants.G.PEPE -> EmolgaMain.flegmonjda.getGuildById(
@@ -515,7 +454,7 @@ object PrivateCommands {
         }
     }
 
-    @PrivateCommand("startasls11drafts")
+
     suspend fun startasls11drafts(e: GenericCommandEvent) {
         val jda = e.jda
         Emolga.get.apply {
@@ -546,70 +485,23 @@ object PrivateCommands {
                 arg.helpmsg,
                 !arg.isOptional,
                 argType.hasAutoComplete()
-            )
+            ).apply { if (argType is ArgumentManagerTemplate.Text && argType.hasOptions()) addChoices(*argType.toChoiceArray()) }
         }
     }
 
-    @PrivateCommand(name = "checkadmin")
+
     fun checkAdmin(e: GenericCommandEvent) {
         e.reply(e.jda.getGuildById(e.getArg(0))!!.selfMember.hasPermission(Permission.ADMINISTRATOR).toString())
     }
 
-    @PrivateCommand(name = "testdbspeed")
+
     fun testDBSpeed(e: GenericCommandEvent) {
         val l = System.nanoTime()
         TranslationsManager.getTranslation(e.getArg(0), false)
         e.reply((System.nanoTime() - l).toString())
     }
 
-    @PrivateCommand(name = "buildenglishtierlist")
-    fun buildEnglishTierlist(e: GenericCommandEvent) {
-        val guild = e.getArg(0)
-        val t = Tierlist.getByGuild(guild)!!
-        val all: MutableList<String> = mutableListOf()
-        for (s in t.order) {
-            t.tierlist[s]!!.asSequence().map { str: String ->
-                val split = str.split("-")
-                Command.possibleForms.plusFirstChars().firstOrNull { str.startsWith("$it-", ignoreCase = true) }
-                    ?.also { form ->
-                        return@map "$form-${Command.getEnglName(split[1])}${split.getOrNull(2)?.let { "-${it}" } ?: ""}"
-                    }
-                logger.info(str)
-                val engl = Command.getEnglNameWithType(str)
-                if (engl.isSuccess) return@map engl.translation
-                logger.info("str = {}", str)
-                when (str) {
-                    "Kapu-Riki" -> "Tapu Koko"
-                    "Kapu-Toro" -> "Tapu Bulu"
-                    "Kapu-Kime" -> "Tapu Fini"
-                    "Kapu-Fala" -> "Tapu Lele"
-                    "Furnifra" -> "Heatmor"
-                    else -> Command.getEnglName(split[0]) + "-" + split[1]
-                }
-            }.forEach { all.add(it) }
-        }
-        val path = "Tierlists/$guild.json"
-        val o: Tierlist = load(path)
-        o.englishnames = all
-        save(o, path)
-    }
 
-    @PrivateCommand("asls11data")
-    fun asls11DataSheet() {
-        val tl = Tierlist.getByGuild(Constants.G.ASL)!!
-        val b = RequestBuilder("1VWjAc370NQvuybaQZOTQ2uBVGC36D2_n63DOghkoE2k")
-        val send = tl.tierlist.entries.flatMap { en ->
-            en.value.map {
-                val data = getDataObject(it)
-                listOf(
-                    it, en.key, tl.prices[en.key]!!, data.speed, Command.getGen5Sprite(data)
-                )
-            }
-        }
-        b.addAll("Data!A1", send).execute()
-    }
-
-    @PrivateCommand("asls11doc")
     fun asls11doc(e: GenericCommandEvent) {
         val sid = "1VWjAc370NQvuybaQZOTQ2uBVGC36D2_n63DOghkoE2k"
         val b = RequestBuilder(sid)
@@ -631,19 +523,19 @@ object PrivateCommands {
         b.execute()
     }
 
-    @PrivateCommand("breakpoint")
+
     fun breakpoint(e: GenericCommandEvent) {
         e.done()
     }
 
-    @PrivateCommand("showallcommands")
+
     fun showAllCommands() {
         Command.commands.values.toSet().groupBy { it.category }.toList().joinToString("\n\n") { (cat, cmds) ->
             "$cat:\n${cmds.sortedBy { it.name }.joinToString("\n") { it.getHelp(null) }}"
         }.let { File("allcommands.txt").writeText(it) }
     }
 
-    @PrivateCommand("printtipgame")
+
     suspend fun printTipGame() {
         newSuspendedTransaction {
             TipGames.run {
@@ -655,7 +547,7 @@ object PrivateCommands {
         }
     }
 
-    @PrivateCommand("printerentipgame")
+
     fun printEnterTipGame() {
         val nds = Emolga.get.nds()
         val tips = nds.tipgame!!.tips
@@ -673,7 +565,7 @@ object PrivateCommands {
         }
     }
 
-    @PrivateCommand("addsdnamemodal", ack = true)
+
     fun sdNameAdd(e: GenericCommandEvent) {
         e.slashCommandEvent!!.replyModal(Modal("addsdnamecreate", "Showdown-Namen-Button hinzufügen") {
             short("tc", "Text-Channel", required = true)
@@ -682,7 +574,7 @@ object PrivateCommands {
         }).queue()
     }
 
-    @PrivateCommand("createconventions")
+
     suspend fun createConventions() {
         dataJSON.values.asSequence().filterNot { it.num <= 0 }.map {
             val translated = Command.getGerName(it.baseSpecies ?: it.name).translation
@@ -690,39 +582,78 @@ object PrivateCommands {
         }.forEach { NameConventions.insertDefault(it.first, it.second) }
     }
 
-    @PrivateCommand("allgermanhyphen")
+
+    suspend fun createConventionsCosmetic() {
+        dataJSON.values.asSequence().filterNot { it.num <= 0 || it.cosmeticFormes == null }.forEach {
+            val translated = Command.getGerName(it.baseSpecies ?: it.name).translation
+            it.cosmeticFormes!!.forEach { f ->
+                NameConventions.insertDefaultCosmetic(
+                    it.name, translated, f, translated + "-" + f.split("-").drop(1).joinToString("-")
+                )
+            }
+        }
+    }
+
+
     fun allGermanHyphen() {
         dataJSON.values.asSequence().filter { it.baseSpecies == null }.mapNotNull {
             Command.getGerName(it.name).translation.takeIf { c -> c.contains('-') }
         }.joinToString("\n").let { "noforms.txt".file().writeText(it) }
     }
 
+    // Order: Announcechannel mit Button, Channel in dem die Anmeldungen reinkommen, Channel in den die Logos kommen, AnzahlTeilnehmer, Message
+    suspend fun createSignup(e: GenericCommandEvent) {
+        val args = e.getArg(1).split(" ")
+        val tc = e.jda.getTextChannelById(args[0])!!
+        val messageid = tc.sendMessage(args.drop(4).joinToString(" ").replace("\\n", "\n")).addActionRow(
+            primary(
+                "signup", "Anmelden", Emoji.fromUnicode("✅")
+            )
+        ).await().idLong
+        Emolga.get.signups[tc.guild.idLong] =
+            LigaStartData(
+                signupChannel = args[1].toLong(),
+                logoChannel = args[2].toLong(),
+                maxUsers = args[3].toInt(),
+                announceChannel = tc.idLong,
+                announceMessageId = messageid
+            )
+        saveEmolgaJSON()
+    }
 
-    suspend fun execute(message: Message) {
-        val msg = message.contentRaw
-        for (method in PrivateCommands::class.declaredMemberFunctions) {
-            val a = method.findAnnotation<PrivateCommand>() ?: continue
-            if (msg.lowercase().startsWith("!" + a.name.lowercase() + " ") || msg.equals(
-                    "!" + a.name, ignoreCase = true
-                ) || a.aliases.any {
-                    msg.startsWith(
-                        "!$it "
-                    ) || msg.equals("!$it", ignoreCase = true)
-                }
-            ) {
-                //Thread({
-                try {
-                    if (method.parameters.run { isEmpty() || size == 1 }) method.callSuspend(PrivateCommands)
-                    else method.callSuspend(
-                        PrivateCommands, PrivateCommandEvent(message)
-                    )
-                } catch (e: IllegalAccessException) {
-                    logger.error("PrivateCommand " + a.name, e)
-                } catch (e: InvocationTargetException) {
-                    logger.error("PrivateCommand " + a.name, e)
-                }
-                //}, "PrivateCommand " + a.name).start()
+    suspend fun startOrderingUsers(e: GenericCommandEvent) {
+        val args = e.getArg(1).split(" ")
+        val tc = e.jda.getTextChannelById(args[0])!!
+        val data = Emolga.get.signups[tc.guild.idLong]!!
+        val conferences = args.drop(1)
+        data.shiftChannel = tc.idLong
+        data.conferences = conferences
+        val usermap = mutableMapOf<String, MutableList<Long>>()
+        data.users.entries.forEachIndexed { index, (key, value) ->
+            value.conference = conferences[index % conferences.size].also {
+                usermap.getOrPut(it) { mutableListOf() }.add(key)
             }
         }
+        data.shiftMessageIds = generateOrderingMessages(data).map {
+            tc.send(embeds = it.first.into(), components = it.second).await().idLong
+        }
+        saveEmolgaJSON()
+    }
+
+    private val nameCache = mutableMapOf<Long, String>()
+    suspend fun generateOrderingMessages(data: LigaStartData): List<Pair<MessageEmbed, List<ActionRow>>> {
+        if (nameCache.isEmpty()) EmolgaMain.emolgajda.getTextChannelById(data.signupChannel)!!.guild.retrieveMembersByIds(
+            data.users.keys
+        ).await().forEach { nameCache[it.idLong] = it.effectiveName }
+        return data.users.entries.groupBy { it.value.conference }.entries.sortedBy { data.conferences.indexOf(it.key) }
+            .map { (conference, users) ->
+                Embed(
+                    title = "Conference: $conference (${users.size}/${data.maxUsers})",
+                    description = users.joinToString("\n") { "<@${it.key}>" }, color = embedColor
+                ) to
+                        users.map { (id, _) ->
+                            primary("shiftuser;$id", nameCache[id]!!)
+                        }.chunked(5).map { ActionRow.of(it) }
+            }
     }
 }

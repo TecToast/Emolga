@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.coordXMod
 import de.tectoast.emolga.utils.DraftTimer
+import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.CombinedStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
@@ -31,7 +32,9 @@ class DoR : League() {
         }
         monsOrder = { l -> l.sortedWith(compareBy({ it.free }, { if (it.free) "" else it.tier })).map { it.name } }
     }
-    override val timer = DraftTimer.DoR
+
+    @Transient
+    override val timer = DraftTimer(TimerInfo(12, 22), 60)
 
     override fun pickDoc(data: PickData) {
         val b = builder()
@@ -40,7 +43,7 @@ class DoR : League() {
             14,
             4,
             17,
-            if (data.freePick) data.picks.count { it.free } + 13 else getTierInsertIndex(data.picks, data.tier) + 6),
+            if (data.freePick) data.picks.count { it.free } + 13 else getTierInsertIndex(data) + 6),
             data.pokemon)
         b.addSingle(data.round.minus(1).coordXMod("Draftreihenfolge", 4, 4, 4, 13, 3 + data.indexInRound), data.pokemon)
         if (data.freePick) b.addSingle(
@@ -71,14 +74,5 @@ class DoR : League() {
         return false
     }
 
-    override fun afterPick() {
-        if (hasMovedTurns()) {
-            announcePlayer()
-            movedTurns().removeFirstOrNull()
-        } else nextPlayer()
-    }
-
-    override fun getPickRound(): Int {
-        return movedTurns().firstOrNull() ?: round
-    }
+    override val timerSkipMode = TimerSkipMode.NEXT_PICK
 }

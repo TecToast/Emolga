@@ -44,14 +44,8 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
         val mem = d.current
         val args = e.arguments
         val tierlist = d.tierlist
-        val oldmon = tierlist.getNameOf(args.getText("oldmon")) ?: run {
-            e.reply("Das, was du rauswerfen möchtest, steht nicht in der Tierliste!")
-            return
-        }
-        val newmon = tierlist.getNameOf(args.getText("newmon")) ?: run {
-            e.reply("Das, was du haben möchtest, steht nicht in der Tierliste!")
-            return
-        }
+        val oldmon = args.getText("oldmon")
+        val newmon = args.getText("newmon")
         if (!d.isPickedBy(oldmon, mem)) {
             e.reply("$oldmon befindet sich nicht in deinem Kader!")
             return

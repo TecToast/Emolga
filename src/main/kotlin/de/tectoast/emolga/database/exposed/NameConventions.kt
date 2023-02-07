@@ -3,6 +3,7 @@ package de.tectoast.emolga.database.exposed
 import de.tectoast.emolga.utils.json.Emolga
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 
@@ -13,6 +14,16 @@ object NameConventions : Table("nameconventions") {
     val specified = varchar("specified", 50)
     val specifiedenglish = varchar("specifiedenglish", 50)
     val hashypheninname = bool("hashypheninname")
+
+    fun getAllEnglishSpecified(mons: List<String>): List<String> {
+        return transaction {
+            select(specified inList mons).map { it[specifiedenglish] }
+        }
+    }
+
+    fun getAll() = transaction {
+        selectAll().flatMap { setOf(it[german], it[english]) }.toSet()
+    }
 
     suspend fun insertDefault(english: String, name: String) {
         newSuspendedTransaction {
@@ -25,9 +36,26 @@ object NameConventions : Table("nameconventions") {
         }
     }
 
-    suspend fun checkIfExists(name: String): Boolean {
+    suspend fun insertDefaultCosmetic(
+        english: String,
+        german: String,
+        specifiedEnglish: String,
+        specifiedGerman: String
+    ) {
+        newSuspendedTransaction {
+            insert {
+                it[guild] = 1
+                it[this.german] = german
+                it[this.english] = english
+                it[specified] = specifiedGerman
+                it[specifiedenglish] = specifiedEnglish
+            }
+        }
+    }
+
+    suspend fun checkIfExists(name: String, guildId: Long): Boolean {
         return newSuspendedTransaction {
-            select(specified eq name).firstOrNull() != null
+            select(specified eq name and (guild eq 0 or (guild eq guildId))).firstOrNull() != null
         }
     }
 
@@ -59,11 +87,14 @@ object NameConventions : Table("nameconventions") {
         list += s
         return transaction {
             for (test in list) {
-                select((specified eq test or (specifiedenglish eq test)) and (guild eq 0 or (guild eq guildId))).orderBy(
+                select(((german eq test) or (english eq test) or (specified eq test) or (specifiedenglish eq test)) and (guild eq 0 or (guild eq guildId))).orderBy(
                     guild to SortOrder.DESC
                 ).firstOrNull()
                     ?.let {
-                        return@transaction DraftName(it[specified], it[german])
+                        return@transaction DraftName(
+                            if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
+                            it[german]
+                        )
                     }
 
             }
@@ -72,6 +103,4 @@ object NameConventions : Table("nameconventions") {
     }
 }
 
-data class DraftName(val tlName: String, val official: String) {
-    fun toArgumentString() = "$tlName###$official"
-}
+data class DraftName(val tlName: String, val official: String)

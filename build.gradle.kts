@@ -1,6 +1,6 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
-val kVersion = "1.7.10"
+val kVersion = "1.8.10"
 plugins {
     val kVersion = "1.7.10"
     kotlin("jvm") version kVersion

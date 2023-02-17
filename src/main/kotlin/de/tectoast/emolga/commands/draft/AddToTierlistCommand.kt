@@ -3,7 +3,9 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.json.emolga.draft.League
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import java.sql.SQLIntegrityConstraintViolationException
 
@@ -12,11 +14,19 @@ class AddToTierlistCommand :
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("mon", "Mon", "Das Mon", ArgumentManagerTemplate.draftPokemon(), false, "Das ist kein Pokemon!")
-            .add("tier", "Tier", "Das Tier, sonst das unterste", ArgumentManagerTemplate.Text.any(), true)
+            .add(
+                "tier",
+                "Tier",
+                "Das Tier, sonst das unterste",
+                ArgumentManagerTemplate.Text.withAutocomplete { s, event ->
+                    League.byGuild(event.guild!!.idLong)?.tierlist?.prices?.keys?.filter { it.startsWith(s) }
+                },
+                true
+            )
             .setExample("/addtotierlist Chimstix")
             .build()
-        setCustomPermissions(PermissionPreset.fromRole(702233714360582154L))
-        slash()
+        //setCustomPermissions(PermissionPreset.fromRole(702233714360582154L))
+        slash(true, Constants.G.VIP)
     }
 
     override suspend fun process(e: GuildCommandEvent) {
@@ -39,6 +49,6 @@ class AddToTierlistCommand :
             ex.printStackTrace()
             return
         }
-        e.reply("`$mon` ist nun pickable!")
+        e.reply("`$mon` ist nun im $tier-Tier!")
     }
 }

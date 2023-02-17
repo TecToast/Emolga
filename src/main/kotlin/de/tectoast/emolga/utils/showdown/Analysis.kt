@@ -50,15 +50,20 @@ object Analysis {
                 val monName = split[2].substringBefore(",")
                 if (player !in allMons && !randomBattle) randomBattle = true
                 if (randomBattle) {
-                    allMons[player]?.any { it.pokemon == monName } == true || allMons.getOrPut(player) { mutableListOf() }
+                    allMons[player]?.any { it.hasName(monName) } == true || allMons.getOrPut(player) { mutableListOf() }
                         .add(SDPokemon(monName, player))
                 }
+            }
+            if (line.startsWith("|detailschange|")) {
+                val (player, _) = split[1].parsePokemonLocation()
+                val oldMonName = split[1].substringAfter(" ")
+                allMons[player]?.firstOrNull { it.hasName(oldMonName) }?.otherNames?.add(split[2].substringBefore(","))
             }
             if (line.startsWith("|replace|")) {
                 val (player, _) = split[1].parsePokemonLocation()
                 val monloc = split[1].substringBefore(":")
                 val monname = split[2].substringBefore(",")
-                val mon = allMons[player]!!.firstOrNull { it.pokemon == monname } ?: SDPokemon(
+                val mon = allMons[player]!!.firstOrNull { it.hasName(monname) } ?: SDPokemon(
                     monname,
                     player
                 ).also { allMons.getOrPut(player) { mutableListOf() }.add(it) }

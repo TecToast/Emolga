@@ -11,6 +11,9 @@ data class SDPokemon(var pokemon: String, val player: Int) {
     var itemObtainedFrom: SDPokemon? = null
     var targetForTrick: SDPokemon? = null
     val zoroLines = mutableMapOf<IntRange, SDPokemon>()
+    val otherNames = mutableSetOf<String>()
+
+    fun hasName(name: String) = pokemon == name || otherNames.contains(name)
 
     val passiveKills get() = kills - activeKills
 
@@ -81,7 +84,7 @@ sealed class SDEffect(vararg val types: String) {
     object Replace : SDEffect("replace") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             val (pl, i) = split[1].parsePokemonLocation()
-            ctx.monsOnField[pl][i] = ctx.sdPlayers[pl].pokemon.first { it.pokemon == split[2].substringBefore(",") }
+            ctx.monsOnField[pl][i] = ctx.sdPlayers[pl].pokemon.first { it.hasName(split[2].substringBefore(",")) }
         }
     }
 
@@ -101,7 +104,7 @@ sealed class SDEffect(vararg val types: String) {
                 ?.let {
                     it.pokemon = monName
                 }
-            ctx.monsOnField[pl][idx] = playerSide.pokemon.first { it.pokemon == monName }
+            ctx.monsOnField[pl][idx] = playerSide.pokemon.first { it.hasName(monName) }
         }
     }
 
@@ -183,7 +186,9 @@ sealed class SDEffect(vararg val types: String) {
 
     object DetailsChanged : SDEffect("detailschange") {
         override fun execute(split: List<String>, ctx: BattleContext) {
-            split[1].parsePokemon(ctx).pokemon = split[2].substringBefore(",")
+            val mon = split[1].parsePokemon(ctx)
+            mon.otherNames += mon.pokemon
+            mon.pokemon = split[2].substringBefore(",")
         }
     }
 

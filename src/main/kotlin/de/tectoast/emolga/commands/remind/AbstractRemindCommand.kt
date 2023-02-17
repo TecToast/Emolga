@@ -3,25 +3,24 @@ package de.tectoast.emolga.commands.remind
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.sql.managers.CalendarManager
-import java.sql.Timestamp
 import java.util.Calendar.*
 
-abstract class AbstractRemindCommand(name: String, val msg: String, withDateParam: Boolean) : Command(
+abstract class AbstractRemindCommand(name: String, val msg: String) : Command(
     name, name,
     CommandCategory.Flo, Constants.G.MY
 ) {
     abstract fun getMillis(e: GuildCommandEvent): Long
 
+    open fun generateArgumentTemplate() = ArgumentManagerTemplate.create {
+        add("text", "Text", "Der Text", ArgumentManagerTemplate.Text.any())
+    }
+
     init {
-        argumentTemplate = ArgumentManagerTemplate.create {
-            add("text", "Text", "Der Text", ArgumentManagerTemplate.Text.any())
-            if (withDateParam) {
-                add("date", "Datum", "Das Datum", ArgumentManagerTemplate.Text.any())
-            }
-        }
+        argumentTemplate = generateArgumentTemplate()
         slash()
+        setCustomPermissions(PermissionPreset.fromIDs(Person.T.uid))
     }
 
     override suspend fun process(e: GuildCommandEvent) {
@@ -29,8 +28,7 @@ abstract class AbstractRemindCommand(name: String, val msg: String, withDatePara
             val args = e.arguments
             val expires = getMillis(e)
             val message = args.getText("text")
-            CalendarManager.insertNewEntry(message, Timestamp(expires / 1000 * 1000))
-            scheduleCalendarEntry(expires, message)
+            CalendarDB.scheduleCalendarEntry(message, expires)
             e.reply(msg, ephermal = true)
             e.jda.getTextChannelById(Constants.CALENDAR_TCID)!!
                 .editMessageById(Constants.CALENDAR_MSGID, buildCalendar()).queue()
@@ -41,14 +39,12 @@ abstract class AbstractRemindCommand(name: String, val msg: String, withDatePara
     }
 }
 
-abstract class DatedRemindCommand(name: String, msg: String, private val dates: Set<RemindDate>) :
-    AbstractRemindCommand(name, msg, false) {
-    override fun getMillis(e: GuildCommandEvent) =
-        System.currentTimeMillis().let { now -> dates.map { it.nextAppearance() }.filter { it - now > 0 }.min() }
-}
-
-abstract class RegularRemindCommand(name: String, msg: String) : AbstractRemindCommand(name, msg, true) {
+abstract class RegularRemindCommand(name: String, msg: String) : AbstractRemindCommand(name, msg) {
     override fun getMillis(e: GuildCommandEvent) = parseCalendarTime(e.arguments.getText("date"))
+    override fun generateArgumentTemplate() = ArgumentManagerTemplate.create {
+        add("text", "Text", "Der Text", ArgumentManagerTemplate.Text.any())
+        add("date", "Datum", "Das Datum", ArgumentManagerTemplate.Text.any())
+    }
 }
 
 

@@ -47,7 +47,6 @@ import de.tectoast.emolga.utils.json.showdown.Learnset
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.json.showdown.TypeData
 import de.tectoast.emolga.utils.music.GuildMusicManager
-import de.tectoast.emolga.utils.records.CalendarEntry
 import de.tectoast.emolga.utils.records.TypicalSets
 import de.tectoast.emolga.utils.showdown.*
 import de.tectoast.emolga.utils.sql.managers.*
@@ -2031,20 +2030,42 @@ _written by Maxifcn_""".trimIndent()
                 .ifEmpty { "_leer_" }
         }
 
-
-        @JvmStatic
-        protected fun scheduleCalendarEntry(expires: Long, message: String) {
-            calendarService.schedule({
-                val calendarTc: TextChannel = emolgajda.getTextChannelById(CALENDAR_TCID)!!
-                CalendarManager.delete(Timestamp(expires / 1000 * 1000))
-                calendarTc.sendMessage("(<@$FLOID>) $message")
-                    .setActionRow(Button.primary("calendar;delete", "Löschen")).queue()
-                calendarTc.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()
-            }, expires - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
-        }
-
-        fun scheduleCalendarEntry(e: CalendarEntry) {
-            scheduleCalendarEntry(e.expires.time, e.message)
+        fun scheduleCalendarEntry(ce: CalendarEntry) {
+            calendarService.schedule(
+                {
+                    try {
+                        transaction {
+                            if (runCatching { ce.refresh() }.let {
+                                    println(
+                                        it.exceptionOrNull()?.stackTraceToString()
+                                    ); it.isFailure
+                                }) return@transaction null
+                            ce.delete()
+                        } ?: return@schedule
+                        println(ce.person)
+                        ce.person?.let { p ->
+                            val tc = emolgajda.getTextChannelById(p.tcid)!!
+                            tc.editMessageComponentsById(
+                                ce.messageid!!,
+                                danger("homework;done", "Gemacht", emoji = Emoji.fromUnicode("✅")).into()
+                            ).queue()
+                            tc.sendMessage("<@${p.uid}> Hausaufgabe fällig :)").setMessageReference(ce.messageid!!)
+                                .addActionRow(
+                                    primary("calendar;delete", "Benachrichtigung löschen")
+                                ).queue()
+                        } ?: run {
+                            val calendarTc: TextChannel = emolgajda.getTextChannelById(CALENDAR_TCID)!!
+                            calendarTc.sendMessage("(<@$FLOID>) ${ce.message}")
+                                .setActionRow(Button.primary("calendar;delete", "Löschen")).queue()
+                            calendarTc.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()
+                        }
+                    } catch (ex: Exception) {
+                        ex.printStackTrace()
+                    }
+                },
+                (ce.expires.toEpochMilli() - System.currentTimeMillis()).also { println("DELAY: $it") },
+                TimeUnit.MILLISECONDS
+            )
         }
 
 

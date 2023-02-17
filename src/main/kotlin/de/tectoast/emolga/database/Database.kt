@@ -5,8 +5,12 @@ import com.zaxxer.hikari.HikariDataSource
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
+import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.sql.managers.*
+import de.tectoast.emolga.utils.sql.managers.AnalysisManager
+import de.tectoast.emolga.utils.sql.managers.MusicGuildsManager
+import de.tectoast.emolga.utils.sql.managers.PredictionGameManager
+import de.tectoast.emolga.utils.sql.managers.SpoilerTagsManager
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
@@ -43,7 +47,7 @@ class Database(username: String, password: String) {
             logger.info("Retrieving all startup information...")
             AnalysisManager.forAll { Command.replayAnalysis[it.getLong("replay")] = it.getLong("result") }
             MusicGuildsManager.forAll { CommandCategory.musicGuilds.add(it.getLong("guildid")) }
-            CalendarManager.allEntries.forEach { Command.scheduleCalendarEntry(it) }
+            CalendarDB.allEntries.forEach { Command.scheduleCalendarEntry(it) }
             logger.info("replayAnalysis.size() = " + Command.replayAnalysis.size)
             SpoilerTagsManager.addToList()
         }

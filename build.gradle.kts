@@ -83,8 +83,6 @@ dependencies {
 
     implementation("ch.qos.logback:logback-classic:1.4.5")
     //implementation("mysql:mysql-connector-java:8.0.29")
-    implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
-    implementation("org.glassfish.jaxb:jaxb-runtime:4.0.1")
     implementation("com.github.TecToast:Toastilities:96e360b1f8")
     //implementation("com.github.TecToast:JSOLF:a43c3e06c7")
     implementation("net.dv8tion:JDA:5.0.0-beta.2")

@@ -87,7 +87,7 @@ dependencies {
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.1")
     implementation("com.github.TecToast:Toastilities:96e360b1f8")
     //implementation("com.github.TecToast:JSOLF:a43c3e06c7")
-    implementation("net.dv8tion:JDA:5.0.0-beta.2")
+    implementation("net.dv8tion:JDA:5.0.0-beta.3")
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.1.1")
     implementation("com.github.MinnDevelopment:jda-ktx:0.10.0-beta.1")

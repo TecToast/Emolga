@@ -13,7 +13,7 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
             .add("tier", "Tier", "Das Tier, in dem gepickt werden soll", ArgumentManagerTemplate.Text.any())
             .addEngl("type", "Typ", "Der Typ, von dem random gepickt werden soll", Translation.Type.TYPE, true)
             .setExample("!randompick A").build()
-        slash(true, Constants.G.ASL)
+        slash(true, Constants.G.ASL, Constants.G.FLP)
     }
 
     override suspend fun process(e: GuildCommandEvent) {
@@ -36,8 +36,8 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
             put(
                 "pokemon", (list.firstOrNull { str: String ->
                     !d.isPicked(str) && typecheck(str)
-                }?.trim() ?: e.reply("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")
-                    .also { return })
+                }?.trim()?.let { getDraftGerName(it, d.guild) }
+                    ?: return e.reply("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!"))
             )
         }
         exec(e, true)

@@ -81,11 +81,16 @@ object Google {
     }
 
     @Throws(IllegalArgumentException::class)
-    operator fun get(spreadsheetId: String?, range: String?, formula: Boolean): List<List<Any>> {
+    operator fun get(spreadsheetId: String, range: String, formula: Boolean): List<List<Any>> {
         return sheetsService.spreadsheets()
             .values()[spreadsheetId, range].setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
             .execute().getValues()
     }
+
+    fun batchGet(sid: String, ranges: List<String>, formula: Boolean) =
+        sheetsService.spreadsheets().values().batchGet(sid).setRanges(ranges)
+            .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
+            .execute().valueRanges.map { it.getValues() }
 
     @Deprecated("")
     @ReplaceWith("RequestBuilder.updateAll")

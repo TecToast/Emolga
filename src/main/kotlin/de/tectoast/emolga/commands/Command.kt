@@ -21,9 +21,7 @@ import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
-import de.tectoast.emolga.database.exposed.ActivePassiveKills
-import de.tectoast.emolga.database.exposed.DraftName
-import de.tectoast.emolga.database.exposed.NameConventions
+import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.encryption.TokenEncrypter
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
@@ -74,6 +72,7 @@ import kotlinx.serialization.modules.subclass
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.OnlineStatus
+import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.audio.hooks.ConnectionListener
 import net.dv8tion.jda.api.audio.hooks.ConnectionStatus
 import net.dv8tion.jda.api.entities.*
@@ -98,6 +97,7 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.utils.FileUpload
 import org.apache.commons.collections4.queue.CircularFifoQueue
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import org.slf4j.MarkerFactory
@@ -428,6 +428,10 @@ abstract class Command(
                     throw IllegalStateException("Unknown type ${x::class.java}")
 
             }
+        }
+
+        fun getDraftName(key: String): DraftName {
+            return map[key] as DraftName
         }
 
         fun isText(key: String, text: String): Boolean {
@@ -1027,7 +1031,11 @@ abstract class Command(
                 return withPredicate(
                     "Pokemon",
                     false,
-                    { str, data -> getDraftGerName(str, data.guildId) },
+                    { str, data ->
+                        getDraftGerName(
+                            str,
+                            data.channel?.let { League.onlyChannel(it.idLong)?.guild } ?: data.guildId)
+                    },
                     autoComplete
                 )
             }
@@ -1371,7 +1379,14 @@ abstract class Command(
         val TRIPLE_HASHTAG = Regex("###")
         const val DEXQUIZ_BUDGET = 10
         val draftGuilds =
-            arrayOf(Constants.G.FPL, Constants.G.NDS, Constants.G.ASL, Constants.G.BLOCKI, Constants.G.VIP)
+            arrayOf(
+                Constants.G.FPL,
+                Constants.G.NDS,
+                Constants.G.ASL,
+                Constants.G.BLOCKI,
+                Constants.G.VIP,
+                Constants.G.FLP
+            )
         private val draftPrefixes = mapOf(
             "M" to "Mega", "A" to "Alola", "G" to "Galar", "Mega" to "Mega", "Alola" to "Alola", "Galar" to "Galar"
         )
@@ -1476,18 +1491,17 @@ abstract class Command(
 
         fun doMatchUps(gameday: Int) {
             val nds = Emolga.get.nds()
+            val table = nds.table
             val teamnames = nds.teamnames
             val battleorder = nds.battleorder[gameday]!!
             val b = RequestBuilder(nds.sid)
-            for (battle in battleorder.split(";").dropLastWhile { it.isEmpty() }) {
-                logger.info("battle = {}", battle)
-                val users = battle.split(":")
+            for (users in battleorder) {
                 for (index in 0..1) {
                     println(users)
-                    val u1 = users[index]
-                    val u2 = users[1 - index]
-                    val team = teamnames[u1.toLong()]!!
-                    val oppo = teamnames[u2.toLong()]!!
+                    val u1 = table[users[index]]
+                    val u2 = table[users[1 - index]]
+                    val team = teamnames[u1]!!
+                    val oppo = teamnames[u2]!!
                     b.addSingle("$team!B18", "={'$oppo'!B16:AE16}")
                     b.addSingle("$team!B19", "={'$oppo'!B15:AE15}")
                     b.addSingle("$team!B21", "={'$oppo'!B14:AF14}")
@@ -1772,9 +1786,13 @@ _written by Maxifcn_""".trimIndent()
             return getGameDay(league, uid1.toLong(), uid2.toLong())
         }
 
-        fun getGameDay(league: League, uid1: Long, uid2: Long): Int = league.battleorder.asIterable()
-            .firstNotNullOfOrNull { if (it.value.contains("$uid1:$uid2") || it.value.contains("$uid2:$uid1")) it.key else null }
-            ?: -1
+        fun getGameDay(league: League, uid1: Long, uid2: Long): Int {
+            val table = league.table
+            val u1 = table.indexOf(uid1)
+            val u2 = table.indexOf(uid2)
+            return league.battleorder.asIterable()
+                .firstNotNullOf { if (it.value.any { l -> l.containsAll(listOf(u1, u2)) }) it.key else null }
+        }
 
         fun tempMute(tco: TextChannel, mod: Member, mem: Member, time: Int, reason: String) {
             val g = tco.guild
@@ -2021,12 +2039,12 @@ _written by Maxifcn_""".trimIndent()
             return 0
         }
 
+        val calendarFormat = SimpleDateFormat("dd.MM. HH:mm")
 
         @JvmStatic
         protected fun buildCalendar(): String {
-            val f = SimpleDateFormat("dd.MM. HH:mm")
-            return CalendarManager.allEntries.sortedBy { it.expires.time }
-                .joinToString("\n") { o: CalendarEntry -> "**${f.format(o.expires)}:** ${o.message}" }
+            return CalendarDB.allFloEntries.sortedBy { it.expires }
+                .joinToString("\n") { o: CalendarEntry -> "**${calendarFormat.format(o.expires.toEpochMilli())}:** ${o.message}" }
                 .ifEmpty { "_leer_" }
         }
 
@@ -2942,11 +2960,6 @@ _written by Maxifcn_""".trimIndent()
             return rows
         }
 
-        fun <T> addAndReturn(c: MutableCollection<T>, toadd: T): Collection<T> {
-            c.add(toadd)
-            return c
-        }
-
         fun analyseReplay(
             url: String,
             customReplayChannel: TextChannel? = null,
@@ -2961,11 +2974,21 @@ _written by Maxifcn_""".trimIndent()
                     (message?.channel ?: resultchannel).sendMessage(DISABLED_TEXT).queue()
                     return@launch
                 }
+
                 logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannel.id)
                 fun send(msg: String) {
                     fromReplayCommand?.sendMessage(msg)?.queue() ?: fromAnalyseCommand?.sendMessage(msg)
                         ?.queue()
                     ?: resultchannel.sendMessage(msg).queue()
+                }
+                if (fromReplayCommand != null && !resultchannel.guild.selfMember.hasPermission(
+                        resultchannel,
+                        Permission.VIEW_CHANNEL,
+                        Permission.MESSAGE_SEND
+                    )
+                ) {
+                    send("Ich habe keine Berechtigung, im konfigurierten Channel ${resultchannel.asMention} zu schreiben!")
+                    return@launch
                 }
                 val (game, ctx) = try {
                     Analysis.analyse(url, ::send)
@@ -3017,7 +3040,7 @@ _written by Maxifcn_""".trimIndent()
                     "${player.nickname}:".condAppend(
                         player.allMonsDead && !spoiler, " (alle tot)"
                     ) + "\n".condAppend(spoiler, "||") + player.pokemon.joinToString("\n") { mon ->
-                        getMonName(mon.pokemon, gid).also { monNames[mon.pokemon] = it }.tlName.let {
+                        getMonName(mon.pokemon, gid).also { monNames[mon.pokemon] = it }.displayName.let {
                             if (activePassive) {
                                 "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
                             } else {
@@ -3029,11 +3052,13 @@ _written by Maxifcn_""".trimIndent()
                 // Tornupto (4 aktive Kills, 2 passive Kills) X
                 logger.info("u1 = $u1")
                 logger.info("u2 = $u2")
-                customReplayChannel?.sendMessage(url)?.queue()
-                fromReplayCommand?.sendMessage(url)?.queue()
                 if (fromAnalyseCommand != null) {
                     fromAnalyseCommand.sendMessage(str).queue()
-                } else if (!customResult.contains(gid)) resultchannel.sendMessage(str).queue()
+                } else if (!customResult.contains(gid)) {
+                    resultchannel.sendMessage(str).queue()
+                }
+                customReplayChannel?.sendMessage(url)?.queue()
+                fromReplayCommand?.sendMessage(url)?.queue()
                 if (resultchannel.guild.idLong != Constants.G.MY) {
                     StatisticsManager.increment("analysis")
                     game.forEach { player ->
@@ -3279,9 +3304,9 @@ _written by Maxifcn_""".trimIndent()
                     NameConventions.getTranslation(
                         dataJSON[toSDName(s)]?.takeIf { it.requiredAbility != null }?.baseSpecies ?: s, guildId
                     ) ?: DraftName(
-                        "$s (ERROR, Flo wurde benachrichtigt)",
+                        s,
                         s
-                    ).also { sendToMe("ERROR MONNAME $s $guildId") }
+                    )
             }
         }
 

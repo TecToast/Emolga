@@ -1,8 +1,12 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.coordXMod
+import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.TimerInfo
+import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
+import de.tectoast.emolga.utils.automation.structure.CombinedStatProcessor
+import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.utils.records.StatLocation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -14,6 +18,30 @@ class ITP : League() {
     override val timer = DraftTimer(TimerInfo(9, 22), 120)
 
     val teraTypes: MutableMap<Long, String> = mutableMapOf()
+
+    @Transient
+    override val docEntry = DocEntry.create(this) {
+        killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
+            StatLocation(
+                "Kader",
+                plindex.xmod(2, 'W' - 'F', 6 + gameday),
+                plindex.ydiv(2, 21 - 2, 9 + monindex)
+            )
+        }
+        deathProcessor =
+            CombinedStatProcessor { plindex, gameday -> StatLocation("Hidden Tabelle", gameday + 5, plindex + 20) }
+        resultCreator = {
+            b.addRow(
+                gdi.coordYMod("Spielplan", 3, 'H' - 'B', 3, 17 - 5, 6 + 2 * index), listOf(
+                    numberOne, "=HYPERLINK(\"$url\"; \":\")", numberTwo
+                )
+            )
+        }
+        monsOrder = { l ->
+            l.sortedWith(compareBy({ it.free }, { if (it.free) 0 else it.tier.indexedBy(tierlist.order) }))
+                .map { it.name }
+        }
+    }
 
     override fun pickDoc(data: PickData) {
         val b = builder()

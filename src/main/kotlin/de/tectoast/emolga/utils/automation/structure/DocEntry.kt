@@ -42,7 +42,8 @@ class DocEntry private constructor(val league: League) {
 
     fun newSystem(sorterData: SorterData, resultCreator: (AdvancedResult.() -> Unit)) {
         val dataSheet = league.dataSheet ?: error("No data sheet set using new system!")
-        val monAmount = league.picks.values.first().size
+        if (league.picks.isEmpty()) return
+        val monAmount = league.picks.values.first().size + league.pickBuffer
         val gap = monAmount + 3
         killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
             StatLocation(
@@ -122,8 +123,8 @@ class DocEntry private constructor(val league: League) {
     }
 
     fun getMatchups(gameday: Int) =
-        league.battleorder[gameday]?.split(";")?.filterNot { it.isBlank() }
-            ?.map { mu -> mu.split(":").map { it.toLong() } } ?: generateForDay(
+        league.battleorder[gameday]
+            ?.map { mu -> mu.map { league.table[it] } } ?: generateForDay(
             league.table.size, gameday
         )
 
@@ -134,8 +135,10 @@ class DocEntry private constructor(val league: League) {
         val (game, uid1, uid2, kills, deaths, _, url, _, _, _, _) = replayData
         var battleind = -1
         var u1IsSecond = false
+        val i1 = league.table.indexOf(uid1)
+        val i2 = league.table.indexOf(uid2)
         val gameday = if (league.battleorder.isNotEmpty()) league.battleorder.asIterable().reversed()
-            .firstNotNullOfOrNull { if (it.value.contains("$uid1:$uid2") || it.value.contains("$uid2:$uid1")) it.key else null }
+            .firstNotNullOfOrNull { if (it.value.any { l -> l.containsAll(listOf(i1, i2)) }) it.key else null }
             ?: -1 else gameplanCoords(uid1, uid2).also {
             battleind = it.second
             u1IsSecond = it.third
@@ -172,6 +175,7 @@ class DocEntry private constructor(val league: League) {
             return
         }
         val uids = listOf(uid1, uid2)
+        val indices = listOf(i1, i2)
         val picksJson = league.picks
         for ((i, uid) in uids.withIndex()) {
             val index = league.table.indexOf(uid)
@@ -216,10 +220,10 @@ class DocEntry private constructor(val league: League) {
             }
         }
         val (battleindex, numbers) = league.battleorder[gameday]?.let {
-            val battleorder = league.battleorder[gameday]!!.split(";")
-            val battleusers = (battleorder.firstOrNull { it.contains(uid1.toString()) } ?: "").split(":")
-            (battleorder.indices.firstOrNull { battleorder[it].contains(uid1.toString()) } ?: -1) to (0..1).asSequence()
-                .sortedBy { battleusers.indexOf(uids[it].toString()) }.map { game[it].pokemon.count { m -> !m.isDead } }
+            val battleorder = league.battleorder[gameday]!!
+            val battleusers = battleorder.firstOrNull { it.contains(i1) }.orEmpty()
+            (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1) to (0..1).asSequence()
+                .sortedBy { battleusers.indexOf(indices[it]) }.map { game[it].pokemon.count { m -> !m.isDead } }
                 .toList()
         } ?: run {
             battleind to (0..1).map { game[it].pokemon.count { m -> !m.isDead } }

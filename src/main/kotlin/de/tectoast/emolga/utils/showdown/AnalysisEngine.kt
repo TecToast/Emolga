@@ -69,9 +69,8 @@ sealed class SDEffect(vararg val types: String) {
             it.itemObtainedFrom.takeIf { "item:" in inlined[0] } ?: it
         }
         this.firstOrNull { it.startsWith("[of] p") }?.let { return it.parsePokemon(ctx) }
-        val last = ctx.lastLine.cleanSplit()
-        if (last.getOrNull(0) == "move") return last.getOrNull(1)?.parsePokemon(ctx)
-        return null
+        return ctx.takeIf { it.lastLine.startsWith("|-damage") || it.lastLine.startsWith("|-move") }?.lastMove?.cleanSplit()
+            ?.getOrNull(1)?.parsePokemon(ctx)
     }
 
     object Turn : SDEffect("turn") {

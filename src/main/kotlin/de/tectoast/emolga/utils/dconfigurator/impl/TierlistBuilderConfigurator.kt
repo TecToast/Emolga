@@ -293,6 +293,6 @@ class TierlistBuilderConfigurator(
         ).into()
 
 
-        val enabledGuilds = setOf(1054161634895069215, 651152835425075218)
+        val enabledGuilds = setOf(1054161634895069215, 651152835425075218, 736555250118295622)
     }
 }

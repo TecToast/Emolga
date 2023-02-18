@@ -35,13 +35,13 @@ class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste
             userId = e.author.idLong,
             channelId = e.channel.idLong,
             guildId = e.guild.idLong,
-            mons = buildList {
-                for (i in 0 until 10) {
-                    val range = args.getNullable<String>("range$i") ?: continue
-                    addAll(Google[sid, "$tierlistsheet!$range", false].map { it[0].toString().replace("*", "") }
-                        .also { tierlistcols += it })
-                }
-            },
+            mons =
+            Google.batchGet(
+                sid,
+                (0 until 10).mapNotNull { args.getNullable<String>("range$it")?.let { a -> "$tierlistsheet!$a" } },
+                false
+            )
+                .map { col -> col.map { it[0].toString().replace("*", "") } }.also { tierlistcols += it }.flatten(),
             tierlistcols = tierlistcols
         )
     }

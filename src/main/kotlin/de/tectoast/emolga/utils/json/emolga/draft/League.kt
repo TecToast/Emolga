@@ -26,7 +26,7 @@ sealed class League {
     var isRunning: Boolean = false
     val sid: String = "yay"
     val picks: MutableMap<Long, MutableList<DraftPokemon>> = mutableMapOf()
-    val battleorder: MutableMap<Int, String> = mutableMapOf()
+    val battleorder: MutableMap<Int, List<List<Int>>> = mutableMapOf()
     val results: MutableMap<String, Long> = mutableMapOf()
     val allowed: MutableMap<Long, MutableSet<AllowedData>> = mutableMapOf()
     val guild = -1L
@@ -37,6 +37,7 @@ sealed class League {
     @Transient
     val points: MutableMap<Long, Int> = mutableMapOf()
     val noAutoStart = false
+    val timerStart: Long? = null
 
     @Transient
     open val timerSkipMode: TimerSkipMode? = null
@@ -58,6 +59,9 @@ sealed class League {
         get() = tierlist.isPointBased
 
     val monCount by lazy { picks.values.first().size }
+
+    @Transient
+    open val pickBuffer = 0
 
     @Transient
     var cooldownJob: Job? = null
@@ -183,12 +187,11 @@ sealed class League {
             if (fromFile || isSwitchDraft) picks.putIfAbsent(member, mutableListOf())
             else picks[member] = mutableListOf()
             val isPoints = tierlist.mode.isPoints()
-            if (tierlist.mode.withPoints) points[member] =
-                tierlist.points - picks[member]!!.sumOf {
-                    if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
-                        it.tier
-                    ) else 0
-                }
+            if (tierlist.mode.withPoints) points[member] = tierlist.points - picks[member]!!.sumOf {
+                if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
+                    it.tier
+                ) else 0
+            }
         }
         if (!fromFile) {
             order.clear()
@@ -201,7 +204,7 @@ sealed class League {
             sendRound()
             announcePlayer()
         } else {
-            val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer.calc()
+            val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer.calc(timerStart)
             restartTimer(delay)
         }
         isRunning = true
@@ -211,7 +214,7 @@ sealed class League {
 
     open fun reset() {}
 
-    private fun restartTimer(delay: Long = timer.calc()) {
+    private fun restartTimer(delay: Long = timer.calc(timerStart)) {
         cooldown = System.currentTimeMillis() + delay
         logger.info("important".marker, "cooldown = {}", cooldown)
         cooldownJob = timerScope.launch {
@@ -225,21 +228,20 @@ sealed class League {
     }
 
     open fun announcePlayer() {
-        val mode = tierlist.mode
-        tc.sendMessage(
-            "${getCurrentMention()} ist dran! " +
-                    buildList {
-                        if (mode.withTiers) this.add("Mögliche Tiers: " + getPossibleTiersAsString())
-                        if (mode.withPoints) this.add(
-                            "${points[current]} mögliche Punkte".condAppend(
-                                mode.isTiersWithFree(),
-                                " für Free-Picks"
-                            )
-                        )
-                    }.joinToString(prefix = "(", postfix = ")")
-                        .condAppend(hasMovedTurns()) { "**${movedTurns().firstOrNull()} Picks**" }
-        ).queue()
+        tc.sendMessage("${getCurrentMention()} ist dran!${announceData()}").queue()
     }
+
+    private fun announceData() = buildList {
+        with(tierlist.mode) {
+            if (withTiers) add("Mögliche Tiers: " + getPossibleTiersAsString())
+            if (withPoints) add(
+                "${points[current]} mögliche Punkte".condAppend(
+                    isTiersWithFree(), " für Free-Picks"
+                )
+            )
+        }
+    }.joinToString(prefix = " (", postfix = ")")
+        .condAppend(hasMovedTurns()) { "**${movedTurns().firstOrNull()} Picks**" }
 
     open fun beforePick(): String? = null
 
@@ -333,10 +335,7 @@ sealed class League {
                     getCurrentMention()
                 } dran!"
             )
-            if (isPointBased) append(" (${points[current]} mögliche Punkte)")
-            else append(
-                " (Mögliche Tiers: " + getPossibleTiersAsString() + ")"
-            )
+            append(announceData())
         }).queue()
         restartTimer()
         saveEmolgaJSON()
@@ -354,20 +353,18 @@ sealed class League {
 
     fun builder() = RequestBuilder(sid)
     suspend fun replyPick(e: GuildCommandEvent, pokemon: String, free: Boolean) =
-        replyGeneral(e, "$pokemon gepickt!".condAppend(free, " (Free-Pick)"))
+        replyGeneral(e, "$pokemon gepickt!".condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
 
     suspend fun replyGeneral(e: GuildCommandEvent, msg: String) {
         e.slashCommandEvent!!.reply(
             "${e.member.asMention} hat${
                 if (e.author.idLong != current) " für **${getCurrentName()}**" else ""
             } $msg"
-        )
-            .await()
+        ).await()
     }
 
     suspend fun replyRandomPick(e: GuildCommandEvent, pokemon: String, tier: String) = replyGeneral(
-        e,
-        "einen Random-Pick im $tier gemacht und **$pokemon** bekommen!"
+        e, "einen Random-Pick im $tier gemacht und **$pokemon** bekommen!"
     )
 
     suspend fun replySwitch(e: GuildCommandEvent, oldmon: String, newmon: String) {
@@ -401,7 +398,7 @@ sealed class League {
             Emolga.get.drafts.values.forEach {
                 with(it) {
                     if (!isRunning) return@forEach
-                    val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer.calc()
+                    val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer.calc(timerStart)
                     restartTimer(delay)
                 }
             }
@@ -415,6 +412,7 @@ sealed class League {
         }
 
         fun onlyChannel(tc: Long) = Emolga.get.drafts.values.firstOrNull { it.isRunning && it.tc.idLong == tc }
+        fun byGuild(gid: Long) = Emolga.get.drafts.values.firstOrNull { it.guild == gid }
     }
 
     enum class TimerReason {
@@ -434,7 +432,9 @@ sealed class DraftData(
     val picks: MutableList<DraftPokemon>,
     val round: Int,
     val memIndex: Int,
-)
+) {
+    val roundIndex get() = round - 1
+}
 
 class PickData(
     pokemon: String,

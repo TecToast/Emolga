@@ -47,9 +47,9 @@ class Tierlist(val guild: Long) {
 
 
     fun getPointsNeeded(s: String): Int = when (mode) {
-        TierlistMode.POINTS -> prices[getTierOf(s)] ?: -1
-        TierlistMode.TIERS_WITH_FREE -> freepicks[getTierOf(s)] ?: -1
-        else -> -1
+        TierlistMode.POINTS -> prices[getTierOf(s)] ?: error("Tier for $s not found")
+        TierlistMode.TIERS_WITH_FREE -> freepicks[getTierOf(s)] ?: error("Tier for $s not found")
+        else -> error("Unknown mode for points $mode")
     }
 
     fun getTierOf(s: String): String {
@@ -84,7 +84,7 @@ class Tierlist(val guild: Long) {
         }
 
         fun getTier(guildId: Long, mon: String) = transaction {
-            select { guild eq guildId and (pokemon eq mon) }.firstOrNull()?.get(tier)
+            select { guild eq guildId and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
         }
 
         fun retrieveTierlistMap(guildId: Long, map: Map<String, Int>) = transaction {

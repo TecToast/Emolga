@@ -54,7 +54,7 @@ class PickTypeCommand : Command("picktype", "Pickt einen Tera-Typen", CommandCat
             e.reply("Du hast bereits einen Tera-Typen gepickt!")
             return
         }
-        val type = e.arguments.getTranslation("type").translation
+        val type = e.arguments.getText("type")
         if (type !in typeList) {
             e.reply("Dieser Typ existiert nicht!")
             return

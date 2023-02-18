@@ -554,7 +554,7 @@ object PrivateCommands {
         val battleorder = nds.battleorder
         val table = nds.table
         for ((gameday, gddata) in tips.entries) {
-            val battleindex = battleorder[gameday]!!.split(";").indexOfFirst { "602694069583609867" in it }
+            val battleindex = battleorder[gameday]!!.indexOfFirst { 2 /*wrong index*/ in it }
             println("Spieltag $gameday:")
             for ((voter, votes) in gddata.userdata.entries) {
                 votes[battleindex]?.let { vote ->

@@ -43,42 +43,43 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             val mem = d.current
             val tierlist = d.tierlist
             d.beforePick()?.let { e.reply(it); return }
-            val pokemon = args.getText("pokemon")
+            val (tlName, official, _) = args.getDraftName("pokemon")
+            println("tlName: $tlName, official: $official")
             val picks = d.picks[mem]!!
             if (picks.count { it.name != "???" } == 15) {
                 e.reply("Du hast bereits 15 Mons!")
                 return
             }
-            val (tier, origtier) = d.getTierOf(pokemon, args.getNullable("tier"))
-            if (d.isPicked(pokemon)) {
+            val (tier, origtier) = d.getTierOf(tlName, args.getNullable("tier"))
+            if (d.isPicked(official)) {
                 e.reply("Dieses Pokemon wurde bereits gepickt!")
                 return
             }
-            val needed = tierlist.getPointsNeeded(pokemon)
-            val free = args.getOrDefault("free", false).takeIf { tierlist.mode.isTiersWithFree() } ?: false
-            if (!free && d.handleTiers(e, tier, origtier)) return
-            if (d.handlePoints(e, needed, free)) return
-            d.savePick(picks, pokemon, tier, free)
+            val tlMode = tierlist.mode
+            val free = args.getOrDefault("free", false).takeIf { tlMode.isTiersWithFree() } ?: false
+            if (!free && tlMode.withTiers && d.handleTiers(e, tier, origtier)) return
+            if (tlMode.withPoints && d.handlePoints(e, tierlist.getPointsNeeded(tlName), free)) return
+            d.savePick(picks, official, tier, free)
             //m.delete().queue();
-            if (!isRandom) d.replyPick(e, pokemon, free)
+            if (!isRandom) d.replyPick(e, tlName, free)
             if (isRandom) {
-                d.replyRandomPick(e, pokemon, tier)
-            } else if (pokemon == "Emolga") {
+                d.replyRandomPick(e, tlName, tier)
+            } else if (official == "Emolga") {
                 e.textChannel.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
                     .queue()
             }
             val round = d.getPickRoundOfficial()
             d.pickDoc(
                 PickData(
-                    pokemon,
-                    tier,
-                    mem,
-                    d.indexInRound(round),
-                    picks.indexOfFirst { it.name == pokemon },
-                    picks,
-                    round,
-                    d.table.indexOf(mem),
-                    free
+                    pokemon = tlName,
+                    tier = tier,
+                    mem = mem,
+                    indexInRound = d.indexInRound(round),
+                    changedIndex = picks.indexOfFirst { it.name == official },
+                    picks = picks,
+                    round = round,
+                    memIndex = d.table.indexOf(mem),
+                    freePick = free
                 )
             )
             d.afterPickOfficial()

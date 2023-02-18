@@ -92,8 +92,10 @@ object NameConventions : Table("nameconventions") {
                 ).firstOrNull()
                     ?.let {
                         return@transaction DraftName(
-                            if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
-                            it[german]
+                            //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
+                            it[specified],
+                            it[german],
+                            it[guild] != 0L
                         )
                     }
 
@@ -103,4 +105,6 @@ object NameConventions : Table("nameconventions") {
     }
 }
 
-data class DraftName(val tlName: String, val official: String)
+data class DraftName(val tlName: String, val official: String, val guildspecific: Boolean = false) {
+    val displayName get() = if (guildspecific) tlName else official
+}

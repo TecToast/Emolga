@@ -3107,7 +3107,7 @@ _written by Maxifcn_""".trimIndent()
 
         fun getDraftGerName(
             sArg: String, guildId: Long
-        ) = NameConventions.getTranslation(sArg, guildId)
+        ) = NameConventions.getDiscordTranslation(sArg, guildId)
 
 
         fun getGerNameWithForm(name: String): String {
@@ -3285,29 +3285,15 @@ _written by Maxifcn_""".trimIndent()
             val split = s.split("-")
             val lastSplit = split.dropLast(1).joinToString("-")
             if (split.last() == "*") return getMonName(lastSplit, guildId, withDebug)
-            return (Emolga.get.nameconventions[guildId] ?: Emolga.get.nameconventions[0]!!).let {
-                for ((key, value) in it) {
-                    if (s.endsWith("-$key")) {
-                        val nameWithoutForme = getGerNameNoCheck(s.replace("-$key", ""))
-                        return@let DraftName(
-                            value.pattern.replace(
-                                "(\\S+)",
-                                nameWithoutForme
-                            ), "$nameWithoutForme-$lastSplit"
-                        )
-                    }
-                }
-                null
-            } ?: run {
-                if (s == "_unbekannt_") DraftName("_unbekannt_", "UNKNOWN")
-                else
-                    NameConventions.getTranslation(
-                        dataJSON[toSDName(s)]?.takeIf { it.requiredAbility != null }?.baseSpecies ?: s, guildId
-                    ) ?: DraftName(
-                        s,
-                        s
-                    )
-            }
+            return if (s == "_unbekannt_") DraftName("_unbekannt_", "UNKNOWN")
+            else
+                NameConventions.getSDTranslation(
+                    dataJSON[toSDName(s)]?.takeIf { it.requiredAbility != null }?.baseSpecies ?: s, guildId
+                ) ?: DraftName(
+                    s,
+                    s
+                )
+            //}
         }
 
         fun buildEnumeration(vararg types: ArgumentType): String {

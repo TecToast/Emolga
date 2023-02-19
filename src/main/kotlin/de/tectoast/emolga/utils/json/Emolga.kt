@@ -32,6 +32,7 @@ class Emolga(
 ) {
 
     val asls11: ASLS11 get() = error("ASLS11 is not available atm!")
+    val defaultNameConventions: Map<String, Regex> by lazy { nameconventions[0]!! }
     fun league(name: String) = drafts[name]!!
     fun nds() = drafts["NDS"]!! as NDS
 

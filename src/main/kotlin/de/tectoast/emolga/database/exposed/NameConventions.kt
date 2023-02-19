@@ -77,29 +77,56 @@ object NameConventions : Table("nameconventions") {
         }
     }
 
-    fun getTranslation(s: String, guildId: Long): DraftName? {
-        val list = mutableListOf<String>()
-        Emolga.get.nameconventions[guildId]?.entries?.firstNotNullOfOrNull {
+    fun getDiscordTranslation(s: String, guildId: Long): DraftName? {
+        val list = mutableListOf<Pair<String, String?>>()
+        val nc = Emolga.get.nameconventions[guildId]
+        nc?.entries?.firstNotNullOfOrNull {
             it.value.find(s)?.let { mr -> mr to it.key }
         }?.also { (mr, key) ->
-            list += mr.groupValues[1] + "-" + key
+            list += mr.groupValues[1] + "-" + key to key
         }
-        list += s
-        return transaction {
-            for (test in list) {
-                select(((german eq test) or (english eq test) or (specified eq test) or (specifiedenglish eq test)) and (guild eq 0 or (guild eq guildId))).orderBy(
-                    guild to SortOrder.DESC
-                ).firstOrNull()
-                    ?.let {
-                        return@transaction DraftName(
-                            //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
-                            it[specified],
-                            it[german],
-                            it[guild] != 0L
-                        )
-                    }
+        list += s to null
+        println(list)
+        list.forEach {
+            getDBTranslation(
+                it.first,
+                guildId,
+                it.second,
+                nc ?: Emolga.get.defaultNameConventions
+            )?.let { d -> return d }
+        }
+        return null
+    }
 
-            }
+    private val possibleSpecs by lazy { Emolga.get.nameconventions[0]!!.keys }
+
+    fun getSDTranslation(s: String, guildId: Long) = getDBTranslation(
+        s,
+        guildId,
+        possibleSpecs.firstOrNull { s.endsWith("-$it") },
+        Emolga.get.nameconventions[guildId] ?: Emolga.get.defaultNameConventions
+    )
+
+    private fun getDBTranslation(
+        test: String,
+        guildId: Long,
+        spec: String? = null,
+        nc: Map<String, Regex>
+    ): DraftName? {
+        return transaction {
+            select(((german eq test) or (english eq test) or (specified eq test) or (specifiedenglish eq test)) and (guild eq 0 or (guild eq guildId))).orderBy(
+                guild to SortOrder.DESC
+            ).firstOrNull()
+                ?.let {
+                    return@transaction DraftName(
+                        //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
+                        it[specified].let { s ->
+                            if (spec != null) nc[spec]!!.pattern.replace("(\\S+)", s.substringBefore("-$spec")) else s
+                        },
+                        it[german],
+                        it[guild] != 0L || spec != null
+                    )
+                }
             null
         }
     }

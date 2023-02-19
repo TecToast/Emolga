@@ -36,10 +36,11 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val d = League.byChannel(e) ?: return
+        val d =
+            League.byChannel(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
         if (!d.isSwitchDraft) {
-            e.reply("Dieser Draft ist kein Switch-Draft, daher wird /switch nicht unterstützt!")
-            return
+            return e.reply("Dieser Draft ist kein Switch-Draft, daher wird /switch nicht unterstützt!")
+
         }
         val mem = d.current
         val args = e.arguments
@@ -47,8 +48,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
         val oldmon = args.getText("oldmon")
         val newmon = args.getText("newmon")
         if (!d.isPickedBy(oldmon, mem)) {
-            e.reply("$oldmon befindet sich nicht in deinem Kader!")
-            return
+            return e.reply("$oldmon befindet sich nicht in deinem Kader!")
         }
         if (d.isPicked(newmon)) {
             e.reply("$newmon wurde bereits gepickt!")

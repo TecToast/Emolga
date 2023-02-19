@@ -17,7 +17,8 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val d = League.byChannel(e) ?: return
+        val d =
+            League.byChannel(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
         val tierlist = d.tierlist
         val args = e.arguments
         val tier = tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: run {

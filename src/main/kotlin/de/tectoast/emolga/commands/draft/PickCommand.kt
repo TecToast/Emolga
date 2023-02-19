@@ -35,7 +35,10 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             e: GuildCommandEvent, isRandom: Boolean
         ) {
             val args = e.arguments
-            val d = League.byChannel(e) ?: return
+            val d = League.byChannel(e) ?: return e.reply(
+                "Es läuft zurzeit kein Draft in diesem Channel!",
+                ephemeral = true
+            )
             if (d.isSwitchDraft && !d.allowPickDuringSwitch) {
                 e.reply("Du kannst während des Switch-Drafts nicht picken!")
                 return

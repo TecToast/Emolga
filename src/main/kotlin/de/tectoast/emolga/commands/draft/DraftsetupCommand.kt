@@ -43,6 +43,6 @@ class DraftsetupCommand :
             fromFile = args.getOrDefault("fromfile", false),
             switchDraft = args.getOrDefault("switchdraft", false)
         )
-        e.reply("+1", ephermal = true)
+        e.reply("+1", ephemeral = true)
     }
 }

@@ -18,6 +18,6 @@ class SendPNCommand : Command("sendpn", "Sendet PNs", CommandCategory.Flo) {
         e.jda.openPrivateChannelById(e.arguments.getID("user")).queue { channel ->
             channel.sendMessage(e.arguments.getText("text")).queue()
         }
-        e.reply("Done!", ephermal = true)
+        e.reply("Done!", ephemeral = true)
     }
 }

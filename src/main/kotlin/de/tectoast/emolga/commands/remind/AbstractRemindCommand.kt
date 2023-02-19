@@ -29,11 +29,11 @@ abstract class AbstractRemindCommand(name: String, val msg: String) : Command(
             val expires = getMillis(e)
             val message = args.getText("text")
             CalendarDB.scheduleCalendarEntry(message, expires)
-            e.reply(msg, ephermal = true)
+            e.reply(msg, ephemeral = true)
             e.jda.getTextChannelById(Constants.CALENDAR_TCID)!!
                 .editMessageById(Constants.CALENDAR_MSGID, buildCalendar()).queue()
         } catch (ex: Exception) {
-            e.reply("Es ist ein Fehler aufgetreten!", ephermal = true)
+            e.reply("Es ist ein Fehler aufgetreten!", ephemeral = true)
             ex.printStackTrace()
         }
     }

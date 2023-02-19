@@ -52,9 +52,9 @@ class HomeworkCommand : AbstractRemindCommand("homework", "Hausaufgabe hinzugef�
                         .await().idLong
                 )
             }
-            e.reply("Hausaufgabe hinzugefügt!", ephermal = true)
+            e.reply("Hausaufgabe hinzugefügt!", ephemeral = true)
         } catch (ex: Exception) {
-            e.reply("Es ist ein Fehler aufgetreten!", ephermal = true)
+            e.reply("Es ist ein Fehler aufgetreten!", ephemeral = true)
             ex.printStackTrace()
         }
     }

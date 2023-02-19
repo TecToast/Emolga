@@ -66,12 +66,12 @@ abstract class GenericCommandEvent {
     }
 
 
-    fun reply(msg: String, ephermal: Boolean = false) {
+    fun reply(msg: String, ephemeral: Boolean = false) {
         if (msg.isEmpty()) return
         if (slashCommandEvent != null) {
-            if (slashCommandEvent.isAcknowledged) slashCommandEvent.hook.sendMessage(msg).setEphemeral(ephermal)
+            if (slashCommandEvent.isAcknowledged) slashCommandEvent.hook.sendMessage(msg).setEphemeral(ephemeral)
                 .queue() else
-                slashCommandEvent.reply(msg).setEphemeral(ephermal)
+                slashCommandEvent.reply(msg).setEphemeral(ephemeral)
                     .queue()
         } else channel.sendMessage(msg).queue()
     }
@@ -113,8 +113,9 @@ abstract class GenericCommandEvent {
         logger.info("QUEUED! " + System.currentTimeMillis())
     }
 
-    fun reply(message: MessageEmbed?) {
-        if (slashCommandEvent != null) slashCommandEvent.replyEmbeds(message!!).queue() else channel.sendMessageEmbeds(
+    fun reply(message: MessageEmbed?, ephemeral: Boolean = false) {
+        if (slashCommandEvent != null) slashCommandEvent.replyEmbeds(message!!).setEphemeral(ephemeral)
+            .queue() else channel.sendMessageEmbeds(
             message!!
         ).queue()
     }

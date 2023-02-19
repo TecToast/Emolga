@@ -18,13 +18,13 @@ class LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Draf
         val ligaStartData = Emolga.get.signups[e.guild.idLong]!!
         val uid = e.author.idLong
         if (uid !in ligaStartData.users) {
-            e.reply("Du bist nicht angemeldet!", ephermal = true)
+            e.reply("Du bist nicht angemeldet!", ephemeral = true)
             return
         }
         e.deferReply(true)
         val logo = e.arguments.getAttachment("logo")
         val file = logo.proxy.downloadToFile("leaguelogos/${e.author.id}.png".file()).await()
-        e.reply("Dein Logo wurde erfolgreich hochgeladen!", ephermal = true)
+        e.reply("Dein Logo wurde erfolgreich hochgeladen!", ephemeral = true)
         val signUpData = ligaStartData.users[uid]!!
         signUpData.logoUrl = e.jda.getTextChannelById(ligaStartData.logoChannel)!!
             .sendMessage("**Logo von <@$uid> (${signUpData.teamname}):**").addFiles(FileUpload.fromData(file))

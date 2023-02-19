@@ -33,7 +33,7 @@ class PrivCommand : Command("priv", "Executet einen Priv Command", CommandCatego
                 PrivateCommands, PrivateCommandEvent(e.slashCommandEvent!!)
             )
             if (!e.slashCommandEvent!!.isAcknowledged)
-                e.reply("Command ausgeführt!", ephermal = true)
-        } ?: e.reply("Command nicht gefunden!", ephermal = true)
+                e.reply("Command ausgeführt!", ephemeral = true)
+        } ?: e.reply("Command nicht gefunden!", ephemeral = true)
     }
 }

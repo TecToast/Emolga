@@ -245,18 +245,18 @@ sealed class League {
 
     open fun beforePick(): String? = null
 
-    fun getPossibleTiers() = tierlist.prices.toMutableMap().let { possible ->
-        picks[current]!!.forEach { pick ->
+    fun getPossibleTiers(mem: Long = current) = tierlist.prices.toMutableMap().let { possible ->
+        picks[mem]!!.forEach { pick ->
             pick.takeUnless { it.name == "???" || it.free }?.let { possible[it.tier] = possible[it.tier]!! - 1 }
         }
         possible
     }
 
-    private fun getPossibleTiersAsString() =
-        getPossibleTiers().entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
+    fun getPossibleTiersAsString(mem: Long = current) =
+        getPossibleTiers(mem).entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
             .joinToString { "${it.value}x **".condAppend(it.key.toIntOrNull() != null, "Tier ") + "${it.key}**" }
             .let { str ->
-                if (tierlist.mode.isTiersWithFree()) str + "; ${tierlist.freePicksAmount - picks[current]!!.count { it.free }}x **Free Pick**"
+                if (tierlist.mode.isTiersWithFree()) str + "; ${tierlist.freePicksAmount - picks[mem]!!.count { it.free }}x **Free Pick**"
                 else str
             }
 

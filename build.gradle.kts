@@ -77,7 +77,7 @@ dependencies {
     implementation("com.google.apis:google-api-services-docs:v1-rev20221004-2.0.0")
     implementation("com.google.apis:google-api-services-sheets:v4-rev20221216-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20221108-2.0.0")
-    implementation("org.jsoup:jsoup:1.15.3")
+    implementation("org.jsoup:jsoup:1.15.4")
     implementation("com.sedmelluq:lavaplayer:1.3.78")
     //implementation("org.slf4j:slf4j-simple:1.7.32")
 

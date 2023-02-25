@@ -4,6 +4,8 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.draft.PickCommand.Companion.exec
+import de.tectoast.emolga.commands.toSDName
+import de.tectoast.emolga.database.exposed.NameConventions
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
@@ -29,14 +31,14 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
         list.shuffle()
         val typecheck: (String) -> Boolean = if (args.has("type")) {
             val type = args.getTranslation("type");
-            { type.translation in getDataObject(it).types }
+            { type.translation in dataJSON[it.toSDName()]!!.types }
         } else {
             { true }
         }
         e.arguments.map.apply {
             put(
                 "pokemon", (list.firstOrNull { str: String ->
-                    !d.isPicked(str) && typecheck(str)
+                    !d.isPicked(str) && typecheck(NameConventions.getDiscordTranslation(str, d.guild, true)!!.official)
                 }?.trim()?.let { getDraftGerName(it, d.guild) }
                     ?: return e.reply("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!"))
             )

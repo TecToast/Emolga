@@ -54,7 +54,11 @@ sealed class League {
 
     private var tcid: Long = -1
 
-    val tierlist: Tierlist by Tierlist
+
+    @Transient
+    private var tlCompanion = Tierlist // workaround
+
+    val tierlist: Tierlist by tlCompanion
     val isPointBased
         get() = tierlist.isPointBased
 
@@ -241,7 +245,7 @@ sealed class League {
             )
         }
     }.joinToString(prefix = " (", postfix = ")")
-        .condAppend(hasMovedTurns()) { "**${movedTurns().firstOrNull()} Picks**" }
+        .condAppend(hasMovedTurns()) { movedTurns().size.plus(1).let { " **($it Pick${if (it == 1) "" else "s"})**" } }
 
     open fun beforePick(): String? = null
 
@@ -314,7 +318,7 @@ sealed class League {
             ?.let { it + " (für ${getCurrentName()})" } ?: "<@$current>")
     }
 
-    private fun getCurrentName() = names[current]!!
+    private fun getCurrentName(mem: Long = current) = names[mem]!!
 
     fun isPickedBy(mon: String, mem: Long): Boolean = picks[mem]!!.any { it.name == mon }
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
@@ -326,12 +330,12 @@ sealed class League {
         current = order[round]!!.nextCurrent()
         tc.sendMessage(buildString {
             if (tr == TimerReason.REALTIMER) append(
-                "**<@$oldcurrent>** war zu langsam und deshalb ist jetzt ${
+                "**${getCurrentName(oldcurrent)}** war zu langsam und deshalb ist jetzt ${
                     getCurrentMention()
                 } dran!"
             )
             else append(
-                "Der Pick von <@$oldcurrent> wurde ${if (isSwitchDraft) "geskippt" else "verschoben"} und deshalb ist jetzt ${
+                "Der Pick von ${getCurrentName(oldcurrent)} wurde ${if (isSwitchDraft) "geskippt" else "verschoben"} und deshalb ist jetzt ${
                     getCurrentMention()
                 } dran!"
             )
@@ -488,8 +492,8 @@ enum class TimerSkipMode {
         override fun afterPick(l: League) {
             with(l) {
                 if (hasMovedTurns()) {
-                    announcePlayer()
                     movedTurns().removeFirstOrNull()
+                    announcePlayer()
                 } else nextPlayer()
             }
         }

@@ -413,7 +413,7 @@ object PrivateCommands {
     }
 
 
-    private val guildsToUpdate = listOf(Constants.G.FLP)
+    private val guildsToUpdate = listOf(Constants.G.FLP, Constants.G.MY)
     fun updateSlashCommands() {
         val jda = EmolgaMain.emolgajda
         val map: MutableMap<Long, MutableList<SlashCommandData>> = HashMap()

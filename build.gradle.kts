@@ -1,8 +1,8 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
-val kVersion = "1.7.10"
+val kVersion = "1.8.10"
 plugins {
-    val kVersion = "1.7.10"
+    val kVersion = "1.8.10"
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("com.github.johnrengelman.shadow") version "7.1.2"
@@ -89,7 +89,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.1.2")
     implementation("com.github.MinnDevelopment:jda-ktx:0.10.0-beta.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0-RC")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")

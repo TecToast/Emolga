@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -13,7 +14,9 @@ class AddToTierlistCommand :
     Command("addtotierlist", "Fügt ein Mon in die Tierliste ein", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
-            .add("mon", "Mon", "Das Mon", ArgumentManagerTemplate.draftPokemon(), false, "Das ist kein Pokemon!")
+            .add("mon", "Mon", "Das Mon", ArgumentManagerTemplate.draftPokemon { s, _ ->
+                allNameConventions.filterStartsWithIgnoreCase(s).takeIf { it.size <= 25 }?.sorted()
+            }, false, "Das ist kein Pokemon!")
             .add(
                 "tier",
                 "Tier",
@@ -26,7 +29,7 @@ class AddToTierlistCommand :
             .setExample("/addtotierlist Chimstix")
             .build()
         //setCustomPermissions(PermissionPreset.fromRole(702233714360582154L))
-        slash(true, Constants.G.VIP)
+        slash(true, Constants.G.VIP, Constants.G.FLP)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

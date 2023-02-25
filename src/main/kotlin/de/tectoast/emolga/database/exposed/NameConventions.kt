@@ -77,7 +77,7 @@ object NameConventions : Table("nameconventions") {
         }
     }
 
-    fun getDiscordTranslation(s: String, guildId: Long): DraftName? {
+    fun getDiscordTranslation(s: String, guildId: Long, english: Boolean = false): DraftName? {
         val list = mutableListOf<Pair<String, String?>>()
         val nc = Emolga.get.nameconventions[guildId]
         nc?.entries?.firstNotNullOfOrNull {
@@ -86,13 +86,13 @@ object NameConventions : Table("nameconventions") {
             list += mr.groupValues[1] + "-" + key to key
         }
         list += s to null
-        println(list)
         list.forEach {
             getDBTranslation(
                 it.first,
                 guildId,
                 it.second,
-                nc ?: Emolga.get.defaultNameConventions
+                nc ?: Emolga.get.defaultNameConventions,
+                english
             )?.let { d -> return d }
         }
         return null
@@ -111,19 +111,20 @@ object NameConventions : Table("nameconventions") {
         test: String,
         guildId: Long,
         spec: String? = null,
-        nc: Map<String, Regex>
+        nc: Map<String, Regex>,
+        english: Boolean = false
     ): DraftName? {
         return transaction {
-            select(((german eq test) or (english eq test) or (specified eq test) or (specifiedenglish eq test)) and (guild eq 0 or (guild eq guildId))).orderBy(
+            select(((german eq test) or (NameConventions.english eq test) or (specified eq test) or (specifiedenglish eq test)) and (guild eq 0 or (guild eq guildId))).orderBy(
                 guild to SortOrder.DESC
             ).firstOrNull()
                 ?.let {
                     return@transaction DraftName(
                         //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
-                        it[specified].let { s ->
+                        it[if (english) specifiedenglish else specified].let { s ->
                             if (spec != null) nc[spec]!!.pattern.replace("(\\S+)", s.substringBefore("-$spec")) else s
                         },
-                        it[german],
+                        it[if (english) NameConventions.english else german],
                         it[guild] != 0L || spec != null
                     )
                 }

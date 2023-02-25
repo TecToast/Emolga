@@ -18,6 +18,7 @@ class ZBS(private val conference: String) : League() {
     override val timer = DraftTimer(TimerInfo(10, 22), 120)
 
     override val timerSkipMode = TimerSkipMode.NEXT_PICK
+    override val pickBuffer = 12
 
     @Transient
     override val docEntry = DocEntry.create(this) {
@@ -30,7 +31,6 @@ class ZBS(private val conference: String) : League() {
         ) {}
     }
 
-    override val pickBuffer = 12
 
     override fun pickDoc(data: PickData) {
         // =ZÄHLENWENN(INDIREKT("DataRotschopf!B500:B587"); B4)

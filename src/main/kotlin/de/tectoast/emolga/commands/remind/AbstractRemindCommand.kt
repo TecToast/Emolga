@@ -42,8 +42,8 @@ abstract class AbstractRemindCommand(name: String, val msg: String) : Command(
 abstract class RegularRemindCommand(name: String, msg: String) : AbstractRemindCommand(name, msg) {
     override fun getMillis(e: GuildCommandEvent) = parseCalendarTime(e.arguments.getText("date"))
     override fun generateArgumentTemplate() = ArgumentManagerTemplate.create {
-        add("text", "Text", "Der Text", ArgumentManagerTemplate.Text.any())
         add("date", "Datum", "Das Datum", ArgumentManagerTemplate.Text.any())
+        add("text", "Text", "Der Text", ArgumentManagerTemplate.Text.any())
     }
 }
 

@@ -3069,12 +3069,10 @@ _written by Maxifcn_""".trimIndent()
                         }
                     }
                 }
-                var i = 0
-                while (i < 2) {
-                    if (game[i].pokemon.any { it.pokemon == "Zoroark" || it.pokemon == "Zorua" }) resultchannel.sendMessage(
-                        "Im Team von ${game[i].nickname} befindet sich ein Zorua/Zoroark! Bitte noch einmal die Kills überprüfen!"
+                for (ga in game) {
+                    if (ga.pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }) resultchannel.sendMessage(
+                        "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
                     ).queue()
-                    i++
                 }
                 logger.info("In Emolga Listener!")
                 //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )

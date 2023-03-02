@@ -33,8 +33,8 @@ class AddToTierlistCommand :
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val id = e.guild.id
-        val tierlist = Tierlist.getByGuild(id) ?: return e.reply("Es gibt keine Tierlist für diesen Server!")
+        val id = e.guild.idLong
+        val tierlist = Tierlist[id] ?: return e.reply("Es gibt keine Tierlist für diesen Server!")
         val mon = e.arguments.getText("mon")
         val tier = e.arguments.getNullable<String>("tier") ?: tierlist.prices.keys.last()
         if (tier !in tierlist.prices) {

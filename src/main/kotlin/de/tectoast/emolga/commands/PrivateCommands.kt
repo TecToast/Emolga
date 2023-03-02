@@ -515,7 +515,7 @@ object PrivateCommands {
         val aslleague = Emolga.get.leagueByGuild(Constants.G.ASL, uid)!!
         val mons = Google[sid, "Data$level!B${tindex.y(15, 3)}:B${tindex.y(15, 14)}", false].map { it[0] as String }
         val picks = aslleague.picks[uid]!!
-        val tl = Tierlist.getByGuild(Constants.G.ASL)!!
+        val tl = Tierlist[Constants.G.ASL]!!
         picks.clear()
         picks.addAll(mons.map { DraftPokemon(it, tl.getTierOf(it)) })
         b.addColumn("$team!C${level.y(26, 23)}", picks.let { pi ->

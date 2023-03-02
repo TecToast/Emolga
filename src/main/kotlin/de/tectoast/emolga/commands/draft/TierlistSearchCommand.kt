@@ -19,7 +19,7 @@ class TierlistSearchCommand :
 
     override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
-        val tierlist = Tierlist.getByGuild(e.guild.idLong) ?: run {
+        val tierlist = Tierlist[e.guild.idLong] ?: run {
             e.reply("Es wurde keine Tierliste für diesen Server hinterlegt!")
             return
         }

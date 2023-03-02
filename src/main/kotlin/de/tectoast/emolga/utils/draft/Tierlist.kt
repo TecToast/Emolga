@@ -15,7 +15,7 @@ import kotlin.reflect.KProperty
 
 @Suppress("unused")
 @Serializable
-class Tierlist(val guild: Long) {
+class Tierlist constructor(val guildid: Long) {
 
     /**
      * The price for each tier
@@ -37,12 +37,10 @@ class Tierlist(val guild: Long) {
 
     val freePicksAmount get() = freepicks["#AMOUNT#"] ?: 0
 
-    val autoComplete: Set<String> by lazy {
-        getAllForAutoComplete(guild)
-    }
+    val autoComplete: Set<String> by lazy(::getAllForAutoComplete)
 
     fun setup() {
-        tierlists[this.guild] = this
+        tierlists[this.guildid] = this
     }
 
 
@@ -51,14 +49,9 @@ class Tierlist(val guild: Long) {
         TierlistMode.TIERS_WITH_FREE -> freepicks[getTierOf(s)] ?: error("Tier for $s not found")
         else -> error("Unknown mode for points $mode")
     }
-
-    fun getTierOf(s: String): String {
-        return getTier(guild, s) ?: ""
-    }
-
     fun addPokemon(mon: String, tier: String) = transaction {
         insert {
-            it[guild] = this@Tierlist.guild
+            it[guild] = this@Tierlist.guildid
             it[pokemon] = mon
             it[this.tier] = tier
         }
@@ -66,7 +59,23 @@ class Tierlist(val guild: Long) {
 
     fun getByTier(tier: String): List<String>? {
         return transaction {
-            Tierlist.select { Tierlist.guild eq guild and (Tierlist.tier eq tier) }.map { it[pokemon] }.ifEmpty { null }
+            select { guild eq guildid and (Tierlist.tier eq tier) }.map { it[pokemon] }.ifEmpty { null }
+        }
+    }
+
+    private fun getAllForAutoComplete() = transaction {
+        val list = select { guild eq guildid }.map { it[pokemon] }
+        (list + NameConventions.getAllEnglishSpecified(list)).toSet()
+    }
+
+    fun getTierOf(mon: String) = transaction {
+        select { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.first()
+    }
+
+    fun retrieveTierlistMap(map: Map<String, Int>) = transaction {
+        map.entries.flatMap { (tier, amount) ->
+            select { guild eq guildid and (Tierlist.tier eq tier) }.orderBy(Random()).limit(amount)
+                .map { DraftPokemon(it[pokemon], tier) }
         }
     }
 
@@ -78,22 +87,6 @@ class Tierlist(val guild: Long) {
         val pokemon = varchar("pokemon", 30)
         val tier = varchar("tier", 8)
 
-        fun getAllForAutoComplete(guildId: Long) = transaction {
-            val list = select { guild eq guildId }.map { it[pokemon] }
-            (list + NameConventions.getAllEnglishSpecified(list)).toSet()
-        }
-
-        fun getTier(guildId: Long, mon: String) = transaction {
-            select { guild eq guildId and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
-        }
-
-        fun retrieveTierlistMap(guildId: Long, map: Map<String, Int>) = transaction {
-            map.entries.flatMap { (tier, amount) ->
-                select { guild eq guildId and (this@Companion.tier eq tier) }.orderBy(Random()).limit(amount)
-                    .map { DraftPokemon(it[pokemon], tier) }
-            }
-        }
-
         val tierlists: MutableMap<Long, Tierlist> = mutableMapOf()
         private val REPLACE_NONSENSE = Regex("[^a-zA-Z\\d-:%ßäöüÄÖÜé ]")
         fun setup() {
@@ -103,18 +96,11 @@ class Tierlist(val guild: Long) {
             }
         }
 
-        fun getByGuild(guild: String): Tierlist? {
-            return getByGuild(guild.toLong())
-        }
-
-
-        fun getByGuild(guild: Long): Tierlist? {
-            return tierlists[guild]
-        }
-
         override fun getValue(thisRef: League, property: KProperty<*>): Tierlist {
-            return getByGuild(thisRef.guild)!!
+            return get(thisRef.guild)!!
         }
+
+        operator fun get(guild: Long) = tierlists[guild]
     }
 }
 

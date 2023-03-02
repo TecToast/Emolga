@@ -19,7 +19,7 @@ class TierCommand :
         fun replyError() =
             e.reply("Auf diesem Server ist keine Tierliste hinterlegt! Wenn du dies tun möchtest, melde dich bei ${Constants.MYTAG}.")
 
-        val tierlist = Tierlist.getByGuild(e.guild.id)
+        val tierlist = Tierlist[e.guild.idLong]
             ?: return replyError()
         val pkmn = getDraftGerName(e.arguments.getText("mon"), e.guild.idLong)?.tlName ?: return replyError()
         val tier = tierlist.getTierOf(pkmn)

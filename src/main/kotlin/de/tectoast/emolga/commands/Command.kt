@@ -36,7 +36,6 @@ import de.tectoast.emolga.utils.Constants.SOULLINK_TCID
 import de.tectoast.emolga.utils.annotations.ToTest
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.emolga.utils.draft.Tierlist.Companion.getByGuild
 import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.Shinycount
 import de.tectoast.emolga.utils.json.Tokens
@@ -1395,7 +1394,7 @@ abstract class Command(
             val league = League.onlyChannel(event.channel!!.idLong)
             //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
             val strings =
-                (getByGuild(league?.guild ?: gid)?.autoComplete ?: allNameConventions).filterStartsWithIgnoreCase(s)
+                (Tierlist[league?.guild ?: gid]?.autoComplete ?: allNameConventions).filterStartsWithIgnoreCase(s)
             if (strings.size > 25) emptyList()
             else strings.sorted()
         }

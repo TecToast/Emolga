@@ -103,6 +103,6 @@ class PrismaTeamCommand : PrivateCommand("prismateam") {
         }
 
         val tierlist: Tierlist
-            get() = Tierlist.getByGuild("736555250118295622")!!
+            get() = Tierlist[736555250118295622]!!
     }
 }

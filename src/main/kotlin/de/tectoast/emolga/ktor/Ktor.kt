@@ -1,13 +1,9 @@
 package de.tectoast.emolga.ktor
 
-import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.httpClient
 import de.tectoast.emolga.commands.webJSON
 import de.tectoast.emolga.database.exposed.DiscordAuth
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -17,13 +13,12 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.callloging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import kotlinx.serialization.Serializable
-import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.User
 import org.slf4j.event.Level
+import kotlin.collections.set
 
 object Ktor {
 
@@ -89,42 +84,9 @@ object Ktor {
                     }
                 }
                 routing {
-                    authenticate("auth-oauth-discord") {
-                        get("/api/login") {}
-                        get("/api/discordauth") {
-                            val principal: OAuthAccessTokenResponse.OAuth2 = call.principal() ?: run {
-                                call.response.status(HttpStatusCode.BadRequest)
-                                return@get
-                            }
-                            val accessToken = principal.accessToken
-                            val user = httpClient.getUserData(accessToken)
-                            call.sessions.set(
-                                UserSession(
-                                    accessToken,
-                                    principal.refreshToken!!,
-                                    principal.expiresIn,
-                                    user.id
-                                )
-                            )
-                            call.respondRedirect("https://emolga.tectoast.de/")
-                        }
-                    }
                     route("/api") {
-                        get("/test") {
-                            call.respondText("Hello World!")
-                        }
-                        get("/userdata") {
-                            val session = call.sessionOrUnauthorized() ?: return@get
-                            call.respond(httpClient.getUserData(session.accessToken).emolga())
-                        }
-                        get("/guilds") {
-                            val session = call.sessionOrUnauthorized() ?: return@get
-                            call.respond(httpClient.getGuilds(session.accessToken).emolga())
-                        }
-                        get("/logout") {
-                            call.sessions.clear<UserSession>()
-                            call.respondRedirect("https://emolga.tectoast.de/")
-                        }
+                        emolgaAPI()
+                        ytSubscribtions()
                     }
                 }
             }
@@ -132,19 +94,6 @@ object Ktor {
     }
 }
 
-private suspend fun HttpClient.getUserData(accessToken: String): DiscordUser {
-    return getWithToken("https://discord.com/api/users/@me", accessToken)
-}
-
-private suspend fun HttpClient.getGuilds(accessToken: String): List<DiscordGuildData> {
-    return getWithToken("https://discord.com/api/users/@me/guilds", accessToken)
-}
-
-private suspend inline fun <reified T> HttpClient.getWithToken(url: String, accessToken: String): T {
-    return get(url) {
-        header("Authorization", "Bearer $accessToken")
-    }.body()
-}
 
 fun ApplicationCall.sessionOrUnauthorized(): UserSession? {
     return sessions.get() ?: run {
@@ -174,19 +123,6 @@ data class DiscordUser(
 @Serializable
 data class DiscordGuildData(val id: String, val name: String, val icon: String?, val permissions: Long)
 
-private fun List<DiscordGuildData>.emolga(): List<GuildData> {
-    val emolgaguilds = EmolgaMain.emolgajda.guilds.map { it.id }
-    return asSequence().filter {
-        it.permissions and Permission.MANAGE_SERVER.rawValue > 0
-    }.map { gd ->
-        GuildData(
-            gd.name,
-            gd.icon?.let { "https://cdn.discordapp.com/icons/${gd.id}/$it.png" }
-                ?: "assets/images/defaultservericon.png",
-            gd.id,
-            gd.id in emolgaguilds)
-    }.sortedBy { !it.joined }.toList()
-}
 
 @Serializable
 data class GuildData(val name: String, val url: String, val id: String, val joined: Boolean)

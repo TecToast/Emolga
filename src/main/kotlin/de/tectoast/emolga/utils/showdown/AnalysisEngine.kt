@@ -9,6 +9,7 @@ data class SDPokemon(var pokemon: String, val player: Int) {
     var lastDamageBy: SDPokemon? = null
     var itemObtainedFrom: SDPokemon? = null
     var targetForTrick: SDPokemon? = null
+    var perishedBy: SDPokemon? = null
     val zoroLines = mutableMapOf<IntRange, SDPokemon>()
     val otherNames = mutableSetOf<String>()
 
@@ -161,6 +162,22 @@ sealed class SDEffect(vararg val types: String) {
                 }
             }
         }
+    }
+
+    object PerishSong : SDEffect("-start", "move") {
+        override fun execute(split: List<String>, ctx: BattleContext) {
+            val pkmn = split[1].parsePokemon(ctx)
+            if (split[0] == "move") {
+                if (split[2] == "Perish Song") {
+                    ctx.monsOnField.flatten().forEach { it.perishedBy = pkmn }
+                }
+            } else {
+                if (split.getOrNull(2) == "perish0") {
+                    pkmn.perishedBy?.claimDamage(pkmn, true, ctx)
+                }
+            }
+        }
+
     }
 
     object Faint : SDEffect("faint") {

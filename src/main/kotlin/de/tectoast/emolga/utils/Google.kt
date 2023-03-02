@@ -6,20 +6,12 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleRefreshTokenRequest
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.sheets.v4.Sheets
-import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest
-import com.google.api.services.sheets.v4.model.Request
-import com.google.api.services.sheets.v4.model.ValueRange
 import com.google.api.services.youtube.YouTube
 import com.google.api.services.youtube.model.Playlist
 import com.google.api.services.youtube.model.SearchResult
 import com.google.api.services.youtube.model.Video
-import net.dv8tion.jda.annotations.ReplaceWith
-import org.slf4j.LoggerFactory
-import java.io.IOException
-import java.security.GeneralSecurityException
 
 object Google {
-    private val logger = LoggerFactory.getLogger(Google::class.java)
     private var REFRESHTOKEN: String? = null
     private var CLIENTID: String? = null
     private var CLIENTSECRET: String? = null
@@ -31,56 +23,30 @@ object Google {
         CLIENTSECRET = clientSecret
     }
 
+    fun getVidByQuery(vid: String): SearchResult {
+        return youTubeService.search().list("snippet").setQ(vid).setMaxResults(1L).execute().items[0]
+    }
 
-    @Throws(IllegalArgumentException::class)
-    fun getVidByQuery(vid: String?): SearchResult? {
-        try {
-            return youTubeService.search().list(listOf("snippet")).setQ(vid).setMaxResults(1L).execute().items[0]
-        } catch (ex: GeneralSecurityException) {
-            ex.printStackTrace()
-        } catch (ex: IOException) {
-            ex.printStackTrace()
-        }
-        logger.info("NULL")
-        return null
+    fun getVidByURL(url: String): Video {
+        val id =
+            (if (url.contains("youtu.be")) url.substring("https://youtu.be/".length) else url.substring("https://www.youtube.com/watch?v=".length)).split(
+                "&"
+            ).dropLastWhile { it.isEmpty() }.toTypedArray()[0]
+        return youTubeService.videos().list("snippet").setId(id).setMaxResults(1L)
+            .execute().items[0]
+
     }
 
 
-    fun getVidByURL(url: String): Video? {
-        try {
-            val id =
-                (if (url.contains("youtu.be")) url.substring("https://youtu.be/".length) else url.substring("https://www.youtube.com/watch?v=".length)).split(
-                    "&"
-                ).dropLastWhile { it.isEmpty() }.toTypedArray()[0]
-            return youTubeService.videos().list(listOf("snippet")).setId(listOf(id)).setMaxResults(1L)
-                .execute().items[0]
-        } catch (ex: GeneralSecurityException) {
-            ex.printStackTrace()
-        } catch (ex: IOException) {
-            ex.printStackTrace()
-        }
-        logger.info("NULL")
-        return null
+    fun getPlaylistByURL(url: String): Playlist {
+        val id =
+            url.substring("https://www.youtube.com/playlist?list=".length).split("&").dropLastWhile { it.isEmpty() }
+                .toTypedArray()[0]
+        return youTubeService.playlists().list("snippet").setId(id).setMaxResults(1L)
+            .execute().items[0]
+
     }
 
-
-    fun getPlaylistByURL(url: String): Playlist? {
-        try {
-            val id =
-                url.substring("https://www.youtube.com/playlist?list=".length).split("&").dropLastWhile { it.isEmpty() }
-                    .toTypedArray()[0]
-            return youTubeService.playlists().list(listOf("snippet")).setId(listOf(id)).setMaxResults(1L)
-                .execute().items[0]
-        } catch (ex: GeneralSecurityException) {
-            ex.printStackTrace()
-        } catch (ex: IOException) {
-            ex.printStackTrace()
-        }
-        logger.info("NULL")
-        return null
-    }
-
-    @Throws(IllegalArgumentException::class)
     operator fun get(spreadsheetId: String, range: String, formula: Boolean): List<List<Any>> {
         return sheetsService.spreadsheets()
             .values()[spreadsheetId, range].setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
@@ -91,33 +57,6 @@ object Google {
         sheetsService.spreadsheets().values().batchGet(sid).setRanges(ranges)
             .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
             .execute().valueRanges.map { it.getValues() }
-
-    @Deprecated("")
-    @ReplaceWith("RequestBuilder.updateAll")
-    @Throws(
-        IllegalArgumentException::class
-    )
-    fun updateRequest(spreadsheetId: String?, range: String?, values: List<List<Any?>?>?, raw: Boolean) {
-        try {
-            sheetsService.spreadsheets().values().update(spreadsheetId, range, ValueRange().setValues(values))
-                .setValueInputOption(if (raw) "RAW" else "USER_ENTERED").execute()
-        } catch (ex: IOException) {
-            ex.printStackTrace()
-        }
-    }
-
-    @Deprecated("")
-    @Throws(IllegalArgumentException::class)
-    fun batchUpdateRequest(spreadsheetId: String?, request: Request) {
-        try {
-            sheetsService.spreadsheets().batchUpdate(
-                spreadsheetId, BatchUpdateSpreadsheetRequest().setRequests(listOf(request))
-            ).execute()
-        } catch (ex: IOException) {
-            ex.printStackTrace()
-        }
-    }
-
 
     val sheetsService: Sheets
         get() {
@@ -131,7 +70,6 @@ object Google {
             ).setApplicationName("emolga").build()
         }
 
-    @get:Throws(GeneralSecurityException::class, IOException::class)
     private val youTubeService: YouTube
         get() {
             refreshTokenIfNotPresent()
@@ -149,19 +87,13 @@ object Google {
     }
 
     fun generateAccessToken() {
-        try {
-            accesstoken = GoogleRefreshTokenRequest(
-                GoogleNetHttpTransport.newTrustedTransport(),
-                GsonFactory.getDefaultInstance(),
-                REFRESHTOKEN,
-                CLIENTID,
-                CLIENTSECRET
-            ).execute().accessToken
-            lastUpdate = System.currentTimeMillis()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        } catch (e: GeneralSecurityException) {
-            e.printStackTrace()
-        }
+        accesstoken = GoogleRefreshTokenRequest(
+            GoogleNetHttpTransport.newTrustedTransport(),
+            GsonFactory.getDefaultInstance(),
+            REFRESHTOKEN,
+            CLIENTID,
+            CLIENTSECRET
+        ).execute().accessToken
+        lastUpdate = System.currentTimeMillis()
     }
 }

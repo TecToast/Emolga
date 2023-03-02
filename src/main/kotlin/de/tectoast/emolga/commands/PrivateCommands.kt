@@ -7,6 +7,7 @@ import de.tectoast.emolga.commands.Command.Translation
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.NameConventions
 import de.tectoast.emolga.database.exposed.TipGames
+import de.tectoast.emolga.ktor.subscribeToYTChannel
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.Google
@@ -17,6 +18,7 @@ import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.emolga.draft.ASL
 import de.tectoast.emolga.utils.sql.managers.AnalysisManager
+import de.tectoast.emolga.utils.sql.managers.SDNamesManager
 import de.tectoast.emolga.utils.sql.managers.TranslationsManager
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Modal
@@ -655,5 +657,16 @@ object PrivateCommands {
                             primary("shiftuser;$id", nameCache[id]!!)
                         }.chunked(5).map { ActionRow.of(it) }
             }
+    }
+
+    fun insertSDNamesInDatabase(e: GenericCommandEvent) {
+        val guild = e.getArg(1).toLong()
+        Emolga.get.signups[guild]!!.users.forEach { (id, data) ->
+            SDNamesManager.addIfAbsent(data.sdname, id)
+        }
+    }
+
+    suspend fun subscribeYT(e: GenericCommandEvent) {
+        subscribeToYTChannel(e.getArg(1))
     }
 }

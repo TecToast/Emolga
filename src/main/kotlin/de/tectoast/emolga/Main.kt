@@ -3,6 +3,7 @@ package de.tectoast.emolga
 import de.tectoast.emolga.bot.EmolgaMain.start
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.database.Database
+import de.tectoast.emolga.ktor.Ktor
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -21,5 +22,7 @@ object Main {
         Database.init()
         logger.info("Starting EmolgaMain...")
         start()
+        logger.info("Starting KTor...")
+        Ktor.start()
     }
 }

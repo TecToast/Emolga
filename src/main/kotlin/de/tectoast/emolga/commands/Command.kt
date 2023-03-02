@@ -3351,9 +3351,15 @@ fun String.toSDName() = Command.toSDName(this)
 
 inline fun <T> T.ifMatches(value: T, predicate: (T) -> Boolean) = if (predicate(this)) value else this
 
+val webJSON = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+    encodeDefaults = false
+}
+
 val httpClient = HttpClient(CIO) {
     install(ContentNegotiation) {
-        json()
+        json(webJSON)
     }
 }
 

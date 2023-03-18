@@ -81,9 +81,7 @@ object Analysis {
                 "",
                 (0 until playerCount).map {
                     SDPlayer(
-                        nicknames[it] ?: run {
-                            throw ShowdownParseException()
-                        },
+                        nicknames[it] ?: throw ShowdownParseException(),
                         allMons[it].orEmpty().toMutableList()
                     )
                 },

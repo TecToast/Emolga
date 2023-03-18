@@ -1,8 +1,11 @@
 package de.tectoast.emolga.utils.draft
 
+import de.tectoast.emolga.commands.Language
 import de.tectoast.emolga.database.exposed.NameConventions
+import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
@@ -25,15 +28,10 @@ class Tierlist constructor(val guildid: Long) {
 
     var mode: TierlistMode = TierlistMode.POINTS
     var points = 0
+    val language = Language.GERMAN
 
 
     val order get() = prices.keys.toList()
-
-
-    /**
-     * if this tierlist is pointbased
-     */
-    val isPointBased get() = mode == TierlistMode.POINTS
 
     val freePicksAmount get() = freepicks["#AMOUNT#"] ?: 0
 
@@ -49,6 +47,7 @@ class Tierlist constructor(val guildid: Long) {
         TierlistMode.TIERS_WITH_FREE -> freepicks[getTierOf(s)] ?: error("Tier for $s not found")
         else -> error("Unknown mode for points $mode")
     }
+
     fun addPokemon(mon: String, tier: String) = transaction {
         insert {
             it[guild] = this@Tierlist.guildid
@@ -65,11 +64,16 @@ class Tierlist constructor(val guildid: Long) {
 
     private fun getAllForAutoComplete() = transaction {
         val list = select { guild eq guildid }.map { it[pokemon] }
-        (list + NameConventions.getAllEnglishSpecified(list)).toSet()
+        (list + NameConventions.getAllOtherSpecified(list, language)).toSet()
     }
 
-    fun getTierOf(mon: String) = transaction {
-        select { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.first()
+    @Transient
+    private val tierCache = SizeLimitedMap<String, String>()
+
+    fun getTierOf(mon: String) = tierCache.getOrElse(mon) {
+        transaction {
+            select { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.first()
+        }
     }
 
     fun retrieveTierlistMap(map: Map<String, Int>) = transaction {
@@ -103,6 +107,8 @@ class Tierlist constructor(val guildid: Long) {
         operator fun get(guild: Long) = tierlists[guild]
     }
 }
+
+val Tierlist?.isEnglish get() = this?.language == Language.ENGLISH
 
 @Suppress("unused")
 enum class TierlistMode(val withPoints: Boolean, val withTiers: Boolean) {

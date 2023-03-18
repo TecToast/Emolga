@@ -7,6 +7,7 @@ import de.tectoast.emolga.commands.draft.PickCommand.Companion.exec
 import de.tectoast.emolga.commands.toSDName
 import de.tectoast.emolga.database.exposed.NameConventions
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
 class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", CommandCategory.Draft) {
@@ -20,7 +21,7 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
 
     override suspend fun process(e: GuildCommandEvent) {
         val d =
-            League.byChannel(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
+            League.byCommand(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
         val tierlist = d.tierlist
         val args = e.arguments
         val tier = tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: run {
@@ -29,19 +30,26 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
         }
         val list: MutableList<String> = tierlist.getByTier(tier)!!.toMutableList()
         list.shuffle()
-        val typecheck: (String) -> Boolean = if (args.has("type")) {
+        val typecheck: ((String) -> Boolean)? = if (args.has("type")) {
             val type = args.getTranslation("type");
             { type.translation in dataJSON[it.toSDName()]!!.types }
-        } else {
-            { true }
-        }
+        } else null
         e.arguments.map.apply {
-            put(
-                "pokemon", (list.firstOrNull { str: String ->
-                    !d.isPicked(str) && typecheck(NameConventions.getDiscordTranslation(str, d.guild, true)!!.official)
-                }?.trim()?.let { getDraftGerName(it, d.guild) }
-                    ?: return e.reply("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!"))
-            )
+            put("pokemon", (list.firstNotNullOfOrNull { str: String ->
+                val draftName = NameConventions.getDiscordTranslation(
+                    str, d.guild, tierlist.isEnglish
+                )!!
+                draftName.takeIf {
+                    !d.isPicked(
+                        draftName.official,
+                        tier
+                    ) && typecheck?.invoke(
+                        NameConventions.getDiscordTranslation(
+                            str, d.guild, true
+                        )!!.official
+                    ) != false
+                }
+            } ?: return e.reply("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")))
         }
         exec(e, true)
     }

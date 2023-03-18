@@ -27,10 +27,11 @@ import org.jetbrains.exposed.sql.transactions.transaction
 class TierlistBuilderConfigurator(
     userId: Long, channelId: Long, guildId: Long, val mons: List<String>, val tierlistcols: List<List<String>>
 ) : DGuildConfigurator("tierlistbuilder", userId, channelId, guildId) {
+    @OptIn(ExperimentalStdlibApi::class)
     override val steps: List<Step<*>> = listOf(step<SlashCommandInteractionEvent> {
-        val nc = Emolga.get.nameconventions.getOrPut(guild!!.idLong) { mutableMapOf() }.toList()
+        val nc = Emolga.get.nameconventions.getOrPut(guildId) { mutableMapOf() }.toList()
         hook.sendMessageEmbeds(Embed(
-            title = "Gibt es in der Tierliste Alola/Galar/Mega-Formen?",
+            title = "Gibt es in der Tierliste Alola/Galar/Hisui/Mega-Formen?",
             description = "Wenn ja, dann gib im gleich erscheinenden Formular an den jeweiligen Stellen das Format so ein, dass statt dem Namen des Pokemons `POKEMON` (nur Großbuchstaben) steht.\n" + "Wenn z.B. Alola-Formen so aussehen: `A-Sandamer`, dann gib `A-POKEMON` ein.\n" + "Selbiges geht natürlich auch dahinter, also z.B. für `Sandamer-Alola` wäre es `POKEMON-Alola`.\n\n" + "Falls es generell Probleme oder Fragen gibt, komme auf den in meinem Profil verlinkten Support-Server :)".condAppend(
                 nc.isNotEmpty()
             ) {
@@ -65,10 +66,11 @@ class TierlistBuilderConfigurator(
             short(
                 "galar", "Wie sollen Galar-Formen aussehen?", required = false
             )
+            short("hisui", "Wie sollen Hisui-Formen aussehen?", required = false)
         }
     }, { options ->
-        Emolga.get.nameconventions.getOrPut(guild!!.idLong) { mutableMapOf() }.let { map ->
-            for (form in listOf("Mega", "Alola", "Galar")) {
+        Emolga.get.nameconventions.getOrPut(guildId) { mutableMapOf() }.let { map ->
+            for (form in listOf("Mega", "Alola", "Galar", "Hisui")) {
                 getValue(form.replaceFirstChar { c -> c.lowercase() })?.asString?.takeUnless { it.isBlank() }?.also {
                     if ("POKEMON" !in it) throw InvalidArgumentException("Das Format muss `POKEMON` enthalten!")
                 }?.let {
@@ -182,7 +184,21 @@ class TierlistBuilderConfigurator(
         ).setComponents(tiermappingComponents(false)).queue()
     }), step<GenericComponentInteractionCreateEvent> {
         if (this is ButtonInteractionEvent) {
-            currCol = componentId.split(":")[1].toInt()
+            val data = componentId.split(":")[1]
+            if (data == "default") {
+                val tiers = prices!!.keys.toList()
+                val lastTier = tiers.lastIndex
+                for (i in 0..<lastTier) {
+                    tiermapping[i] = tiers.elementAt(i)
+                }
+                for (i in lastTier..tierlistcols.lastIndex) {
+                    tiermapping[i] = tiers.elementAt(lastTier)
+                }
+                saveToFile()
+                reply("Die Einrichtung der Tierliste wurde abgeschlossen!").queue()
+                return@step
+            }
+            currCol = data.toInt()
             editComponents(tiermappingComponents(true)).queue()
             it.dontSkip()
         } else if (this is StringSelectInteractionEvent) {
@@ -250,7 +266,7 @@ class TierlistBuilderConfigurator(
         )
     }.chunked(5).map {
         ActionRow.of(it)
-    } + if (withSelect) listOf(
+    } + (if (withSelect) listOf(
         ActionRow.of(
             StringSelectMenu(
                 "6tierlistbuilder;tiermapping",
@@ -258,7 +274,11 @@ class TierlistBuilderConfigurator(
                 placeholder = "Konfiguration von Spalte ${currCol + 1}"
             )
         )
-    ) else emptyList()
+    ) else emptyList()) + listOf(
+        ActionRow.of(
+            success("6tierlistbuilder;tiermapping:default", "Standard-Tierzuordnung")
+        )
+    )
 
     private fun saveToFile() {
         "Tierlists/$guildId.json".file().writeText(myJSON.encodeToString(Tierlist(guildId).apply {

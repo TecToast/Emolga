@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.saveEmolgaJSON
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.TeamGraphics
 import de.tectoast.emolga.utils.json.Emolga
 import dev.minn.jda.ktx.coroutines.await
@@ -19,6 +20,7 @@ class RandomTeamGrafikCommand :
 
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
+        slash(true, Constants.G.FPL)
         //setCustomPermissions(PermissionPreset.EMOLGAMOD)
     }
 

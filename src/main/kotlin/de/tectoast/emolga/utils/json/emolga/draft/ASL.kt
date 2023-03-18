@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.indexedBy
 import de.tectoast.emolga.commands.x
 import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.DraftTimer
+import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
@@ -54,22 +55,21 @@ class ASL(val level: Int = -1, private val sheetid: Int = -1) : League() {
     @Transient
     override val timer = DraftTimer(TimerInfo(12, 22), 120)
 
-    override val timerSkipMode = TimerSkipMode.AT_THE_END
+    override val timerSkipMode = TimerSkipMode.LAST_ROUND
 
     override fun isFinishedForbidden() = false
 
     @Transient
     val comparator: Comparator<DraftPokemon> = compareBy({ it.tier.indexedBy(tierlist.order) }, { it.name })
 
-    override fun pickDoc(data: PickData) {
-        val b = builder()
+    override fun RequestBuilder.pickDoc(data: PickData) {
         val asl = Emolga.get.asls11
         val (level, index, team) = asl.indexOfMember(data.mem)
-        b.addSingle("Data$level!B${index.y(15, data.changedIndex + 3)}", data.pokemon)
-        b.addColumn("$team!C${level.y(26, 23)}", data.picks.let { pi ->
+        addSingle("Data$level!B${index.y(15, data.changedIndex + 3)}", data.pokemon)
+        addColumn("$team!C${level.y(26, 23)}", data.picks.let { pi ->
             pi.sortedWith(comparator).map { it.indexedBy(pi) }.map { "=Data$level!B${index.y(15, 3) + it}" }
         })
-        b.addSingle(
+        addSingle(
             "Draftreihenfolge ${
                 when (level) {
                     0 -> "Coaches"
@@ -77,12 +77,11 @@ class ASL(val level: Int = -1, private val sheetid: Int = -1) : League() {
                 }
             }!${data.round.minus(1).x(2, 2)}${data.indexInRound + 3}", data.pokemon
         )
-        b.execute()
     }
 
-    override fun switchDoc(data: SwitchData) {
+    override fun RequestBuilder.switchDoc(data: SwitchData) {
         val killY = level.y(12 * 12, 1000 + data.mem.indexedBy(table).y(12, data.changedIndex))
-        builder().addCopyPasteChange(343863794, "B$killY:F$killY", "B$killY", "PASTE_VALUES")
+        addCopyPasteChange(343863794, "B$killY:F$killY", "B$killY", "PASTE_VALUES")
             .withRunnable {
                 val b = builder()
                 // Killliste neues Mon hinzufügen, altes Mon in Ablage cutpasten und neues Mon in Kader einfügen, Kaderseite sortieren
@@ -125,7 +124,6 @@ class ASL(val level: Int = -1, private val sheetid: Int = -1) : League() {
                 b.addSingle("$sheetname!${data.round.minus(1).x(3, 3)}${data.indexInRound + 3}", data.pokemon)
                 b.execute()
             }
-            .execute()
     }
 
     override fun announcePlayer() {

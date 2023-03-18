@@ -61,6 +61,7 @@ object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
 
+    private val guildsToUpdate = listOf(Constants.G.WARRIOR)
 
     fun updateTierlist(e: GenericCommandEvent) {
         Tierlist.setup()
@@ -414,8 +415,6 @@ object PrivateCommands {
         e.reply("Deleted: " + AnalysisManager.removeUnused())
     }
 
-
-    private val guildsToUpdate = listOf(Constants.G.FLP, Constants.G.MY)
     fun updateSlashCommands() {
         val jda = EmolgaMain.emolgajda
         val map: MutableMap<Long, MutableList<SlashCommandData>> = HashMap()
@@ -668,5 +667,25 @@ object PrivateCommands {
 
     suspend fun subscribeYT(e: GenericCommandEvent) {
         subscribeToYTChannel(e.getArg(1))
+    }
+
+    var guildForTLSetup: Long? = null
+    fun setGuildForTLSetup(e: GenericCommandEvent) {
+        guildForTLSetup = e.getArg(1).toLong()
+    }
+
+    var guildForUserIDGrabbing: Long? = Constants.G.WARRIOR
+    val grabbedIDs = mutableListOf<Long>()
+    fun grabUserIDs(e: GenericCommandEvent) {
+        guildForUserIDGrabbing = e.getArg(1).toLong()
+        grabbedIDs.clear()
+    }
+
+    fun printUserIDs(e: GenericCommandEvent) {
+        e.reply(grabbedIDs.joinToString())
+    }
+
+    fun clearUserIDs() {
+        grabbedIDs.clear()
     }
 }

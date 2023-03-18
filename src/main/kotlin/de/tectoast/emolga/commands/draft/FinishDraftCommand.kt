@@ -11,24 +11,21 @@ class FinishDraftCommand :
     init {
         aliases.add("finish")
         argumentTemplate = ArgumentManagerTemplate.noArgs()
-        slash(true, *draftGuilds.toLongArray())
+        slash(true, *draftGuilds)
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        e.textChannel
-        val memberr = e.member
-        memberr.idLong
-        val d = League.byChannel(e) ?: return
+        val d =
+            League.byCommand(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
         if (d.isFinishedForbidden()) {
             e.reply("Dieser Draft unterstützt /finish nicht!")
             return
         }
         val mem = d.current
         d.checkFinishedForbidden(mem)?.let {
-            e.reply(it)
-            return
+            return e.reply(it)
         }
-        e.reply("Du hast den Draft für dich beendet!")
+        d.replyFinish(e)
         d.addFinished(mem)
         d.nextPlayer()
         saveEmolgaJSON()

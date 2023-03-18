@@ -27,5 +27,7 @@ object Constants {
         const val GILDE = 940283708953473075
         const val BLOCKI = 536061856910147595
         const val VIP = 651152835425075218
+        const val WARRIOR = 444236285905993739
+        const val BSP = 1077517941043642428
     }
 }

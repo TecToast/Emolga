@@ -18,7 +18,7 @@ class DraftStatusCommand :
                 true
             )
         }
-        slash(true, *draftGuilds.toLongArray())
+        slash(true, *draftGuilds)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

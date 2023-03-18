@@ -106,7 +106,12 @@ sealed class SDEffect(vararg val types: String) {
                 ?.let {
                     it.pokemon = monName
                 }
-            ctx.monsOnField[pl][idx] = playerSide.pokemon.first { it.hasName(monName) }
+            val switchIn = playerSide.pokemon.first { it.hasName(monName) }
+            if (split.getOrNull(4) == "[from] Baton Pass") {
+                switchIn.volatileEffects.clear()
+                switchIn.volatileEffects.putAll(ctx.monsOnField[pl][idx].volatileEffects)
+            }
+            ctx.monsOnField[pl][idx] = switchIn
         }
     }
 

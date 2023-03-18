@@ -32,8 +32,8 @@ class DraftsetupCommand :
                 optional = true
             )
             .build()
-        setCustomPermissions(PermissionPreset.fromIDs(297010892678234114L))
-        slash(false, *draftGuilds.toLongArray())
+        setCustomPermissions(PermissionPreset.fromIDs(297010892678234114, 263729526436134934))
+        slash(false, *draftGuilds)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

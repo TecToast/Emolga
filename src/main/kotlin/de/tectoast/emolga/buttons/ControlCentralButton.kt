@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.PrivateCommands
 import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
@@ -16,7 +15,6 @@ class ControlCentralButton : ButtonListener("controlcentral") {
         when (name) {
             "ej" -> {
                 Command.loadEmolgaJSON()
-                League.restart()
             }
 
             "saveemolgajson" -> saveEmolgaJSON()

@@ -1,5 +1,6 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.commands.Language
 import de.tectoast.emolga.utils.json.Emolga
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -15,9 +16,9 @@ object NameConventions : Table("nameconventions") {
     val specifiedenglish = varchar("specifiedenglish", 50)
     val hashypheninname = bool("hashypheninname")
 
-    fun getAllEnglishSpecified(mons: List<String>): List<String> {
+    fun getAllOtherSpecified(mons: List<String>, lang: Language): List<String> {
         return transaction {
-            select(specified inList mons).map { it[specifiedenglish] }
+            select((if (lang == Language.GERMAN) specified else specifiedenglish) inList mons).map { it[if (lang == Language.GERMAN) specifiedenglish else specified] }
         }
     }
 
@@ -55,7 +56,7 @@ object NameConventions : Table("nameconventions") {
 
     suspend fun checkIfExists(name: String, guildId: Long): Boolean {
         return newSuspendedTransaction {
-            select(specified eq name and (guild eq 0 or (guild eq guildId))).firstOrNull() != null
+            select(((specified eq name) or (specifiedenglish eq name)) and (guild eq 0 or (guild eq guildId))).firstOrNull() != null
         }
     }
 
@@ -100,11 +101,12 @@ object NameConventions : Table("nameconventions") {
 
     private val possibleSpecs by lazy { Emolga.get.nameconventions[0]!!.keys }
 
-    fun getSDTranslation(s: String, guildId: Long) = getDBTranslation(
+    fun getSDTranslation(s: String, guildId: Long, english: Boolean = false) = getDBTranslation(
         s,
         guildId,
         possibleSpecs.firstOrNull { s.endsWith("-$it") },
-        Emolga.get.nameconventions[guildId] ?: Emolga.get.defaultNameConventions
+        Emolga.get.nameconventions[guildId] ?: Emolga.get.defaultNameConventions,
+        english
     )
 
     private fun getDBTranslation(

@@ -12,7 +12,7 @@ class DraftPermissionCommand : Command(
 
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
-        slash(true, *draftGuilds.toLongArray())
+        slash(true, *draftGuilds)
     }
 
     override suspend fun process(e: GuildCommandEvent) {}

@@ -94,7 +94,7 @@ enum class Subject(private val person: String) {
     PhysikL("f"), BioL("t"), Englisch("b"), ChemieL("b"), Musik("f"), Kunst("t"), Deutsch("b"), Geschichte("b"), MatheL(
         "b"
     ),
-    Religion("b"), Gemeinschaftskunde("b"), Physik("t"), Informatik("f"), Sport("t");
+    Religion("b"), Gemeinschaftskunde("b"), Physik("t"), Informatik("f"), Sport("f");
 
     val f get() = person == "f" || person == "b"
     val t get() = person == "t" || person == "b"

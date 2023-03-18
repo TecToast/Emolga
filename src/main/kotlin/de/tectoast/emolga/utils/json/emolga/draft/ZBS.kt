@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.coordXMod
 import de.tectoast.emolga.commands.toDocRange
 import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.DraftTimer
+import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.records.SorterData
@@ -32,14 +33,12 @@ class ZBS(private val conference: String) : League() {
     }
 
 
-    override fun pickDoc(data: PickData) {
+    override fun RequestBuilder.pickDoc(data: PickData) {
         // =ZÄHLENWENN(INDIREKT("DataRotschopf!B500:B587"); B4)
-        val b = builder()
         val mon = data.pokemon
-        b.addSingle(data.roundIndex.coordXMod("$conference-Draftreihenfolge", 6, 2, 3, 10, 3 + data.indexInRound), mon)
+        addSingle(data.roundIndex.coordXMod("$conference-Draftreihenfolge", 6, 2, 3, 10, 3 + data.indexInRound), mon)
         val monCoord = "Data$conference!B${data.memIndex.y(26, 3 + data.changedIndex)}"
-        b.addSingle(monCoord, mon)
-        b.addSingle("$conference-Conference!C${data.memIndex.y(14, getTierInsertIndex(data) + 4)}", mon)
-        b.execute()
+        addSingle(monCoord, mon)
+        addSingle("$conference-Conference!C${data.memIndex.y(14, data.changedOnTeamsiteIndex + 4)}", mon)
     }
 }

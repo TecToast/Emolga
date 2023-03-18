@@ -3,23 +3,36 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.invoke
+import de.tectoast.emolga.database.exposed.NameConventions
+import de.tectoast.emolga.utils.SizeLimitedMap
+import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.SwitchData
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
 
 class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.Draft) {
+    val tlNameCache = SizeLimitedMap<String, String>(1000)
+
     init {
         argumentTemplate = ArgumentManagerTemplate.builder().add(
             "oldmon",
             "Altes Mon",
             "Das Pokemon, was rausgeschmissen werden soll",
             ArgumentManagerTemplate.draftPokemon { s, e ->
-                League.onlyChannel(e.channel!!.idLong)?.let {
-                    it.picks[it.current]!!.sortedWith(
-                        compareBy(
-                            { mon -> it.tierlist.order.indexOf(mon.tier) },
-                            { mon -> mon.name })
-                    ).map { mon -> mon.name }.filter { mon -> mon.startsWith(s, true) }
+                transaction {
+                    League.onlyChannel(e.channel!!.idLong)?.let {
+                        val tl = it.tierlist
+                        it.picks[it.current]!!.sortedWith(
+                            compareBy({ mon -> tl.order.indexOf(mon.tier) },
+                                { mon -> mon.name })
+                        ).map { mon ->
+                            tlNameCache[mon.name] ?: NameConventions.getSDTranslation(
+                                mon.name, it.guild, english = tl.isEnglish
+                            )!!.tlName.also { tlName -> tlNameCache[mon.name] = tlName }
+                        }.filter { mon -> mon.startsWith(s, true) }
+                    }
                 }
             },
             false,
@@ -32,63 +45,61 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
             false,
             "Das, was du haben möchtest, ist kein Pokemon!"
         ).setExample("!switch Gufa Emolga").build()
-        slash(true, *draftGuilds.toLongArray())
+        slash(true, *draftGuilds)
     }
 
     override suspend fun process(e: GuildCommandEvent) {
         val d =
-            League.byChannel(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
+            League.byCommand(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
         if (!d.isSwitchDraft) {
             return e.reply("Dieser Draft ist kein Switch-Draft, daher wird /switch nicht unterstützt!")
 
         }
         val mem = d.current
+        d.beforeSwitch()?.let { e.reply(it); return }
         val args = e.arguments
-        val tierlist = d.tierlist
-        val oldmon = args.getText("oldmon")
-        val newmon = args.getText("newmon")
-        if (!d.isPickedBy(oldmon, mem)) {
-            return e.reply("$oldmon befindet sich nicht in deinem Kader!")
+        val oldmon = args.getDraftName("oldmon")
+        val newmon = args.getDraftName("newmon")
+        logger.info("Switching $oldmon to $newmon")
+        val draftPokemons = d.picks(mem)
+        val oldDraftMon = draftPokemons.firstOrNull { it.name == oldmon.official }
+            ?: return e.reply("${oldmon.tlName} befindet sich nicht in deinem Kader!")
+        val newtier = try {
+            d.getTierOf(newmon.tlName, oldDraftMon.tier)
+        } catch (ex: NoSuchElementException) {
+            return e.reply("Dieses Pokemon ist nicht in der Tierliste!")
         }
-        if (d.isPicked(newmon)) {
-            e.reply("$newmon wurde bereits gepickt!")
+        d.checkUpdraft(e, oldDraftMon.tier, newtier.official)?.let { e.reply(it); return }
+        if (d.isPicked(newmon.official, newtier.official)) {
+            e.reply("${newmon.tlName} wurde bereits gepickt!")
             return
         }
-        val pointsBack = tierlist.getPointsNeeded(oldmon)
-        logger.info("oldmon = $oldmon")
-        logger.info("newmon = $newmon")
-        val newpoints = tierlist.getPointsNeeded(newmon)
-        val tier = tierlist.getTierOf(newmon)
-        if (d.isPointBased) {
-            if (d.points[mem]!! + pointsBack - newpoints < 0) {
-                e.reply("Du kannst dir $newmon nicht leisten!")
-                return
-            }
-            d.points[mem] = d.points[mem]!! + pointsBack - newpoints
-        } else {
-            if (d.getPossibleTiers()[tier]!! <= 0 && tierlist.getTierOf(oldmon) != tier) {
-                e.reply("Du kannst dir kein $tier-Tier mehr holen!")
-                return
-            }
+        if (d.handleTiers(e, newtier.specified, newtier.official, fromSwitch = true)) return
+        if (d.handlePoints(e, newmon.tlName, false, oldmon.tlName)) return
+        d.replySwitch(e, oldmon.tlName, newmon.tlName)
+
+        val oldIndex = d.saveSwitch(draftPokemons, oldmon.official, newmon.official, newtier.specified)
+        with(d) {
+            builder().let { b ->
+                b.switchDoc(
+                    SwitchData(
+                        league = this,
+                        pokemon = newmon.tlName,
+                        tier = newtier.specified,
+                        mem = mem,
+                        indexInRound = indexInRound(round),
+                        changedIndex = draftPokemons.indexOfFirst { it.name == newmon.official },
+                        picks = picks[mem]!!,
+                        round = round,
+                        memIndex = table.indexOf(mem),
+                        oldmon = oldmon.tlName,
+                        oldtier = getTierOf(oldmon.tlName, null).specified,
+                        changedOnTeamsiteIndex = oldIndex
+                    )
+                )?.let { b }
+            }?.execute()
         }
-        d.replySwitch(e, oldmon, newmon)
-        val draftPokemons = d.picks[mem]!!
-        d.saveSwitch(draftPokemons, oldmon, newmon, tierlist.getTierOf(newmon))
-        d.switchDoc(
-            SwitchData(
-                newmon,
-                tierlist.getTierOf(newmon),
-                mem,
-                d.indexInRound(d.round),
-                draftPokemons.indexOfFirst { it.name == newmon },
-                d.picks[mem]!!,
-                d.round,
-                d.table.indexOf(mem),
-                oldmon,
-                tierlist.getTierOf(oldmon),
-            )
-        )
-        if (newmon == "Emolga") {
+        if (newmon.official == "Emolga") {
             e.textChannel.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
                 .queue()
         }

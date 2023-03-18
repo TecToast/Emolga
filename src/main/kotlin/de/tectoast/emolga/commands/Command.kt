@@ -36,6 +36,7 @@ import de.tectoast.emolga.utils.Constants.SOULLINK_TCID
 import de.tectoast.emolga.utils.annotations.ToTest
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.Shinycount
 import de.tectoast.emolga.utils.json.Tokens
@@ -341,7 +342,7 @@ abstract class Command(
 
     class ValidationData(
         val guildId: Long = -1,
-        val language: Translation.Language = Translation.Language.GERMAN,
+        val language: Language = Language.GERMAN,
         val message: Message? = null,
         val asFar: Int = -1,
         val channel: MessageChannel? = null
@@ -359,7 +360,7 @@ abstract class Command(
             return false
         }
 
-        fun autoCompleteList(arg: String, event: CommandAutoCompleteInteractionEvent): List<String>? {
+        suspend fun autoCompleteList(arg: String, event: CommandAutoCompleteInteractionEvent): List<String>? {
             return null
         }
     }
@@ -721,7 +722,7 @@ abstract class Command(
             private val any: Boolean
             private val slashSubCmd: Boolean
             private var mapper: (String) -> String = { it }
-            private var autoComplete: ((String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
+            private var autoComplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
 
             private constructor(possible: List<SubCommand>, slashSubCmd: Boolean = false) {
                 texts.addAll(possible)
@@ -773,7 +774,10 @@ abstract class Command(
                 return (!(slashSubCmd || texts.isEmpty()) || autoComplete != null) && !hasOptions()
             }
 
-            override fun autoCompleteList(arg: String, event: CommandAutoCompleteInteractionEvent): List<String>? {
+            override suspend fun autoCompleteList(
+                arg: String,
+                event: CommandAutoCompleteInteractionEvent
+            ): List<String>? {
                 if (autoComplete != null) {
                     return autoComplete!!(arg, event)
                 }
@@ -799,7 +803,7 @@ abstract class Command(
                     return Text()
                 }
 
-                fun withAutocomplete(autoComplete: ((String, CommandAutoCompleteInteractionEvent) -> List<String>?)?): Text {
+                fun withAutocomplete(autoComplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)?): Text {
                     return Text().apply {
                         this.autoComplete = autoComplete
                     }
@@ -916,7 +920,7 @@ abstract class Command(
             val helpmsg: String,
             val type: ArgumentType,
             val isOptional: Boolean,
-            val language: Translation.Language,
+            val language: Language,
             val customErrorMessage: String?
         ) {
             val disabled: MutableList<Long> = mutableListOf()
@@ -957,7 +961,7 @@ abstract class Command(
                         help,
                         type,
                         optional,
-                        Translation.Language.GERMAN,
+                        Language.GERMAN,
                         customErrorMessage
                     )
                 )
@@ -975,7 +979,7 @@ abstract class Command(
             ): Builder {
                 arguments.add(
                     Argument(
-                        id, name, help, type, optional, Translation.Language.ENGLISH, customErrorMessage
+                        id, name, help, type, optional, Language.ENGLISH, customErrorMessage
                     )
                 )
                 return this
@@ -1031,9 +1035,12 @@ abstract class Command(
                     "Pokemon",
                     false,
                     { str, data ->
-                        getDraftGerName(
+                        val guildId = data.channel?.let { League.onlyChannel(it.idLong)?.guild } ?: data.guildId
+                        NameConventions.getDiscordTranslation(
                             str,
-                            data.channel?.let { League.onlyChannel(it.idLong)?.guild } ?: data.guildId)
+                            guildId,
+                            english = Tierlist[guildId].isEnglish
+                        )
                     },
                     autoComplete
                 )
@@ -1086,7 +1093,7 @@ abstract class Command(
                         return autoComplete != null
                     }
 
-                    override fun autoCompleteList(
+                    override suspend fun autoCompleteList(
                         arg: String, event: CommandAutoCompleteInteractionEvent
                     ): List<String>? {
                         return autoComplete!!(arg, event)
@@ -1137,10 +1144,6 @@ abstract class Command(
 
         val isSuccess: Boolean
             get() = !isEmpty
-
-        enum class Language {
-            GERMAN, ENGLISH, UNKNOWN
-        }
 
         enum class Type(val id: String, private val typeName: String, private val female: Boolean) : ArgumentType {
             ABILITY("abi", "Fähigkeit", true), EGGGROUP("egg", "Eigruppe", true), ITEM(
@@ -1213,7 +1216,7 @@ abstract class Command(
                         return true
                     }
 
-                    override fun autoCompleteList(
+                    override suspend fun autoCompleteList(
                         arg: String, event: CommandAutoCompleteInteractionEvent
                     ): List<String>? {
                         return autoComplete(arg, event)
@@ -1378,13 +1381,15 @@ abstract class Command(
         val TRIPLE_HASHTAG = Regex("###")
         const val DEXQUIZ_BUDGET = 10
         val draftGuilds =
-            arrayOf(
+            longArrayOf(
                 Constants.G.FPL,
                 Constants.G.NDS,
                 Constants.G.ASL,
                 Constants.G.BLOCKI,
                 Constants.G.VIP,
-                Constants.G.FLP
+                Constants.G.FLP,
+                Constants.G.WARRIOR,
+                Constants.G.BSP
             )
         private val draftPrefixes = mapOf(
             "M" to "Mega", "A" to "Alola", "G" to "Galar", "Mega" to "Mega", "Alola" to "Alola", "Galar" to "Galar"
@@ -3100,8 +3105,6 @@ _written by Maxifcn_""".trimIndent()
             }
         }
 
-        val possibleForms = listOf("Mega", "Alola", "Galar")
-
         fun getDraftGerName(
             sArg: String, guildId: Long
         ) = NameConventions.getDiscordTranslation(sArg, guildId)
@@ -3146,7 +3149,7 @@ _written by Maxifcn_""".trimIndent()
                     val t = Translation(
                         set.getString("germanname"),
                         Translation.Type.fromId(set.getString("type")),
-                        Translation.Language.GERMAN,
+                        Language.GERMAN,
                         set.getString("englishname"),
                         set.getString("forme")
                     )
@@ -3203,7 +3206,7 @@ _written by Maxifcn_""".trimIndent()
                     val t = Translation(
                         set.getString("englishname"),
                         Translation.Type.fromId(set.getString("type")),
-                        Translation.Language.ENGLISH,
+                        Language.ENGLISH,
                         set.getString("germanname"),
                         set.getString("forme")
                     )
@@ -3431,6 +3434,8 @@ fun <K> MutableMap<K, Int>.add(key: K, value: Int) = compute(key) { _, v ->
     v?.plus(value) ?: value
 }
 
+operator fun <K, V> Map<K, V>.invoke(key: K) = getValue(key)
+
 data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)
 
 data class DocRange(val sheet: String, val xStart: String, val yStart: Int, val xEnd: String, val yEnd: Int) {
@@ -3470,4 +3475,8 @@ data class ReplayData(
     val m: Message?
 ) {
     val uids by lazy { listOf(uid1, uid2) }
+}
+
+enum class Language {
+    GERMAN, ENGLISH, UNKNOWN
 }

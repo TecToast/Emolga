@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.PrivateCommands
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 
@@ -34,7 +35,7 @@ class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste
         TierlistBuilderConfigurator(
             userId = e.author.idLong,
             channelId = e.channel.idLong,
-            guildId = e.guild.idLong,
+            guildId = PrivateCommands.guildForTLSetup?.takeUnless { e.isNotFlo } ?: e.guild.idLong,
             mons =
             Google.batchGet(
                 sid,

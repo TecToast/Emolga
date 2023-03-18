@@ -34,6 +34,10 @@ class NDS : League() {
     @Transient
     override val timer = DraftTimer(TimerInfo(10, 22), 180)
 
+    override fun beforePick(): String? {
+        return "Du hast bereits 15 Mons!".takeIf { picks(current).count { it.name != "???" } == 15 }
+    }
+
     override fun checkFinishedForbidden(mem: Long) = when {
         picks[mem]!!.filter { it.name != "???" }.size < 15 -> "Du hast noch keine 15 Pokemon!"
         !getPossibleTiers().values.all { it == 0 } -> "Du musst noch deine Tiers ausgleichen!"
@@ -47,32 +51,30 @@ class NDS : League() {
         }
     }
 
-    override fun pickDoc(data: PickData) {
+    override fun RequestBuilder.pickDoc(data: PickData) {
         doc(data)
     }
 
-    override fun switchDoc(data: SwitchData) {
+    override fun RequestBuilder.switchDoc(data: SwitchData) {
         //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
         doc(data)
     }
 
-    private fun doc(data: DraftData) {
-        val b = RequestBuilder(sid)
+    private fun RequestBuilder.doc(data: DraftData) {
         val index = data.memIndex
         val y = index * 17 + 2 + data.changedIndex
-        b.addSingle("Data!B$y", data.pokemon)
-        b.addSingle("Data!AF$y", 2)
-        b.addColumn(
+        addSingle("Data!B$y", data.pokemon)
+        addSingle("Data!AF$y", 2)
+        addColumn(
             "Data!F${index * 17 + 2}",
             data.picks.asSequence().filter { it.name != "???" }
-                .sortedWith(compareBy({ tiers.indexOf(it.tier) }, { it.name })).map { it.name }.toList()
+                .sortedWith(tierorderingComparator).map { it.name }.toList()
         )
         val numInRound = data.indexInRound + 1
-        if (data is SwitchData) b.addSingle(
+        if (data is SwitchData) addSingle(
             "Draft!${Command.getAsXCoord(round * 5 - 3)}${numInRound * 5 + 1}", data.oldmon
         )
-        b.addSingle("Draft!${Command.getAsXCoord(round * 5 - 1)}${numInRound * 5 + 2}", data.pokemon)
-        b.execute()
+        addSingle("Draft!${Command.getAsXCoord(round * 5 - 1)}${numInRound * 5 + 2}", data.pokemon)
     }
 
     @Transient
@@ -133,8 +135,7 @@ class NDS : League() {
 
     companion object {
         val logger: Logger by SLF4J
-        val tiers = listOf("S", "A", "B")
-        private const val rr = true
+        private const val rr = false
         val rrSummand: Int
             get() = if (rr) 5 else 0
         val gameplanName: String

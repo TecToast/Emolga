@@ -22,7 +22,7 @@ class MoveCommand : Command(
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        League.byChannel(e)?.let {
+        League.byCommand(e)?.let {
             if (it.isSwitchDraft) {
                 e.reply("Dieser Draft ist ein Switch-Draft, daher wird /move nicht unterstützt!")
                 return

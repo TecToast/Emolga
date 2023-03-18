@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.utils.DraftTimer
+import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.CombinedStatProcessor
@@ -43,16 +44,14 @@ class ITP : League() {
         }
     }
 
-    override fun pickDoc(data: PickData) {
-        val b = builder()
-        b.addSingle(data.round.minus(1).coordXMod("Draftreihenfolge", 4, 4, 4, 13, 3 + data.indexInRound), data.pokemon)
-        b.addSingle(data.memIndex.coordXMod("Kader",
+    override fun RequestBuilder.pickDoc(data: PickData) {
+        addSingle(data.round.minus(1).coordXMod("Draftreihenfolge", 4, 4, 4, 13, 3 + data.indexInRound), data.pokemon)
+        addSingle(data.memIndex.coordXMod("Kader",
             2,
             17,
             3,
             19,
-            if (data.freePick) data.picks.count { it.free } + 15 else 9 + getTierInsertIndex(data)), data.pokemon)
-        b.execute()
+            if (data.freePick) data.picks.count { it.free } + 15 else 9 + data.changedOnTeamsiteIndex), data.pokemon)
     }
 
     override fun beforePick() =

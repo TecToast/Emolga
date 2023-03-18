@@ -1,9 +1,9 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.coordXMod
 import de.tectoast.emolga.utils.DraftTimer
+import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.CombinedStatProcessor
@@ -36,42 +36,18 @@ class DoR : League() {
     @Transient
     override val timer = DraftTimer(TimerInfo(12, 22), 60)
 
-    override fun pickDoc(data: PickData) {
-        val b = builder()
-        b.addSingle(data.memIndex.coordXMod("Kader",
+    override fun RequestBuilder.pickDoc(data: PickData) {
+        addSingle(data.memIndex.coordXMod("Kader",
             2,
             14,
             4,
             17,
-            if (data.freePick) data.picks.count { it.free } + 13 else getTierInsertIndex(data) + 6),
+            if (data.freePick) data.picks.count { it.free } + 13 else data.changedOnTeamsiteIndex + 6),
             data.pokemon)
-        b.addSingle(data.round.minus(1).coordXMod("Draftreihenfolge", 4, 4, 4, 13, 3 + data.indexInRound), data.pokemon)
-        if (data.freePick) b.addSingle(
+        addSingle(data.round.minus(1).coordXMod("Draftreihenfolge", 4, 4, 4, 13, 3 + data.indexInRound), data.pokemon)
+        if (data.freePick) addSingle(
             data.round.minus(1).coordXMod("Draftreihenfolge", 4, 4, 5, 13, 3 + data.indexInRound), "F"
         )
-        b.execute()
-    }
-
-    override fun handleTiers(e: GuildCommandEvent, tier: String, origtier: String): Boolean {
-        if (tierlist.mode.isPoints()) return false
-        val map = getPossibleTiers()
-        if (!map.containsKey(tier)) {
-            e.reply("Das Tier `$tier` existiert nicht!")
-            return true
-        }
-        if (tierlist.order.indexOf(origtier) < tierlist.order.indexOf(tier)) {
-            e.reply("Du kannst ein Tier-$origtier-Mon nicht ins $tier. Tier hochdraften!")
-            return true
-        }
-        if (map[tier]!! <= 0) {
-            if (tierlist.prices[tier] == 0) {
-                e.reply("Ein Pokemon aus Tier $tier musst du in ein anderes Tier hochdraften!")
-                return true
-            }
-            e.reply("Du kannst dir kein Tier-$tier-Pokemon mehr picken!")
-            return true
-        }
-        return false
     }
 
     override val timerSkipMode = TimerSkipMode.NEXT_PICK

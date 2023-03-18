@@ -120,8 +120,8 @@ abstract class GenericCommandEvent {
         ).queue()
     }
 
-    fun done() {
-        reply("Done!")
+    fun done(ephemeral: Boolean = false) {
+        reply("Done!", ephemeral)
     }
 
     val isNotFlo: Boolean

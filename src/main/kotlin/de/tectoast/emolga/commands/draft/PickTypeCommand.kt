@@ -46,7 +46,7 @@ class PickTypeCommand : Command("picktype", "Pickt einen Tera-Typen", CommandCat
 
     override suspend fun process(e: GuildCommandEvent) {
         val d =
-            League.byChannel(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
+            League.byCommand(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
         if (d !is ITP) {
             e.reply("Dieser Befehl funktioniert nur im ITP Draft!")
             return

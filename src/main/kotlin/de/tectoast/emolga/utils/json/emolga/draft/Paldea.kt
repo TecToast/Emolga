@@ -12,7 +12,6 @@ import kotlinx.serialization.Transient
 @Serializable
 @SerialName("Paldea")
 class Paldea : League() {
-    override val timer get() = error("not implemented")
 
     @Transient
     override val docEntry = DocEntry.create(this) {

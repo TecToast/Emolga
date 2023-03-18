@@ -52,6 +52,18 @@ object EmolgaListener : ListenerAdapter() {
                 }
             }
         }
+        jda.listener<CommandAutoCompleteInteractionEvent> { e ->
+            if (e.commandType == net.dv8tion.jda.api.interactions.commands.Command.Type.SLASH) {
+                val focusedOption = e.focusedOption
+                val arg = Command.byName(e.name)!!.argumentTemplate.findForAutoComplete(focusedOption.name)!!
+                val type = arg.type
+                if (type.hasAutoComplete()) {
+                    type.autoCompleteList(focusedOption.value, e).run {
+                        e.replyChoiceStrings(this ?: emptyList()).queue()
+                    }
+                }
+            }
+        }
     }
 
     private suspend fun slashCommandInteractionEvent(e: SlashCommandInteractionEvent) {
@@ -218,19 +230,6 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                             mem!!
                         )
                     ) e.invite.delete().queue()
-                }
-            }
-        }
-    }
-
-    override fun onCommandAutoCompleteInteraction(e: CommandAutoCompleteInteractionEvent) {
-        if (e.commandType == net.dv8tion.jda.api.interactions.commands.Command.Type.SLASH) {
-            val focusedOption = e.focusedOption
-            val arg = Command.byName(e.name)!!.argumentTemplate.findForAutoComplete(focusedOption.name)!!
-            val type = arg.type
-            if (type.hasAutoComplete()) {
-                type.autoCompleteList(focusedOption.value, e).run {
-                    e.replyChoiceStrings(this ?: emptyList()).queue()
                 }
             }
         }

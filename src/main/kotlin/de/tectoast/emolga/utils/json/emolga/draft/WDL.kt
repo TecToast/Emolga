@@ -55,7 +55,7 @@ class WDL(private val division: String) : League() {
         return super.handleTiers(e, specifiedTier, officialTier, fromSwitch)
     }
 
-    override fun checkUpdraft(e: GuildCommandEvent, specifiedTier: String, officialTier: String): String? {
+    override fun checkUpdraft(specifiedTier: String, officialTier: String): String? {
         if (specifiedTier == "PARADOX" && officialTier != "PARADOX") return "Im Paradox-Tier darf nur ein Paradox-Pokemon gepickt werden!"
         return null
     }

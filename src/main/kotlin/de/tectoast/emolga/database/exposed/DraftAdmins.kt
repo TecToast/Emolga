@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 object DraftAdmins : Table("draftadmins") {
     val guild = long("guildid")
-    val roleid = long("roleid").nullable()
+    private val roleid = long("roleid").nullable()
     val userid = long("userid").nullable()
 
     fun isAdmin(gid: Long, mem: Member) = transaction {

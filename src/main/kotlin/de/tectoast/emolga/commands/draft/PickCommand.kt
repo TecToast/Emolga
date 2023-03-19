@@ -52,7 +52,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             } catch (ex: NoSuchElementException) {
                 return e.reply("Dieses Pokemon ist nicht in der Tierliste!")
             }
-            d.checkUpdraft(e, specifiedTier, officialTier)?.let { e.reply(it); return }
+            d.checkUpdraft(specifiedTier, officialTier)?.let { e.reply(it); return }
             if (d.isPicked(official, officialTier)) return e.reply("Dieses Pokemon wurde bereits gepickt!")
             val tlMode = tierlist.mode
             val free = args.getOrDefault("free", false).takeIf { tlMode.isTiersWithFree() } ?: false

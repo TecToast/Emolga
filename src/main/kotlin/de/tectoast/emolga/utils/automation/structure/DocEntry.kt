@@ -28,7 +28,7 @@ class DocEntry private constructor(val league: League) {
 
     var killProcessor: StatProcessor = invalidProcessor
     var deathProcessor: StatProcessor = invalidProcessor
-    var useProcessor: BasicStatProcessor = invalidProcessor
+    private var useProcessor: BasicStatProcessor = invalidProcessor
     var winProcessor: ResultStatProcessor? = null
     var looseProcessor: ResultStatProcessor? = null
     var resultCreator: (AdvancedResult.() -> Unit)? = null
@@ -255,7 +255,7 @@ class DocEntry private constructor(val league: League) {
         b.withRunnable(3000) { sort() }.execute()
     }
 
-    fun sort() {
+    private fun sort() {
         try {
             sorterData?.run {
                 val sid = league.sid

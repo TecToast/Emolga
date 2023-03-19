@@ -16,10 +16,6 @@ object DasorUsageManager : DataManager("dasorusage") {
         setColumns(POKEMON, USES)
     }
 
-    fun addPokemon(pokemon: String) {
-        addStatistics(pokemon, 1)
-    }
-
     fun buildMessage(): MessageEmbed {
         return EmbedBuilder()
             .setTitle("Dasor Statistik mit coolen Mons")

@@ -100,7 +100,7 @@ class RequestBuilder
      * @param requests The request(s) that should be sent
      * @return this RequestBuilder
      */
-    fun addBatch(vararg requests: Request): RequestBuilder {
+    private fun addBatch(vararg requests: Request): RequestBuilder {
         requests.map { MyRequest().setRequest(it) }.forEach { this.requests.add(it) }
         return this
     }
@@ -113,7 +113,7 @@ class RequestBuilder
             Request().setUpdateCells(
                 UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
                     .setFields("userEnteredFormat.backgroundColor").setRows(
-                        Command.getCellsAsRowData(
+                        getCellsAsRowData(
                             CellData().setUserEnteredFormat(CellFormat().setBackgroundColor(c)),
                             getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
                             getRowFromRange(s2) - getRowFromRange(s1) + 1
@@ -152,7 +152,7 @@ class RequestBuilder
         return addBatch(
             Request().setUpdateCells(
                 UpdateCellsRequest().setRange(buildGridRange(range, sheetId)).setFields("note").setRows(
-                    Command.getCellsAsRowData(
+                    getCellsAsRowData(
                         CellData().setNote(note),
                         getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
                         getRowFromRange(s2) - getRowFromRange(s1) + 1
@@ -170,7 +170,7 @@ class RequestBuilder
             Request().setUpdateCells(
                 UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
                     .setFields("userEnteredFormat.horizontalAlignment").setRows(
-                        Command.getCellsAsRowData(
+                        getCellsAsRowData(
                             CellData().setUserEnteredFormat(CellFormat().setHorizontalAlignment(alignment)),
                             getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
                             getRowFromRange(s2) - getRowFromRange(s1) + 1
@@ -188,7 +188,7 @@ class RequestBuilder
             Request().setUpdateCells(
                 UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
                     .setFields("userEnteredFormat.verticalAlignment").setRows(
-                        Command.getCellsAsRowData(
+                        getCellsAsRowData(
                             CellData().setUserEnteredFormat(CellFormat().setVerticalAlignment(alignment)),
                             getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
                             getRowFromRange(s2) - getRowFromRange(s1) + 1
@@ -206,7 +206,7 @@ class RequestBuilder
             Request().setUpdateCells(
                 UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
                     .setFields("userEnteredFormat.textFormat.fontFamily").setRows(
-                        Command.getCellsAsRowData(
+                        getCellsAsRowData(
                             CellData().setUserEnteredFormat(CellFormat().setTextFormat(TextFormat().setFontFamily(font))),
                             getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
                             getRowFromRange(s2) - getRowFromRange(s1) + 1
@@ -243,7 +243,7 @@ class RequestBuilder
             Request().setUpdateCells(
                 UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
                     .setFields("userEnteredFormat.textFormat.strikethrough").setRows(
-                        Command.getCellsAsRowData(
+                        getCellsAsRowData(
                             CellData().setUserEnteredFormat(
                                 CellFormat().setTextFormat(
                                     TextFormat().setStrikethrough(
@@ -271,7 +271,7 @@ class RequestBuilder
             Request().setUpdateCells(
                 UpdateCellsRequest().setRange(buildGridRange(range, sheetId))
                     .setFields("userEnteredFormat.textFormat.foregroundColor").setRows(
-                        Command.getCellsAsRowData(
+                        getCellsAsRowData(
                             CellData().setUserEnteredFormat(CellFormat().setTextFormat(TextFormat().setForegroundColor(c))),
                             getColumnFromRange(s2) - getColumnFromRange(s1) + 1,
                             getRowFromRange(s2) - getRowFromRange(s1) + 1
@@ -432,7 +432,7 @@ class RequestBuilder
         }
 
 
-        fun updateAll(sid: String?, range: String?, values: List<List<Any>?>?, vararg raw: Boolean) {
+        private fun updateAll(sid: String?, range: String?, values: List<List<Any>?>?, vararg raw: Boolean) {
             scope.launch {
                 try {
                     Google.sheetsService.spreadsheets().values().update(sid, range, ValueRange().setValues(values))

@@ -14,9 +14,7 @@ class TipGame(
     val interval: String,
     val amount: Int,
     val channel: Long
-) {
-
-}
+)
 
 @Serializable
 class GamedayData(

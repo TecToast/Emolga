@@ -11,8 +11,8 @@ import java.util.function.Consumer
 
 class TrackScheduler(private val player: AudioPlayer) : AudioEventAdapter() {
     val queue: BlockingQueue<AudioTrack>
-    val queueLoop = LinkedList<AudioTrack>()
-    val currQueueLoop = LinkedList<AudioTrack>()
+    private val queueLoop = LinkedList<AudioTrack>()
+    private val currQueueLoop = LinkedList<AudioTrack>()
     private var loop = false
 
     init {

@@ -11,10 +11,10 @@ import org.jetbrains.exposed.sql.transactions.transaction
 object NameConventions : Table("nameconventions") {
     val guild = long("guild")
     val german = varchar("german", 50)
-    val english = varchar("english", 50)
-    val specified = varchar("specified", 50)
-    val specifiedenglish = varchar("specifiedenglish", 50)
-    val hashypheninname = bool("hashypheninname")
+    private val english = varchar("english", 50)
+    private val specified = varchar("specified", 50)
+    private val specifiedenglish = varchar("specifiedenglish", 50)
+    private val hashypheninname = bool("hashypheninname")
 
     fun getAllOtherSpecified(mons: List<String>, lang: Language): List<String> {
         return transaction {

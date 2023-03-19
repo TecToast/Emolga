@@ -102,7 +102,7 @@ class DexQuiz(tc: TextChannel, rounds: Long) {
     }
 
 
-    fun newMon(withDelay: Boolean = true) {
+    private fun newMon(withDelay: Boolean = true) {
         val mon = newMon
         val pokemon: String = mon.germanName
         val englName: String = mon.englName

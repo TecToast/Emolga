@@ -11,7 +11,7 @@ plugins {
 
 
 application {
-    mainClass.set("de.tectoast.emolga.Main")
+    mainClass.set("de.tectoast.emolga.MainKt")
 }
 
 tasks {
@@ -20,7 +20,7 @@ tasks {
     }
     withType<Jar> {
         manifest {
-            attributes("Main-Class" to "de.tectoast.emolga.Main", "Class-Path" to "Emolga-all.jar")
+            attributes("Main-Class" to "de.tectoast.emolga.MainKt", "Class-Path" to "Emolga-all.jar")
         }
         exclude("natives/linux-arm/libconnector.so")
     }

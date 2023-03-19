@@ -2,7 +2,7 @@ package de.tectoast.emolga.utils
 
 import java.util.*
 
-class DraftTimer(val timerInfo: TimerInfo, val delayInMins: Int = 120) {
+class DraftTimer(private val timerInfo: TimerInfo, private val delayInMins: Int = 120) {
 
     /*ASL(
         TimerInfo().add(10, 22, Calendar.SATURDAY, Calendar.SUNDAY)

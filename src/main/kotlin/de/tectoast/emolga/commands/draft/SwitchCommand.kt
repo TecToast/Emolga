@@ -13,7 +13,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
 
 class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.Draft) {
-    val tlNameCache = SizeLimitedMap<String, String>(1000)
+    private val tlNameCache = SizeLimitedMap<String, String>(1000)
 
     init {
         argumentTemplate = ArgumentManagerTemplate.builder().add(
@@ -69,7 +69,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
         } catch (ex: NoSuchElementException) {
             return e.reply("Dieses Pokemon ist nicht in der Tierliste!")
         }
-        d.checkUpdraft(e, oldDraftMon.tier, newtier.official)?.let { e.reply(it); return }
+        d.checkUpdraft(oldDraftMon.tier, newtier.official)?.let { e.reply(it); return }
         if (d.isPicked(newmon.official, newtier.official)) {
             e.reply("${newmon.tlName} wurde bereits gepickt!")
             return

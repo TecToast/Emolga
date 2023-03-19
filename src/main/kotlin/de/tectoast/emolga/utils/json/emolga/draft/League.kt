@@ -258,7 +258,7 @@ sealed class League {
 
     open fun beforePick(): String? = null
     open fun beforeSwitch(): String? = null
-    open fun checkUpdraft(e: GuildCommandEvent, specifiedTier: String, officialTier: String): String? = null
+    open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
     fun getPossibleTiers(mem: Long = current) = tierlist.prices.toMutableMap().let { possible ->
         picks[mem]!!.forEach { pick ->

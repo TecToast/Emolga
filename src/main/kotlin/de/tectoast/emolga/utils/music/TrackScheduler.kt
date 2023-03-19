@@ -42,26 +42,6 @@ class TrackScheduler(private val player: AudioPlayer) : AudioEventAdapter() {
         player.startTrack(queue.poll(), false)
     }
 
-    fun toggleLoop(): Boolean {
-        return !loop.also { loop = it }
-    }
-
-    fun enableLoop() {
-        loop = true
-    }
-
-    fun toggleQueueLoop(): Boolean {
-        if (queueLoop.size > 0) {
-            queueLoop.clear()
-            currQueueLoop.clear()
-            return false
-        }
-        if (player.playingTrack != null) queueLoop.add(player.playingTrack)
-        queueLoop.addAll(queue)
-        currQueueLoop.addAll(queue)
-        return true
-    }
-
     override fun onTrackEnd(player: AudioPlayer, track: AudioTrack, endReason: AudioTrackEndReason) {
         // Only start the next track if the end reason is suitable for it (FINISHED or LOAD_FAILED)
         if (loop) {

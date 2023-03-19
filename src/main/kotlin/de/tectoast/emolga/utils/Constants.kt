@@ -3,7 +3,6 @@ package de.tectoast.emolga.utils
 object Constants {
     const val FLOID = 175910318608744448
     const val DASORID = 694543579414134802
-    const val APFELKUCHENMENTION = "<:Apfelkuchen:774817002636181535>"
     const val GIVEAWAY_EMOTE_ID = 967390966153609226
     const val GIVEAWAY_EMOTE_NAME = "Happy"
     const val GIVEAWAY_EMOTE_MENTION = "<:$GIVEAWAY_EMOTE_NAME:$GIVEAWAY_EMOTE_ID>"

@@ -10,7 +10,4 @@ object MusicGuildsManager : DataManager("musicguilds") {
         setColumns(GUILDID)
     }
 
-    fun addGuild(gid: Long) {
-        insert(gid)
-    }
 }

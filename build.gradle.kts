@@ -86,7 +86,7 @@ dependencies {
     //implementation("mysql:mysql-connector-java:8.0.29")
     implementation("com.github.TecToast:Toastilities:96e360b1f8")
     //implementation("com.github.TecToast:JSOLF:a43c3e06c7")
-    implementation("net.dv8tion:JDA:5.0.0-beta.5")
+    implementation("net.dv8tion:JDA:5.0.0-beta.6")
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.1.2")
     implementation("com.github.MinnDevelopment:jda-ktx:0.10.0-beta.1")

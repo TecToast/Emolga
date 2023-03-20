@@ -73,7 +73,7 @@ val ktorDependencies = listOf(
 )
 
 dependencies {
-    implementation("org.slf4j:slf4j-api:2.0.6")
+    implementation("org.slf4j:slf4j-api:2.0.7")
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
     implementation("com.google.apis:google-api-services-sheets:v4-rev614-1.18.0-rc")
     implementation("com.google.apis:google-api-services-youtube:v3-rev222-1.25.0")

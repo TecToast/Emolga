@@ -6,6 +6,7 @@ plugins {
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("com.github.johnrengelman.shadow") version "8.1.0"
+    id("maven-publish")
     application
 }
 
@@ -54,7 +55,7 @@ repositories {
     maven("https://jitpack.io/")
 }
 
-val ktorVersion = "2.2.2"
+val ktorVersion = "2.2.4"
 val ktorDependencies = listOf(
     // Client
     "ktor-client-core",
@@ -105,5 +106,13 @@ dependencies {
 fun DependencyHandler.ktor() {
     ktorDependencies.forEach {
         implementation("io.ktor:$it:$ktorVersion")
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("emolga") {
+            from(components["java"])
+        }
     }
 }

@@ -6,7 +6,6 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.invoke
 import de.tectoast.emolga.database.exposed.NameConventions
 import de.tectoast.emolga.utils.SizeLimitedMap
-import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.SwitchData
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -24,13 +23,14 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
                 transaction {
                     League.onlyChannel(e.channel!!.idLong)?.let {
                         val tl = it.tierlist
-                        it.picks[it.current]!!.sortedWith(
+                        it.picks[it.current]!!.filter { p -> p.name != "???" }.sortedWith(
                             compareBy({ mon -> tl.order.indexOf(mon.tier) },
                                 { mon -> mon.name })
                         ).map { mon ->
-                            tlNameCache[mon.name] ?: NameConventions.getSDTranslation(
-                                mon.name, it.guild, english = tl.isEnglish
-                            )!!.tlName.also { tlName -> tlNameCache[mon.name] = tlName }
+                            logger.debug(mon.name)
+                            tlNameCache[mon.name] ?: NameConventions.convertOfficialToTL(
+                                mon.name, it.guild
+                            )!!.also { tlName -> tlNameCache[mon.name] = tlName }
                         }.filter { mon -> mon.startsWith(s, true) }
                     }
                 }
@@ -65,7 +65,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
         val oldDraftMon = draftPokemons.firstOrNull { it.name == oldmon.official }
             ?: return e.reply("${oldmon.tlName} befindet sich nicht in deinem Kader!")
         val newtier = try {
-            d.getTierOf(newmon.tlName, oldDraftMon.tier)
+            d.getTierOf(newmon.tlName, null)
         } catch (ex: NoSuchElementException) {
             return e.reply("Dieses Pokemon ist nicht in der Tierliste!")
         }

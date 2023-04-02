@@ -366,8 +366,9 @@ abstract class Command(
     }
 
     object PermissionPreset {
-        val CULT = fromRole(781457314846343208L)
+        val CULT = fromRole(781457314846343208)
         val EMOLGAMOD = fromIDs(DASORID)
+        val HENNY = fromIDs(297010892678234114)
         fun fromRole(roleId: Long): Predicate<Member> {
             return Predicate { it.roles.any { r -> r.idLong == roleId } }
         }
@@ -1543,8 +1544,7 @@ abstract class Command(
                         val mons = picks[u]!!
                         val comp = compareBy<DraftPokemon>({ it.tier.indexedBy(tiers) }, { it.name })
                         o[u] = (buildString {
-                            append(mons.sortedWith(comp).map { it.name }.chunked(11) { it.joinToString(";") }
-                                .joinToString("###"))
+                            append(mons.sortedWith(comp).joinToString(";") { it.name })
                         })
                     } else {
                         o[u] = nom.nominated[cday - 1]!![u]!!
@@ -1552,7 +1552,7 @@ abstract class Command(
                 }
                 //logger.info("o.get(u) = " + o.get(u));
                 val str = o[u]!!
-                val mons: List<String> = str.replace("###", ";").split(";")
+                val mons: List<String> = str.split(";")
 
                 logger.info("mons = $mons")
                 logger.info("u = $u")
@@ -2950,6 +2950,10 @@ _written by Maxifcn_""".trimIndent()
             return dataJSON[getDataName(mon)]!!
         }
 
+        fun getDataObject(mon: String, guild: Long): Pokemon {
+            return dataJSON[NameConventions.getDiscordTranslation(mon, guild, true)!!.official.toSDName()]!!
+        }
+
         fun <T> getActionRows(c: Collection<T>, mapper: Function<T, Button>): List<ActionRow> {
             val currRow = mutableListOf<Button>()
             val rows = mutableListOf<ActionRow>()
@@ -3422,9 +3426,10 @@ fun String.notNullAppend(value: String?) = if (value != null) this + value else 
 val Long.usersnowflake: UserSnowflake get() = UserSnowflake.fromId(this)
 
 val JsonElement?.string: String get() = this!!.jsonPrimitive.content
-val JsonElement?.int: Int get() = this!!.jsonPrimitive.int
+val JsonElement?.int: Int get() = this!!.jsonPrimitive.intOrNull!!
 
 inline val User.isFlo: Boolean get() = this.idLong == FLOID
+inline val User.isNotFlo: Boolean get() = this.idLong != FLOID
 inline val Interaction.fromFlo: Boolean get() = this.user.isFlo
 inline val Interaction.notFromFlo: Boolean get() = !this.fromFlo
 

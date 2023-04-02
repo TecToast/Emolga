@@ -7,6 +7,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.json.Tokens
 import de.tectoast.emolga.utils.sql.managers.AnalysisManager
 import de.tectoast.emolga.utils.sql.managers.MusicGuildsManager
 import de.tectoast.emolga.utils.sql.managers.PredictionGameManager
@@ -18,14 +19,14 @@ import java.sql.Connection
 import java.sql.SQLException
 import javax.sql.DataSource
 
-class Database(username: String, password: String) {
+class Database(host: String, username: String, password: String) {
     val dataSource: DataSource
 
     init {
         //dataSource = new MariaDbPoolDataSource("jdbc:mariadb://localhost/emolga?user=%s&password=%s&minPoolSize=1".formatted(username, password));
         val conf = HikariConfig()
         conf.jdbcUrl =
-            "jdbc:mariadb://localhost/emolga?user=$username&password=$password&minPoolSize=1&rewriteBatchedStatements=true"
+            "jdbc:mariadb://$host/emolga?user=$username&password=$password&minPoolSize=1&rewriteBatchedStatements=true"
         dataSource = HikariDataSource(conf)
     }
 
@@ -39,11 +40,15 @@ class Database(username: String, password: String) {
             })
 
 
-        fun init() {
-            val cred = Command.tokens.database
+        fun init(cred: Tokens.Database, host: String, withStartUp: Boolean = true): Database {
             logger.info("Creating DataSource...")
-            instance = Database(cred.username, cred.password)
+            instance = Database(host, cred.username, cred.password)
             org.jetbrains.exposed.sql.Database.connect(instance.dataSource)
+            if (withStartUp) onStartUp()
+            return instance
+        }
+
+        private fun onStartUp() {
             logger.info("Retrieving all startup information...")
             AnalysisManager.forAll { Command.replayAnalysis[it.getLong("replay")] = it.getLong("result") }
             MusicGuildsManager.forAll { CommandCategory.musicGuilds.add(it.getLong("guildid")) }

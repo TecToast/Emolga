@@ -76,7 +76,7 @@ class Nominate(val mons: List<DraftPokemon>) {
     private fun buildJSONString(): String {
         return buildString {
             append(nominated.toJSON())
-            append("###")
+            append(";")
             append(notNominated.toJSON())
         }
     }

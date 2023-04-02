@@ -16,7 +16,7 @@ fun main() {
     val key = String(console.readPassword())
     Command.init(key)
     logger.info("Starting DB...")
-    Database.init()
+    Database.init(Command.tokens.database, "localhost")
     logger.info("Starting EmolgaMain...")
     start()
     //logger.info("Starting KTor...")

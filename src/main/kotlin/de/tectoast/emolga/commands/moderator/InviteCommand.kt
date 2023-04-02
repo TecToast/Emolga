@@ -6,14 +6,16 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 
 class InviteCommand :
-    Command("invite", "Erstellt einen einmalig nutzbaren Invite", CommandCategory.Moderator, Constants.G.ASL) {
+    Command("invite", "Erstellt einen einmalig nutzbaren Invite", CommandCategory.Admin, Constants.G.ASL) {
     init {
-        addCustomChannel(Constants.G.ASL, 773572093697851392L, 736501675447025704L)
+        //addCustomChannel(Constants.G.ASL, 773572093697851392L, 736501675447025704L)
         argumentTemplate = ArgumentManagerTemplate.noArgs()
+        setCustomPermissions(PermissionPreset.HENNY)
+        slash(true, Constants.G.ASL)
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        e.guild.defaultChannel?.createInvite()?.setMaxUses(1)?.map { e.reply(it.url) }
+        e.guild.defaultChannel?.createInvite()?.setMaxUses(1)?.map { e.reply(it.url, ephemeral = true) }
             ?.queue() ?: e.reply("Kein Default Channel gefunden! Sollte nicht passieren, melde dich bei Flo")
     }
 }

@@ -87,7 +87,11 @@ sealed class SDEffect(vararg val types: String) {
     object Replace : SDEffect("replace") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             val (pl, i) = split[1].parsePokemonLocation()
-            ctx.monsOnField[pl][i] = ctx.sdPlayers[pl].pokemon.first { it.hasName(split[2].substringBefore(",")) }
+            val oldMon = ctx.monsOnField[pl][i]
+            val newMon = ctx.sdPlayers[pl].pokemon.first { it.hasName(split[2].substringBefore(",")) }
+            newMon.volatileEffects.putAll(oldMon.volatileEffects)
+            oldMon.volatileEffects.clear()
+            ctx.monsOnField[pl][i] = newMon
         }
     }
 

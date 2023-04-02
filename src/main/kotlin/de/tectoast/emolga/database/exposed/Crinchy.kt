@@ -4,20 +4,17 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.toSDName
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
-object Crinchy : IdTable<String>("crinchy") {
-    override val id = varchar("id", 50).entityId()
-    override val primaryKey = PrimaryKey(id)
+object Crinchy : ShowdownAnalyticTable("crinchy") {
 
     private val turns = integer("turns")
     private val movesThatCouldHit = integer("movesthathit")
     private val gamemode = enumeration<SDFormat>("gamemode")
 
-    suspend fun insertReplay(replayId: String, lines: List<String>) {
+    override suspend fun insertSingleReplay(replayId: String, lines: List<String>, extraData: String?) {
         newSuspendedTransaction {
             insertIgnore { tr ->
                 tr[id] = replayId
@@ -43,17 +40,16 @@ object Crinchy : IdTable<String>("crinchy") {
         }
     }
 
-    suspend fun allStats(): String {
+    override suspend fun allStats(): String {
         return newSuspendedTransaction {
             val map = mutableMapOf<SDFormat, CrinchyStats>()
             selectAll().fold(map) { stats, row ->
-                stats.apply {
-                    stats.getOrPut(row[gamemode]) { CrinchyStats() }.apply {
-                        replayCount++
-                        turnCount += row[turns]
-                        moveHitCount += row[movesThatCouldHit]
-                    }
+                stats.getOrPut(row[gamemode]) { CrinchyStats() }.apply {
+                    replayCount++
+                    turnCount += row[turns]
+                    moveHitCount += row[movesThatCouldHit]
                 }
+                stats
             }.let { stats ->
                 val all = stats.values
                 """

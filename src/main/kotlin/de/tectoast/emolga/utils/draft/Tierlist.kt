@@ -9,10 +9,8 @@ import kotlinx.serialization.Transient
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.Random
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.File
-import java.util.*
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
@@ -72,7 +70,8 @@ class Tierlist constructor(val guildid: Long) {
 
     fun getTierOf(mon: String) = tierCache.getOrElse(mon) {
         transaction {
-            select { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.first()
+            select { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
+                ?: error("Tier for $mon not found")
         }
     }
 

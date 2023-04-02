@@ -37,7 +37,8 @@ sealed class League {
     @Transient
     val points: MutableMap<Long, Int> = mutableMapOf()
     val noAutoStart = false
-    private val timerStart: Long? = null
+
+    val timerStart: Long? = null
 
     @Transient
     open val timerSkipMode: TimerSkipMode? = null
@@ -154,7 +155,7 @@ sealed class League {
             e.reply("Das Tier `$specifiedTier` existiert nicht!")
             return true
         }
-        if (tierlist.order.indexOf(officialTier) < tierlist.order.indexOf(specifiedTier)) {
+        if (tierlist.order.indexOf(officialTier) < tierlist.order.indexOf(specifiedTier) && (!fromSwitch || map[specifiedTier]!! <= 0)) {
             e.reply("Du kannst ein $officialTier-Mon nicht ins $specifiedTier hochdraften!")
             return true
         }

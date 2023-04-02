@@ -1,6 +1,8 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.commands.Language
+import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.Emolga
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -38,10 +40,7 @@ object NameConventions : Table("nameconventions") {
     }
 
     suspend fun insertDefaultCosmetic(
-        english: String,
-        german: String,
-        specifiedEnglish: String,
-        specifiedGerman: String
+        english: String, german: String, specifiedEnglish: String, specifiedGerman: String
     ) {
         newSuspendedTransaction {
             insert {
@@ -78,22 +77,25 @@ object NameConventions : Table("nameconventions") {
         }
     }
 
+    fun convertOfficialToTL(mon: String, guildId: Long): String? {
+        val nc = Emolga.get.nameconventions[guildId] ?: Emolga.get.defaultNameConventions
+        val spec = nc.keys.firstOrNull { mon.endsWith("-$it") }
+        return getDBTranslation(mon, guildId, spec, nc, english = Tierlist[guildId].isEnglish)?.tlName
+    }
+
     fun getDiscordTranslation(s: String, guildId: Long, english: Boolean = false): DraftName? {
         val list = mutableListOf<Pair<String, String?>>()
         val nc = Emolga.get.nameconventions[guildId]
-        nc?.entries?.firstNotNullOfOrNull {
+        fun Map<String, Regex>.check() = firstNotNullOfOrNull {
             it.value.find(s)?.let { mr -> mr to it.key }
-        }?.also { (mr, key) ->
+        }
+        (nc?.check() ?: Emolga.get.nameconventions[0]!!.check())?.also { (mr, key) ->
             list += mr.groupValues[1] + "-" + key to key
         }
         list += s to null
         list.forEach {
             getDBTranslation(
-                it.first,
-                guildId,
-                it.second,
-                nc ?: Emolga.get.defaultNameConventions,
-                english
+                it.first, guildId, it.second, nc ?: Emolga.get.defaultNameConventions, english
             )?.let { d -> return d }
         }
         return null
@@ -110,26 +112,33 @@ object NameConventions : Table("nameconventions") {
     )
 
     private fun getDBTranslation(
-        test: String,
-        guildId: Long,
-        spec: String? = null,
-        nc: Map<String, Regex>,
-        english: Boolean = false
+        test: String, guildId: Long, spec: String? = null, nc: Map<String, Regex>, english: Boolean = false
     ): DraftName? {
         return transaction {
             select(((german eq test) or (NameConventions.english eq test) or (specified eq test) or (specifiedenglish eq test)) and (guild eq 0 or (guild eq guildId))).orderBy(
                 guild to SortOrder.DESC
-            ).firstOrNull()
-                ?.let {
-                    return@transaction DraftName(
-                        //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
-                        it[if (english) specifiedenglish else specified].let { s ->
-                            if (spec != null) nc[spec]!!.pattern.replace("(\\S+)", s.substringBefore("-$spec")) else s
-                        },
-                        it[if (english) NameConventions.english else german],
-                        it[guild] != 0L || spec != null
-                    )
-                }
+            ).firstOrNull()?.let {
+                return@transaction DraftName(
+                    //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
+                    it[if (english) specifiedenglish else specified].let { s ->
+                        if (spec != null) {
+                            val pattern = nc[spec]!!.pattern
+                            val raw = pattern.replace("(\\S+)", "")
+                            val len = raw.length
+                            val replace = pattern.replace("(\\S+)", s.substringBefore("-$spec"))
+                            if (replace.substring(0, len) == replace.substring(
+                                    len, 2 * len
+                                )
+                            ) replace.substring(len) else if (replace.substring(replace.length - len) == replace.substring(
+                                    replace.length - 2 * len, replace.length - len
+                                )
+                            ) replace.substring(
+                                0, replace.length - len
+                            ) else replace
+                        } else s
+                    }, it[if (english) NameConventions.english else german], it[guild] != 0L || spec != null
+                )
+            }
             null
         }
     }

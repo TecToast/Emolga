@@ -13,4 +13,6 @@
     <root level="info">
         <appender-ref ref="STDOUT"/>
     </root>
+
+    <!-- <logger name="de.tectoast.emolga.utils.showdown.Analysis" level="debug"/> -->
 </configuration>

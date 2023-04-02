@@ -26,7 +26,6 @@ import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
-import io.ktor.server.application.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.EmbedBuilder
@@ -61,7 +60,7 @@ object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
 
-    private val guildsToUpdate = listOf(Constants.G.WARRIOR)
+    private val guildsToUpdate = listOf(Constants.G.ASL)
 
     fun updateTierlist(e: GenericCommandEvent) {
         Tierlist.setup()
@@ -687,5 +686,13 @@ object PrivateCommands {
 
     fun clearUserIDs() {
         grabbedIDs.clear()
+    }
+
+    fun nds() {
+        val values = Emolga.get.nds().picks.values.flatten().map { it.name }.filter { it != "???" }
+        val tierlist = Tierlist[Constants.G.NDS]!!
+        values.forEach {
+            tierlist.getTierOf(NameConventions.convertOfficialToTL(it, Constants.G.NDS)!!)
+        }
     }
 }

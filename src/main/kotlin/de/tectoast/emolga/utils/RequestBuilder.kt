@@ -327,10 +327,7 @@ class RequestBuilder
             if (!onlyBatch) {
                 launch {
                     if (userentered.isNotEmpty()) {
-                        if (!suppressMessages) for (i in userentered.indices) {
-                            val range = userentered[i]
-                            logger.info("{}: {} -> {}", i, range.range, range.getValues())
-                        }
+                        if (!suppressMessages) printUserEntered()
                         try {
                             service.spreadsheets().values().batchUpdate(
                                 sid, BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")
@@ -372,6 +369,15 @@ class RequestBuilder
                 delay(delay)
                 it.run()
             }
+        }
+    }
+
+    fun printUserEntered(userentered: List<ValueRange> = userEntered) {
+        logger.info("RequestBuilder with requests:")
+        logger.info("sid = $sid")
+        for (i in userentered.indices) {
+            val range = userentered[i]
+            logger.info("{}: {} -> {}", i, range.range, range.getValues())
         }
     }
 

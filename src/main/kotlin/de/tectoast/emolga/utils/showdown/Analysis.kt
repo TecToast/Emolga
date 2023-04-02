@@ -5,6 +5,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
+import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 object Analysis {
@@ -81,7 +82,10 @@ object Analysis {
                 "",
                 (0 until playerCount).map {
                     SDPlayer(
-                        nicknames[it] ?: throw ShowdownParseException(),
+                        nicknames[it] ?: run {
+                            File("replayerrors/$link${System.currentTimeMillis()}.txt").writeText(game.joinToString("\n"))
+                            throw ShowdownParseException()
+                        },
                         allMons[it].orEmpty().toMutableList()
                     )
                 },
@@ -94,6 +98,7 @@ object Analysis {
                 val operation = split[0]
                 if (operation == "move") lastMove = line
                 currentLineIndex++
+                logger.debug(line)
                 SDEffect.effects[operation]?.let { it.forEach { e -> e.execute(split, this) } }
                 lastLine = line
             }

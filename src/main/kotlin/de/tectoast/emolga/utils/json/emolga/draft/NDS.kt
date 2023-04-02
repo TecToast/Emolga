@@ -5,10 +5,13 @@ import com.google.api.services.sheets.v4.model.ColorStyle
 import com.google.api.services.sheets.v4.model.TextFormat
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.Command.Companion.convertColor
+import de.tectoast.emolga.database.exposed.NameConventions
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
-import de.tectoast.emolga.utils.automation.structure.*
+import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
+import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.records.SorterData
@@ -60,7 +63,7 @@ class NDS : League() {
         doc(data)
     }
 
-    private fun RequestBuilder.doc(data: DraftData) {
+    fun RequestBuilder.doc(data: DraftData) {
         val index = data.memIndex
         val y = index * 17 + 2 + data.changedIndex
         addSingle("Data!B$y", data.pokemon)
@@ -68,7 +71,8 @@ class NDS : League() {
         addColumn(
             "Data!F${index * 17 + 2}",
             data.picks.asSequence().filter { it.name != "???" }
-                .sortedWith(tierorderingComparator).map { it.name }.toList()
+                .sortedWith(tierorderingComparator).map { NameConventions.convertOfficialToTL(it.name, guild)!! }
+                .toList()
         )
         val numInRound = data.indexInRound + 1
         if (data is SwitchData) addSingle(

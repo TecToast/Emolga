@@ -22,7 +22,7 @@ class ModalConfigurator private constructor() {
 
     fun buildModal(page: Int = 0): Modal {
         return Modal.create("modalconfigurator;$id", title!!)
-            .addActionRows(
+            .addComponents(
                 actionRows.drop(page * 5).take(5).map { ActionRow.of(it) })
             .build()
     }

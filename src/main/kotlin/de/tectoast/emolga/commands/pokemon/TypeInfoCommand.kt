@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.Translation
 import java.util.*
 
 class TypeInfoCommand : Command("typeinfo", "Zeigt dir Informationen über einen Typen an", CommandCategory.Pokemon) {

@@ -1,9 +1,11 @@
+@file:Suppress("unused")
+
 package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.httpClient
 import de.tectoast.emolga.commands.webJSON
-import de.tectoast.emolga.database.exposed.DiscordAuth
+import de.tectoast.emolga.database.exposed.DiscordAuthDB
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -43,7 +45,7 @@ object Ktor {
             }
             module {
                 install(Sessions) {
-                    cookie<UserSession>("user_session", DiscordAuth) {
+                    cookie<UserSession>("user_session", DiscordAuthDB) {
                         cookie.extensions["SameSite"] = "None"
                         cookie.httpOnly = true
                     }

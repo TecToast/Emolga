@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.embedColor
-import de.tectoast.emolga.utils.sql.managers.WarnsManager
+import de.tectoast.emolga.database.exposed.WarnsDB
 import dev.minn.jda.ktx.messages.Embed
 
 class WarnsCommand : Command("warns", "Zeigt alle Verwarnungen des Users an", CommandCategory.Moderator) {
@@ -22,7 +22,7 @@ class WarnsCommand : Command("warns", "Zeigt alle Verwarnungen des Users an", Co
 
     override suspend fun process(e: GuildCommandEvent) {
         val mem = e.arguments.getMember("user")
-        val str = WarnsManager.getWarnsFrom(mem.idLong, e.guild.idLong)
+        val str = WarnsDB.getWarnsFrom(mem.idLong, e.guild.idLong)
         if (str.isEmpty()) {
             e.reply(mem.effectiveName + " hat bisher keine Verwarnungen!")
         } else {

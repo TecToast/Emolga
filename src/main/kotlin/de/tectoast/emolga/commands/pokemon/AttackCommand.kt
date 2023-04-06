@@ -1,9 +1,6 @@
 package de.tectoast.emolga.commands.pokemon
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
-import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.embedColor
+import de.tectoast.emolga.commands.*
 import dev.minn.jda.ktx.messages.Embed
 
 class AttackCommand : Command("attack", "Zeigt, welche Mons eine Attacke erlernen können", CommandCategory.Pokemon) {

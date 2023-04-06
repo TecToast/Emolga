@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.embedColor
-import de.tectoast.emolga.utils.sql.managers.WarnsManager
+import de.tectoast.emolga.database.exposed.WarnsDB
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.Permission
@@ -29,7 +29,7 @@ class UserInfoCommand :
         val args = e.arguments
         val member = if (args.has("user")) args.getMember("user") else e.member
         val u = member.user
-        val warncount = WarnsManager.warnCount(u.idLong, member.guild.idLong)
+        val warncount = WarnsDB.warnCount(u.idLong, member.guild.idLong)
         val format = SimpleDateFormat()
         e.reply(Embed {
             field("Userinfo Command für " + u.asTag, "UserID | " + u.id, true)

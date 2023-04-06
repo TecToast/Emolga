@@ -1,11 +1,8 @@
 package de.tectoast.emolga.commands.draft
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
-import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.draft.PickCommand.Companion.exec
-import de.tectoast.emolga.commands.toSDName
-import de.tectoast.emolga.database.exposed.NameConventions
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -36,7 +33,7 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
         } else null
         e.arguments.map.apply {
             put("pokemon", (list.firstNotNullOfOrNull { str: String ->
-                val draftName = NameConventions.getDiscordTranslation(
+                val draftName = NameConventionsDB.getDiscordTranslation(
                     str, d.guild, tierlist.isEnglish
                 )!!
                 draftName.takeIf {
@@ -44,7 +41,7 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
                         draftName.official,
                         tier
                     ) && typecheck?.invoke(
-                        NameConventions.getDiscordTranslation(
+                        NameConventionsDB.getDiscordTranslation(
                             str, d.guild, true
                         )!!.official
                     ) != false

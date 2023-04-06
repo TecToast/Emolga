@@ -1,10 +1,7 @@
 package de.tectoast.emolga.commands.pokemon
 
 import de.tectoast.emolga.buttons.buttonsaves.TrainerData
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
-import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.embedColor
+import de.tectoast.emolga.commands.*
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into

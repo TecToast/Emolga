@@ -11,10 +11,10 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 
 object CalendarDB : IntIdTable("calendar") {
-    val message = varchar("message", 1000)
-    val expires = timestamp("expires")
-    val person = varchar("person", 1).nullable()
-    val messageid = long("messageid").nullable()
+    val MESSAGE = varchar("message", 1000)
+    val EXPIRES = timestamp("expires")
+    val PERSON = varchar("person", 1).nullable()
+    val MESSAGEID = long("messageid").nullable()
 
     fun scheduleCalendarEntry(message: String, expires: Long, person: Person? = null, messageid: Long? = null) =
         transaction {
@@ -28,7 +28,7 @@ object CalendarDB : IntIdTable("calendar") {
 
     val allFloEntries: List<CalendarEntry>
         get() = transaction {
-            CalendarEntry.find { person.isNull() }.toList()
+            CalendarEntry.find { PERSON.isNull() }.toList()
         }
 
     val allEntries: List<CalendarEntry>
@@ -40,10 +40,10 @@ object CalendarDB : IntIdTable("calendar") {
 class CalendarEntry(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<CalendarEntry>(CalendarDB)
 
-    var message by CalendarDB.message
-    var expires by CalendarDB.expires
-    var person: Person? by CalendarDB.person.transform(
+    var message by CalendarDB.MESSAGE
+    var expires by CalendarDB.EXPIRES
+    var person: Person? by CalendarDB.PERSON.transform(
         { it?.name },
         { it?.let { p -> Person.values().first { e -> e.name.equals(p, ignoreCase = true) } } })
-    var messageid by CalendarDB.messageid
+    var messageid by CalendarDB.MESSAGEID
 }

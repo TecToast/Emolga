@@ -7,14 +7,14 @@ import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 
-object DraftAdmins : Table("draftadmins") {
-    val guild = long("guildid")
-    private val roleid = long("roleid").nullable()
-    val userid = long("userid").nullable()
+object DraftAdminsDB : Table("draftadmins") {
+    val GUILD = long("guildid")
+    private val ROLEID = long("roleid").nullable()
+    val USERID = long("userid").nullable()
 
     fun isAdmin(gid: Long, mem: Member) = transaction {
         select {
-            (guild eq gid) and ((roleid inList mem.roles.map { it.idLong }) or (userid eq mem.idLong))
+            (GUILD eq gid) and ((ROLEID inList mem.roles.map { it.idLong }) or (USERID eq mem.idLong))
         }.count() > 0
     }
 }

@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.Translation
 import net.dv8tion.jda.api.EmbedBuilder
 import org.slf4j.LoggerFactory
 import java.awt.Color

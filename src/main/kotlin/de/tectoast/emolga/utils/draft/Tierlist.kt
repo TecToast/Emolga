@@ -1,7 +1,7 @@
 package de.tectoast.emolga.utils.draft
 
 import de.tectoast.emolga.commands.Language
-import de.tectoast.emolga.database.exposed.NameConventions
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import kotlinx.serialization.Serializable
@@ -62,7 +62,7 @@ class Tierlist constructor(val guildid: Long) {
 
     private fun getAllForAutoComplete() = transaction {
         val list = select { guild eq guildid }.map { it[pokemon] }
-        (list + NameConventions.getAllOtherSpecified(list, language)).toSet()
+        (list + NameConventionsDB.getAllOtherSpecified(list, language)).toSet()
     }
 
     @Transient

@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.Translation
 
 class CanlearnCommand :
     Command("canlearn", "Zeigt, ob das Pokemon diese Attacke erlernen kann", CommandCategory.Pokemon) {

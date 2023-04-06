@@ -4,11 +4,11 @@ import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
-object ActivePassiveKills : Table("activepassivekills") {
-    val guild = long("guild")
-    override val primaryKey = PrimaryKey(guild)
+object ActivePassiveKillsDB : Table("activepassivekills") {
+    val GUILD = long("guild")
+    override val primaryKey = PrimaryKey(GUILD)
 
     suspend fun hasEnabled(guild: Long) = newSuspendedTransaction {
-        select { ActivePassiveKills.guild eq guild }.firstOrNull() != null
+        select { GUILD eq guild }.firstOrNull() != null
     }
 }

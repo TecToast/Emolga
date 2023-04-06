@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.Translation
 
 class ResistanceCommand :
     Command("resistance", "Zeigt alle Typen an, die der angegebene Typ resistiert", CommandCategory.Pokemon) {

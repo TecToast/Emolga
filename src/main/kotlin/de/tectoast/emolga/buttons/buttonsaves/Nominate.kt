@@ -15,7 +15,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 
-class Nominate(val mons: List<DraftPokemon>) {
+class Nominate(val originalMons: List<DraftPokemon>, val mons: List<DraftPokemon>) {
     private val nominated: MutableList<DraftPokemon>
     private val notNominated: MutableList<DraftPokemon>
 
@@ -50,7 +50,7 @@ class Nominate(val mons: List<DraftPokemon>) {
 
     private fun List<DraftPokemon>.toJSON() =
         this.sortedWith(comparator).joinToString(";") {
-            it.name
+            it.indexedBy(originalMons).toString()
         }
 
     fun generateDescription(): String {
@@ -69,7 +69,13 @@ class Nominate(val mons: List<DraftPokemon>) {
             if (isNominated(it)) Button.primary(
                 "nominate;$it", it
             ) else Button.secondary("nominate;$it", it)
-        }.toMutableList().also { it.add(ActionRow.of(Button.success("nominate;FINISH", Emoji.fromUnicode("✅")))) })
+        }.toMutableList().also {
+            it.add(
+                ActionRow.of(
+                    Button.success("nominate;FINISH", Emoji.fromUnicode("✅")).withDisabled(nominated.size != 11)
+                )
+            )
+        })
             .queue()
     }
 

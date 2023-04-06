@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.Translation
 
 class BerryCommand : Command("berry", "Zeigt den Namen der Antibeere für diesen Typen an.", CommandCategory.Pokemon) {
     init {

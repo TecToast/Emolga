@@ -1,10 +1,7 @@
 package de.tectoast.emolga.commands.pokemon
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
-import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.embedColor
-import de.tectoast.emolga.utils.sql.managers.NaturalGiftManager
+import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.database.exposed.NaturalGift
 import dev.minn.jda.ktx.messages.Embed
 
 class NaturalGiftCommand : Command(
@@ -23,7 +20,8 @@ class NaturalGiftCommand : Command(
         val t = e.arguments.getTranslation("stuff")
         val translation = t.translation
         if (t.isFromType(Translation.Type.ITEM)) {
-            val ngData = NaturalGiftManager.fromName(translation)
+            val ngData =
+                NaturalGift.byName(translation) ?: return e.reply("Dieses Item hat keinen Effekt auf Natural Gift!")
             e.reply(
                 Embed {
                     title = translation
@@ -42,7 +40,7 @@ class NaturalGiftCommand : Command(
         } else {
             e.reply(Embed(title = translation,
                 color = embedColor,
-                description = NaturalGiftManager.fromType(translation)
+                description = NaturalGift.byType(translation)
                     .sortedBy { it.bp }.joinToString("\n") {
                         "${it.name}/${getEnglName(it.name)}: ${it.bp}"
                     })

@@ -3,7 +3,8 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.sql.managers.TranslationsManager
+import de.tectoast.emolga.commands.Translation
+import de.tectoast.emolga.database.exposed.TranslationsDB
 
 class AddNickCommand : Command(
     "addnick",
@@ -39,7 +40,7 @@ class AddNickCommand : Command(
             return
         }
         val t = args.getTranslation("stuff")
-        TranslationsManager.addNick(nick, t)
+        TranslationsDB.addNick(nick, t)
         e.reply("**" + t.translation + "** kann ab jetzt auch mit **" + nickorig + "** abgefragt werden!")
     }
 }

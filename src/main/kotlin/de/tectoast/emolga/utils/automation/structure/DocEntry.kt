@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.Command.Companion.compareColumns
 import de.tectoast.emolga.commands.Command.Companion.getNumber
 import de.tectoast.emolga.commands.Command.Companion.indexPick
-import de.tectoast.emolga.database.exposed.TipGames
+import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -235,20 +235,21 @@ class DocEntry private constructor(val league: League) {
             val gamedayTips = league.tipgame?.tips?.get(gameday)
             if (gamedayTips?.evaluated?.contains(battleindex) == true) return@run
             gamedayTips?.userdata?.entries?.filter { it.value[battleindex] == winningIndex }?.map { it.key }?.forEach {
-                TipGames.addPointToUser(it, leagueName)
+                TipGamesDB.addPointToUser(it, leagueName)
             }
             gamedayTips?.evaluated?.add(battleindex)
         }
         resultCreator?.let {
             AdvancedResult(
-                b,
-                gameday - 1,
-                battleindex,
-                numbers[0],
-                numbers[1],
-                url,
-                replayData,
-                league
+                b = b,
+                gdi = gameday - 1,
+                index = battleindex,
+                numberOne = numbers[0],
+                numberTwo = numbers[1],
+                swappedNumbers = u1IsSecond,
+                url = url,
+                replayData = replayData,
+                league = league
             ).it()
         }
         saveEmolgaJSON()
@@ -332,6 +333,7 @@ data class AdvancedResult(
     val index: Int,
     val numberOne: Int,
     val numberTwo: Int,
+    val swappedNumbers: Boolean,
     val url: String,
     val replayData: ReplayData,
     val league: League
@@ -350,5 +352,8 @@ data class AdvancedResult(
             replayData.kills[it].values.toList()
         }
     }
+    val winnerIndex by lazy { replayData.game.indexOfFirst { it.winner } }
+    val higherNumber by lazy { if (numberOne > numberTwo) numberOne else numberTwo }
+    fun Int.swap() = if (swappedNumbers) 1 - this else this
 }
 

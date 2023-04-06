@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.embedColor
-import de.tectoast.emolga.utils.sql.managers.StatisticsManager
+import de.tectoast.emolga.database.exposed.StatisticsDB
 import dev.minn.jda.ktx.messages.Embed
 
 class StatisticsCommand :
@@ -15,7 +15,7 @@ class StatisticsCommand :
 
     override suspend fun process(e: GuildCommandEvent) {
         e.reply(
-            Embed(title = "Anzahl der Nutzung", color = embedColor, description = StatisticsManager.buildDescription(e))
+            Embed(title = "Anzahl der Nutzung", color = embedColor, description = StatisticsDB.buildDescription(e))
         )
     }
 }

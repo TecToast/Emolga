@@ -10,31 +10,31 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 
-object NameConventions : Table("nameconventions") {
-    val guild = long("guild")
-    val german = varchar("german", 50)
-    private val english = varchar("english", 50)
-    private val specified = varchar("specified", 50)
-    private val specifiedenglish = varchar("specifiedenglish", 50)
-    private val hashypheninname = bool("hashypheninname")
+object NameConventionsDB : Table("nameconventions") {
+    val GUILD = long("guild")
+    val GERMAN = varchar("german", 50)
+    private val ENGLISH = varchar("english", 50)
+    private val SPECIFIED = varchar("specified", 50)
+    private val SPECIFIEDENGLISH = varchar("specifiedenglish", 50)
+    private val HASHYPHENINNAME = bool("hashypheninname")
 
     fun getAllOtherSpecified(mons: List<String>, lang: Language): List<String> {
         return transaction {
-            select((if (lang == Language.GERMAN) specified else specifiedenglish) inList mons).map { it[if (lang == Language.GERMAN) specifiedenglish else specified] }
+            select((if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH) inList mons).map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] }
         }
     }
 
     fun getAll() = transaction {
-        selectAll().flatMap { setOf(it[german], it[english]) }.toSet()
+        selectAll().flatMap { setOf(it[GERMAN], it[ENGLISH]) }.toSet()
     }
 
     suspend fun insertDefault(english: String, name: String) {
         newSuspendedTransaction {
             insert {
-                it[guild] = 0
-                it[german] = name
-                it[this.english] = english
-                it[specified] = name
+                it[GUILD] = 0
+                it[GERMAN] = name
+                it[this.ENGLISH] = english
+                it[SPECIFIED] = name
             }
         }
     }
@@ -44,34 +44,34 @@ object NameConventions : Table("nameconventions") {
     ) {
         newSuspendedTransaction {
             insert {
-                it[guild] = 1
-                it[this.german] = german
-                it[this.english] = english
-                it[specified] = specifiedGerman
-                it[specifiedenglish] = specifiedEnglish
+                it[GUILD] = 1
+                it[this.GERMAN] = german
+                it[this.ENGLISH] = english
+                it[SPECIFIED] = specifiedGerman
+                it[SPECIFIEDENGLISH] = specifiedEnglish
             }
         }
     }
 
     suspend fun checkIfExists(name: String, guildId: Long): Boolean {
         return newSuspendedTransaction {
-            select(((specified eq name) or (specifiedenglish eq name)) and (guild eq 0 or (guild eq guildId))).firstOrNull() != null
+            select(((SPECIFIED eq name) or (SPECIFIEDENGLISH eq name)) and (GUILD eq 0 or (GUILD eq guildId))).firstOrNull() != null
         }
     }
 
     suspend fun addName(tlName: String, germanName: String, guildId: Long) {
         newSuspendedTransaction {
             insert {
-                it[guild] = guildId
-                it[german] = germanName
-                val row = select(german eq germanName).first()
-                it[english] = row[english]
-                it[specified] = tlName
-                it[specifiedenglish] = run {
-                    val baseName = row[german].split("-").let { base ->
-                        if (row[hashypheninname]) base.take(2).joinToString("-") else base[0]
+                it[GUILD] = guildId
+                it[GERMAN] = germanName
+                val row = select(GERMAN eq germanName).first()
+                it[ENGLISH] = row[ENGLISH]
+                it[SPECIFIED] = tlName
+                it[SPECIFIEDENGLISH] = run {
+                    val baseName = row[GERMAN].split("-").let { base ->
+                        if (row[HASHYPHENINNAME]) base.take(2).joinToString("-") else base[0]
                     }
-                    tlName.replace(baseName, row[english].split("-").first())
+                    tlName.replace(baseName, row[ENGLISH].split("-").first())
                 }
             }
         }
@@ -115,12 +115,12 @@ object NameConventions : Table("nameconventions") {
         test: String, guildId: Long, spec: String? = null, nc: Map<String, Regex>, english: Boolean = false
     ): DraftName? {
         return transaction {
-            select(((german eq test) or (NameConventions.english eq test) or (specified eq test) or (specifiedenglish eq test)) and (guild eq 0 or (guild eq guildId))).orderBy(
-                guild to SortOrder.DESC
+            select(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId))).orderBy(
+                GUILD to SortOrder.DESC
             ).firstOrNull()?.let {
                 return@transaction DraftName(
                     //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
-                    it[if (english) specifiedenglish else specified].let { s ->
+                    it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                         if (spec != null) {
                             val pattern = nc[spec]!!.pattern
                             val raw = pattern.replace("(\\S+)", "")
@@ -136,7 +136,7 @@ object NameConventions : Table("nameconventions") {
                                 0, replace.length - len
                             ) else replace
                         } else s
-                    }, it[if (english) NameConventions.english else german], it[guild] != 0L || spec != null
+                    }, it[if (english) ENGLISH else GERMAN], it[GUILD] != 0L || spec != null
                 )
             }
             null

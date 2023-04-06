@@ -8,29 +8,29 @@ import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
-object DiscordAuth : Table("discordauth"), SessionStorage {
-    val id = varchar("id", 32)
-    val value = varchar("value", 256)
-    override val primaryKey = PrimaryKey(id)
+object DiscordAuthDB : Table("discordauth"), SessionStorage {
+    val ID = varchar("id", 32)
+    val VALUE = varchar("value", 256)
+    override val primaryKey = PrimaryKey(ID)
 
     override suspend fun read(id: String): String {
         return newSuspendedTransaction {
-            select { DiscordAuth.id eq id }.firstOrNull()?.get(value) ?: throw NoSuchElementException()
+            select { ID eq id }.firstOrNull()?.get(VALUE) ?: throw NoSuchElementException()
         }
     }
 
     override suspend fun write(id: String, value: String) {
         newSuspendedTransaction {
             insertIgnore {
-                it[this.id] = id
-                it[this.value] = value
+                it[this.ID] = id
+                it[this.VALUE] = value
             }
         }
     }
 
     override suspend fun invalidate(id: String) {
         newSuspendedTransaction {
-            deleteWhere { this.id eq id }
+            deleteWhere { this.ID eq id }
         }
     }
 }

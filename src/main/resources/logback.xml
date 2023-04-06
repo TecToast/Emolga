@@ -15,4 +15,5 @@
     </root>
 
     <!-- <logger name="de.tectoast.emolga.utils.showdown.Analysis" level="debug"/> -->
+    <!--<logger name="Exposed" level="debug"/>-->
 </configuration>

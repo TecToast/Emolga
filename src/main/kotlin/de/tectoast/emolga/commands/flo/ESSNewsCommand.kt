@@ -18,7 +18,7 @@ class ESSNewsCommand : Command("essnews", "ESS News", CommandCategory.Flo) {
 
     override suspend fun process(e: GuildCommandEvent) {
         e.slashCommandEvent!!.replyModal(
-            Modal.create("essnews", "ESS News").addActionRows(
+            Modal.create("essnews", "ESS News").addComponents(
                 listOf(
                     ActionRow.of(TextInput.create("title", "Titel", TextInputStyle.SHORT).apply {
                         isRequired = true

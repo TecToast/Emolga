@@ -8,18 +8,18 @@ import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
-object Crinchy : ShowdownAnalyticTable("crinchy") {
+object CrinchyDB : ShowdownAnalyticTable("crinchy") {
 
-    private val turns = integer("turns")
-    private val movesThatCouldHit = integer("movesthathit")
-    private val gamemode = enumeration<SDFormat>("gamemode")
+    private val TURNS = integer("turns")
+    private val MOVESTHATCOULDHIT = integer("movesthathit")
+    private val GAMEMODE = enumeration<SDFormat>("gamemode")
 
     override suspend fun insertSingleReplay(replayId: String, lines: List<String>, extraData: String?) {
         newSuspendedTransaction {
             insertIgnore { tr ->
                 tr[id] = replayId
-                tr[turns] = lines.lastOrNull { it.startsWith("|turn|") }?.substring(6)?.toIntOrNull() ?: 0
-                tr[movesThatCouldHit] = run {
+                tr[TURNS] = lines.lastOrNull { it.startsWith("|turn|") }?.substring(6)?.toIntOrNull() ?: 0
+                tr[MOVESTHATCOULDHIT] = run {
                     var count = 0
                     for ((index, line) in lines.withIndex()) {
                         if (line.startsWith("|move|") && Command.movesJSON[line.split("|")[3].toSDName()]?.jsonObject?.get(
@@ -33,7 +33,7 @@ object Crinchy : ShowdownAnalyticTable("crinchy") {
                     }
                     count
                 }
-                tr[gamemode] = lines.first { it.startsWith("|tier|") }.substring(6).let {
+                tr[GAMEMODE] = lines.first { it.startsWith("|tier|") }.substring(6).let {
                     if ("VGC" in it || "Doubles" in it) SDFormat.Doubles else SDFormat.Singles
                 }
             }
@@ -44,10 +44,10 @@ object Crinchy : ShowdownAnalyticTable("crinchy") {
         return newSuspendedTransaction {
             val map = mutableMapOf<SDFormat, CrinchyStats>()
             selectAll().fold(map) { stats, row ->
-                stats.getOrPut(row[gamemode]) { CrinchyStats() }.apply {
+                stats.getOrPut(row[GAMEMODE]) { CrinchyStats() }.apply {
                     replayCount++
-                    turnCount += row[turns]
-                    moveHitCount += row[movesThatCouldHit]
+                    turnCount += row[TURNS]
+                    moveHitCount += row[MOVESTHATCOULDHIT]
                 }
                 stats
             }.let { stats ->

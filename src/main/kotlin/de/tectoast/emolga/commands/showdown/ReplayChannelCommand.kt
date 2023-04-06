@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.showdown
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.sql.managers.AnalysisManager
+import de.tectoast.emolga.database.exposed.AnalysisDB
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel
 
@@ -35,7 +35,7 @@ class ReplayChannelCommand : Command(
                 e.reply("Du musst einen Textchannel angeben!")
                 return
             }
-            val l = AnalysisManager.insertChannel(tco, res.idLong)
+            val l = AnalysisDB.insertChannel(tco.idLong, res.idLong, tco.guild.idLong)
             if (l == -1L) {
                 e.reply(if (tco.idLong == res.idLong) "Dieser Channel ist nun ein Replaychannel, somit werden alle Replay-Ergebnisse automatisch hier reingeschickt!" else "Alle Ergebnisse der Replays aus ${tco.asMention} werden von nun an in den Channel ${res.asMention} geschickt!")
                 replayAnalysis[tco.idLong] = res.idLong
@@ -52,7 +52,7 @@ class ReplayChannelCommand : Command(
 
         override suspend fun process(e: GuildCommandEvent) {
             val tco = e.textChannel
-            if (AnalysisManager.deleteChannel(tco.idLong)) {
+            if (AnalysisDB.deleteChannel(tco.idLong)) {
                 e.reply("Dieser Channel ist kein Replaychannel mehr!")
                 replayAnalysis.remove(tco.idLong)
             } else {

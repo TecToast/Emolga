@@ -3,9 +3,10 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import com.google.api.services.sheets.v4.model.CellFormat
 import com.google.api.services.sheets.v4.model.ColorStyle
 import com.google.api.services.sheets.v4.model.TextFormat
+import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.Command.Companion.convertColor
-import de.tectoast.emolga.database.exposed.NameConventions
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
@@ -13,14 +14,17 @@ import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.records.StatLocation
+import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.slf4j.Logger
+import java.time.Duration
 
 @Suppress("unused")
 @Serializable
@@ -63,16 +67,15 @@ class NDS : League() {
         doc(data)
     }
 
-    fun RequestBuilder.doc(data: DraftData) {
+    private fun RequestBuilder.doc(data: DraftData) {
         val index = data.memIndex
         val y = index * 17 + 2 + data.changedIndex
         addSingle("Data!B$y", data.pokemon)
         addSingle("Data!AF$y", 2)
         addColumn(
             "Data!F${index * 17 + 2}",
-            data.picks.asSequence().filter { it.name != "???" }
-                .sortedWith(tierorderingComparator).map { NameConventions.convertOfficialToTL(it.name, guild)!! }
-                .toList()
+            data.picks.asSequence().filter { it.name != "???" }.sortedWith(tierorderingComparator)
+                .map { NameConventionsDB.convertOfficialToTL(it.name, guild)!! }.toList()
         )
         val numInRound = data.indexInRound + 1
         if (data is SwitchData) addSingle(
@@ -109,24 +112,27 @@ class NDS : League() {
         resultCreator = {
             val y = index.y(10, 6)
             b.addSingle(
-                "$gameplanName!${Command.getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}",
-                "=HYPERLINK(\"$url\"; \"Link\")"
+                "$gameplanName!${Command.getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
             )
             b.addSingle(coord(gameplanName, gdi.x(9, 4), index.y(10, 3)), numberOne)
             b.addSingle(coord(gameplanName, gdi.x(9, 6), index.y(10, 3)), numberTwo)
             for (i in 0..1) {
                 val x = gdi.x(9, i.y(8, 1))
-                b.addColumn(coord(gameplanName, x, y), this.replayData.mons[i])
-                b.addColumn(coord(gameplanName, gdi.x(9, i.y(4, 3)), y), kills[i])
-                this.deaths[i].forEachIndexed { index, dead ->
+                val dataI = i.swap()
+                b.addColumn(coord(gameplanName, x, y), this.replayData.mons[dataI])
+                b.addColumn(coord(gameplanName, gdi.x(9, i.y(4, 3)), y), kills[dataI])
+                this.deaths[dataI].forEachIndexed { index, dead ->
                     if (dead) b.addCellFormatChange(
-                        gameplanSheet,
-                        "$x${y + index}",
-                        deathFormat,
-                        "textFormat(foregroundColorStyle,strikethrough)"
+                        gameplanSheet, "$x${y + index}", deathFormat, "textFormat(foregroundColorStyle,strikethrough)"
                     )
                 }
+                if (winnerIndex == i) {
+                    val s = "!${(gdi * 2 + 4).xc()}10"
+                    b.addSingle(teamnames[replayData.uids[i]] + s, "$higherNumber:0")
+                    b.addSingle(teamnames[replayData.uids[1 - i]] + s, "0:$higherNumber")
+                }
             }
+
         }
         setStatIfEmpty = false
         sorterData = SorterData(
@@ -135,6 +141,12 @@ class NDS : League() {
             indexer = { it.substring("=Data!F$".length).toInt() / 17 - 1 },
             cols = listOf(2, 8, -1)
         )
+    }
+
+    override fun onTipGameLockButtons(gameday: Int) {
+        val map =
+            (tipgame?.tips?.get(gameday) ?: return).userdata.values.flatMap { it.values }.groupingBy { it }.eachCount()
+        RequestBuilder(sid).addColumn("TipGameData!${(gameday + 3).xc()}2", (0..11).map { map[it] ?: 0 }).execute()
     }
 
     companion object {
@@ -156,6 +168,122 @@ class NDS : League() {
                 }
                 strikethrough = true
             }
+        }
+
+        fun doMatchUps(gameday: Int, withAnnounce: Boolean = false) {
+            val nds = Emolga.get.nds()
+            val table = nds.table
+            val teamnames = nds.teamnames
+            val battleorder = nds.battleorder[gameday]!!
+            val b = RequestBuilder(nds.sid)
+            val tipgameStats = mutableListOf<String>()
+            for (users in battleorder) {
+                for (index in 0..1) {
+                    println(users)
+                    val u1 = table[users[index]]
+                    val oppoIndex = users[1 - index]
+                    val u2 = table[oppoIndex]
+                    val team = teamnames[u1]!!
+                    val oppo = teamnames[u2]!!
+                    tipgameStats += "='$team'!Y2"
+                    // Speed values
+                    b.addSingle("$team!B18", "={'$oppo'!B16:AE16}")
+                    // Icons
+                    b.addSingle("$team!B19", "={'$oppo'!B15:AE15}")
+                    // KD
+                    b.addSingle("$team!B21", "={'$oppo'!B14:AF14}")
+                    // MU
+                    b.addColumn(
+                        "$team!A18", listOf(
+                            "='$oppo'!Y2", "='$oppo'!B2"
+                        )
+                    )
+                    // Z & Tera
+                    b.addSingle("$team!AE8", "='$oppo'!AA8")
+                    b.addSingle("$team!AE10", "='$oppo'!AA10")
+                    b.addSingle("$team!AC11", "='$oppo'!Y11")
+                    // Conditional formatting tiers
+                    val y = oppoIndex * 2 + 300
+                    b.addSingle("$team!B49", "={Data!B$y:AE$y}")
+
+                }
+            }
+            b.addColumn("TipGameData!N16", tipgameStats)
+            b.addSingle("TipGameData!N29", gameday)
+            if (withAnnounce) {
+                b.withRunnable {
+                    EmolgaMain.emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
+                        "Jo, kurzer Reminder, die Matchups des nächsten Spieltages sind im Doc, vergesst das Nominieren nicht :)\n<@&856205147754201108>"
+                    ).queue()
+                }
+            }
+            b.execute()
+        }
+
+
+        fun doNDSNominate(prevDay: Boolean = false) {
+            val nds = Emolga.get.nds()
+            val nom = nds.nominations
+            val table = nds.table
+            var cday = nom.currentDay
+            if (prevDay) cday--
+            val o = nom.nominated[cday]!!
+            val picks = nds.picks
+            val sid = nds.sid
+            val b = RequestBuilder(sid)
+            val tiers = listOf("S", "A", "B")
+            var dbcallTime = 0L
+            for (u in picks.keys) {
+                //String u = "297010892678234114";
+                val pmons: MutableList<DraftPokemon> = picks[u]!!
+                if (u !in o) {
+                    if (cday == 1) {
+                        val comp = compareBy<DraftPokemon>({ it.tier.indexedBy(tiers) }, { it.name })
+                        o[u] = (buildString {
+                            append(pmons.sortedWith(comp).joinToString(";") { it.indexedBy(pmons).toString() })
+                        })
+                    } else {
+                        o[u] = nom.nominated[cday - 1]!![u]!!
+                    }
+                }
+                //logger.info("o.get(u) = " + o.get(u));
+                val str = o[u]!!
+                val start = System.currentTimeMillis()
+                val mons: List<String> =
+                    str.split(";").map { NameConventionsDB.convertOfficialToTL(pmons[it.toInt()].name, nds.guild)!! }
+                dbcallTime += System.currentTimeMillis() - start
+                logger.info("mons = $mons")
+                logger.info("u = $u")
+                val index = table.indexOf(u)
+                b.addColumn("Data!F${index.y(17, 2)}", mons)
+            }
+            b.withRunnable {
+                EmolgaMain.emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
+                    """
+                Guten Abend ihr Teilnehmer. Der nächste Spieltag öffnet seine Pforten...Was? Du hast vergessen zu nominieren? Dann hast du wieder mal Pech gehabt. Ab jetzt könnt ihr euch die Nominierungen im Dokument anschauen und verzweifelt feststellen, dass ihr völlig lost gewesen seid bei eurer Entscheidung hehe. Wie dem auch sei, viel Spaß beim Teambuilding. Und passt auf Maxis Mega-Gewaldro auf! Warte, er hat keins mehr? Meine ganzen Konstanten im Leben wurden durchkreuzt...egal, wir hören uns nächste Woche wieder!
+_written by Maxifcn_""".trimIndent()
+                ).queue()
+            }.execute()
+            logger.info("dbcallTime = $dbcallTime")
+            if (!prevDay) nom.currentDay++
+            saveEmolgaJSON()
+        }
+
+        fun setupRepeatTasks() {
+            RepeatTask(
+                defaultTimeFormat.parse("03.05.2023 00:00").toInstant(),
+                5,
+                Duration.ofDays(7L),
+                { doNDSNominate() },
+                true
+            )
+            RepeatTask(
+                defaultTimeFormat.parse("30.04.2023 20:00").toInstant(),
+                5,
+                Duration.ofDays(7L),
+                { doMatchUps(it, withAnnounce = true) },
+                true
+            )
         }
     }
 }

@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.flegmon
 
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PepeCommand
-import de.tectoast.emolga.utils.sql.managers.BirthdayManager
+import de.tectoast.emolga.database.exposed.BirthdayDB
 
 class SetBirthdayCommand : PepeCommand("setbirthday", "Trägt deinen Geburtstag ein") {
     init {
@@ -39,7 +39,7 @@ class SetBirthdayCommand : PepeCommand("setbirthday", "Trägt deinen Geburtstag 
             return
         }
         val uid = e.author.idLong
-        BirthdayManager.addOrUpdateBirthday(uid, year, month, day)
+        BirthdayDB.addOrUpdateBirthday(uid, year, month, day)
         tco.sendMessage(
             "Dein Geburtstag wurde erfolgreich auf den " + getWithZeros(day, 2) + "." + getWithZeros(
                 month,

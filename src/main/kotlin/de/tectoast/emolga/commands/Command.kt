@@ -47,7 +47,6 @@ import de.tectoast.emolga.utils.json.showdown.TypeData
 import de.tectoast.emolga.utils.music.GuildMusicManager
 import de.tectoast.emolga.utils.records.TypicalSets
 import de.tectoast.emolga.utils.showdown.*
-import de.tectoast.emolga.utils.sql.managers.*
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.*
@@ -69,6 +68,7 @@ import kotlinx.serialization.json.*
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
+import mu.KotlinLogging
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.OnlineStatus
@@ -97,6 +97,7 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.utils.FileUpload
 import org.apache.commons.collections4.queue.CircularFifoQueue
+import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
@@ -105,11 +106,9 @@ import java.io.*
 import java.lang.reflect.Modifier
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.sql.ResultSet
-import java.sql.SQLException
-import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.Duration
+import java.time.Instant
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -1037,7 +1036,7 @@ abstract class Command(
                     false,
                     { str, data ->
                         val guildId = data.channel?.let { League.onlyChannel(it.idLong)?.guild } ?: data.guildId
-                        NameConventions.getDiscordTranslation(
+                        NameConventionsDB.getDiscordTranslation(
                             str,
                             guildId,
                             english = Tierlist[guildId].isEnglish
@@ -1104,174 +1103,6 @@ abstract class Command(
         }
     }
 
-    class Translation(
-        val translation: String,
-        val type: Type,
-        val language: Language,
-        val otherLang: String = "",
-        val forme: String? = null
-    ) {
-        val isEmpty: Boolean
-
-        override fun toString(): String {
-            val sb = StringBuilder("Translation{")
-            sb.append("type=").append(type)
-            sb.append(", language=").append(language)
-            sb.append(", translation='").append(translation).append('\'')
-            sb.append(", empty=").append(isEmpty)
-            sb.append(", otherLang='").append(otherLang).append('\'')
-            sb.append('}')
-            logger.info("ToStringCheck {}", sb)
-            return sb.toString()
-        }
-
-        fun print() {
-            logger.info(
-                "Translation{type=$type, language=$language, translation='$translation', empty=$isEmpty, otherLang='$otherLang'}"
-            )
-        }
-
-        fun append(str: String): Translation {
-            return Translation(translation + str, type, language, otherLang, forme)
-        }
-
-        fun before(str: String): Translation {
-            return Translation(str + translation, type, language, otherLang, forme)
-        }
-
-        fun isFromType(type: Type): Boolean {
-            return this.type == type
-        }
-
-        val isSuccess: Boolean
-            get() = !isEmpty
-
-        enum class Type(val id: String, private val typeName: String, private val female: Boolean) : ArgumentType {
-            ABILITY("abi", "Fähigkeit", true), EGGGROUP("egg", "Eigruppe", true), ITEM(
-                "item", "Item", false
-            ),
-            MOVE("atk", "Attacke", true), NATURE("nat", "Wesen", false), POKEMON("pkmn", "Pokémon", false), TYPE(
-                "type", "Typ", false
-            ),
-            TRAINER("trainer", "Trainer", false), UNKNOWN("unknown", "Undefiniert", false);
-
-            fun or(name: String): ArgumentType {
-                return object : ArgumentType {
-                    override fun validate(str: String, data: ValidationData): Any? {
-                        return if (str == name) Translation(
-                            "Tom", TRAINER, Language.GERMAN, "Tom"
-                        ) else this@Type.validate(str, data)
-                    }
-
-                    override fun getName(): String {
-                        return this@Type.getName()
-                    }
-
-                    override val customHelp: String?
-                        get() = this@Type.customHelp
-
-                    override fun asOptionType(): OptionType {
-                        return this@Type.asOptionType()
-                    }
-
-                    override fun needsValidate(): Boolean {
-                        return this@Type.needsValidate()
-                    }
-                }
-            }
-
-            override fun needsValidate(): Boolean {
-                return true
-            }
-
-            override fun validate(str: String, data: ValidationData): Any? {
-                val t = if (data.language == Language.GERMAN) getGerName(
-                    str, false
-                ) else getEnglNameWithType(str)
-                if (t.isEmpty) return null
-                if (t.translation == "Psychic" || t.otherLang == "Psychic") {
-                    if (this == TYPE) {
-                        return Translation(
-                            if (t.language == Language.GERMAN) "Psycho" else "Psychic",
-                            TYPE,
-                            t.language
-                        )
-                    }
-                }
-                return if (t.type != this) null else t
-            }
-
-            override fun getName(): String {
-                return "ein" + (if (female) "e" else "") + " **" + typeName + "**"
-            }
-
-            override fun asOptionType(): OptionType {
-                return OptionType.STRING
-            }
-
-            fun withAutocompleteFunction(
-                autoComplete: (String, CommandAutoCompleteInteractionEvent) -> List<String>?
-            ): ArgumentType {
-                return object : ArgumentType by this {
-                    override fun hasAutoComplete(): Boolean {
-                        return true
-                    }
-
-                    override suspend fun autoCompleteList(
-                        arg: String, event: CommandAutoCompleteInteractionEvent
-                    ): List<String>? {
-                        return autoComplete(arg, event)
-                    }
-                }
-            }
-
-            companion object {
-                fun fromId(id: String): Type {
-                    return values().firstOrNull { it.id.equals(id, ignoreCase = true) } ?: UNKNOWN
-                }
-
-                fun of(vararg types: Type): ArgumentType {
-                    return object : ArgumentType {
-                        override fun validate(str: String, data: ValidationData): Any? {
-                            val t =
-                                if (data.language === Language.GERMAN) getGerName(str) else getEnglNameWithType(str)
-                            if (t.isEmpty) return null
-                            return if (!listOf(*types).contains(t.type)) null else t
-                        }
-
-                        override fun getName(): String {
-                            //return "ein **Pokémon**, eine **Attacke**, ein **Item** oder eine **Fähigkeit**";
-                            return buildEnumeration(*types)
-                        }
-
-                        override fun asOptionType(): OptionType {
-                            return OptionType.STRING
-                        }
-
-                        override fun needsValidate(): Boolean {
-                            return true
-                        }
-                    }
-                }
-
-                fun all(): ArgumentType {
-                    return of(*values().filter { t: Type -> t != UNKNOWN }.toTypedArray())
-                }
-            }
-        }
-
-        companion object {
-            private val emptyTranslation: Translation = Translation("", Type.UNKNOWN, Language.UNKNOWN)
-
-            fun empty(): Translation {
-                return emptyTranslation
-            }
-        }
-
-        init {
-            this.isEmpty = type == Type.UNKNOWN
-        }
-    }
 
     companion object {
         /**
@@ -1404,7 +1235,7 @@ abstract class Command(
             if (strings.size > 25) emptyList()
             else strings.sorted()
         }
-        val allNameConventions by lazy(NameConventions::getAll)
+        val allNameConventions by lazy(NameConventionsDB::getAll)
 
         lateinit var tokens: Tokens
         lateinit var catchrates: Map<String, Int>
@@ -1492,82 +1323,6 @@ abstract class Command(
 
         fun getFirstAfterUppercase(s: String): String {
             return if (!s.contains("-")) s else s[0].toString() + s.substring(1, 2).uppercase() + s.substring(2)
-        }
-
-        fun doMatchUps(gameday: Int) {
-            val nds = Emolga.get.nds()
-            val table = nds.table
-            val teamnames = nds.teamnames
-            val battleorder = nds.battleorder[gameday]!!
-            val b = RequestBuilder(nds.sid)
-            for (users in battleorder) {
-                for (index in 0..1) {
-                    println(users)
-                    val u1 = table[users[index]]
-                    val u2 = table[users[1 - index]]
-                    val team = teamnames[u1]!!
-                    val oppo = teamnames[u2]!!
-                    b.addSingle("$team!B18", "={'$oppo'!B16:AE16}")
-                    b.addSingle("$team!B19", "={'$oppo'!B15:AE15}")
-                    b.addSingle("$team!B21", "={'$oppo'!B14:AF14}")
-                    b.addColumn(
-                        "$team!A18", listOf(
-                            "='$oppo'!Y2", "='$oppo'!B2"
-                        )
-                    )
-                }
-            }
-            b.withRunnable {
-                emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
-                    "Jo, kurzer Reminder, die Matchups des nächsten Spieltages sind im Doc, vergesst das Nominieren nicht :)\n<@&856205147754201108>"
-                ).queue()
-            }.execute()
-        }
-
-
-        fun doNDSNominate(prevDay: Boolean = false) {
-            val nds = Emolga.get.nds()
-            val nom = nds.nominations
-            val teamnames = nds.teamnames
-            val table = nds.teamtable
-            var cday = nom.currentDay
-            if (prevDay) cday--
-            val o = nom.nominated[cday]!!
-            val picks = nds.picks
-            val sid = nds.sid
-            val b = RequestBuilder(sid)
-            val tiers = listOf("S", "A", "B")
-            for (u in picks.keys) {
-                //String u = "297010892678234114";
-                if (u !in o) {
-                    if (cday == 1) {
-                        val mons = picks[u]!!
-                        val comp = compareBy<DraftPokemon>({ it.tier.indexedBy(tiers) }, { it.name })
-                        o[u] = (buildString {
-                            append(mons.sortedWith(comp).joinToString(";") { it.name })
-                        })
-                    } else {
-                        o[u] = nom.nominated[cday - 1]!![u]!!
-                    }
-                }
-                //logger.info("o.get(u) = " + o.get(u));
-                val str = o[u]!!
-                val mons: List<String> = str.split(";")
-
-                logger.info("mons = $mons")
-                logger.info("u = $u")
-                val index = table.indexOf(teamnames[u])
-                b.addColumn("Data!F${index.y(17, 2)}", mons)
-            }
-            b.withRunnable {
-                emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
-                    """
-                Guten Abend ihr Teilnehmer. Der nächste Spieltag öffnet seine Pforten...Was? Du hast vergessen zu nominieren? Dann hast du wieder mal Pech gehabt. Ab jetzt könnt ihr euch die Nominierungen im Dokument anschauen und verzweifelt feststellen, dass ihr völlig lost gewesen seid bei eurer Entscheidung hehe. Wie dem auch sei, viel Spaß beim Teambuilding. Und passt auf Maxis Mega-Gewaldro auf! Warte, er hat keins mehr? Meine ganzen Konstanten im Leben wurden durchkreuzt...egal, wir hören uns nächste Woche wieder!
-_written by Maxifcn_""".trimIndent()
-                ).queue()
-            }.execute()
-            if (!prevDay) nom.currentDay++
-            saveEmolgaJSON()
         }
 
         fun invertImage(mon: String, shiny: Boolean): File {
@@ -1820,14 +1575,14 @@ _written by Maxifcn_""".trimIndent()
             builder.setDescription("**Grund:** $reason")
             tco.sendMessageEmbeds(builder.build()).queue()
             //Database.insert("mutes", "userid, modid, guildid, reason, expires", mem.getIdLong(), mod.getIdLong(), g.getIdLong(), reason, new Timestamp(expires));
-            MuteManager.mute(mem.idLong, mod.idLong, g.idLong, reason, Timestamp(expires))
+            MuteDB.mute(mem.idLong, mod.idLong, g.idLong, reason, expires)
         }
 
         fun muteTimer(g: Guild, expires: Long, mem: Long) {
             if (expires == -1L) return
             moderationService.schedule({
                 val gid = g.idLong
-                if (MuteManager.unmute(mem, gid) != 0) {
+                if (MuteDB.unmute(mem, gid) != 0) {
                     Emolga.get.mutedroles[gid]?.let {
                         g.removeRoleFromMember(mem.usersnowflake, g.getRoleById(it)!!).queue()
                     }
@@ -1858,7 +1613,7 @@ _written by Maxifcn_""".trimIndent()
             builder.setDescription("**Grund:** $reason")
             tco.sendMessageEmbeds(builder.build()).queue()
             //Database.insert("kicks", "userid, modid, guildid, reason", mem.getIdLong(), mod.getIdLong(), tco.getGuild().getIdLong(), reason);
-            KicksManager.kick(mem.idLong, mod.idLong, tco.guild.idLong, reason)
+            KicksDB.kick(mem.idLong, mod.idLong, tco.guild.idLong, reason)
         }
 
         fun ban(tco: TextChannel, mod: Member, mem: Member, reason: String) {
@@ -1883,7 +1638,7 @@ _written by Maxifcn_""".trimIndent()
             builder.setColor(java.awt.Color.CYAN)
             builder.setDescription("**Grund:** $reason")
             tco.sendMessageEmbeds(builder.build()).queue()
-            BanManager.ban(mem.idLong, mem.user.name, mod.idLong, g.idLong, reason, null)
+            BanDB.ban(mem.idLong, mem.user.name, mod.idLong, g.idLong, reason, null)
         }
 
         fun mute(tco: TextChannel, mod: Member, mem: Member, reason: String) {
@@ -1902,7 +1657,7 @@ _written by Maxifcn_""".trimIndent()
             builder.setColor(java.awt.Color.CYAN)
             builder.setDescription("**Grund:** $reason")
             tco.sendMessageEmbeds(builder.build()).queue()
-            MuteManager.mute(mem.idLong, mod.idLong, tco.guild.idLong, reason, null)
+            MuteDB.mute(mem.idLong, mod.idLong, tco.guild.idLong, reason, null)
         }
 
         fun unmute(tco: TextChannel, mem: Member) {
@@ -1913,7 +1668,7 @@ _written by Maxifcn_""".trimIndent()
             builder.setAuthor(mem.effectiveName + " wurde entmutet", null, mem.user.effectiveAvatarUrl)
             builder.setColor(java.awt.Color.CYAN)
             tco.sendMessageEmbeds(builder.build()).queue()
-            MuteManager.unmute(mem.idLong, gid)
+            MuteDB.unmute(mem.idLong, gid)
         }
 
         fun tempBan(tco: TextChannel, mod: Member, mem: Member, time: Int, reason: String) {
@@ -1937,14 +1692,14 @@ _written by Maxifcn_""".trimIndent()
             builder.setColor(java.awt.Color.CYAN)
             builder.setDescription("**Grund:** $reason")
             tco.sendMessageEmbeds(builder.build()).queue()
-            BanManager.ban(mem.idLong, mem.user.name, mod.idLong, tco.guild.idLong, reason, Timestamp(expires))
+            BanDB.ban(mem.idLong, mem.user.name, mod.idLong, tco.guild.idLong, reason, Instant.ofEpochMilli(expires))
         }
 
         fun banTimer(g: Guild, expires: Long, mem: Long) {
             if (expires == -1L) return
             moderationService.schedule({
                 val gid = g.idLong
-                if (BanManager.unban(mem, gid) != 0) {
+                if (BanDB.unban(mem, gid) != 0) {
                     g.unban(UserSnowflake.fromId(mem)).queue()
                 }
             }, expires - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
@@ -1965,7 +1720,7 @@ _written by Maxifcn_""".trimIndent()
             builder.setDescription("**Grund:** $reason")
             tco.sendMessageEmbeds(builder.build()).queue()
             //Database.insert("warns", "userid, modid, guildid, reason", mem.getIdLong(), mod.getIdLong(), tco.getGuild().getIdLong(), reason);
-            WarnsManager.warn(mem.idLong, mod.idLong, tco.guild.idLong, reason)
+            WarnsDB.warn(mem.idLong, mod.idLong, tco.guild.idLong, reason)
         }
 
 
@@ -2373,7 +2128,7 @@ _written by Maxifcn_""".trimIndent()
             logger.info("System.currentTimeMillis() + tilnextday = " + (System.currentTimeMillis() + tilnextday))
             logger.info("SELECT REQUEST: " + "SELECT * FROM birthdays WHERE month = " + (c[Calendar.MONTH] + 1) + " AND day = " + c[Calendar.DAY_OF_MONTH])
             birthdayService.schedule({
-                BirthdayManager.checkBirthdays(c, flegmonjda.getTextChannelById(605650587329232896L)!!)
+                BirthdayDB.checkBirthdays(c, flegmonjda.getTextChannelById(605650587329232896L)!!)
                 awaitNextDay()
             }, tilnextday, TimeUnit.MILLISECONDS)
         }
@@ -2436,7 +2191,7 @@ _written by Maxifcn_""".trimIndent()
             }
         }
 
-        fun executeTipGameLockButtons(league: League) {
+        fun executeTipGameLockButtons(league: League, gameday: Int) {
             defaultScope.launch {
                 emolgajda.getTextChannelById(league.tipgame!!.channel)!!.iterableHistory.takeAsync(league.table.size / 2)
                     .await().forEach {
@@ -2444,6 +2199,7 @@ _written by Maxifcn_""".trimIndent()
                             ActionRow.of(it.actionRows[0].buttons.map { button -> button.asDisabled() })
                         ).queue()
                     }
+                league.onTipGameLockButtons(gameday)
             }
         }
 
@@ -2460,27 +2216,15 @@ _written by Maxifcn_""".trimIndent()
                         true
                     )
                     RepeatTask(
-                        tip.lastLockButtons.toInstant(), tip.amount, duration
-                    ) { executeTipGameLockButtons(Emolga.get.league(l.key)) }
+                        tip.lastLockButtons.toInstant(), tip.amount, duration,
+                        { executeTipGameLockButtons(Emolga.get.league(l.key), it) }, true
+                    )
                 }
             }
         }
 
         private fun setupManualRepeatTasks() {
-            RepeatTask(
-                defaultTimeFormat.parse("14.12.2022 00:00").toInstant(),
-                5,
-                Duration.ofDays(7L),
-                { doNDSNominate() },
-                true
-            )
-            RepeatTask(
-                defaultTimeFormat.parse("11.12.2022 20:00").toInstant(),
-                5,
-                Duration.ofDays(7L),
-                { doMatchUps(it) },
-                true
-            )
+            NDS.setupRepeatTasks()
         }
 
 
@@ -2572,7 +2316,7 @@ _written by Maxifcn_""".trimIndent()
                 )
                 return
             }
-            val count = StatisticsManager.analysisCount
+            val count = StatisticsDB.analysisCount
             replayCount.set(count)
             if (count % 100 == 0) {
                 emolgajda.getTextChannelById(904481960527794217L)!!
@@ -2712,7 +2456,7 @@ _written by Maxifcn_""".trimIndent()
                         }
                     }
                 }
-                StatisticsManager.increment("cmd_" + command.name)
+                StatisticsDB.increment("cmd_" + command.name)
                 val randnum = Random.nextInt(4096)
                 logger.info("randnum = $randnum")
                 if (randnum == 133) {
@@ -2828,11 +2572,9 @@ _written by Maxifcn_""".trimIndent()
                 var str: String? = getSDName(pokemon) + if (form == "Normal") "" else form.lowercase()
                 while (str != null) {
                     val learnset = movejson[str]!!()
-                    val set = TranslationsManager.getTranslationList(learnset.keys)
-                    while (set.next()) {
+                    val set = TranslationsDB.getEnglishIdsAndGermanNames(learnset.keys)
+                    for ((moveengl, move) in set) {
                         //logger.info("moveengl = " + moveengl);
-                        val moveengl = set.getString("englishid")
-                        val move = set.getString("germanname")
                         //logger.info("move = " + move);
                         val moveData = atkdata[moveengl]!!.jsonObject
                         if (type.isEmpty() || moveData["type"].string == getEnglName(type) && (dmgclass.isEmpty() || moveData["category"].string == dmgclass) && (!msg.lowercase()
@@ -2951,7 +2693,7 @@ _written by Maxifcn_""".trimIndent()
         }
 
         fun getDataObject(mon: String, guild: Long): Pokemon {
-            return dataJSON[NameConventions.getDiscordTranslation(mon, guild, true)!!.official.toSDName()]!!
+            return dataJSON[NameConventionsDB.getDiscordTranslation(mon, guild, true)!!.official.toSDName()]!!
         }
 
         fun <T> getActionRows(c: Collection<T>, mapper: Function<T, Button>): List<ActionRow> {
@@ -3025,8 +2767,8 @@ _written by Maxifcn_""".trimIndent()
                 val gid = customGuild ?: g.idLong
                 val u1 = game[0].nickname
                 val u2 = game[1].nickname
-                val uid1 = SDNamesManager.getIDByName(u1)
-                val uid2 = SDNamesManager.getIDByName(u2)
+                val uid1 = SDNamesDB.getIDByName(u1)
+                val uid2 = SDNamesDB.getIDByName(u2)
                 logger.info("Analysed!")
                 val league = Emolga.get.leagueByGuild(gid, uid1, uid2)
                 logger.info("uid1 = $uid1")
@@ -3038,7 +2780,7 @@ _written by Maxifcn_""".trimIndent()
                     it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
                 }
                 val monNames: MutableMap<String, DraftName> = mutableMapOf()
-                val activePassive = ActivePassiveKills.hasEnabled(gid)
+                val activePassive = ActivePassiveKillsDB.hasEnabled(gid)
                 val str = game.mapIndexed { index, sdPlayer ->
                     mutableListOf(
                         sdPlayer.nickname, sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
@@ -3068,10 +2810,10 @@ _written by Maxifcn_""".trimIndent()
                 customReplayChannel?.sendMessage(url)?.queue()
                 fromReplayCommand?.sendMessage(url)?.queue()
                 if (resultchannel.guild.idLong != Constants.G.MY) {
-                    StatisticsManager.increment("analysis")
+                    StatisticsDB.increment("analysis")
                     game.forEach { player ->
                         player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
-                            FullStatsManager.add(
+                            FullStatsDB.add(
                                 monNames[it.pokemon]!!.official, it.kills, if (it.isDead) 1 else 0, player.winner
                             )
                         }
@@ -3111,7 +2853,7 @@ _written by Maxifcn_""".trimIndent()
 
         fun getDraftGerName(
             sArg: String, guildId: Long
-        ) = NameConventions.getDiscordTranslation(sArg, guildId)
+        ) = NameConventionsDB.getDiscordTranslation(sArg, guildId)
 
 
         fun getGerNameWithForm(name: String): String {
@@ -3139,31 +2881,12 @@ _written by Maxifcn_""".trimIndent()
             } else toadd = StringBuilder(getGerNameNoCheck(toadd.toString()))
             return toadd.toString()
         }
-
         fun getGerName(s: String): Translation {
-            return getGerName(s, false)
-        }
-
-        fun getGerName(s: String, checkOnlyEnglish: Boolean, withCap: Boolean = false): Translation {
             val id = toSDName(s)
             if (translationsCacheGerman.containsKey(id)) return translationsCacheGerman.getValue(id)
-            val set = getTranslation(id, checkOnlyEnglish, withCap)
-            try {
-                if (set.next()) {
-                    val t = Translation(
-                        set.getString("germanname"),
-                        Translation.Type.fromId(set.getString("type")),
-                        Language.GERMAN,
-                        set.getString("englishname"),
-                        set.getString("forme")
-                    )
-                    addToCache(true, id, t)
-                    return t
-                }
-            } catch (throwables: SQLException) {
-                throwables.printStackTrace()
-            }
-            return Translation.empty()
+            return TranslationsDB.getTranslation(id, false, Language.GERMAN)?.also {
+                addToCache(true, id, it)
+            } ?: Translation.empty()
         }
 
 
@@ -3204,23 +2927,9 @@ _written by Maxifcn_""".trimIndent()
         fun getEnglNameWithType(s: String): Translation {
             val id = toSDName(s)
             if (translationsCacheEnglish.containsKey(id)) return translationsCacheEnglish.getValue(id)
-            val set = getTranslation(id)
-            try {
-                if (set.next()) {
-                    val t = Translation(
-                        set.getString("englishname"),
-                        Translation.Type.fromId(set.getString("type")),
-                        Language.ENGLISH,
-                        set.getString("germanname"),
-                        set.getString("forme")
-                    )
-                    addToCache(false, id, t)
-                    return t
-                }
-            } catch (throwables: SQLException) {
-                throwables.printStackTrace()
-            }
-            return Translation.empty()
+            return TranslationsDB.getTranslation(id, false, Language.ENGLISH)?.also {
+                addToCache(false, id, it)
+            } ?: Translation.empty()
         }
 
         fun getTypeGerName(type: String): String =
@@ -3228,14 +2937,6 @@ _written by Maxifcn_""".trimIndent()
 
         fun getTypeGerNameOrNull(type: String): String? =
             (Translation.Type.TYPE.validate(type, ValidationData()) as Translation?)?.translation
-
-        fun getTranslation(s: String): ResultSet {
-            return getTranslation(s, false)
-        }
-
-        fun getTranslation(s: String, checkOnlyEnglish: Boolean, withCap: Boolean = false): ResultSet {
-            return TranslationsManager.getTranslation(s, checkOnlyEnglish, withCap)
-        }
 
         fun getSDName(str: String): String {
             logger.info("getSDName s = $str")
@@ -3291,7 +2992,7 @@ _written by Maxifcn_""".trimIndent()
             if (split.last() == "*") return getMonName(lastSplit, guildId, withDebug)
             return if (s == "_unbekannt_") DraftName("_unbekannt_", "UNKNOWN")
             else
-                NameConventions.getSDTranslation(
+                NameConventionsDB.getSDTranslation(
                     dataJSON[toSDName(s)]?.takeIf { it.requiredAbility != null }?.baseSpecies ?: s, guildId
                 ) ?: DraftName(
                     s,
@@ -3482,6 +3183,161 @@ data class ReplayData(
     val uids by lazy { listOf(uid1, uid2) }
 }
 
-enum class Language {
-    GERMAN, ENGLISH, UNKNOWN
+enum class Language(val translationCol: Column<String>, val otherCol: Column<String>) {
+    GERMAN(TranslationsDB.GERMANNAME, TranslationsDB.ENGLISHNAME), ENGLISH(
+        TranslationsDB.ENGLISHNAME,
+        TranslationsDB.GERMANNAME
+    )
+}
+
+class Translation(
+    val translation: String,
+    val type: Type,
+    val language: Language,
+    val otherLang: String = "",
+    val forme: String? = null
+) {
+    val isEmpty: Boolean
+
+    override fun toString(): String {
+        val sb = StringBuilder("Translation{")
+        sb.append("type=").append(type)
+        sb.append(", language=").append(language)
+        sb.append(", translation='").append(translation).append('\'')
+        sb.append(", empty=").append(isEmpty)
+        sb.append(", otherLang='").append(otherLang).append('\'')
+        sb.append('}')
+        return sb.toString()
+    }
+
+    fun print() {
+        logger.info(
+            "Translation{type=$type, language=$language, translation='$translation', empty=$isEmpty, otherLang='$otherLang'}"
+        )
+    }
+
+    fun append(str: String): Translation {
+        return Translation(translation + str, type, language, otherLang, forme)
+    }
+
+    fun isFromType(type: Type): Boolean {
+        return this.type == type
+    }
+
+    val isSuccess: Boolean
+        get() = !isEmpty
+
+    enum class Type(val id: String, private val typeName: String, private val female: Boolean) : Command.ArgumentType {
+        ABILITY("abi", "Fähigkeit", true), EGGGROUP("egg", "Eigruppe", true), ITEM(
+            "item", "Item", false
+        ),
+        MOVE("atk", "Attacke", true), NATURE("nat", "Wesen", false), POKEMON("pkmn", "Pokémon", false), TYPE(
+            "type", "Typ", false
+        ),
+        TRAINER("trainer", "Trainer", false), UNKNOWN("unknown", "Undefiniert", false);
+
+        fun or(name: String): Command.ArgumentType {
+            return object : Command.ArgumentType {
+                override fun validate(str: String, data: Command.ValidationData): Any? {
+                    return if (str == name) Translation(
+                        "Tom", TRAINER, Language.GERMAN, "Tom"
+                    ) else this@Type.validate(str, data)
+                }
+
+                override fun getName(): String {
+                    return this@Type.getName()
+                }
+
+                override val customHelp: String?
+                    get() = this@Type.customHelp
+
+                override fun asOptionType(): OptionType {
+                    return this@Type.asOptionType()
+                }
+
+                override fun needsValidate(): Boolean {
+                    return this@Type.needsValidate()
+                }
+            }
+        }
+
+        override fun needsValidate(): Boolean {
+            return true
+        }
+
+        override fun validate(str: String, data: Command.ValidationData): Any? {
+            val t = if (data.language == Language.GERMAN) Command.getGerName(
+                str
+            ) else Command.getEnglNameWithType(str)
+            if (t.isEmpty) return null
+            if (t.translation == "Psychic" || t.otherLang == "Psychic") {
+                if (this == TYPE) {
+                    return Translation(
+                        if (t.language == Language.GERMAN) "Psycho" else "Psychic",
+                        TYPE,
+                        t.language
+                    )
+                }
+            }
+            return if (t.type != this) null else t
+        }
+
+        override fun getName(): String {
+            return "ein" + (if (female) "e" else "") + " **" + typeName + "**"
+        }
+
+        override fun asOptionType(): OptionType {
+            return OptionType.STRING
+        }
+
+        companion object {
+
+            fun fromId(id: String): Type {
+                return values().firstOrNull { it.id.equals(id, ignoreCase = true) } ?: UNKNOWN
+            }
+
+            fun of(vararg types: Type): Command.ArgumentType {
+                return object : Command.ArgumentType {
+                    override fun validate(str: String, data: Command.ValidationData): Any? {
+                        val t =
+                            if (data.language === Language.GERMAN) Command.getGerName(str) else Command.getEnglNameWithType(
+                                str
+                            )
+                        if (t.isEmpty) return null
+                        return if (!listOf(*types).contains(t.type)) null else t
+                    }
+
+                    override fun getName(): String {
+                        //return "ein **Pokémon**, eine **Attacke**, ein **Item** oder eine **Fähigkeit**";
+                        return Command.buildEnumeration(*types)
+                    }
+
+                    override fun asOptionType(): OptionType {
+                        return OptionType.STRING
+                    }
+
+                    override fun needsValidate(): Boolean {
+                        return true
+                    }
+                }
+            }
+
+            fun all(): Command.ArgumentType {
+                return of(*values().filter { t: Type -> t != UNKNOWN }.toTypedArray())
+            }
+        }
+    }
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
+        private val emptyTranslation: Translation = Translation("", Type.UNKNOWN, Language.GERMAN)
+
+        fun empty(): Translation {
+            return emptyTranslation
+        }
+    }
+
+    init {
+        this.isEmpty = type == Type.UNKNOWN
+    }
 }

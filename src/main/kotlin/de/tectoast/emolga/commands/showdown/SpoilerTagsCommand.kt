@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.showdown
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.sql.managers.SpoilerTagsManager
+import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 
 class SpoilerTagsCommand : Command(
     "spoilertags",
@@ -18,12 +18,12 @@ class SpoilerTagsCommand : Command(
 
     override suspend fun process(e: GuildCommandEvent) {
         val gid = e.guild.idLong
-        if (SpoilerTagsManager.delete(gid)) {
+        if (SpoilerTagsDB.delete(gid)) {
             e.reply("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!")
             spoilerTags.remove(gid)
             return
         }
-        SpoilerTagsManager.insert(gid)
+        SpoilerTagsDB.insert(gid)
         spoilerTags.add(gid)
         e.reply("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **aktiviert**!")
     }

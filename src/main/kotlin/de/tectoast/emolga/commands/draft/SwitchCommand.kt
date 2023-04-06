@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.invoke
-import de.tectoast.emolga.database.exposed.NameConventions
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.SwitchData
@@ -28,7 +28,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
                                 { mon -> mon.name })
                         ).map { mon ->
                             logger.debug(mon.name)
-                            tlNameCache[mon.name] ?: NameConventions.convertOfficialToTL(
+                            tlNameCache[mon.name] ?: NameConventionsDB.convertOfficialToTL(
                                 mon.name, it.guild
                             )!!.also { tlName -> tlNameCache[mon.name] = tlName }
                         }.filter { mon -> mon.startsWith(s, true) }

@@ -17,17 +17,17 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-object Giveaways : IntIdTable("giveaways") {
-    val messageid = long("messageid")
-    val channelid = long("channelid")
-    val hostid = long("hostid")
-    val prize = text("prize")
-    val end = timestamp("end")
-    val winners = integer("winners")
+object GiveawaysDB : IntIdTable("giveaways") {
+    val MESSAGEID = long("messageid")
+    val CHANNELID = long("channelid")
+    val HOSTID = long("hostid")
+    val PRIZE = text("prize")
+    val END = timestamp("end")
+    val WINNERS = integer("winners")
 }
 
 class Giveaway(id: EntityID<Int>) : IntEntity(id) {
-    companion object : IntEntityClass<Giveaway>(Giveaways) {
+    companion object : IntEntityClass<Giveaway>(GiveawaysDB) {
         val logger by SLF4J
         private val coroutineScope =
             CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineName("Giveaway") + CoroutineExceptionHandler { _, t ->
@@ -51,12 +51,12 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
         }
     }
 
-    var messageid by Giveaways.messageid
-    var channelid by Giveaways.channelid
-    var hostid by Giveaways.hostid
-    var prize by Giveaways.prize
-    var end by Giveaways.end
-    var winners by Giveaways.winners
+    var messageid by GiveawaysDB.MESSAGEID
+    var channelid by GiveawaysDB.CHANNELID
+    var hostid by GiveawaysDB.HOSTID
+    var prize by GiveawaysDB.PRIZE
+    var end by GiveawaysDB.END
+    var winners by GiveawaysDB.WINNERS
 
     private suspend fun finish() {
         transaction {

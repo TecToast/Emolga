@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.flegmon
 
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PepeCommand
-import de.tectoast.emolga.utils.sql.managers.BirthdayManager
+import de.tectoast.emolga.database.exposed.BirthdayDB
 import net.dv8tion.jda.api.entities.Member
 import java.util.*
 import java.util.function.Consumer
@@ -20,7 +20,7 @@ class NextBirthdayCommand : PepeCommand("nextbirthday", "Zeigt die naheliegende 
         curr[Calendar.MINUTE] = 0
         curr[Calendar.SECOND] = 0
         val map: MutableMap<Long, Calendar> = HashMap()
-        for (bData in BirthdayManager.all) {
+        for (bData in BirthdayDB.all) {
             val c = Calendar.getInstance()
             c[Calendar.DAY_OF_MONTH] = bData.day
             c[Calendar.MONTH] = bData.month - 1

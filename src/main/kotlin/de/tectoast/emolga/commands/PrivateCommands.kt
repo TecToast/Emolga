@@ -3,10 +3,10 @@ package de.tectoast.emolga.commands
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command.ArgumentManagerTemplate
 import de.tectoast.emolga.commands.Command.Companion.dataJSON
-import de.tectoast.emolga.commands.Command.Translation
-import de.tectoast.emolga.database.Database
-import de.tectoast.emolga.database.exposed.NameConventions
-import de.tectoast.emolga.database.exposed.TipGames
+import de.tectoast.emolga.database.exposed.AnalysisDB
+import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.SDNamesDB
+import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.ktor.subscribeToYTChannel
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
@@ -17,9 +17,7 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.emolga.draft.ASL
-import de.tectoast.emolga.utils.sql.managers.AnalysisManager
-import de.tectoast.emolga.utils.sql.managers.SDNamesManager
-import de.tectoast.emolga.utils.sql.managers.TranslationsManager
+import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.primary
@@ -172,13 +170,6 @@ object PrivateCommands {
     }
 
 
-    fun incrPdg(e: GenericCommandEvent) {
-        for (arg in e.args) {
-            Database.incrementPredictionCounter(arg.toLong())
-        }
-    }
-
-
     fun testVolume(e: GenericCommandEvent) {
         logger.info("Start!")
         Command.musicManagers[673833176036147210L]!!.player.volume = e.getArg(0).toInt()
@@ -233,18 +224,13 @@ object PrivateCommands {
     }
 
 
-    fun removeDuplicates() {
-        TranslationsManager.removeDuplicates()
-    }
-
-
     fun ndsNominate(e: GenericCommandEvent) {
-        Command.doNDSNominate(e.getArg(0).toBooleanStrict())
+        NDS.doNDSNominate(e.getArg(0).toBooleanStrict())
     }
 
 
     fun matchUps(e: GenericCommandEvent) {
-        Command.doMatchUps(e.getArg(0).toInt())
+        NDS.doMatchUps(e.getArg(0).toInt())
     }
 
 
@@ -411,7 +397,7 @@ object PrivateCommands {
 
 
     fun deleteUnused(e: GenericCommandEvent) {
-        e.reply("Deleted: " + AnalysisManager.removeUnused())
+        e.reply("Deleted: " + AnalysisDB.removeUnused())
     }
 
     fun updateSlashCommands() {
@@ -495,13 +481,6 @@ object PrivateCommands {
     }
 
 
-    fun testDBSpeed(e: GenericCommandEvent) {
-        val l = System.nanoTime()
-        TranslationsManager.getTranslation(e.getArg(0), false)
-        e.reply((System.nanoTime() - l).toString())
-    }
-
-
     fun asls11doc(e: GenericCommandEvent) {
         val sid = "1VWjAc370NQvuybaQZOTQ2uBVGC36D2_n63DOghkoE2k"
         val b = RequestBuilder(sid)
@@ -538,9 +517,9 @@ object PrivateCommands {
 
     suspend fun printTipGame() {
         newSuspendedTransaction {
-            TipGames.run {
-                selectAll().orderBy(this.correctGuesses, SortOrder.DESC).forEach {
-                    println("<@${it[this.userid]}>: ${it[this.correctGuesses]}")
+            TipGamesDB.run {
+                selectAll().orderBy(this.CORRECT_GUESSES, SortOrder.DESC).forEach {
+                    println("<@${it[this.USERID]}>: ${it[this.CORRECT_GUESSES]}")
                 }
 
             }
@@ -579,7 +558,7 @@ object PrivateCommands {
         dataJSON.values.asSequence().filterNot { it.num <= 0 }.map {
             val translated = Command.getGerName(it.baseSpecies ?: it.name).translation
             it.name to translated.condAppend(it.forme != null) { "-${it.forme}" }
-        }.forEach { NameConventions.insertDefault(it.first, it.second) }
+        }.forEach { NameConventionsDB.insertDefault(it.first, it.second) }
     }
 
 
@@ -587,7 +566,7 @@ object PrivateCommands {
         dataJSON.values.asSequence().filterNot { it.num <= 0 || it.cosmeticFormes == null }.forEach {
             val translated = Command.getGerName(it.baseSpecies ?: it.name).translation
             it.cosmeticFormes!!.forEach { f ->
-                NameConventions.insertDefaultCosmetic(
+                NameConventionsDB.insertDefaultCosmetic(
                     it.name, translated, f, translated + "-" + f.split("-").drop(1).joinToString("-")
                 )
             }
@@ -660,7 +639,7 @@ object PrivateCommands {
     fun insertSDNamesInDatabase(e: GenericCommandEvent) {
         val guild = e.getArg(1).toLong()
         Emolga.get.signups[guild]!!.users.forEach { (id, data) ->
-            SDNamesManager.addIfAbsent(data.sdname, id)
+            SDNamesDB.addIfAbsent(data.sdname, id)
         }
     }
 
@@ -692,7 +671,29 @@ object PrivateCommands {
         val values = Emolga.get.nds().picks.values.flatten().map { it.name }.filter { it != "???" }
         val tierlist = Tierlist[Constants.G.NDS]!!
         values.forEach {
-            tierlist.getTierOf(NameConventions.convertOfficialToTL(it, Constants.G.NDS)!!)
+            tierlist.getTierOf(NameConventionsDB.convertOfficialToTL(it, Constants.G.NDS)!!)
         }
+    }
+
+    fun ndsZAndTera() {
+        val nds = Emolga.get.nds()
+        val b = RequestBuilder(nds.sid)
+        val bo = nds.battleorder[1]!!
+        val table = nds.table
+        val teamnames = nds.teamnames
+        for (mu in bo) {
+            for (i in 0..1) {
+                val team = teamnames[table[mu[i]]]!!
+                val oppo = teamnames[table[mu[1 - i]]]!!
+                b.addSingle("$team!AE8", "='$oppo'!AA8")
+                b.addSingle("$team!AE10", "='$oppo'!AA10")
+                b.addSingle("$team!AC11", "='$oppo'!Y11")
+            }
+        }
+        b.execute()
+    }
+
+    fun ndsPrintMissingNominations(e: GenericCommandEvent) {
+        e.reply("```" + Emolga.get.nds().run { table - nominations.current().keys }.joinToString { "<@${it}>" } + "```")
     }
 }

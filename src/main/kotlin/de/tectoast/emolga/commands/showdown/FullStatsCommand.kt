@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.embedColor
-import de.tectoast.emolga.utils.sql.managers.FullStatsManager
+import de.tectoast.emolga.database.exposed.FullStatsDB
 import dev.minn.jda.ktx.messages.Embed
 import kotlin.math.roundToInt
 
@@ -23,7 +23,7 @@ class FullStatsCommand :
 
     override suspend fun process(e: GuildCommandEvent) {
         val mon = e.arguments.getText("mon")
-        val data = FullStatsManager.getData(mon)
+        val data = FullStatsDB.getData(mon)
         e.reply(
             Embed {
                 color = embedColor

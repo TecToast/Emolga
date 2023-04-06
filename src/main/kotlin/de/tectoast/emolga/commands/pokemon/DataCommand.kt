@@ -1,10 +1,10 @@
 package de.tectoast.emolga.commands.pokemon
 
 import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.database.exposed.AbiDataDB
+import de.tectoast.emolga.database.exposed.AtkDataDB
+import de.tectoast.emolga.database.exposed.ItemDataDB
 import de.tectoast.emolga.utils.json.showdown.Pokemon
-import de.tectoast.emolga.utils.sql.managers.AbiDataManager
-import de.tectoast.emolga.utils.sql.managers.AtkDataManager
-import de.tectoast.emolga.utils.sql.managers.ItemDataManager
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import net.dv8tion.jda.api.EmbedBuilder
@@ -213,7 +213,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                         .addField("Accuracy", accuracy, true).addField("Category", category, true)
                         .addField("AP", pp, true).addField("Type", type, true)
                         .addField("Priority", data["priority"].string, true).setColor(Color.CYAN)
-                        .setDescription(AtkDataManager.getData(name))
+                        .setDescription(AtkDataDB.getData(name))
                     if (isStatus) {
                         val eff = data["zMove"]!!.jsonObject
                         builder.addField("Z-Effect", eff["effect"]?.string?.let {
@@ -265,7 +265,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                         EmbedBuilder().setTitle(abiname).setDescription(
                             """
     Englisch: ${getEnglName(abiname)}
-    ${AbiDataManager.getData(name)}
+    ${AbiDataDB.getData(name)}
     """.trimIndent()
                         ).setColor(Color.CYAN).build()
                     ).queue()
@@ -277,7 +277,7 @@ class DataCommand : Command("data", "Zeigt Informationen über diese Sache", Com
                         EmbedBuilder().setTitle(itemname).setDescription(
                             """
     Englisch: ${getEnglName(itemname)}
-    ${ItemDataManager.getData(name)}
+    ${ItemDataDB.getData(name)}
     """.trimIndent()
                         ).setColor(Color.CYAN).build()
                     ).queue()

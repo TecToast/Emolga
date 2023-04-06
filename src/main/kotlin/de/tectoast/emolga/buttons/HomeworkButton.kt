@@ -11,7 +11,7 @@ class HomeworkButton : ButtonListener("homework") {
             e.reply(":D").setEphemeral(true).queue()
             e.hook.deleteMessageById(e.messageId).queue()
             transaction {
-                CalendarEntry.find { CalendarDB.messageid eq e.messageIdLong }.firstOrNull()?.delete()
+                CalendarEntry.find { CalendarDB.MESSAGEID eq e.messageIdLong }.firstOrNull()?.delete()
             }
         }
     }

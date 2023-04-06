@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.PrivateCommand
 import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.commands.indexedBy
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.Emolga
@@ -35,17 +36,28 @@ class NominateCommand : PrivateCommand("nominate") {
             return
         }
         val list =
-            nds.picks[if (e.author.idLong == Constants.FLOID) Command.WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toLong() else e.author.idLong]!!.sortedWith(
-                tiercomparator
-            )
-        val n = Nominate(list)
+            nds.picks[if (e.author.idLong == Constants.FLOID) Command.WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toLong() else e.author.idLong]!!.map {
+                DraftPokemon(
+                    NameConventionsDB.convertOfficialToTL(it.name, nds.guild)!!,
+                    it.tier,
+                    it.free
+                )
+            }
+        val sortedList = list.sortedWith(tiercomparator)
+        val n = Nominate(list, sortedList)
         e.channel.sendMessage(MessageCreate(embeds = Embed(
             title = "Nominierungen", color = embedColor, description = n.generateDescription()
         ).into(), components = Command.getActionRows(list.map { it.name }) {
             Button.primary(
                 "nominate;$it", it
             )
-        }.toMutableList().also { it.add(ActionRow.of(Button.success("nominate;FINISH", Emoji.fromUnicode("✅")))) })
+        }.toMutableList().also {
+            it.add(
+                ActionRow.of(
+                    Button.success("nominate;FINISH", Emoji.fromUnicode("✅")).asDisabled()
+                )
+            )
+        })
         ).queue { Command.nominateButtons[it.idLong] = n }
     }
 }

@@ -1,7 +1,7 @@
 package de.tectoast.emolga.utils.dconfigurator.impl
 
 import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.database.exposed.NameConventions
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.dconfigurator.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -84,11 +84,11 @@ class TierlistBuilderConfigurator(
     }), step<SlashCommandInteractionEvent> { options ->
         val name = getOption<String>("name")!!
         newSuspendedTransaction {
-            NameConventions.run {
-                select(german eq name).firstOrNull()
+            NameConventionsDB.run {
+                select(GERMAN eq name).firstOrNull()
             }
         } ?: throw InvalidArgumentException("Dieser Name entspricht nicht meinen Konventionen!")
-        NameConventions.addName(mons[index], name, guildId)
+        NameConventionsDB.addName(mons[index], name, guildId)
         deferReply().queue()
         test(this, options)
     }, step<StringSelectInteractionEvent> {
@@ -236,9 +236,9 @@ class TierlistBuilderConfigurator(
                 mr.groupValues[1] + "-" + key
             }
             println("Testing $mon <=> $regForm")
-            if (!NameConventions.checkIfExists(
+            if (!NameConventionsDB.checkIfExists(
                     regForm ?: mon, guildId
-                ) && (regForm == null || !NameConventions.checkIfExists(mon, guildId))
+                ) && (regForm == null || !NameConventionsDB.checkIfExists(mon, guildId))
             ) {
                 e.hook.send("`$mon` wurde nicht gefunden, bitte gib den Namen in meinem Format über /addconvention an.".condAppend(
                     sendRegionalInfo

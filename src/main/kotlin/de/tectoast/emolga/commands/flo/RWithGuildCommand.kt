@@ -25,7 +25,7 @@ class RWithGuildCommand : Command("rwithguild", "Replay mit Guild", CommandCateg
         if (url == "-") {
             e.slashCommandEvent!!.replyModal(
                 Modal.create("rwithguild", "Replays mit Guild")
-                    .addActionRows(
+                    .addComponents(
                         ActionRow.of(TextInput.create("id", "ID", TextInputStyle.SHORT).build()),
                         ActionRow.of(TextInput.create("urls", "Replay-Links", TextInputStyle.PARAGRAPH).build())
                     ).build()

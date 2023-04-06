@@ -4,14 +4,14 @@ import de.tectoast.emolga.buttons.ButtonListener
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PrivateCommand
+import de.tectoast.emolga.database.exposed.BanDB
+import de.tectoast.emolga.database.exposed.MuteDB
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.DASORID
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.json.Emolga
-import de.tectoast.emolga.utils.sql.managers.BanManager
-import de.tectoast.emolga.utils.sql.managers.MuteManager
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.messages.reply_
 import net.dv8tion.jda.api.JDA
@@ -203,20 +203,8 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
         val jda = e.jda
         if (jda.selfUser.idLong == 723829878755164202L) {
             Command.uninitializedCommands.forEach { Command.sendToMe("No Argument Manager Template: $it") }
-            BanManager.forAll { set ->
-                jda.getGuildById(set.getLong("guildid"))?.run {
-                    Command.banTimer(
-                        this, set.getTimestamp("expires")?.time ?: -1, set.getLong("userid")
-                    )
-                }
-            }
-            MuteManager.forAll { set ->
-                jda.getGuildById(set.getLong("guildid"))?.run {
-                    Command.muteTimer(
-                        this, set.getTimestamp("expires")?.time ?: -1, set.getLong("userid")
-                    )
-                }
-            }
+            BanDB.schedule(jda)
+            MuteDB.schedule(jda)
             //Draft(jda.getTextChannelById(837425828245667841)!!, "NDS", null, fromFile = true, isSwitchDraft = true);
         }
     }

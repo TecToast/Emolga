@@ -2,8 +2,8 @@ package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.dexquiz.DexQuizTip
+import de.tectoast.emolga.database.exposed.PokedexDB
 import de.tectoast.emolga.utils.records.DexEntry
-import de.tectoast.emolga.utils.sql.managers.PokedexManager
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
@@ -14,6 +14,7 @@ import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.TimeUnit
 
+@Suppress("unused")
 class DexQuiz(tc: TextChannel, rounds: Long) {
     private val totalRounds: Long
     private val points: MutableMap<Long, Int> = HashMap()
@@ -106,7 +107,7 @@ class DexQuiz(tc: TextChannel, rounds: Long) {
         val mon = newMon
         val pokemon: String = mon.germanName
         val englName: String = mon.englName
-        val dexEntry: DexEntry = PokedexManager.getDexEntry(pokemon)
+        val dexEntry: DexEntry = PokedexDB.getDexEntry(pokemon)
         val entry: String = dexEntry.entry
         currentEdition = dexEntry.edition
         currentGerName = pokemon

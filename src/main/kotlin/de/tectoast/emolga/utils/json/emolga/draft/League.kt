@@ -85,6 +85,8 @@ sealed class League {
 
     val tierorderingComparator by lazy { compareBy<DraftPokemon> { tierlist.order.indexOf(it.tier) } }
 
+    open fun onTipGameLockButtons(gameday: Int) {}
+
     open fun isFinishedForbidden() = !isSwitchDraft
 
     open fun checkFinishedForbidden(mem: Long): String? = null

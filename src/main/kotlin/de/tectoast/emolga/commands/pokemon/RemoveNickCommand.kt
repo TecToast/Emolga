@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.sql.managers.TranslationsManager
+import de.tectoast.emolga.database.exposed.TranslationsDB
 
 class RemoveNickCommand : Command("removenick", "Removed den Nick", CommandCategory.Pokemon) {
     init {
@@ -14,5 +14,5 @@ class RemoveNickCommand : Command("removenick", "Removed den Nick", CommandCateg
     }
 
     override suspend fun process(e: GuildCommandEvent) =
-        e.reply(if (TranslationsManager.removeNick(e.arguments.getText("nick"))) "Dieser Nickname wurde entfernt!" else "Dieser Nickname existiert nicht!")
+        e.reply(if (TranslationsDB.removeNick(e.arguments.getText("nick"))) "Dieser Nickname wurde entfernt!" else "Dieser Nickname existiert nicht!")
 }

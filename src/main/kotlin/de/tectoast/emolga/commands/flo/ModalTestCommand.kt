@@ -26,7 +26,7 @@ class ModalTestCommand : Command("modaltest", "Testet Modals", CommandCategory.F
             .setMaxLength(1000)
             .build()
         val modal = Modal.create("support", "Support")
-            .addActionRows(ActionRow.of(email), ActionRow.of(body))
+            .addComponents(ActionRow.of(email), ActionRow.of(body))
             .build()
         e.slashCommandEvent!!.replyModal(modal).queue()
     }

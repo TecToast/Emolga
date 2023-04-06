@@ -2,21 +2,18 @@ package de.tectoast.emolga.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
+import de.tectoast.emolga.database.exposed.AnalysisDB
 import de.tectoast.emolga.database.exposed.CalendarDB
-import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 import de.tectoast.emolga.utils.json.Tokens
-import de.tectoast.emolga.utils.sql.managers.AnalysisManager
-import de.tectoast.emolga.utils.sql.managers.MusicGuildsManager
-import de.tectoast.emolga.utils.sql.managers.PredictionGameManager
-import de.tectoast.emolga.utils.sql.managers.SpoilerTagsManager
-import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.*
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.statements.InsertStatement
+import org.jetbrains.exposed.sql.statements.Statement
+import org.jetbrains.exposed.sql.transactions.TransactionManager
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
-import java.sql.Connection
-import java.sql.SQLException
 import javax.sql.DataSource
 
 class Database(host: String, username: String, password: String) {
@@ -50,43 +47,65 @@ class Database(host: String, username: String, password: String) {
 
         private fun onStartUp() {
             logger.info("Retrieving all startup information...")
-            AnalysisManager.forAll { Command.replayAnalysis[it.getLong("replay")] = it.getLong("result") }
-            MusicGuildsManager.forAll { CommandCategory.musicGuilds.add(it.getLong("guildid")) }
+            AnalysisDB.forAll { Command.replayAnalysis[it[REPLAY]] = it[RESULT] }
             CalendarDB.allEntries.forEach { Command.scheduleCalendarEntry(it) }
             logger.info("replayAnalysis.size() = " + Command.replayAnalysis.size)
-            SpoilerTagsManager.addToList()
+            SpoilerTagsDB.addToList()
         }
+    }
+}
 
 
-        fun incrementPredictionCounter(userid: Long) {
-            dbScope.launch {
-                try {
-                    val conn = connection
-                    val usernameInput = conn.prepareStatement("SELECT userid FROM predictiongame WHERE userid = ? ")
-                    usernameInput.setLong(1, userid)
-                    if (usernameInput.executeQuery().next()) {
-                        PredictionGameManager.addPoint(userid)
-                    } else {
-                        val userDataInput =
-                            conn.prepareStatement("INSERT INTO predictiongame (userid, username, predictions) VALUES (?,?,?);")
-                        userDataInput.setLong(1, userid)
-                        userDataInput.setString(
-                            2, EmolgaMain.emolgajda.getGuildById(Constants.G.ASL)!!
-                                .retrieveMemberById(userid).await().effectiveName
-                        )
-                        userDataInput.setInt(3, 1)
-                        userDataInput.executeUpdate()
-                        userDataInput.close()
-                    }
-                    usernameInput.close()
-                    conn.close()
-                } catch (throwables: SQLException) {
-                    throwables.printStackTrace()
-                }
+abstract class OnDuplicateKeyUpdate<Key : Any>(
+    key: Key,
+    private val map: Map<Column<*>, Any>,
+    table: Table,
+    checkcol: Column<*> = table.firstPrimary
+) : InsertStatement<Key>(table, false) {
+
+    init {
+        values[checkcol] = key
+        values.putAll(map)
+    }
+
+    override fun prepareSQL(transaction: Transaction): String {
+
+        val onUpdateSQL = if (map.isNotEmpty()) {
+            " ON DUPLICATE KEY UPDATE " + map.entries.joinToString {
+                val col = transaction.identity(it.key)
+                "$col=${updateUnsafe(col, it.value)}"
             }
-        }
+        } else ""
+        return super.prepareSQL(transaction) + onUpdateSQL
+    }
 
-        val connection: Connection
-            get() = instance.dataSource.connection
+    abstract fun updateUnsafe(colIdentity: String, value: Any): String
+}
+
+
+class Increment<Key : Any>(
+    key: Key, map: Map<Column<*>, Int>, table: Table
+) : OnDuplicateKeyUpdate<Key>(key, map, table) {
+    override fun updateUnsafe(colIdentity: String, value: Any) = "$colIdentity+$value"
+}
+
+class Upsert<Key : Any>(
+    key: Key, map: Map<Column<*>, Any>, table: Table, checkcol: Column<*> = table.firstPrimary
+) : OnDuplicateKeyUpdate<Key>(key, map, table, checkcol) {
+    override fun updateUnsafe(colIdentity: String, value: Any) = "${value.escaped()}}"
+}
+
+fun <T : Table, K : Any> T.increment(key: K, map: Map<Column<*>, Int>) =
+    Increment(key, map, this).execute()
+
+fun <T : Table, K : Any> T.upsert(key: K, map: Map<Column<*>, Any>, checkcol: Column<*> = firstPrimary) =
+    Upsert(key, map, this, checkcol).execute()
+
+fun Statement<*>.execute() = execute(TransactionManager.current())
+private fun Any.escaped() = if (this is String) "'$this'" else this.toString()
+val Table.firstPrimary get() = primaryKey!!.columns.first()
+fun <T : Table> T.forAll(block: T.(ResultRow) -> Unit) = transaction {
+    selectAll().forEach {
+        block(it)
     }
 }

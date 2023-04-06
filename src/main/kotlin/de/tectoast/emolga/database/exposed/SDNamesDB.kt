@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 object SDNamesDB : Table("sdnames") {
     val NAME = varchar("name", 18)
-    val ID = long("sdname")
+    val ID = long("id")
 
     fun getIDByName(name: String) = transaction { select { NAME eq name }.firstOrNull()?.get(ID) } ?: -1
 

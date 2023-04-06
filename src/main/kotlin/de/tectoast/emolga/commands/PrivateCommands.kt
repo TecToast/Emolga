@@ -58,7 +58,7 @@ object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
 
-    private val guildsToUpdate = listOf(Constants.G.ASL)
+    private val guildsToUpdate = listOf(Constants.G.ASL, Constants.G.MY)
 
     fun updateTierlist(e: GenericCommandEvent) {
         Tierlist.setup()

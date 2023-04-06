@@ -5,7 +5,7 @@ plugins {
     val kVersion = "1.8.20"
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
-    id("com.github.johnrengelman.shadow") version "8.1.0"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
     id("maven-publish")
     application
 }

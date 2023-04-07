@@ -1,6 +1,7 @@
 package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.database.exposed.Giveaway
 import de.tectoast.emolga.utils.Constants
@@ -8,8 +9,12 @@ import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import de.tectoast.emolga.utils.json.Emolga
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.events.listener
+import dev.minn.jda.ktx.interactions.components.primary
+import dev.minn.jda.ktx.interactions.components.secondary
+import dev.minn.jda.ktx.interactions.components.success
 import dev.minn.jda.ktx.jdabuilder.default
 import dev.minn.jda.ktx.jdabuilder.intents
+import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.reply_
 import kotlinx.coroutines.*
 import net.dv8tion.jda.api.JDA
@@ -27,6 +32,9 @@ object EmolgaMain {
     lateinit var flegmonjda: JDA
     private val logger = LoggerFactory.getLogger(EmolgaMain::class.java)
 
+    const val NOTEMPVERSION = true
+    val CONTROLCENTRALGENERATION: Long? = null
+
     @Throws(Exception::class)
     fun start() {
         val eventListeners = listOf(EmolgaListener, DConfiguratorManager)
@@ -36,21 +44,34 @@ object EmolgaMain {
             addEventListeners(*eventListeners.toTypedArray())
             setMemberCachePolicy(MemberCachePolicy.DEFAULT)
         }
-        flegmonjda = default(Command.tokens.discordflegmon) {
-            intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
-            addEventListeners(*eventListeners.toTypedArray())
-            setMemberCachePolicy(MemberCachePolicy.ALL)
+        if (NOTEMPVERSION) {
+            flegmonjda = default(Command.tokens.discordflegmon) {
+                intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
+                addEventListeners(*eventListeners.toTypedArray())
+                setMemberCachePolicy(MemberCachePolicy.ALL)
+            }
         }
         initializeASLS11(emolgajda)
-        for (jda in listOf(emolgajda, flegmonjda)) {
+        for (jda in if (NOTEMPVERSION) listOf(emolgajda, flegmonjda) else listOf(emolgajda)) {
             EmolgaListener.registerEvents(jda)
             DConfiguratorManager.registerEvent(jda)
             jda.awaitReady()
         }
         logger.info("Discord Bots loaded!")
+        CONTROLCENTRALGENERATION?.let {
+            emolgajda.getTextChannelById(it)!!.sendMessageEmbeds(Embed(title = "Kontrollzentrale", color = embedColor))
+                .addActionRow(
+                    success("controlcentral;ej", "Emolga-JSON laden"),
+                    secondary("controlcentral;saveemolgajson", "Emolga-JSON speichern"),
+                    primary("controlcentral;updateslash", "Slash-Commands updaten"),
+                    primary("controlcentral;updatetierlist", "Tierlist updaten"),
+                    success("controlcentral;breakpoint", "Breakpoint"),
+                ).queue()
+        }
         //Ktor.start()
         Command.awaitNextDay()
-        flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
+        if (NOTEMPVERSION)
+            flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
         Command.updatePresence()/*val manager = ReactionManager(emolgajda)
         manager // BS
             .registerReaction("827608009571958806", "884567614918111233", "884564674744561684", "884565654227812364")

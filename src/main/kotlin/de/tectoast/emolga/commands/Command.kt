@@ -11,6 +11,7 @@ import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
+import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.buttons.ButtonListener
@@ -122,6 +123,7 @@ import kotlin.io.path.writeText
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
+import kotlin.reflect.KMutableProperty0
 
 @Suppress("unused", "SameParameterValue", "MemberVisibilityCanBePrivate")
 abstract class Command(
@@ -320,13 +322,13 @@ abstract class Command(
         return overrideHelp.getOrDefault(g.idLong, help) + if (wip) " (**W.I.P.**)" else ""
     }
 
-    enum class Bot(val jDA: JDA) {
-        EMOLGA(emolgajda), FLEGMON(flegmonjda);
+    enum class Bot(val jDA: KMutableProperty0<JDA>) {
+        EMOLGA(::emolgajda), FLEGMON(::flegmonjda);
 
         companion object {
             fun byJDA(jda: JDA): Bot {
                 for (value in values()) {
-                    if (jda.selfUser.idLong == value.jDA.selfUser.idLong) {
+                    if (jda.selfUser.idLong == value.jDA.get().selfUser.idLong) {
                         return value
                     }
                 }
@@ -2127,10 +2129,12 @@ abstract class Command(
             logger.info("tilnextday = $tilnextday")
             logger.info("System.currentTimeMillis() + tilnextday = " + (System.currentTimeMillis() + tilnextday))
             logger.info("SELECT REQUEST: " + "SELECT * FROM birthdays WHERE month = " + (c[Calendar.MONTH] + 1) + " AND day = " + c[Calendar.DAY_OF_MONTH])
-            birthdayService.schedule({
-                BirthdayDB.checkBirthdays(c, flegmonjda.getTextChannelById(605650587329232896L)!!)
-                awaitNextDay()
-            }, tilnextday, TimeUnit.MILLISECONDS)
+            if (EmolgaMain.NOTEMPVERSION) {
+                birthdayService.schedule({
+                    BirthdayDB.checkBirthdays(c, flegmonjda.getTextChannelById(605650587329232896L)!!)
+                    awaitNextDay()
+                }, tilnextday, TimeUnit.MILLISECONDS)
+            }
         }
 
         fun getTrainerDataActionRow(dt: TrainerData, withMoveset: Boolean): Collection<ActionRow> {
@@ -2229,6 +2233,7 @@ abstract class Command(
 
 
         fun init(key: String) {
+            println("Loading data...")
             loadJSONFiles(key)
             ModManager("default", "./ShowdownData/")
             Tierlist.setup()
@@ -2283,6 +2288,7 @@ abstract class Command(
 
         fun loadJSONFiles(key: String? = null) {
             key?.let {
+                println("Begin decrypt...")
                 tokens = TokenEncrypter.decrypt(it)
             }
             loadEmolgaJSON()
@@ -2601,8 +2607,8 @@ abstract class Command(
             return already
         }
 
-        fun sendToMe(msg: String, vararg bot: Bot) {
-            sendToUser(FLOID, msg, *bot)
+        fun sendToMe(msg: String, bot: Bot = Bot.EMOLGA) {
+            sendToUser(FLOID, msg, bot)
         }
 
 
@@ -2620,8 +2626,8 @@ abstract class Command(
             }.queue()
         }
 
-        fun sendToUser(id: Long, msg: String, vararg bot: Bot) {
-            val jda: JDA = if (bot.isEmpty()) emolgajda else bot[0].jDA
+        fun sendToUser(id: Long, msg: String, bot: Bot = Bot.EMOLGA) {
+            val jda = bot.jDA.get()
             jda.retrieveUserById(id).flatMap { obj: User -> obj.openPrivateChannel() }.flatMap { pc ->
                 pc.sendMessage(
                     msg.substring(0, min(msg.length, 2000))

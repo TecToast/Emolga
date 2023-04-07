@@ -12,8 +12,9 @@ private val logger = KotlinLogging.logger {}
 fun main() {
     logger.info("Starting Bot...")
     val console = System.console()
-    println("Enter Token Key:")
+    logger.info("Enter Token Key:")
     val key = String(console.readPassword())
+    logger.info("Accepted Key")
     Command.init(key)
     logger.info("Starting DB...")
     Database.init(Command.tokens.database, "localhost")

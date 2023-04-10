@@ -119,7 +119,11 @@ class NDS : League() {
             for (i in 0..1) {
                 val x = gdi.x(9, i.y(8, 1))
                 val dataI = i.swap()
-                b.addColumn(coord(gameplanName, x, y), this.replayData.mons[dataI])
+                logger.info("i: $i")
+                logger.info("dataI: $dataI")
+                b.addColumn(
+                    coord(gameplanName, x, y),
+                    this.replayData.mons[dataI].map { NameConventionsDB.convertOfficialToTL(it, guild)!! })
                 b.addColumn(coord(gameplanName, gdi.x(9, i.y(4, 3)), y), kills[dataI])
                 this.deaths[dataI].forEachIndexed { index, dead ->
                     if (dead) b.addCellFormatChange(

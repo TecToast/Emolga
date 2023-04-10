@@ -18,8 +18,7 @@ class DocEntry private constructor(val league: League) {
     companion object {
         private val logger = LoggerFactory.getLogger(DocEntry::class.java)
 
-        private val invalidProcessor: BasicStatProcessor =
-            BasicStatProcessor { _, _, _ -> StatLocation.invalid() }
+        private val invalidProcessor: BasicStatProcessor = BasicStatProcessor { _, _, _ -> StatLocation.invalid() }
 
         fun create(league: League, builder: DocEntry.() -> Unit): DocEntry {
             return DocEntry(league).apply(builder)
@@ -47,30 +46,22 @@ class DocEntry private constructor(val league: League) {
         val gap = monAmount + 3
         killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
             StatLocation(
-                sheet = dataSheet,
-                gameday + 2,
-                plindex.y(gap, monindex + 3)
+                sheet = dataSheet, gameday + 2, plindex.y(gap, monindex + 3)
             )
         }
         deathProcessor = BasicStatProcessor { plindex, monindex, gameday ->
             StatLocation(
-                sheet = dataSheet,
-                gameday + 4 + gamedays,
-                plindex.y(gap, monindex + 3)
+                sheet = dataSheet, gameday + 4 + gamedays, plindex.y(gap, monindex + 3)
             )
         }
         winProcessor = ResultStatProcessor { plindex, gameday ->
             StatLocation(
-                sheet = dataSheet,
-                gameday + 2,
-                plindex.y(gap, gap)
+                sheet = dataSheet, gameday + 2, plindex.y(gap, gap)
             )
         }
         looseProcessor = ResultStatProcessor { plindex, gameday ->
             StatLocation(
-                sheet = dataSheet,
-                gameday + 4 + gamedays,
-                plindex.y(gap, gap)
+                sheet = dataSheet, gameday + 4 + gamedays, plindex.y(gap, gap)
             )
         }
         this.resultCreator = resultCreator
@@ -123,8 +114,7 @@ class DocEntry private constructor(val league: League) {
     }
 
     fun getMatchups(gameday: Int) =
-        league.battleorder[gameday]
-            ?.map { mu -> mu.map { league.table[it] } } ?: generateForDay(
+        league.battleorder[gameday]?.map { mu -> mu.map { league.table[it] } } ?: generateForDay(
             league.table.size, gameday
         )
 
@@ -138,7 +128,13 @@ class DocEntry private constructor(val league: League) {
         val i1 = league.table.indexOf(uid1)
         val i2 = league.table.indexOf(uid2)
         val gameday = if (league.battleorder.isNotEmpty()) league.battleorder.asIterable().reversed()
-            .firstNotNullOfOrNull { if (it.value.any { l -> l.containsAll(listOf(i1, i2)) }) it.key else null }
+            .firstNotNullOfOrNull {
+                if (it.value.any { l ->
+                        l.containsAll(listOf(i1, i2)).also { b ->
+                            if (b) u1IsSecond = l.indexOf(i1) == 1
+                        }
+                    }) it.key else null
+            }
             ?: -1 else gameplanCoords(uid1, uid2).also {
             battleind = it.second
             u1IsSecond = it.third
@@ -256,7 +252,8 @@ class DocEntry private constructor(val league: League) {
         b.withRunnable(3000) { sort() }.execute()
     }
 
-    private fun sort() {
+    @Suppress("MemberVisibilityCanBePrivate")
+    fun sort() {
         try {
             sorterData?.run {
                 val sid = league.sid

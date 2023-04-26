@@ -42,7 +42,8 @@ class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste
                 (0 until 10).mapNotNull { args.getNullable<String>("range$it")?.let { a -> "$tierlistsheet!$a" } },
                 false
             )
-                .map { col -> col.map { it[0].toString().replace("*", "") } }.also { tierlistcols += it }.flatten(),
+                .map { col -> col.map { it[0].toString().replace("*", "").trim() } }.also { tierlistcols += it }
+                .flatten(),
             tierlistcols = tierlistcols
         )
     }

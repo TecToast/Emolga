@@ -42,8 +42,8 @@ class RandomTeamCommand : Command("randomteam", "Generiert ein Random Team", Com
         fun buildString(id: Long): String =
             "Team für <@$id>:\n" + generateTeam().joinToString("\n") { "${it.tier}: ${it.name}" }
 
-        fun generateTeam(): List<DraftPokemon> {
-            return Tierlist[Constants.G.VIP]!!.retrieveTierlistMap(sets.random())
+        fun generateTeam(guild: Long = Constants.G.ASL): List<DraftPokemon> {
+            return Tierlist[guild]!!.retrieveTierlistMap(sets.random())
         }
     }
 }

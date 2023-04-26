@@ -41,8 +41,7 @@ class DraftStatusCommand :
             )
             e.reply(
                 Embed(
-                    title = if (external) "Draft-Status von $externalName" else "Dein Draft-Status",
-                    color = embedColor
+                    title = if (external) "Draft-Status von $externalName" else "Dein Draft-Status", color = embedColor
                 ) {
                     field {
                         name = "Bisheriger Kader"
@@ -50,12 +49,11 @@ class DraftStatusCommand :
                             ?.joinToString("\n") { it.tier + ": " + it.name }?.takeUnless { it.isBlank() } ?: "_nichts_"
                         inline = false
                     }
-                    if (mode.withPoints)
-                        field {
-                            name = "Mögliche Punkte"
-                            value = (points[mem] ?: tl.points).toString()
-                            inline = false
-                        }
+                    if (mode.withPoints) field {
+                        name = "Mögliche Punkte"
+                        value = points[mem].toString()
+                        inline = false
+                    }
                     if (mode.withTiers) field {
                         name = "Mögliche Tiers"
                         value = getPossibleTiersAsString(mem)

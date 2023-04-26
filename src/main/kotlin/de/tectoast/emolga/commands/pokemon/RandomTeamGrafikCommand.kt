@@ -10,6 +10,7 @@ import de.tectoast.emolga.utils.json.Emolga
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import mu.KotlinLogging
 import net.dv8tion.jda.api.utils.FileUpload
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
@@ -25,11 +26,15 @@ class RandomTeamGrafikCommand :
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val (img, randomTeamData) = TeamGraphics.fromDraftPokemon(RandomTeamCommand.generateTeam(), e)
+        e.deferReply()
+        val lol = System.currentTimeMillis()
+        val (img, randomTeamData) = TeamGraphics.fromDraftPokemon(RandomTeamCommand.generateTeam())
+        logger.info("TeamGraphic took ${System.currentTimeMillis() - lol}ms")
         val os = ByteArrayOutputStream()
         withContext(Dispatchers.IO) {
             ImageIO.write(img, "png", os)
-            e.textChannel.sendFiles(FileUpload.fromData(os.toByteArray(), "epischerrandomkader.png")).await()
+            e.slashCommandEvent!!.hook.sendFiles(FileUpload.fromData(os.toByteArray(), "epischerrandomkader.png"))
+                .await()
             randomTeamData.run {
                 shinyCount.get().let {
                     if (it > 0)
@@ -44,6 +49,10 @@ class RandomTeamGrafikCommand :
             }
 
         }
+    }
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
     }
 
 }

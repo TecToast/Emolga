@@ -8,7 +8,8 @@ import kotlin.reflect.full.declaredMemberFunctions
 class PrivCommand : Command("priv", "Executet einen Priv Command", CommandCategory.Flo) {
 
     private val privCommands by lazy {
-        PrivateCommands::class.declaredMemberFunctions.associateBy { it.name }
+        PrivateCommands::class.declaredMemberFunctions.filter { it.returnType.classifier == Unit::class }
+            .associateBy { it.name }
     }
 
     init {

@@ -40,6 +40,7 @@ class DraftPermissionCommand : Command(
             val author = e.author.idLong
             drafts.values.firstOrNull { it.guild == gid && author in it.table }?.let { l ->
                 val mem = e.arguments.get<Member>("user")
+                if (mem.user.isBot) return e.reply("Du kannst keine Bots als Ersatzdrafter hinzufügen!")
                 val withMention = e.arguments.get<String>("withmention")
                 val id = mem.idLong
                 val allowed = l.allowed

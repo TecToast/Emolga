@@ -15,20 +15,29 @@ class LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Draf
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val ligaStartData = Emolga.get.signups[e.guild.idLong]!!
-        val uid = e.author.idLong
-        if (uid !in ligaStartData.users) {
-            e.reply("Du bist nicht angemeldet!", ephemeral = true)
-            return
+        insertLogo(e, e.author.idLong)
+    }
+
+    companion object {
+        suspend fun insertLogo(e: GuildCommandEvent, uid: Long) {
+            val ligaStartData = Emolga.get.signups[e.guild.idLong]!!
+            if (uid !in ligaStartData.users) {
+                e.reply("Du bist nicht angemeldet!", ephemeral = true)
+                return
+            }
+            e.deferReply(true)
+            val logo = e.arguments.getAttachment("logo")
+            val file = logo.proxy.downloadToFile("leaguelogos/${uid}.png".file()).await()
+            e.reply("Das Logo wurde erfolgreich hochgeladen!", ephemeral = true)
+            val signUpData = ligaStartData.users[uid]!!
+            val tc = e.jda.getTextChannelById(ligaStartData.logoChannel)!!
+            signUpData.logomid?.let {
+                tc.deleteMessageById(it).queue()
+            }
+            signUpData.logoUrl = tc
+                .sendMessage("**Logo von <@$uid> (${signUpData.teamname}):**").addFiles(FileUpload.fromData(file))
+                .await().also { signUpData.logomid = it.idLong }.attachments[0].url
+            saveEmolgaJSON()
         }
-        e.deferReply(true)
-        val logo = e.arguments.getAttachment("logo")
-        val file = logo.proxy.downloadToFile("leaguelogos/${e.author.id}.png".file()).await()
-        e.reply("Dein Logo wurde erfolgreich hochgeladen!", ephemeral = true)
-        val signUpData = ligaStartData.users[uid]!!
-        signUpData.logoUrl = e.jda.getTextChannelById(ligaStartData.logoChannel)!!
-            .sendMessage("**Logo von <@$uid> (${signUpData.teamname}):**").addFiles(FileUpload.fromData(file))
-            .await().attachments[0].url
-        saveEmolgaJSON()
     }
 }

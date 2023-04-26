@@ -1,6 +1,7 @@
 package de.tectoast.emolga.commands.showdown
 
 import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.utils.Constants
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.delay
@@ -20,7 +21,7 @@ class SearchReplaysCommand :
                 ArgumentManagerTemplate.Text.any(),
                 true
             ).setExample("!searchreplays TecToast").build()
-        slash(false)
+        slash(false, Constants.G.ASL, Constants.G.FLP)
     }
 
     @Throws(IOException::class)

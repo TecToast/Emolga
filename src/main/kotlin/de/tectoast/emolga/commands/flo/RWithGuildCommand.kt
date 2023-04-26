@@ -34,7 +34,7 @@ class RWithGuildCommand : Command("rwithguild", "Replay mit Guild", CommandCateg
         }
         analyseReplay(
             url,
-            resultchannel = e.textChannel,
+            resultchannelParam = e.textChannel,
             customGuild = e.arguments.getID("id"),
             fromAnalyseCommand = e.run { deferReply(); slashCommandEvent?.hook })
     }

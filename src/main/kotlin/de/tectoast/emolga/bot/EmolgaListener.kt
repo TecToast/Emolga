@@ -190,8 +190,8 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                     logger.info(url)
                     Command.analyseReplay(
                         url = url,
-                        customReplayChannel = e.jda.getTextChannelById(999779545316069396),
-                        resultchannel = e.jda.getTextChannelById(999779578799202324)!!,
+                        //customReplayChannel = e.jda.getTextChannelById(999779545316069396),
+                        resultchannelParam = e.jda.getTextChannelById(820359155612254258)!!,
                         message = e.message
                     )
                 }

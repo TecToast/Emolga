@@ -23,6 +23,6 @@ class TierCommand :
             ?: return replyError()
         val pkmn = getDraftGerName(e.arguments.getText("mon"), e.guild.idLong)?.tlName ?: return replyError()
         val tier = tierlist.getTierOf(pkmn)
-        e.reply(if (tier.isNotEmpty()) "$pkmn ist im $tier-Tier!" else "$pkmn befindet sich nicht in der Tierliste!")
+        e.reply(if (tier != null) "$pkmn ist im $tier-Tier!" else "$pkmn befindet sich nicht in der Tierliste!")
     }
 }

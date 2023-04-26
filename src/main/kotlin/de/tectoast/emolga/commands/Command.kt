@@ -265,7 +265,7 @@ abstract class Command(
     }
 
     fun allowsMember(mem: Member): Boolean {
-        return category!!.allowsMember(mem) || (customPermissions && allowsMember.test(mem))
+        return (!customPermissions && category!!.allowsMember(mem)) || (customPermissions && allowsMember.test(mem))
     }
 
     fun allowsGuild(g: Guild): Boolean {
@@ -371,7 +371,7 @@ abstract class Command(
         val EMOLGAMOD = fromIDs(DASORID)
         val HENNY = fromIDs(297010892678234114)
         fun fromRole(roleId: Long): Predicate<Member> {
-            return Predicate { it.roles.any { r -> r.idLong == roleId } }
+            return Predicate { it.guild.roleCache.none { r -> r.idLong == roleId } || it.roles.any { r -> r.idLong == roleId } }
         }
 
         fun fromIDs(vararg ids: Long): Predicate<Member> {
@@ -1234,7 +1234,7 @@ abstract class Command(
             //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
             val strings =
                 (Tierlist[league?.guild ?: gid]?.autoComplete ?: allNameConventions).filterStartsWithIgnoreCase(s)
-            if (strings.size > 25) emptyList()
+            if (strings.size > 25) listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
             else strings.sorted()
         }
         val allNameConventions by lazy(NameConventionsDB::getAll)
@@ -2661,9 +2661,9 @@ abstract class Command(
             ).notNullAppend(o.formeSuffix) + ".png"
         }
 
-        fun getSpriteForTeamGraphic(str: String, data: RandomTeamData): String {
+        fun getSpriteForTeamGraphic(str: String, data: RandomTeamData, guild: Long): String {
             if (str == "Sen-Long") data.hasDrampa = true
-            val o = getDataObject(str)
+            val o = getDataObject(str, guild)
             val odds = Emolga.get.config.teamgraphicShinyOdds
             return buildString {
                 append("gen5_cropped")
@@ -2719,31 +2719,31 @@ abstract class Command(
         fun analyseReplay(
             url: String,
             customReplayChannel: TextChannel? = null,
-            resultchannel: TextChannel,
+            resultchannelParam: TextChannel,
             message: Message? = null,
             fromAnalyseCommand: InteractionHook? = null,
             fromReplayCommand: InteractionHook? = null,
             customGuild: Long? = null
         ) {
             defaultScope.launch {
-                if (BOT_DISABLED && resultchannel.guild.idLong != Constants.G.MY) {
-                    (message?.channel ?: resultchannel).sendMessage(DISABLED_TEXT).queue()
+                if (BOT_DISABLED && resultchannelParam.guild.idLong != Constants.G.MY) {
+                    (message?.channel ?: resultchannelParam).sendMessage(DISABLED_TEXT).queue()
                     return@launch
                 }
 
-                logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannel.id)
+                logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannelParam.id)
                 fun send(msg: String) {
                     fromReplayCommand?.sendMessage(msg)?.queue() ?: fromAnalyseCommand?.sendMessage(msg)
                         ?.queue()
-                    ?: resultchannel.sendMessage(msg).queue()
+                    ?: resultchannelParam.sendMessage(msg).queue()
                 }
-                if (fromReplayCommand != null && !resultchannel.guild.selfMember.hasPermission(
-                        resultchannel,
+                if (fromReplayCommand != null && !resultchannelParam.guild.selfMember.hasPermission(
+                        resultchannelParam,
                         Permission.VIEW_CHANNEL,
                         Permission.MESSAGE_SEND
                     )
                 ) {
-                    send("Ich habe keine Berechtigung, im konfigurierten Channel ${resultchannel.asMention} zu schreiben!")
+                    send("Ich habe keine Berechtigung, im konfigurierten Channel ${resultchannelParam.asMention} zu schreiben!")
                     return@launch
                 }
                 val (game, ctx) = try {
@@ -2762,14 +2762,14 @@ abstract class Command(
                         else -> {
                             val msg =
                                 "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
-                            sendToMe("Fehler beim Auswerten des Replays: $url ${resultchannel.guild.name} ${resultchannel.asMention} ChannelID: ${resultchannel.id}")
+                            sendToMe("Fehler beim Auswerten des Replays: $url ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}")
                             send(msg)
                             ex.printStackTrace()
                         }
                     }
                     return@launch
                 }
-                val g = resultchannel.guild
+                val g = resultchannelParam.guild
                 val gid = customGuild ?: g.idLong
                 val u1 = game[0].nickname
                 val u2 = game[1].nickname
@@ -2777,9 +2777,15 @@ abstract class Command(
                 val uid2 = SDNamesDB.getIDByName(u2)
                 logger.info("Analysed!")
                 val league = Emolga.get.leagueByGuild(gid, uid1, uid2)
+                val jda = resultchannelParam.jda
+                val replayChannel =
+                    league?.provideReplayChannel(jda).takeIf { customGuild == null } ?: customReplayChannel
+                val resultChannel =
+                    league?.provideResultChannel(jda).takeIf { customGuild == null } ?: resultchannelParam
                 logger.info("uid1 = $uid1")
                 logger.info("uid2 = $uid2")
-                if (gid == Constants.G.ASL && league == null) return@launch
+
+                //if (gid == Constants.G.ASL && league == null) return@launch
                 //logger.info(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
                 val spoiler = spoilerTags.contains(gid)
                 game.forEach {
@@ -2811,11 +2817,11 @@ abstract class Command(
                 if (fromAnalyseCommand != null) {
                     fromAnalyseCommand.sendMessage(str).queue()
                 } else if (!customResult.contains(gid)) {
-                    resultchannel.sendMessage(str).queue()
+                    resultChannel.sendMessage(str).queue()
                 }
-                customReplayChannel?.sendMessage(url)?.queue()
+                replayChannel?.sendMessage(url)?.queue()
                 fromReplayCommand?.sendMessage(url)?.queue()
-                if (resultchannel.guild.idLong != Constants.G.MY) {
+                if (resultchannelParam.guild.idLong != Constants.G.MY) {
                     StatisticsDB.increment("analysis")
                     game.forEach { player ->
                         player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
@@ -2824,9 +2830,12 @@ abstract class Command(
                             )
                         }
                     }
+                    launch {
+                        updatePresence()
+                    }
                 }
                 for (ga in game) {
-                    if (ga.pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }) resultchannel.sendMessage(
+                    if (ga.pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }) resultchannelParam.sendMessage(
                         "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
                     ).queue()
                 }
@@ -2839,6 +2848,11 @@ abstract class Command(
                     game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to if (mon.isDead) 1 else 0 } }
                 TypicalSets.save()
                 if (uid1 == -1L || uid2 == -1L) return@launch
+                if (league is ASL) {
+                    if ((uid1 == 760926540967444520 && game[1].winner) || (uid2 == 760926540967444520 && game[0].winner)) {
+                        sendToMe("Henne noob :)")
+                    }
+                }
                 league?.docEntry?.analyse(
                     ReplayData(
                         game = game,
@@ -2849,7 +2863,7 @@ abstract class Command(
                         mons = game.map { it.pokemon.map { mon -> monNames[mon.pokemon]!!.official } },
                         url = url,
                         str = str,
-                        resultchannel = resultchannel,
+                        resultchannel = resultchannelParam,
                         customReplayChannel = customReplayChannel,
                         m = message
                     )
@@ -2887,6 +2901,7 @@ abstract class Command(
             } else toadd = StringBuilder(getGerNameNoCheck(toadd.toString()))
             return toadd.toString()
         }
+
         fun getGerName(s: String): Translation {
             val id = toSDName(s)
             if (translationsCacheGerman.containsKey(id)) return translationsCacheGerman.getValue(id)
@@ -2945,7 +2960,7 @@ abstract class Command(
             (Translation.Type.TYPE.validate(type, ValidationData()) as Translation?)?.translation
 
         fun getSDName(str: String): String {
-            logger.info("getSDName s = $str")
+            //logger.info("getSDName s = $str")
             val op = sdex.keys.firstOrNull { anotherString: String -> str.equals(anotherString, ignoreCase = true) }
             val gitname: String = if (op != null) {
                 val englname = getEnglName(op.split("-")[0])
@@ -3062,6 +3077,8 @@ fun List<DraftPokemon>?.names() = this!!.map { it.name }
 
 fun String.toSDName() = Command.toSDName(this)
 
+fun <T> Boolean.ifTrue(value: T) = if (this) value else null
+
 inline fun <T> T.ifMatches(value: T, predicate: (T) -> Boolean) = if (predicate(this)) value else this
 
 val webJSON = Json {
@@ -3086,7 +3103,7 @@ val myJSON = Json {
             subclass(NDS::class)
             subclass(GDL::class)
             subclass(Prisma::class)
-            subclass(ASL::class)
+            subclass(ASLCoach::class)
             subclass(DoR::class)
             subclass(FPL::class)
             subclass(Paldea::class)

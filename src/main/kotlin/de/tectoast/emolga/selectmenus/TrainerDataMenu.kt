@@ -8,7 +8,7 @@ import dev.minn.jda.ktx.messages.into
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 
 class TrainerDataMenu : MenuListener("trainerdata") {
-    override fun process(e: StringSelectInteractionEvent, menuname: String?) {
+    override suspend fun process(e: StringSelectInteractionEvent, menuname: String?) {
         val dt = Command.trainerDataButtons[e.messageIdLong]
         if (dt == null) {
             e.editMessage_(

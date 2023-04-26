@@ -13,6 +13,8 @@ import kotlinx.serialization.Transient
 @SerialName("Paldea")
 class Paldea : League() {
 
+    override val teamsize = 12
+
     @Transient
     override val docEntry = DocEntry.create(this) {
         newSystem(

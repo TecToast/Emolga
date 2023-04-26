@@ -17,7 +17,7 @@ object SDNamesDB : Table("sdnames") {
         (select { NAME eq name }.firstOrNull() == null).also { b ->
             if (b)
                 insert {
-                    it[NAME] = name
+                    it[NAME] = Command.toUsername(name)
                     it[ID] = id
                 }
         }

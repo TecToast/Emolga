@@ -14,6 +14,7 @@ import kotlinx.serialization.Transient
 class WDL(private val division: String) : League() {
 
     override val timerSkipMode = TimerSkipMode.AFTER_DRAFT
+    override val teamsize = 12
 
     @Transient
     override val timer = DraftTimer(TimerInfo(6, 24), 60 * 4)

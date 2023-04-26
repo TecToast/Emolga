@@ -10,7 +10,7 @@ class InviteCommand :
     init {
         //addCustomChannel(Constants.G.ASL, 773572093697851392L, 736501675447025704L)
         argumentTemplate = ArgumentManagerTemplate.noArgs()
-        setCustomPermissions(PermissionPreset.HENNY)
+        setCustomPermissions(PermissionPreset.fromRole(702233714360582154))
         slash(true, Constants.G.ASL)
     }
 

@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.Translation
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 
 
@@ -16,11 +17,13 @@ class TierlistSearchCommand :
             addEngl("type", "Typ", "Der Typ, den du suchen möchtest", Translation.Type.TYPE)
             example = "!tierlistsearch A Water"
         }
+        slash(true, Constants.G.ASL)
     }
 
     override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
-        val tierlist = Tierlist[e.guild.idLong] ?: run {
+        val gid = e.guild.idLong
+        val tierlist = Tierlist[gid] ?: run {
             e.reply("Es wurde keine Tierliste für diesen Server hinterlegt!")
             return
         }
@@ -31,8 +34,14 @@ class TierlistSearchCommand :
         }
         val searchType = args.getTranslation("type")
         val searchTypeEnglish = searchType.translation
-        val filteredList = mons.filter { searchTypeEnglish in getDataObject(it).types }
-        e.reply("All diese Mons aus dem ${tier}-Tier besitzen den Typen ${searchType.otherLang}:\n${filteredList.joinToString("\n")}")
+        val filteredList = mons.filter { searchTypeEnglish in getDataObject(it, gid).types }
+        e.reply(
+            "All diese Mons aus dem ${tier}-Tier besitzen den Typen ${searchType.otherLang}:\n${
+                filteredList.joinToString(
+                    "\n"
+                )
+            }", ephemeral = true
+        )
     }
 
 }

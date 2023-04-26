@@ -11,19 +11,19 @@ abstract class MenuListener(name: String) {
         listener[name] = this
     }
 
-    abstract fun process(e: StringSelectInteractionEvent, menuname: String?)
+    abstract suspend fun process(e: StringSelectInteractionEvent, menuname: String?)
 
     companion object {
         val listener = HashMap<String, MenuListener>()
         private val logger = LoggerFactory.getLogger(MenuListener::class.java)
         private val NULL: MenuListener = object : MenuListener("NULL") {
-            override fun process(e: StringSelectInteractionEvent, menuname: String?) {
+            override suspend fun process(e: StringSelectInteractionEvent, menuname: String?) {
                 if (!e.componentId.first().isDigit())
                     Command.sendToMe("WRONG MENU KEY " + e.componentId)
             }
         }
 
-        fun check(e: StringSelectInteractionEvent) {
+        suspend fun check(e: StringSelectInteractionEvent) {
             logger.info("e.getComponentId() = " + e.componentId)
             e.componentId.split(";").let {
                 listener.getOrDefault(it[0], NULL).process(e, it.getOrNull(1))

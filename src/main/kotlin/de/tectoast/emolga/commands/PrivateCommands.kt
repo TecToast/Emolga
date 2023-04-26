@@ -12,11 +12,12 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.RequestBuilder
+import de.tectoast.emolga.utils.TeamGraphics
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.LigaStartData
-import de.tectoast.emolga.utils.json.emolga.draft.ASL
+import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Modal
@@ -25,7 +26,9 @@ import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
@@ -40,25 +43,28 @@ import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
+import net.dv8tion.jda.api.utils.FileUpload
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 import java.awt.Color
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 import java.util.regex.Pattern
+import javax.imageio.ImageIO
 
 @Suppress("unused")
 object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
 
-    private val guildsToUpdate = listOf(Constants.G.MY)
+    private val guildsToUpdate = listOf(Constants.G.ASL, Constants.G.FLP)
 
     fun updateTierlist(e: GenericCommandEvent) {
         Tierlist.setup()
@@ -277,7 +283,9 @@ object PrivateCommands {
                     }.firstOrNull()?.run {
                         logger.info(this)
                         Command.analyseReplay(
-                            url = this, resultchannel = e.jda.getTextChannelById(837425749770240001L)!!, message = m
+                            url = this,
+                            resultchannelParam = e.jda.getTextChannelById(837425749770240001L)!!,
+                            message = m
                         )
                     }
             }
@@ -302,7 +310,9 @@ object PrivateCommands {
                     }.firstOrNull()?.run {
                         logger.info(this)
                         Command.analyseReplay(
-                            url = this, resultchannel = e.jda.getTextChannelById(929686912048975882L)!!, message = m
+                            url = this,
+                            resultchannelParam = e.jda.getTextChannelById(929686912048975882L)!!,
+                            message = m
                         )
                     }
             }
@@ -494,9 +504,9 @@ object PrivateCommands {
         val picks = aslleague.picks[uid]!!
         val tl = Tierlist[Constants.G.ASL]!!
         picks.clear()
-        picks.addAll(mons.map { DraftPokemon(it, tl.getTierOf(it)) })
+        picks.addAll(mons.map { DraftPokemon(it, tl.getTierOf(it)!!) })
         b.addColumn("$team!C${level.y(26, 23)}", picks.let { pi ->
-            pi.sortedWith((aslleague as ASL).comparator).map { it.indexedBy(pi) }
+            pi.sortedWith((aslleague as ASLCoach).comparator).map { it.indexedBy(pi) }
                 .map { "=Data$level!B${tindex.y(15, 3) + it}" }
         })
         b.execute()
@@ -600,40 +610,69 @@ object PrivateCommands {
         saveEmolgaJSON()
     }
 
+    suspend fun giveSignupRoles(e: GenericCommandEvent) {
+        val args = e.getArg(1).split(" ")
+        val g = e.jda.getGuildById(args[0])!!
+        val data = Emolga.get.signups[g.idLong]!!
+        val roles = args.drop(1).map { g.getRoleById(it)!! }
+        val conferences = data.conferences
+        data.users.entries.forEach { user ->
+            g.addRoleToMember(UserSnowflake.fromId(user.key), roles[user.value.conference.indexedBy(conferences)])
+                .queue()
+            delay(2000)
+            // 518008523653775366 1095097314210762884 1095097593463308358 1095097684706213928 1095097835491438655 1095097904944910428
+        }
+    }
+
     suspend fun startOrderingUsers(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         val tc = e.jda.getTextChannelById(args[0])!!
+        val extended = args[1].toBoolean()
         val data = Emolga.get.signups[tc.guild.idLong]!!
-        val conferences = args.drop(1)
+        val conferences = args.drop(2)
         data.shiftChannel = tc.idLong
         data.conferences = conferences
-        val usermap = mutableMapOf<String, MutableList<Long>>()
-        data.users.entries.forEachIndexed { index, (key, value) ->
-            value.conference = conferences[index % conferences.size].also {
-                usermap.getOrPut(it) { mutableListOf() }.add(key)
+        data.extended = extended
+        data.shiftMessageIds = listOf()
+        data.users.values.forEach { it.conference = null }
+        if (extended) {
+            val uid = data.users.keys.first()
+            tc.sendMessageEmbeds(Embed(title = "Einteilung", description = "<@$uid>"))
+                .addActionRow(data.conferenceSelectMenus(uid, true))
+                .queue()
+        } else {
+            data.users.values.forEachIndexed { index, value ->
+                value.conference = conferences[index % conferences.size]
             }
-        }
-        data.shiftMessageIds = generateOrderingMessages(data).map {
-            tc.send(embeds = it.first.into(), components = it.second).await().idLong
+            data.shiftMessageIds = generateOrderingMessages(data).values.map {
+                tc.send(embeds = it.first.into(), components = it.second).await().idLong
+            }
         }
         saveEmolgaJSON()
     }
 
     private val nameCache = mutableMapOf<Long, String>()
-    suspend fun generateOrderingMessages(data: LigaStartData): List<Pair<MessageEmbed, List<ActionRow>>> {
+    suspend fun generateOrderingMessages(
+        data: LigaStartData,
+        vararg conferenceIndexes: Int
+    ): Map<Int, Pair<MessageEmbed, List<ActionRow>>> {
         if (nameCache.isEmpty()) EmolgaMain.emolgajda.getTextChannelById(data.signupChannel)!!.guild.retrieveMembersByIds(
             data.users.keys
         ).await().forEach { nameCache[it.idLong] = it.effectiveName }
-        return data.users.entries.groupBy { it.value.conference }.entries.sortedBy { data.conferences.indexOf(it.key) }
-            .map { (conference, users) ->
-                Embed(
-                    title = "Conference: $conference (${users.size}/${data.maxUsers})",
-                    description = users.joinToString("\n") { "<@${it.key}>" }, color = embedColor
-                ) to
-                        users.map { (id, _) ->
-                            primary("shiftuser;$id", nameCache[id]!!)
-                        }.chunked(5).map { ActionRow.of(it) }
-            }
+        saveEmolgaJSON()
+        return data.users.entries.groupBy { it.value.conference }.entries.filter {
+            conferenceIndexes.isEmpty() || data.conferences.indexOf(
+                it.key
+            ) in conferenceIndexes
+        }.sortedBy { data.conferences.indexOf(it.key) }.associate { (conference, users) ->
+            conference.indexedBy(data.conferences) to (Embed(
+                title = "Conference: $conference (${users.size}/${data.maxUsers})",
+                description = users.joinToString("\n") { "<@${it.key}>" }, color = embedColor
+            ) to
+                    users.map { (id, _) ->
+                        primary("shiftuser;$id", nameCache[id]!!)
+                    }.chunked(5).map { ActionRow.of(it) })
+        }
     }
 
     fun insertSDNamesInDatabase(e: GenericCommandEvent) {
@@ -695,5 +734,66 @@ object PrivateCommands {
 
     fun ndsPrintMissingNominations(e: GenericCommandEvent) {
         e.reply("```" + Emolga.get.nds().run { table - nominations.current().keys }.joinToString { "<@${it}>" } + "```")
+    }
+
+    fun taria(e: GenericCommandEvent) {
+        val guild = e.getArg(1).toLong()
+        val data = Emolga.get.signups[guild]!!
+        val usersByConf = data.users.entries.groupBy { it.value.conference!! }.mapValues { it.value.map { e -> e.key } }
+        myJSON.encodeToString(usersByConf).let { e.reply("```json\n$it```") }
+    }
+
+    suspend fun aslteamgraphics(e: GenericCommandEvent) {
+        coroutineScope {
+            launch {
+                val args = e.getArg(1).split(" ")
+                val league = Emolga.get.drafts[args[0]]!!
+                val tc = EmolgaMain.emolgajda.getTextChannelById(args[1])!!
+                league.picks.entries.map { (u, l) ->
+                    val (bufferedImage, _) = TeamGraphics.fromDraftPokemon(l, league.guild)
+                    u to FileUpload.fromData(ByteArrayOutputStream().also { ImageIO.write(bufferedImage, "png", it) }
+                        .toByteArray(), "yay.png")
+                }.forEach { tc.sendMessage("Kader von <@${it.first}>:").addFiles(it.second).queue() }
+            }
+        }
+    }
+
+    suspend fun specaslgraphics(e: GenericCommandEvent) {
+        coroutineScope {
+            launch {
+                val m = e.getArg(1).toLong()
+                val team = (1..5).map { Emolga.get.drafts["ASLS12L$it"]!! }.first { m in it.table }.picks[m]!!
+                e.slashCommandEvent!!.replyFiles(FileUpload.fromData(ByteArrayOutputStream().also {
+                    ImageIO.write(
+                        TeamGraphics.fromDraftPokemon(team).first,
+                        "png",
+                        it
+                    )
+                }.toByteArray(), "yay.png")).queue()
+            }
+        }
+    }
+
+    fun tariachan(e: GenericCommandEvent) {
+        e.channel.sendFiles(FileUpload.fromData(ByteArrayOutputStream().also {
+            ImageIO.write(
+                TeamGraphics.fromDraftPokemon(
+                    listOf(
+                        DraftPokemon("Viscogon-Hisui", "B"),
+                        DraftPokemon("Riesenzahn", "B"),
+                        DraftPokemon("Mamolida", "B"),
+                        DraftPokemon("Bandelby", "B"),
+                        DraftPokemon("Voltolos-Therian", "B"),
+                        DraftPokemon("Diancie", "B"),
+                        DraftPokemon("Lavados", "B"),
+                        DraftPokemon("Calamanero", "B"),
+                        DraftPokemon("Famieps", "B"),
+                        DraftPokemon("Moruda", "B"),
+                        DraftPokemon("Sleimok-Alola", "B"),
+                        DraftPokemon("Iscalar", "B")
+                    )
+                ).first, "png", it
+            )
+        }.toByteArray(), "yay.png")).queue()
     }
 }

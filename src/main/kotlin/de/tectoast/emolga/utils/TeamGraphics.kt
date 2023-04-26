@@ -1,10 +1,11 @@
 package de.tectoast.emolga.utils
 
-import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.Command.Companion.getSpriteForTeamGraphic
+import de.tectoast.emolga.commands.RandomTeamData
+import de.tectoast.emolga.commands.file
+import de.tectoast.emolga.commands.indexedBy
+import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import dev.minn.jda.ktx.util.SLF4J
-import org.slf4j.Logger
 import java.awt.*
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
@@ -22,7 +23,9 @@ object TeamGraphics {
         "lapras",
         "stantler",
         "wooloo",
-        "eevee"
+        "eevee",
+        "spidops",
+        "inkay"
     )
 
 
@@ -36,24 +39,21 @@ object TeamGraphics {
 
     fun fromDraftPokemon(
         mons: List<DraftPokemon>,
-        event: GuildCommandEvent? = null
-    ): Pair<BufferedImage, RandomTeamData> = TeamGraphic().create(mons, event)
+        guild: Long = Constants.G.ASL
+    ): Pair<BufferedImage, RandomTeamData> = TeamGraphic(guild).create(mons)
 
 
 }
 
-class TeamGraphic {
+class TeamGraphic(private val guild: Long) {
 
     private val currentNumber: MutableMap<Int, Int> = mutableMapOf()
     val mons = mutableListOf<MutableList<DraftPokemon>>()
-    private val logger: Logger by SLF4J
-    private var event: GuildCommandEvent? = null
 
     //private val shinyCount = AtomicInteger(0)
     private val randomTeamData = RandomTeamData()
 
-    fun create(mons: List<DraftPokemon>, event: GuildCommandEvent? = null): Pair<BufferedImage, RandomTeamData> {
-        this.event = event
+    fun create(mons: List<DraftPokemon>): Pair<BufferedImage, RandomTeamData> {
         mons.sortedWith(compareBy({ it.tier.indexedBy(TeamGraphics.tierlist) }, { it.name }))
             .groupBy { it.tier }.forEach {
                 addMonsToList(it.value)
@@ -61,6 +61,7 @@ class TeamGraphic {
         for ((index, monlist) in this.mons.withIndex()) {
             if (index != this.mons.lastIndex) {
                 if (monlist.size < 2) monlist.add(this.mons[index + 1].removeFirst())
+                while (monlist.size > 4) this.mons[index + 1].add(0, monlist.removeLast())
             }
         }
         return execute().apply {
@@ -71,7 +72,7 @@ class TeamGraphic {
 
     private fun addMonsToList(monlist: List<DraftPokemon>) {
         //mons.computeIfAbsent(tier) { ArrayList() } += pokemon
-        mons.add(monlist.map { DraftPokemon(getSpriteForTeamGraphic(it.name, randomTeamData), it.tier) }
+        mons.add(monlist.map { DraftPokemon(getSpriteForTeamGraphic(it.name, randomTeamData, guild), it.tier) }
             .toMutableList())
 
     }
@@ -99,10 +100,12 @@ class TeamGraphic {
             row.forEach { toexecute.add { g, i -> executeSlot(g, it, index, startX + i) } }
             indexToStartX[index] = startX
         }
+        //logger.info("ja lol ey: $indexToStartX")
         val img = BufferedImage(/*410 * mons.values.maxOf { it.size }*//* maxOffset*/ /*+ offset * mons.keys.size*/
             //mons.maxOf { it.size } * 397 + 42,
             //maxOffset,
-            mons.mapIndexed { index, list -> list.size * 397 + indexToStartX[index]!! /* - 210 + 31*/ }.max(),
+            mons.mapIndexed { index, list -> list.size * 397 + indexToStartX[index]!!.coerceAtLeast(20) /* - 210 + 31*/ }
+                .max(),
             360 * mons.size + 112,
             BufferedImage.TYPE_INT_ARGB
         )
@@ -129,7 +132,7 @@ class TeamGraphic {
         currentNumber[rownum] = currentNumber[rownum]!! + 1
         val xcoord = x.y(20 + 377, startX)
         val ycoord = rownum.y(360, 220)
-        val ora = ImageIO.read(pokemon.file().also { logger.info("Mon: ${it.absolutePath}") })
+        val ora = ImageIO.read(pokemon.file()/*.also { logger.info("Mon: ${it.absolutePath}") }*/)
         val factor = 330f / 96f
         val width = (ora.width.toFloat() * factor).toInt()
         val height = (ora.height.toFloat() * factor).toInt()

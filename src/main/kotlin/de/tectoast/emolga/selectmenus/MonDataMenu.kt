@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 import java.awt.Color
 
 class MonDataMenu : MenuListener("mondata") {
-    override fun process(e: StringSelectInteractionEvent, menuname: String?) {
+    override suspend fun process(e: StringSelectInteractionEvent, menuname: String?) {
         /*e.reply("Dieses Menü funktioniert noch nicht, aber Flo arbeitet zurzeit daran :3").setEphemeral(true).queue();
         if (true) return;*/
         logger.info("e.getMessageIdLong() = " + e.messageIdLong)

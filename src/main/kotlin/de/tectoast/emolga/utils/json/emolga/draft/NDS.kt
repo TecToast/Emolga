@@ -37,6 +37,7 @@ class NDS : League() {
     val teamtable: List<String> = emptyList()
 
     override fun isFinishedForbidden() = false
+    override val teamsize = 15
 
     @Transient
     override val timer = DraftTimer(TimerInfo(10, 22), 180)

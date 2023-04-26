@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.commands.draft.AddToTierlistData
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
@@ -15,10 +16,12 @@ import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import org.slf4j.Logger
 
 
+@Suppress("MemberVisibilityCanBePrivate")
 @Serializable
 sealed class League {
     val name by lazy { Emolga.get.drafts.reverseGet(this)!! }
@@ -34,15 +37,18 @@ sealed class League {
     private var cooldown = -1L
     var pseudoEnd = false
 
+    abstract val teamsize: Int
+    open val gamedays: Int by lazy { battleorder.let { if (it.isEmpty()) table.size - 1 else it.size } }
+
     @Transient
-    val points: MutableMap<Long, Int> = mutableMapOf()
+    val points: PointsManager = PointsManager(this)
     val noAutoStart = false
 
     val timerStart: Long? = null
 
     @Transient
     open val timerSkipMode: TimerSkipMode? = null
-    private val originalorder: Map<Int, List<Int>> = mapOf()
+    val originalorder: Map<Int, List<Int>> = mapOf()
 
     val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
 
@@ -60,8 +66,6 @@ sealed class League {
     private var tlCompanion = Tierlist // workaround
 
     val tierlist: Tierlist by tlCompanion
-
-    val monCount by lazy { picks.values.first().size }
 
     @Transient
     open val pickBuffer = 0
@@ -85,7 +89,19 @@ sealed class League {
 
     val tierorderingComparator by lazy { compareBy<DraftPokemon> { tierlist.order.indexOf(it.tier) } }
 
+
+    val newSystemGap get() = teamsize + pickBuffer + 3
+
+    fun RequestBuilder.newSystemPickDoc(data: PickData, withAdditionalSet: Pair<String, Any>? = null) {
+        val y = data.memIndex.y(newSystemGap, data.changedIndex + 3)
+        addSingle("$dataSheet!B$y", data.pokemon)
+        withAdditionalSet?.let {
+            addSingle("$dataSheet!${it.first}$y", it.second)
+        }
+    }
+
     open fun onTipGameLockButtons(gameday: Int) {}
+    open fun AddToTierlistData.addMonToTierlist() {}
 
     open fun isFinishedForbidden() = !isSwitchDraft
 
@@ -110,7 +126,7 @@ sealed class League {
 
 
     fun isCurrentCheck(user: Long): Boolean {
-        if (current == user || user in listOf(Constants.FLOID, 263729526436134934)) return true
+        if (current == user || user in listOf(Constants.FLOID, 694543579414134802)) return true
         return isCurrent(user)
     }
 
@@ -126,14 +142,14 @@ sealed class League {
         if (!free && !tierlist.mode.isPoints()) return false
         val needed = tierlist.getPointsNeeded(tlNameNew)
         val pointsBack = tlNameOld?.let { tierlist.getPointsNeeded(it) } ?: 0
-        if (points[current]!! - needed + pointsBack < 0) {
+        if (points[current] - needed + pointsBack < 0) {
             e.reply("Dafür hast du nicht genug Punkte!")
             return true
         }
         if (pointsBack == 0 && when (tierlist.mode) {
-                TierlistMode.POINTS -> (totalRounds - (picks[current]!!.size + 1)) * tierlist.prices.values.min() > points[current]!! - needed
+                TierlistMode.POINTS -> (totalRounds - (picks[current]!!.size + 1)) * tierlist.prices.values.min() > points[current] - needed
                 TierlistMode.TIERS_WITH_FREE -> (tierlist.freePicksAmount - (picks[current]!!.count { it.free } + 1)) * tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" }
-                    .minOf { it.value } > points[current]!! - needed
+                    .minOf { it.value } > points[current] - needed
 
                 else -> false
             }
@@ -195,12 +211,6 @@ sealed class League {
         for (member in table) {
             if (fromFile || isSwitchDraft) picks.putIfAbsent(member, mutableListOf())
             else picks[member] = mutableListOf()
-            val isPoints = tierlist.mode.isPoints()
-            if (tierlist.mode.withPoints) points[member] = tierlist.points - picks[member]!!.sumOf {
-                if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
-                    it.tier
-                ) else 0
-            }
         }
         if (!fromFile) {
             order.clear()
@@ -255,9 +265,9 @@ sealed class League {
             )
         }
     }.joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
-        .condAppend(timerSkipMode?.multiplePicksPossible == true && hasMovedTurns()) {
-            movedTurns().size.plus(1).let { " **($it Pick${if (it == 1) "" else "s"})**" }
-        }
+    /*.condAppend(timerSkipMode?.multiplePicksPossible == true && hasMovedTurns()) {
+        movedTurns().size.plus(1).let { " **($it Pick${if (it == 1) "" else "s"})**" }
+    }*/
 
     open fun beforePick(): String? = null
     open fun beforeSwitch(): String? = null
@@ -280,8 +290,8 @@ sealed class League {
                 else str
             }
 
-    fun getTierOf(pokemon: String, insertedTier: String?): TierData {
-        val real = tierlist.getTierOf(pokemon)
+    fun getTierOf(pokemon: String, insertedTier: String?): TierData? {
+        val real = tierlist.getTierOf(pokemon) ?: return null
         return if (insertedTier != null && tierlist.mode.withTiers) {
             TierData((tierlist.order.firstOrNull { insertedTier.equals(it, ignoreCase = true) } ?: ""), real)
         } else {
@@ -381,7 +391,8 @@ sealed class League {
     @Transient
     open val docEntry: DocEntry? = null
 
-    val dataSheet: String? = null
+    @Transient
+    open val dataSheet: String? = null
 
     fun builder() = RequestBuilder(sid)
     suspend fun replyPick(e: GuildCommandEvent, pokemon: String, free: Boolean, updrafted: String?) =
@@ -426,6 +437,9 @@ sealed class League {
             pseudoEnd = true
         }
     }
+
+    open fun provideReplayChannel(jda: JDA): TextChannel? = null
+    open fun provideResultChannel(jda: JDA): TextChannel? = null
 
     companion object {
         val logger: Logger by SLF4J
@@ -505,10 +519,10 @@ class SwitchData(
 
 data class TierData(val specified: String, val official: String)
 
-enum class TimerSkipMode(val multiplePicksPossible: Boolean) {
+enum class TimerSkipMode {
 
 
-    LAST_ROUND(true) {
+    LAST_ROUND {
         override fun afterPick(l: League) {
             with(l) {
                 if (isLastRound && hasMovedTurns()) {
@@ -529,7 +543,7 @@ enum class TimerSkipMode(val multiplePicksPossible: Boolean) {
             }
         }
     },
-    AFTER_DRAFT(false) {
+    AFTER_DRAFT {
         override fun afterPick(l: League) = with(l) {
             if (draftWouldEnd) populateAfterDraft()
             nextPlayer()
@@ -542,7 +556,7 @@ enum class TimerSkipMode(val multiplePicksPossible: Boolean) {
         }
 
     },
-    NEXT_PICK(true) {
+    NEXT_PICK {
         override fun afterPick(l: League) {
             with(l) {
                 if (hasMovedTurns()) {
@@ -558,4 +572,24 @@ enum class TimerSkipMode(val multiplePicksPossible: Boolean) {
 
     abstract fun afterPick(l: League)
     abstract fun getPickRound(l: League): Int
+}
+
+class PointsManager(val league: League) {
+    private val points = mutableMapOf<Long, Int>()
+
+    operator fun get(member: Long) =
+        points.getOrPut(member) {
+            with(league) {
+                val isPoints = tierlist.mode.isPoints()
+                tierlist.points - picks[member]!!.sumOf {
+                    if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
+                        it.tier
+                    ) else 0
+                }
+            }
+        }
+
+    fun add(member: Long, points: Int) {
+        this.points[member] = this[member] + points
+    }
 }

@@ -35,6 +35,7 @@ class DoR : League() {
 
     @Transient
     override val timer = DraftTimer(TimerInfo(12, 22), 60)
+    override val teamsize = 11
 
     override fun RequestBuilder.pickDoc(data: PickData) {
         addSingle(data.memIndex.coordXMod("Kader",

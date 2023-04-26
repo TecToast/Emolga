@@ -37,13 +37,10 @@ class DocEntry private constructor(val league: League) {
     var monsOrder: (List<DraftPokemon>) -> List<String> = { l -> l.map { it.name } }
     private var onlyKilllist: (() -> List<String>)? = null
     var randomGamedayMapper: (Int) -> Int = { it }
-    private val gamedays: Int by lazy { league.battleorder.let { if (it.isEmpty()) league.table.size - 1 else it.size } }
-
+    private val gamedays get() = league.gamedays
     fun newSystem(sorterData: SorterData, resultCreator: (AdvancedResult.() -> Unit)) {
         val dataSheet = league.dataSheet ?: error("No data sheet set using new system!")
-        if (league.picks.isEmpty()) return
-        val monAmount = league.picks.values.first().size + league.pickBuffer
-        val gap = monAmount + 3
+        val gap = league.newSystemGap
         killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
             StatLocation(
                 sheet = dataSheet, gameday + 2, plindex.y(gap, monindex + 3)
@@ -276,7 +273,8 @@ class DocEntry private constructor(val league: League) {
                         if (!directCompare) return@sortWith 0
                         val indexerToUse: (String) -> Int = if (newMethod) { str: String ->
                             str.substring(league.dataSheet!!.length + 4).substringBefore(":").toInt()
-                                .minus(league.monCount + 4).div(league.monCount + 3)
+                                .minus(league.teamsize + league.pickBuffer + 4)
+                                .div(league.teamsize + league.pickBuffer + 3)
                         } else indexer!!
                         val u1 = table[indexerToUse(formula[orig.indexOf(o1)][0].toString())]
                         val u2 = table[indexerToUse(formula[orig.indexOf(o2)][0].toString())]

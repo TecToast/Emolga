@@ -28,6 +28,8 @@ class GDL : League() {
             )
         }
     }
+
+    override val teamsize = 11
     override val timer get() = error("not implemented")
 
 }

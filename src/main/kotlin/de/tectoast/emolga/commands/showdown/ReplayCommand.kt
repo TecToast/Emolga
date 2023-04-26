@@ -39,6 +39,6 @@ class ReplayCommand : Command(
             hook.sendMessage("Ich habe keinen Zugriff auf den Ergebnischannel!").queue()
             return
         }
-        analyseReplay(url = url, resultchannel = tc, fromReplayCommand = hook)
+        analyseReplay(url = url, resultchannelParam = tc, fromReplayCommand = hook)
     }
 }

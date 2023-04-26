@@ -62,7 +62,7 @@ class Tierlist constructor(val guildid: Long) {
 
     private fun getAllForAutoComplete() = transaction {
         val list = select { guild eq guildid }.map { it[pokemon] }
-        (list + NameConventionsDB.getAllOtherSpecified(list, language)).toSet()
+        (list + NameConventionsDB.getAllOtherSpecified(list, language, guildid)).toSet()
     }
 
     @Transient
@@ -71,7 +71,6 @@ class Tierlist constructor(val guildid: Long) {
     fun getTierOf(mon: String) = tierCache.getOrElse(mon) {
         transaction {
             select { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
-                ?: error("Tier for $mon not found")
         }
     }
 
@@ -81,6 +80,11 @@ class Tierlist constructor(val guildid: Long) {
                 .map { DraftPokemon(it[pokemon], tier) }
         }
     }
+
+    val monCount
+        get() = transaction {
+            select { guild eq guildid }.count().toInt()
+        }
 
     companion object : ReadOnlyProperty<League, Tierlist>, Table("tierlists") {
         /**

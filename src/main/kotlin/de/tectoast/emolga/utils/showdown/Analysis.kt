@@ -99,6 +99,7 @@ object Analysis {
                 if (operation == "move") lastMove = line
                 currentLineIndex++
                 logger.debug(line)
+                nextLine = game.getOrNull(currentLineIndex + 1) ?: ""
                 SDEffect.effects[operation]?.let { it.forEach { e -> e.execute(split, this) } }
                 lastLine = line
             }
@@ -113,6 +114,6 @@ object Analysis {
 
 }
 
-abstract class ShowdownException : Exception()
+sealed class ShowdownException : Exception()
 class ShowdownDoesNotAnswerException : ShowdownException()
 class ShowdownParseException : ShowdownException()

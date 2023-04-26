@@ -4,7 +4,9 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.filterStartsWithIgnoreCase
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.json.Emolga
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import java.sql.SQLIntegrityConstraintViolationException
 
@@ -26,7 +28,7 @@ class AddToTierlistCommand :
             )
             .setExample("/addtotierlist Chimstix")
             .build()
-        //setCustomPermissions(PermissionPreset.fromRole(702233714360582154L))
+        setCustomPermissions(PermissionPreset.fromRole(702233714360582154))
         slash(true, *draftGuilds)
     }
 
@@ -51,5 +53,20 @@ class AddToTierlistCommand :
             return
         }
         e.reply("`$mon` ist nun im $tier-Tier!")
+
+        val leagues = Emolga.get.drafts.values.filter { it.guild == id }
+        if (leagues.isNotEmpty()) {
+            val data = AddToTierlistData(mon, tier, tierlist.monCount - 1, id)
+            leagues.forEach {
+                with(it) {
+                    data.addMonToTierlist()
+                }
+            }
+        }
     }
+}
+
+data class AddToTierlistData(val mon: String, val tier: String, val index: Int, val gid: Long) {
+    val pkmn by lazy { Command.getDataObject(mon, gid) }
+    val englishTLName by lazy { NameConventionsDB.getDiscordTranslation(mon, gid, english = true)!!.tlName }
 }

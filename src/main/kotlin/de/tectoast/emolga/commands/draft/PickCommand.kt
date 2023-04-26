@@ -1,6 +1,9 @@
 package de.tectoast.emolga.commands.draft
 
-import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.CommandCategory
+import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.invoke
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.PickData
 import mu.KotlinLogging
@@ -47,11 +50,10 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             val picks = d.picks(mem)
             val (tlName, official, _) = args.getDraftName("pokemon")
             println("tlName: $tlName, official: $official")
-            val (specifiedTier, officialTier) = try {
-                d.getTierOf(tlName, args.getNullable("tier"))
-            } catch (ex: NoSuchElementException) {
-                return e.reply("Dieses Pokemon ist nicht in der Tierliste!")
-            }
+            val (specifiedTier, officialTier) =
+                (d.getTierOf(tlName, args.getNullable("tier"))
+                    ?: return e.reply("Dieses Pokemon ist nicht in der Tierliste!"))
+
             d.checkUpdraft(specifiedTier, officialTier)?.let { e.reply(it); return }
             if (d.isPicked(official, officialTier)) return e.reply("Dieses Pokemon wurde bereits gepickt!")
             val tlMode = tierlist.mode

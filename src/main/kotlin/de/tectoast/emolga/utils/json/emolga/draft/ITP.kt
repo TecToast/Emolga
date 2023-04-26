@@ -44,6 +44,8 @@ class ITP : League() {
         }
     }
 
+    override val teamsize = 11
+
     override fun RequestBuilder.pickDoc(data: PickData) {
         addSingle(data.round.minus(1).coordXMod("Draftreihenfolge", 4, 4, 4, 13, 3 + data.indexInRound), data.pokemon)
         addSingle(data.memIndex.coordXMod("Kader",

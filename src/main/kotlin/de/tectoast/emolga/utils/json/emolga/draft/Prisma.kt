@@ -14,6 +14,7 @@ import kotlinx.serialization.Transient
 @Serializable
 @SerialName("Prisma")
 class Prisma : League() {
+    override val teamsize = 12
 
     @Transient
     override val docEntry = DocEntry.create(this) {

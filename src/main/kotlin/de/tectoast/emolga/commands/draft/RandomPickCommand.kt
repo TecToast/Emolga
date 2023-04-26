@@ -12,8 +12,14 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("tier", "Tier", "Das Tier, in dem gepickt werden soll", ArgumentManagerTemplate.Text.any())
             .addEngl("type", "Typ", "Der Typ, von dem random gepickt werden soll", Translation.Type.TYPE, true)
-            .setExample("!randompick A").build()
+            .setExample("/randompick A").build()
         slash(true, Constants.G.ASL, Constants.G.FLP)
+    }
+
+    companion object {
+        val tierRestrictions = mapOf(
+            Constants.G.ASL to setOf("D")
+        )
     }
 
     override suspend fun process(e: GuildCommandEvent) {
@@ -21,9 +27,12 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
             League.byCommand(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
         val tierlist = d.tierlist
         val args = e.arguments
-        val tier = tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: run {
+        val gid = e.guild.idLong
+        val tier = (tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: run {
             e.reply("Das ist kein Tier!")
             return
+        }).takeIf { tierRestrictions[gid]?.run { isEmpty() || contains(it) } ?: true } ?: run {
+            return e.reply("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: ${tierRestrictions[gid]?.joinToString()}")
         }
         val list: MutableList<String> = tierlist.getByTier(tier)!!.toMutableList()
         list.shuffle()

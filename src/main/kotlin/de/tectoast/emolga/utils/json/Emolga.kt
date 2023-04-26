@@ -1,10 +1,13 @@
 package de.tectoast.emolga.utils.json
 
+import de.tectoast.emolga.commands.ifTrue
 import de.tectoast.emolga.utils.json.emolga.ASLS11
 import de.tectoast.emolga.utils.json.emolga.Soullink
 import de.tectoast.emolga.utils.json.emolga.customcommand.CCData
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
+import dev.minn.jda.ktx.interactions.components.SelectOption
+import dev.minn.jda.ktx.interactions.components.StringSelectMenu
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -62,12 +65,20 @@ data class LigaStartData(
     val maxUsers: Int,
     val announceChannel: Long,
     val announceMessageId: Long,
-)
+    var extended: Boolean = false
+) {
+    fun conferenceSelectMenus(uid: Long, initial: Boolean) = StringSelectMenu(
+        "cselect;${initial.ifTrue("initial")}:$uid",
+        options = conferences.map { SelectOption(it, it) })
+
+}
 
 @Serializable
 data class SignUpData(
-    val teamname: String,
-    val sdname: String,
+    var teamname: String,
+    var sdname: String,
+    val signupmid: Long? = null,
+    var logomid: Long? = null,
     var logoUrl: String = "",
     var conference: String? = null
 )

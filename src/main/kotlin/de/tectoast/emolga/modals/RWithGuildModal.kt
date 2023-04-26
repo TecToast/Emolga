@@ -8,7 +8,7 @@ class RWithGuildModal : ModalListener("rwithguild") {
         val id = e.getValue("id")!!.asString
         val urls = e.getValue("urls")!!.asString
         urls.split("\n").forEach {
-            analyseReplay(it, resultchannel = e.channel.asTextChannel(), customGuild = id.toLong())
+            analyseReplay(it, resultchannelParam = e.channel.asTextChannel(), customGuild = id.toLong())
         }
         e.reply("Replays wurden analysiert!").setEphemeral(true).queue()
     }

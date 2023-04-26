@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.Language
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.Emolga
+import mu.KotlinLogging
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
@@ -18,9 +19,26 @@ object NameConventionsDB : Table("nameconventions") {
     private val SPECIFIEDENGLISH = varchar("specifiedenglish", 50)
     private val HASHYPHENINNAME = bool("hashypheninname")
 
-    fun getAllOtherSpecified(mons: List<String>, lang: Language): List<String> {
+    private val logger = KotlinLogging.logger {}
+
+    fun getAllOtherSpecified(mons: List<String>, lang: Language, guildId: Long): List<String> {
         return transaction {
-            select((if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH) inList mons).map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] }
+            val nc = Emolga.get.nameconventions[guildId] ?: Emolga.get.defaultNameConventions
+
+            val checkLang = if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH
+            val resultLang = if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED
+            select(checkLang inList mons).map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] } +
+                    mons.mapNotNull { mon ->
+                        nc.values.firstNotNullOfOrNull { it.find(mon) }?.run {
+                            select { checkLang eq groupValues[1] }.firstOrNull()
+                                ?.get(resultLang)?.let { repl ->
+                                    value.replace(
+                                        groupValues[1],
+                                        repl
+                                    )
+                                }
+                        }
+                    }
         }
     }
 
@@ -98,6 +116,7 @@ object NameConventionsDB : Table("nameconventions") {
                 it.first, guildId, it.second, nc ?: Emolga.get.defaultNameConventions, english
             )?.let { d -> return d }
         }
+        logger.warn("Could not find translation for $s in guild $guildId")
         return null
     }
 
@@ -123,17 +142,19 @@ object NameConventionsDB : Table("nameconventions") {
                     it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                         if (spec != null) {
                             val pattern = nc[spec]!!.pattern
-                            val raw = pattern.replace("(\\S+)", "")
-                            val len = raw.length
+                            val len = pattern.replace("(\\S+)", "").length
                             val replace = pattern.replace("(\\S+)", s.substringBefore("-$spec"))
-                            if (replace.substring(0, len) == replace.substring(
-                                    len, 2 * len
+                            //logger.warn("s: {}, raw: {}, len: {}, replace: {}", s, raw, len, replace)
+                            val replLen = replace.length
+                            val coercedLen = len.coerceAtMost(replLen)
+                            if (replace.substring(0, coercedLen) == replace.substring(
+                                    coercedLen, (2 * len).coerceAtMost(replLen)
                                 )
-                            ) replace.substring(len) else if (replace.substring(replace.length - len) == replace.substring(
-                                    replace.length - 2 * len, replace.length - len
+                            ) replace.substring(coercedLen) else if (replace.substring(replLen - len) == replace.substring(
+                                    (replLen - 2 * len).coerceAtLeast(0), replLen - len
                                 )
                             ) replace.substring(
-                                0, replace.length - len
+                                0, replLen - len
                             ) else replace
                         } else s
                     }, it[if (english) ENGLISH else GERMAN], it[GUILD] != 0L || spec != null

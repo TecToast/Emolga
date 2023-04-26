@@ -17,7 +17,7 @@ class AnalyseCommand :
         val tco = e.textChannel
         analyseReplay(
             url = e.arguments.getText("url"),
-            resultchannel = tco,
+            resultchannelParam = tco,
             fromAnalyseCommand = e.run { deferReply(); slashCommandEvent?.hook })
     }
 }

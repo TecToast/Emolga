@@ -85,7 +85,7 @@ dependencies {
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
     implementation("com.google.apis:google-api-services-sheets:v4-rev20230227-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev222-1.25.0")
-    implementation("org.jsoup:jsoup:1.15.4")
+    implementation("org.jsoup:jsoup:1.16.1")
     implementation("com.sedmelluq:lavaplayer:1.3.78")
     //implementation("org.slf4j:slf4j-simple:1.7.32")
 

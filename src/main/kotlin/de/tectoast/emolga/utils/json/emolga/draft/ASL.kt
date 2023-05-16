@@ -1,18 +1,23 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
+import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.commands.coordXMod
+import de.tectoast.emolga.commands.defaultTimeFormat
 import de.tectoast.emolga.commands.draft.AddToTierlistData
 import de.tectoast.emolga.commands.toDocRange
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.records.SorterData
+import de.tectoast.toastilities.repeat.RepeatTask
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
+import java.time.Duration
 import java.util.Calendar.*
 
 @Serializable
@@ -35,7 +40,7 @@ class ASL(
             cols = listOf(2, -1, 6, 4)
         ), resultCreator = {
             b.addSingle(
-                if (gdi in 2..7) gdi.minus(2).coordXMod("Spielplan", 3, 4, 2, 6, 10)
+                if (gdi in 2..7) gdi.minus(2).coordXMod("Spielplan", 3, 4, 3, 6, 10 + index)
                 else "Spielplan!" + getAsXCoord((gdi % 2) * 4 + 5) + ((gdi / 6) * 18 + 4 + index),
                 "=HYPERLINK(\"$url\"; \"$numberOne:$numberTwo\")"
             )
@@ -66,6 +71,24 @@ class ASL(
         addSingle(
             data.roundIndex.coordXMod("Draft", 6, 4, 3, 10, 4 + data.indexInRound), data.pokemon
         )
+    }
+
+    companion object {
+        fun setupRepeatTasks() {
+            RepeatTask(
+                defaultTimeFormat.parse("05.06.2023 00:00").toInstant(),
+                7, Duration.ofDays(7)
+            ) {
+                val jda = EmolgaMain.emolgajda
+                val msg = "**------------- Spieltag $it -------------**"
+                for (i in 1..5) {
+                    with(Emolga.get.drafts["ASLS12L$i"]!! as ASL) {
+                        jda.getTextChannelById(replayChannel)!!.sendMessage(msg).queue()
+                        jda.getTextChannelById(resultChannel)!!.sendMessage(msg).queue()
+                    }
+                }
+            }
+        }
     }
 
 }

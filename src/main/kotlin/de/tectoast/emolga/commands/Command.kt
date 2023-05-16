@@ -1223,7 +1223,8 @@ abstract class Command(
                 Constants.G.VIP,
                 Constants.G.FLP,
                 Constants.G.WARRIOR,
-                Constants.G.BSP
+                Constants.G.BSP,
+                Constants.G.PIKAS
             )
         private val draftPrefixes = mapOf(
             "M" to "Mega", "A" to "Alola", "G" to "Galar", "Mega" to "Mega", "Alola" to "Alola", "Galar" to "Galar"
@@ -2229,6 +2230,7 @@ abstract class Command(
 
         private fun setupManualRepeatTasks() {
             NDS.setupRepeatTasks()
+            ASL.setupRepeatTasks()
         }
 
 
@@ -3156,6 +3158,8 @@ inline val User.isFlo: Boolean get() = this.idLong == FLOID
 inline val User.isNotFlo: Boolean get() = this.idLong != FLOID
 inline val Interaction.fromFlo: Boolean get() = this.user.isFlo
 inline val Interaction.notFromFlo: Boolean get() = !this.fromFlo
+
+fun <T> Collection<T>.randomWithCondition(condition: (T) -> Boolean) = this.filter(condition).randomOrNull()
 
 fun <K> MutableMap<K, Int>.increment(key: K) = add(key, 1)
 

@@ -1,9 +1,8 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import org.gradle.kotlin.dsl.java
 
-val kVersion = "1.8.21"
+val kVersion = "1.8.20"
 plugins {
-    val kVersion = "1.8.21"
+    val kVersion = "1.8.20"
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("com.github.johnrengelman.shadow") version "8.1.1"
@@ -107,6 +106,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-dao:0.41.1")
     implementation("org.jetbrains.exposed:exposed-jdbc:0.41.1")
     implementation("org.jetbrains.exposed:exposed-java-time:0.41.1")
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 fun DependencyHandler.ktor() {

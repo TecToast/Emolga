@@ -11,7 +11,7 @@ class LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Draf
         argumentTemplate = ArgumentManagerTemplate.create {
             add("logo", "Logo", "Das Logo", ArgumentManagerTemplate.DiscordFile("*"))
         }
-        slash(true, Constants.G.FLP, Constants.G.ASL)
+        slash(true, Constants.G.FLP, Constants.G.ASL, 665600405136211989)
     }
 
     override suspend fun process(e: GuildCommandEvent) {
@@ -32,11 +32,19 @@ class LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Draf
             val signUpData = ligaStartData.users[uid]!!
             val tc = e.jda.getTextChannelById(ligaStartData.logoChannel)!!
             signUpData.logomid?.let {
-                tc.deleteMessageById(it).queue()
+                tc.deleteMessageById(it).queue(null) {}
             }
-            signUpData.logoUrl = tc
-                .sendMessage("**Logo von <@$uid> (${signUpData.teamname}):**").addFiles(FileUpload.fromData(file))
-                .await().also { signUpData.logomid = it.idLong }.attachments[0].url
+            signUpData.logoUrl =
+                tc.sendMessage(
+                    "**Logo von ${
+                        listOf(
+                            uid,
+                            *signUpData.teammates.toTypedArray()
+                        ).joinToString(" & ") { "<@$it>" }
+                    } (${signUpData.teamname}):**"
+                )
+                    .addFiles(FileUpload.fromData(file)).await()
+                    .also { signUpData.logomid = it.idLong }.attachments[0].url
             saveEmolgaJSON()
         }
     }

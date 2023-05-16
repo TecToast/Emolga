@@ -18,6 +18,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import org.slf4j.Logger
 
 
@@ -135,7 +136,7 @@ sealed class League {
     }
 
     open fun isPicked(mon: String, tier: String? = null) =
-        picks.values.any { l -> l.any { it.name.equals(mon, ignoreCase = true) } }
+        picks.values.any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
 
     open fun handlePoints(e: GuildCommandEvent, tlNameNew: String, free: Boolean, tlNameOld: String? = null): Boolean {
         if (!tierlist.mode.withPoints) return false
@@ -345,7 +346,7 @@ sealed class League {
             ?.let { it + " (für ${getCurrentName()})" } ?: "<@$current>")
     }
 
-    private fun getCurrentName(mem: Long = current) = names[mem]!!
+    internal fun getCurrentName(mem: Long = current) = names[mem]!!
 
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
     fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER, skippedBy: Long? = null) {
@@ -392,7 +393,7 @@ sealed class League {
     open val docEntry: DocEntry? = null
 
     @Transient
-    open val dataSheet: String? = null
+    open val dataSheet: String = "Data"
 
     fun builder() = RequestBuilder(sid)
     suspend fun replyPick(e: GuildCommandEvent, pokemon: String, free: Boolean, updrafted: String?) =
@@ -400,12 +401,12 @@ sealed class League {
             e,
             "$pokemon ".condAppend(updrafted != null) { "im $updrafted " } + "gepickt!".condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
 
-    suspend fun replyGeneral(e: GuildCommandEvent, msg: String) {
+    suspend fun replyGeneral(e: GuildCommandEvent, msg: String, action: ((ReplyCallbackAction) -> Unit)? = null) {
         e.slashCommandEvent!!.reply(
             "${e.member.asMention} hat${
                 if (e.author.idLong != current) " für **${getCurrentName()}**" else ""
             } $msg"
-        ).await()
+        ).also { action?.invoke(it) }.await()
     }
 
     suspend fun replyRandomPick(e: GuildCommandEvent, pokemon: String, tier: String) = replyGeneral(

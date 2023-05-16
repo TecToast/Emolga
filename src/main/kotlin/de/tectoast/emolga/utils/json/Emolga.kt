@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.json
 
+import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.ifTrue
 import de.tectoast.emolga.utils.json.emolga.ASLS11
 import de.tectoast.emolga.utils.json.emolga.Soullink
@@ -77,11 +78,18 @@ data class LigaStartData(
 data class SignUpData(
     var teamname: String,
     var sdname: String,
-    val signupmid: Long? = null,
+    var signupmid: Long? = null,
     var logomid: Long? = null,
     var logoUrl: String = "",
-    var conference: String? = null
-)
+    var conference: String? = null,
+    val teammates: MutableSet<Long> = mutableSetOf()
+) {
+    fun toMessage(user: Long) = "Anmeldung von <@${user}>".condAppend(teammates.isNotEmpty()) {
+        "(mit ${teammates.joinToString { "<@$it>" }})"
+    } + ":\n" +
+            "Teamname: **$teamname**\n" +
+            "Showdown-Name: **$sdname**"
+}
 
 object RegexSerializer : KSerializer<Regex> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Regex", PrimitiveKind.STRING)

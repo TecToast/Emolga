@@ -14,8 +14,9 @@ object Analysis {
         logger.info("Reading URL... {}", link)
         var gameNullable: List<String>? = null
         for (i in 0..1) {
-            gameNullable = httpClient.get("$link.log").bodyAsText().split("\n")
-            if (gameNullable.size == 1) {
+            gameNullable = runCatching { httpClient.get("$link.log").bodyAsText().split("\n") }.getOrDefault(listOf(""))
+                .takeIf { it.size > 1 }
+            if (gameNullable == null) {
                 println("Showdown antwortet nicht")
                 answer?.invoke("Der Showdown-Server antwortet nicht, ich versuche es in 10 Sekunden erneut...")
                 delay(10.seconds)
@@ -29,7 +30,7 @@ object Analysis {
         val allMons = mutableMapOf<Int, MutableList<SDPokemon>>()
         var randomBattle = false
         for ((index, line) in game.withIndex()) {
-            val split = line.cleanSplit()
+            val split = line.cleanSplit().filter { it.isNotBlank() }
             if (line.startsWith("|poke|")) {
                 val player = split[1][1].digitToInt() - 1
                 allMons.getOrPut(player) { mutableListOf() }.add(
@@ -45,7 +46,7 @@ object Analysis {
                 val i = split[1][1].digitToInt() - 1
                 //if (i !in nicknames)
                 if (split.size > 2)
-                    nicknames[i] = split[2]
+                    nicknames[i] = split[2].also { logger.warn("Setting nickname of $i to $it") }
             }
             if (line.startsWith("|switch")) {
                 val (player, _) = split[1].parsePokemonLocation()
@@ -83,7 +84,8 @@ object Analysis {
                 (0 until playerCount).map {
                     SDPlayer(
                         nicknames[it] ?: run {
-                            File("replayerrors/$link${System.currentTimeMillis()}.txt").writeText(game.joinToString("\n"))
+                            File("replayerrors/$link${System.currentTimeMillis()}.txt").also { f -> f.createNewFile() }
+                                .writeText(game.joinToString("\n"))
                             throw ShowdownParseException()
                         },
                         allMons[it].orEmpty().toMutableList()

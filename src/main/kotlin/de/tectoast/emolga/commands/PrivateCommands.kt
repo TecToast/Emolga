@@ -64,7 +64,7 @@ object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
 
-    private val guildsToUpdate = listOf(Constants.G.ASL, Constants.G.FLP)
+    private val guildsToUpdate = listOf(Constants.G.MY, Constants.G.VIP)
 
     fun updateTierlist(e: GenericCommandEvent) {
         Tierlist.setup()
@@ -594,16 +594,19 @@ object PrivateCommands {
     suspend fun createSignup(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         val tc = e.jda.getTextChannelById(args[0])!!
-        val messageid = tc.sendMessage(args.drop(4).joinToString(" ").replace("\\n", "\n")).addActionRow(
-            primary(
-                "signup", "Anmelden", Emoji.fromUnicode("✅")
-            )
-        ).await().idLong
+        val maxUsers = args[3].toInt()
+        val messageid =
+            tc.sendMessage(args.drop(4).joinToString(" ").replace("\\n", "\n") + "\n\n**Teilnehmer: 0/$maxUsers**")
+                .addActionRow(
+                    primary(
+                        "signup", "Anmelden", Emoji.fromUnicode("✅")
+                    )
+                ).await().idLong
         Emolga.get.signups[tc.guild.idLong] =
             LigaStartData(
                 signupChannel = args[1].toLong(),
                 logoChannel = args[2].toLong(),
-                maxUsers = args[3].toInt(),
+                maxUsers = maxUsers,
                 announceChannel = tc.idLong,
                 announceMessageId = messageid
             )
@@ -696,6 +699,11 @@ object PrivateCommands {
     fun grabUserIDs(e: GenericCommandEvent) {
         guildForUserIDGrabbing = e.getArg(1).toLong()
         grabbedIDs.clear()
+    }
+
+    var userIdForSignupChange: Long? = null
+    fun setUserIdForSignupChange(e: GenericCommandEvent) {
+        userIdForSignupChange = e.getArg(1).toLong()
     }
 
     fun printUserIDs(e: GenericCommandEvent) {

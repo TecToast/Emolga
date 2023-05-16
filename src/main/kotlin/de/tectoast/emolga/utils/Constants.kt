@@ -28,5 +28,6 @@ object Constants {
         const val VIP = 651152835425075218
         const val WARRIOR = 444236285905993739
         const val BSP = 1077517941043642428
+        const val PIKAS = 665600405136211989
     }
 }

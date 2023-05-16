@@ -39,7 +39,7 @@ class DocEntry private constructor(val league: League) {
     var randomGamedayMapper: (Int) -> Int = { it }
     private val gamedays get() = league.gamedays
     fun newSystem(sorterData: SorterData, resultCreator: (AdvancedResult.() -> Unit)) {
-        val dataSheet = league.dataSheet ?: error("No data sheet set using new system!")
+        val dataSheet = league.dataSheet
         val gap = league.newSystemGap
         killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
             StatLocation(
@@ -272,7 +272,7 @@ class DocEntry private constructor(val league: League) {
                         if (c != 0) return@sortWith c
                         if (!directCompare) return@sortWith 0
                         val indexerToUse: (String) -> Int = if (newMethod) { str: String ->
-                            str.substring(league.dataSheet!!.length + 4).substringBefore(":").toInt()
+                            str.substring(league.dataSheet.length + 4).substringBefore(":").toInt()
                                 .minus(league.teamsize + league.pickBuffer + 4)
                                 .div(league.teamsize + league.pickBuffer + 3)
                         } else indexer!!

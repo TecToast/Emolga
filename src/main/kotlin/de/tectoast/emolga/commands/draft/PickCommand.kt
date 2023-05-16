@@ -44,9 +44,9 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 e.reply("Du kannst während des Switch-Drafts nicht picken!")
                 return
             }
+            d.beforePick()?.let { e.reply(it); return }
             val mem = d.current
             val tierlist = d.tierlist
-            d.beforePick()?.let { e.reply(it); return }
             val picks = d.picks(mem)
             val (tlName, official, _) = args.getDraftName("pokemon")
             println("tlName: $tlName, official: $official")

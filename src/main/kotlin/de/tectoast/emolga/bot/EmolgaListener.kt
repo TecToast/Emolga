@@ -46,9 +46,7 @@ object EmolgaListener : ListenerAdapter() {
         jda.listener<ReadyEvent> { e ->
             if (e.jda.selfUser.idLong == 723829878755164202) {
                 Emolga.get.drafts.values.filter { it.isRunning && !it.noAutoStart }.forEach {
-                    it.startDraft(
-                        null, true, null
-                    )
+                    it.startDraft(null, true, null)
                 }
             }
         }
@@ -144,18 +142,11 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
     override fun onGuildJoin(e: GuildJoinEvent) {
         val g = e.guild
         e.jda.openPrivateChannelById(g.ownerIdLong).flatMap {
-            it.sendMessage(
-                WELCOMEMESSAGE.replace(
-                    "{USERNAME}", "<@${g.ownerIdLong}>"
-                ).replace("{SERVERNAME}", g.name)
-            )
+            it.sendMessage(WELCOMEMESSAGE.replace("{USERNAME}", "<@${g.ownerIdLong}>").replace("{SERVERNAME}", g.name))
         }.queue()
         e.jda.openPrivateChannelById(FLOID).flatMap {
-            it.sendMessage("${g.name} (${g.id})").setActionRow(
-                Button.primary("guildinvite;" + g.id, "Invite").withEmoji(
-                    Emoji.fromUnicode("✉️")
-                )
-            )
+            it.sendMessage("${g.name} (${g.id})")
+                .setActionRow(Button.primary("guildinvite;" + g.id, "Invite").withEmoji(Emoji.fromUnicode("✉️")))
         }.queue()
     }
 
@@ -181,7 +172,9 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
         } else if (e.isFromType(ChannelType.PRIVATE)) {
             if (e.author.isBot) return
             if (e.author.idLong != FLOID) e.jda.getTextChannelById(828044461379682314L)
-                ?.sendMessage(e.author.asMention + ": " + e.message.contentDisplay)?.queue()
+                ?.sendMessage(e.author.asMention + ": " + e.message.contentDisplay)?.apply {
+                if (e.message.attachments.isNotEmpty()) addContent("\n\n" + e.message.attachments.joinToString("\n") { it.url })
+            }?.queue()
             PrivateCommand.check(e)
             val msg = e.message.contentDisplay
             if (msg.contains("https://") || msg.contains("http://")) {
@@ -191,8 +184,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
                     Command.analyseReplay(
                         url = url,
                         //customReplayChannel = e.jda.getTextChannelById(999779545316069396),
-                        resultchannelParam = e.jda.getTextChannelById(820359155612254258)!!,
-                        message = e.message
+                        resultchannelParam = e.jda.getTextChannelById(820359155612254258)!!, message = e.message
                     )
                 }
             }
@@ -214,10 +206,7 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
         when (g.idLong) {
             Constants.G.ASL -> {
                 g.retrieveMember(e.invite.inviter!!).queue { mem: Member? ->
-                    if (g.selfMember.canInteract(
-                            mem!!
-                        )
-                    ) e.invite.delete().queue()
+                    if (g.selfMember.canInteract(mem!!)) e.invite.delete().queue()
                 }
             }
         }

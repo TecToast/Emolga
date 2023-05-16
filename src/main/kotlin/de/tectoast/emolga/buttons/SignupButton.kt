@@ -12,7 +12,8 @@ class SignupButton : ButtonListener("signup") {
             return
         }
         val signups = Emolga.get.signups[gid]!!
-        if (e.user.idLong in signups.users) {
+        val uid = e.user.idLong
+        if (uid in signups.users || signups.users.values.any { uid in it.teammates }) {
             e.reply("Du bist bereits angemeldet!").setEphemeral(true).queue()
             return
         }

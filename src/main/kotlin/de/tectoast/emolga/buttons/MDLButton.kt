@@ -10,11 +10,8 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.MDLTierlist
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.MDL
-import de.tectoast.emolga.utils.json.emolga.draft.MDLPick
 import de.tectoast.emolga.utils.json.emolga.draft.PickData
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.interactions.components.danger
-import dev.minn.jda.ktx.interactions.components.success
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class MDLButton : ButtonListener("mdlpick") {
@@ -78,11 +75,28 @@ class MDLButton : ButtonListener("mdlpick") {
                 return e.reply("Es ist ein unbekannter Fehler aufgetreten!").queue()
             }
             val newofficial = NameConventionsDB.getDiscordTranslation(newmon, d.guild, false)!!.official
-            e.reply("Reroll: **$newmon ($newtier)**!").addActionRow(
-                success("mdlpick;accept", "Akzeptieren"),
-                danger("mdlpick;reroll", "Joker einlösen (noch ${d.jokers[mem]} übrig)")
-            ).queue()
-            d.currentMon = MDLPick(newofficial, newmon, newtier, type)
+            e.reply("Reroll: **${newmon} (${newtier})**!").await()
+            d.savePick(picks, newofficial, newtier, false)
+            val round = d.getPickRoundOfficial()
+            with(d) {
+                builder().let { b ->
+                    b.pickDoc(
+                        PickData(
+                            league = d,
+                            pokemon = newmon,
+                            tier = newtier,
+                            mem = d.current,
+                            indexInRound = indexInRound(round),
+                            changedIndex = picks.indexOfFirst { it.name == newofficial },
+                            picks = picks,
+                            round = round,
+                            memIndex = table.indexOf(d.current),
+                            freePick = false
+                        )
+                    ).let { b }
+                }.execute()
+            }
+            d.afterPickOfficial()
         }
     }
 }

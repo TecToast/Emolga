@@ -1,5 +1,7 @@
 package de.tectoast.emolga.utils.showdown
 
+import de.tectoast.emolga.bot.EmolgaMain
+
 data class SDPokemon(var pokemon: String, val player: Int) {
     private val effects: MutableMap<SDEffect, SDPokemon> = mutableMapOf()
     val volatileEffects: MutableMap<String, SDPokemon> = mutableMapOf()
@@ -64,6 +66,9 @@ sealed class SDEffect(vararg val types: String) {
 
     }
 
+    fun BattleContext.reportUsage() = EmolgaMain.emolgajda.getTextChannelById(1099651412742389820)!!
+        .sendMessage("Effect ${this::class.simpleName} was used! $url").queue()
+
     abstract fun execute(split: List<String>, ctx: BattleContext)
 
     fun List<String>.getSource(ctx: BattleContext): SDPokemon? {
@@ -116,6 +121,24 @@ sealed class SDEffect(vararg val types: String) {
                 switchIn.volatileEffects.putAll(ctx.monsOnField[pl][idx].volatileEffects)
             }
             ctx.monsOnField[pl][idx] = switchIn
+        }
+    }
+
+    object CourtChange : SDEffect("-activate") {
+        override fun execute(split: List<String>, ctx: BattleContext) {
+            if ("move: Court Change" !in split) return
+            ctx.reportUsage()
+            val players = ctx.sdPlayers
+            val (usingPlayer, loc) = split[1].parsePokemonLocation()
+            val pkmn = ctx.monsOnField[usingPlayer][loc]
+            val hazards = (0..1).map { num ->
+                players[num].fieldConditions.filter { h -> h.key is Hazards }
+                    .mapValues { if (num == usingPlayer) pkmn else it.value }
+            }
+            for (i in 0..1) {
+                Hazards.allHazards.forEach { h -> players[i].fieldConditions.remove(h) }
+                players[i].fieldConditions.putAll(hazards[1 - i])
+            }
         }
     }
 
@@ -322,10 +345,12 @@ sealed class SDEffect(vararg val types: String) {
         object Spikes : Hazards("Spikes")
         object ToxicSpikes : Hazards("Toxic Spikes")
         object SteelSurge : Hazards("G-Max Steelsurge")
+        companion object {
 
-        private val allHazards by lazy {
-            Hazards::class.sealedSubclasses.map {
-                it.objectInstance!!
+            val allHazards by lazy {
+                Hazards::class.sealedSubclasses.map {
+                    it.objectInstance!!
+                }
             }
         }
     }
@@ -347,6 +372,7 @@ sealed class SDEffect(vararg val types: String) {
 
 
 data class BattleContext(
+    val url: String,
     val monsOnField: List<MutableList<SDPokemon>>,
     var lastMove: String,
     val sdPlayers: List<SDPlayer>,

@@ -14,10 +14,11 @@ object SDNamesDB : Table("sdnames") {
         transaction { select { NAME eq Command.toUsername(name) }.firstOrNull()?.get(ID) } ?: -1
 
     fun addIfAbsent(name: String, id: Long) = transaction {
-        (select { NAME eq name }.firstOrNull() == null).also { b ->
+        val username = Command.toUsername(name)
+        (select { NAME eq username }.firstOrNull() == null).also { b ->
             if (b)
                 insert {
-                    it[NAME] = Command.toUsername(name)
+                    it[NAME] = username
                     it[ID] = id
                 }
         }

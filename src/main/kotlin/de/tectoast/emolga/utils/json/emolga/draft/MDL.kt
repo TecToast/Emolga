@@ -1,10 +1,12 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.coordXMod
-import de.tectoast.emolga.commands.y
+import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
+import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -31,6 +33,14 @@ class MDL(val division: Int) : League() {
     override val dataSheet: String
         get() = "Data$division"
 
+    override fun isPicked(mon: String, tier: String?) = picks.values.flatten().any { p ->
+        p.name.equals(
+            mon,
+            ignoreCase = true
+        )
+    } || Emolga.get.league("MDLL${2 - division}").picks.values.flatten()
+        .any { p -> p.name.equals(mon, ignoreCase = true) }
+
     override fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
         addSingle(
@@ -43,6 +53,22 @@ class MDL(val division: Int) : League() {
                 25 + data.changedOnTeamsiteIndex
             ), data.pokemon
         )
+    }
+
+    @Transient
+    override val docEntry = DocEntry.create(this) {
+        newSystem(
+            SorterData(
+                listOf("Tabelle!D6:K13".toDocRange(), "Tabelle!D18:K25".toDocRange()),
+                newMethod = true,
+                cols = listOf(3, 7, 5)
+            )
+        ) {
+            b.addSingle(
+                if (gdi == 6) "Spielplan!${division.x('N' - 'C', 6)}${35 + index}"
+                else gdi.coordYMod("Spielplan", 3, 4, division.y('N' - 'C', 4), 9, 8 + index), defaultGameplanString
+            )
+        }
     }
 
     override fun beforePick() = "Ne ne, der normale Pick-Command ist in der MDL keine Sache :)"

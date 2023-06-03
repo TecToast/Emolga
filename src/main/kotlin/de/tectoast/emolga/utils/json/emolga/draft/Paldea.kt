@@ -32,7 +32,7 @@ class Paldea : League() {
                         9,
                         3 + index
                     ) + (if (dataSheet == "DataM") 4 else 0)
-                }", """=HYPERLINK("$url"; "$numberOne:$numberTwo")"""
+                }", defaultGameplanString
             )
         }
     }

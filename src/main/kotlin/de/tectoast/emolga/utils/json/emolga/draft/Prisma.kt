@@ -41,7 +41,7 @@ class Prisma : League() {
         resultCreator = {
             b.addSingle(
                 "Spielplan!${Command.getAsXCoord((if (gdi == 6) 1 else gdi % 3) * 3 + 3)}${gdi / 3 * 5 + 4 + index}",
-                "=HYPERLINK(\"$url\"; \"$numberOne:$numberTwo\")"
+                defaultGameplanString
             )
         }
         setStatIfEmpty = false

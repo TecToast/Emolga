@@ -107,7 +107,7 @@ object NameConventionsDB : Table("nameconventions") {
         fun Map<String, Regex>.check() = firstNotNullOfOrNull {
             it.value.find(s)?.let { mr -> mr to it.key }
         }
-        (nc?.check() ?: Emolga.get.nameconventions[0]!!.check())?.also { (mr, key) ->
+        (nc?.check() ?: Emolga.get.defaultNameConventions.check())?.also { (mr, key) ->
             list += mr.groupValues[1] + "-" + key to key
         }
         list += s to null

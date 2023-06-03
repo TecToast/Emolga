@@ -94,7 +94,7 @@ sealed class League {
     val newSystemGap get() = teamsize + pickBuffer + 3
 
     fun RequestBuilder.newSystemPickDoc(data: PickData, withAdditionalSet: Pair<String, Any>? = null) {
-        val y = data.memIndex.y(newSystemGap, data.changedIndex + 3)
+        val y = data.memIndex.y(newSystemGap, data.picks.size + 2)
         addSingle("$dataSheet!B$y", data.pokemon)
         withAdditionalSet?.let {
             addSingle("$dataSheet!${it.first}$y", it.second)
@@ -113,12 +113,9 @@ sealed class League {
     }
 
     open fun saveSwitch(picks: MutableList<DraftPokemon>, oldmon: String, newmon: String, newtier: String): Int {
-        val index = picks.sortedWith(tierorderingComparator).indexOfFirst { it.name == oldmon }
-        picks.first { it.name == oldmon }.apply {
-            this.name = newmon
-            this.tier = newtier
-        }
-        return index
+        picks.first { it.name == oldmon }.quit = true
+        picks += DraftPokemon(newmon, newtier, false)
+        return -1
     }
 
     open fun RequestBuilder.pickDoc(data: PickData): Unit? = null

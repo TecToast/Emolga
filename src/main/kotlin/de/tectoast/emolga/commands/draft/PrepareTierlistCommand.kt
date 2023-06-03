@@ -3,9 +3,9 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.commands.PrivateCommands
+import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
-import de.tectoast.emolga.utils.json.MDLTierlist
 
 class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste ein", CommandCategory.Draft) {
 
@@ -27,7 +27,7 @@ class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        /*val args = e.arguments
+        val args = e.arguments
         val sid = args.getText("sid").substringAfter("d/").substringBefore("/")
         val tierlistsheet = args.getText("tierlistsheet")
         e.deferReply()
@@ -42,16 +42,17 @@ class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste
                 (0 until 10).mapNotNull { args.getNullable<String>("range$it")?.let { a -> "$tierlistsheet!$a" } },
                 false
             )
-                .map { col -> col.map { it[0].toString().replace("*", "").trim() } }.also { tierlistcols += it }
+                .map { col -> col.mapNotNull { it.getOrNull(0)?.toString()?.replace("*", "")?.trim() } }
+                .also { tierlistcols += it }
                 .flatten(),
             tierlistcols = tierlistcols
-        )*/
-        e.deferReply()
+        )
+        /*e.deferReply()
         TierlistBuilderConfigurator(
             Constants.FLOID,
             447357526997073932,
             651152835425075218,
             MDLTierlist.get.values.flatMap { map -> map.values.flatten() }, emptyList()
-        )
+        )*/
     }
 }

@@ -42,7 +42,7 @@ class ASL(
             b.addSingle(
                 if (gdi in 2..7) gdi.minus(2).coordXMod("Spielplan", 3, 4, 3, 6, 10 + index)
                 else "Spielplan!" + getAsXCoord((gdi % 2) * 4 + 5) + ((gdi / 6) * 18 + 4 + index),
-                "=HYPERLINK(\"$url\"; \"$numberOne:$numberTwo\")"
+                defaultGameplanString
             )
         })
     }

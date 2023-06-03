@@ -2235,7 +2235,6 @@ abstract class Command(
 
 
         fun init(key: String) {
-            println("Loading data...")
             loadJSONFiles(key)
             ModManager("default", "./ShowdownData/")
             Tierlist.setup()
@@ -2863,11 +2862,7 @@ abstract class Command(
                         kills = kills,
                         deaths = deaths,
                         mons = game.map { it.pokemon.map { mon -> monNames[mon.pokemon]!!.official } },
-                        url = url,
-                        str = str,
-                        resultchannel = resultchannelParam,
-                        customReplayChannel = customReplayChannel,
-                        m = message
+                        url = url
                     )
                 )
             }
@@ -3159,7 +3154,7 @@ inline val User.isNotFlo: Boolean get() = this.idLong != FLOID
 inline val Interaction.fromFlo: Boolean get() = this.user.isFlo
 inline val Interaction.notFromFlo: Boolean get() = !this.fromFlo
 
-fun <T> Collection<T>.randomWithCondition(condition: (T) -> Boolean) = this.filter(condition).randomOrNull()
+inline fun <T> Collection<T>.randomWithCondition(condition: (T) -> Boolean) = this.filter(condition).randomOrNull()
 
 fun <K> MutableMap<K, Int>.increment(key: K) = add(key, 1)
 
@@ -3201,11 +3196,7 @@ data class ReplayData(
     val kills: List<Map<String, Int>>,
     val deaths: List<Map<String, Int>>,
     val mons: List<List<String>>,
-    val url: String,
-    val str: String,
-    val resultchannel: TextChannel,
-    val customReplayChannel: TextChannel?,
-    val m: Message?
+    val url: String
 ) {
     val uids by lazy { listOf(uid1, uid2) }
 }

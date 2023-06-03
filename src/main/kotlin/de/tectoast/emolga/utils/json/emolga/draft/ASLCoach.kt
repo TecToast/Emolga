@@ -45,7 +45,7 @@ class ASLCoach(val level: Int = -1, private val sheetid: Int = -1) : League() {
         resultCreator = {
             b.addSingle(
                 coord("Spielplan", gdi.x(5, 2), index.y(7, 5 + level)),
-                "=HYPERLINK(\"$url\"; \"$numberOne:$numberTwo\")"
+                defaultGameplanString
             )
         }
         //sorterData = SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), false, null, 2, 8, 6)

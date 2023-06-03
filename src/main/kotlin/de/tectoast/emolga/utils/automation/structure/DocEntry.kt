@@ -119,7 +119,7 @@ class DocEntry private constructor(val league: League) {
     fun analyse(
         replayData: ReplayData
     ) {
-        val (game, uid1, uid2, kills, deaths, _, url, _, _, _, _) = replayData
+        val (game, uid1, uid2, kills, deaths, _, url) = replayData
         var battleind = -1
         var u1IsSecond = false
         val i1 = league.table.indexOf(uid1)
@@ -273,8 +273,8 @@ class DocEntry private constructor(val league: League) {
                         if (!directCompare) return@sortWith 0
                         val indexerToUse: (String) -> Int = if (newMethod) { str: String ->
                             str.substring(league.dataSheet.length + 4).substringBefore(":").toInt()
-                                .minus(league.teamsize + league.pickBuffer + 4)
-                                .div(league.teamsize + league.pickBuffer + 3)
+                                .minus(league.newSystemGap + 1)
+                                .div(league.newSystemGap)
                         } else indexer!!
                         val u1 = table[indexerToUse(formula[orig.indexOf(o1)][0].toString())]
                         val u2 = table[indexerToUse(formula[orig.indexOf(o2)][0].toString())]
@@ -350,5 +350,6 @@ data class AdvancedResult(
     val winnerIndex by lazy { replayData.game.indexOfFirst { it.winner } }
     val higherNumber by lazy { if (numberOne > numberTwo) numberOne else numberTwo }
     fun Int.swap() = if (swappedNumbers) 1 - this else this
+    val defaultGameplanString get() = """=HYPERLINK("$url"; "$numberOne:$numberTwo")"""
 }
 

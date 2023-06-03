@@ -40,7 +40,7 @@ class NDS : League() {
     override val teamsize = 15
 
     @Transient
-    override val timer = DraftTimer(TimerInfo(10, 22), 4 * 60)
+    override val timer = DraftTimer(TimerInfo(10, 22), 3 * 60)
 
     override fun beforePick(): String? {
         return "Du hast bereits 15 Mons!".takeIf { picks(current).count { it.name != "???" } == 15 }
@@ -57,6 +57,15 @@ class NDS : League() {
             this.name = pokemon
             this.tier = tier
         }
+    }
+
+    override fun saveSwitch(picks: MutableList<DraftPokemon>, oldmon: String, newmon: String, newtier: String): Int {
+        val index = picks.sortedWith(tierorderingComparator).indexOfFirst { it.name == oldmon }
+        picks.first { it.name == oldmon }.apply {
+            this.name = newmon
+            this.tier = newtier
+        }
+        return index
     }
 
     override fun RequestBuilder.pickDoc(data: PickData) {
@@ -132,7 +141,7 @@ class NDS : League() {
                     )
                 }
                 if (winnerIndex == i) {
-                    val s = "!${(gdi * 2 + 4).xc()}10"
+                    val s = "!${(gdi.plus(rrSummand) * 2 + 4).xc()}10"
                     b.addSingle(teamnames[replayData.uids[i]] + s, "$higherNumber:0")
                     b.addSingle(teamnames[replayData.uids[1 - i]] + s, "0:$higherNumber")
                 }
@@ -151,12 +160,13 @@ class NDS : League() {
     override fun onTipGameLockButtons(gameday: Int) {
         val map =
             (tipgame?.tips?.get(gameday) ?: return).userdata.values.flatMap { it.values }.groupingBy { it }.eachCount()
-        RequestBuilder(sid).addColumn("TipGameData!${(gameday + 3).xc()}2", (0..11).map { map[it] ?: 0 }).execute()
+        RequestBuilder(sid).addColumn("TipGameData!${(gameday + rrSummand + 3).xc()}2", (0..11).map { map[it] ?: 0 })
+            .execute()
     }
 
     companion object {
         val logger: Logger by SLF4J
-        private const val rr = false
+        private const val rr = true
         val rrSummand: Int
             get() = if (rr) 5 else 0
         val gameplanName: String
@@ -214,7 +224,7 @@ class NDS : League() {
                 }
             }
             b.addColumn("TipGameData!N16", tipgameStats)
-            b.addSingle("TipGameData!N29", gameday)
+            b.addSingle("TipGameData!N29", gameday + rrSummand)
             if (withAnnounce) {
                 b.withRunnable {
                     EmolgaMain.emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
@@ -276,14 +286,14 @@ _written by Maxifcn_""".trimIndent()
 
         fun setupRepeatTasks() {
             RepeatTask(
-                defaultTimeFormat.parse("03.05.2023 00:00").toInstant(),
+                defaultTimeFormat.parse("21.06.2023 00:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
                 { doNDSNominate() },
                 true
             )
             RepeatTask(
-                defaultTimeFormat.parse("30.04.2023 20:00").toInstant(),
+                defaultTimeFormat.parse("18.06.2023 20:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
                 { doMatchUps(it, withAnnounce = true) },

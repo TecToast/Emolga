@@ -79,6 +79,7 @@ object Analysis {
         }
         return with(
             BattleContext(
+                link,
                 List(playerCount) { buildDummys(amount) },
                 "",
                 (0 until playerCount).map {

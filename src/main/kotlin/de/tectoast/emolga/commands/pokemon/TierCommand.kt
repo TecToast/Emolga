@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 
@@ -21,7 +22,8 @@ class TierCommand :
 
         val tierlist = Tierlist[e.guild.idLong]
             ?: return replyError()
-        val pkmn = getDraftGerName(e.arguments.getText("mon"), e.guild.idLong)?.tlName ?: return replyError()
+        val pkmn = NameConventionsDB.getDiscordTranslation(e.arguments.getText("mon"), e.guild.idLong)?.tlName
+            ?: return replyError()
         val tier = tierlist.getTierOf(pkmn)
         e.reply(if (tier != null) "$pkmn ist im $tier-Tier!" else "$pkmn befindet sich nicht in der Tierliste!")
     }

@@ -2802,11 +2802,6 @@ abstract class Command(
                     game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to if (mon.isDead) 1 else 0 } }
                 TypicalSets.save()
                 if (uid1 == -1L || uid2 == -1L) return@launch
-                if (league is ASL) {
-                    if ((uid1 == 760926540967444520 && game[1].winner) || (uid2 == 760926540967444520 && game[0].winner)) {
-                        sendToMe("Henne noob :)")
-                    }
-                }
                 league?.docEntry?.analyse(
                     ReplayData(
                         game = game,
@@ -2820,11 +2815,6 @@ abstract class Command(
                 )
             }
         }
-
-        fun getDraftGerName(
-            sArg: String, guildId: Long
-        ) = NameConventionsDB.getDiscordTranslation(sArg, guildId)
-
 
         fun getGerNameWithForm(name: String): String {
             var toadd = StringBuilder(name)

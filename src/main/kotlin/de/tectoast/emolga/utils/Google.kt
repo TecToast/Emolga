@@ -24,7 +24,7 @@ object Google {
     }
 
     fun getVidByQuery(vid: String): SearchResult {
-        return youTubeService.search().list("snippet").setQ(vid).setMaxResults(1L).execute().items[0]
+        return youTubeService.search().list(listOf("snippet")).setQ(vid).setMaxResults(1L).execute().items[0]
     }
 
     fun getVidByURL(url: String): Video {
@@ -32,7 +32,7 @@ object Google {
             (if (url.contains("youtu.be")) url.substring("https://youtu.be/".length) else url.substring("https://www.youtube.com/watch?v=".length)).split(
                 "&"
             ).dropLastWhile { it.isEmpty() }.toTypedArray()[0]
-        return youTubeService.videos().list("snippet").setId(id).setMaxResults(1L)
+        return youTubeService.videos().list(listOf("snippet")).setId(listOf(id)).setMaxResults(1L)
             .execute().items[0]
 
     }
@@ -42,7 +42,7 @@ object Google {
         val id =
             url.substring("https://www.youtube.com/playlist?list=".length).split("&").dropLastWhile { it.isEmpty() }
                 .toTypedArray()[0]
-        return youTubeService.playlists().list("snippet").setId(id).setMaxResults(1L)
+        return youTubeService.playlists().list(listOf("snippet")).setId(listOf(id)).setMaxResults(1L)
             .execute().items[0]
 
     }

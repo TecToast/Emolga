@@ -1395,53 +1395,6 @@ abstract class Command(
             }
         }
 
-        @Throws(IllegalArgumentException::class)
-        fun loadAndPlay(channel: TextChannel, track: String, mem: Member, cm: String?) {/*if (track.startsWith("https://www.youtube.com/playlist")) {
-            loadPlaylist(channel, track, mem, cm);
-            return;
-        }*/
-            val musicManager = getGuildAudioPlayer(channel.guild)
-            logger.info(track)
-            val loader = YTDataLoader.create(track)
-            if (loader == null) {
-                channel.sendMessage("Der Track wurde nicht gefunden!").queue()
-                return
-            }
-            val url = loader.url
-            logger.info("url = $url")
-            getPlayerManager(channel.guild).loadItemOrdered(musicManager, url, object : AudioLoadResultHandler {
-                override fun trackLoaded(track: AudioTrack) {
-                    //logger.info("LOADED!");
-                    if (cm == null) {
-                        channel.sendMessageEmbeds(loader.buildEmbed(track, mem, musicManager)).queue()
-                    } else {
-                        channel.sendMessage(cm).queue()
-                    }
-                    play(channel.guild, musicManager, track, mem, channel)
-                }
-
-                override fun playlistLoaded(playlist: AudioPlaylist) {
-                    if (cm == null) {
-                        channel.sendMessageEmbeds(loader.buildEmbed(playlist, mem, musicManager)).queue()
-                    } else {
-                        channel.sendMessage(cm).queue()
-                    }
-                    for (playlistTrack in playlist.tracks) {
-                        play(channel.guild, musicManager, playlistTrack, mem, channel)
-                    }
-                }
-
-                override fun noMatches() {
-                    channel.sendMessage("Es wurde unter `$track` nichts gefunden!").queue()
-                }
-
-                override fun loadFailed(exception: FriendlyException) {
-                    exception.printStackTrace()
-                    channel.sendMessage("Der Track konnte nicht abgespielt werden: " + exception.message).queue()
-                }
-            })
-        }
-
         fun playSound(vc: AudioChannel?, path: String?, tc: MessageChannelUnion) {
             val flegmon = vc!!.jda.selfUser.idLong != 723829878755164202L
             if (System.currentTimeMillis() - lastClipUsed < 10000 && flegmon) {

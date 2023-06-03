@@ -6,10 +6,6 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleRefreshTokenRequest
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.sheets.v4.Sheets
-import com.google.api.services.youtube.YouTube
-import com.google.api.services.youtube.model.Playlist
-import com.google.api.services.youtube.model.SearchResult
-import com.google.api.services.youtube.model.Video
 
 object Google {
     private var REFRESHTOKEN: String? = null
@@ -21,30 +17,6 @@ object Google {
         REFRESHTOKEN = refreshToken
         CLIENTID = clientID
         CLIENTSECRET = clientSecret
-    }
-
-    fun getVidByQuery(vid: String): SearchResult {
-        return youTubeService.search().list(listOf("snippet")).setQ(vid).setMaxResults(1L).execute().items[0]
-    }
-
-    fun getVidByURL(url: String): Video {
-        val id =
-            (if (url.contains("youtu.be")) url.substring("https://youtu.be/".length) else url.substring("https://www.youtube.com/watch?v=".length)).split(
-                "&"
-            ).dropLastWhile { it.isEmpty() }.toTypedArray()[0]
-        return youTubeService.videos().list(listOf("snippet")).setId(listOf(id)).setMaxResults(1L)
-            .execute().items[0]
-
-    }
-
-
-    fun getPlaylistByURL(url: String): Playlist {
-        val id =
-            url.substring("https://www.youtube.com/playlist?list=".length).split("&").dropLastWhile { it.isEmpty() }
-                .toTypedArray()[0]
-        return youTubeService.playlists().list(listOf("snippet")).setId(listOf(id)).setMaxResults(1L)
-            .execute().items[0]
-
     }
 
     operator fun get(spreadsheetId: String, range: String, formula: Boolean): List<List<Any>> {
@@ -62,18 +34,6 @@ object Google {
         get() {
             refreshTokenIfNotPresent()
             return Sheets.Builder(
-                GoogleNetHttpTransport.newTrustedTransport(),
-                GsonFactory.getDefaultInstance(),
-                Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(
-                    accesstoken
-                )
-            ).setApplicationName("emolga").build()
-        }
-
-    private val youTubeService: YouTube
-        get() {
-            refreshTokenIfNotPresent()
-            return YouTube.Builder(
                 GoogleNetHttpTransport.newTrustedTransport(),
                 GsonFactory.getDefaultInstance(),
                 Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(

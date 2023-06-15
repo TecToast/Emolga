@@ -1,7 +1,6 @@
 package de.tectoast.emolga.utils
 
 import java.io.BufferedReader
-import java.io.IOException
 import java.io.InputStreamReader
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -33,14 +32,9 @@ object GPIOManager {
     }
 
     private fun exec(cmd: Array<String>) {
-        try {
-            Runtime.getRuntime().exec(cmd)
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
+        Runtime.getRuntime().exec(cmd)
     }
 
-    @Throws(IOException::class)
     fun isOn(pc: PC): Boolean {
         return BufferedReader(
             InputStreamReader(
@@ -50,7 +44,7 @@ object GPIOManager {
         ).readLine().trim() != "1"
     }
 
-    enum class PC(private val writePin: Int, private val readPin: Int, private val messageId: Long) {
+    enum class PC(private val writePin: Int, private val readPin: Int, val messageId: Long) {
         FLORIX_2(2, 24, 964571226964115496),
         FLORIX_3(3, 25, 975076826588282962),
         DUMMY(-1, -1, -1);
@@ -65,7 +59,7 @@ object GPIOManager {
 
         companion object {
             fun byMessage(messageId: Long): PC {
-                return values().asSequence().filter { it.messageId == messageId }.firstOrNull() ?: DUMMY
+                return values().firstOrNull { it.messageId == messageId } ?: DUMMY
             }
         }
     }

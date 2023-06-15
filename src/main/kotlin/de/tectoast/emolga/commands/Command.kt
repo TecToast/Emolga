@@ -2765,7 +2765,6 @@ abstract class Command(
                         }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
                     }.condAppend(spoiler, "||")
                 }
-                // Tornupto (4 aktive Kills, 2 passive Kills) X
                 logger.info("u1 = $u1")
                 logger.info("u2 = $u2")
                 if (fromAnalyseCommand != null) {
@@ -2788,10 +2787,17 @@ abstract class Command(
                         updatePresence()
                     }
                 }
+                var shouldSendZoro = false
                 for (ga in game) {
-                    if (ga.pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }) resultchannelParam.sendMessage(
-                        "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
-                    ).queue()
+                    if (ga.pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }) {
+                        resultchannelParam.sendMessage(
+                            "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
+                        ).queue()
+                        shouldSendZoro = true
+                    }
+                }
+                if (shouldSendZoro) {
+                    jda.getTextChannelById(1016636599305515018)!!.sendMessage(url).queue()
                 }
                 logger.info("In Emolga Listener!")
                 //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )

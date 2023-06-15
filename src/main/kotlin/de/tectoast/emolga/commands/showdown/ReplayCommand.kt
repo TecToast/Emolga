@@ -29,11 +29,8 @@ class ReplayCommand : Command(
             return
         }
         val channel = replayAnalysis[e.textChannel.idLong]
-        if (channel == null) {
-            hook.sendMessage("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
+            ?: return hook.sendMessage("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
                 .queue()
-            return
-        }
         val tc = e.jda.getTextChannelById(channel)
         if (tc == null) {
             hook.sendMessage("Ich habe keinen Zugriff auf den Ergebnischannel!").queue()

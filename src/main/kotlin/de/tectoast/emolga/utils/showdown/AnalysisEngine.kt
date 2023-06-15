@@ -67,7 +67,7 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     fun BattleContext.reportUsage() = EmolgaMain.emolgajda.getTextChannelById(1099651412742389820)!!
-        .sendMessage("Effect ${this::class.simpleName} was used! $url").queue()
+        .sendMessage("Effect ${this@SDEffect::class.simpleName} was used! $url").queue()
 
     abstract fun execute(split: List<String>, ctx: BattleContext)
 

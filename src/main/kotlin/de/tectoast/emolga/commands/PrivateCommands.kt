@@ -8,11 +8,8 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.ktor.subscribeToYTChannel
-import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
-import de.tectoast.emolga.utils.Google
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.TeamGraphics
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.Emolga
@@ -21,6 +18,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Modal
+import dev.minn.jda.ktx.interactions.components.button
 import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
@@ -231,7 +229,8 @@ object PrivateCommands {
 
 
     fun ndsNominate(e: GenericCommandEvent) {
-        NDS.doNDSNominate(e.getArg(0).toBooleanStrict())
+        val args = e.getArg(1).split(" ")
+        NDS.doNDSNominate(args[0].toBooleanStrict(), *args.drop(1).map { it.toLong() }.toLongArray())
     }
 
 

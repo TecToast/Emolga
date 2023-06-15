@@ -6,6 +6,7 @@ import de.tectoast.emolga.commands.coordXMod
 import de.tectoast.emolga.commands.defaultTimeFormat
 import de.tectoast.emolga.commands.draft.AddToTierlistData
 import de.tectoast.emolga.commands.toDocRange
+import de.tectoast.emolga.commands.x
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
@@ -33,19 +34,24 @@ class ASL(
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(SorterData(
-            formulaRange = "Tabelle!C4:J11".toDocRange(),
-            directCompare = true,
-            newMethod = true,
-            cols = listOf(2, -1, 6, 4)
-        ), resultCreator = {
-            b.addSingle(
-                if (gdi in 2..7) gdi.minus(2).coordXMod("Spielplan", 3, 4, 3, 6, 10 + index)
-                else "Spielplan!" + getAsXCoord((gdi % 2) * 4 + 5) + ((gdi / 6) * 18 + 4 + index),
-                defaultGameplanString
-            )
-        })
+        newSystem(
+            SorterData(
+                formulaRange = "Tabelle!C4:J11".toDocRange(),
+                directCompare = true,
+                newMethod = true,
+                cols = listOf(7, -1, 6, 4)
+            ), resultCreator = {
+                b.addSingle(
+                    if (gdi in 2..7) gdi.minus(2).coordXMod("Spielplan", 3, 4, 3, 6, 10 + index)
+                    else "Spielplan!" + getAsXCoord((gdi % 2) * 4 + 5) + ((gdi / 6) * 18 + 4 + index),
+                    defaultGameplanString
+                )
+            })
+        cancelIf = { _, gd -> gd == 10 }
     }
+
+    @Transient
+    override val additionalSet = AdditionalSet("N", "X", "Y")
 
     override fun provideReplayChannel(jda: JDA) = jda.getTextChannelById(replayChannel)
     override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(resultChannel)
@@ -67,10 +73,15 @@ class ASL(
     override fun isFinishedForbidden() = false
 
     override fun RequestBuilder.pickDoc(data: PickData) {
-        newSystemPickDoc(data, withAdditionalSet = "N" to "X")
+        newSystemPickDoc(data)
         addSingle(
             data.roundIndex.coordXMod("Draft", 6, 4, 3, 10, 4 + data.indexInRound), data.pokemon
         )
+    }
+
+    override fun RequestBuilder.switchDoc(data: SwitchData) {
+        newSystemSwitchDoc(data)
+        addRow("Zwischendraft!${data.roundIndex.x(4, 3)}${data.indexInRound + 4}", listOf(data.oldmon, data.pokemon))
     }
 
     companion object {

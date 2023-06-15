@@ -37,6 +37,7 @@ class DocEntry private constructor(val league: League) {
     var monsOrder: (List<DraftPokemon>) -> List<String> = { l -> l.map { it.name } }
     private var onlyKilllist: (() -> List<String>)? = null
     var randomGamedayMapper: (Int) -> Int = { it }
+    var cancelIf: (ReplayData, Int) -> Boolean = { _: ReplayData, _: Int -> false }
     private val gamedays get() = league.gamedays
     fun newSystem(sorterData: SorterData, resultCreator: (AdvancedResult.() -> Unit)) {
         val dataSheet = league.dataSheet

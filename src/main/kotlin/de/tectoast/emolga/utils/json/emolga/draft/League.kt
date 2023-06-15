@@ -93,11 +93,22 @@ sealed class League {
 
     val newSystemGap get() = teamsize + pickBuffer + 3
 
-    fun RequestBuilder.newSystemPickDoc(data: PickData, withAdditionalSet: Pair<String, Any>? = null) {
+    @Transient
+    open val additionalSet: AdditionalSet? = null
+
+    fun RequestBuilder.newSystemPickDoc(data: DraftData) {
         val y = data.memIndex.y(newSystemGap, data.picks.size + 2)
         addSingle("$dataSheet!B$y", data.pokemon)
-        withAdditionalSet?.let {
-            addSingle("$dataSheet!${it.first}$y", it.second)
+        additionalSet?.let {
+            addSingle("$dataSheet!${it.col}$y", it.existent)
+        }
+    }
+
+    fun RequestBuilder.newSystemSwitchDoc(data: SwitchData) {
+        newSystemPickDoc(data)
+        val y = data.memIndex.y(newSystemGap, data.oldIndex + 3)
+        additionalSet?.let {
+            addSingle("$dataSheet!${it.col}$y", it.yeeted)
         }
     }
 
@@ -512,6 +523,7 @@ class SwitchData(
     memIndex: Int,
     val oldmon: String,
     val oldtier: String,
+    val oldIndex: Int,
     override val changedOnTeamsiteIndex: Int
 ) : DraftData(league, pokemon, tier, mem, indexInRound, changedIndex, picks, round, memIndex)
 
@@ -579,7 +591,7 @@ class PointsManager(val league: League) {
         points.getOrPut(member) {
             with(league) {
                 val isPoints = tierlist.mode.isPoints()
-                tierlist.points - picks[member]!!.sumOf {
+                tierlist.points - picks[member]!!.filterNot { it.quit }.sumOf {
                     if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
                         it.tier
                     ) else 0
@@ -591,3 +603,5 @@ class PointsManager(val league: League) {
         this.points[member] = this[member] + points
     }
 }
+
+data class AdditionalSet(val col: String, val existent: String, val yeeted: String)

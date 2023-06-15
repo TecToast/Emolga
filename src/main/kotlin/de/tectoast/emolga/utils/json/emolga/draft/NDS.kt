@@ -236,7 +236,7 @@ class NDS : League() {
         }
 
 
-        fun doNDSNominate(prevDay: Boolean = false) {
+        fun doNDSNominate(prevDay: Boolean = false, vararg onlySpecifiedUsers: Long) {
             val nds = Emolga.get.nds()
             val nom = nds.nominations
             val table = nds.table
@@ -248,7 +248,7 @@ class NDS : League() {
             val b = RequestBuilder(sid)
             val tiers = listOf("S", "A", "B")
             var dbcallTime = 0L
-            for (u in picks.keys) {
+            for (u in onlySpecifiedUsers.takeIf { it.isNotEmpty() }?.toList() ?: picks.keys) {
                 //String u = "297010892678234114";
                 val pmons: MutableList<DraftPokemon> = picks[u]!!
                 if (u !in o) {
@@ -273,11 +273,13 @@ class NDS : League() {
                 b.addColumn("Data!F${index.y(17, 2)}", mons)
             }
             b.withRunnable {
-                EmolgaMain.emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
-                    """
+                if (onlySpecifiedUsers.isEmpty()) {
+                    EmolgaMain.emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
+                        """
                 Guten Abend ihr Teilnehmer. Der nächste Spieltag öffnet seine Pforten...Was? Du hast vergessen zu nominieren? Dann hast du wieder mal Pech gehabt. Ab jetzt könnt ihr euch die Nominierungen im Dokument anschauen und verzweifelt feststellen, dass ihr völlig lost gewesen seid bei eurer Entscheidung hehe. Wie dem auch sei, viel Spaß beim Teambuilding. Und passt auf Maxis Mega-Gewaldro auf! Warte, er hat keins mehr? Meine ganzen Konstanten im Leben wurden durchkreuzt...egal, wir hören uns nächste Woche wieder!
 _written by Maxifcn_""".trimIndent()
-                ).queue()
+                    ).queue()
+                }
             }.execute()
             logger.info("dbcallTime = $dbcallTime")
             if (!prevDay) nom.currentDay++

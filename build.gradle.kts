@@ -87,7 +87,7 @@ dependencies {
     implementation("com.sedmelluq:lavaplayer:1.3.78")
     //implementation("org.slf4j:slf4j-simple:1.7.32")
 
-    implementation("ch.qos.logback:logback-classic:1.4.7")
+    implementation("ch.qos.logback:logback-classic:1.4.8")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     //implementation("mysql:mysql-connector-java:8.0.29")
     implementation("com.github.TecToast:Toastilities:96e360b1f8")

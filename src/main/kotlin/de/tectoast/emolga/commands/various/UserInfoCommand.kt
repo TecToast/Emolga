@@ -32,7 +32,7 @@ class UserInfoCommand :
         val warncount = WarnsDB.warnCount(u.idLong, member.guild.idLong)
         val format = SimpleDateFormat()
         e.reply(Embed {
-            field("Userinfo Command für " + u.asTag, "UserID | " + u.id, true)
+            field("Userinfo Command für " + u.effectiveName, "UserID | " + u.id, true)
             field(
                 "User Status",
 
@@ -62,7 +62,7 @@ class UserInfoCommand :
                     )
                 ), true
             )
-            footer("Aufgerufen von " + e.member.user.asTag + " | " + e.member.id)
+            footer("Aufgerufen von " + e.member.user.effectiveName + " | " + e.member.id)
             color = embedColor
             thumbnail = u.effectiveAvatarUrl
         })

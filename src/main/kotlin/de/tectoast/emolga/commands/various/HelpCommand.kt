@@ -35,7 +35,7 @@ class HelpCommand : Command("help", "Zeigt Hilfe über einen Command", CommandCa
         for (a in template.arguments) {
             builder.addField(a.name, (if (a.isOptional) "(Optional)\n" else "") + a.buildHelp(), true)
         }
-        builder.setFooter("Aufgerufen von " + e.author.asTag)
+        builder.setFooter("Aufgerufen von " + e.author.effectiveName)
         if (template.hasExample()) {
             builder.addField("Beispiel", "```" + template.example + "```", false)
         }

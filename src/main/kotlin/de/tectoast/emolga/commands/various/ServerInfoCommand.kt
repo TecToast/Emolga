@@ -22,7 +22,7 @@ class ServerInfoCommand :
         val g = e.guild
         val memberList = g.loadMembers().get()
         e.reply(Embed {
-            field("Owner", g.retrieveOwner().await().user.asTag, true)
+            field("Owner", g.retrieveOwner().await().user.effectiveName, true)
             field("Servererstellung", g.timeCreated.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), true)
             field("Anzahl an Rollen", g.roles.size.toString(), true)
             field {

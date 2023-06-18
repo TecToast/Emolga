@@ -43,7 +43,7 @@ class ModalConfigurator private constructor() {
                             "Das Argument $value ist ungültig für \"${actionRows.first { it.id == id }.label}\"!"
                         )
                         .setColor(0xFF0000)
-                        .setFooter("Aufgerufen von ${member.effectiveName} (${member.user.asTag})")
+                        .setFooter("Aufgerufen von ${member.effectiveName} (${member.user.effectiveName})")
                         .build()
                 ).queue()
                 return
@@ -57,7 +57,7 @@ class ModalConfigurator private constructor() {
             EmbedBuilder()
                 .setTitle("Deine Konfiguration wurde erfolgreich gespeichert!")
                 .setColor(0x00FF00)
-                .setFooter("Aufgerufen von ${member.effectiveName} (${member.user.asTag}")
+                .setFooter("Aufgerufen von ${member.effectiveName} (${member.user.effectiveName}")
                 .build()
         ).queue()
         saveEmolgaJSON()

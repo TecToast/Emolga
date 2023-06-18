@@ -4,7 +4,6 @@ import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.ifTrue
 import de.tectoast.emolga.utils.json.emolga.ASLS11
 import de.tectoast.emolga.utils.json.emolga.Soullink
-import de.tectoast.emolga.utils.json.emolga.customcommand.CCData
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import dev.minn.jda.ktx.interactions.components.SelectOption
@@ -29,10 +28,9 @@ class Emolga(
     val moderatorroles: Map<Long, Long>,
     val movefilter: Map<String, List<String>>,
     val mutedroles: Map<Long, Long>,
-    val customcommands: MutableMap<String, CCData>,
     val configuration: MutableMap<Long, MutableMap<String, MutableMap<String, Int>>>,
     val asls11nametoid: List<Long>,
-    val nameconventions: MutableMap<Long, MutableMap<String, @Serializable(RegexSerializer::class) Regex>> = mutableMapOf()
+    val nameconventions: MutableMap<Long, MutableMap<String, @Serializable(with = RegexSerializer::class) Regex>> = mutableMapOf()
 ) {
 
     val asls11: ASLS11 get() = error("ASLS11 is not available atm!")

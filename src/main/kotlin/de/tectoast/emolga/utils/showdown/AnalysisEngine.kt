@@ -305,7 +305,7 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>, ctx: BattleContext) {
             split[1].parsePokemon(ctx).run {
                 split.getSource(ctx)?.let {
-                    addVolatileEffect(split[2], it, ctx)
+                    addVolatileEffect(split[2].substringAfter(": "), it, ctx)
                 }
             }
         }

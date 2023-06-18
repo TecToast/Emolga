@@ -95,7 +95,6 @@ import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
-import net.dv8tion.jda.api.utils.FileUpload
 import org.apache.commons.collections4.queue.CircularFifoQueue
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -2327,21 +2326,6 @@ abstract class Command(
             val tco = e.channel
             val gid = e.guild.idLong
             val bot = Bot.byJDA(e.jda)
-            val customcommands = Emolga.get.customcommands
-            if (msg.isNotEmpty() && msg[0] == '!') {
-                customcommands[msg.lowercase().substring(1)]?.let { o ->
-                    val f = o.image?.let { FileUpload.fromData(File(it)) }
-                    val sendmsg = o.text
-                    if (sendmsg == null) {
-                        tco.sendFiles(f!!).queue()
-                    } else {
-                        val ac = tco.sendMessage(sendmsg)
-                        if (f != null) ac.addFiles(f)
-                        ac.queue()
-                    }
-
-                }
-            }
             if (bot == Bot.FLEGMON || gid == 745934535748747364L) {
                 val dir = File("audio/clips/")
                 for (file in dir.listFiles()!!) {

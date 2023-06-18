@@ -23,7 +23,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
                 transaction {
                     League.onlyChannel(e.channel!!.idLong)?.let {
                         val tl = it.tierlist
-                        it.picks[it.current]!!.filter { p -> p.name != "???" }.sortedWith(
+                        it.picks[it.current]!!.filter { p -> p.name != "???" && !p.quit }.sortedWith(
                             compareBy({ mon -> tl.order.indexOf(mon.tier) },
                                 { mon -> mon.name })
                         ).map { mon ->

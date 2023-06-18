@@ -20,8 +20,8 @@ class ESSNewsModal : ModalListener("essnews") {
 
     companion object {
         val paths = listOf(
-            "/var/www/nmlclient/index.html".file(),
-            "/var/www/nmlclient/index.template.html".file()
+            "/var/www/essclient/index.html".file(),
+            "/var/www/essclient/index.template.html".file()
         )
         private val dateFormat = SimpleDateFormat("dd.MM.yyyy")
         private val currentDate: String

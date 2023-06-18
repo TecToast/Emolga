@@ -36,7 +36,10 @@ class ASL(
     override val docEntry = DocEntry.create(this) {
         newSystem(
             SorterData(
-                formulaRange = "Tabelle!C4:J11".toDocRange(),
+                formulaRange = listOf(
+                    "Tabelle!C16:J19".toDocRange(),
+                    "Tabelle!C24:J27".toDocRange()
+                ),
                 directCompare = true,
                 newMethod = true,
                 cols = listOf(7, -1, 6, 4)

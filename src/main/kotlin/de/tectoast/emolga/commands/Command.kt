@@ -30,7 +30,6 @@ import de.tectoast.emolga.selectmenus.selectmenusaves.SmogonSet
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.Constants.CALENDAR_MSGID
 import de.tectoast.emolga.utils.Constants.CALENDAR_TCID
-import de.tectoast.emolga.utils.Constants.DASORID
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.Constants.SOULLINK_MSGID
 import de.tectoast.emolga.utils.Constants.SOULLINK_TCID
@@ -368,7 +367,6 @@ abstract class Command(
 
     object PermissionPreset {
         val CULT = fromRole(781457314846343208)
-        val EMOLGAMOD = fromIDs(DASORID)
         val HENNY = fromIDs(297010892678234114)
         fun fromRole(roleId: Long): Predicate<Member> {
             return Predicate { it.guild.roleCache.none { r -> r.idLong == roleId } || it.roles.any { r -> r.idLong == roleId } }
@@ -2378,7 +2376,7 @@ abstract class Command(
                     tco.sendMessage(NOPERM).queue()
                     return
                 }
-                if (mem.idLong != FLOID && mem.idLong != DASORID) {
+                if (mem.idLong != FLOID) {
                     if (BOT_DISABLED) {
                         e.channel.sendMessage(DISABLED_TEXT).queue()
                         return

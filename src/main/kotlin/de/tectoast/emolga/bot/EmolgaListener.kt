@@ -9,7 +9,6 @@ import de.tectoast.emolga.database.exposed.MuteDB
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.Constants.DASORID
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.json.Emolga
 import dev.minn.jda.ktx.events.listener
@@ -78,7 +77,7 @@ object EmolgaListener : ListenerAdapter() {
             e.reply_(Command.NOPERM, ephemeral = true).queue()
             return
         }
-        if (mem.idLong != FLOID && mem.idLong != DASORID) {
+        if (mem.idLong != FLOID) {
             if (Command.BOT_DISABLED) {
                 e.reply(Command.DISABLED_TEXT).queue()
                 return

@@ -135,7 +135,7 @@ sealed class League {
 
 
     fun isCurrentCheck(user: Long): Boolean {
-        if (current == user || user in listOf(Constants.FLOID, 694543579414134802)) return true
+        if (current == user || user in Constants.DRAFTADMINS) return true
         return isCurrent(user)
     }
 

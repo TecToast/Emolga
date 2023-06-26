@@ -7,7 +7,6 @@ import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
-import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.entities.Member
 import java.time.format.DateTimeFormatter
 
@@ -18,7 +17,6 @@ class ServerInfoCommand :
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        EmbedBuilder()
         val g = e.guild
         val memberList = g.loadMembers().get()
         e.reply(Embed {

@@ -90,8 +90,8 @@ class ASL(
     companion object {
         fun setupRepeatTasks() {
             RepeatTask(
-                defaultTimeFormat.parse("05.06.2023 00:00").toInstant(),
-                7, Duration.ofDays(7)
+                defaultTimeFormat.parse("03.07.2023 00:00").toInstant(),
+                10, Duration.ofDays(7)
             ) {
                 val jda = EmolgaMain.emolgajda
                 val msg = "**------------- Spieltag $it -------------**"

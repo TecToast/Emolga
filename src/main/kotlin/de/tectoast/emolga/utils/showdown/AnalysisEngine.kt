@@ -150,7 +150,7 @@ sealed class SDEffect(vararg val types: String) {
                 val playerSide = sdPlayers[damagedMon.player]
                 val fainted = "fnt" in split[2]
                 val hazards = playerSide.fieldConditions
-                if (split.size > 4 && split[3].substringAfter("[from] ") !in damagedMon.volatileEffects) {
+                if (split.size > 4 && "[of]" in split[4] && split[3].substringAfter("[from] ") !in damagedMon.volatileEffects) {
                     split[4].parsePokemon(ctx).claimDamage(damagedMon, fainted, ctx)
                     return
                 }
@@ -247,7 +247,7 @@ sealed class SDEffect(vararg val types: String) {
 
         override fun execute(split: List<String>, ctx: BattleContext) {
             if (split[2] in explosionMoves) {
-                if (ctx.nextLine.contains("-fail")) return
+                if (ctx.nextLine.contains("-fail") || ctx.nextLine.contains("-immune")) return
                 val (pl, idx) = split[1].parsePokemonLocation()
                 val boomed = ctx.monsOnField[pl][idx]
                 (boomed.lastDamageBy ?: ctx.monsOnField.getOrNull(1 - pl)?.let {

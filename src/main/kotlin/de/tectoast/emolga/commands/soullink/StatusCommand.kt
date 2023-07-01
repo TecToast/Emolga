@@ -3,15 +3,14 @@ package de.tectoast.emolga.commands.soullink
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.saveEmolgaJSON
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.only
 
 class StatusCommand : Command("status", "Setzt den Status eines Encounters", CommandCategory.Soullink) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("location", "Location", "Die Location", ArgumentManagerTemplate.Text.withAutocomplete { s, _ ->
-                val locs = Emolga.get.soullink.order
-                locs.filter { it.startsWith(s, ignoreCase = true) }
+                db.soullink.only().order.filter { it.startsWith(s, ignoreCase = true) }
             })
             .add(
                 "status",
@@ -25,7 +24,7 @@ class StatusCommand : Command("status", "Setzt den Status eines Encounters", Com
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val soullink = Emolga.get.soullink
+        val soullink = db.soullink.only()
         val args = e.arguments
         val location = eachWordUpperCase(args.getText("location"))
         if (location !in soullink.order) {
@@ -34,7 +33,7 @@ class StatusCommand : Command("status", "Setzt den Status eines Encounters", Com
         }
         soullink.mons[location]!!["status"] = args.getText("status")
         e.reply("\uD83D\uDC4D")
-        saveEmolgaJSON()
+        soullink.save()
         updateSoullink()
     }
 }

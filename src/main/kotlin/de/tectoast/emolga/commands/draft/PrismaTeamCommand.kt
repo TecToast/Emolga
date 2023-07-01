@@ -1,15 +1,15 @@
 package de.tectoast.emolga.commands.draft
 
 import de.tectoast.emolga.commands.PrivateCommand
-import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 import de.tectoast.toastilities.interactive.ErrorMessage
 import de.tectoast.toastilities.interactive.Interactive
 import de.tectoast.toastilities.interactive.InteractiveTemplate
+import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
@@ -24,12 +24,14 @@ class PrismaTeamCommand : PrivateCommand("prismateam") {
         logger.info("Registered PrismaTeamCommand!")
         //setIsAllowed(u -> Arrays.asList(Command.getEmolgaJSON().getJSONObject("drafts").getJSONObject("Prisma").getString("table").split(",")).contains(u.getId()));
         template = InteractiveTemplate({ u: User, tc: MessageChannel, map: LinkedHashMap<String, Any?> ->
-            current.remove(u.idLong)
-            val league = Emolga.get.league("Prisma")
-            league.picks[u.idLong] = map.entries.filterNot { it.key == "check" }
-                .map { DraftPokemon(it.value as String, it.key[0].toString()) }.toMutableList()
-            saveEmolgaJSON()
-            tc.sendMessage("Dein Team wurde erfolgreich gespeichert!").queue()
+            runBlocking {
+                current.remove(u.idLong)
+                val league = db.league("Prisma")
+                league.picks[u.idLong] = map.entries.filterNot { it.key == "check" }
+                    .map { DraftPokemon(it.value as String, it.key[0].toString()) }.toMutableList()
+                league.save()
+                tc.sendMessage("Dein Team wurde erfolgreich gespeichert!").queue()
+            }
         }, "Die Team-Eingabe wurde abgebrochen.")
         template.addCancelCommand("!cancel")
         template
@@ -71,8 +73,8 @@ class PrismaTeamCommand : PrivateCommand("prismateam") {
             .setOnCancel { i: Interactive -> current.remove(i.user.idLong) }
     }
 
-    override fun process(e: MessageReceivedEvent) {
-        val picks = Emolga.get.league("Prisma").picks
+    override suspend fun process(e: MessageReceivedEvent) {
+        val picks = db.league("Prisma").picks
         if (e.author.idLong in picks) {
             e.channel.sendMessage("Du hast dein Team bereits eingegeben! Wenn du wirklich einen Fehler gemacht haben solltest, melde dich bitte bei Flo.")
                 .queue()
@@ -94,7 +96,7 @@ class PrismaTeamCommand : PrivateCommand("prismateam") {
             if (msg.equals("!badsteam", ignoreCase = true)) {
                 return ErrorMessage("")
             }
-            val t = NameConventionsDB.getDiscordTranslation(msg, Constants.G.FLP)
+            val t = runBlocking { NameConventionsDB.getDiscordTranslation(msg, Constants.G.FLP) }
             logger.info("msg = $msg, i = ${i.user.idLong} reqtier = $reqtier")
             if (t == null) {
                 return ErrorMessage("Das ist kein Pokemon!")

@@ -3,9 +3,11 @@ package de.tectoast.emolga.buttons.buttonsaves
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.commands.indexedBy
-import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.Nominations
+import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage_
 import dev.minn.jda.ktx.messages.into
@@ -14,6 +16,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
+import org.litote.kmongo.*
 
 class Nominate(val originalMons: List<DraftPokemon>, val mons: List<DraftPokemon>) {
     private val nominated: MutableList<DraftPokemon>
@@ -87,17 +90,20 @@ class Nominate(val originalMons: List<DraftPokemon>, val mons: List<DraftPokemon
         }
     }
 
-    fun finish(e: ButtonInteractionEvent, now: Boolean) {
+    suspend fun finish(e: ButtonInteractionEvent, now: Boolean) {
         if (now) {
-            val nom = Emolga.get.nds().nominations
+            val nom = db.nds().nominations
             val day = nom.current()
             val uid = e.user.idLong
-            if (uid in day) {
-                e.reply_("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!").queue()
-                return
-            }
-            day[uid] = buildJSONString()
-            saveEmolgaJSON()
+            if (uid in day)
+                return e.reply_("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!").queue()
+            db.drafts.updateOne(
+                League::name eq "NDS",
+                set(
+                    (NDS::nominations / Nominations::nominated).keyProjection(nom.currentDay)
+                        .keyProjection(uid) setTo buildJSONString()
+                )
+            )
             e.reply_("Deine Nominierung wurde gespeichert!").queue()
             return
         }

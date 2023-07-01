@@ -3,13 +3,16 @@ package de.tectoast.emolga.database.exposed
 import de.tectoast.emolga.commands.Language
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.NameConventions
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
 import mu.KotlinLogging
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.litote.kmongo.eq
 
 object NameConventionsDB : Table("nameconventions") {
     val GUILD = long("guild")
@@ -21,10 +24,9 @@ object NameConventionsDB : Table("nameconventions") {
 
     private val logger = KotlinLogging.logger {}
 
-    fun getAllOtherSpecified(mons: List<String>, lang: Language, guildId: Long): List<String> {
+    suspend fun getAllOtherSpecified(mons: List<String>, lang: Language, guildId: Long): List<String> {
+        val nc = db.nameconventions.get(guildId)
         return transaction {
-            val nc = Emolga.get.nameconventions[guildId] ?: Emolga.get.defaultNameConventions
-
             val checkLang = if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH
             val resultLang = if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED
             select(checkLang inList mons).map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] } +
@@ -95,38 +97,40 @@ object NameConventionsDB : Table("nameconventions") {
         }
     }
 
-    fun convertOfficialToTL(mon: String, guildId: Long): String? {
-        val nc = Emolga.get.nameconventions[guildId] ?: Emolga.get.defaultNameConventions
+    suspend fun convertOfficialToTL(mon: String, guildId: Long): String? {
+        val nc = db.nameconventions.get(guildId)
         val spec = nc.keys.firstOrNull { mon.endsWith("-$it") }
         return getDBTranslation(mon, guildId, spec, nc, english = Tierlist[guildId].isEnglish)?.tlName
     }
 
-    fun getDiscordTranslation(s: String, guildId: Long, english: Boolean = false): DraftName? {
+    suspend fun getDiscordTranslation(s: String, guildId: Long, english: Boolean = false): DraftName? {
         val list = mutableListOf<Pair<String, String?>>()
-        val nc = Emolga.get.nameconventions[guildId]
+        val nc = db.nameconventions.findOne(NameConventions::guild eq guildId)?.data
         fun Map<String, Regex>.check() = firstNotNullOfOrNull {
             it.value.find(s)?.let { mr -> mr to it.key }
         }
-        (nc?.check() ?: Emolga.get.defaultNameConventions.check())?.also { (mr, key) ->
+
+        val defaultNameConventions = db.defaultNameConventions
+        (nc?.check() ?: defaultNameConventions.check())?.also { (mr, key) ->
             list += mr.groupValues[1] + "-" + key to key
         }
         list += s to null
         list.forEach {
             getDBTranslation(
-                it.first, guildId, it.second, nc ?: Emolga.get.defaultNameConventions, english
+                it.first, guildId, it.second, nc ?: defaultNameConventions, english
             )?.let { d -> return d }
         }
         logger.warn("Could not find translation for $s in guild $guildId")
         return null
     }
 
-    private val possibleSpecs by lazy { Emolga.get.nameconventions[0]!!.keys }
+    private val possibleSpecs by lazy { db.defaultNameConventions.keys }
 
-    fun getSDTranslation(s: String, guildId: Long, english: Boolean = false) = getDBTranslation(
+    suspend fun getSDTranslation(s: String, guildId: Long, english: Boolean = false) = getDBTranslation(
         s,
         guildId,
         possibleSpecs.firstOrNull { s.endsWith("-$it") },
-        Emolga.get.nameconventions[guildId] ?: Emolga.get.defaultNameConventions,
+        db.nameconventions.get(guildId),
         english
     )
 

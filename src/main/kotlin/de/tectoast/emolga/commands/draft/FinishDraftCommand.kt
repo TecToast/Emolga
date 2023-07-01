@@ -27,5 +27,6 @@ class FinishDraftCommand :
         d.addFinished(mem)
         if (d.current == mem)
             d.nextPlayer()
+        d.save()
     }
 }

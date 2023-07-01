@@ -11,7 +11,7 @@ import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.StatLocation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -64,8 +64,8 @@ class ASLCoach(val level: Int = -1, private val sheetid: Int = -1) : League() {
     @Transient
     val comparator: Comparator<DraftPokemon> = compareBy({ it.tier.indexedBy(tierlist.order) }, { it.name })
 
-    override fun RequestBuilder.pickDoc(data: PickData) {
-        val asl = Emolga.get.asls11
+    override suspend fun RequestBuilder.pickDoc(data: PickData) {
+        val asl = db.asls11
         val (level, index, team) = asl.indexOfMember(data.mem)
         addSingle("Data$level!B${index.y(15, data.changedIndex + 3)}", data.pokemon)
         addColumn("$team!C${level.y(26, 23)}", data.picks.let { pi ->
@@ -81,13 +81,13 @@ class ASLCoach(val level: Int = -1, private val sheetid: Int = -1) : League() {
         )
     }
 
-    override fun RequestBuilder.switchDoc(data: SwitchData) {
+    override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
         val killY = level.y(12 * 12, 1000 + data.mem.indexedBy(table).y(12, data.changedIndex))
         addCopyPasteChange(343863794, "B$killY:F$killY", "B$killY", "PASTE_VALUES")
             .withRunnable {
                 val b = builder()
                 // Killliste neues Mon hinzufügen, altes Mon in Ablage cutpasten und neues Mon in Kader einfügen, Kaderseite sortieren
-                val asl = Emolga.get.asls11
+                val asl = db.asls11
                 val rowFirst = data.mem.indexedBy(table).y(15, 0)
                 val row = rowFirst + data.changedIndex + 3
                 b.addRow(
@@ -133,10 +133,10 @@ class ASLCoach(val level: Int = -1, private val sheetid: Int = -1) : League() {
             .queue()
     }
 
-    override fun getCurrentMention() = "<@$current> (<@&${Emolga.get.asls11.roleIdByMember(current)}>)"
+    override fun getCurrentMention() = "<@$current> (<@&${db.asls11.roleIdByMember(current)}>)"
 
     override fun isCurrent(user: Long): Boolean {
-        return user in Emolga.get.asls11.teammembersByMember(current)
+        return user in db.asls11.teammembersByMember(current)
     }
 }
 

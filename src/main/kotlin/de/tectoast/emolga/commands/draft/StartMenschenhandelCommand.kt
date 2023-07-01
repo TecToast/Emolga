@@ -3,9 +3,8 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 
 class StartMenschenhandelCommand : Command(
     "startmenschenhandel",
@@ -24,11 +23,11 @@ class StartMenschenhandelCommand : Command(
 
     override suspend fun process(e: GuildCommandEvent) {
         val tc = e.arguments.getChannel("channel")
-        Emolga.get.asls11.apply {
+        db.asls11.apply {
             textChannel = tc.idLong
             tc.sendMessage("Möge der Menschenhandel beginnen!").queue()
             nextCoach()
-            saveEmolgaJSON()
+            // TODO
         }
 
     }

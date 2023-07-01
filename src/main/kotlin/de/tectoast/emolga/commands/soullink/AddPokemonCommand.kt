@@ -3,15 +3,14 @@ package de.tectoast.emolga.commands.soullink
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.saveEmolgaJSON
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.only
 
 class AddPokemonCommand : Command("addpokemon", "Fügt ein Pokemon hinzu", CommandCategory.Soullink) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("location", "Location", "Die Location", ArgumentManagerTemplate.Text.withAutocomplete { s, _ ->
-                val locs = Emolga.get.soullink.order
-                locs.filter { it.startsWith(s, ignoreCase = true) }
+                db.soullink.only().order.filter { it.startsWith(s, ignoreCase = true) }
             })
             .add("pokemon", "Pokemon", "Das Pokemon", draftPokemonArgumentType)
             .add(
@@ -28,7 +27,7 @@ class AddPokemonCommand : Command("addpokemon", "Fügt ein Pokemon hinzu", Comma
 
     override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
-        val soullink = Emolga.get.soullink
+        val soullink = db.soullink.only()
         val order = soullink.order
         val pokemon = args.getText("pokemon")
         val location = eachWordUpperCase(args.getText("location"))
@@ -40,7 +39,7 @@ class AddPokemonCommand : Command("addpokemon", "Fügt ein Pokemon hinzu", Comma
         o[soullinkIds[e.author.idLong]!!] = pokemon
         if (args.has("status")) o["status"] = args.getText("status")
         e.reply("\uD83D\uDC4D")
-        saveEmolgaJSON()
+        soullink.save()
         updateSoullink()
     }
 }

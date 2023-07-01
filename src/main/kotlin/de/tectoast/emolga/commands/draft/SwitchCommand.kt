@@ -8,7 +8,7 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.SwitchData
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 
 class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.Draft) {
@@ -20,7 +20,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
             "Altes Mon",
             "Das Pokemon, was rausgeschmissen werden soll",
             ArgumentManagerTemplate.draftPokemon { s, e ->
-                transaction {
+                newSuspendedTransaction {
                     League.onlyChannel(e.channel!!.idLong)?.let {
                         val tl = it.tierlist
                         it.picks[it.current]!!.filter { p -> p.name != "???" && !p.quit }.sortedWith(

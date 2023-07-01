@@ -8,10 +8,11 @@ import de.tectoast.emolga.commands.indexedBy
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
+import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
@@ -22,14 +23,14 @@ class NominateCommand : PrivateCommand("nominate") {
 
     init {
         setIsAllowed {
-            it.idLong in Emolga.get.nds().picks
+            runBlocking { it.idLong in db.nds().table }
         }
         val tiers = listOf("S", "A", "B", "C", "D")
         tiercomparator = compareBy({ it.tier.indexedBy(tiers) }, { it.name })
     }
 
-    override fun process(e: MessageReceivedEvent) {
-        val nds = Emolga.get.nds()
+    override suspend fun process(e: MessageReceivedEvent) {
+        val nds = db.nds()
         val nom = nds.nominations
         if (e.author.idLong in nom.nominated.getOrPut(nom.currentDay) { mutableMapOf() }) {
             e.channel.sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!").queue()

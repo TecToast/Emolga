@@ -37,7 +37,7 @@ object TeamGraphics {
         "D" to (Color(0xea9999) to Color(0x664242)),
     )
 
-    fun fromDraftPokemon(
+    suspend fun fromDraftPokemon(
         mons: List<DraftPokemon>,
         guild: Long = Constants.G.ASL
     ): Pair<BufferedImage, RandomTeamData> = TeamGraphic(guild).create(mons)
@@ -53,7 +53,7 @@ class TeamGraphic(private val guild: Long) {
     //private val shinyCount = AtomicInteger(0)
     private val randomTeamData = RandomTeamData()
 
-    fun create(mons: List<DraftPokemon>): Pair<BufferedImage, RandomTeamData> {
+    suspend fun create(mons: List<DraftPokemon>): Pair<BufferedImage, RandomTeamData> {
         mons.sortedWith(compareBy({ it.tier.indexedBy(TeamGraphics.tierlist) }, { it.name }))
             .groupBy { it.tier }.forEach {
                 addMonsToList(it.value)
@@ -70,7 +70,7 @@ class TeamGraphic(private val guild: Long) {
         } to randomTeamData
     }
 
-    private fun addMonsToList(monlist: List<DraftPokemon>) {
+    private suspend fun addMonsToList(monlist: List<DraftPokemon>) {
         //mons.computeIfAbsent(tier) { ArrayList() } += pokemon
         mons.add(monlist.map { DraftPokemon(getSpriteForTeamGraphic(it.name, randomTeamData, guild), it.tier) }
             .toMutableList())

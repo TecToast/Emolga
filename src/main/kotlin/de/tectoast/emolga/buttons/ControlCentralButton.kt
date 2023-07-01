@@ -1,8 +1,6 @@
 package de.tectoast.emolga.buttons
 
-import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.PrivateCommands
-import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.draft.Tierlist
 import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -13,11 +11,6 @@ class ControlCentralButton : ButtonListener("controlcentral") {
         var breakpoint = false
         e.deferReply(true).queue()
         when (name) {
-            "ej" -> {
-                Command.loadEmolgaJSON()
-            }
-
-            "saveemolgajson" -> saveEmolgaJSON()
             "updateslash" -> PrivateCommands.updateSlashCommands()
             "updatetierlist" -> Tierlist.setup()
             "breakpoint" -> breakpoint = true

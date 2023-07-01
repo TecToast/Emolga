@@ -1,8 +1,8 @@
 package de.tectoast.emolga.buttons
 
 import de.tectoast.emolga.commands.PrivateCommands
-import de.tectoast.emolga.commands.saveEmolgaJSON
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
@@ -12,11 +12,10 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 class ShiftUserButton : ButtonListener("shiftuser") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val gid = e.guild!!.idLong
-        if (gid !in Emolga.get.signups) {
-            e.reply("Diese Anmeldung ist bereits geschlossen!").setEphemeral(true).queue()
-            return
-        }
-        with(Emolga.get.signups[gid]!!) {
+        with(
+            db.signups.get(gid)
+                ?: return e.reply("Diese Anmeldung ist bereits geschlossen!").setEphemeral(true).queue()
+        ) {
             val uid = name.toLong()
             if (extended) {
                 e.reply_(
@@ -34,7 +33,7 @@ class ShiftUserButton : ButtonListener("shiftuser") {
                 tc.editMessage(shiftMessageIds[index].toString(), embeds = pair.first.into(), components = pair.second)
                     .queue()
             }
-            saveEmolgaJSON()
+            save()
         }
     }
 }

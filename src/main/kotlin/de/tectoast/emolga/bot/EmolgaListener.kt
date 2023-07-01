@@ -10,7 +10,8 @@ import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.FLOID
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.messages.reply_
 import net.dv8tion.jda.api.JDA
@@ -32,6 +33,7 @@ import net.dv8tion.jda.api.events.role.RoleCreateEvent
 import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 import net.dv8tion.jda.api.interactions.components.buttons.Button
+import org.litote.kmongo.eq
 import org.slf4j.LoggerFactory
 
 object EmolgaListener : ListenerAdapter() {
@@ -44,7 +46,7 @@ object EmolgaListener : ListenerAdapter() {
         jda.listener<SlashCommandInteractionEvent> { slashCommandInteractionEvent(it) }
         jda.listener<ReadyEvent> { e ->
             if (e.jda.selfUser.idLong == 723829878755164202) {
-                Emolga.get.drafts.values.filter { it.isRunning && !it.noAutoStart }.forEach {
+                db.drafts.find(League::isRunning eq true, League::noAutoStart eq false).toList().forEach {
                     it.startDraft(null, true, null)
                 }
             }

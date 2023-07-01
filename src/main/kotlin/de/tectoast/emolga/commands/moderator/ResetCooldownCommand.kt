@@ -3,9 +3,13 @@ package de.tectoast.emolga.commands.moderator
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.Cooldown
+import de.tectoast.emolga.utils.json.db
+import org.litote.kmongo.and
+import org.litote.kmongo.eq
+import org.litote.kmongo.set
+import org.litote.kmongo.setTo
 
 class ResetCooldownCommand : Command(
     "resetcooldown",
@@ -29,26 +33,12 @@ class ResetCooldownCommand : Command(
     override suspend fun process(e: GuildCommandEvent) {
         val mem = e.arguments.getMember("user")
         val name = "**" + mem.effectiveName + "**"
-        val c = Emolga.get.cooldowns
         val gid = e.guild.idLong
-        if (gid !in c) {
-            e.reply("Auf diesem Server hat noch nie jemand seinen Namen geändert!")
-            return
-        }
-        val mid = mem.id
-        val o = c[gid]!!
-        if (mid !in o) {
-            e.reply("$name hat noch nie seinen Nickname geändert!")
-            return
-        }
-        val l = o[mid]!!
-        val untilnow = System.currentTimeMillis() - l
-        if (untilnow >= 604800000) {
-            e.reply("$name darf seinen Namen bereits wieder ändern!")
-            return
-        }
-        o[mid] = -1
+        val mid = mem.idLong
+        val cd = db.cooldowns.updateOne(
+            and(Cooldown::guild eq gid, Cooldown::user eq mid), set(Cooldown::timestamp setTo -1)
+        ).takeIf { it.modifiedCount > 0 }
+            ?: return e.reply("$name hat noch nie seinen Nickname geändert!")
         e.reply("Der Cooldown von $name wurde resettet!")
-        saveEmolgaJSON()
     }
 }

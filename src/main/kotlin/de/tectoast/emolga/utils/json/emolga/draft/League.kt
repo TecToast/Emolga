@@ -10,23 +10,32 @@ import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
+import org.litote.kmongo.Id
+import org.litote.kmongo.coroutine.updateOne
+import org.litote.kmongo.eq
 import org.slf4j.Logger
 
 
 @Suppress("MemberVisibilityCanBePrivate")
 @Serializable
 sealed class League {
-    val name by lazy { Emolga.get.drafts.reverseGet(this)!! }
+
+    @SerialName("_id")
+    @Contextual
+    val id: Id<League>? = null
+    val name: String = "ERROR"
     var isRunning: Boolean = false
     val sid: String = "yay"
     val picks: MutableMap<Long, MutableList<DraftPokemon>> = mutableMapOf()
@@ -61,7 +70,7 @@ sealed class League {
 
     val tc: TextChannel get() = emolgajda.getTextChannelById(tcid) ?: error("No text channel found for guild $guild")
 
-    private var tcid: Long = -1
+    var tcid: Long = -1
 
 
     @Transient
@@ -130,9 +139,9 @@ sealed class League {
         return -1
     }
 
-    open fun RequestBuilder.pickDoc(data: PickData): Unit? = null
+    open suspend fun RequestBuilder.pickDoc(data: PickData): Unit? = null
 
-    open fun RequestBuilder.switchDoc(data: SwitchData): Unit? = null
+    open suspend fun RequestBuilder.switchDoc(data: SwitchData): Unit? = null
 
 
     fun isCurrentCheck(user: Long): Boolean {
@@ -144,7 +153,7 @@ sealed class League {
         return allowed[current]?.any { it.u == user } ?: false
     }
 
-    open fun isPicked(mon: String, tier: String? = null) =
+    open suspend fun isPicked(mon: String, tier: String? = null) =
         picks.values.any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
 
     open fun handlePoints(e: GuildCommandEvent, tlNameNew: String, free: Boolean, tlNameOld: String? = null): Boolean {
@@ -199,11 +208,11 @@ sealed class League {
         return false
     }
 
-    open fun afterPick() {
+    open suspend fun afterPick() {
         nextPlayer()
     }
 
-    fun afterPickOfficial() = timerSkipMode?.afterPick(this) ?: afterPick()
+    suspend fun afterPickOfficial() = timerSkipMode?.afterPick(this) ?: afterPick()
 
 
     val draftWouldEnd get() = isLastRound && order[round]!!.isEmpty()
@@ -238,9 +247,12 @@ sealed class League {
             restartTimer(delay)
         }
         isRunning = true
-        saveEmolgaJSON()
+        save()
         logger.info("Started!")
     }
+
+    suspend fun save() = db.drafts.updateOne(this)
+
 
     open fun reset() {}
 
@@ -328,7 +340,7 @@ sealed class League {
     fun hasMovedTurns() = movedTurns().isNotEmpty()
     fun movedTurns() = moved[current] ?: mutableListOf()
 
-    private fun endOfTurn(): Boolean {
+    private suspend fun endOfTurn(): Boolean {
         if (order[round]!!.isEmpty()) {
 
             if (round == totalRounds) {
@@ -336,13 +348,13 @@ sealed class League {
                 //ndsdoc(tierlist, pokemon, d, mem, tier, round);
                 //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
                 isRunning = false
-                saveEmolgaJSON()
+                save()
                 return true
             }
             round++
             if (order[round]!!.isEmpty()) {
                 tc.sendMessage("Da alle bereits ihre Drafts beendet haben, ist der Draft vorbei!").queue()
-                saveEmolgaJSON()
+                save()
                 return true
             }
             sendRound()
@@ -358,7 +370,7 @@ sealed class League {
     internal fun getCurrentName(mem: Long = current) = names[mem]!!
 
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
-    fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER, skippedBy: Long? = null) {
+    suspend fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER, skippedBy: Long? = null) {
         if (!isRunning) return
         if (!isSwitchDraft) triggerMove()
         if (draftWouldEnd && timerSkipMode == TimerSkipMode.AFTER_DRAFT) {
@@ -381,16 +393,16 @@ sealed class League {
             append(announceData())
         }).queue()
         restartTimer()
-        saveEmolgaJSON()
+        save()
     }
 
-    fun nextPlayer() {
+    suspend fun nextPlayer() {
         if (endOfTurn()) return
         current = order[round]!!.nextCurrent()
         cooldownJob?.cancel("Next player")
         announcePlayer()
         restartTimer()
-        saveEmolgaJSON()
+        save()
     }
 
     fun addFinished(mem: Long) {
@@ -436,7 +448,7 @@ sealed class League {
 
     open fun getPickRound() = round
 
-    fun getPickRoundOfficial() = timerSkipMode?.getPickRound(this) ?: getPickRound()
+    suspend fun getPickRoundOfficial() = timerSkipMode?.getPickRound(this) ?: getPickRound()
 
     fun populateAfterDraft() {
         val order = order[totalRounds]!!
@@ -461,14 +473,14 @@ sealed class League {
             )
         })
 
-        fun byCommand(e: GuildCommandEvent) = onlyChannel(e.textChannel.idLong)?.apply {
+        suspend fun byCommand(e: GuildCommandEvent) = onlyChannel(e.textChannel.idLong)?.apply {
             if (!isCurrentCheck(e.member.idLong)) {
                 e.reply("Du bist nicht dran!")
                 return null
             }
         }
 
-        fun onlyChannel(tc: Long) = Emolga.get.drafts.values.firstOrNull { it.isRunning && it.tc.idLong == tc }
+        suspend fun onlyChannel(tc: Long) = db.drafts.find(League::isRunning eq true, League::tcid eq tc).first()
     }
 
     enum class TimerReason {
@@ -534,7 +546,7 @@ enum class TimerSkipMode {
 
 
     LAST_ROUND {
-        override fun afterPick(l: League) {
+        override suspend fun afterPick(l: League) {
             with(l) {
                 if (isLastRound && hasMovedTurns()) {
                     announcePlayer()
@@ -542,7 +554,7 @@ enum class TimerSkipMode {
             }
         }
 
-        override fun getPickRound(l: League) = with(l) {
+        override suspend fun getPickRound(l: League) = with(l) {
             round.let {
                 if (it != totalRounds) it
                 else {
@@ -555,12 +567,12 @@ enum class TimerSkipMode {
         }
     },
     AFTER_DRAFT {
-        override fun afterPick(l: League) = with(l) {
+        override suspend fun afterPick(l: League) = with(l) {
             if (draftWouldEnd) populateAfterDraft()
             nextPlayer()
         }
 
-        override fun getPickRound(l: League): Int = with(l) {
+        override suspend fun getPickRound(l: League): Int = with(l) {
             if (pseudoEnd) {
                 movedTurns().removeFirst()
             } else round
@@ -568,7 +580,7 @@ enum class TimerSkipMode {
 
     },
     NEXT_PICK {
-        override fun afterPick(l: League) {
+        override suspend fun afterPick(l: League) {
             with(l) {
                 if (hasMovedTurns()) {
                     movedTurns().removeFirstOrNull()
@@ -577,12 +589,12 @@ enum class TimerSkipMode {
             }
         }
 
-        override fun getPickRound(l: League) = with(l) { movedTurns().firstOrNull() ?: round }
+        override suspend fun getPickRound(l: League) = with(l) { movedTurns().firstOrNull() ?: round }
     };
 
 
-    abstract fun afterPick(l: League)
-    abstract fun getPickRound(l: League): Int
+    abstract suspend fun afterPick(l: League)
+    abstract suspend fun getPickRound(l: League): Int
 }
 
 class PointsManager(val league: League) {

@@ -11,13 +11,15 @@ import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.DocEntry
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.toastilities.repeat.RepeatTask
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
+import org.litote.kmongo.eq
 import java.time.Duration
 import java.util.Calendar.*
 
@@ -75,14 +77,14 @@ class ASL(
 
     override fun isFinishedForbidden() = false
 
-    override fun RequestBuilder.pickDoc(data: PickData) {
+    override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
         addSingle(
             data.roundIndex.coordXMod("Draft", 6, 4, 3, 10, 4 + data.indexInRound), data.pokemon
         )
     }
 
-    override fun RequestBuilder.switchDoc(data: SwitchData) {
+    override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
         newSystemSwitchDoc(data)
         addRow("Zwischendraft!${data.roundIndex.x(4, 3)}${data.indexInRound + 4}", listOf(data.oldmon, data.pokemon))
     }
@@ -93,12 +95,14 @@ class ASL(
                 defaultTimeFormat.parse("03.07.2023 00:00").toInstant(),
                 10, Duration.ofDays(7)
             ) {
-                val jda = EmolgaMain.emolgajda
-                val msg = "**------------- Spieltag $it -------------**"
-                for (i in 1..5) {
-                    with(Emolga.get.drafts["ASLS12L$i"]!! as ASL) {
-                        jda.getTextChannelById(replayChannel)!!.sendMessage(msg).queue()
-                        jda.getTextChannelById(resultChannel)!!.sendMessage(msg).queue()
+                runBlocking {
+                    val jda = EmolgaMain.emolgajda
+                    val msg = "**------------- Spieltag $it -------------**"
+                    for (i in 1..5) {
+                        with(db.drafts.findOne(League::name eq "ASLS12L$i") as ASL) {
+                            jda.getTextChannelById(replayChannel)!!.sendMessage(msg).queue()
+                            jda.getTextChannelById(resultChannel)!!.sendMessage(msg).queue()
+                        }
                     }
                 }
             }

@@ -3,15 +3,18 @@ package de.tectoast.emolga.commands.pokemon
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.TeamGraphics
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.Statistics
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.only
+import de.tectoast.emolga.utils.json.updateOnly
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import net.dv8tion.jda.api.utils.FileUpload
+import org.litote.kmongo.inc
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 
@@ -42,9 +45,9 @@ class RandomTeamGrafikCommand :
                             .queue()
                 }
                 if (hasDrampa) {
-                    e.textChannel.sendMessage("**DRAMPA** (Nr. ${++Emolga.get.statistics.drampaCounter})").queue()
+                    db.statistics.updateOnly(inc(Statistics::drampaCounter, 1))
+                    e.textChannel.sendMessage("**DRAMPA** (Nr. ${db.statistics.only().drampaCounter})").queue()
                     e.textChannel.sendMessage("<@446274734389198848>").queue()
-                    saveEmolgaJSON()
                 }
             }
 

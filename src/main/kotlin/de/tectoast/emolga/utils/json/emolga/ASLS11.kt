@@ -4,7 +4,7 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.Member
 
@@ -43,7 +43,7 @@ class ASLS11(
             prefix?.let { user.modifyNickname("[$prefix] ${user.effectiveName}").queue() }
             user.guild.addRoleToMember(user, user.jda.getRoleById(role)!!).queue()
         }
-        val (x, y) = Emolga.get.asls11nametoid.indexOf(user.idLong).let { it.xdiv(24, 1, 20) to it.ymod(24, 1, 20) }
+        val (x, y) = db.asls11nametoid.indexOf(user.idLong).let { it.xdiv(24, 1, 20) to it.ymod(24, 1, 20) }
         table.indexOf(teamnameByCoach(coach)).let {
             RequestBuilder(sid).addRow(
                 "Menschenhandel!${it.xmod(6, 3, 2)}${it.ydiv(6, 17, 14 + level)}", listOf("=$x$y", prize)
@@ -73,7 +73,7 @@ class ASLS11(
         }
         textChannel().sendMessage("<@$coach> ($teamname) darf jemanden in den Ring werfen!").queue()
         currentCoach = coach
-        saveEmolgaJSON()
+        TODO("SAVE und so")
     }
 
     private fun refillOrderIfEmpty() {

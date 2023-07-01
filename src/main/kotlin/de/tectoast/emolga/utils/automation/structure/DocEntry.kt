@@ -1,14 +1,16 @@
 package de.tectoast.emolga.utils.automation.structure
 
-import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.Command.Companion.compareColumns
 import de.tectoast.emolga.commands.Command.Companion.getNumber
 import de.tectoast.emolga.commands.Command.Companion.indexPick
+import de.tectoast.emolga.commands.ReplayData
+import de.tectoast.emolga.commands.indexedBy
+import de.tectoast.emolga.commands.names
+import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.records.StatLocation
@@ -30,7 +32,7 @@ class DocEntry private constructor(val league: League) {
     private var useProcessor: BasicStatProcessor = invalidProcessor
     var winProcessor: ResultStatProcessor? = null
     var looseProcessor: ResultStatProcessor? = null
-    var resultCreator: (AdvancedResult.() -> Unit)? = null
+    var resultCreator: (suspend AdvancedResult.() -> Unit)? = null
     var sorterData: SorterData? = null
     var setStatIfEmpty = false
     var numberMapper: (String) -> String = { it.ifEmpty { "0" } }
@@ -39,7 +41,7 @@ class DocEntry private constructor(val league: League) {
     var randomGamedayMapper: (Int) -> Int = { it }
     var cancelIf: (ReplayData, Int) -> Boolean = { _: ReplayData, _: Int -> false }
     private val gamedays get() = league.gamedays
-    fun newSystem(sorterData: SorterData, resultCreator: (AdvancedResult.() -> Unit)) {
+    fun newSystem(sorterData: SorterData, resultCreator: (suspend AdvancedResult.() -> Unit)) {
         val dataSheet = league.dataSheet
         val gap = league.newSystemGap
         killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
@@ -108,7 +110,7 @@ class DocEntry private constructor(val league: League) {
                 }
             }
         }
-        error("Didnt found matchup for $u1 & $u2 in ${Emolga.get.drafts.reverseGet(league)}")
+        error("Didnt found matchup for $u1 & $u2 in ${league.name}")
     }
 
     fun getMatchups(gameday: Int) =
@@ -117,7 +119,7 @@ class DocEntry private constructor(val league: League) {
         )
 
 
-    fun analyse(
+    suspend fun analyse(
         replayData: ReplayData
     ) {
         val (game, uid1, uid2, kills, deaths, _, url) = replayData
@@ -246,7 +248,7 @@ class DocEntry private constructor(val league: League) {
                 league = league
             ).it()
         }
-        saveEmolgaJSON()
+        league.save()
         b.withRunnable(3000) { sort() }.execute()
     }
 

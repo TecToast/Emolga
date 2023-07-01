@@ -5,7 +5,7 @@ import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.DocEntry
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -33,15 +33,15 @@ class MDL(val division: Int) : League() {
     override val dataSheet: String
         get() = "Data$division"
 
-    override fun isPicked(mon: String, tier: String?) = picks.values.flatten().any { p ->
+    override suspend fun isPicked(mon: String, tier: String?) = picks.values.flatten().any { p ->
         p.name.equals(
             mon,
             ignoreCase = true
         )
-    } || Emolga.get.league("MDLL${2 - division}").picks.values.flatten()
+    } || db.league("MDLL${2 - division}").picks.values.flatten()
         .any { p -> p.name.equals(mon, ignoreCase = true) }
 
-    override fun RequestBuilder.pickDoc(data: PickData) {
+    override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
         addSingle(
             data.memIndex.coordXMod(

@@ -5,7 +5,8 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PrivateCommands
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.interactions.components.Modal
 
 class SignUpChangeCommand :
@@ -16,7 +17,7 @@ class SignUpChangeCommand :
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val signups = Emolga.get.signups[e.guild.idLong] ?: return e.reply(
+        val signups = db.signups.get(e.guild.idLong) ?: return e.reply(
             "Es läuft derzeit keine Anmeldung auf diesem Server!", ephemeral = true
         )
         val uid = e.author.idLong

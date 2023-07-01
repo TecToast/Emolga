@@ -4,10 +4,12 @@ import de.tectoast.emolga.commands.Language
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.File
 import kotlin.properties.ReadOnlyProperty
@@ -32,7 +34,7 @@ class Tierlist(val guildid: Long) {
 
     val freePicksAmount get() = freepicks["#AMOUNT#"] ?: 0
 
-    val autoComplete: Set<String> by lazy(::getAllForAutoComplete)
+    val autoComplete: Set<String> by lazy { runBlocking { getAllForAutoComplete() } }
 
     @Transient
     val tlToOfficialCache = SizeLimitedMap<String, String>(1000)
@@ -62,7 +64,7 @@ class Tierlist(val guildid: Long) {
         }
     }
 
-    private fun getAllForAutoComplete() = transaction {
+    private suspend fun getAllForAutoComplete() = newSuspendedTransaction {
         val list = select { guild eq guildid }.map { it[pokemon] }
         (list + NameConventionsDB.getAllOtherSpecified(list, language, guildid)).toSet()
     }

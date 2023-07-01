@@ -98,6 +98,7 @@ import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import org.apache.commons.collections4.queue.CircularFifoQueue
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
 import org.slf4j.MarkerFactory
@@ -349,7 +350,7 @@ abstract class Command(
     )
 
     interface ArgumentType {
-        fun validate(str: String, data: ValidationData): Any?
+        suspend fun validate(str: String, data: ValidationData): Any?
         fun getName(): String
         val customHelp: String?
             get() = null
@@ -527,7 +528,7 @@ abstract class Command(
         }
 
         @Throws(ArgumentException::class)
-        fun construct(e: SlashCommandInteractionEvent, c: Command): ArgumentManager {
+        suspend fun construct(e: SlashCommandInteractionEvent, c: Command): ArgumentManager {
             val map: MutableMap<String, Any> = HashMap()
             if (c.hasChildren()) {
                 val childCmd = c.childCommands[e.subcommandName]
@@ -567,7 +568,7 @@ abstract class Command(
         }
 
         @Throws(ArgumentException::class)
-        fun construct(e: MessageReceivedEvent, c: Command): ArgumentManager {
+        suspend fun construct(e: MessageReceivedEvent, c: Command): ArgumentManager {
             val m = e.message
             val mid = m.idLong
             val raw = m.contentRaw
@@ -675,7 +676,7 @@ abstract class Command(
                 Pattern.compile("\\d{1,9}"), "Zahl", true, OptionType.INTEGER
             );
 
-            override fun validate(str: String, data: ValidationData): Any? {
+            override suspend fun validate(str: String, data: ValidationData): Any? {
                 if (pattern.matcher(str).find()) {
                     if (mentionable()) {
                         val m = data.message ?: error("Message is not set in discord validation")
@@ -707,7 +708,7 @@ abstract class Command(
         }
 
         object ArgumentBoolean : ArgumentType {
-            override fun validate(str: String, data: ValidationData) = str.toBoolean()
+            override suspend fun validate(str: String, data: ValidationData) = str.toBoolean()
 
             override fun getName() = "Wahrheitswert"
 
@@ -740,7 +741,7 @@ abstract class Command(
                 return this
             }
 
-            override fun validate(str: String, data: ValidationData): Any? {
+            override suspend fun validate(str: String, data: ValidationData): Any? {
                 return if (any) str else texts.map { it.name }
                     .filter { it.equals(str, ignoreCase = true) }.map(mapper)
                     .firstOrNull()
@@ -845,7 +846,7 @@ abstract class Command(
                 return hasRange
             }
 
-            override fun validate(str: String, data: ValidationData): Any? {
+            override suspend fun validate(str: String, data: ValidationData): Any? {
                 return str.toIntOrNull()?.let { num ->
                     if (any) num else if (hasRange()) {
                         if (num in range!!) num else null
@@ -886,7 +887,7 @@ abstract class Command(
         }
 
         class DiscordFile(private val fileType: String) : ArgumentType {
-            override fun validate(str: String, data: ValidationData): Any? {
+            override suspend fun validate(str: String, data: ValidationData): Any? {
                 val att = (data.message ?: error("Message is null")).attachments
                 if (att.size == 0) return null
                 val a = att[data.asFar]
@@ -1024,12 +1025,12 @@ abstract class Command(
 
             fun draft(): ArgumentType {
                 return withPredicate(
-                    "Draftname", { it in Emolga.get.drafts }, false
+                    "Draftname", { db.drafts.findOne(League::name eq it) != null }, false
                 )
             }
 
             fun draftPokemon(
-                autoComplete: ((String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
+                autoComplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
             ): ArgumentType {
                 return withPredicate(
                     "Pokemon",
@@ -1046,10 +1047,10 @@ abstract class Command(
                 )
             }
 
-            fun withPredicate(name: String, check: Predicate<String>, female: Boolean): ArgumentType {
+            fun withPredicate(name: String, check: suspend (String) -> Boolean, female: Boolean): ArgumentType {
                 return object : ArgumentType {
-                    override fun validate(str: String, data: ValidationData): Any? {
-                        return if (check.test(str)) str else null
+                    override suspend fun validate(str: String, data: ValidationData): Any? {
+                        return if (check(str)) str else null
                     }
 
                     override fun getName(): String {
@@ -1069,11 +1070,11 @@ abstract class Command(
             private fun withPredicate(
                 name: String,
                 female: Boolean,
-                mapper: (String, ValidationData) -> Any?,
-                autoComplete: ((String, CommandAutoCompleteInteractionEvent) -> List<String>?)?
+                mapper: suspend (String, ValidationData) -> Any?,
+                autoComplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)?
             ): ArgumentType {
                 return object : ArgumentType {
-                    override fun validate(str: String, data: ValidationData): Any? {
+                    override suspend fun validate(str: String, data: ValidationData): Any? {
                         return mapper(str, data)
                     }
 
@@ -1129,11 +1130,6 @@ abstract class Command(
          * List of guilds where the music playlist is playing
          */
         val music: MutableList<Guild> = ArrayList()
-
-        /**
-         * Saves the channel ids per server where emolgas commands work
-         */
-        val emolgaChannel: MutableMap<Long, MutableList<Long>> = HashMap()
 
         /**
          * Some pokemon extensions for showdown
@@ -1272,67 +1268,34 @@ abstract class Command(
 
         private fun registerCommands() {
             val loader = Thread.currentThread().contextClassLoader
-            try {
-                for (classInfo in ClassPath.from(loader)
-                    .getTopLevelClassesRecursive("de.tectoast.emolga.commands")) {
-                    val cl = classInfo.load()
-                    if (cl.isInterface) continue
-                    val name = cl.superclass.simpleName
-                    if (name.endsWith("Command") && !Modifier.isAbstract(cl.modifiers)) {
-                        val cmd = cl.constructors[0].newInstance()
-                        if (cl.isAnnotationPresent(ToTest::class.java)) {
-                            logger.warn("{} has to be tested!", cl.name)
-                        }
-                        if (cmd is Command) {
-                            cmd.addToMap()
-                            for (dc in cl.declaredClasses) {
-                                if (dc.superclass.simpleName.endsWith("Command") && !Modifier.isAbstract(dc.modifiers)) {
-                                    val ccmd = dc.constructors[0].newInstance()
-                                    if (ccmd is Command) {
-                                        ccmd.addToChildren(cmd)
-                                    }
+            for (classInfo in ClassPath.from(loader)
+                .getTopLevelClassesRecursive("de.tectoast.emolga.commands")) {
+                val cl = classInfo.load()
+                if (cl.isInterface) continue
+                val name = cl.superclass.simpleName
+                if (name.endsWith("Command") && !Modifier.isAbstract(cl.modifiers)) {
+                    val cmd = cl.constructors[0].newInstance()
+                    if (cl.isAnnotationPresent(ToTest::class.java)) {
+                        logger.warn("{} has to be tested!", cl.name)
+                    }
+                    if (cmd is Command) {
+                        cmd.addToMap()
+                        for (dc in cl.declaredClasses) {
+                            if (dc.superclass.simpleName.endsWith("Command") && !Modifier.isAbstract(dc.modifiers)) {
+                                val ccmd = dc.constructors[0].newInstance()
+                                if (ccmd is Command) {
+                                    ccmd.addToChildren(cmd)
                                 }
                             }
                         }
                     }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
+
         }
 
         fun getFirst(str: String): String {
             return str.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()[0]
-        }
-
-        fun getDataName(s: String): String {
-            if (s == "Wie-Shu") return "mienshao"
-            if (s == "Lin-Fu") return "mienfoo"
-            if (s == "Porygon-Z") return "porygonz"
-            if (s == "Sen-Long") return "drampa"
-            if (s == "Ho-Oh") return "hooh"
-            if (s == "eF-eM") return "noibat"
-            if (s == "Pam-Pam") return "pancham"
-            if (s == "Nidoran♂") return "nidoranm"
-            if (s == "Nidoran♀") return "nidoranf"
-            if (s == "Nidoran") return "nidoranm"
-            if (s.startsWith("Furnifra")) return "heatmor"
-            if (s.startsWith("Kapu-")) return getSDName(s)
-            val split = s.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()
-            if (split.size == 1) return getSDName(s)
-            if (s.startsWith("M-")) {
-                return if (split.size == 3) {
-                    getSDName(split[1]) + "mega" + split[2].lowercase()
-                } else getSDName(split[1]) + "mega"
-            }
-            if (s.startsWith("A-")) return getSDName(split[1]) + "alola"
-            return if (s.startsWith("G-")) getSDName(split[1]) + "galar" else getSDName(
-                split[0]
-            ) + toSDName(
-                sdex.getOrDefault(
-                    s, ""
-                )
-            )
         }
 
         fun getFirstAfterUppercase(s: String): String {
@@ -1529,7 +1492,7 @@ abstract class Command(
                 tco.sendMessageEmbeds(builder.build()).queue()
                 return
             }
-            Emolga.get.mutedroles[g.idLong]?.let { g.addRoleToMember(mem, g.getRoleById(it)!!).queue() }
+            MutedRolesDB.getMutedRole(g.idLong)?.let { g.addRoleToMember(mem, g.getRoleById(it)!!).queue() }
             val expires = (System.currentTimeMillis() + time * 1000L) / 1000 * 1000
             muteTimer(g, expires, mem.idLong)
             val builder = EmbedBuilder()
@@ -1550,7 +1513,7 @@ abstract class Command(
             moderationService.schedule({
                 val gid = g.idLong
                 if (MuteDB.unmute(mem, gid) != 0) {
-                    Emolga.get.mutedroles[gid]?.let {
+                    MutedRolesDB.getMutedRole(gid)?.let {
                         g.removeRoleFromMember(mem.usersnowflake, g.getRoleById(it)!!).queue()
                     }
                 }
@@ -1618,7 +1581,7 @@ abstract class Command(
                 tco.sendMessageEmbeds(builder.build()).queue()
                 return
             }
-            Emolga.get.mutedroles[gid]?.let { g.addRoleToMember(mem, g.getRoleById(it)!!).queue() }
+            MutedRolesDB.getMutedRole(gid)?.let { g.addRoleToMember(mem, g.getRoleById(it)!!).queue() }
             val builder = EmbedBuilder()
             builder.setAuthor(mem.effectiveName + " wurde gemutet", null, mem.user.effectiveAvatarUrl)
             builder.setColor(java.awt.Color.CYAN)
@@ -1630,7 +1593,7 @@ abstract class Command(
         fun unmute(tco: GuildMessageChannel, mem: Member) {
             val g = tco.guild
             val gid = g.idLong
-            Emolga.get.mutedroles[gid]?.let { g.removeRoleFromMember(mem, g.getRoleById(it)!!).queue() }
+            MutedRolesDB.getMutedRole(gid)?.let { g.removeRoleFromMember(mem, g.getRoleById(it)!!).queue() }
             val builder = EmbedBuilder()
             builder.setAuthor(mem.effectiveName + " wurde entmutet", null, mem.user.effectiveAvatarUrl)
             builder.setColor(java.awt.Color.CYAN)
@@ -1880,7 +1843,7 @@ abstract class Command(
             }
         }
 
-        fun updateSoullink() {
+        suspend fun updateSoullink() {
             emolgajda.getTextChannelById(SOULLINK_TCID)!!.editMessageById(SOULLINK_MSGID, buildSoullink()).queue()
         }
 
@@ -1888,9 +1851,9 @@ abstract class Command(
             return listOf(*soullinkNames.toTypedArray(), "Fundort", "Status")
         }
 
-        private fun buildSoullink(): String {
+        private suspend fun buildSoullink(): String {
             val statusOrder = listOf("Team", "Box", "RIP")
-            val soullink = Emolga.get.soullink
+            val soullink = db.soullink.only()
             val mons = soullink.mons
             val order = soullink.order
             val maxlen = max(order.maxOfOrNull { it.length } ?: -1,
@@ -2173,24 +2136,25 @@ abstract class Command(
             }
         }
 
-        fun setupRepeatTasks() {
+        suspend fun setupRepeatTasks() {
             setupManualRepeatTasks()
-            Emolga.get.drafts.entries.forEach { l ->
-                l.value.takeIf { it.docEntry != null }?.tipgame?.let { tip ->
+            db.drafts.find().toFlow().collect { l ->
+                l.takeIf { it.docEntry != null }?.tipgame?.let { tip ->
                     val duration = Duration.ofSeconds(parseShortTime(tip.interval).toLong())
                     RepeatTask(
                         tip.lastSending.toInstant(),
                         tip.amount,
                         duration,
-                        { executeTipGameSending(Emolga.get.league(l.key), it) },
+                        { executeTipGameSending(runBlocking { db.league(l.name) }, it) },
                         true
                     )
                     RepeatTask(
                         tip.lastLockButtons.toInstant(), tip.amount, duration,
-                        { executeTipGameLockButtons(Emolga.get.league(l.key), it) }, true
+                        { executeTipGameLockButtons(runBlocking { db.league(l.name) }, it) }, true
                     )
                 }
             }
+
         }
 
         private fun setupManualRepeatTasks() {
@@ -2257,7 +2221,6 @@ abstract class Command(
                 println("Begin decrypt...")
                 tokens = TokenEncrypter.decrypt(it)
             }
-            loadEmolgaJSON()
             defaultScope.launch {
                 //emolgaJSON = load("./emolgadata.json")
                 //datajson = loadSD("pokedex.ts", 59);
@@ -2399,16 +2362,17 @@ abstract class Command(
                             }
                         }
                     } else {
-                        if (emolgaChannel.containsKey(gid)) {
-                            val l = emolgaChannel[gid]!!
-                            if (!l.contains(e.channel.idLong) && l.isNotEmpty()) {
-                                if (e.author.idLong == FLOID) {
-                                    tco.sendMessage("Eigentlich dürfen hier keine Commands genutzt werden, aber weil du es bist, mache ich das c:")
-                                        .queue()
-                                } else {
-                                    e.channel.sendMessage("<#" + l[0] + ">").queue()
-                                    return
-                                }
+                        db.emolgachannel.findOne(
+                            EmolgaChannelConfig::guild eq gid,
+                            not(EmolgaChannelConfig::channels contains e.channel.idLong),
+                            not(EmolgaChannelConfig::channels.size(0)),
+                        )?.let { l ->
+                            if (e.author.idLong == FLOID) {
+                                tco.sendMessage("Eigentlich dürfen hier keine Commands genutzt werden, aber weil du es bist, mache ich das c:")
+                                    .queue()
+                            } else {
+                                e.channel.sendMessage("<#${l.channels.first()}>").queue()
+                                return
                             }
                         }
                     }
@@ -2510,11 +2474,13 @@ abstract class Command(
                 ?.filterNot { it.forme?.endsWith("Totem") == true }?.toList() ?: listOf(mon)
         }
 
+        @Suppress("UNUSED_PARAMETER")
         private fun moveFilter(msg: String, move: String): Boolean {
-            val o = Emolga.get.movefilter
+            /*val o = Emolga.get.movefilter
             for (s in o.keys) {
                 if (msg.lowercase().contains("--$s") && move !in o[s]!!) return false
             }
+            return true*/
             return true
         }
 
@@ -2612,10 +2578,10 @@ abstract class Command(
             ).notNullAppend(o.formeSuffix) + ".png"
         }
 
-        fun getSpriteForTeamGraphic(str: String, data: RandomTeamData, guild: Long): String {
+        suspend fun getSpriteForTeamGraphic(str: String, data: RandomTeamData, guild: Long): String {
             if (str == "Sen-Long") data.hasDrampa = true
             val o = getDataObject(str, guild)
-            val odds = Emolga.get.config.teamgraphicShinyOdds
+            val odds = db.config.only().teamgraphicShinyOdds
             return buildString {
                 append("gen5_cropped")
                 if (Random.nextInt(odds) == 0) {
@@ -2641,15 +2607,11 @@ abstract class Command(
             }
         }
 
-        fun getGen5Sprite(str: String): String {
-            return getGen5Sprite(getDataObject(str))
+        suspend fun getGen5Sprite(str: String, guildId: Long = 0): String {
+            return getGen5Sprite(getDataObject(str, guildId))
         }
 
-        fun getDataObject(mon: String): Pokemon {
-            return dataJSON[getDataName(mon)]!!
-        }
-
-        fun getDataObject(mon: String, guild: Long): Pokemon {
+        suspend fun getDataObject(mon: String, guild: Long = 0): Pokemon {
             return dataJSON[NameConventionsDB.getDiscordTranslation(mon, guild, true)!!.official.toSDName()]!!
         }
 
@@ -2727,7 +2689,7 @@ abstract class Command(
             val uid1 = SDNamesDB.getIDByName(u1)
             val uid2 = SDNamesDB.getIDByName(u2)
             logger.info("Analysed!")
-            val league = Emolga.get.leagueByGuild(gid, uid1, uid2)
+            val league = db.leagueByGuild(gid, uid1, uid2)
 //                if (league is ASL) {
 //                    val i1 = league.table.indexOf(uid1)
 //                    val i2 = league.table.indexOf(uid2)
@@ -2769,34 +2731,36 @@ abstract class Command(
                 "${player.nickname}:".condAppend(
                     player.allMonsDead && !spoiler, " (alle tot)"
                 ) + "\n".condAppend(spoiler, "||") + player.pokemon.joinToString("\n") { mon ->
-                    getMonName(mon.pokemon, gid).also { monNames[mon.pokemon] = it }.displayName.let {
-                        if (activePassive) {
-                            "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
-                        } else {
-                            it.condAppend(mon.kills > 0, " ${mon.kills}")
-                        }
-                    }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
-                }.condAppend(spoiler, "||")
-            }
-            logger.info("u1 = $u1")
-            logger.info("u2 = $u2")
-            if (fromAnalyseCommand != null) {
-                fromAnalyseCommand.sendMessage(str).queue()
-            } else if (!customResult.contains(gid)) {
-                resultChannel.sendMessage(str).queue()
-            }
-            replayChannel?.sendMessage(url)?.queue()
-            fromReplayCommand?.sendMessage(url)?.queue()
-            if (resultchannelParam.guild.idLong != Constants.G.MY) {
-                StatisticsDB.increment("analysis")
-                game.forEach { player ->
-                    player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
-                        FullStatsDB.add(
-                            monNames[it.pokemon]!!.official, it.kills, if (it.isDead) 1 else 0, player.winner
-                        )
-                    }
+                    runBlocking { getMonName(mon.pokemon, gid) }.also {
+                            monNames[mon.pokemon] = it
+                        }.displayName.let {
+                            if (activePassive) {
+                                "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
+                            } else {
+                                it.condAppend(mon.kills > 0, " ${mon.kills}")
+                            }
+                        }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
+                    }.condAppend(spoiler, "||")
                 }
-                defaultScope.launch {
+                logger.info("u1 = $u1")
+                logger.info("u2 = $u2")
+                if (fromAnalyseCommand != null) {
+                    fromAnalyseCommand.sendMessage(str).queue()
+                } else if (!customResult.contains(gid)) {
+                    resultChannel.sendMessage(str).queue()
+                }
+                replayChannel?.sendMessage(url)?.queue()
+                fromReplayCommand?.sendMessage(url)?.queue()
+                if (resultchannelParam.guild.idLong != Constants.G.MY) {
+                    StatisticsDB.increment("analysis")
+                    game.forEach { player ->
+                        player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
+                            FullStatsDB.add(
+                                monNames[it.pokemon]!!.official, it.kills, if (it.isDead) 1 else 0, player.winner
+                            )
+                        }
+                    }
+                    defaultScope.launch {
                     updatePresence()
                 }
             }
@@ -2912,10 +2876,10 @@ abstract class Command(
             } ?: Translation.empty()
         }
 
-        fun getTypeGerName(type: String): String =
+        suspend fun getTypeGerName(type: String): String =
             (Translation.Type.TYPE.validate(type, ValidationData()) as Translation).translation
 
-        fun getTypeGerNameOrNull(type: String): String? =
+        suspend fun getTypeGerNameOrNull(type: String): String? =
             (Translation.Type.TYPE.validate(type, ValidationData()) as Translation?)?.translation
 
         fun getSDName(str: String): String {
@@ -2965,11 +2929,11 @@ abstract class Command(
             return getAttacksFrom(pokemon, msg, form, maxgen).contains(atk)
         }
 
-        fun getMonName(s: String, guildId: Long, withDebug: Boolean = false): DraftName {
+        suspend fun getMonName(s: String, guildId: Long, withDebug: Boolean = false): DraftName {
             if (withDebug) logger.info("s = $s")
             val split = s.split("-")
-            val lastSplit = split.dropLast(1).joinToString("-")
-            if (split.last() == "*") return getMonName(lastSplit, guildId, withDebug)
+            val withoutLast = split.dropLast(1).joinToString("-")
+            if (split.last() == "*") return getMonName(withoutLast, guildId, withDebug)
             return if (s == "_unbekannt_") DraftName("_unbekannt_", "UNKNOWN")
             else
                 NameConventionsDB.getSDTranslation(
@@ -2996,13 +2960,10 @@ abstract class Command(
             return builder.toString()
         }
 
-        fun isChannelAllowed(tc: TextChannel): Boolean {
+        suspend fun isChannelAllowed(tc: TextChannel): Boolean {
             val gid = tc.guild.idLong
-            return !emolgaChannel.containsKey(gid) || emolgaChannel[gid]!!.contains(tc.idLong) || emolgaChannel[gid]!!.isEmpty()
-        }
-
-        fun loadEmolgaJSON() {
-            Emolga.get = load("emolgadata.json", myJSON)
+            val c = db.emolgachannel.findOne(EmolgaChannelConfig::guild eq gid)
+            return c == null || c.channels.isEmpty() || tc.idLong in c.channels
         }
     }
 }
@@ -3088,10 +3049,6 @@ object DateToStringSerializer : KSerializer<Date> {
     override fun deserialize(decoder: Decoder): Date {
         return defaultTimeFormat.parse(decoder.decodeString())
     }
-}
-
-fun saveEmolgaJSON() {
-    save(Emolga.get, "emolgadata.json")
 }
 
 fun String.file() = File(this)
@@ -3218,7 +3175,7 @@ class Translation(
 
         fun or(name: String): Command.ArgumentType {
             return object : Command.ArgumentType {
-                override fun validate(str: String, data: Command.ValidationData): Any? {
+                override suspend fun validate(str: String, data: Command.ValidationData): Any? {
                     return if (str == name) Translation(
                         "Tom", TRAINER, Language.GERMAN, "Tom"
                     ) else this@Type.validate(str, data)
@@ -3245,7 +3202,7 @@ class Translation(
             return true
         }
 
-        override fun validate(str: String, data: Command.ValidationData): Any? {
+        override suspend fun validate(str: String, data: Command.ValidationData): Any? {
             val t = if (data.language == Language.GERMAN) Command.getGerName(
                 str
             ) else Command.getEnglNameWithType(str)
@@ -3278,7 +3235,7 @@ class Translation(
 
             fun of(vararg types: Type): Command.ArgumentType {
                 return object : Command.ArgumentType {
-                    override fun validate(str: String, data: Command.ValidationData): Any? {
+                    override suspend fun validate(str: String, data: Command.ValidationData): Any? {
                         val t =
                             if (data.language === Language.GERMAN) Command.getGerName(str) else Command.getEnglNameWithType(
                                 str

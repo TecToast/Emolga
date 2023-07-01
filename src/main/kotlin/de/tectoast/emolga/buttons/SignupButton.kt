@@ -1,17 +1,15 @@
 package de.tectoast.emolga.buttons
 
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.interactions.components.Modal
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class SignupButton : ButtonListener("signup") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
-        val gid = e.guild?.idLong
-        if (gid !in Emolga.get.signups) {
-            e.reply("Diese Anmeldung ist bereits geschlossen!").setEphemeral(true).queue()
-            return
-        }
-        val signups = Emolga.get.signups[gid]!!
+        val gid = e.guild!!.idLong
+        val signups = db.signups.get(gid)
+            ?: return e.reply("Diese Anmeldung ist bereits geschlossen!").setEphemeral(true).queue()
         val uid = e.user.idLong
         if (uid in signups.users || signups.users.values.any { uid in it.teammates }) {
             e.reply("Du bist bereits angemeldet!").setEphemeral(true).queue()

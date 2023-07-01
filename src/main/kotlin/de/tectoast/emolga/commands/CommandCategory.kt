@@ -1,7 +1,7 @@
 package de.tectoast.emolga.commands
 
+import de.tectoast.emolga.database.exposed.ModeratorRolesDB
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.json.Emolga
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 
@@ -10,8 +10,7 @@ enum class CommandCategory {
         967392435565105172L
     ),
     Pokemon(967390967550332968L, "Pokémon"), Various(
-        967390968670191717L,
-        "Verschiedenes"
+        967390968670191717L, "Verschiedenes"
     ),
     Showdown(967391265236860948L), Pepe(967391297797251082L), Soullink(967717447199244309L);
 
@@ -52,15 +51,13 @@ enum class CommandCategory {
         val order = listOf(Flo, Admin, Moderator, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Soullink)
 
         init {
-            Moderator.allowsMemberFun = { m: Member ->
-                Admin.allowsMember(m) || m.roles.any { Emolga.get.moderatorroles.containsValue(it.idLong) }
+            Moderator.allowsMemberFun = {
+                Admin.allowsMember(it) || ModeratorRolesDB.isMod(it)
             }
-            Moderator.allowsGuildIdFun =
-                Emolga.get.moderatorroles::containsKey
-            Pepe.allowsGuildIdFun =
-                { it == 605632286179983360L || it == 817156502912761867L }
-            Flo.allowsMemberFun =
-                { it.idLong == Constants.FLOID }
+
+            Moderator.allowsGuildIdFun = { ModeratorRolesDB.isModGuild(it) }
+            Pepe.allowsGuildIdFun = { it == 605632286179983360L || it == 817156502912761867L }
+            Flo.allowsMemberFun = { it.idLong == Constants.FLOID }
             Admin.allowsMemberFun = Flo.allowsMemberFun
             Soullink.allowsGuildIdFun = { gid: Long? -> gid == 695943416789598208L }
             enableEverywhere(Draft, Flo, Admin, Moderator)
@@ -79,10 +76,9 @@ enum class CommandCategory {
 
         //(gid.equals("700504340368064562") || gid.equals("712035338846994502") || gid.equals("673833176036147210")
         fun byName(name: String?): CommandCategory? {
-            return values()
-                .firstOrNull {
-                    it.categoryName.equals(name, ignoreCase = true)
-                }
+            return values().firstOrNull {
+                it.categoryName.equals(name, ignoreCase = true)
+            }
         }
     }
 }

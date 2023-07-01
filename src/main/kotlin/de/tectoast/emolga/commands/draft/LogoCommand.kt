@@ -1,8 +1,12 @@
 package de.tectoast.emolga.commands.draft
 
-import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.CommandCategory
+import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.file
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.utils.FileUpload
 
@@ -20,7 +24,7 @@ class LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Draf
 
     companion object {
         suspend fun insertLogo(e: GuildCommandEvent, uid: Long) {
-            val ligaStartData = Emolga.get.signups[e.guild.idLong]!!
+            val ligaStartData = db.signups.get(e.guild.idLong)!!
             if (uid !in ligaStartData.users) {
                 e.reply("Du bist nicht angemeldet!", ephemeral = true)
                 return
@@ -45,7 +49,7 @@ class LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Draf
                 )
                     .addFiles(FileUpload.fromData(file)).await()
                     .also { signUpData.logomid = it.idLong }.attachments[0].url
-            saveEmolgaJSON()
+            ligaStartData.save()
         }
     }
 }

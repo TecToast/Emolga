@@ -12,10 +12,11 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.LigaStartData
+import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
+import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.button
@@ -170,12 +171,6 @@ object PrivateCommands {
     }
 
 
-    fun saveEmolga(e: GenericCommandEvent) {
-        saveEmolgaJSON()
-        e.done()
-    }
-
-
     fun testVolume(e: GenericCommandEvent) {
         logger.info("Start!")
         Command.musicManagers[673833176036147210L]!!.player.volume = e.getArg(0).toInt()
@@ -230,19 +225,19 @@ object PrivateCommands {
     }
 
 
-    fun ndsNominate(e: GenericCommandEvent) {
+    suspend fun ndsNominate(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         NDS.doNDSNominate(args[0].toBooleanStrict(), *args.drop(1).map { it.toLong() }.toLongArray())
     }
 
 
-    fun matchUps(e: GenericCommandEvent) {
+    suspend fun matchUps(e: GenericCommandEvent) {
         NDS.doMatchUps(e.getArg(0).toInt())
     }
 
 
-    fun ndsTeamsite() {
-        val nds = Emolga.get.nds()
+    suspend fun ndsTeamsite() {
+        val nds = db.nds()
         val picks = nds.picks
         val teamnames = nds.teamnames
         val b = RequestBuilder(nds.sid)
@@ -322,19 +317,19 @@ object PrivateCommands {
     }
 
 
-    fun prepareNDSJSON() {
-        val nds = Emolga.get.nds()
+    suspend fun prepareNDSJSON() {
+        val nds = db.nds()
         val picks = nds.picks
         val tierorder = listOf("S", "A", "B", "C", "D")
         for (s in picks.keys) {
             picks[s]!!.sortWith(compareBy({ it.tier.indexedBy(tierorder) }, { it.name }))
         }
-        saveEmolgaJSON()
+        nds.save()
     }
 
 
-    fun prepareNDSDoc() {
-        val nds = Emolga.get.nds()
+    suspend fun prepareNDSDoc() {
+        val nds = db.nds()
         val picks = nds.picks
         val get: MutableList<List<List<Any>>?> = LinkedList()
         val sid = "1ZwYlgwA7opD6Gdc5KmpjYk5JsnEZq3dZet2nJxB0EWQ"
@@ -359,18 +354,18 @@ object PrivateCommands {
     }
 
 
-    fun asls10fixswitches(e: GenericCommandEvent) {
-        val league = Emolga.get.league("ASLS10L${e.getArg(0)}")
+    suspend fun asls10fixswitches(e: GenericCommandEvent) {
+        val league = db.league("ASLS10L${e.getArg(0)}")
         val picks = league.picks
         val tierorder = listOf("S", "A", "B", "C", "D")
         val s = e.getArg(1)
         picks[s.toLong()]!!.sortWith(compareBy({ it.tier.indexedBy(tierorder) }, { it.name }))
-        saveEmolgaJSON()
+        league.save()
     }
 
 
-    fun ndscorrektpkmnnames() {
-        val nds = Emolga.get.nds()
+    suspend fun ndscorrektpkmnnames() {
+        val nds = db.nds()
         val picks = nds.picks
         val table = nds.teamtable
         val b = RequestBuilder(nds.sid)
@@ -454,7 +449,7 @@ object PrivateCommands {
 
     suspend fun startasls11drafts(e: GenericCommandEvent) {
         val jda = e.jda
-        Emolga.get.apply {
+        db.apply {
             league("ASLS11L0").startDraft(
                 jda.getTextChannelById(999775837106745415), fromFile = false, switchDraft = true
             )
@@ -492,15 +487,15 @@ object PrivateCommands {
     }
 
 
-    fun asls11doc(e: GenericCommandEvent) {
+    suspend fun asls11doc(e: GenericCommandEvent) {
         val sid = "1VWjAc370NQvuybaQZOTQ2uBVGC36D2_n63DOghkoE2k"
         val b = RequestBuilder(sid)
         val tindex = e.args[0].toInt()
         val level = e.args[1].toInt()
-        val asl = Emolga.get.asls11
+        val asl = db.asls11
         val team = asl.table[tindex]
         val uid = asl.data[team]!!.members[level]!!
-        val aslleague = Emolga.get.leagueByGuild(Constants.G.ASL, uid)!!
+        val aslleague = db.leagueByGuild(Constants.G.ASL, uid)!!
         val mons = Google[sid, "Data$level!B${tindex.y(15, 3)}:B${tindex.y(15, 14)}", false].map { it[0] as String }
         val picks = aslleague.picks[uid]!!
         val tl = Tierlist[Constants.G.ASL]!!
@@ -545,8 +540,8 @@ object PrivateCommands {
     }
 
 
-    fun printEnterTipGame() {
-        val nds = Emolga.get.nds()
+    suspend fun printEnterTipGame() {
+        val nds = db.nds()
         val tips = nds.tipgame!!.tips
         val battleorder = nds.battleorder
         val table = nds.table
@@ -610,21 +605,22 @@ object PrivateCommands {
                         "signup", "Anmelden", Emoji.fromUnicode("✅")
                     )
                 ).await().idLong
-        Emolga.get.signups[tc.guild.idLong] =
+        db.signups.insertOne(
             LigaStartData(
+                guild = tc.guild.idLong,
                 signupChannel = args[1].toLong(),
                 logoChannel = args[2].toLong(),
                 maxUsers = maxUsers,
                 announceChannel = tc.idLong,
                 announceMessageId = messageid
             )
-        saveEmolgaJSON()
+        )
     }
 
     suspend fun giveSignupRoles(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         val g = e.jda.getGuildById(args[0])!!
-        val data = Emolga.get.signups[g.idLong]!!
+        val data = db.signups.get(g.idLong)!!
         val roles = args.drop(1).map { g.getRoleById(it)!! }
         val conferences = data.conferences
         data.users.entries.forEach { user ->
@@ -639,7 +635,7 @@ object PrivateCommands {
         val args = e.getArg(1).split(" ")
         val tc = e.jda.getTextChannelById(args[0])!!
         val extended = args[1].toBoolean()
-        val data = Emolga.get.signups[tc.guild.idLong]!!
+        val data = db.signups.get(tc.guild.idLong)!!
         val conferences = args.drop(2)
         data.shiftChannel = tc.idLong
         data.conferences = conferences
@@ -659,7 +655,7 @@ object PrivateCommands {
                 tc.send(embeds = it.first.into(), components = it.second).await().idLong
             }
         }
-        saveEmolgaJSON()
+        data.save()
     }
 
     private val nameCache = mutableMapOf<Long, String>()
@@ -670,7 +666,7 @@ object PrivateCommands {
         if (nameCache.isEmpty()) EmolgaMain.emolgajda.getTextChannelById(data.signupChannel)!!.guild.retrieveMembersByIds(
             data.users.keys
         ).await().forEach { nameCache[it.idLong] = it.effectiveName }
-        saveEmolgaJSON()
+        data.save()
         return data.users.entries.groupBy { it.value.conference }.entries.filter {
             conferenceIndexes.isEmpty() || data.conferences.indexOf(
                 it.key
@@ -686,17 +682,17 @@ object PrivateCommands {
         }
     }
 
-    fun signupUpdate(e: GenericCommandEvent) {
+    suspend fun signupUpdate(e: GenericCommandEvent) {
         val (guild, user) = e.getArg(1).split(" ").map { it.toLong() }
-        val ligaStartData = Emolga.get.signups[guild]!!
+        val ligaStartData = db.signups.get(guild)!!
         val data = ligaStartData.users[user]!!
         e.jda.getTextChannelById(ligaStartData.signupChannel)!!.editMessageById(data.signupmid!!, data.toMessage(user))
             .queue()
     }
 
-    fun insertSDNamesInDatabase(e: GenericCommandEvent) {
+    suspend fun insertSDNamesInDatabase(e: GenericCommandEvent) {
         val guild = e.getArg(1).toLong()
-        Emolga.get.signups[guild]!!.users.forEach { (id, data) ->
+        db.signups.get(guild)!!.users.forEach { (id, data) ->
             SDNamesDB.addIfAbsent(data.sdname, id)
         }
     }
@@ -730,16 +726,16 @@ object PrivateCommands {
         grabbedIDs.clear()
     }
 
-    fun nds() {
-        val values = Emolga.get.nds().picks.values.flatten().map { it.name }.filter { it != "???" }
+    suspend fun nds() {
+        val values = db.nds().picks.values.flatten().map { it.name }.filter { it != "???" }
         val tierlist = Tierlist[Constants.G.NDS]!!
         values.forEach {
             tierlist.getTierOf(NameConventionsDB.convertOfficialToTL(it, Constants.G.NDS)!!)
         }
     }
 
-    fun ndsZAndTera() {
-        val nds = Emolga.get.nds()
+    suspend fun ndsZAndTera() {
+        val nds = db.nds()
         val b = RequestBuilder(nds.sid)
         val bo = nds.battleorder[1]!!
         val table = nds.table
@@ -756,13 +752,13 @@ object PrivateCommands {
         b.execute()
     }
 
-    fun ndsPrintMissingNominations(e: GenericCommandEvent) {
-        e.reply("```" + Emolga.get.nds().run { table - nominations.current().keys }.joinToString { "<@${it}>" } + "```")
+    suspend fun ndsPrintMissingNominations(e: GenericCommandEvent) {
+        e.reply("```" + db.nds().run { table - nominations.current().keys }.joinToString { "<@${it}>" } + "```")
     }
 
-    fun taria(e: GenericCommandEvent) {
+    suspend fun taria(e: GenericCommandEvent) {
         val guild = e.getArg(1).toLong()
-        val data = Emolga.get.signups[guild]!!
+        val data = db.signups.get(guild)!!
         val usersByConf = data.users.entries.groupBy { it.value.conference!! }.mapValues { it.value.map { e -> e.key } }
         myJSON.encodeToString(usersByConf).let { e.reply("```json\n$it```") }
     }
@@ -771,7 +767,7 @@ object PrivateCommands {
         coroutineScope {
             launch {
                 val args = e.getArg(1).split(" ")
-                val league = Emolga.get.drafts[args[0]]!!
+                val league = db.league(args[0])
                 val tc = EmolgaMain.emolgajda.getTextChannelById(args[1])!!
                 league.picks.entries.map { (u, l) ->
                     val (bufferedImage, _) = TeamGraphics.fromDraftPokemon(l, league.guild)
@@ -786,7 +782,7 @@ object PrivateCommands {
         coroutineScope {
             launch {
                 val m = e.getArg(1).toLong()
-                val team = (1..5).map { Emolga.get.drafts["ASLS12L$it"]!! }.first { m in it.table }.picks[m]!!
+                val team = (1..5).map { db.league("ASLS12L$it") }.first { m in it.table }.picks[m]!!
                 e.slashCommandEvent!!.replyFiles(FileUpload.fromData(ByteArrayOutputStream().also {
                     ImageIO.write(
                         TeamGraphics.fromDraftPokemon(team).first,
@@ -808,7 +804,7 @@ object PrivateCommands {
         e.jda.getTextChannelById(args[0])!!.sendMessage(":)").addActionRow(button(id, "Server starten")).queue()
     }
 
-    fun tariachan(e: GenericCommandEvent) {
+    suspend fun tariachan(e: GenericCommandEvent) {
         e.channel.sendFiles(FileUpload.fromData(ByteArrayOutputStream().also {
             ImageIO.write(
                 TeamGraphics.fromDraftPokemon(

@@ -1,11 +1,11 @@
 package de.tectoast.emolga.modals
 
 import de.tectoast.emolga.commands.PrivateCommands
-import de.tectoast.emolga.commands.saveEmolgaJSON
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.json.Emolga
 import de.tectoast.emolga.utils.json.SignUpData
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.into
@@ -15,7 +15,7 @@ class SignupModal : ModalListener("signup") {
     override suspend fun process(e: ModalInteractionEvent, name: String?) {
         val teamname = e.getValue("teamname")!!.asString
         val sdname = e.getValue("sdname")!!.asString
-        with(Emolga.get.signups[e.guild!!.idLong]!!) {
+        with(db.signups.get(e.guild!!.idLong)!!) {
             val uid =
                 PrivateCommands.userIdForSignupChange?.takeIf { e.user.idLong == Constants.FLOID } ?: e.user.idLong
             if (name == "change") {
@@ -30,7 +30,7 @@ class SignupModal : ModalListener("signup") {
                     e.jda.getTextChannelById(logoChannel)!!
                         .editMessageById(it, "**Logo von <@$uid> ($teamname):**").queue()
                 }
-                saveEmolgaJSON()
+                save()
                 SDNamesDB.addIfAbsent(sdname, uid)
                 return
             }
@@ -54,7 +54,7 @@ class SignupModal : ModalListener("signup") {
                 ).queue()
                 announceChannel.sendMessage("_----------- Anmeldung geschlossen -----------_").queue()
             }
-            saveEmolgaJSON()
+            save()
         }
     }
 }

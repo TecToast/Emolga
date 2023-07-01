@@ -28,11 +28,11 @@ abstract class PrivateCommand(val name: String) {
         })
     }
 
-    abstract fun process(e: MessageReceivedEvent)
+    abstract suspend fun process(e: MessageReceivedEvent)
 
     companion object {
         val commands: MutableList<PrivateCommand> = LinkedList()
-        fun check(e: MessageReceivedEvent) {
+        suspend fun check(e: MessageReceivedEvent) {
             val m = e.message
             val u = e.author
             val msg = m.contentDisplay

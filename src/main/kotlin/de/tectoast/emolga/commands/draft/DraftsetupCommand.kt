@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 
 class DraftsetupCommand :
     Command("draftsetup", "Startet das Draften der Liga in diesem Channel (nur Flo)", CommandCategory.Flo) {
@@ -38,7 +38,7 @@ class DraftsetupCommand :
 
     override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
-        Emolga.get.league(args.getText("name")).startDraft(
+        db.league(args.getText("name")).startDraft(
             e.textChannel,
             fromFile = args.getOrDefault("fromfile", false),
             switchDraft = args.getOrDefault("switchdraft", false)

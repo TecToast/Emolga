@@ -18,13 +18,14 @@ class WDL(private val division: String) : League() {
 
     @Transient
     override val timer = DraftTimer(TimerInfo(6, 24), 60 * 4)
-    override fun isPicked(mon: String, tier: String?) = if (tier == "PARADOX") false else super.isPicked(mon, tier)
+    override suspend fun isPicked(mon: String, tier: String?) =
+        if (tier == "PARADOX") false else super.isPicked(mon, tier)
 
-    override fun RequestBuilder.pickDoc(data: PickData) {
+    override suspend fun RequestBuilder.pickDoc(data: PickData) {
         doc(data)
     }
 
-    override fun RequestBuilder.switchDoc(data: SwitchData) {
+    override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
         doc(data)
     }
 

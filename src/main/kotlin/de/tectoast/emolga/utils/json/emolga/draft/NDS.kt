@@ -14,12 +14,13 @@ import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.records.StatLocation
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.util.SLF4J
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -69,23 +70,23 @@ class NDS : League() {
         return index
     }
 
-    override fun RequestBuilder.pickDoc(data: PickData) {
+    override suspend fun RequestBuilder.pickDoc(data: PickData) {
         doc(data)
     }
 
-    override fun RequestBuilder.switchDoc(data: SwitchData) {
+    override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
         //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
         doc(data)
     }
 
-    private fun RequestBuilder.doc(data: DraftData) {
+    private suspend fun RequestBuilder.doc(data: DraftData) {
         val index = data.memIndex
         val y = index * 17 + 2 + data.changedIndex
         addSingle("Data!B$y", data.pokemon)
         addSingle("Data!AF$y", 2)
         addColumn(
             "Data!F${index * 17 + 2}",
-            data.picks.asSequence().filter { it.name != "???" }.sortedWith(tierorderingComparator)
+            data.picks.filter { it.name != "???" }.sortedWith(tierorderingComparator)
                 .map { NameConventionsDB.convertOfficialToTL(it.name, guild)!! }.toList()
         )
         val numInRound = data.indexInRound + 1
@@ -186,8 +187,8 @@ class NDS : League() {
             }
         }
 
-        fun doMatchUps(gameday: Int, withAnnounce: Boolean = false) {
-            val nds = Emolga.get.nds()
+        suspend fun doMatchUps(gameday: Int, withAnnounce: Boolean = false) {
+            val nds = db.nds()
             val table = nds.table
             val teamnames = nds.teamnames
             val battleorder = nds.battleorder[gameday]!!
@@ -237,8 +238,8 @@ class NDS : League() {
         }
 
 
-        fun doNDSNominate(prevDay: Boolean = false, vararg onlySpecifiedUsers: Long) {
-            val nds = Emolga.get.nds()
+        suspend fun doNDSNominate(prevDay: Boolean = false, vararg onlySpecifiedUsers: Long) {
+            val nds = db.nds()
             val nom = nds.nominations
             val table = nds.table
             var cday = nom.currentDay
@@ -284,7 +285,7 @@ _written by Maxifcn_""".trimIndent()
             }.execute()
             logger.info("dbcallTime = $dbcallTime")
             if (!prevDay) nom.currentDay++
-            saveEmolgaJSON()
+            nds.save()
         }
 
         fun setupRepeatTasks() {
@@ -292,14 +293,14 @@ _written by Maxifcn_""".trimIndent()
                 defaultTimeFormat.parse("21.06.2023 00:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
-                { doNDSNominate() },
+                { runBlocking { doNDSNominate() } },
                 true
             )
             RepeatTask(
                 defaultTimeFormat.parse("18.06.2023 20:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
-                { doMatchUps(it, withAnnounce = true) },
+                { runBlocking { doMatchUps(it, withAnnounce = true) } },
                 true
             )
         }

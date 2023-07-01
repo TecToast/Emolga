@@ -1,7 +1,7 @@
 package de.tectoast.emolga.commands.draft
 
 import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.entities.Member
 
@@ -26,7 +26,7 @@ class DraftStatusCommand :
         val mem =
             e.arguments.getNullable<Member>("user")?.also { externalName = it.effectiveName }?.idLong ?: e.author.idLong
         val external = mem != e.author.idLong
-        val d = Emolga.get.leagueByGuild(e.guild.idLong, mem) ?: return e.reply(
+        val d = db.leagueByGuild(e.guild.idLong, mem) ?: return e.reply(
             if (external) "<@$mem> nimmt nicht an einer Liga auf diesem Server teil!" else "Du nimmst nicht an einer Liga auf diesem Server teil!",
             ephemeral = true
         )

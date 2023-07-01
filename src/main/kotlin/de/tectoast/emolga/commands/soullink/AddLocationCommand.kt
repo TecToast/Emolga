@@ -3,8 +3,8 @@ package de.tectoast.emolga.commands.soullink
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.saveEmolgaJSON
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.only
 
 class AddLocationCommand : Command("addlocation", "Fügt eine neue Location hinzu", CommandCategory.Soullink) {
     init {
@@ -17,13 +17,13 @@ class AddLocationCommand : Command("addlocation", "Fügt eine neue Location hinz
 
     override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
-        val soullink = Emolga.get.soullink
+        val soullink = db.soullink.only()
         val order = soullink.order
         val location = eachWordUpperCase(args.getText("location"))
         if (!order.contains(location)) {
             order.add(location)
             e.reply("Die Location `$location` wurde eingetragen!")
-            saveEmolgaJSON()
+            soullink.save()
             updateSoullink()
             return
         }

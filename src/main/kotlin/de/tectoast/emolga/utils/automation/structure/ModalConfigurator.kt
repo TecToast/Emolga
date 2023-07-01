@@ -1,8 +1,8 @@
 package de.tectoast.emolga.utils.automation.structure
 
 import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.saveEmolgaJSON
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.Configuration
+import de.tectoast.emolga.utils.json.db
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -10,6 +10,8 @@ import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.modals.Modal
+import org.litote.kmongo.coroutine.updateOne
+import org.litote.kmongo.eq
 import java.awt.Color
 import java.util.function.Function
 
@@ -27,9 +29,11 @@ class ModalConfigurator private constructor() {
             .build()
     }
 
-    fun handle(e: ModalInteractionEvent) {
+    suspend fun handle(e: ModalInteractionEvent) {
         val values = e.values
-        val o = Emolga.get.configuration.getOrPut(e.guild!!.idLong) { mutableMapOf() }.getOrPut(id!!) { mutableMapOf() }
+        val gid = e.guild!!.idLong
+        val configuration = db.configuration.findOne(Configuration::guild eq gid) ?: Configuration(gid)
+        val o = configuration.data.getOrPut(id!!) { mutableMapOf() }
         val member = e.member!!
         for (mm in values) {
             val id = mm.id
@@ -60,7 +64,7 @@ class ModalConfigurator private constructor() {
                 .setFooter("Aufgerufen von ${member.effectiveName} (${member.user.effectiveName}")
                 .build()
         ).queue()
-        saveEmolgaJSON()
+        db.configuration.updateOne(configuration)
     }
 
     fun initialize(e: SlashCommandInteractionEvent) {

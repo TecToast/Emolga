@@ -6,8 +6,11 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.filterStartsWithIgnoreCase
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.draft.League
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.exceptions.ExposedSQLException
+import org.litote.kmongo.eq
 import java.sql.SQLIntegrityConstraintViolationException
 
 class AddToTierlistCommand :
@@ -54,7 +57,7 @@ class AddToTierlistCommand :
         }
         e.reply("`$mon` ist nun im $tier-Tier!")
 
-        val leagues = Emolga.get.drafts.values.filter { it.guild == id }
+        val leagues = db.drafts.find(League::guild eq id).toList()
         if (leagues.isNotEmpty()) {
             val data = AddToTierlistData(mon, tier, tierlist.monCount - 1, id)
             leagues.forEach {
@@ -67,6 +70,14 @@ class AddToTierlistCommand :
 }
 
 data class AddToTierlistData(val mon: String, val tier: String, val index: Int, val gid: Long) {
-    val pkmn by lazy { Command.getDataObject(mon, gid) }
-    val englishTLName by lazy { NameConventionsDB.getDiscordTranslation(mon, gid, english = true)!!.tlName }
+    val pkmn by lazy { runBlocking { Command.getDataObject(mon, gid) } }
+    val englishTLName by lazy {
+        runBlocking {
+            NameConventionsDB.getDiscordTranslation(
+                mon,
+                gid,
+                english = true
+            )!!.tlName
+        }
+    }
 }

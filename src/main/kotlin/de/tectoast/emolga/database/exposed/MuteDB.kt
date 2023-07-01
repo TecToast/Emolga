@@ -16,7 +16,7 @@ object MuteDB : Table("mutes") {
     val TIMESTAMP = timestamp("timestamp")
     val EXPIRES = timestamp("expires").nullable()
 
-    fun mute(userid: Long, modid: Long, guildid: Long, reason: String, expires: Long?) {
+    fun mute(userid: Long, modid: Long, guildid: Long, reason: String, expires: Long?) = transaction {
         insert {
             it[this.USERID] = userid
             it[this.MODID] = modid

@@ -2,7 +2,7 @@ package de.tectoast.emolga.commands.draft
 
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
@@ -20,7 +20,7 @@ class PokeFansExportCommand : Command("pokefansexport", "Macht Pokefans Export l
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val league = Emolga.get.league(e.arguments.getText("draft"))
+        val league = db.league(e.arguments.getText("draft"))
         val picksObj = league.picks
         val tosend = mutableListOf<Any>()
         val ids = ArrayList(picksObj.keys)
@@ -28,15 +28,15 @@ class PokeFansExportCommand : Command("pokefansexport", "Macht Pokefans Export l
         EmolgaMain.emolgajda.getGuildById(league.guild)!!.retrieveMembersByIds(ids).get()
             .forEach { names[it.idLong] = it.effectiveName }
         for (id in ids) {
-            val picksArr = picksObj[id].names()
+            val picksArr = picksObj[id].names().map { it to getDataObject(it).speed }
             val oneUser = mutableListOf<Any>()
             oneUser.add(JUST_CHARS_AND_WHITESPACES.matcher(names[id]!!).replaceAll(""))
             oneUser.add(e.getArg(0))
             val mons = buildJsonArray {
-                picksArr.asSequence().sortedWith(compareByDescending {
-                    getDataObject(it).speed
-                }).map {
-                    it.replace("-T", " Tiergeistform")
+                picksArr.asSequence().sortedByDescending {
+                    it.second
+                }.map {
+                    it.first.replace("-T", " Tiergeistform")
                         .replace("-I", " Inkarnationsform")
                         .replace("Wolwerock-Tag", "Wolwerock Tagform").replace("Wolwerock-Nacht", "Wolwerock Nachtform")
                         .replace("Wolwerock-Zw", "Wolwerock Zwielichtform").replace("Shaymin", "Shaymin Landform")

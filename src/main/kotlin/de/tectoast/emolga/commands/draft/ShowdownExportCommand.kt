@@ -4,7 +4,8 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.commands.names
+import de.tectoast.emolga.utils.json.db
 
 class ShowdownExportCommand : Command("showdownexport", "Macht Showdown Export lol", CommandCategory.Pokemon) {
     init {
@@ -20,7 +21,7 @@ class ShowdownExportCommand : Command("showdownexport", "Macht Showdown Export l
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val league = Emolga.get.league(e.arguments.getText("draft"))
+        val league = db.league(e.arguments.getText("draft"))
         val picksObj = league.picks
         val b = StringBuilder()
         val ids = picksObj.keys.toList()
@@ -28,12 +29,13 @@ class ShowdownExportCommand : Command("showdownexport", "Macht Showdown Export l
         EmolgaMain.emolgajda.getGuildById(league.guild)!!.retrieveMembersByIds(ids).get()
             .forEach { names[it.idLong] = it.effectiveName }
         for (id in ids) {
-            val picksArr = picksObj[id]!!
+            val picksArr = picksObj[id].names().map { it to getDataObject(it) }
             b.append("=== [gen8nationaldexag-box] ").append(e.getArg(0)).append("/").append(names[id])
                 .append(" ===\n\n")
-            picksArr.asSequence().map { it.name }
-                .sortedByDescending { getDataObject(it).speed }
-                .map { str: String ->
+            picksArr.asSequence()
+                .sortedByDescending { it.second.speed }
+                .map {
+                    val str = it.first
                     (if (sdex.containsKey(str)) {
                         "${getEnglName(getFirst(str))}${getFirstAfterUppercase(sdex.getValue(str))}"
                     } else if (str.startsWith("A-")) {
@@ -44,7 +46,7 @@ class ShowdownExportCommand : Command("showdownexport", "Macht Showdown Export l
                         "${getEnglName(str.substring(2))}-Mega"
                     } else getEnglName(str)) + " \n" +
                             "Ability: ${
-                                getDataObject(str).abilities["0"]
+                                it.second.abilities["0"]
                             }"
                 }.forEach { b.append(it).append("\n\n") }
             b.append("\n")

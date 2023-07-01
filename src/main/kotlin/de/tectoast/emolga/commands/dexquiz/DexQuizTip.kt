@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.Command.Companion.getTypeGerName
 import de.tectoast.emolga.commands.Command.SubCommand
 import de.tectoast.emolga.utils.ConfigManager
 import de.tectoast.emolga.utils.json.showdown.Pokemon
+import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle
@@ -13,7 +14,7 @@ enum class DexQuizTip(
     private val configLabel: String,
     private val description: String,
     val defaultPrice: Int,
-    val tipFunction: (TipData) -> String,
+    val tipFunction: suspend (TipData) -> String,
 ) {
     EINTRAGS_GENERATION("Preis für die Eintrags-Generation",
         "Die Generation, aus welcher der Pokedex-Eintrag stammt",
@@ -31,7 +32,7 @@ enum class DexQuizTip(
     POKEMON_BOTHTYPES("Preis für das Typing des Pokemons", "Der Typ/Die Typen des Pokemons", 40, { td ->
         "Das Pokemon besitzt folgende Typen: **${
             td.monData.types.joinToString(" ") { t ->
-                getTypeGerName(t)
+                runBlocking { getTypeGerName(t) }
             }
         }**"
     }),

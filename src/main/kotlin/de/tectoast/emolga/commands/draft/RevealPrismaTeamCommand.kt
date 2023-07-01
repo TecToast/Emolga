@@ -5,7 +5,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.db
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 
 class RevealPrismaTeamCommand :
@@ -20,7 +20,7 @@ class RevealPrismaTeamCommand :
 
     override suspend fun process(e: GuildCommandEvent) {
         val user = e.arguments.getMember("user")
-        val prisma = Emolga.get.league("Prisma")
+        val prisma = db.league("Prisma")
         val picks = prisma.picks
         val jsonList = picks[user.idLong]!!.reversed()
         e.textChannel.sendMessage("**" + user.effectiveName + "**")

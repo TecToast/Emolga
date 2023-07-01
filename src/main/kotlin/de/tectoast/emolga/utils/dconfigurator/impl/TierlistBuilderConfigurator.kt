@@ -1,12 +1,17 @@
 package de.tectoast.emolga.utils.dconfigurator.impl
 
-import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.commands.condAppend
+import de.tectoast.emolga.commands.embedColor
+import de.tectoast.emolga.commands.file
+import de.tectoast.emolga.commands.myJSON
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.dconfigurator.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
-import de.tectoast.emolga.utils.json.Emolga
+import de.tectoast.emolga.utils.json.NameConventions
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
@@ -23,26 +28,36 @@ import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.litote.kmongo.eq
+import org.litote.kmongo.keyProjection
+import org.litote.kmongo.set
+import org.litote.kmongo.setTo
 
 class TierlistBuilderConfigurator(
     userId: Long, channelId: Long, guildId: Long, val mons: List<String>, val tierlistcols: List<List<String>>
 ) : DGuildConfigurator("tierlistbuilder", userId, channelId, guildId) {
     @OptIn(ExperimentalStdlibApi::class)
     override val steps: List<Step<*>> = listOf(step<SlashCommandInteractionEvent> {
-        val nc = Emolga.get.nameconventions.getOrPut(guildId) { mutableMapOf() }.toList()
-        hook.sendMessageEmbeds(Embed(
-            title = "Gibt es in der Tierliste Alola/Galar/Hisui/Mega-Formen?",
-            description = "Wenn ja, dann gib im gleich erscheinenden Formular an den jeweiligen Stellen das Format so ein, dass statt dem Namen des Pokemons `POKEMON` (nur Großbuchstaben) steht.\n" + "Wenn z.B. Alola-Formen so aussehen: `A-Sandamer`, dann gib `A-POKEMON` ein.\n" + "Selbiges geht natürlich auch dahinter, also z.B. für `Sandamer-Alola` wäre es `POKEMON-Alola`.\n\n" + "Falls es generell Probleme oder Fragen gibt, komme auf den in meinem Profil verlinkten Support-Server :)".condAppend(
-                nc.isNotEmpty()
+        val nc = db.nameconventions.findOne(NameConventions::guild eq guildId)?.data ?: run {
+            val tmp = NameConventions(guildId)
+            db.nameconventions.insertOne(tmp)
+            tmp.data
+        }
+
+        hook.sendMessageEmbeds(
+            Embed(
+                title = "Gibt es in der Tierliste Alola/Galar/Hisui/Mega-Formen?",
+                description = "Wenn ja, dann gib im gleich erscheinenden Formular an den jeweiligen Stellen das Format so ein, dass statt dem Namen des Pokemons `POKEMON` (nur Großbuchstaben) steht.\n" + "Wenn z.B. Alola-Formen so aussehen: `A-Sandamer`, dann gib `A-POKEMON` ein.\n" + "Selbiges geht natürlich auch dahinter, also z.B. für `Sandamer-Alola` wäre es `POKEMON-Alola`.\n\n" + "Falls es generell Probleme oder Fragen gibt, komme auf den in meinem Profil verlinkten Support-Server :)".condAppend(
+                    nc.isNotEmpty()
+                ) {
+                    "\n\nDerzeitige Einstellungen (drücke Nein wenn diese nicht geändert werden sollten):"
+                },
             ) {
-                "\n\nDerzeitige Einstellungen (drücke Nein wenn diese nicht geändert werden sollten):"
-            },
-        ) {
-            color = embedColor
+                color = embedColor
             nc.forEach {
                 field {
-                    name = it.first.replaceFirstChar { c -> c.uppercase() }
-                    value = it.second.pattern.replace("(\\S+)", "POKEMON")
+                    name = it.key.replaceFirstChar { c -> c.uppercase() }
+                    value = it.value.pattern.replace("(\\S+)", "POKEMON")
                     inline = true
                 }
             }
@@ -69,16 +84,16 @@ class TierlistBuilderConfigurator(
             short("hisui", "Wie sollen Hisui-Formen aussehen?", required = false)
         }
     }, { options ->
-        Emolga.get.nameconventions.getOrPut(guildId) { mutableMapOf() }.let { map ->
-            for (form in listOf("Mega", "Alola", "Galar", "Hisui")) {
-                getValue(form.replaceFirstChar { c -> c.lowercase() })?.asString?.takeUnless { it.isBlank() }?.also {
-                    if ("POKEMON" !in it) throw InvalidArgumentException("Das Format muss `POKEMON` enthalten!")
-                }?.let {
-                    map[form] = it.replace("POKEMON", "(\\S+)").toRegex()
-                }
+        for (form in listOf("Mega", "Alola", "Galar", "Hisui")) {
+            getValue(form.replaceFirstChar { c -> c.lowercase() })?.asString?.takeUnless { it.isBlank() }?.also {
+                if ("POKEMON" !in it) throw InvalidArgumentException("Das Format muss `POKEMON` enthalten!")
+            }?.let {
+                db.nameconventions.updateOne(
+                    NameConventions::guild eq guildId,
+                    set(NameConventions::data.keyProjection(form) setTo it.replace("POKEMON", "(\\S+)").toRegex())
+                )
             }
         }
-        saveEmolgaJSON()
         deferReply().queue()
         if (test(this, options)) options.skipNextSteps = 1
     }), step<SlashCommandInteractionEvent> { options ->
@@ -227,7 +242,7 @@ class TierlistBuilderConfigurator(
 
 
     private suspend fun test(e: IDeferrableCallback, options: StepOptions): Boolean {
-        val regional = Emolga.get.nameconventions[guildId]!!
+        val regional = db.nameconventions.get(guildId)
         while (index < mons.size) {
             val mon = mons[index]
             val regForm = regional.entries.firstNotNullOfOrNull {

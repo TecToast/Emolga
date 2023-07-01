@@ -38,7 +38,7 @@ class ZBS(private val conference: String) : League() {
     }
 
 
-    override fun RequestBuilder.pickDoc(data: PickData) {
+    override suspend fun RequestBuilder.pickDoc(data: PickData) {
         // =ZÄHLENWENN(INDIREKT("DataRotschopf!B500:B587"); B4)
         val mon = data.pokemon
         addSingle(data.roundIndex.coordXMod("$conference-Draftreihenfolge", 6, 2, 3, 10, 3 + data.indexInRound), mon)

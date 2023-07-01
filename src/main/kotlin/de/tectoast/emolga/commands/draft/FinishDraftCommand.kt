@@ -26,5 +26,6 @@ class FinishDraftCommand :
         e.slashCommandEvent!!.reply("${e.member.asMention} hat den Draft für sich beendet!").await()
         d.addFinished(mem)
         d.nextPlayer()
+        d.save()
     }
 }

@@ -43,7 +43,7 @@ import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.utils.FileUpload
 import org.jetbrains.exposed.sql.SortOrder
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
@@ -524,15 +524,22 @@ object PrivateCommands {
     }
 
 
-    suspend fun printTipGame() {
-        newSuspendedTransaction {
-            TipGamesDB.run {
-                selectAll().orderBy(this.CORRECT_GUESSES, SortOrder.DESC).forEach {
-                    println("<@${it[this.USERID]}>: ${it[this.CORRECT_GUESSES]}")
-                }
+    suspend fun printTipGame(e: GenericCommandEvent) {
+        File("tipgame_${defaultTimeFormat.format(Date()).replace(" ", "_")}.txt").also { it.createNewFile() }.writeText(
+            newSuspendedTransaction {
+                TipGamesDB.run {
+                    val size: Int
+                    select { LEAGUE_NAME eq e.getArg(1) }.orderBy(this.CORRECT_GUESSES, SortOrder.DESC).toList()
+                        .also { size = it.size }.withIndex()
+                        .joinToString("\n") {
+                            val row = it.value
+                            "${
+                                (it.index + 1).toString().padStart(size.toString().length, '0')
+                            }. <@${row[this.USERID]}>: ${row[this.CORRECT_GUESSES]}"
+                        }
 
-            }
-        }
+                }
+            })
     }
 
 

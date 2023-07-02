@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 
 object TipGamesDB : Table("tipgame") {
     val USERID = long("userid")
-    private val LEAGUE_NAME = varchar("league_name", 20)
+    val LEAGUE_NAME = varchar("league_name", 20)
     val CORRECT_GUESSES = integer("correct_guesses")
 
     fun addPointToUser(user: Long, league: String) {

@@ -137,6 +137,7 @@ class DocEntry private constructor(val league: League) {
             battleind = it.second
             u1IsSecond = it.third
         }.first
+        if (cancelIf(replayData, gameday)) return
         val sid = league.sid
         val b = RequestBuilder(sid)
         onlyKilllist?.run {

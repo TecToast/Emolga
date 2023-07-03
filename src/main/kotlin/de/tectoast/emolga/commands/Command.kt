@@ -57,7 +57,6 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -2729,6 +2728,22 @@ abstract class Command(
                 val uid2 = SDNamesDB.getIDByName(u2)
                 logger.info("Analysed!")
                 val league = Emolga.get.leagueByGuild(gid, uid1, uid2)
+                if (league is ASL) {
+                    val i1 = league.table.indexOf(uid1)
+                    val i2 = league.table.indexOf(uid2)
+                    val gameday = league.battleorder.asIterable().reversed()
+                        .firstNotNullOfOrNull {
+                            if (it.value.any { l ->
+                                    l.containsAll(listOf(i1, i2))
+                                }) it.key else null
+                        }
+                        ?: -1
+                    if (gameday == 10) {
+                        message?.channel?.sendMessage("Replay ist angekommen, wird aber erst später ausgewertet!")
+                            ?.queue()
+                        return@launch
+                    }
+                }
                 val jda = resultchannelParam.jda
                 val replayChannel =
                     league?.provideReplayChannel(jda).takeIf { customGuild == null } ?: customReplayChannel

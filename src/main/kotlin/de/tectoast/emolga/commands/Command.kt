@@ -2676,10 +2676,10 @@ abstract class Command(
             fromReplayCommand: InteractionHook? = null,
             customGuild: Long? = null
         ) {
-            defaultScope.launch {
+            //defaultScope.launch {
                 if (BOT_DISABLED && resultchannelParam.guild.idLong != Constants.G.MY) {
                     (message?.channel ?: resultchannelParam).sendMessage(DISABLED_TEXT).queue()
-                    return@launch
+                    return
                 }
 
                 logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannelParam.id)
@@ -2695,10 +2695,10 @@ abstract class Command(
                     )
                 ) {
                     send("Ich habe keine Berechtigung, im konfigurierten Channel ${resultchannelParam.asMention} zu schreiben!")
-                    return@launch
+                    return
                 }
                 val (game, ctx) = try {
-                    Analysis.analyse(url, ::send)
+                    runBlocking { Analysis.analyse(url, ::send) }
                     //game = Analysis.analyse(url, m);
                 } catch (ex: Exception) {
                     when (ex) {
@@ -2718,7 +2718,7 @@ abstract class Command(
                             ex.printStackTrace()
                         }
                     }
-                    return@launch
+                    return
                 }
                 val g = resultchannelParam.guild
                 val gid = customGuild ?: g.idLong
@@ -2741,7 +2741,7 @@ abstract class Command(
                     if (gameday == 10) {
                         message?.channel?.sendMessage("Replay ist angekommen, wird aber erst später ausgewertet!")
                             ?.queue()
-                        return@launch
+                        return
                     }
                 }
                 val jda = resultchannelParam.jda
@@ -2758,18 +2758,18 @@ abstract class Command(
                 game.forEach {
                     it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
                 }
-                val monNames: MutableMap<String, DraftName> = mutableMapOf()
-                val activePassive = ActivePassiveKillsDB.hasEnabled(gid)
-                val str = game.mapIndexed { index, sdPlayer ->
-                    mutableListOf(
-                        sdPlayer.nickname, sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
-                    ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
-                }.joinToString(":") { it.joinToString(" ") }
-                    .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.joinToString("\n\n") { player ->
-                    "${player.nickname}:".condAppend(
-                        player.allMonsDead && !spoiler, " (alle tot)"
-                    ) + "\n".condAppend(spoiler, "||") + player.pokemon.joinToString("\n") { mon ->
-                        getMonName(mon.pokemon, gid).also { monNames[mon.pokemon] = it }.displayName.let {
+            val monNames: MutableMap<String, DraftName> = mutableMapOf()
+            val activePassive = runBlocking { ActivePassiveKillsDB.hasEnabled(gid) }
+            val str = game.mapIndexed { index, sdPlayer ->
+                mutableListOf(
+                    sdPlayer.nickname, sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
+                ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
+            }.joinToString(":") { it.joinToString(" ") }
+                .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.joinToString("\n\n") { player ->
+                "${player.nickname}:".condAppend(
+                    player.allMonsDead && !spoiler, " (alle tot)"
+                ) + "\n".condAppend(spoiler, "||") + player.pokemon.joinToString("\n") { mon ->
+                    getMonName(mon.pokemon, gid).also { monNames[mon.pokemon] = it }.displayName.let {
                             if (activePassive) {
                                 "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
                             } else {
@@ -2796,7 +2796,7 @@ abstract class Command(
                             )
                         }
                     }
-                    launch {
+                    defaultScope.launch {
                         updatePresence()
                     }
                 }
@@ -2820,7 +2820,7 @@ abstract class Command(
                 val deaths =
                     game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to if (mon.isDead) 1 else 0 } }
                 TypicalSets.save()
-                if (uid1 == -1L || uid2 == -1L) return@launch
+            if (uid1 == -1L || uid2 == -1L) return
                 league?.docEntry?.analyse(
                     ReplayData(
                         game = game,
@@ -2832,7 +2832,7 @@ abstract class Command(
                         url = url
                     )
                 )
-            }
+            //}
         }
 
         fun getGerNameWithForm(name: String): String {

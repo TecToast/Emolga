@@ -66,7 +66,7 @@ object EmolgaListener : ListenerAdapter() {
     private suspend fun slashCommandInteractionEvent(e: SlashCommandInteractionEvent) {
         val command = Command.byName(e.name) ?: return
         val u = e.user
-        val tco = e.channel.asTextChannel()
+        val tco = e.channel.asGuildMessageChannel()
         val mem = e.member!!
         if (command.disabled) return
         val gid = e.guild!!.idLong

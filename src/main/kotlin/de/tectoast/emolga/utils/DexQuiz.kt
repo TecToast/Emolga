@@ -6,7 +6,7 @@ import de.tectoast.emolga.database.exposed.PokedexDB
 import de.tectoast.emolga.utils.records.DexEntry
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.entities.MessageEmbed
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import java.awt.Color
 import java.io.File
 import java.io.IOException
@@ -15,10 +15,10 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 @Suppress("unused")
-class DexQuiz(tc: TextChannel, rounds: Long) {
+class DexQuiz(tc: GuildMessageChannel, rounds: Long) {
     private val totalRounds: Long
     private val points: MutableMap<Long, Int> = HashMap()
-    private val tc: TextChannel
+    private val tc: GuildMessageChannel
     lateinit var currentGerName: String
         private set
     lateinit var currentEnglName: String
@@ -147,7 +147,7 @@ class DexQuiz(tc: TextChannel, rounds: Long) {
     companion object {
         private val activeQuizzes: MutableMap<Long, DexQuiz> = HashMap()
         private var cachedMons: List<String>? = null
-        fun getByTC(tc: TextChannel): DexQuiz? {
+        fun getByTC(tc: GuildMessageChannel): DexQuiz? {
             return getByTC(tc.idLong)
         }
 

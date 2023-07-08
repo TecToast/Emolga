@@ -7,14 +7,14 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 
 class GuildCommandEvent : GenericCommandEvent {
     val member: Member
     val guild: Guild
-    val textChannel: TextChannel
+    val textChannel: GuildMessageChannel
     val usedName: String
     var arguments: ArgumentManager
     val command: Command
@@ -24,7 +24,7 @@ class GuildCommandEvent : GenericCommandEvent {
         member = e.member!!
         guild = e.guild
         command = c
-        this.textChannel = e.guildChannel.asTextChannel()
+        this.textChannel = e.guildChannel
         val template = c.argumentTemplate
         arguments = template.construct(e, c)
         usedName = Command.WHITESPACES_SPLITTER.split(msg!!)[0].substring(c.prefix.length)
@@ -61,7 +61,7 @@ class GuildCommandEvent : GenericCommandEvent {
         member = e.member!!
         guild = e.guild!!
         command = c
-        this.textChannel = e.guildChannel.asTextChannel()
+        this.textChannel = e.guildChannel
         usedName = e.name
         val template = c.argumentTemplate
         arguments = template.construct(e, c)
@@ -70,7 +70,4 @@ class GuildCommandEvent : GenericCommandEvent {
         //}, "CMD " + c.name).start()
     }
 
-    fun deleteMessage() {
-        message?.delete()?.queue()
-    }
 }

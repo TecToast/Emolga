@@ -30,5 +30,6 @@ object Constants {
         const val WARRIOR = 444236285905993739
         const val BSP = 1077517941043642428
         const val PIKAS = 665600405136211989
+        const val COMMUNITY = 1036657324909146153
     }
 }

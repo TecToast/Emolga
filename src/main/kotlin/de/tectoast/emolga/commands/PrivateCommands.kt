@@ -34,6 +34,7 @@ import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
@@ -62,7 +63,7 @@ object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
 
-    private val guildsToUpdate = listOf(Constants.G.MY, Constants.G.VIP)
+    private val guildsToUpdate = listOf(Constants.G.COMMUNITY)
 
     fun updateTierlist(e: GenericCommandEvent) {
         Tierlist.setup()
@@ -414,7 +415,7 @@ object PrivateCommands {
         val map: MutableMap<Long, MutableList<SlashCommandData>> = HashMap()
         Command.commands.values.filter { it.isSlash }.distinct().filter { it.slashGuilds.isNotEmpty() }.forEach {
             val dt = Commands.slash(it.name, it.help)
-            //if (it.category!!.isAdmin) dt.defaultPermissions = DefaultMemberPermissions.DISABLED
+            if (it.adminSlash) dt.defaultPermissions = DefaultMemberPermissions.DISABLED
             logger.info(it.name)
             val mainCmdArgs = it.argumentTemplate.arguments
             if (it.hasChildren()) {

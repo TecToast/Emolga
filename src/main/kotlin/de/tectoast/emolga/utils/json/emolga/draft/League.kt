@@ -18,6 +18,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import org.slf4j.Logger
 
@@ -209,7 +210,7 @@ sealed class League {
 
     private fun MutableList<Int>.nextCurrent() = table[this.removeAt(0)]
 
-    suspend fun startDraft(tc: TextChannel?, fromFile: Boolean, switchDraft: Boolean?) {
+    suspend fun startDraft(tc: GuildMessageChannel?, fromFile: Boolean, switchDraft: Boolean?) {
         switchDraft?.let { this.isSwitchDraft = it }
         logger.info("Starting draft $name...")
         logger.info(tcid.toString())

@@ -79,6 +79,7 @@ import net.dv8tion.jda.api.entities.Message.Attachment
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -200,6 +201,7 @@ abstract class Command(
     protected var allowedBotId: Long = -1
     var isSlash = false
     protected var onlySlash = false
+    var adminSlash = false
     val slashGuilds: MutableSet<Long> = HashSet()
     val childCommands: MutableMap<String, Command> = LinkedHashMap()
 
@@ -1506,7 +1508,7 @@ abstract class Command(
                 .firstNotNullOf { if (it.value.any { l -> l.containsAll(listOf(u1, u2)) }) it.key else null }
         }
 
-        fun tempMute(tco: TextChannel, mod: Member, mem: Member, time: Int, reason: String) {
+        fun tempMute(tco: GuildMessageChannel, mod: Member, mem: Member, time: Int, reason: String) {
             val g = tco.guild
             if (!g.selfMember.canInteract(mem)) {
                 val builder = EmbedBuilder()
@@ -1543,7 +1545,7 @@ abstract class Command(
             }, expires - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
         }
 
-        fun kick(tco: TextChannel, mod: Member, mem: Member, reason: String) {
+        fun kick(tco: GuildMessageChannel, mod: Member, mem: Member, reason: String) {
             val g = tco.guild
             if (!g.selfMember.canInteract(mem)) {
                 val builder = EmbedBuilder()
@@ -1569,7 +1571,7 @@ abstract class Command(
             KicksDB.kick(mem.idLong, mod.idLong, tco.guild.idLong, reason)
         }
 
-        fun ban(tco: TextChannel, mod: Member, mem: Member, reason: String) {
+        fun ban(tco: GuildMessageChannel, mod: Member, mem: Member, reason: String) {
             val g = tco.guild
             if (!g.selfMember.canInteract(mem)) {
                 val builder = EmbedBuilder()
@@ -1594,7 +1596,7 @@ abstract class Command(
             BanDB.ban(mem.idLong, mem.user.name, mod.idLong, g.idLong, reason, null)
         }
 
-        fun mute(tco: TextChannel, mod: Member, mem: Member, reason: String) {
+        fun mute(tco: GuildMessageChannel, mod: Member, mem: Member, reason: String) {
             val g = tco.guild
             val gid = g.idLong
             if (!g.selfMember.canInteract(mem)) {
@@ -1613,7 +1615,7 @@ abstract class Command(
             MuteDB.mute(mem.idLong, mod.idLong, tco.guild.idLong, reason, null)
         }
 
-        fun unmute(tco: TextChannel, mem: Member) {
+        fun unmute(tco: GuildMessageChannel, mem: Member) {
             val g = tco.guild
             val gid = g.idLong
             Emolga.get.mutedroles[gid]?.let { g.removeRoleFromMember(mem, g.getRoleById(it)!!).queue() }
@@ -1624,7 +1626,7 @@ abstract class Command(
             MuteDB.unmute(mem.idLong, gid)
         }
 
-        fun tempBan(tco: TextChannel, mod: Member, mem: Member, time: Int, reason: String) {
+        fun tempBan(tco: GuildMessageChannel, mod: Member, mem: Member, time: Int, reason: String) {
             val g = tco.guild
             if (!g.selfMember.canInteract(mem)) {
                 val builder = EmbedBuilder()
@@ -1658,7 +1660,7 @@ abstract class Command(
             }, expires - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
         }
 
-        fun warn(tco: TextChannel, mod: Member, mem: Member, reason: String) {
+        fun warn(tco: GuildMessageChannel, mod: Member, mem: Member, reason: String) {
             val g = tco.guild
             if (!g.selfMember.canInteract(mem)) {
                 val builder = EmbedBuilder()
@@ -1942,7 +1944,7 @@ abstract class Command(
             }
         }
 
-        fun loadAndPlay(channel: TextChannel, trackUrl: String, vc: VoiceChannel) {
+        fun loadAndPlay(channel: GuildMessageChannel, trackUrl: String, vc: VoiceChannel) {
             val musicManager = getGuildAudioPlayer(vc.guild)
             getPlayerManager(vc.guild).loadItemOrdered(musicManager, trackUrl, object : AudioLoadResultHandler {
                 override fun trackLoaded(track: AudioTrack) {
@@ -2669,8 +2671,8 @@ abstract class Command(
 
         fun analyseReplay(
             url: String,
-            customReplayChannel: TextChannel? = null,
-            resultchannelParam: TextChannel,
+            customReplayChannel: GuildMessageChannel? = null,
+            resultchannelParam: GuildMessageChannel,
             message: Message? = null,
             fromAnalyseCommand: InteractionHook? = null,
             fromReplayCommand: InteractionHook? = null,

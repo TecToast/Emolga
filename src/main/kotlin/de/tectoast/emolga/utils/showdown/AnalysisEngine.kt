@@ -178,7 +178,9 @@ sealed class SDEffect(vararg val types: String) {
                     hazards.keys.filterIsInstance<Hazards>().firstOrNull { h -> h.name == it }
                         ?.let { h -> hazards[h]!!.claimDamage(damagedMon, fainted, ctx) }
                     activeWeather?.let { w -> if (w.first == it) w.second.claimDamage(damagedMon, fainted, ctx) }
-                    damagedMon.volatileEffects.entries.firstOrNull { h -> h.key == it }?.value?.claimDamage(
+                    damagedMon.volatileEffects.entries.firstOrNull { h ->
+                        h.key == it || h.key == it.substringAfter(":").trim()
+                    }?.value?.claimDamage(
                         damagedMon, fainted, ctx
                     )
                     Unit

@@ -106,4 +106,14 @@ class DumbestFliesCtlCommand : Command(
 
 
     }
+
+    class StartQuestions : Command("startquestions", "startquestions") {
+        init {
+            argumentTemplate = ArgumentManagerTemplate.noArgs()
+        }
+
+        override suspend fun process(e: GuildCommandEvent) {
+            DBF.startQuestions(e.slashCommandEvent!!)
+        }
+    }
 }

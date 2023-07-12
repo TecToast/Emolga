@@ -50,7 +50,7 @@ class ASL(
                     defaultGameplanString
                 )
             })
-        cancelIf = { _, gd -> gd == 10 }
+        //cancelIf = { _, gd -> gd == 10 }
     }
 
     @Transient

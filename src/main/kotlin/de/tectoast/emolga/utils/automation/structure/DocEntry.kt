@@ -214,8 +214,7 @@ class DocEntry private constructor(val league: League) {
                 league.results["$uid1:$uid2"] = uid
             }
         }
-        val (battleindex, numbers) = league.battleorder[gameday]?.let {
-            val battleorder = league.battleorder[gameday]!!
+        val (battleindex, numbers) = league.battleorder[gameday]?.let { battleorder ->
             val battleusers = battleorder.firstOrNull { it.contains(i1) }.orEmpty()
             (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1) to (0..1).asSequence()
                 .sortedBy { battleusers.indexOf(indices[it]) }.map { game[it].pokemon.count { m -> !m.isDead } }

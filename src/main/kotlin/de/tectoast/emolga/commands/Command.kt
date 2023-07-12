@@ -2637,7 +2637,7 @@ abstract class Command(
             return buildString {
                 append("=IMAGE(\"https://play.pokemonshowdown.com/sprites/gen5/")
                 append(
-                    (o.baseSpecies ?: o.name).toSDName().notNullAppend(o.forme?.toSDName())
+                    (o.baseSpecies ?: o.name).toSDName().notNullAppend(o.forme?.toSDName()?.let { "-$it" })
                 )
                 append(".png\"; 1)")
             }
@@ -2722,40 +2722,40 @@ abstract class Command(
                     }
                     return
                 }
-                val g = resultchannelParam.guild
-                val gid = customGuild ?: g.idLong
-                val u1 = game[0].nickname
-                val u2 = game[1].nickname
-                val uid1 = SDNamesDB.getIDByName(u1)
-                val uid2 = SDNamesDB.getIDByName(u2)
-                logger.info("Analysed!")
-                val league = Emolga.get.leagueByGuild(gid, uid1, uid2)
-                if (league is ASL) {
-                    val i1 = league.table.indexOf(uid1)
-                    val i2 = league.table.indexOf(uid2)
-                    val gameday = league.battleorder.asIterable().reversed()
-                        .firstNotNullOfOrNull {
-                            if (it.value.any { l ->
-                                    l.containsAll(listOf(i1, i2))
-                                }) it.key else null
-                        }
-                        ?: -1
-                    if (gameday == 10) {
-                        message?.channel?.sendMessage("Replay ist angekommen, wird aber erst später ausgewertet!")
-                            ?.queue()
-                        return
-                    }
-                }
-                val jda = resultchannelParam.jda
-                val replayChannel =
-                    league?.provideReplayChannel(jda).takeIf { customGuild == null } ?: customReplayChannel
-                val resultChannel =
-                    league?.provideResultChannel(jda).takeIf { customGuild == null } ?: resultchannelParam
-                logger.info("uid1 = $uid1")
-                logger.info("uid2 = $uid2")
+            val g = resultchannelParam.guild
+            val gid = customGuild ?: g.idLong
+            val u1 = game[0].nickname
+            val u2 = game[1].nickname
+            val uid1 = SDNamesDB.getIDByName(u1)
+            val uid2 = SDNamesDB.getIDByName(u2)
+            logger.info("Analysed!")
+            val league = Emolga.get.leagueByGuild(gid, uid1, uid2)
+//                if (league is ASL) {
+//                    val i1 = league.table.indexOf(uid1)
+//                    val i2 = league.table.indexOf(uid2)
+//                    val gameday = league.battleorder.asIterable().reversed()
+//                        .firstNotNullOfOrNull {
+//                            if (it.value.any { l ->
+//                                    l.containsAll(listOf(i1, i2))
+//                                }) it.key else null
+//                        }
+//                        ?: -1
+//                    if (gameday == 10) {
+//                        message?.channel?.sendMessage("Replay ist angekommen, wird aber erst später ausgewertet!")
+//                            ?.queue()
+//                        return
+//                    }
+//                }
+            val jda = resultchannelParam.jda
+            val replayChannel =
+                league?.provideReplayChannel(jda).takeIf { customGuild == null } ?: customReplayChannel
+            val resultChannel =
+                league?.provideResultChannel(jda).takeIf { customGuild == null } ?: resultchannelParam
+            logger.info("uid1 = $uid1")
+            logger.info("uid2 = $uid2")
 
-                //if (gid == Constants.G.ASL && league == null) return@launch
-                //logger.info(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
+            //if (gid == Constants.G.ASL && league == null) return@launch
+            //logger.info(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
                 val spoiler = spoilerTags.contains(gid)
                 game.forEach {
                     it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })

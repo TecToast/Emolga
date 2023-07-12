@@ -2,6 +2,8 @@ package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.condAppend
+import de.tectoast.emolga.commands.file
+import de.tectoast.emolga.commands.randomWithCondition
 import de.tectoast.emolga.database.exposed.DumbestFliesDB
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.generics.getChannel
@@ -15,6 +17,7 @@ import dev.minn.jda.ktx.messages.send
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
@@ -139,5 +142,56 @@ object DBF {
     private val gameChannel get() = EmolgaMain.emolgajda.getChannel<GuildMessageChannel>(1126193988051931277)!!
     private val adminChannel get() = EmolgaMain.emolgajda.getChannel<GuildMessageChannel>(1126196072839139490)!!
     private fun allVoted() = votes.size == members.size
+    lateinit var allQuestions: MutableSet<String>
+    val questionComponents = listOf(
+        primary("dumbestflies;question:normal", "Normal"),
+        primary("dumbestflies;question:estimate", "Schätzen"),
+    ).into()
+
+    private fun readQuestions(): MutableSet<String> {
+        val questions = mutableSetOf<String>()
+        val streak = mutableMapOf<String, String>()
+        for (line in "questionsraw.txt".file().readLines()) {
+            //if("?" !in line) println(line)
+            if (streak.isNotEmpty() && !line.endsWith(">")) {
+                questions += streak.entries.joinToString("\n") { it.key + " ---> " + it.value }
+                streak.clear()
+            }
+            val question =
+                if ("?." in line) line.substringBeforeLast("?.") + "." else line.substringBeforeLast("?") + "?"
+            val answer =
+                line.substringAfterLast("?").trim().let { if (it.startsWith(".")) it.substring(1) else it }.trim()
+            if (line.endsWith(">")) {
+                streak[question] = answer.substringBeforeLast(">")
+                continue
+            }
+            questions += "$question ---> $answer"
+
+        }
+        return questions
+    }
+
+    fun startQuestions(e: SlashCommandInteractionEvent) {
+        allQuestions = readQuestions()
+        e.reply_("Fragen gestartet!", components = questionComponents).queue()
+    }
+
+    fun newNormalQuestion(e: ButtonInteractionEvent) {
+        val question = allQuestions.randomWithCondition { !it.startsWith("Schätzfrage") } ?: return e.reply_(
+            "Keine Fragen mehr!",
+            ephemeral = true
+        ).queue()
+        allQuestions.remove(question)
+        e.reply_("[${allQuestions.size}] $question", components = questionComponents, ephemeral = true).queue()
+    }
+
+    fun newEstimateQuestion(e: ButtonInteractionEvent) {
+        val question = allQuestions.randomWithCondition { it.startsWith("Schätzfrage") } ?: return e.reply_(
+            "Keine Fragen mehr!",
+            ephemeral = true
+        ).queue()
+        allQuestions.remove(question)
+        e.reply_("[${allQuestions.size}] $question", components = questionComponents, ephemeral = true).queue()
+    }
 
 }

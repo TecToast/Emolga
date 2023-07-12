@@ -32,21 +32,31 @@ class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste
         val tierlistsheet = args.getText("tierlistsheet")
         e.deferReply()
         val tierlistcols = mutableListOf<List<String>>()
-        TierlistBuilderConfigurator(
-            userId = e.author.idLong,
-            channelId = e.channel.idLong,
-            guildId = PrivateCommands.guildForTLSetup?.takeUnless { e.isNotFlo } ?: e.guild.idLong,
-            mons =
-            Google.batchGet(
-                sid,
-                (0 until 10).mapNotNull { args.getNullable<String>("range$it")?.let { a -> "$tierlistsheet!$a" } },
-                false
+        try {
+            TierlistBuilderConfigurator(
+                userId = e.author.idLong,
+                channelId = e.channel.idLong,
+                guildId = PrivateCommands.guildForTLSetup?.takeUnless { e.isNotFlo } ?: e.guild.idLong,
+                mons =
+                Google.batchGet(
+                    sid,
+                    (0 until 10).mapNotNull { args.getNullable<String>("range$it")?.let { a -> "$tierlistsheet!$a" } },
+                    false
+                )
+                    .map { col -> col.mapNotNull { it.getOrNull(0)?.toString()?.replace("*", "")?.trim() } }
+                    .also { tierlistcols += it }
+                    .flatten().ensureNoDuplicates(),
+                tierlistcols = tierlistcols
             )
-                .map { col -> col.mapNotNull { it.getOrNull(0)?.toString()?.replace("*", "")?.trim() } }
-                .also { tierlistcols += it }
-                .flatten(),
-            tierlistcols = tierlistcols
-        )
+        } catch (ex: DuplicatesFoundException) {
+            e.hook.sendMessage(
+                "Es wurden Pokemon doppelt in der Tierliste gefunden! Bitte überprüfe die folgenden Pokemon: ${
+                    ex.duplicates.joinToString(
+                        ", "
+                    )
+                }"
+            ).queue()
+        }
         /*e.deferReply()
         TierlistBuilderConfigurator(
             Constants.FLOID,
@@ -56,3 +66,11 @@ class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste
         )*/
     }
 }
+
+fun List<String>.ensureNoDuplicates(): List<String> {
+    return groupingBy { it }.eachCount().filter { it.value > 1 }.keys.toList().takeIf { it.isNotEmpty() }?.let {
+        throw DuplicatesFoundException(it)
+    } ?: this
+}
+
+class DuplicatesFoundException(val duplicates: List<String>) : Exception()

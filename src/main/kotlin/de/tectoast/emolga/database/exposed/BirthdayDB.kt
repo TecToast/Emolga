@@ -25,7 +25,8 @@ object BirthdayDB : Table("birthdays") {
             select {
                 MONTH eq (c[Calendar.MONTH] + 1) and (DAY eq c[Calendar.DAY_OF_MONTH])
             }.forEach {
-                tc.sendMessage("Alles Gute zum ${c[Calendar.YEAR] - it[YEAR]}. Geburtstag, <@${it[USERID]}>!").queue()
+                val age = if (it[USERID] == 322755315953172485) 17 else c[Calendar.YEAR] - it[YEAR]
+                tc.sendMessage("Alles Gute zum $age. Geburtstag, <@${it[USERID]}>!").queue()
             }
         }
     }

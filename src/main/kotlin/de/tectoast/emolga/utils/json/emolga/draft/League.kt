@@ -89,7 +89,7 @@ sealed class League {
 
     val tipgame: TipGame? = null
 
-    val tierorderingComparator by lazy { compareBy<DraftPokemon> { tierlist.order.indexOf(it.tier) } }
+    val tierorderingComparator by lazy { compareBy<DraftPokemon>({ tierlist.order.indexOf(it.tier) }, { it.name }) }
 
 
     val newSystemGap get() = teamsize + pickBuffer + 3

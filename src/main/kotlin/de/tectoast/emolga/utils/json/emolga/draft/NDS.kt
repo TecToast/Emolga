@@ -38,6 +38,7 @@ class NDS : League() {
 
     override fun isFinishedForbidden() = false
     override val teamsize = 15
+    override val pickBuffer = -1
 
     @Transient
     override val timer = DraftTimer(TimerInfo(10, 22), 3 * 60)
@@ -149,12 +150,11 @@ class NDS : League() {
 
         }
         setStatIfEmpty = false
-        // TODO: New system sorter data
         sorterData = SorterData(
             formulaRange = listOf("$tableName!C3:K8".toDocRange(), "$tableName!C12:K17".toDocRange()),
             directCompare = true,
-            indexer = { it.substring("=Data!F$".length).toInt() / 17 - 1 },
-            cols = listOf(2, 8, -1)
+            newMethod = true,
+            cols = listOf(2, 8, -1, 6)
         )
     }
 

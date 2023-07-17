@@ -273,7 +273,7 @@ class DocEntry private constructor(val league: League) {
                         if (c != 0) return@sortWith c
                         if (!directCompare) return@sortWith 0
                         val indexerToUse: (String) -> Int = if (newMethod) { str: String ->
-                            str.substring(league.dataSheet.length + 4).substringBefore(":").toInt()
+                            str.substring(league.dataSheet.length + 4).replace("$", "").substringBefore(":").toInt()
                                 .minus(league.newSystemGap + 1)
                                 .div(league.newSystemGap)
                         } else indexer!!

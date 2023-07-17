@@ -13,7 +13,7 @@ class AddTeammateCommand :
         argumentTemplate = ArgumentManagerTemplate.create {
             add("user", "User", "Der Spieler, den du hinzufügen möchtest", ArgumentManagerTemplate.DiscordType.USER)
         }
-        slash(true, 665600405136211989)
+        slash(true, 665600405136211989, 736555250118295622)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

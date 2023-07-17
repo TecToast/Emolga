@@ -63,8 +63,9 @@ object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
 
-    private val guildsToUpdate = listOf(Constants.G.COMMUNITY)
+    private val guildsToUpdate = listOf(736555250118295622)
 
+    // MolfBestesTeam
     fun updateTierlist(e: GenericCommandEvent) {
         Tierlist.setup()
         e.reply("Die Tierliste wurde aktualisiert!")
@@ -683,6 +684,14 @@ object PrivateCommands {
                         primary("shiftuser;$id", nameCache[id]!!)
                     }.chunked(5).map { ActionRow.of(it) })
         }
+    }
+
+    fun signupUpdate(e: GenericCommandEvent) {
+        val (guild, user) = e.getArg(1).split(" ").map { it.toLong() }
+        val ligaStartData = Emolga.get.signups[guild]!!
+        val data = ligaStartData.users[user]!!
+        e.jda.getTextChannelById(ligaStartData.signupChannel)!!.editMessageById(data.signupmid!!, data.toMessage(user))
+            .queue()
     }
 
     fun insertSDNamesInDatabase(e: GenericCommandEvent) {

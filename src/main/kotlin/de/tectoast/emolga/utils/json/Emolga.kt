@@ -85,7 +85,7 @@ data class SignUpData(
     val teammates: MutableSet<Long> = mutableSetOf()
 ) {
     fun toMessage(user: Long) = "Anmeldung von <@${user}>".condAppend(teammates.isNotEmpty()) {
-        "(mit ${teammates.joinToString { "<@$it>" }})"
+        " (mit ${teammates.joinToString { "<@$it>" }})"
     } + ":\n" +
             "Teamname: **$teamname**\n" +
             "Showdown-Name: **$sdname**"

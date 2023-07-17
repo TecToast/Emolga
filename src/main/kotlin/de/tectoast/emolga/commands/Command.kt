@@ -1232,10 +1232,21 @@ abstract class Command(
             val gid = event.guild!!.idLong
             val league = League.onlyChannel(event.channel!!.idLong)
             //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
+            val tierlist = Tierlist[league?.guild ?: gid]
             val strings =
-                (Tierlist[league?.guild ?: gid]?.autoComplete ?: allNameConventions).filterStartsWithIgnoreCase(s)
-            if (strings.size > 25) listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
-            else strings.sorted()
+                (tierlist?.autoComplete ?: allNameConventions).filterStartsWithIgnoreCase(s)
+            if (strings.size > 25) return@draftPokemon listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
+
+            (if (league == null || tierlist == null) strings
+            else strings.map {
+                if (league.picks.values.flatten()
+                        .any { p ->
+                            p.name == tierlist.tlToOfficialCache.getOrPut(it) {
+                                NameConventionsDB.getDiscordTranslation(it, league.guild)!!.official
+                            }
+                        }
+                ) "$it (GEPICKT)" else it
+            }).sorted()
         }
         val allNameConventions by lazy(NameConventionsDB::getAll)
 
@@ -2679,49 +2690,49 @@ abstract class Command(
             customGuild: Long? = null
         ) {
             //defaultScope.launch {
-                if (BOT_DISABLED && resultchannelParam.guild.idLong != Constants.G.MY) {
-                    (message?.channel ?: resultchannelParam).sendMessage(DISABLED_TEXT).queue()
-                    return
-                }
+            if (BOT_DISABLED && resultchannelParam.guild.idLong != Constants.G.MY) {
+                (message?.channel ?: resultchannelParam).sendMessage(DISABLED_TEXT).queue()
+                return
+            }
 
-                logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannelParam.id)
-                fun send(msg: String) {
-                    fromReplayCommand?.sendMessage(msg)?.queue() ?: fromAnalyseCommand?.sendMessage(msg)
-                        ?.queue()
-                    ?: resultchannelParam.sendMessage(msg).queue()
-                }
-                if (fromReplayCommand != null && !resultchannelParam.guild.selfMember.hasPermission(
-                        resultchannelParam,
-                        Permission.VIEW_CHANNEL,
-                        Permission.MESSAGE_SEND
-                    )
-                ) {
-                    send("Ich habe keine Berechtigung, im konfigurierten Channel ${resultchannelParam.asMention} zu schreiben!")
-                    return
-                }
-                val (game, ctx) = try {
-                    runBlocking { Analysis.analyse(url, ::send) }
-                    //game = Analysis.analyse(url, m);
-                } catch (ex: Exception) {
-                    when (ex) {
-                        is ShowdownDoesNotAnswerException -> {
-                            send("Showdown antwortet nicht. Versuche es später nochmal.")
-                        }
-
-                        is ShowdownParseException -> {
-                            send("Das Replay konnte nicht analysiert werden! Sicher dass es ein valides Replay ist? Wenn ja, melde dich bitte auf meinem im Profil verlinkten Support-Server.")
-                        }
-
-                        else -> {
-                            val msg =
-                                "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
-                            sendToMe("Fehler beim Auswerten des Replays: $url ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}")
-                            send(msg)
-                            ex.printStackTrace()
-                        }
+            logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannelParam.id)
+            fun send(msg: String) {
+                fromReplayCommand?.sendMessage(msg)?.queue() ?: fromAnalyseCommand?.sendMessage(msg)
+                    ?.queue()
+                ?: resultchannelParam.sendMessage(msg).queue()
+            }
+            if (fromReplayCommand != null && !resultchannelParam.guild.selfMember.hasPermission(
+                    resultchannelParam,
+                    Permission.VIEW_CHANNEL,
+                    Permission.MESSAGE_SEND
+                )
+            ) {
+                send("Ich habe keine Berechtigung, im konfigurierten Channel ${resultchannelParam.asMention} zu schreiben!")
+                return
+            }
+            val (game, ctx) = try {
+                runBlocking { Analysis.analyse(url, ::send) }
+                //game = Analysis.analyse(url, m);
+            } catch (ex: Exception) {
+                when (ex) {
+                    is ShowdownDoesNotAnswerException -> {
+                        send("Showdown antwortet nicht. Versuche es später nochmal.")
                     }
-                    return
+
+                    is ShowdownParseException -> {
+                        send("Das Replay konnte nicht analysiert werden! Sicher dass es ein valides Replay ist? Wenn ja, melde dich bitte auf meinem im Profil verlinkten Support-Server.")
+                    }
+
+                    else -> {
+                        val msg =
+                            "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
+                        sendToMe("Fehler beim Auswerten des Replays: $url ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}")
+                        send(msg)
+                        ex.printStackTrace()
+                    }
                 }
+                return
+            }
             val g = resultchannelParam.guild
             val gid = customGuild ?: g.idLong
             val u1 = game[0].nickname
@@ -2756,10 +2767,10 @@ abstract class Command(
 
             //if (gid == Constants.G.ASL && league == null) return@launch
             //logger.info(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
-                val spoiler = spoilerTags.contains(gid)
-                game.forEach {
-                    it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
-                }
+            val spoiler = spoilerTags.contains(gid)
+            game.forEach {
+                it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
+            }
             val monNames: MutableMap<String, DraftName> = mutableMapOf()
             val activePassive = runBlocking { ActivePassiveKillsDB.hasEnabled(gid) }
             val str = game.mapIndexed { index, sdPlayer ->
@@ -2772,68 +2783,68 @@ abstract class Command(
                     player.allMonsDead && !spoiler, " (alle tot)"
                 ) + "\n".condAppend(spoiler, "||") + player.pokemon.joinToString("\n") { mon ->
                     getMonName(mon.pokemon, gid).also { monNames[mon.pokemon] = it }.displayName.let {
-                            if (activePassive) {
-                                "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
-                            } else {
-                                it.condAppend(mon.kills > 0, " ${mon.kills}")
-                            }
-                        }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
-                    }.condAppend(spoiler, "||")
-                }
-                logger.info("u1 = $u1")
-                logger.info("u2 = $u2")
-                if (fromAnalyseCommand != null) {
-                    fromAnalyseCommand.sendMessage(str).queue()
-                } else if (!customResult.contains(gid)) {
-                    resultChannel.sendMessage(str).queue()
-                }
-                replayChannel?.sendMessage(url)?.queue()
-                fromReplayCommand?.sendMessage(url)?.queue()
-                if (resultchannelParam.guild.idLong != Constants.G.MY) {
-                    StatisticsDB.increment("analysis")
-                    game.forEach { player ->
-                        player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
-                            FullStatsDB.add(
-                                monNames[it.pokemon]!!.official, it.kills, if (it.isDead) 1 else 0, player.winner
-                            )
+                        if (activePassive) {
+                            "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
+                        } else {
+                            it.condAppend(mon.kills > 0, " ${mon.kills}")
                         }
-                    }
-                    defaultScope.launch {
-                        updatePresence()
+                    }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
+                }.condAppend(spoiler, "||")
+            }
+            logger.info("u1 = $u1")
+            logger.info("u2 = $u2")
+            if (fromAnalyseCommand != null) {
+                fromAnalyseCommand.sendMessage(str).queue()
+            } else if (!customResult.contains(gid)) {
+                resultChannel.sendMessage(str).queue()
+            }
+            replayChannel?.sendMessage(url)?.queue()
+            fromReplayCommand?.sendMessage(url)?.queue()
+            if (resultchannelParam.guild.idLong != Constants.G.MY) {
+                StatisticsDB.increment("analysis")
+                game.forEach { player ->
+                    player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
+                        FullStatsDB.add(
+                            monNames[it.pokemon]!!.official, it.kills, if (it.isDead) 1 else 0, player.winner
+                        )
                     }
                 }
-                var shouldSendZoro = false
-                for (ga in game) {
-                    if (ga.pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }) {
-                        resultchannelParam.sendMessage(
-                            "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
-                        ).queue()
-                        shouldSendZoro = true
-                    }
+                defaultScope.launch {
+                    updatePresence()
                 }
-                if (shouldSendZoro) {
-                    jda.getTextChannelById(1016636599305515018)!!.sendMessage(url).queue()
+            }
+            var shouldSendZoro = false
+            for (ga in game) {
+                if (ga.pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }) {
+                    resultchannelParam.sendMessage(
+                        "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
+                    ).queue()
+                    shouldSendZoro = true
                 }
-                logger.info("In Emolga Listener!")
-                //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )
-                //  return;
-                val kills =
-                    game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to mon.kills } }
-                val deaths =
-                    game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to if (mon.isDead) 1 else 0 } }
-                TypicalSets.save()
+            }
+            if (shouldSendZoro) {
+                jda.getTextChannelById(1016636599305515018)!!.sendMessage(url).queue()
+            }
+            logger.info("In Emolga Listener!")
+            //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )
+            //  return;
+            val kills =
+                game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to mon.kills } }
+            val deaths =
+                game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to if (mon.isDead) 1 else 0 } }
+            TypicalSets.save()
             if (uid1 == -1L || uid2 == -1L) return
-                league?.docEntry?.analyse(
-                    ReplayData(
-                        game = game,
-                        uid1 = uid1,
-                        uid2 = uid2,
-                        kills = kills,
-                        deaths = deaths,
-                        mons = game.map { it.pokemon.map { mon -> monNames[mon.pokemon]!!.official } },
-                        url = url
-                    )
+            league?.docEntry?.analyse(
+                ReplayData(
+                    game = game,
+                    uid1 = uid1,
+                    uid2 = uid2,
+                    kills = kills,
+                    deaths = deaths,
+                    mons = game.map { it.pokemon.map { mon -> monNames[mon.pokemon]!!.official } },
+                    url = url
                 )
+            )
             //}
         }
 

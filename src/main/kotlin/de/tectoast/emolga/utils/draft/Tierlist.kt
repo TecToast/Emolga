@@ -6,7 +6,6 @@ import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -16,7 +15,7 @@ import kotlin.reflect.KProperty
 
 @Suppress("unused")
 @Serializable
-class Tierlist constructor(val guildid: Long) {
+class Tierlist(val guildid: Long) {
 
     /**
      * The price for each tier
@@ -34,6 +33,9 @@ class Tierlist constructor(val guildid: Long) {
     val freePicksAmount get() = freepicks["#AMOUNT#"] ?: 0
 
     val autoComplete: Set<String> by lazy(::getAllForAutoComplete)
+
+    @Transient
+    val tlToOfficialCache = SizeLimitedMap<String, String>(1000)
 
     fun setup() {
         tierlists[this.guildid] = this

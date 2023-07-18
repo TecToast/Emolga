@@ -3,8 +3,8 @@ package de.tectoast.emolga.utils
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.file
-import de.tectoast.emolga.commands.randomWithCondition
 import de.tectoast.emolga.database.exposed.DumbestFliesDB
+import de.tectoast.emolga.database.exposed.UsedQuestionsDB
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.generics.getChannel
 import dev.minn.jda.ktx.interactions.components.SelectOption
@@ -142,13 +142,15 @@ object DBF {
     private val gameChannel get() = EmolgaMain.emolgajda.getChannel<GuildMessageChannel>(1126193988051931277)!!
     private val adminChannel get() = EmolgaMain.emolgajda.getChannel<GuildMessageChannel>(1126196072839139490)!!
     private fun allVoted() = votes.size == members.size
-    lateinit var allQuestions: MutableSet<String>
+    lateinit var allQuestions: List<String>
+    lateinit var regularQuestions: MutableSet<String>
+    lateinit var estimateQuestions: MutableSet<String>
     val questionComponents = listOf(
         primary("dumbestflies;question:normal", "Normal"),
         primary("dumbestflies;question:estimate", "Schätzen"),
     ).into()
 
-    private fun readQuestions(): MutableSet<String> {
+    private fun readQuestions(): List<String> {
         val questions = mutableSetOf<String>()
         val streak = mutableMapOf<String, String>()
         for (line in "questionsraw.txt".file().readLines()) {
@@ -168,30 +170,37 @@ object DBF {
             questions += "$question ---> $answer"
 
         }
-        return questions
+        return questions.toList()
     }
+
+    private fun allQuestionsWith(estimate: Boolean) =
+        allQuestions.filter { it.startsWith("Schätzfrage") == estimate }.toMutableSet()
 
     fun startQuestions(e: SlashCommandInteractionEvent) {
         allQuestions = readQuestions()
+        regularQuestions = allQuestionsWith(false)
+        estimateQuestions = allQuestionsWith(true)
         e.reply_("Fragen gestartet!", components = questionComponents).queue()
     }
 
     fun newNormalQuestion(e: ButtonInteractionEvent) {
-        val question = allQuestions.randomWithCondition { !it.startsWith("Schätzfrage") } ?: return e.reply_(
+        val question = regularQuestions.randomOrNull() ?: return e.reply_(
             "Keine Fragen mehr!",
             ephemeral = true
         ).queue()
-        allQuestions.remove(question)
-        e.reply_("[${allQuestions.size}] $question", components = questionComponents, ephemeral = true).queue()
+        regularQuestions.remove(question)
+        e.reply_("[${regularQuestions.size}] $question", components = questionComponents, ephemeral = true).queue()
+        UsedQuestionsDB.insertIndex(allQuestions.indexOf(question))
     }
 
     fun newEstimateQuestion(e: ButtonInteractionEvent) {
-        val question = allQuestions.randomWithCondition { it.startsWith("Schätzfrage") } ?: return e.reply_(
+        val question = estimateQuestions.randomOrNull() ?: return e.reply_(
             "Keine Fragen mehr!",
             ephemeral = true
         ).queue()
-        allQuestions.remove(question)
-        e.reply_("[${allQuestions.size}] $question", components = questionComponents, ephemeral = true).queue()
+        estimateQuestions.remove(question)
+        e.reply_("[${estimateQuestions.size}] $question", components = questionComponents, ephemeral = true).queue()
+        UsedQuestionsDB.insertIndex(allQuestions.indexOf(question))
     }
 
 }

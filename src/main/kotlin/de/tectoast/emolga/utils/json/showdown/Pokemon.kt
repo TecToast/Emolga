@@ -24,6 +24,8 @@ data class Pokemon(
     val weightkg: Double,
 
     val requiredAbility: String? = null,
+    val requiredItem: String? = null,
+    val requiredMove: String? = null,
 
     val evoLevel: Int? = null,
     val evoType: String? = null,

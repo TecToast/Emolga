@@ -52,7 +52,7 @@ class SignupModal : ModalListener("signup") {
                     announceMessageId,
                     primary("signupclosed", "Anmeldung geschlossen", disabled = true).into()
                 ).queue()
-                announceChannel.sendMessage("Anmeldung geschlossen!").queue()
+                announceChannel.sendMessage("_----------- Anmeldung geschlossen -----------_").queue()
             }
             saveEmolgaJSON()
         }

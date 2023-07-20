@@ -35,7 +35,7 @@ class ResetCooldownCommand : Command(
         val name = "**" + mem.effectiveName + "**"
         val gid = e.guild.idLong
         val mid = mem.idLong
-        val cd = db.cooldowns.updateOne(
+        db.cooldowns.updateOne(
             and(Cooldown::guild eq gid, Cooldown::user eq mid), set(Cooldown::timestamp setTo -1)
         ).takeIf { it.modifiedCount > 0 }
             ?: return e.reply("$name hat noch nie seinen Nickname geändert!")

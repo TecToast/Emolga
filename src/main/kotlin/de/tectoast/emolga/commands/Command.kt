@@ -19,7 +19,6 @@ import de.tectoast.emolga.buttons.buttonsaves.Nominate
 import de.tectoast.emolga.buttons.buttonsaves.PrismaTeam
 import de.tectoast.emolga.buttons.buttonsaves.TrainerData
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
-import de.tectoast.emolga.commands.Command.Companion.save
 import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
 import de.tectoast.emolga.database.exposed.*
@@ -37,9 +36,7 @@ import de.tectoast.emolga.utils.annotations.ToTest
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
-import de.tectoast.emolga.utils.json.Emolga
-import de.tectoast.emolga.utils.json.Shinycount
-import de.tectoast.emolga.utils.json.Tokens
+import de.tectoast.emolga.utils.json.*
 import de.tectoast.emolga.utils.json.emolga.draft.*
 import de.tectoast.emolga.utils.json.showdown.Learnset
 import de.tectoast.emolga.utils.json.showdown.Pokemon
@@ -2687,7 +2684,7 @@ abstract class Command(
             val uid1 = SDNamesDB.getIDByName(u1)
             val uid2 = SDNamesDB.getIDByName(u2)
             logger.info("Analysed!")
-            val league = db.leagueByGuild(gid, uid1, uid2)
+            val league = runBlocking { db.leagueByGuild(gid, uid1, uid2) }
 //                if (league is ASL) {
 //                    val i1 = league.table.indexOf(uid1)
 //                    val i2 = league.table.indexOf(uid2)

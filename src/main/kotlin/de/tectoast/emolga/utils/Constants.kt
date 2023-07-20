@@ -32,4 +32,8 @@ object Constants {
         const val PIKAS = 665600405136211989
         const val COMMUNITY = 1036657324909146153
     }
+
+    object M {
+        const val TARIA = 322755315953172485
+    }
 }

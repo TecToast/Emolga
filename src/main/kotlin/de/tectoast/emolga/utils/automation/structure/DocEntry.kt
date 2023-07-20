@@ -14,6 +14,7 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.records.StatLocation
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
 class DocEntry private constructor(val league: League) {
@@ -119,7 +120,7 @@ class DocEntry private constructor(val league: League) {
         )
 
 
-    suspend fun analyse(
+    fun analyse(
         replayData: ReplayData
     ) {
         val (game, uid1, uid2, kills, deaths, _, url) = replayData
@@ -235,20 +236,22 @@ class DocEntry private constructor(val league: League) {
             }
             gamedayTips?.evaluated?.add(battleindex)
         }
-        resultCreator?.let {
-            AdvancedResult(
-                b = b,
-                gdi = gameday - 1,
-                index = battleindex,
-                numberOne = numbers[0],
-                numberTwo = numbers[1],
-                swappedNumbers = u1IsSecond,
-                url = url,
-                replayData = replayData,
-                league = league
-            ).it()
+        runBlocking {
+            resultCreator?.let {
+                AdvancedResult(
+                    b = b,
+                    gdi = gameday - 1,
+                    index = battleindex,
+                    numberOne = numbers[0],
+                    numberTwo = numbers[1],
+                    swappedNumbers = u1IsSecond,
+                    url = url,
+                    replayData = replayData,
+                    league = league
+                ).it()
+            }
+            league.save()
         }
-        league.save()
         b.withRunnable(3000) { sort() }.execute()
     }
 

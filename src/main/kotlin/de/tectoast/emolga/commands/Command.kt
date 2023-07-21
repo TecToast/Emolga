@@ -42,7 +42,6 @@ import de.tectoast.emolga.utils.json.showdown.Learnset
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.json.showdown.TypeData
 import de.tectoast.emolga.utils.music.GuildMusicManager
-import de.tectoast.emolga.utils.records.TypicalSets
 import de.tectoast.emolga.utils.showdown.*
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
@@ -2775,7 +2774,6 @@ abstract class Command(
                 game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to mon.kills } }
             val deaths =
                 game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to if (mon.isDead) 1 else 0 } }
-            TypicalSets.save()
             if (uid1 == -1L || uid2 == -1L) return
             league?.docEntry?.analyse(
                 ReplayData(
@@ -3066,8 +3064,6 @@ inline val Interaction.fromFlo: Boolean get() = this.user.isFlo
 inline val Interaction.notFromFlo: Boolean get() = !this.fromFlo
 
 inline fun <T> Collection<T>.randomWithCondition(condition: (T) -> Boolean) = this.filter(condition).randomOrNull()
-
-fun <K> MutableMap<K, Int>.increment(key: K) = add(key, 1)
 
 fun <K> MutableMap<K, Int>.add(key: K, value: Int) = compute(key) { _, v ->
     v?.plus(value) ?: value

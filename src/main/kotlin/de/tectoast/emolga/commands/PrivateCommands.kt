@@ -621,16 +621,30 @@ object PrivateCommands {
         saveEmolgaJSON()
     }
 
-    suspend fun giveSignupRoles(e: GenericCommandEvent) {
+    suspend fun giveGeneralSignupRole(e: GenericCommandEvent) {
+        val args = e.getArg(1).split(" ")
+        val g = e.jda.getGuildById(args[0])!!
+        val data = Emolga.get.signups[g.idLong]!!
+        val role = g.getRoleById(args[1].toLong())!!
+        data.users.entries.flatMap { listOf(it.key, *it.value.teammates.toTypedArray()) }.forEach {
+            g.addRoleToMember(UserSnowflake.fromId(it), role).queue()
+            delay(2000)
+        }
+    }
+
+    suspend fun giveConferenceRoles(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         val g = e.jda.getGuildById(args[0])!!
         val data = Emolga.get.signups[g.idLong]!!
         val roles = args.drop(1).map { g.getRoleById(it)!! }
         val conferences = data.conferences
         data.users.entries.forEach { user ->
-            g.addRoleToMember(UserSnowflake.fromId(user.key), roles[user.value.conference.indexedBy(conferences)])
-                .queue()
-            delay(2000)
+            val role = roles[user.value.conference.indexedBy(conferences)]
+            listOf(user.key, *user.value.teammates.toTypedArray()).forEach { uid ->
+                g.addRoleToMember(UserSnowflake.fromId(uid), role).queue()
+                delay(2000)
+            }
+
             // 518008523653775366 1095097314210762884 1095097593463308358 1095097684706213928 1095097835491438655 1095097904944910428
         }
     }

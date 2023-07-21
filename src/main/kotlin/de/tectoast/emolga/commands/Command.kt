@@ -101,7 +101,6 @@ import org.slf4j.Marker
 import org.slf4j.MarkerFactory
 import java.io.*
 import java.lang.reflect.Modifier
-import java.nio.file.Files
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.time.Duration
@@ -1829,11 +1828,11 @@ abstract class Command(
             return System.currentTimeMillis() + multiplier.toLong() * timestr.toInt()
         }
 
-        fun updateShinyCounts(id: Long) {
+        suspend fun updateShinyCounts(id: Long) {
             emolgajda.getTextChannelById(id)?.run {
                 editMessageById(
                     if (id == 778380440078647296L) 778380596413464676L else 925446888772239440L,
-                    buildAndSaveShinyCounts()
+                    buildShinyCounts()
                 ).queue()
             }
         }
@@ -1888,13 +1887,13 @@ abstract class Command(
             return str + " ".repeat(max(0, len - str.length))
         }
 
-        fun updateShinyCounts(e: ButtonInteractionEvent) {
-            e.editMessage(buildAndSaveShinyCounts()).queue()
+        suspend fun updateShinyCounts(e: ButtonInteractionEvent) {
+            e.editMessage(buildShinyCounts()).queue()
         }
 
-        private fun buildAndSaveShinyCounts(): String {
+        private suspend fun buildShinyCounts(): String {
             return buildString {
-                Shinycount.get.run {
+                db.shinycount.only().run {
                     methodorder.forEach { method ->
                         val m = counter[method]!!
                         append(method)
@@ -1909,7 +1908,6 @@ abstract class Command(
                         }
                         append("\n")
                     }
-                    save(this, "shinycount.json")
                 }
             }
         }
@@ -2220,9 +2218,6 @@ abstract class Command(
                 //emolgaJSON = load("./emolgadata.json")
                 //datajson = loadSD("pokedex.ts", 59);
                 //movejson = loadSD("learnsets.ts", 62);
-                Shinycount.get = myJSON.decodeFromString(withContext(Dispatchers.IO) {
-                    Files.readString(Paths.get("shinycount.json"))
-                })
                 catchrates = load("./catchrates.json")
                 with(tokens.google) {
                     Google.setCredentials(refreshtoken, clientid, clientsecret)

@@ -43,9 +43,10 @@ class MongoEmolga(
     val soullink by lazy { db.getCollection<Soullink>() }
     val emolgachannel by lazy { db.getCollection<EmolgaChannelConfig>() }
     val cooldowns by lazy { db.getCollection<Cooldown>() }
-    val movefilter: Map<String, List<String>> = error("Movefilter is not available atm!")
     val configuration by lazy { db.getCollection<Configuration>() }
     val nameconventions by lazy { db.getCollection<NameConventions>() }
+
+    val shinycount by lazy { db.getCollection<Shinycount>() }
 
     val asls11: ASLS11 get() = error("ASLS11 is not available atm!")
     val asls11nametoid: List<Long> get() = error("ASLS11 is not available atm!")
@@ -133,6 +134,14 @@ data class SignUpData(
             "Teamname: **$teamname**\n" +
             "Showdown-Name: **$sdname**"
 }
+
+@Serializable
+class Shinycount(
+    val names: Map<Long, String>,
+    val counter: Map<String, MutableMap<String, Long>>,
+    val methodorder: List<String>,
+    val userorder: List<Long>
+)
 
 object RegexSerializer : KSerializer<Regex> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Regex", PrimitiveKind.STRING)

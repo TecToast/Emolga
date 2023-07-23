@@ -327,7 +327,7 @@ abstract class Command(
 
         companion object {
             fun byJDA(jda: JDA): Bot {
-                for (value in values()) {
+                for (value in entries) {
                     if (jda.selfUser.idLong == value.jDA.get().selfUser.idLong) {
                         return value
                     }
@@ -1223,7 +1223,8 @@ abstract class Command(
                 Constants.G.FLP,
                 Constants.G.WARRIOR,
                 Constants.G.BSP,
-                Constants.G.PIKAS
+                Constants.G.PIKAS,
+                Constants.G.WFS
             )
         private val draftPrefixes = mapOf(
             "M" to "Mega", "A" to "Alola", "G" to "Galar", "Mega" to "Mega", "Alola" to "Alola", "Galar" to "Galar"
@@ -3287,7 +3288,7 @@ class Translation(
         companion object {
 
             fun fromId(id: String): Type {
-                return values().firstOrNull { it.id.equals(id, ignoreCase = true) } ?: UNKNOWN
+                return entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: UNKNOWN
             }
 
             fun of(vararg types: Type): Command.ArgumentType {
@@ -3317,7 +3318,7 @@ class Translation(
             }
 
             fun all(): Command.ArgumentType {
-                return of(*values().filter { t: Type -> t != UNKNOWN }.toTypedArray())
+                return of(*entries.filter { t: Type -> t != UNKNOWN }.toTypedArray())
             }
         }
     }

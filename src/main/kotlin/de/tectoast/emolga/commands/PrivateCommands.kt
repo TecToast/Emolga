@@ -63,7 +63,7 @@ object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
 
-    private val guildsToUpdate = listOf(736555250118295622)
+    private val guildsToUpdate = listOf(815004128148979723)
 
     // MolfBestesTeam
     fun updateTierlist(e: GenericCommandEvent) {

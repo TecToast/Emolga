@@ -12,7 +12,7 @@ class SignUpChangeCommand :
     Command("signupchange", "Ermöglicht es dir, deine Anmeldung anzupassen", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
-        slash(true, Constants.G.ASL, Constants.G.FLP, 665600405136211989)
+        slash(true, Constants.G.ASL, Constants.G.FLP, 665600405136211989, Constants.G.WFS)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

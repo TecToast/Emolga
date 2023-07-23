@@ -7,6 +7,7 @@ plugins {
     kotlin("plugin.serialization") version kVersion
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("maven-publish")
+    id("io.gitlab.arturbosch.detekt").version("1.23.0")
     application
 }
 

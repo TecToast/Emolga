@@ -620,7 +620,7 @@ object PrivateCommands {
     suspend fun giveGeneralSignupRole(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         val g = e.jda.getGuildById(args[0])!!
-        val data = Emolga.get.signups[g.idLong]!!
+        val data = db.signups.get(g.idLong)!!
         val role = g.getRoleById(args[1].toLong())!!
         data.users.entries.flatMap { listOf(it.key, *it.value.teammates.toTypedArray()) }.forEach {
             g.addRoleToMember(UserSnowflake.fromId(it), role).queue()

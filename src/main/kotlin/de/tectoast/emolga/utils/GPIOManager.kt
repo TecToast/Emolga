@@ -59,7 +59,7 @@ object GPIOManager {
 
         companion object {
             fun byMessage(messageId: Long): PC {
-                return values().firstOrNull { it.messageId == messageId } ?: DUMMY
+                return entries.firstOrNull { it.messageId == messageId } ?: DUMMY
             }
         }
     }

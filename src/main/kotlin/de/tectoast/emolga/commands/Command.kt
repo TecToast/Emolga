@@ -2458,16 +2458,6 @@ abstract class Command(
                 ?.filterNot { it.forme?.endsWith("Totem") == true }?.toList() ?: listOf(mon)
         }
 
-        @Suppress("UNUSED_PARAMETER")
-        private fun moveFilter(msg: String, move: String): Boolean {
-            /*val o = Emolga.get.movefilter
-            for (s in o.keys) {
-                if (msg.lowercase().contains("--$s") && move !in o[s]!!) return false
-            }
-            return true*/
-            return true
-        }
-
         fun getAttacksFrom(pokemon: String, msg: String, form: String, maxgen: Int): List<String> {
             val already: MutableList<String> = ArrayList()
             val type = getType(msg)
@@ -2487,9 +2477,9 @@ abstract class Command(
                         if (type.isEmpty() || moveData["type"].string == getEnglName(type) && (dmgclass.isEmpty() || moveData["category"].string == dmgclass) && (!msg.lowercase()
                                 .contains("--prio") || moveData["priority"].int > 0) && containsGen(
                                 learnset, moveengl, maxgen
-                            ) && moveFilter(
+                            ) /*&& moveFilter(
                                 msg, move
-                            ) && !already.contains(move)
+                            ) */ && !already.contains(move)
                         ) {
                             already.add(move)
                         }
@@ -2957,7 +2947,6 @@ fun Int.x(factor: Int, summand: Int) = getAsXCoord(y(factor, summand))
 fun Int.xdiv(divident: Int, factor: Int, summand: Int) = getAsXCoord(ydiv(divident, factor, summand))
 fun Int.xmod(mod: Int, factor: Int, summand: Int) = getAsXCoord(ymod(mod, factor, summand))
 
-@Suppress("unused")
 fun Int.xc() = getAsXCoord(this)
 
 fun Int.y(factor: Int, summand: Int) = this * factor + summand

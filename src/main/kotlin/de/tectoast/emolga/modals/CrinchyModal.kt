@@ -5,10 +5,6 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 
 class CrinchyModal : ModalListener("crinchy") {
 
-    companion object {
-
-    }
-
     override suspend fun process(e: ModalInteractionEvent, name: String?) {
         e.deferReply().queue()
         CrinchyDB.insertReplays(e.getValue("replays")!!.asString.split("\n"))

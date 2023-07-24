@@ -16,7 +16,7 @@ object ModalConfigurators {
             ).setPlaceholder(Command.DEXQUIZ_BUDGET.toString()).setRequired(false).build()
         ).actionRows(buildActionRows()).mapper({ str ->
             str.toIntOrNull()?.let { if (it < -1) null else it }
-        }, "totalbudget", *DexQuizTip.values().map { it.name }.toTypedArray()
+        }, "totalbudget", *DexQuizTip.entries.map { it.name }.toTypedArray()
         )
 
     val configurations: Map<String, ModalConfiguration> = mapOf(

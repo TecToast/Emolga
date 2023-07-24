@@ -36,7 +36,6 @@ import org.litote.kmongo.setTo
 class TierlistBuilderConfigurator(
     userId: Long, channelId: Long, guildId: Long, val mons: List<String>, val tierlistcols: List<List<String>>
 ) : DGuildConfigurator("tierlistbuilder", userId, channelId, guildId) {
-    @OptIn(ExperimentalStdlibApi::class)
     override val steps: List<Step<*>> = listOf(step<SlashCommandInteractionEvent> {
         val nc = db.nameconventions.findOne(NameConventions::guild eq guildId)?.data ?: run {
             val tmp = NameConventions(guildId)

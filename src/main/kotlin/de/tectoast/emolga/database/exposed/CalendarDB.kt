@@ -44,6 +44,6 @@ class CalendarEntry(id: EntityID<Int>) : IntEntity(id) {
     var expires by CalendarDB.EXPIRES
     var person: Person? by CalendarDB.PERSON.transform(
         { it?.name },
-        { it?.let { p -> Person.values().first { e -> e.name.equals(p, ignoreCase = true) } } })
+        { it?.let { p -> Person.entries.first { e -> e.name.equals(p, ignoreCase = true) } } })
     var messageid by CalendarDB.MESSAGEID
 }

@@ -47,7 +47,6 @@ enum class CommandCategory {
 
     companion object {
 
-        val musicGuilds: MutableList<Long> = mutableListOf()
         val order = listOf(Flo, Admin, Moderator, Pepe, Showdown, Pokemon, Draft, Dexquiz, Various, Soullink)
 
         init {
@@ -60,23 +59,23 @@ enum class CommandCategory {
             Flo.allowsMemberFun = { it.idLong == Constants.FLOID }
             Admin.allowsMemberFun = Flo.allowsMemberFun
             Soullink.allowsGuildIdFun = { gid: Long? -> gid == 695943416789598208L }
-            enableEverywhere(Draft, Flo, Admin, Moderator)
-            enableAdminOnly(Flo, Admin, Moderator)
+            enableEverywhere()
+            enableAdminOnly()
             //Music.disabled = "Die Musikfunktionen wurden aufgrund einer Fehlfunktion komplett deaktiviert!";
         }
 
-        private fun enableEverywhere(vararg categories: CommandCategory) {
-            categories.forEach { it.isEverywhere = true }
+        private fun enableEverywhere() {
+            listOf(Draft, Flo, Admin, Moderator).forEach { it.isEverywhere = true }
         }
 
-        private fun enableAdminOnly(vararg categories: CommandCategory) {
-            categories.forEach { it.isAdmin = true }
+        private fun enableAdminOnly() {
+            listOf(Flo, Admin, Moderator).forEach { it.isAdmin = true }
         }
 
 
         //(gid.equals("700504340368064562") || gid.equals("712035338846994502") || gid.equals("673833176036147210")
         fun byName(name: String?): CommandCategory? {
-            return values().firstOrNull {
+            return entries.firstOrNull {
                 it.categoryName.equals(name, ignoreCase = true)
             }
         }

@@ -50,7 +50,7 @@ enum class DexQuizTip(
     class TipData(val name: String, val englName: String, val entryGen: String, val monData: Pokemon)
     companion object {
         fun buildActionRows(): List<TextInput> {
-            return values().map {
+            return entries.map {
                 TextInput.create(
                     it.name, it.configLabel, TextInputStyle.SHORT
                 ).setPlaceholder(it.defaultPrice.toString()).setRequired(false).build()
@@ -58,11 +58,11 @@ enum class DexQuizTip(
         }
 
         fun buildSubcommands(): List<SubCommand> {
-            return values().map { SubCommand.of(it.name.lowercase(), it.description) }
+            return entries.map { SubCommand.of(it.name.lowercase(), it.description) }
         }
 
         fun buildEmbedFields(gid: Long): List<MessageEmbed.Field> {
-            return values()
+            return entries
                 .asSequence()
                 .filter { ConfigManager.DEXQUIZ.getValue(gid, it.name) as Int >= 0 }
                 .map {

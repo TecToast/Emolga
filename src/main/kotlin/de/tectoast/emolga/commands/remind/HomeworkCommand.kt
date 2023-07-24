@@ -100,8 +100,8 @@ enum class Subject(private val person: String) {
     val t get() = person == "t" || person == "b"
 
     companion object {
-        val allSubjects by lazy { values().map { it.name }.toSet() }
-        fun byName(name: String) = values().first { it.name == name }
+        val allSubjects by lazy { entries.map { it.name }.toSet() }
+        fun byName(name: String) = entries.first { it.name == name }
     }
 }
 

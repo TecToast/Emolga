@@ -23,7 +23,9 @@ class NominateCommand : PrivateCommand("nominate") {
 
     init {
         setIsAllowed {
-            runBlocking { it.idLong in db.nds().table }
+            runBlocking {
+                it.idLong.also { println("ID: $it") } in db.nds().table.also { println("TABLE: $it") }
+            }.also { println("ISALLOWED: $it") }
         }
         val tiers = listOf("S", "A", "B", "C", "D")
         tiercomparator = compareBy({ it.tier.indexedBy(tiers) }, { it.name })

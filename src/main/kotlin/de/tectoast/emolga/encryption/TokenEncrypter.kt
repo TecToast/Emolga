@@ -2,7 +2,6 @@ package de.tectoast.emolga.encryption
 
 import de.tectoast.emolga.commands.myJSON
 import de.tectoast.emolga.utils.json.Tokens
-import kotlinx.serialization.decodeFromString
 import java.io.File
 import java.util.*
 import javax.crypto.Cipher

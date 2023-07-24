@@ -125,7 +125,7 @@ class TeamGraphic(private val guild: Long) {
     }
 
     private fun executeSlot(g: Graphics2D, mon: DraftPokemon, rownum: Int, startX: Int) {
-        val (pokemon, tier, _) = mon
+        val (pokemon, tier, _, _) = mon
         g.stroke = BasicStroke(13.5f)
         //g.color = Color(0x00CCCC)
         val x = currentNumber.getOrPut(rownum) { 0 }

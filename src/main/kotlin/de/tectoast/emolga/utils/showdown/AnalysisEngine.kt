@@ -82,14 +82,14 @@ sealed class SDEffect(vararg val types: String) {
             ?.getOrNull(1)?.parsePokemon(ctx)
     }
 
-    object Turn : SDEffect("turn") {
+    data object Turn : SDEffect("turn") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             ctx.turn = split[1].toInt()
             ctx.sdPlayers.forEach { it.hittingFutureMoves.clear() }
         }
     }
 
-    object Replace : SDEffect("replace") {
+    data object Replace : SDEffect("replace") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             val (pl, i) = split[1].parsePokemonLocation()
             val oldMon = ctx.monsOnField[pl][i]
@@ -100,13 +100,13 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    object VGC : SDEffect("tier") {
+    data object VGC : SDEffect("tier") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             if ("VGC" in split[1]) ctx.vgc = true
         }
     }
 
-    object Switch : SDEffect("switch", "drag") {
+    data object Switch : SDEffect("switch", "drag") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             val (pl, idx) = split[1].parsePokemonLocation()
             val playerSide = ctx.sdPlayers[pl]
@@ -124,7 +124,7 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    object CourtChange : SDEffect("-activate") {
+    data object CourtChange : SDEffect("-activate") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             if ("move: Court Change" !in split) return
             ctx.reportUsage()
@@ -142,7 +142,7 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    object Damage : SDEffect("-damage") {
+    data object Damage : SDEffect("-damage") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             with(ctx) {
                 //println(split)
@@ -198,7 +198,7 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    object PerishSong : SDEffect("-start", "move") {
+    data object PerishSong : SDEffect("-start", "move") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             val pkmn = split[1].parsePokemon(ctx)
             if (split[0] == "move") {
@@ -214,7 +214,7 @@ sealed class SDEffect(vararg val types: String) {
 
     }
 
-    object Faint : SDEffect("faint") {
+    data object Faint : SDEffect("faint") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             val fainted = split[1].parsePokemon(ctx)
             fainted.isDead = true
@@ -225,7 +225,7 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    object Swap : SDEffect("swap") {
+    data object Swap : SDEffect("swap") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             val (pl, idx) = split[1].parsePokemonLocation()
             val newlocation = split[2].toInt()
@@ -237,7 +237,7 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    object DetailsChanged : SDEffect("detailschange") {
+    data object DetailsChanged : SDEffect("detailschange") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             val mon = split[1].parsePokemon(ctx)
             mon.otherNames += mon.pokemon
@@ -245,7 +245,7 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    object Explosion : SDEffect("move") {
+    data object Explosion : SDEffect("move") {
 
         override fun execute(split: List<String>, ctx: BattleContext) {
             if (split[2] in explosionMoves) {
@@ -263,7 +263,7 @@ sealed class SDEffect(vararg val types: String) {
         )
     }
 
-    object Trickeroo : SDEffect("-item", "-activate") {
+    data object Trickeroo : SDEffect("-item", "-activate") {
 
         private val moves = listOf("Trick", "Switcheroo")
 
@@ -283,7 +283,7 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    object Weather : SDEffect("-weather") {
+    data object Weather : SDEffect("-weather") {
 
         override fun execute(split: List<String>, ctx: BattleContext) {
             if (split.getOrNull(2) != "[upkeep]") ctx.activeWeather =
@@ -292,7 +292,7 @@ sealed class SDEffect(vararg val types: String) {
     }
 
 
-    object Status : SDEffect("-status") {
+    data object Status : SDEffect("-status") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             split[1].parsePokemon(ctx).run {
                 val tspikes = ctx.sdPlayers[player].fieldConditions[Hazards.ToxicSpikes]
@@ -303,7 +303,7 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    object Volatile : SDEffect("-start", "-activate") {
+    data object Volatile : SDEffect("-start", "-activate") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             split[1].parsePokemon(ctx).run {
                 split.getSource(ctx)?.let {
@@ -316,8 +316,8 @@ sealed class SDEffect(vararg val types: String) {
     sealed class FutureMoves(private val moveName: String) : SDEffect("-start", "-end") {
 
 
-        object FutureSight : FutureMoves("Future Sight")
-        object DoomDesire : FutureMoves("Doom Desire")
+        data object FutureSight : FutureMoves("Future Sight")
+        data object DoomDesire : FutureMoves("Doom Desire")
 
         override fun execute(split: List<String>, ctx: BattleContext) {
             if (split[0] == "-start") {
@@ -343,10 +343,10 @@ sealed class SDEffect(vararg val types: String) {
             }
         }
 
-        object StealthRock : Hazards("Stealth Rock")
-        object Spikes : Hazards("Spikes")
-        object ToxicSpikes : Hazards("Toxic Spikes")
-        object SteelSurge : Hazards("G-Max Steelsurge")
+        data object StealthRock : Hazards("Stealth Rock")
+        data object Spikes : Hazards("Spikes")
+        data object ToxicSpikes : Hazards("Toxic Spikes")
+        data object SteelSurge : Hazards("G-Max Steelsurge")
         companion object {
 
             val allHazards by lazy {
@@ -357,14 +357,14 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    object Teamsize : SDEffect("teamsize") {
+    data object Teamsize : SDEffect("teamsize") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             ctx.sdPlayers[split[1][1].digitToInt() - 1].teamSize = split[2].toInt()
         }
 
     }
 
-    object Win : SDEffect("win") {
+    data object Win : SDEffect("win") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             ctx.sdPlayers.first { it.nickname == split[1] }.winner = true
         }

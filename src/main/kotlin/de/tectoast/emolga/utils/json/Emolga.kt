@@ -31,10 +31,9 @@ import org.litote.kmongo.serialization.configuration as mongoConfiguration
 
 val db: MongoEmolga = MongoEmolga()
 
-class MongoEmolga(
+private const val DB_URL = "mongodb://floritemp.fritz.box:27017/"
 
-) {
-    private val DB_URL = "mongodb://localhost:27017/"
+class MongoEmolga {
     val db = run {
         /*registerModule(Json {
 

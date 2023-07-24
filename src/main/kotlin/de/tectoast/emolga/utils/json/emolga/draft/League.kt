@@ -519,7 +519,7 @@ class PickData(
     }
 }
 
-@Suppress("unused")
+
 class SwitchData(
     league: League,
     pokemon: String,

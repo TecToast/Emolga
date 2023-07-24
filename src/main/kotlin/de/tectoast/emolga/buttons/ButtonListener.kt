@@ -2,6 +2,7 @@ package de.tectoast.emolga.buttons
 
 import com.google.common.reflect.ClassPath
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.isNotFlo
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import org.slf4j.LoggerFactory
 import java.lang.reflect.Modifier
@@ -26,6 +27,7 @@ abstract class ButtonListener(name: String) {
 
         suspend fun check(e: ButtonInteractionEvent) {
             logger.info("e.getComponentId() = {}", e.componentId)
+            if (Command.BOT_DISABLED && e.user.isNotFlo) e.reply(Command.DISABLED_TEXT).setEphemeral(true).queue()
             e.componentId.split(";").let {
                 listener.getOrDefault(it[0], NULL).process(e, it.getOrNull(1) ?: "")
             }

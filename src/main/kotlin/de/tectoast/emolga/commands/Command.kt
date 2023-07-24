@@ -1261,8 +1261,9 @@ abstract class Command(
         protected var calendarService: ScheduledExecutorService = Executors.newScheduledThreadPool(5)
         protected val moderationService: ScheduledExecutorService = Executors.newScheduledThreadPool(5)
         protected val birthdayService: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
-        const val BOT_DISABLED = false
-        const val DISABLED_TEXT = "Ich befinde mich derzeit im Wartungsmodus, versuche es später noch einmal :)"
+        const val BOT_DISABLED = true
+        const val DISABLED_TEXT =
+            "Es finden derzeit große interne Umstrukturierungen statt, ich werde voraussichtlich heute Mittag/Nachmittag wieder einsatzbereit sein :)"
 
 
         fun newCalendarService() {

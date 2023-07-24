@@ -27,24 +27,31 @@ import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.eq
 import org.litote.kmongo.newId
 import org.litote.kmongo.reactivestreams.KMongo
+import org.litote.kmongo.serialization.configuration as mongoConfiguration
 
 val db: MongoEmolga = MongoEmolga()
 
 class MongoEmolga(
 
 ) {
-    private val DB_URL = "mongodb://floritemp.fritz.box:27017/"
-    val db = KMongo.createClient(DB_URL).coroutine.getDatabase("sixvspokeworld")
+    private val DB_URL = "mongodb://localhost:27017/"
+    val db = run {
+        /*registerModule(Json {
 
-    val config by lazy { db.getCollection<Config>() }
-    val statistics by lazy { db.getCollection<Statistics>() }
+        }.serializersModule)*/
+        mongoConfiguration = mongoConfiguration.copy(classDiscriminator = "type", encodeDefaults = false)
+        KMongo.createClient(DB_URL).coroutine.getDatabase("emolga")
+    }
+
+    val config by lazy { db.getCollection<Config>("config") }
+    val statistics by lazy { db.getCollection<Statistics>("statistics") }
     val signups by lazy { db.getCollection<LigaStartData>("signups") }
-    val drafts by lazy { db.getCollection<League>() }
-    val soullink by lazy { db.getCollection<Soullink>() }
-    val emolgachannel by lazy { db.getCollection<EmolgaChannelConfig>() }
-    val cooldowns by lazy { db.getCollection<Cooldown>() }
-    val configuration by lazy { db.getCollection<Configuration>() }
-    val nameconventions by lazy { db.getCollection<NameConventions>() }
+    val drafts by lazy { db.getCollection<League>("league") }
+    val soullink by lazy { db.getCollection<Soullink>("soullink") }
+    val emolgachannel by lazy { db.getCollection<EmolgaChannelConfig>("emolgachannel") }
+    val cooldowns by lazy { db.getCollection<Cooldown>("cooldowns") }
+    val configuration by lazy { db.getCollection<Configuration>("configuration") }
+    val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
 
     val shinycount by lazy { db.getCollection<Shinycount>() }
 
@@ -56,8 +63,8 @@ class MongoEmolga(
         }.data
     }
 
-    suspend fun league(name: String) = drafts.findOne(League::name eq name)!!
-    suspend fun nds() = league("NDS") as NDS
+    suspend fun league(name: String) = drafts.findOne(League::leaguename eq name)!!
+    suspend fun nds() = (league("NDS") as NDS).also { println("NAME: ${it.leaguename}") }
 
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
         drafts.findOne(League::guild eq gid, League::table all uids.toList())
@@ -69,6 +76,7 @@ data class Config(val teamgraphicShinyOdds: Int)
 @Serializable
 data class Statistics(var drampaCounter: Int)
 
+@Serializable
 data class Configuration(
     val guild: Long,
     @SerialName("_id")
@@ -77,17 +85,20 @@ data class Configuration(
     val data: MutableMap<String, MutableMap<String, Int>> = mutableMapOf()
 )
 
+@Serializable
 data class EmolgaChannelConfig(
     val guild: Long,
     val channels: List<Long>
 )
 
+@Serializable
 data class Cooldown(
     val guild: Long,
     val user: Long,
     val timestamp: Long
 )
 
+@Serializable
 data class NameConventions(
     val guild: Long,
     val data: MutableMap<String, @Serializable(with = RegexSerializer::class) Regex> = mutableMapOf()

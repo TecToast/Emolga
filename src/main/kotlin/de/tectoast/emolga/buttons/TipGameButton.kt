@@ -12,7 +12,7 @@ class TipGameButton : ButtonListener("tipgame") {
         val split = name.split(":")
         val (gameday, index, userindex) = split.drop(1).map { it.toInt() }
         val league =
-            db.drafts.findOne(League::name eq split[0]) ?: return reportMissing(e)
+            db.drafts.findOne(League::leaguename eq split[0]) ?: return reportMissing(e)
         val tipgame = league.tipgame ?: return reportMissing(e)
         val usermap =
             tipgame.tips.getOrPut(gameday) { GamedayData() }.userdata.getOrPut(e.user.idLong) { mutableMapOf() }

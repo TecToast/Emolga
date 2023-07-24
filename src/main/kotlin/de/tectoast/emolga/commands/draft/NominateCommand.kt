@@ -60,5 +60,6 @@ class NominateCommand : PrivateCommand("nominate") {
             )
         })
         ).queue { Command.nominateButtons[it.idLong] = n }
+        nds.save()
     }
 }

@@ -46,7 +46,7 @@ kotlin {
 }
 
 group = "de.tectoast"
-version = "1.0-JSONTEST"
+version = "2.0-MONGODB"
 
 val gprUser: String by project
 val gprPassword: String by project

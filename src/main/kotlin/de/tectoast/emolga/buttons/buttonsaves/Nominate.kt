@@ -98,7 +98,7 @@ class Nominate(val originalMons: List<DraftPokemon>, val mons: List<DraftPokemon
             if (uid in day)
                 return e.reply_("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!").queue()
             db.drafts.updateOne(
-                League::name eq "NDS",
+                League::leaguename eq "NDS",
                 set(
                     (NDS::nominations / Nominations::nominated).keyProjection(nom.currentDay)
                         .keyProjection(uid) setTo buildJSONString()

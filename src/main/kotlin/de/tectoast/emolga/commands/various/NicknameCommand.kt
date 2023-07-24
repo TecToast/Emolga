@@ -6,7 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.Cooldown
 import de.tectoast.emolga.utils.json.db
-import kotlinx.coroutines.runBlocking
+import dev.minn.jda.ktx.coroutines.await
 import org.litote.kmongo.and
 import org.litote.kmongo.eq
 import org.litote.kmongo.upsert
@@ -52,17 +52,14 @@ class NicknameCommand : Command(
             return
         }
         //val oldname = member.effectiveName
-        member.modifyNickname(nickname).queue {
-            /*if (g.idLong == Constants.G.ASL) g.getTextChannelById("728675253924003870")!!
-                .sendMessage("$oldname hat sich in $nickname umbenannt!").queue()*/
-            e.reply(member.asMention + " Dein Nickname wurde erfolgreich geändert!")
-            runBlocking {
-                db.cooldowns.updateOne(
-                    and(Cooldown::guild eq gid, Cooldown::user eq uid),
-                    Cooldown(gid, uid, System.currentTimeMillis() + 604800000),
-                    upsert()
-                )
-            }
-        }
+        member.modifyNickname(nickname).await()
+        /*if (g.idLong == Constants.G.ASL) g.getTextChannelById("728675253924003870")!!
+            .sendMessage("$oldname hat sich in $nickname umbenannt!").queue()*/
+        e.reply(member.asMention + " Dein Nickname wurde erfolgreich geändert!")
+        db.cooldowns.updateOne(
+            and(Cooldown::guild eq gid, Cooldown::user eq uid),
+            Cooldown(gid, uid, System.currentTimeMillis() + 604800000),
+            upsert()
+        )
     }
 }

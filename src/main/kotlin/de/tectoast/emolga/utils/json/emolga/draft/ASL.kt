@@ -99,7 +99,7 @@ class ASL(
                     val jda = EmolgaMain.emolgajda
                     val msg = "**------------- Spieltag $it -------------**"
                     for (i in 1..5) {
-                        with(db.drafts.findOne(League::name eq "ASLS12L$i") as ASL) {
+                        with(db.drafts.findOne(League::leaguename eq "ASLS12L$i") as ASL) {
                             jda.getTextChannelById(replayChannel)!!.sendMessage(msg).queue()
                             jda.getTextChannelById(resultChannel)!!.sendMessage(msg).queue()
                         }

@@ -111,7 +111,7 @@ class DocEntry private constructor(val league: League) {
                 }
             }
         }
-        error("Didnt found matchup for $u1 & $u2 in ${league.name}")
+        error("Didnt found matchup for $u1 & $u2 in ${league.leaguename}")
     }
 
     fun getMatchups(gameday: Int) =
@@ -228,7 +228,7 @@ class DocEntry private constructor(val league: League) {
         }
         run {
             val winningIndex = (if (game[0].winner) uid1 else uid2).indexedBy(league.table)
-            val leagueName = league.name
+            val leagueName = league.leaguename
             val gamedayTips = league.tipgame?.tips?.get(gameday)
             if (gamedayTips?.evaluated?.contains(battleindex) == true) return@run
             gamedayTips?.userdata?.entries?.filter { it.value[battleindex] == winningIndex }?.map { it.key }?.forEach {

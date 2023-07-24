@@ -56,7 +56,6 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
@@ -100,7 +99,6 @@ import org.slf4j.Marker
 import org.slf4j.MarkerFactory
 import java.io.*
 import java.lang.reflect.Modifier
-import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.Instant
@@ -113,7 +111,6 @@ import java.util.function.Function
 import java.util.function.Predicate
 import java.util.regex.Pattern
 import javax.imageio.ImageIO
-import kotlin.io.path.writeText
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
@@ -1020,7 +1017,7 @@ abstract class Command(
 
             fun draft(): ArgumentType {
                 return withPredicate(
-                    "Draftname", { db.drafts.findOne(League::name eq it) != null }, false
+                    "Draftname", { db.drafts.findOne(League::leaguename eq it) != null }, false
                 )
             }
 
@@ -1251,7 +1248,7 @@ abstract class Command(
         protected var calendarService: ScheduledExecutorService = Executors.newScheduledThreadPool(5)
         protected val moderationService: ScheduledExecutorService = Executors.newScheduledThreadPool(5)
         protected val birthdayService: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
-        const val BOT_DISABLED = true
+        const val BOT_DISABLED = false
         const val DISABLED_TEXT =
             "Es finden derzeit große interne Umstrukturierungen statt, ich werde voraussichtlich heute Mittag/Nachmittag wieder einsatzbereit sein :)"
 
@@ -2036,10 +2033,6 @@ abstract class Command(
             get() = ModManager.default.moves
 
 
-        inline fun <reified T> save(data: T, path: String) {
-            Paths.get(path).writeText(myJSON.encodeToString(data), Charsets.UTF_8)
-        }
-
         fun awaitNextDay() {
             val c = Calendar.getInstance()
             c.add(Calendar.DAY_OF_MONTH, 1)
@@ -2105,7 +2098,7 @@ abstract class Command(
                 for ((index, matchup) in matchups.withIndex()) {
                     val u1 = matchup[0]
                     val u2 = matchup[1]
-                    val baseid = "tipgame;${league.name}:$num:$index"
+                    val baseid = "tipgame;${league.leaguename}:$num:$index"
                     channel.send(
                         embeds = Embed(
                             title = "${names[u1]} vs. ${names[u2]}", color = embedColor
@@ -2139,12 +2132,12 @@ abstract class Command(
                         tip.lastSending.toInstant(),
                         tip.amount,
                         duration,
-                        { executeTipGameSending(runBlocking { db.league(l.name) }, it) },
+                        { executeTipGameSending(runBlocking { db.league(l.leaguename) }, it) },
                         true
                     )
                     RepeatTask(
                         tip.lastLockButtons.toInstant(), tip.amount, duration,
-                        { executeTipGameLockButtons(runBlocking { db.league(l.name) }, it) }, true
+                        { executeTipGameLockButtons(runBlocking { db.league(l.leaguename) }, it) }, true
                     )
                 }
             }

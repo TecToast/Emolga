@@ -35,9 +35,9 @@ sealed class League {
     @SerialName("_id")
     @Contextual
     val id: Id<League>? = null
-    val name: String = "ERROR"
-    var isRunning: Boolean = false
     val sid: String = "yay"
+    val leaguename: String = "ERROR"
+    var isRunning: Boolean = false
     val picks: MutableMap<Long, MutableList<DraftPokemon>> = mutableMapOf()
     val battleorder: MutableMap<Int, List<List<Int>>> = mutableMapOf()
     val results: MutableMap<String, Long> = mutableMapOf()
@@ -82,7 +82,7 @@ sealed class League {
     open val pickBuffer = 0
 
 
-    val cooldownJob: Job? get() = allTimers[name]
+    val cooldownJob: Job? get() = allTimers[leaguename]
 
     @Transient
     open val allowPickDuringSwitch = false
@@ -221,7 +221,7 @@ sealed class League {
 
     suspend fun startDraft(tc: GuildMessageChannel?, fromFile: Boolean, switchDraft: Boolean?) {
         switchDraft?.let { this.isSwitchDraft = it }
-        logger.info("Starting draft $name...")
+        logger.info("Starting draft $leaguename...")
         logger.info(tcid.toString())
         if (names.isEmpty()) names.putAll(emolgajda.getGuildById(this.guild)!!.retrieveMembersByIds(table).await()
             .associate { it.idLong to it.effectiveName })
@@ -260,8 +260,8 @@ sealed class League {
         delay ?: return
         cooldown = System.currentTimeMillis() + delay
         logger.info("important".marker, "cooldown = {}", cooldown)
-        allTimers[name]?.cancel("Restarting timer")
-        allTimers[name] = timerScope.launch {
+        allTimers[leaguename]?.cancel("Restarting timer")
+        allTimers[leaguename] = timerScope.launch {
             delay(delay)
             triggerTimer()
         }
@@ -440,10 +440,6 @@ sealed class League {
 
     suspend fun replySkip(e: GuildCommandEvent) {
         replyGeneral(e, "den Pick übersprungen!")
-    }
-
-    suspend fun replyFinish(e: GuildCommandEvent) {
-        replyGeneral(e, "den Draft für sich beendet!")
     }
 
     open fun getPickRound() = round

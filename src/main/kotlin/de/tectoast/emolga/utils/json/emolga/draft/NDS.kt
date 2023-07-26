@@ -168,7 +168,7 @@ class NDS : League() {
 
     companion object {
         val logger: Logger by SLF4J
-        private const val rr = true
+        private const val rr = false
         val rrSummand: Int
             get() = if (rr) 5 else 0
         val gameplanName: String
@@ -290,17 +290,17 @@ _written by Maxifcn_""".trimIndent()
 
         fun setupRepeatTasks() {
             RepeatTask(
-                defaultTimeFormat.parse("21.06.2023 00:00").toInstant(),
-                5,
-                Duration.ofDays(7L),
-                { runBlocking { doNDSNominate() } },
-                true
-            )
-            RepeatTask(
-                defaultTimeFormat.parse("18.06.2023 20:00").toInstant(),
+                defaultTimeFormat.parse("20.08.2023 20:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
                 { runBlocking { doMatchUps(it, withAnnounce = true) } },
+                true
+            )
+            RepeatTask(
+                defaultTimeFormat.parse("23.08.2023 00:00").toInstant(),
+                5,
+                Duration.ofDays(7L),
+                { runBlocking { doNDSNominate() } },
                 true
             )
         }

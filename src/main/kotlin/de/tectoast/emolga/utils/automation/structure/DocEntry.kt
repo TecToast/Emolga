@@ -38,7 +38,6 @@ class DocEntry private constructor(val league: League) {
     var setStatIfEmpty = false
     var numberMapper: (String) -> String = { it.ifEmpty { "0" } }
     var monsOrder: (List<DraftPokemon>) -> List<String> = { l -> l.map { it.name } }
-    private var onlyKilllist: (() -> List<String>)? = null
     var randomGamedayMapper: (Int) -> Int = { it }
     var cancelIf: (ReplayData, Int) -> Boolean = { _: ReplayData, _: Int -> false }
     private val gamedays get() = league.gamedays
@@ -143,35 +142,6 @@ class DocEntry private constructor(val league: League) {
         if (cancelIf(replayData, gameday)) return
         val sid = league.sid
         val b = RequestBuilder(sid)
-        onlyKilllist?.run {
-            val mons = this()
-            var monIndex = -1
-            for (pick in mons) {
-                monIndex++
-                for (i in 0..1) {
-                    val death = getNumber(
-                        deaths[i], pick
-                    )
-                    if (death.isEmpty() && !setStatIfEmpty) continue
-                    val k = (killProcessor as BasicStatProcessor).process(0, monIndex, gameday)
-                    if (k.isValid) b.addSingle(
-                        k.toString(), numberMapper(
-                            getNumber(kills[i], pick)
-                        )
-                    )
-                    val d = (deathProcessor as BasicStatProcessor).process(0, monIndex, gameday)
-                    if (d.isValid) b.addSingle(
-                        d.toString(), numberMapper(death)
-                    )
-                    val u = useProcessor.process(0, monIndex, gameday)
-                    if (u.isValid) b.addSingle(
-                        u.toString(), numberMapper("1")
-                    )
-                }
-            }
-            b.execute()
-            return
-        }
         val uids = listOf(uid1, uid2)
         val indices = listOf(i1, i2)
         val picksJson = league.picks

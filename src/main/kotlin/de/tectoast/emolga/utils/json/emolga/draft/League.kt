@@ -94,7 +94,7 @@ sealed class League {
 
     var isSwitchDraft = false
 
-    val table: MutableList<Long> = mutableListOf()
+    val table: List<Long> = listOf()
 
     val tipgame: TipGame? = null
 

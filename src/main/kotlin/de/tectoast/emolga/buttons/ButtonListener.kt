@@ -9,6 +9,7 @@ import java.lang.reflect.Modifier
 
 abstract class ButtonListener(name: String) {
     init {
+        if (name !in disabledListeners)
         listener[name] = this
     }
 
@@ -17,10 +18,11 @@ abstract class ButtonListener(name: String) {
 
     companion object {
         val listener: MutableMap<String, ButtonListener> = HashMap()
+        val disabledListeners = setOf("florix", "reopen")
         private val logger = LoggerFactory.getLogger(ButtonListener::class.java)
         private val NULL: ButtonListener = object : ButtonListener("NULL") {
             override suspend fun process(e: ButtonInteractionEvent, name: String) {
-                if (!e.componentId.first().isDigit() && !e.componentId.startsWith("reopen"))
+                if (!e.componentId.first().isDigit() && disabledListeners.none { e.componentId.startsWith(it) })
                     Command.sendToMe("WRONG BUTTON KEY " + e.componentId)
             }
         }

@@ -504,6 +504,7 @@ sealed class DraftData(
     abstract val changedOnTeamsiteIndex: Int
 }
 
+@Suppress("unused")
 class PickData(
     league: League,
     pokemon: String,

@@ -31,7 +31,7 @@ class AddToTierlistCommand :
             )
             .setExample("/addtotierlist Chimstix")
             .build()
-        setCustomPermissions(PermissionPreset.fromRole(702233714360582154))
+        setCustomPermissions(PermissionPreset.fromRole(702233714360582154).or(PermissionPreset.ADMIN))
         slash(true, *draftGuilds)
     }
 

@@ -265,7 +265,7 @@ sealed class League {
         allTimers[leaguename]?.cancel("Restarting timer")
         allTimers[leaguename] = timerScope.launch {
             delay(delay)
-            triggerTimer()
+            db.drafts.find(League::leaguename eq this@League.leaguename).first()?.triggerTimer()
         }
     }
 

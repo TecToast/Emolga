@@ -43,6 +43,7 @@ class NDS : League() {
 
     @Transient
     override val timer = DraftTimer(TimerInfo(10, 22), 3 * 60)
+    override val additionalSet = null
 
     override fun beforePick(): String? {
         return "Du hast bereits 15 Mons!".takeIf { picks(current).count { it.name != "???" } == 15 }

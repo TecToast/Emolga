@@ -104,7 +104,7 @@ sealed class League {
     val newSystemGap get() = teamsize + pickBuffer + 3
 
     @Transient
-    open val additionalSet: AdditionalSet? = null
+    open val additionalSet: AdditionalSet? = AdditionalSet((gamedays + 4).xc(), "X", "Y")
 
     fun RequestBuilder.newSystemPickDoc(data: DraftData) {
         val y = data.memIndex.y(newSystemGap, data.picks.size + 2)

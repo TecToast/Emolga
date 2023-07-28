@@ -6,8 +6,8 @@ import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
+import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
-import de.tectoast.emolga.utils.records.StatLocation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -21,29 +21,29 @@ class FPL(val level: Int) : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
-            StatLocation(
+        killProcessor = BasicStatProcessor {
+            Coord(
                 "Data$level",
                 gameday + 2,
                 plindex.y(25, 3 + monindex)
             )
         }
-        deathProcessor = BasicStatProcessor { plindex, monindex, gameday ->
-            StatLocation(
+        deathProcessor = BasicStatProcessor {
+            Coord(
                 "Data$level",
                 gameday + 14,
                 plindex.y(25, 3 + monindex)
             )
         }
-        winProcessor = ResultStatProcessor { plindex, gameday ->
-            StatLocation(
+        winProcessor = ResultStatProcessor {
+            Coord(
                 "Data$level",
                 gameday + 2,
                 plindex.y(25, 25)
             )
         }
-        looseProcessor = ResultStatProcessor { plindex, gameday ->
-            StatLocation(
+        looseProcessor = ResultStatProcessor {
+            Coord(
                 "Data$level",
                 gameday + 14,
                 plindex.y(25, 25)

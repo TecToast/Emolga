@@ -12,7 +12,7 @@ import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.records.StatLocation
+import de.tectoast.emolga.utils.records.Coord
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -23,15 +23,15 @@ class ASLCoach(val level: Int = -1, private val sheetid: Int = -1) : League() {
     @Transient
     override val docEntry = DocEntry.create(this) {
         val sheet = "Data$level"
-        killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
-            StatLocation(
+        killProcessor = BasicStatProcessor {
+            Coord(
                 sheet,
                 gameday + 2,
                 plindex.y(15, monindex + 3)
             )
         }
-        deathProcessor = BasicStatProcessor { plindex, monindex, gameday ->
-            StatLocation(
+        deathProcessor = BasicStatProcessor {
+            Coord(
                 sheet,
                 gameday + 12,
                 plindex.y(15, monindex + 3)
@@ -39,9 +39,9 @@ class ASLCoach(val level: Int = -1, private val sheetid: Int = -1) : League() {
         }
         numberMapper = { it.ifEmpty { "-" } }
         winProcessor =
-            ResultStatProcessor { plindex, gameday -> StatLocation(sheet, gameday + 2, plindex.y(15, 15)) }
+            ResultStatProcessor { Coord(sheet, gameday + 2, plindex.y(15, 15)) }
         looseProcessor =
-            ResultStatProcessor { plindex, gameday -> StatLocation(sheet, gameday + 12, plindex.y(15, 15)) }
+            ResultStatProcessor { Coord(sheet, gameday + 12, plindex.y(15, 15)) }
         resultCreator = {
             b.addSingle(
                 coord("Spielplan", gdi.x(5, 2), index.y(7, 5 + level)),

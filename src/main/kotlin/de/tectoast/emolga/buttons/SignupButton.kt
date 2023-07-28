@@ -1,8 +1,8 @@
 package de.tectoast.emolga.buttons
 
+import de.tectoast.emolga.modals.SignupModal
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
-import dev.minn.jda.ktx.interactions.components.Modal
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class SignupButton : ButtonListener("signup") {
@@ -15,9 +15,6 @@ class SignupButton : ButtonListener("signup") {
             e.reply("Du bist bereits angemeldet!").setEphemeral(true).queue()
             return
         }
-        e.replyModal(Modal("signup", "Anmeldung") {
-            short("teamname", "Team-Name", required = true)
-            short("sdname", "Showdown-Name", required = true)
-        }).queue()
+        e.replyModal(SignupModal.getModal(null)).queue()
     }
 }

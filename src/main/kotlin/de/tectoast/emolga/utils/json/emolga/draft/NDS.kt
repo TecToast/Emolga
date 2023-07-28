@@ -16,8 +16,8 @@ import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
+import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
-import de.tectoast.emolga.utils.records.StatLocation
 import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.runBlocking
@@ -101,23 +101,23 @@ class NDS : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        killProcessor = BasicStatProcessor { plindex: Int, monindex: Int, gameday: Int ->
-            StatLocation(
+        killProcessor = BasicStatProcessor {
+            Coord(
                 "Data", gameday + 6 + rrSummand, plindex * 17 + 2 + monindex
             )
         }
-        deathProcessor = BasicStatProcessor { plindex: Int, monindex: Int, gameday: Int ->
-            StatLocation(
+        deathProcessor = BasicStatProcessor {
+            Coord(
                 "Data", gameday + 18 + rrSummand, plindex * 17 + 2 + monindex
             )
         }
-        winProcessor = ResultStatProcessor { plindex: Int, gameday: Int ->
-            StatLocation(
+        winProcessor = ResultStatProcessor {
+            Coord(
                 "Data", gameday + 6 + rrSummand, plindex * 17 + 18
             )
         }
-        looseProcessor = ResultStatProcessor { plindex: Int, gameday: Int ->
-            StatLocation(
+        looseProcessor = ResultStatProcessor {
+            Coord(
                 "Data", gameday + 18 + rrSummand, plindex * 17 + 18
             )
         }

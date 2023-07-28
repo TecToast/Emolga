@@ -124,6 +124,9 @@ data class LigaStartData(
         "cselect;${initial.ifTrue("initial")}:$uid",
         options = conferences.map { SelectOption(it, it) })
 
+    fun getDataByUser(uid: Long) = users[uid] ?: users.values.firstOrNull { it.teammates.contains(uid) }
+    fun getOwnerByUser(uid: Long) = users.entries.firstOrNull { it.key == uid || it.value.teammates.contains(uid) }?.key
+
     suspend fun save() = db.signups.updateOne(this)
 
 }
@@ -163,6 +166,9 @@ object RegexSerializer : KSerializer<Regex> {
 
 suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!
 suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) = updateOne("{}", update)
+
+@Suppress("unused") // used in other projects
+suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: String) = updateOne("{}", update)
 
 @JvmName("getLigaStartData")
 suspend fun CoroutineCollection<LigaStartData>.get(guild: Long) = find(LigaStartData::guild eq guild).first()

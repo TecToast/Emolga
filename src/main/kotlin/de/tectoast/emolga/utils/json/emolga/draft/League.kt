@@ -143,6 +143,8 @@ sealed class League {
 
     open suspend fun RequestBuilder.switchDoc(data: SwitchData): Unit? = null
 
+    open fun providePicksForGameday(gameday: Int): Map<Long, List<DraftPokemon>> = picks
+
 
     fun isCurrentCheck(user: Long): Boolean {
         if (current == user || user in Constants.DRAFTADMINS) return true

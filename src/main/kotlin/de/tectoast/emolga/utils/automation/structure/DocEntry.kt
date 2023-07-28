@@ -12,8 +12,8 @@ import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
-import de.tectoast.emolga.utils.records.StatLocation
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
@@ -21,16 +21,19 @@ class DocEntry private constructor(val league: League) {
     companion object {
         private val logger = LoggerFactory.getLogger(DocEntry::class.java)
 
-        private val invalidProcessor: BasicStatProcessor = BasicStatProcessor { _, _, _ -> StatLocation.invalid() }
-
         fun create(league: League, builder: DocEntry.() -> Unit): DocEntry {
             return DocEntry(league).apply(builder)
         }
     }
 
-    var killProcessor: StatProcessor = invalidProcessor
-    var deathProcessor: StatProcessor = invalidProcessor
-    private var useProcessor: BasicStatProcessor = invalidProcessor
+    var killProcessor: StatProcessor
+        get() = error("Not implemented")
+        set(value) = killProcessors.add(value).let {}
+    var deathProcessor: StatProcessor
+        get() = error("Not implemented")
+        set(value) = deathProcessors.add(value).let {}
+    private val killProcessors: MutableSet<StatProcessor> = mutableSetOf()
+    private val deathProcessors: MutableSet<StatProcessor> = mutableSetOf()
     var winProcessor: ResultStatProcessor? = null
     var looseProcessor: ResultStatProcessor? = null
     var resultCreator: (suspend AdvancedResult.() -> Unit)? = null
@@ -40,27 +43,28 @@ class DocEntry private constructor(val league: League) {
     var monsOrder: (List<DraftPokemon>) -> List<String> = { l -> l.map { it.name } }
     var randomGamedayMapper: (Int) -> Int = { it }
     var cancelIf: (ReplayData, Int) -> Boolean = { _: ReplayData, _: Int -> false }
+    var rowNumToIndex: (Int) -> Int = { it.minus(league.newSystemGap + 1).div(league.newSystemGap) }
     private val gamedays get() = league.gamedays
     fun newSystem(sorterData: SorterData, resultCreator: (suspend AdvancedResult.() -> Unit)) {
         val dataSheet = league.dataSheet
         val gap = league.newSystemGap
-        killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
-            StatLocation(
+        killProcessor = BasicStatProcessor {
+            Coord(
                 sheet = dataSheet, gameday + 2, plindex.y(gap, monindex + 3)
             )
         }
-        deathProcessor = BasicStatProcessor { plindex, monindex, gameday ->
-            StatLocation(
+        deathProcessor = BasicStatProcessor {
+            Coord(
                 sheet = dataSheet, gameday + 4 + gamedays, plindex.y(gap, monindex + 3)
             )
         }
-        winProcessor = ResultStatProcessor { plindex, gameday ->
-            StatLocation(
+        winProcessor = ResultStatProcessor {
+            Coord(
                 sheet = dataSheet, gameday + 2, plindex.y(gap, gap)
             )
         }
-        looseProcessor = ResultStatProcessor { plindex, gameday ->
-            StatLocation(
+        looseProcessor = ResultStatProcessor {
+            Coord(
                 sheet = dataSheet, gameday + 4 + gamedays, plindex.y(gap, gap)
             )
         }
@@ -127,66 +131,20 @@ class DocEntry private constructor(val league: League) {
         var u1IsSecond = false
         val i1 = league.table.indexOf(uid1)
         val i2 = league.table.indexOf(uid2)
-        val gameday = if (league.battleorder.isNotEmpty()) league.battleorder.asIterable().reversed()
-            .firstNotNullOfOrNull {
+        val gameday =
+            if (league.battleorder.isNotEmpty()) league.battleorder.asIterable().reversed().firstNotNullOfOrNull {
                 if (it.value.any { l ->
                         l.containsAll(listOf(i1, i2)).also { b ->
                             if (b) u1IsSecond = l.indexOf(i1) == 1
                         }
                     }) it.key else null
-            }
-            ?: -1 else gameplanCoords(uid1, uid2).also {
-            battleind = it.second
-            u1IsSecond = it.third
-        }.first
+            } ?: -1 else gameplanCoords(uid1, uid2).also {
+                battleind = it.second
+                u1IsSecond = it.third
+            }.first
+
         if (cancelIf(replayData, gameday)) return
-        val sid = league.sid
-        val b = RequestBuilder(sid)
-        val uids = listOf(uid1, uid2)
         val indices = listOf(i1, i2)
-        val picksJson = league.picks
-        for ((i, uid) in uids.withIndex()) {
-            val index = league.table.indexOf(uid)
-            var monIndex = -1
-            var totalKills = 0
-            var totalDeaths = 0
-            for (pick in monsOrder(picksJson[uid]!!)) {
-                monIndex++
-                val death = getNumber(deaths[i], pick)
-                if (death.isEmpty() && !setStatIfEmpty) continue
-                if (killProcessor is BasicStatProcessor) {
-                    val k = (killProcessor as BasicStatProcessor).process(index, monIndex, gameday)
-                    if (k.isValid) b.addSingle(
-                        k.toString(), numberMapper(
-                            getNumber(
-                                kills[i], pick
-                            )
-                        )
-                    )
-                } else if (killProcessor is CombinedStatProcessor) {
-                    totalKills += getNumber(kills[i], pick).toInt()
-                }
-                if (deathProcessor is BasicStatProcessor) {
-                    val d = (deathProcessor as BasicStatProcessor).process(index, monIndex, gameday)
-                    if (d.isValid) b.addSingle(d.toString(), numberMapper(death))
-                } else if (deathProcessor is CombinedStatProcessor) {
-                    totalDeaths += death.toInt()
-                }
-                val u = useProcessor.process(index, monIndex, gameday)
-                if (u.isValid) b.addSingle(u.toString(), numberMapper("1"))
-            }
-            (if (game[i].winner) winProcessor else looseProcessor)?.process(index, gameday)
-                ?.run { b.addSingle(this.toString(), 1) }
-            if (killProcessor is CombinedStatProcessor) {
-                b.addSingle((killProcessor as CombinedStatProcessor).process(index, gameday).toString(), totalKills)
-            }
-            if (deathProcessor is CombinedStatProcessor) {
-                b.addSingle((deathProcessor as CombinedStatProcessor).process(index, gameday).toString(), totalDeaths)
-            }
-            if (game[i].winner) {
-                league.results["$uid1:$uid2"] = uid
-            }
-        }
         val (battleindex, numbers) = league.battleorder[gameday]?.let { battleorder ->
             val battleusers = battleorder.firstOrNull { it.contains(i1) }.orEmpty()
             (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1) to (0..1).asSequence()
@@ -196,6 +154,72 @@ class DocEntry private constructor(val league: League) {
             battleind to (0..1).map { game[it].pokemon.count { m -> !m.isDead } }
                 .let { if (u1IsSecond) it.reversed() else it }
         }
+        val sid = league.sid
+        val b = RequestBuilder(sid)
+        val uids = listOf(uid1, uid2)
+        val picks = league.providePicksForGameday(gameday)
+        for ((i, uid) in uids.withIndex()) {
+            val index = league.table.indexOf(uid)
+            var monIndex = -1
+            val generalStatProcessorData = StatProcessorData(
+                plindex = index,
+                gameday = gameday,
+                battleindex = battleindex,
+                u1IsSecond = u1IsSecond,
+                fightIndex = i
+            )
+
+            fun Set<StatProcessor>.checkTotal(map: Map<String, Int>) {
+                val total = map.values.sum()
+                forEach { p ->
+                    if (p is CombinedStatProcessor) {
+                        with(p) {
+                            val k = generalStatProcessorData.process()
+                            b.addSingle(
+                                k.toString(), total
+                            )
+                        }
+                    }
+                }
+            }
+            if (!killProcessors.all { it is CombinedStatProcessor } || !deathProcessors.all { it is CombinedStatProcessor }) {
+                for (pick in monsOrder(picks[uid]!!)) {
+                    monIndex++
+                    val deathStr = getNumber(deaths[i], pick)
+                    if (deathStr.isEmpty() && !setStatIfEmpty) continue
+                    val death = deathStr.toInt()
+                    val killsOfMon = getNumber(kills[i], pick).toInt()
+                    val statProcessorData = generalStatProcessorData.withMonIndex(monIndex)
+                    fun Set<StatProcessor>.check(data: Int) {
+                        forEach { p ->
+                            if (p is BasicStatProcessor) {
+                                with(p) {
+                                    val k = statProcessorData.process()
+                                    b.addSingle(
+                                        k.toString(), data
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    killProcessors.check(killsOfMon)
+                    deathProcessors.check(death)
+                }
+            }
+            killProcessors.checkTotal(kills[i])
+            deathProcessors.checkTotal(deaths[i])
+
+            (if (game[i].winner) winProcessor else looseProcessor)?.let { p ->
+                with(p) {
+                    val k = generalStatProcessorData.process()
+                    b.addSingle(k.toString(), 1)
+                }
+            }
+            if (game[i].winner) {
+                league.results["$uid1:$uid2"] = uid
+            }
+        }
+
         run {
             val winningIndex = (if (game[0].winner) uid1 else uid2).indexedBy(league.table)
             val leagueName = league.leaguename
@@ -239,6 +263,13 @@ class DocEntry private constructor(val league: League) {
                     val points = Google[sid, formulaRange.toString(), false].toMutableList()
                     val orig: List<List<Any>?> = ArrayList(points)
                     val table = league.table
+                    val indexerToUse: (String) -> Int by lazy {
+                        if (newMethod) { str: String ->
+                            rowNumToIndex(
+                                str.substring(league.dataSheet.length + 4).replace("$", "").substringBefore(":").toInt()
+                            )
+                        } else indexer!!
+                    }
                     points.sortWith { o1: List<Any>, o2: List<Any> ->
                         val arr = cols.toList()
                         val first = if (directCompare) arr.subList(0, arr.indexOf(-1)) else arr
@@ -247,11 +278,6 @@ class DocEntry private constructor(val league: League) {
                         )
                         if (c != 0) return@sortWith c
                         if (!directCompare) return@sortWith 0
-                        val indexerToUse: (String) -> Int = if (newMethod) { str: String ->
-                            str.substring(league.dataSheet.length + 4).replace("$", "").substringBefore(":").toInt()
-                                .minus(league.newSystemGap + 1)
-                                .div(league.newSystemGap)
-                        } else indexer!!
                         val u1 = table[indexerToUse(formula[orig.indexOf(o1)][0].toString())]
                         val u2 = table[indexerToUse(formula[orig.indexOf(o2)][0].toString())]
                         val o = league.results
@@ -282,19 +308,33 @@ class DocEntry private constructor(val league: League) {
     }
 }
 
+data class StatProcessorData(
+    val plindex: Int,
+    val gameday: Int,
+    val battleindex: Int,
+    val u1IsSecond: Boolean,
+    val fightIndex: Int
+) {
+    var monindex: Int = -1
+        get() = if (field == -1) error("monindex not set (must be BasicStatProcessor to be usable)") else field
+
+    val gameplanIndex get() = if (u1IsSecond) 1 - fightIndex else fightIndex
+
+    fun withMonIndex(monindex: Int) = copy().apply { this.monindex = monindex }
+}
 
 interface StatProcessor
 
 fun interface BasicStatProcessor : StatProcessor {
-    fun process(plindex: Int, monindex: Int, gameday: Int): StatLocation
+    fun StatProcessorData.process(): Coord
 }
 
 fun interface CombinedStatProcessor : StatProcessor {
-    fun process(plindex: Int, gameday: Int): StatLocation
+    fun StatProcessorData.process(): Coord
 }
 
 fun interface ResultStatProcessor {
-    fun process(plindex: Int, gameday: Int): StatLocation
+    fun StatProcessorData.process(): Coord
 }
 
 @Suppress("unused")

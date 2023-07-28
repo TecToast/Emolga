@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.CombinedStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
-import de.tectoast.emolga.utils.records.StatLocation
+import de.tectoast.emolga.utils.records.Coord
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -15,11 +15,11 @@ import kotlinx.serialization.Transient
 class GDL : League() {
     @Transient
     override val docEntry = DocEntry.create(this) {
-        killProcessor = BasicStatProcessor { plindex, monindex, gameday ->
-            StatLocation("Kader", plindex % 2 * 14 + 5 + gameday, plindex / 2 * 15 + 5 + monindex)
+        killProcessor = BasicStatProcessor {
+            Coord("Kader", plindex % 2 * 14 + 5 + gameday, plindex / 2 * 15 + 5 + monindex)
         }
-        deathProcessor = CombinedStatProcessor { plindex, gameday ->
-            StatLocation("Kader", plindex % 2 * 14 + 5 + gameday, plindex / 2 * 15 + 16)
+        deathProcessor = CombinedStatProcessor {
+            Coord("Kader", plindex % 2 * 14 + 5 + gameday, plindex / 2 * 15 + 16)
         }
         resultCreator = {
             b.addRow(

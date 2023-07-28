@@ -5,8 +5,8 @@ import de.tectoast.emolga.commands.toDocRange
 import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
+import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
-import de.tectoast.emolga.utils.records.StatLocation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -18,23 +18,23 @@ class Prisma : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        killProcessor = BasicStatProcessor { plindex: Int, monindex: Int, gameday: Int ->
-            StatLocation(
+        killProcessor = BasicStatProcessor {
+            Coord(
                 "Data", gameday + 6, plindex * 11 + 2 + monindex
             )
         }
-        deathProcessor = BasicStatProcessor { plindex: Int, monindex: Int, gameday: Int ->
-            StatLocation(
+        deathProcessor = BasicStatProcessor {
+            Coord(
                 "Data", gameday + 14, plindex * 11 + 2 + monindex
             )
         }
-        winProcessor = ResultStatProcessor { plindex: Int, gameday: Int ->
-            StatLocation(
+        winProcessor = ResultStatProcessor {
+            Coord(
                 "Data", "W", plindex * 11 + 1 + gameday
             )
         }
-        looseProcessor = ResultStatProcessor { plindex: Int, gameday: Int ->
-            StatLocation(
+        looseProcessor = ResultStatProcessor {
+            Coord(
                 "Data", "X", plindex * 11 + 1 + gameday
             )
         }

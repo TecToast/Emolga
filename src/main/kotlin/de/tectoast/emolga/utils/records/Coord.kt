@@ -34,3 +34,9 @@ infix fun String.x(x: String) = Coord(this, RequestBuilder.getColumnFromRange(x)
 infix fun Coord.y(y: Int) = Coord(sheet, x, y)
 
 infix fun String.xy(xy: Pair<Int, Int>) = Coord(this, xy.first, xy.second)
+fun String.toCoord() = this.split("!").let {
+    val sheet = it[0].removeSurrounding("'")
+    val x = it[1].replace(Regex("[^A-Z]"), "")
+    val y = it[1].replace(Regex("[^0-9]"), "").toInt()
+    Coord(sheet, x, y)
+}

@@ -56,7 +56,7 @@ class MongoEmolga {
 
     val asls11: ASLS11 get() = error("ASLS11 is not available atm!")
     val asls11nametoid: List<Long> get() = error("ASLS11 is not available atm!")
-    val defaultNameConventions: Map<String, Regex> by lazy {
+    val defaultNameConventions: Map<String, String> by lazy {
         runBlocking {
             nameconventions.find(NameConventions::guild eq 0).first()!!
         }.data
@@ -100,7 +100,7 @@ data class Cooldown(
 @Serializable
 data class NameConventions(
     val guild: Long,
-    val data: MutableMap<String, @Serializable(with = RegexSerializer::class) Regex> = mutableMapOf()
+    val data: MutableMap<String, String> = mutableMapOf()
 )
 
 @Serializable

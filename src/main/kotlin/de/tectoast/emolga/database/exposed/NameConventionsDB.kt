@@ -31,7 +31,7 @@ object NameConventionsDB : Table("nameconventions") {
             val resultLang = if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED
             select(checkLang inList mons).map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] } +
                     mons.mapNotNull { mon ->
-                        nc.values.firstNotNullOfOrNull { it.find(mon) }?.run {
+                        nc.values.firstNotNullOfOrNull { it.toRegex().find(mon) }?.run {
                             select { checkLang eq groupValues[1] }.firstOrNull()
                                 ?.get(resultLang)?.let { repl ->
                                     value.replace(
@@ -106,10 +106,9 @@ object NameConventionsDB : Table("nameconventions") {
     suspend fun getDiscordTranslation(s: String, guildId: Long, english: Boolean = false): DraftName? {
         val list = mutableListOf<Pair<String, String?>>()
         val nc = db.nameconventions.findOne(NameConventions::guild eq guildId)?.data
-        fun Map<String, Regex>.check() = firstNotNullOfOrNull {
-            it.value.find(s)?.let { mr -> mr to it.key }
+        fun Map<String, String>.check() = firstNotNullOfOrNull {
+            it.value.toRegex().find(s)?.let { mr -> mr to it.key }
         }
-
         val defaultNameConventions = db.defaultNameConventions
         (nc?.check() ?: defaultNameConventions.check())?.also { (mr, key) ->
             list += mr.groupValues[1] + "-" + key to key
@@ -135,7 +134,7 @@ object NameConventionsDB : Table("nameconventions") {
     )
 
     private fun getDBTranslation(
-        test: String, guildId: Long, spec: String? = null, nc: Map<String, Regex>, english: Boolean = false
+        test: String, guildId: Long, spec: String? = null, nc: Map<String, String>, english: Boolean = false
     ): DraftName? {
         return transaction {
             select(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId))).orderBy(
@@ -145,7 +144,7 @@ object NameConventionsDB : Table("nameconventions") {
                     //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
                     it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                         if (spec != null) {
-                            val pattern = nc[spec]!!.pattern
+                            val pattern = nc[spec]!!
                             val len = pattern.replace("(\\S+)", "").length
                             val replace = pattern.replace("(\\S+)", s.substringBefore("-$spec"))
                             //logger.warn("s: {}, raw: {}, len: {}, replace: {}", s, raw, len, replace)

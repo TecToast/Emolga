@@ -56,7 +56,7 @@ class TierlistBuilderConfigurator(
             nc.forEach {
                 field {
                     name = it.key.replaceFirstChar { c -> c.uppercase() }
-                    value = it.value.pattern.replace("(\\S+)", "POKEMON")
+                    value = it.value.replace("(\\S+)", "POKEMON")
                     inline = true
                 }
             }
@@ -89,7 +89,7 @@ class TierlistBuilderConfigurator(
             }?.let {
                 db.nameconventions.updateOne(
                     NameConventions::guild eq guildId,
-                    set(NameConventions::data.keyProjection(form) setTo it.replace("POKEMON", "(\\S+)").toRegex())
+                    set(NameConventions::data.keyProjection(form) setTo it.replace("POKEMON", "(\\S+)"))
                 )
             }
         }
@@ -245,7 +245,7 @@ class TierlistBuilderConfigurator(
         while (index < mons.size) {
             val mon = mons[index]
             val regForm = regional.entries.firstNotNullOfOrNull {
-                it.value.find(mon)?.let { mr -> mr to it.key }
+                it.value.toRegex().find(mon)?.let { mr -> mr to it.key }
             }?.let { (mr, key) ->
                 mr.groupValues[1] + "-" + key
             }

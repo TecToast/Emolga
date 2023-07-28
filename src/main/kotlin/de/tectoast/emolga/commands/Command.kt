@@ -1209,7 +1209,8 @@ abstract class Command(
                 Constants.G.WARRIOR,
                 Constants.G.BSP,
                 Constants.G.PIKAS,
-                Constants.G.WFS
+                Constants.G.WFS,
+                Constants.G.ADK
             )
         private val draftPrefixes = mapOf(
             "M" to "Mega", "A" to "Alola", "G" to "Galar", "Mega" to "Mega", "Alola" to "Alola", "Galar" to "Galar"

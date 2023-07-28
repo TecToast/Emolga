@@ -15,6 +15,7 @@ object Constants {
     val DRAFTADMINS = setOf(FLOID, 297010892678234114)
 
     object G {
+        const val ADK = 883292170533077002
         const val WFS = 815004128148979723
         const val PEPE = 605632286179983360
         const val ASL = 518008523653775366

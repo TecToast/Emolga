@@ -17,6 +17,7 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.only
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.button
@@ -63,8 +64,6 @@ import javax.imageio.ImageIO
 object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
-
-    private val guildsToUpdate = listOf(815004128148979723)
 
     // MolfBestesTeam
     fun updateTierlist(e: GenericCommandEvent) {
@@ -406,7 +405,7 @@ object PrivateCommands {
         e.reply("Deleted: " + AnalysisDB.removeUnused())
     }
 
-    fun updateSlashCommands() {
+    suspend fun updateSlashCommands() {
         val jda = EmolgaMain.emolgajda
         val map: MutableMap<Long, MutableList<SlashCommandData>> = HashMap()
         Command.commands.values.filter { it.isSlash }.distinct().filter { it.slashGuilds.isNotEmpty() }.forEach {
@@ -430,6 +429,7 @@ object PrivateCommands {
                 map.computeIfAbsent(slashGuild) { LinkedList() }.add(dt)
             }
         }
+        val guildsToUpdate = db.config.only().guildsToUpdate
         for ((guild, value) in map) {
             if (guildsToUpdate.isNotEmpty() && guild !in guildsToUpdate) continue
             (when (guild) {

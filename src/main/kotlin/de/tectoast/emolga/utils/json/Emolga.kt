@@ -64,7 +64,7 @@ class MongoEmolga {
 }
 
 @Serializable
-data class Config(val teamgraphicShinyOdds: Int)
+data class Config(val teamgraphicShinyOdds: Int, val guildsToUpdate: List<Long> = listOf())
 
 @Serializable
 data class Statistics(var drampaCounter: Int)

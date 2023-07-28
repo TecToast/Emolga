@@ -473,7 +473,7 @@ sealed class League {
 
         suspend fun byCommand(e: GuildCommandEvent) = onlyChannel(e.textChannel.idLong)?.apply {
             if (!isCurrentCheck(e.member.idLong)) {
-                e.reply("Du bist nicht dran!")
+                e.reply("Du bist nicht dran!", ephemeral = true)
                 return null
             }
         }

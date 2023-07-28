@@ -1,9 +1,6 @@
 package de.tectoast.emolga.commands.draft
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
-import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.randomWithCondition
+import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.MDLTierlist
@@ -23,7 +20,7 @@ class PickMDLCommand : Command("pickmdl", "Gamblen :)", CommandCategory.Draft) {
                 "Typ",
                 "Der Typ, der gewählt werden soll",
                 ArgumentManagerTemplate.Text.of(
-                    PickTypeCommand.typeList.map { SubCommand(it, it) }
+                    germanTypeList.map { SubCommand(it, it) }
                 ))
         }
         slash(true, Constants.G.VIP)

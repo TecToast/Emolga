@@ -59,9 +59,6 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import kotlinx.serialization.modules.subclass
 import mu.KotlinLogging
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.JDA
@@ -2990,17 +2987,17 @@ val defaultScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + Corout
     sendToMe("Error in default scope, look in console")
 })
 val myJSON = Json {
-    serializersModule = SerializersModule {
-        polymorphic(League::class) {
-            subclass(NDS::class)
-            subclass(GDL::class)
-            subclass(Prisma::class)
-            subclass(ASLCoach::class)
-            subclass(DoR::class)
-            subclass(FPL::class)
-            subclass(Paldea::class)
-        }
-    }
+//    serializersModule = SerializersModule {
+//        polymorphic(League::class) {
+//            subclass(NDS::class)
+//            subclass(GDL::class)
+//            subclass(Prisma::class)
+//            subclass(ASLCoach::class)
+//            subclass(DoR::class)
+//            subclass(FPL::class)
+//            subclass(Paldea::class)
+//        }
+//    }
     prettyPrint = true
 }
 
@@ -3008,6 +3005,26 @@ val otherJSON = Json {
     isLenient = true
     ignoreUnknownKeys = true
 }
+val germanTypeList = setOf(
+    "Normal",
+    "Feuer",
+    "Wasser",
+    "Pflanze",
+    "Gestein",
+    "Boden",
+    "Geist",
+    "Unlicht",
+    "Drache",
+    "Fee",
+    "Eis",
+    "Kampf",
+    "Elektro",
+    "Flug",
+    "Gift",
+    "Psycho",
+    "Stahl",
+    "Käfer"
+)
 
 val defaultTimeFormat = SimpleDateFormat("dd.MM.yyyy HH:mm")
 

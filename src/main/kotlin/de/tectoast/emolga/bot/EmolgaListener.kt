@@ -4,6 +4,7 @@ import de.tectoast.emolga.buttons.ButtonListener
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PrivateCommand
+import de.tectoast.emolga.commands.marker
 import de.tectoast.emolga.database.exposed.BanDB
 import de.tectoast.emolga.database.exposed.MuteDB
 import de.tectoast.emolga.modals.ModalListener
@@ -44,9 +45,14 @@ object EmolgaListener : ListenerAdapter() {
         jda.listener<StringSelectInteractionEvent> { MenuListener.check(it) }
         jda.listener<MessageReceivedEvent> { messageReceived(it) }
         jda.listener<SlashCommandInteractionEvent> { slashCommandInteractionEvent(it) }
+        logger.info("important".marker, "Registering ready event...")
         jda.listener<ReadyEvent> { e ->
+            logger.info("important".marker, "Ready event received!")
             if (e.jda.selfUser.idLong == 723829878755164202) {
-                db.drafts.find(League::isRunning eq true, League::noAutoStart eq false).toList().forEach {
+                logger.info("important".marker, "Emolga is now online!")
+                db.drafts.find(League::isRunning eq true).toList().forEach {
+                    if (it.noAutoStart) return@forEach
+                    logger.info("important".marker, "Starting draft ${it.leaguename}...")
                     it.startDraft(null, true, null)
                 }
             }

@@ -10,14 +10,8 @@ import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Contextual
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 import org.bson.conversions.Bson
 import org.litote.kmongo.Id
 import org.litote.kmongo.all
@@ -155,14 +149,6 @@ class Shinycount(
     val methodorder: List<String>,
     val userorder: List<Long>
 )
-
-object RegexSerializer : KSerializer<Regex> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Regex", PrimitiveKind.STRING)
-
-    override fun deserialize(decoder: Decoder): Regex = Regex(decoder.decodeString())
-
-    override fun serialize(encoder: Encoder, value: Regex) = encoder.encodeString(value.pattern)
-}
 
 suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!
 suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) = updateOne("{}", update)

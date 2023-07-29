@@ -43,7 +43,7 @@ class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste
                     (0 until 10).mapNotNull { args.getNullable<String>("range$it")?.let { a -> "$tierlistsheet!$a" } },
                     false
                 )
-                    .map { col -> col.mapNotNull { it.getOrNull(0)?.toString()?.replace("*", "")?.trim() } }
+                    .map { col -> col.mapNotNull { it.getOrNull(0)?.toString()?.prepareForTL() } }
                     .also { tierlistcols += it }
                     .flatten().ensureNoDuplicates(),
                 tierlistcols = tierlistcols
@@ -65,6 +65,14 @@ class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste
             MDLTierlist.get.values.flatMap { map -> map.values.flatten() }, emptyList()
         )*/
     }
+}
+
+private val complexSigns = setOf("*", "^", "(")
+private fun String.prepareForTL(): String? {
+    if (toIntOrNull() != null) return null
+    var x = this
+    complexSigns.forEach { x = x.substringBefore(it, "") }
+    return x.trim().takeUnless { it.isBlank() }
 }
 
 fun List<String>.ensureNoDuplicates(): List<String> {

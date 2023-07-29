@@ -22,6 +22,9 @@ object NameConventionsDB : Table("nameconventions") {
     private val SPECIFIEDENGLISH = varchar("specifiedenglish", 50)
     private val HASHYPHENINNAME = bool("hashypheninname")
 
+    @Suppress("unused") // used in DB but not here
+    private val COMMON = bool("common")
+
     private val logger = KotlinLogging.logger {}
 
     suspend fun getAllOtherSpecified(mons: List<String>, lang: Language, guildId: Long): List<String> {

@@ -265,7 +265,7 @@ sealed class League {
         allTimers[leaguename]?.cancel("Restarting timer")
         allTimers[leaguename] = timerScope.launch {
             delay(delay)
-            db.drafts.find(League::leaguename eq this@League.leaguename).first()?.triggerTimer()
+            executeTimerOnRefreshedVersion(this@League.leaguename)
         }
     }
 
@@ -470,6 +470,12 @@ sealed class League {
                 "ERROR EXECUTING TIMER", t
             )
         })
+
+        suspend fun executeTimerOnRefreshedVersion(name: String) {
+            val league =
+                db.drafts.findOne(League::leaguename eq name) ?: return Command.sendToMe("League $name not found")
+            league.triggerTimer()
+        }
 
         suspend fun byCommand(e: GuildCommandEvent) = onlyChannel(e.textChannel.idLong)?.apply {
             if (!isCurrentCheck(e.member.idLong)) {

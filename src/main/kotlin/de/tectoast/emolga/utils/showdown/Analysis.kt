@@ -92,7 +92,8 @@ object Analysis {
                         allMons[it].orEmpty().toMutableList()
                     )
                 },
-                randomBattle = randomBattle
+                randomBattle = randomBattle,
+                game = game
             )
         ) {
             for (line in game) {

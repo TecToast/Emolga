@@ -249,7 +249,15 @@ sealed class SDEffect(vararg val types: String) {
 
         override fun execute(split: List<String>, ctx: BattleContext) {
             if (split[2] in explosionMoves) {
-                if (ctx.nextLine.contains("-fail") || ctx.nextLine.contains("-immune")) return
+                run {
+                    var i = ctx.currentLineIndex + 1
+                    while (i < ctx.game.size) {
+                        val line = ctx.game[i]
+                        if ("-fail" in line || "-immune" in line) return
+                        if ("|turn" in line || "|move" in line) break
+                        i++
+                    }
+                }
                 val (pl, idx) = split[1].parsePokemonLocation()
                 val boomed = ctx.monsOnField[pl][idx]
                 (boomed.lastDamageBy ?: ctx.monsOnField.getOrNull(1 - pl)?.let {
@@ -384,7 +392,8 @@ data class BattleContext(
     var nextLine: String = "",
     var currentLineIndex: Int = -1,
     var turn: Int = 0,
-    var vgc: Boolean = false
+    var vgc: Boolean = false,
+    val game: List<String>,
 )
 
 data class SDPlayer(

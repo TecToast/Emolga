@@ -687,7 +687,7 @@ object PrivateCommands {
             ) in conferenceIndexes
         }.sortedBy { data.conferences.indexOf(it.key) }.associate { (conference, users) ->
             conference.indexedBy(data.conferences) to (Embed(
-                title = "Conference: $conference (${users.size}/${data.maxUsers})",
+                title = "Conference: $conference (${users.size}/${data.maxUsersAsString})",
                 description = users.joinToString("\n") { "<@${it.key}>" }, color = embedColor
             ) to
                     users.map { (id, _) ->

@@ -22,14 +22,17 @@ class SignupModal : ModalListener("signup") {
         val sdnameid = Command.toUsername(sdname)
         if (sdnameid.length !in 1..18) return e.reply_("Dieser Showdown-Name ist ungültig!").setEphemeral(true).queue()
         val uid = e.user.idLong
+        val isChange = name == "change"
         with(db.signups.get(e.guild!!.idLong)!!) {
             val ownerOfTeam =
-                PrivateCommands.userIdForSignupChange?.takeIf { uid == Constants.FLOID } ?: getOwnerByUser(uid)
-                ?: return e.reply_(
-                    "Du bist derzeit nicht angemeldet!"
-                ).setEphemeral(true).queue()
+                PrivateCommands.userIdForSignupChange?.takeIf { uid == Constants.FLOID }
+                    ?: if (isChange) getOwnerByUser(uid) ?: return e.reply_(
+                        "Du bist derzeit nicht angemeldet!"
+                    ).setEphemeral(true).queue()
+                    else uid
+
             SDNamesDB.addIfAbsent(sdname, ownerOfTeam)
-            if (name == "change") {
+            if (isChange) {
                 val data = users[ownerOfTeam]!!
                 data.sdname = sdname
                 data.teamname = teamname
@@ -56,8 +59,9 @@ class SignupModal : ModalListener("signup") {
             users[ownerOfTeam] = signUpData
             val msg = announceChannel.retrieveMessageById(announceMessageId)
                 .await().contentRaw.substringBefore("**Teilnehmer:")
-            announceChannel.editMessageById(announceMessageId, "$msg**Teilnehmer: ${users.size}/$maxUsers**").queue()
-            if (users.size >= maxUsers) {
+            announceChannel.editMessageById(announceMessageId, "$msg**Teilnehmer: ${users.size}/${maxUsersAsString}**")
+                .queue()
+            if (maxUsers > 0 && users.size >= maxUsers) {
                 announceChannel.editMessageComponentsById(
                     announceMessageId, primary("signupclosed", "Anmeldung geschlossen", disabled = true).into()
                 ).queue()

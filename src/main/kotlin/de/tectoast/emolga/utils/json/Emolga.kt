@@ -114,6 +114,7 @@ data class LigaStartData(
     val announceMessageId: Long,
     var extended: Boolean = false
 ) {
+    val maxUsersAsString get() = (maxUsers.takeIf { it > 0 } ?: "").toString()
     fun conferenceSelectMenus(uid: Long, initial: Boolean) = StringSelectMenu(
         "cselect;${initial.ifTrue("initial")}:$uid",
         options = conferences.map { SelectOption(it, it) })

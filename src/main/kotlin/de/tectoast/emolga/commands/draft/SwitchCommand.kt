@@ -65,13 +65,22 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
         val oldDraftMon = draftPokemons.firstOrNull { it.name == oldmon.official }
             ?: return e.reply("${oldmon.tlName} befindet sich nicht in deinem Kader!")
         val newtier = d.getTierOf(newmon.tlName, null) ?: return e.reply("Das neue Pokemon ist nicht in der Tierliste!")
+        val oldtier = d.getTierOf(oldmon.tlName, null)!!.specified
         d.checkUpdraft(oldDraftMon.tier, newtier.official)?.let { e.reply(it); return }
         if (d.isPicked(newmon.official, newtier.official)) {
             e.reply("${newmon.tlName} wurde bereits gepickt!")
             return
         }
         if (d.handleTiers(e, newtier.specified, newtier.official, fromSwitch = true)) return
-        if (d.handlePoints(e, newmon.tlName, false, oldmon.tlName)) return
+        if (d.handlePoints(
+                e,
+                tlNameNew = newmon.tlName,
+                officialNew = newmon.official,
+                free = false,
+                tier = newtier.official,
+                tierOld = oldtier
+            )
+        ) return
         d.replySwitch(e, oldmon.tlName, newmon.tlName)
 
         val oldIndex = d.saveSwitch(draftPokemons, oldmon.official, newmon.official, newtier.specified)
@@ -89,7 +98,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
                         round = round,
                         memIndex = table.indexOf(mem),
                         oldmon = oldmon.tlName,
-                        oldtier = getTierOf(oldmon.tlName, null)!!.specified,
+                        oldtier = oldtier,
                         oldIndex = draftPokemons.indexOfFirst { it.name == oldmon.official },
                         changedOnTeamsiteIndex = oldIndex,
                     )

@@ -158,19 +158,36 @@ sealed class League {
     open suspend fun isPicked(mon: String, tier: String? = null) =
         picks.values.any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
 
-    open fun handlePoints(e: GuildCommandEvent, tlNameNew: String, free: Boolean, tlNameOld: String? = null): Boolean {
+    open fun handlePoints(
+        e: GuildCommandEvent,
+        tlNameNew: String,
+        officialNew: String,
+        free: Boolean,
+        tier: String,
+        tierOld: String? = null
+    ): Boolean {
         if (!tierlist.mode.withPoints) return false
-        if (!free && !tierlist.mode.isPoints()) return false
-        val needed = tierlist.getPointsNeeded(tlNameNew)
-        val pointsBack = tlNameOld?.let { tierlist.getPointsNeeded(it) } ?: 0
+        val mega = officialNew.isMega
+        if (tierlist.mode.isTiersWithFree() && !(tierlist.variableMegaPrice && mega) && !free) return false
+        val cpicks = picks[current]!!
+        if (tierlist.variableMegaPrice && cpicks.any { it.name.isMega } && mega) {
+            e.reply("Du kannst nur ein Mega draften!")
+            return true
+        }
+        val needed = tierlist.getPointsNeeded(tier)
+        val pointsBack = tierOld?.let { tierlist.getPointsNeeded(it) } ?: 0
         if (points[current] - needed + pointsBack < 0) {
             e.reply("Dafür hast du nicht genug Punkte!")
             return true
         }
+        val variableMegaPrice =
+            if (tierlist.variableMegaPrice) (if (cpicks.none { it.name.isMega }) tierlist.order.mapNotNull {
+                it.substringAfter("#", "").takeUnless { t -> t.isEmpty() }?.toInt()
+            }.minOrNull() ?: 0 else 0) else 0
         if (pointsBack == 0 && when (tierlist.mode) {
-                TierlistMode.POINTS -> (totalRounds - (picks[current]!!.size + 1)) * tierlist.prices.values.min() > points[current] - needed
-                TierlistMode.TIERS_WITH_FREE -> (tierlist.freePicksAmount - (picks[current]!!.count { it.free } + 1)) * tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" }
-                    .minOf { it.value } > points[current] - needed
+                TierlistMode.POINTS -> (totalRounds - (cpicks.size + 1)) * tierlist.prices.values.min() > points[current] - needed
+                TierlistMode.TIERS_WITH_FREE -> (tierlist.freePicksAmount - (cpicks.count { it.free } + 1)) * tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" }
+                    .minOf { it.value } > points[current] - needed - variableMegaPrice
 
                 else -> false
             }
@@ -183,12 +200,9 @@ sealed class League {
     }
 
     open fun handleTiers(
-        e: GuildCommandEvent,
-        specifiedTier: String,
-        officialTier: String,
-        fromSwitch: Boolean = false
+        e: GuildCommandEvent, specifiedTier: String, officialTier: String, fromSwitch: Boolean = false
     ): Boolean {
-        if (!tierlist.mode.withTiers) return false
+        if (!tierlist.mode.withTiers || (tierlist.variableMegaPrice && "#" in officialTier)) return false
         val map = getPossibleTiers()
         if (!map.containsKey(specifiedTier)) {
             e.reply("Das Tier `$specifiedTier` existiert nicht!")
@@ -288,8 +302,7 @@ sealed class League {
                 )
             )
         }
-    }.joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
-    /*.condAppend(timerSkipMode?.multiplePicksPossible == true && hasMovedTurns()) {
+    }.joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }/*.condAppend(timerSkipMode?.multiplePicksPossible == true && hasMovedTurns()) {
         movedTurns().size.plus(1).let { " **($it Pick${if (it == 1) "" else "s"})**" }
     }*/
 
@@ -297,14 +310,24 @@ sealed class League {
     open fun beforeSwitch(): String? = null
     open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
-    fun getPossibleTiers(mem: Long = current) = tierlist.prices.toMutableMap().let { possible ->
-        picks[mem]!!.forEach { pick ->
-            pick.takeUnless { it.name == "???" || it.free }?.let { possible[it.tier] = possible[it.tier]!! - 1 }
+    fun getPossibleTiers(mem: Long = current): MutableMap<String, Int> {
+        val cpicks = picks[mem]!!
+        return tierlist.prices.toMutableMap().let { possible ->
+            cpicks.forEach { pick ->
+                pick.takeUnless { it.name == "???" || it.free || it.quit }
+                    ?.let { possible[it.tier] = possible[it.tier]!! - 1 }
+            }
+            possible
+        }.also { possible ->
+            if (tierlist.variableMegaPrice) {
+                possible.keys.toList().forEach { if (it.startsWith("Mega#")) possible.remove(it) }
+                possible["Mega"] = if (cpicks.none { it.name.isMega }) 1 else 0
+            }
+            manipulatePossibleTiers(cpicks, possible)
         }
-        possible
-    }.also { manipulatePossibleTiers(it) }
+    }
 
-    open fun manipulatePossibleTiers(possible: MutableMap<String, Int>) {}
+    open fun manipulatePossibleTiers(picks: MutableList<DraftPokemon>, possible: MutableMap<String, Int>) {}
 
     fun getPossibleTiersAsString(mem: Long = current) =
         getPossibleTiers(mem).entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
@@ -387,11 +410,9 @@ sealed class League {
                     getCurrentMention()
                 } dran!"
             )
-            else append(
-                "Der Pick von ${getCurrentName(oldcurrent)} wurde ".condAppend(skippedBy != null) { "von <@$skippedBy> " } + "${if (isSwitchDraft) "geskippt" else "verschoben"} und deshalb ist jetzt ${
-                    getCurrentMention()
-                } dran!"
-            )
+            else append("Der Pick von ${getCurrentName(oldcurrent)} wurde ".condAppend(skippedBy != null) { "von <@$skippedBy> " } + "${if (isSwitchDraft) "geskippt" else "verschoben"} und deshalb ist jetzt ${
+                getCurrentMention()
+            } dran!")
             append(announceData())
         }).queue()
         restartTimer()
@@ -419,10 +440,8 @@ sealed class League {
     open val dataSheet: String = "Data"
 
     fun builder() = RequestBuilder(sid)
-    suspend fun replyPick(e: GuildCommandEvent, pokemon: String, free: Boolean, updrafted: String?) =
-        replyGeneral(
-            e,
-            "$pokemon ".condAppend(updrafted != null) { "im $updrafted " } + "gepickt!".condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
+    suspend fun replyPick(e: GuildCommandEvent, pokemon: String, free: Boolean, updrafted: String?) = replyGeneral(e,
+        "$pokemon ".condAppend(updrafted != null) { "im $updrafted " } + "gepickt!".condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
 
     suspend fun replyGeneral(e: GuildCommandEvent, msg: String, action: ((ReplyCallbackAction) -> Unit)? = null) {
         e.slashCommandEvent!!.reply(
@@ -490,6 +509,8 @@ sealed class League {
     enum class TimerReason {
         REALTIMER, SKIP
     }
+
+    protected val String.isMega get() = "-Mega" in this
 }
 
 @Serializable
@@ -605,17 +626,16 @@ enum class TimerSkipMode {
 class PointsManager(val league: League) {
     private val points = mutableMapOf<Long, Int>()
 
-    operator fun get(member: Long) =
-        points.getOrPut(member) {
-            with(league) {
-                val isPoints = tierlist.mode.isPoints()
-                tierlist.points - picks[member]!!.filterNot { it.quit }.sumOf {
-                    if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
-                        it.tier
-                    ) else 0
-                }
+    operator fun get(member: Long) = points.getOrPut(member) {
+        with(league) {
+            val isPoints = tierlist.mode.isPoints()
+            tierlist.points - picks[member]!!.filterNot { it.quit }.sumOf {
+                if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
+                    it.tier
+                ) else 0
             }
         }
+    }
 
     fun add(member: Long, points: Int) {
         this.points[member] = this[member] + points

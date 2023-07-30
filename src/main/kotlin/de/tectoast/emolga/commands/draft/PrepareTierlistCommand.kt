@@ -71,7 +71,7 @@ private val complexSigns = setOf("*", "^", "(")
 private fun String.prepareForTL(): String? {
     if (toIntOrNull() != null) return null
     var x = this
-    complexSigns.forEach { x = x.substringBefore(it, "") }
+    complexSigns.forEach { x = x.substringBefore(it) }
     return x.trim().takeUnless { it.isBlank() }
 }
 

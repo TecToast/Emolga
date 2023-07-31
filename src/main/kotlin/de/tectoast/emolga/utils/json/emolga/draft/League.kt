@@ -25,6 +25,8 @@ import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import org.litote.kmongo.Id
 import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.eq
+import org.litote.kmongo.set
+import org.litote.kmongo.setTo
 import org.slf4j.Logger
 
 
@@ -228,7 +230,7 @@ sealed class League {
         nextPlayer()
     }
 
-    suspend fun afterPickOfficial() = timerSkipMode?.afterPick(this)?.also { save() } ?: afterPick()
+    suspend fun afterPickOfficial() = timerSkipMode?.afterPick(this)?.also { save("AfterPickOfficial") } ?: afterPick()
 
 
     val draftWouldEnd get() = isLastRound && order[round]!!.isEmpty()
@@ -263,11 +265,12 @@ sealed class League {
             restartTimer(delay)
         }
         isRunning = true
-        save()
+        save("StartDraft")
         logger.info("Started!")
     }
 
-    suspend fun save() = db.drafts.updateOne(this).also { logger.info("Saving... $leaguename") }
+    suspend fun save(from: String = "") = db.drafts.updateOne(this)
+        .also { logger.info("Saving... {} isRunning {} FROM {}", this.leaguename, this.isRunning, from) }
 
 
     open fun reset() {}
@@ -366,20 +369,27 @@ sealed class League {
     fun movedTurns() = moved[current] ?: mutableListOf()
 
     private suspend fun endOfTurn(): Boolean {
+        logger.info("End of turn")
         if (order[round]!!.isEmpty()) {
-
+            logger.info("No more players")
             if (round == totalRounds) {
                 tc.sendMessage("Der Draft ist vorbei!").queue()
                 //ndsdoc(tierlist, pokemon, d, mem, tier, round);
                 //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
+                logger.info("Draft ended!")
                 isRunning = false
-                save()
+                logger.info("Draft isRunning {}", isRunning)
+                logger.info("Saving......... $leaguename")
+                save("END SAVE")
+                logger.info("Saved!")
+                db.drafts.updateOneById(id!!, set(League::isRunning setTo false))
+                logger.info("SAVED SEPARATELY")
                 return true
             }
             round++
             if (order[round]!!.isEmpty()) {
                 tc.sendMessage("Da alle bereits ihre Drafts beendet haben, ist der Draft vorbei!").queue()
-                save()
+                save("FINISH DRAFT END SAVE")
                 return true
             }
             sendRound()
@@ -416,16 +426,16 @@ sealed class League {
             append(announceData())
         }).queue()
         restartTimer()
-        save()
+        save("TIMER SAFE")
     }
 
     suspend fun nextPlayer() {
+        cooldownJob?.cancel("Next player")
         if (endOfTurn()) return
         current = order[round]!!.nextCurrent()
-        cooldownJob?.cancel("Next player")
         announcePlayer()
         restartTimer()
-        save()
+        save("NEXT PLAYER SAFE")
     }
 
     fun addFinished(mem: Long) {
@@ -465,7 +475,8 @@ sealed class League {
 
     open fun getPickRound() = round
 
-    suspend fun getPickRoundOfficial() = timerSkipMode?.getPickRound(this)?.also { save() } ?: getPickRound()
+    suspend fun getPickRoundOfficial() =
+        timerSkipMode?.getPickRound(this)?.also { save("GET PICK ROUND") } ?: getPickRound()
 
     fun populateAfterDraft() {
         val order = order[totalRounds]!!

@@ -2655,6 +2655,13 @@ abstract class Command(
                 }
                 return
             }
+            if ((0..1).any { i ->
+                    game[i].pokemon.sumOf { it.kills } > game[1 - i].pokemon.sumOf {
+                        (if (it.isDead) 1 else 0).toInt()
+                    }
+                }) {
+                sendToMe("ACHTUNG ACHTUNG! KILLS SIND MEHR ALS DEATHS :o\n$url\n${resultchannelParam.asMention}")
+            }
             val g = resultchannelParam.guild
             val gid = customGuild ?: g.idLong
             val u1 = game[0].nickname
@@ -2705,35 +2712,35 @@ abstract class Command(
                     player.allMonsDead && !spoiler, " (alle tot)"
                 ) + "\n".condAppend(spoiler, "||") + player.pokemon.joinToString("\n") { mon ->
                     runBlocking { getMonName(mon.pokemon, gid) }.also {
-                            monNames[mon.pokemon] = it
-                        }.displayName.let {
-                            if (activePassive) {
-                                "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
-                            } else {
-                                it.condAppend(mon.kills > 0, " ${mon.kills}")
-                            }
-                        }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
-                    }.condAppend(spoiler, "||")
-                }
-                logger.info("u1 = $u1")
-                logger.info("u2 = $u2")
-                if (fromAnalyseCommand != null) {
-                    fromAnalyseCommand.sendMessage(str).queue()
-                } else if (!customResult.contains(gid)) {
-                    resultChannel.sendMessage(str).queue()
-                }
-                replayChannel?.sendMessage(url)?.queue()
-                fromReplayCommand?.sendMessage(url)?.queue()
-                if (resultchannelParam.guild.idLong != Constants.G.MY) {
-                    StatisticsDB.increment("analysis")
-                    game.forEach { player ->
-                        player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
-                            FullStatsDB.add(
-                                monNames[it.pokemon]!!.official, it.kills, if (it.isDead) 1 else 0, player.winner
-                            )
+                        monNames[mon.pokemon] = it
+                    }.displayName.let {
+                        if (activePassive) {
+                            "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
+                        } else {
+                            it.condAppend(mon.kills > 0, " ${mon.kills}")
                         }
+                    }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
+                }.condAppend(spoiler, "||")
+            }
+            logger.info("u1 = $u1")
+            logger.info("u2 = $u2")
+            if (fromAnalyseCommand != null) {
+                fromAnalyseCommand.sendMessage(str).queue()
+            } else if (!customResult.contains(gid)) {
+                resultChannel.sendMessage(str).queue()
+            }
+            replayChannel?.sendMessage(url)?.queue()
+            fromReplayCommand?.sendMessage(url)?.queue()
+            if (resultchannelParam.guild.idLong != Constants.G.MY) {
+                StatisticsDB.increment("analysis")
+                game.forEach { player ->
+                    player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
+                        FullStatsDB.add(
+                            monNames[it.pokemon]!!.official, it.kills, if (it.isDead) 1 else 0, player.winner
+                        )
                     }
-                    defaultScope.launch {
+                }
+                defaultScope.launch {
                     updatePresence()
                 }
             }

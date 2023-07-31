@@ -18,7 +18,7 @@ class ReplayCommand : Command(
         slash(true, -1)
     }
 
-    val regex = Regex("https://(replay\\.ess\\.tectoast\\.de|replay\\.pokemonshowdown\\.com)/([a-z]+-)?([^-]+)-\\d+")
+    val regex = Regex("https://replay\\.(?:ess\\.tectoast\\.de|pokemonshowdown\\.com)/(?:[a-z]+-)?([^-]+)-\\d+")
 
     override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments

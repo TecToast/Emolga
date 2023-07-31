@@ -253,7 +253,7 @@ sealed class League {
         logger.info("Started!")
     }
 
-    suspend fun save() = db.drafts.updateOne(this)
+    suspend fun save() = db.drafts.updateOne(this).also { logger.info("Saving... $leaguename") }
 
 
     open fun reset() {}

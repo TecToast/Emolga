@@ -68,7 +68,7 @@ abstract class OnDuplicateKeyUpdate<Key : Any>(
         values.putAll(map)
     }
 
-    override fun prepareSQL(transaction: Transaction, prepared: Boolean): String {
+    override fun prepareSQL(transaction: Transaction): String {
 
         val onUpdateSQL = if (map.isNotEmpty()) {
             " ON DUPLICATE KEY UPDATE " + map.entries.joinToString {
@@ -76,7 +76,7 @@ abstract class OnDuplicateKeyUpdate<Key : Any>(
                 "$col=${updateUnsafe(col, it.value)}"
             }
         } else ""
-        return super.prepareSQL(transaction, prepared) + onUpdateSQL
+        return super.prepareSQL(transaction) + onUpdateSQL
     }
 
     abstract fun updateUnsafe(colIdentity: String, value: Any): String

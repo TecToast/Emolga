@@ -36,7 +36,7 @@ class AddToTierlistCommand :
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val id = e.guild.idLong
+        val id = League.onlyChannel(e.channel.idLong)?.guild ?: e.guild.idLong
         val tierlist = Tierlist[id] ?: return e.reply("Es gibt keine Tierlist für diesen Server!")
         val mon = e.arguments.getDraftName("mon").tlName
         val tier = e.arguments.getNullable<String>("tier") ?: tierlist.prices.keys.last()
@@ -56,10 +56,9 @@ class AddToTierlistCommand :
             return
         }
         e.reply("`$mon` ist nun im $tier-Tier!")
-
+        val data = AddToTierlistData(mon, tier, tierlist, id)
         val leagues = db.drafts.find(League::guild eq id).toList()
         if (leagues.isNotEmpty()) {
-            val data = AddToTierlistData(mon, tier, tierlist.monCount - 1, id)
             leagues.forEach {
                 with(it) {
                     data.addMonToTierlist()
@@ -69,7 +68,8 @@ class AddToTierlistCommand :
     }
 }
 
-data class AddToTierlistData(val mon: String, val tier: String, val index: Int, val gid: Long) {
+data class AddToTierlistData(val mon: String, val tier: String, val tierlist: Tierlist, val gid: Long) {
+
     val pkmn by lazy { runBlocking { Command.getDataObject(mon, gid) } }
     val englishTLName by lazy {
         runBlocking {
@@ -79,5 +79,11 @@ data class AddToTierlistData(val mon: String, val tier: String, val index: Int, 
                 english = true
             )!!.tlName
         }
+    }
+    val index by lazy { tierlist.monCount - 1 }
+
+    init {
+        tierlist.addedViaCommand += mon
+        tierlist.addedViaCommand += englishTLName
     }
 }

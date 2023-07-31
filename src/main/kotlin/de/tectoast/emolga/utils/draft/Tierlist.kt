@@ -35,7 +35,9 @@ class Tierlist(val guildid: Long) {
 
     val freePicksAmount get() = freepicks["#AMOUNT#"] ?: 0
 
-    val autoComplete: Set<String> by lazy { runBlocking { getAllForAutoComplete() } }
+    private val _autoComplete: Set<String> by lazy { runBlocking { getAllForAutoComplete() } }
+    val autoComplete get() = _autoComplete + addedViaCommand
+    val addedViaCommand: MutableSet<String> = mutableSetOf()
 
     @Transient
     val tlToOfficialCache = SizeLimitedMap<String, String>(1000)

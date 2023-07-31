@@ -5,8 +5,9 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.eq
+import de.tectoast.emolga.utils.json.findOne
 import kotlinx.coroutines.cancel
-import org.litote.kmongo.eq
 
 class StopdraftCommand : Command("stopdraft", "Beendet den Draft", CommandCategory.Flo) {
     init {
@@ -18,7 +19,7 @@ class StopdraftCommand : Command("stopdraft", "Beendet den Draft", CommandCatego
 
     override suspend fun process(e: GuildCommandEvent) {
         e.reply(
-            db.drafts.find(League::tcid eq e.arguments.getChannel("draftchannel").idLong).first()?.run {
+            db.drafts.findOne(League::tcid eq e.arguments.getChannel("draftchannel").idLong)?.run {
                 cooldownJob!!.cancel("Draft stopped by command")
                 isRunning = false
                 save()

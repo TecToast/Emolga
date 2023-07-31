@@ -1,8 +1,11 @@
 package de.tectoast.emolga.utils.automation.structure
 
+import com.mongodb.client.model.Filters.eq
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.utils.json.Configuration
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.eq
+import de.tectoast.emolga.utils.json.findOne
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -10,8 +13,6 @@ import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.interactions.components.text.TextInput
 import net.dv8tion.jda.api.interactions.modals.Modal
-import org.litote.kmongo.coroutine.updateOne
-import org.litote.kmongo.eq
 import java.awt.Color
 import java.util.function.Function
 
@@ -64,7 +65,7 @@ class ModalConfigurator private constructor() {
                 .setFooter("Aufgerufen von ${member.effectiveName} (${member.user.effectiveName}")
                 .build()
         ).queue()
-        db.configuration.updateOne(configuration)
+        db.configuration.replaceOne(eq(configuration.id), configuration)
     }
 
     fun initialize(e: SlashCommandInteractionEvent) {

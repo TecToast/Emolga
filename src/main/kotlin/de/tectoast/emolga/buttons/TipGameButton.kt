@@ -3,8 +3,9 @@ package de.tectoast.emolga.buttons
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.eq
+import de.tectoast.emolga.utils.json.findOne
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
-import org.litote.kmongo.eq
 
 class TipGameButton : ButtonListener("tipgame") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {

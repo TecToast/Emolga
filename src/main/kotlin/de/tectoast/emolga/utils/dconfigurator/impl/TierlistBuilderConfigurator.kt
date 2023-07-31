@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.dconfigurator.impl
 
+import com.mongodb.client.model.Updates.set
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.commands.file
@@ -9,9 +10,7 @@ import de.tectoast.emolga.utils.dconfigurator.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
-import de.tectoast.emolga.utils.json.NameConventions
-import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.*
 import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
@@ -28,11 +27,6 @@ import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.litote.kmongo.eq
-import org.litote.kmongo.keyProjection
-import org.litote.kmongo.set
-import org.litote.kmongo.setTo
-
 class TierlistBuilderConfigurator(
     userId: Long, channelId: Long, guildId: Long, val mons: List<String>, val tierlistcols: List<List<String>>
 ) : DGuildConfigurator("tierlistbuilder", userId, channelId, guildId) {
@@ -89,7 +83,7 @@ class TierlistBuilderConfigurator(
             }?.let {
                 db.nameconventions.updateOne(
                     NameConventions::guild eq guildId,
-                    set(NameConventions::data.keyProjection(form) setTo it.replace("POKEMON", "(\\S+)"))
+                    set(NameConventions::data.name + "." + form, it.replace("POKEMON", "(\\S+)"))
                 )
             }
         }

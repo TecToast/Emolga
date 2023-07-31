@@ -3,16 +3,13 @@ package de.tectoast.emolga.database.exposed
 import de.tectoast.emolga.commands.Language
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
-import de.tectoast.emolga.utils.json.NameConventions
-import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.*
 import mu.KotlinLogging
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.litote.kmongo.eq
 
 object NameConventionsDB : Table("nameconventions") {
     val GUILD = long("guild")

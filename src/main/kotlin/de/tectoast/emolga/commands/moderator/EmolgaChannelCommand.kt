@@ -1,13 +1,14 @@
 package de.tectoast.emolga.commands.moderator
 
+import com.mongodb.client.model.Updates.addToSet
+import com.mongodb.client.model.Updates.pull
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.json.EmolgaChannelConfig
 import de.tectoast.emolga.utils.json.db
-import org.litote.kmongo.addToSet
-import org.litote.kmongo.eq
-import org.litote.kmongo.pull
+import de.tectoast.emolga.utils.json.eq
+import de.tectoast.emolga.utils.json.findOne
 
 class EmolgaChannelCommand : Command(
     "emolgachannel", "Added/Removed einen Channel, in dem Emolga benutzt werden kann", CommandCategory.Moderator
@@ -39,7 +40,7 @@ class EmolgaChannelCommand : Command(
                 e.reply(tc.asMention + " wurde bereits als Channel eingestellt!")
                 return
             }
-            ec.updateOne(EmolgaChannelConfig::guild eq gid, addToSet(EmolgaChannelConfig::channels, tid))
+            ec.updateOne(EmolgaChannelConfig::guild eq gid, addToSet(EmolgaChannelConfig::channels.name, tid))
             e.reply("Der Channel " + tc.asMention + " wurde erfolgreich zu den erlaubten Channeln hinzugefügt!")
         } else {
             if (arr.isEmpty()) {
@@ -48,7 +49,7 @@ class EmolgaChannelCommand : Command(
             }
 
             if (ec.updateOne(
-                    EmolgaChannelConfig::guild eq gid, pull(EmolgaChannelConfig::channels, tid)
+                    EmolgaChannelConfig::guild eq gid, pull(EmolgaChannelConfig::channels.name, tid)
                 ).modifiedCount > 0
             ) {
                 return e.reply(tc.asMention + " wurde erfolgreich aus den erlaubten Channeln gelöscht!")

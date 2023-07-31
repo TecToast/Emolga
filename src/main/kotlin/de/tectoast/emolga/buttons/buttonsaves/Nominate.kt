@@ -1,5 +1,6 @@
 package de.tectoast.emolga.buttons.buttonsaves
 
+import com.mongodb.client.model.Updates
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.commands.indexedBy
@@ -8,6 +9,7 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
+import de.tectoast.emolga.utils.json.eq
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage_
 import dev.minn.jda.ktx.messages.into
@@ -16,7 +18,6 @@ import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
-import org.litote.kmongo.*
 
 class Nominate(val originalMons: List<DraftPokemon>, val mons: List<DraftPokemon>) {
     private val nominated: MutableList<DraftPokemon>
@@ -51,10 +52,9 @@ class Nominate(val originalMons: List<DraftPokemon>, val mons: List<DraftPokemon
         }
     }
 
-    private fun List<DraftPokemon>.toJSON() =
-        this.sortedWith(comparator).joinToString(";") {
-            it.indexedBy(originalMons).toString()
-        }
+    private fun List<DraftPokemon>.toJSON() = this.sortedWith(comparator).joinToString(";") {
+        it.indexedBy(originalMons).toString()
+    }
 
     fun generateDescription(): String {
         return buildString {
@@ -78,8 +78,7 @@ class Nominate(val originalMons: List<DraftPokemon>, val mons: List<DraftPokemon
                     Button.success("nominate;FINISH", Emoji.fromUnicode("✅")).withDisabled(nominated.size != 11)
                 )
             )
-        })
-            .queue()
+        }).queue()
     }
 
     private fun buildJSONString(): String {
@@ -95,15 +94,15 @@ class Nominate(val originalMons: List<DraftPokemon>, val mons: List<DraftPokemon
             val nom = db.nds().nominations
             val day = nom.current()
             val uid = e.user.idLong
-            if (uid in day)
-                return e.reply_("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!").queue()
+            if (uid in day) return e.reply_("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!")
+                .queue()
             db.drafts.updateOne(
-                League::leaguename eq "NDS",
-                set(
-                    (NDS::nominations / Nominations::nominated).keyProjection(nom.currentDay)
-                        .keyProjection(uid) setTo buildJSONString()
+                League::leaguename eq "NDS", Updates.set(
+                    NDS::nominations.name + "." + Nominations::nominated.name + "." + nom.currentDay + "." + uid,
+                    buildJSONString()
                 )
             )
+
             e.reply_("Deine Nominierung wurde gespeichert!").queue()
             return
         }

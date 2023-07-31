@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
+import com.mongodb.client.model.Filters
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.draft.AddToTierlistData
@@ -11,6 +12,8 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.eq
+import de.tectoast.emolga.utils.json.findOne
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
@@ -22,9 +25,7 @@ import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
-import org.litote.kmongo.Id
-import org.litote.kmongo.coroutine.updateOne
-import org.litote.kmongo.eq
+import org.bson.types.ObjectId
 import org.slf4j.Logger
 
 
@@ -34,7 +35,7 @@ sealed class League {
 
     @SerialName("_id")
     @Contextual
-    val id: Id<League>? = null
+    val id: ObjectId = ObjectId()
     val sid: String = "yay"
     val leaguename: String = "ERROR"
     var isRunning: Boolean = false
@@ -267,7 +268,7 @@ sealed class League {
         logger.info("Started!")
     }
 
-    suspend fun save() = db.drafts.updateOne(this).also { logger.info("Saving... $leaguename") }
+    suspend fun save() = db.drafts.replaceOne(Filters.eq(id), this).also { logger.info("Saving... $leaguename") }
 
 
     open fun reset() {}
@@ -503,7 +504,8 @@ sealed class League {
             }
         }
 
-        suspend fun onlyChannel(tc: Long) = db.drafts.find(League::isRunning eq true, League::tcid eq tc).first()
+        suspend fun onlyChannel(tc: Long) =
+            db.drafts.findOne(Filters.and(League::isRunning eq true, League::tcid eq tc))
     }
 
     enum class TimerReason {

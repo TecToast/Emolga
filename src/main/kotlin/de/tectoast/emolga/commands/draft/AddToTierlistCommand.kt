@@ -8,9 +8,10 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.eq
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.exceptions.ExposedSQLException
-import org.litote.kmongo.eq
 import java.sql.SQLIntegrityConstraintViolationException
 
 class AddToTierlistCommand :

@@ -1,5 +1,8 @@
 package de.tectoast.emolga.utils.json
 
+import com.mongodb.client.model.Filters.*
+import com.mongodb.kotlin.client.coroutine.MongoClient
+import com.mongodb.kotlin.client.coroutine.MongoCollection
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.ifTrue
 import de.tectoast.emolga.utils.json.emolga.ASLS11
@@ -8,20 +11,17 @@ import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.bson.BsonDocument
 import org.bson.conversions.Bson
-import org.litote.kmongo.Id
-import org.litote.kmongo.all
-import org.litote.kmongo.coroutine.CoroutineCollection
-import org.litote.kmongo.coroutine.coroutine
-import org.litote.kmongo.coroutine.updateOne
-import org.litote.kmongo.eq
-import org.litote.kmongo.newId
-import org.litote.kmongo.reactivestreams.KMongo
-import org.litote.kmongo.serialization.configuration as mongoConfiguration
+import org.bson.types.ObjectId
+import kotlin.reflect.KProperty1
+
 
 val db: MongoEmolga = MongoEmolga()
 
@@ -29,11 +29,10 @@ private const val DB_URL = "mongodb://floritemp.fritz.box:27017/"
 
 class MongoEmolga {
     val db = run {
-        /*registerModule(Json {
+//        mongoConfiguration = mongoConfiguration.copy(classDiscriminator = "type", encodeDefaults = false)
+//        KMongo.createClient(DB_URL).coroutine.getDatabase("emolga")
 
-        }.serializersModule)*/
-        mongoConfiguration = mongoConfiguration.copy(classDiscriminator = "type", encodeDefaults = false)
-        KMongo.createClient(DB_URL).coroutine.getDatabase("emolga")
+        MongoClient.create(DB_URL).getDatabase("emolga")
     }
 
     val config by lazy { db.getCollection<Config>("config") }
@@ -46,21 +45,22 @@ class MongoEmolga {
     val configuration by lazy { db.getCollection<Configuration>("configuration") }
     val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
 
-    val shinycount by lazy { db.getCollection<Shinycount>() }
+    val shinycount by lazy { db.getCollection<Shinycount>("shinycount") }
 
     val asls11: ASLS11 get() = error("ASLS11 is not available atm!")
     val asls11nametoid: List<Long> get() = error("ASLS11 is not available atm!")
     val defaultNameConventions: Map<String, String> by lazy {
         runBlocking {
-            nameconventions.find(NameConventions::guild eq 0).first()!!
+//            nameconventions.find(NameConventions::guild eq 0).first()!!
+            nameconventions.findOne(NameConventions::guild eq 0)!!
         }.data
     }
 
-    suspend fun league(name: String) = drafts.findOne(League::leaguename eq name)!!
+    suspend fun league(name: String) = drafts.find(eq(League::leaguename.name, name)).first()
     suspend fun nds() = (league("NDS") as NDS).also { println("NAME: ${it.leaguename}") }
 
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
-        drafts.findOne(League::guild eq gid, League::table all uids.toList())
+        drafts.findOne(and(League::guild eq gid, League::table all uids.toList()))
 }
 
 @Serializable
@@ -72,36 +72,28 @@ data class Statistics(var drampaCounter: Int)
 @Serializable
 data class Configuration(
     val guild: Long,
-    @SerialName("_id")
-    @Contextual
-    val id: Id<Configuration> = newId(),
+    @SerialName("_id") @Contextual val id: ObjectId = ObjectId(),
     val data: MutableMap<String, MutableMap<String, Int>> = mutableMapOf()
 )
 
 @Serializable
 data class EmolgaChannelConfig(
-    val guild: Long,
-    val channels: List<Long>
+    val guild: Long, val channels: List<Long>
 )
 
 @Serializable
 data class Cooldown(
-    val guild: Long,
-    val user: Long,
-    val timestamp: Long
+    val guild: Long, val user: Long, val timestamp: Long
 )
 
 @Serializable
 data class NameConventions(
-    val guild: Long,
-    val data: MutableMap<String, String> = mutableMapOf()
+    val guild: Long, val data: MutableMap<String, String> = mutableMapOf()
 )
 
 @Serializable
 data class LigaStartData(
-    @SerialName("_id")
-    @Contextual
-    val id: Id<LigaStartData> = newId(),
+    @SerialName("_id") @Contextual val id: ObjectId = ObjectId(),
     val guild: Long,
     val users: MutableMap<Long, SignUpData> = mutableMapOf(),
     val signupChannel: Long,
@@ -116,14 +108,15 @@ data class LigaStartData(
 ) {
     val maxUsersAsString
         get() = (maxUsers.takeIf { it > 0 } ?: "?").toString().also { println("MAXUSERSASSTRING: $it") }
-    fun conferenceSelectMenus(uid: Long, initial: Boolean) = StringSelectMenu(
-        "cselect;${initial.ifTrue("initial")}:$uid",
-        options = conferences.map { SelectOption(it, it) })
+
+    fun conferenceSelectMenus(uid: Long, initial: Boolean) =
+        StringSelectMenu("cselect;${initial.ifTrue("initial")}:$uid",
+            options = conferences.map { SelectOption(it, it) })
 
     fun getDataByUser(uid: Long) = users[uid] ?: users.values.firstOrNull { it.teammates.contains(uid) }
     fun getOwnerByUser(uid: Long) = users.entries.firstOrNull { it.key == uid || it.value.teammates.contains(uid) }?.key
 
-    suspend fun save() = db.signups.updateOne(this)
+    suspend fun save() = db.signups.replaceOne(eq(id), this)
 
 }
 
@@ -139,9 +132,7 @@ data class SignUpData(
 ) {
     fun toMessage(user: Long) = "Anmeldung von <@${user}>".condAppend(teammates.isNotEmpty()) {
         " (mit ${teammates.joinToString { "<@$it>" }})"
-    } + ":\n" +
-            "Teamname: **$teamname**\n" +
-            "Showdown-Name: **$sdname**"
+    } + ":\n" + "Teamname: **$teamname**\n" + "Showdown-Name: **$sdname**"
 }
 
 @Serializable
@@ -152,15 +143,20 @@ class Shinycount(
     val userorder: List<Long>
 )
 
-suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!
-suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) = updateOne("{}", update)
+suspend fun <T : Any> MongoCollection<T>.only() = find().first()
+suspend fun <T : Any> MongoCollection<T>.updateOnly(update: Bson) = updateOne(empty(), update)
 
 @Suppress("unused") // used in other projects
-suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: String) = updateOne("{}", update)
+suspend fun <T : Any> MongoCollection<T>.updateOnly(update: String) = updateOne(empty(), BsonDocument.parse(update))
 
 @JvmName("getLigaStartData")
-suspend fun CoroutineCollection<LigaStartData>.get(guild: Long) = find(LigaStartData::guild eq guild).first()
+suspend fun MongoCollection<LigaStartData>.get(guild: Long) = find(LigaStartData::guild eq guild).firstOrNull()
 
 @JvmName("getNameConventions")
-suspend fun CoroutineCollection<NameConventions>.get(guild: Long) =
-    find(NameConventions::guild eq guild).first()?.data ?: db.defaultNameConventions
+suspend fun MongoCollection<NameConventions>.get(guild: Long) =
+    find(NameConventions::guild eq guild).firstOrNull()?.data ?: db.defaultNameConventions
+
+suspend fun <T : Any> MongoCollection<T>.findOne(bson: Bson) = find(bson).firstOrNull()
+infix fun <T : Any> KProperty1<T, *>.eq(value: Any?): Bson = eq(this.name, value)
+infix fun <T : Any> KProperty1<T, *>.all(value: Any?): Bson = all(this.name, value)
+infix fun <T : Any> KProperty1<T, *>.contains(value: Any?): Bson = `in`(this.name, value)

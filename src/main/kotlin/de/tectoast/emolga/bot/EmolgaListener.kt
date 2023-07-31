@@ -13,8 +13,10 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.eq
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.messages.reply_
+import kotlinx.coroutines.flow.toList
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
@@ -34,7 +36,6 @@ import net.dv8tion.jda.api.events.role.RoleCreateEvent
 import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 import net.dv8tion.jda.api.interactions.components.buttons.Button
-import org.litote.kmongo.eq
 import org.slf4j.LoggerFactory
 
 object EmolgaListener : ListenerAdapter() {

@@ -1,15 +1,16 @@
 package de.tectoast.emolga.commands.various
 
+import com.mongodb.client.model.Filters.and
+import com.mongodb.client.model.ReplaceOptions
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.Cooldown
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.eq
+import de.tectoast.emolga.utils.json.findOne
 import dev.minn.jda.ktx.coroutines.await
-import org.litote.kmongo.and
-import org.litote.kmongo.eq
-import org.litote.kmongo.upsert
 
 class NicknameCommand : Command(
     "nickname",
@@ -41,7 +42,7 @@ class NicknameCommand : Command(
         //secondsToTime()
         val gid = g.idLong
         val uid = member.idLong
-        db.cooldowns.findOne(Cooldown::guild eq gid, Cooldown::user eq uid)?.run {
+        db.cooldowns.findOne(and(Cooldown::guild eq gid, Cooldown::user eq uid))?.run {
             val expiresIn = this.timestamp - System.currentTimeMillis()
             if (expiresIn <= 0) return@run
             e.reply(
@@ -56,10 +57,10 @@ class NicknameCommand : Command(
         /*if (g.idLong == Constants.G.ASL) g.getTextChannelById("728675253924003870")!!
             .sendMessage("$oldname hat sich in $nickname umbenannt!").queue()*/
         e.reply(member.asMention + " Dein Nickname wurde erfolgreich geändert!")
-        db.cooldowns.updateOne(
+        db.cooldowns.replaceOne(
             and(Cooldown::guild eq gid, Cooldown::user eq uid),
             Cooldown(gid, uid, System.currentTimeMillis() + 604800000),
-            upsert()
+            ReplaceOptions().upsert(true)
         )
     }
 }

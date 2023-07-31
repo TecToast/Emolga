@@ -1,16 +1,18 @@
 package de.tectoast.emolga.commands.draft
 
+import com.mongodb.client.model.Filters
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.embedColor
+import de.tectoast.emolga.utils.json.contains
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.AllowedData
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.eq
+import de.tectoast.emolga.utils.json.findOne
 import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.entities.Member
-import org.litote.kmongo.contains
-import org.litote.kmongo.eq
 
 class DraftPermissionCommand : Command(
     "draftpermission", "Konfiguriert deine Ersatzdrafter", CommandCategory.Draft
@@ -43,7 +45,7 @@ class DraftPermissionCommand : Command(
         override suspend fun process(e: GuildCommandEvent) {
             val gid = e.guild.idLong
             val author = e.author.idLong
-            db.drafts.find(League::guild eq gid, League::table contains author).first()?.let { l ->
+            db.drafts.findOne(Filters.and(League::guild eq gid, League::table contains author))?.let { l ->
                 val mem = e.arguments.get<Member>("user")
                 if (mem.user.isBot) return e.reply("Du kannst keine Bots als Ersatzdrafter hinzufügen!")
                 val withMention = e.arguments.get<String>("withmention")
@@ -88,7 +90,7 @@ class DraftPermissionCommand : Command(
         override suspend fun process(e: GuildCommandEvent) {
             val gid = e.guild.idLong
             val author = e.author.idLong
-            db.drafts.find(League::guild eq gid, League::table contains author).first()?.let { l ->
+            db.drafts.findOne(Filters.and(League::guild eq gid, League::table contains author))?.let { l ->
                 val mem = e.arguments.get<Member>("user")
                 if (mem.idLong == author) return e.reply("Du darfst tatsächlich immer picken :)")
                 val set = l.allowed.getOrPut(author) { mutableSetOf() }

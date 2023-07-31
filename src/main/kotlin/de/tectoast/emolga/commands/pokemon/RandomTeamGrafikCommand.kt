@@ -1,5 +1,6 @@
 package de.tectoast.emolga.commands.pokemon
 
+import com.mongodb.client.model.Updates.inc
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
@@ -14,7 +15,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import net.dv8tion.jda.api.utils.FileUpload
-import org.litote.kmongo.inc
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 
@@ -45,7 +45,7 @@ class RandomTeamGrafikCommand :
                             .queue()
                 }
                 if (hasDrampa) {
-                    db.statistics.updateOnly(inc(Statistics::drampaCounter, 1))
+                    db.statistics.updateOnly(inc(Statistics::drampaCounter.name, 1))
                     e.textChannel.sendMessage("**DRAMPA** (Nr. ${db.statistics.only().drampaCounter})").queue()
                     e.textChannel.sendMessage("<@446274734389198848>").queue()
                 }

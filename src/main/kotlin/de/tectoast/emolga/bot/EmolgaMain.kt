@@ -82,7 +82,6 @@ object EmolgaMain {
             )
         }*/
         Giveaway.init()
-        error("Tierlist variableMegaPrice")
     }
 
 //    private fun initializeASLS11(jda: JDA) {

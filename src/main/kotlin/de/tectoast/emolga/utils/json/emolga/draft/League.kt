@@ -214,7 +214,7 @@ sealed class League {
         nextPlayer()
     }
 
-    suspend fun afterPickOfficial() = timerSkipMode?.afterPick(this) ?: afterPick()
+    suspend fun afterPickOfficial() = timerSkipMode?.afterPick(this)?.also { save() } ?: afterPick()
 
 
     val draftWouldEnd get() = isLastRound && order[round]!!.isEmpty()
@@ -446,7 +446,7 @@ sealed class League {
 
     open fun getPickRound() = round
 
-    suspend fun getPickRoundOfficial() = timerSkipMode?.getPickRound(this) ?: getPickRound()
+    suspend fun getPickRoundOfficial() = timerSkipMode?.getPickRound(this)?.also { save() } ?: getPickRound()
 
     fun populateAfterDraft() {
         val order = order[totalRounds]!!

@@ -599,7 +599,9 @@ object PrivateCommands {
         val tc = e.jda.getTextChannelById(args[0])!!
         val maxUsers = args[3].toInt()
         val messageid =
-            tc.sendMessage(args.drop(4).joinToString(" ").replace("\\n", "\n") + "\n\n**Teilnehmer: 0/$maxUsers**")
+            tc.sendMessage(
+                args.drop(4).joinToString(" ")
+                    .replace("\\n", "\n") + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**")
                 .addActionRow(
                     primary(
                         "signup", "Anmelden", Emoji.fromUnicode("✅")

@@ -28,6 +28,7 @@ class Tierlist(val guildid: Long) {
     var mode: TierlistMode = TierlistMode.POINTS
     var points = 0
     val language = Language.GERMAN
+    val variableMegaPrice = false
 
 
     val order get() = prices.keys.toList()
@@ -44,10 +45,13 @@ class Tierlist(val guildid: Long) {
     }
 
 
-    fun getPointsNeeded(s: String): Int = when (mode) {
-        TierlistMode.POINTS -> prices[getTierOf(s)] ?: error("Tier for $s not found")
-        TierlistMode.TIERS_WITH_FREE -> freepicks[getTierOf(s)] ?: error("Tier for $s not found")
-        else -> error("Unknown mode for points $mode")
+    fun getPointsNeeded(tier: String): Int {
+        if (variableMegaPrice && "#" in tier) return tier.substringAfter("#").toInt()
+        return when (mode) {
+            TierlistMode.POINTS -> prices[tier] ?: error("Tier for $tier not found")
+            TierlistMode.TIERS_WITH_FREE -> freepicks[tier] ?: error("Tier for $tier not found")
+            else -> error("Unknown mode for points $mode")
+        }
     }
 
     fun addPokemon(mon: String, tier: String) = transaction {
@@ -69,14 +73,11 @@ class Tierlist(val guildid: Long) {
         (list + NameConventionsDB.getAllOtherSpecified(list, language, guildid)).toSet()
     }
 
-    @Transient
-    private val tierCache = SizeLimitedMap<String, String>()
-
-    fun getTierOf(mon: String) = tierCache.getOrElse(mon) {
+    fun getTierOf(mon: String) =
         transaction {
             select { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
         }
-    }
+
 
     fun retrieveTierlistMap(map: Map<String, Int>) = transaction {
         map.entries.flatMap { (tier, amount) ->

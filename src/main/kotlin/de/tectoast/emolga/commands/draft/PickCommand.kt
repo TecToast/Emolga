@@ -59,7 +59,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
             val tlMode = tierlist.mode
             val free = args.getOrDefault("free", false).takeIf { tlMode.isTiersWithFree() } ?: false
             if (!free && d.handleTiers(e, specifiedTier, officialTier)) return
-            if (d.handlePoints(e, tlName, free)) return
+            if (d.handlePoints(e, tlNameNew = tlName, officialNew = official, free = free, tier = officialTier)) return
             d.savePick(picks, official, specifiedTier, free)
             //m.delete().queue();
             if (!isRandom) d.replyPick(e, tlName, free, specifiedTier.takeIf { specifiedTier != officialTier })

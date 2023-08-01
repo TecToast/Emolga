@@ -108,6 +108,15 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-java-time:0.41.1")
     implementation("org.litote.kmongo:kmongo-coroutine-serialization:4.10.0")
     implementation("org.litote.kmongo:kmongo-id-serialization:4.10.0")
+
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:5.6.2")
+    testImplementation("io.kotest:kotest-assertions-core:5.6.2")
+    testImplementation("io.kotest:kotest-framework-datatest:5.6.2")
+
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
 
 fun DependencyHandler.ktor() {

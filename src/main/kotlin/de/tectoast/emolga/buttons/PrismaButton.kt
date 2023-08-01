@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 class PrismaButton : ButtonListener("prisma") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val id = e.user.idLong
-        if (id != 297010892678234114L && id != 213725720407441410L && id != Constants.FLOID) {
+        if (id != Constants.HENNY && id != 213725720407441410L && id != Constants.FLOID) {
             e.reply("nö c:").setEphemeral(true).queue()
             return
         }

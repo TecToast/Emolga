@@ -252,7 +252,6 @@ class NDS : League() {
             val tiers = listOf("S", "A", "B")
             var dbcallTime = 0L
             for (u in onlySpecifiedUsers.takeIf { it.isNotEmpty() }?.toList() ?: picks.keys) {
-                //String u = "297010892678234114";
                 val pmons: MutableList<DraftPokemon> = picks[u]!!
                 if (u !in o) {
                     if (cday == 1) {

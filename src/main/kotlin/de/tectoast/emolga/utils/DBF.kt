@@ -17,12 +17,15 @@ import dev.minn.jda.ktx.messages.send
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.transactions.transaction
+import java.io.File
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
@@ -139,8 +142,23 @@ object DBF {
         e.reply_("Neue Runde gestartet!", ephemeral = true).queue()
     }
 
+    @Suppress("unused")
+    private sealed class AdminChannelProvider {
+        abstract fun provideChannel(): MessageChannel
+
+        data object MyServer : AdminChannelProvider() {
+            override fun provideChannel(): MessageChannel =
+                EmolgaMain.emolgajda.getChannel<MessageChannel>(1126196072839139490)!!
+        }
+
+        class PN(private val uid: Long) : AdminChannelProvider() {
+            override fun provideChannel(): MessageChannel = EmolgaMain.emolgajda.openPrivateChannelById(uid).complete()
+        }
+    }
+
+    private val adminChannelProvider = AdminChannelProvider.PN(Constants.HENNY)
     private val gameChannel get() = EmolgaMain.emolgajda.getChannel<GuildMessageChannel>(1126193988051931277)!!
-    private val adminChannel get() = EmolgaMain.emolgajda.getChannel<GuildMessageChannel>(1126196072839139490)!!
+    private val adminChannel get() = adminChannelProvider.provideChannel()
     private fun allVoted() = votes.size == members.size
     lateinit var allQuestions: List<String>
     lateinit var regularQuestions: MutableSet<String>
@@ -171,6 +189,17 @@ object DBF {
 
         }
         return questions.toList()
+    }
+
+    @Suppress("unused")
+    fun sendQuestionsToUser() {
+        val questions = readQuestions().toMutableList()
+        val indexesToRemove = transaction { UsedQuestionsDB.selectAll().map { it[UsedQuestionsDB.index] } }
+        // remove from questions all indexes in indexesToRemove
+        for (i in indexesToRemove.sortedDescending()) {
+            questions.removeAt(i)
+        }
+        File("questionsthatarenotused.txt").writeText(questions.joinToString("\n"))
     }
 
     private fun allQuestionsWith(estimate: Boolean) =

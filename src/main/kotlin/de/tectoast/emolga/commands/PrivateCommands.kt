@@ -338,8 +338,6 @@ object PrivateCommands {
         }
         val builder = RequestBuilder(sid)
         for ((x, u) in picks.keys.withIndex()) {
-            //String u = "297010892678234114";
-            //logger.info("o.get(u) = " + o.get(u));
             val range = nds.teamnames[u] + "!B15:O29"
             logger.info("u = $u")
             logger.info("range = $range")

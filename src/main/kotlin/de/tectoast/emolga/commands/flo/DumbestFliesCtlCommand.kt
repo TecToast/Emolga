@@ -20,6 +20,7 @@ class DumbestFliesCtlCommand : Command(
         argumentTemplate = ArgumentManagerTemplate.noArgs()
         slash(true, COMMUNITY)
         adminSlash = true
+        setCustomPermissions(PermissionPreset.HENNY)
     }
 
     override suspend fun process(e: GuildCommandEvent) {}
@@ -88,7 +89,7 @@ class DumbestFliesCtlCommand : Command(
         }
 
         override suspend fun process(e: GuildCommandEvent) {
-            DBF.initWithDB(e.arguments.getOrDefault("lifes", "3").toInt())
+            DBF.initWithDB(e.arguments.getOrDefault("lifes", 3).toInt())
             e.done(true)
         }
     }

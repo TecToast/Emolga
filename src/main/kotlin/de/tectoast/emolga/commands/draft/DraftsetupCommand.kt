@@ -3,6 +3,7 @@ package de.tectoast.emolga.commands.draft
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
 
 class DraftsetupCommand :
@@ -32,7 +33,7 @@ class DraftsetupCommand :
                 optional = true
             )
             .build()
-        setCustomPermissions(PermissionPreset.fromIDs(297010892678234114, 263729526436134934))
+        setCustomPermissions(PermissionPreset.fromIDs(Constants.HENNY, 263729526436134934))
         slash(false, *draftGuilds)
     }
 

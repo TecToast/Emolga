@@ -357,7 +357,7 @@ abstract class Command(
 
     object PermissionPreset {
         val CULT = fromRole(781457314846343208)
-        val HENNY = fromIDs(297010892678234114)
+        val HENNY = fromIDs(Constants.HENNY)
         val ADMIN = Predicate<Member> { it.hasPermission(Permission.ADMINISTRATOR) }
         fun fromRole(roleId: Long): Predicate<Member> {
             return Predicate { it.guild.roleCache.none { r -> r.idLong == roleId } || it.roles.any { r -> r.idLong == roleId } }

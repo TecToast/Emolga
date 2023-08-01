@@ -1187,7 +1187,6 @@ abstract class Command(
         protected val soullinkNames = listOf("Pascal", "David", "Jesse", "Felix")
         private val logger = LoggerFactory.getLogger(Command::class.java)
         private val otherFormatRegex = Regex("(\\S+)-(Mega|Alola|Galar)")
-        val typeIcons: Map<String, String> = load("typeicons.json")
         private val SD_NAME_PATTERN = Regex("[^a-zA-Z\\däöüÄÖÜß♂♀é+]+")
         private val DURATION_PATTERN = Regex("\\d{1,8}[smhd]?")
         private val DURATION_SPLITTER = Regex("[.|:]")

@@ -67,7 +67,7 @@ sealed class League {
 
     private val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
 
-    private val names: MutableMap<Long, String> = mutableMapOf()
+    internal val names: MutableMap<Long, String> = mutableMapOf()
 
 
     val tc: TextChannel get() = emolgajda.getTextChannelById(tcid) ?: error("No text channel found for guild $guild")
@@ -397,9 +397,13 @@ sealed class League {
         return false
     }
 
-    protected open fun getCurrentMention(): String {
-        return (allowed[current]?.filter { it.mention }?.joinToString { "<@${it.u}>" }
-            ?.let { it + " (für ${getCurrentName()})" } ?: "<@$current>")
+    internal open fun getCurrentMention(): String {
+        val data = allowed[current] ?: return "<@$current>"
+        val currentData = data.firstOrNull { it.u == current } ?: AllowedData(current, true)
+        val appendData = data.filter { it.mention && it.u != current }
+        return (if (currentData.mention) "<@$current>" else "**${getCurrentName()}**").condAppend(appendData.isNotEmpty()) {
+            ", ||${appendData.joinToString { "<@${it.u}>" }}||"
+        }
     }
 
     internal fun getCurrentName(mem: Long = current) = names[mem]!!

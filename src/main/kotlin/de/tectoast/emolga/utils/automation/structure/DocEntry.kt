@@ -266,7 +266,7 @@ class DocEntry private constructor(val league: League) {
                     val indexerToUse: (String) -> Int by lazy {
                         if (newMethod) { str: String ->
                             rowNumToIndex(
-                                str.substring(league.dataSheet.length + 4).replace("$", "").substringBefore(":").toInt()
+                                str.replace("$", "").substring(league.dataSheet.length + 4).substringBefore(":").toInt()
                             )
                         } else indexer!!
                     }

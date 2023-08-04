@@ -36,7 +36,8 @@ class ADK : League() {
             )
         ) {
             b.addSingle(
-                gdi.coordXMod("Spielplan", 2, 'G' - 'C', cid.y('M' - 'C', 4), 21 - 13, 13), defaultGameplanString
+                gdi.coordXMod("Spielplan", 2, 'G' - 'C', cid.y('M' - 'C', 4), 21 - 13, 13 + index),
+                defaultGameplanString
             )
         }
     }

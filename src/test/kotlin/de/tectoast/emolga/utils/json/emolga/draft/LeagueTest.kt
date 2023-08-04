@@ -36,7 +36,6 @@ class LeagueTest : FunSpec({
         test("only other mention") {
             apply(GetCurrentMentionData(FLOID, mutableSetOf(AllowedData(FLOID, false), AllowedData(HENNY, true))))
             league.getCurrentMention() shouldBe "**Flo**, ||<@$HENNY>||"
-            "" shouldBe ""
         }
     }
 

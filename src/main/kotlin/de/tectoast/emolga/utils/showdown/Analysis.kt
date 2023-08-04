@@ -14,9 +14,12 @@ object Analysis {
         logger.info("Reading URL... {}", link)
         var gameNullable: List<String>? = null
         for (i in 0..1) {
-            gameNullable = runCatching { httpClient.get("$link.log").bodyAsText().split("\n") }.getOrDefault(listOf(""))
+            val retrieved =
+                runCatching { httpClient.get("$link.log").bodyAsText().split("\n") }.getOrDefault(listOf(""))
+            gameNullable = retrieved
                 .takeIf { it.size > 1 }
             if (gameNullable == null) {
+                println(retrieved)
                 println("Showdown antwortet nicht")
                 answer?.invoke("Der Showdown-Server antwortet nicht, ich versuche es in 10 Sekunden erneut...")
                 delay(10.seconds)

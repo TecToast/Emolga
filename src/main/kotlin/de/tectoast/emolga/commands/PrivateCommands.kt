@@ -617,6 +617,17 @@ object PrivateCommands {
         )
     }
 
+    suspend fun closeSignup(e: GuildCommandEvent) {
+        val gid = e.getArg(1).toLong()
+        with(db.signups.get(gid)!!) {
+            val announceChannel = e.jda.getTextChannelById(announceChannel)!!
+            announceChannel.editMessageComponentsById(
+                announceMessageId, primary("signupclosed", "Anmeldung geschlossen", disabled = true).into()
+            ).queue()
+            announceChannel.sendMessage("_----------- Anmeldung geschlossen -----------_").queue()
+        }
+    }
+
     suspend fun giveGeneralSignupRole(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         val g = e.jda.getGuildById(args[0])!!

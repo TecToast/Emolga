@@ -31,12 +31,10 @@ object EnterResult {
     private fun League.getPicks() = providePicksForGameday(2)
 
     fun handleSelect(e: StringSelectInteractionEvent, userindex: String) {
-        val selected = e.values.first()
-        e.replyModal(Modal("result;$userindex;$selected", "Ergebnis für ${selected.substringAfterLast("#")}") {
-            short("kills", "Kills", false, placeholder = "0")
-            short("dead", "Gestorben", false, placeholder = "X wenn gestorben, sonst leer lassen")
-            // TODO Add a way to yeet mons
-        }).queue()
+        val resultEntry = results[e.user.idLong]
+            ?: return e.reply_("Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!")
+                .queue()
+        resultEntry.handleSelect(e, userindex)
     }
 
     fun handleModal(e: ModalInteractionEvent) {
@@ -118,18 +116,36 @@ object EnterResult {
             }
         }.into()
 
+        fun handleSelect(e: StringSelectInteractionEvent, userindex: String) {
+            val selected = e.values.first()
+            e.replyModal(Modal("result;$userindex;$selected", "Ergebnis für ${selected.substringAfterLast("#")}") {
+                short("kills", "Kills", false, placeholder = "0")
+                short("dead", "Gestorben", false, placeholder = "X wenn gestorben, sonst leer lassen")
+                if (data[userindex.toInt()].any { it.official == selected.substringBefore("#") }) {
+                    short("remove", "Pokémon wieder rauswerfen", false, placeholder = "X wenn ja, sonst leer lassen")
+                }
+            }).queue()
+        }
+
         fun handleModal(e: ModalInteractionEvent) {
             val split = e.modalId.split(";")
             val userindex = split[1].toInt()
             val (official, tl) = split[2].split("#")
             val kills = e.getValue("kills")?.asString?.toIntOrNull() ?: 0
             val dead = e.getValue("dead")?.asString?.trim()?.equals("X", true) ?: false
+            val removed = e.getValue("remove")?.asString?.trim()?.equals("X", true) ?: false
             val list = data[userindex]
-            val monData = MonData(tl, official, kills, dead)
+
             list.indexOfFirst { it.official == official }.let {
+                if (removed && it != -1) {
+                    list.removeAt(it)
+                    return@let
+                }
+                val monData = MonData(tl, official, kills, dead)
                 if (it == -1) list.add(monData)
                 else list[it] = monData
             }
+
             e.editMessage_(embeds = buildEmbed()).queue()
         }
 

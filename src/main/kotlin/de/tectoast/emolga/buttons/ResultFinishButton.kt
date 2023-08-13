@@ -5,6 +5,6 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class ResultFinishButton : ButtonListener("resultfinish") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
-        EnterResult.handleFinish(e)
+        EnterResult.handleFinish(e, name)
     }
 }

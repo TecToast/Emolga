@@ -7,10 +7,7 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
-import dev.minn.jda.ktx.interactions.components.Modal
-import dev.minn.jda.ktx.interactions.components.SelectOption
-import dev.minn.jda.ktx.interactions.components.StringSelectMenu
-import dev.minn.jda.ktx.interactions.components.primary
+import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage_
 import dev.minn.jda.ktx.messages.into
@@ -19,6 +16,7 @@ import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
+import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import kotlin.properties.Delegates
 
@@ -48,11 +46,17 @@ object EnterResult {
         resultEntry.handleModal(e)
     }
 
-    fun handleFinish(e: ButtonInteractionEvent) {
+    fun handleFinish(e: ButtonInteractionEvent, name: String) {
         val resultEntry = results[e.user.idLong]
             ?: return e.reply_("Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!")
                 .queue()
-        resultEntry.handleFinish(e)
+        when (name) {
+            "check" -> {
+                resultEntry.handleFinish(e)
+            }
+
+            "yes", "no" -> resultEntry.handleFinishConfirm(e, name == "yes")
+        }
     }
 
     class ResultEntry {
@@ -98,7 +102,7 @@ object EnterResult {
                             options = picks[uid]!!
                         )
                     )
-                } + listOf(ActionRow.of(primary("resultfinish", "Ergebnis bestätigen"))), ephemeral = true
+                } + listOf(ActionRow.of(primary("resultfinish;check", "Ergebnis bestätigen"))), ephemeral = true
             )
         }
 
@@ -130,13 +134,33 @@ object EnterResult {
         }
 
         fun handleFinish(e: ButtonInteractionEvent) {
+            if (checkConditionsForFinish(e)) return
+            val originalComponents = e.message.components
+            val buttons =
+                ActionRow.of(success("resultfinish;yes", "Wirklich bestätigen"), danger("resultfinish;no", "Abbrechen"))
+            val newComponents = if (originalComponents.size == 3) {
+                originalComponents + listOf(buttons)
+            } else originalComponents.toMutableList().apply { set(3, buttons) }
+            e.editComponents(newComponents).queue()
+        }
+
+        private fun checkConditionsForFinish(e: IReplyCallback): Boolean {
             if (data[0].isEmpty() || data[1].isEmpty()) return e.reply_(
                 "Du hast noch keine Daten eingeben!", ephemeral = true
-            ).queue()
+            ).queue().let { true }
             if ((0..1).any { data[it].kills != data[1 - it].dead }) return e.reply_(
                 "Die Kills und Tode müssen übereinstimmen!", ephemeral = true
-            ).queue()
-            e.reply(generateFinalMessage()).queue()
+            ).queue().let { true }
+            return false
+        }
+
+        fun handleFinishConfirm(e: ButtonInteractionEvent, really: Boolean) {
+            if (checkConditionsForFinish(e)) return
+            if (really) {
+                e.reply(generateFinalMessage()).queue()
+            } else {
+                e.editMessage_(components = e.message.components.subList(0, 3)).queue()
+            }
         }
 
         private fun generateFinalMessage(): String {

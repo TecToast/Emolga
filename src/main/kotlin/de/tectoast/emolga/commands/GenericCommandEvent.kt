@@ -1,6 +1,9 @@
 package de.tectoast.emolga.commands
 
 import de.tectoast.emolga.utils.Constants
+import dev.minn.jda.ktx.messages.Mentions
+import dev.minn.jda.ktx.messages.SendDefaults
+import dev.minn.jda.ktx.messages.reply_
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
@@ -8,8 +11,10 @@ import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.commands.OptionType
+import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
+import net.dv8tion.jda.api.utils.FileUpload
 import org.slf4j.LoggerFactory
 import java.util.function.Consumer
 
@@ -129,6 +134,19 @@ abstract class GenericCommandEvent {
 
     fun deferReply(ephermal: Boolean = false) {
         slashCommandEvent?.deferReply()?.setEphemeral(ephermal)?.queue()
+    }
+
+    @Suppress("FunctionName")
+    fun reply_(
+        content: String = SendDefaults.content,
+        embeds: Collection<MessageEmbed> = SendDefaults.embeds,
+        components: Collection<LayoutComponent> = SendDefaults.components,
+        files: Collection<FileUpload> = emptyList(),
+        tts: Boolean = false,
+        mentions: Mentions = Mentions.default(),
+        ephemeral: Boolean = SendDefaults.ephemeral
+    ) {
+        slashCommandEvent!!.reply_(content, embeds, components, files, tts, mentions, ephemeral).queue()
     }
 
     companion object {

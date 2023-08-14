@@ -23,6 +23,7 @@ import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.button
 import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.Embed
+import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.coroutineScope
@@ -656,6 +657,7 @@ object PrivateCommands {
         }
     }
 
+    // Channel, extended, conferences
     suspend fun startOrderingUsers(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         val tc = e.jda.getTextChannelById(args[0])!!
@@ -705,6 +707,20 @@ object PrivateCommands {
                         primary("shiftuser;$id", nameCache[id]!!)
                     }.chunked(5).map { ActionRow.of(it) })
         }
+    }
+
+    suspend fun shuffleSignupConferences(e: GenericCommandEvent) {
+        val data = db.signups.get(e.getArg(1).toLong())!!
+        val tc = EmolgaMain.emolgajda.getTextChannelById(data.shiftChannel!!)!!
+        val conferences = data.conferences
+        data.users.values.shuffled().shuffled().forEachIndexed { index, value ->
+            value.conference = conferences[index % conferences.size]
+        }
+        generateOrderingMessages(data).forEach { (index, pair) ->
+            tc.editMessage(data.shiftMessageIds[index].toString(), embeds = pair.first.into(), components = pair.second)
+                .queue()
+        }
+        data.save()
     }
 
     suspend fun signupUpdate(e: GenericCommandEvent) {

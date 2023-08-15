@@ -2299,8 +2299,6 @@ abstract class Command(
                                                 playSound(voiceState.channel, file.path, tco)
                                             }
                                         }
-
-                                        override fun onUserSpeaking(user: User, speaking: Boolean) {}
                                     }
                                 }
                             } else {

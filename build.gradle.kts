@@ -85,7 +85,7 @@ dependencies {
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
     implementation("com.google.apis:google-api-services-sheets:v4-rev20230808-2.0.0")
     implementation("org.jsoup:jsoup:1.16.1")
-    implementation("dev.arbjerg:lavaplayer:2.0.0")
+    implementation("dev.arbjerg:lavaplayer:2.0.1")
     //implementation("org.slf4j:slf4j-simple:1.7.32")
 
     implementation("ch.qos.logback:logback-classic:1.4.11")

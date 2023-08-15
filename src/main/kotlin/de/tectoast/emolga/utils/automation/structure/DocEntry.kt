@@ -26,6 +26,7 @@ class DocEntry private constructor(val league: League) {
         }
     }
 
+    var customDataSid: String? = null
     var killProcessor: StatProcessor
         get() = error("Not implemented")
         set(value) = killProcessors.add(value).let {}
@@ -156,6 +157,8 @@ class DocEntry private constructor(val league: League) {
         }
         val sid = league.sid
         val b = RequestBuilder(sid)
+        val customB = customDataSid?.let(::RequestBuilder)
+        val dataB = customB ?: b
         val uids = listOf(uid1, uid2)
         val picks = league.providePicksForGameday(gameday)
         for ((i, uid) in uids.withIndex()) {
@@ -175,7 +178,7 @@ class DocEntry private constructor(val league: League) {
                     if (p is CombinedStatProcessor) {
                         with(p) {
                             val k = generalStatProcessorData.process()
-                            b.addSingle(
+                            dataB.addSingle(
                                 k.toString(), total
                             )
                         }
@@ -195,7 +198,7 @@ class DocEntry private constructor(val league: League) {
                             if (p is BasicStatProcessor) {
                                 with(p) {
                                     val k = statProcessorData.process()
-                                    b.addSingle(
+                                    dataB.addSingle(
                                         k.toString(), data
                                     )
                                 }
@@ -212,7 +215,7 @@ class DocEntry private constructor(val league: League) {
             (if (game[i].winner) winProcessor else looseProcessor)?.let { p ->
                 with(p) {
                     val k = generalStatProcessorData.process()
-                    b.addSingle(k.toString(), 1)
+                    dataB.addSingle(k.toString(), 1)
                 }
             }
             if (game[i].winner) {
@@ -246,6 +249,7 @@ class DocEntry private constructor(val league: League) {
             }
             league.save()
         }
+        customB?.execute()
         b.withRunnable(3000) { sort() }.execute()
     }
 
@@ -319,6 +323,7 @@ data class StatProcessorData(
         get() = if (field == -1) error("monindex not set (must be BasicStatProcessor to be usable)") else field
 
     val gameplanIndex get() = if (u1IsSecond) 1 - fightIndex else fightIndex
+    val gdi by lazy { gameday - 1 }
 
     fun withMonIndex(monindex: Int) = copy().apply { this.monindex = monindex }
 }

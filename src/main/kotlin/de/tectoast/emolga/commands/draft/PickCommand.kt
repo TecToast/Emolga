@@ -76,6 +76,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                         PickData(
                             league = d,
                             pokemon = tlName,
+                            pokemonofficial = official,
                             tier = specifiedTier,
                             mem = mem,
                             indexInRound = indexInRound(round),

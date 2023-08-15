@@ -90,6 +90,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
                     SwitchData(
                         league = this,
                         pokemon = newmon.tlName,
+                        pokemonofficial = newmon.official,
                         tier = newtier.specified,
                         mem = mem,
                         indexInRound = indexInRound(round),

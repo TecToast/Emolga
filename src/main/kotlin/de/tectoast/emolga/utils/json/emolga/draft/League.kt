@@ -343,7 +343,12 @@ sealed class League {
     fun getTierOf(pokemon: String, insertedTier: String?): TierData? {
         val real = tierlist.getTierOf(pokemon) ?: return null
         return if (insertedTier != null && tierlist.mode.withTiers) {
-            TierData((tierlist.order.firstOrNull { insertedTier.equals(it, ignoreCase = true) } ?: ""), real)
+            TierData(("Mega".takeIf { tierlist.variableMegaPrice } ?: tierlist.order.firstOrNull {
+                insertedTier.equals(
+                    it,
+                    ignoreCase = true
+                )
+            } ?: ""), real)
         } else {
             TierData(real, real)
         }
@@ -534,6 +539,7 @@ data class AllowedData(val u: Long, var mention: Boolean = false, var teammate: 
 sealed class DraftData(
     val league: League,
     val pokemon: String,
+    val pokemonofficial: String,
     val tier: String,
     val mem: Long,
     val indexInRound: Int,
@@ -550,6 +556,7 @@ sealed class DraftData(
 class PickData(
     league: League,
     pokemon: String,
+    pokemonofficial: String,
     tier: String,
     mem: Long,
     indexInRound: Int,
@@ -558,7 +565,7 @@ class PickData(
     round: Int,
     memIndex: Int,
     val freePick: Boolean
-) : DraftData(league, pokemon, tier, mem, indexInRound, changedIndex, picks, round, memIndex) {
+) : DraftData(league, pokemon, pokemonofficial, tier, mem, indexInRound, changedIndex, picks, round, memIndex) {
     override val changedOnTeamsiteIndex: Int by lazy {
         with(league) { getTierInsertIndex() }
     }
@@ -568,6 +575,7 @@ class PickData(
 class SwitchData(
     league: League,
     pokemon: String,
+    pokemonofficial: String,
     tier: String,
     mem: Long,
     indexInRound: Int,
@@ -579,7 +587,7 @@ class SwitchData(
     val oldtier: String,
     val oldIndex: Int,
     override val changedOnTeamsiteIndex: Int
-) : DraftData(league, pokemon, tier, mem, indexInRound, changedIndex, picks, round, memIndex)
+) : DraftData(league, pokemon, pokemonofficial, tier, mem, indexInRound, changedIndex, picks, round, memIndex)
 
 data class TierData(val specified: String, val official: String)
 

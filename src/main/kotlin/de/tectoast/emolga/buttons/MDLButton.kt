@@ -36,6 +36,7 @@ class MDLButton : ButtonListener("mdlpick") {
                         PickData(
                             league = d,
                             pokemon = mon,
+                            pokemonofficial = official,
                             tier = tier,
                             mem = d.current,
                             indexInRound = indexInRound(round),
@@ -84,6 +85,7 @@ class MDLButton : ButtonListener("mdlpick") {
                         PickData(
                             league = d,
                             pokemon = newmon,
+                            pokemonofficial = newofficial,
                             tier = newtier,
                             mem = d.current,
                             indexInRound = indexInRound(round),

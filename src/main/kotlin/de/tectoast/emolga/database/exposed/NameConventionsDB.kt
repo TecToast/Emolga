@@ -37,6 +37,7 @@ object NameConventionsDB : Table("nameconventions") {
                         nc.values.firstNotNullOfOrNull { it.toRegex().find(mon) }?.run {
                             select { checkLang eq groupValues[1] }.firstOrNull()
                                 ?.get(resultLang)?.let { repl ->
+                                    if (mon != value) return@let null
                                     value.replace(
                                         groupValues[1],
                                         repl

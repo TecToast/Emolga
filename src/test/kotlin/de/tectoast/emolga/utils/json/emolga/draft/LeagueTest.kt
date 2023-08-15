@@ -19,6 +19,7 @@ class LeagueTest : FunSpec({
             logger.info { "setting names" }
             league.names[FLOID] = "Flo"
             league.names[HENNY] = "Henny"
+            league.names[723829878755164202] = "Emolga"
         }
         fun apply(data: GetCurrentMentionData) {
             league.current = data.current
@@ -36,6 +37,58 @@ class LeagueTest : FunSpec({
         test("only other mention") {
             apply(GetCurrentMentionData(FLOID, mutableSetOf(AllowedData(FLOID, false), AllowedData(HENNY, true))))
             league.getCurrentMention() shouldBe "**Flo**, ||<@$HENNY>||"
+        }
+        test("with only teammate") {
+            apply(
+                GetCurrentMentionData(
+                    FLOID, mutableSetOf(
+                        AllowedData(FLOID, true), AllowedData(
+                            HENNY, true,
+                            teammate = true
+                        )
+                    )
+                )
+            )
+            league.getCurrentMention() shouldBe "<@$FLOID>, <@$HENNY>"
+        }
+        test("with teammate + other") {
+            apply(
+                GetCurrentMentionData(
+                    FLOID, mutableSetOf(
+                        AllowedData(FLOID, true), AllowedData(
+                            HENNY, true,
+                            teammate = true
+                        ), AllowedData(723829878755164202, true)
+                    )
+                )
+            )
+            league.getCurrentMention() shouldBe "<@$FLOID>, <@$HENNY>, ||<@723829878755164202>||"
+        }
+        test("only teammate and other") {
+            apply(
+                GetCurrentMentionData(
+                    FLOID, mutableSetOf(
+                        AllowedData(FLOID, false), AllowedData(
+                            HENNY, true,
+                            teammate = true
+                        ), AllowedData(723829878755164202, true)
+                    )
+                )
+            )
+            league.getCurrentMention() shouldBe "**Flo**, <@$HENNY>, ||<@723829878755164202>||"
+        }
+        test("only teammate") {
+            apply(
+                GetCurrentMentionData(
+                    FLOID, mutableSetOf(
+                        AllowedData(FLOID, false), AllowedData(
+                            HENNY, true,
+                            teammate = true
+                        ), AllowedData(723829878755164202, false)
+                    )
+                )
+            )
+            league.getCurrentMention() shouldBe "**Flo**, <@$HENNY>"
         }
     }
 

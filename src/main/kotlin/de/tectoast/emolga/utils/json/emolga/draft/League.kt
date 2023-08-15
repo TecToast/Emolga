@@ -400,10 +400,10 @@ sealed class League {
     internal open fun getCurrentMention(): String {
         val data = allowed[current] ?: return "<@$current>"
         val currentData = data.firstOrNull { it.u == current } ?: AllowedData(current, true)
-        val appendData = data.filter { it.mention && it.u != current }
-        return (if (currentData.mention) "<@$current>" else "**${getCurrentName()}**").condAppend(appendData.isNotEmpty()) {
-            ", ||${appendData.joinToString { "<@${it.u}>" }}||"
-        }
+        val (teammates, other) = data.filter { it.mention && it.u != current }.partition { it.teammate }
+        return (if (currentData.mention) "<@$current>" else "**${getCurrentName()}**") +
+                teammates.joinToString { "<@${it.u}>" }.ifNotEmpty { ", $it" } +
+                other.joinToString { "<@${it.u}>" }.ifNotEmpty { ", ||$it||" }
     }
 
     internal fun getCurrentName(mem: Long = current) = names[mem]!!
@@ -529,7 +529,7 @@ sealed class League {
 }
 
 @Serializable
-data class AllowedData(val u: Long, var mention: Boolean = false)
+data class AllowedData(val u: Long, var mention: Boolean = false, var teammate: Boolean = false)
 
 sealed class DraftData(
     val league: League,

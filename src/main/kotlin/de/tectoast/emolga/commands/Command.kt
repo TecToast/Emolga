@@ -3067,6 +3067,9 @@ inline val User.isFlo: Boolean get() = this.idLong == FLOID
 inline val User.isNotFlo: Boolean get() = this.idLong != FLOID
 inline val Interaction.fromFlo: Boolean get() = this.user.isFlo
 inline val Interaction.notFromFlo: Boolean get() = !this.fromFlo
+inline fun String.ifNotEmpty(block: (String) -> String): String {
+    return if (this.isNotEmpty()) block(this) else this
+}
 
 inline fun <T> Collection<T>.randomWithCondition(condition: (T) -> Boolean) = this.filter(condition).randomOrNull()
 

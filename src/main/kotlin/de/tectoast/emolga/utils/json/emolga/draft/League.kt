@@ -172,7 +172,8 @@ sealed class League {
         val mega = officialNew.isMega
         if (tierlist.mode.isTiersWithFree() && !(tierlist.variableMegaPrice && mega) && !free) return false
         val cpicks = picks[current]!!
-        if (tierlist.variableMegaPrice && cpicks.any { it.name.isMega } && mega) {
+        val currentPicksHasMega = cpicks.any { it.name.isMega }
+        if (tierlist.variableMegaPrice && currentPicksHasMega && mega) {
             e.reply("Du kannst nur ein Mega draften!")
             return true
         }
@@ -183,12 +184,14 @@ sealed class League {
             return true
         }
         val variableMegaPrice =
-            if (tierlist.variableMegaPrice) (if (cpicks.none { it.name.isMega }) tierlist.order.mapNotNull {
+            (if (tierlist.variableMegaPrice) (if (!currentPicksHasMega) tierlist.order.mapNotNull {
                 it.substringAfter("#", "").takeUnless { t -> t.isEmpty() }?.toInt()
-            }.minOrNull() ?: 0 else 0) else 0
+            }.minOrNull() ?: 0 else 0) else 0).let {
+                if (mega) 0 else it
+            }
         if (pointsBack == 0 && when (tierlist.mode) {
                 TierlistMode.POINTS -> (totalRounds - (cpicks.size + 1)) * tierlist.prices.values.min() > points[current] - needed
-                TierlistMode.TIERS_WITH_FREE -> (tierlist.freePicksAmount - (cpicks.count { it.free } + 1)) * tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" }
+                TierlistMode.TIERS_WITH_FREE -> (tierlist.freePicksAmount - (cpicks.count { it.free } + (if (free) 1 else 0))) * tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" && "Mega#" !in it.key }
                     .minOf { it.value } > points[current] - needed - variableMegaPrice
 
                 else -> false
@@ -260,17 +263,20 @@ sealed class League {
             restartTimer()
             sendRound()
             announcePlayer()
+            save("StartDraft")
         } else {
             val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer?.calc(timerStart)
             restartTimer(delay)
         }
-        isRunning = true
-        save("StartDraft")
+        db.drafts.updateOneById(id!!, set(League::isRunning setTo true))
         logger.info("Started!")
     }
 
-    suspend fun save(from: String = "") = db.drafts.updateOne(this)
-        .also { logger.info("Saving... {} isRunning {} FROM {}", this.leaguename, this.isRunning, from) }
+    suspend fun save(from: String = "") = withContext(NonCancellable) {
+        val l = this@League
+        db.drafts.updateOne(l)
+            .also { logger.info("Saving... {} isRunning {} FROM {}", l.leaguename, l.isRunning, from) }
+    }
 
 
     open fun reset() {}
@@ -313,7 +319,7 @@ sealed class League {
     open fun beforeSwitch(): String? = null
     open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
-    fun getPossibleTiers(mem: Long = current): MutableMap<String, Int> {
+    fun getPossibleTiers(mem: Long = current, forAutocomplete: Boolean = false): MutableMap<String, Int> {
         val cpicks = picks[mem]!!
         return tierlist.prices.toMutableMap().let { possible ->
             cpicks.forEach { pick ->
@@ -324,7 +330,8 @@ sealed class League {
         }.also { possible ->
             if (tierlist.variableMegaPrice) {
                 possible.keys.toList().forEach { if (it.startsWith("Mega#")) possible.remove(it) }
-                possible["Mega"] = if (cpicks.none { it.name.isMega }) 1 else 0
+                if (!forAutocomplete)
+                    possible["Mega"] = if (cpicks.none { it.name.isMega }) 1 else 0
             }
             manipulatePossibleTiers(cpicks, possible)
         }
@@ -343,12 +350,13 @@ sealed class League {
     fun getTierOf(pokemon: String, insertedTier: String?): TierData? {
         val real = tierlist.getTierOf(pokemon) ?: return null
         return if (insertedTier != null && tierlist.mode.withTiers) {
-            TierData(("Mega".takeIf { tierlist.variableMegaPrice } ?: tierlist.order.firstOrNull {
+            TierData(tierlist.order.firstOrNull {
                 insertedTier.equals(
                     it,
                     ignoreCase = true
                 )
-            } ?: ""), real)
+            } ?: (if (tierlist.variableMegaPrice && insertedTier.equals("Mega", ignoreCase = true)) "Mega" else ""),
+                real)
         } else {
             TierData(real, real)
         }
@@ -530,8 +538,9 @@ sealed class League {
         REALTIMER, SKIP
     }
 
-    protected val String.isMega get() = "-Mega" in this
 }
+
+val String.isMega get() = "-Mega" in this
 
 @Serializable
 data class AllowedData(val u: Long, var mention: Boolean = false, var teammate: Boolean = false)
@@ -655,7 +664,7 @@ class PointsManager(val league: League) {
             tierlist.points - picks[member]!!.filterNot { it.quit }.sumOf {
                 if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
                     it.tier
-                ) else 0
+                ) else if (tierlist.variableMegaPrice && it.name.isMega) it.tier.substringAfter("#").toInt() else 0
             }
         }
     }

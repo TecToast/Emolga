@@ -6,6 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.invoke
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.PickData
+import de.tectoast.emolga.utils.json.emolga.draft.isMega
 import mu.KotlinLogging
 
 @Suppress("unused")
@@ -54,15 +55,17 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 (d.getTierOf(tlName, args.getNullable("tier"))
                     ?: return e.reply("Dieses Pokemon ist nicht in der Tierliste!"))
 
-            d.checkUpdraft(specifiedTier, officialTier)?.let { e.reply(it); return }
+            d.checkUpdraft(specifiedTier, officialTier)?.let { return e.reply(it) }
             if (d.isPicked(official, officialTier)) return e.reply("Dieses Pokemon wurde bereits gepickt!")
             val tlMode = tierlist.mode
-            val free = args.getOrDefault("free", false).takeIf { tlMode.isTiersWithFree() } ?: false
+            val free = args.getOrDefault("free", false)
+                .takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } ?: false
             if (!free && d.handleTiers(e, specifiedTier, officialTier)) return
             if (d.handlePoints(e, tlNameNew = tlName, officialNew = official, free = free, tier = officialTier)) return
-            d.savePick(picks, official, specifiedTier, free)
+            val saveTier = if (free) officialTier else specifiedTier
+            d.savePick(picks, official, saveTier, free)
             //m.delete().queue();
-            if (!isRandom) d.replyPick(e, tlName, free, specifiedTier.takeIf { specifiedTier != officialTier })
+            if (!isRandom) d.replyPick(e, tlName, free, specifiedTier.takeIf { saveTier != officialTier })
             if (isRandom) {
                 d.replyRandomPick(e, tlName, specifiedTier)
             } else if (official == "Emolga") {
@@ -77,7 +80,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                             league = d,
                             pokemon = tlName,
                             pokemonofficial = official,
-                            tier = specifiedTier,
+                            tier = saveTier,
                             mem = mem,
                             indexInRound = indexInRound(round),
                             changedIndex = picks.indexOfFirst { it.name == official },

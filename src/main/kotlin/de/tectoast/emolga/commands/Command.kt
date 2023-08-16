@@ -802,7 +802,8 @@ abstract class Command(
 
                 fun draftTiers(): Text {
                     return withAutocomplete { _, event ->
-                        League.onlyChannel(event.channel!!.idLong)?.getPossibleTiers()?.filter { it.value > 0 }
+                        League.onlyChannel(event.channel!!.idLong)?.getPossibleTiers(forAutocomplete = true)
+                            ?.filter { it.value > 0 }
                             ?.map { it.key }
                     }
                 }
@@ -1209,7 +1210,8 @@ abstract class Command(
                 Constants.G.BSP,
                 Constants.G.PIKAS,
                 Constants.G.WFS,
-                Constants.G.ADK
+                Constants.G.ADK,
+                Constants.G.COMMUNITY
             )
         private val draftPrefixes = mapOf(
             "M" to "Mega", "A" to "Alola", "G" to "Galar", "Mega" to "Mega", "Alola" to "Alola", "Galar" to "Galar"

@@ -127,7 +127,6 @@ sealed class SDEffect(vararg val types: String) {
     data object CourtChange : SDEffect("-activate") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             if ("move: Court Change" !in split) return
-            ctx.reportUsage()
             val players = ctx.sdPlayers
             val (usingPlayer, loc) = split[1].parsePokemonLocation()
             val pkmn = ctx.monsOnField[usingPlayer][loc]

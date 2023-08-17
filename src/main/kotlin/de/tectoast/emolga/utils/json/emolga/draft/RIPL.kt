@@ -20,7 +20,7 @@ class RIPL : League() {
     override val teamsize = 12
 
     @Transient
-    override val timer = DraftTimer(TimerInfo(8, 23), 4 * 60)
+    override val timer = DraftTimer(TimerInfo(8, 23), 3 * 60)
     override val timerSkipMode = TimerSkipMode.NEXT_PICK
     private val cid by lazy { leaguename.last().digitToInt() - 1 }
     private val conf by lazy { if (cid == 0) "Sun" else "Moon" }

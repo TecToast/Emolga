@@ -57,8 +57,7 @@ object EnterResult {
         val uids = mutableListOf<Long>()
         var league by Delegates.notNull<League>()
 
-        // TODO Provide a way to get the mons by uid without blocking & remove the runBlocking & providePicksForGameday
-        private fun getPicksByUid(uid: Long) = league.picks[uid]!!
+        private fun getPicksByUid(uid: Long) = league.providePicksForGameday(gamedayData.gameday)[uid]!!
         private suspend fun getMonsByUid(uid: Long) =
             getPicksByUid(uid).sortedWith(league.tierorderingComparator).map {
                 (it.name to NameConventionsDB.convertOfficialToTL(

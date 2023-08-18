@@ -1,8 +1,8 @@
 package de.tectoast.emolga.buttons
 
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.emolga.draft.TipGamedayData
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import org.litote.kmongo.eq
 
@@ -15,7 +15,7 @@ class TipGameButton : ButtonListener("tipgame") {
             db.drafts.findOne(League::leaguename eq split[0]) ?: return reportMissing(e)
         val tipgame = league.tipgame ?: return reportMissing(e)
         val usermap =
-            tipgame.tips.getOrPut(gameday) { GamedayData() }.userdata.getOrPut(e.user.idLong) { mutableMapOf() }
+            tipgame.tips.getOrPut(gameday) { TipGamedayData() }.userdata.getOrPut(e.user.idLong) { mutableMapOf() }
         usermap[index] = userindex
         e.reply("Dein Tipp wurde gespeichert!").setEphemeral(true).queue()
         league.save()

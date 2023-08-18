@@ -1,9 +1,6 @@
 package de.tectoast.emolga.utils.draft
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.ReplayData
-import de.tectoast.emolga.commands.condAppend
+import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
@@ -13,12 +10,12 @@ import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage_
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.reply_
-import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
 import net.dv8tion.jda.api.interactions.components.ActionRow
+import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import kotlin.properties.Delegates
 
 object EnterResult {
@@ -27,9 +24,6 @@ object EnterResult {
     suspend fun handleStart(e: GuildCommandEvent) {
         results[e.author.idLong] = ResultEntry().apply { init(e) }
     }
-
-    // TODO
-    private fun League.getPicks() = providePicksForGameday(2)
 
     fun handleSelect(e: StringSelectInteractionEvent, userindex: String) {
         val resultEntry = results[e.user.idLong]
@@ -64,34 +58,34 @@ object EnterResult {
         var league by Delegates.notNull<League>()
 
         // TODO Provide a way to get the mons by uid without blocking & remove the runBlocking & providePicksForGameday
+        private fun getPicksByUid(uid: Long) = league.picks[uid]!!
         private suspend fun getMonsByUid(uid: Long) =
-            league.getPicks()[uid]!!.sortedWith(league.tierorderingComparator).map {
+            getPicksByUid(uid).sortedWith(league.tierorderingComparator).map {
                 (it.name to NameConventionsDB.convertOfficialToTL(
                     it.name,
                     league.guild
                 )!!).let { (official, tl) -> SelectOption(tl, "$official#$tl") }
             }
 
-        val picks by lazy {
-            runBlocking {
-                buildMap {
-                    uids.forEach { uid ->
-                        put(uid, getMonsByUid(uid))
-                    }
-                }
-            }
-        }
+        lateinit var picks: Map<Long, List<SelectOption>>
+        lateinit var gamedayData: GamedayData
 
-        // TODO
-        private fun GuildCommandEvent.provideGuild() = Constants.G.FLP
 
+        val wifiPlayers = (0..1).map { WifiPlayer(0, false) }
         suspend fun init(e: GuildCommandEvent) {
             uids += e.author.idLong
             uids += e.arguments.getMember("opponent").idLong
-            league = db.leagueByGuild(e.provideGuild(), *uids.toLongArray()) ?: return e.reply_(
-                "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
-                ephemeral = true
-            )
+            league = db.leagueByGuild(e.arguments.getNullable<Long>("guild") ?: e.guild.idLong, *uids.toLongArray())
+                ?: return e.reply_(
+                    "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
+                    ephemeral = true
+                )
+            gamedayData = league.getGameplayData(uids[0], uids[1], wifiPlayers)
+            buildMap {
+                uids.forEach { uid ->
+                    put(uid, getMonsByUid(uid))
+                }
+            }
             e.reply_(
                 embeds = buildEmbed(), components = uids.mapIndexed { index, uid ->
                     ActionRow.of(
@@ -177,13 +171,19 @@ object EnterResult {
                 e.reply(generateFinalMessage()).queue()
                 league.docEntry?.analyse(
                     ReplayData(
-                        data.map { WifiPlayer(it.size - it.dead, it.size == it.dead) },
+                        data.mapIndexed { index, d ->
+                            wifiPlayers[index].apply {
+                                alivePokemon = d.size - d.dead
+                                winner = d.size != d.dead
+                            }
+                        },
                         uids[0],
                         uids[1],
                         data.map { it.asKillMap },
                         data.map { it.asDeathMap },
                         data.map { l -> l.map { it.official } },
-                        "WIFI"
+                        "WIFI",
+                        gamedayData
                     )
                 )
             } else {

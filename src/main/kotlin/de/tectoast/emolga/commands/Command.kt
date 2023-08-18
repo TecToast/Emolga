@@ -2761,17 +2761,20 @@ abstract class Command(
             val deaths =
                 game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to if (mon.isDead) 1 else 0 } }
             if (uid1 == -1L || uid2 == -1L) return
-            league?.docEntry?.analyse(
-                ReplayData(
-                    game = game,
-                    uid1 = uid1,
-                    uid2 = uid2,
-                    kills = kills,
-                    deaths = deaths,
-                    mons = game.map { it.pokemon.map { mon -> monNames[mon.pokemon]!!.official } },
-                    url = url
+            league?.docEntry?.let { de ->
+                de.analyse(
+                    ReplayData(
+                        game = game,
+                        uid1 = uid1,
+                        uid2 = uid2,
+                        kills = kills,
+                        deaths = deaths,
+                        mons = game.map { it.pokemon.map { mon -> monNames[mon.pokemon]!!.official } },
+                        url = url,
+                        league.getGameplayData(uid1, uid2, game)
+                    )
                 )
-            )
+            }
             //}
         }
 
@@ -3111,9 +3114,26 @@ data class ReplayData(
     val kills: List<Map<String, Int>>,
     val deaths: List<Map<String, Int>>,
     val mons: List<List<String>>,
-    val url: String
+    val url: String,
+    val gamedayData: GamedayData
 ) {
     val uids by lazy { listOf(uid1, uid2) }
+}
+
+data class GamedayData(
+    val gameday: Int,
+    val battleindex: Int,
+    val u1IsSecond: Boolean
+) {
+    constructor(gameday: Int, battleindex: Int, u1IsSecond: Boolean, numbers: () -> List<Int>) : this(
+        gameday,
+        battleindex,
+        u1IsSecond
+    ) {
+        this.numbers = numbers
+    }
+
+    lateinit var numbers: () -> List<Int>
 }
 
 enum class Language(val translationCol: Column<String>, val otherCol: Column<String>) {

@@ -6,7 +6,7 @@ import java.util.*
 
 @Serializable
 class TipGame(
-    val tips: MutableMap<Int, GamedayData> = mutableMapOf(),
+    val tips: MutableMap<Int, TipGamedayData> = mutableMapOf(),
     @Serializable(with = DateToStringSerializer::class)
     val lastSending: Date,
     @Serializable(with = DateToStringSerializer::class)
@@ -17,7 +17,7 @@ class TipGame(
 )
 
 @Serializable
-class GamedayData(
+class TipGamedayData(
     val userdata: MutableMap<Long, MutableMap<Int, Int>> = mutableMapOf(),
     val evaluated: MutableList<Int> = mutableListOf()
 )

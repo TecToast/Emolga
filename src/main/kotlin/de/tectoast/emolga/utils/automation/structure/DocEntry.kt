@@ -42,7 +42,6 @@ class DocEntry private constructor(val league: League) {
     var setStatIfEmpty = false
     var numberMapper: (String) -> String = { it.ifEmpty { "0" } }
     var monsOrder: (List<DraftPokemon>) -> List<String> = { l -> l.map { it.name } }
-    var randomGamedayMapper: (Int) -> Int = { it }
     var cancelIf: (ReplayData, Int) -> Boolean = { _: ReplayData, _: Int -> false }
     var rowNumToIndex: (Int) -> Int = { it.minus(league.newSystemGap + 1).div(league.newSystemGap) }
     private val gamedays get() = league.gamedays
@@ -76,7 +75,7 @@ class DocEntry private constructor(val league: League) {
 
     private fun generateForDay(size: Int, dayParam: Int): List<List<Long>> {
         val numDays = size - 1
-        val day = randomGamedayMapper(dayParam) - 1
+        val day = dayParam - 1
         val table = league.table
         return buildList {
             add(listOf(table[day % numDays + 1], table[0]))
@@ -87,74 +86,18 @@ class DocEntry private constructor(val league: League) {
 
     }
 
-    /**
-     * generate the gameplan coords
-     * @param u1 the first user
-     * @param u1 the second user
-     * @return a triple containing the gameday, the battle index and if p1 is the second user
-     */
-    private fun gameplanCoords(u1: Long, u2: Long): Triple<Int, Int, Boolean> {
-        val size = league.table.size
-        val numDays = size - 1
-        val halfSize = size / 2
-        val list = league.table.run { listOf(indexOf(u1), indexOf(u2)) }
-        for (day in 0 until numDays) {
-            val teamIdx = day % numDays + 1
-            if (0 in list) {
-                if (list[1 - list.indexOf(0)] == teamIdx) return Triple(randomGamedayMapper(day + 1), 0, list[0] == 0)
-                continue
-            }
-            for (idx in 1 until halfSize) {
-                val firstTeam = (day + idx) % numDays + 1
-                val secondTeam = (day + numDays - idx) % numDays + 1
-                if (firstTeam in list) {
-                    if (list[1 - list.indexOf(firstTeam)] == secondTeam) return Triple(
-                        randomGamedayMapper(day + 1), idx, list[0] == secondTeam
-                    )
-                    break
-                }
-            }
-        }
-        error("Didnt found matchup for $u1 & $u2 in ${league.leaguename}")
-    }
-
     fun getMatchups(gameday: Int) =
         league.battleorder[gameday]?.map { mu -> mu.map { league.table[it] } } ?: generateForDay(
             league.table.size, gameday
         )
 
-
     fun analyse(
         replayData: ReplayData
     ) {
-        val (game, uid1, uid2, kills, deaths, _, url) = replayData
-        var battleind = -1
-        var u1IsSecond = false
-        val i1 = league.table.indexOf(uid1)
-        val i2 = league.table.indexOf(uid2)
-        val gameday =
-            if (league.battleorder.isNotEmpty()) league.battleorder.asIterable().reversed().firstNotNullOfOrNull {
-                if (it.value.any { l ->
-                        l.containsAll(listOf(i1, i2)).also { b ->
-                            if (b) u1IsSecond = l.indexOf(i1) == 1
-                        }
-                    }) it.key else null
-            } ?: -1 else gameplanCoords(uid1, uid2).also {
-                battleind = it.second
-                u1IsSecond = it.third
-            }.first
-
+        val (game, uid1, uid2, kills, deaths, _, url, gamedayData) = replayData
+        val (gameday, battleindex, u1IsSecond) = gamedayData
         if (cancelIf(replayData, gameday)) return
-        val indices = listOf(i1, i2)
-        val (battleindex, numbers) = league.battleorder[gameday]?.let { battleorder ->
-            val battleusers = battleorder.firstOrNull { it.contains(i1) }.orEmpty()
-            (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1) to (0..1).asSequence()
-                .sortedBy { battleusers.indexOf(indices[it]) }.map { game[it].alivePokemon }
-                .toList()
-        } ?: run {
-            battleind to (0..1).map { game[it].alivePokemon }
-                .let { if (u1IsSecond) it.reversed() else it }
-        }
+
         val sid = league.sid
         val b = RequestBuilder(sid)
         val customB = customDataSid?.let(::RequestBuilder)
@@ -235,6 +178,7 @@ class DocEntry private constructor(val league: League) {
         }
         runBlocking {
             resultCreator?.let {
+                val numbers = gamedayData.numbers()
                 AdvancedResult(
                     b = b,
                     gdi = gameday - 1,

@@ -7,6 +7,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
@@ -507,6 +508,76 @@ sealed class League {
 
     open fun provideReplayChannel(jda: JDA): TextChannel? = null
     open fun provideResultChannel(jda: JDA): TextChannel? = null
+
+    /**
+     * generate the gameplan coords
+     * @param u1 the first user
+     * @param u1 the second user
+     * @return a triple containing the gameday, the battle index and if p1 is the second user
+     */
+    private fun gameplanCoords(u1: Long, u2: Long): Triple<Int, Int, Boolean> {
+        val size = table.size
+        val numDays = size - 1
+        val halfSize = size / 2
+        val list = table.run { listOf(indexOf(u1), indexOf(u2)) }
+        for (day in 0 until numDays) {
+            val teamIdx = day % numDays + 1
+            if (0 in list) {
+                if (list[1 - list.indexOf(0)] == teamIdx) return Triple(day + 1, 0, list[0] == 0)
+                continue
+            }
+            for (idx in 1 until halfSize) {
+                val firstTeam = (day + idx) % numDays + 1
+                val secondTeam = (day + numDays - idx) % numDays + 1
+                if (firstTeam in list) {
+                    if (list[1 - list.indexOf(firstTeam)] == secondTeam) return Triple(
+                        day + 1, idx, list[0] == secondTeam
+                    )
+                    break
+                }
+            }
+        }
+        error("Didnt found matchup for $u1 & $u2 in $leaguename")
+    }
+
+    fun getGameplayData(uid1: Long, uid2: Long, game: List<DraftPlayer>): GamedayData {
+        var battleind = -1
+        var u1IsSecond = false
+        val i1 = table.indexOf(uid1)
+        val i2 = table.indexOf(uid2)
+        val gameday =
+            if (battleorder.isNotEmpty()) battleorder.asIterable().reversed()
+                .firstNotNullOfOrNull {
+                    if (it.value.any { l ->
+                            l.containsAll(listOf(i1, i2)).also { b ->
+                                if (b) u1IsSecond = l.indexOf(i1) == 1
+                            }
+                        }) it.key else null
+                } ?: -1 else gameplanCoords(uid1, uid2).also {
+                battleind = it.second
+                u1IsSecond = it.third
+            }.first
+        val indices = listOf(i1, i2)
+        val (battleindex, numbers) = battleorder[gameday]?.let { battleorder ->
+            val battleusers = battleorder.firstOrNull { it.contains(i1) }.orEmpty()
+            (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1) to {
+                (0..1).asSequence()
+                    .sortedBy { battleusers.indexOf(indices[it]) }.map { game[it].alivePokemon }
+                    .toList()
+            }
+        } ?: run {
+            battleind to {
+                (0..1).map { game[it].alivePokemon }
+                    .let { if (u1IsSecond) it.reversed() else it }
+            }
+        }
+        return GamedayData(
+            gameday,
+            battleindex,
+            u1IsSecond,
+            numbers
+        )
+    }
 
     companion object {
         val logger: Logger by SLF4J

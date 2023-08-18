@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils.draft
 
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.ReplayData
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
@@ -174,6 +175,17 @@ object EnterResult {
             if (checkConditionsForFinish(e)) return
             if (really) {
                 e.reply(generateFinalMessage()).queue()
+                league.docEntry?.analyse(
+                    ReplayData(
+                        data.map { WifiPlayer(it.size - it.dead, it.size == it.dead) },
+                        uids[0],
+                        uids[1],
+                        data.map { it.asKillMap },
+                        data.map { it.asDeathMap },
+                        data.map { l -> l.map { it.official } },
+                        "WIFI"
+                    )
+                )
             } else {
                 e.editMessage_(components = e.message.components.subList(0, 3)).queue()
             }
@@ -197,6 +209,8 @@ object EnterResult {
 
         private val List<MonData>.kills get() = sumOf { it.kills }
         private val List<MonData>.dead get() = sumOf { (if (it.dead) 1 else 0).toInt() }
+        private val List<MonData>.asKillMap get() = associate { it.official to it.kills }
+        private val List<MonData>.asDeathMap get() = associate { it.official to if (it.dead) 1 else 0 }
 
         data class MonData(val pokemon: String, val official: String, val kills: Int, val dead: Boolean) {
             override fun toString(): String {

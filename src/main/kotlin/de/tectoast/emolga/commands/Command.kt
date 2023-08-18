@@ -33,9 +33,7 @@ import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.Constants.SOULLINK_MSGID
 import de.tectoast.emolga.utils.Constants.SOULLINK_TCID
 import de.tectoast.emolga.utils.annotations.ToTest
-import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.emolga.utils.draft.isEnglish
+import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.json.*
 import de.tectoast.emolga.utils.json.emolga.draft.*
 import de.tectoast.emolga.utils.json.showdown.Learnset
@@ -1645,7 +1643,7 @@ abstract class Command(
             WarnsDB.warn(mem.idLong, mod.idLong, tco.guild.idLong, reason)
         }
 
-
+        //TODO rework
         fun getNumber(map: Map<String, Int>, pick: String): String {
             //logger.info(map);
             for ((s, value) in map) {
@@ -1659,7 +1657,7 @@ abstract class Command(
             return ""
         }
 
-
+        //TODO rework
         fun indexPick(picks: List<String>, mon: String): Int {
             for (pick in picks) {
                 if (pick.equals(mon, ignoreCase = true) || pick.substring(2)
@@ -3107,7 +3105,7 @@ data class DocRange(val sheet: String, val xStart: String, val yStart: Int, val 
 fun String.toDocRange() = DocRange[this]
 
 data class ReplayData(
-    val game: List<SDPlayer>,
+    val game: List<DraftPlayer>,
     val uid1: Long,
     val uid2: Long,
     val kills: List<Map<String, Int>>,

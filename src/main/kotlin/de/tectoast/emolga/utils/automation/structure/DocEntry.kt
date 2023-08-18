@@ -149,10 +149,10 @@ class DocEntry private constructor(val league: League) {
         val (battleindex, numbers) = league.battleorder[gameday]?.let { battleorder ->
             val battleusers = battleorder.firstOrNull { it.contains(i1) }.orEmpty()
             (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1) to (0..1).asSequence()
-                .sortedBy { battleusers.indexOf(indices[it]) }.map { game[it].pokemon.count { m -> !m.isDead } }
+                .sortedBy { battleusers.indexOf(indices[it]) }.map { game[it].alivePokemon }
                 .toList()
         } ?: run {
-            battleind to (0..1).map { game[it].pokemon.count { m -> !m.isDead } }
+            battleind to (0..1).map { game[it].alivePokemon }
                 .let { if (u1IsSecond) it.reversed() else it }
         }
         val sid = league.sid

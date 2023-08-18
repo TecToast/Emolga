@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.showdown
 
 import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.utils.draft.DraftPlayer
 
 data class SDPokemon(var pokemon: String, val player: Int) {
     private val effects: MutableMap<SDEffect, SDPokemon> = mutableMapOf()
@@ -395,14 +396,14 @@ data class BattleContext(
     val game: List<String>,
 )
 
-data class SDPlayer(
+class SDPlayer(
     val nickname: String,
     val pokemon: MutableList<SDPokemon>,
     val fieldConditions: MutableMap<SDEffect, SDPokemon> = mutableMapOf(),
     val hittingFutureMoves: MutableList<SDEffect.FutureMoves> = mutableListOf(),
-    var winner: Boolean = false,
+    winner: Boolean = false,
     var teamSize: Int = 6
-) {
+) : DraftPlayer(pokemon.count { !it.isDead }, winner) {
     val allMonsDead: Boolean
         get() = pokemon.all { it.isDead }
 }

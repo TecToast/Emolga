@@ -26,9 +26,7 @@ import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.serialization.encodeToString
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
@@ -804,19 +802,42 @@ object PrivateCommands {
         myJSON.encodeToString(usersByConf).let { e.reply("```json\n$it```") }
     }
 
-    suspend fun aslteamgraphics(e: GenericCommandEvent) {
-        coroutineScope {
-            launch {
-                val args = e.getArg(1).split(" ")
-                val league = db.league(args[0])
-                val tc = EmolgaMain.emolgajda.getTextChannelById(args[1])!!
-                league.picks.entries.map { (u, l) ->
-                    val (bufferedImage, _) = TeamGraphics.fromDraftPokemon(l, league.guild)
-                    u to FileUpload.fromData(ByteArrayOutputStream().also { ImageIO.write(bufferedImage, "png", it) }
-                        .toByteArray(), "yay.png")
-                }.forEach { tc.sendMessage("Kader von <@${it.first}>:").addFiles(it.second).queue() }
-            }
+    private val teamGraphicScope = CoroutineScope(Dispatchers.IO)
+    fun teamgraphics(e: GenericCommandEvent) {
+        suspend fun List<DraftPokemon>.toTeamGraphics() = FileUpload.fromData(ByteArrayOutputStream().also {
+            ImageIO.write(
+                TeamGraphics.fromDraftPokemon(this).first,
+                "png",
+                it
+            )
         }
+            .toByteArray(), "yay.png")
+        e.done(true)
+        teamGraphicScope.launch {
+            val args = e.getArg(1).split(" ")
+            val league = db.league(args[0])
+            val user = args[1].toLong()
+            val tc = args.getOrNull(2)?.let { EmolgaMain.emolgajda.getTextChannelById(it)!! } ?: e.channel
+            if (user > -1) {
+                tc.sendMessage("Kader von <@${user}>:").addFiles(league.picks[user]!!.toTeamGraphics()).queue()
+                return@launch
+            }
+            league.picks.entries.map { (u, l) ->
+                async {
+                    val (bufferedImage, _) = TeamGraphics.fromDraftPokemon(l)
+                    u to FileUpload.fromData(ByteArrayOutputStream().also {
+                        ImageIO.write(
+                            bufferedImage,
+                            "png",
+                            it
+                        )
+                    }
+                        .toByteArray(), "yay.png")
+
+                }
+            }.awaitAll().forEach { tc.sendMessage("Kader von <@${it.first}>:").addFiles(it.second).queue() }
+        }
+
     }
 
     suspend fun specaslgraphics(e: GenericCommandEvent) {

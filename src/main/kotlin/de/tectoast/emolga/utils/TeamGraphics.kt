@@ -35,17 +35,16 @@ object TeamGraphics {
         "B" to (Color(0xbd5959) to Color(0x4d2424)),
         "C" to (Color(0xa4c2f4) to Color(0x455266)),
         "D" to (Color(0xea9999) to Color(0x664242)),
-    )
+    ).withDefault { (Color(0xffd700) to Color(0x423510)) }
 
     suspend fun fromDraftPokemon(
-        mons: List<DraftPokemon>,
-        guild: Long = Constants.G.ASL
-    ): Pair<BufferedImage, RandomTeamData> = TeamGraphic(guild).create(mons)
+        mons: List<DraftPokemon>
+    ): Pair<BufferedImage, RandomTeamData> = TeamGraphic().create(mons)
 
 
 }
 
-class TeamGraphic(private val guild: Long) {
+class TeamGraphic {
 
     private val currentNumber: MutableMap<Int, Int> = mutableMapOf()
     val mons = mutableListOf<MutableList<DraftPokemon>>()
@@ -72,7 +71,7 @@ class TeamGraphic(private val guild: Long) {
 
     private suspend fun addMonsToList(monlist: List<DraftPokemon>) {
         //mons.computeIfAbsent(tier) { ArrayList() } += pokemon
-        mons.add(monlist.map { DraftPokemon(getSpriteForTeamGraphic(it.name, randomTeamData, guild), it.tier) }
+        mons.add(monlist.map { DraftPokemon(getSpriteForTeamGraphic(it.name, randomTeamData, 0), it.tier) }
             .toMutableList())
 
     }
@@ -180,7 +179,8 @@ class TeamGraphic(private val guild: Long) {
         g.drawPolygon(hexagon(xcoord, ycoord + 200, 40))
         g.stroke = BasicStroke(8f)
         //g.color = tiercolors[tier]
-        TeamGraphics.tiercolors[tier]!!.let {
+        val trimmedTier = tier.take(1)
+        TeamGraphics.tiercolors.getValue(trimmedTier).let {
             g.paint = GradientPaint(
                 xcoord.toFloat(),
                 (ycoord + 245).toFloat(),
@@ -195,11 +195,12 @@ class TeamGraphic(private val guild: Long) {
         g.color = Color.WHITE
         g.font = Font(Font.DIALOG, Font.PLAIN, 40)
         g.drawString(
-            tier, xcoord - when (tier) {
+            trimmedTier, xcoord - when (trimmedTier) {
                 "S" -> 12
                 "A" -> 12
                 "B" -> 14
                 "C" -> 15
+                "M" -> 18
                 else -> 15
             }, ycoord + 215
         )

@@ -13,8 +13,7 @@ class ResultCommand :
         argumentTemplate = ArgumentManagerTemplate.create {
             add("opponent", "Gegner", "Dein Gegner in diesem Kampf", ArgumentManagerTemplate.DiscordType.USER)
         }
-        adminSlash = true
-        slash(true, Constants.G.COMMUNITY)
+        slash(true, Constants.G.COMMUNITY, Constants.G.VIP)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

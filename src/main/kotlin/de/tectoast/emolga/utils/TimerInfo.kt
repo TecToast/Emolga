@@ -2,14 +2,12 @@ package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.utils.records.TimerData
 
-class TimerInfo {
+class TimerInfo(val delayInMins: Int = 120) {
     private val map: MutableMap<Int, TimerData> = mutableMapOf()
 
-    constructor(from: Int, to: Int) {
+    constructor(from: Int, to: Int, delayInMins: Int = 120) : this(delayInMins) {
         set(from, to)
     }
-
-    constructor()
 
     fun add(from: Int, to: Int, vararg days: Int): TimerInfo {
         for (day in days) {

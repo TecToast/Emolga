@@ -23,7 +23,7 @@ class ADK : League() {
     override val dataSheet by lazy { "Data${cid + 1}" }
 
     @Transient
-    override val timer = DraftTimer(TimerInfo(10, 22), 120)
+    override val timer = DraftTimer(TimerInfo(10, 22))
 
     @Transient
     override val docEntry = DocEntry.create(this) {

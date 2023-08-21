@@ -55,7 +55,7 @@ class ASLCoach(val level: Int = -1, private val sheetid: Int = -1) : League() {
     override val teamsize = 12
 
     @Transient
-    override val timer = DraftTimer(TimerInfo(12, 22), 120)
+    override val timer = DraftTimer(TimerInfo(12, 22))
 
     override val timerSkipMode = TimerSkipMode.LAST_ROUND
 

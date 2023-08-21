@@ -68,8 +68,7 @@ class ASL(
 
     @Transient
     override val timer = DraftTimer(
-        TimerInfo().add(10, 22, SATURDAY, SUNDAY).add(14, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY),
-        120
+        TimerInfo().add(10, 22, SATURDAY, SUNDAY).add(14, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)
     )
 
 

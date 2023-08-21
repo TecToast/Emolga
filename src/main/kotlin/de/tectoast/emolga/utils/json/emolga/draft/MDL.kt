@@ -17,7 +17,7 @@ class MDL(val division: Int) : League() {
     override val teamsize = 11
 
     @Transient
-    override val timer = DraftTimer(TimerInfo(9, 22), 120)
+    override val timer = DraftTimer(TimerInfo(9, 22))
     override val timerSkipMode = TimerSkipMode.NEXT_PICK
 
     val jokers = mutableMapOf<Long, Int>()

@@ -2,28 +2,48 @@ package de.tectoast.emolga.utils
 
 import java.util.*
 
-class DraftTimer(private val timerInfo: TimerInfo, private val delayInMins: Int = 120) {
+class DraftTimer(
+    timersMap: SortedMap<Long, TimerInfo>
+) {
+    val timers = timersMap.entries
 
-    /*ASL(
-        TimerInfo().add(10, 22, Calendar.SATURDAY, Calendar.SUNDAY)
-            .add(12, 22, Calendar.MONDAY, Calendar.TUESDAY, Calendar.WEDNESDAY, Calendar.THURSDAY, Calendar.FRIDAY)
-    ),*/
-    /*ASL(TimerInfo().set(12, 22), 120),
-    NDS(TimerInfo().set(10, 22), 180),
-    DoR(TimerInfo().set(12, 22), 60);*/
+    constructor(timerInfo: TimerInfo) : this(timerMap {
+        put(0, timerInfo)
+    })
+
+    constructor(vararg timers: Pair<Long, TimerInfo>) : this(timerMap {
+        putAll(timers)
+    })
+
 
     fun calc(timerStart: Long? = null): Long {
+        lateinit var currentTimerInfo: TimerInfo
         val cal = Calendar.getInstance()
+        fun recheckTimerInfo() {
+            currentTimerInfo = timers.first { it.key <= cal.timeInMillis }.value
+        }
         val ctm = cal.timeInMillis
         cal.timeInMillis = timerStart?.let { if (it > ctm) it else ctm } ?: ctm
-        var elapsedMinutes = delayInMins
+        recheckTimerInfo()
+        var currentDelay = currentTimerInfo.delayInMins
+        var elapsedMinutes: Int = currentDelay
+        var firstIteration = true
         while (elapsedMinutes > 0) {
-            val p = timerInfo[cal[Calendar.DAY_OF_WEEK]]
+            val p = currentTimerInfo[cal[Calendar.DAY_OF_WEEK]]
             val hour = cal[Calendar.HOUR_OF_DAY]
-            if (hour >= p.from && hour < p.to) elapsedMinutes-- else if (elapsedMinutes == delayInMins) cal[Calendar.SECOND] =
-                0
+            if (hour >= p.from && hour < p.to) elapsedMinutes-- else if (firstIteration) cal[Calendar.SECOND] = 0
+            firstIteration = false
             cal.add(Calendar.MINUTE, 1)
+            recheckTimerInfo()
+            elapsedMinutes += currentTimerInfo.delayInMins - currentDelay
+            if (currentDelay != currentTimerInfo.delayInMins) currentDelay = currentTimerInfo.delayInMins
         }
+        cal.add(Calendar.MINUTE, elapsedMinutes)
         return cal.timeInMillis - System.currentTimeMillis()
+    }
+
+    companion object {
+        fun timerMap(dsl: MutableMap<Long, TimerInfo>.() -> Unit) =
+            TreeMap<Long, TimerInfo>(Comparator.reverseOrder()).apply(dsl)
     }
 }

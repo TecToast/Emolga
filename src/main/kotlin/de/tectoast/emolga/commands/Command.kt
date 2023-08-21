@@ -3074,6 +3074,8 @@ inline fun String.ifNotEmpty(block: (String) -> String): String {
     return if (this.isNotEmpty()) block(this) else this
 }
 
+fun String.surroundWith(surround: String) = surround + this + surround
+
 inline fun <T> Collection<T>.randomWithCondition(condition: (T) -> Boolean) = this.filter(condition).randomOrNull()
 
 fun <K> MutableMap<K, Int>.add(key: K, value: Int) = compute(key) { _, v ->

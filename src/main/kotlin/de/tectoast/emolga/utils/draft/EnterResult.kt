@@ -10,6 +10,7 @@ import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage_
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.reply_
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
@@ -67,20 +68,26 @@ object EnterResult {
             }
 
         lateinit var picks: Map<Long, List<SelectOption>>
-        lateinit var gamedayData: GamedayData
+        private lateinit var gamedayData: GamedayData
 
 
         private val wifiPlayers = (0..1).map { WifiPlayer() }
         suspend fun init(e: GuildCommandEvent) {
-            uids += e.author.idLong
-            uids += e.arguments.getMember("opponent").idLong
-            league = db.leagueByGuild(e.arguments.getNullable<Long>("guild") ?: e.guild.idLong, *uids.toLongArray())
+            val args = e.arguments
+            uids += args.getNullable<String>("user")?.toLong() ?: e.author.idLong
+            uids += when (val oppo = args.get<Any>("opponent")) {
+                is String -> oppo.toLong()
+                is Member -> oppo.idLong
+                else -> error("Invalid type for opponent: ${oppo::class.simpleName}")
+            }
+            league =
+                db.leagueByGuild(args.getNullable<String>("guild")?.toLong() ?: e.guild.idLong, *uids.toLongArray())
                 ?: return e.reply_(
                     "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
                     ephemeral = true
                 )
             gamedayData = league.getGameplayData(uids[0], uids[1], wifiPlayers)
-            buildMap {
+            picks = buildMap {
                 uids.forEach { uid ->
                     put(uid, getMonsByUid(uid))
                 }
@@ -200,9 +207,8 @@ object EnterResult {
                 }.joinToString(":") { it.joinToString(" ") }
             }\n\n${
                 data.mapIndexed { index, monData ->
-                    "<@${uids[index]}>:\n${monData.joinToString("\n")}"
+                    "<@${uids[index]}>:\n${monData.joinToString("\n").surroundWith(if (spoiler) "||" else "")}"
                 }.joinToString("\n\n")
-
             }"
         }
 

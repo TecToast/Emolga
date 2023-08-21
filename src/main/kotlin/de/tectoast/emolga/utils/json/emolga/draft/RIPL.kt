@@ -67,7 +67,7 @@ class RIPL : League() {
             plindex.CoordXMod(conf, 2, 28, gdi + 2, 29, 29)
         }
         resultCreator = {
-            b.addSingle("Spielplan!${cid.x('L' - 'B', 3)}${gdi.y(13 - 5, 6 + index)}", defaultGameplanString)
+            b.addSingle("Spielplan!${cid.x('L' - 'B', 3)}${gdi.y(13 - 5, 6 + index)}", defaultGameplanStringWithoutUrl)
         }
     }
 }

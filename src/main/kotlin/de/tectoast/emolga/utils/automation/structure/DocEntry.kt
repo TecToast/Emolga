@@ -316,5 +316,6 @@ data class AdvancedResult(
     val higherNumber by lazy { if (numberOne > numberTwo) numberOne else numberTwo }
     fun Int.swap() = if (swappedNumbers) 1 - this else this
     val defaultGameplanString get() = """=HYPERLINK("$url"; "$numberOne:$numberTwo")"""
+    val defaultGameplanStringWithoutUrl get() = "$numberOne:$numberTwo"
 }
 

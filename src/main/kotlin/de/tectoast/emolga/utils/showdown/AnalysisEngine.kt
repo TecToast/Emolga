@@ -374,7 +374,7 @@ sealed class SDEffect(vararg val types: String) {
 
     data object Win : SDEffect("win") {
         override fun execute(split: List<String>, ctx: BattleContext) {
-            ctx.sdPlayers.first { it.nickname == split[1] }.winner = true
+            ctx.sdPlayers.first { it.nickname == split[1] }.winnerOfGame = true
         }
     }
 
@@ -401,11 +401,16 @@ class SDPlayer(
     val pokemon: MutableList<SDPokemon>,
     val fieldConditions: MutableMap<SDEffect, SDPokemon> = mutableMapOf(),
     val hittingFutureMoves: MutableList<SDEffect.FutureMoves> = mutableListOf(),
-    winner: Boolean = false,
+    var winnerOfGame: Boolean = false,
     var teamSize: Int = 6
-) : DraftPlayer(pokemon.count { !it.isDead }, winner) {
+) : DraftPlayer() {
     val allMonsDead: Boolean
         get() = pokemon.all { it.isDead }
+    override val alivePokemon: Int
+        get() = pokemon.count { !it.isDead }
+    override val winner: Boolean
+        get() = winnerOfGame
+
 }
 
 fun String.cleanSplit() = this.split("|").drop(1)

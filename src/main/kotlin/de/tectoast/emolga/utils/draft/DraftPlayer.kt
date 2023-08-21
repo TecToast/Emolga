@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.draft
 
-abstract class DraftPlayer(
-    var alivePokemon: Int,
-    var winner: Boolean
-)
+// TODO Rework later
+abstract class DraftPlayer {
+    abstract val alivePokemon: Int
+    abstract val winner: Boolean
+}

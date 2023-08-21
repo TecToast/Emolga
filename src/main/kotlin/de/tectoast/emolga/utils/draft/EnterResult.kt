@@ -70,7 +70,7 @@ object EnterResult {
         lateinit var gamedayData: GamedayData
 
 
-        val wifiPlayers = (0..1).map { WifiPlayer(0, false) }
+        private val wifiPlayers = (0..1).map { WifiPlayer() }
         suspend fun init(e: GuildCommandEvent) {
             uids += e.author.idLong
             uids += e.arguments.getMember("opponent").idLong
@@ -172,8 +172,8 @@ object EnterResult {
                     ReplayData(
                         data.mapIndexed { index, d ->
                             wifiPlayers[index].apply {
-                                alivePokemon = d.size - d.dead
-                                winner = d.size != d.dead
+                                alive = d.size - d.dead
+                                winnerOfGame = d.size != d.dead
                             }
                         },
                         uids[0],

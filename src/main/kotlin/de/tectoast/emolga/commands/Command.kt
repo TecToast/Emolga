@@ -2733,7 +2733,7 @@ abstract class Command(
                 game.forEach { player ->
                     player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
                         FullStatsDB.add(
-                            monNames[it.pokemon]!!.official, it.kills, if (it.isDead) 1 else 0, player.winner
+                            monNames[it.pokemon]!!.official, it.kills, if (it.isDead) 1 else 0, player.winnerOfGame
                         )
                     }
                 }

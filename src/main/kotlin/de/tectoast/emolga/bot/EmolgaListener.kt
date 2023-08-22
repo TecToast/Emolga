@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PrivateCommand
 import de.tectoast.emolga.commands.marker
+import de.tectoast.emolga.commands.showdown.ReplayCommand
 import de.tectoast.emolga.database.exposed.BanDB
 import de.tectoast.emolga.database.exposed.MuteDB
 import de.tectoast.emolga.modals.ModalListener
@@ -15,6 +16,7 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.messages.reply_
+import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
@@ -22,7 +24,6 @@ import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent
-import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
@@ -35,7 +36,6 @@ import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import org.litote.kmongo.eq
-import org.slf4j.LoggerFactory
 
 object EmolgaListener : ListenerAdapter() {
 
@@ -120,19 +120,6 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
 
     }
 
-    override fun onGuildMemberJoin(e: GuildMemberJoinEvent) {
-        val g = e.guild
-        val mem = e.member
-        when (g.idLong) {
-            Constants.G.ASL -> g.getTextChannelById(615605820381593610L)!!.sendMessage(
-                """
-                    Willkommen auf der ASL, ${mem.asMention}. <:hi:540969951608045578>
-                    Dies ist ein Pokémon Server mit dem Fokus auf einem kompetetiven Draftligasystem. Mach dich mit dem <#635765395038666762> vertraut und beachte die vorgegebenen Themen der Kanäle. Viel Spaß! <:yay:540970044297838597>
-                    """.trimIndent()
-            ).queue()
-        }
-    }
-
     override fun onGuildVoiceUpdate(e: GuildVoiceUpdateEvent) {
         e.channelLeft?.let {
             if (it.members.size == 1 && e.guild.audioManager.isConnected) {
@@ -165,36 +152,34 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
     }
 
     private suspend fun messageReceived(e: MessageReceivedEvent) {
-        if (e.channelType == ChannelType.TEXT) {
-            if (e.isWebhookMessage) return
-            if (e.jda.selfUser.idLong == 849569577343385601) Command.check(e)
-            if (e.message.mentions.isMentioned(e.jda.selfUser)) {
-                val raw = e.message.contentRaw
-                val botid = e.jda.selfUser.idLong
-                val tc = e.channel.asTextChannel()
-                if (raw == "<@!$botid>" || raw == "<@$botid>" && !e.author.isBot && Command.isChannelAllowed(tc)) {
-                    Command.help(tc, e.member!!)
+        when (e.channelType) {
+            ChannelType.TEXT -> {
+                if (e.isWebhookMessage) return
+                if (e.jda.selfUser.idLong == 849569577343385601) Command.check(e)
+            }
+
+            ChannelType.PRIVATE -> {
+                if (e.author.isBot) return
+                if (e.author.idLong != FLOID) e.jda.getTextChannelById(828044461379682314L)
+                    ?.sendMessage(e.author.asMention + ": " + e.message.contentDisplay)?.apply {
+                        if (e.message.attachments.isNotEmpty()) addContent("\n\n" + e.message.attachments.joinToString("\n") { it.url })
+                    }?.queue()
+                PrivateCommand.check(e)
+                val msg = e.message.contentDisplay
+                if (msg.contains("https://") || msg.contains("http://")) {
+                    ReplayCommand.regex.find(msg)?.run {
+                        val url = groupValues[0]
+                        logger.info(url)
+                        Command.analyseReplay(
+                            url = url,
+                            //customReplayChannel = e.jda.getTextChannelById(999779545316069396),
+                            resultchannelParam = e.jda.getTextChannelById(820359155612254258)!!, message = e.message
+                        )
+                    }
                 }
             }
-        } else if (e.isFromType(ChannelType.PRIVATE)) {
-            if (e.author.isBot) return
-            if (e.author.idLong != FLOID) e.jda.getTextChannelById(828044461379682314L)
-                ?.sendMessage(e.author.asMention + ": " + e.message.contentDisplay)?.apply {
-                if (e.message.attachments.isNotEmpty()) addContent("\n\n" + e.message.attachments.joinToString("\n") { it.url })
-            }?.queue()
-            PrivateCommand.check(e)
-            val msg = e.message.contentDisplay
-            if (msg.contains("https://") || msg.contains("http://")) {
-                urlRegex.find(msg)?.run {
-                    val url = groupValues[0]
-                    logger.info(url)
-                    Command.analyseReplay(
-                        url = url,
-                        //customReplayChannel = e.jda.getTextChannelById(999779545316069396),
-                        resultchannelParam = e.jda.getTextChannelById(820359155612254258)!!, message = e.message
-                    )
-                }
-            }
+
+            else -> {}
         }
     }
 
@@ -212,8 +197,8 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
         val g = e.guild
         when (g.idLong) {
             Constants.G.ASL -> {
-                g.retrieveMember(e.invite.inviter!!).queue { mem: Member? ->
-                    if (g.selfMember.canInteract(mem!!)) e.invite.delete().queue()
+                g.retrieveMember(e.invite.inviter!!).queue { mem: Member ->
+                    if (g.selfMember.canInteract(mem)) e.invite.delete().queue()
                 }
             }
         }
@@ -236,10 +221,6 @@ Nähere Informationen über die richtige Syntax für den Command erhältst du un
 
             Falls du weitere Fragen oder Probleme hast, schreibe ${Constants.MYTAG} eine PN oder komme auf den Support-Server, dessen Link in meinem Profil steht :)
         """.trimIndent()
-    private val logger = LoggerFactory.getLogger(EmolgaListener::class.java)
-    private val urlRegex = Regex(
-        "https://replay.pokemonshowdown.com\\b([-a-zA-Z\\d()@:%_+.~#?&/=]*)",
-        setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE, RegexOption.DOT_MATCHES_ALL)
-    )
+    private val logger = KotlinLogging.logger {}
 
 }

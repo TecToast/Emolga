@@ -18,17 +18,13 @@ class ReplayCommand : Command(
         slash(true, -1)
     }
 
-    val regex =
-        Regex("https://replay\\.(?:ess\\.tectoast\\.de|pokemonshowdown\\.com)/(?:[a-z]+-)?([^-]+)-\\d+[-a-z0-9]*")
-
     override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
         val url = args.getText("url")
         val slashEvent = e.slashCommandEvent!!
         slashEvent.deferReply().queue()
         val hook = slashEvent.hook
-        val find = regex.find(url)
-        val mr = find ?: return hook.sendMessage("Das ist kein gültiges Replay!").queue()
+        val mr = regex.find(url) ?: return hook.sendMessage("Das ist kein gültiges Replay!").queue()
         val channel = replayAnalysis[e.textChannel.idLong]
             ?: return hook.sendMessage("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
                 .queue()
@@ -38,5 +34,10 @@ class ReplayCommand : Command(
             return
         }
         analyseReplay(url = mr.groupValues[0], resultchannelParam = tc, fromReplayCommand = hook)
+    }
+
+    companion object {
+        val regex =
+            Regex("https://replay\\.(?:ess\\.tectoast\\.de|pokemonshowdown\\.com)/(?:[a-z]+-)?([^-]+)-\\d+[-a-z0-9]*")
     }
 }

@@ -266,7 +266,8 @@ sealed class League {
             announcePlayer()
             save("StartDraft")
         } else {
-            val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer?.calc(timerStart)
+            val delay =
+                if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer?.calc(timerStart = timerStart)
             restartTimer(delay)
         }
         db.drafts.updateOneById(id!!, set(League::isRunning setTo true))
@@ -282,7 +283,7 @@ sealed class League {
 
     open fun reset() {}
 
-    private fun restartTimer(delay: Long? = timer?.calc(timerStart)) {
+    private fun restartTimer(delay: Long? = timer?.calc(timerStart = timerStart)) {
         delay ?: return
         cooldown = System.currentTimeMillis() + delay
         logger.info("important".marker, "cooldown = {}", cooldown)

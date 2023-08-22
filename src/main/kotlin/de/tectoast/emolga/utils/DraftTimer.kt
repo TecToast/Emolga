@@ -16,9 +16,12 @@ class DraftTimer(
     })
 
 
-    fun calc(timerStart: Long? = null): Long {
+    fun calc(now: Long = System.currentTimeMillis(), timerStart: Long? = null): Long {
         lateinit var currentTimerInfo: TimerInfo
-        val cal = Calendar.getInstance()
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = now
+        }
+
         fun recheckTimerInfo() {
             currentTimerInfo = timers.first { it.key <= cal.timeInMillis }.value
         }
@@ -35,11 +38,17 @@ class DraftTimer(
             firstIteration = false
             cal.add(Calendar.MINUTE, 1)
             recheckTimerInfo()
-            elapsedMinutes += currentTimerInfo.delayInMins - currentDelay
-            if (currentDelay != currentTimerInfo.delayInMins) currentDelay = currentTimerInfo.delayInMins
+            if (currentDelay != currentTimerInfo.delayInMins) {
+                elapsedMinutes = if (currentTimerInfo.delayInMins < currentDelay) {
+                    elapsedMinutes.coerceAtMost(currentTimerInfo.delayInMins)
+                } else {
+                    currentTimerInfo.delayInMins - (currentDelay - elapsedMinutes)
+                }
+                currentDelay = currentTimerInfo.delayInMins
+            }
         }
-        cal.add(Calendar.MINUTE, elapsedMinutes)
-        return cal.timeInMillis - System.currentTimeMillis()
+//        cal.add(Calendar.MINUTE, elapsedMinutes)
+        return cal.timeInMillis - now
     }
 
     companion object {

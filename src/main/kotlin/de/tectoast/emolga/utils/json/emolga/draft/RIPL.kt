@@ -43,7 +43,7 @@ class RIPL : League() {
         val isMega = data.pokemonofficial.isMega
         val coord = data.memIndex.CoordXMod("Kader $conf",
             5,
-            2,
+            3,
             3,
             20,
             if (isMega) 14 else if (data.freePick) data.picks.count { it.free } + 14 else data.changedOnTeamsiteIndex + 7)

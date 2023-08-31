@@ -42,7 +42,7 @@ class NDS : League() {
     override val pickBuffer = -1
 
     @Transient
-    override val timer = DraftTimer(TimerInfo(10, 22))
+    override val timer = DraftTimer(TimerInfo(10, 22, delayInMins = 3 * 60))
     override val additionalSet = null
 
     override fun beforePick(): String? {

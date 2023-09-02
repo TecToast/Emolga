@@ -42,8 +42,14 @@ class Wooloo : League() {
             Coord("Data", gameday + 3 + gamedays, plindex.y(3, 3))
         }
         rowNumToIndex = { it.minus(4).div(3) }
-        sorterData =
+        sorter(
+            "WoolooCupS5L1",
             SorterData("Tabelle!C3:J10".toDocRange(), directCompare = true, newMethod = true, cols = listOf(7, -1, 6))
+        )
+        sorter(
+            "WoolooCupS5L2",
+            SorterData("Tabelle!C3:J10".toDocRange(), directCompare = false, newMethod = true, cols = listOf(7, 6))
+        )
         resultCreator = {
             b.addSingle(index.coordXMod("Spieltag ${gdi + 1}", 2, 'I' - 'B', 2, 16, 2), defaultGameplanString)
         }

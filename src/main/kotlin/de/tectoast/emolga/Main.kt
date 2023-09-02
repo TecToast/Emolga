@@ -3,6 +3,7 @@ package de.tectoast.emolga
 import de.tectoast.emolga.bot.EmolgaMain.start
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.database.Database
+import de.tectoast.emolga.utils.json.initMongo
 import mu.KotlinLogging
 import javax.crypto.BadPaddingException
 
@@ -26,6 +27,7 @@ fun main() {
     }
     logger.info("Starting DB...")
     Database.init(Command.tokens.database, "localhost")
+    initMongo()
     logger.info("Starting EmolgaMain...")
     start()
     //logger.info("Starting KTor...")

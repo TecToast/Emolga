@@ -133,7 +133,7 @@ class ASLCoach(val level: Int = -1, private val sheetid: Int = -1) : League() {
             .queue()
     }
 
-    override fun getCurrentMention() = "<@$current> (<@&${db.asls11.roleIdByMember(current)}>)"
+    override fun getCurrentMention() = "<@$current> ||<@&${db.asls11.roleIdByMember(current)}||)"
 
     override fun isCurrent(user: Long): Boolean {
         return user in db.asls11.teammembersByMember(current)

@@ -1,16 +1,33 @@
 package de.tectoast.emolga.modals
 
+import de.tectoast.emolga.database.exposed.SDInsertStatus
 import de.tectoast.emolga.database.exposed.SDNamesDB
+import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 
 class AddSDNameModal : ModalListener("addsdname") {
     override suspend fun process(e: ModalInteractionEvent, name: String?) {
         val sdname = e.getValue("name")!!.asString
-        val id = e.getValue("id")?.asString?.toLongOrNull() ?: e.user.idLong
-        if (SDNamesDB.addIfAbsent(sdname, id)) {
-            e.reply("Dein Showdown-Name `$sdname` wurde hinzugefügt!").setEphemeral(true).queue()
-        } else {
-            e.reply("Der Showdown-Name `$sdname` ist bereits im System!").setEphemeral(true).queue()
+        val parsed = e.getValue("id")?.asString?.toLongOrNull()
+        val idSpecified = parsed != null
+        val specifiedName = if (idSpecified) e.jda.retrieveUserById(parsed!!).await().name else e.user.name
+        val id = parsed ?: e.user.idLong
+        when (SDNamesDB.addIfAbsent(sdname, id)) {
+            SDInsertStatus.SUCCESS -> {
+                if (idSpecified) {
+                    e.reply("Der Name `$name` wurde für $specifiedName registriert!")
+                } else {
+                    e.reply("Der Name `$name` wurde für dich registriert!")
+                }
+            }
+
+            SDInsertStatus.ALREADY_OWNED_BY_YOU -> {
+                e.reply("Der Name `$name` gehört bereits ${if (idSpecified) specifiedName else "dir"}!")
+            }
+
+            SDInsertStatus.ALREADY_OWNED_BY_OTHER -> {
+                e.reply("Der Name ist bereits von jemand anderem belegt! Es wird geprüft, ob dieser Name freigegeben werden kann.")
+            }
         }
     }
 }

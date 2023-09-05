@@ -33,6 +33,7 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
     companion object {
         private val logger = KotlinLogging.logger {}
 
+
         suspend fun exec(
             e: GuildCommandEvent, isRandom: Boolean
         ) {
@@ -41,58 +42,67 @@ class PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) 
                 "Es läuft zurzeit kein Draft in diesem Channel!",
                 ephemeral = true
             )
-            if (d.isSwitchDraft && !d.allowPickDuringSwitch) {
-                e.reply("Du kannst während des Switch-Drafts nicht picken!")
-                return
-            }
-            d.beforePick()?.let { e.reply(it); return }
-            val mem = d.current
-            val tierlist = d.tierlist
-            val picks = d.picks(mem)
-            val (tlName, official, _) = args.getDraftName("pokemon")
-            println("tlName: $tlName, official: $official")
-            val (specifiedTier, officialTier) =
-                (d.getTierOf(tlName, args.getNullable("tier"))
-                    ?: return e.reply("Dieses Pokemon ist nicht in der Tierliste!"))
+            d.lockForPick(e.author.idLong) l@{
+                if (d.isSwitchDraft && !d.allowPickDuringSwitch) {
+                    e.reply("Du kannst während des Switch-Drafts nicht picken!")
+                    return@l
+                }
+                d.beforePick()?.let { e.reply(it); return@l }
+                val mem = d.current
+                val tierlist = d.tierlist
+                val picks = d.picks(mem)
+                val (tlName, official, _) = args.getDraftName("pokemon")
+                println("tlName: $tlName, official: $official")
+                val (specifiedTier, officialTier) =
+                    (d.getTierOf(tlName, args.getNullable("tier"))
+                        ?: return@l e.reply("Dieses Pokemon ist nicht in der Tierliste!"))
 
-            d.checkUpdraft(specifiedTier, officialTier)?.let { return e.reply(it) }
-            if (d.isPicked(official, officialTier)) return e.reply("Dieses Pokemon wurde bereits gepickt!")
-            val tlMode = tierlist.mode
-            val free = args.getOrDefault("free", false)
-                .takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } ?: false
-            if (!free && d.handleTiers(e, specifiedTier, officialTier)) return
-            if (d.handlePoints(e, tlNameNew = tlName, officialNew = official, free = free, tier = officialTier)) return
-            val saveTier = if (free) officialTier else specifiedTier
-            d.savePick(picks, official, saveTier, free)
-            //m.delete().queue();
-            if (!isRandom) d.replyPick(e, tlName, free, specifiedTier.takeIf { saveTier != officialTier })
-            if (isRandom) {
-                d.replyRandomPick(e, tlName, specifiedTier)
-            } else if (official == "Emolga") {
-                e.textChannel.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
-                    .queue()
+                d.checkUpdraft(specifiedTier, officialTier)?.let { return@l e.reply(it) }
+                if (d.isPicked(official, officialTier)) return@l e.reply("Dieses Pokemon wurde bereits gepickt!")
+                val tlMode = tierlist.mode
+                val free = args.getOrDefault("free", false)
+                    .takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } ?: false
+                if (!free && d.handleTiers(e, specifiedTier, officialTier)) return@l
+                if (d.handlePoints(
+                        e,
+                        tlNameNew = tlName,
+                        officialNew = official,
+                        free = free,
+                        tier = officialTier
+                    )
+                ) return@l
+                val saveTier = if (free) officialTier else specifiedTier
+                d.savePick(picks, official, saveTier, free)
+                //m.delete().queue();
+                if (!isRandom) d.replyPick(e, tlName, free, specifiedTier.takeIf { saveTier != officialTier })
+                if (isRandom) {
+                    d.replyRandomPick(e, tlName, specifiedTier)
+                } else if (official == "Emolga") {
+                    e.textChannel.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
+                        .queue()
+                }
+                val round = d.getPickRoundOfficial()
+                with(d) {
+                    builder().let { b ->
+                        b.pickDoc(
+                            PickData(
+                                league = d,
+                                pokemon = tlName,
+                                pokemonofficial = official,
+                                tier = saveTier,
+                                mem = mem,
+                                indexInRound = indexInRound(round),
+                                changedIndex = picks.indexOfFirst { it.name == official },
+                                picks = picks,
+                                round = round,
+                                memIndex = table.indexOf(mem),
+                                freePick = free
+                            )
+                        )?.let { b }
+                    }?.execute()
+                }
+                d.afterPickOfficial()
             }
-            val round = d.getPickRoundOfficial()
-            with(d) {
-                builder().let { b ->
-                    b.pickDoc(
-                        PickData(
-                            league = d,
-                            pokemon = tlName,
-                            pokemonofficial = official,
-                            tier = saveTier,
-                            mem = mem,
-                            indexInRound = indexInRound(round),
-                            changedIndex = picks.indexOfFirst { it.name == official },
-                            picks = picks,
-                            round = round,
-                            memIndex = table.indexOf(mem),
-                            freePick = free
-                        )
-                    )?.let { b }
-                }?.execute()
-            }
-            d.afterPickOfficial()
         }
     }
 }

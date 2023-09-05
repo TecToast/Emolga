@@ -15,6 +15,8 @@ import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -66,7 +68,7 @@ sealed class League {
 
     val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
 
-    private val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
+    val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
 
     internal val names: MutableMap<Long, String> = mutableMapOf()
 
@@ -83,6 +85,18 @@ sealed class League {
 
     @Transient
     open val pickBuffer = 0
+
+    @Transient
+    private val mutex = Mutex()
+
+    suspend fun lockForPick(user: Long, block: suspend () -> Unit) {
+        mutex.withLock {
+            // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
+            if (pseudoEnd)
+                current = user
+            block()
+        }
+    }
 
 
     val cooldownJob: Job? get() = allTimers[leaguename]
@@ -256,8 +270,8 @@ sealed class League {
         if (!fromFile) {
             order.clear()
             order.putAll(originalorder.mapValues { it.value.toMutableList() })
-            current = order[1]!!.nextCurrent()
             round = 1
+            setNextUser()
             moved.clear()
             pseudoEnd = false
             reset()
@@ -272,6 +286,10 @@ sealed class League {
         }
         db.drafts.updateOneById(id!!, set(League::isRunning setTo true))
         logger.info("Started!")
+    }
+
+    fun setNextUser() {
+        current = order[round]!!.nextCurrent()
     }
 
     suspend fun save(from: String = "") = withContext(NonCancellable) {
@@ -290,7 +308,9 @@ sealed class League {
         allTimers[leaguename]?.cancel("Restarting timer")
         allTimers[leaguename] = timerScope.launch {
             delay(delay)
-            executeTimerOnRefreshedVersion(this@League.leaguename)
+            withContext(NonCancellable) {
+                executeTimerOnRefreshedVersion(this@League.leaguename)
+            }
         }
     }
 
@@ -380,25 +400,15 @@ sealed class League {
         moved.getOrPut(current) { mutableListOf() }.let { if (round !in it) it += round }
     }
 
-    fun hasMovedTurns() = movedTurns().isNotEmpty()
-    fun movedTurns() = moved[current] ?: mutableListOf()
+    fun hasMovedTurns(user: Long = current) = movedTurns(user).isNotEmpty()
+    fun movedTurns(user: Long = current) = moved[user] ?: mutableListOf()
 
     private suspend fun endOfTurn(): Boolean {
         logger.info("End of turn")
         if (order[round]!!.isEmpty()) {
             logger.info("No more players")
             if (round == totalRounds) {
-                tc.sendMessage("Der Draft ist vorbei!").queue()
-                //ndsdoc(tierlist, pokemon, d, mem, tier, round);
-                //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
-                logger.info("Draft ended!")
-                isRunning = false
-                logger.info("Draft isRunning {}", isRunning)
-                logger.info("Saving......... $leaguename")
-                save("END SAVE")
-                logger.info("Saved!")
-                db.drafts.updateOneById(id!!, set(League::isRunning setTo false))
-                logger.info("SAVED SEPARATELY")
+                finishDraft()
                 return true
             }
             round++
@@ -410,6 +420,20 @@ sealed class League {
             sendRound()
         }
         return false
+    }
+
+    suspend fun finishDraft() {
+        tc.sendMessage("Der Draft ist vorbei!").queue()
+        //ndsdoc(tierlist, pokemon, d, mem, tier, round);
+        //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
+        logger.info("Draft ended!")
+        isRunning = false
+        logger.info("Draft isRunning {}", isRunning)
+        logger.info("Saving......... $leaguename")
+        save("END SAVE")
+        logger.info("Saved!")
+        db.drafts.updateOneById(id!!, set(League::isRunning setTo false))
+        logger.info("SAVED SEPARATELY")
     }
 
     internal open fun getCurrentMention(): String {
@@ -427,12 +451,10 @@ sealed class League {
     suspend fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER, skippedBy: Long? = null) {
         if (!isRunning) return
         if (!isSwitchDraft) triggerMove()
-        if (draftWouldEnd && timerSkipMode == TimerSkipMode.AFTER_DRAFT) {
-            populateAfterDraft()
-        }
+        timerSkipMode?.onTimerTriggered(this)
         if (endOfTurn()) return
         val oldcurrent = current
-        current = order[round]!!.nextCurrent()
+        setNextUser()
         tc.sendMessage(buildString {
             if (tr == TimerReason.REALTIMER) append(
                 "**${getCurrentName(oldcurrent)}** war zu langsam und deshalb ist jetzt ${
@@ -448,10 +470,14 @@ sealed class League {
         save("TIMER SAFE")
     }
 
+    fun cancelCurrentTimer(reason: String = "Next player") {
+        cooldownJob?.cancel(reason)
+    }
+
     suspend fun nextPlayer() {
-        cooldownJob?.cancel("Next player")
+        cancelCurrentTimer()
         if (endOfTurn()) return
-        current = order[round]!!.nextCurrent()
+        setNextUser()
         announcePlayer()
         restartTimer()
         save("NEXT PLAYER SAFE")
@@ -496,16 +522,6 @@ sealed class League {
 
     suspend fun getPickRoundOfficial() =
         timerSkipMode?.getPickRound(this)?.also { save("GET PICK ROUND") } ?: getPickRound()
-
-    fun populateAfterDraft() {
-        val order = order[totalRounds]!!
-        for (i in 1..totalRounds) {
-            moved.forEach { (user, turns) -> if (i in turns) order.add(user.indexedBy(table)) }
-        }
-        if (order.size > 0) {
-            pseudoEnd = true
-        }
-    }
 
     open fun provideReplayChannel(jda: JDA): TextChannel? = null
     open fun provideResultChannel(jda: JDA): TextChannel? = null
@@ -597,7 +613,8 @@ sealed class League {
         }
 
         suspend fun byCommand(e: GuildCommandEvent) = onlyChannel(e.textChannel.idLong)?.apply {
-            if (!isCurrentCheck(e.member.idLong)) {
+            val uid = e.member.idLong
+            if (timerSkipMode?.bypassCurrentPlayerCheck(this, uid) != true && !isCurrentCheck(uid)) {
                 e.reply("Du bist nicht dran!", ephemeral = true)
                 return null
             }
@@ -696,7 +713,7 @@ enum class TimerSkipMode {
             }
         }
     },
-    AFTER_DRAFT {
+    AFTER_DRAFT_ORDERED {
         override suspend fun afterPick(l: League) = with(l) {
             if (draftWouldEnd) populateAfterDraft()
             nextPlayer()
@@ -708,6 +725,43 @@ enum class TimerSkipMode {
             } else round
         }
 
+        override suspend fun onTimerTriggered(l: League) = with(l) {
+            if (draftWouldEnd) {
+                populateAfterDraft()
+            }
+        }
+
+        private fun League.populateAfterDraft() {
+            val order = order[totalRounds]!!
+            for (i in 1..totalRounds) {
+                moved.forEach { (user, turns) -> if (i in turns) order.add(user.indexedBy(table)) }
+            }
+            if (order.size > 0) {
+                pseudoEnd = true
+            }
+        }
+    },
+    AFTER_DRAFT_UNORDERED {
+        override suspend fun afterPick(l: League) = with(l) {
+            if (draftWouldEnd && moved.values.any { it.isNotEmpty() }) {
+                if (!pseudoEnd) {
+                    tc.sendMessage("Der Draft wäre jetzt vorbei, aber es gibt noch Spieler, die keinen vollständigen Kader haben! Diese können nun in beliebiger Reihenfolge ihre Picks nachholen.")
+                        .queue()
+                    cancelCurrentTimer()
+                    pseudoEnd = true
+                }
+            } else nextPlayer()
+        }
+
+        override suspend fun getPickRound(l: League) = with(l) {
+            if (pseudoEnd) {
+                movedTurns().removeFirst()
+            } else round
+        }
+
+        override suspend fun bypassCurrentPlayerCheck(l: League, user: Long): Boolean {
+            return l.pseudoEnd && l.hasMovedTurns(user)
+        }
     },
     NEXT_PICK {
         override suspend fun afterPick(l: League) {
@@ -725,6 +779,9 @@ enum class TimerSkipMode {
 
     abstract suspend fun afterPick(l: League)
     abstract suspend fun getPickRound(l: League): Int
+
+    open suspend fun onTimerTriggered(l: League) {}
+    open suspend fun bypassCurrentPlayerCheck(l: League, user: Long) = false
 }
 
 class PointsManager(val league: League) {

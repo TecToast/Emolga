@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils
 import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.Command.Companion.getCellsAsRowData
+import de.tectoast.emolga.utils.records.Coord
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import java.io.IOException
@@ -14,7 +15,7 @@ class RequestBuilder
  * Creates a RequestBuilder
  *
  * @param sid The ID of the sheet where the values should be written
- */(private val sid: String) {
+ */(val sid: String) {
     private val requests: MutableList<MyRequest> = ArrayList()
     private var executed = false
     private var runnable: Runnable? = null
@@ -56,8 +57,12 @@ class RequestBuilder
      * @param raw   optional argument, which makes the request raw (if true) or user entered (if false or null)
      * @return this RequestBuilder
      */
-    fun addSingle(range: String?, body: Any, vararg raw: Boolean): RequestBuilder {
-        return addRow(range, listOf(body), *raw)
+    fun addSingle(range: String?, body: Any, raw: Boolean = false): RequestBuilder {
+        return addRow(range, listOf(body), raw)
+    }
+
+    fun addSingle(range: Coord, body: Any, raw: Boolean = false): RequestBuilder {
+        return addSingle(range.toString(), body, raw)
     }
 
     /**
@@ -68,8 +73,12 @@ class RequestBuilder
      * @param raw   optional argument, which makes the request raw (if true) or user entered (if false or null)
      * @return this RequestBuilder
      */
-    fun addRow(range: String?, body: List<Any>, vararg raw: Boolean): RequestBuilder {
-        return addAll(range, listOf(body), *raw)
+    fun addRow(range: String?, body: List<Any>, raw: Boolean = false): RequestBuilder {
+        return addAll(range, listOf(body), raw)
+    }
+
+    fun addRow(range: Coord, body: List<Any>, raw: Boolean = false): RequestBuilder {
+        return addRow(range.toString(), body, raw)
     }
 
     /**
@@ -80,18 +89,26 @@ class RequestBuilder
      * @param raw   optional argument, which makes the request raw (if true) or user entered (if false or null)
      * @return this RequestBuilder
      */
-    fun addAll(range: String?, body: List<List<Any>?>?, vararg raw: Boolean): RequestBuilder {
+    fun addAll(range: String?, body: List<List<Any>?>?, raw: Boolean = false): RequestBuilder {
         requests.add(
             MyRequest().setRange(range).setSend(body)
-                .setValueInputOption(if (raw.isEmpty() || !raw[0]) ValueInputOption.USER_ENTERED else ValueInputOption.RAW)
+                .setValueInputOption(if (raw) ValueInputOption.RAW else ValueInputOption.USER_ENTERED)
         )
         return this
     }
 
-    fun addColumn(range: String?, body: List<Any>, vararg raw: Boolean): RequestBuilder {
+    fun addAll(range: Coord, body: List<List<Any>?>?, raw: Boolean = false): RequestBuilder {
+        return addAll(range.toString(), body, raw)
+    }
+
+    fun addColumn(range: String?, body: List<Any>, raw: Boolean = false): RequestBuilder {
         return addAll(
-            range, body.map { listOf(it) }, *raw
+            range, body.map { listOf(it) }, raw
         )
+    }
+
+    fun addColumn(range: Coord, body: List<Any>, raw: Boolean = false): RequestBuilder {
+        return addColumn(range.toString(), body, raw)
     }
 
     /**
@@ -292,10 +309,15 @@ class RequestBuilder
     private val batch: List<Request?>
         get() = requests.filter { it.valueInputOption == ValueInputOption.BATCH }.map { it.buildBatch() }
 
+    fun clear() {
+        requests.clear()
+        executed = false
+    }
+
     /**
      * Executes the request to the specified google sheet
      */
-    fun execute() {
+    fun execute(realExecute: Boolean = true) {
         check(!executed) {
             """
      Already executed RequestBuilder with requests:
@@ -305,6 +327,10 @@ class RequestBuilder
         }
         executed = true
         val userentered = userEntered
+        if (!realExecute) {
+            printUserEntered(userentered)
+            return
+        }
         val raw = raw
         val batch = batch
         val service = Google.sheetsService

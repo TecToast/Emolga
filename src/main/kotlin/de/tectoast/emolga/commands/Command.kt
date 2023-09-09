@@ -1239,7 +1239,7 @@ abstract class Command(
         val allNameConventions by lazy(NameConventionsDB::getAll)
 
         lateinit var tokens: Tokens
-        lateinit var catchrates: Map<String, Int>
+        val catchrates: Map<String, Int> by lazy { load("./catchrates.json") }
         val replayCount = AtomicInteger()
         protected var lastClipUsed: Long = -1
 
@@ -2214,7 +2214,6 @@ abstract class Command(
                 //emolgaJSON = load("./emolgadata.json")
                 //datajson = loadSD("pokedex.ts", 59);
                 //movejson = loadSD("learnsets.ts", 62);
-                catchrates = load("./catchrates.json")
                 with(tokens.google) {
                     Google.setCredentials(refreshtoken, clientid, clientsecret)
                     Google.generateAccessToken()
@@ -3068,6 +3067,8 @@ val Long.usersnowflake: UserSnowflake get() = UserSnowflake.fromId(this)
 
 val JsonElement?.string: String get() = this!!.jsonPrimitive.content
 val JsonElement?.int: Int get() = this!!.jsonPrimitive.intOrNull!!
+
+val <T> T.l get() = listOf(this)
 
 inline val User.isFlo: Boolean get() = this.idLong == FLOID
 inline val User.isNotFlo: Boolean get() = this.idLong != FLOID

@@ -230,7 +230,7 @@ object PrivateCommands {
 
 
     suspend fun matchUps(e: GenericCommandEvent) {
-        NDS.doMatchUps(e.getArg(0).toInt())
+        NDS.doMatchUps(e.getArg(1).toInt())
     }
 
 

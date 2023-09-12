@@ -289,15 +289,17 @@ _written by Maxifcn_""".trimIndent()
         }
 
         fun setupRepeatTasks() {
+            logger.info("Setting up matchups repeat tasks")
             RepeatTask(
-                defaultTimeFormat.parse("20.08.2023 20:00").toInstant(),
+                defaultTimeFormat.parse("08.10.2023 20:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
                 { runBlocking { doMatchUps(it, withAnnounce = true) } },
                 true
             )
+            logger.info("Setting up nominations repeat tasks")
             RepeatTask(
-                defaultTimeFormat.parse("23.08.2023 00:00").toInstant(),
+                defaultTimeFormat.parse("12.10.2023 00:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
                 { runBlocking { doNDSNominate() } },

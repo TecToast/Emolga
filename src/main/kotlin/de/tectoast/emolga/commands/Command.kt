@@ -2126,6 +2126,7 @@ abstract class Command(
             db.drafts.find().toFlow().collect { l ->
                 l.takeIf { it.docEntry != null }?.tipgame?.let { tip ->
                     val duration = Duration.ofSeconds(parseShortTime(tip.interval).toLong())
+                    logger.info("Draft ${l.leaguename} has tipgame with interval ${tip.interval} and duration $duration")
                     RepeatTask(
                         tip.lastSending.toInstant(),
                         tip.amount,

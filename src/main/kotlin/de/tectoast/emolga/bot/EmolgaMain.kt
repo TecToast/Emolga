@@ -2,6 +2,7 @@ package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.embedColor
+import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.Giveaway
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import dev.minn.jda.ktx.interactions.components.primary
@@ -63,7 +64,10 @@ object EmolgaMain {
         Command.awaitNextDay()
         if (NOTEMPVERSION)
             flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
-        Command.updatePresence()/*val manager = ReactionManager(emolgajda)
+        Database.dbScope.launch {
+            Command.updatePresence()
+        }
+        /*val manager = ReactionManager(emolgajda)
         manager // BS
             .registerReaction("827608009571958806", "884567614918111233", "884564674744561684", "884565654227812364")
             .registerReaction("827608009571958806", "884567614918111233", "884564533295869962", "884565697479458826")

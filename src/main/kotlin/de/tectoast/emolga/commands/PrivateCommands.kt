@@ -261,7 +261,7 @@ object PrivateCommands {
     }
 
 
-    fun ndsgameplanfix(e: GenericCommandEvent) {
+    suspend fun ndsgameplanfix(e: GenericCommandEvent) {
         val tc = e.jda.getTextChannelById(837425772288540682L)
         for (m in tc!!.iterableHistory) {
             val msg = m.contentDisplay
@@ -288,7 +288,7 @@ object PrivateCommands {
     }
 
 
-    fun wooloogameplanfix(e: GenericCommandEvent) {
+    suspend fun wooloogameplanfix(e: GenericCommandEvent) {
         val tc = e.jda.getTextChannelById(929686889332604969L)
         for (m in tc!!.iterableHistory) {
             val msg = m.contentDisplay

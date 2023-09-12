@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.ifTrue
 import de.tectoast.emolga.utils.json.emolga.ASLS11
 import de.tectoast.emolga.utils.json.emolga.Soullink
+import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import dev.minn.jda.ktx.interactions.components.SelectOption
@@ -51,9 +52,7 @@ class MongoEmolga(dbUrl: String) {
     val cooldowns by lazy { db.getCollection<Cooldown>("cooldowns") }
     val configuration by lazy { db.getCollection<Configuration>("configuration") }
     val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
-
     val shinycount by lazy { db.getCollection<Shinycount>() }
-
     val asls11: ASLS11 get() = error("ASLS11 is not available atm!")
     val asls11nametoid: List<Long> get() = error("ASLS11 is not available atm!")
     val defaultNameConventions: Map<String, String> by lazy {
@@ -71,9 +70,6 @@ class MongoEmolga(dbUrl: String) {
 
 @Serializable
 data class Config(val teamgraphicShinyOdds: Int, val guildsToUpdate: List<Long> = listOf())
-
-@Serializable
-data class Statistics(var drampaCounter: Int)
 
 @Serializable
 data class Configuration(

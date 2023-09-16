@@ -27,7 +27,6 @@ fun main() {
     }
     logger.info("Starting DB...")
     Database.init(Command.tokens.database, "localhost")
-    initMongo()
     logger.info("Starting EmolgaMain...")
     start()
     //logger.info("Starting KTor...")

@@ -2153,6 +2153,7 @@ abstract class Command(
 
         fun init(key: String) {
             loadJSONFiles(key)
+            initMongo()
             ModManager("default", "./ShowdownData/")
             Tierlist.setup()
             defaultScope.launch {

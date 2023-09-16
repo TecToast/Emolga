@@ -3,7 +3,9 @@ package de.tectoast.emolga.utils.records
 import de.tectoast.emolga.commands.xc
 import de.tectoast.emolga.league.LeagueCreator
 import de.tectoast.emolga.utils.RequestBuilder
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class Coord(val sheet: String, val x: Int, val y: Int) : TableCoord {
 
     constructor(sheet: String, x: String, y: Int) : this(

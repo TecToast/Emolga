@@ -989,7 +989,7 @@ class Addons(val leagueCreator: LeagueCreator) {
 
 }
 
-
+private fun fill(x: Int, y: Int, filler: String) = List(y) { List(x) { filler } }
 fun List<Cols>.columnFrom(col: Cols) = getAsXCoord(indexOf(col) + 2)
 fun ((Int) -> Coord).asStringIndexer(): (Int) -> String = { "=" + this(it).toString().replace("=", "") }
 

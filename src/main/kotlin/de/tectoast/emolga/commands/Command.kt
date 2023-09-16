@@ -1692,14 +1692,6 @@ abstract class Command(
             return str.toString()
         }
 
-        private fun <T> getXTimes(`object`: T, times: Int): List<T> {
-            val list = ArrayList<T>()
-            for (i in 0 until times) {
-                list.add(`object`)
-            }
-            return list
-        }
-
         fun getCellsAsRowData(`object`: CellData, x: Int, y: Int): List<RowData> {
             val list: MutableList<RowData> = mutableListOf()
             for (i in 0 until y) {

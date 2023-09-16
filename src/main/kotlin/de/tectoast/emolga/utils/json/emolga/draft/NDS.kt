@@ -36,6 +36,7 @@ class NDS : League() {
     val sheetids: Map<String, Int> = mapOf()
     val teamnames: Map<Long, String> = mapOf()
     val teamtable: List<String> = emptyList()
+    val rr = false
 
     override fun isFinishedForbidden() = false
     override val teamsize = 15
@@ -166,18 +167,17 @@ class NDS : League() {
         RequestBuilder(sid).addColumn("TipGameData!${(gameday + rrSummand + 3).xc()}2", (0..11).map { map[it] ?: 0 })
             .execute()
     }
+    val rrSummand: Int
+        get() = if (rr) 5 else 0
+    val gameplanName: String
+        get() = if (rr) "Spielplan RR" else "Spielplan HR"
+    val gameplanSheet: Int
+        get() = if (rr) 1634614187 else 453772599
+    val tableName: String
+        get() = if (rr) "Tabelle RR" else "Tabelle HR"
 
     companion object {
         val logger: Logger by SLF4J
-        private const val rr = false
-        val rrSummand: Int
-            get() = if (rr) 5 else 0
-        val gameplanName: String
-            get() = if (rr) "Spielplan RR" else "Spielplan HR"
-        val gameplanSheet: Int
-            get() = if (rr) 1634614187 else 453772599
-        val tableName: String
-            get() = if (rr) "Tabelle RR" else "Tabelle HR"
 
         private val deathFormat = CellFormat().apply {
             textFormat = TextFormat().apply {
@@ -227,7 +227,7 @@ class NDS : League() {
                 }
             }
             b.addColumn("TipGameData!N16", tipgameStats)
-            b.addSingle("TipGameData!N29", gameday + rrSummand)
+            b.addSingle("TipGameData!N29", gameday + nds.rrSummand)
             if (withAnnounce) {
                 b.withRunnable {
                     EmolgaMain.emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
@@ -239,7 +239,7 @@ class NDS : League() {
         }
 
 
-        suspend fun doNDSNominate(prevDay: Boolean = false, vararg onlySpecifiedUsers: Long) {
+        suspend fun doNDSNominate(prevDay: Boolean = false, withSend: Boolean = true, vararg onlySpecifiedUsers: Long) {
             val nds = db.nds()
             val nom = nds.nominations
             val table = nds.table
@@ -275,7 +275,7 @@ class NDS : League() {
                 b.addColumn("Data!F${index.y(17, 2)}", mons)
             }
             b.withRunnable {
-                if (onlySpecifiedUsers.isEmpty()) {
+                if (onlySpecifiedUsers.isEmpty() && withSend) {
                     EmolgaMain.emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
                         """
                 Guten Abend ihr Teilnehmer. Der nächste Spieltag öffnet seine Pforten...Was? Du hast vergessen zu nominieren? Dann hast du wieder mal Pech gehabt. Ab jetzt könnt ihr euch die Nominierungen im Dokument anschauen und verzweifelt feststellen, dass ihr völlig lost gewesen seid bei eurer Entscheidung hehe. Wie dem auch sei, viel Spaß beim Teambuilding. Und passt auf Maxis Mega-Gewaldro auf! Warte, er hat keins mehr? Meine ganzen Konstanten im Leben wurden durchkreuzt...egal, wir hören uns nächste Woche wieder!

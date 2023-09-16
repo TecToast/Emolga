@@ -225,7 +225,11 @@ object PrivateCommands {
 
     suspend fun ndsNominate(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
-        NDS.doNDSNominate(args[0].toBooleanStrict(), *args.drop(1).map { it.toLong() }.toLongArray())
+        NDS.doNDSNominate(
+            prevDay = args[0].toBooleanStrict(),
+            withSend = args[1].toBooleanStrict(),
+            onlySpecifiedUsers = args.drop(2).map { it.toLong() }.toLongArray()
+        )
     }
 
 

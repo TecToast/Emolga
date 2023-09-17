@@ -3,9 +3,11 @@ package de.tectoast.emolga.utils.records
 import de.tectoast.emolga.commands.xc
 import de.tectoast.emolga.league.LeagueCreator
 import de.tectoast.emolga.utils.RequestBuilder
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+@SerialName("Coord")
 data class Coord(val sheet: String, val x: Int, val y: Int) : TableCoord {
 
     constructor(sheet: String, x: String, y: Int) : this(
@@ -60,14 +62,15 @@ infix fun String.x(x: String) = Coord(this, x, 0)
 infix fun Coord.y(y: Int) = Coord(sheet, x, y)
 
 infix fun String.xy(xy: Pair<Int, Int>) = Coord(this, xy.first, xy.second)
-
-interface TableCoord {
+@Serializable
+sealed interface TableCoord {
     fun provideCoord(index: Int, lc: LeagueCreator): Coord
 }
-
-class IndexAwareTableCoord(vararg mappings: Pair<List<Int>, Coord>) :
+@Serializable
+@SerialName("IndexAwareTableCoord")
+data class IndexAwareTableCoord(val mapping: Map<List<Int>, Coord>) :
     TableCoord {
-    private val mapping = mappings.toMap()
+        constructor(vararg mappings: Pair<List<Int>, Coord>): this(mappings.toMap())
     override fun provideCoord(index: Int, lc: LeagueCreator): Coord {
         val (indices, coord) = mapping.entries.toList().first { index in it.key }
         return coord.plusY(indices.indexOf(index) * lc.tableStep)

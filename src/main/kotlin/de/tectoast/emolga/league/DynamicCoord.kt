@@ -7,8 +7,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class DynamicCoord {
-    abstract operator fun invoke(i: Int): Coord
+sealed class DynamicCoord : (Int) -> Coord {
+
 
     @Serializable
     @SerialName("HardCoded")

@@ -2,7 +2,6 @@ package de.tectoast.emolga.utils
 
 import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.Command.Companion.getCellsAsRowData
 import de.tectoast.emolga.utils.records.Coord
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
@@ -121,6 +120,8 @@ class RequestBuilder
         requests.map { MyRequest().setRequest(it) }.forEach { this.requests.add(it) }
         return this
     }
+
+    private fun getCellsAsRowData(cellData: CellData, x: Int, y: Int) = List(y) { RowData().setValues(List(x) { cellData }) }
 
     private fun addBGColorChange(sheetId: Int, range: String, c: Color?): RequestBuilder {
         val split = range.split(":")
@@ -250,6 +251,24 @@ class RequestBuilder
                     .setDestination(buildGridCoordinate(target, sheetId)).setPasteType(pasteType)
             )
         )
+    }
+
+    class ConditionalFormat(val value: String, val format: CellFormat)
+
+    fun addConditionalFormatCustomFormula(format: ConditionalFormat, range: String, id: Int): RequestBuilder {
+        addBatch(
+            Request().setAddConditionalFormatRule(
+                AddConditionalFormatRuleRequest().setIndex(0).setRule(
+                    ConditionalFormatRule().setRanges(listOf(buildGridRange(range, id))).setBooleanRule(
+                        BooleanRule().setCondition(
+                            BooleanCondition().setType("CUSTOM_FORMULA")
+                                .setValues(listOf(ConditionValue().setUserEnteredValue(format.value)))
+                        ).setFormat(format.format)
+                    )
+                )
+            )
+        )
+        return this
     }
 
     fun addStrikethroughChange(sheetId: Int, range: String, strikethrough: Boolean): RequestBuilder {

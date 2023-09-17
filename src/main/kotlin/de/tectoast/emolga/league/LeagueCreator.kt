@@ -12,6 +12,7 @@ import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.SignUpData
+import de.tectoast.emolga.utils.json.TypeIcon
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.AllowedData
 import de.tectoast.emolga.utils.json.emolga.draft.Default
@@ -21,7 +22,11 @@ import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.TableCoord
 import dev.minn.jda.ktx.coroutines.await
-import kotlinx.serialization.encodeToString
+import kotlinx.serialization.*
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 import net.dv8tion.jda.api.JDA
 import org.bson.BsonObjectId
@@ -29,46 +34,40 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.litote.kmongo.contains
+import org.litote.kmongo.eq
 import java.security.SecureRandom
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
-import kotlin.properties.Delegates
 import kotlin.reflect.KClass
-import de.tectoast.emolga.league.DraftOrderCreator.Companion.fromLeagueCreator as fromLeagueCreatorDraft
-import de.tectoast.emolga.league.GamePlanCreator.Companion.fromLeagueCreator as fromLeagueCreatorGamePlan
-import de.tectoast.testingarea.utils.Templater.ShowdownScriptTemplate.Format as ScriptFormat
+import de.tectoast.emolga.league.Templater.ShowdownScriptTemplate.Format as ScriptFormat
 
-
-class LeagueCreator(val name: String) {
+@Serializable
+class LeagueCreator(
+    val name: String,
+    val monCount: Int,
+    val playerCount: Int,
+    val gamedays: Int,
+    val tablecols: List<Cols>,
+    val playerNameIndexer: DynamicCoord,
+    val sids: List<String>,
+    val tableBase: TableCoord,
+    val guild: Long
+) {
 
     val filename by lazy { "$name.json" }
     private var copyonly = false
 
-    var monCount: Int by Delegates.notNull()
-    var monsSupplier: (suspend (Int) -> List<String>)? = null
-    var playerCount: Int by Delegates.notNull()
-    lateinit var playerNameIndexer: ((Int) -> Coord)
-    var playerTeamIndexer: ((Int) -> Coord)? = null
-    var logoIndexer: ((Int) -> Coord)? = null
-    var sdnameIndexer: ((Int) -> Coord)? = null
-    lateinit var tablecols: List<Cols>
-    var gamedays: Int by Delegates.notNull()
+    var playerTeamIndexer: DynamicCoord? = null
+    var logoIndexer: DynamicCoord? = null
+    var sdnameIndexer: DynamicCoord? = null
     var teamsitecols: List<Cols> = listOf()
-    var teamsiteDataCoord: ((Int) -> Coord)? = null
+    var teamsiteDataCoord: DynamicCoord? = null
 
     //var teamsiteDataSpecialCoords: Map<Int, Cols> = mutableMapOf()
-    var teamsiteMonCoord: ((Int) -> Coord)? = null
-    var additionalStuff: (suspend RequestBuilder.() -> Unit)? = null
+    var teamsiteMonCoord: DynamicCoord? = null
 
-    var sid: String
-        get() = sids.first()
-        set(value) {
-            sids.add(value)
-        }
-    val sids = mutableListOf<String>()
     var dataSheet: String = "Data"
-    lateinit var tableBase: TableCoord
     internal var tableStep = 1
     var slots = 0
     var slotsOnTeamsite = 0
@@ -79,17 +78,20 @@ class LeagueCreator(val name: String) {
 
     val dataMonCount get() = monCount + slots
     val gap: Int get() = dataMonCount + 3
+
+    val vlookUpSize: Int by lazy {
+        tierlist.size
+    }
     lateinit var saveJSON: String
+        private set
 
     var dataFiller: String? = null
 
-    var guild by Delegates.notNull<Long>()
-
-    var beforeAnything: (RequestBuilder.() -> Unit)? = null
-
     // true if users in conferences should be randomized
+    @Transient
     var jda: (Pair<JDA, Boolean>)? = null
 
+    @Transient
     val onlyExecuteAddons = mutableListOf<KClass<out Addons.Addon>>()
     val disabledLeagueIndexes = mutableSetOf<Int>()
 
@@ -181,11 +183,6 @@ class LeagueCreator(val name: String) {
             saveJSON.put("sid", sid)
             saveJSON.put("guild", guild)
             saveJSON.put("leaguename", if (sids.size == 1) name else "${name}L${leagueindex + 1}")
-            beforeAnything?.let {
-                b.it()
-                b.execute(execute)
-                b.clear()
-            }
             List(gamedays) { "${it + 1}" }.toTypedArray().let {
                 b.addRow("$dataSheet!B1", listOf("Pokemänner", *it, "Kills", "", *it, "Deaths", "Uses"))
             }
@@ -194,9 +191,6 @@ class LeagueCreator(val name: String) {
                 val endY = y + dataMonCount - 1
                 val tableY = user.y(gap, dataMonCount + 4)
                 val winLooseY = tableY - 1
-                monsSupplier?.let {
-                    b.addColumn("$dataSheet!B$y", it(user))
-                }
                 dataFiller?.let {
                     val fillerList = fill(gamedays, dataMonCount, it)
                     b.addAll("$dataSheet!C$y", fillerList)
@@ -284,15 +278,15 @@ class LeagueCreator(val name: String) {
 
             }
             executeAddons(b, saveJSON)
-            additionalStuff?.let {
-                it(b)
-            }
             b.execute(execute)
         }
     }
 
     fun addons(builder: Addons.() -> Unit) {
-        addons = Addons(this).apply(builder)
+        addons = Addons().apply {
+            leagueCreator = this@LeagueCreator
+            builder()
+        }
     }
 
     private suspend fun executeAddons(b: RequestBuilder, json: String) {
@@ -303,10 +297,6 @@ class LeagueCreator(val name: String) {
 
     fun copyOnly() {
         copyonly = true
-    }
-
-    companion object {
-        fun create(name: String, builder: LeagueCreator.() -> Unit) = LeagueCreator(name).apply(builder)
     }
 }
 
@@ -343,28 +333,28 @@ data class TableGenData(
 }
 
 @Suppress("FunctionName")
-class Addons(val leagueCreator: LeagueCreator) {
+@Serializable
+class Addons {
+    @Transient
     lateinit var b: RequestBuilder
+
+    lateinit var leagueCreator: LeagueCreator
     private val addonList: MutableList<Addon> = mutableListOf()
     val disabledAddons = mutableSetOf<KClass<out Addon>>()
 
-    val vlookUpSize: Int by lazy {
-        leagueCreator.tierlist.size
-    }
 
-    private inline fun <reified T : Addon> getAddon(): T {
-        return addonList.filterIsInstance<T>().first()
+    private inline fun <reified T : Addon> getAddon(): T? {
+        return addonList.filterIsInstance<T>().firstOrNull()
     }
 
     companion object {
         val allAddons by lazy {
             val list = listOf(
+                PokemonData::class,
                 KillList::class,
                 GamePlan::class,
                 DraftOrder::class,
                 KDOnTeamSite::class,
-                MatchUps::class,
-                PokemonData::class,
                 TierlistConditionalFormatting::class,
                 ShowdownScript::class
             )
@@ -389,23 +379,26 @@ class Addons(val leagueCreator: LeagueCreator) {
         }
     }
 
+    @Serializable
     sealed interface Addon {
-        suspend fun LeagueCreator.execute(b: RequestBuilder)
+        abstract suspend fun LeagueCreator.execute(b: RequestBuilder)
     }
 
-    inner class KillList(builder: KillList.() -> Unit) : Addon {
+    @Serializable
+    class KillList(
+        val killlistcols: List<Cols>,
+        val killlistsort: List<Cols>
+    ) : Addon {
         var killlistDataLocation: Coord? = null
-        lateinit var killlistcols: List<Cols>
-        var killlistLocation: String? = null
-        lateinit var killlistsort: List<Cols>
 
-        init {
-            builder()
-            addonList += this
+        var killlistLocation: String? = null
+
+
+        companion object {
+            private val ascendingCols = setOf(DEATHS, USES)
+            private val vLookupWholeRangeCols = setOf(ICON)
         }
 
-        private val ascendingCols = setOf(DEATHS, USES)
-        private val vLookupWholeRangeCols = setOf(ICON)
         override suspend fun LeagueCreator.execute(b: RequestBuilder) {
             val locbase = killlistDataLocation!!
             val vLookUpWholeRange = mutableMapOf<Cols, Int>()
@@ -444,7 +437,7 @@ class Addons(val leagueCreator: LeagueCreator) {
             vLookUpWholeRange.forEach { (col, index) ->
                 val range = locbase.sheet + "!${(locbase.x + index).xc()}${locbase.y}"
                 when (col) {
-                    ICON -> b.addSingle(range, getAddon<PokemonData>().run {
+                    ICON -> b.addSingle(range, addons!!.getAddon<PokemonData>()!!.run {
                         val datacol =
                             DataCol.ICON.takeIf { it in datacols } ?: DataCol.GEN5SPRITE.takeIf { it in datacols }
                             ?: error("No icon column found in pokemon data")
@@ -478,8 +471,11 @@ class Addons(val leagueCreator: LeagueCreator) {
         }
     }
 
-    inner class TierlistConditionalFormatting(builder: TierlistConditionalFormatting.() -> Unit) : Addon {
-        lateinit var range: String
+    @Serializable
+    class TierlistConditionalFormatting(
+        val range: String,
+        val format: TLCellFormat
+    ) : Addon {
         var sheetidGerman: Int
             get() = sheetidsGerman.first()
             set(value) {
@@ -495,12 +491,6 @@ class Addons(val leagueCreator: LeagueCreator) {
         var complexBanLimiter: String? = null
         var customSearchRange: String? = null
         var excludeComplexAsBegin = false
-        lateinit var format: CellFormat
-
-        init {
-            builder()
-            addonList += this
-        }
 
         // =ZÄHLENWENN(FILTER(INDIREKT("Data1!B3:B184");INDIREKT("Data1!K3:K184") = "X");C8)
         // =ZÄHLENWENN(FILTER(INDIREKT("Data1!B3:B184");INDIREKT("Data1!K3:K184") = "X");GLÄTTEN(WENNFEHLER(LINKS(C8;FINDEN("(";C8) - 1);C8)))
@@ -524,7 +514,7 @@ class Addons(val leagueCreator: LeagueCreator) {
                 // =ZÄHLENWENN(ARRAYFORMULA(WENNFEHLER(SVERWEIS(FILTER(INDIREKT("Data!B3:B265");INDIREKT("Data!N3:N265") = "X");INDIREKT("Data!K600:N1298");4))); A5)
 
                 // =ZÄHLENWENN(ARRAYFORMULA(WENNFEHLER(SVERWEIS(FILTER(INDIREKT("Data!B3:B265");INDIREKT("Data!N3:N265") = "X");INDIREKT("Data!K600:N1298");4))); A5)
-                val data = addonList.filterIsInstance<PokemonData>().firstOrNull()
+                val data = addons!!.getAddon<PokemonData>()
                     ?: error("No PokemonData found, but needed for english formula")
                 "=ZÄHLENWENN(ARRAYFORMULA(WENNFEHLER(${
                     data.getDefaultVLookup(
@@ -533,12 +523,13 @@ class Addons(val leagueCreator: LeagueCreator) {
                 })); $searchCoord)"
                 //"=ZÄHLENWENN(FILTER(INDIREKT(\"Data1!B3:B184\");INDIREKT(\"Data1!K3:K184\") = \"X\");$searchCoord)"
             }
+            val cellFormat = format.toCellFormat()
             sheetidsGerman.forEach { id ->
                 val form = if (excludeComplexAsBegin) """=WENN(LINKS($firstCoord)="${complexBanLimiter!!}";0;${
                     germanFormula.substring(1)
                 })""" else germanFormula
                 b.addConditionalFormatCustomFormula(
-                    RequestBuilder.ConditionalFormat(form, format), range, id
+                    RequestBuilder.ConditionalFormat(form, cellFormat), range, id
                 )
             }
             sheetidsEnglish.forEach { id ->
@@ -547,31 +538,31 @@ class Addons(val leagueCreator: LeagueCreator) {
                     englishFormula.substring(1)
                 })""" else englishFormula
                 b.addConditionalFormatCustomFormula(
-                    RequestBuilder.ConditionalFormat(englishFormula, format), range, id
+                    RequestBuilder.ConditionalFormat(form, cellFormat), range, id
                 )
             }
         }
 
     }
 
-    inner class PokemonData(builder: PokemonData.() -> Unit) : Addon {
-        lateinit var datacoord: Coord
-        lateinit var datacols: List<DataCol>
+    @Serializable
+    class PokemonData(
+        val datacoord: Coord,
+        val datacols: List<DataCol>
 
-        // STRING HERE IS JUST THE X COORDINATE
-        var oldTeamsiteDataUses: Map<(Int) -> String, DocUsedCols>? = null
+    ) : Addon {
+        @Transient
+        lateinit var b: RequestBuilder
+
+        @Transient
+        lateinit var leagueCreator: LeagueCreator
         var newTeamsiteDataUses: Map<Int, DocUsedCols>? = null
         val dataProviders: MutableMap<DataCol, String> = mutableMapOf()
         var buffer = 10
         val additionalDataUses: MutableMap<String, Pair<DocUsedCols, String>> = mutableMapOf()
 
         private var disabled = false
-        private val additionalDataProducers = mutableListOf<Runnable>()
-
-        init {
-            builder()
-            addonList += this
-        }
+        private val additionalDataUsers = mutableListOf<DataUser>()
 
         fun disableGeneration() {
             disabled = true
@@ -584,7 +575,8 @@ class Addons(val leagueCreator: LeagueCreator) {
             vLookupCache[pair]?.let { return it }
             val s = "SVERWEIS(${area};${
                 dataProviders[col] ?: (datacoord.run {
-                    val str = "$sheet!$$xAsC$$y:$${(x + datacols.size).xc()}$${y + vlookUpSize - 1 + buffer}"
+                    val str =
+                        "$sheet!$$xAsC$$y:$${(x + datacols.size).xc()}$${y + leagueCreator.vlookUpSize - 1 + buffer}"
                     if (indirect) "INDIREKT(\"$str\")" else str
                 } + ";${datacols.indexOf(col) + 2}")
             };0)"
@@ -592,17 +584,23 @@ class Addons(val leagueCreator: LeagueCreator) {
             return s
         }
 
+        @Serializable
+        sealed class DataUser {
+            abstract fun PokemonData.addToUses()
+        }
 
-        inner class TLBuilder : Runnable {
-            lateinit var sheet: String
-            var factor: Int by Delegates.notNull()
-            var startXMons: Int by Delegates.notNull()
-            var startY: Int by Delegates.notNull()
-            var endY: Int by Delegates.notNull()
-            var columns: Int by Delegates.notNull()
+        @Serializable
+        class TLBuilder(
+            val sheet: String,
+            val factor: Int,
+            val startXMons: Int,
+            val startY: Int,
+            val endY: Int,
+            val columns: Int
+        ) : DataUser() {
 
             val dataMap = mutableMapOf<Int, DataCol>()
-            override fun run() {
+            override fun PokemonData.addToUses() {
                 for (i in 0 until columns) {
                     val x = i.x(factor, startXMons)
                     dataMap.forEach { (startXData, dataCol) ->
@@ -615,15 +613,17 @@ class Addons(val leagueCreator: LeagueCreator) {
 
         }
 
-        inner class DraftSheetInfo : Runnable {
-            lateinit var indexer: (Int) -> Coord
+        @Serializable
+        class DraftSheetInfo : DataUser() {
+            lateinit var leagueCreator: LeagueCreator
+            lateinit var indexer: DynamicCoord
             val cols: MutableList<DocUsedCols> = mutableListOf()
 
             fun points(tierToPointArea: String) {
                 cols += CalcedCol.Points(tierToPointArea)
             }
 
-            override fun run() {
+            override fun PokemonData.addToUses() {
                 with(leagueCreator) {
                     for (i in 0 until playerCount) {
                         val range = indexer(i)
@@ -638,17 +638,10 @@ class Addons(val leagueCreator: LeagueCreator) {
             }
         }
 
-        fun tierlist(builder: TLBuilder.() -> Unit) {
-            additionalDataProducers += TLBuilder().apply(builder)
-        }
-
-        fun draftSheetInfo(builder: DraftSheetInfo.() -> Unit) {
-            additionalDataProducers += DraftSheetInfo().apply(builder)
-        }
-
 
         override suspend fun LeagueCreator.execute(b: RequestBuilder) {
-            this@Addons.b = b
+            this@PokemonData.b = b
+            leagueCreator = this
             newSuspendedTransaction {
                 val send = mutableListOf<List<Any>>()
                 if (/*!dataProviders.keys.containsAll(teamsiteDataUses?.values.orEmpty()) && */!disabled) {
@@ -674,15 +667,6 @@ class Addons(val leagueCreator: LeagueCreator) {
                     b.addAll(datacoord.toString(), send)
                 }
             }
-            oldTeamsiteDataUses?.let {
-                repeat(playerCount) { player ->
-                    val monCoord = teamsiteMonCoord!!(player)
-                    it.forEach { (coord, col) ->
-                        additionalDataUses[monCoord.setX(coord(player)).toString()] =
-                            col to "${monCoord.withoutSheet}:${monCoord.plusY(monCount - 1 + slotsOnTeamsite).withoutSheet}"
-                    }
-                }
-            }
             newTeamsiteDataUses?.let {
                 repeat(playerCount) { player ->
                     val monCoord = teamsiteMonCoord!!(player)
@@ -705,7 +689,12 @@ class Addons(val leagueCreator: LeagueCreator) {
 //                    }
 //                }
 //            }
-            additionalDataProducers.forEach { it.run() }
+
+            additionalDataUsers.forEach {
+                with(it) {
+                    addToUses()
+                }
+            }
             additionalDataUses.forEach { (t, u) ->
                 with(u.first) {
                     b.addSingle(t, getFormula(u.second))
@@ -715,96 +704,140 @@ class Addons(val leagueCreator: LeagueCreator) {
 
     }
 
-    fun LeagueCreator.GamePlan(builder: GamePlanCreator.() -> Unit) {
-        GamePlan(fromLeagueCreatorGamePlan(builder))
-    }
 
-    inner class GamePlan(private val builder: GamePlanCreator) : Addon {
-        init {
-            addonList += this
-        }
+    @Serializable
+    @SerialName("GamePlan")
+    class GamePlan(
+        val locationWrapper: DynamicCoord,
+        val format: String
+    ) : Addon {
+        var randomize = true
+        var reversed = false
+        val additionalLocations: List<DynamicCoord> = emptyList()
 
-        override suspend fun LeagueCreator.execute(b: RequestBuilder) {
-            builder.requestBuilder = b
-            gameplanIndexes = builder.execute()
-            saveJSON.put("battleorder", gameplanIndexes)
-        }
-    }
-
-    fun LeagueCreator.DraftOrder(builder: DraftOrderCreator.() -> Unit) {
-        DraftOrder(fromLeagueCreatorDraft(builder))
-    }
-
-    inner class DraftOrder(private val builder: DraftOrderCreator) : Addon {
-        init {
-            addonList += this
-        }
+        val startGameDay = 1
+        val startGdi by lazy { startGameDay - 1 }
 
         override suspend fun LeagueCreator.execute(b: RequestBuilder) {
-            builder.requestBuilder = b
-            saveJSON.put("originalorder", builder.execute())
+            val indexes = generateIndexes(playerCount, randomize, reversed).let {
+                val map = mutableMapOf<Int, List<List<Int>>>()
+                it.keys.forEach { i ->
+                    map[i + startGdi] = it[i]!!
+                }
+                map
+            }
+            addons!!.gameplanIndexes = indexes
+            (0 + startGdi until indexes.size + startGdi).forEach { i ->
+                val body = indexes[i + 1]!!.map { mu ->
+                    mu.joinToString(format) {
+                        playerNameIndexer(it).toString().let { iw -> "=" + iw.replace("=", "") }
+                    }.split("#")
+                }
+                b.addAll(locationWrapper(i), body)
+                additionalLocations.forEach { loc ->
+                    b.addAll(loc(i), body)
+                }
+
+            }
+            saveJSON.put("battleorder", indexes)
         }
-    }
 
-    inner class MatchUps(builder: MatchUps.() -> Unit) : Addon {
-
-        init {
-            builder()
-            addonList += this
-        }
-
-        lateinit var mainPlayerNameCoord: (Int) -> Coord
-        lateinit var mainPlayerMonCoord: (Int) -> Coord
-        lateinit var opponentNameCoord: (Int, Int) -> Coord
-        lateinit var opponentMonCoord: (Int, Int) -> Coord
-
-        override suspend fun LeagueCreator.execute(b: RequestBuilder) {
-            repeat(playerCount) { player ->
-                val mainPlayer = playerNameIndexer(player).formula
-                val mainMonCoord = teamsiteMonCoord!!(player)
-                b.addSingle(mainPlayerNameCoord(player).toString(), mainPlayer)
-                b.addSingle(
-                    mainPlayerMonCoord(player).toString(),
-                    "=SORT($mainMonCoord:${(mainMonCoord + (1 to (monCount - 1))).withoutSheet};2;0)"
-                )
-                for (gdi in 0 until gamedays) {
-                    val gameday = gdi + 1
-                    val lists = gameplanIndexes!![gameday] ?: continue
-                    val opponent = lists.first { player in it }.first { it != player }
-                    val opponentPlayer = playerNameIndexer(opponent).formula
-                    b.addSingle(opponentNameCoord(player, gdi).toString(), opponentPlayer)
-                    b.addSingle(opponentMonCoord(player, gdi).toString(),
-                        teamsiteMonCoord!!(opponent).let { "=SORT($it:${(it + (1 to (monCount - 1))).withoutSheet};2;0)" })
+        companion object {
+            fun generateIndexes(
+                size: Int,
+                randomized: Boolean = false,
+                reversed: Boolean = false
+            ): Map<Int, List<List<Int>>> {
+                val numDays = size - 1
+                val halfSize = size / 2
+                return buildMap {
+                    val list = mutableListOf<MutableList<List<Int>>>()
+                    for (day in 0 until numDays) {
+                        val file = mutableListOf<List<Int>>()
+                        val teamIdx = day % numDays + 1
+                        file.add(listOf(teamIdx, 0).let { if (randomized) it.shuffled() else it })
+                        for (idx in 1 until halfSize) {
+                            println("idx = $idx")
+                            val firstTeam = (day + idx) % numDays + 1
+                            val secondTeam = (day + numDays - idx) % numDays + 1
+                            //System.out.println(teams.get(firstTeam) + "   " + teams.get(secondTeam));
+                            file.add(listOf(firstTeam, secondTeam).let { if (randomized) it.shuffled() else it })
+                        }
+                        list += file
+                    }
+                    if (randomized) {
+                        list.shuffle()
+                        list.forEach { it.shuffle() }
+                    }
+                    for (i in 0 until numDays) {
+                        this[i + 1] = list[i]
+                    }
+                    if (reversed) {
+                        val copy = this.toMutableMap()
+                        for (i in 1..numDays) {
+                            this[i] = copy[numDays - i + 1]!!
+                        }
+                    }
                 }
             }
         }
+    }
+
+    @Serializable
+    @SerialName("DraftOrder")
+    class DraftOrder(
+        val rounds: Int,
+        val draftTableWrapper: DynamicCoord,
+    ) : Addon {
+
+
+        override suspend fun LeagueCreator.execute(b: RequestBuilder) {
+            val finalOrder = mutableMapOf<Int, List<Int>>()
+            val table = (0 until playerCount).toList()
+            for (i in 1..rounds) {
+                save(
+                    finalOrder = finalOrder,
+                    round = i,
+                    orderForRound = if (i % 2 == 0) {
+                        finalOrder.getValue(i - 1).reversed()
+                    } else {
+                        table.shuffled()
+                    },
+                    b = b
+                )
+            }
+            saveJSON.put("originalorder", finalOrder)
+        }
+
+        private fun LeagueCreator.save(
+            finalOrder: MutableMap<Int, List<Int>>, round: Int, orderForRound: List<Int>, b: RequestBuilder
+        ) {
+            finalOrder[round] = orderForRound
+                val x = round - 1
+                b.addColumn(draftTableWrapper(x), orderForRound.map {
+                    "=" + playerNameIndexer(it)
+                }.toList())
+            }
 
     }
 
-    inner class KDOnTeamSite(builder: KDOnTeamSite.() -> Unit) : Addon {
+    class KDOnTeamSite(
+        val datacols: List<Cols>,
+        val beginHeader: DynamicCoord
+    ) : Addon {
 
 
         var headercols: List<Pair<HeaderCol, String>>? = null
-        fun defaultHeaderCols() {
-            headercols = defaultHeaderCols
-        }
+        var beginData: DynamicCoord? = null
 
-        val defaultHeaderCols =
-            mutableMapOf(HeaderCol.GAMEDAY to "%s. Spieltag", HeaderCol.OPPONENT to "vs. %s").toList()
-        lateinit var datacols: List<Cols>
+
         var gapBetweenGamedays = 0
         var iferror = ""
-        lateinit var beginHeader: (Int) -> Coord
-        var beginData: ((Int) -> Coord)? = null
-
-        init {
-            builder()
-            addonList += this
-        }
 
         override suspend fun LeagueCreator.execute(b: RequestBuilder) {
             val killStart = 3
             val deathStart = gamedays + 5
+            val gameplanIndexes = addons!!.gameplanIndexes
             repeat(playerCount) { i ->
                 val monCoord = teamsiteMonCoord!!(i)
                 println("DATACOLS SIZE $datacols")
@@ -818,10 +851,10 @@ class Addons(val leagueCreator: LeagueCreator) {
                                     HeaderCol.GAMEDAY -> value.format(gdi + 1)
                                     HeaderCol.OPPONENT -> {
                                         if (gameplanIndexes?.get(gdi + 1) == null) return@map ""
-                                        "=\"" + value.format(gameplanIndexes?.let { map ->
+                                        "=\"" + value.format(gameplanIndexes.let { map ->
                                             "\"&" + playerNameIndexer(map[gdi + 1]!!.first { it.contains(i) }
                                                 .let { l -> l.first { it != i } })
-                                        } ?: "")
+                                        })
                                     }
 
                                     HeaderCol.OTHER -> value
@@ -868,11 +901,9 @@ class Addons(val leagueCreator: LeagueCreator) {
         }
     }
 
-    inner class ShowdownScript(val format: ScriptFormat = ScriptFormat.GEN9NATDEXAG) : Addon {
-        init {
-            addonList += this
-        }
-
+    @Serializable
+    @SerialName("ShowdownScript")
+    class ShowdownScript(val format: ScriptFormat = ScriptFormat.GEN9NATDEXAG) : Addon {
         override suspend fun LeagueCreator.execute(b: RequestBuilder) {
             Templater.ShowdownScriptTemplate(this).build {
                 name = this@execute.name + "Tierlist"
@@ -897,11 +928,16 @@ class Addons(val leagueCreator: LeagueCreator) {
         GAMEDAY, OPPONENT, OTHER
     }
 
+    @Serializable
     sealed class DocUsedCols {
         abstract fun PokemonData.getFormula(area: String): String
     }
 
+    @Serializable
     sealed class CalcedCol : DocUsedCols() {
+
+        @Serializable
+        @SerialName("Points")
         class Points(private val tierToPointArea: String) : CalcedCol() {
             override fun PokemonData.getFormula(area: String): String {
                 return "=ARRAYFORMULA(WENNFEHLER(SVERWEIS(${
@@ -913,6 +949,7 @@ class Addons(val leagueCreator: LeagueCreator) {
         }
     }
 
+    @Serializable
     abstract class DataCol : DocUsedCols() {
 
         override fun PokemonData.getFormula(area: String): String {
@@ -920,36 +957,50 @@ class Addons(val leagueCreator: LeagueCreator) {
             return "=ARRAYFORMULA(WENNFEHLER(${getDefaultVLookup(area, this@DataCol)}))"
         }
 
+        @Serializable
+        @SerialName("SPEED")
         data object SPEED : DataCol() {
-            override fun getData(o: Pokemon) = o.speed.toString()
+            override suspend fun getData(o: Pokemon) = o.speed.toString()
         }
 
+        @Serializable
+        @SerialName("TYPE1")
         data object TYPE1 : DataCol() {
-            override fun getData(o: Pokemon): String =
-                typeicons.optString(o.types.getOrNull(0).orEmpty()).ifEmpty { "/" }
+            override suspend fun getData(o: Pokemon): String =
+                db.typeicons.findOne(TypeIcon::type eq o.types.getOrNull(0))?.url ?: "/"
         }
 
+        @Serializable
+        @SerialName("TYPE2")
         data object TYPE2 : DataCol() {
-            override fun getData(o: Pokemon): String =
-                typeicons.optString(o.types.getOrNull(1).orEmpty()).ifEmpty { "/" }
+            override suspend fun getData(o: Pokemon): String =
+                db.typeicons.findOne(TypeIcon::type eq o.types.getOrNull(1))?.url ?: "/"
         }
 
+        @Serializable
+        @SerialName("TIER")
         data object TIER : DataCol() {
-            override fun getData(o: Pokemon): String {
+            override suspend fun getData(o: Pokemon): String {
                 error("Not implemented because its implemented above")
             }
         }
 
+        @Serializable
+        @SerialName("ENGLISHTLNAME")
         data object ENGLISHTLNAME : DataCol() {
-            override fun getData(o: Pokemon) = error("Not implemented because its implemented above")
+            override suspend fun getData(o: Pokemon) = error("Not implemented because its implemented above")
         }
 
+        @Serializable
+        @SerialName("GEN5SPRITE")
         data object GEN5SPRITE : DataCol() {
-            override fun getData(o: Pokemon) = Command.getGen5Sprite(o)
+            override suspend fun getData(o: Pokemon) = Command.getGen5Sprite(o)
         }
 
+        @Serializable
+        @SerialName("ICON")
         data object ICON : DataCol() {
-            override fun getData(o: Pokemon): String {
+            override suspend fun getData(o: Pokemon): String {
 
 
                 //println(it)
@@ -962,15 +1013,13 @@ class Addons(val leagueCreator: LeagueCreator) {
 
         }
 
-        abstract fun getData(o: Pokemon): String
+        abstract suspend fun getData(o: Pokemon): String
 
         companion object {
             private val specialForms = listOf("Alola", "Galar", "Mega", "Paldea")
             private val specialCases = mapOf("Rotom-Fan" to "479-s", "Tauros-Paldea-Combat" to "128-p")
             private val gen9Names =
                 listOf("Tauros-Paldea-Combat", "Tauros-Paldea-Blaze", "Tauros-Paldea-Aqua", "Wooper-Paldea")
-
-            val typeicons by lazy { Utils.load("typeicons.json") }
             /*fun TYPES(wrappedAsImage: Boolean, placeholder: String = "/"): Array<DataCol> = List(2) {
                 object : DataCol() {
                     override fun getData(o: Pokemon): String {
@@ -991,12 +1040,41 @@ class Addons(val leagueCreator: LeagueCreator) {
 
 private fun fill(x: Int, y: Int, filler: String) = List(y) { List(x) { filler } }
 fun List<Cols>.columnFrom(col: Cols) = getAsXCoord(indexOf(col) + 2)
-fun ((Int) -> Coord).asStringIndexer(): (Int) -> String = { "=" + this(it).toString().replace("=", "") }
 
 fun cellFormat(strikethrough: Boolean? = null, fgColor: Color? = null, bgColor: Color? = null) = CellFormat().apply {
     if (strikethrough != null) textFormat = TextFormat().apply { this.strikethrough = strikethrough }
     if (fgColor != null) textFormat = (textFormat ?: TextFormat()).apply { foregroundColor = fgColor }
     if (bgColor != null) backgroundColor = bgColor
+
+}
+
+@Serializable
+data class TLCellFormat(
+    val strikethrough: Boolean? = null,
+    val fgColor: @Serializable(with = GoogleColorSerializer::class) Color? = null,
+    val bgColor: @Serializable(with = GoogleColorSerializer::class) Color? = null
+) {
+    fun toCellFormat() = CellFormat().apply {
+        if (strikethrough != null) textFormat = TextFormat().apply { this.strikethrough = strikethrough }
+        if (fgColor != null) textFormat = (textFormat ?: TextFormat()).apply { foregroundColor = fgColor }
+        if (bgColor != null) backgroundColor = bgColor
+    }
+}
+
+object GoogleColorSerializer : KSerializer<Color> {
+    override val descriptor = PrimitiveSerialDescriptor("Color", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): Color {
+        return convertColor(decoder.decodeString().toInt(16))
+    }
+
+    override fun serialize(encoder: Encoder, value: Color) {
+        encoder.encodeString(
+            value.red.hex + value.green.hex + value.blue.hex
+        )
+    }
+
+    private val Float.hex get() = (this * 255).toInt().toString(16).padStart(2, '0')
 
 }
 

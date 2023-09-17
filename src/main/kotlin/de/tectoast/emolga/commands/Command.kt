@@ -1,8 +1,6 @@
 package de.tectoast.emolga.commands
 
-import com.google.api.services.sheets.v4.model.CellData
 import com.google.api.services.sheets.v4.model.Color
-import com.google.api.services.sheets.v4.model.RowData
 import com.google.common.reflect.ClassPath
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
@@ -1690,14 +1688,6 @@ abstract class Command(
             val str = StringBuilder(i.toString())
             while (str.length < lenght) str.insert(0, "0")
             return str.toString()
-        }
-
-        fun getCellsAsRowData(`object`: CellData, x: Int, y: Int): List<RowData> {
-            val list: MutableList<RowData> = mutableListOf()
-            for (i in 0 until y) {
-                list.add(RowData().setValues(getXTimes(`object`, x)))
-            }
-            return list
         }
 
 

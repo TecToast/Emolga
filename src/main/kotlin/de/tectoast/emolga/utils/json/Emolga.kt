@@ -114,10 +114,12 @@ data class LigaStartData(
     val maxUsers: Int,
     val announceChannel: Long,
     val announceMessageId: Long,
-    var extended: Boolean = false
+    var extended: Boolean = false,
+    val noTeam: Boolean = false,
 ) {
     val maxUsersAsString
         get() = (maxUsers.takeIf { it > 0 } ?: "?").toString()
+
     fun conferenceSelectMenus(uid: Long, initial: Boolean) = StringSelectMenu(
         "cselect;${initial.ifTrue("initial")}:$uid",
         options = conferences.map { SelectOption(it, it) })
@@ -131,7 +133,7 @@ data class LigaStartData(
 
 @Serializable
 data class SignUpData(
-    var teamname: String,
+    var teamname: String?,
     var sdname: String,
     var signupmid: Long? = null,
     var logomid: Long? = null,
@@ -139,10 +141,11 @@ data class SignUpData(
     var conference: String? = null,
     val teammates: MutableSet<Long> = mutableSetOf()
 ) {
-    fun toMessage(user: Long) = "Anmeldung von <@${user}>".condAppend(teammates.isNotEmpty()) {
+    fun toMessage(user: Long, lsData: LigaStartData) = "Anmeldung von <@${user}>".condAppend(teammates.isNotEmpty()) {
         " (mit ${teammates.joinToString { "<@$it>" }})"
-    } + ":\n" +
-            "Teamname: **$teamname**\n" +
+    } + ":\n".condAppend(!lsData.noTeam) {
+        "Teamname: **$teamname**\n"
+    } +
             "Showdown-Name: **$sdname**"
 }
 

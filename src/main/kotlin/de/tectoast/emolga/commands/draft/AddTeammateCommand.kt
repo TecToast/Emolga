@@ -17,13 +17,14 @@ class AddTeammateCommand :
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val league = db.signups.get(e.guild.idLong)
+        val lsData = db.signups.get(e.guild.idLong)
         val uid = e.author.idLong
-        val data = league?.users?.get(uid) ?: return e.reply("Du bist nicht angemeldet!")
+        val data = lsData?.users?.get(uid) ?: return e.reply("Du bist nicht angemeldet!")
         val member = e.arguments.getMember("user")
         data.teammates += member.idLong
         e.reply("Du hast ${member.asMention} zu deinem Team hinzugefügt!", ephemeral = true)
-        e.jda.getTextChannelById(league.signupChannel)!!.editMessageById(data.signupmid!!, data.toMessage(uid)).queue()
-        league.save()
+        e.jda.getTextChannelById(lsData.signupChannel)!!.editMessageById(data.signupmid!!, data.toMessage(uid, lsData))
+            .queue()
+        lsData.save()
     }
 }

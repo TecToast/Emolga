@@ -729,7 +729,8 @@ object PrivateCommands {
         val (guild, user) = e.getArg(1).split(" ").map { it.toLong() }
         val ligaStartData = db.signups.get(guild)!!
         val data = ligaStartData.users[user]!!
-        e.jda.getTextChannelById(ligaStartData.signupChannel)!!.editMessageById(data.signupmid!!, data.toMessage(user))
+        e.jda.getTextChannelById(ligaStartData.signupChannel)!!
+            .editMessageById(data.signupmid!!, data.toMessage(user, ligaStartData))
             .queue()
     }
 

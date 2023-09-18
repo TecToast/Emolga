@@ -25,6 +25,6 @@ class SignUpChangeCommand :
             ligaStartData.users[PrivateCommands.userIdForSignupChange?.takeIf { uid == Constants.FLOID }]
                 ?: ligaStartData.getDataByUser(uid)
                 ?: return e.reply("Du bist derzeit nicht angemeldet!", ephemeral = true)
-        e.slashCommandEvent!!.replyModal(SignupModal.getModal(signUpData)).queue()
+        e.slashCommandEvent!!.replyModal(SignupModal.getModal(signUpData, ligaStartData)).queue()
     }
 }

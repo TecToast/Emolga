@@ -15,8 +15,8 @@ import net.dv8tion.jda.api.Permission
 
 fun Route.emolgaAPI() {
     authenticate("auth-oauth-discord") {
-        get("/emolga/login") {}
-        get("/emolga/discordauth") {
+        get("/login") {}
+        get("/discordauth") {
             val principal: OAuthAccessTokenResponse.OAuth2 = call.principal() ?: run {
                 call.response.status(HttpStatusCode.BadRequest)
                 return@get
@@ -34,7 +34,6 @@ fun Route.emolgaAPI() {
             call.respondRedirect("https://emolga.tectoast.de/")
         }
     }
-    route("/emolga/") {
         get("/test") {
             call.respondText("Hello World!")
         }
@@ -50,7 +49,6 @@ fun Route.emolgaAPI() {
             call.sessions.clear<UserSession>()
             call.respondRedirect("https://emolga.tectoast.de/")
         }
-    }
 }
 
 suspend fun HttpClient.getUserData(accessToken: String): DiscordUser {

@@ -162,7 +162,7 @@ class LeagueCreator(
                     b.addSingle(playerNameIndexer(i),
                         listOf(uid, *data.teammates.toTypedArray()).joinToString(" & ") { n[it]!! })
                     playerTeamIndexer?.let {
-                        b.addSingle(it(i), data.teamname)
+                        b.addSingle(it(i), data.teamname!!)
                     }
                     logoIndexer?.let {
                         b.addSingle(it(i), "=IMAGE(\"${data.logoUrl}\";1)")
@@ -332,7 +332,6 @@ data class TableGenData(
     }
 }
 
-@Suppress("FunctionName")
 @Serializable
 class Addons {
     @Transient
@@ -381,7 +380,7 @@ class Addons {
 
     @Serializable
     sealed interface Addon {
-        abstract suspend fun LeagueCreator.execute(b: RequestBuilder)
+        suspend fun LeagueCreator.execute(b: RequestBuilder)
     }
 
     @Serializable

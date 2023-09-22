@@ -299,7 +299,7 @@ _written by Maxifcn_""".trimIndent()
             )
             logger.info("Setting up nominations repeat tasks")
             RepeatTask(
-                defaultTimeFormat.parse("12.10.2023 00:00").toInstant(),
+                defaultTimeFormat.parse("11.10.2023 00:00").toInstant(),
                 5,
                 Duration.ofDays(7L),
                 { runBlocking { doNDSNominate() } },

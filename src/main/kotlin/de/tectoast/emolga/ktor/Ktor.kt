@@ -17,6 +17,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.User
 import org.slf4j.event.Level
@@ -47,7 +48,7 @@ object Ktor {
         authentication {
             oauth("auth-oauth-discord") {
                 urlProvider =
-                    { if (devMode) "http://localhost:58700/api/discordauth" else "https://emolga.tectoast.de/api/discordauth" }
+                    { if (devMode) "http://localhost:5173/api/discordauth" else "https://emolga.tectoast.de/api/discordauth" }
                 providerLookup = {
                     OAuthServerSettings.OAuth2ServerSettings(
                         name = "discord",
@@ -107,14 +108,15 @@ data class UserSession(val accessToken: String, val refreshToken: String, val ex
 data class DiscordUser(
     val id: Long,
     val username: String,
-    val discriminator: Int,
+    @SerialName("global_name")
+    val displayName: String,
     val avatar: String?
 ) {
     fun emolga(): DiscordUser = this.copy(avatar = avatar?.let {
         "https://cdn.discordapp.com/avatars/${id}/${
             it + if (it.startsWith("a_")) ".gif" else ".png"
         }"
-    } ?: String.format(User.DEFAULT_AVATAR_URL, discriminator % 5)
+    } ?: String.format(User.DEFAULT_AVATAR_URL, ((id shr 22) % 6).toString())
     )
 }
 

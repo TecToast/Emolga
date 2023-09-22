@@ -38,7 +38,7 @@ fun Route.emolgaAPI() {
             call.respondText("Hello World!")
         }
         get("/userdata") {
-            val session = call.sessionOrUnauthorized() ?: return@get
+            val session = call.sessions.get<UserSession>() ?: return@get call.respond("{}")
             call.respond(httpClient.getUserData(session.accessToken).emolga())
         }
         get("/guilds") {

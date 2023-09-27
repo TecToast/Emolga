@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.PrivateCommands
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.SignUpData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -17,13 +18,14 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 
 class SignupModal : ModalListener("signup") {
     override suspend fun process(e: ModalInteractionEvent, name: String?) {
-        val teamname = e.getValue("teamname")!!.asString
+        val teamname = e.getValue("teamname")?.asString
         val sdname = e.getValue("sdname")!!.asString
         val sdnameid = Command.toUsername(sdname)
         if (sdnameid.length !in 1..18) return e.reply_("Dieser Showdown-Name ist ungültig!").setEphemeral(true).queue()
         val uid = e.user.idLong
         val isChange = name == "change"
-        with(db.signups.get(e.guild!!.idLong)!!) {
+        val g = e.guild!!
+        with(db.signups.get(g.idLong)!!) {
             val ownerOfTeam =
                 PrivateCommands.userIdForSignupChange?.takeIf { uid == Constants.FLOID }
                     ?: if (isChange) getOwnerByUser(uid) ?: return e.reply_(
@@ -38,7 +40,7 @@ class SignupModal : ModalListener("signup") {
                 data.teamname = teamname
                 e.reply("Deine Daten wurden erfolgreich geändert!").setEphemeral(true).queue()
                 e.jda.getTextChannelById(signupChannel)!!.editMessageById(
-                    data.signupmid!!, data.toMessage(ownerOfTeam)
+                    data.signupmid!!, data.toMessage(ownerOfTeam, this)
                 ).queue()
                 data.logomid?.let {
                     e.jda.getTextChannelById(logoChannel)!!
@@ -49,11 +51,12 @@ class SignupModal : ModalListener("signup") {
             }
             val announceChannel = e.jda.getTextChannelById(announceChannel)!!
             e.reply("Du wurdest erfolgreich angemeldet!").setEphemeral(true).queue()
+            giveParticipantRole(e.member!!)
             val signUpData = SignUpData(
                 teamname, sdname,
             ).apply {
                 signupmid = e.jda.getTextChannelById(signupChannel)!!.sendMessage(
-                    toMessage(ownerOfTeam)
+                    toMessage(ownerOfTeam, this@with)
                 ).await().idLong
             }
             users[ownerOfTeam] = signUpData
@@ -72,9 +75,10 @@ class SignupModal : ModalListener("signup") {
     }
 
     companion object {
-        fun getModal(data: SignUpData?) =
+        fun getModal(data: SignUpData?, lsData: LigaStartData) =
             Modal("signup".condAppend(data != null, ";change"), "Anmeldung".condAppend(data != null, "sanpassung")) {
-                short("teamname", "Team-Name", required = true, value = data?.teamname)
+                if (!lsData.noTeam)
+                    short("teamname", "Team-Name", required = true, value = data?.teamname)
                 short("sdname", "Showdown-Name", required = true, requiredLength = 1..18, value = data?.sdname)
             }
     }

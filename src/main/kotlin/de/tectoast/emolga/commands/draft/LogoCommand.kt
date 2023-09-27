@@ -26,8 +26,10 @@ class LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Draf
         suspend fun insertLogo(e: GuildCommandEvent, uid: Long) {
             val ligaStartData = db.signups.get(e.guild.idLong)!!
             if (uid !in ligaStartData.users) {
-                e.reply("Du bist nicht angemeldet!", ephemeral = true)
-                return
+                return e.reply("Du bist nicht angemeldet!", ephemeral = true)
+            }
+            if (ligaStartData.noTeam) {
+                return e.reply("In dieser Liga gibt es keine eigenen Teams!", ephemeral = true)
             }
             e.deferReply(true)
             val logo = e.arguments.getAttachment("logo")

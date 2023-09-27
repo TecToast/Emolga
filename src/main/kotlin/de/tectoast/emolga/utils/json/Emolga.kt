@@ -4,6 +4,7 @@ import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.ifTrue
 import de.tectoast.emolga.utils.json.emolga.ASLS11
 import de.tectoast.emolga.utils.json.emolga.Soullink
+import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import dev.minn.jda.ktx.interactions.components.SelectOption
@@ -12,6 +13,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.dv8tion.jda.api.entities.Member
 import org.bson.conversions.Bson
 import org.litote.kmongo.Id
 import org.litote.kmongo.all
@@ -51,6 +53,7 @@ class MongoEmolga(dbUrl: String) {
     val cooldowns by lazy { db.getCollection<Cooldown>("cooldowns") }
     val configuration by lazy { db.getCollection<Configuration>("configuration") }
     val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
+    val typeicons by lazy { db.getCollection<TypeIcon>("typeicons") }
 
     val shinycount by lazy { db.getCollection<Shinycount>() }
 
@@ -70,72 +73,82 @@ class MongoEmolga(dbUrl: String) {
 }
 
 @Serializable
-data class Config(val teamgraphicShinyOdds: Int, val guildsToUpdate: List<Long> = listOf())
+data class TypeIcon(
+    val type: String,
+    val url: String
+)
 
 @Serializable
-data class Statistics(var drampaCounter: Int)
+data class TypeIcon(
+    val type: String,
+    val url: String
+)
+
+@Serializable
+data class Config(val teamgraphicShinyOdds: Int, val guildsToUpdate: List<Long> = listOf())
 
 @Serializable
 data class Configuration(
     val guild: Long,
-    @SerialName("_id")
-    @Contextual
-    val id: Id<Configuration> = newId(),
+    @SerialName("_id") @Contextual val id: Id<Configuration> = newId(),
     val data: MutableMap<String, MutableMap<String, Int>> = mutableMapOf()
 )
 
 @Serializable
 data class EmolgaChannelConfig(
-    val guild: Long,
-    val channels: List<Long>
+    val guild: Long, val channels: List<Long>
 )
 
 @Serializable
 data class Cooldown(
-    val guild: Long,
-    val user: Long,
-    val timestamp: Long
+    val guild: Long, val user: Long, val timestamp: Long
 )
 
 @Serializable
 data class NameConventions(
-    val guild: Long,
-    val data: MutableMap<String, String> = mutableMapOf()
+    val guild: Long, val data: MutableMap<String, String> = mutableMapOf()
 )
 
 @Serializable
 data class LigaStartData(
-    @SerialName("_id")
-    @Contextual
-    val id: Id<LigaStartData> = newId(),
+    @SerialName("_id") @Contextual val id: Id<LigaStartData> = newId(),
     val guild: Long,
     val users: MutableMap<Long, SignUpData> = mutableMapOf(),
     val signupChannel: Long,
     val logoChannel: Long,
     var conferences: List<String> = listOf(),
+    var conferenceRoleIds: Map<String, Long> = mapOf(),
     var shiftMessageIds: List<Long> = listOf(),
     var shiftChannel: Long? = null,
     val maxUsers: Int,
     val announceChannel: Long,
     val announceMessageId: Long,
-    var extended: Boolean = false
+    var extended: Boolean = false,
+    val noTeam: Boolean = false,
+    val participantRole: Long? = null
 ) {
     val maxUsersAsString
         get() = (maxUsers.takeIf { it > 0 } ?: "?").toString()
-    fun conferenceSelectMenus(uid: Long, initial: Boolean) = StringSelectMenu(
-        "cselect;${initial.ifTrue("initial")}:$uid",
-        options = conferences.map { SelectOption(it, it) })
+
+    fun conferenceSelectMenus(uid: Long, initial: Boolean) =
+        StringSelectMenu("cselect;${initial.ifTrue("initial")}:$uid",
+            options = conferences.map { SelectOption(it, it) })
 
     fun getDataByUser(uid: Long) = users[uid] ?: users.values.firstOrNull { it.teammates.contains(uid) }
     fun getOwnerByUser(uid: Long) = users.entries.firstOrNull { it.key == uid || it.value.teammates.contains(uid) }?.key
 
     suspend fun save() = db.signups.updateOne(this)
+    fun giveParticipantRole(member: Member) {
+        participantRole?.let {
+            member.guild.addRoleToMember(member, member.guild.getRoleById(it)!!).queue()
+        }
+    }
 
 }
 
 @Serializable
 data class SignUpData(
-    var teamname: String,
+    var teamname: String?,
     var sdname: String,
     var signupmid: Long? = null,
     var logomid: Long? = null,
@@ -143,11 +156,11 @@ data class SignUpData(
     var conference: String? = null,
     val teammates: MutableSet<Long> = mutableSetOf()
 ) {
-    fun toMessage(user: Long) = "Anmeldung von <@${user}>".condAppend(teammates.isNotEmpty()) {
+    fun toMessage(user: Long, lsData: LigaStartData) = "Anmeldung von <@${user}>".condAppend(teammates.isNotEmpty()) {
         " (mit ${teammates.joinToString { "<@$it>" }})"
-    } + ":\n" +
-            "Teamname: **$teamname**\n" +
-            "Showdown-Name: **$sdname**"
+    } + ":\n".condAppend(!lsData.noTeam) {
+        "Teamname: **$teamname**\n"
+    } + "Showdown-Name: **$sdname**"
 }
 
 @Serializable

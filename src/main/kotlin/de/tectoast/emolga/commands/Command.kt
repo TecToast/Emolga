@@ -1,8 +1,6 @@
 package de.tectoast.emolga.commands
 
-import com.google.api.services.sheets.v4.model.CellData
 import com.google.api.services.sheets.v4.model.Color
-import com.google.api.services.sheets.v4.model.RowData
 import com.google.common.reflect.ClassPath
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
@@ -36,6 +34,8 @@ import de.tectoast.emolga.utils.annotations.ToTest
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.json.*
 import de.tectoast.emolga.utils.json.emolga.draft.*
+import de.tectoast.emolga.utils.json.emolga.getCount
+import de.tectoast.emolga.utils.json.emolga.increment
 import de.tectoast.emolga.utils.json.showdown.Learnset
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.json.showdown.TypeData
@@ -1690,22 +1690,6 @@ abstract class Command(
             return str.toString()
         }
 
-        private fun <T> getXTimes(`object`: T, times: Int): List<T> {
-            val list = ArrayList<T>()
-            for (i in 0 until times) {
-                list.add(`object`)
-            }
-            return list
-        }
-
-        fun getCellsAsRowData(`object`: CellData, x: Int, y: Int): List<RowData> {
-            val list: MutableList<RowData> = mutableListOf()
-            for (i in 0 until y) {
-                list.add(RowData().setValues(getXTimes(`object`, x)))
-            }
-            return list
-        }
-
 
         fun compareColumns(o1: List<Any>, o2: List<Any>, vararg columns: Int): Int {
             for (column in columns) {
@@ -2126,6 +2110,7 @@ abstract class Command(
             db.drafts.find().toFlow().collect { l ->
                 l.takeIf { it.docEntry != null }?.tipgame?.let { tip ->
                     val duration = Duration.ofSeconds(parseShortTime(tip.interval).toLong())
+                    logger.info("Draft ${l.leaguename} has tipgame with interval ${tip.interval} and duration $duration")
                     RepeatTask(
                         tip.lastSending.toInstant(),
                         tip.amount,
@@ -2150,6 +2135,7 @@ abstract class Command(
 
         fun init(key: String) {
             loadJSONFiles(key)
+            initMongo()
             ModManager("default", "./ShowdownData/")
             Tierlist.setup()
             defaultScope.launch {
@@ -2224,7 +2210,7 @@ abstract class Command(
         }
 
 
-        fun updatePresence() {
+        suspend fun updatePresence() {
             if (BOT_DISABLED) {
                 emolgajda.presence.setPresence(
                     OnlineStatus.DO_NOT_DISTURB,
@@ -2232,7 +2218,7 @@ abstract class Command(
                 )
                 return
             }
-            val count = StatisticsDB.analysisCount
+            val count = db.statistics.getCount("analysis")
             replayCount.set(count)
             if (count % 100 == 0) {
                 emolgajda.getTextChannelById(904481960527794217L)!!
@@ -2356,7 +2342,6 @@ abstract class Command(
                         }
                     }
                 }
-                StatisticsDB.increment("cmd_" + command.name)
                 val randnum = Random.nextInt(4096)
                 logger.info("randnum = $randnum")
                 if (randnum == 133) {
@@ -2598,7 +2583,7 @@ abstract class Command(
             return rows
         }
 
-        fun analyseReplay(
+        suspend fun analyseReplay(
             url: String,
             customReplayChannel: GuildMessageChannel? = null,
             resultchannelParam: GuildMessageChannel,
@@ -2629,7 +2614,7 @@ abstract class Command(
                 return
             }
             val (game, ctx) = try {
-                runBlocking { Analysis.analyse(url, ::send) }
+                Analysis.analyse(url, ::send)
                 //game = Analysis.analyse(url, m);
             } catch (ex: Exception) {
                 when (ex) {
@@ -2665,7 +2650,7 @@ abstract class Command(
             val uid1 = SDNamesDB.getIDByName(u1)
             val uid2 = SDNamesDB.getIDByName(u2)
             logger.info("Analysed!")
-            val league = runBlocking { db.leagueByGuild(gid, uid1, uid2) }
+            val league = db.leagueByGuild(gid, uid1, uid2)
 //                if (league is ASL) {
 //                    val i1 = league.table.indexOf(uid1)
 //                    val i2 = league.table.indexOf(uid2)
@@ -2697,17 +2682,17 @@ abstract class Command(
                 it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
             }
             val monNames: MutableMap<String, DraftName> = mutableMapOf()
-            val activePassive = runBlocking { ActivePassiveKillsDB.hasEnabled(gid) }
+            val activePassive = ActivePassiveKillsDB.hasEnabled(gid)
             val str = game.mapIndexed { index, sdPlayer ->
                 mutableListOf(
                     sdPlayer.nickname, sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
                 ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
             }.joinToString(":") { it.joinToString(" ") }
-                .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.joinToString("\n\n") { player ->
+                .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.map { player ->
                 "${player.nickname}:".condAppend(
                     player.allMonsDead && !spoiler, " (alle tot)"
-                ) + "\n".condAppend(spoiler, "||") + player.pokemon.joinToString("\n") { mon ->
-                    runBlocking { getMonName(mon.pokemon, gid) }.also {
+                ) + "\n".condAppend(spoiler, "||") + player.pokemon.map { mon ->
+                     getMonName(mon.pokemon, gid).also {
                         monNames[mon.pokemon] = it
                     }.displayName.let {
                         if (activePassive) {
@@ -2716,8 +2701,8 @@ abstract class Command(
                             it.condAppend(mon.kills > 0, " ${mon.kills}")
                         }
                     }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
-                }.condAppend(spoiler, "||")
-            }
+                }.joinToString("\n").condAppend(spoiler, "||")
+            }.joinToString("\n\n")
             logger.info("u1 = $u1")
             logger.info("u2 = $u2")
             if (fromAnalyseCommand != null) {
@@ -2728,7 +2713,7 @@ abstract class Command(
             replayChannel?.sendMessage(url)?.queue()
             fromReplayCommand?.sendMessage(url)?.queue()
             if (resultchannelParam.guild.idLong != Constants.G.MY) {
-                StatisticsDB.increment("analysis")
+                db.statistics.increment("analysis")
                 game.forEach { player ->
                     player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
                         FullStatsDB.add(

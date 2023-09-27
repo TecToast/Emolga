@@ -30,7 +30,7 @@ class ADK : League() {
         val startCoord = "Tabelle und Killliste" x "D" y 6
         newSystem(
             sorterData = SorterData(
-                startCoord.plusX(cid.y('M' - 'C', 0)).spread(5, 7).toDocRange(),
+                startCoord.plusX(cid.y('M' - 'C', 0)).spreadBy(5, 7).toDocRange(),
                 newMethod = true,
                 cols = listOf(3, 5)
             )

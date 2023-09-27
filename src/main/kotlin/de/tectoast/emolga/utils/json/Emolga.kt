@@ -79,12 +79,6 @@ data class TypeIcon(
 )
 
 @Serializable
-data class TypeIcon(
-    val type: String,
-    val url: String
-)
-
-@Serializable
 data class Config(val teamgraphicShinyOdds: Int, val guildsToUpdate: List<Long> = listOf())
 
 @Serializable

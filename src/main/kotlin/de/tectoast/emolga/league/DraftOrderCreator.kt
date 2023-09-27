@@ -69,15 +69,5 @@ class DraftOrderCreator private constructor() {
         fun create(builder: DraftOrderCreator.() -> Unit): DraftOrderCreator {
             return DraftOrderCreator().apply(builder)
         }
-
-        fun LeagueCreator.fromLeagueCreator(builder: DraftOrderCreator.() -> Unit): DraftOrderCreator {
-            return create {
-                indexWrapper = playerNameIndexer
-                rounds = monCount
-                playerCount = this@fromLeagueCreator.playerCount
-                this.sid = this@fromLeagueCreator.sid
-                builder()
-            }
-        }
     }
 }

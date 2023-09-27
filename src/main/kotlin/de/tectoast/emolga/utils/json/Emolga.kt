@@ -13,6 +13,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.dv8tion.jda.api.entities.Member
 import org.bson.conversions.Bson
 import org.litote.kmongo.Id
 import org.litote.kmongo.all
@@ -74,41 +75,34 @@ data class Config(val teamgraphicShinyOdds: Int, val guildsToUpdate: List<Long> 
 @Serializable
 data class Configuration(
     val guild: Long,
-    @SerialName("_id")
-    @Contextual
-    val id: Id<Configuration> = newId(),
+    @SerialName("_id") @Contextual val id: Id<Configuration> = newId(),
     val data: MutableMap<String, MutableMap<String, Int>> = mutableMapOf()
 )
 
 @Serializable
 data class EmolgaChannelConfig(
-    val guild: Long,
-    val channels: List<Long>
+    val guild: Long, val channels: List<Long>
 )
 
 @Serializable
 data class Cooldown(
-    val guild: Long,
-    val user: Long,
-    val timestamp: Long
+    val guild: Long, val user: Long, val timestamp: Long
 )
 
 @Serializable
 data class NameConventions(
-    val guild: Long,
-    val data: MutableMap<String, String> = mutableMapOf()
+    val guild: Long, val data: MutableMap<String, String> = mutableMapOf()
 )
 
 @Serializable
 data class LigaStartData(
-    @SerialName("_id")
-    @Contextual
-    val id: Id<LigaStartData> = newId(),
+    @SerialName("_id") @Contextual val id: Id<LigaStartData> = newId(),
     val guild: Long,
     val users: MutableMap<Long, SignUpData> = mutableMapOf(),
     val signupChannel: Long,
     val logoChannel: Long,
     var conferences: List<String> = listOf(),
+    var conferenceRoleIds: Map<String, Long> = mapOf(),
     var shiftMessageIds: List<Long> = listOf(),
     var shiftChannel: Long? = null,
     val maxUsers: Int,
@@ -116,18 +110,24 @@ data class LigaStartData(
     val announceMessageId: Long,
     var extended: Boolean = false,
     val noTeam: Boolean = false,
+    val participantRole: Long? = null
 ) {
     val maxUsersAsString
         get() = (maxUsers.takeIf { it > 0 } ?: "?").toString()
 
-    fun conferenceSelectMenus(uid: Long, initial: Boolean) = StringSelectMenu(
-        "cselect;${initial.ifTrue("initial")}:$uid",
-        options = conferences.map { SelectOption(it, it) })
+    fun conferenceSelectMenus(uid: Long, initial: Boolean) =
+        StringSelectMenu("cselect;${initial.ifTrue("initial")}:$uid",
+            options = conferences.map { SelectOption(it, it) })
 
     fun getDataByUser(uid: Long) = users[uid] ?: users.values.firstOrNull { it.teammates.contains(uid) }
     fun getOwnerByUser(uid: Long) = users.entries.firstOrNull { it.key == uid || it.value.teammates.contains(uid) }?.key
 
     suspend fun save() = db.signups.updateOne(this)
+    fun giveParticipantRole(member: Member) {
+        participantRole?.let {
+            member.guild.addRoleToMember(member, member.guild.getRoleById(it)!!).queue()
+        }
+    }
 
 }
 
@@ -145,8 +145,7 @@ data class SignUpData(
         " (mit ${teammates.joinToString { "<@$it>" }})"
     } + ":\n".condAppend(!lsData.noTeam) {
         "Teamname: **$teamname**\n"
-    } +
-            "Showdown-Name: **$sdname**"
+    } + "Showdown-Name: **$sdname**"
 }
 
 @Serializable

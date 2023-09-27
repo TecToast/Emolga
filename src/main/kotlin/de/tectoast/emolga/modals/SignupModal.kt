@@ -24,7 +24,8 @@ class SignupModal : ModalListener("signup") {
         if (sdnameid.length !in 1..18) return e.reply_("Dieser Showdown-Name ist ungültig!").setEphemeral(true).queue()
         val uid = e.user.idLong
         val isChange = name == "change"
-        with(db.signups.get(e.guild!!.idLong)!!) {
+        val g = e.guild!!
+        with(db.signups.get(g.idLong)!!) {
             val ownerOfTeam =
                 PrivateCommands.userIdForSignupChange?.takeIf { uid == Constants.FLOID }
                     ?: if (isChange) getOwnerByUser(uid) ?: return e.reply_(
@@ -50,6 +51,7 @@ class SignupModal : ModalListener("signup") {
             }
             val announceChannel = e.jda.getTextChannelById(announceChannel)!!
             e.reply("Du wurdest erfolgreich angemeldet!").setEphemeral(true).queue()
+            giveParticipantRole(e.member!!)
             val signUpData = SignUpData(
                 teamname, sdname,
             ).apply {

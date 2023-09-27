@@ -594,14 +594,15 @@ object PrivateCommands {
         }.joinToString("\n").let { "noforms.txt".file().writeText(it) }
     }
 
-    // Order: Announcechannel mit Button, Channel in dem die Anmeldungen reinkommen, Channel in den die Logos kommen, AnzahlTeilnehmer, Message
+    // Order: Announcechannel mit Button, Channel in dem die Anmeldungen reinkommen, Channel in den die Logos kommen, AnzahlTeilnehmer, RollenID(oder -1), Message
     suspend fun createSignup(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         val tc = e.jda.getTextChannelById(args[0])!!
         val maxUsers = args[3].toInt()
+        val roleId = args[4].toLong().takeIf { it > 0 }
         val messageid =
             tc.sendMessage(
-                args.drop(4).joinToString(" ")
+                args.drop(5).joinToString(" ")
                     .replace("\\n", "\n") + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**")
                 .addActionRow(
                     primary(
@@ -615,7 +616,8 @@ object PrivateCommands {
                 logoChannel = args[2].toLong(),
                 maxUsers = maxUsers,
                 announceChannel = tc.idLong,
-                announceMessageId = messageid
+                announceMessageId = messageid,
+                participantRole = roleId
             )
         )
     }
@@ -631,34 +633,6 @@ object PrivateCommands {
         }
     }
 
-    suspend fun giveGeneralSignupRole(e: GenericCommandEvent) {
-        val args = e.getArg(1).split(" ")
-        val g = e.jda.getGuildById(args[0])!!
-        val data = db.signups.get(g.idLong)!!
-        val role = g.getRoleById(args[1].toLong())!!
-        data.users.entries.flatMap { listOf(it.key, *it.value.teammates.toTypedArray()) }.forEach {
-            g.addRoleToMember(UserSnowflake.fromId(it), role).queue()
-            delay(2000)
-        }
-    }
-
-    suspend fun giveConferenceRoles(e: GenericCommandEvent) {
-        val args = e.getArg(1).split(" ")
-        val g = e.jda.getGuildById(args[0])!!
-        val data = db.signups.get(g.idLong)!!
-        val roles = args.drop(1).map { g.getRoleById(it)!! }
-        val conferences = data.conferences
-        data.users.entries.forEach { user ->
-            val role = roles[user.value.conference.indexedBy(conferences)]
-            listOf(user.key, *user.value.teammates.toTypedArray()).forEach { uid ->
-                g.addRoleToMember(UserSnowflake.fromId(uid), role).queue()
-                delay(2000)
-            }
-
-            // 518008523653775366 1095097314210762884 1095097593463308358 1095097684706213928 1095097835491438655 1095097904944910428
-        }
-    }
-
     // Channel, extended, conferences
     suspend fun startOrderingUsers(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
@@ -666,8 +640,13 @@ object PrivateCommands {
         val extended = args[1].toBoolean()
         val data = db.signups.get(tc.guild.idLong)!!
         val conferences = args.drop(2)
+        val confMap = conferences.mapNotNull {
+            val split = it.split(":")
+            split.getOrNull(1)?.toLong()?.let { id -> split[0] to id }
+        }.toMap()
         data.shiftChannel = tc.idLong
         data.conferences = conferences
+        data.conferenceRoleIds = confMap
         data.extended = extended
         data.shiftMessageIds = listOf()
         data.users.values.forEach { it.conference = null }
@@ -708,6 +687,21 @@ object PrivateCommands {
                     users.map { (id, _) ->
                         primary("shiftuser;$id", nameCache[id]!!)
                     }.chunked(5).map { ActionRow.of(it) })
+        }
+    }
+
+    suspend fun finishOrdering(e: GenericCommandEvent) {
+        e.done()
+        val gid = e.getArg(1).toLong()
+        val guild = e.jda.getGuildById(gid)!!
+        val data = db.signups.get(gid)!!
+        val roleMap = data.conferenceRoleIds.mapValues { guild.getRoleById(it.value) }
+        data.users.entries.forEach {
+            val role = roleMap[it.value.conference] ?: return@forEach
+            (listOf(it.key) + it.value.teammates).forEach { uid ->
+                guild.addRoleToMember(UserSnowflake.fromId(uid), role).queue()
+                delay(2000)
+            }
         }
     }
 

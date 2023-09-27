@@ -23,6 +23,7 @@ class AddTeammateCommand :
         val member = e.arguments.getMember("user")
         data.teammates += member.idLong
         e.reply("Du hast ${member.asMention} zu deinem Team hinzugefügt!", ephemeral = true)
+        lsData.giveParticipantRole(member)
         e.jda.getTextChannelById(lsData.signupChannel)!!.editMessageById(data.signupmid!!, data.toMessage(uid, lsData))
             .queue()
         lsData.save()

@@ -1,8 +1,6 @@
 package de.tectoast.emolga.commands
 
-import com.google.api.services.sheets.v4.model.CellData
 import com.google.api.services.sheets.v4.model.Color
-import com.google.api.services.sheets.v4.model.RowData
 import com.google.common.reflect.ClassPath
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
@@ -1239,7 +1237,7 @@ abstract class Command(
         val allNameConventions by lazy(NameConventionsDB::getAll)
 
         lateinit var tokens: Tokens
-        lateinit var catchrates: Map<String, Int>
+        val catchrates: Map<String, Int> by lazy { load("./catchrates.json") }
         val replayCount = AtomicInteger()
         protected var lastClipUsed: Long = -1
 
@@ -1690,22 +1688,6 @@ abstract class Command(
             val str = StringBuilder(i.toString())
             while (str.length < lenght) str.insert(0, "0")
             return str.toString()
-        }
-
-        private fun <T> getXTimes(`object`: T, times: Int): List<T> {
-            val list = ArrayList<T>()
-            for (i in 0 until times) {
-                list.add(`object`)
-            }
-            return list
-        }
-
-        fun getCellsAsRowData(`object`: CellData, x: Int, y: Int): List<RowData> {
-            val list: MutableList<RowData> = mutableListOf()
-            for (i in 0 until y) {
-                list.add(RowData().setValues(getXTimes(`object`, x)))
-            }
-            return list
         }
 
 
@@ -2214,7 +2196,6 @@ abstract class Command(
                 //emolgaJSON = load("./emolgadata.json")
                 //datajson = loadSD("pokedex.ts", 59);
                 //movejson = loadSD("learnsets.ts", 62);
-                catchrates = load("./catchrates.json")
                 with(tokens.google) {
                     Google.setCredentials(refreshtoken, clientid, clientsecret)
                     Google.generateAccessToken()
@@ -3072,6 +3053,8 @@ val Long.usersnowflake: UserSnowflake get() = UserSnowflake.fromId(this)
 
 val JsonElement?.string: String get() = this!!.jsonPrimitive.content
 val JsonElement?.int: Int get() = this!!.jsonPrimitive.intOrNull!!
+
+val <T> T.l get() = listOf(this)
 
 inline val User.isFlo: Boolean get() = this.idLong == FLOID
 inline val User.isNotFlo: Boolean get() = this.idLong != FLOID

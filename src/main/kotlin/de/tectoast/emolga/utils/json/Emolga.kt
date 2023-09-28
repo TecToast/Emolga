@@ -53,7 +53,10 @@ class MongoEmolga(dbUrl: String) {
     val cooldowns by lazy { db.getCollection<Cooldown>("cooldowns") }
     val configuration by lazy { db.getCollection<Configuration>("configuration") }
     val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
+    val typeicons by lazy { db.getCollection<TypeIcon>("typeicons") }
+
     val shinycount by lazy { db.getCollection<Shinycount>() }
+
     val asls11: ASLS11 get() = error("ASLS11 is not available atm!")
     val asls11nametoid: List<Long> get() = error("ASLS11 is not available atm!")
     val defaultNameConventions: Map<String, String> by lazy {
@@ -68,6 +71,12 @@ class MongoEmolga(dbUrl: String) {
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
         drafts.findOne(League::guild eq gid, League::table all uids.toList())
 }
+
+@Serializable
+data class TypeIcon(
+    val type: String,
+    val url: String
+)
 
 @Serializable
 data class Config(val teamgraphicShinyOdds: Int, val guildsToUpdate: List<Long> = listOf())

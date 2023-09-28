@@ -69,7 +69,7 @@ val ktorDependencies = listOf(
     "ktor-client-content-negotiation",
     // Server
     "ktor-server-core",
-    "ktor-server-netty",
+    "ktor-server-cio",
     "ktor-server-auth",
     "ktor-server-sessions",
     "ktor-server-content-negotiation",

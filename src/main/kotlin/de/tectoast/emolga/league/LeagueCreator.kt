@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package de.tectoast.emolga.league
 
 import com.google.api.services.sheets.v4.model.CellFormat
@@ -966,14 +968,14 @@ class Addons {
         @SerialName("TYPE1")
         data object TYPE1 : DataCol() {
             override suspend fun getData(o: Pokemon): String =
-                db.typeicons.findOne(TypeIcon::type eq o.types.getOrNull(0))?.url ?: "/"
+                db.typeicons.findOne(TypeIcon::typename eq o.types.getOrNull(0))?.formula ?: "/"
         }
 
         @Serializable
         @SerialName("TYPE2")
         data object TYPE2 : DataCol() {
             override suspend fun getData(o: Pokemon): String =
-                db.typeicons.findOne(TypeIcon::type eq o.types.getOrNull(1))?.url ?: "/"
+                db.typeicons.findOne(TypeIcon::typename eq o.types.getOrNull(1))?.formula ?: "/"
         }
 
         @Serializable

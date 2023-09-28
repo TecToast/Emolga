@@ -600,10 +600,11 @@ object PrivateCommands {
         val tc = e.jda.getTextChannelById(args[0])!!
         val maxUsers = args[3].toInt()
         val roleId = args[4].toLong().takeIf { it > 0 }
+        val text = args.drop(5).joinToString(" ")
+            .replace("\\n", "\n")
         val messageid =
             tc.sendMessage(
-                args.drop(5).joinToString(" ")
-                    .replace("\\n", "\n") + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**")
+                text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**")
                 .addActionRow(
                     primary(
                         "signup", "Anmelden", Emoji.fromUnicode("✅")
@@ -617,7 +618,8 @@ object PrivateCommands {
                 maxUsers = maxUsers,
                 announceChannel = tc.idLong,
                 announceMessageId = messageid,
-                participantRole = roleId
+                participantRole = roleId,
+                signupMessage = text
             )
         )
     }
@@ -731,6 +733,7 @@ object PrivateCommands {
     suspend fun insertSDNamesInDatabase(e: GenericCommandEvent) {
         val guild = e.getArg(1).toLong()
         db.signups.get(guild)!!.users.forEach { (id, data) ->
+            @Suppress("DeferredResultUnused")
             SDNamesDB.addIfAbsent(data.sdname, id)
         }
     }

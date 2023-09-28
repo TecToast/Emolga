@@ -2,13 +2,14 @@ package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.defaultScope
+import de.tectoast.emolga.database.Database
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.danger
 import dev.minn.jda.ktx.interactions.components.success
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.deleteWhere
@@ -24,35 +25,37 @@ object SDNamesDB : Table("sdnames") {
     fun getIDByName(name: String) =
         transaction { select { NAME eq Command.toUsername(name) }.firstOrNull()?.get(ID) } ?: -1
 
-    fun addIfAbsent(name: String, id: Long) = transaction {
-        val username = Command.toUsername(name)
-        val existing = select { NAME eq username }.firstOrNull()
-        if (existing == null) {
-            insert {
-                it[NAME] = username
-                it[ID] = id
+    fun addIfAbsent(name: String, id: Long): Deferred<SDInsertStatus> {
+        return Database.dbScope.async {
+            newSuspendedTransaction {
+                val username = Command.toUsername(name)
+                val existing = select { NAME eq username }.firstOrNull()
+                if (existing == null) {
+                    insert {
+                        it[NAME] = username
+                        it[ID] = id
+                    }
+                    return@newSuspendedTransaction SDInsertStatus.SUCCESS
+                }
+                val currentOwner = existing[ID]
+                if (currentOwner == id) {
+                    SDInsertStatus.ALREADY_OWNED_BY_YOU
+                } else {
+                    emolgajda.getTextChannelById(SDNAMES_CHANNEL_ID)!!.send(
+                        "<@$id> [$id] (`${
+                            emolgajda.retrieveUserById(id).await().effectiveName
+                        }`) möchte den Namen `$name` [`$username`] haben, aber dieser ist bereits von " +
+                                "<@$currentOwner> [$currentOwner] (`${
+                                    emolgajda.retrieveUserById(currentOwner).await().effectiveName
+                                }`) belegt! Akzeptieren?",
+                        components = listOf(
+                            success("sdnamesapproval;true;$id;$username", "Ja"),
+                            danger("sdnamesapproval;false", "Nein")
+                        ).into()
+                    ).queue()
+                    SDInsertStatus.ALREADY_OWNED_BY_OTHER
+                }
             }
-            return@transaction SDInsertStatus.SUCCESS
-        }
-        val currentOwner = existing[ID]
-        return@transaction if (currentOwner == id) {
-            SDInsertStatus.ALREADY_OWNED_BY_YOU
-        } else {
-            defaultScope.launch {
-                emolgajda.getTextChannelById(SDNAMES_CHANNEL_ID)!!.send(
-                    "<@$id> [$id] (`${
-                        emolgajda.retrieveUserById(id).await().effectiveName
-                    }`) möchte den Namen `$name` [`$username`] haben, aber dieser ist bereits von " +
-                            "<@$currentOwner> [$currentOwner] (`${
-                                emolgajda.retrieveUserById(currentOwner).await().effectiveName
-                            }`) belegt! Akzeptieren?",
-                    components = listOf(
-                        success("sdnamesapproval;true;$id;$username", "Ja"),
-                        danger("sdnamesapproval;false", "Nein")
-                    ).into()
-                ).queue()
-            }
-            SDInsertStatus.ALREADY_OWNED_BY_OTHER
         }
     }
 

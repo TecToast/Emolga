@@ -110,6 +110,7 @@ data class LigaStartData(
     val users: MutableMap<Long, SignUpData> = mutableMapOf(),
     val signupChannel: Long,
     val logoChannel: Long,
+    val signupMessage: String,
     var conferences: List<String> = listOf(),
     var conferenceRoleIds: Map<String, Long> = mapOf(),
     var shiftMessageIds: List<Long> = listOf(),
@@ -137,6 +138,8 @@ data class LigaStartData(
             member.guild.addRoleToMember(member, member.guild.getRoleById(it)!!).queue()
         }
     }
+
+    val full get() = maxUsers > 0 && users.size >= maxUsers
 
 }
 

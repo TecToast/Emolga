@@ -12,7 +12,7 @@ class AddSDNameModal : ModalListener("addsdname") {
         val idSpecified = parsed != null
         val specifiedName = if (idSpecified) e.jda.retrieveUserById(parsed!!).await().name else e.user.name
         val id = parsed ?: e.user.idLong
-        when (SDNamesDB.addIfAbsent(sdname, id)) {
+        when (SDNamesDB.addIfAbsent(sdname, id).await()) {
             SDInsertStatus.SUCCESS -> {
                 if (idSpecified) {
                     e.reply("Der Name `$name` wurde für $specifiedName registriert!")

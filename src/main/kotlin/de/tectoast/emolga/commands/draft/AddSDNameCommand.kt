@@ -28,7 +28,7 @@ class AddSDNameCommand : Command("addsdname", "Registriert deinen Showdown-Namen
         val name = args.getText("name")
         val id = if (idSpecified) args.getID("id") else e.author.idLong
         val specifiedName = if (idSpecified) e.jda.retrieveUserById(id).await().name else e.author.name
-        when (SDNamesDB.addIfAbsent(name, id)) {
+        when (SDNamesDB.addIfAbsent(name, id).await()) {
             SDInsertStatus.SUCCESS -> {
                 if (idSpecified) {
                     e.reply("Der Name `$name` wurde für $specifiedName registriert!")

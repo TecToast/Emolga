@@ -2669,7 +2669,11 @@ abstract class Command(
             val uid1 = SDNamesDB.getIDByName(u1)
             val uid2 = SDNamesDB.getIDByName(u2)
             logger.info("Analysed!")
-            val league = db.leagueByGuild(gid, uid1, uid2)
+            val league = db.leagueByGuild(gid, uid1, uid2) ?: run {
+                val otherUid =
+                    if (uid1 == 310517476322574338) uid2 else if (uid2 == 310517476322574338) uid1 else return@run null
+                db.leagueByGuild(gid, 272083848433500160, otherUid)
+            }
 //                if (league is ASL) {
 //                    val i1 = league.table.indexOf(uid1)
 //                    val i2 = league.table.indexOf(uid2)

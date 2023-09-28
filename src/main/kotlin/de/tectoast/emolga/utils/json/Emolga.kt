@@ -74,7 +74,7 @@ class MongoEmolga(dbUrl: String) {
 
 @Serializable
 data class TypeIcon(
-    val type: String,
+    val typename: String,
     val url: String
 )
 

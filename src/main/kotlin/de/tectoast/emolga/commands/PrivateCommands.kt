@@ -843,8 +843,8 @@ object PrivateCommands {
     fun florixcontrol(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         val id = "florix;startserver:" + when (args[1]) {
-            "2" -> GPIOManager.PC.FLORIX_2.messageId
-            "3" -> GPIOManager.PC.FLORIX_3.messageId
+            "2" -> PC.FLORIX_2.messageId
+            "3" -> PC.FLORIX_3.messageId
             else -> throw IllegalArgumentException()
         }
         e.jda.getTextChannelById(args[0])!!.sendMessage(":)").addActionRow(button(id, "Server starten")).queue()

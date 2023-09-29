@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.GPIOManager
+import de.tectoast.emolga.utils.PC
 
 class StartServerCommand : Command(
     "startserver",
@@ -18,12 +19,13 @@ class StartServerCommand : Command(
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        val pc = GPIOManager.PC.FLORIX_2
-        if (GPIOManager.isOn(pc)) {
+        val pc = PC.FLORIX_2
+        val gpio = GPIOManager()
+        if (gpio.isOn(pc)) {
             e.reply("Der Server ist bereits an!")
             return
         }
-        GPIOManager.startServer(pc)
+        gpio.startServer(pc)
         e.reply("Der Server-PC wurde gestartet, der Terraria-Server dürfte demnächst online sein c:")
     }
 

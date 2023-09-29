@@ -55,7 +55,7 @@ class RemoteGPIOManager
     }
 
     override suspend fun isOn(pc: PC) = withContext(Dispatchers.IO) {
-        client.get("$url/status/${pc.getReadPin(boardType)}").bodyAsText().trim() != "1"
+        client.get("$url/status/${pc.getReadPin(boardType)}").bodyAsText().contains("level=0")
     }
 }
 
@@ -110,15 +110,15 @@ enum class PC(
     FLORIX_2(
         2,
         24,
-        27,
-        19,
+        3,
+        15,
         964571226964115496
     ),
     FLORIX_3(
         3,
         25,
-        22,
-        26,
+        2,
+        14,
         975076826588282962
     );
 

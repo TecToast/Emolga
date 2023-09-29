@@ -18,7 +18,7 @@ abstract class ButtonListener(name: String) {
 
     companion object {
         val listener: MutableMap<String, ButtonListener> = HashMap()
-        val disabledListeners = setOf("florix", "reopen")
+        val disabledListeners = setOf("reopen")
         private val logger = LoggerFactory.getLogger(ButtonListener::class.java)
         private val NULL: ButtonListener = object : ButtonListener("NULL") {
             override suspend fun process(e: ButtonInteractionEvent, name: String) {

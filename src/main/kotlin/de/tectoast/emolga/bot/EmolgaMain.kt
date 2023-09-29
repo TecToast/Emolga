@@ -1,5 +1,6 @@
 package de.tectoast.emolga.bot
 
+import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.database.Database
@@ -18,6 +19,8 @@ import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import org.slf4j.LoggerFactory
 
+var injectedJDA: JDA? = null
+val jda: JDA get() = injectedJDA ?: emolgajda
 object EmolgaMain {
 
     lateinit var emolgajda: JDA

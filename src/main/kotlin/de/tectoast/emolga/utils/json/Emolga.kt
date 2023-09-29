@@ -28,20 +28,21 @@ import org.litote.kmongo.serialization.configuration as mongoConfiguration
 val db: MongoEmolga get() = delegateDb ?: error("MongoDB not initialized!")
 
 private const val DEFAULT_DB_URL = "mongodb://floritemp.fritz.box:27017/"
+private const val DEFAULT_DB_NAME = "emolga"
 private var delegateDb: MongoEmolga? = null
 
-fun initMongo(dbUrl: String = DEFAULT_DB_URL) {
+fun initMongo(dbUrl: String = DEFAULT_DB_URL, dbName: String = DEFAULT_DB_NAME) {
     delegateDb?.let { error("MongoDB already initialized!") }
-    delegateDb = MongoEmolga(dbUrl)
+    delegateDb = MongoEmolga(dbUrl, dbName)
 }
 
-class MongoEmolga(dbUrl: String) {
+class MongoEmolga(dbUrl: String, dbName: String) {
     val db = run {
         /*registerModule(Json {
 
         }.serializersModule)*/
         mongoConfiguration = mongoConfiguration.copy(classDiscriminator = "type", encodeDefaults = false)
-        KMongo.createClient(dbUrl).coroutine.getDatabase("emolga")
+        KMongo.createClient(dbUrl).coroutine.getDatabase(dbName)
     }
 
     val config by lazy { db.getCollection<Config>("config") }

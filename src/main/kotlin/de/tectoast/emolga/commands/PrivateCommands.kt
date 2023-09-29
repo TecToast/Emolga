@@ -8,6 +8,7 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.ktor.subscribeToYTChannel
+import de.tectoast.emolga.managers.SignupManager
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -602,26 +603,7 @@ object PrivateCommands {
         val roleId = args[4].toLong().takeIf { it > 0 }
         val text = args.drop(5).joinToString(" ")
             .replace("\\n", "\n")
-        val messageid =
-            tc.sendMessage(
-                text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**")
-                .addActionRow(
-                    primary(
-                        "signup", "Anmelden", Emoji.fromUnicode("✅")
-                    )
-                ).await().idLong
-        db.signups.insertOne(
-            LigaStartData(
-                guild = tc.guild.idLong,
-                signupChannel = args[1].toLong(),
-                logoChannel = args[2].toLong(),
-                maxUsers = maxUsers,
-                announceChannel = tc.idLong,
-                announceMessageId = messageid,
-                participantRole = roleId,
-                signupMessage = text
-            )
-        )
+        SignupManager.createSignup(tc.guild.idLong, args[1].toLong(), args[2].toLong(), maxUsers, roleId, text)
     }
 
     suspend fun closeSignup(e: GuildCommandEvent) {

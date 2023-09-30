@@ -21,7 +21,7 @@ object TipGamesDB : Table("tipgame") {
                         it[CORRECT_GUESSES] = 1
                     }
                 } else {
-                    update({ USERID eq user and (LEAGUE_NAME eq LEAGUE_NAME) }) {
+                    update({ USERID eq user and (LEAGUE_NAME eq league) }) {
                         it[CORRECT_GUESSES] = userobj[CORRECT_GUESSES] + 1
                     }
                 }

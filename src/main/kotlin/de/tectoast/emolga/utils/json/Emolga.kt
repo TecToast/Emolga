@@ -7,6 +7,7 @@ import de.tectoast.emolga.utils.json.emolga.Soullink
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
+import de.tectoast.emolga.utils.json.showdown.Pokemon
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
 import kotlinx.coroutines.runBlocking
@@ -55,6 +56,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val configuration by lazy { db.getCollection<Configuration>("configuration") }
     val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
     val typeicons by lazy { db.getCollection<TypeIcon>("typeicons") }
+    val pokedex by lazy { db.getCollection<Pokemon>("pokedex") }
 
     val shinycount by lazy { db.getCollection<Shinycount>() }
 

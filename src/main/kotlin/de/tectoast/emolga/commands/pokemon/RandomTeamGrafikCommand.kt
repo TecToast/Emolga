@@ -5,6 +5,8 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.TeamGraphics
+import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.getCount
 import de.tectoast.emolga.utils.json.emolga.increment
@@ -29,7 +31,7 @@ class RandomTeamGrafikCommand :
     override suspend fun process(e: GuildCommandEvent) {
         e.deferReply()
         val lol = System.currentTimeMillis()
-        val (img, randomTeamData) = TeamGraphics.fromDraftPokemon(RandomTeamCommand.generateTeam())
+        val (img, randomTeamData) = TeamGraphics.fromDraftPokemon(generateTeam())
         logger.info("TeamGraphic took ${System.currentTimeMillis() - lol}ms")
         val os = ByteArrayOutputStream()
         withContext(Dispatchers.IO) {
@@ -54,6 +56,21 @@ class RandomTeamGrafikCommand :
 
     companion object {
         private val logger = KotlinLogging.logger {}
+
+
+        private val sets = listOf(
+            mapOf("S" to 4, "A" to 0, "B" to 2, "C" to 4, "D" to 2),
+            mapOf("S" to 3, "A" to 2, "B" to 1, "C" to 4, "D" to 2),
+            mapOf("S" to 3, "A" to 1, "B" to 3, "C" to 3, "D" to 2),
+            mapOf("S" to 2, "A" to 3, "B" to 2, "C" to 3, "D" to 2),
+            mapOf("S" to 2, "A" to 2, "B" to 4, "C" to 2, "D" to 2),
+            mapOf("S" to 2, "A" to 3, "B" to 2, "C" to 3, "D" to 2),
+        )
+
+        fun generateTeam(guild: Long = Constants.G.ASL): List<DraftPokemon> {
+            return Tierlist[guild]!!.retrieveTierlistMap(sets.random())
+        }
     }
+
 
 }

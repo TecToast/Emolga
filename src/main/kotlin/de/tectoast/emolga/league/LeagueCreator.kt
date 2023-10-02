@@ -646,7 +646,7 @@ class Addons {
             newSuspendedTransaction {
                 val send = mutableListOf<List<Any>>()
                 if (/*!dataProviders.keys.containsAll(teamsiteDataUses?.values.orEmpty()) && */!disabled) {
-                    val pokedex = Command.dataJSON
+                    val pokedex = de.tectoast.emolga.utils.json.db.pokedex.find().toList().associateBy { it.id }
                     tierlist.forEach {
                         val tlName = it.name
                         //println(tlName)

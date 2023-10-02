@@ -2,7 +2,6 @@ package de.tectoast.emolga.commands
 
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command.ArgumentManagerTemplate
-import de.tectoast.emolga.commands.Command.Companion.dataJSON
 import de.tectoast.emolga.database.exposed.AnalysisDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.SDNamesDB
@@ -28,6 +27,10 @@ import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.encodeToString
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.Permission
@@ -570,15 +573,15 @@ object PrivateCommands {
 
 
     suspend fun createConventions() {
-        dataJSON.values.asSequence().filterNot { it.num <= 0 }.map {
+        db.pokedex.find().toFlow().filter { it.num > 0 }.map {
             val translated = Command.getGerName(it.baseSpecies ?: it.name).translation
             it.name to translated.condAppend(it.forme != null) { "-${it.forme}" }
-        }.forEach { NameConventionsDB.insertDefault(it.first, it.second) }
+        }.collect { NameConventionsDB.insertDefault(it.first, it.second) }
     }
 
 
     suspend fun createConventionsCosmetic() {
-        dataJSON.values.asSequence().filterNot { it.num <= 0 || it.cosmeticFormes == null }.forEach {
+        db.pokedex.find().toFlow().filter { it.num > 0 && it.cosmeticFormes != null }.collect {
             val translated = Command.getGerName(it.baseSpecies ?: it.name).translation
             it.cosmeticFormes!!.forEach { f ->
                 NameConventionsDB.insertDefaultCosmetic(
@@ -589,10 +592,10 @@ object PrivateCommands {
     }
 
 
-    fun allGermanHyphen() {
-        dataJSON.values.asSequence().filter { it.baseSpecies == null }.mapNotNull {
+    suspend fun allGermanHyphen() {
+        db.pokedex.find().toFlow().filter { it.baseSpecies == null }.mapNotNull {
             Command.getGerName(it.name).translation.takeIf { c -> c.contains('-') }
-        }.joinToString("\n").let { "noforms.txt".file().writeText(it) }
+        }.toList().joinToString("\n").let { "noforms.txt".file().writeText(it) }
     }
 
     // Order: Announcechannel mit Button, Channel in dem die Anmeldungen reinkommen, Channel in den die Logos kommen, AnzahlTeilnehmer, RollenID(oder -1), Message

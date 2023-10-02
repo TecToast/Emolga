@@ -15,7 +15,6 @@ import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.buttons.ButtonListener
 import de.tectoast.emolga.buttons.buttonsaves.Nominate
 import de.tectoast.emolga.buttons.buttonsaves.PrismaTeam
-import de.tectoast.emolga.buttons.buttonsaves.TrainerData
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
@@ -23,7 +22,6 @@ import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.encryption.TokenEncrypter
 import de.tectoast.emolga.modals.ModalListener
 import de.tectoast.emolga.selectmenus.MenuListener
-import de.tectoast.emolga.selectmenus.selectmenusaves.SmogonSet
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.Constants.CALENDAR_MSGID
 import de.tectoast.emolga.utils.Constants.CALENDAR_TCID
@@ -36,9 +34,7 @@ import de.tectoast.emolga.utils.json.*
 import de.tectoast.emolga.utils.json.emolga.draft.*
 import de.tectoast.emolga.utils.json.emolga.getCount
 import de.tectoast.emolga.utils.json.emolga.increment
-import de.tectoast.emolga.utils.json.showdown.Learnset
 import de.tectoast.emolga.utils.json.showdown.Pokemon
-import de.tectoast.emolga.utils.json.showdown.TypeData
 import de.tectoast.emolga.utils.music.GuildMusicManager
 import de.tectoast.emolga.utils.showdown.*
 import de.tectoast.toastilities.repeat.RepeatTask
@@ -67,7 +63,6 @@ import net.dv8tion.jda.api.audio.hooks.ConnectionStatus
 import net.dv8tion.jda.api.entities.*
 import net.dv8tion.jda.api.entities.Message.Attachment
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
-import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
@@ -83,9 +78,6 @@ import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
-import net.dv8tion.jda.api.interactions.components.selections.SelectOption
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
-import org.apache.commons.collections4.queue.CircularFifoQueue
 import org.jetbrains.exposed.sql.Column
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.litote.kmongo.*
@@ -105,7 +97,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Function
 import java.util.function.Predicate
 import java.util.regex.Pattern
-import javax.imageio.ImageIO
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
@@ -216,14 +207,6 @@ abstract class Command(
         allowsMember = predicate.or { it.idLong == FLOID }
         customPermissions = true
     }
-
-    protected fun addCustomChannel(guildId: Long, vararg channelIds: Long) {
-        val l = overrideChannel.computeIfAbsent(guildId) { mutableListOf() }
-        for (channelId in channelIds) {
-            l.add(channelId)
-        }
-    }
-
     protected fun disable() {
         disabled = true
     }
@@ -1105,31 +1088,6 @@ abstract class Command(
          */
         val commands: MutableMap<String, Command> = HashMap()
 
-        /**
-         * List of guilds where the chill playlist is playing
-         */
-        val chill: MutableList<Guild> = ArrayList()
-
-        /**
-         * List of guilds where the deep playlist is playing
-         */
-        val deep: MutableList<Guild> = ArrayList()
-
-        /**
-         * List of guilds where the music playlist is playing
-         */
-        val music: MutableList<Guild> = ArrayList()
-
-        /**
-         * Some pokemon extensions for showdown
-         */
-        val sdex: MutableMap<String, String> = HashMap()
-
-
-        /**
-         * saves all channels where emoteSteal is enabled
-         */
-        val emoteSteal: MutableList<Long> = ArrayList()
 
         /**
          * saves all replay channel with their result channel
@@ -1167,12 +1125,9 @@ abstract class Command(
          */
         val musicManagers: MutableMap<Long, GuildMusicManager> = HashMap()
         private val playerManagers: MutableMap<Long, AudioPlayerManager> = HashMap()
-        val trainerDataButtons: MutableMap<Long, TrainerData> = HashMap()
         val nominateButtons: MutableMap<Long, Nominate> = HashMap()
-        val smogonMenu: MutableMap<String, SmogonSet> = HashMap()
         val prismaTeam: MutableMap<Long, PrismaTeam> = HashMap()
         private val customResult = emptyList<Long>()
-        val clips: MutableMap<Long, CircularFifoQueue<ByteArray>> = HashMap()
         val uninitializedCommands: MutableList<String> = mutableListOf()
 
 
@@ -1185,7 +1140,6 @@ abstract class Command(
         )
         protected val soullinkNames = listOf("Pascal", "David", "Jesse", "Felix")
         private val logger = LoggerFactory.getLogger(Command::class.java)
-        private val otherFormatRegex = Regex("(\\S+)-(Mega|Alola|Galar)")
         private val SD_NAME_PATTERN = Regex("[^a-zA-Z\\däöüÄÖÜß♂♀é+]+")
         private val DURATION_PATTERN = Regex("\\d{1,8}[smhd]?")
         private val DURATION_SPLITTER = Regex("[.|:]")
@@ -1237,7 +1191,6 @@ abstract class Command(
         val allNameConventions by lazy(NameConventionsDB::getAll)
 
         lateinit var tokens: Tokens
-        val catchrates: Map<String, Int> by lazy { load("./catchrates.json") }
         val replayCount = AtomicInteger()
         protected var lastClipUsed: Long = -1
 
@@ -1249,11 +1202,6 @@ abstract class Command(
         const val BOT_DISABLED = false
         const val DISABLED_TEXT =
             "Es finden derzeit große interne Umstrukturierungen statt, ich werde voraussichtlich heute Mittag/Nachmittag wieder einsatzbereit sein :)"
-
-
-        fun newCalendarService() {
-            calendarService = Executors.newScheduledThreadPool(5)
-        }
 
 
         private fun registerCommands() {
@@ -1283,71 +1231,6 @@ abstract class Command(
             }
 
         }
-
-        fun getFirst(str: String): String {
-            return str.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()[0]
-        }
-
-        fun getFirstAfterUppercase(s: String): String {
-            return if (!s.contains("-")) s else s[0].toString() + s.substring(1, 2).uppercase() + s.substring(2)
-        }
-
-        fun invertImage(mon: String, shiny: Boolean): File {
-            logger.info("mon = $mon")
-            val f = File(
-                "../Showdown/sspclient/sprites/gen5" + (if (shiny) "-shiny" else "") + "/" + mon.lowercase() + ".png"
-            )
-            logger.info("f.getAbsolutePath() = " + f.absolutePath)
-            val inputFile = ImageIO.read(f)
-            val width = inputFile.width
-            val height = inputFile.height
-            for (x in 0 until width) {
-                for (y in 0 until height) {
-                    val rgba = inputFile.getRGB(x, y)
-                    var col = java.awt.Color(rgba, true)
-                    col = java.awt.Color(
-                        255 - col.red, 255 - col.green, 255 - col.blue
-                    )
-                    inputFile.setRGB(x, y, col.rgb)
-                }
-            }
-            val outputFile = File("tempimages/invert-$mon.png")
-            ImageIO.write(inputFile, "png", outputFile)
-            return outputFile
-        }
-
-
-        fun loadPlaylist(channel: TextChannel, track: String, mem: Member, cm: String?, random: Boolean = false) {
-            val musicManager = getGuildAudioPlayer(channel.guild)
-            logger.info(track)
-            getPlayerManager(channel.guild).loadItemOrdered(musicManager, track, object : AudioLoadResultHandler {
-                override fun trackLoaded(track: AudioTrack) {}
-                override fun playlistLoaded(playlist: AudioPlaylist) {
-                    val toplay = mutableListOf<AudioTrack>()
-                    if (random) {
-                        val list = ArrayList(playlist.tracks)
-                        list.shuffle()
-                        toplay.addAll(list)
-                    } else {
-                        toplay.addAll(playlist.tracks)
-                    }
-                    for (playlistTrack in toplay) {
-                        play(channel.guild, musicManager, playlistTrack, mem, channel)
-                    }
-                    channel.sendMessage(cm ?: "Loaded playlist!").queue()
-                }
-
-                override fun noMatches() {
-                    channel.sendMessage("Es wurde unter `$track` nichts gefunden!").queue()
-                }
-
-                override fun loadFailed(exception: FriendlyException) {
-                    exception.printStackTrace()
-                    channel.sendMessage("Der Track konnte nicht abgespielt werden: " + exception.message).queue()
-                }
-            })
-        }
-
 
         fun byName(name: String): Command? {
             return commands.values.firstOrNull {
@@ -1459,18 +1342,6 @@ abstract class Command(
 
         private fun pluralise(x: Long, singular: String, plural: String): String {
             return if (x == 1L) singular else plural
-        }
-
-        fun getGameDay(league: League, uid1: String, uid2: String): Int {
-            return getGameDay(league, uid1.toLong(), uid2.toLong())
-        }
-
-        fun getGameDay(league: League, uid1: Long, uid2: Long): Int {
-            val table = league.table
-            val u1 = table.indexOf(uid1)
-            val u2 = table.indexOf(uid2)
-            return league.battleorder.asIterable()
-                .firstNotNullOf { if (it.value.any { l -> l.containsAll(listOf(u1, u2)) }) it.key else null }
         }
 
         fun tempMute(tco: GuildMessageChannel, mod: Member, mem: Member, time: Int, reason: String) {
@@ -1671,26 +1542,6 @@ abstract class Command(
         }
 
 
-        fun formatToTime(toformat: Long): String {
-            var l = toformat
-            l /= 1000
-            val hours = (l / 3600).toInt()
-            val minutes = ((l - hours * 3600) / 60).toInt()
-            val seconds = (l - hours * 3600 - minutes * 60).toInt()
-            var str = ""
-            if (hours > 0) str += getWithZeros(hours, 2) + ":"
-            str += getWithZeros(minutes, 2) + ":"
-            str += getWithZeros(seconds, 2)
-            return str
-        }
-
-        fun getWithZeros(i: Int, lenght: Int): String {
-            val str = StringBuilder(i.toString())
-            while (str.length < lenght) str.insert(0, "0")
-            return str.toString()
-        }
-
-
         fun compareColumns(o1: List<Any>, o2: List<Any>, vararg columns: Int): Int {
             for (column in columns) {
                 val i1: Int = if (o1[column] is Int) o1[column] as Int else (o1[column] as String).toInt()
@@ -1808,15 +1659,6 @@ abstract class Command(
             return System.currentTimeMillis() + multiplier.toLong() * timestr.toInt()
         }
 
-        suspend fun updateShinyCounts(id: Long) {
-            emolgajda.getTextChannelById(id)?.run {
-                editMessageById(
-                    if (id == 778380440078647296L) 778380596413464676L else 925446888772239440L,
-                    buildShinyCounts()
-                ).queue()
-            }
-        }
-
         suspend fun updateSoullink() {
             emolgajda.getTextChannelById(SOULLINK_TCID)!!.editMessageById(SOULLINK_MSGID, buildSoullink()).queue()
         }
@@ -1891,72 +1733,12 @@ abstract class Command(
                 }
             }
         }
-
-        fun loadAndPlay(channel: GuildMessageChannel, trackUrl: String, vc: VoiceChannel) {
-            val musicManager = getGuildAudioPlayer(vc.guild)
-            getPlayerManager(vc.guild).loadItemOrdered(musicManager, trackUrl, object : AudioLoadResultHandler {
-                override fun trackLoaded(track: AudioTrack) {
-                    channel.sendMessage("`" + track.info.title + "` wurde zur Warteschlange hinzugefügt!").queue()
-                    play(vc.guild, musicManager, track, vc)
-                }
-
-                override fun playlistLoaded(playlist: AudioPlaylist) {
-                    var firstTrack = playlist.selectedTrack
-                    if (firstTrack == null) {
-                        firstTrack = playlist.tracks[0]
-                    }
-                    channel.sendMessage("Adding to queue " + firstTrack!!.info.title + " (first track of playlist " + playlist.name + ")")
-                        .queue()
-                    play(vc.guild, musicManager, firstTrack, vc)
-                }
-
-                override fun noMatches() {
-                    channel.sendMessage("Es wurde unter `$trackUrl` nichts gefunden!").queue()
-                }
-
-                override fun loadFailed(exception: FriendlyException) {
-                    channel.sendMessage("Der Track konnte nicht abgespielt werden: " + exception.message).queue()
-                    exception.printStackTrace()
-                }
-            })
-        }
-
-        fun play(guild: Guild, musicManager: GuildMusicManager, track: AudioTrack, mem: Member, tc: TextChannel) {
-            val audioManager = guild.audioManager
-            if (!audioManager.isConnected) {
-                if (mem.voiceState!!.inAudioChannel()) {
-                    audioManager.openAudioConnection(mem.voiceState!!.channel)
-                } else {
-                    tc.sendMessage("Du musst dich in einem Voicechannel befinden!").queue()
-                }
-            }
-            musicManager.scheduler.queue(track)
-        }
-
-        fun playFlo(guild: Guild, musicManager: GuildMusicManager, track: AudioTrack, mem: Member) {
-            val audioManager = guild.audioManager
-            if (!audioManager.isConnected) {
-                if (mem.voiceState!!.inAudioChannel()) {
-                    audioManager.openAudioConnection(mem.voiceState!!.channel)
-                } else {
-                    sendToMe("Du musst dich in einem Voicechannel befinden!")
-                }
-            }
-            musicManager.scheduler.queue(track)
-        }
-
         fun play(guild: Guild, musicManager: GuildMusicManager, track: AudioTrack, vc: AudioChannel) {
             val audioManager = guild.audioManager
             if (!audioManager.isConnected) {
                 audioManager.openAudioConnection(vc)
             }
             musicManager.scheduler.queue(track)
-        }
-
-        fun skipTrack(channel: TextChannel) {
-            val musicManager = getGuildAudioPlayer(channel.guild)
-            musicManager.scheduler.nextTrack()
-            channel.sendMessage("Skipped :)").queue()
         }
 
         @Synchronized
@@ -1984,33 +1766,12 @@ abstract class Command(
             return playerManager
         }
 
-
-        fun trim(s: String, pokemon: String): String {
-            return s.replace(pokemon, stars(pokemon.length)).replace(pokemon.uppercase(), stars(pokemon.length))
-        }
-
-        private fun stars(n: Int): String {
-            return "+".repeat(0.coerceAtLeast(n))
-        }
-
         inline fun <reified T> load(filename: String, json: Json = otherJSON): T {
             if (T::class.simpleName == "JsonObject") {
                 return json.parseToJsonElement(filename.file().readText()) as T
             }
             return json.decodeFromString(filename.file().readText())
         }
-
-        val dataJSON: Map<String, Pokemon>
-            get() = ModManager.default.dex
-
-        operator fun Map<String, Pokemon>.invoke(name: String): Pokemon {
-            return this[name]!!
-        }
-
-        val typeJSON: Map<String, TypeData>
-            get() = ModManager.default.typechart
-        val learnsetJSON: Map<String, Learnset>
-            get() = ModManager.default.learnsets
         val movesJSON: JsonObject
             get() = ModManager.default.moves
 
@@ -2032,20 +1793,6 @@ abstract class Command(
                     awaitNextDay()
                 }, tilnextday, TimeUnit.MILLISECONDS)
             }
-        }
-
-        fun getTrainerDataActionRow(dt: TrainerData, withMoveset: Boolean): Collection<ActionRow> {
-            return listOf(
-                ActionRow.of(StringSelectMenu.create("trainerdata").addOptions(dt.monsList.map {
-                    SelectOption.of(
-                        it, it
-                    ).withDefault(dt.isCurrent(it))
-                }).build()), ActionRow.of(
-                    if (withMoveset) Button.success(
-                        "trainerdata;CHANGEMODE", "Mit Moveset"
-                    ) else Button.secondary("trainerdata;CHANGEMODE", "Ohne Moveset")
-                )
-            )
         }
 
         fun getGenerationFromDexNumber(dexnumber: Int): Int {
@@ -2144,37 +1891,6 @@ abstract class Command(
                 ModalListener.init()
                 registerCommands()
                 setupRepeatTasks()
-                sdex["Burmadame-Pflz"] = ""
-                sdex["Burmadame-Pflanze"] = ""
-                sdex["Burmadame-Sand"] = "-sandy"
-                sdex["Burmadame-Boden"] = "-sandy"
-                sdex["Burmadame-Lumpen"] = "-trash"
-                sdex["Burmadame-Stahl"] = "-trash"
-                sdex["Boreos-T"] = "-therian"
-                sdex["Demeteros-T"] = "-therian"
-                sdex["Deoxys-Def"] = "-defense"
-                sdex["Deoxys-Speed"] = "-speed"
-                sdex["Hoopa-U"] = "-unbound"
-                sdex["Wulaosu-Wasser"] = "-rapidstrike"
-                sdex["Demeteros-I"] = ""
-                sdex["Rotom-Heat"] = "-heat"
-                sdex["Rotom-Wash"] = "-wash"
-                sdex["Rotom-Mow"] = "-mow"
-                sdex["Rotom-Fan"] = "-fan"
-                sdex["Rotom-Frost"] = "-frost"
-                sdex["Wolwerock-Zw"] = "-dusk"
-                sdex["Wolwerock-Dusk"] = "-dusk"
-                sdex["Wolwerock-Tag"] = ""
-                sdex["Wolwerock-Nacht"] = "-midnight"
-                sdex["Boreos-I"] = ""
-                sdex["Voltolos-T"] = "-therian"
-                sdex["Voltolos-I"] = ""
-                sdex["Zygarde-50%"] = ""
-                sdex["Zygarde-10%"] = "-10"
-                sdex["Psiaugon-W"] = "f"
-                sdex["Psiaugon-M"] = ""
-                sdex["Nidoran-M"] = "m"
-                sdex["Nidoran-F"] = "f"
             }
         }
 
@@ -2184,9 +1900,8 @@ abstract class Command(
                 .setBlue(c.blue.toFloat() / 255f)
         }
 
-        val monList: List<String>
-            get() = dataJSON.keys.filter { !it.endsWith("gmax") && !it.endsWith("totem") }
 
+        fun getMonList(): List<String> = error("for cleanup")
         fun loadJSONFiles(key: String? = null) {
             key?.let {
                 println("Begin decrypt...")
@@ -2239,15 +1954,6 @@ abstract class Command(
                     )
                 )
             }
-        }
-
-        fun help(tco: TextChannel, mem: Member) {
-            tco.sendMessage(
-                MessageCreate(
-                    embeds = Embed(title = "Commands", color = embedColor).into(),
-                    components = getHelpButtons(tco.guild, mem)
-                )
-            ).queue()
         }
 
         suspend fun check(e: MessageReceivedEvent) {
@@ -2386,98 +2092,6 @@ abstract class Command(
             return s.firstOrNull()?.uppercaseChar()?.plus(s.drop(1)) ?: ""
         }
 
-        private fun getType(str: String): String {
-            val s = str.lowercase()
-            if (s.contains("-normal")) return "Normal" else if (s.contains("-kampf") || s.contains("-fighting")) return "Kampf" else if (s.contains(
-                    "-flug"
-                ) || s.contains("-flying")
-            ) return "Flug" else if (s.contains("-gift") || s.contains("-poison")) return "Gift" else if (s.contains(
-                    "-boden"
-                ) || s.contains(
-                    "-ground"
-                )
-            ) return "Boden" else if (s.contains("-gestein") || s.contains("-rock")) return "Gestein" else if (s.contains(
-                    "-käfer"
-                ) || s.contains("-bug")
-            ) return "Käfer" else if (s.contains("-geist") || s.contains("-ghost")) return "Geist" else if (s.contains(
-                    "-stahl"
-                ) || s.contains(
-                    "-steel"
-                )
-            ) return "Stahl" else if (s.contains("-feuer") || s.contains("-fire")) return "Feuer" else if (s.contains(
-                    "-wasser"
-                ) || s.contains(
-                    "-water"
-                )
-            ) return "Wasser" else if (s.contains("-pflanze") || s.contains("-grass")) return "Pflanze" else if (s.contains(
-                    "-elektro"
-                ) || s.contains("-electric")
-            ) return "Elektro" else if (s.contains("-psycho") || s.contains("-psychic")) return "Psycho" else if (s.contains(
-                    "-eis"
-                ) || s.contains("-ice")
-            ) return "Eis" else if (s.contains("-drache") || s.contains("-dragon")) return "Drache" else if (s.contains(
-                    "-unlicht"
-                ) || s.contains("-dark")
-            ) return "Unlicht" else if (s.contains("-fee") || s.contains("-fairy")) return "Fee"
-            return ""
-        }
-
-        private fun getClass(str: String): String {
-            val s = str.lowercase()
-            if (s.contains("-phys")) return "Physical" else if (s.contains("-spez")) return "Special" else if (s.contains(
-                    "-status"
-                )
-            ) return "Status"
-            return ""
-        }
-
-        fun getAllForms(monname: String): List<Pokemon> {
-            val json = dataJSON
-            val mon = json[getSDName(monname)]!!
-            return mon.formeOrder?.asSequence()?.map { toSDName(it) }?.distinct()?.mapNotNull { json[it] }
-                ?.filterNot { it.forme?.endsWith("Totem") == true }?.toList() ?: listOf(mon)
-        }
-
-        fun getAttacksFrom(pokemon: String, msg: String, form: String, maxgen: Int): List<String> {
-            val already: MutableList<String> = ArrayList()
-            val type = getType(msg)
-            val dmgclass = getClass(msg)
-            val movejson = learnsetJSON
-            val atkdata = movesJSON
-            val data = dataJSON
-            try {
-                var str: String? = getSDName(pokemon) + if (form == "Normal") "" else form.lowercase()
-                while (str != null) {
-                    val learnset = movejson[str]!!()
-                    val set = TranslationsDB.getEnglishIdsAndGermanNames(learnset.keys)
-                    for ((moveengl, move) in set) {
-                        //logger.info("moveengl = " + moveengl);
-                        //logger.info("move = " + move);
-                        val moveData = atkdata[moveengl]!!.jsonObject
-                        if (type.isEmpty() || moveData["type"].string == getEnglName(type) && (dmgclass.isEmpty() || moveData["category"].string == dmgclass) && (!msg.lowercase()
-                                .contains("--prio") || moveData["priority"].int > 0) && containsGen(
-                                learnset, moveengl, maxgen
-                            ) /*&& moveFilter(
-                                msg, move
-                            ) */ && !already.contains(move)
-                        ) {
-                            already.add(move)
-                        }
-                    }
-                    val mon = data[str]!!
-                    str = mon.prevo?.let {
-                        (if (it.endsWith("-Alola") || it.endsWith("-Galar") || it.endsWith("-Unova")) HYPHEN.replace(
-                            it, ""
-                        ) else it).lowercase()
-                    }
-                }
-            } catch (ex: Exception) {
-                sendToMe("Schau in die Konsole du kek!")
-                ex.printStackTrace()
-            }
-            return already
-        }
-
         fun sendToMe(msg: String, bot: Bot = Bot.EMOLGA) {
             sendToUser(FLOID, msg, bot)
         }
@@ -2491,12 +2105,6 @@ abstract class Command(
             sendToMe(t.stackTraceToString())
         }
 
-        fun sendToUser(user: User, msg: String) {
-            user.openPrivateChannel().flatMap {
-                it.sendMessage(msg)
-            }.queue()
-        }
-
         fun sendToUser(id: Long, msg: String, bot: Bot = Bot.EMOLGA) {
             val jda = bot.jDA.get()
             jda.retrieveUserById(id).flatMap { obj: User -> obj.openPrivateChannel() }.flatMap { pc ->
@@ -2505,17 +2113,6 @@ abstract class Command(
                 )
             }.queue()
         }
-
-        private fun containsGen(learnset: Map<String, List<String>>, move: String, gen: Int): Boolean {
-            for (s in learnset[move]!!) {
-                for (i in 1..gen) {
-                    if (s.startsWith(i.toString())) return true
-                }
-            }
-            return false
-        }
-
-
         fun getAsXCoord(xc: Int): String {
             var i = xc
             var x = 0
@@ -2524,12 +2121,6 @@ abstract class Command(
                 x++
             }
             return (if (x > 0) (x + 64).toChar() else "").toString() + (i + 64).toChar().toString()
-        }
-
-        fun getGen5SpriteWithoutGoogle(o: Pokemon, shiny: Boolean = false): String {
-            return "https://play.pokemonshowdown.com/sprites/gen5" + (if (shiny) "-shiny" else "") + "/" + toSDName(
-                o.baseSpeciesOrName
-            ).notNullAppend(o.formeSuffix) + ".png"
         }
 
         suspend fun getSpriteForTeamGraphic(str: String, data: RandomTeamData, guild: Long): String {
@@ -2566,7 +2157,7 @@ abstract class Command(
         }
 
         suspend fun getDataObject(mon: String, guild: Long = 0): Pokemon {
-            return dataJSON[NameConventionsDB.getDiscordTranslation(mon, guild, true)!!.official.toSDName()]!!
+            return db.pokedex.get(NameConventionsDB.getDiscordTranslation(mon, guild, true)!!.official.toSDName())!!
         }
 
         fun <T> getActionRows(c: Collection<T>, mapper: Function<T, Button>): List<ActionRow> {
@@ -2765,33 +2356,6 @@ abstract class Command(
             }
             //}
         }
-
-        fun getGerNameWithForm(name: String): String {
-            var toadd = StringBuilder(name)
-            val split =
-                ArrayList(listOf(*toadd.toString().split("-").dropLastWhile { it.isEmpty() }.toTypedArray()))
-            if (toadd.toString().contains("-Alola")) {
-                toadd = StringBuilder("Alola-" + getGerNameNoCheck(split[0]))
-                for (i in 2 until split.size) {
-                    toadd.append("-").append(split[i])
-                }
-            } else if (toadd.toString().contains("-Galar")) {
-                toadd = StringBuilder("Galar-" + getGerNameNoCheck(split[0]))
-                for (i in 2 until split.size) {
-                    toadd.append("-").append(split[i])
-                }
-            } else if (toadd.toString().contains("-Mega")) {
-                toadd = StringBuilder("Mega-" + getGerNameNoCheck(split[0]))
-                for (i in 2 until split.size) {
-                    toadd.append("-").append(split[i])
-                }
-            } else if (split.size > 1) {
-                toadd =
-                    StringBuilder(getGerNameNoCheck(split.removeAt(0)) + "-" + java.lang.String.join("-", split))
-            } else toadd = StringBuilder(getGerNameNoCheck(toadd.toString()))
-            return toadd.toString()
-        }
-
         fun getGerName(s: String): Translation {
             val id = toSDName(s)
             if (translationsCacheGerman.containsKey(id)) return translationsCacheGerman.getValue(id)
@@ -2846,40 +2410,6 @@ abstract class Command(
         suspend fun getTypeGerName(type: String): String =
             (Translation.Type.TYPE.validate(type, ValidationData()) as Translation).translation
 
-        suspend fun getTypeGerNameOrNull(type: String): String? =
-            (Translation.Type.TYPE.validate(type, ValidationData()) as Translation?)?.translation
-
-        fun getSDName(str: String): String {
-            //logger.info("getSDName s = $str")
-            val op = sdex.keys.firstOrNull { anotherString: String -> str.equals(anotherString, ignoreCase = true) }
-            val gitname: String = if (op != null) {
-                val englname = getEnglName(op.split("-")[0])
-                return toSDName(englname + sdex[str])
-            } else {
-                if (str.startsWith("M-")) {
-                    val sub = str.substring(2)
-                    if (str.endsWith("-X")) getEnglName(
-                        sub.substring(
-                            0, sub.length - 2
-                        )
-                    ) + "megax" else if (str.endsWith("-Y")) getEnglName(
-                        sub.substring(
-                            0, sub.length - 2
-                        )
-                    ) + "megay" else getEnglName(sub) + "mega"
-                } else if (str.startsWith("A-")) {
-                    getEnglName(str.substring(2)) + "alola"
-                } else if (str.startsWith("G-")) {
-                    getEnglName(str.substring(2)) + "galar"
-                } else if (str.startsWith("Amigento-")) {
-                    "silvally" + getEnglName(str.split("-").dropLastWhile { it.isEmpty() }.toTypedArray()[1])
-                } else {
-                    getEnglName(str)
-                }
-            }
-            return toSDName(gitname)
-        }
-
 
         fun toSDName(s: String): String {
             return SD_NAME_PATTERN.replace(s.lowercase().replace('é', 'e'), "")
@@ -2892,10 +2422,6 @@ abstract class Command(
             )
         }
 
-        fun canLearn(pokemon: String, form: String, atk: String, msg: String, maxgen: Int): Boolean {
-            return getAttacksFrom(pokemon, msg, form, maxgen).contains(atk)
-        }
-
         suspend fun getMonName(s: String, guildId: Long, withDebug: Boolean = false): DraftName {
             if (withDebug) logger.info("s = $s")
             val split = s.split("-")
@@ -2904,7 +2430,7 @@ abstract class Command(
             return if (s == "_unbekannt_") DraftName("_unbekannt_", "UNKNOWN")
             else
                 NameConventionsDB.getSDTranslation(
-                    dataJSON[toSDName(s)]?.takeIf { it.requiredAbility != null }?.baseSpecies ?: s, guildId
+                    db.pokedex.get(toSDName(s))?.takeIf { it.requiredAbility != null }?.baseSpecies ?: s, guildId
                 ) ?: DraftName(
                     s,
                     s
@@ -3165,13 +2691,6 @@ class Translation(
         return Translation(translation + str, type, language, otherLang, forme)
     }
 
-    fun isFromType(type: Type): Boolean {
-        return this.type == type
-    }
-
-    val isSuccess: Boolean
-        get() = !isEmpty
-
     enum class Type(val id: String, private val typeName: String, private val female: Boolean) : Command.ArgumentType {
         ABILITY("abi", "Fähigkeit", true), EGGGROUP("egg", "Eigruppe", true), ITEM(
             "item", "Item", false
@@ -3180,31 +2699,6 @@ class Translation(
             "type", "Typ", false
         ),
         TRAINER("trainer", "Trainer", false), UNKNOWN("unknown", "Undefiniert", false);
-
-        fun or(name: String): Command.ArgumentType {
-            return object : Command.ArgumentType {
-                override suspend fun validate(str: String, data: Command.ValidationData): Any? {
-                    return if (str == name) Translation(
-                        "Tom", TRAINER, Language.GERMAN, "Tom"
-                    ) else this@Type.validate(str, data)
-                }
-
-                override fun getName(): String {
-                    return this@Type.getName()
-                }
-
-                override val customHelp: String?
-                    get() = this@Type.customHelp
-
-                override fun asOptionType(): OptionType {
-                    return this@Type.asOptionType()
-                }
-
-                override fun needsValidate(): Boolean {
-                    return this@Type.needsValidate()
-                }
-            }
-        }
 
         override fun needsValidate(): Boolean {
             return true

@@ -41,10 +41,8 @@ class SetBirthdayCommand : PepeCommand("setbirthday", "Trägt deinen Geburtstag 
         val uid = e.author.idLong
         BirthdayDB.addOrUpdateBirthday(uid, year, month, day)
         tco.sendMessage(
-            "Dein Geburtstag wurde erfolgreich auf den " + getWithZeros(day, 2) + "." + getWithZeros(
-                month,
-                2
-            ) + "." + year + " gesetzt!"
+            "Dein Geburtstag wurde erfolgreich auf den " + day.toString().padStart(2, '0') + "." +
+                    month.toString().padStart(2, '0') + "." + year + " gesetzt!"
         ).queue()
     }
 }

@@ -116,9 +116,20 @@ class DexQuiz(tc: GuildMessageChannel, rounds: Long) {
         //ü = %C3%B6
         block = false
         val ma = tc.sendMessage(
-            "Runde $round/$totalRounds: ${Command.trim(entry, pokemon)}\nZu welchem Pokemon gehört dieser Dex-Eintrag?"
+            "Runde $round/$totalRounds: ${trim(entry, pokemon)}\nZu welchem Pokemon gehört dieser Dex-Eintrag?"
         )
         if (withDelay) ma.queueAfter(3, TimeUnit.SECONDS) else ma.queue()
+    }
+
+    private fun trim(s: String, pokemon: String): String {
+        return s.replace(pokemon, stars(pokemon.length)).replace(
+            pokemon.uppercase(),
+            stars(pokemon.length)
+        )
+    }
+
+    private fun stars(n: Int): String {
+        return "+".repeat(0.coerceAtLeast(n))
     }
 
     fun givePoint(member: Long) {

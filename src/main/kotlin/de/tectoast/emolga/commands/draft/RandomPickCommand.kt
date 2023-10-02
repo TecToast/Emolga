@@ -5,7 +5,9 @@ import de.tectoast.emolga.commands.draft.PickCommand.Companion.exec
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.isEnglish
+import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.get
 
 class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", CommandCategory.Draft) {
     init {
@@ -36,9 +38,9 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
         }
         val list: MutableList<String> = tierlist.getByTier(tier)!!.toMutableList()
         list.shuffle()
-        val typecheck: ((String) -> Boolean)? = if (args.has("type")) {
+        val typecheck: (suspend (String) -> Boolean)? = if (args.has("type")) {
             val type = args.getTranslation("type");
-            { type.translation in dataJSON[it.toSDName()]!!.types }
+            { type.translation in db.pokedex.get(it.toSDName())!!.types }
         } else null
         e.arguments.map.apply {
             put("pokemon", (list.firstNotNullOfOrNull { str: String ->

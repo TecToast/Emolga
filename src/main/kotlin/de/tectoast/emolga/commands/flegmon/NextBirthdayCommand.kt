@@ -43,10 +43,10 @@ class NextBirthdayCommand : PepeCommand("nextbirthday", "Zeigt die naheliegende 
             .forEach(Consumer { mem: Member -> names[mem.idLong] = mem.effectiveName })
         map.keys.sortedBy { map[it]!!.timeInMillis }.forEach {
             val c = map[it]
-            str.append("`").append(getWithZeros(c!![Calendar.DAY_OF_MONTH], 2)).append(".").append(
-                getWithZeros(
-                    c[Calendar.MONTH] + 1, 2
-                )
+            str.append("`").append(c!![Calendar.DAY_OF_MONTH].toString().padStart(2, '0')).append(".").append(
+
+                (c[Calendar.MONTH] + 1).toString().padStart(2, '0')
+
             ).append(".").append("`: ").append(names[it]).append("\n")
         }
         tco.sendMessage(str.toString()).queue()

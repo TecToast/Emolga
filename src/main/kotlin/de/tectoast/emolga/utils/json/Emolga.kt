@@ -183,3 +183,6 @@ suspend fun CoroutineCollection<LigaStartData>.get(guild: Long) = find(LigaStart
 @JvmName("getNameConventions")
 suspend fun CoroutineCollection<NameConventions>.get(guild: Long) =
     find(NameConventions::guild eq guild).first()?.data ?: db.defaultNameConventions
+
+@JvmName("getPokedex")
+suspend fun CoroutineCollection<Pokemon>.get(id: String) = find(Pokemon::id eq id).first()

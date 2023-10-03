@@ -14,6 +14,7 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.only
@@ -50,6 +51,7 @@ import net.dv8tion.jda.api.utils.FileUpload
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.litote.kmongo.eq
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 import java.awt.Color
@@ -851,5 +853,13 @@ object PrivateCommands {
                 ).first, "png", it
             )
         }.toByteArray(), "yay.png")).queue()
+    }
+
+    suspend fun updateGoogleStatistics() {
+        RequestBuilder("1_8eutglTucjqgo-sPsdNrlFf-vjKADXrdPDj389wwbY").addAll(
+            "Data!A2",
+            db.statistics.find(Statistics::meta eq "analysis").toList()
+                .map { listOf(defaultTimeFormat.format(it.timestamp.toEpochMilli()), it.count) })
+            .execute()
     }
 }

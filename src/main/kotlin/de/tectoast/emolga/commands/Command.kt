@@ -1213,7 +1213,7 @@ abstract class Command(
                 if (cl.isInterface) continue
                 val name = cl.superclass.simpleName
                 if (name.endsWith("Command") && !Modifier.isAbstract(cl.modifiers)) {
-                    val cmd = cl.constructors[0].newInstance()
+                    val cmd = cl.kotlin.objectInstance
                     if (cl.isAnnotationPresent(ToTest::class.java)) {
                         logger.warn("{} has to be tested!", cl.name)
                     }

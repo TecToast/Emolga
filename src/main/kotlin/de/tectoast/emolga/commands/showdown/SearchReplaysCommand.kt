@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 import java.io.IOException
 
-class SearchReplaysCommand :
+object SearchReplaysCommand :
     Command("searchreplays", "Sucht nach Replays der angegebenen Showdownbenutzernamen", CommandCategory.Showdown) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
@@ -54,9 +54,9 @@ class SearchReplaysCommand :
         }).also { logger.info(it) }
     ).bodyAsText()
 
-    companion object {
-        private val logger = LoggerFactory.getLogger(SearchReplaysCommand::class.java)
-    }
+
+    private val logger = LoggerFactory.getLogger(SearchReplaysCommand::class.java)
+
 
     @Serializable
     data class Replay(val id: String, val p1: String, val p2: String, val uploadtime: Long, val format: String)

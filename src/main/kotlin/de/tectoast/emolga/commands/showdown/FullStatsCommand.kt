@@ -8,7 +8,7 @@ import de.tectoast.emolga.database.exposed.FullStatsDB
 import dev.minn.jda.ktx.messages.Embed
 import kotlin.math.roundToInt
 
-class FullStatsCommand :
+object FullStatsCommand :
     Command("fullstats", "Zeigt die volle Statistik von einem Pokemon an (Kills/Uses/etc)", CommandCategory.Showdown) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()

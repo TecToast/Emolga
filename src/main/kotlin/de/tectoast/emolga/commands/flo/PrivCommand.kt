@@ -5,7 +5,7 @@ import de.tectoast.emolga.utils.Constants
 import kotlin.reflect.full.callSuspend
 import kotlin.reflect.full.declaredMemberFunctions
 
-class PrivCommand : Command("priv", "Executet einen Priv Command", CommandCategory.Flo) {
+object PrivCommand : Command("priv", "Executet einen Priv Command", CommandCategory.Flo) {
 
     private val privCommands by lazy {
         PrivateCommands::class.declaredMemberFunctions.filter { it.returnType.classifier == Unit::class }

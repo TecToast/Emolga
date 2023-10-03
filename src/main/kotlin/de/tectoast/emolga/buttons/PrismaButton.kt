@@ -6,7 +6,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.RequestBuilder
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
-class PrismaButton : ButtonListener("prisma") {
+object PrismaButton : ButtonListener("prisma") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val id = e.user.idLong
         if (id != Constants.HENNY && id != 213725720407441410L && id != Constants.FLOID) {

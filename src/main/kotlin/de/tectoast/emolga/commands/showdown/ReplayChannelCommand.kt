@@ -7,7 +7,7 @@ import de.tectoast.emolga.database.exposed.AnalysisDB
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel
 
-class ReplayChannelCommand : Command(
+object ReplayChannelCommand : Command(
     "replaychannel",
     "Konfiguriert die Replay-Channel",
     CommandCategory.Showdown

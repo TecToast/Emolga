@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PepeCommand
 import de.tectoast.emolga.utils.Constants
 
-class OddsCommand : PepeCommand("odds", "Bin zu faul Help Nachrichten zu schreiben") {
+object OddsCommand : PepeCommand("odds", "Bin zu faul Help Nachrichten zu schreiben") {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }

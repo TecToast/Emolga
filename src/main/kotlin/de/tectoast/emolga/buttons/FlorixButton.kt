@@ -10,7 +10,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button
 import java.awt.Color
 import java.io.IOException
 
-class FlorixButton : ButtonListener("florix") {
+object FlorixButton : ButtonListener("florix") {
     @Throws(IOException::class)
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         //if (e.user.idLong != Constants.FLOID || e.guild!!.idLong != Constants.G.MY) return

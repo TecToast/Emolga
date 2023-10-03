@@ -8,7 +8,7 @@ import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.coroutines.await
 
-class AddSDNameCommand : Command("addsdname", "Registriert deinen Showdown-Namen bei Emolga", CommandCategory.Draft) {
+object AddSDNameCommand : Command("addsdname", "Registriert deinen Showdown-Namen bei Emolga", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("name", "SD-Name", "Der SD-Name", ArgumentManagerTemplate.Text.any())

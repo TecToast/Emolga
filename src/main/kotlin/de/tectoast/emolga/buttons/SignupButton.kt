@@ -5,7 +5,7 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
-class SignupButton : ButtonListener("signup") {
+object SignupButton : ButtonListener("signup") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val gid = e.guild!!.idLong
         val lsData = db.signups.get(gid)

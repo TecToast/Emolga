@@ -5,7 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 
-class LogoForCommand : Command("logofor", "Reicht ein Logo für jemanden ein", CommandCategory.Draft) {
+object LogoForCommand : Command("logofor", "Reicht ein Logo für jemanden ein", CommandCategory.Draft) {
 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {

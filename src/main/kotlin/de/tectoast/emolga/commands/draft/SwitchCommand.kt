@@ -11,7 +11,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.SwitchData
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 
-class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.Draft) {
+object SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.Draft) {
     private val tlNameCache = SizeLimitedMap<String, String>(1000)
 
     init {
@@ -113,7 +113,7 @@ class SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.D
         d.nextPlayer()
     }
 
-    companion object {
-        private val logger = LoggerFactory.getLogger(SwitchCommand::class.java)
-    }
+
+    private val logger = LoggerFactory.getLogger(SwitchCommand::class.java)
+
 }

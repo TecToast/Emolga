@@ -5,7 +5,7 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
-class ControlCentralButton : ButtonListener("controlcentral") {
+object ControlCentralButton : ButtonListener("controlcentral") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         var b = true
         var breakpoint = false

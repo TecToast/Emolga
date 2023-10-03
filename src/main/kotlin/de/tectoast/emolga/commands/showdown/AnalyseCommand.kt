@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 
-class AnalyseCommand :
+object AnalyseCommand :
     Command("analyse", "Schickt das Ergebnis des angegebenen Kampfes in den Channel", CommandCategory.Showdown) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()

@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.entities.Member
 import org.litote.kmongo.contains
 import org.litote.kmongo.eq
 
-class DraftPermissionCommand : Command(
+object DraftPermissionCommand : Command(
     "draftpermission", "Konfiguriert deine Ersatzdrafter", CommandCategory.Draft
 ) {
 

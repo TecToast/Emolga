@@ -8,7 +8,7 @@ import dev.minn.jda.ktx.coroutines.await
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Member
 
-class GrabIDCommand : Command("grabid", "grabid", CommandCategory.Flo) {
+object GrabIDCommand : Command("grabid", "grabid", CommandCategory.Flo) {
 
     private val logger = KotlinLogging.logger {}
     private val cachedMembers = mutableSetOf<Member>()

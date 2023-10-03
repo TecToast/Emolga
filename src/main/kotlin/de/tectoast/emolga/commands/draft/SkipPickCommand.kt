@@ -7,7 +7,7 @@ import de.tectoast.emolga.database.exposed.DraftAdminsDB
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import net.dv8tion.jda.api.Permission
 
-class SkipPickCommand : Command("skippick", "Skippe eine Person beim Draft", CommandCategory.Draft) {
+object SkipPickCommand : Command("skippick", "Skippe eine Person beim Draft", CommandCategory.Draft) {
     init {
         setCustomPermissions { mem ->
             mem.hasPermission(Permission.ADMINISTRATOR) || DraftAdminsDB.isAdmin(mem.guild.idLong, mem)

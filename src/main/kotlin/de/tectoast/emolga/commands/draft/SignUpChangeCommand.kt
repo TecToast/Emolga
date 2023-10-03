@@ -9,7 +9,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 
-class SignUpChangeCommand :
+object SignUpChangeCommand :
     Command("signupchange", "Ermöglicht es dir, deine Anmeldung anzupassen", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()

@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 
-class GiveawayModal : ModalListener("gcreate") {
+object GiveawayModal : ModalListener("gcreate") {
     override suspend fun process(e: ModalInteractionEvent, name: String?) {
         val interaction = e.interaction
         val time = interaction.getValue("time")?.asString?.let { s ->

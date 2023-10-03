@@ -6,7 +6,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.TipGamedayData
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import org.litote.kmongo.eq
 
-class TipGameButton : ButtonListener("tipgame") {
+object TipGameButton : ButtonListener("tipgame") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         //primary("tipgame;${league.name}:$index:${u1.indexedBy(table)}", names[u1]),
         val split = name.split(":")

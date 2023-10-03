@@ -5,7 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
-class RoundCommand : Command("round", "Zeigt die Runde des derzeitigen Drafts an", CommandCategory.Draft) {
+object RoundCommand : Command("round", "Zeigt die Runde des derzeitigen Drafts an", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }

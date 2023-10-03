@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.flegmon
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PepeCommand
 
-class FlegmonGehBitteCommand : PepeCommand("flegmongehbitte", "Sagt Flegmon, dass er bitte aus dem Voice gehen soll") {
+object FlegmonGehBitteCommand : PepeCommand("flegmongehbitte", "Sagt Flegmon, dass er bitte aus dem Voice gehen soll") {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
     }

@@ -11,7 +11,7 @@ import org.litote.kmongo.and
 import org.litote.kmongo.eq
 import org.litote.kmongo.upsert
 
-class NicknameCommand : Command(
+object NicknameCommand : Command(
     "nickname",
     "Ändert deinen Nickname (funktioniert nur 1x pro Woche)",
     CommandCategory.Various,

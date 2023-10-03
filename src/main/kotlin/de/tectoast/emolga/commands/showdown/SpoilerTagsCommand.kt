@@ -5,7 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 
-class SpoilerTagsCommand : Command(
+object SpoilerTagsCommand : Command(
     "spoilertags",
     "Aktiviert oder deaktiviert den Spoilerschutz bei Showdown-Ergebnissen. (Gilt serverweit)",
     CommandCategory.Showdown

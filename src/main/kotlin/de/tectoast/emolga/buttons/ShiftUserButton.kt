@@ -9,7 +9,7 @@ import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.reply_
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
-class ShiftUserButton : ButtonListener("shiftuser") {
+object ShiftUserButton : ButtonListener("shiftuser") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val gid = e.guild!!.idLong
         with(

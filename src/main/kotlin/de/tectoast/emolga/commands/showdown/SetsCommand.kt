@@ -10,7 +10,7 @@ import de.tectoast.emolga.utils.showdown.SDPokemon
 import java.util.regex.Pattern
 
 @Suppress("unused")
-class SetsCommand : Command("sets", "Zeigt die Sets von einem Showdown-Kampf an", CommandCategory.Showdown) {
+object SetsCommand : Command("sets", "Zeigt die Sets von einem Showdown-Kampf an", CommandCategory.Showdown) {
 
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
@@ -37,8 +37,8 @@ class SetsCommand : Command("sets", "Zeigt die Sets von einem Showdown-Kampf an"
         }.toList().joinToString("\n"))*/
     }
 
-    companion object {
-        private val BEGIN_RETURN = Pattern.compile("^\\r\\n")
+
+    private val BEGIN_RETURN = Pattern.compile("^\\r\\n")
         private val END_RETURN = Pattern.compile("\\r\\n$")
         private fun buildPaste(p: SDPlayer): String {
             return p.pokemon.map { buildPokemon(it) }.joinToString("\r\n\r\n") {
@@ -58,5 +58,5 @@ class SetsCommand : Command("sets", "Zeigt die Sets von einem Showdown-Kampf an"
                 append(p.moves.joinToString("\r\n") { "- $it  " })*/
             }
         }
-    }
+
 }

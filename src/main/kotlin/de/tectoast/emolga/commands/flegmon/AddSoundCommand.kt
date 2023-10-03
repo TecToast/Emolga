@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PepeCommand
 import java.io.File
 
-class AddSoundCommand : PepeCommand("addsound", "Added einen Sound") {
+object AddSoundCommand : PepeCommand("addsound", "Added einen Sound") {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add(

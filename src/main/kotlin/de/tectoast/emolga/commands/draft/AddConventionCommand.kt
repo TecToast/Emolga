@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 
-class AddConventionCommand : Command(
+object AddConventionCommand : Command(
     "addconvention",
     "Fügt eine Naming Convention von einem Mon hinzu, nur im Kontext von /preparetierlist zu verwenden",
     CommandCategory.Draft

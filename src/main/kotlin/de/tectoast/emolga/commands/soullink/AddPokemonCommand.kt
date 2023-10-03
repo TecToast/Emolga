@@ -6,7 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
 
-class AddPokemonCommand : Command("addpokemon", "Fügt ein Pokemon hinzu", CommandCategory.Soullink) {
+object AddPokemonCommand : Command("addpokemon", "Fügt ein Pokemon hinzu", CommandCategory.Soullink) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("location", "Location", "Die Location", ArgumentManagerTemplate.Text.withAutocomplete { s, _ ->

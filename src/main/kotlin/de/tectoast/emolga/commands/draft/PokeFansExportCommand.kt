@@ -10,7 +10,7 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import java.util.regex.Pattern
 
-class PokeFansExportCommand : Command("pokefansexport", "Macht Pokefans Export lol", CommandCategory.Draft) {
+object PokeFansExportCommand : Command("pokefansexport", "Macht Pokefans Export lol", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder().add(
             "draft",
@@ -65,7 +65,7 @@ class PokeFansExportCommand : Command("pokefansexport", "Macht Pokefans Export l
         tc.sendMessage("]").queue()
     }
 
-    companion object {
-        private val JUST_CHARS_AND_WHITESPACES = Pattern.compile("[^A-Za-z\\s]")
-    }
+
+    private val JUST_CHARS_AND_WHITESPACES = Pattern.compile("[^A-Za-z\\s]")
+
 }

@@ -5,7 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
-class SkipCommand : Command(
+object SkipCommand : Command(
     "skip",
     "Überspringt deinen Zug",
     CommandCategory.Draft

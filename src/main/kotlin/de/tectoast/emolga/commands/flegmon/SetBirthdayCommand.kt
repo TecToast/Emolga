@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PepeCommand
 import de.tectoast.emolga.database.exposed.BirthdayDB
 
-class SetBirthdayCommand : PepeCommand("setbirthday", "Trägt deinen Geburtstag ein") {
+object SetBirthdayCommand : PepeCommand("setbirthday", "Trägt deinen Geburtstag ein") {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("bday", "Geburtstag", "Der Geburtstag lol", ArgumentManagerTemplate.Text.any())

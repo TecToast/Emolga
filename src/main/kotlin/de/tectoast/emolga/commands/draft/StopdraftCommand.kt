@@ -7,7 +7,7 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import org.litote.kmongo.eq
 
-class StopdraftCommand : Command("stopdraft", "Beendet den Draft", CommandCategory.Flo) {
+object StopdraftCommand : Command("stopdraft", "Beendet den Draft", CommandCategory.Flo) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("draftchannel", "Draftchannel", "Der Channel des Drafts", ArgumentManagerTemplate.DiscordType.CHANNEL)

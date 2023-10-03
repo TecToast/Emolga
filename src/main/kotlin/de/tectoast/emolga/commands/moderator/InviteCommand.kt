@@ -5,7 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 
-class InviteCommand :
+object InviteCommand :
     Command("invite", "Erstellt einen einmalig nutzbaren Invite", CommandCategory.Admin, Constants.G.ASL) {
     init {
         //addCustomChannel(Constants.G.ASL, 773572093697851392L, 736501675447025704L)

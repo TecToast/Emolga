@@ -1,7 +1,6 @@
 package de.tectoast.emolga.commands.draft
 
 import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.commands.draft.PickCommand.Companion.exec
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.isEnglish
@@ -9,7 +8,7 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.get
 
-class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", CommandCategory.Draft) {
+object RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("tier", "Tier", "Das Tier, in dem gepickt werden soll", ArgumentManagerTemplate.Text.any())
@@ -18,11 +17,11 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
         slash(true, Constants.G.ASL, Constants.G.FLP, Constants.G.WFS)
     }
 
-    companion object {
-        val tierRestrictions = mapOf(
-            Constants.G.ASL to setOf("D")
-        )
-    }
+
+    private val tierRestrictions = mapOf(
+        Constants.G.ASL to setOf("D")
+    )
+
 
     override suspend fun process(e: GuildCommandEvent) {
         val d =
@@ -59,6 +58,6 @@ class RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt", 
                 }
             } ?: return e.reply("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")))
         }
-        exec(e, true)
+        PickCommand.exec(e, true)
     }
 }

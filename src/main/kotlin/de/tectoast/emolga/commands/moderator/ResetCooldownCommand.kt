@@ -11,7 +11,7 @@ import org.litote.kmongo.eq
 import org.litote.kmongo.set
 import org.litote.kmongo.setTo
 
-class ResetCooldownCommand : Command(
+object ResetCooldownCommand : Command(
     "resetcooldown",
     "Resettet den Cooldown der angegebenen Person",
     CommandCategory.Moderator,

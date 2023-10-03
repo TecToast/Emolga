@@ -9,7 +9,7 @@ import dev.minn.jda.ktx.interactions.components.primary
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import java.util.Calendar.*
 
-class HomeworkCommand : AbstractRemindCommand("homework", "Hausaufgabe hinzugef√ºgt!") {
+object HomeworkCommand : AbstractRemindCommand("homework", "Hausaufgabe hinzugef√ºgt!") {
     private fun getHomeworkMillis(subject: Subject): Map<Person, Long> {
         return buildMap {
             if (subject.f)
@@ -75,8 +75,8 @@ class HomeworkCommand : AbstractRemindCommand("homework", "Hausaufgabe hinzugef√
         }
     }
 
-    companion object {
-        val flodates = listOf(
+
+    val flodates = listOf(
             RemindDate(MONDAY, 11, 5), RemindDate(WEDNESDAY, 9, 30), RemindDate(THURSDAY, 11, 5)
         )
         val subjects = mapOf(
@@ -86,7 +86,7 @@ class HomeworkCommand : AbstractRemindCommand("homework", "Hausaufgabe hinzugef√
             THURSDAY to listOf(MatheL, Deutsch, Englisch, Physik, Informatik),
             FRIDAY to listOf(ChemieL, MatheL, Sport)
         )
-    }
+
 
 }
 

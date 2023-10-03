@@ -6,7 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.EnterResult
 
-class ResultCommand :
+object ResultCommand :
     Command("result", "Startet die interaktive Ergebniseingabe", CommandCategory.Draft) {
 
     init {

@@ -9,7 +9,7 @@ import org.litote.kmongo.addToSet
 import org.litote.kmongo.eq
 import org.litote.kmongo.pull
 
-class EmolgaChannelCommand : Command(
+object EmolgaChannelCommand : Command(
     "emolgachannel", "Added/Removed einen Channel, in dem Emolga benutzt werden kann", CommandCategory.Moderator
 ) {
     init {

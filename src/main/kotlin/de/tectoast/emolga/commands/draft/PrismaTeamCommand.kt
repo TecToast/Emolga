@@ -16,10 +16,10 @@ import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import org.slf4j.LoggerFactory
 
-class PrismaTeamCommand : PrivateCommand("prismateam") {
+object PrismaTeamCommand : PrivateCommand("prismateam") {
     private val template: InteractiveTemplate
     val current: MutableSet<Long> = HashSet()
-
+    private val logger = LoggerFactory.getLogger(PrismaTeamCommand::class.java)
     init {
         logger.info("Registered PrismaTeamCommand!")
         //setIsAllowed(u -> Arrays.asList(Command.getEmolgaJSON().getJSONObject("drafts").getJSONObject("Prisma").getString("table").split(",")).contains(u.getId()));
@@ -89,22 +89,21 @@ class PrismaTeamCommand : PrivateCommand("prismateam") {
         template.createInteractive(e.author, e.channel, e.messageIdLong)
     }
 
-    companion object {
-        private val logger = LoggerFactory.getLogger(PrismaTeamCommand::class.java)
-        fun test(m: Message, i: Interactive, reqtier: String): Any {
-            val msg = m.contentDisplay
-            if (msg.equals("!badsteam", ignoreCase = true)) {
-                return ErrorMessage("")
-            }
-            val t = runBlocking { NameConventionsDB.getDiscordTranslation(msg, Constants.G.FLP) }
-            logger.info("msg = $msg, i = ${i.user.idLong} reqtier = $reqtier")
-            if (t == null) {
-                return ErrorMessage("Das ist kein Pokemon!")
-            }
-            return t.tlName
-        }
 
-        val tierlist: Tierlist
-            get() = Tierlist[736555250118295622]!!
+    fun test(m: Message, i: Interactive, reqtier: String): Any {
+        val msg = m.contentDisplay
+        if (msg.equals("!badsteam", ignoreCase = true)) {
+            return ErrorMessage("")
+        }
+        val t = runBlocking { NameConventionsDB.getDiscordTranslation(msg, Constants.G.FLP) }
+        logger.info("msg = $msg, i = ${i.user.idLong} reqtier = $reqtier")
+        if (t == null) {
+            return ErrorMessage("Das ist kein Pokemon!")
+        }
+        return t.tlName
     }
+
+    val tierlist: Tierlist
+        get() = Tierlist[736555250118295622]!!
 }
+

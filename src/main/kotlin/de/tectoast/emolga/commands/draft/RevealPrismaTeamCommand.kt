@@ -8,7 +8,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 
-class RevealPrismaTeamCommand :
+object RevealPrismaTeamCommand :
     Command("revealprismateam", "Revealt die Prisma Teams lol", CommandCategory.Draft, Constants.G.FLP) {
     init {
         setCustomPermissions(PermissionPreset.fromIDs(Constants.HENNY))

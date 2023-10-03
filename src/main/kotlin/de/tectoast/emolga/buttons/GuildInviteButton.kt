@@ -3,7 +3,7 @@ package de.tectoast.emolga.buttons
 import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
-class GuildInviteButton : ButtonListener("guildinvite") {
+object GuildInviteButton : ButtonListener("guildinvite") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         e.jda.getGuildById(name)
             ?.let { g ->

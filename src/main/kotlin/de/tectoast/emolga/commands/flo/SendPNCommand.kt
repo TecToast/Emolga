@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 
-class SendPNCommand : Command("sendpn", "Sendet PNs", CommandCategory.Flo) {
+object SendPNCommand : Command("sendpn", "Sendet PNs", CommandCategory.Flo) {
 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {

@@ -6,7 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
 
-class DraftsetupCommand :
+object DraftsetupCommand :
     Command("draftsetup", "Startet das Draften der Liga in diesem Channel (nur Flo)", CommandCategory.Flo) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()

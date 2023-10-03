@@ -6,7 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.coroutines.await
 
-class FinishDraftCommand :
+object FinishDraftCommand :
     Command("finishdraft", "Beendet für dich den Draft", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()

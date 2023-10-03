@@ -13,7 +13,7 @@ import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.litote.kmongo.eq
 import java.sql.SQLIntegrityConstraintViolationException
 
-class AddToTierlistCommand :
+object AddToTierlistCommand :
     Command("addtotierlist", "Fügt ein Mon in die Tierliste ein", CommandCategory.Draft) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()

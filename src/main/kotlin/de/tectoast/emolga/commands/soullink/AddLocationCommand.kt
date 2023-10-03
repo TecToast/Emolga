@@ -6,7 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
 
-class AddLocationCommand : Command("addlocation", "Fügt eine neue Location hinzu", CommandCategory.Soullink) {
+object AddLocationCommand : Command("addlocation", "Fügt eine neue Location hinzu", CommandCategory.Soullink) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("location", "Location", "Die Location", ArgumentManagerTemplate.Text.any())

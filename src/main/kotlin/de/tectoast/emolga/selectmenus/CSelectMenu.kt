@@ -12,7 +12,7 @@ import dev.minn.jda.ktx.messages.send
 import mu.KotlinLogging
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 
-class CSelectMenu : MenuListener("cselect") {
+object CSelectMenu : MenuListener("cselect") {
     private val logger = KotlinLogging.logger {}
     override suspend fun process(e: StringSelectInteractionEvent, menuname: String?) {
         val (mode, uid) = menuname!!.split(":").let { it[0] to it[1].toLong() }

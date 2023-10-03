@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 
-class MuteCommand : Command("mute", "Mutet den User wegen des angegebenen Grundes", CommandCategory.Moderator) {
+object MuteCommand : Command("mute", "Mutet den User wegen des angegebenen Grundes", CommandCategory.Moderator) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add(

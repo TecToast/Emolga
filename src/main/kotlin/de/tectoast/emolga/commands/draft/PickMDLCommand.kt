@@ -11,7 +11,7 @@ import dev.minn.jda.ktx.interactions.components.danger
 import dev.minn.jda.ktx.interactions.components.success
 import mu.KotlinLogging
 
-class PickMDLCommand : Command("pickmdl", "Gamblen :)", CommandCategory.Draft) {
+object PickMDLCommand : Command("pickmdl", "Gamblen :)", CommandCategory.Draft) {
 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {
@@ -64,8 +64,8 @@ class PickMDLCommand : Command("pickmdl", "Gamblen :)", CommandCategory.Draft) {
         d.currentMon = MDLPick(official, mon, tier, type)
     }
 
-    companion object {
-        val tiers = mapOf("S" to 1, "A" to 2, "B" to 3, "C" to 3, "D" to 2).toList()
-        private val logger = KotlinLogging.logger {}
-    }
+
+    val tiers = mapOf("S" to 1, "A" to 2, "B" to 3, "C" to 3, "D" to 2).toList()
+    private val logger = KotlinLogging.logger {}
+
 }

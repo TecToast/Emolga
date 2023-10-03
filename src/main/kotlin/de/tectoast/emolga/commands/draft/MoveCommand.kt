@@ -7,7 +7,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.coroutines.await
 
-class MoveCommand : Command(
+object MoveCommand : Command(
     "move",
     "Verschiebt deinen Pick",
     CommandCategory.Draft,

@@ -18,7 +18,7 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 
-class NominateCommand : PrivateCommand("nominate") {
+object NominateCommand : PrivateCommand("nominate") {
     private val tiercomparator: Comparator<DraftPokemon>
 
     init {

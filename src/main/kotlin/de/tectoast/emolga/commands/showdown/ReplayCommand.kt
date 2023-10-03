@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 
-class ReplayCommand : Command(
+object ReplayCommand : Command(
     "replay",
     "Analysiert ein Replay und schickt das Ergebnis in den konfigurierten Ergebnischannel",
     CommandCategory.Showdown
@@ -36,8 +36,8 @@ class ReplayCommand : Command(
         analyseReplay(url = mr.groupValues[0], resultchannelParam = tc, fromReplayCommand = hook)
     }
 
-    companion object {
-        val regex =
+
+    val regex =
             Regex("https://replay\\.(?:ess\\.tectoast\\.de|pokemonshowdown\\.com)/(?:[a-z]+-)?([^-]+)-\\d+[-a-z0-9]*")
-    }
+
 }

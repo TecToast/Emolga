@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 
-class KickCommand : Command("kick", "Kickt den User", CommandCategory.Moderator) {
+object KickCommand : Command("kick", "Kickt den User", CommandCategory.Moderator) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add(

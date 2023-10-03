@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 
-class TempBanCommand : Command("tempban", "Tempbannt den User", CommandCategory.Moderator) {
+object TempBanCommand : Command("tempban", "Tempbannt den User", CommandCategory.Moderator) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("user", "User", "User, der getempbannt werden soll", ArgumentManagerTemplate.DiscordType.USER)

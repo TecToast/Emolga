@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.fromFlo
 import dev.minn.jda.ktx.interactions.components.Modal
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
-class AddSDNameButton : ButtonListener("addsdname") {
+object AddSDNameButton : ButtonListener("addsdname") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         e.replyModal(Modal("addsdname", "Showdown-Namen hinzufügen") {
             short("name", "Dein Showdown-Name", required = true, requiredLength = 1..18)

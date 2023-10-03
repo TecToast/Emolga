@@ -7,7 +7,7 @@ import net.dv8tion.jda.api.entities.Member
 import java.util.*
 import java.util.function.Consumer
 
-class NextBirthdayCommand : PepeCommand("nextbirthday", "Zeigt die naheliegende Geburtstage an") {
+object NextBirthdayCommand : PepeCommand("nextbirthday", "Zeigt die naheliegende Geburtstage an") {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
         aliases.add("nextbirthdays")

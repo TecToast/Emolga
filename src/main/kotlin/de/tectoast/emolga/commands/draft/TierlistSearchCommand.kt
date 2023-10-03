@@ -8,7 +8,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 
 
-class TierlistSearchCommand :
+object TierlistSearchCommand :
         Command("tierlistsearch", "Zeigt dir alle Pokemon in einem Tier mit einem bestimmten Typ", CommandCategory.Draft) {
 
     init {

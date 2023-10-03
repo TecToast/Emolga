@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import org.litote.kmongo.inc
 import org.litote.kmongo.keyProjection
 
-class CounterButton : ButtonListener("counter") {
+object CounterButton : ButtonListener("counter") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val split = name.split(":")
         val method = split[0]

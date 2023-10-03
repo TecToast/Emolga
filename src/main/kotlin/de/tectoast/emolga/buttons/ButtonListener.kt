@@ -40,7 +40,7 @@ abstract class ButtonListener(name: String) {
             for (classInfo in ClassPath.from(loader).getTopLevelClassesRecursive("de.tectoast.emolga.buttons")) {
                 val cl = classInfo.load()
                 if (cl.superclass.simpleName.endsWith("ButtonListener") && !Modifier.isAbstract(cl.modifiers)) {
-                    cl.constructors[0].newInstance()
+                    cl.kotlin.objectInstance
                 }
             }
         }

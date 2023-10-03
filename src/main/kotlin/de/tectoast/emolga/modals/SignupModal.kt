@@ -26,7 +26,7 @@ import kotlinx.coroutines.sync.withLock
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import java.util.concurrent.ConcurrentHashMap
 
-class SignupModal : ModalListener("signup") {
+object SignupModal : ModalListener("signup") {
     private val persistentSignupData = ConcurrentHashMap<Long, Pair<Mutex, Channel<LigaStartData>>>()
     override suspend fun process(e: ModalInteractionEvent, name: String?) {
         val teamname = e.getValue("teamname")?.asString
@@ -102,13 +102,13 @@ class SignupModal : ModalListener("signup") {
         }
     }
 
-    companion object {
-        private val signupScope = CoroutineScope(Dispatchers.IO)
+
+    private val signupScope = CoroutineScope(Dispatchers.IO)
         fun getModal(data: SignUpData?, lsData: LigaStartData) =
             Modal("signup".condAppend(data != null, ";change"), "Anmeldung".condAppend(data != null, "sanpassung")) {
                 if (!lsData.noTeam)
                     short("teamname", "Team-Name", required = true, value = data?.teamname)
                 short("sdname", "Showdown-Name", required = true, requiredLength = 1..18, value = data?.sdname)
             }
-    }
+
 }

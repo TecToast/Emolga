@@ -8,10 +8,10 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.MDL
 
-class TeraMDLCommand : Command("teramdl", "Randomized den Tera-Typen", CommandCategory.Draft) {
+object TeraMDLCommand : Command("teramdl", "Randomized den Tera-Typen", CommandCategory.Draft) {
 
-    companion object {
-        val typeList = setOf(
+
+    val typeList = setOf(
             "Normal",
             "Feuer",
             "Wasser",
@@ -31,7 +31,7 @@ class TeraMDLCommand : Command("teramdl", "Randomized den Tera-Typen", CommandCa
             "Stahl",
             "Käfer"
         )
-    }
+
 
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()

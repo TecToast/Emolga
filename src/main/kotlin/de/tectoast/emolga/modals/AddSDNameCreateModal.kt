@@ -7,7 +7,7 @@ import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 
-class AddSDNameCreateModal : ModalListener("addsdnamecreate") {
+object AddSDNameCreateModal : ModalListener("addsdnamecreate") {
     override suspend fun process(e: ModalInteractionEvent, name: String?) {
         if (e.notFromFlo) return
         val (tc, msg, buttonname) = listOf("tc", "msg", "buttonname").map { e.getValue(it)!!.asString }

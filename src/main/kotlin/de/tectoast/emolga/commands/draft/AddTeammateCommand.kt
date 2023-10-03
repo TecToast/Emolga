@@ -6,7 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 
-class AddTeammateCommand :
+object AddTeammateCommand :
     Command("addteammate", "Fügt einen Spieler zu deinem Team hinzu, falls du angemeldet bist", CommandCategory.Draft) {
 
     init {

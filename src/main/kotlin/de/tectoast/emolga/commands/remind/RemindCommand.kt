@@ -1,3 +1,3 @@
 package de.tectoast.emolga.commands.remind
 
-class RemindCommand : RegularRemindCommand("remind", "Reminder gesetzt!")
+object RemindCommand : RegularRemindCommand("remind", "Reminder gesetzt!")

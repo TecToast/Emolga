@@ -40,7 +40,7 @@ abstract class MenuListener(name: String) {
                 val cl = classInfo.load()
                 if (cl.superclass.simpleName.endsWith("MenuListener") && !Modifier.isAbstract(cl.modifiers)) {
                     //logger.info(classInfo.getName());
-                    cl.constructors[0].newInstance()
+                    cl.kotlin.objectInstance
                 }
             }
 

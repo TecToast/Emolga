@@ -6,7 +6,7 @@ import dev.minn.jda.ktx.messages.Embed
 import java.awt.Color
 import java.io.File
 
-class SoundsCommand : PepeCommand("sounds", "Zeigt alle Sound-Snippets an, die der Bot hat") {
+object SoundsCommand : PepeCommand("sounds", "Zeigt alle Sound-Snippets an, die der Bot hat") {
     private val off = listOf("scream", "screamlong", "rickroll")
 
     init {

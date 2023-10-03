@@ -6,7 +6,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
 
-class StartMenschenhandelCommand : Command(
+object StartMenschenhandelCommand : Command(
     "startmenschenhandel",
     "Startet die beste Sache einer Coach-Season",
     CommandCategory.Draft,

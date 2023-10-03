@@ -5,7 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.draft.EnterResult
 
-class ResWithGuildCommand : Command("reswithguild", "Startet die interaktive Ergebniseingabe", CommandCategory.Flo) {
+object ResWithGuildCommand : Command("reswithguild", "Startet die interaktive Ergebniseingabe", CommandCategory.Flo) {
 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {

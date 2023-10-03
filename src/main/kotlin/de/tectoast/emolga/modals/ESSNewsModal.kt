@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.file
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import java.text.SimpleDateFormat
 
-class ESSNewsModal : ModalListener("essnews") {
+object ESSNewsModal : ModalListener("essnews") {
     override suspend fun process(e: ModalInteractionEvent, name: String?) {
         val title = e.getValue("title")!!.asString
         val text = e.getValue("text")!!.asString
@@ -18,13 +18,13 @@ class ESSNewsModal : ModalListener("essnews") {
         e.reply("ESS News wurden geupdated!").queue()
     }
 
-    companion object {
-        val paths = listOf(
+
+    val paths = listOf(
             "/var/www/essclient/index.html".file(),
             "/var/www/essclient/index.template.html".file()
         )
         private val dateFormat = SimpleDateFormat("dd.MM.yyyy")
         private val currentDate: String
             get() = dateFormat.format(System.currentTimeMillis())
-    }
+
 }

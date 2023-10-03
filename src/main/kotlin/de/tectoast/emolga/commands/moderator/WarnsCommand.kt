@@ -7,7 +7,7 @@ import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.database.exposed.WarnsDB
 import dev.minn.jda.ktx.messages.Embed
 
-class WarnsCommand : Command("warns", "Zeigt alle Verwarnungen des Users an", CommandCategory.Moderator) {
+object WarnsCommand : Command("warns", "Zeigt alle Verwarnungen des Users an", CommandCategory.Moderator) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add(

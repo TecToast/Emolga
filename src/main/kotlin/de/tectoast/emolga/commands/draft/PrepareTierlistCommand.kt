@@ -7,7 +7,7 @@ import de.tectoast.emolga.commands.PrivateCommands
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 
-class PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste ein", CommandCategory.Draft) {
+object PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierliste ein", CommandCategory.Draft) {
 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {

@@ -38,7 +38,7 @@ abstract class ModalListener(name: String) {
             for (classInfo in ClassPath.from(loader).getTopLevelClassesRecursive("de.tectoast.emolga.modals")) {
                 val cl = classInfo.load()
                 if (cl.superclass.simpleName.endsWith("ModalListener") && !Modifier.isAbstract(cl.modifiers)) {
-                    cl.constructors[0].newInstance()
+                    cl.kotlin.objectInstance
                 }
             }
         }

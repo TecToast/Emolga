@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
-class NominateButton : ButtonListener("nominate") {
+object NominateButton : ButtonListener("nominate") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val n = Command.nominateButtons[e.messageIdLong]
         if (n == null) {

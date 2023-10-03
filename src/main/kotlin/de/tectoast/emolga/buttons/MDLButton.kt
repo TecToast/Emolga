@@ -14,7 +14,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.PickData
 import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
-class MDLButton : ButtonListener("mdlpick") {
+object MDLButton : ButtonListener("mdlpick") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val d = League.onlyChannel(e.channel.idLong)
             ?: return e.reply("Dieser Button funktioniert nicht mehr! Wenn du denkst, dass dies ein Fehler ist, melde dich bei ${Constants.MYTAG}.")

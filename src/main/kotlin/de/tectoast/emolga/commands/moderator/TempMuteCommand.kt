@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 
-class TempMuteCommand : Command("tempmute", "Muted den User temporär", CommandCategory.Moderator) {
+object TempMuteCommand : Command("tempmute", "Muted den User temporär", CommandCategory.Moderator) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("user", "User", "User, der getempmuted werden soll", ArgumentManagerTemplate.DiscordType.USER)

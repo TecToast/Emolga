@@ -7,7 +7,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.automation.collection.ModalConfigurators
 import org.slf4j.LoggerFactory
 
-class ConfigurateCommand : Command("configurate", "Konfiguriert verschiedene Sachen", CommandCategory.Various) {
+object ConfigurateCommand : Command("configurate", "Konfiguriert verschiedene Sachen", CommandCategory.Various) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add(
@@ -34,7 +34,7 @@ class ConfigurateCommand : Command("configurate", "Konfiguriert verschiedene Sac
         ModalConfigurators.configurations[conf]!!.configurator().initialize(e.slashCommandEvent!!)
     }
 
-    companion object {
-        private val logger = LoggerFactory.getLogger(ConfigurateCommand::class.java)
-    }
+
+    private val logger = LoggerFactory.getLogger(ConfigurateCommand::class.java)
+
 }

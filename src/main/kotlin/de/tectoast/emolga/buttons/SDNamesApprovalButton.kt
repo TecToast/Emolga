@@ -5,7 +5,7 @@ import dev.minn.jda.ktx.messages.reply_
 import mu.KotlinLogging
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
-class SDNamesApprovalButton : ButtonListener("sdnamesapproval") {
+object SDNamesApprovalButton : ButtonListener("sdnamesapproval") {
     val logger = KotlinLogging.logger {}
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val args = name.split(";")

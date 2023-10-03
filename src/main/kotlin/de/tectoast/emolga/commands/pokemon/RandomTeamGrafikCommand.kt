@@ -19,7 +19,7 @@ import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 
 
-class RandomTeamGrafikCommand :
+object RandomTeamGrafikCommand :
     Command("randomteamgrafik", "Du bekommst sensationelle und fancyge Teamgrafiken", CommandCategory.Pokemon) {
 
     init {
@@ -54,8 +54,8 @@ class RandomTeamGrafikCommand :
         }
     }
 
-    companion object {
-        private val logger = KotlinLogging.logger {}
+
+    private val logger = KotlinLogging.logger {}
 
 
         private val sets = listOf(
@@ -70,7 +70,6 @@ class RandomTeamGrafikCommand :
         fun generateTeam(guild: Long = Constants.G.ASL): List<DraftPokemon> {
             return Tierlist[guild]!!.retrieveTierlistMap(sets.random())
         }
-    }
 
 
 }

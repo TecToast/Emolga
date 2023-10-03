@@ -5,7 +5,7 @@ import de.tectoast.emolga.database.exposed.SDNamesDB
 import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 
-class AddSDNameModal : ModalListener("addsdname") {
+object AddSDNameModal : ModalListener("addsdname") {
     override suspend fun process(e: ModalInteractionEvent, name: String?) {
         val sdname = e.getValue("name")!!.asString
         val parsed = e.getValue("id")?.asString?.toLongOrNull()

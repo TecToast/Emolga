@@ -7,7 +7,7 @@ import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import java.awt.Color
 
-class HelpButton : ButtonListener("help") {
+object HelpButton : ButtonListener("help") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
         val g = e.guild!!
         val mem = e.member!!

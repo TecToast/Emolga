@@ -101,7 +101,7 @@ class DocEntry private constructor(val league: League) {
     fun analyse(
         replayData: ReplayData
     ) {
-        val (game, uid1, uid2, kills, deaths, _, url, gamedayData) = replayData
+        val (game, uids, kills, deaths, _, url, gamedayData) = replayData
         val (gameday, battleindex, u1IsSecond) = gamedayData
         if (cancelIf(replayData, gameday)) return
 
@@ -109,7 +109,6 @@ class DocEntry private constructor(val league: League) {
         val b = RequestBuilder(sid)
         val customB = customDataSid?.let(::RequestBuilder)
         val dataB = customB ?: b
-        val uids = listOf(uid1, uid2)
         val picks = league.providePicksForGameday(gameday)
         for ((i, uid) in uids.withIndex()) {
             val index = league.table.indexOf(uid)
@@ -169,12 +168,12 @@ class DocEntry private constructor(val league: League) {
                 }
             }
             if (game[i].winner) {
-                league.results["$uid1:$uid2"] = uid
+                league.results[uids.joinToString(":")] = uid
             }
         }
 
         run {
-            val winningIndex = (if (game[0].winner) uid1 else uid2).indexedBy(league.table)
+            val winningIndex = (if (game[0].winner) uids[0] else uids[1]).indexedBy(league.table)
             val leagueName = league.leaguename
             val gamedayTips = league.tipgame?.tips?.get(gameday)
             if (gamedayTips?.evaluated?.contains(battleindex) == true) return@run

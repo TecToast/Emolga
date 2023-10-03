@@ -24,6 +24,7 @@ import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.eq
 import org.litote.kmongo.newId
 import org.litote.kmongo.reactivestreams.KMongo
+import kotlin.time.measureTimedValue
 import org.litote.kmongo.serialization.configuration as mongoConfiguration
 
 val db: MongoEmolga get() = delegateDb ?: error("MongoDB not initialized!")
@@ -57,6 +58,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
     val typeicons by lazy { db.getCollection<TypeIcon>("typeicons") }
     val pokedex by lazy { db.getCollection<Pokemon>("pokedex") }
+    val pickedMons by lazy { db.getCollection<PickedMonsData>("pickedmons") }
 
     val shinycount by lazy { db.getCollection<Shinycount>() }
 
@@ -73,7 +75,32 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
         drafts.findOne(League::guild eq gid, League::table all uids.toList())
+
+    suspend fun leagueByGuildAdvanced(gid: Long, game: List<List<String>>, vararg uids: Long): LeagueResult? {
+        // {$and: [{ guild: NumberLong("651152835425075218")},{ mons: { $all: [ 'Illumise', 'Rabigator', 'Hoopa', 'Raikou', 'Primarene', 'Sumpex' ] }}]}
+        val (leagueResult, duration) = measureTimedValue {
+            val filterNotNull = uids.mapIndexed { index, uid ->
+                val possible =
+                    pickedMons.find(PickedMonsData::guild eq gid, PickedMonsData::mons all game[index]).toList()
+                possible.singleOrNull() ?: possible.firstOrNull { it.user == uid }
+            }.filterNotNull()
+            if (filterNotNull.size != uids.size) return null
+            var currentLeague: String? = null
+            for (pickedMon in filterNotNull) {
+                if (currentLeague == null) currentLeague = pickedMon.leaguename
+                else if (currentLeague != pickedMon.leaguename) return null
+            }
+            val league = league(currentLeague!!)
+            LeagueResult(league, filterNotNull.map { it.user })
+        }
+        println("DURATION: ${duration.inWholeMilliseconds}")
+        return leagueResult
+    }
 }
+
+@Serializable
+data class PickedMonsData(val leaguename: String, val guild: Long, val user: Long, val mons: List<String>)
+data class LeagueResult(val league: League, val uids: List<Long>)
 
 @Serializable
 data class TypeIcon(

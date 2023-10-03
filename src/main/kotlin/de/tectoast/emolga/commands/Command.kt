@@ -207,6 +207,7 @@ abstract class Command(
         allowsMember = predicate.or { it.idLong == FLOID }
         customPermissions = true
     }
+
     protected fun disable() {
         disabled = true
     }
@@ -1733,6 +1734,7 @@ abstract class Command(
                 }
             }
         }
+
         fun play(guild: Guild, musicManager: GuildMusicManager, track: AudioTrack, vc: AudioChannel) {
             val audioManager = guild.audioManager
             if (!audioManager.isConnected) {
@@ -1772,6 +1774,7 @@ abstract class Command(
             }
             return json.decodeFromString(filename.file().readText())
         }
+
         val movesJSON: JsonObject
             get() = ModManager.default.moves
 
@@ -2113,6 +2116,7 @@ abstract class Command(
                 )
             }.queue()
         }
+
         fun getAsXCoord(xc: Int): String {
             var i = xc
             var x = 0
@@ -2238,40 +2242,9 @@ abstract class Command(
             val gid = customGuild ?: g.idLong
             val u1 = game[0].nickname
             val u2 = game[1].nickname
-            val uid1 = SDNamesDB.getIDByName(u1)
-            val uid2 = SDNamesDB.getIDByName(u2)
+            val uid1db = SDNamesDB.getIDByName(u1)
+            val uid2db = SDNamesDB.getIDByName(u2)
             logger.info("Analysed!")
-            val league = db.leagueByGuild(gid, uid1, uid2) ?: run {
-                val otherUid =
-                    if (uid1 == 310517476322574338) uid2 else if (uid2 == 310517476322574338) uid1 else return@run null
-                db.leagueByGuild(gid, 272083848433500160, otherUid)
-            }
-//                if (league is ASL) {
-//                    val i1 = league.table.indexOf(uid1)
-//                    val i2 = league.table.indexOf(uid2)
-//                    val gameday = league.battleorder.asIterable().reversed()
-//                        .firstNotNullOfOrNull {
-//                            if (it.value.any { l ->
-//                                    l.containsAll(listOf(i1, i2))
-//                                }) it.key else null
-//                        }
-//                        ?: -1
-//                    if (gameday == 10) {
-//                        message?.channel?.sendMessage("Replay ist angekommen, wird aber erst später ausgewertet!")
-//                            ?.queue()
-//                        return
-//                    }
-//                }
-            val jda = resultchannelParam.jda
-            val replayChannel =
-                league?.provideReplayChannel(jda).takeIf { customGuild == null } ?: customReplayChannel
-            val resultChannel =
-                league?.provideResultChannel(jda).takeIf { customGuild == null } ?: resultchannelParam
-            logger.info("uid1 = $uid1")
-            logger.info("uid2 = $uid2")
-
-            //if (gid == Constants.G.ASL && league == null) return@launch
-            //logger.info(g.getName() + " -> " + (m.isFromType(ChannelType.PRIVATE) ? "PRIVATE " + m.getAuthor().getId() : m.getTextChannel().getAsMention()));
             val spoiler = spoilerTags.contains(gid)
             game.forEach {
                 it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
@@ -2287,7 +2260,7 @@ abstract class Command(
                 "${player.nickname}:".condAppend(
                     player.allMonsDead && !spoiler, " (alle tot)"
                 ) + "\n".condAppend(spoiler, "||") + player.pokemon.map { mon ->
-                     getMonName(mon.pokemon, gid).also {
+                    getMonName(mon.pokemon, gid).also {
                         monNames[mon.pokemon] = it
                     }.displayName.let {
                         if (activePassive) {
@@ -2298,6 +2271,30 @@ abstract class Command(
                     }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
                 }.joinToString("\n").condAppend(spoiler, "||")
             }.joinToString("\n\n")
+            val leaguedata = db.leagueByGuildAdvanced(
+                gid,
+                game.map { it.pokemon.map { mon -> monNames[mon.pokemon]!!.official } },
+                uid1db,
+                uid2db
+            )
+            val league = leaguedata?.league
+            val uids = leaguedata?.uids ?: listOf(uid1db, uid2db)
+            val gamedayData = defaultScope.async {
+                league?.getGameplayData(uids[0], uids[1], game)
+            }
+//            if (league is ASL) {
+//                val gdData = gamedayData.await()
+//                if (gdData?.gameday == 10) {
+//                    message?.channel?.sendMessage("Replay ist angekommen, wird aber erst später ausgewertet!")?.queue()
+//                    return
+//                }
+//            }
+            val jda = resultchannelParam.jda
+            val replayChannel =
+                league?.provideReplayChannel(jda).takeIf { customGuild == null } ?: customReplayChannel
+            val resultChannel =
+                league?.provideResultChannel(jda).takeIf { customGuild == null } ?: resultchannelParam
+            logger.info("uids = $uids")
             logger.info("u1 = $u1")
             logger.info("u2 = $u2")
             if (fromAnalyseCommand != null) {
@@ -2339,23 +2336,22 @@ abstract class Command(
                 game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to mon.kills } }
             val deaths =
                 game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to if (mon.isDead) 1 else 0 } }
-            if (uid1 == -1L || uid2 == -1L) return
             league?.docEntry?.let { de ->
                 de.analyse(
                     ReplayData(
                         game = game,
-                        uid1 = uid1,
-                        uid2 = uid2,
+                        uids = uids,
                         kills = kills,
                         deaths = deaths,
                         mons = game.map { it.pokemon.map { mon -> monNames[mon.pokemon]!!.official } },
                         url = url,
-                        league.getGameplayData(uid1, uid2, game)
+                        gamedayData = gamedayData.await()!!
                     )
                 )
             }
             //}
         }
+
         fun getGerName(s: String): Translation {
             val id = toSDName(s)
             if (translationsCacheGerman.containsKey(id)) return translationsCacheGerman.getValue(id)
@@ -2627,16 +2623,13 @@ fun String.toDocRange() = DocRange[this]
 
 data class ReplayData(
     val game: List<DraftPlayer>,
-    val uid1: Long,
-    val uid2: Long,
+    val uids: List<Long>,
     val kills: List<Map<String, Int>>,
     val deaths: List<Map<String, Int>>,
     val mons: List<List<String>>,
     val url: String,
     val gamedayData: GamedayData
-) {
-    val uids by lazy { listOf(uid1, uid2) }
-}
+)
 
 data class GamedayData(
     val gameday: Int,

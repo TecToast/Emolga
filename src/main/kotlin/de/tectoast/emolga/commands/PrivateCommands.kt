@@ -14,7 +14,6 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.only
@@ -489,28 +488,6 @@ object PrivateCommands {
 
     fun checkAdmin(e: GenericCommandEvent) {
         e.reply(e.jda.getGuildById(e.getArg(0))!!.selfMember.hasPermission(Permission.ADMINISTRATOR).toString())
-    }
-
-
-    suspend fun asls11doc(e: GenericCommandEvent) {
-        val sid = "1VWjAc370NQvuybaQZOTQ2uBVGC36D2_n63DOghkoE2k"
-        val b = RequestBuilder(sid)
-        val tindex = e.args[0].toInt()
-        val level = e.args[1].toInt()
-        val asl = db.asls11
-        val team = asl.table[tindex]
-        val uid = asl.data[team]!!.members[level]!!
-        val aslleague = db.leagueByGuild(Constants.G.ASL, uid)!!
-        val mons = Google[sid, "Data$level!B${tindex.y(15, 3)}:B${tindex.y(15, 14)}", false].map { it[0] as String }
-        val picks = aslleague.picks[uid]!!
-        val tl = Tierlist[Constants.G.ASL]!!
-        picks.clear()
-        picks.addAll(mons.map { DraftPokemon(it, tl.getTierOf(it)!!) })
-        b.addColumn("$team!C${level.y(26, 23)}", picks.let { pi ->
-            pi.sortedWith((aslleague as ASLCoach).comparator).map { it.indexedBy(pi) }
-                .map { "=Data$level!B${tindex.y(15, 3) + it}" }
-        })
-        b.execute()
     }
 
 

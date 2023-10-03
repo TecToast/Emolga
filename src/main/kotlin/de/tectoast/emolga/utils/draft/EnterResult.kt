@@ -183,8 +183,7 @@ object EnterResult {
                                 winnerOfGame = d.size != d.dead
                             }
                         },
-                        uids[0],
-                        uids[1],
+                        uids,
                         data.map { it.asKillMap },
                         data.map { it.asDeathMap },
                         data.map { l -> l.map { it.official } },

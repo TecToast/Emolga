@@ -24,9 +24,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
+import java.util.concurrent.ConcurrentHashMap
 
 class SignupModal : ModalListener("signup") {
-    private val signUpMutex = Mutex()
+    private val persistentSignupData = ConcurrentHashMap<Long, Pair<Mutex, Channel<LigaStartData>>>()
     override suspend fun process(e: ModalInteractionEvent, name: String?) {
         val teamname = e.getValue("teamname")?.asString
         val sdname = e.getValue("sdname")!!.asString
@@ -36,7 +37,22 @@ class SignupModal : ModalListener("signup") {
         val isChange = name == "change"
         val g = e.guild!!
         e.deferReply(true).queue()
-        signUpMutex.withLock {
+        val (signupMutex, channel) = persistentSignupData.getOrPut(g.idLong) {
+            val c = Channel<LigaStartData>(CONFLATED)
+            signupScope.launch {
+                while (true) {
+                    with(c.receive()) {
+                        EmolgaMain.emolgajda.getTextChannelById(announceChannel)!!.editMessageById(
+                            announceMessageId,
+                            "$signupMessage\n\n**Teilnehmer: ${users.size}/${maxUsersAsString}**"
+                        ).queue()
+                        delay(10000)
+                    }
+                }
+            }
+            Mutex() to c
+        }
+        signupMutex.withLock {
             with(db.signups.get(g.idLong)!!) {
                 if (!isChange && full) return e.hook.sendMessage("❌ Die Anmeldung ist bereits voll!").queue()
                 val ownerOfTeam =
@@ -85,23 +101,6 @@ class SignupModal : ModalListener("signup") {
             }
         }
     }
-
-    val channel = Channel<LigaStartData>(CONFLATED)
-
-    init {
-        signupScope.launch {
-            while (true) {
-                with(channel.receive()) {
-                    EmolgaMain.emolgajda.getTextChannelById(announceChannel)!!.editMessageById(
-                        announceMessageId,
-                        "$signupMessage\n\n**Teilnehmer: ${users.size}/${maxUsersAsString}**"
-                    ).queue()
-                    delay(10000)
-                }
-            }
-        }
-    }
-
 
     companion object {
         private val signupScope = CoroutineScope(Dispatchers.IO)

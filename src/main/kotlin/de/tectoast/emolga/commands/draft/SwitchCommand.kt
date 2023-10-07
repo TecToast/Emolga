@@ -99,7 +99,6 @@ object SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.
                         round = round,
                         memIndex = table.indexOf(mem),
                         oldmon = oldmon.tlName,
-                        oldtier = oldtier,
                         oldIndex = draftPokemons.indexOfFirst { it.name == oldmon.official },
                         changedOnTeamsiteIndex = oldIndex,
                     )

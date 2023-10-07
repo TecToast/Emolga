@@ -17,17 +17,17 @@ class RequestBuilder
  */(val sid: String) {
     private val requests: MutableList<MyRequest> = ArrayList()
     private var executed = false
-    private var runnable: Runnable? = null
+    private var runnable: (suspend () -> Unit)? = null
     private var delay: Long = 0
     private var suppressMessages = false
     private var additionalSheets: Array<String>? = null
     private var onlyBatch = false
-    fun withRunnable(r: Runnable?): RequestBuilder {
+    fun withRunnable(r: suspend () -> Unit): RequestBuilder {
         runnable = r
         return this
     }
 
-    fun withRunnable(delay: Long, r: Runnable?): RequestBuilder {
+    fun withRunnable(delay: Long, r: suspend () -> Unit): RequestBuilder {
         runnable = r
         this.delay = delay
         return this
@@ -412,7 +412,7 @@ class RequestBuilder
             scope.launch {
                 job.join()
                 delay(delay)
-                it.run()
+                it()
             }
         }
     }

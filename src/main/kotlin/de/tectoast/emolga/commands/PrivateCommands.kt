@@ -14,7 +14,10 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.ASLCoachData
+import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
+import de.tectoast.emolga.utils.json.emolga.TeamData
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.only
@@ -52,11 +55,13 @@ import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.eq
+import org.litote.kmongo.newId
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 import java.awt.Color
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -861,5 +866,41 @@ object PrivateCommands {
             db.statistics.find(Statistics::meta eq "analysis").toList()
                 .map { listOf(defaultTimeFormat.format(it.timestamp.toEpochMilli()), it.count) })
             .execute()
+    }
+
+    private data class CoachData(val coachId: Long, val roleId: Long, val prefix: String)
+
+    suspend fun initializeCoachSeason() {
+        val teams = mapOf(
+            "Dragorangensaft" to CoachData(268813717863530496, 1159431733557608458, "EDS"),
+            "Roserades Restaurants" to CoachData(230715385962430465, 1159432029218283551, "ROS"),
+            "Let Him Cook" to CoachData(302421572004872193, 1159432116757614602, "LHC"),
+            "Dönersichel" to CoachData(293827461698027521, 1159432596116209665, "DS"),
+            "Keldeogg's Frosties" to CoachData(441290844381642782, 1159432673756975154, "KF"),
+            "Muffin-san's little bakery" to CoachData(264333612432752640, 1159432842841948230, "MLB"),
+            "Sweet Tooth" to CoachData(725650285858521128, 1159432937381576746, "ST"),
+            "Verspeisen sie Barsch?" to CoachData(207211269911085056, 1159432981472096296, "VSA"),
+            "Flutsch-Finger Fluffeluff" to CoachData(310517476322574338, 1159433134249627648, "FFF"),
+            "Spicy Dino Nugget Gang" to CoachData(239836406594273280, 1159433205582147685, "SDG"),
+            "Well-Baked Backel" to CoachData(567135876308795392, 1159433481328283760, "WBB"),
+            "Ape Tower" to CoachData(324265924905402370, 1159433552413335603, "PZT")
+        )
+        val aslCoachData = ASLCoachData(
+            newId(),
+            table = teams.keys.toList(),
+            data = teams.mapValues {
+                val data = it.value
+                TeamData(
+                    members = mutableMapOf(0 to data.coachId),
+                    points = 4500,
+                    role = data.roleId,
+                    prefix = data.prefix
+                )
+            },
+            sid = "1U7XDcLrJT8Y4TkP1Gm6wpdpDOn256GBf8-q3zBonuso",
+            originalorder = List(12) { it }.shuffled(SecureRandom()).toMutableList(),
+            config = Config(),
+        )
+        db.aslcoach.insertOne(aslCoachData)
     }
 }

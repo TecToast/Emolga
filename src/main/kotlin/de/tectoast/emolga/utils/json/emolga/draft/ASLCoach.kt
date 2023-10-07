@@ -12,6 +12,7 @@ import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.records.Coord
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -19,7 +20,7 @@ import kotlinx.serialization.Transient
 
 @Serializable
 @SerialName("ASLCoach")
-class ASLCoach(val level: Int = -1, private val sheetid: Int = -1) : League() {
+class ASLCoach(val level: Int = -1) : League() {
     @Transient
     override val docEntry = DocEntry.create(this) {
         val sheet = "Data$level"
@@ -65,7 +66,7 @@ class ASLCoach(val level: Int = -1, private val sheetid: Int = -1) : League() {
     val comparator: Comparator<DraftPokemon> = compareBy({ it.tier.indexedBy(tierlist.order) }, { it.name })
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
-        val asl = db.asls11
+        val asl = db.aslcoach.only()
         val (level, index, team) = asl.indexOfMember(data.mem)
         addSingle("Data$level!B${index.y(15, data.changedIndex + 3)}", data.pokemon)
         addColumn("$team!C${level.y(26, 23)}", data.picks.let { pi ->
@@ -81,62 +82,15 @@ class ASLCoach(val level: Int = -1, private val sheetid: Int = -1) : League() {
         )
     }
 
-    override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
-        val killY = level.y(12 * 12, 1000 + data.mem.indexedBy(table).y(12, data.changedIndex))
-        addCopyPasteChange(343863794, "B$killY:F$killY", "B$killY", "PASTE_VALUES")
-            .withRunnable {
-                val b = builder()
-                // Killliste neues Mon hinzufügen, altes Mon in Ablage cutpasten und neues Mon in Kader einfügen, Kaderseite sortieren
-                val asl = db.asls11
-                val rowFirst = data.mem.indexedBy(table).y(15, 0)
-                val row = rowFirst + data.changedIndex + 3
-                b.addRow(
-                    "Data!A${asl.yeetedmons.values.flatten().count() + 1731}", listOf(
-                        data.pokemon,
-                        "=Data$level!K$row",
-                        "=WENNFEHLER(RUNDEN(Data$level!K$row / Data$level!V$row; 2); 0)",
-                        "=Data$level!K$row - Data$level!U$row",
-                        "=Data$level!V$row",
-                        "=Data$level!U$row",
-                        "=Data$level!B${rowFirst + 16}",
-                        "Stufe $level"
-                    )
-                )
-                val (level, index, team) = asl.indexOfMember(data.mem)
-                val yeeted = asl.yeetedmons.getOrPut(data.mem) { mutableListOf() }
-                val rowold = yeeted.size + rowFirst + 203
-                yeeted.add(DraftPokemon(data.oldmon, data.oldtier))
-                b.addSingle("Data$level!B$row", data.pokemon)
-                b.addSingle("Data$level!B${rowold}", data.oldmon)
-                b.addCutPasteChange(sheetid, "C$row:G$row", "C$rowold", "PASTE_VALUES")
-                b.addCutPasteChange(sheetid, "M$row:Q$row", "M$rowold", "PASTE_VALUES")
-                b.addColumn("$team!C${level.y(26, 23)}", data.picks.let { pi ->
-                    pi.sortedWith(comparator).map { it.indexedBy(pi) }.map { "=Data$level!B${index.y(15, 3) + it}" }
-                })
-                b.addColumn("$team!C${level.y(26, 35)}", yeeted.let { pi ->
-                    pi.sortedWith(comparator).map { it.indexedBy(pi) }.map { "=Data$level!B${index.y(15, 203) + it}" }
-                })
-                val sheetname = "Zwischendraftreihenfolge ${
-                    when (level) {
-                        0 -> "Coaches"
-                        else -> "Stufe $level"
-                    }
-                }"
-                b.addSingle("$sheetname!${data.round.minus(1).x(3, 2)}${data.indexInRound + 3}", data.oldmon)
-                b.addSingle("$sheetname!${data.round.minus(1).x(3, 3)}${data.indexInRound + 3}", data.pokemon)
-                b.execute()
-            }
-    }
-
-    override fun announcePlayer() {
+    override suspend fun announcePlayer() {
         tc.sendMessage("${getCurrentMention()} ist dran! (${points[current]} mögliche Punkte)")
             .queue()
     }
 
-    override fun getCurrentMention() = "<@$current> ||<@&${db.asls11.roleIdByMember(current)}||)"
+    override suspend fun getCurrentMention() = "<@$current> ||<@&${db.aslcoach.only().roleIdByMember(current)}||)"
 
-    override fun isCurrent(user: Long): Boolean {
-        return user in db.asls11.teammembersByMember(current)
+    override suspend fun isCurrent(user: Long): Boolean {
+        return user in db.aslcoach.only().teammembersByMember(current)
     }
 }
 

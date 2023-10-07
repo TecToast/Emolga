@@ -2,7 +2,7 @@ package de.tectoast.emolga.utils.json
 
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.ifTrue
-import de.tectoast.emolga.utils.json.emolga.ASLS11
+import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Soullink
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -62,8 +62,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     val shinycount by lazy { db.getCollection<Shinycount>() }
 
-    val asls11: ASLS11 get() = error("ASLS11 is not available atm!")
-    val asls11nametoid: List<Long> get() = error("ASLS11 is not available atm!")
+    val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
     val defaultNameConventions: Map<String, String> by lazy {
         runBlocking {
             nameconventions.find(NameConventions::guild eq 0).first()!!

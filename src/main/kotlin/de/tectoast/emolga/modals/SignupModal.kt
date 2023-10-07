@@ -43,8 +43,7 @@ object SignupModal : ModalListener("signup") {
                 while (true) {
                     with(c.receive()) {
                         EmolgaMain.emolgajda.getTextChannelById(announceChannel)!!.editMessageById(
-                            announceMessageId,
-                            "$signupMessage\n\n**Teilnehmer: ${users.size}/${maxUsersAsString}**"
+                            announceMessageId, "$signupMessage\n\n**Teilnehmer: ${users.size}/${maxUsersAsString}**"
                         ).queue()
                         delay(10000)
                     }
@@ -55,15 +54,13 @@ object SignupModal : ModalListener("signup") {
         signupMutex.withLock {
             with(db.signups.get(g.idLong)!!) {
                 if (!isChange && full) return e.hook.sendMessage("❌ Die Anmeldung ist bereits voll!").queue()
-                val ownerOfTeam =
-                    PrivateCommands.userIdForSignupChange?.takeIf { uid == Constants.FLOID }
-                        ?: if (isChange) getOwnerByUser(uid) ?: return e.reply_(
-                            "Du bist derzeit nicht angemeldet!"
-                        ).setEphemeral(true).queue()
-                        else uid
+                val ownerOfTeam = PrivateCommands.userIdForSignupChange?.takeIf { uid == Constants.FLOID }
+                    ?: if (isChange) getOwnerByUser(uid) ?: return e.reply_(
+                        "Du bist derzeit nicht angemeldet!"
+                    ).setEphemeral(true).queue()
+                    else uid
 
-                @Suppress("DeferredResultUnused")
-                SDNamesDB.addIfAbsent(sdname, ownerOfTeam)
+                @Suppress("DeferredResultUnused") SDNamesDB.addIfAbsent(sdname, ownerOfTeam)
                 if (isChange) {
                     val data = users[ownerOfTeam]!!
                     data.sdname = sdname
@@ -104,11 +101,10 @@ object SignupModal : ModalListener("signup") {
 
 
     private val signupScope = CoroutineScope(Dispatchers.IO)
-        fun getModal(data: SignUpData?, lsData: LigaStartData) =
-            Modal("signup".condAppend(data != null, ";change"), "Anmeldung".condAppend(data != null, "sanpassung")) {
-                if (!lsData.noTeam)
-                    short("teamname", "Team-Name", required = true, value = data?.teamname)
-                short("sdname", "Showdown-Name", required = true, requiredLength = 1..18, value = data?.sdname)
-            }
+    fun getModal(data: SignUpData?, lsData: LigaStartData) =
+        Modal("signup".condAppend(data != null, ";change"), "Anmeldung".condAppend(data != null, "sanpassung")) {
+            if (!lsData.noTeam) short("teamname", "Team-Name", required = true, value = data?.teamname)
+            short("sdname", "Showdown-Name", required = true, requiredLength = 1..18, value = data?.sdname)
+        }
 
 }

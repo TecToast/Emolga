@@ -163,12 +163,12 @@ sealed class League {
     open fun providePicksForGameday(gameday: Int): Map<Long, List<DraftPokemon>> = picks
 
 
-    fun isCurrentCheck(user: Long): Boolean {
+    suspend fun isCurrentCheck(user: Long): Boolean {
         if (current == user || user in Constants.DRAFTADMINS) return true
         return isCurrent(user)
     }
 
-    open fun isCurrent(user: Long): Boolean {
+    open suspend fun isCurrent(user: Long): Boolean {
         return allowed[current]?.any { it.u == user } ?: false
     }
 
@@ -318,7 +318,7 @@ sealed class League {
         tc.sendMessage("**=== Runde $round ===**").queue()
     }
 
-    open fun announcePlayer() {
+    open suspend fun announcePlayer() {
         tc.sendMessage("${getCurrentMention()} ist dran!${announceData()}").queue()
     }
 
@@ -436,7 +436,7 @@ sealed class League {
         logger.info("SAVED SEPARATELY")
     }
 
-    internal open fun getCurrentMention(): String {
+    internal open suspend fun getCurrentMention(): String {
         val data = allowed[current] ?: return "<@$current>"
         val currentData = data.firstOrNull { it.u == current } ?: AllowedData(current, true)
         val (teammates, other) = data.filter { it.mention && it.u != current }.partition { it.teammate }
@@ -682,7 +682,6 @@ class SwitchData(
     round: Int,
     memIndex: Int,
     val oldmon: String,
-    val oldtier: String,
     val oldIndex: Int,
     override val changedOnTeamsiteIndex: Int
 ) : DraftData(league, pokemon, pokemonofficial, tier, mem, indexInRound, changedIndex, picks, round, memIndex)

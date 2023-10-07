@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.only
 
 object StartMenschenhandelCommand : Command(
     "startmenschenhandel",
@@ -19,15 +20,17 @@ object StartMenschenhandelCommand : Command(
             .setExample("!startmenschenhandel #wasweißichdenn")
             .build()
         setCustomPermissions { it.isOwner }
+        slashInAllowedGuilds(true)
+        adminSlash = true
     }
 
     override suspend fun process(e: GuildCommandEvent) {
         val tc = e.arguments.getChannel("channel")
-        db.asls11.apply {
+        db.aslcoach.only().apply {
             textChannel = tc.idLong
             tc.sendMessage("Möge der Menschenhandel beginnen!").queue()
             nextCoach()
-            // TODO
+            save()
         }
 
     }

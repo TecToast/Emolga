@@ -7,6 +7,7 @@ data class Tokens(
     val google: Google,
     val discord: String,
     val discordflegmon: String = "",
+    val discordraikou: String = "",
     val subscriber: Subscriber,
     val tradedoc: String,
     val database: Database,

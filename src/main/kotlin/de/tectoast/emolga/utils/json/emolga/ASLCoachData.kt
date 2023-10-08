@@ -23,7 +23,7 @@ class ASLCoachData(
     val data: Map<String, TeamData> = mutableMapOf(),
     private val sid: String,
     val order: MutableList<Int> = mutableListOf(),
-    private val originalorder: MutableList<Int> = mutableListOf(),
+    val originalorder: MutableList<Int> = mutableListOf(),
     val config: Config = Config(),
     var textChannel: Long = 820359155612254258,
     var currentCoach: Long = -1,

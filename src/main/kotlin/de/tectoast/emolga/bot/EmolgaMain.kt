@@ -104,17 +104,18 @@ object EmolgaMain {
         Giveaway.init()
     }
 
-    private fun initializeASLCoach(jda: JDA) {
+    private fun initializeASLCoach(raikou: JDA) {
         val scope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
             logger.error("ERROR IN ASL SCOPE", t)
             Command.sendToMe("Error in asl scope, look in console")
         })
         scope.launch {
-            jda.awaitReady().getTextChannelById(820359155612254258)!!.sendMessage("Hallo ich bin cool c:").queue()
-            jda.getGuildById(Constants.G.ASL)!!.upsertCommand("bet", "Startet die Versteigerung eines Spielers").apply {
+            jda.awaitReady().getGuildById(Constants.G.ASL)!!
+                .upsertCommand("bet", "Startet die Versteigerung eines Spielers").apply {
                 addOption(OptionType.USER, "player", "Der Spieler, der versteigert werden soll", true)
                 addOption(OptionType.INTEGER, "startbet", "Das Startgebot", true)
             }.queue()
+            raikou.getGuildById(Constants.G.ASL)!!.deleteCommandById(1159465036008394834).queue()
         }
         jda.listener<SlashCommandInteractionEvent> { e ->
             if (e.name != "bet") return@listener
@@ -165,18 +166,18 @@ object EmolgaMain {
             var alreadyLaunched = false
             while (!finished) {
                 val res = withTimeoutOrNull(coachdata.config.waitFor) {
-                    val me: MessageReceivedEvent
                     var newbet: Int = -1
-                    me = jda.await { event ->
+                    val me = raikou.await<MessageReceivedEvent> { event ->
                         if (event.author.isBot || event.channel.idLong != e.channel.idLong) return@await false
                         val t = coachdata.teamByCoach(event.author.idLong)
                         val nbet = event.message.contentDisplay.toIntOrNull() ?: -1
                         if (t == null || !nbet.validBet() || nbet <= maxBet.second || (t.pointsToSpend() < nbet).also {
                                 if (it) {
                                     logger.info("${event.member!!.effectiveName} wanted to bid $nbet, but only has ${t.pointsToSpend()} points!")
-                                    event.author.openPrivateChannel()
-                                        .flatMap { pv -> pv.sendMessage("Du hast nicht mehr genug Punkte, um mit $nbet Punkten zu bieten!") }
-                                        .queue()
+                                    Command.sendToUser(
+                                        event.author.idLong,
+                                        "Du hast nicht mehr genug Punkte, um mit $nbet Punkten zu bieten!"
+                                    )
                                 }
                             } || (level in t.members).also {
                                 if (it) Command.sendToUser(

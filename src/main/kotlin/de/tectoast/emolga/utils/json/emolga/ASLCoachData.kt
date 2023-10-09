@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Contextual
@@ -49,16 +50,21 @@ class ASLCoachData(
                 order.remove(toremove)
             }
             println("PREFIX: $prefix")
-            prefix?.let {
-                user.modifyNickname("[$it] ${user.effectiveName.substringAfterLast("]").trim()}").queue(
-                    { idk ->
-                        println("Nickname changed! $idk")
+            try {
+                prefix?.let {
+                    user.modifyNickname("[$it] ${user.effectiveName.substringAfterLast("]").trim()}").queue(
+                        { idk ->
+                            println("Nickname changed! $idk")
+                        }
+                    ) { ex ->
+                        ex.printStackTrace()
                     }
-                ) { ex ->
-                    ex.printStackTrace()
                 }
+                user.guild.addRoleToMember(user, user.jda.getRoleById(role)!!).queue()
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                if (ex is CancellationException) throw ex
             }
-            user.guild.addRoleToMember(user, user.jda.getRoleById(role)!!).queue()
         }
 
         insertIntoDoc(user, coach, level, prize)
@@ -69,7 +75,7 @@ class ASLCoachData(
 
     suspend fun isPlayer(mem: Member) = mem.idLong in participants()
     fun isTaken(mem: Long) =
-        data.values.any { it.members.values.any { member -> member == mem } }/*.values.drop(1).any { it == mem } }*/
+        data.values.any { datas -> (1..3).any { datas.members[it] == mem } }
 
     suspend fun getLevelByMember(mem: Member): Int = participants()[mem.idLong]!!
 
@@ -110,7 +116,7 @@ class ASLCoachData(
         val row = participants().keys.toList().indexOf(user.idLong) + 4
         table.indexOf(teamnameByCoach(coach)).let {
             RequestBuilder(sid).addRow(
-                "Menschenhandel!${it.xmod(6, 3, 2)}${it.ydiv(6, 17, 14 + level)}", listOf("=T$row", prize)
+                "Menschenhandel!${it.xmod(6, 3, 2)}${it.ydiv(6, 16, 14 + level)}", listOf("=T$row", prize)
             ).addStrikethroughChange(959039009, "T$row", true).execute()
         }
     }

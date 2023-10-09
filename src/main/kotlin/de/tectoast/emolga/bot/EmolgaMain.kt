@@ -23,7 +23,6 @@ import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Activity
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
-import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import org.slf4j.LoggerFactory
@@ -109,14 +108,6 @@ object EmolgaMain {
             logger.error("ERROR IN ASL SCOPE", t)
             Command.sendToMe("Error in asl scope, look in console")
         })
-        scope.launch {
-            jda.awaitReady().getGuildById(Constants.G.ASL)!!
-                .upsertCommand("bet", "Startet die Versteigerung eines Spielers").apply {
-                addOption(OptionType.USER, "player", "Der Spieler, der versteigert werden soll", true)
-                addOption(OptionType.INTEGER, "startbet", "Das Startgebot", true)
-            }.queue()
-            raikou.getGuildById(Constants.G.ASL)!!.deleteCommandById(1159465036008394834).queue()
-        }
         jda.listener<SlashCommandInteractionEvent> { e ->
             if (e.name != "bet") return@listener
             val coachdata = db.aslcoach.only()

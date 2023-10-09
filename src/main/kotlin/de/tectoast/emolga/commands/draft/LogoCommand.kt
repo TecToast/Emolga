@@ -15,7 +15,7 @@ object LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Dra
         argumentTemplate = ArgumentManagerTemplate.create {
             add("logo", "Logo", "Das Logo", ArgumentManagerTemplate.DiscordFile("*"))
         }
-        slash(true, Constants.G.FLP, Constants.G.ASL, 665600405136211989, Constants.G.WFS)
+        slash(true, Constants.G.FLP, Constants.G.ASL, 665600405136211989, Constants.G.WFS, Constants.G.ADK)
     }
 
     override suspend fun process(e: GuildCommandEvent) {

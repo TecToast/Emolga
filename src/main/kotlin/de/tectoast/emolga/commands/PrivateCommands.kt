@@ -244,7 +244,8 @@ object PrivateCommands {
 
 
     suspend fun matchUps(e: GenericCommandEvent) {
-        NDS.doMatchUps(e.getArg(1).toInt())
+        val args = e.getArg(1).split(" ")
+        NDS.doMatchUps(args[0].toInt(), args[1].toBooleanStrict())
     }
 
 
@@ -590,7 +591,7 @@ object PrivateCommands {
         val roleId = args[4].toLong().takeIf { it > 0 }
         val text = args.drop(5).joinToString(" ")
             .replace("\\n", "\n")
-        SignupManager.createSignup(tc.guild.idLong, args[1].toLong(), args[2].toLong(), maxUsers, roleId, text)
+        SignupManager.createSignup(tc.idLong, args[1].toLong(), args[2].toLong(), maxUsers, roleId, text)
     }
 
     suspend fun closeSignup(e: GuildCommandEvent) {

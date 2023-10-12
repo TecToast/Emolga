@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.showdown
 
 import de.tectoast.emolga.commands.httpClient
+import de.tectoast.emolga.commands.roundToDigits
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.delay
@@ -10,7 +11,11 @@ import kotlin.time.Duration.Companion.seconds
 
 object Analysis {
     // generate a new analysis engine
-    suspend fun analyse(link: String, answer: ((String) -> Unit)? = null): Pair<List<SDPlayer>, BattleContext> {
+    suspend fun analyse(
+        link: String,
+        answer: ((String) -> Unit)? = null,
+        debugMode: Boolean = false
+    ): Pair<List<SDPlayer>, BattleContext> {
         logger.info("Reading URL... {}", link)
         var gameNullable: List<String>? = null
         for (i in 0..1) {
@@ -82,10 +87,9 @@ object Analysis {
         }
         return with(
             BattleContext(
-                link,
-                List(playerCount) { buildDummys(amount) },
-                "",
-                (0 until playerCount).map {
+                url = link,
+                monsOnField = List(playerCount) { buildDummys(amount) },
+                sdPlayers = (0 until playerCount).map {
                     SDPlayer(
                         nicknames[it] ?: run {
                             File("replayerrors/$link${System.currentTimeMillis()}.txt").also { f -> f.createNewFile() }
@@ -96,7 +100,8 @@ object Analysis {
                     )
                 },
                 randomBattle = randomBattle,
-                game = game
+                game = game,
+                debugMode = debugMode
             )
         ) {
             for (line in game) {
@@ -110,6 +115,20 @@ object Analysis {
                 SDEffect.effects[operation]?.let { it.forEach { e -> e.execute(split, this) } }
                 lastLine = line
             }
+            logger.info("Finished analyse!")
+            val totalDmg = totalDmgAmount.toDouble()
+            var calcedTotalDmg = 0
+            sdPlayers.flatMap { it.pokemon }.forEach {
+                calcedTotalDmg += it.damageDealt
+                logger.info(
+                    "Pokemon: ${it.pokemon}: HP: ${it.hp} Dmg: ${it.damageDealt} Percent: ${
+                        (it.damageDealt.toDouble() / totalDmg * 100.0).roundToDigits(
+                            2
+                        )
+                    } Healed: ${it.healed}"
+                )
+            }
+            logger.info("Total Dmg: $totalDmg, Calced: $calcedTotalDmg")
             sdPlayers to this
         }
     }

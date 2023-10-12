@@ -2209,7 +2209,7 @@ abstract class Command(
                 return
             }
             val (game, ctx) = try {
-                Analysis.analyse(url, ::send)
+                Analysis.analyse(url, ::send, resultchannelParam.guild.idLong == Constants.G.MY)
                 //game = Analysis.analyse(url, m);
             } catch (ex: Exception) {
                 when (ex) {
@@ -2595,6 +2595,8 @@ fun <K> MutableMap<K, Int>.add(key: K, value: Int) = compute(key) { _, v ->
 }
 
 operator fun <K, V> Map<K, V>.invoke(key: K) = getValue(key)
+
+fun Double.roundToDigits(digits: Int) = "%.${digits}f".format(this)
 
 data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)
 

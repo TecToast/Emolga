@@ -2,12 +2,16 @@ package de.tectoast.emolga.utils.showdown
 
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.utils.draft.DraftPlayer
+import kotlin.reflect.KClass
 
 data class SDPokemon(var pokemon: String, val player: Int) {
     private val effects: MutableMap<SDEffect, SDPokemon> = mutableMapOf()
     val volatileEffects: MutableMap<String, SDPokemon> = mutableMapOf()
     var kills = 0
     var activeKills = 0
+    var hp = 100
+    var healed = 0
+    var damageDealt = 0
     var isDead = false
     var lastDamageBy: SDPokemon? = null
     var itemObtainedFrom: SDPokemon? = null
@@ -42,7 +46,9 @@ data class SDPokemon(var pokemon: String, val player: Int) {
         if (active) activeKills++
     }
 
-    fun claimDamage(damagedMon: SDPokemon, fainted: Boolean, ctx: BattleContext, activeKill: Boolean = false) {
+    fun claimDamage(
+        damagedMon: SDPokemon, fainted: Boolean, ctx: BattleContext, amount: Int, activeKill: Boolean = false
+    ) {
         val claimer = this.withZoroCheck(ctx)
         if (fainted) {
             val idx = ctx.monsOnField[damagedMon.player].indexOf(damagedMon)
@@ -52,11 +58,24 @@ data class SDPokemon(var pokemon: String, val player: Int) {
                 })?.addKill(activeKill) else claimer.addKill(activeKill)
         }
         if (damagedMon.player != claimer.player) damagedMon.lastDamageBy = claimer
+        damagedMon.hp -= amount
+        claimer.damageDealt += amount
+        ctx.totalDmgAmount += amount
+    }
+
+    fun setNewHPAndHeal(ctx: BattleContext, newhp: Int, healer: SDPokemon? = null) {
+        val mon = withZoroCheck(ctx)
+        val currentHp = mon.hp
+        mon.hp = newhp
+        if (newhp > currentHp) {
+            (healer ?: mon).healed += newhp - currentHp
+        }
     }
 }
 
 @Suppress("unused")
 sealed class SDEffect(vararg val types: String) {
+    open val name: String? = null
 
     companion object {
         val effects: Map<String, List<SDEffect>> by lazy {
@@ -122,6 +141,7 @@ sealed class SDEffect(vararg val types: String) {
                 switchIn.volatileEffects.putAll(ctx.monsOnField[pl][idx].volatileEffects)
             }
             ctx.monsOnField[pl][idx] = switchIn
+            switchIn.setNewHPAndHeal(ctx, split[3].substringBefore("/").toInt())
         }
     }
 
@@ -142,22 +162,34 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
+    data object Heal : SDEffect("-heal") {
+        override fun execute(split: List<String>, ctx: BattleContext) {
+            val healedTo = split[2].substringBefore("/").toInt()
+            val (side, num) = split[1].parsePokemonLocation()
+            val healedMon = ctx.monsOnField[side][num]
+            val healer = split.getOrNull(3)?.substringAfter(": ")?.let { move ->
+                ctx.findResponsiblePokemon<RemoteHeal>(move, side = side)
+            }
+            healedMon.setNewHPAndHeal(ctx, healedTo, healer)
+        }
+    }
+
     data object Damage : SDEffect("-damage") {
+        val otherThanNumbers = Regex("[^0-9]")
         override fun execute(split: List<String>, ctx: BattleContext) {
             with(ctx) {
                 //println(split)
                 val damagedMon = split[1].parsePokemon(this)
-                val playerSide = sdPlayers[damagedMon.player]
                 val fainted = "fnt" in split[2]
-                val hazards = playerSide.fieldConditions
+                val amount = damagedMon.hp - split[2].substringBefore("/").replace(otherThanNumbers, "").toInt()
                 if (split.size > 4 && "[of]" in split[4] && split[3].substringAfter("[from] ") !in damagedMon.volatileEffects) {
-                    split[4].parsePokemon(ctx).claimDamage(damagedMon, fainted, ctx)
+                    split[4].parsePokemon(ctx).claimDamage(damagedMon, fainted, ctx, amount)
                     return
                 }
                 split.getOrNull(3)?.substringAfter("[from] ")?.let {
                     when (it) {
                         "psn", "tox", "brn" -> {
-                            damagedMon.getEffectSource(Status)?.claimDamage(damagedMon, fainted, ctx)
+                            damagedMon.getEffectSource(Status)?.claimDamage(damagedMon, fainted, ctx, amount)
                         }
 
                         "Recoil", "recoil", "mindblown", "steelbeam", "highjumpkick" -> {
@@ -165,34 +197,41 @@ sealed class SDEffect(vararg val types: String) {
                             (damagedMon.lastDamageBy ?: monsOnField.getOrNull(1 - pl)?.let { field ->
                                 field.getOrElse(1 - idx) { field[idx] }
                             })?.claimDamage(
-                                damagedMon, fainted, ctx
+                                damagedMon, fainted, ctx, amount
                             )
                         }
 
                         else -> {
                             if (it.startsWith("item: ")) {
-                                (damagedMon.itemObtainedFrom ?: damagedMon).claimDamage(damagedMon, fainted, ctx)
+                                (damagedMon.itemObtainedFrom ?: damagedMon).claimDamage(
+                                    damagedMon, fainted, ctx, amount
+                                )
                             }
                         }
                     }
-                    hazards.keys.filterIsInstance<Hazards>().firstOrNull { h -> h.name == it }
-                        ?.let { h -> hazards[h]!!.claimDamage(damagedMon, fainted, ctx) }
-                    activeWeather?.let { w -> if (w.first == it) w.second.claimDamage(damagedMon, fainted, ctx) }
+                    ctx.findResponsiblePokemon<Hazards>(it, side = damagedMon.player)?.claimDamage(
+                        damagedMon, fainted, ctx, amount
+                    )
+                    activeWeather?.let { w ->
+                        if (w.first == it) w.second.claimDamage(
+                            damagedMon, fainted, ctx, amount
+                        )
+                    }
                     damagedMon.volatileEffects.entries.firstOrNull { h ->
                         h.key == it || h.key == it.substringAfter(":").trim()
                     }?.value?.claimDamage(
-                        damagedMon, fainted, ctx
+                        damagedMon, fainted, ctx, amount
                     )
                     Unit
                 } ?: run {
                     ctx.sdPlayers.getOrNull(1 - damagedMon.player)?.let { p ->
                         p.hittingFutureMoves.removeFirstOrNull()?.let {
-                            p.fieldConditions[it]?.claimDamage(damagedMon, fainted, ctx)
+                            p.fieldConditions[it]?.claimDamage(damagedMon, fainted, ctx, amount)
                             return@run
                         }
                     }
                     // TODO: Future Moves work in FFA
-                    lastMove.parsePokemon(this).claimDamage(damagedMon, fainted, ctx, activeKill = true)
+                    lastMove.parsePokemon(this).claimDamage(damagedMon, fainted, ctx, amount, activeKill = true)
                 }
             }
         }
@@ -207,7 +246,7 @@ sealed class SDEffect(vararg val types: String) {
                 }
             } else {
                 if (split.getOrNull(2) == "perish0") {
-                    pkmn.perishedBy?.claimDamage(pkmn, true, ctx)
+                    pkmn.perishedBy?.claimDamage(pkmn, true, ctx, pkmn.hp)
                 }
             }
         }
@@ -220,7 +259,7 @@ sealed class SDEffect(vararg val types: String) {
             fainted.isDead = true
             val lastLine = ctx.lastLine.cleanSplit()
             if (lastLine.getOrNull(0) == "-activate" && lastLine.getOrNull(2) == "move: Destiny Bond") {
-                lastLine.getOrNull(1)?.parsePokemon(ctx)?.claimDamage(fainted, true, ctx, activeKill = false)
+                lastLine.getOrNull(1)?.parsePokemon(ctx)?.claimDamage(fainted, true, ctx, fainted.hp)
             }
         }
     }
@@ -262,7 +301,7 @@ sealed class SDEffect(vararg val types: String) {
                 val boomed = ctx.monsOnField[pl][idx]
                 (boomed.lastDamageBy ?: ctx.monsOnField.getOrNull(1 - pl)?.let {
                     it.getOrNull(1 - idx) ?: it[idx]
-                })?.claimDamage(boomed, true, ctx)
+                })?.claimDamage(boomed, true, ctx, boomed.hp)
             }
         }
 
@@ -341,7 +380,27 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    sealed class Hazards(val name: String) : SDEffect("-sidestart") {
+    sealed class RemoteHeal(override val name: String) : SDEffect("move") {
+        override fun execute(split: List<String>, ctx: BattleContext) {
+            val usedMove = split[2]
+            allHeals.firstOrNull { it.name == usedMove }?.let {
+                val (side, num) = split[1].parsePokemonLocation()
+                ctx.sdPlayers[side].fieldConditions[it] = ctx.monsOnField[side][num]
+            }
+        }
+
+        data object Wish : RemoteHeal("Wish")
+        data object HealingWish : RemoteHeal("Healing Wish")
+        data object LunarDance : RemoteHeal("Lunar Dance")
+
+        companion object {
+            val allHeals by lazy {
+                RemoteHeal::class.dataobjects()
+            }
+        }
+    }
+
+    sealed class Hazards(override val name: String) : SDEffect("-sidestart") {
 
         override fun execute(split: List<String>, ctx: BattleContext) {
             val pokemon = ctx.lastMove.parsePokemon(ctx)
@@ -358,9 +417,7 @@ sealed class SDEffect(vararg val types: String) {
         companion object {
 
             val allHazards by lazy {
-                Hazards::class.sealedSubclasses.map {
-                    it.objectInstance!!
-                }
+                Hazards::class.dataobjects()
             }
         }
     }
@@ -380,11 +437,13 @@ sealed class SDEffect(vararg val types: String) {
 
 }
 
+private fun <T : Any> KClass<T>.dataobjects() = this.sealedSubclasses.mapNotNull { it.objectInstance }
+
 
 data class BattleContext(
     val url: String,
     val monsOnField: List<MutableList<SDPokemon>>,
-    var lastMove: String,
+    var lastMove: String = "",
     val sdPlayers: List<SDPlayer>,
     var activeWeather: Pair<String, SDPokemon>? = null,
     var randomBattle: Boolean = false,
@@ -394,7 +453,12 @@ data class BattleContext(
     var turn: Int = 0,
     var vgc: Boolean = false,
     val game: List<String>,
-)
+    var totalDmgAmount: Int = 0,
+    val debugMode: Boolean
+) {
+    inline fun <reified T : SDEffect> findResponsiblePokemon(name: String, side: Int) =
+        sdPlayers[side].fieldConditions.entries.firstOrNull { (it.key as? T)?.name == name }?.value
+}
 
 class SDPlayer(
     val nickname: String,

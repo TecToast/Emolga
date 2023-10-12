@@ -2249,7 +2249,6 @@ abstract class Command(
             game.forEach {
                 it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
             }
-            val monNames: MutableMap<String, DraftName> = mutableMapOf()
             val activePassive = ActivePassiveKillsDB.hasEnabled(gid)
             val str = game.mapIndexed { index, sdPlayer ->
                 mutableListOf(
@@ -2261,7 +2260,8 @@ abstract class Command(
                     player.allMonsDead && !spoiler, " (alle tot)"
                 ) + "\n".condAppend(spoiler, "||") + player.pokemon.map { mon ->
                     getMonName(mon.pokemon, gid).also {
-                        monNames[mon.pokemon] = it
+                        mon.official = it.official
+                        mon.tlName = it.tlName
                     }.displayName.let {
                         if (activePassive) {
                             "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
@@ -2271,9 +2271,10 @@ abstract class Command(
                     }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
                 }.joinToString("\n").condAppend(spoiler, "||")
             }.joinToString("\n\n")
+            val allMons = game.map { it.pokemon.map { mon -> mon.official } }
             val leaguedata = db.leagueByGuildAdvanced(
                 gid,
-                game.map { it.pokemon.map { mon -> monNames[mon.pokemon]!!.official } },
+                allMons,
                 uid1db,
                 uid2db
             )
@@ -2309,7 +2310,7 @@ abstract class Command(
                 game.forEach { player ->
                     player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
                         FullStatsDB.add(
-                            monNames[it.pokemon]!!.official, it.kills, if (it.isDead) 1 else 0, player.winnerOfGame
+                            it.official, it.kills, if (it.isDead) 1 else 0, player.winnerOfGame
                         )
                     }
                 }
@@ -2333,22 +2334,20 @@ abstract class Command(
             //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )
             //  return;
             val kills =
-                game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to mon.kills } }
+                game.map { it.pokemon.associate { mon -> mon.official to mon.kills } }
             val deaths =
-                game.map { it.pokemon.associate { mon -> monNames[mon.pokemon]!!.official to if (mon.isDead) 1 else 0 } }
-            league?.docEntry?.let { de ->
-                de.analyse(
-                    ReplayData(
-                        game = game,
-                        uids = uids,
-                        kills = kills,
-                        deaths = deaths,
-                        mons = game.map { it.pokemon.map { mon -> monNames[mon.pokemon]!!.official } },
-                        url = url,
-                        gamedayData = gamedayData.await()!!
-                    )
+                game.map { it.pokemon.associate { mon -> mon.official to if (mon.isDead) 1 else 0 } }
+            league?.docEntry?.analyse(
+                ReplayData(
+                    game = game,
+                    uids = uids,
+                    kills = kills,
+                    deaths = deaths,
+                    mons = allMons,
+                    url = url,
+                    gamedayData = gamedayData.await()!!
                 )
-            }
+            )
             //}
         }
 

@@ -19,6 +19,8 @@ data class SDPokemon(var pokemon: String, val player: Int) {
     var perishedBy: SDPokemon? = null
     val zoroLines = mutableMapOf<IntRange, SDPokemon>()
     val otherNames = mutableSetOf<String>()
+    lateinit var official: String
+    lateinit var tlName: String
 
     fun hasName(name: String) = pokemon == name || otherNames.contains(name)
 

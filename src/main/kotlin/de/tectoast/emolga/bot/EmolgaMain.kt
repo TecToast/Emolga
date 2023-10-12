@@ -56,11 +56,11 @@ object EmolgaMain {
                 setMemberCachePolicy(MemberCachePolicy.ALL)
             }
         }
-        Command.tokens.discordraikou.takeIf { it != "" }?.let {
-            initializeASLCoach(default(it) {
-                intents += GatewayIntent.MESSAGE_CONTENT
-            })
-        }
+//        Command.tokens.discordraikou.takeIf { it != "" }?.let {
+//            initializeASLCoach(default(it) {
+//                intents += GatewayIntent.MESSAGE_CONTENT
+//            })
+//        }
 //        initializeASLS11(emolgajda)
         for (jda in if (NOTEMPVERSION) listOf(emolgajda, flegmonjda) else listOf(emolgajda)) {
             EmolgaListener.registerEvents(jda)

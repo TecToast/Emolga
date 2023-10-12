@@ -4,7 +4,9 @@ import de.tectoast.emolga.commands.httpClient
 import de.tectoast.emolga.commands.roundToDigits
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
@@ -16,11 +18,15 @@ object Analysis {
         answer: ((String) -> Unit)? = null,
         debugMode: Boolean = false
     ): Pair<List<SDPlayer>, BattleContext> {
-        logger.info("Reading URL... {}", link)
         var gameNullable: List<String>? = null
         for (i in 0..1) {
             val retrieved =
-                runCatching { httpClient.get("$link.log").bodyAsText().split("\n") }.getOrDefault(listOf(""))
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        logger.info("Reading URL... {}", link)
+                        httpClient.get("$link.log").bodyAsText().split("\n")
+                    }
+                }.getOrDefault(listOf(""))
             gameNullable = retrieved
                 .takeIf { it.size > 1 }
             if (gameNullable == null) {

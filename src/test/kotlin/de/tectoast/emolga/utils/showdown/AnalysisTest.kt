@@ -16,7 +16,7 @@ class AnalysisTest : FunSpec({
     }
 
     test("LeagueByGuildAdvanced") {
-        val (game, _) = Analysis.analyse("https://replay.pokemonshowdown.com/gen9nationaldexag-1966156690")
+        val (game, _) = Analysis.analyse("https://replay.pokemonshowdown.com/gen9natdexdraft-1966767073-vgezfzthd5k88fp55413hjpddy82ofgpw")
         val gid = 815004128148979723
         val map = game.map {
             it.pokemon.map { mon ->

@@ -18,7 +18,7 @@ import org.litote.kmongo.eq
 object NameConventionsDB : Table("nameconventions") {
     val GUILD = long("guild")
     val GERMAN = varchar("german", 50)
-    private val ENGLISH = varchar("english", 50)
+    val ENGLISH = varchar("english", 50)
     private val SPECIFIED = varchar("specified", 50)
     private val SPECIFIEDENGLISH = varchar("specifiedenglish", 50)
     private val HASHYPHENINNAME = bool("hashypheninname")
@@ -147,7 +147,6 @@ object NameConventionsDB : Table("nameconventions") {
     private suspend fun getDBTranslation(
         test: String, guildId: Long, spec: String? = null, nc: Map<String, String>, english: Boolean = false
     ): DraftName? {
-        logger.info("Scanning DB translation for $test in guild $guildId")
         return newSuspendedTransaction {
             select(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId))).orderBy(
                 GUILD to SortOrder.DESC

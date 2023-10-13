@@ -156,7 +156,7 @@ object NameConventionsDB : Table("nameconventions") {
                     //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
                     it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                         if (spec != null) {
-                            val pattern = nc[spec]!!
+                            val pattern = nc[spec] ?: de.tectoast.emolga.utils.json.db.defaultNameConventions[spec]!!
                             val len = pattern.replace("(\\S+)", "").length
                             val replace = pattern.replace("(\\S+)", s.substringBefore("-$spec"))
                             //logger.warn("s: {}, raw: {}, len: {}, replace: {}", s, raw, len, replace)

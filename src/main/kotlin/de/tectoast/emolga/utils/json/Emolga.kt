@@ -25,7 +25,6 @@ import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.reactivestreams.KMongo
-import kotlin.time.TimeSource
 import kotlin.time.measureTimedValue
 import org.litote.kmongo.serialization.configuration as mongoConfiguration
 
@@ -116,16 +115,12 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                 }
             }.awaitAll().filterNotNull()
             if (filterNotNull.size != uids.size) return null
-            val now = TimeSource.Monotonic.markNow()
             var currentLeague: String? = null
             for (pickedMon in filterNotNull) {
                 if (currentLeague == null) currentLeague = pickedMon.leaguename
                 else if (currentLeague != pickedMon.leaguename) return null
-                logger.warn("AFTER: ${now.elapsedNow()}")
             }
-            logger.warn("AFTER $currentLeague: ${now.elapsedNow()}")
             val league = league(currentLeague!!)
-            logger.warn("AFTER: ${now.elapsedNow()}")
             LeagueResult(league, filterNotNull.map { it.user })
         }
         println("DURATION: ${duration.inWholeMilliseconds}")

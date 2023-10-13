@@ -21,6 +21,7 @@ import de.tectoast.emolga.utils.json.emolga.TeamData
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.only
+import de.tectoast.emolga.utils.showdown.Analysis
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.button
@@ -903,5 +904,16 @@ object PrivateCommands {
             config = Config(),
         )
         db.aslcoach.insertOne(aslCoachData)
+    }
+
+    suspend fun testDBSpeed() {
+        val (game, _) = Analysis.analyse("https://replay.pokemonshowdown.com/gen9nationaldexag-1966156690")
+        val gid = 815004128148979723
+        val map = game.map {
+            it.pokemon.map { mon ->
+                Command.getMonName(mon.pokemon, gid)
+            }
+        }
+        println(db.leagueByGuildAdvanced(gid, map, -1, -1))
     }
 }

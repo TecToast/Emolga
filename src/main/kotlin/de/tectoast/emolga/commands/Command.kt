@@ -2260,8 +2260,7 @@ abstract class Command(
                     player.allMonsDead && !spoiler, " (alle tot)"
                 ) + "\n".condAppend(spoiler, "||") + player.pokemon.map { mon ->
                     getMonName(mon.pokemon, gid).also {
-                        mon.official = it.official
-                        mon.tlName = it.tlName
+                        mon.draftname = it
                     }.displayName.let {
                         if (activePassive) {
                             "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
@@ -2271,10 +2270,9 @@ abstract class Command(
                     }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
                 }.joinToString("\n").condAppend(spoiler, "||")
             }.joinToString("\n\n")
-            val allMons = game.map { it.pokemon.map { mon -> mon.official } }
             val leaguedata = db.leagueByGuildAdvanced(
                 gid,
-                allMons,
+                game.map { it.pokemon.map { mon -> mon.draftname } },
                 uid1db,
                 uid2db
             )
@@ -2310,7 +2308,7 @@ abstract class Command(
                 game.forEach { player ->
                     player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
                         FullStatsDB.add(
-                            it.official, it.kills, if (it.isDead) 1 else 0, player.winnerOfGame
+                            it.draftname.official, it.kills, if (it.isDead) 1 else 0, player.winnerOfGame
                         )
                     }
                 }
@@ -2334,22 +2332,24 @@ abstract class Command(
             //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )
             //  return;
             val kills =
-                game.map { it.pokemon.associate { mon -> mon.official to mon.kills } }
+                game.map { it.pokemon.associate { mon -> mon.draftname.official to mon.kills } }
             val deaths =
-                game.map { it.pokemon.associate { mon -> mon.official to if (mon.isDead) 1 else 0 } }
+                game.map { it.pokemon.associate { mon -> mon.draftname.official to if (mon.isDead) 1 else 0 } }
             league?.docEntry?.analyse(
                 ReplayData(
                     game = game,
                     uids = uids,
                     kills = kills,
                     deaths = deaths,
-                    mons = allMons,
+                    mons = game.map { it.pokemon.map { mon -> mon.draftname.official } },
                     url = url,
                     gamedayData = gamedayData.await()!!
                 )
             )
             //}
         }
+
+        val dataJSON: Map<String, Pokemon> get() = error("NOT USED")
 
         fun getGerName(s: String): Translation {
             val id = toSDName(s)
@@ -2423,13 +2423,15 @@ abstract class Command(
             val withoutLast = split.dropLast(1).joinToString("-")
             if (split.last() == "*") return getMonName(withoutLast, guildId, withDebug)
             return if (s == "_unbekannt_") DraftName("_unbekannt_", "UNKNOWN")
-            else
-                NameConventionsDB.getSDTranslation(
-                    db.pokedex.get(toSDName(s))?.takeIf { it.requiredAbility != null }?.baseSpecies ?: s, guildId
+            else {
+                val pkdata = db.pokedex.get(toSDName(s))
+                (NameConventionsDB.getSDTranslation(
+                    pkdata?.takeIf { it.requiredAbility != null }?.baseSpecies ?: s, guildId
                 ) ?: DraftName(
                     s,
                     s
-                )
+                )).apply { data = pkdata }
+            }
             //}
         }
 

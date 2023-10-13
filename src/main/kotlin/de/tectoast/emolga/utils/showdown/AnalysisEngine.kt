@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.showdown
 
 import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import kotlin.reflect.KClass
 
@@ -19,8 +20,7 @@ data class SDPokemon(var pokemon: String, val player: Int) {
     var perishedBy: SDPokemon? = null
     val zoroLines = mutableMapOf<IntRange, SDPokemon>()
     val otherNames = mutableSetOf<String>()
-    lateinit var official: String
-    lateinit var tlName: String
+    lateinit var draftname: DraftName
 
     fun hasName(name: String) = pokemon == name || otherNames.contains(name)
 

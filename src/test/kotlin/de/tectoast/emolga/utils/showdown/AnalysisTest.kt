@@ -1,5 +1,7 @@
 package de.tectoast.emolga.utils.showdown
 
+import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.utils.json.db
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 
@@ -11,5 +13,16 @@ class AnalysisTest : FunSpec({
         sdPlayers.flatMap { it.pokemon }.forEach {
             allowedHeal.getValue(it.pokemon) shouldBe it.healed
         }
+    }
+
+    test("LeagueByGuildAdvanced") {
+        val (game, _) = Analysis.analyse("https://replay.pokemonshowdown.com/gen9nationaldexag-1966156690")
+        val gid = 815004128148979723
+        val map = game.map {
+            it.pokemon.map { mon ->
+                Command.getMonName(mon.pokemon, gid)
+            }
+        }
+        println(db.leagueByGuildAdvanced(gid, map, -1, -1))
     }
 })

@@ -6,6 +6,7 @@ import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.NameConventions
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.showdown.Pokemon
 import mu.KotlinLogging
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -137,14 +138,21 @@ object NameConventionsDB : Table("nameconventions") {
         english
     )
 
-    private fun getDBTranslation(
+    suspend fun getAllSDTranslationOnlyOfficialGerman(list: List<String>): Map<String, String> {
+        return newSuspendedTransaction {
+            select(ENGLISH inList list).associate { it[ENGLISH] to it[GERMAN] }
+        }
+    }
+
+    private suspend fun getDBTranslation(
         test: String, guildId: Long, spec: String? = null, nc: Map<String, String>, english: Boolean = false
     ): DraftName? {
-        return transaction {
+        logger.info("Scanning DB translation for $test in guild $guildId")
+        return newSuspendedTransaction {
             select(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId))).orderBy(
                 GUILD to SortOrder.DESC
             ).firstOrNull()?.let {
-                return@transaction DraftName(
+                return@newSuspendedTransaction DraftName(
                     //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
                     it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                         if (spec != null) {
@@ -173,5 +181,6 @@ object NameConventionsDB : Table("nameconventions") {
 }
 
 data class DraftName(val tlName: String, val official: String, val guildspecific: Boolean = false) {
+    var data: Pokemon? = null
     val displayName get() = if (guildspecific) tlName else official
 }

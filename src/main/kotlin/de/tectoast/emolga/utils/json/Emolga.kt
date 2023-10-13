@@ -1,7 +1,10 @@
 package de.tectoast.emolga.utils.json
 
+import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.ifTrue
+import de.tectoast.emolga.database.exposed.DraftName
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Soullink
 import de.tectoast.emolga.utils.json.emolga.Statistics
@@ -10,20 +13,19 @@ import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Member
 import org.bson.conversions.Bson
-import org.litote.kmongo.Id
-import org.litote.kmongo.all
+import org.litote.kmongo.*
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.coroutine.updateOne
-import org.litote.kmongo.eq
-import org.litote.kmongo.newId
 import org.litote.kmongo.reactivestreams.KMongo
+import kotlin.time.TimeSource
 import kotlin.time.measureTimedValue
 import org.litote.kmongo.serialization.configuration as mongoConfiguration
 
@@ -39,6 +41,7 @@ fun initMongo(dbUrl: String = DEFAULT_DB_URL, dbName: String = DEFAULT_DB_NAME) 
 }
 
 class MongoEmolga(dbUrl: String, dbName: String) {
+    private val logger = KotlinLogging.logger {}
     val db = run {
         /*registerModule(Json {
 
@@ -75,21 +78,54 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
         drafts.findOne(League::guild eq gid, League::table all uids.toList())
 
-    suspend fun leagueByGuildAdvanced(gid: Long, game: List<List<String>>, vararg uids: Long): LeagueResult? {
+
+    private val scanScope =
+        CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineName("ScanScope") + CoroutineExceptionHandler { _, t ->
+            logger.error("ERROR IN ScanScope SCOPE", t)
+            Command.sendToMe("Error in scanScope scope, look in console")
+        })
+
+    suspend fun leagueByGuildAdvanced(gid: Long, game: List<List<DraftName>>, vararg uids: Long): LeagueResult? {
         // {$and: [{ guild: NumberLong("651152835425075218")},{ mons: { $all: [ 'Illumise', 'Rabigator', 'Hoopa', 'Raikou', 'Primarene', 'Sumpex' ] }}]}
         val (leagueResult, duration) = measureTimedValue {
             val filterNotNull = uids.mapIndexed { index, uid ->
-                val possible =
-                    pickedMons.find(PickedMonsData::guild eq gid, PickedMonsData::mons all game[index]).toList()
-                possible.singleOrNull() ?: possible.firstOrNull { it.user == uid }
-            }.filterNotNull()
+                scanScope.async {
+                    val mons = game[index]
+                    val megasCacheEngl = mutableMapOf<DraftName, List<String>>()
+                    val (possibleMega, nonMega) = mons.partition {
+                        (it.data?.otherFormes?.filterNot { forme -> "-Alola" in forme || "-Galar" in forme || "-Hisui" in forme }
+                            ?.also { list ->
+                                megasCacheEngl[it] = list
+                            }?.size ?: 0) > 0
+                    }
+                    val allSDTranslations =
+                        NameConventionsDB.getAllSDTranslationOnlyOfficialGerman(possibleMega.flatMap { megasCacheEngl[it].orEmpty() })
+                    val filters = possibleMega.map {
+                        or(
+                            PickedMonsData::mons contains it.official,
+                            megasCacheEngl[it].orEmpty()
+                                .let { mega -> PickedMonsData::mons.`in`(mega.map { m -> allSDTranslations[m]!! }) }
+                        )
+                    }.toTypedArray()
+                    val query = and(
+                        PickedMonsData::mons all nonMega.map { it.official }, *filters
+                    )
+                    val finalQuery = and(PickedMonsData::guild eq gid, query)
+                    val possible = pickedMons.find(finalQuery).toList()
+                    possible.singleOrNull() ?: possible.firstOrNull { it.user == uid }
+                }
+            }.awaitAll().filterNotNull()
             if (filterNotNull.size != uids.size) return null
+            val now = TimeSource.Monotonic.markNow()
             var currentLeague: String? = null
             for (pickedMon in filterNotNull) {
                 if (currentLeague == null) currentLeague = pickedMon.leaguename
                 else if (currentLeague != pickedMon.leaguename) return null
+                logger.warn("AFTER: ${now.elapsedNow()}")
             }
+            logger.warn("AFTER $currentLeague: ${now.elapsedNow()}")
             val league = league(currentLeague!!)
+            logger.warn("AFTER: ${now.elapsedNow()}")
             LeagueResult(league, filterNotNull.map { it.user })
         }
         println("DURATION: ${duration.inWholeMilliseconds}")
@@ -103,8 +139,7 @@ data class LeagueResult(val league: League, val uids: List<Long>)
 
 @Serializable
 data class TypeIcon(
-    val typename: String,
-    val formula: String
+    val typename: String, val formula: String
 )
 
 @Serializable

@@ -90,24 +90,24 @@ class MongoEmolga(dbUrl: String, dbName: String) {
             val filterNotNull = uids.mapIndexed { index, uid ->
                 scanScope.async {
                     val mons = game[index]
-                    val megasCacheEngl = mutableMapOf<DraftName, List<String>>()
-                    val (possibleMega, nonMega) = mons.partition {
+                    val otherFormesEngl = mutableMapOf<DraftName, List<String>>()
+                    val (possibleOtherForm, noOtherForm) = mons.partition {
                         (it.data?.otherFormes?.filterNot { forme -> "-Alola" in forme || "-Galar" in forme || "-Hisui" in forme }
                             ?.also { list ->
-                                megasCacheEngl[it] = list
+                                otherFormesEngl[it] = list
                             }?.size ?: 0) > 0
                     }
                     val allSDTranslations =
-                        NameConventionsDB.getAllSDTranslationOnlyOfficialGerman(possibleMega.flatMap { megasCacheEngl[it].orEmpty() })
-                    val filters = possibleMega.map {
+                        NameConventionsDB.getAllSDTranslationOnlyOfficialGerman(possibleOtherForm.flatMap { otherFormesEngl[it].orEmpty() })
+                    val filters = possibleOtherForm.map {
                         or(
                             PickedMonsData::mons contains it.official,
-                            megasCacheEngl[it].orEmpty()
+                            otherFormesEngl[it].orEmpty()
                                 .let { mega -> PickedMonsData::mons.`in`(mega.map { m -> allSDTranslations[m]!! }) }
                         )
                     }.toTypedArray()
                     val query = and(
-                        PickedMonsData::mons all nonMega.map { it.official }, *filters
+                        PickedMonsData::mons all noOtherForm.map { it.official }, *filters
                     )
                     val finalQuery = and(PickedMonsData::guild eq gid, query)
                     val possible = pickedMons.find(finalQuery).toList()

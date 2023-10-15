@@ -16,6 +16,7 @@ import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.coroutines.launch
 import org.bson.Document
+import org.litote.kmongo.eq
 import org.slf4j.LoggerFactory
 
 
@@ -259,18 +260,15 @@ class DocEntry private constructor(val league: League) {
                             if (toCompare.size == 1) toCompare else {
                                 val userids =
                                     toCompare.map { u -> table[indexerToUse(formula[orig.indexOf(u)][0].toString())] }
-                                val allRelevantMatches =
-                                    db.matchresults.find(
-                                        Document(
-                                            "\$expr", Document(
-                                                "\$setIsSubset", listOf(
-                                                    userids,
-                                                    "\$uids"
-                                                )
+                                val allRelevantMatches = db.matchresults.find(
+                                    MatchResult::leaguename eq league.leaguename, Document(
+                                        "\$expr", Document(
+                                            "\$setIsSubset", listOf(
+                                                userids, "\$uids"
                                             )
                                         )
                                     )
-                                        .toList()
+                                ).toList()
                                 val data = mutableMapOf<Long, DirectCompareData>()
                                 userids.forEachIndexed { index, l ->
                                     data[l] = DirectCompareData(0, 0, 0, index)

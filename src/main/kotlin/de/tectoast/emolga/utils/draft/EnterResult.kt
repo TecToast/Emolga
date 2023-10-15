@@ -59,13 +59,11 @@ object EnterResult {
         var league by Delegates.notNull<League>()
 
         private fun getPicksByUid(uid: Long) = league.providePicksForGameday(gamedayData.gameday)[uid]!!
-        private suspend fun getMonsByUid(uid: Long) =
-            getPicksByUid(uid).sortedWith(league.tierorderingComparator).map {
-                (it.name to NameConventionsDB.convertOfficialToTL(
-                    it.name,
-                    league.guild
-                )!!).let { (official, tl) -> SelectOption(tl, "$official#$tl") }
-            }
+        private suspend fun getMonsByUid(uid: Long) = getPicksByUid(uid).sortedWith(league.tierorderingComparator).map {
+            (it.name to NameConventionsDB.convertOfficialToTL(
+                it.name, league.guild
+            )!!).let { (official, tl) -> SelectOption(tl, "$official#$tl") }
+        }
 
         lateinit var picks: Map<Long, List<SelectOption>>
         private lateinit var gamedayData: GamedayData
@@ -82,27 +80,25 @@ object EnterResult {
             }
             league =
                 db.leagueByGuild(args.getNullable<String>("guild")?.toLong() ?: e.guild.idLong, *uids.toLongArray())
-                ?: return e.reply_(
-                    "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
-                    ephemeral = true
-                )
+                    ?: return e.reply_(
+                        "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
+                        ephemeral = true
+                    )
             gamedayData = league.getGameplayData(uids[0], uids[1], wifiPlayers)
             picks = buildMap {
                 uids.forEach { uid ->
                     put(uid, getMonsByUid(uid))
                 }
             }
-            e.reply_(
-                embeds = buildEmbed(), components = uids.mapIndexed { index, uid ->
-                    ActionRow.of(
-                        StringSelectMenu(
-                            "result;$index",
-                            "${if (index == 0) "Deine" else "Gegnerische"} Pokemon",
-                            options = picks[uid]!!
-                        )
+            e.reply_(embeds = buildEmbed(), components = uids.mapIndexed { index, uid ->
+                ActionRow.of(
+                    StringSelectMenu(
+                        "result;$index",
+                        "${if (index == 0) "Deine" else "Gegnerische"} Pokemon",
+                        options = picks[uid]!!
                     )
-                } + listOf(ActionRow.of(primary("resultfinish;check", "Ergebnis bestätigen"))), ephemeral = true
-            )
+                )
+            } + listOf(ActionRow.of(primary("resultfinish;check", "Ergebnis bestätigen"))), ephemeral = true)
         }
 
         private fun buildEmbed() = Embed {
@@ -177,18 +173,17 @@ object EnterResult {
                 e.reply(generateFinalMessage()).queue()
                 league.docEntry?.analyse(
                     ReplayData(
-                        data.mapIndexed { index, d ->
+                        game = data.mapIndexed { index, d ->
                             wifiPlayers[index].apply {
                                 alive = d.size - d.dead
                                 winnerOfGame = d.size != d.dead
                             }
                         },
-                        uids,
-                        data.map { it.asKillMap },
-                        data.map { it.asDeathMap },
-                        data.map { l -> l.map { it.official } },
-                        "WIFI",
-                        gamedayData
+                        uids = uids,
+                        kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
+                        mons = data.map { l -> l.map { it.official } },
+                        url = "WIFI",
+                        gamedayData = gamedayData
                     )
                 )
             } else {
@@ -200,9 +195,12 @@ object EnterResult {
             val spoiler = Command.spoilerTags.contains(league.guild)
             return "${
                 data.mapIndexed { index, sdPlayer ->
-                    mutableListOf<Any>(
-                        "<@${uids[index]}>", sdPlayer.count { !it.dead }
-                    ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
+                    mutableListOf<Any>("<@${uids[index]}>", sdPlayer.count { !it.dead }).apply {
+                        if (spoiler) add(
+                            1,
+                            "||"
+                        )
+                    }.let { if (index % 2 > 0) it.asReversed() else it }
                 }.joinToString(":") { it.joinToString(" ") }
             }\n\n${
                 data.mapIndexed { index, monData ->
@@ -213,8 +211,6 @@ object EnterResult {
 
         private val List<MonData>.kills get() = sumOf { it.kills }
         private val List<MonData>.dead get() = sumOf { (if (it.dead) 1 else 0).toInt() }
-        private val List<MonData>.asKillMap get() = associate { it.official to it.kills }
-        private val List<MonData>.asDeathMap get() = associate { it.official to if (it.dead) 1 else 0 }
 
         data class MonData(val pokemon: String, val official: String, val kills: Int, val dead: Boolean) {
             override fun toString(): String {

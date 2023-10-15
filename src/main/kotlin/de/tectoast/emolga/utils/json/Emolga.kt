@@ -25,6 +25,7 @@ import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.reactivestreams.KMongo
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.measureTimedValue
 import org.litote.kmongo.serialization.configuration as mongoConfiguration
 
@@ -86,8 +87,8 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         })
 
     suspend fun leagueByGuildAdvanced(gid: Long, game: List<List<DraftName>>, vararg uids: Long): LeagueResult? {
-        // {$and: [{ guild: NumberLong("651152835425075218")},{ mons: { $all: [ 'Illumise', 'Rabigator', 'Hoopa', 'Raikou', 'Primarene', 'Sumpex' ] }}]}
         val (leagueResult, duration) = measureTimedValue {
+            val allOtherFormesGerman = ConcurrentHashMap<String, List<String>>()
             val filterNotNull = uids.mapIndexed { index, uid ->
                 scanScope.async {
                     val mons = game[index]
@@ -100,11 +101,15 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                     }
                     val allSDTranslations =
                         NameConventionsDB.getAllSDTranslationOnlyOfficialGerman(possibleOtherForm.flatMap { otherFormesEngl[it].orEmpty() })
+                    val otherFormesGerman = otherFormesEngl.map { (k, v) ->
+                        k.official to v.map { allSDTranslations[it]!! }
+                    }.toMap()
+                    allOtherFormesGerman.putAll(otherFormesGerman)
                     val filters = possibleOtherForm.map {
                         or(
                             PickedMonsData::mons contains it.official,
-                            otherFormesEngl[it].orEmpty()
-                                .let { mega -> PickedMonsData::mons.`in`(mega.map { m -> allSDTranslations[m]!! }) }
+                            otherFormesGerman[it.official].orEmpty()
+                                .let { mega -> PickedMonsData::mons `in` mega }
                         )
                     }.toTypedArray()
                     val query = and(
@@ -122,7 +127,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                 else if (currentLeague != pickedMon.leaguename) return null
             }
             val league = league(currentLeague!!)
-            LeagueResult(league, filterNotNull.map { it.user })
+            LeagueResult(league, filterNotNull.map { it.user }, allOtherFormesGerman)
         }
         println("DURATION: ${duration.inWholeMilliseconds}")
         return leagueResult
@@ -141,7 +146,7 @@ data class MatchResult(
 
 @Serializable
 data class PickedMonsData(val leaguename: String, val guild: Long, val user: Long, val mons: List<String>)
-data class LeagueResult(val league: League, val uids: List<Long>)
+data class LeagueResult(val league: League, val uids: List<Long>, val otherForms: Map<String, List<String>>)
 
 @Serializable
 data class TypeIcon(

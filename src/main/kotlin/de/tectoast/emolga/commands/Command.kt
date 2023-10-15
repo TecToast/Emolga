@@ -1515,33 +1515,6 @@ abstract class Command(
             WarnsDB.warn(mem.idLong, mod.idLong, tco.guild.idLong, reason)
         }
 
-        //TODO rework
-        fun getNumber(map: Map<String, Int>, pick: String): String {
-            //logger.info(map);
-            for ((s, value) in map) {
-                if (s == pick || pick == "M-$s" || s.split("-").first().let {
-                        when (it) {
-                            "A", "Alola", "G", "Galar", "M", "Mega", "Kapu" -> null
-                            else -> it
-                        }
-                    } == pick.split("-").first()) return value.toString()
-            }
-            return ""
-        }
-
-        //TODO rework
-        fun indexPick(picks: List<String>, mon: String): Int {
-            for (pick in picks) {
-                if (pick.equals(mon, ignoreCase = true) || pick.substring(2)
-                        .equals(mon, ignoreCase = true)
-                ) return picks.indexOf(pick)
-                if (pick.equals("Amigento", ignoreCase = true) && mon.contains("Amigento")) return picks.indexOf(
-                    pick
-                )
-            }
-            return -1
-        }
-
 
         fun compareColumns(o1: List<Any>, o2: List<Any>, vararg columns: Int): Int {
             for (column in columns) {
@@ -2329,24 +2302,19 @@ abstract class Command(
                 jda.getTextChannelById(1016636599305515018)!!.sendMessage(url).queue()
             }
             logger.info("In Emolga Listener!")
-            //if (gid != 518008523653775366L && gid != 447357526997073930L && gid != 709877545708945438L && gid != 736555250118295622L && )
-            //  return;
-            val kills =
-                game.map { it.pokemon.associate { mon -> mon.draftname.official to mon.kills } }
-            val deaths =
-                game.map { it.pokemon.associate { mon -> mon.draftname.official to if (mon.isDead) 1 else 0 } }
+            val kd =
+                game.map { it.pokemon.associate { p -> p.draftname.official to (p.kills to if (p.isDead) 1 else 0) } }
             league?.docEntry?.analyse(
                 ReplayData(
                     game = game,
                     uids = uids,
-                    kills = kills,
-                    deaths = deaths,
+                    kd = kd,
                     mons = game.map { it.pokemon.map { mon -> mon.draftname.official } },
                     url = url,
-                    gamedayData = gamedayData.await()!!
+                    gamedayData = gamedayData.await()!!,
+                    otherForms = leaguedata.otherForms
                 )
             )
-            //}
         }
 
         val dataJSON: Map<String, Pokemon> get() = error("NOT USED")
@@ -2628,11 +2596,11 @@ fun String.toDocRange() = DocRange[this]
 data class ReplayData(
     val game: List<DraftPlayer>,
     val uids: List<Long>,
-    val kills: List<Map<String, Int>>,
-    val deaths: List<Map<String, Int>>,
+    val kd: List<Map<String, Pair<Int, Int>>>,
     val mons: List<List<String>>,
     val url: String,
-    val gamedayData: GamedayData
+    val gamedayData: GamedayData,
+    val otherForms: Map<String, List<String>> = emptyMap(),
 )
 
 data class GamedayData(

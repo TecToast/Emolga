@@ -1,9 +1,8 @@
 package de.tectoast.emolga.utils.automation.structure
 
+import com.mongodb.MongoWriteException
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.Command.Companion.compareColumns
-import de.tectoast.emolga.commands.Command.Companion.getNumber
-import de.tectoast.emolga.commands.Command.Companion.indexPick
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.utils.Google
@@ -105,20 +104,30 @@ class DocEntry private constructor(val league: League) {
     suspend fun analyse(
         replayData: ReplayData
     ) {
-        val (game, uids, kills, deaths, _, url, gamedayData) = replayData
+        val (game, uids, kd, _, url, gamedayData, otherForms) = replayData
         val (gameday, battleindex, u1IsSecond) = gamedayData
         if (cancelIf(replayData, gameday)) return
+        val sorted = uids.sorted()
+        val lookUpIndex = if (uids[0] == sorted[0]) 0 else 1
+        var totalKills = 0
+        var totalDeaths = 0
+        kd[lookUpIndex].values.forEach {
+            totalKills += it.first
+            totalDeaths += it.second
+        }
         val matchresultJob = Database.dbScope.launch {
-            val sorted = uids.sorted()
-            val lookUpIndex = if (uids[0] == sorted[0]) 0 else 1
-            db.matchresults.insertOne(
-                MatchResult(
-                    listOf(kills[lookUpIndex].values.sum(), deaths[lookUpIndex].values.sum()),
-                    sorted,
-                    league.leaguename,
-                    gameday
+            try {
+                db.matchresults.insertOne(
+                    MatchResult(
+                        listOf(totalKills, totalDeaths),
+                        sorted,
+                        league.leaguename,
+                        gameday
+                    )
                 )
-            )
+            } catch (ex: MongoWriteException) {
+                if (ex.code != 11000) throw ex
+            }
         }
         val sid = league.sid
         val b = RequestBuilder(sid)
@@ -127,13 +136,11 @@ class DocEntry private constructor(val league: League) {
         val picks = league.providePicksForGameday(gameday)
         for ((i, uid) in uids.withIndex()) {
             val index = league.table.indexOf(uid)
-            var monIndex = -1
             val generalStatProcessorData = StatProcessorData(
                 plindex = index, gameday = gameday, battleindex = battleindex, u1IsSecond = u1IsSecond, fightIndex = i
             )
 
-            fun Set<StatProcessor>.checkTotal(map: Map<String, Int>) {
-                val total = map.values.sum()
+            fun Set<StatProcessor>.checkTotal(total: Int) {
                 forEach { p ->
                     if (p is CombinedStatProcessor) {
                         with(p) {
@@ -146,12 +153,17 @@ class DocEntry private constructor(val league: League) {
                 }
             }
             if (!killProcessors.all { it is CombinedStatProcessor } || !deathProcessors.all { it is CombinedStatProcessor }) {
-                for (pick in monsOrder(picks[uid]!!)) {
-                    monIndex++
-                    val deathStr = getNumber(deaths[i], pick)
-                    if (deathStr.isEmpty() && !setStatIfEmpty) continue
-                    val death = deathStr.toInt()
-                    val killsOfMon = getNumber(kills[i], pick).toInt()
+                val monsInOrder = monsOrder(picks[uid]!!)
+                for ((mon, data) in kd[i]) {
+                    val monIndex = monsInOrder.indexOfFirst {
+                        it == mon || otherForms[mon]?.contains(it) == true
+                    }
+                    if (monIndex == -1) {
+                        logger.warn("Mon $mon not found in picks of $uid")
+                        Command.sendToMe("Mon $mon not found in picks of $uid\n$url\n${league.leaguename}")
+                        continue
+                    }
+                    val (kills, deaths) = data
                     val statProcessorData = generalStatProcessorData.withMonIndex(monIndex)
                     fun Set<StatProcessor>.check(data: Int) {
                         forEach { p ->
@@ -165,12 +177,13 @@ class DocEntry private constructor(val league: League) {
                             }
                         }
                     }
-                    killProcessors.check(killsOfMon)
-                    deathProcessors.check(death)
+                    killProcessors.check(kills)
+                    deathProcessors.check(deaths)
                 }
             }
-            killProcessors.checkTotal(kills[i])
-            deathProcessors.checkTotal(deaths[i])
+            val currentPlayerIsFirst = (lookUpIndex == 0) xor (i == 1)
+            killProcessors.checkTotal(if (currentPlayerIsFirst) totalKills else totalDeaths)
+            deathProcessors.checkTotal(if (currentPlayerIsFirst) totalDeaths else totalKills)
 
             (if (game[i].winner) winProcessor else looseProcessor)?.let { p ->
                 with(p) {
@@ -364,15 +377,12 @@ data class AdvancedResult(
     val tableIndexes by lazy {
         (0..1).map { league.table.indexOf(replayData.uids[it]) }
     }
-    val monIndexes by lazy {
-        (0..1).map { num -> replayData.mons[num].map { indexPick(league.picks[replayData.uids[num]].names(), it) } }
-    }
     val deaths by lazy {
-        (0..1).map { replayData.deaths[it].values.map { s -> s == 1 } }
+        (0..1).map { replayData.kd[it].values.map { s -> s.second == 1 } }
     }
     val kills by lazy {
         (0..1).map {
-            replayData.kills[it].values.toList()
+            replayData.kd[it].values.map { p -> p.first }
         }
     }
     val winnerIndex by lazy { replayData.game.indexOfFirst { it.winner } }

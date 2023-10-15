@@ -30,7 +30,7 @@ class WFS : League() {
     override val docEntry = DocEntry.create(this) {
         newSystem(
             SorterData(
-                "Tabelle!C4:J15".toDocRange(), directCompare = true, newMethod = true, cols = listOf(2, 5, 3, -1)
+                "Tabelle!C4:J15".toDocRange(), newMethod = true, cols = listOf(2, 5, 3)
             )
         ) {
             b.addSingle(gdi.coordXMod("Spielplan", 2, 'H' - 'D', 5, 17 - 9, 10 + index), defaultGameplanString)

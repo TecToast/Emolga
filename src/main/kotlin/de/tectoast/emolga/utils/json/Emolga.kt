@@ -65,6 +65,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val shinycount by lazy { db.getCollection<Shinycount>() }
 
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
+    val matchresults by lazy { db.getCollection<MatchResult>("matchresults") }
     val defaultNameConventions: Map<String, String> by lazy {
         runBlocking {
             nameconventions.find(NameConventions::guild eq 0).first()!!
@@ -126,6 +127,16 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         println("DURATION: ${duration.inWholeMilliseconds}")
         return leagueResult
     }
+}
+
+@Serializable
+data class MatchResult(
+    val data: List<Int>,
+    val uids: List<Long>,
+    val leaguename: String,
+    val gameday: Int,
+) {
+    val winnerIndex get() = if (data[0] > data[1]) 0 else 1
 }
 
 @Serializable

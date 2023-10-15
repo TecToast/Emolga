@@ -1,18 +1,15 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.EmolgaMain
-import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.commands.coordXMod
 import de.tectoast.emolga.commands.defaultTimeFormat
 import de.tectoast.emolga.commands.draft.AddToTierlistData
-import de.tectoast.emolga.commands.toDocRange
 import de.tectoast.emolga.commands.x
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.toastilities.repeat.RepeatTask
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
@@ -36,7 +33,7 @@ class ASL(
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(
+        /*newSystem(
             SorterData(
                 formulaRange = listOf(
                     "Tabelle!C16:J19".toDocRange(),
@@ -51,7 +48,7 @@ class ASL(
                     else "Spielplan!" + getAsXCoord((gdi % 2) * 4 + 5) + ((gdi / 6) * 18 + 4 + index),
                     defaultGameplanString
                 )
-            })
+            })*/
         //cancelIf = { _, gd -> gd == 10 }
     }
 

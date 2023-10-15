@@ -44,11 +44,11 @@ class Wooloo : League() {
         rowNumToIndex = { it.minus(4).div(3) }
         sorter(
             "WoolooCupS5L1",
-            SorterData("Tabelle!C3:J10".toDocRange(), directCompare = true, newMethod = true, cols = listOf(7, -1, 6))
+            SorterData("Tabelle!C3:J10".toDocRange(), newMethod = true, cols = listOf(7, -1, 6))
         )
         sorter(
             "WoolooCupS5L2",
-            SorterData("Tabelle!C3:J10".toDocRange(), directCompare = false, newMethod = true, cols = listOf(7, 6))
+            SorterData("Tabelle!C3:J10".toDocRange(), newMethod = true, cols = listOf(7, 6))
         )
         resultCreator = {
             b.addSingle(index.coordXMod("Spieltag ${gdi + 1}", 2, 'I' - 'B', 2, 16, 2), defaultGameplanString)

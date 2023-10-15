@@ -1,10 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.toDocRange
-import de.tectoast.emolga.commands.xc
-import de.tectoast.emolga.commands.ydiv
 import de.tectoast.emolga.utils.automation.structure.DocEntry
-import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -17,7 +13,7 @@ class Paldea : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(
+        /*newSystem(
             SorterData(
                 listOf("Tabellen!C3:J10".toDocRange(), "Tabellen!M3:T10".toDocRange()),
                 directCompare = true,
@@ -34,6 +30,6 @@ class Paldea : League() {
                     ) + (if (dataSheet == "DataM") 4 else 0)
                 }", defaultGameplanString
             )
-        }
+        }*/
     }
 }

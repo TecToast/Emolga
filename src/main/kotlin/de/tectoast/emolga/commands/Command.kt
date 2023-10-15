@@ -1545,8 +1545,8 @@ abstract class Command(
 
         fun compareColumns(o1: List<Any>, o2: List<Any>, vararg columns: Int): Int {
             for (column in columns) {
-                val i1: Int = if (o1[column] is Int) o1[column] as Int else (o1[column] as String).toInt()
-                val i2: Int = if (o2[column] is Int) o2[column] as Int else (o2[column] as String).toInt()
+                val i1 = o1[column].parseInt()
+                val i2 = o2[column].parseInt()
                 if (i1 != i2) {
                     return i1.compareTo(i2)
                 }
@@ -2561,6 +2561,7 @@ object DateToStringSerializer : KSerializer<Date> {
 }
 
 fun String.file() = File(this)
+fun Any.parseInt() = (this as? Int) ?: this.toString().toInt()
 
 fun Collection<String>.filterStartsWithIgnoreCase(other: String) =
     filter { it.startsWith(other, ignoreCase = true) }

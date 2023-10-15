@@ -1,13 +1,11 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.commands.coordXMod
-import de.tectoast.emolga.commands.toDocRange
 import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.DocEntry
-import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -28,13 +26,13 @@ class ZBS(private val conference: String) : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(
+        /*newSystem(
             SorterData(
                 formulaRange = "$conference-Tabelle!C4:J11".toDocRange(),
                 directCompare = false,
                 cols = listOf(2, 6, 4)
             )
-        ) {}
+        ) {}*/
     }
 
 

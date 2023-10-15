@@ -1,21 +1,23 @@
 package de.tectoast.emolga.utils.automation.structure
 
+import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.Command.Companion.compareColumns
 import de.tectoast.emolga.commands.Command.Companion.getNumber
 import de.tectoast.emolga.commands.Command.Companion.indexPick
-import de.tectoast.emolga.commands.ReplayData
-import de.tectoast.emolga.commands.indexedBy
-import de.tectoast.emolga.commands.names
-import de.tectoast.emolga.commands.y
+import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.json.MatchResult
+import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
+import org.bson.Document
 import org.slf4j.LoggerFactory
+
 
 class DocEntry private constructor(val league: League) {
     companion object {
@@ -52,6 +54,7 @@ class DocEntry private constructor(val league: League) {
     fun sorter(leaguename: String, sorterData: SorterData) {
         sorterDatas[leaguename] = sorterData
     }
+
     fun newSystem(sorterData: SorterData, resultCreator: (suspend AdvancedResult.() -> Unit)) {
         val dataSheet = league.dataSheet
         val gap = league.newSystemGap
@@ -98,13 +101,24 @@ class DocEntry private constructor(val league: League) {
             league.table.size, gameday
         )
 
-    fun analyse(
+    suspend fun analyse(
         replayData: ReplayData
     ) {
         val (game, uids, kills, deaths, _, url, gamedayData) = replayData
         val (gameday, battleindex, u1IsSecond) = gamedayData
         if (cancelIf(replayData, gameday)) return
-
+        val matchresultJob = Database.dbScope.launch {
+            val sorted = uids.sorted()
+            val lookUpIndex = if (uids[0] == sorted[0]) 0 else 1
+            db.matchresults.insertOne(
+                MatchResult(
+                    listOf(kills[lookUpIndex].values.sum(), deaths[lookUpIndex].values.sum()),
+                    sorted,
+                    league.leaguename,
+                    gameday
+                )
+            )
+        }
         val sid = league.sid
         val b = RequestBuilder(sid)
         val customB = customDataSid?.let(::RequestBuilder)
@@ -114,11 +128,7 @@ class DocEntry private constructor(val league: League) {
             val index = league.table.indexOf(uid)
             var monIndex = -1
             val generalStatProcessorData = StatProcessorData(
-                plindex = index,
-                gameday = gameday,
-                battleindex = battleindex,
-                u1IsSecond = u1IsSecond,
-                fightIndex = i
+                plindex = index, gameday = gameday, battleindex = battleindex, u1IsSecond = u1IsSecond, fightIndex = i
             )
 
             fun Set<StatProcessor>.checkTotal(map: Map<String, Int>) {
@@ -182,29 +192,31 @@ class DocEntry private constructor(val league: League) {
             }
             gamedayTips?.evaluated?.add(battleindex)
         }
-        runBlocking {
-            resultCreator?.let {
-                val numbers = gamedayData.numbers()
-                AdvancedResult(
-                    b = b,
-                    gdi = gameday - 1,
-                    index = battleindex,
-                    numberOne = numbers[0],
-                    numberTwo = numbers[1],
-                    swappedNumbers = u1IsSecond,
-                    url = url,
-                    replayData = replayData,
-                    league = league
-                ).it()
-            }
-            league.save()
+
+        resultCreator?.let {
+            val numbers = gamedayData.numbers()
+            AdvancedResult(
+                b = b,
+                gdi = gameday - 1,
+                index = battleindex,
+                numberOne = numbers[0],
+                numberTwo = numbers[1],
+                swappedNumbers = u1IsSecond,
+                url = url,
+                replayData = replayData,
+                league = league
+            ).it()
         }
+        league.save()
         customB?.execute()
-        b.withRunnable(3000) { sort() }.execute()
+        b.withRunnable(3000) {
+            matchresultJob.join()
+            sort()
+        }.execute()
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
-    fun sort() {
+    suspend fun sort() {
         try {
             (sorterDatas[league.leaguename] ?: sorterDatas["default"])?.run {
                 val sid = league.sid
@@ -214,7 +226,7 @@ class DocEntry private constructor(val league: League) {
                     val formulaRange = formulaRange[num]
                     val formula =
                         Google[sid, formulaRange.run { if (newMethod) "$sheet!$xStart$yStart:$xStart$yEnd" else toString() }, true]
-                    val points = Google[sid, formulaRange.toString(), false].toMutableList()
+                    val points = Google[sid, formulaRange.toString(), false]
                     val orig: List<List<Any>?> = ArrayList(points)
                     val table = league.table
                     val indexerToUse: (String) -> Int by lazy {
@@ -224,32 +236,81 @@ class DocEntry private constructor(val league: League) {
                             )
                         } else indexer!!
                     }
-                    points.sortWith { o1: List<Any>, o2: List<Any> ->
-                        val arr = cols.toList()
-                        val first = if (directCompare) arr.subList(0, arr.indexOf(-1)) else arr
-                        val c = compareColumns(
-                            o1, o2, *first.toIntArray()
-                        )
-                        if (c != 0) return@sortWith c
-                        if (!directCompare) return@sortWith 0
-                        val u1 = table[indexerToUse(formula[orig.indexOf(o1)][0].toString())]
-                        val u2 = table[indexerToUse(formula[orig.indexOf(o2)][0].toString())]
-                        val o = league.results
-                        o["$u1:$u2"]?.let { return@sortWith if (it == u1) 1 else -1 }
-                        o["$u2:$u1"]?.let { return@sortWith if (it == u1) 1 else -1 }
-                        val second: List<Int> = arr.subList(arr.indexOf(-1), arr.size)
-                        if (second.size > 1) return@sortWith compareColumns(
-                            o1, o2, *second.drop(1).toIntArray()
-                        )
-                        0
+                    val finalOrder = if (-1 !in cols) {
+                        points.sortedWith(Comparator<List<Any>> { o1, o2 ->
+                            compareColumns(o1, o2, *cols.toIntArray())
+                        }.reversed())
+                    } else {
+                        val colsUntilDirectCompare = cols.takeWhile { it != -1 }
+                        val colsAfterDirectCompare = cols.dropWhile { it != -1 }.drop(1)
+                        val directCompare = points.groupBy {
+                            colsUntilDirectCompare.map { col -> it[col].parseInt() }
+                        }
+                        val preSorted =
+                            directCompare.entries.sortedWith(Comparator<Map.Entry<List<Int>, List<List<Any>>>> { o1, o2 ->
+                                for (index in o1.key.indices) {
+                                    val compare = o1.key[index].compareTo(o2.key[index])
+                                    if (compare != 0) return@Comparator compare
+                                }
+                                0
+                            }.reversed())
+                        preSorted.flatMap { pre ->
+                            val toCompare = pre.value
+                            if (toCompare.size == 1) toCompare else {
+                                val userids =
+                                    toCompare.map { u -> table[indexerToUse(formula[orig.indexOf(u)][0].toString())] }
+                                val allRelevantMatches =
+                                    db.matchresults.find(
+                                        Document(
+                                            "\$expr", Document(
+                                                "\$setIsSubset", listOf(
+                                                    userids,
+                                                    "\$uids"
+                                                )
+                                            )
+                                        )
+                                    )
+                                        .toList()
+                                val data = mutableMapOf<Long, DirectCompareData>()
+                                userids.forEachIndexed { index, l ->
+                                    data[l] = DirectCompareData(0, 0, 0, index)
+                                }
+                                allRelevantMatches.forEach {
+                                    val uids = it.uids
+                                    val winnerIndex = it.winnerIndex
+                                    val winnerData = data[uids[winnerIndex]]!!
+                                    val looserData = data[uids[1 - winnerIndex]]!!
+                                    val killsForWinner = it.data[winnerIndex]
+                                    val deathsForWinner = it.data[1 - winnerIndex]
+                                    winnerData.points++
+                                    winnerData.kills += killsForWinner
+                                    winnerData.deaths += deathsForWinner
+                                    looserData.kills += deathsForWinner
+                                    looserData.deaths += killsForWinner
+                                }
+                                data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Long, DirectCompareData>> { o1, o2 ->
+                                    val compare = o1.value.points.compareTo(o2.value.points)
+                                    if (compare != 0) return@Comparator compare
+                                    for (directCompareOption in sorterData.directCompare) {
+                                        val compare1 = directCompareOption.getFromData(o1.value)
+                                            .compareTo(directCompareOption.getFromData(o2.value))
+                                        if (compare1 != 0) return@Comparator compare1
+                                    }
+                                    compareColumns(
+                                        toCompare[o1.value.index],
+                                        toCompare[o2.value.index],
+                                        *colsAfterDirectCompare.toIntArray()
+                                    )
+                                }.reversed()).map { toCompare[it.value.index] }
+                            }
+                        }
                     }
-                    points.reverse()
                     val namap = mutableMapOf<Int, List<Any>>()
                     for ((i, objects) in orig.withIndex()) {
-                        namap[points.indexOf(objects)] = formula[i]
+                        namap[finalOrder.indexOf(objects)] = formula[i]
                     }
                     val sendname: MutableList<List<Any>?> = ArrayList()
-                    for (j in points.indices) {
+                    for (j in finalOrder.indices) {
                         sendname.add(namap[j])
                     }
                     b.addAll(formulaRange.firstHalf, sendname)
@@ -262,12 +323,10 @@ class DocEntry private constructor(val league: League) {
     }
 }
 
+data class DirectCompareData(var points: Int, var kills: Int, var deaths: Int, val index: Int)
+
 data class StatProcessorData(
-    val plindex: Int,
-    val gameday: Int,
-    val battleindex: Int,
-    val u1IsSecond: Boolean,
-    val fightIndex: Int
+    val plindex: Int, val gameday: Int, val battleindex: Int, val u1IsSecond: Boolean, val fightIndex: Int
 ) {
     var monindex: Int = -1
         get() = if (field == -1) error("monindex not set (must be BasicStatProcessor to be usable)") else field

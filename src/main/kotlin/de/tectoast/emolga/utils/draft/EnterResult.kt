@@ -40,7 +40,7 @@ object EnterResult {
         resultEntry.handleModal(e)
     }
 
-    fun handleFinish(e: ButtonInteractionEvent, name: String) {
+    suspend fun handleFinish(e: ButtonInteractionEvent, name: String) {
         val resultEntry = results[e.user.idLong]
             ?: return e.reply_("Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!")
                 .queue()
@@ -171,7 +171,7 @@ object EnterResult {
             return false
         }
 
-        fun handleFinishConfirm(e: ButtonInteractionEvent, really: Boolean) {
+        suspend fun handleFinishConfirm(e: ButtonInteractionEvent, really: Boolean) {
             if (checkConditionsForFinish(e)) return
             if (really) {
                 e.reply(generateFinalMessage()).queue()

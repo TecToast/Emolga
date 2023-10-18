@@ -102,7 +102,8 @@ class DocEntry private constructor(val league: League) {
         )
 
     suspend fun analyse(
-        replayData: ReplayData
+        replayData: ReplayData,
+        withSort: Boolean = true
     ) {
         val (game, uids, kd, _, url, gamedayData, otherForms) = replayData
         val (gameday, battleindex, u1IsSecond) = gamedayData
@@ -224,8 +225,10 @@ class DocEntry private constructor(val league: League) {
         league.save()
         customB?.execute()
         b.withRunnable(3000) {
-            matchresultJob.join()
-            sort()
+            if (withSort) {
+                matchresultJob.join()
+                sort()
+            }
         }.execute()
     }
 

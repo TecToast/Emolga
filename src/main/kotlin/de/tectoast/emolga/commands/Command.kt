@@ -2158,7 +2158,8 @@ abstract class Command(
             message: Message? = null,
             fromAnalyseCommand: InteractionHook? = null,
             fromReplayCommand: InteractionHook? = null,
-            customGuild: Long? = null
+            customGuild: Long? = null,
+            withSort: Boolean = true,
         ) {
             //defaultScope.launch {
             if (BOT_DISABLED && resultchannelParam.guild.idLong != Constants.G.MY) {
@@ -2250,9 +2251,9 @@ abstract class Command(
                 uid2db
             )
             val league = leaguedata?.league
-            val uids = leaguedata?.uids ?: listOf(uid1db, uid2db)
+            val uids = leaguedata?.uids
             val gamedayData = defaultScope.async {
-                league?.getGameplayData(uids[0], uids[1], game)
+                league?.getGameplayData(uids!![0], uids[1], game)
             }
 //            if (league is ASL) {
 //                val gdData = gamedayData.await()
@@ -2307,13 +2308,14 @@ abstract class Command(
             league?.docEntry?.analyse(
                 ReplayData(
                     game = game,
-                    uids = uids,
+                    uids = uids!!,
                     kd = kd,
                     mons = game.map { it.pokemon.map { mon -> mon.draftname.official } },
                     url = url,
                     gamedayData = gamedayData.await()!!,
-                    otherForms = leaguedata.otherForms
-                )
+                    otherForms = leaguedata.otherForms,
+                ),
+                withSort = withSort
             )
         }
 

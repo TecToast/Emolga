@@ -94,10 +94,12 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                     val mons = game[index]
                     val otherFormesEngl = mutableMapOf<DraftName, List<String>>()
                     val (possibleOtherForm, noOtherForm) = mons.partition {
-                        (it.data?.otherFormes?.filterNot { forme -> "-Alola" in forme || "-Galar" in forme || "-Hisui" in forme }
-                            ?.also { list ->
+                        (
+                                (it.data?.otherFormes?.filterNot { forme -> "-Alola" in forme || "-Galar" in forme || "-Hisui" in forme }
+                                    .orEmpty() + it.data?.baseSpecies).filterNotNull()
+                                    .also { list ->
                                 otherFormesEngl[it] = list
-                            }?.size ?: 0) > 0
+                                    }.size) > 0
                     }
                     val allSDTranslations =
                         NameConventionsDB.getAllSDTranslationOnlyOfficialGerman(possibleOtherForm.flatMap { otherFormesEngl[it].orEmpty() })

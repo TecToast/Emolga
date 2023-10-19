@@ -69,6 +69,7 @@ sealed class League {
     val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
 
     val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
+    val skippedTurns: MutableMap<Long, MutableSet<Int>> = mutableMapOf()
 
     internal val names: MutableMap<Long, String> = mutableMapOf()
 
@@ -281,7 +282,7 @@ sealed class League {
             save("StartDraft")
         } else {
             val delay =
-                if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer?.calc(timerStart = timerStart)
+                if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer?.calc(this)
             restartTimer(delay)
         }
         db.drafts.updateOneById(id!!, set(League::isRunning setTo true))
@@ -301,7 +302,7 @@ sealed class League {
 
     open fun reset() {}
 
-    private fun restartTimer(delay: Long? = timer?.calc(timerStart = timerStart)) {
+    private fun restartTimer(delay: Long? = timer?.calc(this)) {
         delay ?: return
         cooldown = System.currentTimeMillis() + delay
         logger.info("important".marker, "cooldown = {}", cooldown)
@@ -397,7 +398,9 @@ sealed class League {
     }
 
     fun triggerMove() {
-        moved.getOrPut(current) { mutableListOf() }.let { if (round !in it) it += round }
+        if (!isSwitchDraft)
+            moved.getOrPut(current) { mutableListOf() }.let { if (round !in it) it += round }
+        skippedTurns.getOrPut(current) { mutableSetOf() } += round
     }
 
     fun hasMovedTurns(user: Long = current) = movedTurns(user).isNotEmpty()
@@ -450,7 +453,7 @@ sealed class League {
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
     suspend fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER, skippedBy: Long? = null) {
         if (!isRunning) return
-        if (!isSwitchDraft) triggerMove()
+        triggerMove()
         timerSkipMode?.onTimerTriggered(this)
         if (endOfTurn()) return
         val oldcurrent = current

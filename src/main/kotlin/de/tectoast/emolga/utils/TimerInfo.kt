@@ -2,9 +2,16 @@ package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.utils.records.TimerData
 
-class TimerInfo(val delayInMins: Int = 120) {
+class TimerInfo(delaysAfterSkips: Map<Int, Int>) {
     private val map: MutableMap<Int, TimerData> = mutableMapOf()
+    val delayData =
+        delaysAfterSkips.also { if (it[0] == null) throw IllegalArgumentException("Delay for zero must be set!") }.entries.sortedByDescending { it.key }
 
+    fun getDelayAfterSkips(howOftenSkipped: Int): Int {
+        return delayData.first { howOftenSkipped >= it.key }.value
+    }
+
+    constructor(delayInMins: Int) : this(mapOf(0 to delayInMins))
     constructor(from: Int, to: Int, delayInMins: Int = 120) : this(delayInMins) {
         set(from, to)
     }

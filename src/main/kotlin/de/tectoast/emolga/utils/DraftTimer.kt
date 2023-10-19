@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils
 
+import de.tectoast.emolga.utils.json.emolga.draft.League
 import java.util.*
 
 class DraftTimer(
@@ -16,7 +17,10 @@ class DraftTimer(
     })
 
 
-    fun calc(now: Long = System.currentTimeMillis(), timerStart: Long? = null): Long {
+    fun calc(league: League) =
+        calc(timerStart = league.timerStart, howOftenSkipped = league.skippedTurns[league.current]?.size ?: 0)
+
+    fun calc(now: Long = System.currentTimeMillis(), timerStart: Long? = null, howOftenSkipped: Int = 0): Long {
         lateinit var currentTimerInfo: TimerInfo
         val cal = Calendar.getInstance().apply {
             timeInMillis = now
@@ -25,10 +29,12 @@ class DraftTimer(
         fun recheckTimerInfo() {
             currentTimerInfo = timers.first { it.key <= cal.timeInMillis }.value
         }
+
+        fun currentDelay() = currentTimerInfo.getDelayAfterSkips(howOftenSkipped)
         val ctm = cal.timeInMillis
         cal.timeInMillis = timerStart?.let { if (it > ctm) it else ctm } ?: ctm
         recheckTimerInfo()
-        var currentDelay = currentTimerInfo.delayInMins
+        var currentDelay = currentDelay()
         var elapsedMinutes: Int = currentDelay
         var firstIteration = true
         while (elapsedMinutes > 0) {
@@ -38,13 +44,14 @@ class DraftTimer(
             firstIteration = false
             cal.add(Calendar.MINUTE, 1)
             recheckTimerInfo()
-            if (currentDelay != currentTimerInfo.delayInMins) {
-                elapsedMinutes = if (currentTimerInfo.delayInMins < currentDelay) {
-                    elapsedMinutes.coerceAtMost(currentTimerInfo.delayInMins)
+            val currentTimerInfoDelay = currentDelay()
+            if (currentDelay != currentTimerInfoDelay) {
+                elapsedMinutes = if (currentTimerInfoDelay < currentDelay) {
+                    elapsedMinutes.coerceAtMost(currentTimerInfoDelay)
                 } else {
-                    currentTimerInfo.delayInMins - (currentDelay - elapsedMinutes)
+                    currentTimerInfoDelay - (currentDelay - elapsedMinutes)
                 }
-                currentDelay = currentTimerInfo.delayInMins
+                currentDelay = currentTimerInfoDelay
             }
         }
 //        cal.add(Calendar.MINUTE, elapsedMinutes)

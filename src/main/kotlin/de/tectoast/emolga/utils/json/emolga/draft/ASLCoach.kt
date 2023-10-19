@@ -12,6 +12,7 @@ import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import java.util.Calendar.*
 
 @Serializable
 @SerialName("ASLCoach")
@@ -37,7 +38,11 @@ class ASLCoach(val level: Int = -1) : League() {
     override val teamsize = 12
 
     @Transient
-    override val timer = DraftTimer(TimerInfo(12, 22))
+    override val timer = DraftTimer(
+        TimerInfo(delaysAfterSkips = mapOf(0 to 120, 1 to 60, 2 to 30))
+            .add(10, 22, SATURDAY, SUNDAY)
+            .add(14, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)
+    )
 
     override val timerSkipMode = TimerSkipMode.AFTER_DRAFT_UNORDERED
 

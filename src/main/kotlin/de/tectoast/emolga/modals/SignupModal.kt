@@ -1,6 +1,5 @@
 package de.tectoast.emolga.modals
 
-import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.PrivateCommands
 import de.tectoast.emolga.commands.condAppend
@@ -12,8 +11,6 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Modal
-import dev.minn.jda.ktx.interactions.components.primary
-import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.reply_
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,12 +38,8 @@ object SignupModal : ModalListener("signup") {
             val c = Channel<LigaStartData>(CONFLATED)
             signupScope.launch {
                 while (true) {
-                    with(c.receive()) {
-                        EmolgaMain.emolgajda.getTextChannelById(announceChannel)!!.editMessageById(
-                            announceMessageId, "$signupMessage\n\n**Teilnehmer: ${users.size}/${maxUsersAsString}**"
-                        ).queue()
-                        delay(10000)
-                    }
+                    c.receive().updateSignupMessage()
+                    delay(10000)
                 }
             }
             Mutex() to c
@@ -76,7 +69,6 @@ object SignupModal : ModalListener("signup") {
                     save()
                     return
                 }
-                val announceChannel = e.jda.getTextChannelById(announceChannel)!!
                 e.hook.sendMessage("✅ Du wurdest erfolgreich angemeldet!").setEphemeral(true).queue()
                 giveParticipantRole(e.member!!)
                 val signUpData = SignUpData(
@@ -89,10 +81,7 @@ object SignupModal : ModalListener("signup") {
                 users[ownerOfTeam] = signUpData
                 channel.send(this)
                 if (full) {
-                    announceChannel.editMessageComponentsById(
-                        announceMessageId, primary("signupclosed", "Anmeldung geschlossen", disabled = true).into()
-                    ).queue()
-                    announceChannel.sendMessage("_----------- Anmeldung geschlossen -----------_").queue()
+                    closeSignup()
                 }
                 save()
             }

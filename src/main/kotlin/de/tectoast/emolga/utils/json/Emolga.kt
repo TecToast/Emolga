@@ -1,5 +1,7 @@
 package de.tectoast.emolga.utils.json
 
+import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.ifTrue
@@ -13,6 +15,8 @@ import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
+import dev.minn.jda.ktx.interactions.components.primary
+import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.*
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
@@ -214,6 +218,22 @@ data class LigaStartData(
         participantRole?.let {
             member.guild.addRoleToMember(member, member.guild.getRoleById(it)!!).queue()
         }
+    }
+
+    fun updateSignupMessage(setMaxUsersToCurrentUsers: Boolean = false) {
+        EmolgaMain.emolgajda.getTextChannelById(announceChannel)!!.editMessageById(
+            announceMessageId,
+            "$signupMessage\n\n**Teilnehmer: ${users.size}/${if (setMaxUsersToCurrentUsers) users.size else maxUsersAsString}**"
+        ).queue()
+    }
+
+    fun closeSignup(forced: Boolean = false) {
+        val channel = jda.getTextChannelById(announceChannel)!!
+        channel.editMessageComponentsById(
+            announceMessageId, primary("signupclosed", "Anmeldung geschlossen", disabled = true).into()
+        ).queue()
+        channel.sendMessage("_----------- Anmeldung geschlossen -----------_").queue()
+        if (forced) updateSignupMessage(true)
     }
 
     val full get() = maxUsers > 0 && users.size >= maxUsers

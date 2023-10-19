@@ -25,12 +25,10 @@ import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
-import org.litote.kmongo.Id
+import org.litote.kmongo.*
 import org.litote.kmongo.coroutine.updateOne
-import org.litote.kmongo.eq
-import org.litote.kmongo.set
-import org.litote.kmongo.setTo
 import org.slf4j.Logger
+import java.text.SimpleDateFormat
 
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -90,11 +88,16 @@ sealed class League {
     @Transient
     private val mutex = Mutex()
 
+    @Transient
+    var newTimerForAnnounce = false
+
     suspend fun lockForPick(user: Long, block: suspend () -> Unit) {
         mutex.withLock {
             // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
-            if (pseudoEnd)
+            if (timerSkipMode == TimerSkipMode.AFTER_DRAFT_UNORDERED && pseudoEnd) {
+                if (user !in table) return@withLock
                 current = user
+            }
             block()
         }
     }
@@ -121,8 +124,7 @@ sealed class League {
 
     val newSystemGap get() = teamsize + pickBuffer + 3
 
-    @Transient
-    open val additionalSet: AdditionalSet? = AdditionalSet((gamedays + 4).xc(), "X", "Y")
+    open val additionalSet: AdditionalSet? by lazy { AdditionalSet((gamedays + 4).xc(), "X", "Y") }
 
     fun RequestBuilder.newSystemPickDoc(data: DraftData) {
         val y = data.memIndex.y(newSystemGap, data.picks.size + 2)
@@ -268,6 +270,7 @@ sealed class League {
             if (fromFile || isSwitchDraft) picks.putIfAbsent(member, mutableListOf())
             else picks[member] = mutableListOf()
         }
+        val updates = mutableListOf<SetTo<*>>()
         if (!fromFile) {
             order.clear()
             order.putAll(originalorder.mapValues { it.value.toMutableList() })
@@ -275,17 +278,22 @@ sealed class League {
             setNextUser()
             moved.clear()
             pseudoEnd = false
-            reset()
+            reset(updates)
             restartTimer()
             sendRound()
             announcePlayer()
             save("StartDraft")
+            updates += ::round setTo 1
+            updates += ::moved setTo mutableMapOf()
+            updates += ::pseudoEnd setTo false
+            updates += ::skippedTurns setTo mutableMapOf()
         } else {
             val delay =
                 if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer?.calc(this)
             restartTimer(delay)
         }
-        db.drafts.updateOneById(id!!, set(League::isRunning setTo true))
+        updates += ::isRunning setTo true
+        db.drafts.updateOneById(id!!, set(*updates.toTypedArray()))
         logger.info("Started!")
     }
 
@@ -296,15 +304,24 @@ sealed class League {
     suspend fun save(from: String = "") = withContext(NonCancellable) {
         val l = this@League
         db.drafts.updateOne(l)
-            .also { logger.info("Saving... {} isRunning {} FROM {}", l.leaguename, l.isRunning, from) }
+            .also {
+                logger.info(
+                    "Saving... Result: {} Leaguename: {} isRunning {} FROM {}",
+                    it.toString(),
+                    l.leaguename,
+                    l.isRunning,
+                    from
+                )
+            }
     }
 
 
-    open fun reset() {}
+    open fun reset(updates: MutableList<SetTo<*>>) {}
 
     private fun restartTimer(delay: Long? = timer?.calc(this)) {
         delay ?: return
         cooldown = System.currentTimeMillis() + delay
+        newTimerForAnnounce = true
         logger.info("important".marker, "cooldown = {}", cooldown)
         allTimers[leaguename]?.cancel("Restarting timer")
         allTimers[leaguename] = timerScope.launch {
@@ -320,7 +337,14 @@ sealed class League {
     }
 
     open suspend fun announcePlayer() {
-        tc.sendMessage("${getCurrentMention()} ist dran!${announceData()}").queue()
+        tc.sendMessage("${getCurrentMention()} ist dran!${announceData()}".condAppend(newTimerForAnnounce) {
+            " — Zeit bis: **${
+                leagueTimeFormat.format(
+                    cooldown
+                )
+            }**"
+        }).queue()
+        newTimerForAnnounce = false
     }
 
     private fun announceData() = buildList {
@@ -411,13 +435,13 @@ sealed class League {
         if (order[round]!!.isEmpty()) {
             logger.info("No more players")
             if (round == totalRounds) {
-                finishDraft()
+
+                finishDraft(msg = "Der Draft ist vorbei!")
                 return true
             }
             round++
-            if (order[round]!!.isEmpty()) {
-                tc.sendMessage("Da alle bereits ihre Drafts beendet haben, ist der Draft vorbei!").queue()
-                save("FINISH DRAFT END SAVE")
+            if (order[round]?.isEmpty() != false) {
+                finishDraft(msg = "Da alle bereits ihre Drafts beendet haben, ist der Draft vorbei!")
                 return true
             }
             sendRound()
@@ -425,8 +449,8 @@ sealed class League {
         return false
     }
 
-    suspend fun finishDraft() {
-        tc.sendMessage("Der Draft ist vorbei!").queue()
+    suspend fun finishDraft(msg: String) {
+        tc.sendMessage(msg).queue()
         //ndsdoc(tierlist, pokemon, d, mem, tier, round);
         //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
         logger.info("Draft ended!")
@@ -481,8 +505,8 @@ sealed class League {
         cancelCurrentTimer()
         if (endOfTurn()) return
         setNextUser()
-        announcePlayer()
         restartTimer()
+        announcePlayer()
         save("NEXT PLAYER SAFE")
     }
 
@@ -602,6 +626,7 @@ sealed class League {
     companion object {
         val logger: Logger by SLF4J
         val allTimers = mutableMapOf<String, Job>()
+        val leagueTimeFormat = SimpleDateFormat("HH:mm")
 
         val timerScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
             logger.error(
@@ -615,11 +640,26 @@ sealed class League {
             league.triggerTimer()
         }
 
-        suspend fun byCommand(e: GuildCommandEvent) = onlyChannel(e.textChannel.idLong)?.apply {
-            val uid = e.member.idLong
-            if (timerSkipMode?.bypassCurrentPlayerCheck(this, uid) != true && !isCurrentCheck(uid)) {
-                e.reply("Du bist nicht dran!", ephemeral = true)
-                return null
+        suspend fun byCommand(e: GuildCommandEvent): League? {
+            val onlyChannel = onlyChannel(e.textChannel.idLong)
+            logger.info("leaguename {}", onlyChannel?.leaguename)
+            return onlyChannel?.apply {
+                val uid = e.member.idLong
+                if (pseudoEnd) {
+                    when (timerSkipMode?.bypassCurrentPlayerCheck(this, uid)) {
+                        true -> return@apply
+                        false -> {
+                            e.reply("Du hast keine offenen Picks mehr!")
+                            return null
+                        }
+
+                        else -> {}
+                    }
+                }
+                if (!isCurrentCheck(uid)) {
+                    e.reply("Du bist nicht dran!", ephemeral = true)
+                    return null
+                }
             }
         }
 

@@ -1,19 +1,14 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.coord
-import de.tectoast.emolga.commands.indexedBy
-import de.tectoast.emolga.commands.x
-import de.tectoast.emolga.commands.y
+import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
-import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
 import de.tectoast.emolga.utils.automation.structure.DocEntry
-import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
-import de.tectoast.emolga.utils.records.Coord
+import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -21,36 +16,22 @@ import kotlinx.serialization.Transient
 @Serializable
 @SerialName("ASLCoach")
 class ASLCoach(val level: Int = -1) : League() {
+    override val dataSheet = "Data$level"
+
     @Transient
     override val docEntry = DocEntry.create(this) {
-        val sheet = "Data$level"
-        killProcessor = BasicStatProcessor {
-            Coord(
-                sheet,
-                gameday + 2,
-                plindex.y(15, monindex + 3)
+        newSystem(
+            SorterData(
+                listOf("Tabellen!B5:J10", "Tabellen!B13:J18").map { it.toDocRange() },
+                cols = listOf(2, 8, 6)
             )
-        }
-        deathProcessor = BasicStatProcessor {
-            Coord(
-                sheet,
-                gameday + 12,
-                plindex.y(15, monindex + 3)
-            )
-        }
-        numberMapper = { it.ifEmpty { "-" } }
-        winProcessor =
-            ResultStatProcessor { Coord(sheet, gameday + 2, plindex.y(15, 15)) }
-        looseProcessor =
-            ResultStatProcessor { Coord(sheet, gameday + 12, plindex.y(15, 15)) }
-        resultCreator = {
+        ) {
             b.addSingle(
                 coord("Spielplan", gdi.x(5, 2), index.y(7, 5 + level)),
                 defaultGameplanString
             )
         }
         //sorterData = SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), false, null, 2, 8, 6)
-
     }
 
     override val teamsize = 12

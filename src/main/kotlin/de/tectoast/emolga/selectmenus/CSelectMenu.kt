@@ -16,7 +16,7 @@ object CSelectMenu : MenuListener("cselect") {
     private val logger = KotlinLogging.logger {}
     override suspend fun process(e: StringSelectInteractionEvent, menuname: String?) {
         val (mode, uid) = menuname!!.split(":").let { it[0] to it[1].toLong() }
-        val gid = e.guild?.idLong ?: return
+        val gid = PrivateCommands.guildForTLSetup ?: e.guild?.idLong ?: return
         val data = db.signups.get(gid) ?: return
         val user = data.users[uid]!!
         val oldConf = user.conference.indexedBy(data.conferences)

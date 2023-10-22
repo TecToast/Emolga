@@ -11,7 +11,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 object ShiftUserButton : ButtonListener("shiftuser") {
     override suspend fun process(e: ButtonInteractionEvent, name: String) {
-        val gid = e.guild!!.idLong
+        val gid = PrivateCommands.guildForTLSetup ?: e.guild!!.idLong
         with(
             db.signups.get(gid)
                 ?: return e.reply("Diese Anmeldung ist bereits geschlossen!").setEphemeral(true).queue()

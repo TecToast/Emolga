@@ -605,7 +605,7 @@ object PrivateCommands {
         val args = e.getArg(1).split(" ")
         val tc = e.jda.getTextChannelById(args[0])!!
         val extended = args[1].toBoolean()
-        val data = db.signups.get(tc.guild.idLong)!!
+        val data = db.signups.get(guildForTLSetup ?: tc.guild.idLong)!!
         val conferences = args.drop(2)
         val confMap = conferences.mapNotNull {
             val split = it.split(":")

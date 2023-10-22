@@ -144,6 +144,13 @@ object NameConventionsDB : Table("nameconventions") {
         }
     }
 
+    @Suppress("unused")
+    suspend fun getAllSDTranslationOnlyOfficialEnglish(list: List<String>): Map<String, String> {
+        return newSuspendedTransaction {
+            select(GERMAN inList list).associate { it[GERMAN] to it[ENGLISH] }
+        }
+    }
+
     private suspend fun getDBTranslation(
         test: String, guildId: Long, spec: String? = null, nc: Map<String, String>, english: Boolean = false
     ): DraftName? {

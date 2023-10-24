@@ -337,14 +337,7 @@ sealed class League {
     }
 
     open suspend fun announcePlayer() {
-        tc.sendMessage("${getCurrentMention()} ist dran!${announceData()}".condAppend(newTimerForAnnounce) {
-            " — Zeit bis: **${
-                leagueTimeFormat.format(
-                    cooldown
-                )
-            }**"
-        }).queue()
-        newTimerForAnnounce = false
+        tc.sendMessage("${getCurrentMention()} ist dran!${announceData()}").queue()
     }
 
     private fun announceData() = buildList {
@@ -358,7 +351,14 @@ sealed class League {
                 )
             )
         }
-    }.joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }/*.condAppend(timerSkipMode?.multiplePicksPossible == true && hasMovedTurns()) {
+    }.joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
+        .condAppend(newTimerForAnnounce) {
+            " — Zeit bis: **${
+                leagueTimeFormat.format(
+                    cooldown
+                )
+            }**"
+        }.also { newTimerForAnnounce = false }/*.condAppend(timerSkipMode?.multiplePicksPossible == true && hasMovedTurns()) {
         movedTurns().size.plus(1).let { " **($it Pick${if (it == 1) "" else "s"})**" }
     }*/
 
@@ -482,6 +482,7 @@ sealed class League {
         if (endOfTurn()) return
         val oldcurrent = current
         setNextUser()
+        restartTimer()
         tc.sendMessage(buildString {
             if (tr == TimerReason.REALTIMER) append(
                 "**${getCurrentName(oldcurrent)}** war zu langsam und deshalb ist jetzt ${
@@ -493,7 +494,6 @@ sealed class League {
             } dran!")
             append(announceData())
         }).queue()
-        restartTimer()
         save("TIMER SAFE")
     }
 

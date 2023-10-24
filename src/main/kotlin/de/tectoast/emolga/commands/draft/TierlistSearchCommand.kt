@@ -6,10 +6,11 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.Translation
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
+import dev.minn.jda.ktx.messages.send
 
 
 object TierlistSearchCommand :
-        Command("tierlistsearch", "Zeigt dir alle Pokemon in einem Tier mit einem bestimmten Typ", CommandCategory.Draft) {
+    Command("tierlistsearch", "Zeigt dir alle Pokemon in einem Tier mit einem bestimmten Typ", CommandCategory.Draft) {
 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {
@@ -19,6 +20,8 @@ object TierlistSearchCommand :
         }
         slash(true, Constants.G.ASL)
     }
+
+    val dataCache = mutableMapOf<Long, MutableMap<String, List<String>>>()
 
     override suspend fun process(e: GuildCommandEvent) {
         val args = e.arguments
@@ -32,16 +35,20 @@ object TierlistSearchCommand :
             e.reply("Das Tier existiert auf diesem Server nicht!")
             return
         }
+        e.deferReply(ephermal = true)
         val searchType = args.getTranslation("type")
         val searchTypeEnglish = searchType.translation
-        val filteredList = mons.filter { searchTypeEnglish in getDataObject(it, gid).types }
-        e.reply(
+        val filteredList = mons.filter {
+            searchTypeEnglish in dataCache.getOrPut(gid) { mutableMapOf() }
+                .getOrPut(it) { getDataObject(it, gid).types }
+        }
+        e.hook.send(
             "All diese Mons aus dem ${tier}-Tier besitzen den Typen ${searchType.otherLang}:\n${
                 filteredList.joinToString(
                     "\n"
                 )
             }", ephemeral = true
-        )
+        ).queue()
     }
 
 }

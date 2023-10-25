@@ -156,7 +156,7 @@ class NDS : League() {
         sorterData = SorterData(
             formulaRange = listOf("$tableName!C3:K8".toDocRange(), "$tableName!C12:K17".toDocRange()),
             newMethod = true,
-            cols = listOf(2, 8, 6)
+            cols = listOf(2, 8, -1, 6)
         )
     }
 

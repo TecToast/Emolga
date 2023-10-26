@@ -6,6 +6,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.Matcher
 import io.kotest.matchers.MatcherResult
 import io.kotest.matchers.should
+import io.kotest.matchers.shouldBe
 import java.util.Calendar.*
 
 class DraftTimerTest : FunSpec({
@@ -163,6 +164,20 @@ class DraftTimerTest : FunSpec({
             val now = format("20.10.2023 23:30")
             timer.testCalc(now, howOftenSkipped = 1) shouldBeTime "21.10.2023 11:00"
         }
+    }
+    test("TimeChange") {
+        val timer = DraftTimer(TimerInfo(10, 22))
+        val now = format("28.10.2023 23:00")
+        timer.testCalc(now) shouldBe 1698577200000
+        val beforeMillis = 1698537600000
+        val afterMillis = 1698541200000
+        val beforeSkip = getInstance().apply { timeInMillis = 1698537600000 }
+        val afterSkip = getInstance().apply { timeInMillis = 1698541200000 }
+        beforeSkip[HOUR_OF_DAY] shouldBe 2
+        beforeSkip[MINUTE] shouldBe 0
+        afterSkip[HOUR_OF_DAY] shouldBe 2
+        afterSkip[MINUTE] shouldBe 0
+        afterMillis - beforeMillis shouldBe 3600000
     }
 })
 

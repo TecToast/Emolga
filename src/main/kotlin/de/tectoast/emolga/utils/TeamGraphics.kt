@@ -71,7 +71,12 @@ class TeamGraphic {
 
     private suspend fun addMonsToList(monlist: List<DraftPokemon>) {
         //mons.computeIfAbsent(tier) { ArrayList() } += pokemon
-        mons.add(monlist.map { DraftPokemon(getSpriteForTeamGraphic(it.name, randomTeamData, 0), it.tier) }
+        mons.add(monlist.map {
+            DraftPokemon(
+                getSpriteForTeamGraphic(it.name, randomTeamData, Constants.G.ASL),
+                it.tier
+            )
+        }
             .toMutableList())
 
     }

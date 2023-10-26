@@ -1,12 +1,14 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.commands.coordXMod
+import de.tectoast.emolga.commands.toDocRange
+import de.tectoast.emolga.commands.xc
+import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.records.SorterData
-import de.tectoast.emolga.utils.records.toCoord
 import de.tectoast.emolga.utils.records.x
 import de.tectoast.emolga.utils.records.y
 import kotlinx.serialization.SerialName
@@ -23,14 +25,14 @@ class ADK : League() {
     override val dataSheet by lazy { "Data${cid + 1}" }
 
     @Transient
-    override val timer = DraftTimer(TimerInfo(10, 22))
+    override val timer = DraftTimer(TimerInfo(10, 22, delayInMins = 120))
 
     @Transient
     override val docEntry = DocEntry.create(this) {
         val startCoord = "Tabelle und Killliste" x "D" y 6
         newSystem(
             sorterData = SorterData(
-                startCoord.plusX(cid.y('M' - 'C', 0)).spreadBy(5, 7).toDocRange(),
+                startCoord.plusX(cid.y('M' - 'C', 0)).spreadBy(5, 5).toDocRange(),
                 newMethod = true,
                 cols = listOf(3, 5)
             )
@@ -43,15 +45,17 @@ class ADK : League() {
     }
 
 
-    private fun getFirstMonCoordByPlayerIndex(it: Int): String {
-        return if (it in 0..1) "Kaderübersicht!${it.x('N' - 'D', cid.y('U' - 'D', 4))}18"
-        else it.minus(2).coordXMod("Kaderübersicht", 3, 'I' - 'D', cid.y('U' - 'D', 4), 69 - 43, 44)
-    }
-
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
         addSingle(
-            getFirstMonCoordByPlayerIndex(data.memIndex).toCoord().plusY(data.changedOnTeamsiteIndex).toString(),
+            data.memIndex.coordXMod(
+                "Kaderübersicht",
+                3,
+                'I' - 'C',
+                cid.y('W' - 'C', 4),
+                69 - 43,
+                44 + data.changedOnTeamsiteIndex
+            ),
             data.pokemon
         )
         addStrikethroughChange(

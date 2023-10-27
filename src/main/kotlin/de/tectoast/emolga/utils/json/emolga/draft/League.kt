@@ -764,7 +764,9 @@ enum class TimerSkipMode {
         override suspend fun League.afterPick(data: NextPlayerData): Boolean =
             if (draftWouldEnd && moved.values.any { it.isNotEmpty() }) {
                 if (!pseudoEnd) {
-                    tc.sendMessage("Der Draft wäre jetzt vorbei, aber es gibt noch Spieler, die keinen vollständigen Kader haben! Diese können nun in beliebiger Reihenfolge ihre Picks nachholen.")
+                    tc.sendMessage("Der Draft wäre jetzt vorbei, aber es gibt noch Spieler, die keinen vollständigen Kader haben! Diese können nun in beliebiger Reihenfolge ihre Picks nachholen. Dies sind:\n"
+                            + moved.entries.filter { it.value.isNotEmpty() }
+                        .joinToString("\n") { (user, turns) -> "<@$user>: ${turns.size}x" })
                         .queue()
                     cancelCurrentTimer()
                     pseudoEnd = true

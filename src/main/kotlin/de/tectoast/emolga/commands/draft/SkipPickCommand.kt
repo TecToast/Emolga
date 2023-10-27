@@ -5,6 +5,8 @@ import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.database.exposed.DraftAdminsDB
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.emolga.draft.NextPlayerData
+import de.tectoast.emolga.utils.json.emolga.draft.SkipReason
 import net.dv8tion.jda.api.Permission
 
 object SkipPickCommand : Command("skippick", "Skippe eine Person beim Draft", CommandCategory.Draft) {
@@ -22,7 +24,7 @@ object SkipPickCommand : Command("skippick", "Skippe eine Person beim Draft", Co
             "Es läuft zurzeit kein Draft in diesem Channel!",
             ephemeral = true
         )
-        d.triggerTimer(League.TimerReason.SKIP, e.member.idLong)
+        d.afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP, skippedBy = e.member.idLong))
         e.reply("+1", ephemeral = true)
     }
 }

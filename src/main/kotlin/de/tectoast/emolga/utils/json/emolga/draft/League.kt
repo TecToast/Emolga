@@ -29,6 +29,7 @@ import org.litote.kmongo.*
 import org.litote.kmongo.coroutine.updateOne
 import org.slf4j.Logger
 import java.text.SimpleDateFormat
+import kotlin.properties.Delegates
 
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -201,12 +202,11 @@ sealed class League {
             e.reply("Dafür hast du nicht genug Punkte!")
             return true
         }
-        val variableMegaPrice =
-            (if (tierlist.variableMegaPrice) (if (!currentPicksHasMega) tierlist.order.mapNotNull {
-                it.substringAfter("#", "").takeUnless { t -> t.isEmpty() }?.toInt()
-            }.minOrNull() ?: 0 else 0) else 0).let {
-                if (mega) 0 else it
-            }
+        val variableMegaPrice = (if (tierlist.variableMegaPrice) (if (!currentPicksHasMega) tierlist.order.mapNotNull {
+            it.substringAfter("#", "").takeUnless { t -> t.isEmpty() }?.toInt()
+        }.minOrNull() ?: 0 else 0) else 0).let {
+            if (mega) 0 else it
+        }
         if (pointsBack == 0 && when (tierlist.mode) {
                 TierlistMode.POINTS -> (totalRounds - (cpicks.size + 1)) * tierlist.prices.values.min() > points[current] - needed
                 TierlistMode.TIERS_WITH_FREE -> (tierlist.freePicksAmount - (cpicks.count { it.free } + (if (free) 1 else 0))) * tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" && "Mega#" !in it.key }
@@ -247,11 +247,8 @@ sealed class League {
         return false
     }
 
-    open suspend fun afterPick() {
-        nextPlayer()
-    }
-
-    suspend fun afterPickOfficial() = timerSkipMode?.afterPick(this)?.also { save("AfterPickOfficial") } ?: afterPick()
+    suspend fun afterPickOfficial(data: NextPlayerData = NextPlayerData.Normal) =
+        timerSkipMode?.afterPick(this, data)?.also { save("AfterPickOfficial") } ?: nextPlayer(data)
 
 
     val draftWouldEnd get() = isLastRound && order[round]!!.isEmpty()
@@ -288,8 +285,7 @@ sealed class League {
             updates += ::pseudoEnd setTo false
             updates += ::skippedTurns setTo mutableMapOf()
         } else {
-            val delay =
-                if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer?.calc(this)
+            val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer?.calc(this)
             restartTimer(delay)
         }
         updates += ::isRunning setTo true
@@ -301,18 +297,17 @@ sealed class League {
         current = order[round]!!.nextCurrent()
     }
 
-    suspend fun save(from: String = "") = withContext(NonCancellable) {
+    suspend fun save(from: String = "") {
         val l = this@League
-        db.drafts.updateOne(l)
-            .also {
-                logger.info(
-                    "Saving... Result: {} Leaguename: {} isRunning {} FROM {}",
-                    it.toString(),
-                    l.leaguename,
-                    l.isRunning,
-                    from
-                )
-            }
+        db.drafts.updateOne(l).also {
+            logger.info(
+                "Saving... Result: {} Leaguename: {} isRunning {} FROM {}",
+                it.toString(),
+                l.leaguename,
+                l.isRunning,
+                from
+            )
+        }
     }
 
 
@@ -337,8 +332,24 @@ sealed class League {
         tc.sendMessage("**=== Runde $round ===**").queue()
     }
 
-    open suspend fun announcePlayer() {
-        tc.sendMessage("${getCurrentMention()} ist dran!${announceData()}").queue()
+    open suspend fun announcePlayer(data: NextPlayerData = NextPlayerData.Normal) {
+        val currentMention = getCurrentMention()
+        val announceData = announceData()
+        with(data) {
+            tc.sendMessage(when (this) {
+                NextPlayerData.Normal -> "$currentMention ist dran!$announceData"
+                is NextPlayerData.Moved -> {
+                    buildString {
+                        val skippedUserName = getCurrentName(skippedUser)
+                        if (reason == SkipReason.REALTIMER) append(
+                            "**$skippedUserName** war zu langsam und deshalb ist jetzt $currentMention dran!"
+                        )
+                        else append("Der Pick von $skippedUserName wurde ".condAppend(skippedBy != null) { "von <@$skippedBy> " } + "${if (isSwitchDraft) "geskippt" else "verschoben"} und deshalb ist jetzt $currentMention dran!")
+                        append(announceData)
+                    }
+                }
+            })
+        }
     }
 
     private fun announceData() = buildList {
@@ -378,8 +389,7 @@ sealed class League {
         }.also { possible ->
             if (tierlist.variableMegaPrice) {
                 possible.keys.toList().forEach { if (it.startsWith("Mega#")) possible.remove(it) }
-                if (!forAutocomplete)
-                    possible["Mega"] = if (cpicks.none { it.name.isMega }) 1 else 0
+                if (!forAutocomplete) possible["Mega"] = if (cpicks.none { it.name.isMega }) 1 else 0
             }
             manipulatePossibleTiers(cpicks, possible)
         }
@@ -400,8 +410,7 @@ sealed class League {
         return if (insertedTier != null && tierlist.mode.withTiers) {
             TierData(tierlist.order.firstOrNull {
                 insertedTier.equals(
-                    it,
-                    ignoreCase = true
+                    it, ignoreCase = true
                 )
             } ?: (if (tierlist.variableMegaPrice && insertedTier.equals("Mega", ignoreCase = true)) "Mega" else ""),
                 real)
@@ -423,8 +432,7 @@ sealed class League {
     }
 
     fun triggerMove() {
-        if (!isSwitchDraft)
-            moved.getOrPut(current) { mutableListOf() }.let { if (round !in it) it += round }
+        if (!isSwitchDraft) moved.getOrPut(current) { mutableListOf() }.let { if (round !in it) it += round }
         skippedTurns.getOrPut(current) { mutableSetOf() } += round
     }
 
@@ -468,46 +476,32 @@ sealed class League {
         val data = allowed[current] ?: return "<@$current>"
         val currentData = data.firstOrNull { it.u == current } ?: AllowedData(current, true)
         val (teammates, other) = data.filter { it.mention && it.u != current }.partition { it.teammate }
-        return (if (currentData.mention) "<@$current>" else "**${getCurrentName()}**") +
-                teammates.joinToString { "<@${it.u}>" }.ifNotEmpty { ", $it" } +
-                other.joinToString { "<@${it.u}>" }.ifNotEmpty { ", ||$it||" }
+        return (if (currentData.mention) "<@$current>" else "**${getCurrentName()}**") + teammates.joinToString { "<@${it.u}>" }
+            .ifNotEmpty { ", $it" } + other.joinToString { "<@${it.u}>" }.ifNotEmpty { ", ||$it||" }
     }
 
     internal fun getCurrentName(mem: Long = current) = names[mem]!!
 
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
-    suspend fun triggerTimer(tr: TimerReason = TimerReason.REALTIMER, skippedBy: Long? = null) {
-        if (!isRunning) return
-        triggerMove()
-        timerSkipMode?.onTimerTriggered(this)
-        if (endOfTurn()) return
-        val oldcurrent = current
-        setNextUser()
-        restartTimer()
-        tc.sendMessage(buildString {
-            if (tr == TimerReason.REALTIMER) append(
-                "**${getCurrentName(oldcurrent)}** war zu langsam und deshalb ist jetzt ${
-                    getCurrentMention()
-                } dran!"
-            )
-            else append("Der Pick von ${getCurrentName(oldcurrent)} wurde ".condAppend(skippedBy != null) { "von <@$skippedBy> " } + "${if (isSwitchDraft) "geskippt" else "verschoben"} und deshalb ist jetzt ${
-                getCurrentMention()
-            } dran!")
-            append(announceData())
-        }).queue()
-        save("TIMER SAFE")
-    }
 
     fun cancelCurrentTimer(reason: String = "Next player") {
         cooldownJob?.cancel(reason)
     }
 
-    suspend fun nextPlayer() {
-        cancelCurrentTimer()
+    suspend fun nextPlayer(data: NextPlayerData = NextPlayerData.Normal) {
+        if (!isRunning) return
+        when (data) {
+            is NextPlayerData.Normal -> cancelCurrentTimer()
+            is NextPlayerData.Moved -> {
+                triggerMove()
+                timerSkipMode?.onTimerTriggered(this)
+                data.skippedUser = current
+            }
+        }
         if (endOfTurn()) return
         setNextUser()
         restartTimer()
-        announcePlayer()
+        announcePlayer(data)
         save("NEXT PLAYER SAFE")
     }
 
@@ -590,37 +584,29 @@ sealed class League {
         var u1IsSecond = false
         val i1 = table.indexOf(uid1)
         val i2 = table.indexOf(uid2)
-        val gameday =
-            if (battleorder.isNotEmpty()) battleorder.asIterable().reversed()
-                .firstNotNullOfOrNull {
-                    if (it.value.any { l ->
-                            l.containsAll(listOf(i1, i2)).also { b ->
-                                if (b) u1IsSecond = l.indexOf(i1) == 1
-                            }
-                        }) it.key else null
-                } ?: -1 else gameplanCoords(uid1, uid2).also {
-                battleind = it.second
-                u1IsSecond = it.third
-            }.first
+        val gameday = if (battleorder.isNotEmpty()) battleorder.asIterable().reversed().firstNotNullOfOrNull {
+            if (it.value.any { l ->
+                    l.containsAll(listOf(i1, i2)).also { b ->
+                        if (b) u1IsSecond = l.indexOf(i1) == 1
+                    }
+                }) it.key else null
+        } ?: -1 else gameplanCoords(uid1, uid2).also {
+            battleind = it.second
+            u1IsSecond = it.third
+        }.first
         val indices = listOf(i1, i2)
         val (battleindex, numbers) = battleorder[gameday]?.let { battleorder ->
             val battleusers = battleorder.firstOrNull { it.contains(i1) }.orEmpty()
             (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1) to {
-                (0..1).asSequence()
-                    .sortedBy { battleusers.indexOf(indices[it]) }.map { game[it].alivePokemon }
-                    .toList()
+                (0..1).asSequence().sortedBy { battleusers.indexOf(indices[it]) }.map { game[it].alivePokemon }.toList()
             }
         } ?: run {
             battleind to {
-                (0..1).map { game[it].alivePokemon }
-                    .let { if (u1IsSecond) it.reversed() else it }
+                (0..1).map { game[it].alivePokemon }.let { if (u1IsSecond) it.reversed() else it }
             }
         }
         return GamedayData(
-            gameday,
-            battleindex,
-            u1IsSecond,
-            numbers
+            gameday, battleindex, u1IsSecond, numbers
         )
     }
 
@@ -638,7 +624,7 @@ sealed class League {
         suspend fun executeTimerOnRefreshedVersion(name: String) {
             val league =
                 db.drafts.findOne(League::leaguename eq name) ?: return Command.sendToMe("League $name not found")
-            league.triggerTimer()
+            league.afterPickOfficial(data = NextPlayerData.Moved(SkipReason.REALTIMER))
         }
 
         suspend fun byCommand(e: GuildCommandEvent): League? {
@@ -667,9 +653,6 @@ sealed class League {
         suspend fun onlyChannel(tc: Long) = db.drafts.find(League::isRunning eq true, League::tcid eq tc).first()
     }
 
-    enum class TimerReason {
-        REALTIMER, SKIP
-    }
 
 }
 
@@ -736,11 +719,11 @@ enum class TimerSkipMode {
 
 
     LAST_ROUND {
-        override suspend fun afterPick(l: League) {
+        override suspend fun afterPick(l: League, data: NextPlayerData) {
             with(l) {
                 if (isLastRound && hasMovedTurns()) {
                     announcePlayer()
-                } else nextPlayer()
+                } else nextPlayer(data)
             }
         }
 
@@ -757,9 +740,9 @@ enum class TimerSkipMode {
         }
     },
     AFTER_DRAFT_ORDERED {
-        override suspend fun afterPick(l: League) = with(l) {
+        override suspend fun afterPick(l: League, data: NextPlayerData) = with(l) {
             if (draftWouldEnd) populateAfterDraft()
-            nextPlayer()
+            nextPlayer(data)
         }
 
         override suspend fun getPickRound(l: League): Int = with(l) {
@@ -785,7 +768,7 @@ enum class TimerSkipMode {
         }
     },
     AFTER_DRAFT_UNORDERED {
-        override suspend fun afterPick(l: League) = with(l) {
+        override suspend fun afterPick(l: League, data: NextPlayerData) = with(l) {
             if (draftWouldEnd && moved.values.any { it.isNotEmpty() }) {
                 if (!pseudoEnd) {
                     tc.sendMessage("Der Draft wäre jetzt vorbei, aber es gibt noch Spieler, die keinen vollständigen Kader haben! Diese können nun in beliebiger Reihenfolge ihre Picks nachholen.")
@@ -793,7 +776,7 @@ enum class TimerSkipMode {
                     cancelCurrentTimer()
                     pseudoEnd = true
                 }
-            } else nextPlayer()
+            } else nextPlayer(data)
         }
 
         override suspend fun getPickRound(l: League) = with(l) {
@@ -811,12 +794,12 @@ enum class TimerSkipMode {
         }
     },
     NEXT_PICK {
-        override suspend fun afterPick(l: League) {
+        override suspend fun afterPick(l: League, data: NextPlayerData) {
             with(l) {
                 if (hasMovedTurns()) {
                     movedTurns().removeFirstOrNull()
                     announcePlayer()
-                } else nextPlayer()
+                } else nextPlayer(data)
             }
         }
 
@@ -824,7 +807,7 @@ enum class TimerSkipMode {
     };
 
 
-    abstract suspend fun afterPick(l: League)
+    abstract suspend fun afterPick(l: League, data: NextPlayerData)
     abstract suspend fun getPickRound(l: League): Int
 
     open suspend fun onTimerTriggered(l: League) {}
@@ -852,3 +835,13 @@ class PointsManager(val league: League) {
 }
 
 data class AdditionalSet(val col: String, val existent: String, val yeeted: String)
+sealed interface NextPlayerData {
+    data object Normal : NextPlayerData
+    data class Moved(val reason: SkipReason, val skippedBy: Long? = null) : NextPlayerData {
+        var skippedUser by Delegates.notNull<Long>()
+    }
+}
+
+enum class SkipReason {
+    REALTIMER, SKIP
+}

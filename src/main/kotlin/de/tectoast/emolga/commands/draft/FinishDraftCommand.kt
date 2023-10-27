@@ -26,7 +26,7 @@ object FinishDraftCommand :
         e.slashCommandEvent!!.reply("${e.member.asMention} hat den Draft für sich beendet!").await()
         d.addFinished(mem)
         if (d.current == mem)
-            d.nextPlayer()
+            d.afterPickOfficial()
         d.save()
     }
 }

@@ -23,6 +23,6 @@ object SkipCommand : Command(
             return
         }
         d.replySkip(e)
-        d.nextPlayer()
+        d.afterPickOfficial()
     }
 }

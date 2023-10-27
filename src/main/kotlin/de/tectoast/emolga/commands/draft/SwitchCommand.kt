@@ -109,7 +109,7 @@ object SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.
             e.textChannel.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
                 .queue()
         }
-        d.nextPlayer()
+        d.afterPickOfficial()
     }
 
 

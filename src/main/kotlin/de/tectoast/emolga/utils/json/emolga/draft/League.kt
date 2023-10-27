@@ -320,6 +320,7 @@ sealed class League {
 
     private fun restartTimer(delay: Long? = timer?.calc(this)) {
         delay ?: return
+        if (timerSkipMode?.disableTimer(this) == true) return
         cooldown = System.currentTimeMillis() + delay
         newTimerForAnnounce = true
         logger.info("important".marker, "cooldown = {}", cooldown)
@@ -804,6 +805,10 @@ enum class TimerSkipMode {
         override suspend fun bypassCurrentPlayerCheck(l: League, user: Long): Boolean {
             return l.pseudoEnd && l.hasMovedTurns(user)
         }
+
+        override fun disableTimer(l: League): Boolean {
+            return l.pseudoEnd
+        }
     },
     NEXT_PICK {
         override suspend fun afterPick(l: League) {
@@ -824,6 +829,7 @@ enum class TimerSkipMode {
 
     open suspend fun onTimerTriggered(l: League) {}
     open suspend fun bypassCurrentPlayerCheck(l: League, user: Long) = false
+    open fun disableTimer(l: League) = false
 }
 
 class PointsManager(val league: League) {

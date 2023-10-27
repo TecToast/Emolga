@@ -319,12 +319,15 @@ sealed class League {
     private fun restartTimer(delay: Long? = timer?.calc(this)) {
         delay ?: return
         timerSkipMode?.run {
-            if (disableTimer()) return
+            if (disableTimer()) {
+                cancelCurrentTimer()
+                return
+            }
         }
         cooldown = System.currentTimeMillis() + delay
         newTimerForAnnounce = true
         logger.info("important".marker, "cooldown = {}", cooldown)
-        allTimers[leaguename]?.cancel("Restarting timer")
+        cancelCurrentTimer("Restarting timer")
         allTimers[leaguename] = timerScope.launch {
             delay(delay)
             withContext(NonCancellable) {

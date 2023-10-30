@@ -44,7 +44,6 @@ sealed class League {
     var isRunning: Boolean = false
     val picks: MutableMap<Long, MutableList<DraftPokemon>> = mutableMapOf()
     val battleorder: MutableMap<Int, List<List<Int>>> = mutableMapOf()
-    val results: MutableMap<String, Long> = mutableMapOf()
     val allowed: MutableMap<Long, MutableSet<AllowedData>> = mutableMapOf()
     val guild = -1L
     var round = 1

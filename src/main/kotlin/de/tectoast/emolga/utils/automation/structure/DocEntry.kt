@@ -45,7 +45,6 @@ class DocEntry private constructor(val league: League) {
         set(value) = sorterDatas.put("default", value).let {}
     private val sorterDatas = mutableMapOf<String, SorterData>()
     var setStatIfEmpty = false
-    var numberMapper: (String) -> String = { it.ifEmpty { "0" } }
     var monsOrder: (List<DraftPokemon>) -> List<String> = { l -> l.map { it.name } }
     var cancelIf: (ReplayData, Int) -> Boolean = { _: ReplayData, _: Int -> false }
     var rowNumToIndex: (Int) -> Int = { it.minus(league.newSystemGap + 1).div(league.newSystemGap) }
@@ -191,9 +190,6 @@ class DocEntry private constructor(val league: League) {
                     val k = generalStatProcessorData.process()
                     dataB.addSingle(k.toString(), 1)
                 }
-            }
-            if (game[i].winner) {
-                league.results[uids.joinToString(":")] = uid
             }
         }
 

@@ -193,15 +193,17 @@ class DocEntry private constructor(val league: League) {
             }
         }
 
-        run {
+        league.tipgame?.let { tg ->
             val winningIndex = (if (game[0].winner) uids[0] else uids[1]).indexedBy(league.table)
             val leagueName = league.leaguename
-            val gamedayTips = league.tipgame?.tips?.get(gameday)
-            if (gamedayTips?.evaluated?.contains(battleindex) == true) return@run
+            val gamedayTips = tg.tips[gameday]
+            if (gamedayTips?.evaluated?.contains(battleindex) == true) return@let
             gamedayTips?.userdata?.entries?.filter { it.value[battleindex] == winningIndex }?.map { it.key }?.forEach {
                 TipGamesDB.addPointToUser(it, leagueName)
             }
-            gamedayTips?.evaluated?.add(battleindex)
+            if (gamedayTips?.evaluated?.add(battleindex) != null) {
+                league.save()
+            }
         }
 
         resultCreator?.let {
@@ -218,7 +220,6 @@ class DocEntry private constructor(val league: League) {
                 league = league
             ).it()
         }
-        league.save()
         customB?.execute()
         b.withRunnable(3000) {
             if (withSort) {

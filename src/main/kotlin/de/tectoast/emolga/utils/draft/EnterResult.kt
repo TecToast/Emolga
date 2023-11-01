@@ -85,11 +85,7 @@ object EnterResult {
                         ephemeral = true
                     )
             gamedayData = league.getGameplayData(uids[0], uids[1], wifiPlayers)
-            picks = buildMap {
-                uids.forEach { uid ->
-                    put(uid, getMonsByUid(uid))
-                }
-            }
+            picks = uids.associateWith { getMonsByUid(it) }
             e.reply_(embeds = buildEmbed(), components = uids.mapIndexed { index, uid ->
                 ActionRow.of(
                     StringSelectMenu(

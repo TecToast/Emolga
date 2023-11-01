@@ -35,35 +35,33 @@ object RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt",
             val tierlist = d.tierlist
             val args = e.arguments
             val gid = e.guild.idLong
-            val tier = (tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) } ?: run {
-                e.reply("Das ist kein Tier!")
-                return
-            }).takeIf { tierRestrictions[gid]?.run { isEmpty() || contains(it) } ?: true } ?: run {
-                return e.reply("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: ${tierRestrictions[gid]?.joinToString()}")
-            }
-            val list: MutableList<String> = tierlist.getByTier(tier)!!.toMutableList()
-            list.shuffle()
-            val typecheck: (suspend (String) -> Boolean)? = if (args.has("type")) {
+            val tier = (tierlist.order.firstOrNull { args.getText("tier").equals(it, ignoreCase = true) }
+                ?: return e.reply("Das ist kein Tier!"))
+                .takeIf {
+                    tierRestrictions[gid]?.run { isEmpty() || contains(it) } != false
+                }
+                ?: return e.reply("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: ${tierRestrictions[gid]?.joinToString()}")
+
+            val list = tierlist.getByTier(tier)!!.shuffled()
+            val typecheck: (suspend (String) -> Boolean) = if (args.has("type")) {
                 val type = args.getTranslation("type");
                 { type.translation in db.pokedex.get(it.toSDName())!!.types }
-            } else null
-            e.arguments.map.apply {
-                put("pokemon", (list.firstNotNullOfOrNull { str: String ->
-                    val draftName = NameConventionsDB.getDiscordTranslation(
-                        str, d.guild, tierlist.isEnglish
-                    )!!
-                    draftName.takeIf {
-                        !d.isPicked(
-                            draftName.official,
-                            tier
-                        ) && typecheck?.invoke(
-                            NameConventionsDB.getDiscordTranslation(
-                                str, d.guild, true
-                            )!!.official
-                        ) != false
-                    }
-                } ?: return e.reply("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")))
-            }
+            } else { _ -> true }
+            e.arguments.map["pokemon"] = (list.firstNotNullOfOrNull { str: String ->
+                val draftName = NameConventionsDB.getDiscordTranslation(
+                    str, d.guild, tierlist.isEnglish
+                )!!
+                draftName.takeIf {
+                    !d.isPicked(
+                        draftName.official, tier
+                    ) && typecheck(
+                        NameConventionsDB.getDiscordTranslation(
+                            str, d.guild, true
+                        )!!.official
+                    )
+                }
+            } ?: return e.reply("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!"))
+
             PickCommand.exec(e, true)
         }
     }

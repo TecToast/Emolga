@@ -28,7 +28,7 @@ sealed class Templater(private val leagueCreator: LeagueCreator, val templatePat
 
 
         inline fun build(builder: ShowdownScriptTemplate.() -> Unit) {
-            builder()
+            apply(builder)
             templateValues["namespace"] = name.replace(" ", "").lowercase()
             templateValues["url"] =
                 "https://emolga.tectoast.de/showdownscripts/$filename"

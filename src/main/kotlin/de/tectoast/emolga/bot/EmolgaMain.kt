@@ -29,7 +29,15 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicInteger
 
 var injectedJDA: JDA? = null
-val jda: JDA get() = injectedJDA ?: emolgajda
+    get() {
+        if (field == null) {
+            System.getenv("DISCORDTOKEN")?.let {
+                field = default(it, intents = listOf()).awaitReady()
+            }
+        }
+        return field
+    }
+val jda: JDA by lazy { injectedJDA ?: emolgajda }
 
 object EmolgaMain {
 
@@ -103,6 +111,7 @@ object EmolgaMain {
         Giveaway.init()
     }
 
+    @Suppress("unused")
     private fun initializeASLCoach(raikou: JDA) {
         val scope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
             logger.error("ERROR IN ASL SCOPE", t)

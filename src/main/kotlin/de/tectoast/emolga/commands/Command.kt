@@ -1852,7 +1852,7 @@ abstract class Command(
 
         private fun setupManualRepeatTasks() {
             NDS.setupRepeatTasks()
-            ASL.setupRepeatTasks()
+            ASLCoach.setupRepeatTasks()
         }
 
 

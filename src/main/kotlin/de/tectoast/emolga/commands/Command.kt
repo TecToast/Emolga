@@ -2276,8 +2276,19 @@ abstract class Command(
             } else if (!customResult.contains(gid)) {
                 resultChannel.sendMessage(str).queue()
             }
-            replayChannel?.sendMessage(url)?.queue()
-            fromReplayCommand?.sendMessage(url)?.queue()
+            defaultScope.launch {
+                val gdData = gamedayData.await()
+                val tosend = MessageCreate(
+                    content = url,
+                    embeds = (league?.appendedEmbed(data, leaguedata, gdData!!) ?: getDefaultReplayEmbed(
+                        data,
+                        leaguedata
+                    )).build().into()
+                )
+                replayChannel?.sendMessage(tosend)?.queue()
+                fromReplayCommand?.sendMessage(tosend)?.queue()
+
+            }
             if (resultchannelParam.guild.idLong != Constants.G.MY) {
                 db.statistics.increment("analysis")
                 game.forEach { player ->
@@ -2319,6 +2330,16 @@ abstract class Command(
                 withSort = withSort
             )
         }
+
+        fun getDefaultReplayEmbed(data: AnalysisData, leaguedata: LeagueResult? = null): InlineEmbed =
+            EmbedBuilder {
+                val game = data.game
+                val p1 = game[0].nickname
+                val p2 = game[1].nickname
+                title = "${data.ctx.format} replay: $p1 vs. $p2"
+                url = data.ctx.url
+                description = leaguedata?.uids?.joinToString(" vs. ") { "<@$it>" }
+            }
 
         val dataJSON: Map<String, Pokemon> get() = error("NOT USED")
 

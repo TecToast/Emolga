@@ -11,6 +11,7 @@ import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
+import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.util.SLF4J
@@ -551,6 +552,10 @@ sealed class League {
 
     open fun provideReplayChannel(jda: JDA): TextChannel? = null
     open fun provideResultChannel(jda: JDA): TextChannel? = null
+    open fun appendedEmbed(data: AnalysisData, league: LeagueResult, gdData: GamedayData) =
+        Command.getDefaultReplayEmbed(data, league).apply {
+            description = "Spieltag ${gdData.gameday}: $description"
+        }
 
     /**
      * generate the gameplan coords

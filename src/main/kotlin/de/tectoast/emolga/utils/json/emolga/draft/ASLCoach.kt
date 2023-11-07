@@ -12,6 +12,7 @@ import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import net.dv8tion.jda.api.JDA
 import java.util.Calendar.*
 
 @Serializable
@@ -32,12 +33,15 @@ class ASLCoach : League() {
             )
         ) {
             b.addSingle(
-                coord("Spielplan", gdi.x(5, 2), index.y(7, 5 + level)),
+                coord("Spielplan", gdi.x(5, 2), index.y(6, 5 + level)),
                 defaultGameplanString
             )
         }
         //sorterData = SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), false, null, 2, 8, 6)
     }
+
+    override fun provideReplayChannel(jda: JDA) = jda.getTextChannelById(1170477105339973824)
+    override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(1170477327839412365)
 
 
     @Transient

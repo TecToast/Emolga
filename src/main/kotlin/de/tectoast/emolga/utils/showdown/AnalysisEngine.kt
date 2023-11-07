@@ -124,7 +124,7 @@ sealed class SDEffect(vararg val types: String) {
 
     data object VGC : SDEffect("tier") {
         override fun execute(split: List<String>, ctx: BattleContext) {
-            if ("VGC" in split[1]) ctx.vgc = true
+            ctx.format = split[1]
         }
     }
 
@@ -453,13 +453,15 @@ data class BattleContext(
     var nextLine: String = "",
     var currentLineIndex: Int = -1,
     var turn: Int = 0,
-    var vgc: Boolean = false,
+    var format: String = "unknown",
     val game: List<String>,
     var totalDmgAmount: Int = 0,
     val debugMode: Boolean
 ) {
     inline fun <reified T : SDEffect> findResponsiblePokemon(name: String, side: Int) =
         sdPlayers[side].fieldConditions.entries.firstOrNull { (it.key as? T)?.name == name }?.value
+
+    val vgc by lazy { "VGC" in format }
 }
 
 class SDPlayer(

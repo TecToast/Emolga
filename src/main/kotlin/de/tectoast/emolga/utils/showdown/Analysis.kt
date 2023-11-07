@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.showdown
 
+import de.tectoast.emolga.commands.AnalysisData
 import de.tectoast.emolga.commands.httpClient
 import de.tectoast.emolga.commands.roundToDigits
 import io.ktor.client.request.*
@@ -14,21 +15,17 @@ import kotlin.time.Duration.Companion.seconds
 object Analysis {
     // generate a new analysis engine
     suspend fun analyse(
-        link: String,
-        answer: ((String) -> Unit)? = null,
-        debugMode: Boolean = false
-    ): Pair<List<SDPlayer>, BattleContext> {
+        link: String, answer: ((String) -> Unit)? = null, debugMode: Boolean = false
+    ): AnalysisData {
         var gameNullable: List<String>? = null
         for (i in 0..1) {
-            val retrieved =
-                runCatching {
-                    withContext(Dispatchers.IO) {
-                        logger.info("Reading URL... {}", link)
-                        httpClient.get("$link.log").bodyAsText().split("\n")
-                    }
-                }.getOrDefault(listOf(""))
-            gameNullable = retrieved
-                .takeIf { it.size > 1 }
+            val retrieved = runCatching {
+                withContext(Dispatchers.IO) {
+                    logger.info("Reading URL... {}", link)
+                    httpClient.get("$link.log").bodyAsText().split("\n")
+                }
+            }.getOrDefault(listOf(""))
+            gameNullable = retrieved.takeIf { it.size > 1 }
             if (gameNullable == null) {
                 println(retrieved)
                 println("Showdown antwortet nicht")
@@ -49,8 +46,7 @@ object Analysis {
                 val player = split[1][1].digitToInt() - 1
                 allMons.getOrPut(player) { mutableListOf() }.add(
                     SDPokemon(
-                        split[2].substringBefore(","),
-                        player
+                        split[2].substringBefore(","), player
                     )
                 )
             }
@@ -59,8 +55,7 @@ object Analysis {
             if (line.startsWith("|player|")) {
                 val i = split[1][1].digitToInt() - 1
                 //if (i !in nicknames)
-                if (split.size > 2)
-                    nicknames[i] = split[2].also { logger.warn("Setting nickname of $i to $it") }
+                if (split.size > 2) nicknames[i] = split[2].also { logger.warn("Setting nickname of $i to $it") }
             }
             if (line.startsWith("|switch")) {
                 val (player, _) = split[1].parsePokemonLocation()
@@ -81,8 +76,7 @@ object Analysis {
                 val monloc = split[1].substringBefore(":")
                 val monname = split[2].substringBefore(",")
                 val mon = allMons[player]!!.firstOrNull { it.hasName(monname) } ?: SDPokemon(
-                    monname,
-                    player
+                    monname, player
                 ).also { allMons.getOrPut(player) { mutableListOf() }.add(it) }
                 var downIndex = index - 1
                 while (!game[downIndex].startsWith("|switch|$monloc")) downIndex--
@@ -101,8 +95,7 @@ object Analysis {
                             File("replayerrors/$link${System.currentTimeMillis()}.txt").also { f -> f.createNewFile() }
                                 .writeText(game.joinToString("\n"))
                             throw ShowdownParseException()
-                        },
-                        allMons[it].orEmpty().toMutableList()
+                        }, allMons[it].orEmpty().toMutableList()
                     )
                 },
                 randomBattle = randomBattle,
@@ -135,7 +128,7 @@ object Analysis {
                 )
             }
             logger.info("Total Dmg: $totalDmg, Calced: $calcedTotalDmg")
-            sdPlayers to this
+            AnalysisData(sdPlayers, this)
         }
     }
 

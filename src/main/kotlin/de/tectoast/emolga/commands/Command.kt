@@ -2182,7 +2182,7 @@ abstract class Command(
                 send("Ich habe keine Berechtigung, im konfigurierten Channel ${resultchannelParam.asMention} zu schreiben!")
                 return
             }
-            val (game, ctx) = try {
+            val data = try {
                 Analysis.analyse(url, ::send, resultchannelParam.guild.idLong == Constants.G.MY)
                 //game = Analysis.analyse(url, m);
             } catch (ex: Exception) {
@@ -2205,6 +2205,7 @@ abstract class Command(
                 }
                 return
             }
+            val (game, ctx) = data
             if ((0..1).any { i ->
                     game[i].pokemon.sumOf { it.kills } > game[1 - i].pokemon.sumOf {
                         (if (it.isDead) 1 else 0).toInt()
@@ -2594,6 +2595,11 @@ data class DocRange(val sheet: String, val xStart: String, val yStart: Int, val 
 }
 
 fun String.toDocRange() = DocRange[this]
+
+data class AnalysisData(
+    val game: List<SDPlayer>,
+    val ctx: BattleContext
+)
 
 data class ReplayData(
     val game: List<DraftPlayer>,

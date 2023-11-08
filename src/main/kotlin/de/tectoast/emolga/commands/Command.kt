@@ -2280,10 +2280,7 @@ abstract class Command(
                 val gdData = gamedayData.await()
                 val tosend = MessageCreate(
                     content = url,
-                    embeds = (league?.appendedEmbed(data, leaguedata, gdData!!) ?: getDefaultReplayEmbed(
-                        data,
-                        leaguedata
-                    )).build().into()
+                    embeds = league?.appendedEmbed(data, leaguedata, gdData!!)?.build()?.into().orEmpty()
                 )
                 replayChannel?.sendMessage(tosend)?.queue()
                 fromReplayCommand?.sendMessage(tosend)?.queue()

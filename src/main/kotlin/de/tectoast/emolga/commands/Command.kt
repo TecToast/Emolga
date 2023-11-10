@@ -397,8 +397,7 @@ abstract class Command(
             return when (val x = map[key]!!) {
                 is String -> x
                 is DraftName -> x.official
-                else ->
-                    throw IllegalStateException("Unknown type ${x::class.java}")
+                else -> throw IllegalStateException("Unknown type ${x::class.java}")
 
             }
         }
@@ -569,8 +568,7 @@ abstract class Command(
                 val a = arguments[argumentI]
                 if (a.disabled.contains(mid)) break
                 val str =
-                    if (argumentI + 1 == arguments.size) split.subList(i, split.size)
-                        .joinToString(" ") else split[i]
+                    if (argumentI + 1 == arguments.size) split.subList(i, split.size).joinToString(" ") else split[i]
                 val type = a.type
                 var o: Any?
                 if (type is DiscordType || type is DiscordFile) {
@@ -714,8 +712,7 @@ abstract class Command(
             }
 
             override suspend fun validate(str: String, data: ValidationData): Any? {
-                return if (any) str else texts.map { it.name }
-                    .filter { it.equals(str, ignoreCase = true) }.map(mapper)
+                return if (any) str else texts.map { it.name }.filter { it.equals(str, ignoreCase = true) }.map(mapper)
                     .firstOrNull()
             }
 
@@ -748,8 +745,7 @@ abstract class Command(
             }
 
             override suspend fun autoCompleteList(
-                arg: String,
-                event: CommandAutoCompleteInteractionEvent
+                arg: String, event: CommandAutoCompleteInteractionEvent
             ): List<String>? {
                 if (autoComplete != null) {
                     return autoComplete!!(arg, event)
@@ -785,8 +781,7 @@ abstract class Command(
                 fun draftTiers(): Text {
                     return withAutocomplete { _, event ->
                         League.onlyChannel(event.channel!!.idLong)?.getPossibleTiers(forAutocomplete = true)
-                            ?.filter { it.value > 0 }
-                            ?.map { it.key }
+                            ?.filter { it.value > 0 }?.map { it.key }
                     }
                 }
             }
@@ -930,13 +925,7 @@ abstract class Command(
             ): Builder {
                 arguments.add(
                     Argument(
-                        id,
-                        name,
-                        help,
-                        type,
-                        optional,
-                        Language.GERMAN,
-                        customErrorMessage
+                        id, name, help, type, optional, Language.GERMAN, customErrorMessage
                     )
                 )
                 return this
@@ -1006,17 +995,12 @@ abstract class Command(
                 autoComplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
             ): ArgumentType {
                 return withPredicate(
-                    "Pokemon",
-                    false,
-                    { str, data ->
+                    "Pokemon", false, { str, data ->
                         val guildId = data.channel?.let { League.onlyChannel(it.idLong)?.guild } ?: data.guildId
                         NameConventionsDB.getDiscordTranslation(
-                            str,
-                            guildId,
-                            english = Tierlist[guildId].isEnglish
+                            str, guildId, english = Tierlist[guildId].isEnglish
                         )
-                    },
-                    autoComplete
+                    }, autoComplete
                 )
             }
 
@@ -1151,21 +1135,20 @@ abstract class Command(
         private val CUSTOM_GUILD_PATTERN = Regex("(\\d{18,})")
         val TRIPLE_HASHTAG = Regex("###")
         const val DEXQUIZ_BUDGET = 10
-        val draftGuilds =
-            longArrayOf(
-                Constants.G.FPL,
-                Constants.G.NDS,
-                Constants.G.ASL,
-                Constants.G.BLOCKI,
-                Constants.G.VIP,
-                Constants.G.FLP,
-                Constants.G.WARRIOR,
-                Constants.G.BSP,
-                Constants.G.PIKAS,
-                Constants.G.WFS,
-                Constants.G.ADK,
-                Constants.G.COMMUNITY
-            )
+        val draftGuilds = longArrayOf(
+            Constants.G.FPL,
+            Constants.G.NDS,
+            Constants.G.ASL,
+            Constants.G.BLOCKI,
+            Constants.G.VIP,
+            Constants.G.FLP,
+            Constants.G.WARRIOR,
+            Constants.G.BSP,
+            Constants.G.PIKAS,
+            Constants.G.WFS,
+            Constants.G.ADK,
+            Constants.G.COMMUNITY
+        )
         private val draftPrefixes = mapOf(
             "M" to "Mega", "A" to "Alola", "G" to "Galar", "Mega" to "Mega", "Alola" to "Alola", "Galar" to "Galar"
         )
@@ -1174,19 +1157,16 @@ abstract class Command(
             val league = League.onlyChannel(event.channel!!.idLong)
             //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
             val tierlist = Tierlist[league?.guild ?: gid]
-            val strings =
-                (tierlist?.autoComplete ?: allNameConventions).filterStartsWithIgnoreCase(s)
+            val strings = (tierlist?.autoComplete ?: allNameConventions).filterStartsWithIgnoreCase(s)
             if (strings.size > 25) return@draftPokemon listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
 
             (if (league == null || tierlist == null) strings
             else strings.map {
-                if (league.picks.values.flatten()
-                        .any { p ->
-                            p.name == tierlist.tlToOfficialCache.getOrPut(it) {
-                                NameConventionsDB.getDiscordTranslation(it, league.guild)!!.official
-                            }
+                if (league.picks.values.flatten().any { p ->
+                        p.name == tierlist.tlToOfficialCache.getOrPut(it) {
+                            NameConventionsDB.getDiscordTranslation(it, league.guild)!!.official
                         }
-                ) "$it (GEPICKT)" else it
+                    }) "$it (GEPICKT)" else it
             }).sorted()
         }
         val allNameConventions by lazy(NameConventionsDB::getAll)
@@ -1207,8 +1187,7 @@ abstract class Command(
 
         private fun registerCommands() {
             val loader = Thread.currentThread().contextClassLoader
-            for (classInfo in ClassPath.from(loader)
-                .getTopLevelClassesRecursive("de.tectoast.emolga.commands")) {
+            for (classInfo in ClassPath.from(loader).getTopLevelClassesRecursive("de.tectoast.emolga.commands")) {
                 val cl = classInfo.load()
                 if (cl.isInterface) continue
                 val name = cl.superclass.simpleName
@@ -1307,8 +1286,7 @@ abstract class Command(
             }
             val weeks = (timeseconds / (60 * 60 * 24 * 7)).toInt()
             if (weeks > 0) {
-                builder.append("**").append(weeks).append("** ")
-                    .append(pluralise(weeks.toLong(), "Woche", "Wochen"))
+                builder.append("**").append(weeks).append("** ").append(pluralise(weeks.toLong(), "Woche", "Wochen"))
                     .append(", ")
                 timeseconds %= (60 * 60 * 24 * 7)
             }
@@ -1320,8 +1298,7 @@ abstract class Command(
             }
             val hours = (timeseconds / (60 * 60)).toInt()
             if (hours > 0) {
-                builder.append("**").append(hours).append("** ")
-                    .append(pluralise(hours.toLong(), "Stunde", "Stunden"))
+                builder.append("**").append(hours).append("** ").append(pluralise(hours.toLong(), "Stunde", "Stunden"))
                     .append(", ")
                 timeseconds %= (60 * 60)
             }
@@ -1842,8 +1819,11 @@ abstract class Command(
                         true
                     )
                     RepeatTask(
-                        tip.lastLockButtons.toInstant(), tip.amount, duration,
-                        { executeTipGameLockButtons(runBlocking { db.league(l.leaguename) }, it) }, true
+                        tip.lastLockButtons.toInstant(),
+                        tip.amount,
+                        duration,
+                        { executeTipGameLockButtons(runBlocking { db.league(l.leaguename) }, it) },
+                        true
                     )
                 }
             }
@@ -1904,8 +1884,7 @@ abstract class Command(
         suspend fun updatePresence() {
             if (BOT_DISABLED) {
                 emolgajda.presence.setPresence(
-                    OnlineStatus.DO_NOT_DISTURB,
-                    Activity.watching("auf den Wartungsmodus")
+                    OnlineStatus.DO_NOT_DISTURB, Activity.watching("auf den Wartungsmodus")
                 )
                 return
             }
@@ -1959,9 +1938,7 @@ abstract class Command(
                                             logger.info("status = $status")
                                             if (status == ConnectionStatus.CONNECTED) {
                                                 playSound(
-                                                    voiceState.channel,
-                                                    "/home/florian/Discord/audio/clips/hi.mp3",
-                                                    tco
+                                                    voiceState.channel, "/home/florian/Discord/audio/clips/hi.mp3", tco
                                                 )
                                                 playSound(voiceState.channel, file.path, tco)
                                             }
@@ -2169,14 +2146,11 @@ abstract class Command(
 
             logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannelParam.id)
             fun send(msg: String) {
-                fromReplayCommand?.sendMessage(msg)?.queue() ?: fromAnalyseCommand?.sendMessage(msg)
-                    ?.queue()
+                fromReplayCommand?.sendMessage(msg)?.queue() ?: fromAnalyseCommand?.sendMessage(msg)?.queue()
                 ?: resultchannelParam.sendMessage(msg).queue()
             }
             if (fromReplayCommand != null && !resultchannelParam.guild.selfMember.hasPermission(
-                    resultchannelParam,
-                    Permission.VIEW_CHANNEL,
-                    Permission.MESSAGE_SEND
+                    resultchannelParam, Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND
                 )
             ) {
                 send("Ich habe keine Berechtigung, im konfigurierten Channel ${resultchannelParam.asMention} zu schreiben!")
@@ -2225,15 +2199,8 @@ abstract class Command(
                 it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
             }
             val activePassive = ActivePassiveKillsDB.hasEnabled(gid)
-            val str = game.mapIndexed { index, sdPlayer ->
-                mutableListOf(
-                    sdPlayer.nickname, sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
-                ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
-            }.joinToString(":") { it.joinToString(" ") }
-                .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.map { player ->
-                "${player.nickname}:".condAppend(
-                    player.allMonsDead && !spoiler, " (alle tot)"
-                ) + "\n".condAppend(spoiler, "||") + player.pokemon.map { mon ->
+            val monStrings = game.map { player ->
+                player.pokemon.map { mon ->
                     getMonName(mon.pokemon, gid).also {
                         mon.draftname = it
                     }.displayName.let {
@@ -2243,19 +2210,28 @@ abstract class Command(
                             it.condAppend(mon.kills > 0, " ${mon.kills}")
                         }
                     }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
-                }.joinToString("\n").condAppend(spoiler, "||")
-            }.joinToString("\n\n")
+                }.joinToString("\n")
+            }
             val leaguedata = db.leagueByGuildAdvanced(
-                gid,
-                game.map { it.pokemon.map { mon -> mon.draftname } },
-                uid1db,
-                uid2db
+                gid, game.map { it.pokemon.map { mon -> mon.draftname } }, uid1db, uid2db
             )
             val league = leaguedata?.league
             val uids = leaguedata?.uids
             val gamedayData = defaultScope.async {
                 league?.getGameplayData(uids!![0], uids[1], game)
             }
+            val description = game.mapIndexed { index, sdPlayer ->
+                mutableListOf<Any>(uids?.get(index)?.let { "<@$it>" } ?: sdPlayer.nickname,
+                    sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
+                ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
+            }.joinToString(":") { it.joinToString(" ") }
+                .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.mapIndexed { index, player ->
+                "${uids?.get(index)?.let { "<@$it>" } ?: player.nickname}:".condAppend(
+                    player.allMonsDead && !spoiler, " (alle tot)"
+                ) + "\n".condAppend(spoiler, "||") + monStrings[index].condAppend(spoiler, "||")
+            }.joinToString("\n\n")
+            val embed = Embed(description = description)
+
 //            if (league is ASL) {
 //                val gdData = gamedayData.await()
 //                if (gdData?.gameday == 10) {
@@ -2264,23 +2240,28 @@ abstract class Command(
 //                }
 //            }
             val jda = resultchannelParam.jda
-            val replayChannel =
-                league?.provideReplayChannel(jda).takeIf { customGuild == null } ?: customReplayChannel
-            val resultChannel =
-                league?.provideResultChannel(jda).takeIf { customGuild == null } ?: resultchannelParam
+            val replayChannel = league?.provideReplayChannel(jda).takeIf { customGuild == null } ?: customReplayChannel
+            val resultChannel = league?.provideResultChannel(jda).takeIf { customGuild == null } ?: resultchannelParam
             logger.info("uids = $uids")
             logger.info("u1 = $u1")
             logger.info("u2 = $u2")
             if (fromAnalyseCommand != null) {
-                fromAnalyseCommand.sendMessage(str).queue()
+                if (league != null) {
+                    fromAnalyseCommand.sendMessageEmbeds(embed).queue()
+                } else {
+                    fromAnalyseCommand.sendMessage(description).queue()
+                }
             } else if (!customResult.contains(gid)) {
-                resultChannel.sendMessage(str).queue()
+                if (league != null) {
+                    resultChannel.sendMessageEmbeds(embed).queue()
+                } else {
+                    resultChannel.sendMessage(description).queue()
+                }
             }
             defaultScope.launch {
                 val gdData = gamedayData.await()
                 val tosend = MessageCreate(
-                    content = url,
-                    embeds = league?.appendedEmbed(data, leaguedata, gdData!!)?.build()?.into().orEmpty()
+                    content = url, embeds = league?.appendedEmbed(data, leaguedata, gdData!!)?.build()?.into().orEmpty()
                 )
                 replayChannel?.sendMessage(tosend)?.queue()
                 fromReplayCommand?.sendMessage(tosend)?.queue()
@@ -2323,20 +2304,18 @@ abstract class Command(
                     url = url,
                     gamedayData = gamedayData.await()!!,
                     otherForms = leaguedata.otherForms,
-                ),
-                withSort = withSort
+                ), withSort = withSort
             )
         }
 
-        fun getDefaultReplayEmbed(data: AnalysisData, leaguedata: LeagueResult? = null): InlineEmbed =
-            EmbedBuilder {
-                val game = data.game
-                val p1 = game[0].nickname
-                val p2 = game[1].nickname
-                title = "${data.ctx.format} replay: $p1 vs. $p2"
-                url = data.ctx.url
-                description = leaguedata?.uids?.joinToString(" vs. ") { "<@$it>" }
-            }
+        fun getDefaultReplayEmbed(data: AnalysisData, leaguedata: LeagueResult? = null): InlineEmbed = EmbedBuilder {
+            val game = data.game
+            val p1 = game[0].nickname
+            val p2 = game[1].nickname
+            title = "${data.ctx.format} replay: $p1 vs. $p2"
+            url = data.ctx.url
+            description = leaguedata?.uids?.joinToString(" vs. ") { "<@$it>" }
+        }
 
         val dataJSON: Map<String, Pokemon> get() = error("NOT USED")
 
@@ -2417,8 +2396,7 @@ abstract class Command(
                 (NameConventionsDB.getSDTranslation(
                     pkdata?.takeIf { it.requiredAbility != null }?.baseSpecies ?: s, guildId
                 ) ?: DraftName(
-                    s,
-                    s
+                    s, s
                 )).apply { data = pkdata }
             }
             //}
@@ -2552,8 +2530,7 @@ object DateToStringSerializer : KSerializer<Date> {
 fun String.file() = File(this)
 fun Any.parseInt() = (this as? Int) ?: this.toString().toInt()
 
-fun Collection<String>.filterStartsWithIgnoreCase(other: String) =
-    filter { it.startsWith(other, ignoreCase = true) }
+fun Collection<String>.filterStartsWithIgnoreCase(other: String) = filter { it.startsWith(other, ignoreCase = true) }
 
 val String.marker: Marker get() = MarkerFactory.getMarker(this)
 
@@ -2615,8 +2592,7 @@ data class DocRange(val sheet: String, val xStart: String, val yStart: Int, val 
 fun String.toDocRange() = DocRange[this]
 
 data class AnalysisData(
-    val game: List<SDPlayer>,
-    val ctx: BattleContext
+    val game: List<SDPlayer>, val ctx: BattleContext
 )
 
 data class ReplayData(
@@ -2630,14 +2606,10 @@ data class ReplayData(
 )
 
 data class GamedayData(
-    val gameday: Int,
-    val battleindex: Int,
-    val u1IsSecond: Boolean
+    val gameday: Int, val battleindex: Int, val u1IsSecond: Boolean
 ) {
     constructor(gameday: Int, battleindex: Int, u1IsSecond: Boolean, numbers: () -> List<Int>) : this(
-        gameday,
-        battleindex,
-        u1IsSecond
+        gameday, battleindex, u1IsSecond
     ) {
         this.numbers = numbers
     }
@@ -2647,8 +2619,7 @@ data class GamedayData(
 
 enum class Language(val translationCol: Column<String>, val otherCol: Column<String>) {
     GERMAN(TranslationsDB.GERMANNAME, TranslationsDB.ENGLISHNAME), ENGLISH(
-        TranslationsDB.ENGLISHNAME,
-        TranslationsDB.GERMANNAME
+        TranslationsDB.ENGLISHNAME, TranslationsDB.GERMANNAME
     )
 }
 
@@ -2703,9 +2674,7 @@ class Translation(
             if (t.translation == "Psychic" || t.otherLang == "Psychic") {
                 if (this == TYPE) {
                     return Translation(
-                        if (t.language == Language.GERMAN) "Psycho" else "Psychic",
-                        TYPE,
-                        t.language
+                        if (t.language == Language.GERMAN) "Psycho" else "Psychic", TYPE, t.language
                     )
                 }
             }

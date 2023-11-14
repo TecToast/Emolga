@@ -63,7 +63,7 @@ class ASL(
     )
 
 
-    override val timerSkipMode = TimerSkipMode.LAST_ROUND
+    override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
 
     override fun isFinishedForbidden() = false
 

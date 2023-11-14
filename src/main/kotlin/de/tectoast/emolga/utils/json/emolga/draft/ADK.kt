@@ -20,7 +20,8 @@ import kotlinx.serialization.Transient
 class ADK : League() {
     override val teamsize = 11
     override val pickBuffer = 9
-    override val timerSkipMode = TimerSkipMode.NEXT_PICK
+    override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
+    override val duringTimerSkipMode = NEXT_PICK
     private val cid by lazy { leaguename.last().digitToInt() - 1 }
     override val dataSheet by lazy { "Data${cid + 1}" }
 

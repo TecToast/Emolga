@@ -21,7 +21,8 @@ class RIPL : League() {
 
     @Transient
     override val timer = DraftTimer(TimerInfo(8, 23))
-    override val timerSkipMode = TimerSkipMode.NEXT_PICK
+    override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
+    override val duringTimerSkipMode = NEXT_PICK
     private val cid by lazy { leaguename.last().digitToInt() - 1 }
     private val conf by lazy { if (cid == 0) "Sun" else "Moon" }
     override fun checkUpdraft(specifiedTier: String, officialTier: String) = when {

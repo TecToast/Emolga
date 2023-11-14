@@ -52,7 +52,7 @@ class ASLCoach : League() {
             .add(14, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)
     )
 
-    override val timerSkipMode = TimerSkipMode.AFTER_DRAFT_UNORDERED
+    override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)

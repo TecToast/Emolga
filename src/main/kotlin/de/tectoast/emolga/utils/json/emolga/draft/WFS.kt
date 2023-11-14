@@ -16,7 +16,8 @@ import kotlinx.serialization.Transient
 class WFS : League() {
     override val teamsize = 11
     override val pickBuffer = 10
-    override val timerSkipMode = TimerSkipMode.NEXT_PICK
+    override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
+    override val duringTimerSkipMode = NEXT_PICK
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)

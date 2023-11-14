@@ -15,7 +15,7 @@ class SGM : League() {
     override val teamsize = 9
     override val pickBuffer = 7
 
-    override val timerSkipMode = TimerSkipMode.AFTER_DRAFT_ORDERED
+    override val afterTimerSkipMode = AFTER_DRAFT_ORDERED
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)

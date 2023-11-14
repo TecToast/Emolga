@@ -42,7 +42,7 @@ object PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft)
             }
         }
         val (d, data) = dd
-        d.lockForPick(data) l@{
+        d.lockForPick(e, data) l@{
             if (d.isSwitchDraft && !d.allowPickDuringSwitch) {
                 e.reply("Du kannst während des Switch-Drafts nicht picken!")
                 return@l

@@ -96,11 +96,16 @@ sealed class League {
     @Transient
     var newTimerForAnnounce = false
 
-    suspend fun lockForPick(data: BypassCurrentPlayerData, block: suspend () -> Unit) {
+    suspend fun lockForPick(e: GuildCommandEvent, data: BypassCurrentPlayerData, block: suspend () -> Unit) {
         mutex.withLock {
             // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
-            if (afterTimerSkipMode == AFTER_DRAFT_UNORDERED && pseudoEnd) {
-                if (data is BypassCurrentPlayerData.Universal) return@withLock
+            if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
+                if (data is BypassCurrentPlayerData.Universal) {
+                    return@withLock e.reply_(
+                        "Auch mit Universalrechten kannst du in diesem Status des Drafts nichts machen :)",
+                        ephemeral = true
+                    )
+                }
                 // BypassCurrentPlayerData can only be Yes or Universal
                 current = (data as BypassCurrentPlayerData.Yes).user
             }

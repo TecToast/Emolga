@@ -13,6 +13,7 @@ data class SDPokemon(var pokemon: String, val player: Int) {
     var hp = 100
     var healed = 0
     var damageDealt = 0
+    var revivedAmount = 0
     var isDead = false
     var lastDamageBy: SDPokemon? = null
     var itemObtainedFrom: SDPokemon? = null
@@ -20,11 +21,13 @@ data class SDPokemon(var pokemon: String, val player: Int) {
     var perishedBy: SDPokemon? = null
     val zoroLines = mutableMapOf<IntRange, SDPokemon>()
     val otherNames = mutableSetOf<String>()
+    var nickname: String? = null
     lateinit var draftname: DraftName
 
     fun hasName(name: String) = pokemon == name || otherNames.contains(name)
 
     val passiveKills get() = kills - activeKills
+    val deadCount get() = revivedAmount + (if (isDead) 1 else 0)
 
     companion object {
         private fun SDPokemon.withZoroCheck(ctx: BattleContext): SDPokemon =
@@ -72,6 +75,16 @@ data class SDPokemon(var pokemon: String, val player: Int) {
         if (newhp > currentHp) {
             (healer ?: mon).healed += newhp - currentHp
         }
+    }
+
+    fun setNickname(ctx: BattleContext, nickname: String) {
+        val mon = withZoroCheck(ctx)
+        mon.nickname = nickname
+    }
+
+    fun revive() {
+        isDead = false
+        revivedAmount++
     }
 }
 
@@ -131,6 +144,8 @@ sealed class SDEffect(vararg val types: String) {
     data object Switch : SDEffect("switch", "drag") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             val (pl, idx) = split[1].parsePokemonLocation()
+            val nickname = split[1].substringAfter(": ")
+
             val playerSide = ctx.sdPlayers[pl]
             val monName = split[2].substringBefore(",")
             playerSide.pokemon.firstOrNull { it.pokemon.endsWith("-*") && monName.split("-")[0] == it.pokemon.split("-")[0] }
@@ -138,6 +153,7 @@ sealed class SDEffect(vararg val types: String) {
                     it.pokemon = monName
                 }
             val switchIn = playerSide.pokemon.first { it.hasName(monName) }
+            switchIn.setNickname(ctx, nickname)
             if (split.getOrNull(4) == "[from] Baton Pass") {
                 switchIn.volatileEffects.clear()
                 switchIn.volatileEffects.putAll(ctx.monsOnField[pl][idx].volatileEffects)
@@ -167,8 +183,13 @@ sealed class SDEffect(vararg val types: String) {
     data object Heal : SDEffect("-heal") {
         override fun execute(split: List<String>, ctx: BattleContext) {
             val healedTo = split[2].substringBefore("/").toInt()
-            val (side, num) = split[1].parsePokemonLocation()
-            val healedMon = ctx.monsOnField[side][num]
+            val (side, num) = split[1].substringAfter('p').substringBefore(':').let {
+                val p = it[0].digitToInt() - 1
+                p to if (it.length == 1) -1 else if (p > 1) 0 else it[1].cToI()
+            }
+            val nickname = split[1].substringAfter(": ")
+            val healedMon = if (num == -1) ctx.sdPlayers[side].pokemon.first { it.nickname == nickname }
+                .also { it.revive() } else ctx.monsOnField[side][num]
             val healer = split.getOrNull(3)?.substringAfter(": ")?.let { move ->
                 ctx.findResponsiblePokemon<RemoteHeal>(move, side = side)
             }
@@ -394,6 +415,7 @@ sealed class SDEffect(vararg val types: String) {
         data object Wish : RemoteHeal("Wish")
         data object HealingWish : RemoteHeal("Healing Wish")
         data object LunarDance : RemoteHeal("Lunar Dance")
+        data object RevivalBlessing : RemoteHeal("Revival Blessing")
 
         companion object {
             val allHeals by lazy {

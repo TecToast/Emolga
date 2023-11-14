@@ -2182,7 +2182,7 @@ abstract class Command(
             val (game, ctx) = data
             if ((0..1).any { i ->
                     game[i].pokemon.sumOf { it.kills } > game[1 - i].pokemon.sumOf {
-                        (if (it.isDead) 1 else 0).toInt()
+                        it.deadCount
                     }
                 }) {
                 sendToMe("ACHTUNG ACHTUNG! KILLS SIND MEHR ALS DEATHS :o\n$url\n${resultchannelParam.asMention}")

@@ -96,12 +96,13 @@ sealed class League {
     @Transient
     var newTimerForAnnounce = false
 
-    suspend fun lockForPick(user: Long, block: suspend () -> Unit) {
+    suspend fun lockForPick(data: BypassCurrentPlayerData, block: suspend () -> Unit) {
         mutex.withLock {
             // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
             if (afterTimerSkipMode == AFTER_DRAFT_UNORDERED && pseudoEnd) {
-                if (user !in table) return@withLock
-                current = user
+                if (data is BypassCurrentPlayerData.Universal) return@withLock
+                // BypassCurrentPlayerData can only be Yes or Universal
+                current = (data as BypassCurrentPlayerData.Yes).user
             }
             block()
         }
@@ -640,15 +641,19 @@ sealed class League {
             league.afterPickOfficial(data = NextPlayerData.Moved(SkipReason.REALTIMER))
         }
 
-        suspend fun byCommand(e: GuildCommandEvent): League? {
+        suspend fun byCommand(e: GuildCommandEvent): Pair<League, BypassCurrentPlayerData>? {
             val onlyChannel = onlyChannel(e.textChannel.idLong)
             logger.info("leaguename {}", onlyChannel?.leaguename)
-            return onlyChannel?.apply {
+            return onlyChannel?.run {
                 val uid = e.member.idLong
                 if (pseudoEnd) {
-                    when (afterTimerSkipMode?.run { bypassCurrentPlayerCheck(uid) }) {
-                        true -> return@apply
-                        false -> {
+                    val data = afterTimerSkipMode?.run { bypassCurrentPlayerCheck(uid) }
+                    when (data) {
+                        is BypassCurrentPlayerData.Yes -> {
+                            return@run this to data
+                        }
+
+                        BypassCurrentPlayerData.No -> {
                             e.reply("Du hast keine offenen Picks mehr!")
                             return null
                         }
@@ -660,6 +665,7 @@ sealed class League {
                     e.reply("Du bist nicht dran!", ephemeral = true)
                     return null
                 }
+                this to if (uid != current) BypassCurrentPlayerData.Universal else BypassCurrentPlayerData.No
             }
         }
 
@@ -739,10 +745,15 @@ sealed interface TimerSkipMode {
     suspend fun League.afterPick(data: NextPlayerData): Boolean
     suspend fun League.getPickRound(): Int
 
-    suspend fun League.bypassCurrentPlayerCheck(user: Long) = false
+    suspend fun League.bypassCurrentPlayerCheck(user: Long): BypassCurrentPlayerData = BypassCurrentPlayerData.No
     fun League.disableTimer() = false
 }
 
+sealed interface BypassCurrentPlayerData {
+    data object No : BypassCurrentPlayerData
+    data object Universal : BypassCurrentPlayerData
+    data class Yes(val user: Long) : BypassCurrentPlayerData
+}
 sealed interface DuringTimerSkipMode : TimerSkipMode {
     override suspend fun League.afterPickCall(data: NextPlayerData) = afterPick(data)
 }
@@ -828,7 +839,20 @@ data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
     } else round
 
 
-    override suspend fun League.bypassCurrentPlayerCheck(user: Long) = pseudoEnd && hasMovedTurns(user)
+    override suspend fun League.bypassCurrentPlayerCheck(user: Long): BypassCurrentPlayerData {
+        val no = BypassCurrentPlayerData.No
+        // Are we in the pseudo end?
+        if (!pseudoEnd) return no
+        // Has the user moved turns?
+        if (hasMovedTurns(user)) return BypassCurrentPlayerData.Yes(user)
+        // Is the user not in the table (for security reasons)?
+        if (user in table) return no
+        // Has the user permission for exactly one player?
+        allowed.entries.singleOrNull { it.value.any { data -> data.u == user } }?.let { (u, _) ->
+            if (hasMovedTurns(u)) return BypassCurrentPlayerData.Yes(u)
+        }
+        return no
+    }
 
     override fun League.disableTimer(): Boolean {
         return pseudoEnd

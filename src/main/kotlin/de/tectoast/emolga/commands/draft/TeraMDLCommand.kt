@@ -40,7 +40,10 @@ object TeraMDLCommand : Command("teramdl", "Randomized den Tera-Typen", CommandC
 
     override suspend fun process(e: GuildCommandEvent) {
         val d =
-            League.byCommand(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
+            League.byCommand(e)?.first ?: return e.reply(
+                "Es läuft zurzeit kein Draft in diesem Channel!",
+                ephemeral = true
+            )
         if (d !is MDL) {
             e.reply("Dieser Befehl funktioniert nur im MDL Draft!")
             return

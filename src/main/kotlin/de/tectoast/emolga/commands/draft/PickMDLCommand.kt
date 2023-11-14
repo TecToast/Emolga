@@ -28,7 +28,10 @@ object PickMDLCommand : Command("pickmdl", "Gamblen :)", CommandCategory.Draft) 
 
     override suspend fun process(e: GuildCommandEvent) {
         val d =
-            League.byCommand(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
+            League.byCommand(e)?.first ?: return e.reply(
+                "Es läuft zurzeit kein Draft in diesem Channel!",
+                ephemeral = true
+            )
         if (d !is MDL) return e.reply("Dieser Command funktioniert nur im MDL Draft!")
         val mem = d.current
         val picks = d.picks[mem]!!

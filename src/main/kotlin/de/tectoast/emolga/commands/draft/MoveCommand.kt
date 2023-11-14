@@ -26,7 +26,7 @@ object MoveCommand : Command(
     private val logger = KotlinLogging.logger {}
     override suspend fun process(e: GuildCommandEvent) {
         logger.info("MoveCommand by ${e.author.name}")
-        League.byCommand(e)?.let {
+        League.byCommand(e)?.first?.let {
             if (it.isSwitchDraft) {
                 return e.reply("Dieser Draft ist ein Switch-Draft, daher wird /move nicht unterstützt!")
             }

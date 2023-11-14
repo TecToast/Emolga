@@ -50,7 +50,10 @@ object SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.
 
     override suspend fun process(e: GuildCommandEvent) {
         val d =
-            League.byCommand(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
+            League.byCommand(e)?.first ?: return e.reply(
+                "Es läuft zurzeit kein Draft in diesem Channel!",
+                ephemeral = true
+            )
         if (!d.isSwitchDraft) {
             return e.reply("Dieser Draft ist kein Switch-Draft, daher wird /switch nicht unterstützt!")
 

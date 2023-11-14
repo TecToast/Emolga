@@ -29,7 +29,10 @@ object RandomPickCommand : Command("randompick", "Well... nen Random-Pick halt",
 
     override suspend fun process(e: GuildCommandEvent) {
         val d =
-            League.byCommand(e) ?: return e.reply("Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true)
+            League.byCommand(e)?.first ?: return e.reply(
+                "Es läuft zurzeit kein Draft in diesem Channel!",
+                ephemeral = true
+            )
         val mutex = locks.getOrPut(d.leaguename) { Mutex() }
         mutex.withLock {
             val tierlist = d.tierlist

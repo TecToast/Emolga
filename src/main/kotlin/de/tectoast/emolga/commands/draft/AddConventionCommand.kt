@@ -20,7 +20,8 @@ object AddConventionCommand : Command(
             add("name", "Name", "Der Name des Pokemons", ArgumentManagerTemplate.Text.withAutocomplete { s, _ ->
                 transaction {
                     NameConventionsDB.run {
-                        select { GUILD eq 0 and (GERMAN like "$s%") }.toList().takeIf { it.size <= 25 }
+                        select { GUILD eq 0 and (GERMAN like "$s%") and (COMMON eq false) }.toList()
+                            .takeIf { it.size <= 25 }
                             ?.map { it[GERMAN] }
                     }
                 }

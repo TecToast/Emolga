@@ -41,9 +41,10 @@ object PrepareTierlistCommand : Command("preparetierlist", "Richtet die Tierlist
                 Google.batchGet(
                     sid,
                     (0 until 10).mapNotNull { args.getNullable<String>("range$it")?.let { a -> "$tierlistsheet!$a" } },
-                    false
+                    false,
+                    "COLUMNS"
                 )
-                    .map { col -> col.mapNotNull { it.getOrNull(0)?.toString()?.prepareForTL() } }
+                    .map { col -> col.flatten().mapNotNull { it?.toString()?.prepareForTL() } }
                     .also { tierlistcols += it }
                     .flatten().ensureNoDuplicates(),
                 tierlistcols = tierlistcols

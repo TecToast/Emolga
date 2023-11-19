@@ -25,8 +25,8 @@ object Google {
             .execute().getValues()
     }
 
-    fun batchGet(sid: String, ranges: List<String>, formula: Boolean) =
-        sheetsService.spreadsheets().values().batchGet(sid).setRanges(ranges)
+    fun batchGet(sid: String, ranges: List<String>, formula: Boolean, majorDimension: String = "ROWS") =
+        sheetsService.spreadsheets().values().batchGet(sid).setRanges(ranges).setMajorDimension(majorDimension)
             .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
             .execute().valueRanges.map { it.getValues() }
 

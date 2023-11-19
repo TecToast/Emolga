@@ -8,6 +8,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.utils.FileUpload
 
 object LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Draft) {
@@ -15,7 +16,15 @@ object LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Dra
         argumentTemplate = ArgumentManagerTemplate.create {
             add("logo", "Logo", "Das Logo", ArgumentManagerTemplate.DiscordFile("*"))
         }
-        slash(true, Constants.G.FLP, Constants.G.ASL, 665600405136211989, Constants.G.WFS, Constants.G.ADK)
+        slash(
+            true,
+            Constants.G.FLP,
+            Constants.G.ASL,
+            665600405136211989,
+            Constants.G.WFS,
+            Constants.G.ADK,
+            Constants.G.NDS
+        )
     }
 
     override suspend fun process(e: GuildCommandEvent) {
@@ -24,17 +33,22 @@ object LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Dra
 
 
     suspend fun insertLogo(e: GuildCommandEvent, uid: Long) {
+        e.deferReply(ephermal = true)
         val ligaStartData = db.signups.get(e.guild.idLong)!!
         if (uid !in ligaStartData.users) {
-            return e.reply("Du bist nicht angemeldet!", ephemeral = true)
+            return e.hook.send("Du bist nicht angemeldet!", ephemeral = true).queue()
         }
         if (ligaStartData.noTeam) {
-            return e.reply("In dieser Liga gibt es keine eigenen Teams!", ephemeral = true)
+            return e.hook.send("In dieser Liga gibt es keine eigenen Teams!", ephemeral = true).queue()
         }
-        e.deferReply(true)
         val logo = e.arguments.getAttachment("logo")
-        val file = logo.proxy.downloadToFile("leaguelogos/${uid}.png".file()).await()
-        e.reply("Das Logo wurde erfolgreich hochgeladen!", ephemeral = true)
+        val file = try {
+            logo.proxy.downloadToFile("leaguelogos/${uid}.png".file()).await()
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            return e.hook.send("Das Logo konnte nicht heruntergeladen werden!", ephemeral = true).queue()
+        }
+        e.hook.send("Das Logo wurde erfolgreich hochgeladen!", ephemeral = true).queue()
         val signUpData = ligaStartData.users[uid]!!
         val tc = e.jda.getTextChannelById(ligaStartData.logoChannel)!!
         signUpData.logomid?.let {

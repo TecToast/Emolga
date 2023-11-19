@@ -14,6 +14,7 @@ object SignupManager {
         logoChannel: Long,
         maxUsers: Int,
         roleId: Long?,
+        withExperiences: Boolean,
         text: String
     ) {
         val tc = jda.getTextChannelById(announceChannel)!!
@@ -34,7 +35,8 @@ object SignupManager {
                 announceChannel = tc.idLong,
                 announceMessageId = messageid,
                 participantRole = roleId,
-                signupMessage = text
+                signupMessage = text,
+                withExperiences = withExperiences
             )
         )
     }

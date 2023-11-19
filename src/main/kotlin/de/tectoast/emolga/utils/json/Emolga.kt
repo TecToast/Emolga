@@ -201,7 +201,8 @@ data class LigaStartData(
     val announceMessageId: Long,
     var extended: Boolean = false,
     val noTeam: Boolean = false,
-    val participantRole: Long? = null
+    val participantRole: Long? = null,
+    val withExperiences: Boolean = false,
 ) {
     val maxUsersAsString
         get() = (maxUsers.takeIf { it > 0 } ?: "?").toString()
@@ -248,7 +249,8 @@ data class SignUpData(
     var logomid: Long? = null,
     var logoUrl: String = "",
     var conference: String? = null,
-    val teammates: MutableSet<Long> = mutableSetOf()
+    val teammates: MutableSet<Long> = mutableSetOf(),
+    var experiences: String? = null,
 ) {
     fun toMessage(user: Long, lsData: LigaStartData) = "Anmeldung von <@${user}>".condAppend(teammates.isNotEmpty()) {
         " (mit ${teammates.joinToString { "<@$it>" }})"

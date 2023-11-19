@@ -28,6 +28,7 @@ object SignupModal : ModalListener("signup") {
     override suspend fun process(e: ModalInteractionEvent, name: String?) {
         val teamname = e.getValue("teamname")?.asString
         val sdname = e.getValue("sdname")!!.asString
+        val experiences = e.getValue("experiences")?.asString
         val sdnameid = Command.toUsername(sdname)
         if (sdnameid.length !in 1..18) return e.reply_("Dieser Showdown-Name ist ungültig!").setEphemeral(true).queue()
         val uid = e.user.idLong
@@ -58,6 +59,7 @@ object SignupModal : ModalListener("signup") {
                     val data = users[ownerOfTeam]!!
                     data.sdname = sdname
                     data.teamname = teamname
+                    data.experiences = experiences
                     e.hook.sendMessage("Deine Daten wurden erfolgreich geändert!").queue()
                     e.jda.getTextChannelById(signupChannel)!!.editMessageById(
                         data.signupmid!!, data.toMessage(ownerOfTeam, this)
@@ -72,7 +74,7 @@ object SignupModal : ModalListener("signup") {
                 e.hook.sendMessage("✅ Du wurdest erfolgreich angemeldet!").setEphemeral(true).queue()
                 giveParticipantRole(e.member!!)
                 val signUpData = SignUpData(
-                    teamname, sdname,
+                    teamname, sdname, experiences = experiences
                 ).apply {
                     signupmid = e.jda.getTextChannelById(signupChannel)!!.sendMessage(
                         toMessage(ownerOfTeam, this@with)
@@ -94,6 +96,13 @@ object SignupModal : ModalListener("signup") {
         Modal("signup".condAppend(data != null, ";change"), "Anmeldung".condAppend(data != null, "sanpassung")) {
             if (!lsData.noTeam) short("teamname", "Team-Name", required = true, value = data?.teamname)
             short("sdname", "Showdown-Name", required = true, requiredLength = 1..18, value = data?.sdname)
+            if (lsData.withExperiences) paragraph(
+                "experiences",
+                "Erfahrungen",
+                required = true,
+                placeholder = "Wie viel Erfahrung hast du im CP-Bereich?",
+                value = data?.experiences
+            )
         }
 
 }

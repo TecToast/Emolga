@@ -584,15 +584,16 @@ object PrivateCommands {
         }.toList().joinToString("\n").let { "noforms.txt".file().writeText(it) }
     }
 
-    // Order: Announcechannel mit Button, Channel in dem die Anmeldungen reinkommen, Channel in den die Logos kommen, AnzahlTeilnehmer, RollenID(oder -1), Message
+    // Order: Announcechannel mit Button, Channel in dem die Anmeldungen reinkommen, Channel in den die Logos kommen, AnzahlTeilnehmer, RollenID(oder -1), experiences, Message
     suspend fun createSignup(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         val tc = e.jda.getTextChannelById(args[0])!!
         val maxUsers = args[3].toInt()
         val roleId = args[4].toLong().takeIf { it > 0 }
-        val text = args.drop(5).joinToString(" ")
+        val experiences = args[5].toBooleanStrict()
+        val text = args.drop(6).joinToString(" ")
             .replace("\\n", "\n")
-        SignupManager.createSignup(tc.idLong, args[1].toLong(), args[2].toLong(), maxUsers, roleId, text)
+        SignupManager.createSignup(tc.idLong, args[1].toLong(), args[2].toLong(), maxUsers, roleId, experiences, text)
     }
 
     suspend fun closeSignup(e: GuildCommandEvent) {

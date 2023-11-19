@@ -584,7 +584,14 @@ object PrivateCommands {
         }.toList().joinToString("\n").let { "noforms.txt".file().writeText(it) }
     }
 
-    // Order: Announcechannel mit Button, Channel in dem die Anmeldungen reinkommen, Channel in den die Logos kommen, AnzahlTeilnehmer, RollenID(oder -1), experiences, Message
+    // Order:
+    // Announcechannel mit Button
+    // Channel in dem die Anmeldungen reinkommen
+    // Channel in den die Logos kommen
+    // AnzahlTeilnehmer
+    // RollenID(oder -1)
+    // experiences
+    // Message
     suspend fun createSignup(e: GenericCommandEvent) {
         val args = e.getArg(1).split(" ")
         val tc = e.jda.getTextChannelById(args[0])!!

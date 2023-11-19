@@ -12,7 +12,7 @@ object LogoForCommand : Command("logofor", "Reicht ein Logo für jemanden ein", 
             add("user", "User", "Der User", ArgumentManagerTemplate.DiscordType.USER)
             add("logo", "Logo", "Das Logo", ArgumentManagerTemplate.DiscordFile("*"))
         }
-        slash(true, Constants.G.FLP, Constants.G.ASL)
+        slash(true, Constants.G.FLP, Constants.G.ASL, Constants.G.NDS)
         setCustomPermissions(PermissionPreset.fromIDs(242427180942884864))
     }
 

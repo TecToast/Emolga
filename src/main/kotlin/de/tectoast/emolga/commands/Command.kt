@@ -780,7 +780,7 @@ abstract class Command(
 
                 fun draftTiers(): Text {
                     return withAutocomplete { _, event ->
-                        League.onlyChannel(event.channel!!.idLong)?.getPossibleTiers(forAutocomplete = true)
+                        League.onlyChannel(event.channel.idLong)?.getPossibleTiers(forAutocomplete = true)
                             ?.filter { it.value > 0 }?.map { it.key }
                     }
                 }
@@ -1154,7 +1154,7 @@ abstract class Command(
         )
         val draftPokemonArgumentType = ArgumentManagerTemplate.draftPokemon { s, event ->
             val gid = event.guild!!.idLong
-            val league = League.onlyChannel(event.channel!!.idLong)
+            val league = League.onlyChannel(event.channel.idLong)
             //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
             val tierlist = Tierlist[league?.guild ?: gid]
             val strings = (tierlist?.autoComplete ?: allNameConventions).filterStartsWithIgnoreCase(s)

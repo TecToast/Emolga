@@ -21,7 +21,7 @@ object SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.
             "Das Pokemon, was rausgeschmissen werden soll",
             ArgumentManagerTemplate.draftPokemon { s, e ->
                 newSuspendedTransaction {
-                    League.onlyChannel(e.channel!!.idLong)?.let {
+                    League.onlyChannel(e.channel.idLong)?.let {
                         val tl = it.tierlist
                         it.picks[it.current]!!.filter { p -> p.name != "???" && !p.quit }.sortedWith(
                             compareBy({ mon -> tl.order.indexOf(mon.tier) },

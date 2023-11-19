@@ -60,7 +60,7 @@ repositories {
     maven("https://jitpack.io/")
 }
 
-val ktorVersion = "2.2.4"
+val ktorVersion = "2.3.6"
 val ktorDependencies = listOf(
     // Client
     "ktor-client-core",
@@ -93,11 +93,11 @@ dependencies {
     //implementation("mysql:mysql-connector-java:8.0.29")
     implementation("com.github.TecToast:Toastilities:96e360b1f8")
     //implementation("com.github.TecToast:JSOLF:a43c3e06c7")
-    implementation("net.dv8tion:JDA:5.0.0-beta.15")
+    implementation("net.dv8tion:JDA:5.0.0-beta.18")
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.1.4")
     implementation("com.github.MinnDevelopment:jda-ktx:0.10.0-beta.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")

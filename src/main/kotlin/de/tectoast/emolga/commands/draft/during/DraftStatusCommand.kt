@@ -1,4 +1,4 @@
-package de.tectoast.emolga.commands.draft
+package de.tectoast.emolga.commands.draft.during
 
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.utils.json.db

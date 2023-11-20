@@ -1,6 +1,8 @@
-package de.tectoast.emolga.commands.draft
+package de.tectoast.emolga.commands.draft.during
 
-import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.germanTypeList
+import de.tectoast.emolga.commands.randomWithCondition
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.MDLTierlist
@@ -11,7 +13,7 @@ import dev.minn.jda.ktx.interactions.components.danger
 import dev.minn.jda.ktx.interactions.components.success
 import mu.KotlinLogging
 
-object PickMDLCommand : Command("pickmdl", "Gamblen :)", CommandCategory.Draft) {
+object PickMDLCommand : DraftCommand<PickMDLCommandData>("pickmdl", "Gamblen :)") {
 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {
@@ -26,23 +28,25 @@ object PickMDLCommand : Command("pickmdl", "Gamblen :)", CommandCategory.Draft) 
         slash(true, Constants.G.VIP)
     }
 
-    override suspend fun process(e: GuildCommandEvent) {
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = PickMDLCommandData(e.arguments.getText("type"))
+    context (DraftCommandData)
+    override suspend fun exec(e: PickMDLCommandData) {
         val d =
-            League.byCommand(e)?.first ?: return e.reply(
+            League.byCommand()?.first ?: return reply(
                 "Es läuft zurzeit kein Draft in diesem Channel!",
                 ephemeral = true
             )
-        if (d !is MDL) return e.reply("Dieser Command funktioniert nur im MDL Draft!")
+        if (d !is MDL) return reply("Dieser Command funktioniert nur im MDL Draft!")
         val mem = d.current
         val picks = d.picks[mem]!!
-        val type = e.arguments.getText("type")
+        val type = e.type
         var tier = ""
         var mon = ""
         val usedTiers = mutableSetOf<String>()
         for (i in 0 until 100) {
             val temptier = tiers.toMutableList().apply { removeAll { it.first in usedTiers } }
                 .randomWithCondition { it.second > picks.count { mon -> mon.tier == it.first } }?.first
-                ?: return e.reply("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
+                ?: return reply("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
 
             val tempmon = MDLTierlist.get[type]!![temptier]!!.randomWithCondition { !d.isPicked(it) }
             if (tempmon != null) {
@@ -55,10 +59,10 @@ object PickMDLCommand : Command("pickmdl", "Gamblen :)", CommandCategory.Draft) 
         if (mon.isEmpty() || tier.isEmpty()) {
             logger.error("No pokemon found without error message: $mem $type")
             sendToMe("ERROR PICKMDL COMMAND CONSOLE: $mem $type")
-            return e.reply("Es ist ein unbekannter Fehler aufgetreten!")
+            return reply("Es ist ein unbekannter Fehler aufgetreten!")
         }
         val official = NameConventionsDB.getDiscordTranslation(mon, d.guild, false)!!.official
-        d.replyGeneral(e, "gegambled: **$mon ($tier)**!") {
+        d.replyGeneral("gegambled: **$mon ($tier)**!") {
             it.addActionRow(
                 success("mdlpick;accept", "Akzeptieren"),
                 danger("mdlpick;reroll", "Joker einlösen (noch ${d.jokers[mem]} übrig)")
@@ -72,3 +76,5 @@ object PickMDLCommand : Command("pickmdl", "Gamblen :)", CommandCategory.Draft) 
     private val logger = KotlinLogging.logger {}
 
 }
+
+class PickMDLCommandData(val type: String) : SpecifiedDraftCommandData

@@ -1,4 +1,5 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val kVersion = "1.9.20"
 plugins {
@@ -17,6 +18,7 @@ application {
 }
 
 java {
+    sourceCompatibility = JavaVersion.VERSION_20
     withSourcesJar()
 }
 
@@ -34,15 +36,15 @@ tasks {
         exclude("de/tectoast/emolga/**")
         archiveVersion.set("")
     }
+    withType<KotlinCompile> {
+        kotlinOptions {
+            freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
+            jvmTarget = "20"
+        }
+    }
     /*withType(KotlinCompile::class.java) {
         dependsOn("clean")
     }*/
-}
-
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(18))
-    }
 }
 
 group = "de.tectoast"

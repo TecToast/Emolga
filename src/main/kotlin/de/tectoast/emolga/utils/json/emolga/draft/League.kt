@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.draft.AddToTierlistData
+import de.tectoast.emolga.commands.draft.during.DraftCommandData
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
@@ -96,14 +97,14 @@ sealed class League {
     @Transient
     var newTimerForAnnounce = false
 
-    suspend fun lockForPick(e: GuildCommandEvent, data: BypassCurrentPlayerData, block: suspend () -> Unit) {
+    context (DraftCommandData)
+    suspend fun lockForPick(data: BypassCurrentPlayerData, block: suspend () -> Unit) {
         mutex.withLock {
             // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
             if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
                 if (data is BypassCurrentPlayerData.Universal) {
-                    return@withLock e.reply_(
-                        "Auch mit Universalrechten kannst du in diesem Status des Drafts nichts machen :)",
-                        ephemeral = true
+                    return@withLock replyEphemeral(
+                        "Auch mit Universalrechten kannst du in diesem Status des Drafts nichts machen :)"
                     )
                 }
                 // BypassCurrentPlayerData can only be Yes or Universal
@@ -189,8 +190,8 @@ sealed class League {
     open suspend fun isPicked(mon: String, tier: String? = null) =
         picks.values.any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
 
+    context (DraftCommandData)
     open fun handlePoints(
-        e: GuildCommandEvent,
         tlNameNew: String,
         officialNew: String,
         free: Boolean,
@@ -203,13 +204,13 @@ sealed class League {
         val cpicks = picks[current]!!
         val currentPicksHasMega = cpicks.any { it.name.isMega }
         if (tierlist.variableMegaPrice && currentPicksHasMega && mega) {
-            e.reply("Du kannst nur ein Mega draften!")
+            reply("Du kannst nur ein Mega draften!")
             return true
         }
         val needed = tierlist.getPointsNeeded(tier)
         val pointsBack = tierOld?.let { tierlist.getPointsNeeded(it) } ?: 0
         if (points[current] - needed + pointsBack < 0) {
-            e.reply("Dafür hast du nicht genug Punkte!")
+            reply("Dafür hast du nicht genug Punkte!")
             return true
         }
         val variableMegaPrice = (if (tierlist.variableMegaPrice) (if (!currentPicksHasMega) tierlist.order.mapNotNull {
@@ -225,33 +226,34 @@ sealed class League {
                 else -> false
             }
         ) {
-            e.reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!")
+            reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!")
             return true
         }
         points.add(current, pointsBack - needed)
         return false
     }
 
+    context (DraftCommandData)
     open fun handleTiers(
-        e: GuildCommandEvent, specifiedTier: String, officialTier: String, fromSwitch: Boolean = false
+        specifiedTier: String, officialTier: String, fromSwitch: Boolean = false
     ): Boolean {
         if (!tierlist.mode.withTiers || (tierlist.variableMegaPrice && "#" in officialTier)) return false
         val map = getPossibleTiers()
         if (!map.containsKey(specifiedTier)) {
-            e.reply("Das Tier `$specifiedTier` existiert nicht!")
+            reply("Das Tier `$specifiedTier` existiert nicht!")
             return true
         }
         if (tierlist.order.indexOf(officialTier) < tierlist.order.indexOf(specifiedTier) && (!fromSwitch || map[specifiedTier]!! <= 0)) {
-            e.reply("Du kannst ein $officialTier-Mon nicht ins $specifiedTier hochdraften!")
+            reply("Du kannst ein $officialTier-Mon nicht ins $specifiedTier hochdraften!")
             return true
         }
         if (map[specifiedTier]!! <= 0) {
             if (tierlist.prices[specifiedTier] == 0) {
-                e.reply("Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!")
+                reply("Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!")
                 return true
             }
             if (fromSwitch) return false
-            e.reply("Du kannst dir kein $specifiedTier-Pokemon mehr picken!")
+            reply("Du kannst dir kein $specifiedTier-Pokemon mehr picken!")
             return true
         }
         return false
@@ -534,27 +536,32 @@ sealed class League {
     open val dataSheet: String = "Data"
 
     fun builder() = RequestBuilder(sid)
-    suspend fun replyPick(e: GuildCommandEvent, pokemon: String, free: Boolean, updrafted: String?) = replyGeneral(e,
+    context (DraftCommandData)
+    suspend fun replyPick(pokemon: String, free: Boolean, updrafted: String?) = replyGeneral(
         "$pokemon ".condAppend(updrafted != null) { "im $updrafted " } + "gepickt!".condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
 
-    suspend fun replyGeneral(e: GuildCommandEvent, msg: String, action: ((ReplyCallbackAction) -> Unit)? = null) {
-        e.slashCommandEvent!!.reply(
-            "${e.member.asMention} hat${
-                if (e.author.idLong != current) " für **${getCurrentName()}**" else ""
-            } $msg"
-        ).also { action?.invoke(it) }.await()
+    context (DraftCommandData)
+    suspend fun replyGeneral(msg: String, action: (ReplyCallbackAction) -> Unit = {}) {
+        replyAwait(
+            "<@${user} hat${
+                if (user != current) " für **${getCurrentName()}**" else ""
+            } $msg", action = action
+        )
     }
 
-    suspend fun replyRandomPick(e: GuildCommandEvent, pokemon: String, tier: String) = replyGeneral(
-        e, "einen Random-Pick im $tier gemacht und **$pokemon** bekommen!"
+    context (DraftCommandData)
+    suspend fun replyRandomPick(pokemon: String, tier: String) = replyGeneral(
+        "einen Random-Pick im $tier gemacht und **$pokemon** bekommen!"
     )
 
-    suspend fun replySwitch(e: GuildCommandEvent, oldmon: String, newmon: String) {
-        replyGeneral(e, "$oldmon gegen $newmon getauscht!")
+    context (DraftCommandData)
+    suspend fun replySwitch(oldmon: String, newmon: String) {
+        replyGeneral("$oldmon gegen $newmon getauscht!")
     }
 
-    suspend fun replySkip(e: GuildCommandEvent) {
-        replyGeneral(e, "den Pick übersprungen!")
+    context (DraftCommandData)
+    suspend fun replySkip() {
+        replyGeneral("den Pick übersprungen!")
     }
 
     suspend fun getPickRoundOfficial() =
@@ -646,11 +653,12 @@ sealed class League {
             league.afterPickOfficial(data = NextPlayerData.Moved(SkipReason.REALTIMER))
         }
 
-        suspend fun byCommand(e: GuildCommandEvent): Pair<League, BypassCurrentPlayerData>? {
-            val onlyChannel = onlyChannel(e.textChannel.idLong)
+        context (DraftCommandData)
+        suspend fun byCommand(): Pair<League, BypassCurrentPlayerData>? {
+            val onlyChannel = onlyChannel(tc)
             logger.info("leaguename {}", onlyChannel?.leaguename)
             return onlyChannel?.run {
-                val uid = e.member.idLong
+                val uid = user
                 if (pseudoEnd) {
                     val data = afterTimerSkipMode?.run { bypassCurrentPlayerCheck(uid) }
                     when (data) {
@@ -659,7 +667,7 @@ sealed class League {
                         }
 
                         BypassCurrentPlayerData.No -> {
-                            e.reply("Du hast keine offenen Picks mehr!")
+                            reply("Du hast keine offenen Picks mehr!")
                             return null
                         }
 
@@ -667,7 +675,7 @@ sealed class League {
                     }
                 }
                 if (!isCurrentCheck(uid)) {
-                    e.reply("Du bist nicht dran!", ephemeral = true)
+                    reply("Du bist nicht dran!", ephemeral = true)
                     return null
                 }
                 this to if (uid != current) BypassCurrentPlayerData.Universal else BypassCurrentPlayerData.No

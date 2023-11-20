@@ -1,23 +1,18 @@
-package de.tectoast.emolga.commands.draft
+package de.tectoast.emolga.commands.draft.during
 
-import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
 
-object DraftsetupCommand :
-    Command("draftsetup", "Startet das Draften der Liga in diesem Channel (nur Flo)", CommandCategory.Flo) {
+object DraftsetupCommand : DraftCommand<DraftSetupCommandData>(
+    "draftsetup",
+    "Startet das Draften der Liga in diesem Channel (nur Flo)",
+    CommandCategory.Flo
+) {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("name", "Name", "Der Name der Liga/des Drafts", ArgumentManagerTemplate.Text.any())
-            .add(
-                "tc",
-                "Channel",
-                "Der Channel, wo die Teamübersicht sein soll",
-                ArgumentManagerTemplate.DiscordType.CHANNEL,
-                true
-            )
             .add(
                 "fromfile",
                 "Datei",
@@ -37,13 +32,25 @@ object DraftsetupCommand :
         slash(false, *draftGuilds)
     }
 
-    override suspend fun process(e: GuildCommandEvent) {
-        val args = e.arguments
-        db.league(args.getText("name")).startDraft(
-            e.textChannel,
-            fromFile = args.getOrDefault("fromfile", false),
-            switchDraft = args.getOrDefault("switchdraft", false)
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = DraftSetupCommandData(
+        e.arguments.getText("name"),
+        e.arguments.getOrDefault("fromfile", false),
+        e.arguments.getOrDefault("switchdraft", false)
+    )
+
+    context (DraftCommandData)
+    override suspend fun exec(e: DraftSetupCommandData) {
+        db.league(e.name).startDraft(
+            textChannel,
+            fromFile = e.fromFile,
+            switchDraft = e.switchDraft
         )
-        e.reply("+1", ephemeral = true)
+        reply("+1", ephemeral = true)
     }
 }
+
+class DraftSetupCommandData(
+    val name: String,
+    val fromFile: Boolean,
+    val switchDraft: Boolean
+) : SpecifiedDraftCommandData

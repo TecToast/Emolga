@@ -1,9 +1,8 @@
-package de.tectoast.emolga.commands.draft
+package de.tectoast.emolga.commands.draft.during
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.invoke
+import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -11,7 +10,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.SwitchData
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 
-object SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.Draft) {
+object SwitchCommand : DraftCommand<SwitchCommandData>("switch", "Switcht ein Pokemon") {
     private val tlNameCache = SizeLimitedMap<String, String>(1000)
 
     init {
@@ -48,35 +47,39 @@ object SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.
         slash(true, *draftGuilds)
     }
 
-    override suspend fun process(e: GuildCommandEvent) {
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = SwitchCommandData(
+        e.arguments.getDraftName("oldmon"),
+        e.arguments.getDraftName("newmon")
+    )
+
+    context (DraftCommandData)
+    override suspend fun exec(e: SwitchCommandData) {
         val d =
-            League.byCommand(e)?.first ?: return e.reply(
+            League.byCommand()?.first ?: return reply(
                 "Es läuft zurzeit kein Draft in diesem Channel!",
                 ephemeral = true
             )
         if (!d.isSwitchDraft) {
-            return e.reply("Dieser Draft ist kein Switch-Draft, daher wird /switch nicht unterstützt!")
+            return reply("Dieser Draft ist kein Switch-Draft, daher wird /switch nicht unterstützt!")
 
         }
         val mem = d.current
-        d.beforeSwitch()?.let { e.reply(it); return }
-        val args = e.arguments
-        val oldmon = args.getDraftName("oldmon")
-        val newmon = args.getDraftName("newmon")
+        d.beforeSwitch()?.let { reply(it); return }
+        val oldmon = e.oldmon
+        val newmon = e.newmon
         logger.info("Switching $oldmon to $newmon")
         val draftPokemons = d.picks(mem)
         val oldDraftMon = draftPokemons.firstOrNull { it.name == oldmon.official }
-            ?: return e.reply("${oldmon.tlName} befindet sich nicht in deinem Kader!")
-        val newtier = d.getTierOf(newmon.tlName, null) ?: return e.reply("Das neue Pokemon ist nicht in der Tierliste!")
+            ?: return reply("${oldmon.tlName} befindet sich nicht in deinem Kader!")
+        val newtier = d.getTierOf(newmon.tlName, null) ?: return reply("Das neue Pokemon ist nicht in der Tierliste!")
         val oldtier = d.getTierOf(oldmon.tlName, null)!!.specified
-        d.checkUpdraft(oldDraftMon.tier, newtier.official)?.let { e.reply(it); return }
+        d.checkUpdraft(oldDraftMon.tier, newtier.official)?.let { reply(it); return }
         if (d.isPicked(newmon.official, newtier.official)) {
-            e.reply("${newmon.tlName} wurde bereits gepickt!")
+            reply("${newmon.tlName} wurde bereits gepickt!")
             return
         }
-        if (d.handleTiers(e, newtier.specified, newtier.official, fromSwitch = true)) return
+        if (d.handleTiers(newtier.specified, newtier.official, fromSwitch = true)) return
         if (d.handlePoints(
-                e,
                 tlNameNew = newmon.tlName,
                 officialNew = newmon.official,
                 free = false,
@@ -84,7 +87,7 @@ object SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.
                 tierOld = oldtier
             )
         ) return
-        d.replySwitch(e, oldmon.tlName, newmon.tlName)
+        d.replySwitch(oldmon.tlName, newmon.tlName)
 
         val oldIndex = d.saveSwitch(draftPokemons, oldmon.official, newmon.official, newtier.specified)
         with(d) {
@@ -109,8 +112,7 @@ object SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.
             }?.execute()
         }
         if (newmon.official == "Emolga") {
-            e.textChannel.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
-                .queue()
+            sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
         }
         d.afterPickOfficial()
     }
@@ -119,3 +121,8 @@ object SwitchCommand : Command("switch", "Switcht ein Pokemon", CommandCategory.
     private val logger = LoggerFactory.getLogger(SwitchCommand::class.java)
 
 }
+
+class SwitchCommandData(
+    val oldmon: DraftName,
+    val newmon: DraftName
+) : SpecifiedDraftCommandData

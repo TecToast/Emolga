@@ -1,16 +1,15 @@
-package de.tectoast.emolga.commands.draft
+package de.tectoast.emolga.commands.draft.during
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.invoke
+import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.PickData
 import de.tectoast.emolga.utils.json.emolga.draft.isMega
 import mu.KotlinLogging
 
 @Suppress("unused")
-object PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft) {
+object PickCommand : DraftCommand<PickCommandData>("pick", "Pickt das Pokemon") {
 
     init {
         //setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!pick <Pokemon> [Optionales Tier]", "!pick Emolga"));
@@ -27,44 +26,49 @@ object PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft)
         slash(true, *draftGuilds)
     }
 
-    override suspend fun process(e: GuildCommandEvent) = exec(e, false)
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = PickCommandData(
+        e.arguments.getDraftName("pokemon"),
+        e.arguments.getNullable("tier"),
+        e.arguments.getOrDefault("free", false)
+    )
+
     private val logger = KotlinLogging.logger {}
-    suspend fun exec(
-        e: GuildCommandEvent, isRandom: Boolean
+
+    context (DraftCommandData)
+    override suspend fun exec(
+        e: PickCommandData
     ) {
-        val args = e.arguments
-        val dd = League.byCommand(e) ?: return run {
-            if (!e.slashCommandEvent!!.isAcknowledged) {
-                e.reply(
+        val dd = League.byCommand() ?: return run {
+            if (!acknowledged) {
+                reply(
                     "Es läuft zurzeit kein Draft in diesem Channel!",
                     ephemeral = true
                 )
             }
         }
         val (d, data) = dd
-        d.lockForPick(e, data) l@{
+        d.lockForPick(data) l@{
             if (d.isSwitchDraft && !d.allowPickDuringSwitch) {
-                e.reply("Du kannst während des Switch-Drafts nicht picken!")
+                reply("Du kannst während des Switch-Drafts nicht picken!")
                 return@l
             }
-            d.beforePick()?.let { e.reply(it); return@l }
+            d.beforePick()?.let { reply(it); return@l }
             val mem = d.current
             val tierlist = d.tierlist
             val picks = d.picks(mem)
-            val (tlName, official, _) = args.getDraftName("pokemon")
+            val (tlName, official, _) = e.pokemon
             println("tlName: $tlName, official: $official")
             val (specifiedTier, officialTier) =
-                (d.getTierOf(tlName, args.getNullable("tier"))
-                    ?: return@l e.reply("Dieses Pokemon ist nicht in der Tierliste!"))
+                (d.getTierOf(tlName, e.tier)
+                    ?: return@l reply("Dieses Pokemon ist nicht in der Tierliste!"))
 
-            d.checkUpdraft(specifiedTier, officialTier)?.let { return@l e.reply(it) }
-            if (d.isPicked(official, officialTier)) return@l e.reply("Dieses Pokemon wurde bereits gepickt!")
+            d.checkUpdraft(specifiedTier, officialTier)?.let { return@l reply(it) }
+            if (d.isPicked(official, officialTier)) return@l reply("Dieses Pokemon wurde bereits gepickt!")
             val tlMode = tierlist.mode
-            val free = args.getOrDefault("free", false)
+            val free = e.free
                 .takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } ?: false
-            if (!free && d.handleTiers(e, specifiedTier, officialTier)) return@l
+            if (!free && d.handleTiers(specifiedTier, officialTier)) return@l
             if (d.handlePoints(
-                    e,
                     tlNameNew = tlName,
                     officialNew = official,
                     free = free,
@@ -74,12 +78,11 @@ object PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft)
             val saveTier = if (free) officialTier else specifiedTier
             d.savePick(picks, official, saveTier, free)
             //m.delete().queue();
-            if (!isRandom) d.replyPick(e, tlName, free, specifiedTier.takeIf { saveTier != officialTier })
-            if (isRandom) {
-                d.replyRandomPick(e, tlName, specifiedTier)
+            if (!e.random) d.replyPick(tlName, free, specifiedTier.takeIf { saveTier != officialTier })
+            if (e.random) {
+                d.replyRandomPick(tlName, specifiedTier)
             } else if (official == "Emolga") {
-                e.textChannel.sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
-                    .queue()
+                sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
             }
             val round = d.getPickRoundOfficial()
             with(d) {
@@ -106,3 +109,10 @@ object PickCommand : Command("pick", "Pickt das Pokemon", CommandCategory.Draft)
     }
 
 }
+
+data class PickCommandData(
+    val pokemon: DraftName,
+    val tier: String? = null,
+    val free: Boolean = false,
+    val random: Boolean = false
+) : SpecifiedDraftCommandData

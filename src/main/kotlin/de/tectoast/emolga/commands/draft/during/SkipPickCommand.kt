@@ -7,7 +7,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.NextPlayerData
 import de.tectoast.emolga.utils.json.emolga.draft.SkipReason
 import net.dv8tion.jda.api.Permission
 
-object SkipPickCommand : DraftCommand<NoSpecifiedDraftCommandData>("skippick", "Skippe eine Person beim Draft") {
+object SkipPickCommand : TestableCommand<NoCommandArgs>("skippick", "Skippe eine Person beim Draft") {
     init {
         setCustomPermissions { mem ->
             mem.hasPermission(Permission.ADMINISTRATOR) || DraftAdminsDB.isAdmin(mem.guild.idLong, mem)
@@ -16,9 +16,9 @@ object SkipPickCommand : DraftCommand<NoSpecifiedDraftCommandData>("skippick", "
         slash(true, *draftGuilds)
     }
 
-    override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoSpecifiedDraftCommandData
-    context (DraftCommandData)
-    override suspend fun exec(e: NoSpecifiedDraftCommandData) {
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoCommandArgs
+    context (CommandData)
+    override suspend fun exec(e: NoCommandArgs) {
         val d = League.onlyChannel(tc) ?: return reply(
             "Es läuft zurzeit kein Draft in diesem Channel!",
             ephemeral = true

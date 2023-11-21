@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.draft.during
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
-object SkipCommand : DraftCommand<NoSpecifiedDraftCommandData>(
+object SkipCommand : TestableCommand<NoCommandArgs>(
     "skip",
     "Überspringt deinen Zug"
 ) {
@@ -12,10 +12,10 @@ object SkipCommand : DraftCommand<NoSpecifiedDraftCommandData>(
         slash(true, *draftGuilds)
     }
 
-    override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoSpecifiedDraftCommandData
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoCommandArgs
 
-    context (DraftCommandData)
-    override suspend fun exec(e: NoSpecifiedDraftCommandData) {
+    context (CommandData)
+    override suspend fun exec(e: NoCommandArgs) {
         val d =
             League.byCommand()?.first ?: return reply(
                 "Es läuft zurzeit kein Draft in diesem Channel!",

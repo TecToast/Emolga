@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
-object MoveCommand : DraftCommand<NoSpecifiedDraftCommandData>(
+object MoveCommand : TestableCommand<NoCommandArgs>(
     "move",
     "Verschiebt deinen Pick",
 ) {
@@ -14,8 +14,8 @@ object MoveCommand : DraftCommand<NoSpecifiedDraftCommandData>(
         slash(true, Constants.G.ASL, Constants.G.COMMUNITY)
     }
 
-    context (DraftCommandData)
-    override suspend fun exec(e: NoSpecifiedDraftCommandData) {
+    context (CommandData)
+    override suspend fun exec(e: NoCommandArgs) {
         League.byCommand()?.first?.let {
             if (it.isSwitchDraft) {
                 return reply("Dieser Draft ist ein Switch-Draft, daher wird /move nicht unterstützt!")
@@ -30,5 +30,5 @@ object MoveCommand : DraftCommand<NoSpecifiedDraftCommandData>(
         //ndsdoc(tierlist, pokemon, d, mem, tier, round);
     }
 
-    override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoSpecifiedDraftCommandData
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoCommandArgs
 }

@@ -3,7 +3,7 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.draft.AddToTierlistData
-import de.tectoast.emolga.commands.draft.during.DraftCommandData
+import de.tectoast.emolga.commands.draft.during.CommandData
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
@@ -97,7 +97,7 @@ sealed class League {
     @Transient
     var newTimerForAnnounce = false
 
-    context (DraftCommandData)
+    context (CommandData)
     suspend fun lockForPick(data: BypassCurrentPlayerData, block: suspend () -> Unit) {
         mutex.withLock {
             // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
@@ -190,7 +190,7 @@ sealed class League {
     open suspend fun isPicked(mon: String, tier: String? = null) =
         picks.values.any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
 
-    context (DraftCommandData)
+    context (CommandData)
     open fun handlePoints(
         tlNameNew: String,
         officialNew: String,
@@ -233,7 +233,7 @@ sealed class League {
         return false
     }
 
-    context (DraftCommandData)
+    context (CommandData)
     open fun handleTiers(
         specifiedTier: String, officialTier: String, fromSwitch: Boolean = false
     ): Boolean {
@@ -536,11 +536,11 @@ sealed class League {
     open val dataSheet: String = "Data"
 
     fun builder() = RequestBuilder(sid)
-    context (DraftCommandData)
+    context (CommandData)
     suspend fun replyPick(pokemon: String, free: Boolean, updrafted: String?) = replyGeneral(
         "$pokemon ".condAppend(updrafted != null) { "im $updrafted " } + "gepickt!".condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
 
-    context (DraftCommandData)
+    context (CommandData)
     suspend fun replyGeneral(msg: String, action: (ReplyCallbackAction) -> Unit = {}) {
         replyAwait(
             "<@${user} hat${
@@ -549,17 +549,17 @@ sealed class League {
         )
     }
 
-    context (DraftCommandData)
+    context (CommandData)
     suspend fun replyRandomPick(pokemon: String, tier: String) = replyGeneral(
         "einen Random-Pick im $tier gemacht und **$pokemon** bekommen!"
     )
 
-    context (DraftCommandData)
+    context (CommandData)
     suspend fun replySwitch(oldmon: String, newmon: String) {
         replyGeneral("$oldmon gegen $newmon getauscht!")
     }
 
-    context (DraftCommandData)
+    context (CommandData)
     suspend fun replySkip() {
         replyGeneral("den Pick übersprungen!")
     }
@@ -653,7 +653,7 @@ sealed class League {
             league.afterPickOfficial(data = NextPlayerData.Moved(SkipReason.REALTIMER))
         }
 
-        context (DraftCommandData)
+        context (CommandData)
         suspend fun byCommand(): Pair<League, BypassCurrentPlayerData>? {
             val onlyChannel = onlyChannel(tc)
             logger.info("leaguename {}", onlyChannel?.leaguename)

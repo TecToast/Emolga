@@ -10,7 +10,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.SwitchData
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 
-object SwitchCommand : DraftCommand<SwitchCommandData>("switch", "Switcht ein Pokemon") {
+object SwitchCommand : TestableCommand<SwitchCommandArgs>("switch", "Switcht ein Pokemon") {
     private val tlNameCache = SizeLimitedMap<String, String>(1000)
 
     init {
@@ -47,13 +47,13 @@ object SwitchCommand : DraftCommand<SwitchCommandData>("switch", "Switcht ein Po
         slash(true, *draftGuilds)
     }
 
-    override fun fromGuildCommandEvent(e: GuildCommandEvent) = SwitchCommandData(
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = SwitchCommandArgs(
         e.arguments.getDraftName("oldmon"),
         e.arguments.getDraftName("newmon")
     )
 
-    context (DraftCommandData)
-    override suspend fun exec(e: SwitchCommandData) {
+    context (CommandData)
+    override suspend fun exec(e: SwitchCommandArgs) {
         val d =
             League.byCommand()?.first ?: return reply(
                 "Es läuft zurzeit kein Draft in diesem Channel!",
@@ -122,7 +122,7 @@ object SwitchCommand : DraftCommand<SwitchCommandData>("switch", "Switcht ein Po
 
 }
 
-class SwitchCommandData(
+class SwitchCommandArgs(
     val oldmon: DraftName,
     val newmon: DraftName
-) : SpecifiedDraftCommandData
+) : CommandArgs

@@ -4,14 +4,14 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
 object FinishDraftCommand :
-    DraftCommand<NoSpecifiedDraftCommandData>("finishdraft", "Beendet für dich den Draft") {
+    TestableCommand<NoCommandArgs>("finishdraft", "Beendet für dich den Draft") {
     init {
         argumentTemplate = ArgumentManagerTemplate.noArgs()
         slash(true, *draftGuilds)
     }
 
-    context (DraftCommandData)
-    override suspend fun exec(e: NoSpecifiedDraftCommandData) {
+    context (CommandData)
+    override suspend fun exec(e: NoCommandArgs) {
         val mem = user
         val d = League.onlyChannel(tc)?.takeIf { mem in it.table } ?: return reply(
             "In diesem Channel läuft kein Draft, an welchem du teilnimmst!",
@@ -28,5 +28,5 @@ object FinishDraftCommand :
         d.save()
     }
 
-    override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoSpecifiedDraftCommandData
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoCommandArgs
 }

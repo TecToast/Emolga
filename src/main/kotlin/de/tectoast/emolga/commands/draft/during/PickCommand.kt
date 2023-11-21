@@ -9,7 +9,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.isMega
 import mu.KotlinLogging
 
 @Suppress("unused")
-object PickCommand : DraftCommand<PickCommandData>("pick", "Pickt das Pokemon") {
+object PickCommand : TestableCommand<PickCommandArgs>("pick", "Pickt das Pokemon") {
 
     init {
         //setArgumentTemplate(ArgumentManagerTemplate.noSpecifiedArgs("!pick <Pokemon> [Optionales Tier]", "!pick Emolga"));
@@ -26,7 +26,7 @@ object PickCommand : DraftCommand<PickCommandData>("pick", "Pickt das Pokemon") 
         slash(true, *draftGuilds)
     }
 
-    override fun fromGuildCommandEvent(e: GuildCommandEvent) = PickCommandData(
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = PickCommandArgs(
         e.arguments.getDraftName("pokemon"),
         e.arguments.getNullable("tier"),
         e.arguments.getOrDefault("free", false)
@@ -34,9 +34,9 @@ object PickCommand : DraftCommand<PickCommandData>("pick", "Pickt das Pokemon") 
 
     private val logger = KotlinLogging.logger {}
 
-    context (DraftCommandData)
+    context (CommandData)
     override suspend fun exec(
-        e: PickCommandData
+        e: PickCommandArgs
     ) {
         val dd = League.byCommand() ?: return run {
             if (!acknowledged) {
@@ -110,9 +110,9 @@ object PickCommand : DraftCommand<PickCommandData>("pick", "Pickt das Pokemon") 
 
 }
 
-data class PickCommandData(
+data class PickCommandArgs(
     val pokemon: DraftName,
     val tier: String? = null,
     val free: Boolean = false,
     val random: Boolean = false
-) : SpecifiedDraftCommandData
+) : CommandArgs

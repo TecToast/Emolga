@@ -5,7 +5,7 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
 
-object DraftsetupCommand : DraftCommand<DraftSetupCommandData>(
+object DraftsetupCommand : TestableCommand<DraftSetupCommandArgs>(
     "draftsetup",
     "Startet das Draften der Liga in diesem Channel (nur Flo)",
     CommandCategory.Flo
@@ -32,14 +32,14 @@ object DraftsetupCommand : DraftCommand<DraftSetupCommandData>(
         slash(false, *draftGuilds)
     }
 
-    override fun fromGuildCommandEvent(e: GuildCommandEvent) = DraftSetupCommandData(
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = DraftSetupCommandArgs(
         e.arguments.getText("name"),
         e.arguments.getOrDefault("fromfile", false),
         e.arguments.getOrDefault("switchdraft", false)
     )
 
-    context (DraftCommandData)
-    override suspend fun exec(e: DraftSetupCommandData) {
+    context (CommandData)
+    override suspend fun exec(e: DraftSetupCommandArgs) {
         db.league(e.name).startDraft(
             textChannel,
             fromFile = e.fromFile,
@@ -49,8 +49,8 @@ object DraftsetupCommand : DraftCommand<DraftSetupCommandData>(
     }
 }
 
-class DraftSetupCommandData(
+class DraftSetupCommandArgs(
     val name: String,
     val fromFile: Boolean,
     val switchDraft: Boolean
-) : SpecifiedDraftCommandData
+) : CommandArgs

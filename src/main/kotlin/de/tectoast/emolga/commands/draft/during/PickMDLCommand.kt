@@ -13,7 +13,7 @@ import dev.minn.jda.ktx.interactions.components.danger
 import dev.minn.jda.ktx.interactions.components.success
 import mu.KotlinLogging
 
-object PickMDLCommand : DraftCommand<PickMDLCommandData>("pickmdl", "Gamblen :)") {
+object PickMDLCommand : TestableCommand<PickMDLCommandArgs>("pickmdl", "Gamblen :)") {
 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {
@@ -28,9 +28,9 @@ object PickMDLCommand : DraftCommand<PickMDLCommandData>("pickmdl", "Gamblen :)"
         slash(true, Constants.G.VIP)
     }
 
-    override fun fromGuildCommandEvent(e: GuildCommandEvent) = PickMDLCommandData(e.arguments.getText("type"))
-    context (DraftCommandData)
-    override suspend fun exec(e: PickMDLCommandData) {
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = PickMDLCommandArgs(e.arguments.getText("type"))
+    context (CommandData)
+    override suspend fun exec(e: PickMDLCommandArgs) {
         val d =
             League.byCommand()?.first ?: return reply(
                 "Es läuft zurzeit kein Draft in diesem Channel!",
@@ -77,4 +77,4 @@ object PickMDLCommand : DraftCommand<PickMDLCommandData>("pickmdl", "Gamblen :)"
 
 }
 
-class PickMDLCommandData(val type: String) : SpecifiedDraftCommandData
+class PickMDLCommandArgs(val type: String) : CommandArgs

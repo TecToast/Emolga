@@ -6,7 +6,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.MDL
 
-object TeraMDLCommand : DraftCommand<NoSpecifiedDraftCommandData>("teramdl", "Randomized den Tera-Typen") {
+object TeraMDLCommand : TestableCommand<NoCommandArgs>("teramdl", "Randomized den Tera-Typen") {
 
 
     val typeList = setOf(
@@ -36,10 +36,10 @@ object TeraMDLCommand : DraftCommand<NoSpecifiedDraftCommandData>("teramdl", "Ra
         slash(false, Constants.G.VIP)
     }
 
-    override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoSpecifiedDraftCommandData
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoCommandArgs
 
-    context (DraftCommandData)
-    override suspend fun exec(e: NoSpecifiedDraftCommandData) {
+    context (CommandData)
+    override suspend fun exec(e: NoCommandArgs) {
         val d =
             League.byCommand()?.first ?: return reply(
                 "Es läuft zurzeit kein Draft in diesem Channel!",

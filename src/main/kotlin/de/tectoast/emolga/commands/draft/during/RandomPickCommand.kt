@@ -13,7 +13,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 
-object RandomPickCommand : DraftCommand<RandomPickCommandData>("randompick", "Well... nen Random-Pick halt") {
+object RandomPickCommand : TestableCommand<RandomPickCommandArgs>("randompick", "Well... nen Random-Pick halt") {
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("tier", "Tier", "Das Tier, in dem gepickt werden soll", ArgumentManagerTemplate.Text.any())
@@ -28,13 +28,13 @@ object RandomPickCommand : DraftCommand<RandomPickCommandData>("randompick", "We
     )
     private val locks = ConcurrentHashMap<String, Mutex>()
 
-    override fun fromGuildCommandEvent(e: GuildCommandEvent) = RandomPickCommandData(
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = RandomPickCommandArgs(
         e.arguments.getText("tier"),
         e.arguments.getTranslation("type")
     )
 
-    context (DraftCommandData)
-    override suspend fun exec(e: RandomPickCommandData) {
+    context (CommandData)
+    override suspend fun exec(e: RandomPickCommandArgs) {
         val d =
             League.byCommand()?.first ?: return reply(
                 "Es läuft zurzeit kein Draft in diesem Channel!",
@@ -69,12 +69,12 @@ object RandomPickCommand : DraftCommand<RandomPickCommandData>("randompick", "We
                     )
                 }
             } ?: return reply("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!"))
-            PickCommand.exec(PickCommandData(gambledPokemon, random = true))
+            PickCommand.exec(PickCommandArgs(gambledPokemon, random = true))
         }
     }
 }
 
-class RandomPickCommandData(
+class RandomPickCommandArgs(
     val tier: String,
     val type: Translation? = null
-) : SpecifiedDraftCommandData
+) : CommandArgs

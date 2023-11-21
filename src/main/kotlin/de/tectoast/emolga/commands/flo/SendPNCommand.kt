@@ -1,10 +1,9 @@
 package de.tectoast.emolga.commands.flo
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
-import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.commands.*
 
-object SendPNCommand : Command("sendpn", "Sendet PNs", CommandCategory.Flo) {
+object SendPNCommand : TestableCommand<SendPNCommandArgs>("sendpn", "Sendet PNs", CommandCategory.Flo) {
 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {
@@ -14,10 +13,18 @@ object SendPNCommand : Command("sendpn", "Sendet PNs", CommandCategory.Flo) {
         slash()
     }
 
-    override suspend fun process(e: GuildCommandEvent) {
-        e.jda.openPrivateChannelById(e.arguments.getID("user")).queue { channel ->
-            channel.sendMessage(e.arguments.getText("text")).queue()
-        }
-        e.reply("Done!", ephemeral = true)
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = SendPNCommandArgs(
+        e.arguments.getID("user"),
+        e.arguments.getText("text")
+    )
+
+    context (CommandData)
+    override suspend fun exec(e: SendPNCommandArgs) {
+        jda.openPrivateChannelById(e.user).flatMap { channel ->
+            channel.sendMessage(e.text)
+        }.queue()
+        reply("Done!", ephemeral = true)
     }
 }
+
+class SendPNCommandArgs(val user: Long, val text: String) : CommandArgs

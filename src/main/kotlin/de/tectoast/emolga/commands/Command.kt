@@ -2134,7 +2134,7 @@ abstract class Command(
             resultchannelParam: GuildMessageChannel,
             message: Message? = null,
             fromAnalyseCommand: InteractionHook? = null,
-            fromReplayCommand: InteractionHook? = null,
+            fromReplayCommand: CommandData? = null,
             customGuild: Long? = null,
             withSort: Boolean = true,
         ) {
@@ -2146,7 +2146,7 @@ abstract class Command(
 
             logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannelParam.id)
             fun send(msg: String) {
-                fromReplayCommand?.sendMessage(msg)?.queue() ?: fromAnalyseCommand?.sendMessage(msg)?.queue()
+                fromReplayCommand?.reply(msg) ?: fromAnalyseCommand?.sendMessage(msg)?.queue()
                 ?: resultchannelParam.sendMessage(msg).queue()
             }
             if (fromReplayCommand != null && !resultchannelParam.guild.selfMember.hasPermission(
@@ -2264,8 +2264,7 @@ abstract class Command(
                     content = url, embeds = league?.appendedEmbed(data, leaguedata, gdData!!)?.build()?.into().orEmpty()
                 )
                 replayChannel?.sendMessage(tosend)?.queue()
-                fromReplayCommand?.sendMessage(tosend)?.queue()
-
+                fromReplayCommand?.reply(msgCreateData = tosend)
             }
             if (resultchannelParam.guild.idLong != Constants.G.MY) {
                 db.statistics.increment("analysis")

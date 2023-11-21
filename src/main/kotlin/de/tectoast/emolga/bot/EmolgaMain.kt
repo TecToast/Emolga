@@ -14,6 +14,7 @@ import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.interactions.components.secondary
 import dev.minn.jda.ktx.interactions.components.success
+import dev.minn.jda.ktx.jdabuilder.cache
 import dev.minn.jda.ktx.jdabuilder.default
 import dev.minn.jda.ktx.jdabuilder.intents
 import dev.minn.jda.ktx.messages.Embed
@@ -25,6 +26,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
+import net.dv8tion.jda.api.utils.cache.CacheFlag.*
 import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -32,11 +34,16 @@ var injectedJDA: JDA? = null
     get() {
         if (field == null) {
             System.getenv("DISCORDTOKEN")?.let {
-                field = default(it, intents = listOf()).awaitReady()
+                usedJDA = true
+                field = default(it, intents = listOf()) {
+                    cache -= listOf(VOICE_STATE, EMOJI, STICKER, SCHEDULED_EVENTS)
+                }.awaitReady()
             }
         }
         return field
     }
+var usedJDA = false
+    private set
 val jda: JDA by lazy { injectedJDA ?: emolgajda }
 
 object EmolgaMain {

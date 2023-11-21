@@ -1,10 +1,9 @@
 package de.tectoast.emolga.commands.showdown
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
-import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.commands.*
 
-object ReplayCommand : Command(
+object ReplayCommand : TestableCommand<ReplayCommandArgs>(
     "replay",
     "Analysiert ein Replay und schickt das Ergebnis in den konfigurierten Ergebnischannel",
     CommandCategory.Showdown
@@ -18,22 +17,20 @@ object ReplayCommand : Command(
         slash(true, -1)
     }
 
-    override suspend fun process(e: GuildCommandEvent) {
-        val args = e.arguments
-        val url = args.getText("url")
-        val slashEvent = e.slashCommandEvent!!
-        slashEvent.deferReply().queue()
-        val hook = slashEvent.hook
-        val mr = regex.find(url) ?: return hook.sendMessage("Das ist kein gültiges Replay!").queue()
-        val channel = replayAnalysis[e.textChannel.idLong]
-            ?: return hook.sendMessage("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
-                .queue()
-        val tc = e.jda.getTextChannelById(channel)
+    override fun fromGuildCommandEvent(e: GuildCommandEvent) = ReplayCommandArgs(e.arguments.getText("url"))
+
+    context (CommandData)
+    override suspend fun exec(e: ReplayCommandArgs) {
+        deferReply()
+        val mr = regex.find(e.url) ?: return reply("Das ist kein gültiges Replay!")
+        val channel = replayAnalysis[tc]
+            ?: return reply("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
+        val tc = jda.getTextChannelById(channel)
         if (tc == null) {
-            hook.sendMessage("Ich habe keinen Zugriff auf den Ergebnischannel!").queue()
+            reply("Ich habe keinen Zugriff auf den Ergebnischannel!")
             return
         }
-        analyseReplay(url = mr.groupValues[0], resultchannelParam = tc, fromReplayCommand = hook)
+        analyseReplay(url = mr.groupValues[0], resultchannelParam = tc, fromReplayCommand = self)
     }
 
 
@@ -41,3 +38,5 @@ object ReplayCommand : Command(
             Regex("https://replay\\.(?:ess\\.tectoast\\.de|pokemonshowdown\\.com)/(?:[a-z]+-)?([^-]+)-\\d+[-a-z0-9]*")
 
 }
+
+class ReplayCommandArgs(val url: String) : CommandArgs

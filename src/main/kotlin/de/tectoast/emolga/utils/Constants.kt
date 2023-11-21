@@ -11,6 +11,7 @@ object Constants {
     const val CALENDAR_MSGID = 964920267598098433
     const val SOULLINK_TCID = 967720855415185418
     const val SOULLINK_MSGID = 967721129278054480
+    const val TEST_TCID = 1171544197573116004
     const val MYTAG = "@tectoast"
 
     val DRAFTADMINS = setOf(FLOID, HENNY)

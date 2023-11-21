@@ -3,7 +3,6 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.draft.AddToTierlistData
-import de.tectoast.emolga.commands.draft.during.CommandData
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder

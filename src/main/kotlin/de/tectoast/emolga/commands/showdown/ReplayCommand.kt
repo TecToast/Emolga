@@ -2,6 +2,7 @@ package de.tectoast.emolga.commands.showdown
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.database.exposed.AnalysisDB
 
 object ReplayCommand : TestableCommand<ReplayCommandArgs>(
     "replay",
@@ -23,7 +24,7 @@ object ReplayCommand : TestableCommand<ReplayCommandArgs>(
     override suspend fun exec(e: ReplayCommandArgs) {
         deferReply()
         val mr = regex.find(e.url) ?: return reply("Das ist kein gültiges Replay!")
-        val channel = replayAnalysis[tc]
+        val channel = AnalysisDB.getResultChannel(tc)
             ?: return reply("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
         val tc = jda.getTextChannelById(channel)
         if (tc == null) {

@@ -5,6 +5,8 @@ import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.reply_
 import dev.minn.jda.ktx.messages.send
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
@@ -14,12 +16,13 @@ abstract class CommandData(
     open val tc: Long,
     open val gid: Long
 ) {
-    lateinit var response: CommandResponse
+    val response get() = runBlocking { responseDeferred.await() }
+    val responseDeferred: CompletableDeferred<CommandResponse> = CompletableDeferred()
     var deferred = false
 
     val self get() = this
 
-    val acknowledged get() = ::response.isInitialized
+    val acknowledged get() = responseDeferred.isCompleted
     val textChannel by lazy { jda.getTextChannelById(tc)!! }
 
     abstract fun reply(
@@ -44,7 +47,7 @@ abstract class CommandData(
 class TestCommandData(user: Long = Constants.FLOID, tc: Long = Constants.TEST_TCID, gid: Long = Constants.G.MY) :
     CommandData(user, tc, gid) {
     override fun reply(msg: String, ephemeral: Boolean, embed: MessageEmbed?, msgCreateData: MessageCreateData?) {
-        response = CommandResponse.from(msg, ephemeral, embed, msgCreateData)
+        responseDeferred.complete(CommandResponse.from(msg, ephemeral, embed, msgCreateData))
     }
 
     override fun deferReply(ephemeral: Boolean) {
@@ -52,7 +55,7 @@ class TestCommandData(user: Long = Constants.FLOID, tc: Long = Constants.TEST_TC
     }
 
     override suspend fun replyAwait(msg: String, ephemeral: Boolean, action: (ReplyCallbackAction) -> Unit) {
-        response = CommandResponse(msg, ephemeral)
+        responseDeferred.complete(CommandResponse(msg, ephemeral))
     }
 }
 
@@ -61,7 +64,7 @@ class RealCommandData(
 ) : CommandData(e.author.idLong, e.channel.idLong, e.guild.idLong) {
 
     override fun reply(msg: String, ephemeral: Boolean, embed: MessageEmbed?, msgCreateData: MessageCreateData?) {
-        response = CommandResponse.from(msg, ephemeral, embed, msgCreateData)
+        responseDeferred.complete(CommandResponse.from(msg, ephemeral, embed, msgCreateData))
         if (deferred) {
             val hook = e.slashCommandEvent?.hook
             msgCreateData?.let { hook?.sendMessage(it)?.queue() } ?: hook?.send(
@@ -84,7 +87,7 @@ class RealCommandData(
     }
 
     override suspend fun replyAwait(msg: String, ephemeral: Boolean, action: (ReplyCallbackAction) -> Unit) {
-        response = CommandResponse(msg, ephemeral)
+        responseDeferred.complete(CommandResponse(msg, ephemeral))
         e.slashCommandEvent!!.reply_(msg, ephemeral = ephemeral).apply(action).await()
     }
 

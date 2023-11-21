@@ -38,7 +38,6 @@ object ReplayChannelCommand : Command(
             val l = AnalysisDB.insertChannel(tco.idLong, res.idLong, tco.guild.idLong)
             if (l == -1L) {
                 e.reply(if (tco.idLong == res.idLong) "Dieser Channel ist nun ein Replaychannel, somit werden alle Replay-Ergebnisse automatisch hier reingeschickt!" else "Alle Ergebnisse der Replays aus ${tco.asMention} werden von nun an in den Channel ${res.asMention} geschickt!")
-                replayAnalysis[tco.idLong] = res.idLong
             } else {
                 e.reply("Die Replays aus diesem Channel werden ${if (l == res.idLong) "bereits" else "zurzeit"} in den Channel <#$l> geschickt! Mit /replaychannel remove kannst du dies ändern.")
             }
@@ -54,7 +53,6 @@ object ReplayChannelCommand : Command(
             val tco = e.textChannel
             if (AnalysisDB.deleteChannel(tco.idLong)) {
                 e.reply("Dieser Channel ist kein Replaychannel mehr!")
-                replayAnalysis.remove(tco.idLong)
             } else {
                 e.reply("Dieser Channel ist zurzeit kein Replaychannel!")
             }

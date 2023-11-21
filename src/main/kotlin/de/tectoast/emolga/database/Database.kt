@@ -3,7 +3,6 @@ package de.tectoast.emolga.database
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.database.exposed.AnalysisDB
 import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 import de.tectoast.emolga.utils.json.Tokens
@@ -47,9 +46,7 @@ class Database(host: String, username: String, password: String) {
 
         private fun onStartUp() {
             logger.info("Retrieving all startup information...")
-            AnalysisDB.forAll { Command.replayAnalysis[it[REPLAY]] = it[RESULT] }
             CalendarDB.allEntries.forEach { Command.scheduleCalendarEntry(it) }
-            logger.info("replayAnalysis.size() = " + Command.replayAnalysis.size)
             SpoilerTagsDB.addToList()
         }
     }

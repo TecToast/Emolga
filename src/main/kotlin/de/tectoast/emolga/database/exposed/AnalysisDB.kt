@@ -4,6 +4,7 @@ package de.tectoast.emolga.database.exposed
 import de.tectoast.emolga.bot.EmolgaMain
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 
 object AnalysisDB : Table("analysis") {
@@ -36,4 +37,8 @@ object AnalysisDB : Table("analysis") {
         }
         x
     }
+
+    suspend fun getResultChannel(tc: Long): Long? =
+        newSuspendedTransaction { select { REPLAY eq tc }.firstOrNull()?.get(RESULT) }
+
 }

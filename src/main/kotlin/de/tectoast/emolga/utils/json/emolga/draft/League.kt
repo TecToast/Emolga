@@ -1,6 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.bot.EmolgaMain.emolgajda
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.commands.draft.AddToTierlistData
 import de.tectoast.emolga.utils.Constants
@@ -26,8 +26,12 @@ import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
-import org.litote.kmongo.*
+import org.bson.types.ObjectId
+import org.litote.kmongo.SetTo
 import org.litote.kmongo.coroutine.updateOne
+import org.litote.kmongo.eq
+import org.litote.kmongo.set
+import org.litote.kmongo.setTo
 import org.slf4j.Logger
 import java.text.SimpleDateFormat
 import kotlin.properties.Delegates
@@ -39,7 +43,7 @@ sealed class League {
 
     @SerialName("_id")
     @Contextual
-    val id: Id<League>? = null
+    val id: ObjectId? = null
     val sid: String = "yay"
     val leaguename: String = "ERROR"
     var isRunning: Boolean = false
@@ -77,7 +81,7 @@ sealed class League {
     internal val names: MutableMap<Long, String> = mutableMapOf()
 
 
-    val tc: TextChannel get() = emolgajda.getTextChannelById(tcid) ?: error("No text channel found for guild $guild")
+    val tc: TextChannel get() = jda.getTextChannelById(tcid) ?: error("No text channel found for guild $guild")
 
     var tcid: Long = -1
 
@@ -273,8 +277,13 @@ sealed class League {
         switchDraft?.let { this.isSwitchDraft = it }
         logger.info("Starting draft $leaguename...")
         logger.info(tcid.toString())
-        if (names.isEmpty()) names.putAll(emolgajda.getGuildById(this.guild)!!.retrieveMembersByIds(table).await()
-            .associate { it.idLong to it.effectiveName })
+        if (names.isEmpty()) {
+            names.putAll(
+                if (table.first() < 11_000_000_000) table.associateWith { "${it - 10_000_000_000}" } else jda.getGuildById(
+                    this.guild
+                )!!.retrieveMembersByIds(table).await()
+                    .associate { it.idLong to it.effectiveName })
+        }
         logger.info(names.toString())
         tc?.let { this.tcid = it.idLong }
         for (member in table) {

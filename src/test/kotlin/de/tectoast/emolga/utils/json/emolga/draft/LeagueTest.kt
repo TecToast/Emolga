@@ -1,9 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.createDraft
-import de.tectoast.emolga.defaultChannel
-import de.tectoast.emolga.keepAlive
-import de.tectoast.emolga.startDraft
+import de.tectoast.emolga.*
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.Constants.HENNY
 import de.tectoast.emolga.utils.json.LeagueResult
@@ -118,8 +115,14 @@ class LeagueTest : FunSpec({
     }
     context("Automation Checks") {
         test("Test") {
-            createDraft("Test", 8, 4)
+            enableReplyRedirect()
+            createDraft("Test", 4, 1)
             startDraft("Test")
+            randomPick("S")
+            movePick()
+            movePick()
+            pick("Glastrier")
+            pick("Spectrier")
             keepAlive()
         }
     }

@@ -1,14 +1,18 @@
 package de.tectoast.emolga
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.commands.TestCommandData
-import de.tectoast.emolga.commands.condAppend
-import de.tectoast.emolga.commands.myJSON
+import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.commands.draft.during.*
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.draft.League
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.litote.kmongo.coroutine.insertOne
 import kotlin.coroutines.suspendCoroutine
 
@@ -34,7 +38,7 @@ suspend fun createDraft(
                 ",originalorder: ${
                     myJSON.encodeToString(
                         buildMap<Int, List<Int>> {
-                            val indices = (0..playerCount).map { it }
+                            val indices = (0..<playerCount).map { it }
                             for (i in 1..rounds) {
                                 put(i, if (i % 2 == 0) get(i - 1)!!.asReversed() else indices.shuffled())
                             }
@@ -48,4 +52,29 @@ suspend fun startDraft(name: String) {
     db.league("TEST$name").startDraft(defaultChannel, fromFile = false, switchDraft = false)
 }
 
+fun enableReplyRedirect(channel: MessageChannel = defaultChannel) {
+    redirectTestCommandLogsToChannel = channel
+}
+
+suspend fun pick(name: String) {
+    testCommand {
+        val guildId = tc.let { League.onlyChannel(it)?.guild } ?: gid
+        val draftName = NameConventionsDB.getDiscordTranslation(
+            name, guildId, english = Tierlist[guildId].isEnglish
+        )!!
+        PickCommand.exec(PickCommandArgs(draftName))
+    }
+}
+
+suspend fun randomPick(tier: String) {
+    testCommand {
+        RandomPickCommand.exec(RandomPickCommandArgs(tier))
+    }
+}
+
+suspend fun movePick() {
+    testCommand {
+        MoveCommand.exec(NoCommandArgs)
+    }
+}
 suspend fun keepAlive() = suspendCoroutine<Unit> { }

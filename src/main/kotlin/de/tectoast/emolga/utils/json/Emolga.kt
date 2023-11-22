@@ -7,6 +7,7 @@ import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.ifTrue
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Soullink
 import de.tectoast.emolga.utils.json.emolga.Statistics
@@ -66,7 +67,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val typeicons by lazy { db.getCollection<TypeIcon>("typeicons") }
     val pokedex by lazy { db.getCollection<Pokemon>("pokedex") }
     val pickedMons by lazy { db.getCollection<PickedMonsData>("pickedmons") }
-
+    val tierlist by lazy { db.getCollection<Tierlist>("tierlist") }
     val shinycount by lazy { db.getCollection<Shinycount>() }
 
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }

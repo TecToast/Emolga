@@ -34,6 +34,7 @@ import org.litote.kmongo.set
 import org.litote.kmongo.setTo
 import org.slf4j.Logger
 import java.text.SimpleDateFormat
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.properties.Delegates
 
 
@@ -95,22 +96,14 @@ sealed class League {
     open val pickBuffer = 0
 
     @Transient
-    private val mutex = Mutex()
-
-    @Transient
     var newTimerForAnnounce = false
 
     context (CommandData)
     suspend fun lockForPick(data: BypassCurrentPlayerData, block: suspend () -> Unit) {
-        mutex.withLock {
+        allMutexes.getOrPut(leaguename) { Mutex() }.withLock {
             // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
             if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
-                if (data is BypassCurrentPlayerData.Universal) {
-                    return@withLock replyEphemeral(
-                        "Auch mit Universalrechten kannst du in diesem Status des Drafts nichts machen :)"
-                    )
-                }
-                // BypassCurrentPlayerData can only be Yes or Universal
+                // BypassCurrentPlayerData can only be Yes here
                 current = (data as BypassCurrentPlayerData.Yes).user
             }
             block()
@@ -376,7 +369,7 @@ sealed class League {
                         append(announceData)
                     }
                 }
-            })
+            }).queue()
         }
     }
 
@@ -551,7 +544,7 @@ sealed class League {
     context (CommandData)
     suspend fun replyGeneral(msg: String, action: (ReplyCallbackAction) -> Unit = {}) {
         replyAwait(
-            "<@${user} hat${
+            "<@${user}> hat${
                 if (user != current) " für **${getCurrentName()}**" else ""
             } $msg", action = action
         )
@@ -648,6 +641,7 @@ sealed class League {
         val logger: Logger by SLF4J
         val allTimers = mutableMapOf<String, Job>()
         val leagueTimeFormat = SimpleDateFormat("HH:mm")
+        val allMutexes = ConcurrentHashMap<String, Mutex>()
 
         val timerScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
             logger.error(
@@ -686,7 +680,7 @@ sealed class League {
                     reply("Du bist nicht dran!", ephemeral = true)
                     return null
                 }
-                this to if (uid != current) BypassCurrentPlayerData.Universal else BypassCurrentPlayerData.No
+                this to BypassCurrentPlayerData.No
             }
         }
 
@@ -772,7 +766,6 @@ sealed interface TimerSkipMode {
 
 sealed interface BypassCurrentPlayerData {
     data object No : BypassCurrentPlayerData
-    data object Universal : BypassCurrentPlayerData
     data class Yes(val user: Long) : BypassCurrentPlayerData
 }
 sealed interface DuringTimerSkipMode : TimerSkipMode {

@@ -76,7 +76,7 @@ object PrivateCommands {
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
 
     // MolfBestesTeam
-    fun updateTierlist(e: GenericCommandEvent) {
+    suspend fun updateTierlist(e: GenericCommandEvent) {
         Tierlist.setup()
         e.reply("Die Tierliste wurde aktualisiert!")
     }

@@ -1836,7 +1836,7 @@ abstract class Command(
         }
 
 
-        fun init(key: String) {
+        suspend fun init(key: String) {
             loadJSONFiles(key)
             initMongo()
             ModManager("default", "./ShowdownData/")

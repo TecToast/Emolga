@@ -6,19 +6,33 @@ import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.reply_
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.entities.MessageEmbed
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
+import net.dv8tion.jda.api.interactions.InteractionHook
+import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
 
+@OptIn(ExperimentalCoroutinesApi::class)
 abstract class CommandData(
     open val user: Long,
     open val tc: Long,
     open val gid: Long
 ) {
+
     val response get() = runBlocking { responseDeferred.await() }
     val responseDeferred: CompletableDeferred<CommandResponse> = CompletableDeferred()
     var deferred = false
+
+    init {
+        redirectTestCommandLogsToChannel?.let { logsChannel ->
+            responseDeferred.invokeOnCompletion {
+                responseDeferred.getCompleted().sendInto(logsChannel)
+            }
+        }
+    }
 
     val self get() = this
 
@@ -44,6 +58,8 @@ abstract class CommandData(
     }
 }
 
+var redirectTestCommandLogsToChannel: MessageChannel? = null
+
 class TestCommandData(user: Long = Constants.FLOID, tc: Long = Constants.TEST_TCID, gid: Long = Constants.G.MY) :
     CommandData(user, tc, gid) {
     override fun reply(msg: String, ephemeral: Boolean, embed: MessageEmbed?, msgCreateData: MessageCreateData?) {
@@ -64,21 +80,11 @@ class RealCommandData(
 ) : CommandData(e.author.idLong, e.channel.idLong, e.guild.idLong) {
 
     override fun reply(msg: String, ephemeral: Boolean, embed: MessageEmbed?, msgCreateData: MessageCreateData?) {
-        responseDeferred.complete(CommandResponse.from(msg, ephemeral, embed, msgCreateData))
-        if (deferred) {
-            val hook = e.slashCommandEvent?.hook
-            msgCreateData?.let { hook?.sendMessage(it)?.queue() } ?: hook?.send(
-                content = msg,
-                ephemeral = ephemeral,
-                embeds = listOfNotNull(embed)
-            )?.queue()
-        } else {
-            msgCreateData?.let { e.slashCommandEvent?.reply(it)?.queue() } ?: e.reply_(
-                msg,
-                ephemeral = ephemeral,
-                embeds = listOfNotNull(embed)
-            )
-        }
+        val response = CommandResponse.from(msg, ephemeral, embed, msgCreateData)
+        responseDeferred.complete(response)
+        if (deferred)
+            response.sendInto(e.slashCommandEvent!!.hook)
+        else response.sendInto(e.slashCommandEvent!!)
     }
 
     override fun deferReply(ephemeral: Boolean) {
@@ -120,4 +126,17 @@ class CommandResponse(val msg: String, val ephemeral: Boolean = false, val embed
                 CommandResponse(it.content, ephemeral, it.embeds.firstOrNull())
             } ?: CommandResponse(msg, ephemeral, embed)
     }
+
+    fun sendInto(callback: IReplyCallback) {
+        callback.reply_(msg, ephemeral = ephemeral, embeds = listOfNotNull(embed)).queue()
+    }
+
+    fun sendInto(hook: InteractionHook) {
+        hook.send(msg, ephemeral = ephemeral, embeds = listOfNotNull(embed)).queue()
+    }
+
+    fun sendInto(channel: MessageChannel) {
+        channel.send(msg, embeds = listOfNotNull(embed)).queue()
+    }
+
 }

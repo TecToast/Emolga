@@ -3,15 +3,15 @@ package de.tectoast.emolga.utils.draft
 import de.tectoast.emolga.commands.Language
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.SizeLimitedMap
+import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.io.File
+import org.litote.kmongo.eq
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
@@ -100,21 +100,28 @@ class Tierlist(val guildid: Long) {
         val guild = long("guild")
         val pokemon = varchar("pokemon", 30)
         val tier = varchar("tier", 8)
+        private var setupCalled = false
 
         val tierlists: MutableMap<Long, Tierlist> = mutableMapOf()
         private val REPLACE_NONSENSE = Regex("[^a-zA-Z\\d-:%ßäöüÄÖÜé ]")
-        fun setup() {
+        suspend fun setup() {
             tierlists.clear()
-            for (file in File("./Tierlists/").listFiles()!!) {
-                if (file.isFile) Json.decodeFromString<Tierlist>(file.readText()).setup()
-            }
+            setupCalled = true
+            db.tierlist.find().toFlow().collect { it.setup() }
         }
 
         override fun getValue(thisRef: League, property: KProperty<*>): Tierlist {
             return get(thisRef.guild)!!
         }
 
-        operator fun get(guild: Long) = tierlists[guild]
+        /**
+         * Gets the tierlist for the given guild (or fetches it in case it's not in the cache, which is only possible in test env)
+         */
+        operator fun get(guild: Long): Tierlist? {
+            return tierlists[guild]
+                ?: if (setupCalled) null
+                else runBlocking { db.tierlist.findOne(Tierlist::guildid eq guild) }?.apply { setup() }
+        }
     }
 }
 

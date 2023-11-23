@@ -16,7 +16,7 @@ object RoleGetMenu : MenuListener("roleget") {
             "pokemon",
             "Pokémon",
             "Pokémon whatever",
-            1177355952865943772,
+            605669233715576842,
             Emoji.fromCustom("Pokeball", 967390967550332968, false)
         ),
         RoleData(
@@ -24,10 +24,10 @@ object RoleGetMenu : MenuListener("roleget") {
             "TCG",
             "TCG whatever",
             1177356119576940687,
-            Emoji.fromCustom("TCG", 1177333576040194118, false)
+            Emoji.fromCustom("TCG", 796663053952352297, false)
         ),
-        RoleData("labertaschen", "Labertaschen", "Labertaschen whatever", 1177356148131778581),
-        RoleData("shiny", "Shiny Voice", "Shiny Voice whatever", 1177356197637136424, Emoji.fromUnicode("✨"))
+        RoleData("labertaschen", "Labertaschen", "Labertaschen whatever", 636266356437942341),
+        RoleData("shiny", "Shiny Voice", "Shiny Voice whatever", 918210427798831104, Emoji.fromUnicode("✨"))
     )
 
     override suspend fun process(e: StringSelectInteractionEvent, menuname: String?) {

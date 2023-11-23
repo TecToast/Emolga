@@ -1,8 +1,11 @@
 package de.tectoast.emolga
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.commands.NoCommandArgs
+import de.tectoast.emolga.commands.TestCommandData
 import de.tectoast.emolga.commands.draft.during.*
+import de.tectoast.emolga.commands.myJSON
+import de.tectoast.emolga.commands.redirectTestCommandLogsToChannel
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -11,6 +14,7 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.litote.kmongo.coroutine.insertOne
@@ -29,24 +33,38 @@ suspend fun createDraft(
     name: String,
     playerCount: Int,
     rounds: Int,
-    generateDraftOrder: Boolean = true,
-    guild: Long = Constants.G.ASL
+    originalorder: Map<Int, List<Int>> = buildMap {
+        val indices = (0..<playerCount).map { it }
+        for (i in 1..rounds) {
+            put(i, if (i % 2 == 0) get(i - 1)!!.asReversed() else indices.shuffled())
+        }
+    },
+    guild: Long = Constants.G.ASL,
+    hardcodedUserIds: Map<Int, Long> = emptyMap()
 ) {
-    db.drafts.insertOne(("{type: 'Default', leaguename:'TEST$name', table: " +
-            "${myJSON.encodeToString(List(playerCount) { 10_000_000_000 + it })}, guild: $guild".condAppend(
-                generateDraftOrder,
-                ",originalorder: ${
-                    myJSON.encodeToString(
-                        buildMap<Int, List<Int>> {
-                            val indices = (0..<playerCount).map { it }
-                            for (i in 1..rounds) {
-                                put(i, if (i % 2 == 0) get(i - 1)!!.asReversed() else indices.shuffled())
-                            }
-                        }
-                    )
-                }") + "}").also { println(it) })
+    db.drafts.insertOne(
+        myJSON.encodeToString(
+            DemoLeague(
+                type = "Default",
+                leaguename = "TEST$name",
+                table = List(playerCount) { hardcodedUserIds[it] ?: (10_000_000_000 + it) },
+                guild = guild,
+                originalorder = originalorder
+            )
+        )
+    )
 
 }
+
+@Suppress("unused")
+@Serializable
+private class DemoLeague(
+    val type: String,
+    val leaguename: String,
+    val table: List<Long>,
+    val guild: Long,
+    val originalorder: Map<Int, List<Int>>
+)
 
 suspend fun startDraft(name: String) {
     db.league("TEST$name").startDraft(defaultChannel, fromFile = false, switchDraft = false)
@@ -77,4 +95,5 @@ suspend fun movePick() {
         MoveCommand.exec(NoCommandArgs)
     }
 }
+
 suspend fun keepAlive() = suspendCoroutine<Unit> { }

@@ -272,7 +272,7 @@ sealed class League {
         logger.info(tcid.toString())
         if (names.isEmpty()) {
             names.putAll(
-                if (table.first() < 11_000_000_000) table.associateWith { "${it - 10_000_000_000}" } else jda.getGuildById(
+                if (table.any { it < 11_000_000_000 }) table.associateWith { "${it - 10_000_000_000}" } else jda.getGuildById(
                     this.guild
                 )!!.retrieveMembersByIds(table).await()
                     .associate { it.idLong to it.effectiveName })

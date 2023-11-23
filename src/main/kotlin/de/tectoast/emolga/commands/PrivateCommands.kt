@@ -1,6 +1,7 @@
 package de.tectoast.emolga.commands
 
 import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.commands.Command.ArgumentManagerTemplate
 import de.tectoast.emolga.database.exposed.AnalysisDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
@@ -8,6 +9,7 @@ import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.ktor.subscribeToYTChannel
 import de.tectoast.emolga.managers.SignupManager
+import de.tectoast.emolga.selectmenus.RoleGetMenu
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -447,7 +449,7 @@ object PrivateCommands {
             if (guildsToUpdate.isNotEmpty() && guild !in guildsToUpdate) continue
             (when (guild) {
                 -1L -> jda.updateCommands()
-                Constants.G.PEPE -> EmolgaMain.flegmonjda.getGuildById(
+                Constants.G.PEPE -> flegmonjda.getGuildById(
                     Constants.G.PEPE
                 )!!.updateCommands()
 
@@ -917,5 +919,17 @@ object PrivateCommands {
             }
         }
         println(db.leagueByGuildAdvanced(gid, map, -1, -1))
+    }
+
+
+    fun flegmonSendRules(e: GenericCommandEvent) {
+        val tcid = e.getArg(1).toLong()
+        flegmonjda.getTextChannelById(tcid)!!.sendMessage("")
+            .addActionRow(primary("ruleaccept", "Regeln akzeptieren", emoji = Emoji.fromUnicode("✅"))).queue()
+    }
+
+    fun flegmonSendRoles(e: GenericCommandEvent) {
+        val tcid = e.getArg(1).toLong()
+        flegmonjda.getTextChannelById(tcid)!!.sendMessage("").setComponents(RoleGetMenu.getActionRows()).queue()
     }
 }

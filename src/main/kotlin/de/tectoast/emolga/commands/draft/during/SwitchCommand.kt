@@ -111,7 +111,7 @@ object SwitchCommand : TestableCommand<SwitchCommandArgs>("switch", "Switcht ein
             }?.execute()
         }
         if (newmon.official == "Emolga") {
-            sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
+            sendMessage("<:Happy:967390966153609226> ".repeat(5))
         }
         d.afterPickOfficial()
     }

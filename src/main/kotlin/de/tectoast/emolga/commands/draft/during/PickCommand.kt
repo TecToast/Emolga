@@ -81,7 +81,7 @@ object PickCommand : TestableCommand<PickCommandArgs>("pick", "Pickt das Pokemon
             if (e.random) {
                 d.replyRandomPick(tlName, specifiedTier)
             } else if (official == "Emolga") {
-                sendMessage("<:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991> <:Happy:701070356386938991>")
+                sendMessage("<:Happy:967390966153609226> ".repeat(5))
             }
             val round = d.getPickRoundOfficial()
             with(d) {

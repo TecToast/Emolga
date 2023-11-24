@@ -2529,7 +2529,10 @@ object DateToStringSerializer : KSerializer<Date> {
 fun String.file() = File(this)
 fun Any.parseInt() = (this as? Int) ?: this.toString().toInt()
 
-fun Collection<String>.filterStartsWithIgnoreCase(other: String) = filter { it.startsWith(other, ignoreCase = true) }
+fun <T> Collection<T>.filterStartsWithIgnoreCase(other: String) = mapNotNull {
+    val str = it.toString()
+    if (str.startsWith(other, ignoreCase = true)) str else null
+}
 
 val String.marker: Marker get() = MarkerFactory.getMarker(this)
 

@@ -2,6 +2,7 @@ package de.tectoast.emolga.commands.flegmon
 
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PepeCommand
+import de.tectoast.emolga.commands.filterStartsWithIgnoreCase
 import de.tectoast.emolga.commands.flegmon.EventShinyCommand.SingleGame.*
 
 object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das Event ein") {
@@ -34,28 +35,28 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
         operator fun plus(other: SingleGame) = CombinedGame(listOf(this, other))
     }
 
-    class CombinedGame(val games: List<SingleGame>) : Game {
+    class CombinedGame(private val games: List<SingleGame>) : Game {
         operator fun plus(other: SingleGame) = CombinedGame(games + other)
         operator fun plus(other: CombinedGame) = CombinedGame(games + other.games)
         override fun containsGame(game: SingleGame) = game in games
     }
 
-    val GSK = Gold + Silber + Kristall
-    val RSS = Rubin + Saphir + Smaragd
-    val FRBG = Feuerrot + Blattgrün
-    val DPPT = Diamant + Perl + Platin
-    val HGSS = Heartgold + Soulsilver
-    val SW = Schwarz + Weiß
-    val SW2 = Schwarz2 + Weiß2
-    val XY = X + Y
-    val ORAS = OmegaRubin + AlphaSaphir
-    val SM = Sonne + Mond
-    val USUM = Ultrasonne + Ultramond
-    val LGPE = LetsGoPikachu + LetsGoEvoli
-    val SWSH = Schwert + Schild
-    val BDSP = StrahlenderDiamant + LeuchtendePerl
-    val LA = LegendenArceus
-    val KP = Karmesin + Purpur
+    private val GSK = Gold + Silber + Kristall
+    private val RSS = Rubin + Saphir + Smaragd
+    private val FRBG = Feuerrot + Blattgrün
+    private val DPPT = Diamant + Perl + Platin
+    private val HGSS = Heartgold + Soulsilver
+    private val SW = Schwarz + Weiß
+    private val SW2 = Schwarz2 + Weiß2
+    private val XY = X + Y
+    private val ORAS = OmegaRubin + AlphaSaphir
+    private val SM = Sonne + Mond
+    private val USUM = Ultrasonne + Ultramond
+    private val LGPE = LetsGoPikachu + LetsGoEvoli
+    private val SWSH = Schwert + Schild
+    private val BDSP = StrahlenderDiamant + LeuchtendePerl
+    private val LA = LegendenArceus
+    private val KP = Karmesin + Purpur
 
 
     data class Configuration(val games: Game, val points: Int)
@@ -87,10 +88,34 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
         "Dynamax Abenteuer" to Configuration(SWSH, 2),
         "PLA & SV" to Configuration(KP + LA, 1)
     )
+    val groupedByGame = SingleGame.entries.associate { game ->
+        game.name to config.entries.filter { it.value.games.containsGame(game) }
+    }
 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {
-            TODO()
+            add(
+                "game",
+                "Spiel",
+                "Das Spiel, in dem das Shiny erhalten wurde",
+                ArgumentManagerTemplate.Text.withAutocomplete { s, _ ->
+                    SingleGame.entries.filterStartsWithIgnoreCase(s)
+                })
+            add(
+                "method",
+                "Methode",
+                "Die Hunt-Methode, mit der das Shiny erhalten wurde",
+                ArgumentManagerTemplate.Text.withAutocomplete { s, event ->
+                    val list = groupedByGame[event.getOption("spiel")?.asString]?.filterStartsWithIgnoreCase(s)
+                    if (list?.isNotEmpty() == true) list else listOf("Bitte gebe ein valides Spiel an!")
+                })
+            add(
+                "charm",
+                "Schillerpin",
+                "Beeinflusst ein Schillerpin das Shiny?",
+                ArgumentManagerTemplate.ArgumentBoolean
+            )
+            add("image", "Bild", "Das Bild vom Shiny", ArgumentManagerTemplate.DiscordFile.of("*"))
         }
     }
 

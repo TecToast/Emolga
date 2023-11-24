@@ -11,7 +11,6 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
     }
 
     enum class SingleGame : Game {
-        Rot, Blau, Gelb,
         Gold, Silber, Kristall,
         Rubin, Saphir, Smaragd,
         Feuerrot, Blattgrün,
@@ -41,7 +40,6 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
         override fun containsGame(game: SingleGame) = game in games
     }
 
-    val RGB = Rot + Blau + Gelb
     val GSK = Gold + Silber + Kristall
     val RSS = Rubin + Saphir + Smaragd
     val FRBG = Feuerrot + Blattgrün
@@ -66,7 +64,6 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
         "Full Odds(Gen 2-5)" to Configuration(GSK + RSS + FRBG + DPPT + HGSS + SW + SW2, 10),
         "Full Odds(Gen6+)" to Configuration(XY + ORAS + SM + USUM + LGPE + SWSH + BDSP, 5),
         "Full Odds Horde(Gen6+)" to Configuration(XY + ORAS + SM + USUM + LGPE + SWSH + BDSP, 4),
-        "Gen 1 Shiny" to Configuration(RGB, 15),
         "Kurios-Ei" to Configuration(Kristall, 1),
         "Ei-Methode" to Configuration(GSK, 2),
         "Pokeradar" to Configuration(DPPT, 3),
@@ -93,13 +90,7 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {
-            add(
-                "game", "Spiel", "Das Spiel, in dem das Shiny erhalten wurde", ArgumentManagerTemplate.Text.of(
-                    SubCommand("RBG", "Rot/Blau/Gelb"),
-                    SubCommand("GSK", "Gold/Silber/Kristall"),
-                    SubCommand("RSS", "Rubin/Saphir"),
-                )
-            )
+            TODO()
         }
     }
 

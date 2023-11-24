@@ -605,7 +605,7 @@ object PrivateCommands {
         SignupManager.createSignup(tc.idLong, args[1].toLong(), args[2].toLong(), maxUsers, roleId, experiences, text)
     }
 
-    suspend fun closeSignup(e: GuildCommandEvent) {
+    suspend fun closeSignup(e: GenericCommandEvent) {
         val gid = e.getArg(1).toLong()
         db.signups.get(gid)!!.closeSignup(forced = true)
     }

@@ -89,7 +89,7 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
         "PLA & SV" to Configuration(KP + LA, 1)
     )
     val groupedByGame = SingleGame.entries.associate { game ->
-        game.name to config.entries.filter { it.value.games.containsGame(game) }
+        game.name to config.entries.mapNotNull { if (it.value.games.containsGame(game)) it.key.substringBefore("(") to it.value else null }
     }
 
     init {
@@ -120,7 +120,16 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
     }
 
     override suspend fun process(e: GuildCommandEvent) {
-        TODO()
+        val gameArg = e.arguments.getText("game")
+        val game = try {
+            SingleGame.valueOf(gameArg)
+        } catch (ex: IllegalArgumentException) {
+            return e.reply_(
+                "`$gameArg` ist kein valides Spiel! Nutze bitte die Autovervollständigung!",
+                ephemeral = true
+            )
+        }
+        val methodSelected = e.arguments.getText("method")
     }
 
 }

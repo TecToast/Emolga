@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.encodeToString
 import net.dv8tion.jda.api.EmbedBuilder
+import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageEmbed
@@ -420,8 +421,11 @@ object PrivateCommands {
         e.reply("Deleted: " + AnalysisDB.removeUnused())
     }
 
-    suspend fun updateSlashCommands() {
-        val jda = EmolgaMain.emolgajda
+    suspend fun updateSlashCommandsForFlegmon() {
+        updateSlashCommands(flegmonjda)
+    }
+
+    suspend fun updateSlashCommands(jda: JDA = de.tectoast.emolga.bot.jda) {
         val map: MutableMap<Long, MutableList<SlashCommandData>> = HashMap()
         Command.commands.values.filter { it.isSlash }.distinct().filter { it.slashGuilds.isNotEmpty() }.forEach {
             val dt = Commands.slash(it.name, it.help)

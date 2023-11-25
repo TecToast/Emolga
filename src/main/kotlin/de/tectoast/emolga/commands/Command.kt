@@ -854,18 +854,18 @@ abstract class Command(
             }
         }
 
-        class DiscordFile(private val fileType: String) : ArgumentType {
+        class DiscordFile(private val fileType: Set<String>) : ArgumentType {
             override suspend fun validate(str: String, data: ValidationData): Any? {
                 val att = (data.message ?: error("Message is null")).attachments
                 if (att.size == 0) return null
                 val a = att[data.asFar]
-                return if (a.fileName.endsWith(".$fileType") || fileType == "*") {
+                return if (fileType.any { a.fileName.endsWith(".$it") } || fileType.contains("*")) {
                     a
                 } else null
             }
 
             override fun getName(): String {
-                return "eine " + (if (fileType == "*") "" else "$fileType-") + "Datei"
+                return "eine " + (if (fileType.contains("*")) "" else "$fileType-") + "Datei"
             }
 
             override fun asOptionType(): OptionType {
@@ -877,8 +877,8 @@ abstract class Command(
             }
 
             companion object {
-                fun of(fileType: String): DiscordFile {
-                    return DiscordFile(fileType)
+                fun of(vararg fileType: String): DiscordFile {
+                    return DiscordFile(setOf(*fileType))
                 }
             }
         }

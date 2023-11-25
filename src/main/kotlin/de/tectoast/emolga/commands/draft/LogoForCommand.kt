@@ -10,7 +10,12 @@ object LogoForCommand : Command("logofor", "Reicht ein Logo für jemanden ein", 
     init {
         argumentTemplate = ArgumentManagerTemplate.create {
             add("user", "User", "Der User", ArgumentManagerTemplate.DiscordType.USER)
-            add("logo", "Logo", "Das Logo", ArgumentManagerTemplate.DiscordFile("*"))
+            add(
+                "logo",
+                "Logo",
+                "Das Logo",
+                ArgumentManagerTemplate.DiscordFile.of("png", "PNG", "jpg", "JPG", "jpeg", "JPEG")
+            )
         }
         slash(true, Constants.G.FLP, Constants.G.ASL, Constants.G.NDS)
         setCustomPermissions(PermissionPreset.fromIDs(242427180942884864))

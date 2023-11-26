@@ -35,7 +35,7 @@ class ADK : League() {
             sorterData = SorterData(
                 startCoord.plusX(cid.y('M' - 'C', 0)).spreadBy(5, 5).toDocRange(),
                 newMethod = true,
-                cols = listOf(3, 5)
+                cols = listOf(2, 3, 5)
             )
         ) {
             b.addSingle(

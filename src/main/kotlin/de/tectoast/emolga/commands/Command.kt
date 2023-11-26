@@ -1199,6 +1199,7 @@ abstract class Command(
                     if (cmd is Command) {
                         cmd.addToMap()
                         for (dc in cl.declaredClasses) {
+                            if (dc.superclass == null) continue
                             if (dc.superclass.simpleName.endsWith("Command") && !Modifier.isAbstract(dc.modifiers)) {
                                 val ccmd = dc.constructors[0].newInstance()
                                 if (ccmd is Command) {

@@ -6,6 +6,8 @@ import de.tectoast.emolga.commands.NoCommandArgs
 import de.tectoast.emolga.commands.TestableCommand
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.emolga.draft.NextPlayerData
+import de.tectoast.emolga.utils.json.emolga.draft.SkipReason
 
 object MoveCommand : TestableCommand<NoCommandArgs>(
     "move",
@@ -28,7 +30,7 @@ object MoveCommand : TestableCommand<NoCommandArgs>(
             }
             it.triggerMove()
             replyAwait("Du hast deinen Pick verschoben!")
-            it.afterPickOfficial()
+            it.afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP))
         }
         //ndsdoc(tierlist, pokemon, d, mem, tier, round);
     }

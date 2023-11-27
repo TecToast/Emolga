@@ -5,6 +5,8 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.NoCommandArgs
 import de.tectoast.emolga.commands.TestableCommand
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.emolga.draft.NextPlayerData
+import de.tectoast.emolga.utils.json.emolga.draft.SkipReason
 
 object SkipCommand : TestableCommand<NoCommandArgs>(
     "skip",
@@ -29,6 +31,6 @@ object SkipCommand : TestableCommand<NoCommandArgs>(
             return
         }
         d.replySkip()
-        d.afterPickOfficial()
+        d.afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP))
     }
 }

@@ -800,7 +800,8 @@ data object LAST_ROUND : DuringTimerSkipMode {
 
 @Serializable
 data object NEXT_PICK : DuringTimerSkipMode {
-    override suspend fun League.afterPick(data: NextPlayerData) = if (hasMovedTurns()) {
+    override suspend fun League.afterPick(data: NextPlayerData) =
+        if (data !is NextPlayerData.Moved && hasMovedTurns()) {
         movedTurns().removeFirstOrNull()
         announcePlayer()
         false

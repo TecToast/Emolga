@@ -28,7 +28,7 @@ object RandomPickCommand : TestableCommand<RandomPickCommandArgs>("randompick", 
 
     override fun fromGuildCommandEvent(e: GuildCommandEvent) = RandomPickCommandArgs(
         e.arguments.getText("tier"),
-        e.arguments.getTranslation("type")
+        e.arguments.getNullable("type")
     )
 
     context (CommandData)

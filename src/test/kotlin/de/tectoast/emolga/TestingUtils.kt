@@ -67,7 +67,7 @@ private class DemoLeague(
 )
 
 suspend fun startDraft(name: String) {
-    db.league("TEST$name").startDraft(defaultChannel, fromFile = false, switchDraft = false)
+    db.league(name).startDraft(defaultChannel, fromFile = false, switchDraft = false)
 }
 
 fun enableReplyRedirect(channel: MessageChannel = defaultChannel) {

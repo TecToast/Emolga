@@ -116,19 +116,24 @@ class LeagueTest : FunSpec({
     context("Automation Checks") {
         test("Test") {
             enableReplyRedirect()
+            defaultDuringTimerSkipMode = NEXT_PICK
             createDraft(
                 name = "Test",
-                playerCount = 4,
-                rounds = 1,
+                playerCount = 3,
+                rounds = 2,
                 hardcodedUserIds = mapOf(0 to FLOID),
-                originalorder = mapOf(1 to listOf(0, 1, 2, 3))
+                originalorder = mapOf(1 to listOf(0, 1, 2), 2 to listOf(2, 0, 1))
             )
-            startDraft("Test")
+            startDraft("TESTTest")
             movePick()
             randomPick("S")
-            pick("Glastrier")
-            pick("Emolga")
-            pick("Heatran")
+            randomPick("S")
+            randomPick("S")
+
+            randomPick("S")
+            movePick()
+            randomPick("S")
+            randomPick("S")
             db.league("TESTTest").isRunning shouldBe false
             keepAlive()
         }

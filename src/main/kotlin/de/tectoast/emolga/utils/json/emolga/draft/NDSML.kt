@@ -17,6 +17,10 @@ class NDSML : League() {
 
     @Transient
     override val timer = DraftTimer(TimerInfo(mapOf(0 to 180, 1 to 150, 2 to 120, 3 to 90, 4 to 60)).set(10, 22))
+
+    override val duringTimerSkipMode = NEXT_PICK
+    override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
+
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
         addSingle("Draftreihenfolge!${data.roundIndex.x(2, 2)}${data.indexInRound.y(2, 5)}", data.pokemon)

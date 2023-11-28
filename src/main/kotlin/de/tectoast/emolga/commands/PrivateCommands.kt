@@ -445,7 +445,10 @@ object PrivateCommands {
                 dt.addOptions(buildOptionData(mainCmdArgs))
             }
             for (slashGuild in it.slashGuilds) {
-                map.computeIfAbsent(slashGuild) { LinkedList() }.add(dt)
+                map.computeIfAbsent(slashGuild) { LinkedList() }.apply {
+                    if (it.checkBot(jda))
+                        add(dt)
+                }
             }
         }
         val guildsToUpdate = db.config.only().guildsToUpdate

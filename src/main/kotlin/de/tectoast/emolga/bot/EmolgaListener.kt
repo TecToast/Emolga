@@ -78,7 +78,7 @@ object EmolgaListener : ListenerAdapter() {
         val mem = e.member!!
         if (command.disabled) return
         val gid = e.guild!!.idLong
-        if (!command.checkBot(e.jda, gid)) return
+        if (!command.checkBot(e.jda)) return
         val check = command.checkPermissions(gid, mem)
         if (check == Command.PermissionCheck.GUILD_NOT_ALLOWED) return
         if (check == Command.PermissionCheck.PERMISSION_DENIED) {

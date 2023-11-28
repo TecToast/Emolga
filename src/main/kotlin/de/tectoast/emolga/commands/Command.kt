@@ -176,7 +176,8 @@ abstract class Command(
      * If true, this command is disabled and cannot be used
      */
     var disabled = false
-    protected var allowedBotId: Long = -1
+    var allowedBotId: Long = -1
+        protected set
     var isSlash = false
     protected var onlySlash = false
     var adminSlash = false
@@ -255,8 +256,8 @@ abstract class Command(
         return if (!allowsMember(mem)) PermissionCheck.PERMISSION_DENIED else PermissionCheck.GRANTED
     }
 
-    fun checkBot(jda: JDA, guildid: Long): Boolean {
-        return allowedBotId == -1L || allowedBotId == jda.selfUser.idLong || guildid == Constants.G.CULT
+    fun checkBot(jda: JDA): Boolean {
+        return allowedBotId == -1L || allowedBotId == jda.selfUser.idLong
     }
 
     val prefix: String
@@ -1956,7 +1957,7 @@ abstract class Command(
             val command = commands[WHITESPACES_SPLITTER.split(msg)[0].lowercase()]
             if (command != null) {
                 if (command.disabled || command.onlySlash) return
-                if (!command.checkBot(e.jda, gid)) return
+                if (!command.checkBot(e.jda)) return
                 val check = command.checkPermissions(gid, mem)
                 if (check == PermissionCheck.GUILD_NOT_ALLOWED) return
                 if (check == PermissionCheck.PERMISSION_DENIED) {
@@ -2530,8 +2531,9 @@ object DateToStringSerializer : KSerializer<Date> {
 fun String.file() = File(this)
 fun Any.parseInt() = (this as? Int) ?: this.toString().toInt()
 
-fun <T> Collection<T>.filterStartsWithIgnoreCase(other: String) = mapNotNull {
-    val str = it.toString()
+fun <T> Collection<T>.filterStartsWithIgnoreCase(other: String, tostring: (T) -> String = { it.toString() }) =
+    mapNotNull {
+        val str = tostring(it)
     if (str.startsWith(other, ignoreCase = true)) str else null
 }
 

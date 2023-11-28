@@ -24,6 +24,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Member
+import org.bson.BsonDocument
 import org.bson.conversions.Bson
 import org.litote.kmongo.*
 import org.litote.kmongo.coroutine.CoroutineCollection
@@ -69,7 +70,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val pickedMons by lazy { db.getCollection<PickedMonsData>("pickedmons") }
     val tierlist by lazy { db.getCollection<Tierlist>("tierlist") }
     val shinycount by lazy { db.getCollection<Shinycount>() }
-
+    val shinyEvent by lazy { db.getCollection<ShinyEvent>("shinyevent") }
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
     val matchresults by lazy { db.getCollection<MatchResult>("matchresults") }
     val defaultNameConventions: Map<String, String> by lazy {
@@ -268,8 +269,22 @@ class Shinycount(
     val userorder: List<Long>
 )
 
+@Serializable
+data class ShinyEvent(
+    val user: Long,
+    val shinies: List<ShinyData>,
+    val points: Int
+) {
+    @Serializable
+    data class ShinyData(
+        val game: String,
+        val method: String
+    )
+}
+
 suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!
-suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) = updateOne("{}", update)
+suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) =
+    updateOne(BsonDocument(), update.also { println(it.json) })
 
 @Suppress("unused") // used in other projects
 suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: String) = updateOne("{}", update)

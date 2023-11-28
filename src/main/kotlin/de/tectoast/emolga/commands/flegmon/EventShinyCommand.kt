@@ -4,6 +4,12 @@ import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PepeCommand
 import de.tectoast.emolga.commands.filterStartsWithIgnoreCase
 import de.tectoast.emolga.commands.flegmon.EventShinyCommand.SingleGame.*
+import de.tectoast.emolga.utils.Constants
+import dev.minn.jda.ktx.interactions.components.danger
+import dev.minn.jda.ktx.interactions.components.success
+import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
+import net.dv8tion.jda.api.entities.emoji.Emoji
 
 object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das Event ein") {
 
@@ -63,27 +69,26 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
 
     val config = mapOf(
         "Full Odds(Gen 2-5)" to Configuration(GSK + RSS + FRBG + DPPT + HGSS + SW + SW2, 10),
-        "Full Odds(Gen6+)" to Configuration(XY + ORAS + SM + USUM + LGPE + SWSH + BDSP, 5),
-        "Full Odds Horde(Gen6+)" to Configuration(XY + ORAS + SM + USUM + LGPE + SWSH + BDSP, 4),
+        "Full Odds(Gen 6-9)" to Configuration(XY + ORAS + SM + USUM + LGPE + SWSH + BDSP + KP, 5),
+        "Full Odds Horde" to Configuration(XY + ORAS, 4),
+        "Schillerpin Odds(BW2)" to Configuration(SW2, 4),
+        "Schillerpin Odds(Gen6+)" to Configuration(XY + ORAS + SM + USUM + LGPE + SWSH, 3),
+        "Schillerpin Odds Horde(Gen6+)" to Configuration(XY + ORAS, 2),
         "Kurios-Ei" to Configuration(Kristall, 1),
         "Ei-Methode" to Configuration(GSK, 2),
-        "Pokeradar" to Configuration(DPPT, 3),
-        "Schillerpin Shiny" to Configuration(SW2, 4),
         "Masuda-Methode" to Configuration(DPPT + HGSS, 7),
-        "Masuda-Methode ohne Pin" to Configuration(SW + SW2, 6),
-        "Masuda-Methode mit Pin" to Configuration(SW2, 5),
-        "Schillerpin Shiny(Gen6+)" to Configuration(XY + ORAS + SM + USUM + LGPE + SWSH, 3),
-        "Schillerpin Shiny Horde(Gen6+)" to Configuration(XY + ORAS + SM + USUM + LGPE + SWSH, 2),
+        "Masuda-Methode(Gen5)" to Configuration(SW + SW2, 6),
+        "Masuda-Methode Schillerpin(Gen5)" to Configuration(SW2, 5),
+        "Masuda-Methode(Gen6+)" to Configuration(XY + ORAS + SM + USUM + SWSH + BDSP + KP, 2),
+        "Masuda-Methode Schillerpin(Gen6+)" to Configuration(XY + ORAS + SM + USUM + SWSH + BDSP + KP, 1),
+        "Pokeradar" to Configuration(DPPT + XY, 2),
         "Kontaktsafari" to Configuration(XY, 1),
-        "Pokeradar" to Configuration(XY + BDSP, 2),
-        "DexNav ohne Pin" to Configuration(ORAS, 3),
-        "DexNav mit Pin" to Configuration(ORAS, 2),
-        "Masuda-Methode ohne Pin(Gen6+)" to Configuration(XY + ORAS + SM + USUM + SWSH + BDSP + KP, 2),
-        "Masuda-Methode mit Pin(Gen6+)" to Configuration(XY + ORAS + SM + USUM + SWSH + BDSP + KP, 1),
         "Chain Fishing" to Configuration(XY + ORAS, 1),
+        "DexNav" to Configuration(ORAS, 3),
+        "DexNav Schillerpin" to Configuration(ORAS, 2),
         "SOS-Methode" to Configuration(SM + USUM, 2),
         "Catch-Combo" to Configuration(LGPE, 2),
-        "Murder-Method" to Configuration(SWSH, 3),
+        "KO-Methode" to Configuration(SWSH, 3),
         "Curry" to Configuration(SWSH, 10),
         "Dynamax Abenteuer" to Configuration(SWSH, 2),
         "PLA & SV" to Configuration(KP + LA, 1)
@@ -99,25 +104,37 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
                 "Spiel",
                 "Das Spiel, in dem das Shiny erhalten wurde",
                 ArgumentManagerTemplate.Text.withAutocomplete { s, _ ->
-                    SingleGame.entries.filterStartsWithIgnoreCase(s)
+                    (SingleGame.entries.filterStartsWithIgnoreCase(s).takeIf { it.size <= 25 }
+                        ?: listOf("Bitte spezifiziere deine Suche!")).ifEmpty { listOf("Keine Ergebnisse!") }
                 })
             add(
                 "method",
                 "Methode",
                 "Die Hunt-Methode, mit der das Shiny erhalten wurde",
                 ArgumentManagerTemplate.Text.withAutocomplete { s, event ->
-                    val list = groupedByGame[event.getOption("spiel")?.asString]?.filterStartsWithIgnoreCase(s)
-                    if (list?.isNotEmpty() == true) list else listOf("Bitte gebe ein valides Spiel an!")
+                    val list =
+                        groupedByGame[event.getOption("spiel")?.asString]?.filterStartsWithIgnoreCase(s) { it.first }
+                    if (list?.isNotEmpty() == true) {
+                        list.takeIf { it.size <= 25 } ?: listOf("Bitte spezifiziere deine Suche!")
+                    } else listOf("Bitte gebe ein valides Spiel an!")
                 })
             add(
-                "charm",
-                "Schillerpin",
-                "Beeinflusst ein Schillerpin das Shiny?",
-                ArgumentManagerTemplate.ArgumentBoolean
+                "image",
+                "Bild",
+                "Das Bild vom Shiny",
+                ArgumentManagerTemplate.DiscordFile.of("png", "PNG", "jpg", "JPG", "jpeg", "JPEG")
             )
-            add("image", "Bild", "Das Bild vom Shiny", ArgumentManagerTemplate.DiscordFile.of("*"))
         }
+        slash(true, Constants.G.PEPE)
     }
+
+    fun getConfigurationByNameAndGame(game: SingleGame, name: String): Configuration? {
+        val list = groupedByGame[game.name] ?: return null
+        return list.firstOrNull { it.first == name }?.second
+    }
+
+    const val CHECKCHANNEL = 447357526997073932 // placeholder
+    const val FINALCHANNEL = 447357526997073932L // placeholder
 
     override suspend fun process(e: GuildCommandEvent) {
         val gameArg = e.arguments.getText("game")
@@ -129,7 +146,30 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
                 ephemeral = true
             )
         }
-        val methodSelected = e.arguments.getText("method")
+        val method = e.arguments.getText("method")
+        val configuration = getConfigurationByNameAndGame(game, method) ?: return e.reply_(
+            "`$method` ist keine valide Methode für `$gameArg`! Nutze bitte die Autovervollständigung!",
+            ephemeral = true
+        )
+        e.reply_(
+            "Dein Shiny wurde erfolgreich eingereicht! Sobald es approved wurde, wird es in #hierChannelEinfügen erscheinen.",
+            ephemeral = true
+        )
+        val uid = e.author.idLong
+        e.jda.getTextChannelById(CHECKCHANNEL)!!.send(
+            "${e.author.asMention} (${e.member.effectiveName}) hat ein Shiny für das Event eingereicht!\n" +
+                    "Spiel: $gameArg\n" +
+                    "Methode: $method\n" +
+                    "(Punkte: ${configuration.points})\n" +
+                    "Bild: ${e.arguments.getAttachment("image").url}", components = listOf(
+                success(
+                    "shinyevent;approve;$uid;$gameArg;$method;${configuration.points}",
+                    "Bestätigen",
+                    Emoji.fromUnicode("✅")
+                ),
+                danger("shinyevent;deny", "Ablehnen", Emoji.fromUnicode("❌"))
+            ).into()
+        ).queue()
     }
 
 }

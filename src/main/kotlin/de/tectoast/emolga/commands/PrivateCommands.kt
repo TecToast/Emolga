@@ -720,6 +720,10 @@ object PrivateCommands {
         }
     }
 
+    suspend fun sort(e: GenericCommandEvent) {
+        db.league(e.getArg(1)).docEntry!!.sort()
+    }
+
     suspend fun subscribeYT(e: GenericCommandEvent) {
         subscribeToYTChannel(e.getArg(1))
     }

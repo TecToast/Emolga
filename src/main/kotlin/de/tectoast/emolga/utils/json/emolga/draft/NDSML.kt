@@ -23,6 +23,7 @@ class NDSML : League() {
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
+        addSingle("Data!AA${data.memIndex.y(newSystemGap, data.changedOnTeamsiteIndex + 3)}", data.pokemon)
         addSingle("Draftreihenfolge!${data.roundIndex.x(2, 2)}${data.indexInRound.y(2, 5)}", data.pokemon)
     }
 }

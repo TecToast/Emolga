@@ -273,7 +273,8 @@ class Shinycount(
 data class ShinyEvent(
     val user: Long,
     val shinies: List<ShinyData>,
-    val points: Int
+    val points: Int,
+    val messageId: Long? = null
 ) {
     @Serializable
     data class ShinyData(

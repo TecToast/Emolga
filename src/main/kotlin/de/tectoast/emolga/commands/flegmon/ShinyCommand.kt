@@ -3,7 +3,7 @@ package de.tectoast.emolga.commands.flegmon
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.PepeCommand
 import de.tectoast.emolga.commands.filterStartsWithIgnoreCase
-import de.tectoast.emolga.commands.flegmon.EventShinyCommand.SingleGame.*
+import de.tectoast.emolga.commands.flegmon.ShinyCommand.SingleGame.*
 import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.interactions.components.danger
 import dev.minn.jda.ktx.interactions.components.success
@@ -11,7 +11,7 @@ import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.entities.emoji.Emoji
 
-object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das Event ein") {
+object ShinyCommand : PepeCommand("shiny", "Reicht ein Shiny für das Event ein") {
 
     interface Game {
         fun containsGame(game: SingleGame): Boolean
@@ -70,10 +70,10 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
     val config = mapOf(
         "Full Odds(Gen 2-5)" to Configuration(GSK + RSS + FRBG + DPPT + HGSS + SW + SW2, 10),
         "Full Odds(Gen 6-9)" to Configuration(XY + ORAS + SM + USUM + LGPE + SWSH + BDSP + KP, 5),
-        "Full Odds Horde" to Configuration(XY + ORAS, 4),
+        "Full Odds Horde" to Configuration(XY + ORAS, 3),
         "Schillerpin Odds(BW2)" to Configuration(SW2, 4),
         "Schillerpin Odds(Gen6+)" to Configuration(XY + ORAS + SM + USUM + LGPE + SWSH, 3),
-        "Schillerpin Odds Horde(Gen6+)" to Configuration(XY + ORAS, 2),
+        "Schillerpin Odds Horde(Gen6+)" to Configuration(XY + ORAS, 1),
         "Kurios-Ei" to Configuration(Kristall, 1),
         "Ei-Methode" to Configuration(GSK, 2),
         "Masuda-Methode" to Configuration(DPPT + HGSS, 7),
@@ -81,7 +81,7 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
         "Masuda-Methode Schillerpin(Gen5)" to Configuration(SW2, 5),
         "Masuda-Methode(Gen6+)" to Configuration(XY + ORAS + SM + USUM + SWSH + BDSP + KP, 2),
         "Masuda-Methode Schillerpin(Gen6+)" to Configuration(XY + ORAS + SM + USUM + SWSH + BDSP + KP, 1),
-        "Pokeradar" to Configuration(DPPT + XY, 2),
+        "Pokeradar" to Configuration(DPPT + XY + BDSP, 2),
         "Kontaktsafari" to Configuration(XY, 1),
         "Chain Fishing" to Configuration(XY + ORAS, 1),
         "DexNav" to Configuration(ORAS, 3),
@@ -133,8 +133,9 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
         return list.firstOrNull { it.first == name }?.second
     }
 
-    const val CHECKCHANNEL = 447357526997073932 // placeholder
-    const val FINALCHANNEL = 447357526997073932L // placeholder
+    const val CHECKCHANNEL = 1179839622650527804 // placeholder
+    const val FINALCHANNEL = 1030187999759192104 // placeholder
+    const val POINTCHANNEL = 1030218100479635607
 
     override suspend fun process(e: GuildCommandEvent) {
         val gameArg = e.arguments.getText("game")
@@ -152,7 +153,7 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
             ephemeral = true
         )
         e.reply_(
-            "Dein Shiny wurde erfolgreich eingereicht! Sobald es approved wurde, wird es in #hierChannelEinfügen erscheinen.",
+            "Dein Shiny wurde erfolgreich eingereicht! Sobald es approved wurde, wird es in <#1030187999759192104> erscheinen.",
             ephemeral = true
         )
         val uid = e.author.idLong
@@ -167,7 +168,7 @@ object EventShinyCommand : PepeCommand("eventshiny", "Reicht ein Shiny für das 
                     "Bestätigen",
                     Emoji.fromUnicode("✅")
                 ),
-                danger("shinyevent;deny", "Ablehnen", Emoji.fromUnicode("❌"))
+                danger("shinyevent;deny;$uid", "Ablehnen", Emoji.fromUnicode("❌"))
             ).into()
         ).queue()
     }

@@ -2139,6 +2139,7 @@ abstract class Command(
             fromReplayCommand: CommandData? = null,
             customGuild: Long? = null,
             withSort: Boolean = true,
+            analysisData: AnalysisData? = null
         ) {
             //defaultScope.launch {
             if (BOT_DISABLED && resultchannelParam.guild.idLong != Constants.G.MY) {
@@ -2159,7 +2160,7 @@ abstract class Command(
                 return
             }
             val data = try {
-                Analysis.analyse(url, ::send, resultchannelParam.guild.idLong == Constants.G.MY)
+                analysisData ?: Analysis.analyse(url, ::send, resultchannelParam.guild.idLong == Constants.G.MY)
                 //game = Analysis.analyse(url, m);
             } catch (ex: Exception) {
                 when (ex) {

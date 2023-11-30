@@ -13,10 +13,7 @@ import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 object Analysis {
-    // generate a new analysis engine
-    suspend fun analyse(
-        link: String, answer: ((String) -> Unit)? = null, debugMode: Boolean = false
-    ): AnalysisData {
+    suspend fun analyse(link: String, answer: ((String) -> Unit)? = null, debugMode: Boolean = false): AnalysisData {
         var gameNullable: List<String>? = null
         for (i in 0..1) {
             val retrieved = runCatching {
@@ -35,6 +32,12 @@ object Analysis {
         }
         logger.info("Starting analyse!")
         val game = gameNullable ?: throw ShowdownDoesNotAnswerException()
+        return analyseFromString(game, link, debugMode)
+    }
+
+    fun analyseFromString(
+        game: List<String>, link: String, debugMode: Boolean = false
+    ): AnalysisData {
         var amount = 1
         val nicknames: MutableMap<Int, String> = mutableMapOf()
         var playerCount = 2

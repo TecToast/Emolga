@@ -9,11 +9,8 @@ data class Tokens(
     val discordflegmon: String = "",
     val discordraikou: String = "",
     val subscriber: Subscriber,
-    val tradedoc: String,
     val database: Database,
-    val website: Website,
-    val oauth2: Oauth2,
-    val tenor: String
+    val oauth2: Oauth2
 ) {
     @Serializable
     data class Google(

@@ -97,8 +97,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Function
 import java.util.function.Predicate
 import java.util.regex.Pattern
-import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.*
 import kotlin.random.Random
 import kotlin.reflect.KMutableProperty0
 
@@ -2069,14 +2068,29 @@ abstract class Command(
             }.queue()
         }
 
+        /**
+         * Converts an integer to a column name in Google Sheets.
+         *
+         * Examples: `1 -> A, 3 -> C, 27 -> AA, 28 -> AB, 53 -> BA`
+         * @param xc the column number
+         * @return the column name
+         */
         fun getAsXCoord(xc: Int): String {
-            var i = xc
             var x = 0
-            while (i - 26 > 0) {
-                i -= 26
+            var toResolve = xc
+            while (true) {
+                val powed = 26.0.pow(x).toInt()
+                if (toResolve < powed) break
+                toResolve -= powed
                 x++
             }
-            return (if (x > 0) (x + 64).toChar() else "").toString() + (i + 64).toChar().toString()
+            return buildString {
+                for (i in 0 until x) {
+                    append(((toResolve % 26) + 65).toChar())
+                    toResolve /= 26
+                }
+                reverse()
+            }
         }
 
         suspend fun getSpriteForTeamGraphic(str: String, data: RandomTeamData, guild: Long): String {
@@ -2541,8 +2555,8 @@ fun Any.parseInt() = (this as? Int) ?: this.toString().toInt()
 fun <T> Collection<T>.filterStartsWithIgnoreCase(other: String, tostring: (T) -> String = { it.toString() }) =
     mapNotNull {
         val str = tostring(it)
-    if (str.startsWith(other, ignoreCase = true)) str else null
-}
+        if (str.startsWith(other, ignoreCase = true)) str else null
+    }
 
 val String.marker: Marker get() = MarkerFactory.getMarker(this)
 

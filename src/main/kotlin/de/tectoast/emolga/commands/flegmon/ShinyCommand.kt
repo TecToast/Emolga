@@ -63,6 +63,7 @@ object ShinyCommand : PepeCommand("shiny", "Reicht ein Shiny für das Event ein"
     private val BDSP = StrahlenderDiamant + LeuchtendePerl
     private val LA = LegendenArceus
     private val KP = Karmesin + Purpur
+    private val ALL = GSK + RSS + FRBG + DPPT + HGSS + SW + SW2 + XY + ORAS + SM + USUM + LGPE + SWSH + BDSP + LA + KP
 
 
     data class Configuration(val games: Game, val points: Int)
@@ -91,7 +92,8 @@ object ShinyCommand : PepeCommand("shiny", "Reicht ein Shiny für das Event ein"
         "KO-Methode" to Configuration(SWSH, 3),
         "Curry" to Configuration(SWSH, 10),
         "Dynamax Abenteuer" to Configuration(SWSH, 2),
-        "PLA & SV" to Configuration(KP + LA, 1)
+        "PLA & SV" to Configuration(KP + LA, 1),
+        "NoPoints" to Configuration(ALL, 0),
     )
     val groupedByGame = SingleGame.entries.associate { game ->
         game.name to config.entries.mapNotNull { if (it.value.games.containsGame(game)) it.key.substringBefore("(") to it.value else null }

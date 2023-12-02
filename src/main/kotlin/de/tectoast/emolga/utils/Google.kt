@@ -4,7 +4,11 @@ import com.google.api.client.auth.oauth2.BearerToken
 import com.google.api.client.auth.oauth2.Credential
 import com.google.api.client.googleapis.auth.oauth2.GoogleRefreshTokenRequest
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
+import com.google.api.client.http.ByteArrayContent
 import com.google.api.client.json.gson.GsonFactory
+import com.google.api.services.drive.Drive
+import com.google.api.services.drive.model.File
+import com.google.api.services.drive.model.Permission
 import com.google.api.services.sheets.v4.Sheets
 
 object Google {
@@ -30,6 +34,18 @@ object Google {
             .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
             .execute().valueRanges.map { it.getValues() }
 
+    fun uploadFileToDrive(parent: String, name: String, mimeType: String, data: ByteArray): String {
+        val fileId = driveService.files().create(
+            File().setParents(listOf(parent)).setName(name),
+            ByteArrayContent(
+                mimeType,
+                data
+            )
+        ).setUploadType("media").setUseContentAsIndexableText(false).execute().id
+        driveService.permissions().create(fileId, Permission().setType("anyone").setRole("reader")).execute()
+        return fileId
+    }
+
     val sheetsService: Sheets
         get() {
             refreshTokenIfNotPresent()
@@ -41,6 +57,19 @@ object Google {
                 )
             ).setApplicationName("emolga").build()
         }
+
+    val driveService: Drive by lazy {
+        refreshTokenIfNotPresent()
+        Drive.Builder(
+            GoogleNetHttpTransport.newTrustedTransport(),
+            GsonFactory.getDefaultInstance(),
+            Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(
+                accesstoken
+            )
+        )
+            .setApplicationName("emolga")
+            .build()
+    }
 
     private fun refreshTokenIfNotPresent() {
         if (accesstoken == null || System.currentTimeMillis() - lastUpdate > 3000000) generateAccessToken()

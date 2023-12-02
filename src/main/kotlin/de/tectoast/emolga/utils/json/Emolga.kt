@@ -73,6 +73,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val shinyEvent by lazy { db.getCollection<ShinyEvent>("shinyevent") }
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
     val matchresults by lazy { db.getCollection<MatchResult>("matchresults") }
+    val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
     val defaultNameConventions: Map<String, String> by lazy {
         runBlocking {
             nameconventions.find(NameConventions::guild eq 0).first()!!

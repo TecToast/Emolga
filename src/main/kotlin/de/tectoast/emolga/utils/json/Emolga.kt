@@ -37,7 +37,7 @@ import org.litote.kmongo.serialization.configuration as mongoConfiguration
 
 val db: MongoEmolga get() = delegateDb ?: error("MongoDB not initialized!")
 
-private const val DEFAULT_DB_URL = "mongodb://floritemp.fritz.box:27017/"
+private const val DEFAULT_DB_URL = "mongodb://florirp5.fritz.box:27017/"
 private const val DEFAULT_DB_NAME = "emolga"
 private var delegateDb: MongoEmolga? = null
 
@@ -282,6 +282,12 @@ data class ShinyEvent(
         val method: String
     )
 }
+
+@Serializable
+data class LogoChecksum(
+    val checksum: String,
+    val fileId: String
+)
 
 suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!
 suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) =

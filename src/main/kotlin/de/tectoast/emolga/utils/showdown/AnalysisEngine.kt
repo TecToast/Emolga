@@ -5,6 +5,7 @@ import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import kotlin.reflect.KClass
 
+private val otherThanNumbers = Regex("[^0-9]")
 data class SDPokemon(var pokemon: String, val player: Int) {
     private val effects: MutableMap<SDEffect, SDPokemon> = mutableMapOf()
     val volatileEffects: MutableMap<String, SDPokemon> = mutableMapOf()
@@ -158,7 +159,7 @@ sealed class SDEffect(vararg val types: String) {
                 switchIn.volatileEffects.putAll(ctx.monsOnField[pl][idx].volatileEffects)
             }
             ctx.monsOnField[pl][idx] = switchIn
-            switchIn.setNewHPAndHeal(ctx, split[3].substringBefore("/").toInt())
+            switchIn.setNewHPAndHeal(ctx, split[3].replace(otherThanNumbers, "").substringBefore("/").toInt())
         }
     }
 
@@ -181,7 +182,7 @@ sealed class SDEffect(vararg val types: String) {
 
     data object Heal : SDEffect("-heal") {
         override fun execute(split: List<String>, ctx: BattleContext) {
-            val healedTo = split[2].substringBefore("/").toInt()
+            val healedTo = split[2].substringBefore("/").replace(otherThanNumbers, "").toInt()
             val (side, num) = split[1].substringAfter('p').substringBefore(':').let {
                 val p = it[0].digitToInt() - 1
                 p to if (it.length == 1) -1 else if (p > 1) 0 else it[1].cToI()
@@ -197,7 +198,7 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Damage : SDEffect("-damage") {
-        val otherThanNumbers = Regex("[^0-9]")
+
         override fun execute(split: List<String>, ctx: BattleContext) {
             with(ctx) {
                 //println(split)

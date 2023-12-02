@@ -2139,7 +2139,8 @@ abstract class Command(
             fromReplayCommand: CommandData? = null,
             customGuild: Long? = null,
             withSort: Boolean = true,
-            analysisData: AnalysisData? = null
+            analysisData: AnalysisData? = null,
+            useReplayResultChannelAnyways: Boolean = false
         ) {
             //defaultScope.launch {
             if (BOT_DISABLED && resultchannelParam.guild.idLong != Constants.G.MY) {
@@ -2243,8 +2244,12 @@ abstract class Command(
 //                }
 //            }
             val jda = resultchannelParam.jda
-            val replayChannel = league?.provideReplayChannel(jda).takeIf { customGuild == null } ?: customReplayChannel
-            val resultChannel = league?.provideResultChannel(jda).takeIf { customGuild == null } ?: resultchannelParam
+            val replayChannel =
+                league?.provideReplayChannel(jda).takeIf { useReplayResultChannelAnyways || customGuild == null }
+                    ?: customReplayChannel
+            val resultChannel =
+                league?.provideResultChannel(jda).takeIf { useReplayResultChannelAnyways || customGuild == null }
+                    ?: resultchannelParam
             logger.info("uids = $uids")
             logger.info("u1 = $u1")
             logger.info("u2 = $u2")
@@ -2254,7 +2259,8 @@ abstract class Command(
                 } else {
                     fromAnalyseCommand.sendMessage(description).queue()
                 }
-            } else if (!customResult.contains(gid)) {
+            }
+            if ((fromAnalyseCommand == null || useReplayResultChannelAnyways) && !customResult.contains(gid)) {
                 if (league != null) {
                     resultChannel.sendMessageEmbeds(embed).queue()
                 } else {
@@ -2315,7 +2321,7 @@ abstract class Command(
             val p1 = game[0].nickname
             val p2 = game[1].nickname
             title = "${data.ctx.format} replay: $p1 vs. $p2"
-            url = data.ctx.url
+            url = data.ctx.url.takeIf { it.length > 10 } ?: "https://example.org"
             description = leaguedata?.uids?.joinToString(" vs. ") { "<@$it>" }
         }
 

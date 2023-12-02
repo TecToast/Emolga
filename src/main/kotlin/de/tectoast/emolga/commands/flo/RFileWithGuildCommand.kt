@@ -25,7 +25,8 @@ object RFileWithGuildCommand : Command("rfilewithguild", "Replay-File mit Guild"
             resultchannelParam = e.textChannel,
             customGuild = e.arguments.getID("id"),
             fromAnalyseCommand = e.run { deferReply(); slashCommandEvent?.hook },
-            analysisData = Analysis.analyseFromString(replayData, "FILE")
+            analysisData = Analysis.analyseFromString(replayData, "FILE"),
+            useReplayResultChannelAnyways = true
         )
     }
 

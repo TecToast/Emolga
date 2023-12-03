@@ -9,7 +9,7 @@ class SendPNCommandTest : FunSpec({
     test("SendPNCommand") {
         with(TestCommandData()) {
             SendPNCommand.exec(SendPNCommandArgs(Constants.FLOID, "Test :3"))
-            response.msg shouldBe "Done!"
+            awaitResponse().msg shouldBe "Done!"
         }
     }
 })

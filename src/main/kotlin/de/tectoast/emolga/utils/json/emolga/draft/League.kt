@@ -151,7 +151,7 @@ sealed class League {
     }
 
     open fun onTipGameLockButtons(gameday: Int) {}
-    open fun AddToTierlistData.addMonToTierlist() {}
+    open suspend fun AddToTierlistData.addMonToTierlist() {}
 
     open fun isFinishedForbidden() = !isSwitchDraft
 

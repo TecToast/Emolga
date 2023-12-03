@@ -5,10 +5,10 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.interactive.ErrorMessage
+import de.tectoast.emolga.utils.interactive.Interactive
+import de.tectoast.emolga.utils.interactive.InteractiveTemplate
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.toastilities.interactive.ErrorMessage
-import de.tectoast.toastilities.interactive.Interactive
-import de.tectoast.toastilities.interactive.InteractiveTemplate
 import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.User
@@ -23,7 +23,7 @@ object PrismaTeamCommand : PrivateCommand("prismateam") {
     init {
         logger.info("Registered PrismaTeamCommand!")
         //setIsAllowed(u -> Arrays.asList(Command.getEmolgaJSON().getJSONObject("drafts").getJSONObject("Prisma").getString("table").split(",")).contains(u.getId()));
-        template = InteractiveTemplate({ u: User, tc: MessageChannel, map: LinkedHashMap<String, Any?> ->
+        template = InteractiveTemplate({ u: User, tc: MessageChannel, map: Map<String, Any?> ->
             runBlocking {
                 current.remove(u.idLong)
                 val league = db.league("Prisma")
@@ -37,18 +37,19 @@ object PrismaTeamCommand : PrivateCommand("prismateam") {
         template
             .addLayer(
                 "S1",
-                "Hallo zur interaktiven Team-Eingabe! Bitte gib nacheinander deine Mons ein (so wie sie in der Tierliste stehen). Falls du einen Fehler machen solltest, gib `!cancel` ein, um die Team-Eingabe abzubrechen.\nS-Mon Nr. 1:"
-            ) { m: Message, i: Interactive -> test(m, i, "S") }
-            .addLayer("S2", "S-Mon Nr. 2:") { m: Message, i: Interactive -> test(m, i, "S") }
-            .addLayer("A1", "A-Mon Nr. 1:") { m: Message, i: Interactive -> test(m, i, "A") }
-            .addLayer("A2", "A-Mon Nr. 2:") { m: Message, i: Interactive -> test(m, i, "A") }
-            .addLayer("B1", "B-Mon Nr. 1:") { m: Message, i: Interactive -> test(m, i, "B") }
-            .addLayer("B2", "B-Mon Nr. 2:") { m: Message, i: Interactive -> test(m, i, "B") }
-            .addLayer("B3", "B-Mon Nr. 3:") { m: Message, i: Interactive -> test(m, i, "B") }
-            .addLayer("C1", "C-Mon Nr. 1:") { m: Message, i: Interactive -> test(m, i, "C") }
-            .addLayer("C2", "C-Mon Nr. 2:") { m: Message, i: Interactive -> test(m, i, "C") }
-            .addLayer("C3", "C-Mon Nr. 3:") { m: Message, i: Interactive -> test(m, i, "C") }
-            .addLayer("D1", "D-Mon Nr. 1:") { m: Message, i: Interactive -> test(m, i, "D") }
+                "Hallo zur interaktiven Team-Eingabe! Bitte gib nacheinander deine Mons ein (so wie sie in der Tierliste stehen). Falls du einen Fehler machen solltest, gib `!cancel` ein, um die Team-Eingabe abzubrechen.\nS-Mon Nr. 1:",
+                { m: Message, i: Interactive -> test(m, i, "S") }
+            )
+            .addLayer("S2", "S-Mon Nr. 2:", { m: Message, i: Interactive -> test(m, i, "S") })
+            .addLayer("A1", "A-Mon Nr. 1:", { m: Message, i: Interactive -> test(m, i, "A") })
+            .addLayer("A2", "A-Mon Nr. 2:", { m: Message, i: Interactive -> test(m, i, "A") })
+            .addLayer("B1", "B-Mon Nr. 1:", { m: Message, i: Interactive -> test(m, i, "B") })
+            .addLayer("B2", "B-Mon Nr. 2:", { m: Message, i: Interactive -> test(m, i, "B") })
+            .addLayer("B3", "B-Mon Nr. 3:", { m: Message, i: Interactive -> test(m, i, "B") })
+            .addLayer("C1", "C-Mon Nr. 1:", { m: Message, i: Interactive -> test(m, i, "C") })
+            .addLayer("C2", "C-Mon Nr. 2:", { m: Message, i: Interactive -> test(m, i, "C") })
+            .addLayer("C3", "C-Mon Nr. 3:", { m: Message, i: Interactive -> test(m, i, "C") })
+            .addLayer("D1", "D-Mon Nr. 1:", { m: Message, i: Interactive -> test(m, i, "D") })
             .addLayer(
                 "check", """
                                 Hier nochmal die Liste deiner Mons:
@@ -65,11 +66,11 @@ object PrismaTeamCommand : PrivateCommand("prismateam") {
                                 C: {C3}
                                 D: {D1}
 
-                                Ist das korrekt? Gib `ja` ein, wenn du dir sicher bist, sonst gib `!cancel` ein, um die Team-Eingabe abzubrechen und nochmal von vorn zu beginnen."""
-            ) { m: Message ->
+                                Ist das korrekt? Gib `ja` ein, wenn du dir sicher bist, sonst gib `!cancel` ein, um die Team-Eingabe abzubrechen und nochmal von vorn zu beginnen.""",
+                { m: Message, _ ->
                 if (m.contentDisplay == "ja") return@addLayer true
                 ErrorMessage("Das ist weder ein `ja` noch `!cancel`!")
-            }
+                })
             .setOnCancel { i: Interactive -> current.remove(i.user.idLong) }
     }
 
@@ -106,4 +107,3 @@ object PrismaTeamCommand : PrivateCommand("prismateam") {
     val tierlist: Tierlist
         get() = Tierlist[736555250118295622]!!
 }
-

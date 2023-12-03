@@ -36,8 +36,8 @@ import de.tectoast.emolga.utils.json.emolga.getCount
 import de.tectoast.emolga.utils.json.emolga.increment
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.music.GuildMusicManager
+import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.showdown.*
-import de.tectoast.toastilities.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.*
@@ -1813,19 +1813,11 @@ abstract class Command(
                     val duration = Duration.ofSeconds(parseShortTime(tip.interval).toLong())
                     logger.info("Draft ${l.leaguename} has tipgame with interval ${tip.interval} and duration $duration")
                     RepeatTask(
-                        tip.lastSending.toInstant(),
-                        tip.amount,
-                        duration,
-                        { executeTipGameSending(runBlocking { db.league(l.leaguename) }, it) },
-                        true
-                    )
+                        tip.lastSending.toInstant(), tip.amount, duration, true
+                    ) { executeTipGameSending(db.league(l.leaguename), it) }
                     RepeatTask(
-                        tip.lastLockButtons.toInstant(),
-                        tip.amount,
-                        duration,
-                        { executeTipGameLockButtons(runBlocking { db.league(l.leaguename) }, it) },
-                        true
-                    )
+                        tip.lastLockButtons.toInstant(), tip.amount, duration, true
+                    ) { executeTipGameLockButtons(db.league(l.leaguename), it) }
                 }
             }
 
@@ -2014,7 +2006,7 @@ abstract class Command(
                     "Dieser Command befindet sich zurzeit in der Beta-Phase! Falls Fehler auftreten, kontaktiert bitte ${Constants.MYTAG} durch einen Ping oder eine PN!"
                 ).queue()
                 try {
-                    GuildCommandEvent(command, e).execute()
+                    GuildCommandEvent(command, e).apply { initialize(command, e) }.execute()
                 } catch (ex: MissingArgumentException) {
                     if (ex.isSubCmdMissing) {
                         val subcommands = ex.subcommands!!

@@ -4,18 +4,17 @@ import de.tectoast.emolga.utils.Constants
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import java.util.*
-import java.util.function.Predicate
 
 abstract class PrivateCommand(val name: String) {
     val aliases: List<String> = mutableListOf()
-    var isAllowed = Predicate<User> { true }
+    var isAllowed: suspend (User) -> Boolean = { true }
 
     init {
         commands.add(this)
     }
 
-    fun setIsAllowed(isAllowed: Predicate<User>) {
-        this.isAllowed = isAllowed.or { it.idLong == Constants.FLOID }
+    fun setIsAllowed(isAllowed: suspend (User) -> Boolean) {
+        this.isAllowed = { isAllowed(it) || Constants.FLOID == it.idLong }
     }
 
     private fun checkPrefix(msg: String): Boolean {
@@ -38,7 +37,7 @@ abstract class PrivateCommand(val name: String) {
             val msg = m.contentDisplay
             for (c in commands) {
                 if (!c.checkPrefix(msg)) continue
-                if (!c.isAllowed.test(u)) continue
+                if (!c.isAllowed(u)) continue
                 c.process(e)
             }
         }

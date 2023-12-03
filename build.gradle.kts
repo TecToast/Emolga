@@ -94,7 +94,6 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.11")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     //implementation("mysql:mysql-connector-java:8.0.29")
-    implementation("com.github.TecToast:Toastilities:96e360b1f8")
     //implementation("com.github.TecToast:JSOLF:a43c3e06c7")
     implementation("net.dv8tion:JDA:5.0.0-beta.18")
     implementation("com.zaxxer:HikariCP:5.0.1")

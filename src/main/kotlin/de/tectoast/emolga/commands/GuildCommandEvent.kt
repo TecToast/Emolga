@@ -1,11 +1,9 @@
 package de.tectoast.emolga.commands
 
-import de.tectoast.emolga.commands.Command.ArgumentException
 import de.tectoast.emolga.commands.Command.ArgumentManager
 import de.tectoast.emolga.utils.Constants
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
@@ -17,21 +15,21 @@ class GuildCommandEvent : GenericCommandEvent {
     val guild: Guild
     val textChannel: GuildMessageChannel
     val usedName: String
-    var arguments: ArgumentManager
     val command: Command
+    lateinit var arguments: ArgumentManager
+        private set
 
-    @kotlin.jvm.Throws(ArgumentException::class)
+
     constructor(c: Command, e: MessageReceivedEvent) : super(e.message) {
         member = e.member!!
         guild = e.guild
-        command = c
         this.textChannel = e.guildChannel
-        val template = c.argumentTemplate
-        arguments = runBlocking { template.construct(e, c) }
+        command = c
         usedName = Command.WHITESPACES_SPLITTER.split(msg!!)[0].substring(c.prefix.length)
-        //Thread({
+    }
 
-        //}, "CMD " + c.name).start()
+    suspend fun initialize(c: Command, e: MessageReceivedEvent) {
+        arguments = c.argumentTemplate.construct(e, c)
     }
 
     suspend fun execute() {
@@ -64,11 +62,10 @@ class GuildCommandEvent : GenericCommandEvent {
         command = c
         this.textChannel = e.guildChannel
         usedName = e.name
-        val template = c.argumentTemplate
-        arguments = runBlocking { template.construct(e, c) }
-        //Thread({
+    }
 
-        //}, "CMD " + c.name).start()
+    suspend fun initialize(c: Command, e: SlashCommandInteractionEvent) {
+        arguments = c.argumentTemplate.construct(e, c)
     }
 
 }

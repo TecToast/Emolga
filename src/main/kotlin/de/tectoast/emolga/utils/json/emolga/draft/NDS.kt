@@ -18,9 +18,8 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
-import de.tectoast.toastilities.repeat.RepeatTask
+import de.tectoast.emolga.utils.repeat.RepeatTask
 import dev.minn.jda.ktx.util.SLF4J
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -166,6 +165,7 @@ class NDS : League() {
         RequestBuilder(sid).addColumn("TipGameData!${(gameday + rrSummand + 3).xc()}2", (0..11).map { map[it] ?: 0 })
             .execute()
     }
+
     val rrSummand: Int
         get() = if (rr) 5 else 0
     val gameplanName: String
@@ -290,20 +290,12 @@ _written by Maxifcn_""".trimIndent()
         fun setupRepeatTasks() {
             logger.info("Setting up matchups repeat tasks")
             RepeatTask(
-                defaultTimeFormat.parse("08.10.2023 20:00").toInstant(),
-                5,
-                Duration.ofDays(7L),
-                { runBlocking { doMatchUps(it, withAnnounce = true) } },
-                true
-            )
+                defaultTimeFormat.parse("08.10.2023 20:00").toInstant(), 5, Duration.ofDays(7L), true
+            ) { doMatchUps(it, withAnnounce = true) }
             logger.info("Setting up nominations repeat tasks")
             RepeatTask(
-                defaultTimeFormat.parse("11.10.2023 00:00").toInstant(),
-                5,
-                Duration.ofDays(7L),
-                { runBlocking { doNDSNominate() } },
-                true
-            )
+                defaultTimeFormat.parse("11.10.2023 00:00").toInstant(), 5, Duration.ofDays(7L), true
+            ) { doNDSNominate() }
         }
     }
 }

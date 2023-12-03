@@ -4,11 +4,11 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.CommandCategory
 import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.filterStartsWithIgnoreCase
+import de.tectoast.emolga.database.dbAsync
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.litote.kmongo.eq
 import java.sql.SQLIntegrityConstraintViolationException
@@ -56,7 +56,7 @@ object AddToTierlistCommand :
             return
         }
         e.reply("`$mon` ist nun im $tier-Tier!")
-        val data = AddToTierlistData(mon, tier, tierlist, id)
+        val data = AddToTierlistData(mon, tier, tierlist, id).apply { addToTierlistAutocompletion() }
         val leagues = db.drafts.find(League::guild eq id).toList()
         if (leagues.isNotEmpty()) {
             leagues.forEach {
@@ -70,20 +70,19 @@ object AddToTierlistCommand :
 
 data class AddToTierlistData(val mon: String, val tier: String, val tierlist: Tierlist, val gid: Long) {
 
-    val pkmn by lazy { runBlocking { Command.getDataObject(mon, gid) } }
-    val englishTLName by lazy {
-        runBlocking {
+    val pkmn = dbAsync { Command.getDataObject(mon, gid) }
+    val englishTLName = dbAsync {
             NameConventionsDB.getDiscordTranslation(
                 mon,
                 gid,
                 english = true
             )!!.tlName
-        }
     }
+
     val index by lazy { tierlist.monCount - 1 }
 
-    init {
+    suspend fun addToTierlistAutocompletion() {
         tierlist.addedViaCommand += mon
-        tierlist.addedViaCommand += englishTLName
+        tierlist.addedViaCommand += englishTLName.await()
     }
 }

@@ -7,8 +7,7 @@ import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.records.SorterData
-import de.tectoast.toastilities.repeat.RepeatTask
-import kotlinx.coroutines.runBlocking
+import de.tectoast.emolga.utils.repeat.RepeatTask
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -72,11 +71,9 @@ class ASLCoach : League() {
                 defaultTimeFormat.parse("04.12.2023 00:00").toInstant(),
                 5, Duration.ofDays(7)
             ) {
-                runBlocking {
-                    val msg = "**------------- Spieltag $it -------------**"
-                    jda.getTextChannelById(1170477105339973824)!!.sendMessage(msg).queue()
-                    jda.getTextChannelById(1170477327839412365)!!.sendMessage(msg).queue()
-                }
+                val msg = "**------------- Spieltag $it -------------**"
+                jda.getTextChannelById(1170477105339973824)!!.sendMessage(msg).queue()
+                jda.getTextChannelById(1170477327839412365)!!.sendMessage(msg).queue()
             }
         }
     }

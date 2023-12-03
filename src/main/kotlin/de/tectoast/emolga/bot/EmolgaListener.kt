@@ -96,7 +96,7 @@ object EmolgaListener : ListenerAdapter() {
             }
         }
         try {
-            GuildCommandEvent(command, e).execute()
+            GuildCommandEvent(command, e).apply { initialize(command, e) }.execute()
         } catch (ex: Command.MissingArgumentException) {
             val arg = ex.argument!!
             e.reply(

@@ -12,7 +12,6 @@ import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
-import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
@@ -23,9 +22,7 @@ object NominateCommand : PrivateCommand("nominate") {
 
     init {
         setIsAllowed {
-            runBlocking {
-                it.idLong.also { println("ID: $it") } in db.nds().table.also { println("TABLE: $it") }
-            }.also { println("ISALLOWED: $it") }
+            it.idLong in db.nds().table
         }
         val tiers = listOf("S", "A", "B", "C", "D")
         tiercomparator = compareBy({ it.tier.indexedBy(tiers) }, { it.name })

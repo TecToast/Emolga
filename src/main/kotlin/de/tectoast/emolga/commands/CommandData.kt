@@ -7,7 +7,6 @@ import dev.minn.jda.ktx.messages.reply_
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.interactions.InteractionHook
@@ -22,7 +21,6 @@ abstract class CommandData(
     open val gid: Long
 ) {
 
-    val response get() = runBlocking { responseDeferred.await() }
     val responseDeferred: CompletableDeferred<CommandResponse> = CompletableDeferred()
     var deferred = false
 
@@ -39,6 +37,7 @@ abstract class CommandData(
     val acknowledged get() = responseDeferred.isCompleted
     val textChannel by lazy { jda.getTextChannelById(tc)!! }
 
+    suspend fun awaitResponse() = responseDeferred.await()
     abstract fun reply(
         msg: String = "",
         ephemeral: Boolean = false,

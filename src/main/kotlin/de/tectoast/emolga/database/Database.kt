@@ -106,3 +106,7 @@ fun <T : Table> T.forAll(block: T.(ResultRow) -> Unit) = transaction {
         block(it)
     }
 }
+
+fun <T> dbAsync(block: suspend CoroutineScope.() -> T) = Database.dbScope.async(start = CoroutineStart.LAZY) {
+    block()
+}

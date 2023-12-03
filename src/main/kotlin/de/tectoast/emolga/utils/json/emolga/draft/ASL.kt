@@ -51,8 +51,8 @@ class ASL(
     override fun provideReplayChannel(jda: JDA) = jda.getTextChannelById(replayChannel)
     override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(resultChannel)
 
-    override fun AddToTierlistData.addMonToTierlist() {
-        builder().addRow("Data!K${index + 600}", listOf(mon, pkmn.speed, tier, englishTLName)).execute()
+    override suspend fun AddToTierlistData.addMonToTierlist() {
+        builder().addRow("Data!K${index + 600}", listOf(mon, pkmn.await().speed, tier, englishTLName)).execute()
     }
 
 

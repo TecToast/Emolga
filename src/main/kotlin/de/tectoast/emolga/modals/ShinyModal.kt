@@ -12,7 +12,7 @@ object ShinyModal : ModalListener("shiny") {
         e.jda.openPrivateChannelById(uid)
             .flatMap {
                 it.sendMessage(
-                    "Vielen Dank, dass du das Shiny eingereicht hast. Leider können wir das Shiny unter folgendem Grund nicht berücksichtigen: $reason\n\nBild-URL: $url"
+                    "Vielen Dank, dass du das Shiny eingereicht hast. Leider können wir das Shiny unter folgendem Grund nicht berücksichtigen: **$reason**\n\nBild-URL: $url"
                 )
             }.queue()
         e.message!!.delete().queue()

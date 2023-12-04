@@ -44,7 +44,6 @@ import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
-import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.OptionType
@@ -67,7 +66,6 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.security.SecureRandom
 import java.util.*
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 import java.util.regex.Pattern
@@ -153,23 +151,6 @@ object PrivateCommands {
 
     fun del(e: GenericCommandEvent) {
         e.jda.getTextChannelById(e.getArg(0))?.deleteMessageById(e.getArg(1))?.queue()
-    }
-
-
-    suspend fun troll(e: GenericCommandEvent) {
-        val category = e.jda.getCategoryById(e.getArg(0))
-        val g = category!!.guild
-        val user = g.retrieveMemberById(e.getArg(1)).await()
-        val list: MutableList<AudioChannel?> = ArrayList(category.voiceChannels)
-        list.shuffle()
-        val old = user.voiceState!!.channel
-        list.remove(old)
-        val service = Executors.newScheduledThreadPool(3)
-        var x = 1
-        for (voiceChannel in list) {
-            service.schedule({ g.moveVoiceMember(user, voiceChannel).queue() }, x++.toLong(), TimeUnit.SECONDS)
-        }
-        service.schedule({ g.moveVoiceMember(user, old).queue() }, x.toLong(), TimeUnit.SECONDS)
     }
 
 

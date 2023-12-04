@@ -7,11 +7,10 @@ import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 private const val TURN_ON_TIME = 500
 private const val TURN_OFF_TIME = 500
@@ -60,15 +59,11 @@ class RemoteGPIOManager
 }
 
 object DirectGPIOManager : GPIOManager(BoardType.WPi) {
-    private val service = Executors.newScheduledThreadPool(1)
-    private fun toggle(pc: PC, duration: Int) {
+    private suspend fun toggle(pc: PC, duration: Int) {
         val writePin = pc.getWritePin(boardType)
         exec(arrayOf("/usr/bin/gpio", "write", writePin, "0"))
-        service.schedule(
-            { exec(arrayOf("/usr/bin/gpio", "write", writePin, "1")) },
-            duration.toLong(),
-            TimeUnit.MILLISECONDS
-        )
+        delay(duration.toLong())
+        exec(arrayOf("/usr/bin/gpio", "write", writePin, "1"))
     }
 
     override suspend fun startServer(pc: PC) {

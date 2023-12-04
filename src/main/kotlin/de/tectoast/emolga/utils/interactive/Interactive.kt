@@ -1,11 +1,10 @@
 package de.tectoast.emolga.utils.interactive
 
+import kotlinx.coroutines.*
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
 @Suppress("unused")
@@ -23,20 +22,15 @@ class Interactive(
     val createId: Long
 ) {
     var listener: Listener? = null
-    val threadpool = Executors.newSingleThreadScheduledExecutor()
 
-    var tocancel: ScheduledFuture<*> = threadpool.schedule({
-        tco.sendMessage(timermsg).queue()
-        tco.jda.removeEventListener(listener)
-        onCancel(this)
-    }, maxtime.toLong(), timeunit)
+    lateinit var tocancel: Job
 
 
     init {
         require(maxtime >= 0) { "maxtime has to be higher or equal than 0 (value: $maxtime)" }
         tco.jda.addEventListener(Listener().also { listener = it })
         tco.sendMessage(firstUnfinishedLayer!!.msg).queue()
-
+        startTimer()
     }
 
     private val firstUnfinishedLayer: Layer?
@@ -48,12 +42,23 @@ class Interactive(
         onFinish(user, tco, answers)
     }
 
+    private fun startTimer() {
+        tocancel = scope.launch {
+            delay(timeunit.toMillis(maxtime.toLong()))
+            withContext(NonCancellable) {
+                tco.sendMessage(timermsg).queue()
+                tco.jda.removeEventListener(listener)
+                onCancel(this@Interactive)
+            }
+        }
+    }
+
     inner class Listener : ListenerAdapter() {
         override fun onMessageReceived(e: MessageReceivedEvent) {
             if (e.channel.id != tco.id || e.author.id != user.id || e.messageIdLong == createId) return
             val m = e.message
             val msg = m.contentDisplay
-            tocancel.cancel(false)
+            tocancel.cancel("New message received")
             if (cancelcommands.any { it.equals(msg, ignoreCase = true) }) {
                 tco.sendMessage(cancelmsg).queue()
                 tco.jda.removeEventListener(listener)
@@ -66,11 +71,7 @@ class Interactive(
                 val err = o.msg
                 if (err.isNotEmpty()) tco.sendMessage(err).queue()
                 if (maxtime > 0) {
-                    tocancel = threadpool.schedule({
-                        tco.sendMessage(timermsg).queue()
-                        tco.jda.removeEventListener(listener)
-                        onCancel(this@Interactive)
-                    }, maxtime.toLong(), timeunit)
+                    startTimer()
                 }
                 return
             }
@@ -86,12 +87,12 @@ class Interactive(
             }
             tco.sendMessage(tosend).queue()
             if (maxtime > 0) {
-                tocancel = threadpool.schedule({
-                    tco.sendMessage(timermsg).queue()
-                    tco.jda.removeEventListener(listener)
-                    onCancel(this@Interactive)
-                }, maxtime.toLong(), timeunit)
+                startTimer()
             }
         }
+    }
+
+    companion object {
+        private val scope = CoroutineScope(Dispatchers.Default)
     }
 }

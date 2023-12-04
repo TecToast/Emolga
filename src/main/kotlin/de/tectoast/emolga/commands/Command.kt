@@ -79,7 +79,7 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import org.jetbrains.exposed.sql.Column
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
 import org.slf4j.Marker
@@ -90,8 +90,6 @@ import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.Instant
 import java.util.*
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Function
@@ -1175,11 +1173,9 @@ abstract class Command(
         val replayCount = AtomicInteger()
         protected var lastClipUsed: Long = -1
 
-
-        @JvmStatic
-        protected var calendarService: ScheduledExecutorService = Executors.newScheduledThreadPool(5)
-        protected val moderationService: ScheduledExecutorService = Executors.newScheduledThreadPool(5)
-        protected val birthdayService: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
+        protected var calendarScope = CoroutineScope(Dispatchers.Default)
+        protected val moderationScope = CoroutineScope(Dispatchers.Default)
+        protected val birthdayService = CoroutineScope(Dispatchers.Default)
         const val BOT_DISABLED = false
         const val DISABLED_TEXT =
             "Es finden derzeit große interne Umstrukturierungen statt, ich werde voraussichtlich heute Mittag/Nachmittag wieder einsatzbereit sein :)"
@@ -1350,14 +1346,15 @@ abstract class Command(
 
         fun muteTimer(g: Guild, expires: Long, mem: Long) {
             if (expires == -1L) return
-            moderationService.schedule({
+            moderationScope.launch {
+                delay(expires - System.currentTimeMillis())
                 val gid = g.idLong
                 if (MuteDB.unmute(mem, gid) != 0) {
                     MutedRolesDB.getMutedRole(gid)?.let {
                         g.removeRoleFromMember(mem.usersnowflake, g.getRoleById(it)!!).queue()
                     }
                 }
-            }, expires - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+            }
         }
 
         fun kick(tco: GuildMessageChannel, mod: Member, mem: Member, reason: String) {
@@ -1467,12 +1464,13 @@ abstract class Command(
 
         fun banTimer(g: Guild, expires: Long, mem: Long) {
             if (expires == -1L) return
-            moderationService.schedule({
+            moderationScope.launch {
+                delay(expires - System.currentTimeMillis())
                 val gid = g.idLong
                 if (BanDB.unban(mem, gid) != 0) {
                     g.unban(UserSnowflake.fromId(mem)).queue()
                 }
-            }, expires - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+            }
         }
 
         fun warn(tco: GuildMessageChannel, mod: Member, mem: Member, reason: String) {
@@ -1515,41 +1513,38 @@ abstract class Command(
         }
 
         fun scheduleCalendarEntry(ce: CalendarEntry) {
-            calendarService.schedule(
-                {
-                    try {
-                        transaction {
-                            if (runCatching { ce.refresh() }.let {
-                                    println(
-                                        it.exceptionOrNull()?.stackTraceToString()
-                                    ); it.isFailure
-                                }) return@transaction null
-                            ce.delete()
-                        } ?: return@schedule
-                        println(ce.person)
-                        ce.person?.let { p ->
-                            val tc = emolgajda.getTextChannelById(p.tcid)!!
-                            tc.editMessageComponentsById(
-                                ce.messageid!!,
-                                danger("homework;done", "Gemacht", emoji = Emoji.fromUnicode("✅")).into()
+            calendarScope.launch {
+                delay(ce.expires.toEpochMilli() - System.currentTimeMillis())
+                try {
+                    newSuspendedTransaction {
+                        if (runCatching { ce.refresh() }.let {
+                                println(
+                                    it.exceptionOrNull()?.stackTraceToString()
+                                ); it.isFailure
+                            }) return@newSuspendedTransaction null
+                        ce.delete()
+                    } ?: return@launch
+                    println(ce.person)
+                    ce.person?.let { p ->
+                        val tc = emolgajda.getTextChannelById(p.tcid)!!
+                        tc.editMessageComponentsById(
+                            ce.messageid!!,
+                            danger("homework;done", "Gemacht", emoji = Emoji.fromUnicode("✅")).into()
+                        ).queue()
+                        tc.sendMessage("<@${p.uid}> Hausaufgabe fällig :)").setMessageReference(ce.messageid!!)
+                            .addActionRow(
+                                primary("calendar;delete", "Benachrichtigung löschen")
                             ).queue()
-                            tc.sendMessage("<@${p.uid}> Hausaufgabe fällig :)").setMessageReference(ce.messageid!!)
-                                .addActionRow(
-                                    primary("calendar;delete", "Benachrichtigung löschen")
-                                ).queue()
-                        } ?: run {
-                            val calendarTc: TextChannel = emolgajda.getTextChannelById(CALENDAR_TCID)!!
-                            calendarTc.sendMessage("(<@$FLOID>) ${ce.message}")
-                                .setActionRow(Button.primary("calendar;delete", "Löschen")).queue()
-                            calendarTc.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()
-                        }
-                    } catch (ex: Exception) {
-                        ex.printStackTrace()
+                    } ?: run {
+                        val calendarTc: TextChannel = emolgajda.getTextChannelById(CALENDAR_TCID)!!
+                        calendarTc.sendMessage("(<@$FLOID>) ${ce.message}")
+                            .setActionRow(Button.primary("calendar;delete", "Löschen")).queue()
+                        calendarTc.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()
                     }
-                },
-                (ce.expires.toEpochMilli() - System.currentTimeMillis()).also { println("DELAY: $it") },
-                TimeUnit.MILLISECONDS
-            )
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                }
+            }
         }
 
 
@@ -1731,21 +1726,19 @@ abstract class Command(
 
 
         fun awaitNextDay() {
-            val c = Calendar.getInstance()
-            c.add(Calendar.DAY_OF_MONTH, 1)
-            c[Calendar.HOUR_OF_DAY] = 0
-            c[Calendar.MINUTE] = 0
-            c[Calendar.SECOND] = 0
-            val tilnextday = c.timeInMillis - System.currentTimeMillis() + 1000
-            logger.info("System.currentTimeMillis() = " + System.currentTimeMillis())
-            logger.info("tilnextday = $tilnextday")
-            logger.info("System.currentTimeMillis() + tilnextday = " + (System.currentTimeMillis() + tilnextday))
-            logger.info("SELECT REQUEST: " + "SELECT * FROM birthdays WHERE month = " + (c[Calendar.MONTH] + 1) + " AND day = " + c[Calendar.DAY_OF_MONTH])
-            if (EmolgaMain.NOTEMPVERSION) {
-                birthdayService.schedule({
-                    BirthdayDB.checkBirthdays(c, flegmonjda.getTextChannelById(605650587329232896L)!!)
-                    awaitNextDay()
-                }, tilnextday, TimeUnit.MILLISECONDS)
+            birthdayService.launch {
+                while (true) {
+                    val c = Calendar.getInstance()
+                    c.add(Calendar.DAY_OF_MONTH, 1)
+                    c[Calendar.HOUR_OF_DAY] = 0
+                    c[Calendar.MINUTE] = 0
+                    c[Calendar.SECOND] = 0
+                    val tilnextday = c.timeInMillis - System.currentTimeMillis() + 1000
+                    if (EmolgaMain.NOTEMPVERSION) {
+                        delay(tilnextday)
+                        BirthdayDB.checkBirthdays(c, flegmonjda.getTextChannelById(605650587329232896L)!!)
+                    }
+                }
             }
         }
 

@@ -58,15 +58,15 @@ class NDSML : League() {
                     val team = teamnames[u1]!!
                     val oppo = teamnames[u2]!!
                     // Speed values
-                    b.addSingle("$team!B17", "={${Coord(oppo, "B", 15).spreadTo(x = 11 * 2)}}")
+                    b.addSingle("$team!B17", "={${Coord(oppo, "B15").spreadTo(x = 11 * 2)}}")
                     // Icons
-                    b.addSingle("$team!B18", "={${Coord(oppo, "B", 14).spreadTo(x = 11 * 2)}}")
+                    b.addSingle("$team!B18", "={${Coord(oppo, "B14").spreadTo(x = 11 * 2)}}")
                     // KD
-                    b.addSingle("$team!B20", "={${Coord(oppo, "B", 13).spreadTo(x = 11 * 2)}}")
+                    b.addSingle("$team!B20", "={${Coord(oppo, "B13").spreadTo(x = 11 * 2)}}")
                     // MU
                     b.addColumn(
                         "$team!A17", listOf(
-                            "=${Coord(oppo, "Y", 2)}", "=${Coord(oppo, "B", 2)}"
+                            "=${Coord(oppo, "Y2")}", "=${Coord(oppo, "B2")}"
                         )
                     )
 

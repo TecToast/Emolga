@@ -15,6 +15,12 @@ data class Coord(val sheet: String, val x: Int, val y: Int) : TableCoord {
         convert(x), y
     )
 
+    constructor(sheet: String, xy: String) : this(
+        sheet,
+        convert(xy.replace(Regex("[^A-Z]"), "")),
+        xy.replace(Regex("[^0-9]"), "").toInt()
+    )
+
     override fun provideCoord(index: Int, lc: LeagueCreator): Coord {
         return plusY(index * lc.tableStep)
     }

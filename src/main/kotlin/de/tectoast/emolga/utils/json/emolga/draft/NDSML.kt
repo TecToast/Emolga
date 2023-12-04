@@ -38,7 +38,7 @@ class NDSML : League() {
     companion object {
         fun setupRepeatTasks() {
             RepeatTask(
-                defaultTimeFormat.parse("28.01.2024 20:00").toInstant(), 5, Duration.ofDays(7L), true
+                defaultTimeFormat.parse("28.01.2024 20:00").toInstant(), 9, Duration.ofDays(7L), true
             ) { doMatchUps(it) }
         }
 

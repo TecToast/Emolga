@@ -19,7 +19,7 @@ data class Coord(val sheet: String, val x: Int, val y: Int) : TableCoord {
         return plusY(index * lc.tableStep)
     }
 
-    override fun toString() = "'$sheet'!$xAsC$y"
+    override fun toString() = "'${sheet.replace("'", "''")}'!$xAsC$y"
     val formula get() = "=$this"
 
     val withoutSheet get() = "$xAsC$y"

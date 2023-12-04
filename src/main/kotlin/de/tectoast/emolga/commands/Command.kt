@@ -1817,8 +1817,9 @@ abstract class Command(
         }
 
         private fun setupManualRepeatTasks() {
-            NDS.setupRepeatTasks()
+//            NDS.setupRepeatTasks()
             ASLCoach.setupRepeatTasks()
+            NDSML.setupRepeatTasks()
         }
 
 

@@ -114,7 +114,7 @@ object Analysis {
                 currentLineIndex++
                 logger.debug(line)
                 nextLine = game.getOrNull(currentLineIndex + 1) ?: ""
-                SDEffect.effects[operation]?.let { it.forEach { e -> e.execute(split, this) } }
+                SDEffect.effects[operation]?.let { it.forEach { e -> e.execute(split) } }
                 lastLine = line
             }
             logger.info("Finished analyse!")

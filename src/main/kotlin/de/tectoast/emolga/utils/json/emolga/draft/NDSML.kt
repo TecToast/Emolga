@@ -1,15 +1,16 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.defaultTimeFormat
-import de.tectoast.emolga.commands.x
-import de.tectoast.emolga.commands.y
+import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
+import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.Coord
+import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -28,6 +29,45 @@ class NDSML : League() {
 
     override val duringTimerSkipMode = NEXT_PICK
     override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
+
+    @Transient
+    override val docEntry = DocEntry.create(this) {
+        newSystem(SorterData("Tabelle!C3:K12".toDocRange(), newMethod = true, cols = listOf(2, 8, 6))) {
+            val y = index.y(10, 6)
+            val gameplanName = "Spielplan"
+            val gameplanSheet = 453772599
+            val teamnames =
+                db.signups.get(Constants.G.NDS)!!.users.toList().associate { it.first to it.second.teamname!! }
+            b.addSingle(
+                "$gameplanName!${Command.getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
+            )
+            b.addSingle(coord(gameplanName, gdi.x(9, 4), index.y(10, 3)), numberOne)
+            b.addSingle(coord(gameplanName, gdi.x(9, 6), index.y(10, 3)), numberTwo)
+            for (i in 0..1) {
+                val x = gdi.x(9, i.y(8, 1))
+                val dataI = i.swap()
+                NDS.logger.info("i: $i")
+                NDS.logger.info("dataI: $dataI")
+                b.addColumn(
+                    coord(gameplanName, x, y),
+                    this.replayData.mons[dataI].map { NameConventionsDB.convertOfficialToTL(it, guild)!! })
+                b.addColumn(coord(gameplanName, gdi.x(9, i.y(4, 3)), y), kills[dataI])
+                this.deaths[dataI].forEachIndexed { index, dead ->
+                    if (dead) b.addCellFormatChange(
+                        gameplanSheet,
+                        "$x${y + index}",
+                        NDS.deathFormat,
+                        "textFormat(foregroundColorStyle,strikethrough)"
+                    )
+                }
+                if (winnerIndex == i) {
+                    val s = "!${(gdi * 2 + 4).xc()}10"
+                    b.addSingle(teamnames[replayData.uids[i]] + s, "$higherNumber:0")
+                    b.addSingle(teamnames[replayData.uids[1 - i]] + s, "0:$higherNumber")
+                }
+            }
+        }
+    }
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)

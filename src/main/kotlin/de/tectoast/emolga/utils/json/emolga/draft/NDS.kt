@@ -178,7 +178,7 @@ class NDS : League() {
     companion object {
         val logger: Logger by SLF4J
 
-        private val deathFormat = CellFormat().apply {
+        val deathFormat = CellFormat().apply {
             textFormat = TextFormat().apply {
                 foregroundColorStyle = ColorStyle().apply {
                     rgbColor = convertColor(0x000000)

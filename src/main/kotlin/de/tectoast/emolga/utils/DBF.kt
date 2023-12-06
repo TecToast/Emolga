@@ -50,7 +50,7 @@ object DBF {
         }
         logger.info(members.toString())
         logger.info(lifes.toString())
-        adminStatusID = adminChannel.send(
+        adminStatusID = adminChannel().send(
             "Votes:", components = listOf(
                 primary("dumbestflies;newround", "Neue Runde"),
             ).into()
@@ -89,7 +89,7 @@ object DBF {
         e.reply_("Du hast für <@$to> gevotet!", ephemeral = true).queue()
         updateGameStatusMessage()
         updateAdminStatusMessage()
-        if (allVoted()) adminChannel.sendMessage("Alle haben gevotet! <@${Constants.FLOID}>")
+        if (allVoted()) adminChannel().sendMessage("Alle haben gevotet! <@${Constants.FLOID}>")
             .delay(1.seconds.toJavaDuration()).flatMap(
                 Message::delete
             ).queue()
@@ -98,7 +98,8 @@ object DBF {
     suspend fun updateAdminStatusMessage() {
         val entries = votes.entries.groupingBy { it.value }.eachCount().entries.sortedByDescending { it.value }
         if (allVoted()) votedSet = entries
-        adminChannel.editMessageById(adminStatusID, "Votes:\n${
+        adminChannel().editMessageById(
+            adminStatusID, "Votes:\n${
             votes.entries.joinToString("\n") {
                 "<@${it.key}> -> <@${it.value}>"
             }
@@ -144,21 +145,22 @@ object DBF {
 
     @Suppress("unused")
     private sealed class AdminChannelProvider {
-        abstract fun provideChannel(): MessageChannel
+        abstract suspend fun provideChannel(): MessageChannel
 
         data object MyServer : AdminChannelProvider() {
-            override fun provideChannel(): MessageChannel =
+            override suspend fun provideChannel(): MessageChannel =
                 EmolgaMain.emolgajda.getChannel<MessageChannel>(1126196072839139490)!!
         }
 
         class PN(private val uid: Long) : AdminChannelProvider() {
-            override fun provideChannel(): MessageChannel = EmolgaMain.emolgajda.openPrivateChannelById(uid).complete()
+            override suspend fun provideChannel(): MessageChannel =
+                EmolgaMain.emolgajda.openPrivateChannelById(uid).await()
         }
     }
 
     private val adminChannelProvider = AdminChannelProvider.PN(Constants.HENNY)
     private val gameChannel get() = EmolgaMain.emolgajda.getChannel<GuildMessageChannel>(1126193988051931277)!!
-    private val adminChannel get() = adminChannelProvider.provideChannel()
+    private suspend fun adminChannel() = adminChannelProvider.provideChannel()
     private fun allVoted() = votes.size == members.size
     lateinit var allQuestions: List<String>
     lateinit var regularQuestions: MutableSet<String>

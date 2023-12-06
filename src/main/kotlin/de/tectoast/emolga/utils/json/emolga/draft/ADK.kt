@@ -1,16 +1,11 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.commands.coordXMod
-import de.tectoast.emolga.commands.toDocRange
 import de.tectoast.emolga.commands.xc
 import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
-import de.tectoast.emolga.utils.automation.structure.DocEntry
-import de.tectoast.emolga.utils.records.SorterData
-import de.tectoast.emolga.utils.records.x
-import de.tectoast.emolga.utils.records.y
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -28,22 +23,22 @@ class ADK : League() {
     @Transient
     override val timer = DraftTimer(TimerInfo(10, 22, delayInMins = 120))
 
-    @Transient
-    override val docEntry = DocEntry.create(this) {
-        val startCoord = "Tabelle und Killliste" x "D" y 6
-        newSystem(
-            sorterData = SorterData(
-                startCoord.plusX(cid.y('M' - 'C', 0)).spreadBy(5, 5).toDocRange(),
-                newMethod = true,
-                cols = listOf(2, 3, 5)
-            )
-        ) {
-            b.addSingle(
-                gdi.coordXMod("Spielplan", 2, 'G' - 'C', cid.y('M' - 'C', 4), 21 - 13, 13 + index),
-                defaultGameplanString
-            )
-        }
-    }
+//    @Transient
+//    override val docEntry = DocEntry.create(this) {
+//        val startCoord = "Tabelle und Killliste" x "D" y 6
+//        newSystem(
+//            sorterData = SorterData(
+//                startCoord.plusX(cid.y('M' - 'C', 0)).spreadBy(5, 5).toDocRange(),
+//                newMethod = true,
+//                cols = listOf(2, 3, 5)
+//            )
+//        ) {
+//            b.addSingle(
+//                gdi.coordXMod("Spielplan", 2, 'G' - 'C', cid.y('M' - 'C', 4), 21 - 13, 13 + index),
+//                defaultGameplanString
+//            )
+//        }
+//    }
 
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {

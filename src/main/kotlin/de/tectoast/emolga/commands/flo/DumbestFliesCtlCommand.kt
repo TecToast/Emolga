@@ -43,6 +43,7 @@ object DumbestFliesCtlCommand : Command(
                     }
                 }
             }
+            DBF.reloadMembers()
             e.done(true)
         }
     }
@@ -64,6 +65,7 @@ object DumbestFliesCtlCommand : Command(
             transaction {
                 DumbestFliesDB.deleteWhere { id eq e.arguments.getMember("user").idLong }
             }
+            DBF.reloadMembers()
             e.done(true)
         }
     }

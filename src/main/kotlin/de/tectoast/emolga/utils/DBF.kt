@@ -41,13 +41,8 @@ object DBF {
     private val logger = KotlinLogging.logger {}
     suspend fun initWithDB(lifesAmount: Int) = newSuspendedTransaction {
         maxLifes = lifesAmount
-        members.clear()
         votes.clear()
-        DumbestFliesDB.selectAll().forEach {
-            val id = it[DumbestFliesDB.id]
-            members[id] = it[DumbestFliesDB.name]
-            lifes[id] = lifesAmount
-        }
+        reloadMembers()
         logger.info(members.toString())
         logger.info(lifes.toString())
         adminStatusID = adminChannel().send(
@@ -56,9 +51,20 @@ object DBF {
             ).into()
         ).await().idLong
         gameStatusID = gameChannel.send(
-            generateGameStatusMessage(),
-            components = playerSelectMenu
+            generateGameStatusMessage(), components = playerSelectMenu
         ).await().idLong
+    }
+
+    suspend fun reloadMembers() {
+        members.clear()
+        newSuspendedTransaction {
+            DumbestFliesDB.selectAll().forEach {
+                val id = it[DumbestFliesDB.id]
+                members[id] = it[DumbestFliesDB.name]
+                lifes[id] = maxLifes
+            }
+        }
+        updateGameStatusMessage()
     }
 
     private val playerSelectMenu
@@ -98,20 +104,19 @@ object DBF {
     suspend fun updateAdminStatusMessage() {
         val entries = votes.entries.groupingBy { it.value }.eachCount().entries.sortedByDescending { it.value }
         if (allVoted()) votedSet = entries
-        adminChannel().editMessageById(
-            adminStatusID, "Votes:\n${
+        adminChannel().editMessageById(adminStatusID, "Votes:\n${
             votes.entries.joinToString("\n") {
                 "<@${it.key}> -> <@${it.value}>"
             }
         }\n\nStand der Dinge:\n${
             entries.joinToString("\n") { "<@${it.key}>: ${it.value}" }
-        }"
-        ).await()
+        }").await()
     }
 
     private suspend fun updateGameStatusMessage() {
-        gameChannel.editMessage(gameStatusID.toString(), generateGameStatusMessage(), components = playerSelectMenu)
-            .await()
+        gameStatusID.takeIf { it != -1L }?.let {
+            gameChannel.editMessage(it.toString(), generateGameStatusMessage(), components = playerSelectMenu).await()
+        }
     }
 
     suspend fun endOfRound(e: ButtonInteractionEvent) {
@@ -216,8 +221,7 @@ object DBF {
 
     fun newNormalQuestion(e: ButtonInteractionEvent) {
         val question = regularQuestions.randomOrNull() ?: return e.reply_(
-            "Keine Fragen mehr!",
-            ephemeral = true
+            "Keine Fragen mehr!", ephemeral = true
         ).queue()
         regularQuestions.remove(question)
         e.reply_("[${regularQuestions.size}] $question", components = questionComponents, ephemeral = true).queue()
@@ -226,8 +230,7 @@ object DBF {
 
     fun newEstimateQuestion(e: ButtonInteractionEvent) {
         val question = estimateQuestions.randomOrNull() ?: return e.reply_(
-            "Keine Fragen mehr!",
-            ephemeral = true
+            "Keine Fragen mehr!", ephemeral = true
         ).queue()
         estimateQuestions.remove(question)
         e.reply_("[${estimateQuestions.size}] $question", components = questionComponents, ephemeral = true).queue()

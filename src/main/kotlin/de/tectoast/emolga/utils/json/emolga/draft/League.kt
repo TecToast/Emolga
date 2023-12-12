@@ -61,7 +61,7 @@ sealed class League {
     open val gamedays: Int by lazy { battleorder.let { if (it.isEmpty()) table.size - 1 else it.size } }
 
     @Transient
-    val points: PointsManager = PointsManager(this)
+    val points: PointsManager = PointsManager()
     val noAutoStart = false
 
     val timerStart: Long? = null
@@ -637,6 +637,23 @@ sealed class League {
         )
     }
 
+    inner class PointsManager {
+        private val points = mutableMapOf<Long, Int>()
+
+        operator fun get(member: Long) = points.getOrPut(member) {
+            val isPoints = tierlist.mode.isPoints()
+            tierlist.points - picks[member]!!.filterNot { it.quit }.sumOf {
+                if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
+                    it.tier
+                ) else if (tierlist.variableMegaPrice && it.name.isMega) it.tier.substringAfter("#").toInt() else 0
+            }
+        }
+
+        fun add(member: Long, points: Int) {
+            this.points[member] = this[member] + points
+        }
+    }
+
     companion object {
         val logger: Logger by SLF4J
         val allTimers = mutableMapOf<String, Job>()
@@ -871,26 +888,6 @@ data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
 
     override fun League.disableTimer(): Boolean {
         return pseudoEnd
-    }
-}
-
-
-class PointsManager(val league: League) {
-    private val points = mutableMapOf<Long, Int>()
-
-    operator fun get(member: Long) = points.getOrPut(member) {
-        with(league) {
-            val isPoints = tierlist.mode.isPoints()
-            tierlist.points - picks[member]!!.filterNot { it.quit }.sumOf {
-                if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
-                    it.tier
-                ) else if (tierlist.variableMegaPrice && it.name.isMega) it.tier.substringAfter("#").toInt() else 0
-            }
-        }
-    }
-
-    fun add(member: Long, points: Int) {
-        this.points[member] = this[member] + points
     }
 }
 

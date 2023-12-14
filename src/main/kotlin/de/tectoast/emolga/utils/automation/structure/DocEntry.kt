@@ -40,9 +40,12 @@ class DocEntry private constructor(val league: League) {
     var winProcessor: ResultStatProcessor? = null
     var looseProcessor: ResultStatProcessor? = null
     var resultCreator: (suspend AdvancedResult.() -> Unit)? = null
-    var sorterData: SorterData
+    var sorterData: SorterData?
         get() = error("Not implemented")
-        set(value) = sorterDatas.put("default", value).let {}
+        set(value) {
+            if (value != null)
+                sorterDatas["default"] = value
+        }
     private val sorterDatas = mutableMapOf<String, SorterData>()
     var setStatIfEmpty = false
     var monsOrder: (List<DraftPokemon>) -> List<String> = { l -> l.map { it.name } }
@@ -54,7 +57,7 @@ class DocEntry private constructor(val league: League) {
         sorterDatas[leaguename] = sorterData
     }
 
-    fun newSystem(sorterData: SorterData, resultCreator: (suspend AdvancedResult.() -> Unit)) {
+    fun newSystem(sorterData: SorterData?, resultCreator: (suspend AdvancedResult.() -> Unit)) {
         val dataSheet = league.dataSheet
         val gap = league.newSystemGap
         killProcessor = BasicStatProcessor {
@@ -302,7 +305,7 @@ class DocEntry private constructor(val league: League) {
                                 data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Long, DirectCompareData>> { o1, o2 ->
                                     val compare = o1.value.points.compareTo(o2.value.points)
                                     if (compare != 0) return@Comparator compare
-                                    for (directCompareOption in sorterData.directCompare) {
+                                    for (directCompareOption in this.directCompare) {
                                         val compare1 = directCompareOption.getFromData(o1.value)
                                             .compareTo(directCompareOption.getFromData(o2.value))
                                         if (compare1 != 0) return@Comparator compare1

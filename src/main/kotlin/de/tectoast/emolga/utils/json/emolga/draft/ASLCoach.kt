@@ -1,12 +1,14 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.commands.coord
+import de.tectoast.emolga.commands.defaultTimeFormat
+import de.tectoast.emolga.commands.x
+import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.automation.structure.DocEntry
-import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -26,12 +28,7 @@ class ASLCoach : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(
-            SorterData(
-                listOf("Tabellen!B5:J10", "Tabellen!B13:J18").map { it.toDocRange() },
-                cols = listOf(2, 8, 6)
-            )
-        ) {
+        newSystem(null) {
             b.addSingle(
                 coord("Spielplan", gdi.x(5, 2), index.y(6, 5 + level)),
                 defaultGameplanString

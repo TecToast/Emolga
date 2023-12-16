@@ -66,9 +66,7 @@ object LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Dra
                 e.hook.send("Das Logo darf nicht größer als 3MB sein!", ephemeral = true).queue()
                 return@withContext null
             }
-            val checksum = MessageDigest.getInstance("SHA-256").digest(bytes).fold("") { str, it ->
-                str + "%02x".format(it)
-            }.take(15)
+            val checksum = hashBytes(bytes)
             bytes to checksum
         } ?: return
         e.hook.send("Das Logo wurde erfolgreich hochgeladen!", ephemeral = true).queue()
@@ -87,7 +85,18 @@ object LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Dra
             } (${signUpData.teamname}):**"
         )
             .addFiles(FileUpload.fromData(bytes, fileName)).await().idLong
+        uploadToCloud(bytes, fileExtension, e.guild.idLong, uid, logoMid, checksum, fileName)
+    }
 
+    suspend fun uploadToCloud(
+        bytes: ByteArray,
+        fileExtension: String,
+        gid: Long,
+        uid: Long,
+        logoMid: Long,
+        checksum: String = hashBytes(bytes),
+        fileName: String = "$checksum.$fileExtension",
+    ) =
         withContext(Dispatchers.IO) {
             val logoData = db.logochecksum.findOne(LogoChecksum::checksum eq checksum) ?: run {
                 val fileId = Google.uploadFileToDrive(
@@ -99,12 +108,16 @@ object LogoCommand : Command("logo", "Reicht dein Logo ein", CommandCategory.Dra
             val url = "https://drive.google.com/uc?export=download&id=${logoData.fileId}"
             jda.getTextChannelById(1180631129603190824)!!.sendMessage("`$url`\n$url").queue()
             db.signups.updateOne(
-                LigaStartData::guild eq e.guild.idLong,
+                LigaStartData::guild eq gid,
                 set(
                     LigaStartData::users.keyProjection(uid) / SignUpData::logoUrl setTo checksum,
                     LigaStartData::users.keyProjection(uid) / SignUpData::logomid setTo logoMid
                 )
             )
         }
-    }
+
+
+    private fun hashBytes(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).fold("") { str, it ->
+        str + "%02x".format(it)
+    }.take(15)
 }

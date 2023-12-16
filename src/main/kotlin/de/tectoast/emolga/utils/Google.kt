@@ -58,18 +58,19 @@ object Google {
             ).setApplicationName("emolga").build()
         }
 
-    val driveService: Drive by lazy {
-        refreshTokenIfNotPresent()
-        Drive.Builder(
-            GoogleNetHttpTransport.newTrustedTransport(),
-            GsonFactory.getDefaultInstance(),
-            Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(
-                accesstoken
+    val driveService: Drive
+        get() {
+            refreshTokenIfNotPresent()
+            return Drive.Builder(
+                GoogleNetHttpTransport.newTrustedTransport(),
+                GsonFactory.getDefaultInstance(),
+                Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(
+                    accesstoken
+                )
             )
-        )
-            .setApplicationName("emolga")
-            .build()
-    }
+                .setApplicationName("emolga")
+                .build()
+        }
 
     private fun refreshTokenIfNotPresent() {
         if (accesstoken == null || System.currentTimeMillis() - lastUpdate > 3000000) generateAccessToken()

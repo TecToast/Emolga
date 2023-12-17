@@ -236,7 +236,10 @@ data class LigaStartData(
         channel.editMessageComponentsById(
             announceMessageId, primary("signupclosed", "Anmeldung geschlossen", disabled = true).into()
         ).queue()
-        channel.sendMessage("_----------- Anmeldung geschlossen -----------_").queue()
+        val msg = "_----------- Anmeldung geschlossen -----------_"
+        channel.sendMessage(msg).queue()
+        if (announceChannel != signupChannel) EmolgaMain.emolgajda.getTextChannelById(signupChannel)!!.sendMessage(msg)
+            .queue()
         if (forced) updateSignupMessage(true)
     }
 

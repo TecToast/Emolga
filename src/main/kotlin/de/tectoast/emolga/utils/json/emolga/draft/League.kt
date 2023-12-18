@@ -713,33 +713,33 @@ val String.isMega get() = "-Mega" in this
 data class AllowedData(val u: Long, var mention: Boolean = false, var teammate: Boolean = false)
 
 sealed class DraftData(
-    val league: League,
-    val pokemon: String,
-    val pokemonofficial: String,
-    val tier: String,
-    val mem: Long,
-    val indexInRound: Int,
-    val changedIndex: Int,
-    val picks: MutableList<DraftPokemon>,
-    val round: Int,
-    val memIndex: Int,
+    open val league: League,
+    open val pokemon: String,
+    open val pokemonofficial: String,
+    open val tier: String,
+    open val mem: Long,
+    open val indexInRound: Int,
+    open val changedIndex: Int,
+    open val picks: MutableList<DraftPokemon>,
+    open val round: Int,
+    open val memIndex: Int,
 ) {
     val roundIndex get() = round - 1
     abstract val changedOnTeamsiteIndex: Int
 }
 
 @Suppress("unused")
-class PickData(
-    league: League,
-    pokemon: String,
-    pokemonofficial: String,
-    tier: String,
-    mem: Long,
-    indexInRound: Int,
-    changedIndex: Int,
-    picks: MutableList<DraftPokemon>,
-    round: Int,
-    memIndex: Int,
+data class PickData(
+    override val league: League,
+    override val pokemon: String,
+    override val pokemonofficial: String,
+    override val tier: String,
+    override val mem: Long,
+    override val indexInRound: Int,
+    override val changedIndex: Int,
+    override val picks: MutableList<DraftPokemon>,
+    override val round: Int,
+    override val memIndex: Int,
     val freePick: Boolean
 ) : DraftData(league, pokemon, pokemonofficial, tier, mem, indexInRound, changedIndex, picks, round, memIndex) {
     override val changedOnTeamsiteIndex: Int by lazy {

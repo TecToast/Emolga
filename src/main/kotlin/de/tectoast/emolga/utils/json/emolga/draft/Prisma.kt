@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
+import de.tectoast.emolga.commands.coordXMod
 import de.tectoast.emolga.commands.draft.during.BanCommandArgs
 import de.tectoast.emolga.commands.x
 import de.tectoast.emolga.utils.RequestBuilder
@@ -10,8 +11,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("Prisma")
 class Prisma : League() {
-    override val teamsize = 11
-
+    override val teamsize = 12
+    override val pickBuffer = 5
     val bannedMons: MutableSet<String> = mutableSetOf()
 
     override fun beforePick(): String? {
@@ -20,11 +21,22 @@ class Prisma : League() {
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data.copy(round = convertToPickRound(data.round)))
-        addPokemonToDoc(data.pokemon)
+        addPokemonToDraftorderSheet(data.pokemon)
+        addSingle(data.memIndex.coordXMod("Teamseite", 4, 4, 3, 15, 4 + data.changedOnTeamsiteIndex), data.pokemon)
     }
 
-    private fun RequestBuilder.addPokemonToDoc(pokemon: String) {
+    override suspend fun isPicked(mon: String, tier: String?): Boolean {
+        return super.isPicked(mon, tier) || mon in bannedMons
+    }
+
+    override fun checkUpdraft(specifiedTier: String, officialTier: String): String? {
+        val allowedTier = tierRanges.first { round in it.first }.second
+        return if (officialTier != allowedTier) "In dieser Runde dürfen nur Pokemon aus dem $allowedTier-Tier gepickt/gebannt werden!" else null
+    }
+
+    private fun RequestBuilder.addPokemonToDraftorderSheet(pokemon: String) {
         val r = round - 1
+        val indexInRound = indexInRound(round)
         addSingle(
             Coord(
                 "Draftreihenfolge", when (r) {
@@ -39,19 +51,27 @@ class Prisma : League() {
                     in 7..11 -> 27
                     in 12..16 -> 38
                     else -> 49
-                }
+                } + indexInRound
             ), pokemon
         )
     }
 
     fun RequestBuilder.banDoc(data: BanCommandArgs) {
         val pokemon = data.pokemon.tlName
-        addPokemonToDoc(pokemon)
+        addPokemonToDraftorderSheet(pokemon)
         addSingle("Tierliste!G${bannedMons.size + 2}", pokemon)
     }
 
     companion object {
         val banRounds = setOf(1, 4, 6, 8, 10, 13, 15)
+        val tierRanges = setOf(
+            1..3 to "S",
+            4..7 to "A",
+            8..12 to "B",
+            13..17 to "C",
+            18..19 to "D",
+        )
+
         fun convertToPickRound(r: Int) = r - banRounds.indexOfFirst { it > r }
     }
 }

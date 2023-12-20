@@ -122,7 +122,8 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                         )
                     }.toTypedArray()
                     val query = and(
-                        PickedMonsData::mons all noOtherForm.map { it.official }, *filters
+                        *(if (noOtherForm.isNotEmpty()) arrayOf((PickedMonsData::mons all noOtherForm.map { it.official })) else emptyArray()),
+                        *filters
                     )
                     val finalQuery = and(PickedMonsData::guild eq gid, query)
                     val possible = pickedMons.find(finalQuery).toList()

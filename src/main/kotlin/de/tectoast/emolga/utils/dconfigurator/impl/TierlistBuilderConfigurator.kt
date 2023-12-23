@@ -2,8 +2,6 @@ package de.tectoast.emolga.utils.dconfigurator.impl
 
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.embedColor
-import de.tectoast.emolga.commands.file
-import de.tectoast.emolga.commands.myJSON
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.dconfigurator.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -16,7 +14,6 @@ import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
-import kotlinx.serialization.encodeToString
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
@@ -27,7 +24,6 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.litote.kmongo.eq
 import org.litote.kmongo.keyProjection
 import org.litote.kmongo.set
@@ -294,14 +290,14 @@ class TierlistBuilderConfigurator(
         )
     )
 
-    private fun saveToFile() {
-        "Tierlists/$guildId.json".file().writeText(myJSON.encodeToString(Tierlist(guildId).apply {
+    private suspend fun saveToFile() {
+        db.tierlist.insertOne(Tierlist(guildId).apply {
             this.prices += this@TierlistBuilderConfigurator.prices!!
             this@TierlistBuilderConfigurator.freepicks?.let { this.freepicks += it }
             this@TierlistBuilderConfigurator.points?.let { this.points = it }
             this.mode = this@TierlistBuilderConfigurator.tierlistMode!!
-        }))
-        transaction {
+        })
+        newSuspendedTransaction {
             Tierlist.batchInsert(tierlistcols.flatMapIndexed { index, strings ->
                 strings.map {
                     DraftPokemon(

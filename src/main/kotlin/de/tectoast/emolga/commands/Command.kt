@@ -117,7 +117,7 @@ abstract class Command(
     /**
      * List containing guild ids where this command is enabled, empty if it is enabled in all guilds
      */
-    private val allowedGuilds: List<Long>
+    private val allowedGuilds = guilds.toList()
 
     /**
      * Set containing all aliases of this command
@@ -180,10 +180,6 @@ abstract class Command(
     var adminSlash = false
     val slashGuilds: MutableSet<Long> = HashSet()
     val childCommands: MutableMap<String, Command> = LinkedHashMap()
-
-    init {
-        allowedGuilds = guilds.toList()
-    }
 
     constructor(name: String, help: String) : this(name, help, null)
 

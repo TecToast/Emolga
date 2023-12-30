@@ -31,7 +31,7 @@ object RandomPickCommand : TestableCommand<RandomPickCommandArgs>("randompick", 
         e.arguments.getNullable("type")
     )
 
-    context (CommandData)
+    context (InteractionData)
     override suspend fun exec(e: RandomPickCommandArgs) {
         val d =
             League.byCommand()?.first ?: return reply(

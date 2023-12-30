@@ -51,7 +51,7 @@ object SwitchCommand : TestableCommand<SwitchCommandArgs>("switch", "Switcht ein
         e.arguments.getDraftName("newmon")
     )
 
-    context (CommandData)
+    context (InteractionData)
     override suspend fun exec(e: SwitchCommandArgs) {
         val d =
             League.byCommand()?.first ?: return reply(

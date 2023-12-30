@@ -18,7 +18,7 @@ object SendPNCommand : TestableCommand<SendPNCommandArgs>("sendpn", "Sendet PNs"
         e.arguments.getText("text")
     )
 
-    context (CommandData)
+    context (InteractionData)
     override suspend fun exec(e: SendPNCommandArgs) {
         jda.openPrivateChannelById(e.user).flatMap { channel ->
             channel.sendMessage(e.text)

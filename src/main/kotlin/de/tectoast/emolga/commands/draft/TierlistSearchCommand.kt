@@ -1,9 +1,6 @@
 package de.tectoast.emolga.commands.draft
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
-import de.tectoast.emolga.commands.GuildCommandEvent
-import de.tectoast.emolga.commands.Translation
+import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 import dev.minn.jda.ktx.messages.send
@@ -15,7 +12,7 @@ object TierlistSearchCommand :
     init {
         argumentTemplate = ArgumentManagerTemplate.create {
             add("tier", "Tier", "Das Tier, in dem du suchen möchtest", ArgumentManagerTemplate.Text.any())
-            addEngl("type", "Typ", "Der Typ, den du suchen möchtest", Translation.Type.TYPE)
+            add("type", "Typ", "Der Typ, den du suchen möchtest", Translation.Type.TYPE, language = Language.ENGLISH)
             example = "!tierlistsearch A Water"
         }
         slash(true, Constants.G.ASL)

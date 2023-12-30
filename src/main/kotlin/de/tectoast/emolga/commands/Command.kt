@@ -915,28 +915,12 @@ abstract class Command(
                 help: String,
                 type: ArgumentType,
                 optional: Boolean = false,
-                customErrorMessage: String? = null
+                customErrorMessage: String? = null,
+                language: Language = Language.GERMAN
             ): Builder {
                 arguments.add(
                     Argument(
-                        id, name, help, type, optional, Language.GERMAN, customErrorMessage
-                    )
-                )
-                return this
-            }
-
-
-            fun addEngl(
-                id: String,
-                name: String,
-                help: String,
-                type: ArgumentType,
-                optional: Boolean = false,
-                customErrorMessage: String? = null
-            ): Builder {
-                arguments.add(
-                    Argument(
-                        id, name, help, type, optional, Language.ENGLISH, customErrorMessage
+                        id, name, help, type, optional, language, customErrorMessage
                     )
                 )
                 return this
@@ -2132,7 +2116,7 @@ abstract class Command(
             resultchannelParam: GuildMessageChannel,
             message: Message? = null,
             fromAnalyseCommand: InteractionHook? = null,
-            fromReplayCommand: CommandData? = null,
+            fromReplayCommand: InteractionData? = null,
             customGuild: Long? = null,
             withSort: Boolean = true,
             analysisData: AnalysisData? = null,

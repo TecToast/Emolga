@@ -1,7 +1,7 @@
 package de.tectoast.emolga.commands.draft.during
 
-import de.tectoast.emolga.commands.CommandData
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.commands.NoCommandArgs
 import de.tectoast.emolga.commands.TestableCommand
 import de.tectoast.emolga.utils.Constants
@@ -19,7 +19,7 @@ object MoveCommand : TestableCommand<NoCommandArgs>(
         slash(true, Constants.G.ASL, Constants.G.COMMUNITY)
     }
 
-    context (CommandData)
+    context (InteractionData)
     override suspend fun exec(e: NoCommandArgs) {
         League.byCommand()?.first?.let {
             if (it.isSwitchDraft) {

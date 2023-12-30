@@ -1,7 +1,7 @@
 package de.tectoast.emolga.commands.draft.during
 
-import de.tectoast.emolga.commands.CommandData
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.commands.NoCommandArgs
 import de.tectoast.emolga.commands.TestableCommand
 import de.tectoast.emolga.database.exposed.DraftAdminsDB
@@ -20,7 +20,7 @@ object SkipPickCommand : TestableCommand<NoCommandArgs>("skippick", "Skippe eine
     }
 
     override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoCommandArgs
-    context (CommandData)
+    context (InteractionData)
     override suspend fun exec(e: NoCommandArgs) {
         val d = League.onlyChannel(tc) ?: return reply(
             "Es läuft zurzeit kein Draft in diesem Channel!",

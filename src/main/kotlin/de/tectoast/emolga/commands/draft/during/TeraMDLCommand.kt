@@ -37,7 +37,7 @@ object TeraMDLCommand : TestableCommand<NoCommandArgs>("teramdl", "Randomized de
 
     override fun fromGuildCommandEvent(e: GuildCommandEvent) = NoCommandArgs
 
-    context (CommandData)
+    context (InteractionData)
     override suspend fun exec(e: NoCommandArgs) {
         val d =
             League.byCommand()?.first ?: return reply(

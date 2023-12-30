@@ -33,7 +33,7 @@ object PickCommand : TestableCommand<PickCommandArgs>("pick", "Pickt das Pokemon
 
     private val logger = KotlinLogging.logger {}
 
-    context (CommandData)
+    context (InteractionData)
     override suspend fun exec(
         e: PickCommandArgs
     ) {

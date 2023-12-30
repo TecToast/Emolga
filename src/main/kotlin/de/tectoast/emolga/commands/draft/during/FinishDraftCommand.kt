@@ -1,7 +1,7 @@
 package de.tectoast.emolga.commands.draft.during
 
-import de.tectoast.emolga.commands.CommandData
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.commands.NoCommandArgs
 import de.tectoast.emolga.commands.TestableCommand
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -13,7 +13,7 @@ object FinishDraftCommand :
         slash(true, *draftGuilds)
     }
 
-    context (CommandData)
+    context (InteractionData)
     override suspend fun exec(e: NoCommandArgs) {
         val mem = user
         val d = League.onlyChannel(tc)?.takeIf { mem in it.table } ?: return reply(

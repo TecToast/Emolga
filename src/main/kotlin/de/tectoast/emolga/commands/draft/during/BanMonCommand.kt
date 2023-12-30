@@ -1,8 +1,8 @@
 package de.tectoast.emolga.commands.draft.during
 
 import de.tectoast.emolga.commands.CommandArgs
-import de.tectoast.emolga.commands.CommandData
 import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.commands.TestableCommand
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.utils.Constants
@@ -20,7 +20,7 @@ object BanMonCommand : TestableCommand<BanCommandArgs>("banmon", "Bannt ein Mon 
 
     override fun fromGuildCommandEvent(e: GuildCommandEvent) = BanCommandArgs(e.arguments.getDraftName("pokemon"))
 
-    context(CommandData)
+    context(InteractionData)
     override suspend fun exec(e: BanCommandArgs) {
         val d =
             League.byCommand()?.first ?: return reply(

@@ -27,7 +27,7 @@ object PickMDLCommand : TestableCommand<PickMDLCommandArgs>("pickmdl", "Gamblen 
     }
 
     override fun fromGuildCommandEvent(e: GuildCommandEvent) = PickMDLCommandArgs(e.arguments.getText("type"))
-    context (CommandData)
+    context (InteractionData)
     override suspend fun exec(e: PickMDLCommandArgs) {
         val d =
             League.byCommand()?.first ?: return reply(

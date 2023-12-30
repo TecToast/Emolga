@@ -37,7 +37,7 @@ object DraftsetupCommand : TestableCommand<DraftSetupCommandArgs>(
         e.arguments.getOrDefault("switchdraft", false)
     )
 
-    context (CommandData)
+    context (InteractionData)
     override suspend fun exec(e: DraftSetupCommandArgs) {
         db.league(e.name).startDraft(
             textChannel,

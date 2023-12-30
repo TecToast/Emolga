@@ -20,7 +20,7 @@ object ReplayCommand : TestableCommand<ReplayCommandArgs>(
 
     override fun fromGuildCommandEvent(e: GuildCommandEvent) = ReplayCommandArgs(e.arguments.getText("url"))
 
-    context (CommandData)
+    context (InteractionData)
     override suspend fun exec(e: ReplayCommandArgs) {
         deferReply()
         val mr = regex.find(e.url) ?: return reply("Das ist kein gültiges Replay!")

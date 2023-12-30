@@ -15,7 +15,7 @@ import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
 
 @OptIn(ExperimentalCoroutinesApi::class)
-abstract class CommandData(
+abstract class InteractionData(
     open val user: Long,
     open val tc: Long,
     open val gid: Long
@@ -59,8 +59,8 @@ abstract class CommandData(
 
 var redirectTestCommandLogsToChannel: MessageChannel? = null
 
-class TestCommandData(user: Long = Constants.FLOID, tc: Long = Constants.TEST_TCID, gid: Long = Constants.G.MY) :
-    CommandData(user, tc, gid) {
+class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TEST_TCID, gid: Long = Constants.G.MY) :
+    InteractionData(user, tc, gid) {
     override fun reply(msg: String, ephemeral: Boolean, embed: MessageEmbed?, msgCreateData: MessageCreateData?) {
         responseDeferred.complete(CommandResponse.from(msg, ephemeral, embed, msgCreateData))
     }
@@ -74,9 +74,9 @@ class TestCommandData(user: Long = Constants.FLOID, tc: Long = Constants.TEST_TC
     }
 }
 
-class RealCommandData(
+class RealInteractionData(
     val e: GuildCommandEvent
-) : CommandData(e.author.idLong, e.channel.idLong, e.guild.idLong) {
+) : InteractionData(e.author.idLong, e.channel.idLong, e.guild.idLong) {
 
     override fun reply(msg: String, ephemeral: Boolean, embed: MessageEmbed?, msgCreateData: MessageCreateData?) {
         val response = CommandResponse.from(msg, ephemeral, embed, msgCreateData)
@@ -108,10 +108,10 @@ abstract class TestableCommand<T : CommandArgs>(
     }
 
     override suspend fun process(e: GuildCommandEvent) =
-        with(RealCommandData(e)) { exec(fromGuildCommandEvent(e)) }
+        with(RealInteractionData(e)) { exec(fromGuildCommandEvent(e)) }
 
     abstract fun fromGuildCommandEvent(e: GuildCommandEvent): T
-    context (CommandData)
+    context (InteractionData)
     abstract suspend fun exec(e: T)
 }
 

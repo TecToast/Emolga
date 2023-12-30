@@ -98,7 +98,7 @@ sealed class League {
     @Transient
     var newTimerForAnnounce = false
 
-    context (CommandData)
+    context (InteractionData)
     suspend fun lockForPick(data: BypassCurrentPlayerData, block: suspend () -> Unit) {
         allMutexes.getOrPut(leaguename) { Mutex() }.withLock {
             // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
@@ -186,7 +186,7 @@ sealed class League {
     open suspend fun isPicked(mon: String, tier: String? = null) =
         picks.values.any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
 
-    context (CommandData)
+    context (InteractionData)
     open fun handlePoints(
         tlNameNew: String,
         officialNew: String,
@@ -229,7 +229,7 @@ sealed class League {
         return false
     }
 
-    context (CommandData)
+    context (InteractionData)
     open fun handleTiers(
         specifiedTier: String, officialTier: String, fromSwitch: Boolean = false
     ): Boolean {
@@ -537,11 +537,11 @@ sealed class League {
     open val dataSheet: String = "Data"
 
     fun builder() = RequestBuilder(sid)
-    context (CommandData)
+    context (InteractionData)
     suspend fun replyPick(pokemon: String, free: Boolean, updrafted: String?) = replyGeneral(
         "$pokemon ".condAppend(updrafted != null) { "im $updrafted " } + "gepickt!".condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
 
-    context (CommandData)
+    context (InteractionData)
     suspend fun replyGeneral(msg: String, action: (ReplyCallbackAction) -> Unit = {}) {
         replyAwait(
             "<@${user}> hat${
@@ -550,17 +550,17 @@ sealed class League {
         )
     }
 
-    context (CommandData)
+    context (InteractionData)
     suspend fun replyRandomPick(pokemon: String, tier: String) = replyGeneral(
         "einen Random-Pick im $tier gemacht und **$pokemon** bekommen!"
     )
 
-    context (CommandData)
+    context (InteractionData)
     suspend fun replySwitch(oldmon: String, newmon: String) {
         replyGeneral("$oldmon gegen $newmon getauscht!")
     }
 
-    context (CommandData)
+    context (InteractionData)
     suspend fun replySkip() {
         replyGeneral("den Pick übersprungen!")
     }
@@ -672,7 +672,7 @@ sealed class League {
             league.afterPickOfficial(data = NextPlayerData.Moved(SkipReason.REALTIMER))
         }
 
-        context (CommandData)
+        context (InteractionData)
         suspend fun byCommand(): Pair<League, BypassCurrentPlayerData>? {
             val onlyChannel = onlyChannel(tc)
             logger.info("leaguename {}", onlyChannel?.leaguename)

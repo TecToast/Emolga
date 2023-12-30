@@ -27,7 +27,7 @@ object DraftsetupCommand : TestableCommand<DraftSetupCommandArgs>(
                 optional = true
             )
             .build()
-        setCustomPermissions(PermissionPreset.fromIDs(Constants.HENNY, 263729526436134934))
+        setCustomPermissions(PermissionPreset.fromIDs(Constants.HENNY, 263729526436134934, Constants.INK))
         slash(false, *draftGuilds)
     }
 

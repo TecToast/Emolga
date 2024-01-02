@@ -57,12 +57,9 @@ object AddToTierlistCommand :
         }
         e.reply("`$mon` ist nun im $tier-Tier!")
         val data = AddToTierlistData(mon, tier, tierlist, id).apply { addToTierlistAutocompletion() }
-        val leagues = db.drafts.find(League::guild eq id).toList()
-        if (leagues.isNotEmpty()) {
-            leagues.forEach {
-                with(it) {
-                    data.addMonToTierlist()
-                }
+        db.drafts.find(League::guild eq id).toFlow().collect {
+            with(it) {
+                data.addMonToTierlist()
             }
         }
     }

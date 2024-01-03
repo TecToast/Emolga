@@ -340,7 +340,7 @@ abstract class Command(
         }
 
         fun fromIDs(vararg ids: Long): Predicate<Member> {
-            return Predicate { ids.any { l: Long -> it.idLong == l } }
+            return Predicate { it.idLong in ids }
         }
     }
 

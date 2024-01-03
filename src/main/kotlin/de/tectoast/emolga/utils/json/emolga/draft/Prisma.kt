@@ -3,10 +3,13 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import de.tectoast.emolga.commands.coordXMod
 import de.tectoast.emolga.commands.draft.during.BanCommandArgs
 import de.tectoast.emolga.commands.x
+import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.RequestBuilder
+import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.records.Coord
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
 @SerialName("Prisma")
@@ -14,6 +17,18 @@ class Prisma : League() {
     override val teamsize = 12
     override val pickBuffer = 5
     val bannedMons: MutableSet<String> = mutableSetOf()
+
+    @Transient
+    override val docEntry = DocEntry.create(this) {
+        newSystem(null) {
+            b.addSingle(
+                when (gdi) {
+                    in 2..4 -> Coord("Spielplan", gdi.minus(2).x(4, 3), 10 + index)
+                    else -> Coord("Spielplan", gdi.mod(5).x(5, 5), (gdi / 5).y(14, 3 + index))
+                }, defaultGameplanString
+            )
+        }
+    }
 
     override fun beforePick(): String? {
         return "Dies ist eine Ban-Runde!".takeIf { round in banRounds }

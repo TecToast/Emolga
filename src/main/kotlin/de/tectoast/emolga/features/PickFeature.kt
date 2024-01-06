@@ -4,7 +4,7 @@ import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.commands.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.emolga.draft.League
 
-object PickFeature : CommandFeature<PickFeature.Args>(::Args) {
+object PickFeature : CommandFeature<PickFeature.Args>(::Args, CommandSpec("pick", "Pickt ein Pokemon")) {
 
     class Args : Arguments() {
         var pokemon by draftPokemon("pokemon", "Das Pokemon, das gepickt werden soll")

@@ -5,6 +5,7 @@ import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.Giveaway
+import de.tectoast.emolga.features.FeatureManager
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import de.tectoast.emolga.utils.json.db
@@ -54,6 +55,7 @@ object EmolgaMain {
 
     const val NOTEMPVERSION = true
     private val CONTROLCENTRALGENERATION: Long? = null
+    val featureManager = FeatureManager(setOf()) // TODO
 
     @Throws(Exception::class)
     fun start() {

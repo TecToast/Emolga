@@ -15,7 +15,14 @@ object RandomPickCommand : TestableCommand<RandomPickCommandArgs>("randompick", 
     init {
         argumentTemplate = ArgumentManagerTemplate.builder()
             .add("tier", "Tier", "Das Tier, in dem gepickt werden soll", ArgumentManagerTemplate.Text.any())
-            .addEngl("type", "Typ", "Der Typ, von dem random gepickt werden soll", Translation.Type.TYPE, true)
+            .add(
+                "type",
+                "Typ",
+                "Der Typ, von dem random gepickt werden soll",
+                Translation.Type.TYPE,
+                true,
+                language = Language.ENGLISH
+            )
             .setExample("/randompick A").build()
         slash(true, Constants.G.ASL, Constants.G.FLP, Constants.G.WFS)
     }

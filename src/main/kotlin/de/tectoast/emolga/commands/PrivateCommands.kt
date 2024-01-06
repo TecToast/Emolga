@@ -7,6 +7,7 @@ import de.tectoast.emolga.database.exposed.AnalysisDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.database.exposed.TipGamesDB
+import de.tectoast.emolga.features.nameToDiscordOption
 import de.tectoast.emolga.ktor.subscribeToYTChannel
 import de.tectoast.emolga.managers.SignupManager
 import de.tectoast.emolga.selectmenus.RoleGetMenu
@@ -476,7 +477,7 @@ object PrivateCommands {
             val argType = arg.type
             OptionData(
                 argType.asOptionType(),
-                arg.name.lowercase().replace(" ", "-").replace(Regex("[^\\w-]"), ""),
+                arg.name.nameToDiscordOption(),
                 arg.helpmsg,
                 !arg.isOptional,
                 argType.hasAutoComplete()

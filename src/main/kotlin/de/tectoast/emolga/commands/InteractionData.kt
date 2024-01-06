@@ -9,6 +9,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
+import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
@@ -75,25 +76,28 @@ class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TES
 }
 
 class RealInteractionData(
-    val e: GuildCommandEvent
-) : InteractionData(e.author.idLong, e.channel.idLong, e.guild.idLong) {
+    val e: GenericInteractionCreateEvent
+) : InteractionData(e.user.idLong, e.channel!!.idLong, e.guild?.idLong ?: -1) {
 
     override fun reply(msg: String, ephemeral: Boolean, embed: MessageEmbed?, msgCreateData: MessageCreateData?) {
+        e as IReplyCallback
         val response = CommandResponse.from(msg, ephemeral, embed, msgCreateData)
         responseDeferred.complete(response)
         if (deferred)
-            response.sendInto(e.slashCommandEvent!!.hook)
-        else response.sendInto(e.slashCommandEvent!!)
+            response.sendInto(e.hook)
+        else response.sendInto(e)
     }
 
     override fun deferReply(ephemeral: Boolean) {
+        e as IReplyCallback
         deferred = true
         e.deferReply(ephemeral)
     }
 
     override suspend fun replyAwait(msg: String, ephemeral: Boolean, action: (ReplyCallbackAction) -> Unit) {
+        e as IReplyCallback
         responseDeferred.complete(CommandResponse(msg, ephemeral))
-        e.slashCommandEvent!!.reply_(msg, ephemeral = ephemeral).apply(action).await()
+        e.reply_(msg, ephemeral = ephemeral).apply(action).await()
     }
 
 }
@@ -107,8 +111,8 @@ abstract class TestableCommand<T : CommandArgs>(
         slash(true, *draftGuilds)
     }
 
-    override suspend fun process(e: GuildCommandEvent) =
-        with(RealInteractionData(e)) { exec(fromGuildCommandEvent(e)) }
+    override suspend fun process(e: GuildCommandEvent) {} //=
+    //with(RealInteractionData(e)) { exec(fromGuildCommandEvent(e)) }
 
     abstract fun fromGuildCommandEvent(e: GuildCommandEvent): T
     context (InteractionData)

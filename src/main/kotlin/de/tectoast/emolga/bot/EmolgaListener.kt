@@ -25,6 +25,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent
+import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -68,6 +69,13 @@ object EmolgaListener : ListenerAdapter() {
                     }
                 }
             }
+        }
+        initFeatures(jda)
+    }
+
+    private fun initFeatures(jda: JDA) {
+        jda.listener<GenericInteractionCreateEvent> {
+            EmolgaMain.featureManager.handleEvent(it)
         }
     }
 

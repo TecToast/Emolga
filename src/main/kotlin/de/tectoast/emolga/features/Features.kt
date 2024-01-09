@@ -7,14 +7,23 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import dev.minn.jda.ktx.interactions.components.Modal
+import dev.minn.jda.ktx.interactions.components.StringSelectMenu
+import dev.minn.jda.ktx.interactions.components.button
+import net.dv8tion.jda.api.entities.emoji.Emoji
+import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import net.dv8tion.jda.api.interactions.commands.OptionMapping
 import net.dv8tion.jda.api.interactions.commands.OptionType
-import net.dv8tion.jda.api.interactions.modals.ModalMapping
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.interactions.components.selections.SelectOption
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
+import net.dv8tion.jda.api.interactions.components.text.TextInput
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
@@ -26,10 +35,31 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
     val eventClass: KClass<@UnsafeVariance E>,
     val eventToName: (@UnsafeVariance E) -> String
 ) {
+    val registeredListeners = mutableSetOf<Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>>()
     abstract suspend fun populateArgs(data: InteractionData, e: @UnsafeVariance E, args: A)
 
-    fun createComponentId(argsBuilder: ArgBuilder<@UnsafeVariance A>) =
-        spec.name + ";" + argsFun().apply(argsBuilder).args.joinToString(";") { it.parsed?.toString() ?: "" }
+    fun createComponentId(argsBuilder: ArgBuilder<@UnsafeVariance A>, checkCompId: Boolean = false) =
+        spec.name + ";" + argsFun().apply(argsBuilder).args.filter { !checkCompId || it.compIdOnly }
+            .joinToString(";") { it.parsed?.toString() ?: "" }
+
+    inline fun <reified T : GenericEvent> registerListener(noinline listener: suspend (T) -> Unit) {
+        registeredListeners += (T::class to listener) as Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>
+    }
+
+    protected suspend inline fun populateArgs(
+        data: InteractionData,
+        args: List<Arg<*, *>>,
+        parser: (String, Int) -> String?
+    ) {
+        for ((index, arg) in args.withIndex()) {
+            val m = parser(arg.name.nameToDiscordOption(), index)
+            if (m == null && !arg.optional) {
+                throw IllegalArgumentException("Du musst den Parameter `${arg.name}` angeben!")
+            }
+            if (m != null) arg.parse(data, m)
+        }
+    }
+
     context (InteractionData)
     abstract suspend fun exec(e: A)
 }
@@ -42,6 +72,20 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
         SlashCommandInteractionEvent::class,
         eventToName
     ) {
+    val autoCompleatableOptions by lazy {
+        argsFun().args.mapNotNull { (it.spec as? CommandArgSpec)?.autocomplete?.let { ac -> it.name.nameToDiscordOption() to ac } }
+            .toMap()
+    }
+
+    init {
+        registerListener<CommandAutoCompleteInteractionEvent> {
+            val focusedOption = it.focusedOption
+            autoCompleatableOptions[focusedOption.name]?.let { ac ->
+                val list = ac(focusedOption.value, it)?.takeIf { l -> l.size <= 25 }
+                it.replyChoiceStrings(list ?: listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!"))
+            }
+        }
+    }
 
     override suspend fun populateArgs(data: InteractionData, e: SlashCommandInteractionEvent, args: A) {
         for (arg in args.args) {
@@ -60,7 +104,9 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
 
 abstract class ButtonFeature<A : Arguments>(argsFun: () -> A, spec: ButtonSpec) :
     Feature<ButtonSpec, ButtonInteractionEvent, A>(argsFun, spec, ButtonInteractionEvent::class, eventToName) {
-
+    open val buttonStyle = ButtonStyle.PRIMARY
+    open val label = spec.name
+    open val emoji: Emoji? = null
     override suspend fun populateArgs(data: InteractionData, e: ButtonInteractionEvent, args: A) {
         val argsFromEvent = e.componentId.substringAfter(";").split(";")
         for ((index, arg) in args.args.withIndex()) {
@@ -71,6 +117,15 @@ abstract class ButtonFeature<A : Arguments>(argsFun: () -> A, spec: ButtonSpec) 
             if (m != null) arg.parse(data, m)
         }
     }
+
+    operator fun invoke(
+        label: String = this.label,
+        buttonStyle: ButtonStyle = this.buttonStyle,
+        emoji: Emoji? = this.emoji,
+        disabled: Boolean = false,
+        argsBuilder: ArgBuilder<A>
+    ) = button(createComponentId(argsBuilder), label, style = buttonStyle, emoji = emoji, disabled = disabled)
+
 
     companion object {
         val eventToName: (ButtonInteractionEvent) -> String = { it.componentId.substringBefore(";") }
@@ -85,13 +140,24 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
         eventToName
     ) {
 
+    abstract val title: String
+
     override suspend fun populateArgs(data: InteractionData, e: ModalInteractionEvent, args: A) {
-        for (arg in args.args) {
-            val m = e.getValue(arg.name.nameToDiscordOption())
-            if (m == null && !arg.optional) {
-                return e.reply("Du musst den Parameter `${arg.name}` angeben!").setEphemeral(true).queue()
-            }
-            if (m != null) arg.parse(data, m)
+        val (compId, regular) = args.args.partition { it.compIdOnly }
+        val argsFromEvent = e.modalId.substringAfter(";").split(";")
+        populateArgs(data, compId) { _, index ->
+            argsFromEvent.getOrNull(index)?.takeIf { it.isNotBlank() }
+        }
+        populateArgs(data, regular) { name, _ ->
+            e.getValue(name)?.asString?.takeIf { it.isNotBlank() }
+        }
+    }
+
+    operator fun invoke() = Modal(spec.name, title) {
+        argsFun().args.forEach { arg ->
+            val spec = arg.spec as? ModalArgSpec
+            if (spec?.short != false) short(arg.name, arg.name, required = !arg.optional, builder = spec?.builder ?: {})
+            else paragraph(arg.name, arg.name, required = !arg.optional, builder = spec.builder)
         }
     }
 
@@ -100,10 +166,58 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
     }
 }
 
+abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMenuSpec) :
+    Feature<SelectMenuSpec, StringSelectInteractionEvent, A>(
+        argsFun,
+        spec,
+        StringSelectInteractionEvent::class,
+        eventToName
+    ) {
+    val options: List<SelectOption>? = null
+    val selectableOptions by lazy {
+        (argsFun().args.single { !it.compIdOnly }.spec as? SelectMenuArgSpec)?.selectableOptions ?: 1..1
+    }
+    val isSingle by lazy { selectableOptions.let { it.first == it.last && it.first == 1 } }
+    override suspend fun populateArgs(data: InteractionData, e: StringSelectInteractionEvent, args: A) {
+        val (compId, regular) = args.args.partition { it.compIdOnly }
+        val argsFromEvent = e.componentId.substringAfter(";").split(";")
+        populateArgs(data, compId) { _, index ->
+            argsFromEvent.getOrNull(index)?.takeIf { it.isNotBlank() }
+        }
+        val selectArg = regular.single()
+        selectArg.parse(data, if (isSingle) e.values.first() else e.values)
+    }
+
+    operator fun invoke(
+        placeholder: String = spec.name,
+        options: List<SelectOption>? = this.options,
+        argsBuilder: ArgBuilder<A> = {},
+        menuBuilder: StringSelectMenu.Builder.() -> Unit = {}
+    ) = StringSelectMenu(
+        createComponentId(argsBuilder, checkCompId = true),
+        placeholder,
+        valueRange = selectableOptions,
+        options = options.orEmpty(),
+        builder = menuBuilder
+    )
+
+    companion object {
+        val eventToName: (StringSelectInteractionEvent) -> String = { it.componentId.substringBefore(";") }
+    }
+}
+
 sealed class FeatureSpec(open val name: String)
 class CommandSpec(name: String, val help: String) : FeatureSpec(name)
 class ButtonSpec(name: String) : FeatureSpec(name)
 class ModalSpec(name: String) : FeatureSpec(name)
+class SelectMenuSpec(name: String) : FeatureSpec(name)
+
+sealed interface ArgSpec
+class CommandArgSpec(val autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null) :
+    ArgSpec
+
+class ModalArgSpec(val short: Boolean, val builder: TextInput.Builder.() -> Unit) : ArgSpec
+class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
 open class Arguments {
     private val _args = mutableListOf<Arg<*, *>>()
     val args: List<Arg<*, *>> = Collections.unmodifiableList(_args)
@@ -117,13 +231,13 @@ open class Arguments {
                 it, guildId, english = Tierlist[guildId].isEnglish
             ) ?: throw IllegalArgumentException("Pokemon $it nicht gefunden!")
         }
-        autocomplete { s, event ->
+        slashCommand { s, event ->
             val gid = event.guild!!.idLong
             val league = League.onlyChannel(event.channel.idLong)
             //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
             val tierlist = Tierlist[league?.guild ?: gid]
             val strings = (tierlist?.autoComplete ?: Command.allNameConventions).filterStartsWithIgnoreCase(s)
-            if (strings.size > 25) return@autocomplete listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
+            if (strings.size > 25) return@slashCommand listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
             (if (league == null || tierlist == null) strings
             else strings.map {
                 if (league.picks.values.flatten().any { p ->
@@ -139,10 +253,16 @@ open class Arguments {
         createArg(name, help, OptionType.BOOLEAN, builder)
 
 
+    protected fun singleOption() = multiOption(1..1)
+
+    protected fun multiOption(range: IntRange) = createArg<String, String>("", "", OptionType.STRING) {
+        spec = SelectMenuArgSpec(range)
+    }
+
     private inline fun <reified DiscordType, ParsedType> createArg(
         name: String,
         help: String,
-        optionType: OptionType = OptionType.STRING,
+        optionType: OptionType,
         builder: Arg<DiscordType, ParsedType>.() -> Unit
     ) = Arg<DiscordType, ParsedType>(name, help, optionType, this).also {
         it.builder()
@@ -155,11 +275,11 @@ open class Arguments {
     }
 }
 
-open class Arg<DiscordType, ParsedType>(
+class Arg<DiscordType, ParsedType>(
     val name: String,
     val help: String,
     val optionType: OptionType,
-    private val args: Arguments
+    internal val args: Arguments
 ) : ReadWriteProperty<Arguments, ParsedType> {
     var parsed: ParsedType? = null
         private set
@@ -173,9 +293,9 @@ open class Arg<DiscordType, ParsedType>(
     private var defaultFunction: (() -> ParsedType)? = null
     private var validator: (suspend InteractionData.(DiscordType) -> ParsedType) = { it as ParsedType }
     private var nullable = false
+    var spec: ArgSpec? = null
+    var compIdOnly = false
     val optional get() = defaultValueSet || defaultFunction != null || nullable
-    var autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
-        private set
 
     fun default(defaultfun: () -> ParsedType) {
         defaultFunction = defaultfun
@@ -185,8 +305,12 @@ open class Arg<DiscordType, ParsedType>(
         this.validator = validator
     }
 
-    fun autocomplete(autocomplete: suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?) {
-        this.autocomplete = autocomplete
+    fun slashCommand(autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null) {
+        spec = CommandArgSpec(autocomplete)
+    }
+
+    fun modal(short: Boolean = true, builder: TextInput.Builder.() -> Unit) {
+        spec = ModalArgSpec(short, builder)
     }
 
     override fun getValue(thisRef: Arguments, property: KProperty<*>): ParsedType {
@@ -223,18 +347,17 @@ open class Arg<DiscordType, ParsedType>(
                     }
                 }
 
-                is ModalMapping -> {
-                    m.asString
+                else -> {
+                    (m as? DiscordType) ?: throw IllegalArgumentException("Unknown type ${m::class.simpleName}")
                 }
-
-                is String -> {
-                    m
-                }
-
-                else -> throw IllegalArgumentException("Unknown type ${m::class.simpleName}")
             } as DiscordType
         )
         success = true
+    }
+
+    fun compIdOnly(): Arg<DiscordType, ParsedType> {
+        compIdOnly = true
+        return this
     }
 
     fun nullable(): Arg<DiscordType, ParsedType?> {
@@ -242,8 +365,9 @@ open class Arg<DiscordType, ParsedType>(
             it.default = default
             it.defaultFunction = defaultFunction
             it.validator = validator
-            it.autocomplete = autocomplete
+            it.spec = spec
             it.nullable = true
+            it.compIdOnly = compIdOnly
             args.replaceLastArg(it)
         }
     }

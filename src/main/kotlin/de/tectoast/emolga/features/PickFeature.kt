@@ -9,7 +9,8 @@ object PickFeature : CommandFeature<PickFeature.Args>(::Args, CommandSpec("pick"
     class Args : Arguments() {
         var pokemon by draftPokemon("pokemon", "Das Pokemon, das gepickt werden soll")
         var tier by string("tier", "Das Tier, in dem das Pokemon gepickt werden soll") {
-            autocomplete { s, event ->
+
+            slashCommand { s, event ->
                 League.onlyChannel(event.channel.idLong)?.getPossibleTiers(forAutocomplete = true)
                     ?.filter { it.value > 0 }?.map { it.key }?.filterStartsWithIgnoreCase(s)
             }

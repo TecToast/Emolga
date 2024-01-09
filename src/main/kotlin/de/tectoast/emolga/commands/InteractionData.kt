@@ -11,7 +11,9 @@ import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
+import net.dv8tion.jda.api.interactions.callbacks.IModalCallback
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
+import net.dv8tion.jda.api.interactions.modals.Modal
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
 
@@ -45,6 +47,7 @@ abstract class InteractionData(
         embed: MessageEmbed? = null,
         msgCreateData: MessageCreateData? = null
     )
+    abstract fun replyModal(modal: Modal)
 
     abstract suspend fun replyAwait(msg: String, ephemeral: Boolean = false, action: (ReplyCallbackAction) -> Unit = {})
     abstract fun deferReply(ephemeral: Boolean = false)
@@ -64,6 +67,10 @@ class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TES
     InteractionData(user, tc, gid) {
     override fun reply(msg: String, ephemeral: Boolean, embed: MessageEmbed?, msgCreateData: MessageCreateData?) {
         responseDeferred.complete(CommandResponse.from(msg, ephemeral, embed, msgCreateData))
+    }
+
+    override fun replyModal(modal: Modal) {
+        responseDeferred.complete(CommandResponse("", true))
     }
 
     override fun deferReply(ephemeral: Boolean) {
@@ -86,6 +93,12 @@ class RealInteractionData(
         if (deferred)
             response.sendInto(e.hook)
         else response.sendInto(e)
+    }
+
+    override fun replyModal(modal: Modal) {
+        e as IModalCallback
+        responseDeferred.complete(CommandResponse("", true))
+        e.replyModal(modal).queue()
     }
 
     override fun deferReply(ephemeral: Boolean) {

@@ -2,11 +2,13 @@ package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.commands.coordXMod
 import de.tectoast.emolga.commands.draft.during.BanCommandArgs
+import de.tectoast.emolga.commands.toDocRange
 import de.tectoast.emolga.commands.x
 import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.automation.structure.DocEntry
 import de.tectoast.emolga.utils.records.Coord
+import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -20,7 +22,7 @@ class Prisma : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(null) {
+        newSystem(SorterData("Tabelle!C4:F15".toDocRange(), newMethod = true, cols = listOf(3, -1))) {
             b.addSingle(
                 when (gdi) {
                     in 2..4 -> Coord("Spielplan", gdi.minus(2).x(4, 3), 10 + index)

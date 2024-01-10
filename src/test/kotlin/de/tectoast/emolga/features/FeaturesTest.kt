@@ -5,11 +5,9 @@ import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.defaultChannel
 import de.tectoast.emolga.keepAlive
 import dev.minn.jda.ktx.events.listener
-import dev.minn.jda.ktx.interactions.components.option
-import dev.minn.jda.ktx.messages.into
-import dev.minn.jda.ktx.messages.send
 import io.kotest.core.spec.style.FunSpec
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
+import net.dv8tion.jda.api.interactions.commands.Command
 import kotlin.time.TimeSource
 
 var timer: TimeSource.Monotonic.ValueTimeMark? = null
@@ -17,18 +15,19 @@ var timer: TimeSource.Monotonic.ValueTimeMark? = null
 class FeaturesTest : FunSpec({
     test("test") {
         println("TEST")
-        val manager = FeatureManager(setOf(TestFeature, TestButton, TestModal, TestMenu))
+        val manager = FeatureManager(setOf(TestFeature, TestButton, TestModal, TestMenu, NestedCommand))
         jda.listener<GenericInteractionCreateEvent> {
             timer = TimeSource.Monotonic.markNow()
             manager.handleEvent(it)
         }
-        defaultChannel.send("test", components = TestMenu(argsBuilder = {
-            test1 = "lololo"
-            test2 = "lalala"
-        }) {
-            option("test10", "test10")
-            option("test20", "test20")
-        }.into()).queue()
+        defaultChannel.guild.updateCommands().addCommands(manager.generateSlashCommandDescriptions()).queue()
+//        defaultChannel.send("test", components = TestMenu(argsBuilder = {
+//            test1 = "lololo"
+//            test2 = "lalala"
+//        }) {
+//            option("test10", "test10")
+//            option("test20", "test20")
+//        }.into()).queue()
 //        jda.getGuildById(Constants.G.MY)!!.upsertCommand("test", "test").addOptions(
 //            OptionData(OptionType.STRING, "test1", "test1"), OptionData(OptionType.STRING, "test2", "test2")
 //        ).queue()
@@ -40,18 +39,73 @@ class FeaturesTest : FunSpec({
     }
 })
 
-object TestFeature : CommandFeature<TestFeature.Args>(::Args, CommandSpec("test", "test")) {
+object TestFeature : CommandFeature<TestFeature.Args>(::Args, CommandSpec("testabc", "test")) {
     class Args : Arguments() {
+        var test3 by boolean("test3", "test3") {
+            validate {
+                if (!it) throw IllegalArgumentException("test3 muss true sein!")
+                true
+            }
+        }
+        var test4 by string("test4", "trest4") {
+            slashCommand(listOf(Command.Choice("YeeHaa", "lol1"), Command.Choice("YeeHaa2", "lol2")))
+        }
         var test1 by string("test1", "test1").nullable()
         var test2 by string("test2", "test2") {
-            default { "$test1!!!" }
+            default { "$test1!!!$test4" }
+            slashCommand { s, _ ->
+                listOf("test1", "test2", "test3").filter { it.startsWith(s) }
+            }
         }
     }
 
     context(InteractionData)
     override suspend fun exec(e: Args) {
         reply("test1: ${e.test1}, test2: ${e.test2}")
+        if (e.test3) println(":DDDDDDDDDDDDDDDDD")
         println("GuMo ${timer!!.elapsedNow()}")
+    }
+}
+
+object NestedCommand : CommandFeature<Arguments>(::Arguments, CommandSpec("nested", "nested")) {
+    object First : CommandFeature<First.Args>(::Args, CommandSpec("first", "first :3")) {
+        class Args : Arguments() {
+            var test1 by string("test1", "test1") {
+                validate {
+                    if (it == "test") throw InvalidArgumentException("test1 darf nicht test sein!")
+                    it
+                }
+            }.nullable()
+            var test2 by string("test2", "test2") {
+                default { "$test1!!!" }
+                validate { null }
+                customErrorMessage = "I like trains :)"
+            }
+        }
+
+        context(InteractionData) override suspend fun exec(e: Args) {
+            reply("FIRST test1: ${e.test1}, test2: ${e.test2}")
+            println("GuMo ${timer!!.elapsedNow()}")
+        }
+    }
+
+    object Second : CommandFeature<Second.Args>(::Args, CommandSpec("second", "second :3")) {
+        class Args : Arguments() {
+            var test1 by string("test3", "test6").nullable()
+            var test2 by string("test4", "test5") {
+                default { "$test1!!!" }
+            }
+        }
+
+        context(InteractionData) override suspend fun exec(e: Args) {
+            reply("SECOND test1: ${e.test1}, test2: ${e.test2}")
+            println("GuMo ${timer!!.elapsedNow()}")
+        }
+    }
+
+    context(InteractionData)
+    override suspend fun exec(e: Arguments) {
+
     }
 }
 

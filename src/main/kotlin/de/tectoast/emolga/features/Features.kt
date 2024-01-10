@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
+import net.dv8tion.jda.api.interactions.commands.Command.Choice
 import net.dv8tion.jda.api.interactions.commands.OptionMapping
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
@@ -28,6 +29,7 @@ import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
+import kotlin.reflect.full.isSubclassOf
 
 sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent, in A : Arguments>(
     val argsFun: () -> @UnsafeVariance A,
@@ -47,14 +49,12 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
     }
 
     protected suspend inline fun populateArgs(
-        data: InteractionData,
-        args: List<Arg<*, *>>,
-        parser: (String, Int) -> String?
+        data: InteractionData, args: List<Arg<*, *>>, parser: (String, Int) -> String?
     ) {
         for ((index, arg) in args.withIndex()) {
             val m = parser(arg.name.nameToDiscordOption(), index)
             if (m == null && !arg.optional) {
-                throw IllegalArgumentException("Du musst den Parameter `${arg.name}` angeben!")
+                throw MissingArgumentException(arg)
             }
             if (m != null) arg.parse(data, m)
         }
@@ -67,24 +67,28 @@ typealias ArgBuilder<A> = A.() -> Unit
 
 abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec) :
     Feature<CommandSpec, SlashCommandInteractionEvent, A>(
-        argsFun,
-        spec,
-        SlashCommandInteractionEvent::class,
-        eventToName
+        argsFun, spec, SlashCommandInteractionEvent::class, eventToName
     ) {
-    val autoCompleatableOptions by lazy {
-        argsFun().args.mapNotNull { (it.spec as? CommandArgSpec)?.autocomplete?.let { ac -> it.name.nameToDiscordOption() to ac } }
+    val defaultArgs by lazy { argsFun().args }
+    private val autoCompleatableOptions by lazy {
+        defaultArgs.mapNotNull { (it.spec as? CommandArgSpec)?.autocomplete?.let { ac -> it.name.nameToDiscordOption() to ac } }
             .toMap()
     }
+    val children: Collection<CommandFeature<*>>
+    val childCommands: Map<String, CommandFeature<*>>
 
     init {
         registerListener<CommandAutoCompleteInteractionEvent> {
             val focusedOption = it.focusedOption
             autoCompleatableOptions[focusedOption.name]?.let { ac ->
                 val list = ac(focusedOption.value, it)?.takeIf { l -> l.size <= 25 }
-                it.replyChoiceStrings(list ?: listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!"))
+                it.replyChoiceStrings(list ?: listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")).queue()
             }
         }
+        children = (this::class.nestedClasses as Collection<KClass<out CommandFeature<*>>>).filter {
+            it.isSubclassOf(CommandFeature::class)
+        }.map { it.objectInstance!! }
+        childCommands = children.associateBy { it.spec.name }
     }
 
     override suspend fun populateArgs(data: InteractionData, e: SlashCommandInteractionEvent, args: A) {
@@ -134,10 +138,7 @@ abstract class ButtonFeature<A : Arguments>(argsFun: () -> A, spec: ButtonSpec) 
 
 abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
     Feature<ModalSpec, ModalInteractionEvent, A>(
-        argsFun,
-        spec,
-        ModalInteractionEvent::class,
-        eventToName
+        argsFun, spec, ModalInteractionEvent::class, eventToName
     ) {
 
     abstract val title: String
@@ -168,10 +169,7 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
 
 abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMenuSpec) :
     Feature<SelectMenuSpec, StringSelectInteractionEvent, A>(
-        argsFun,
-        spec,
-        StringSelectInteractionEvent::class,
-        eventToName
+        argsFun, spec, StringSelectInteractionEvent::class, eventToName
     ) {
     val options: List<SelectOption>? = null
     val selectableOptions by lazy {
@@ -213,7 +211,10 @@ class ModalSpec(name: String) : FeatureSpec(name)
 class SelectMenuSpec(name: String) : FeatureSpec(name)
 
 sealed interface ArgSpec
-class CommandArgSpec(val autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null) :
+class CommandArgSpec(
+    val autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null,
+    val choices: List<Choice>? = null
+) :
     ArgSpec
 
 class ModalArgSpec(val short: Boolean, val builder: TextInput.Builder.() -> Unit) : ArgSpec
@@ -260,10 +261,7 @@ open class Arguments {
     }
 
     private inline fun <reified DiscordType, ParsedType> createArg(
-        name: String,
-        help: String,
-        optionType: OptionType,
-        builder: Arg<DiscordType, ParsedType>.() -> Unit
+        name: String, help: String, optionType: OptionType, builder: Arg<DiscordType, ParsedType>.() -> Unit
     ) = Arg<DiscordType, ParsedType>(name, help, optionType, this).also {
         it.builder()
         _args += it
@@ -276,10 +274,7 @@ open class Arguments {
 }
 
 class Arg<DiscordType, ParsedType>(
-    val name: String,
-    val help: String,
-    val optionType: OptionType,
-    internal val args: Arguments
+    val name: String, val help: String, val optionType: OptionType, internal val args: Arguments
 ) : ReadWriteProperty<Arguments, ParsedType> {
     var parsed: ParsedType? = null
         private set
@@ -291,22 +286,26 @@ class Arg<DiscordType, ParsedType>(
         }
     private var defaultValueSet = false
     private var defaultFunction: (() -> ParsedType)? = null
-    private var validator: (suspend InteractionData.(DiscordType) -> ParsedType) = { it as ParsedType }
+    private var validator: (suspend InteractionData.(DiscordType) -> ParsedType?) = { it as ParsedType }
     private var nullable = false
     var spec: ArgSpec? = null
     var compIdOnly = false
+    var customErrorMessage: String? = null
     val optional get() = defaultValueSet || defaultFunction != null || nullable
 
     fun default(defaultfun: () -> ParsedType) {
         defaultFunction = defaultfun
     }
 
-    fun validate(validator: suspend InteractionData.(DiscordType) -> ParsedType) {
+    fun validate(validator: suspend InteractionData.(DiscordType) -> ParsedType?) {
         this.validator = validator
     }
 
-    fun slashCommand(autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null) {
-        spec = CommandArgSpec(autocomplete)
+    fun slashCommand(
+        choices: List<Choice>? = null,
+        autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
+    ) {
+        spec = CommandArgSpec(autocomplete, choices)
     }
 
     fun modal(short: Boolean = true, builder: TextInput.Builder.() -> Unit) {
@@ -331,7 +330,7 @@ class Arg<DiscordType, ParsedType>(
      * @param m The value of this argument, MUST ONLY BE OptionMapping or String
      */
     suspend fun parse(data: InteractionData, m: Any) {
-        parsed = data.validator(
+        val validatorResult = data.validator(
             when (m) {
                 is OptionMapping -> {
                     when (m.type) {
@@ -351,6 +350,10 @@ class Arg<DiscordType, ParsedType>(
                     (m as? DiscordType) ?: throw IllegalArgumentException("Unknown type ${m::class.simpleName}")
                 }
             } as DiscordType
+        )
+
+        parsed = validatorResult ?: throw InvalidArgumentException(
+            customErrorMessage ?: "Das Argument `$name` konnte nicht erkannt werden!"
         )
         success = true
     }
@@ -377,3 +380,8 @@ private val nameToDiscordRegex = Regex("[^\\w-]")
 fun String.nameToDiscordOption(): String {
     return lowercase().replace(" ", "-").replace(nameToDiscordRegex, "")
 }
+open class ArgumentException(override val message: String) : Exception(message)
+class MissingArgumentException(private val arg: Arg<*, *>) :
+    ArgumentException("Du musst den Parameter `${arg.name}` angeben!")
+
+class InvalidArgumentException(override val message: String) : ArgumentException(message)

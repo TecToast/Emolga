@@ -1,3 +1,5 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package de.tectoast.emolga.features
 
 import de.tectoast.emolga.commands.Command
@@ -172,10 +174,10 @@ abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMe
         argsFun, spec, StringSelectInteractionEvent::class, eventToName
     ) {
     val options: List<SelectOption>? = null
-    val selectableOptions by lazy {
+    private val selectableOptions by lazy {
         (argsFun().args.single { !it.compIdOnly }.spec as? SelectMenuArgSpec)?.selectableOptions ?: 1..1
     }
-    val isSingle by lazy { selectableOptions.let { it.first == it.last && it.first == 1 } }
+    private val isSingle by lazy { selectableOptions.let { it.first == it.last && it.first == 1 } }
     override suspend fun populateArgs(data: InteractionData, e: StringSelectInteractionEvent, args: A) {
         val (compId, regular) = args.args.partition { it.compIdOnly }
         val argsFromEvent = e.componentId.substringAfter(";").split(";")
@@ -225,6 +227,7 @@ open class Arguments {
     protected fun string(name: String, help: String, builder: Arg<String, String>.() -> Unit = {}) =
         createArg(name, help, OptionType.STRING, builder)
 
+    @Suppress("SameParameterValue")
     protected fun draftPokemon(name: String, help: String) = createArg(name, help, OptionType.STRING) {
         validate {
             val guildId = League.onlyChannel(tc)?.guild ?: gid
@@ -256,6 +259,7 @@ open class Arguments {
 
     protected fun singleOption() = multiOption(1..1)
 
+    @Suppress("MemberVisibilityCanBePrivate")
     protected fun multiOption(range: IntRange) = createArg<String, String>("", "", OptionType.STRING) {
         spec = SelectMenuArgSpec(range)
     }
@@ -329,6 +333,7 @@ class Arg<DiscordType, ParsedType>(
      * @param data The general data of this interaction
      * @param m The value of this argument, MUST ONLY BE OptionMapping or String
      */
+    @Suppress("IMPLICIT_CAST_TO_ANY")
     suspend fun parse(data: InteractionData, m: Any) {
         val validatorResult = data.validator(
             when (m) {
@@ -381,7 +386,7 @@ fun String.nameToDiscordOption(): String {
     return lowercase().replace(" ", "-").replace(nameToDiscordRegex, "")
 }
 open class ArgumentException(override val message: String) : Exception(message)
-class MissingArgumentException(private val arg: Arg<*, *>) :
+class MissingArgumentException(arg: Arg<*, *>) :
     ArgumentException("Du musst den Parameter `${arg.name}` angeben!")
 
 class InvalidArgumentException(override val message: String) : ArgumentException(message)

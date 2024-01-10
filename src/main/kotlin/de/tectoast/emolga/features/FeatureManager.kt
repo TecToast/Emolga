@@ -1,3 +1,5 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package de.tectoast.emolga.features
 
 import de.tectoast.emolga.commands.Command
@@ -11,7 +13,7 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import kotlin.reflect.KClass
 
-class FeatureManager(val load: Set<Feature<*, *, *>>) {
+class FeatureManager(private val load: Set<Feature<*, *, *>>) {
     private val eventToName: Map<KClass<*>, (GenericInteractionCreateEvent) -> String> =
         load.associate { it.eventClass to it.eventToName }
     private val features: Map<KClass<*>, Map<String, Feature<*, *, Arguments>>> = load.groupBy { it.eventClass }

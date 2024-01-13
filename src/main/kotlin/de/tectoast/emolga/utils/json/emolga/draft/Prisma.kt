@@ -26,7 +26,7 @@ class Prisma : League() {
             b.addSingle(
                 when (gdi) {
                     in 2..4 -> Coord("Spielplan", gdi.minus(2).x(4, 3), 10 + index)
-                    else -> Coord("Spielplan", gdi.mod(5).x(5, 5), (gdi / 5).y(14, 3 + index))
+                    else -> Coord("Spielplan", gdi.mod(5).x(4, 5), (gdi / 5).y(14, 3 + index))
                 }, defaultGameplanString
             )
         }

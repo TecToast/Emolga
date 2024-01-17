@@ -264,6 +264,9 @@ open class Arguments {
         spec = SelectMenuArgSpec(range)
     }
 
+    protected fun List<String>.toChoices() = map { Choice(it, it) }
+    protected fun choicesOf(vararg choices: String) = choices.toList().toChoices()
+
     private inline fun <reified DiscordType, ParsedType> createArg(
         name: String, help: String, optionType: OptionType, builder: Arg<DiscordType, ParsedType>.() -> Unit
     ) = Arg<DiscordType, ParsedType>(name, help, optionType, this).also {

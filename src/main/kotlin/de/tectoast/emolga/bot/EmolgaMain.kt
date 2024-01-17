@@ -55,7 +55,7 @@ object EmolgaMain {
 
     const val NOTEMPVERSION = true
     private val CONTROLCENTRALGENERATION: Long? = null
-    val featureManager = FeatureManager(setOf()) // TODO
+    val featureManager = FeatureManager("de.tectoast.emolga.features")
 
     @Throws(Exception::class)
     fun start() {

@@ -2,18 +2,37 @@
 
 package de.tectoast.emolga.features
 
+import com.google.common.reflect.ClassPath
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.RealInteractionData
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.annotations.ToTest
+import mu.KotlinLogging
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import kotlin.reflect.KClass
+import kotlin.reflect.full.hasAnnotation
 
 class FeatureManager(private val load: Set<Feature<*, *, *>>) {
+
+    constructor(packageName: String) : this(
+        packageName.let {
+            ClassPath.from(Thread.currentThread().contextClassLoader).getTopLevelClassesRecursive(packageName)
+                .mapNotNull {
+                    val cl = it.load().kotlin
+                    if (cl.hasAnnotation<ToTest>()) {
+                        logger.warn("Feature ${cl.simpleName} needs to be tested!")
+                    }
+                    val o = cl.objectInstance ?: return@mapNotNull null
+                    if (o is Feature<*, *, *>) o else null
+                }.toSet()
+        }
+    )
+
     private val eventToName: Map<KClass<*>, (GenericInteractionCreateEvent) -> String> =
         load.associate { it.eventClass to it.eventToName }
     private val features: Map<KClass<*>, Map<String, Feature<*, *, Arguments>>> = load.groupBy { it.eventClass }
@@ -90,6 +109,10 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
         OptionData(a.optionType, a.name, a.help, !a.optional, spec?.autocomplete != null).apply {
             if (spec?.choices != null) addChoices(spec.choices)
         }
+    }
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
     }
 }
 

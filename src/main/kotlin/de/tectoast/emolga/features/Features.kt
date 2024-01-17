@@ -61,11 +61,21 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
             if (m != null) arg.parse(data, m)
         }
     }
+    context(InteractionData)
+    open fun allowed(): AllowedResult = Allowed
 
     context (InteractionData)
     abstract suspend fun exec(e: A)
 }
 typealias ArgBuilder<A> = A.() -> Unit
+
+sealed class AllowedResult
+data object Allowed : AllowedResult()
+class NotAllowed(val reason: String) : AllowedResult() {
+    companion object {
+        val NO_PERMS = NotAllowed("Du hast nicht die nötigen Berechtigungen, um diesen Command ausführen zu dürfen!")
+    }
+}
 
 abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec) :
     Feature<CommandSpec, SlashCommandInteractionEvent, A>(

@@ -52,7 +52,15 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
         }
         with(data) {
             try {
-                feature.exec(args)
+                when (val result = feature.allowed()) {
+                    Allowed -> {
+                        feature.exec(args)
+                    }
+
+                    is NotAllowed -> {
+                        reply(result.reason, ephemeral = true)
+                    }
+                }
             } catch (ex: Exception) {
                 ex.printStackTrace()
                 reply(

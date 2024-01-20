@@ -17,6 +17,8 @@ import dev.minn.jda.ktx.interactions.components.button
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion
+import net.dv8tion.jda.api.entities.channel.unions.GuildMessageChannelUnion
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
@@ -379,7 +381,15 @@ open class Arguments {
                 if (english) "Psychic" else "Psycho"
             } else t.translation
         }
-
+    }
+    protected fun pokemontype(name: String, help: String) = createArg(name, help, OptionType.STRING) {
+        validate { str ->
+            val t = Command.getGerName(str)
+            if (t.isEmpty || t.type != Translation.Type.TYPE) throw InvalidArgumentException("Ungültiger Typ!")
+            if (t.translation == "Psychic" || t.otherLang == "Psychic") {
+                "Psycho" to "Psychic"
+            } else t.translation to t.otherLang
+        }
     }
 
     protected fun list(name: String, help: String, numOfArgs: Int, requiredNum: Int) =
@@ -405,8 +415,22 @@ open class Arguments {
             }
         }
 
-    protected fun member(name: String, help: String, builder: Arg<String, Member>.() -> Unit = {}) =
+    protected fun member(name: String, help: String, builder: Arg<Member, Member>.() -> Unit = {}) =
         createArg(name, help, OptionType.USER, builder)
+
+    protected fun channel(
+        name: String,
+        help: String,
+        builder: Arg<GuildChannelUnion, GuildChannelUnion>.() -> Unit = {}
+    ) =
+        createArg(name, help, OptionType.CHANNEL, builder)
+
+    protected fun textchannel(
+        name: String,
+        help: String,
+        builder: Arg<GuildChannelUnion, GuildMessageChannelUnion>.() -> Unit = {}
+    ) =
+        createArg(name, help, OptionType.CHANNEL, builder)
 
     protected fun attachment(
         name: String,

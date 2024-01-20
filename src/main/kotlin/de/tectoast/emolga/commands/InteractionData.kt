@@ -131,10 +131,10 @@ class RealInteractionData(
     override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
         e as IReplyCallback
         val response = CommandResponse.from(ephemeral, msgCreateData)
-        responseDeferred.complete(response)
-        if (deferred)
+        if (deferred || acknowledged)
             response.sendInto(e.hook)
         else response.sendInto(e)
+        responseDeferred.complete(response)
     }
 
     override fun edit(msgEditData: MessageEditData) {
@@ -153,7 +153,7 @@ class RealInteractionData(
     override fun deferReply(ephemeral: Boolean) {
         e as IReplyCallback
         deferred = true
-        e.deferReply(ephemeral)
+        e.deferReply(ephemeral).queue()
     }
 
     override suspend fun replyAwait(msg: String, ephemeral: Boolean, action: (ReplyCallbackAction) -> Unit) {

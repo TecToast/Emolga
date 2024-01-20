@@ -3,25 +3,32 @@ package de.tectoast.emolga.commands
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.messages.reply_
-import dev.minn.jda.ktx.messages.send
+import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.MessageEmbed
+import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
+import net.dv8tion.jda.api.interactions.callbacks.IMessageEditCallback
 import net.dv8tion.jda.api.interactions.callbacks.IModalCallback
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
+import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import net.dv8tion.jda.api.interactions.modals.Modal
 import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
+import net.dv8tion.jda.api.utils.AttachedFile
+import net.dv8tion.jda.api.utils.FileUpload
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
+import net.dv8tion.jda.api.utils.messages.MessageEditData
 
 @OptIn(ExperimentalCoroutinesApi::class)
 abstract class InteractionData(
     open val user: Long,
     open val tc: Long,
-    open val gid: Long
+    open val gid: Long,
+    member: Member? = null
 ) {
 
     val responseDeferred: CompletableDeferred<CommandResponse> = CompletableDeferred()
@@ -39,14 +46,47 @@ abstract class InteractionData(
 
     val acknowledged get() = responseDeferred.isCompleted
     val textChannel by lazy { jda.getTextChannelById(tc)!! }
+    private var _member: Member? = member
+    private var _user: User? = null
+    suspend fun member() = _member ?: run {
+        _member = jda.getGuildById(gid)!!.retrieveMemberById(user).await()
+        _member!!
+    }
+
+    suspend fun user() = _user ?: run {
+        _user = jda.retrieveUserById(user).await()
+        _user!!
+    }
+
 
     suspend fun awaitResponse() = responseDeferred.await()
     abstract fun reply(
-        msg: String = "",
         ephemeral: Boolean = false,
-        embed: MessageEmbed? = null,
-        msgCreateData: MessageCreateData? = null
+        msgCreateData: MessageCreateData
     )
+
+    abstract fun edit(
+        msgEditData: MessageEditData
+    )
+
+    fun reply(
+        content: String = SendDefaults.content,
+        embeds: Collection<MessageEmbed> = SendDefaults.embeds,
+        components: Collection<LayoutComponent> = SendDefaults.components,
+        files: Collection<FileUpload> = emptyList(),
+        tts: Boolean = false,
+        mentions: Mentions = Mentions.default(),
+        ephemeral: Boolean = SendDefaults.ephemeral,
+    ) = reply(ephemeral, MessageCreate(content, embeds, files, components, tts, mentions))
+
+    fun edit(
+        content: String? = null,
+        embeds: Collection<MessageEmbed>? = null,
+        components: Collection<LayoutComponent>? = null,
+        attachments: Collection<AttachedFile>? = null,
+        replace: Boolean = MessageEditDefaults.replace,
+    ) = edit(MessageEdit(content, embeds, attachments, components, null, replace))
+
     abstract fun replyModal(modal: Modal)
 
     abstract suspend fun replyAwait(msg: String, ephemeral: Boolean = false, action: (ReplyCallbackAction) -> Unit = {})
@@ -56,17 +96,19 @@ abstract class InteractionData(
     }
 
 
-    fun replyEphemeral(msg: String) {
-        reply(msg, true)
-    }
+    val isNotFlo get() = user != Constants.FLOID
 }
 
 var redirectTestCommandLogsToChannel: MessageChannel? = null
 
 class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TEST_TCID, gid: Long = Constants.G.MY) :
     InteractionData(user, tc, gid) {
-    override fun reply(msg: String, ephemeral: Boolean, embed: MessageEmbed?, msgCreateData: MessageCreateData?) {
-        responseDeferred.complete(CommandResponse.from(msg, ephemeral, embed, msgCreateData))
+    override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
+        responseDeferred.complete(CommandResponse.from(ephemeral, msgCreateData))
+    }
+
+    override fun edit(msgEditData: MessageEditData) {
+        responseDeferred.complete(CommandResponse.from(msgEditData))
     }
 
     override fun replyModal(modal: Modal) {
@@ -84,15 +126,22 @@ class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TES
 
 class RealInteractionData(
     val e: GenericInteractionCreateEvent
-) : InteractionData(e.user.idLong, e.channel!!.idLong, e.guild?.idLong ?: -1) {
+) : InteractionData(e.user.idLong, e.channel!!.idLong, e.guild?.idLong ?: -1, e.member) {
 
-    override fun reply(msg: String, ephemeral: Boolean, embed: MessageEmbed?, msgCreateData: MessageCreateData?) {
+    override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
         e as IReplyCallback
-        val response = CommandResponse.from(msg, ephemeral, embed, msgCreateData)
+        val response = CommandResponse.from(ephemeral, msgCreateData)
         responseDeferred.complete(response)
         if (deferred)
             response.sendInto(e.hook)
         else response.sendInto(e)
+    }
+
+    override fun edit(msgEditData: MessageEditData) {
+        e as IMessageEditCallback
+        val response = CommandResponse.from(msgEditData)
+        responseDeferred.complete(response)
+        e.editMessage(msgEditData).queue()
     }
 
     override fun replyModal(modal: Modal) {
@@ -135,24 +184,30 @@ abstract class TestableCommand<T : CommandArgs>(
 interface CommandArgs
 object NoCommandArgs : CommandArgs
 
-class CommandResponse(val msg: String, val ephemeral: Boolean = false, val embed: MessageEmbed? = null) {
+class CommandResponse(
+    val msg: String,
+    val ephemeral: Boolean = false,
+    val embeds: List<MessageEmbed>? = null,
+    val components: List<LayoutComponent>? = null
+) {
     companion object {
-        fun from(msg: String, ephemeral: Boolean, embed: MessageEmbed?, msgCreateData: MessageCreateData?) =
-            msgCreateData?.let {
-                CommandResponse(it.content, ephemeral, it.embeds.firstOrNull())
-            } ?: CommandResponse(msg, ephemeral, embed)
+        fun from(ephemeral: Boolean, data: MessageCreateData) =
+            CommandResponse(data.content, ephemeral, data.embeds, data.components)
+
+        fun from(data: MessageEditData) =
+            CommandResponse(data.content, false, data.embeds, data.components)
     }
 
     fun sendInto(callback: IReplyCallback) {
-        callback.reply_(msg, ephemeral = ephemeral, embeds = listOfNotNull(embed)).queue()
+        callback.reply_(msg, ephemeral = ephemeral, embeds = embeds.orEmpty()).queue()
     }
 
     fun sendInto(hook: InteractionHook) {
-        hook.send(msg, ephemeral = ephemeral, embeds = listOfNotNull(embed)).queue()
+        hook.send(msg, ephemeral = ephemeral, embeds = embeds.orEmpty()).queue()
     }
 
     fun sendInto(channel: MessageChannel) {
-        channel.send(msg, embeds = listOfNotNull(embed)).queue()
+        channel.send(msg, embeds = embeds.orEmpty()).queue()
     }
 
 }

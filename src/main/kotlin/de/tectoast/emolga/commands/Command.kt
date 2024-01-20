@@ -14,7 +14,6 @@ import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.buttons.ButtonListener
 import de.tectoast.emolga.buttons.buttonsaves.Nominate
-import de.tectoast.emolga.buttons.buttonsaves.PrismaTeam
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
@@ -1089,7 +1088,6 @@ abstract class Command(
         val musicManagers: MutableMap<Long, GuildMusicManager> = HashMap()
         private val playerManagers: MutableMap<Long, AudioPlayerManager> = HashMap()
         val nominateButtons: MutableMap<Long, Nominate> = HashMap()
-        val prismaTeam: MutableMap<Long, PrismaTeam> = HashMap()
         private val customResult = emptyList<Long>()
         val uninitializedCommands: MutableList<String> = mutableListOf()
 

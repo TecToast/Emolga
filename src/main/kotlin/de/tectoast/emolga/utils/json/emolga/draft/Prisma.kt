@@ -1,8 +1,8 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.commands.coordXMod
-import de.tectoast.emolga.commands.draft.during.BanCommandArgs
 import de.tectoast.emolga.commands.x
+import de.tectoast.emolga.features.draft.during.BanMonCommand
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.records.Coord
 import kotlinx.serialization.SerialName
@@ -56,7 +56,7 @@ class Prisma : League() {
         )
     }
 
-    fun RequestBuilder.banDoc(data: BanCommandArgs) {
+    fun RequestBuilder.banDoc(data: BanMonCommand.Args) {
         val pokemon = data.pokemon.tlName
         addPokemonToDraftorderSheet(pokemon)
         addSingle("Tierliste!G${bannedMons.size + 2}", pokemon)

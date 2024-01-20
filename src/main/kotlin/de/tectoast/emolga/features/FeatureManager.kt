@@ -27,9 +27,8 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
                     if (cl.hasAnnotation<ToTest>()) {
                         logger.warn("Feature ${cl.simpleName} needs to be tested!")
                     }
-                    val o = cl.objectInstance ?: return@mapNotNull null
-                    if (o is Feature<*, *, *>) o else null
-                }.toSet()
+                    findAllFeaturesRecursively(cl)
+                }.flatten().toSet()
         }
     )
 
@@ -71,7 +70,10 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
         }
         with(data) {
             try {
-                when (val result = feature.allowed()) {
+                when (val result = if (user == Constants.FLOID) Allowed else {
+                    if (!feature.check(data)) NotAllowed else
+                        feature.checkSpecial(data)
+                }) {
                     Allowed -> {
                         feature.exec(args)
                     }
@@ -104,15 +106,23 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
         cd
     }
 
-    private fun generateOptionData(feature: CommandFeature<*>) = feature.defaultArgs.map { a ->
+    private fun generateOptionData(feature: CommandFeature<*>) = feature.defaultArgs.mapNotNull { a ->
+        if (a.onlyInCode) return@mapNotNull null
         val spec = a.spec as? CommandArgSpec
-        OptionData(a.optionType, a.name, a.help, !a.optional, spec?.autocomplete != null).apply {
+        OptionData(a.optionType, a.name.nameToDiscordOption(), a.help, !a.optional, spec?.autocomplete != null).apply {
             if (spec?.choices != null) addChoices(spec.choices)
         }
     }
 
     companion object {
         private val logger = KotlinLogging.logger {}
+
+        fun findAllFeaturesRecursively(cl: KClass<*>): List<Feature<*, *, *>> {
+            val o = cl.objectInstance ?: return emptyList()
+            return if (o is Feature<*, *, *>) listOf(o) else {
+                cl.nestedClasses.flatMap { findAllFeaturesRecursively(it) }
+            }
+        }
     }
 }
 

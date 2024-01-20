@@ -1,28 +1,24 @@
-package de.tectoast.emolga.commands.draft.during
+package de.tectoast.emolga.features.draft.during
 
-import de.tectoast.emolga.commands.CommandArgs
-import de.tectoast.emolga.commands.GuildCommandEvent
 import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.TestableCommand
-import de.tectoast.emolga.database.exposed.DraftName
-import de.tectoast.emolga.features.draft.during.BanMonCommand
+import de.tectoast.emolga.features.Arguments
+import de.tectoast.emolga.features.CommandFeature
+import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.BypassCurrentPlayerData
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.Prisma
 
-object BanMonCommand : TestableCommand<BanCommandArgs>("banmon", "Bannt ein Mon im Pick&Ban-System") {
-    init {
-        argumentTemplate = ArgumentManagerTemplate.create {
-            add("pokemon", "Pokemon", "Das Pokemon, welches du bannen möchtest", draftPokemonArgumentType)
-        }
-        slash(true, Constants.G.FLP)
+object BanMonCommand : CommandFeature<BanMonCommand.Args>(
+    ::Args,
+    CommandSpec("banmon", "Bannt ein Mon im Pick&Ban-System", Constants.G.FLP)
+) {
+    class Args : Arguments() {
+        var pokemon by draftPokemon("Pokemon", "Das Pokemon, welches du bannen möchtest")
     }
 
-    override fun fromGuildCommandEvent(e: GuildCommandEvent) = BanCommandArgs(e.arguments.getDraftName("pokemon"))
-
     context(InteractionData)
-    override suspend fun exec(e: BanCommandArgs) {
+    override suspend fun exec(e: Args) {
         val d =
             League.byCommand()?.first ?: return reply(
                 "Es läuft zurzeit kein Draft in diesem Channel!",
@@ -41,17 +37,9 @@ object BanMonCommand : TestableCommand<BanCommandArgs>("banmon", "Bannt ein Mon 
             d.bannedMons.add(official)
             d.replyGeneral("$tlName gebannt!")
             with(d) {
-                builder().apply {
-                    banDoc(BanMonCommand.buildArgs {
-                        pokemon = e.pokemon
-                    })
-                }.execute()
+                builder().apply { banDoc(e) }.execute()
             }
             d.afterPickOfficial()
         }
     }
 }
-
-data class BanCommandArgs(
-    val pokemon: DraftName
-) : CommandArgs

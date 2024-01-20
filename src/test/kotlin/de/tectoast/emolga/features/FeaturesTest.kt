@@ -15,7 +15,8 @@ var timer: TimeSource.Monotonic.ValueTimeMark? = null
 class FeaturesTest : FunSpec({
     test("test") {
         println("TEST")
-        val manager = FeatureManager(setOf(TestFeature, TestButton, TestModal, TestMenu, NestedCommand))
+//        val manager = FeatureManager(setOf(TestFeature, TestButton, TestModal, TestMenu, NestedCommand))
+        val manager = FeatureManager("de.tectoast.emolga.features")
         jda.listener<GenericInteractionCreateEvent> {
             timer = TimeSource.Monotonic.markNow()
             manager.handleEvent(it)

@@ -116,7 +116,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                     val allSDTranslations =
                         NameConventionsDB.getAllSDTranslationOnlyOfficialGerman(possibleOtherForm.flatMap { otherFormesEngl[it].orEmpty() })
                     val otherFormesGerman = otherFormesEngl.map { (k, v) ->
-                        k.official to v.map { allSDTranslations[it]!! }
+                        k.official to v.map { allSDTranslations[it] ?: it }
                     }.toMap()
                     allOtherFormesGerman.putAll(otherFormesGerman)
                     val filters = possibleOtherForm.map {

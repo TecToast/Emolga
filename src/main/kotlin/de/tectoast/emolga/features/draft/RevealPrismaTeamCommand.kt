@@ -7,7 +7,6 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.messages.into
-import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 object RevealPrisma {
@@ -27,7 +26,10 @@ object RevealPrisma {
     object RevealPrismaTeamCommand : CommandFeature<RevealPrismaTeamCommand.Args>(
         ::Args, CommandSpec("revealprismateam", "Revealt die Prisma Teams lol", Constants.G.FLP)
     ) {
-        override val slashPermissions: DefaultMemberPermissions = DefaultMemberPermissions.DISABLED
+
+        init {
+            slashPrivate()
+        }
 
         class Args : Arguments() {
             var user by member("User", "Der User lol")

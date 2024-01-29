@@ -6,7 +6,6 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
-import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 
 object StartMenschenhandel : CommandFeature<StartMenschenhandel.Args>(
     ::Args,
@@ -16,8 +15,10 @@ object StartMenschenhandel : CommandFeature<StartMenschenhandel.Args>(
         var channel by textchannel("Channel", "Der Channel lol")
     }
 
-    override val slashPermissions = DefaultMemberPermissions.DISABLED
-    override val check: suspend InteractionData.() -> Boolean = { member().isOwner }
+    init {
+        slashPrivate()
+        restrict { member().isOwner }
+    }
 
     context(InteractionData)
     override suspend fun exec(e: Args) {

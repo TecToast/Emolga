@@ -17,6 +17,7 @@ import dev.minn.jda.ktx.interactions.components.button
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion
 import net.dv8tion.jda.api.entities.channel.unions.GuildMessageChannelUnion
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -27,10 +28,13 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.interactions.commands.Command.Choice
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.OptionMapping
 import net.dv8tion.jda.api.interactions.commands.OptionType
+import net.dv8tion.jda.api.interactions.components.ActionRow
+import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
@@ -49,8 +53,12 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
     val eventToName: (@UnsafeVariance E) -> String
 ) {
     val registeredListeners = mutableSetOf<Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>>()
-    open val checkSpecial: suspend InteractionData.() -> AllowedResult = { Allowed }
-    open val check: suspend InteractionData.() -> Boolean = { true }
+    var checkSpecial: AllowedResultCheck = { Allowed }
+        private set
+    var check: BooleanCheck = { true }
+        private set
+
+    val defaultArgs by lazy { argsFun().args }
     abstract suspend fun populateArgs(data: InteractionData, e: @UnsafeVariance E, args: A)
 
     fun createComponentId(argsBuilder: ArgBuilder<@UnsafeVariance A>, checkCompId: Boolean = false) =
@@ -63,6 +71,12 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
         registeredListeners += (T::class to listener) as Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>
     }
 
+    fun registerPNListener(prefix: String, listener: suspend (MessageReceivedEvent) -> Unit) {
+        registerListener<MessageReceivedEvent> {
+            if (it.channelType == ChannelType.PRIVATE && it.message.contentRaw.startsWith(prefix)) listener(it)
+        }
+    }
+
     protected suspend inline fun populateArgs(
         data: InteractionData, args: List<Arg<*, *>>, parser: (String, Int) -> Any?
     ) {
@@ -73,6 +87,14 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
             }
             if (m != null) arg.parse(data, m)
         }
+    }
+
+    fun restrict(check: BooleanCheck) {
+        this.check = check
+    }
+
+    fun restrictResult(check: AllowedResultCheck) {
+        this.checkSpecial = check
     }
 
     fun members(vararg members: Long): suspend InteractionData.() -> Boolean = {
@@ -108,6 +130,8 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
     }
 }
 typealias ArgBuilder<A> = A.() -> Unit
+typealias BooleanCheck = suspend InteractionData.() -> Boolean
+typealias AllowedResultCheck = suspend InteractionData.() -> AllowedResult
 
 sealed class AllowedResult {
     companion object {
@@ -124,14 +148,13 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
     Feature<CommandSpec, SlashCommandInteractionEvent, A>(
         argsFun, spec, SlashCommandInteractionEvent::class, eventToName
     ) {
-    val defaultArgs by lazy { argsFun().args }
     private val autoCompleatableOptions by lazy {
         defaultArgs.mapNotNull { (it.spec as? CommandArgSpec)?.autocomplete?.let { ac -> it.name.nameToDiscordOption() to ac } }
             .toMap()
     }
     val children: Collection<CommandFeature<*>>
     val childCommands: Map<String, CommandFeature<*>>
-    open val slashPermissions: DefaultMemberPermissions = DefaultMemberPermissions.ENABLED
+    var slashPermissions: DefaultMemberPermissions = DefaultMemberPermissions.ENABLED
 
     init {
         registerListener<CommandAutoCompleteInteractionEvent> {
@@ -151,6 +174,10 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
         populateArgs(data, args.args) { str, _ ->
             e.getOption(str)
         }
+    }
+
+    protected fun slashPrivate() {
+        slashPermissions = DefaultMemberPermissions.DISABLED
     }
 
     companion object {
@@ -208,10 +235,10 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
     }
 
     operator fun invoke(
-        title: String? = null,
+        title: String = this.title,
         specificallyEnabledArgs: Map<KProperty1<out Arguments, *>, Boolean> = emptyMap(),
         argsBuilder: ArgBuilder<A> = {}
-    ) = Modal(createComponentId(argsBuilder, checkCompId = true), title ?: this.title) {
+    ) = Modal(createComponentId(argsBuilder, checkCompId = true), title) {
         val checkUpMap = specificallyEnabledArgs.mapKeys { it.key.name }
         argsFun().args.forEach { arg ->
             val spec = arg.spec as? ModalArgSpec
@@ -277,12 +304,14 @@ class CommandArgSpec(
 
 class ModalArgSpec(val short: Boolean, val defaultNotEnabled: Boolean, val builder: TextInput.Builder.() -> Unit) :
     ArgSpec
+
 class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
 open class Arguments {
     val _args = mutableListOf<Arg<*, *>>()
     val args: List<Arg<*, *>> = Collections.unmodifiableList(_args)
     protected fun string(name: String, help: String, builder: Arg<String, String>.() -> Unit = {}) =
         createArg(name, help, OptionType.STRING, builder)
+
     protected fun long(name: String, help: String, builder: Arg<Long, Long>.() -> Unit = {}) =
         createArg(name, help, OptionType.INTEGER, builder)
 
@@ -382,6 +411,7 @@ open class Arguments {
             } else t.translation
         }
     }
+
     protected fun pokemontype(name: String, help: String) = createArg(name, help, OptionType.STRING) {
         validate { str ->
             val t = Command.getGerName(str)
@@ -582,6 +612,7 @@ private val nameToDiscordRegex = Regex("[^\\w-]")
 fun String.nameToDiscordOption(): String {
     return lowercase().replace(" ", "-").replace(nameToDiscordRegex, "")
 }
+fun List<Button>.intoMultipleRows() = chunked(5).map { ActionRow.of(it) }
 
 open class ArgumentException(override val message: String) : Exception(message)
 class MissingArgumentException(arg: Arg<*, *>) : ArgumentException("Du musst den Parameter `${arg.name}` angeben!")

@@ -13,9 +13,11 @@ import net.dv8tion.jda.api.Permission
 object SkipPickCommand :
     CommandFeature<NoArgs>(NoArgs(), CommandSpec("skippick", "Skippe eine Person beim Draft", *draftGuilds)) {
 
-    override val check: suspend InteractionData.() -> Boolean = {
-        val mem = member()
-        mem.hasPermission(Permission.ADMINISTRATOR) || DraftAdminsDB.isAdmin(mem.guild.idLong, mem)
+    init {
+        restrict {
+            val mem = member()
+            mem.hasPermission(Permission.ADMINISTRATOR) || DraftAdminsDB.isAdmin(mem.guild.idLong, mem)
+        }
     }
 
     context(InteractionData)

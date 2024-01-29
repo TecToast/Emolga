@@ -49,13 +49,11 @@ abstract class InteractionData(
     private var _member: Member? = member
     private var _user: User? = null
     suspend fun member() = _member ?: run {
-        _member = jda.getGuildById(gid)!!.retrieveMemberById(user).await()
-        _member!!
+        jda.getGuildById(gid)!!.retrieveMemberById(user).await().also { _member = it }!!
     }
 
     suspend fun user() = _user ?: run {
-        _user = jda.retrieveUserById(user).await()
-        _user!!
+        jda.retrieveUserById(user).await().also { _user = it }!!
     }
 
 

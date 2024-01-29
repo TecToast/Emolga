@@ -1,46 +1,44 @@
-package de.tectoast.emolga.commands.draft.during
+package de.tectoast.emolga.features.draft.during
 
-import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.commands.InteractionData
+import de.tectoast.emolga.commands.embedColor
+import de.tectoast.emolga.commands.indexedBy
+import de.tectoast.emolga.features.Arguments
+import de.tectoast.emolga.features.CommandFeature
+import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.messages.Embed
-import net.dv8tion.jda.api.entities.Member
+import dev.minn.jda.ktx.messages.into
 
-object DraftStatusCommand :
-    Command("draftstatus", "Zeigt Informationen für den aktuellen Draft an", CommandCategory.Draft) {
-
-    init {
-        argumentTemplate = ArgumentManagerTemplate.create {
-            add(
-                "user",
-                "User",
-                "Der User, dessen Status angezeigt werden soll",
-                ArgumentManagerTemplate.DiscordType.USER,
-                true
-            )
-        }
-        slash(true, *draftGuilds)
+object DraftStatusCommand : CommandFeature<DraftStatusCommand.Args>(
+    ::Args,
+    CommandSpec("draftstatus", "Zeigt Informationen für den aktuellen Draft an", *draftGuilds)
+) {
+    class Args : Arguments() {
+        var user by member("User", "Der User, dessen Status angezeigt werden soll").nullable()
     }
 
-    override suspend fun process(e: GuildCommandEvent) {
+    context(InteractionData)
+    override suspend fun exec(e: Args) {
         var externalName: String? = null
         val mem =
-            e.arguments.getNullable<Member>("user")?.also { externalName = it.effectiveName }?.idLong ?: e.author.idLong
-        val external = mem != e.author.idLong
-        val d = db.leagueByGuild(e.guild.idLong, mem) ?: return e.reply(
+            e.user?.also { externalName = it.effectiveName }?.idLong ?: user
+        val external = mem != user
+        val d = db.leagueByGuild(gid, mem) ?: return reply(
             if (external) "<@$mem> nimmt nicht an einer Liga auf diesem Server teil!" else "Du nimmst nicht an einer Liga auf diesem Server teil!",
             ephemeral = true
         )
-        if (!d.isRunning) return e.reply("Der Draft läuft zurzeit nicht!", ephemeral = true)
+        if (!d.isRunning) return reply("Der Draft läuft zurzeit nicht!", ephemeral = true)
         with(d) {
             val tl = tierlist
             val order = tl.order
             val mode = tl.mode
-            if (mem !in table) return e.reply(
+            if (mem !in table) return reply(
                 if (external) "<@$mem> nimmt nicht an der Liga teil!" else "Du nimmst nicht an der Liga teil!",
                 ephemeral = true
             )
-            e.reply(
-                Embed(
+            reply(
+                embeds = Embed(
                     title = if (external) "Draft-Status von $externalName" else "Dein Draft-Status", color = embedColor
                 ) {
                     field {
@@ -59,7 +57,7 @@ object DraftStatusCommand :
                         value = getPossibleTiersAsString(mem)
                         inline = false
                     }
-                }, ephemeral = true
+                }.into(), ephemeral = true
             )
         }
     }

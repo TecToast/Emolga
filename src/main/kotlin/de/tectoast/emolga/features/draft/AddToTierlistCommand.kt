@@ -29,8 +29,8 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
         }.nullable()
     }
 
-    override val check: suspend InteractionData.() -> Boolean = {
-        roles(702233714360582154)() || admin(this)
+    init {
+        restrict { roles(702233714360582154)() || admin(this) }
     }
 
     context(InteractionData)

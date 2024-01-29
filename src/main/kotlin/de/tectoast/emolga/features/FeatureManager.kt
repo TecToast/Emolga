@@ -9,6 +9,7 @@ import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.annotations.ToTest
 import mu.KotlinLogging
+import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.commands.build.Commands
@@ -19,18 +20,15 @@ import kotlin.reflect.full.hasAnnotation
 
 class FeatureManager(private val load: Set<Feature<*, *, *>>) {
 
-    constructor(packageName: String) : this(
-        packageName.let {
-            ClassPath.from(Thread.currentThread().contextClassLoader).getTopLevelClassesRecursive(packageName)
-                .mapNotNull {
-                    val cl = it.load().kotlin
-                    if (cl.hasAnnotation<ToTest>()) {
-                        logger.warn("Feature ${cl.simpleName} needs to be tested!")
-                    }
-                    findAllFeaturesRecursively(cl)
-                }.flatten().toSet()
-        }
-    )
+    constructor(packageName: String) : this(packageName.let {
+        ClassPath.from(Thread.currentThread().contextClassLoader).getTopLevelClassesRecursive(packageName).mapNotNull {
+            val cl = it.load().kotlin
+            if (cl.hasAnnotation<ToTest>()) {
+                logger.warn("Feature ${cl.simpleName} needs to be tested!")
+            }
+            findAllFeaturesRecursively(cl)
+        }.flatten().toSet()
+    })
 
     private val eventToName: Map<KClass<*>, (GenericInteractionCreateEvent) -> String> =
         load.associate { it.eventClass to it.eventToName }
@@ -40,17 +38,17 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
         it.value.map { v -> v.second }
     }
 
-    suspend fun handleEvent(e: GenericInteractionCreateEvent) {
+    suspend fun handleEvent(e: GenericEvent) {
         val kClass = e::class
         listeners[kClass]?.forEach { it(e) }
-        val eventFeatures = features[kClass] ?: return
-        val feature = eventFeatures[eventToName[kClass]!!(e)]!!
-        execute(
-            if (e is SlashCommandInteractionEvent && feature is CommandFeature<*> && feature.children.isNotEmpty()) feature.childCommands[e.subcommandName]!! as Feature<*, *, Arguments>
-            else feature, e
-        )
-
-
+        if (e is GenericInteractionCreateEvent) {
+            val eventFeatures = features[kClass] ?: return
+            val feature = eventFeatures[eventToName[kClass]!!(e)]!!
+            execute(
+                if (e is SlashCommandInteractionEvent && feature is CommandFeature<*> && feature.children.isNotEmpty()) feature.childCommands[e.subcommandName]!! as Feature<*, *, Arguments>
+                else feature, e
+            )
+        }
     }
 
     private suspend fun execute(
@@ -71,8 +69,7 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
         with(data) {
             try {
                 when (val result = if (user == Constants.FLOID) Allowed else {
-                    if (!feature.check(data)) NotAllowed else
-                        feature.checkSpecial(data)
+                    if (!feature.check(data)) NotAllowed else feature.checkSpecial(data)
                 }) {
                     Allowed -> {
                         feature.exec(args)
@@ -97,13 +94,14 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
     }
 
     fun generateSlashCommandDescriptions() = load.filterIsInstance<CommandFeature<*>>().map { cmd ->
-        val cd = Commands.slash(cmd.spec.name, cmd.spec.help)
-        if (cmd.children.isNotEmpty()) {
-            cmd.children.forEach {
-                cd.addSubcommands(SubcommandData(it.spec.name, it.spec.help).addOptions(generateOptionData(it)))
-            }
-        } else cd.addOptions(generateOptionData(cmd))
-        cd
+        Commands.slash(cmd.spec.name, cmd.spec.help).apply {
+            defaultPermissions = cmd.slashPermissions
+            if (cmd.children.isNotEmpty()) {
+                cmd.children.forEach {
+                    addSubcommands(SubcommandData(it.spec.name, it.spec.help).addOptions(generateOptionData(it)))
+                }
+            } else addOptions(generateOptionData(cmd))
+        }
     }
 
     private fun generateOptionData(feature: CommandFeature<*>) = feature.defaultArgs.mapNotNull { a ->

@@ -18,7 +18,9 @@ object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
         }
     }
 
-    override val check = members(Constants.HENNY)
+    init {
+        restrict(members(Constants.HENNY))
+    }
 
     context(InteractionData)
     override suspend fun exec(e: Args) {

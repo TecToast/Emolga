@@ -124,6 +124,7 @@ abstract class InteractionData(
 
     abstract suspend fun replyAwait(msg: String, ephemeral: Boolean = false, action: (ReplyCallbackAction) -> Unit = {})
     abstract fun deferReply(ephemeral: Boolean = ephemeralDefault)
+    abstract fun deferEdit()
     fun sendMessage(msg: String) {
         textChannel.sendMessage(msg).queue()
     }
@@ -149,6 +150,10 @@ class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TES
     }
 
     override fun deferReply(ephemeral: Boolean) {
+        deferred = true
+    }
+
+    override fun deferEdit() {
         deferred = true
     }
 
@@ -187,6 +192,12 @@ class RealInteractionData(
         e as IReplyCallback
         deferred = true
         e.deferReply(ephemeral).queue()
+    }
+
+    override fun deferEdit() {
+        e as IMessageEditCallback
+        deferred = true
+        e.deferEdit().queue()
     }
 
     override suspend fun replyAwait(msg: String, ephemeral: Boolean, action: (ReplyCallbackAction) -> Unit) {

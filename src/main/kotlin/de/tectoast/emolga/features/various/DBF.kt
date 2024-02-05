@@ -15,13 +15,11 @@ import dev.minn.jda.ktx.interactions.components.StringSelectMenu
 import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
-import dev.minn.jda.ktx.messages.reply_
 import dev.minn.jda.ktx.messages.send
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
-import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
@@ -59,6 +57,17 @@ object DBF {
                 Mode.QUESTION -> newNormalQuestion()
                 Mode.ESTIMATE -> newEstimateQuestion()
             }
+        }
+    }
+
+    object Menu : SelectMenuFeature<Menu.Args>(::Args, SelectMenuSpec("dumbestflies")) {
+        class Args : Arguments() {
+            var user by singleOption { it.toLong() }
+        }
+
+        context(InteractionData)
+        override suspend fun exec(e: Args) {
+            addVote(e.user)
         }
     }
 
@@ -193,14 +202,14 @@ object DBF {
         }
     }"
 
-    suspend fun addVote(e: StringSelectInteractionEvent) {
-        val from = e.user.idLong
-        val to = e.values.first().toLong()
+    context(InteractionData)
+    suspend fun addVote(to: Long) {
+        val from = user
         if (from !in members) return
-        if (from == to) return e.reply_("Du kannst nicht für dich selbst voten!", ephemeral = true).queue()
+        if (from == to) return reply("Du kannst nicht für dich selbst voten!", ephemeral = true)
         //if (votes.containsKey(from)) return e.reply_("Du hast bereits diese Runde gevotet!", ephemeral = true).queue()
         votes[from] = to
-        e.reply_("Du hast für <@$to> gevotet!", ephemeral = true).queue()
+        reply("Du hast für <@$to> gevotet!", ephemeral = true)
         updateGameStatusMessage()
         updateAdminStatusMessage()
         if (allVoted()) adminChannel().sendMessage("Alle haben gevotet! <@${Constants.FLOID}>")

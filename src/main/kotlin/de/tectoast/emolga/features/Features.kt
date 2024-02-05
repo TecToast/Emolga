@@ -495,7 +495,13 @@ open class Arguments {
         builder: Arg<Message.Attachment, Message.Attachment>.() -> Unit = {}
     ) = createArg(name, help, OptionType.ATTACHMENT, builder)
 
-    protected fun singleOption() = multiOption(1..1)
+    protected fun singleOption() = createArg<String, String>("", "", OptionType.STRING) {
+        spec = SelectMenuArgSpec(1..1)
+    }
+
+    protected fun <T> singleOption(validator: suspend InteractionData.(String) -> T) = createArg("", "") {
+        validate(validator)
+    }
 
     @Suppress("MemberVisibilityCanBePrivate")
     protected fun multiOption(range: IntRange) = createArg<List<String>, List<String>>("", "", OptionType.STRING) {

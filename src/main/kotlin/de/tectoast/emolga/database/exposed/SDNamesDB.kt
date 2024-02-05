@@ -1,15 +1,15 @@
 package de.tectoast.emolga.database.exposed
 
-import de.tectoast.emolga.bot.EmolgaMain.emolgajda
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.database.Database
+import de.tectoast.emolga.features.flo.SDNamesApprovalButton
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.interactions.components.danger
-import dev.minn.jda.ktx.interactions.components.success
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.deleteWhere
@@ -41,16 +41,18 @@ object SDNamesDB : Table("sdnames") {
                 if (currentOwner == id) {
                     SDInsertStatus.ALREADY_OWNED_BY_YOU
                 } else {
-                    emolgajda.getTextChannelById(SDNAMES_CHANNEL_ID)!!.send(
+                    jda.getTextChannelById(SDNAMES_CHANNEL_ID)!!.send(
                         "<@$id> [$id] (`${
-                            emolgajda.retrieveUserById(id).await().effectiveName
+                            jda.retrieveUserById(id).await().effectiveName
                         }`) möchte den Namen `$name` [`$username`] haben, aber dieser ist bereits von " +
                                 "<@$currentOwner> [$currentOwner] (`${
-                                    emolgajda.retrieveUserById(currentOwner).await().effectiveName
+                                    jda.retrieveUserById(currentOwner).await().effectiveName
                                 }`) belegt! Akzeptieren?",
                         components = listOf(
-                            success("sdnamesapproval;true;$id;$username", "Ja"),
-                            danger("sdnamesapproval;false", "Nein")
+                            SDNamesApprovalButton("Ja", ButtonStyle.SUCCESS) {
+                                accept = true; this.id = id; this.username = username
+                            },
+                            SDNamesApprovalButton("Nein", ButtonStyle.DANGER) { accept = false }
                         ).into()
                     ).queue()
                     SDInsertStatus.ALREADY_OWNED_BY_OTHER

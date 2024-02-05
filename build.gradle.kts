@@ -1,9 +1,9 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "1.9.20"
+val kVersion = "1.9.22"
 plugins {
-    val kVersion = "1.9.20"
+    val kVersion = "1.9.22"
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("com.github.johnrengelman.shadow") version "8.1.1"
@@ -56,10 +56,6 @@ val gprPassword: String by project
 repositories {
     mavenLocal()
     mavenCentral()
-    maven {
-        url = uri("https://m2.dv8tion.net/releases")
-    }
-    maven("https://jitpack.io/")
 }
 
 val ktorVersion = "2.3.6"
@@ -95,10 +91,10 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     //implementation("mysql:mysql-connector-java:8.0.29")
     //implementation("com.github.TecToast:JSOLF:a43c3e06c7")
-    implementation("net.dv8tion:JDA:5.0.0-beta.18")
-    implementation("com.zaxxer:HikariCP:5.0.1")
+    implementation("net.dv8tion:JDA:5.0.0-beta.20")
+    implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.1.4")
-    implementation("com.github.MinnDevelopment:jda-ktx:0.10.0-beta.1")
+    implementation("club.minnced:jda-ktx:0.11.0-beta.20")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")

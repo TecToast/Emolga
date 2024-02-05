@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.callbacks.IMessageEditCallback
@@ -77,13 +78,12 @@ abstract class InteractionData(
         (event as? T)?.handler()
     }
 
-    inline fun buttonEvent(handler: ButtonInteractionEvent.() -> Unit) {
-        event<ButtonInteractionEvent> { handler() }
-    }
+    inline fun buttonEvent(handler: ButtonInteractionEvent.() -> Unit) = event<ButtonInteractionEvent>(handler)
 
-    inline fun modalEvent(handler: ModalInteractionEvent.() -> Unit) {
-        event<ModalInteractionEvent> { handler() }
-    }
+    inline fun modalEvent(handler: ModalInteractionEvent.() -> Unit) = event<ModalInteractionEvent>(handler)
+
+    inline fun slashEvent(handler: SlashCommandInteractionEvent.() -> Unit) =
+        event<SlashCommandInteractionEvent>(handler)
 
 
     suspend fun awaitResponse() = responseDeferred.await()

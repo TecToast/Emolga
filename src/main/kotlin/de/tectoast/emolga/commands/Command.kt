@@ -2519,6 +2519,11 @@ fun <T> Collection<T>.filterStartsWithIgnoreCase(other: String, tostring: (T) ->
         val str = tostring(it)
         if (str.startsWith(other, ignoreCase = true)) str else null
     }
+fun <T> Array<T>.filterStartsWithIgnoreCase(other: String, tostring: (T) -> String = { it.toString() }) =
+    mapNotNull {
+        val str = tostring(it)
+        if (str.startsWith(other, ignoreCase = true)) str else null
+    }
 
 val String.marker: Marker get() = MarkerFactory.getMarker(this)
 

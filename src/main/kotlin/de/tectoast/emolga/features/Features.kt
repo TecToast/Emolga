@@ -97,20 +97,23 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
         this.checkSpecial = check
     }
 
-    fun members(vararg members: Long): suspend InteractionData.() -> Boolean = {
+    fun user(uid: Long): BooleanCheck = {
+        user == uid
+    }
+
+    fun members(vararg members: Long): BooleanCheck = {
         user in members
     }
 
-    fun roles(vararg roles: Long): suspend InteractionData.() -> Boolean = {
+    fun roles(vararg roles: Long): BooleanCheck = {
         member().roles.any { it.idLong in roles }
     }
 
-    val admin: suspend InteractionData.() -> Boolean = {
+    val admin: BooleanCheck = {
         member().hasPermission(Permission.ADMINISTRATOR)
     }
-    val henny: suspend InteractionData.() -> Boolean = {
-        user == Constants.HENNY
-    }
+    val flo = user(Constants.FLOID)
+    val henny = user(Constants.HENNY)
 
     context (InteractionData)
     abstract suspend fun exec(e: A)
@@ -373,20 +376,34 @@ open class Arguments {
             try {
                 enumValueOf<T>(it)
             } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException(
+                throw InvalidArgumentException(
                     "Ungültiger Wert für $name! Mögliche Werte: ${enumValues.joinToString(", ")}"
                 )
             }
         }
         if (enumValues.size <= 25) slashCommand(enumValues.map { Choice(it.name, it.name) })
         else slashCommand { s, _ ->
-            val nameMatching = enumValues.mapNotNull {
-                val enumName = it.name
-                if (enumName.startsWith(s, ignoreCase = true)) enumName else null
-            }
+            val nameMatching = enumValues.filterStartsWithIgnoreCase(s) { it.name }
             nameMatching.convertListToAutoCompleteReply()
         }
         slashCommand(enumValues.map { Choice(it.name, it.name) })
+        builder()
+    }
+
+    protected fun fromList(
+        name: String = "",
+        help: String = "",
+        list: List<String>,
+        builder: Arg<String, String>.() -> Unit = {}
+    ) = createArg<String, String>(name, help) {
+        validate { s ->
+            s.takeIf { it in list }
+                ?: throw InvalidArgumentException("Keine valide Angabe! Halte dich an die Autovervollständigung!")
+        }
+        if (list.size <= 25) slashCommand(list.toChoices())
+        else slashCommand { s, _ ->
+            list.filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
+        }
         builder()
     }
 

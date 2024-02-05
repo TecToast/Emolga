@@ -13,7 +13,6 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.buttons.ButtonListener
-import de.tectoast.emolga.buttons.buttonsaves.Nominate
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
@@ -1087,7 +1086,6 @@ abstract class Command(
          */
         val musicManagers: MutableMap<Long, GuildMusicManager> = HashMap()
         private val playerManagers: MutableMap<Long, AudioPlayerManager> = HashMap()
-        val nominateButtons: MutableMap<Long, Nominate> = HashMap()
         private val customResult = emptyList<Long>()
         val uninitializedCommands: MutableList<String> = mutableListOf()
 
@@ -1484,7 +1482,7 @@ abstract class Command(
         val calendarFormat = SimpleDateFormat("dd.MM. HH:mm")
 
         @JvmStatic
-        protected fun buildCalendar(): String {
+        fun buildCalendar(): String {
             return CalendarDB.allFloEntries.sortedBy { it.expires }
                 .joinToString("\n") { o: CalendarEntry -> "**${calendarFormat.format(o.expires.toEpochMilli())}:** ${o.message}" }
                 .ifEmpty { "_leer_" }
@@ -1528,7 +1526,7 @@ abstract class Command(
 
         @JvmStatic
         @Throws(NumberFormatException::class)
-        protected fun parseCalendarTime(str: String): Long {
+        fun parseCalendarTime(str: String): Long {
             var timestr = str.lowercase()
             if (!DURATION_PATTERN.matches(timestr)) {
                 val calendar = Calendar.getInstance()

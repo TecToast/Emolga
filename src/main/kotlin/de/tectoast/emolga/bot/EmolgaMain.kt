@@ -6,25 +6,23 @@ import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.Giveaway
 import de.tectoast.emolga.features.FeatureManager
+import de.tectoast.emolga.features.various.ControlCentralButton
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.events.listener
-import dev.minn.jda.ktx.interactions.components.primary
-import dev.minn.jda.ktx.interactions.components.secondary
-import dev.minn.jda.ktx.interactions.components.success
 import dev.minn.jda.ktx.jdabuilder.cache
 import dev.minn.jda.ktx.jdabuilder.default
 import dev.minn.jda.ktx.jdabuilder.intents
-import dev.minn.jda.ktx.messages.Embed
-import dev.minn.jda.ktx.messages.reply_
+import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.*
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Activity
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import net.dv8tion.jda.api.utils.cache.CacheFlag.*
@@ -54,7 +52,7 @@ object EmolgaMain {
     private val logger = LoggerFactory.getLogger(EmolgaMain::class.java)
 
     const val NOTEMPVERSION = true
-    private val CONTROLCENTRALGENERATION: Long? = null
+    private val CONTROLCENTRALGENERATION: Pair<Long, Long?> = 967890099029278740 to 967890640065134602
     val featureManager = FeatureManager("de.tectoast.emolga.features")
 
     @Throws(Exception::class)
@@ -85,15 +83,23 @@ object EmolgaMain {
             jda.awaitReady()
         }
         logger.info("Discord Bots loaded!")
-        CONTROLCENTRALGENERATION?.let {
-            emolgajda.getTextChannelById(it)!!.sendMessageEmbeds(Embed(title = "Kontrollzentrale", color = embedColor))
-                .addActionRow(
-                    success("controlcentral;ej", "Emolga-JSON laden"),
-                    secondary("controlcentral;saveemolgajson", "Emolga-JSON speichern"),
-                    primary("controlcentral;updateslash", "Slash-Commands updaten"),
-                    primary("controlcentral;updatetierlist", "Tierlist updaten"),
-                    success("controlcentral;breakpoint", "Breakpoint"),
+        CONTROLCENTRALGENERATION.let {
+            val tc = emolgajda.getTextChannelById(it.first)!!
+            val embed = Embed(title = "Kontrollzentrale", color = embedColor).into()
+            val components = listOf(
+                ControlCentralButton("Slash-Commands updaten", ButtonStyle.PRIMARY) {
+                    mode = ControlCentralButton.Mode.UPDATE_SLASH
+                },
+                ControlCentralButton("Tierlist updaten", ButtonStyle.PRIMARY) {
+                    mode = ControlCentralButton.Mode.UPDATE_TIERLIST
+                },
+                ControlCentralButton("Breakpoint", ButtonStyle.SUCCESS) { mode = ControlCentralButton.Mode.BREAKPOINT },
+            ).into()
+            it.second?.let { mid ->
+                tc.editMessage(
+                    mid.toString(), embeds = embed, components = components
                 ).queue()
+            } ?: tc.send(embeds = embed, components = components).queue()
         }
         //Ktor.start()
         Command.awaitNextDay()

@@ -7,10 +7,10 @@ import de.tectoast.emolga.database.exposed.AnalysisDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.database.exposed.TipGamesDB
+import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.nameToDiscordOption
 import de.tectoast.emolga.ktor.subscribeToYTChannel
 import de.tectoast.emolga.managers.SignupManager
-import de.tectoast.emolga.selectmenus.RoleGetMenu
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -916,13 +916,12 @@ object PrivateCommands {
 
 
     fun flegmonSendRules(e: GenericCommandEvent) {
-        val tcid = e.getArg(1).toLong()
-        flegmonjda.getTextChannelById(tcid)!!.sendMessage("")
-            .addActionRow(primary("ruleaccept", "Regeln akzeptieren", emoji = Emoji.fromUnicode("✅"))).queue()
+        flegmonjda.getTextChannelById(e.getArg(1).toLong())!!
+            .send(components = RoleManagement.RuleAcceptButton().into()).queue()
     }
 
     fun flegmonSendRoles(e: GenericCommandEvent) {
-        val tcid = e.getArg(1).toLong()
-        flegmonjda.getTextChannelById(tcid)!!.sendMessage("").setComponents(RoleGetMenu.getActionRows()).queue()
+        flegmonjda.getTextChannelById(e.getArg(1).toLong())!!.send(components = RoleManagement.RoleGetMenu().into())
+            .queue()
     }
 }

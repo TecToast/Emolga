@@ -8,17 +8,25 @@ import de.tectoast.emolga.commands.RealInteractionData
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.annotations.ToTest
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.only
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import mu.KotlinLogging
+import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import kotlin.reflect.KClass
 import kotlin.reflect.full.hasAnnotation
 
 class FeatureManager(private val load: Set<Feature<*, *, *>>) {
+    private val listenerScope = CoroutineScope(Dispatchers.Default)
 
     constructor(packageName: String) : this(packageName.let {
         ClassPath.from(Thread.currentThread().contextClassLoader).getTopLevelClassesRecursive(packageName).mapNotNull {
@@ -40,7 +48,11 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
 
     suspend fun handleEvent(e: GenericEvent) {
         val kClass = e::class
-        listeners[kClass]?.forEach { it(e) }
+        listeners[kClass]?.forEach {
+            listenerScope.launch {
+                it(e)
+            }
+        }
         if (e is GenericInteractionCreateEvent) {
             val eventFeatures = features[kClass] ?: return
             val feature = eventFeatures[eventToName[kClass]!!(e)]!!
@@ -93,7 +105,22 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
         }
     }
 
-    fun generateSlashCommandDescriptions() = load.filterIsInstance<CommandFeature<*>>().map { cmd ->
+    suspend fun updateFeatures(jda: JDA) {
+        val guildSlashFeatures: MutableMap<Long, MutableSet<SlashCommandData>> = mutableMapOf()
+        generateSlashCommandDescriptions().forEach { (feature, desc) ->
+            feature.spec.guilds.forEach { guildId ->
+                guildSlashFeatures.getOrPut(guildId) { mutableSetOf() }.add(desc)
+            }
+        }
+        val guildsToUpdate = db.config.only().guildsToUpdate.ifEmpty { guildSlashFeatures.keys }
+        for (gid in guildsToUpdate) {
+            val commands = guildSlashFeatures[gid] ?: continue
+            (if (gid == -1L) jda.updateCommands()
+            else jda.getGuildById(gid)?.updateCommands())?.addCommands(commands)?.queue()
+        }
+    }
+
+    fun generateSlashCommandDescriptions() = load.filterIsInstance<CommandFeature<*>>().associateWith { cmd ->
         Commands.slash(cmd.spec.name, cmd.spec.help).apply {
             defaultPermissions = cmd.slashPermissions
             if (cmd.children.isNotEmpty()) {

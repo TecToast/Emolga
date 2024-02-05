@@ -1,10 +1,13 @@
-package de.tectoast.emolga.utils
+package de.tectoast.emolga.features.various
 
 import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.commands.file
 import de.tectoast.emolga.database.exposed.DumbestFliesDB
 import de.tectoast.emolga.database.exposed.UsedQuestionsDB
+import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.generics.getChannel
 import dev.minn.jda.ktx.interactions.components.SelectOption
@@ -18,10 +21,10 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
-import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -39,6 +42,111 @@ object DBF {
     var votedSet: List<Map.Entry<Long, Int>> = listOf()
 
     private val logger = KotlinLogging.logger {}
+
+    object Button : ButtonFeature<Button.Args>(::Args, ButtonSpec("dumbestflies")) {
+        class Args : Arguments() {
+            var mode by enumBasic<Mode>()
+        }
+
+        enum class Mode {
+            NEWROUND, QUESTION, ESTIMATE
+        }
+
+        context(InteractionData)
+        override suspend fun exec(e: Args) {
+            when (e.mode) {
+                Mode.NEWROUND -> endOfRound()
+                Mode.QUESTION -> newNormalQuestion()
+                Mode.ESTIMATE -> newEstimateQuestion()
+            }
+        }
+    }
+
+    object Command :
+        CommandFeature<NoArgs>(NoArgs(), CommandSpec("dumbestfliesctl", "dumbestfliesctl", Constants.G.COMMUNITY)) {
+
+        init {
+            restrict(henny)
+            slashPrivate()
+        }
+
+        class UserArg : Arguments() {
+            var user by member("user", "user")
+        }
+
+
+        object Add : CommandFeature<UserArg>(::UserArg, CommandSpec("add", "add")) {
+
+            context(InteractionData)
+            override suspend fun exec(e: UserArg) {
+                runCatching {
+                    newSuspendedTransaction {
+                        DumbestFliesDB.insert {
+                            it[id] = e.user.idLong
+                            it[name] = e.user.effectiveName
+                        }
+                    }
+                }
+                reloadMembers()
+                done(true)
+            }
+        }
+
+        object Remove : CommandFeature<UserArg>(::UserArg, CommandSpec("add", "add")) {
+            context(InteractionData)
+            override suspend fun exec(e: UserArg) {
+                newSuspendedTransaction {
+                    DumbestFliesDB.deleteWhere { id eq e.user.idLong }
+                }
+                reloadMembers()
+                done(true)
+            }
+        }
+
+        object List : CommandFeature<NoArgs>(NoArgs(), CommandSpec("list", "list")) {
+            context(InteractionData)
+            override suspend fun exec(e: NoArgs) {
+                reply(newSuspendedTransaction {
+                    DumbestFliesDB.selectAll()
+                        .joinToString("\n") { it[DumbestFliesDB.name] + " (<@${it[DumbestFliesDB.id]}>)" }
+                }, ephemeral = true)
+            }
+        }
+
+        object Start : CommandFeature<Start.Args>(::Args, CommandSpec("start", "start")) {
+            class Args : Arguments() {
+                var maxlifes by int("maxlifes", "maxlifes") {
+                    default = 3
+                }
+            }
+
+            context(InteractionData)
+            override suspend fun exec(e: Args) {
+                initWithDB(e.maxlifes)
+                done(true)
+            }
+        }
+
+        object Tie : CommandFeature<UserArg>(::UserArg, CommandSpec("tie", "tie")) {
+            context(InteractionData)
+            override suspend fun exec(e: UserArg) {
+                realEndOfRound(e.user.idLong)
+            }
+        }
+
+        object StartQuestions : CommandFeature<NoArgs>(NoArgs(), CommandSpec("startquestions", "startquestions")) {
+            context(InteractionData)
+            override suspend fun exec(e: NoArgs) {
+                startQuestions()
+            }
+        }
+
+        context(InteractionData)
+        override suspend fun exec(e: NoArgs) {
+            // do nothing
+        }
+    }
+
     suspend fun initWithDB(lifesAmount: Int) = newSuspendedTransaction {
         maxLifes = lifesAmount
         votes.clear()
@@ -104,13 +212,14 @@ object DBF {
     suspend fun updateAdminStatusMessage() {
         val entries = votes.entries.groupingBy { it.value }.eachCount().entries.sortedByDescending { it.value }
         if (allVoted()) votedSet = entries
-        adminChannel().editMessageById(adminStatusID, "Votes:\n${
-            votes.entries.joinToString("\n") {
-                "<@${it.key}> -> <@${it.value}>"
-            }
-        }\n\nStand der Dinge:\n${
-            entries.joinToString("\n") { "<@${it.key}>: ${it.value}" }
-        }").await()
+        adminChannel().editMessageById(
+            adminStatusID, "Votes:\n${
+                votes.entries.joinToString("\n") {
+                    "<@${it.key}> -> <@${it.value}>"
+                }
+            }\n\nStand der Dinge:\n${
+                entries.joinToString("\n") { "<@${it.key}>: ${it.value}" }
+            }").await()
     }
 
     private suspend fun updateGameStatusMessage() {
@@ -119,17 +228,17 @@ object DBF {
         }
     }
 
-    suspend fun endOfRound(e: ButtonInteractionEvent) {
-        if (!allVoted()) return e.reply_("Es haben noch nicht alle gevoted!", ephemeral = true).queue()
+    context(InteractionData)
+    suspend fun endOfRound() {
+        if (!allVoted()) return reply("Es haben noch nicht alle gevoted!", ephemeral = true)
         val highestVote = votedSet.maxOf { it.value }
         val members = votedSet.filter { it.value == highestVote }.map { it.key }
         if (members.size > 1) {
-            e.reply_("Es gibt einen Gleichstand zwischen: ${
+            return reply("Es gibt einen Gleichstand zwischen: ${
                 members.joinToString("") { "<@${it}>" }
-            }", ephemeral = true).queue()
-            return
+            }", ephemeral = true)
         }
-        realEndOfRound(e, members.first())
+        realEndOfRound(members.first())
     }
 
     fun loseLive(id: Long) {
@@ -140,12 +249,13 @@ object DBF {
         }
     }
 
-    suspend fun realEndOfRound(e: IReplyCallback, loser: Long) {
+    context(InteractionData)
+    suspend fun realEndOfRound(loser: Long) {
         loseLive(loser)
         votes.clear()
         updateAdminStatusMessage()
         updateGameStatusMessage()
-        e.reply_("Neue Runde gestartet!", ephemeral = true).queue()
+        reply("Neue Runde gestartet!", ephemeral = true)
     }
 
     @Suppress("unused")
@@ -212,28 +322,31 @@ object DBF {
     private fun allQuestionsWith(estimate: Boolean) =
         allQuestions.filter { it.startsWith("Schätzfrage") == estimate }.toMutableSet()
 
-    fun startQuestions(e: SlashCommandInteractionEvent) {
+    context(InteractionData)
+    fun startQuestions() {
         allQuestions = readQuestions()
         regularQuestions = allQuestionsWith(false)
         estimateQuestions = allQuestionsWith(true)
-        e.reply_("Fragen gestartet!", components = questionComponents).queue()
+        reply("Fragen gestartet!", components = questionComponents)
     }
 
-    fun newNormalQuestion(e: ButtonInteractionEvent) {
-        val question = regularQuestions.randomOrNull() ?: return e.reply_(
+    context(InteractionData)
+    fun newNormalQuestion() {
+        val question = regularQuestions.randomOrNull() ?: return reply(
             "Keine Fragen mehr!", ephemeral = true
-        ).queue()
+        )
         regularQuestions.remove(question)
-        e.reply_("[${regularQuestions.size}] $question", components = questionComponents, ephemeral = true).queue()
+        reply("[${regularQuestions.size}] $question", components = questionComponents, ephemeral = true)
         UsedQuestionsDB.insertIndex(allQuestions.indexOf(question))
     }
 
-    fun newEstimateQuestion(e: ButtonInteractionEvent) {
-        val question = estimateQuestions.randomOrNull() ?: return e.reply_(
+    context(InteractionData)
+    fun newEstimateQuestion() {
+        val question = estimateQuestions.randomOrNull() ?: return reply(
             "Keine Fragen mehr!", ephemeral = true
-        ).queue()
+        )
         estimateQuestions.remove(question)
-        e.reply_("[${estimateQuestions.size}] $question", components = questionComponents, ephemeral = true).queue()
+        reply("[${estimateQuestions.size}] $question", components = questionComponents, ephemeral = true)
         UsedQuestionsDB.insertIndex(allQuestions.indexOf(question))
     }
 

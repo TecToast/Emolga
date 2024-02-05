@@ -1,6 +1,6 @@
 package de.tectoast.emolga.selectmenus
 
-import de.tectoast.emolga.utils.DBF
+import de.tectoast.emolga.features.various.DBF
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 
 object DumbestFliesMenu : MenuListener("dumbestflies") {

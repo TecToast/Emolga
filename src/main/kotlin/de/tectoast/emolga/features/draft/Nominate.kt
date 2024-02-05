@@ -165,7 +165,7 @@ object Nominate {
                         ) { data = "FINISH" })
                     )
                 })
-                ).queue { Command.nominateButtons[it.idLong] = n }
+                ).queue { nominateButtons[it.idLong] = n }
                 nds.save()
             }
         }

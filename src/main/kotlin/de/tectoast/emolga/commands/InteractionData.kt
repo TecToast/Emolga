@@ -1,16 +1,19 @@
 package de.tectoast.emolga.commands
 
-import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.callbacks.IMessageEditCallback
 import net.dv8tion.jda.api.interactions.callbacks.IModalCallback
@@ -28,7 +31,8 @@ abstract class InteractionData(
     open val user: Long,
     open val tc: Long,
     open val gid: Long,
-    member: Member? = null
+    member: Member? = null,
+    open val event: GenericInteractionCreateEvent? = null
 ) {
 
     val responseDeferred: CompletableDeferred<CommandResponse> = CompletableDeferred()
@@ -47,25 +51,56 @@ abstract class InteractionData(
     val acknowledged get() = responseDeferred.isCompleted
     val textChannel by lazy { jda.getTextChannelById(tc)!! }
     private var _member: Member? = member
-    private var _user: User? = null
+    private var _user: User? = member?.user
+    private var _guild: Guild? = member?.guild
+    var ephemeralDefault = false
+    val jda: JDA = member?.jda ?: de.tectoast.emolga.bot.jda
     suspend fun member() = _member ?: run {
-        jda.getGuildById(gid)!!.retrieveMemberById(user).await().also { _member = it }!!
+        guild().retrieveMemberById(user).await().also { _member = it }!!
     }
 
     suspend fun user() = _user ?: run {
         jda.retrieveUserById(user).await().also { _user = it }!!
     }
 
+    fun guild() = _guild ?: run {
+        jda.getGuildById(gid)!!.also { _guild = it }
+    }
+
+
+    /**
+     * Executes the given handler if the event exists and is of the given type
+     * @param T The type of the event
+     * @param handler The handler to execute
+     */
+    inline fun <reified T : GenericInteractionCreateEvent> event(handler: T.() -> Unit) {
+        (event as? T)?.handler()
+    }
+
+    inline fun buttonEvent(handler: ButtonInteractionEvent.() -> Unit) {
+        event<ButtonInteractionEvent> { handler() }
+    }
+
+    inline fun modalEvent(handler: ModalInteractionEvent.() -> Unit) {
+        event<ModalInteractionEvent> { handler() }
+    }
+
 
     suspend fun awaitResponse() = responseDeferred.await()
     abstract fun reply(
-        ephemeral: Boolean = false,
+        ephemeral: Boolean = ephemeralDefault,
         msgCreateData: MessageCreateData
     )
+
+    fun done(ephemeral: Boolean = false) = reply("Done!", ephemeral = ephemeral)
 
     abstract fun edit(
         msgEditData: MessageEditData
     )
+
+    fun ephemeralDefault() {
+        ephemeralDefault = true
+    }
 
     fun reply(
         content: String = SendDefaults.content,
@@ -74,7 +109,7 @@ abstract class InteractionData(
         files: Collection<FileUpload> = emptyList(),
         tts: Boolean = false,
         mentions: Mentions = Mentions.default(),
-        ephemeral: Boolean = SendDefaults.ephemeral,
+        ephemeral: Boolean = ephemeralDefault,
     ) = reply(ephemeral, MessageCreate(content, embeds, files, components, tts, mentions))
 
     fun edit(
@@ -88,7 +123,7 @@ abstract class InteractionData(
     abstract fun replyModal(modal: Modal)
 
     abstract suspend fun replyAwait(msg: String, ephemeral: Boolean = false, action: (ReplyCallbackAction) -> Unit = {})
-    abstract fun deferReply(ephemeral: Boolean = false)
+    abstract fun deferReply(ephemeral: Boolean = ephemeralDefault)
     fun sendMessage(msg: String) {
         textChannel.sendMessage(msg).queue()
     }
@@ -124,7 +159,7 @@ class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TES
 
 class RealInteractionData(
     val e: GenericInteractionCreateEvent
-) : InteractionData(e.user.idLong, e.channel!!.idLong, e.guild?.idLong ?: -1, e.member) {
+) : InteractionData(e.user.idLong, e.channel!!.idLong, e.guild?.idLong ?: -1, e.member, e) {
 
     override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
         e as IReplyCallback

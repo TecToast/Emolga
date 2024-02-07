@@ -3,14 +3,16 @@ package de.tectoast.emolga.other
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.defaultChannel
 import de.tectoast.emolga.defaultGuild
+import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.keepAlive
-import de.tectoast.emolga.selectmenus.RoleGetMenu
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.onCommand
 import dev.minn.jda.ktx.events.onStringSelect
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
+import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.reply_
+import dev.minn.jda.ktx.messages.send
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.CompletableDeferred
@@ -55,10 +57,7 @@ class Other : FunSpec({
     }
 
     test("SendMenu") {
-        defaultChannel.sendMessage(":)").addComponents(RoleGetMenu.getActionRows()).queue()
-        jda.onStringSelect("roleget") {
-            it.reply_(":)", ephemeral = true).queue()
-        }
+        defaultChannel.send(":)", components = RoleManagement.RoleGetMenu().into()).queue()
         keepAlive()
     }
 })

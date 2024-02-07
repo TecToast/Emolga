@@ -10,6 +10,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.MDL
 import de.tectoast.emolga.utils.json.emolga.draft.MDLPick
 import de.tectoast.emolga.utils.json.emolga.draft.PickData
+import dev.minn.jda.ktx.messages.into
 import mu.KotlinLogging
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
@@ -25,19 +26,15 @@ object PickMDL {
     object PickMDLCommand :
         CommandFeature<PickMDLCommand.Args>(::Args, CommandSpec("pickmdl", "Gamblen :)", Constants.G.VIP)) {
         class Args : Arguments() {
-            var type by string("Typ", "Der Typ, der gewählt werden soll") {
-                slashCommand(germanTypeList.toChoices())
-            }
+            var type by fromList("Typ", "Der Typ, der gewählt werden soll", germanTypeList.toList())
         }
 
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            val d =
-                League.byCommand()?.first ?: return reply(
-                    "Es läuft zurzeit kein Draft in diesem Channel!",
-                    ephemeral = true
-                )
+            val d = League.byCommand()?.first ?: return reply(
+                "Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true
+            )
             if (d !is MDL) return reply("Dieser Command funktioniert nur im MDL Draft!")
             val mem = d.current
             val picks = d.picks[mem]!!
@@ -64,16 +61,14 @@ object PickMDL {
                 return reply("Es ist ein unbekannter Fehler aufgetreten!")
             }
             val official = NameConventionsDB.getDiscordTranslation(mon, d.guild, false)!!.official
-            d.replyGeneral("gegambled: **$mon ($tier)**!") {
-                it.addActionRow(
-                    MDLButton("Akzeptieren", ButtonStyle.SUCCESS) {
-                        action = MDLAction.ACCEPT
-                    },
-                    MDLButton("Joker einlösen (noch ${d.jokers[mem]} übrig)", ButtonStyle.DANGER) {
-                        action = MDLAction.REROLL
-                    }
-                )
-            }
+            d.replyGeneral(
+                "gegambled: **$mon ($tier)**!",
+                components = listOf(MDLButton("Akzeptieren", ButtonStyle.SUCCESS) {
+                    action = MDLAction.ACCEPT
+                }, MDLButton("Joker einlösen (noch ${d.jokers[mem]} übrig)", ButtonStyle.DANGER) {
+                    action = MDLAction.REROLL
+                }).into()
+            )
             d.currentMon = MDLPick(official, mon, tier, type)
         }
     }
@@ -86,11 +81,10 @@ object PickMDL {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            val d = League.onlyChannel(tc)
-                ?: return reply(
-                    "Dieser Button funktioniert nicht mehr! Wenn du denkst, dass dies ein Fehler ist, melde dich bei ${Constants.MYTAG}.",
-                    ephemeral = true
-                )
+            val d = League.onlyChannel(tc) ?: return reply(
+                "Dieser Button funktioniert nicht mehr! Wenn du denkst, dass dies ein Fehler ist, melde dich bei ${Constants.MYTAG}.",
+                ephemeral = true
+            )
             if (user != d.current && user != Constants.FLOID && d.allowed[d.current]?.any { it.u == user } != true) return reply(
                 "Du bist nicht dran!", ephemeral = true
             )
@@ -134,12 +128,10 @@ object PickMDL {
                     var newmon = ""
                     val usedTiers = mutableSetOf<String>()
                     for (i in 0 until 100) {
-                        val temptier = tiers.toMutableList()
-                            .apply { removeAll { it.first in usedTiers } }
+                        val temptier = tiers.toMutableList().apply { removeAll { it.first in usedTiers } }
                             .randomWithCondition { it.second > picks.count { mon -> mon.tier == it.first } }?.first
                             ?: return reply(
-                                "Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!",
-                                ephemeral = true
+                                "Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!", ephemeral = true
                             )
 
                         val tempmon = MDLTierlist.get[type]!![temptier]!!.randomWithCondition { !d.isPicked(it) }

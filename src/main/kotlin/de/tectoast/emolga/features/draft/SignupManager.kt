@@ -1,9 +1,12 @@
-package de.tectoast.emolga.managers
+package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.commands.PrivateCommands
+import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.database.exposed.SDNamesDB
+import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.SignUpData
@@ -11,7 +14,6 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.primary
-import dev.minn.jda.ktx.messages.reply_
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -21,10 +23,97 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.entities.emoji.Emoji
-import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
+import net.dv8tion.jda.api.interactions.modals.Modal
 import java.util.concurrent.ConcurrentHashMap
 
 object SignupManager {
+
+    private val persistentSignupData = ConcurrentHashMap<Long, Pair<Mutex, Channel<LigaStartData>>>()
+    private val signupScope = CoroutineScope(Dispatchers.IO)
+
+    object Button : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("signup")) {
+        context(InteractionData)
+        override suspend fun exec(e: NoArgs) {
+            val lsData = db.signups.get(gid)
+                ?: return reply("Diese Anmeldung ist bereits geschlossen!", ephemeral = true)
+            if (user in lsData.users || lsData.users.values.any { user in it.teammates }) {
+                return reply("Du bist bereits angemeldet!", ephemeral = true)
+            }
+            replyModal(getModal(null, lsData))
+        }
+    }
+
+    object Modal : ModalFeature<Modal.Args>(::Args, ModalSpec("signup")) {
+        class Args : Arguments() {
+            var change by boolean().compIdOnly()
+            var teamname by string("Team-Name") {
+                modal {
+                    setRequiredRange(1, 100)
+                }
+            }.defaultNotEnabled()
+            var sdname by string("Showdown-Name") {
+                modal {
+                    setRequiredRange(1, 18)
+                }
+            }
+            var experiences by string("Erfahrungen") {
+                modal {
+                    placeholder = "Wie viel Erfahrung hast du im CP-Bereich?"
+                    setRequiredRange(1, 100)
+                }
+            }.defaultNotEnabled()
+        }
+
+        context(InteractionData)
+        override suspend fun exec(e: Args) {
+            signupUser(gid, user, e.sdname, e.teamname, e.experiences, e.change)
+        }
+    }
+
+    object SignupChangeCommand : CommandFeature<NoArgs>(
+        NoArgs(), CommandSpec(
+            "signupchange",
+            "Ermöglicht es dir, deine Anmeldung anzupassen",
+            Constants.G.ASL,
+            Constants.G.FLP,
+            665600405136211989,
+            Constants.G.WFS,
+            Constants.G.ADK,
+            Constants.G.NDS
+        )
+    ) {
+        context(InteractionData)
+        override suspend fun exec(e: NoArgs) {
+            val ligaStartData = db.signups.get(gid) ?: return reply(
+                "Es läuft derzeit keine Anmeldung auf diesem Server!", ephemeral = true
+            )
+            val signUpData =
+                ligaStartData.users[PrivateCommands.userIdForSignupChange?.takeIf { user == Constants.FLOID }]
+                    ?: ligaStartData.getDataByUser(user) ?: return reply(
+                        "Du bist derzeit nicht angemeldet!",
+                        ephemeral = true
+                    )
+            replyModal(getModal(signUpData, ligaStartData))
+        }
+    }
+
+    fun getModal(data: SignUpData?, lsData: LigaStartData) =
+        Modal(
+            "Anmeldung".condAppend(data != null, "sanpassung"),
+            specificallyEnabledArgs = mapOf(
+                Modal.Args::teamname to !lsData.noTeam,
+                Modal.Args::experiences to lsData.withExperiences
+            )
+        ) {
+            change = data != null
+            data?.let {
+                teamname = it.teamname
+                sdname = it.sdname
+                experiences = it.experiences
+            }
+
+        }
+
     suspend fun createSignup(
         announceChannel: Long,
         signupChannel: Long,
@@ -58,8 +147,6 @@ object SignupManager {
         )
     }
 
-    private val persistentSignupData = ConcurrentHashMap<Long, Pair<Mutex, Channel<LigaStartData>>>()
-    private val signupScope = CoroutineScope(Dispatchers.IO)
 
     suspend fun signupUser(
         gid: Long,
@@ -68,12 +155,12 @@ object SignupManager {
         teamname: String?,
         experiences: String?,
         isChange: Boolean = false,
-        e: ModalInteractionEvent? = null
+        e: InteractionData? = null
     ): Unit? {
+        e?.ephemeralDefault()
         val sdnameid = Command.toUsername(sdname)
-        if (sdnameid.length !in 1..18) return e?.reply_("Dieser Showdown-Name ist ungültig!")?.setEphemeral(true)
-            ?.queue()
-        e?.deferReply(true)?.queue()
+        if (sdnameid.length !in 1..18) return e?.reply("Dieser Showdown-Name ist ungültig!")
+        e?.deferReply(true)
         val (signupMutex, channel) = persistentSignupData.getOrPut(gid) {
             val c = Channel<LigaStartData>(Channel.CONFLATED)
             signupScope.launch {
@@ -86,15 +173,13 @@ object SignupManager {
         }
         signupMutex.withLock {
             with(db.signups.get(gid)!!) {
-                if (!isChange && full) return e?.hook?.sendMessage("❌ Die Anmeldung ist bereits voll!")?.queue()
+                if (!isChange && full) return e?.reply("❌ Die Anmeldung ist bereits voll!")
                 val ownerOfTeam = PrivateCommands.userIdForSignupChange?.takeIf { uid == Constants.FLOID }
-                    ?: if (isChange) getOwnerByUser(uid) ?: return e?.reply_(
-                        "Du bist derzeit nicht angemeldet!"
-                    )?.setEphemeral(true)?.queue()
+                    ?: if (isChange) getOwnerByUser(uid) ?: return e?.reply(
+                        "Du bist derzeit nicht angemeldet!", ephemeral = true
+                    )
                     else uid
-                if (ownerOfTeam in users && !isChange) return e?.reply_("Du bist bereits angemeldet!")
-                    ?.setEphemeral(true)?.queue()
-
+                if (ownerOfTeam in users && !isChange) return e?.reply("Du bist bereits angemeldet!")
                 @Suppress("DeferredResultUnused") SDNamesDB.addIfAbsent(sdname, ownerOfTeam)
                 val jda = e?.jda ?: jda
                 if (isChange) {
@@ -102,7 +187,7 @@ object SignupManager {
                     data.sdname = sdname
                     data.teamname = teamname
                     data.experiences = experiences
-                    e?.hook?.sendMessage("Deine Daten wurden erfolgreich geändert!")?.queue()
+                    e?.sendMessage("Deine Daten wurden erfolgreich geändert!")
                     jda.getTextChannelById(signupChannel)!!.editMessageById(
                         data.signupmid!!, data.toMessage(ownerOfTeam, this)
                     ).queue()
@@ -113,9 +198,9 @@ object SignupManager {
                     save()
                     return null
                 }
-                e?.hook?.sendMessage("✅ Du wurdest erfolgreich angemeldet!")?.setEphemeral(true)?.queue()
+                e?.sendMessage("✅ Du wurdest erfolgreich angemeldet!")
                 giveParticipantRole(
-                    (e?.member) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!.await()
+                    (e?.member()) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!.await()
                 )
                 val signUpData = SignUpData(
                     teamname, sdname, experiences = experiences

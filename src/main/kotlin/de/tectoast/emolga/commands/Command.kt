@@ -12,14 +12,11 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
-import de.tectoast.emolga.buttons.ButtonListener
 import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.commands.Command.Companion.sendToMe
 import de.tectoast.emolga.commands.CommandCategory.Companion.order
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.encryption.TokenEncrypter
-import de.tectoast.emolga.modals.ModalListener
-import de.tectoast.emolga.selectmenus.MenuListener
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.Constants.CALENDAR_MSGID
 import de.tectoast.emolga.utils.Constants.CALENDAR_TCID
@@ -71,7 +68,6 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.interactions.Interaction
-import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import net.dv8tion.jda.api.interactions.components.ActionRow
@@ -1086,12 +1082,11 @@ abstract class Command(
          */
         val musicManagers: MutableMap<Long, GuildMusicManager> = HashMap()
         private val playerManagers: MutableMap<Long, AudioPlayerManager> = HashMap()
-        private val customResult = emptyList<Long>()
         val uninitializedCommands: MutableList<String> = mutableListOf()
 
 
         @JvmStatic
-        protected val soullinkIds = mapOf(
+        val soullinkIds = mapOf(
             448542640850599947 to "Pascal",
             726495601021157426 to "David",
             867869302808248341 to "Jesse",
@@ -1481,10 +1476,9 @@ abstract class Command(
 
         val calendarFormat = SimpleDateFormat("dd.MM. HH:mm")
 
-        @JvmStatic
         fun buildCalendar(): String {
-            return CalendarDB.allFloEntries.sortedBy { it.expires }
-                .joinToString("\n") { o: CalendarEntry -> "**${calendarFormat.format(o.expires.toEpochMilli())}:** ${o.message}" }
+            return CalendarDB.allEntries.sortedBy { it.expires }
+                .joinToString("\n") { "**${calendarFormat.format(it.expires.toEpochMilli())}:** ${it.message}" }
                 .ifEmpty { "_leer_" }
         }
 
@@ -1500,23 +1494,12 @@ abstract class Command(
                             }) return@newSuspendedTransaction null
                         ce.delete()
                     } ?: return@launch
-                    println(ce.person)
-                    ce.person?.let { p ->
-                        val tc = emolgajda.getTextChannelById(p.tcid)!!
-                        tc.editMessageComponentsById(
-                            ce.messageid!!,
-                            danger("homework;done", "Gemacht", emoji = Emoji.fromUnicode("✅")).into()
-                        ).queue()
-                        tc.sendMessage("<@${p.uid}> Hausaufgabe fällig :)").setMessageReference(ce.messageid!!)
-                            .addActionRow(
-                                primary("calendar;delete", "Benachrichtigung löschen")
-                            ).queue()
-                    } ?: run {
-                        val calendarTc: TextChannel = emolgajda.getTextChannelById(CALENDAR_TCID)!!
-                        calendarTc.sendMessage("(<@$FLOID>) ${ce.message}")
-                            .setActionRow(Button.primary("calendar;delete", "Löschen")).queue()
-                        calendarTc.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()
-                    }
+
+                    val calendarTc: TextChannel = emolgajda.getTextChannelById(CALENDAR_TCID)!!
+                    calendarTc.sendMessage("(<@$FLOID>) ${ce.message}")
+                        .setActionRow(Button.primary("calendar;delete", "Löschen")).queue()
+                    calendarTc.editMessageById(CALENDAR_MSGID, buildCalendar()).queue()
+
                 } catch (ex: Exception) {
                     ex.printStackTrace()
                 }
@@ -1805,9 +1788,6 @@ abstract class Command(
             ModManager("default", "./ShowdownData/")
             Tierlist.setup()
             defaultScope.launch {
-                ButtonListener.init()
-                MenuListener.init()
-                ModalListener.init()
                 registerCommands()
                 setupRepeatTasks()
             }
@@ -2111,7 +2091,6 @@ abstract class Command(
             customReplayChannel: GuildMessageChannel? = null,
             resultchannelParam: GuildMessageChannel,
             message: Message? = null,
-            fromAnalyseCommand: InteractionHook? = null,
             fromReplayCommand: InteractionData? = null,
             customGuild: Long? = null,
             withSort: Boolean = true,
@@ -2126,8 +2105,7 @@ abstract class Command(
 
             logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannelParam.id)
             fun send(msg: String) {
-                fromReplayCommand?.reply(msg) ?: fromAnalyseCommand?.sendMessage(msg)?.queue()
-                ?: resultchannelParam.sendMessage(msg).queue()
+                fromReplayCommand?.reply(msg) ?: resultchannelParam.sendMessage(msg).queue()
             }
             if (fromReplayCommand != null && !resultchannelParam.guild.selfMember.hasPermission(
                     resultchannelParam, Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND
@@ -2229,19 +2207,10 @@ abstract class Command(
             logger.info("uids = $uids")
             logger.info("u1 = $u1")
             logger.info("u2 = $u2")
-            if (fromAnalyseCommand != null) {
-                if (league != null) {
-                    fromAnalyseCommand.sendMessageEmbeds(embed).queue()
-                } else {
-                    fromAnalyseCommand.sendMessage(description).queue()
-                }
-            }
-            if ((fromAnalyseCommand == null || useReplayResultChannelAnyways) && !customResult.contains(gid)) {
-                if (league != null) {
-                    resultChannel.sendMessageEmbeds(embed).queue()
-                } else {
-                    resultChannel.sendMessage(description).queue()
-                }
+            if (league != null) {
+                resultChannel.sendMessageEmbeds(embed).queue()
+            } else {
+                resultChannel.sendMessage(description).queue()
             }
             defaultScope.launch {
                 val gdData = gamedayData.await()
@@ -2519,6 +2488,7 @@ fun <T> Collection<T>.filterStartsWithIgnoreCase(other: String, tostring: (T) ->
         val str = tostring(it)
         if (str.startsWith(other, ignoreCase = true)) str else null
     }
+
 fun <T> Array<T>.filterStartsWithIgnoreCase(other: String, tostring: (T) -> String = { it.toString() }) =
     mapNotNull {
         val str = tostring(it)

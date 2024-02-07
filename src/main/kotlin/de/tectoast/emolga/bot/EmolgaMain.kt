@@ -20,6 +20,7 @@ import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.*
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Activity
+import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
@@ -53,11 +54,11 @@ object EmolgaMain {
 
     const val NOTEMPVERSION = true
     private val CONTROLCENTRALGENERATION: Pair<Long, Long?> = 967890099029278740 to 967890640065134602
-    val featureManager = FeatureManager("de.tectoast.emolga.features")
+    private val featureManager = FeatureManager("de.tectoast.emolga.features")
 
     @Throws(Exception::class)
-    fun start() {
-        val eventListeners = listOf(EmolgaListener, DConfiguratorManager)
+    suspend fun start() {
+        val eventListeners = listOf(DConfiguratorManager)
         emolgajda = default(Command.tokens.discord) {
             //intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
             intents -= GatewayIntent.MESSAGE_CONTENT
@@ -78,7 +79,9 @@ object EmolgaMain {
 //        }
 //        initializeASLS11(emolgajda)
         for (jda in if (NOTEMPVERSION) listOf(emolgajda, flegmonjda) else listOf(emolgajda)) {
-            EmolgaListener.registerEvents(jda)
+            jda.listener<GenericEvent> {
+                featureManager.handleEvent(it)
+            }
             DConfiguratorManager.registerEvent(jda)
             jda.awaitReady()
         }

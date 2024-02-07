@@ -20,11 +20,13 @@ object RWithGuild {
             if (url == "-") {
                 return replyModal(Modal()).queue()
             }
+            deferReply()
             de.tectoast.emolga.commands.Command.analyseReplay(
                 url,
                 resultchannelParam = textChannel,
                 customGuild = e.guild,
-                fromAnalyseCommand = e.run { deferReply(); hook })
+                fromReplayCommand = self
+            )
         }
     }
 

@@ -1,8 +1,8 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.commands.coordXMod
-import de.tectoast.emolga.commands.draft.AddToTierlistData
 import de.tectoast.emolga.commands.x
+import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.TimerInfo

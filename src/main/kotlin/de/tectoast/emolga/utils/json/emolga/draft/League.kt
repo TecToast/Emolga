@@ -2,7 +2,8 @@ package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.commands.draft.AddToTierlistData
+import de.tectoast.emolga.features.draft.AddToTierlistData
+import de.tectoast.emolga.features.draft.TipGame
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.DraftTimer
 import de.tectoast.emolga.utils.RequestBuilder
@@ -14,6 +15,7 @@ import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.SendDefaults
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -25,7 +27,7 @@ import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
-import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
+import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import org.bson.types.ObjectId
 import org.litote.kmongo.SetTo
 import org.litote.kmongo.coroutine.updateOne
@@ -542,11 +544,11 @@ sealed class League {
         "$pokemon ".condAppend(updrafted != null) { "im $updrafted " } + "gepickt!".condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
 
     context (InteractionData)
-    suspend fun replyGeneral(msg: String, action: (ReplyCallbackAction) -> Unit = {}) {
+    suspend fun replyGeneral(msg: String, components: Collection<LayoutComponent> = SendDefaults.components) {
         replyAwait(
             "<@${user}> hat${
                 if (user != current) " für **${getCurrentName()}**" else ""
-            } $msg", action = action
+            } $msg", components = components
         )
     }
 

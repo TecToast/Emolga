@@ -7,10 +7,10 @@ import de.tectoast.emolga.database.exposed.AnalysisDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.database.exposed.TipGamesDB
+import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.nameToDiscordOption
 import de.tectoast.emolga.ktor.subscribeToYTChannel
-import de.tectoast.emolga.managers.SignupManager
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.Constants.EMOLGA_KI
 import de.tectoast.emolga.utils.draft.DraftPokemon

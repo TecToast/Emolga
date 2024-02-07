@@ -1,9 +1,11 @@
 package de.tectoast.emolga.features.draft
 
+import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.commands.Command.Companion.allNameConventions
 import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.draft.AddToTierlistData
 import de.tectoast.emolga.commands.filterStartsWithIgnoreCase
+import de.tectoast.emolga.database.dbAsync
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
@@ -62,5 +64,24 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
                 }
             }
         }
+    }
+}
+
+data class AddToTierlistData(val mon: String, val tier: String, val tierlist: Tierlist, val gid: Long) {
+
+    val pkmn = dbAsync { Command.getDataObject(mon, gid) }
+    val englishTLName = dbAsync {
+        NameConventionsDB.getDiscordTranslation(
+            mon,
+            gid,
+            english = true
+        )!!.tlName
+    }
+
+    val index by lazy { tierlist.monCount - 1 }
+
+    suspend fun addToTierlistAutocompletion() {
+        tierlist.addedViaCommand += mon
+        tierlist.addedViaCommand += englishTLName.await()
     }
 }

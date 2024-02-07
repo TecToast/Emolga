@@ -25,7 +25,7 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import kotlin.reflect.KClass
 import kotlin.reflect.full.hasAnnotation
 
-class FeatureManager(private val load: Set<Feature<*, *, *>>) {
+class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
     private val listenerScope = CoroutineScope(Dispatchers.Default)
 
     constructor(packageName: String) : this(packageName.let {
@@ -38,13 +38,20 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
         }.flatten().toSet()
     })
 
-    private val eventToName: Map<KClass<*>, (GenericInteractionCreateEvent) -> String> =
-        load.associate { it.eventClass to it.eventToName }
-    private val features: Map<KClass<*>, Map<String, Feature<*, *, Arguments>>> = load.groupBy { it.eventClass }
-        .mapValues { it.value.associate { k -> k.spec.name to k as Feature<*, GenericInteractionCreateEvent, Arguments> } }
-    private val listeners = load.flatMap { it.registeredListeners }.groupBy { it.first }.mapValues {
-        it.value.map { v -> v.second }
+    private val eventToName: Map<KClass<*>, (GenericInteractionCreateEvent) -> String>
+    private val features: Map<KClass<*>, Map<String, Feature<*, *, Arguments>>>
+    private val listeners: Map<KClass<out GenericEvent>, List<suspend (GenericEvent) -> Unit>>
+
+    init {
+        val featuresSet = loadListeners.filterIsInstance<Feature<*, *, *>>()
+        eventToName = featuresSet.associate { it.eventClass to it.eventToName }
+        features = featuresSet.groupBy { it.eventClass }
+            .mapValues { it.value.associate { k -> k.spec.name to k as Feature<*, GenericInteractionCreateEvent, Arguments> } }
+        listeners = loadListeners.flatMap { it.registeredListeners }.groupBy { it.first }.mapValues {
+            it.value.map { v -> v.second }
+        }
     }
+
 
     suspend fun handleEvent(e: GenericEvent) {
         val kClass = e::class
@@ -105,22 +112,21 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
         }
     }
 
-    suspend fun updateFeatures(jda: JDA) {
+    suspend fun updateFeatures(jda: JDA, updateGuilds: List<Long>? = null) {
         val guildSlashFeatures: MutableMap<Long, MutableSet<SlashCommandData>> = mutableMapOf()
         generateSlashCommandDescriptions().forEach { (feature, desc) ->
-            feature.spec.guilds.forEach { guildId ->
+            (feature.spec.guilds + Constants.G.MY).forEach { guildId ->
                 guildSlashFeatures.getOrPut(guildId) { mutableSetOf() }.add(desc)
             }
         }
-        val guildsToUpdate = db.config.only().guildsToUpdate.ifEmpty { guildSlashFeatures.keys }
-        for (gid in guildsToUpdate) {
+        for (gid in updateGuilds ?: db.config.only().guildsToUpdate.ifEmpty { guildSlashFeatures.keys }) {
             val commands = guildSlashFeatures[gid] ?: continue
             (if (gid == -1L) jda.updateCommands()
             else jda.getGuildById(gid)?.updateCommands())?.addCommands(commands)?.queue()
         }
     }
 
-    fun generateSlashCommandDescriptions() = load.filterIsInstance<CommandFeature<*>>().associateWith { cmd ->
+    fun generateSlashCommandDescriptions() = loadListeners.filterIsInstance<CommandFeature<*>>().associateWith { cmd ->
         Commands.slash(cmd.spec.name, cmd.spec.help).apply {
             defaultPermissions = cmd.slashPermissions
             if (cmd.children.isNotEmpty()) {
@@ -142,9 +148,9 @@ class FeatureManager(private val load: Set<Feature<*, *, *>>) {
     companion object {
         private val logger = KotlinLogging.logger {}
 
-        fun findAllFeaturesRecursively(cl: KClass<*>): List<Feature<*, *, *>> {
+        fun findAllFeaturesRecursively(cl: KClass<*>): List<ListenerProvider> {
             val o = cl.objectInstance ?: return emptyList()
-            return if (o is Feature<*, *, *>) listOf(o) else {
+            return if (o is ListenerProvider) listOf(o) else {
                 cl.nestedClasses.flatMap { findAllFeaturesRecursively(it) }
             }
         }

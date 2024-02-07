@@ -51,8 +51,7 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
     val spec: T,
     val eventClass: KClass<@UnsafeVariance E>,
     val eventToName: (@UnsafeVariance E) -> String
-) {
-    val registeredListeners = mutableSetOf<Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>>()
+) : ListenerProvider() {
     var checkSpecial: AllowedResultCheck = { Allowed }
         private set
     var check: BooleanCheck = { true }
@@ -66,16 +65,6 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
             .joinToString(";") { it.parsed?.toString() ?: "" }
 
     fun buildArgs(argsBuilder: ArgBuilder<@UnsafeVariance A>) = argsFun().apply(argsBuilder)
-
-    inline fun <reified T : GenericEvent> registerListener(noinline listener: suspend (T) -> Unit) {
-        registeredListeners += (T::class to listener) as Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>
-    }
-
-    fun registerPNListener(prefix: String, listener: suspend (MessageReceivedEvent) -> Unit) {
-        registerListener<MessageReceivedEvent> {
-            if (it.channelType == ChannelType.PRIVATE && it.message.contentRaw.startsWith(prefix)) listener(it)
-        }
-    }
 
     protected suspend inline fun populateArgs(
         data: InteractionData, args: List<Arg<*, *>>, parser: (String, Int) -> Any?
@@ -118,6 +107,9 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
     context (InteractionData)
     abstract suspend fun exec(e: A)
 
+    context(InteractionData)
+    suspend fun exec(argsBuilder: ArgBuilder<@UnsafeVariance A> = {}) = exec(buildArgs(argsBuilder))
+
     companion object {
         val draftGuilds = longArrayOf(
             Constants.G.FPL,
@@ -149,6 +141,29 @@ data object Allowed : AllowedResult()
 open class NotAllowed(val reason: String) : AllowedResult() {
     companion object : NotAllowed("Du bist nicht berechtigt, diesen Command auszuführen!")
 }
+
+/**
+ * Marker for classes which are part of the feature system (at the moment Feature & ListenerProvider)
+ */
+abstract class ListenerProvider {
+    val registeredListeners: MutableSet<Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>> = mutableSetOf()
+    inline fun <reified T : GenericEvent> ListenerProvider.registerListener(noinline listener: suspend (T) -> Unit) {
+        registeredListeners += (T::class to listener) as Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>
+    }
+
+    fun registerPNListener(prefix: String = "", listener: suspend (MessageReceivedEvent) -> Unit) =
+        registerListener<MessageReceivedEvent> {
+            if (!it.author.isBot && it.channelType == ChannelType.PRIVATE && it.message.contentRaw.startsWith(prefix)) listener(
+                it
+            )
+        }
+}
+
+
+/**
+ * Marker for classes which provide listeners (and are not a feature itself)
+ */
+
 
 abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec) :
     Feature<CommandSpec, SlashCommandInteractionEvent, A>(
@@ -243,11 +258,18 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
         argsBuilder: ArgBuilder<A> = {}
     ) = Modal(createComponentId(argsBuilder, checkCompId = true), title) {
         val checkUpMap = specificallyEnabledArgs.mapKeys { it.key.name }
-        argsFun().args.forEach { arg ->
+        argsFun().apply(argsBuilder).args.forEach { arg ->
+            if (arg.compIdOnly) return@forEach
             val spec = arg.spec as? ModalArgSpec
             if (spec?.defaultNotEnabled == true && checkUpMap[arg.name] != true) return@forEach
             if (spec?.short != false) short(arg.name, arg.name, required = !arg.optional, builder = spec?.builder ?: {})
-            else paragraph(arg.name, arg.name, required = !arg.optional, builder = spec.builder)
+            else paragraph(
+                arg.name,
+                arg.name,
+                required = !arg.optional,
+                placeholder = arg.parsed?.toString(),
+                builder = spec.builder
+            )
         }
     }
 
@@ -312,19 +334,23 @@ class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
 open class Arguments {
     val _args = mutableListOf<Arg<*, *>>()
     val args: List<Arg<*, *>> = Collections.unmodifiableList(_args)
-    protected fun string(name: String = "", help: String = "", builder: Arg<String, String>.() -> Unit = {}) =
+    fun string(name: String = "", help: String = "", builder: Arg<String, String>.() -> Unit = {}) =
         createArg(name, help, OptionType.STRING, builder)
 
-    protected fun long(name: String = "", help: String = "", builder: Arg<Long, Long>.() -> Unit = {}) =
+    @JvmName("stringGeneric")
+    fun <T> string(name: String = "", help: String = "", builder: Arg<String, T>.() -> Unit = {}) =
+        createArg(name, help, OptionType.STRING, builder)
+
+    fun long(name: String = "", help: String = "", builder: Arg<Long, Long>.() -> Unit = {}) =
         createArg(name, help, OptionType.INTEGER, builder)
 
-    protected fun int(name: String = "", help: String = "", builder: Arg<Long, Int>.() -> Unit = {}) =
+    fun int(name: String = "", help: String = "", builder: Arg<Long, Int>.() -> Unit = {}) =
         createArg<Long, Int>(name, help, OptionType.INTEGER) {
             validate { it.toInt() }
             builder()
         }
 
-    protected fun intFromString(
+    fun intFromString(
         name: String = "",
         help: String = "",
         throwIfNotNumber: Boolean = false,
@@ -336,8 +362,7 @@ open class Arguments {
         builder()
     }
 
-    @Suppress("SameParameterValue")
-    protected fun draftPokemon(
+    fun draftPokemon(
         name: String = "",
         help: String = "",
         autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
@@ -366,9 +391,10 @@ open class Arguments {
         })
     }
 
-    protected fun boolean(name: String = "", help: String = "", builder: Arg<Boolean, Boolean>.() -> Unit = {}) =
+    fun boolean(name: String = "", help: String = "", builder: Arg<Boolean, Boolean>.() -> Unit = {}) =
         createArg(name, help, OptionType.BOOLEAN, builder)
-    protected inline fun <reified T : Enum<T>> enumBasic(
+
+    inline fun <reified T : Enum<T>> enumBasic(
         name: String = "", help: String = "", builder: Arg<String, T>.() -> Unit = {}
     ) = createArg(name, help, OptionType.STRING) {
         val enumValues = enumValues<T>()
@@ -390,45 +416,49 @@ open class Arguments {
         builder()
     }
 
-    protected fun fromList(
-        name: String = "",
-        help: String = "",
-        list: List<String>,
-        builder: Arg<String, String>.() -> Unit = {}
+    fun fromList(
+        name: String = "", help: String = "", list: List<String>, builder: Arg<String, String>.() -> Unit = {}
     ) = createArg<String, String>(name, help) {
         validate { s ->
             s.takeIf { it in list }
                 ?: throw InvalidArgumentException("Keine valide Angabe! Halte dich an die Autovervollständigung!")
         }
-        if (list.size <= 25) slashCommand(list.toChoices())
+        if (list.size <= 25) slashCommand(list.map { Choice(it, it) })
         else slashCommand { s, _ ->
             list.filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
         }
         builder()
     }
 
-
-    protected inline fun <reified T> enumAdvanced(
+    fun fromList(
         name: String = "",
         help: String = "",
-        builder: Arg<String, T>.() -> Unit = {}
-    ) where T : Enum<T>, T : Nameable =
-        createArg(name, help, OptionType.STRING) {
-            validate {
-                try {
-                    enumValueOf<T>(it)
-                } catch (e: IllegalArgumentException) {
-                    throw IllegalArgumentException(
-                        "Ungültiger Wert für $name! Mögliche Werte: ${enumValues<T>().joinToString(", ")}"
-                    )
-                }
-            }
-            slashCommand(enumValues<T>().map { Choice(it.prettyName, it.name) })
-            builder()
+        listsupplier: suspend () -> List<String>,
+        builder: Arg<String, String>.() -> Unit = {}
+    ) = createArg(name, help) {
+        slashCommand { s, _ ->
+            listsupplier().filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
         }
+        builder()
+    }
 
-    protected fun pokemontype(name: String = "", help: String = "", english: Boolean) =
-        createArg(name, help, OptionType.STRING) {
+    inline fun <reified T> enumAdvanced(
+        name: String = "", help: String = "", builder: Arg<String, T>.() -> Unit = {}
+    ) where T : Enum<T>, T : Nameable = createArg(name, help, OptionType.STRING) {
+        validate {
+            try {
+                enumValueOf<T>(it)
+            } catch (e: IllegalArgumentException) {
+                throw IllegalArgumentException(
+                    "Ungültiger Wert für $name! Mögliche Werte: ${enumValues<T>().joinToString(", ")}"
+                )
+            }
+        }
+        slashCommand(enumValues<T>().map { Choice(it.prettyName, it.name) })
+        builder()
+    }
+
+    fun pokemontype(name: String = "", help: String = "", english: Boolean) = createArg(name, help, OptionType.STRING) {
         validate { str ->
             val t = if (english) Command.getEnglNameWithType(str)
             else Command.getGerName(str)
@@ -439,7 +469,7 @@ open class Arguments {
         }
     }
 
-    protected fun pokemontype(name: String = "", help: String = "") = createArg(name, help, OptionType.STRING) {
+    fun pokemontype(name: String = "", help: String = "") = createArg(name, help, OptionType.STRING) {
         validate { str ->
             val t = Command.getGerName(str)
             if (t.isEmpty || t.type != Translation.Type.TYPE) throw InvalidArgumentException("Ungültiger Typ!")
@@ -449,7 +479,7 @@ open class Arguments {
         }
     }
 
-    protected fun list(name: String = "", help: String = "", numOfArgs: Int, requiredNum: Int) =
+    fun list(name: String = "", help: String = "", numOfArgs: Int, requiredNum: Int) =
         object : ReadWriteProperty<Arguments, List<String>> {
             private val argList: List<Arg<String, out String?>> = List(numOfArgs) { i ->
                 createArg<String, String>(name.embedI(i), help.embedI(i), OptionType.STRING) {}.run {
@@ -472,48 +502,37 @@ open class Arguments {
             }
         }
 
-    protected fun member(name: String = "", help: String = "", builder: Arg<Member, Member>.() -> Unit = {}) =
+    fun member(name: String = "", help: String = "", builder: Arg<Member, Member>.() -> Unit = {}) =
         createArg(name, help, OptionType.USER, builder)
 
-    protected fun channel(
-        name: String = "",
-        help: String = "",
-        builder: Arg<GuildChannelUnion, GuildChannelUnion>.() -> Unit = {}
-    ) =
-        createArg(name, help, OptionType.CHANNEL, builder)
+    fun channel(
+        name: String = "", help: String = "", builder: Arg<GuildChannelUnion, GuildChannelUnion>.() -> Unit = {}
+    ) = createArg(name, help, OptionType.CHANNEL, builder)
 
-    protected fun textchannel(
-        name: String = "",
-        help: String = "",
-        builder: Arg<GuildChannelUnion, GuildMessageChannelUnion>.() -> Unit = {}
-    ) =
-        createArg(name, help, OptionType.CHANNEL, builder)
+    fun textchannel(
+        name: String = "", help: String = "", builder: Arg<GuildChannelUnion, GuildMessageChannelUnion>.() -> Unit = {}
+    ) = createArg(name, help, OptionType.CHANNEL, builder)
 
-    protected fun attachment(
-        name: String = "",
-        help: String = "",
-        builder: Arg<Message.Attachment, Message.Attachment>.() -> Unit = {}
+    fun attachment(
+        name: String = "", help: String = "", builder: Arg<Message.Attachment, Message.Attachment>.() -> Unit = {}
     ) = createArg(name, help, OptionType.ATTACHMENT, builder)
 
-    protected fun singleOption() = createArg<String, String>("", "", OptionType.STRING) {
+    fun singleOption() = createArg<String, String>("", "", OptionType.STRING) {
         spec = SelectMenuArgSpec(1..1)
     }
 
-    protected fun <T> singleOption(validator: suspend InteractionData.(String) -> T) = createArg("", "") {
+    fun <T> singleOption(validator: suspend InteractionData.(String) -> T) = createArg("", "") {
         validate(validator)
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
-    protected fun multiOption(range: IntRange) = createArg<List<String>, List<String>>("", "", OptionType.STRING) {
+    fun multiOption(range: IntRange) = createArg<List<String>, List<String>>("", "", OptionType.STRING) {
         spec = SelectMenuArgSpec(range)
     }
 
-    protected fun Collection<String>.toChoices() = map { Choice(it, it) }
-    protected fun choicesOf(vararg choices: String) = choices.toList().toChoices()
-
     inline fun <DiscordType, ParsedType> createArg(
-        name: String,
-        help: String,
+        name: String = "",
+        help: String = "",
         optionType: OptionType = OptionType.STRING,
         builder: Arg<DiscordType, ParsedType>.() -> Unit
     ) = Arg<DiscordType, ParsedType>(name, help, optionType, this).also {
@@ -532,7 +551,7 @@ interface Nameable {
 }
 
 object NoArgs : Arguments() {
-    val argsFun = { this }
+    private val argsFun = { this }
     operator fun invoke() = argsFun
 }
 
@@ -611,6 +630,16 @@ class Arg<DiscordType, ParsedType>(
                     }
                 }
 
+                is String -> {
+                    when (optionType) {
+                        OptionType.STRING -> m
+                        OptionType.INTEGER -> m.toLong()
+                        OptionType.BOOLEAN -> m.toBoolean()
+                        OptionType.NUMBER -> m.toDouble()
+                        else -> throw IllegalArgumentException("Unsupported option type for string input $optionType")
+                    }
+                }
+
                 else -> {
                     (m as? DiscordType) ?: throw IllegalArgumentException("Unknown type ${m::class.simpleName}")
                 }
@@ -634,6 +663,19 @@ class Arg<DiscordType, ParsedType>(
             it.defaultFunction = defaultFunction
             it.validator = validator
             it.spec = spec
+            it.nullable = true
+            it.compIdOnly = compIdOnly
+            args.replaceLastArg(it)
+        }
+    }
+
+    fun defaultNotEnabled(): Arg<DiscordType, ParsedType?> {
+        return Arg<DiscordType, ParsedType?>(name, help, optionType, args).also {
+            it.default = default
+            it.defaultFunction = defaultFunction
+            it.validator = validator
+            val oldSpec = it.spec as? ModalArgSpec
+            it.spec = ModalArgSpec(oldSpec?.short ?: true, true, oldSpec?.builder ?: {})
             it.nullable = true
             it.compIdOnly = compIdOnly
             args.replaceLastArg(it)

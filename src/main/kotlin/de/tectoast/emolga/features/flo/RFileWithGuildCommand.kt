@@ -20,6 +20,7 @@ object RFileWithGuildCommand :
     }
 
     context(InteractionData) override suspend fun exec(e: Args) = slashEvent {
+        self.deferReply()
         val replayData =
             e.file.proxy.download().await().bufferedReader().use { it.readText() }
                 .substringAfter("class=\"battle-log-data\">").substringBefore("</script>").split("\n")
@@ -27,7 +28,7 @@ object RFileWithGuildCommand :
             "FILE",
             resultchannelParam = textChannel,
             customGuild = e.guild,
-            fromAnalyseCommand = e.run { deferReply(); hook },
+            fromReplayCommand = self,
             analysisData = Analysis.analyseFromString(replayData, "FILE"),
             useReplayResultChannelAnyways = true
         )

@@ -21,7 +21,6 @@ import net.dv8tion.jda.api.interactions.callbacks.IModalCallback
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
 import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import net.dv8tion.jda.api.interactions.modals.Modal
-import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction
 import net.dv8tion.jda.api.utils.AttachedFile
 import net.dv8tion.jda.api.utils.FileUpload
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
@@ -92,11 +91,14 @@ abstract class InteractionData(
         msgCreateData: MessageCreateData
     )
 
-    fun done(ephemeral: Boolean = false) = reply("Done!", ephemeral = ephemeral)
-
+    abstract suspend fun replyAwait(ephemeral: Boolean = ephemeralDefault, msgCreateData: MessageCreateData)
+    abstract fun replyModal(modal: Modal)
     abstract fun edit(
         msgEditData: MessageEditData
     )
+
+    fun done(ephemeral: Boolean = false) = reply("Done!", ephemeral = ephemeral)
+
 
     fun ephemeralDefault() {
         ephemeralDefault = true
@@ -120,9 +122,17 @@ abstract class InteractionData(
         replace: Boolean = MessageEditDefaults.replace,
     ) = edit(MessageEdit(content, embeds, attachments, components, null, replace))
 
-    abstract fun replyModal(modal: Modal)
 
-    abstract suspend fun replyAwait(msg: String, ephemeral: Boolean = false, action: (ReplyCallbackAction) -> Unit = {})
+    suspend fun replyAwait(
+        content: String = SendDefaults.content,
+        embeds: Collection<MessageEmbed> = SendDefaults.embeds,
+        components: Collection<LayoutComponent> = SendDefaults.components,
+        files: Collection<FileUpload> = emptyList(),
+        tts: Boolean = false,
+        mentions: Mentions = Mentions.default(),
+        ephemeral: Boolean = ephemeralDefault
+    ) = replyAwait(ephemeral, MessageCreate(content, embeds, files, components, tts, mentions))
+
     abstract fun deferReply(ephemeral: Boolean = ephemeralDefault)
     abstract fun deferEdit()
     fun sendMessage(msg: String) {
@@ -138,15 +148,15 @@ var redirectTestCommandLogsToChannel: MessageChannel? = null
 class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TEST_TCID, gid: Long = Constants.G.MY) :
     InteractionData(user, tc, gid) {
     override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
-        responseDeferred.complete(CommandResponse.from(ephemeral, msgCreateData))
+        responseDeferred.complete(CommandResponse(ephemeral, msgCreateData))
     }
 
     override fun edit(msgEditData: MessageEditData) {
-        responseDeferred.complete(CommandResponse.from(msgEditData))
+        responseDeferred.complete(CommandResponse(msgEditData = msgEditData))
     }
 
     override fun replyModal(modal: Modal) {
-        responseDeferred.complete(CommandResponse("", true))
+        responseDeferred.complete(CommandResponse())
     }
 
     override fun deferReply(ephemeral: Boolean) {
@@ -157,8 +167,9 @@ class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TES
         deferred = true
     }
 
-    override suspend fun replyAwait(msg: String, ephemeral: Boolean, action: (ReplyCallbackAction) -> Unit) {
-        responseDeferred.complete(CommandResponse(msg, ephemeral))
+
+    override suspend fun replyAwait(ephemeral: Boolean, msgCreateData: MessageCreateData) {
+        responseDeferred.complete(CommandResponse(ephemeral, msgCreateData))
     }
 }
 
@@ -168,7 +179,7 @@ class RealInteractionData(
 
     override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
         e as IReplyCallback
-        val response = CommandResponse.from(ephemeral, msgCreateData)
+        val response = CommandResponse(ephemeral, msgCreateData)
         if (deferred || acknowledged)
             response.sendInto(e.hook)
         else response.sendInto(e)
@@ -177,14 +188,14 @@ class RealInteractionData(
 
     override fun edit(msgEditData: MessageEditData) {
         e as IMessageEditCallback
-        val response = CommandResponse.from(msgEditData)
+        val response = CommandResponse(msgEditData = msgEditData)
         responseDeferred.complete(response)
         e.editMessage(msgEditData).queue()
     }
 
     override fun replyModal(modal: Modal) {
         e as IModalCallback
-        responseDeferred.complete(CommandResponse("", true))
+        responseDeferred.complete(CommandResponse())
         e.replyModal(modal).queue()
     }
 
@@ -200,58 +211,29 @@ class RealInteractionData(
         e.deferEdit().queue()
     }
 
-    override suspend fun replyAwait(msg: String, ephemeral: Boolean, action: (ReplyCallbackAction) -> Unit) {
+    override suspend fun replyAwait(ephemeral: Boolean, msgCreateData: MessageCreateData) {
         e as IReplyCallback
-        responseDeferred.complete(CommandResponse(msg, ephemeral))
-        e.reply_(msg, ephemeral = ephemeral).apply(action).await()
+        responseDeferred.complete(CommandResponse(ephemeral, msgCreateData))
+        e.reply(msgCreateData).setEphemeral(ephemeral).await()
     }
-
 }
-
-abstract class TestableCommand<T : CommandArgs>(
-    name: String,
-    help: String,
-    category: CommandCategory = CommandCategory.Draft
-) : Command(name, help, category) {
-    init {
-        slash(true, *draftGuilds)
-    }
-
-    override suspend fun process(e: GuildCommandEvent) {} //=
-    //with(RealInteractionData(e)) { exec(fromGuildCommandEvent(e)) }
-
-    abstract fun fromGuildCommandEvent(e: GuildCommandEvent): T
-    context (InteractionData)
-    abstract suspend fun exec(e: T)
-}
-
-interface CommandArgs
-object NoCommandArgs : CommandArgs
 
 class CommandResponse(
-    val msg: String,
     val ephemeral: Boolean = false,
-    val embeds: List<MessageEmbed>? = null,
-    val components: List<LayoutComponent>? = null
+    val msgCreateData: MessageCreateData? = null,
+    val msgEditData: MessageEditData? = null
 ) {
-    companion object {
-        fun from(ephemeral: Boolean, data: MessageCreateData) =
-            CommandResponse(data.content, ephemeral, data.embeds, data.components)
-
-        fun from(data: MessageEditData) =
-            CommandResponse(data.content, false, data.embeds, data.components)
-    }
 
     fun sendInto(callback: IReplyCallback) {
-        callback.reply_(msg, ephemeral = ephemeral, embeds = embeds.orEmpty()).queue()
+        callback.reply(msgCreateData!!).queue()
     }
 
     fun sendInto(hook: InteractionHook) {
-        hook.send(msg, ephemeral = ephemeral, embeds = embeds.orEmpty()).queue()
+        hook.sendMessage(msgCreateData!!).queue()
     }
 
     fun sendInto(channel: MessageChannel) {
-        channel.send(msg, embeds = embeds.orEmpty()).queue()
+        channel.sendMessage(msgCreateData!!).queue()
     }
 
 }

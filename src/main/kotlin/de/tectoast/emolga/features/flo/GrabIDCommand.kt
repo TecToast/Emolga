@@ -1,36 +1,40 @@
-package de.tectoast.emolga.commands.flo
+package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.CommandCategory
-import de.tectoast.emolga.commands.GuildCommandEvent
+import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.commands.PrivateCommands
+import de.tectoast.emolga.features.Arguments
+import de.tectoast.emolga.features.CommandFeature
+import de.tectoast.emolga.features.CommandSpec
 import dev.minn.jda.ktx.coroutines.await
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Member
 
-object GrabIDCommand : Command("grabid", "grabid", CommandCategory.Flo) {
+object GrabIDCommand : CommandFeature<GrabIDCommand.Args>(::Args, CommandSpec("grabid", "grabid")) {
+    init {
+        restrict(flo)
+    }
 
     private val logger = KotlinLogging.logger {}
     private val cachedMembers = mutableSetOf<Member>()
 
-    init {
-        argumentTemplate = ArgumentManagerTemplate.create {
-            add("name", "Name", "Name", ArgumentManagerTemplate.Text.withAutocomplete { s, event ->
-                if (s.isBlank() || s.length < 4) return@withAutocomplete null
+    class Args : Arguments() {
+        var name by string("Name", "Name") {
+            slashCommand { s, event ->
+                if (s.isBlank() || s.length < 4) return@slashCommand null
                 logger.info("checking {}", s)
                 event.jda.getGuildById(PrivateCommands.guildForUserIDGrabbing!!)!!.retrieveMembersByPrefix(s, 100)
                     .await().also { cachedMembers += it }.map { it.effectiveName }.takeIf { it.size <= 25 }
-            }, false)
+            }
         }
-        slash()
     }
 
-    override suspend fun process(e: GuildCommandEvent) {
-        val x: String = e.arguments["name"]
+    context(InteractionData)
+    override suspend fun exec(e: Args) {
+        val x = e.name
         val id = x.toLongOrNull()
         PrivateCommands.grabbedIDs += cachedMembers.first { mem ->
             (id?.let { mem.idLong == it }) ?: (mem.effectiveName == x)
         }.idLong
-        e.done(ephemeral = true)
+        done(true)
     }
 }

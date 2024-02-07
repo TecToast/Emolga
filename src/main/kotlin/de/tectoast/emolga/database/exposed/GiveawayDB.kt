@@ -13,6 +13,7 @@ import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.javatime.timestamp
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -35,8 +36,8 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
                 Command.sendToMe("Error in giveaway scope, look in console")
             })
 
-        fun init() {
-            transaction {
+        suspend fun init() {
+            newSuspendedTransaction {
                 for (giveaway in all()) {
                     giveaway.startTimer()
                 }

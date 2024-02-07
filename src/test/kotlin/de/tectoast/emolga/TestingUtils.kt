@@ -1,12 +1,13 @@
 package de.tectoast.emolga
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.commands.NoCommandArgs
 import de.tectoast.emolga.commands.TestInteractionData
-import de.tectoast.emolga.commands.draft.during.*
 import de.tectoast.emolga.commands.myJSON
 import de.tectoast.emolga.commands.redirectTestCommandLogsToChannel
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.features.draft.during.MoveCommand
+import de.tectoast.emolga.features.draft.during.PickCommand
+import de.tectoast.emolga.features.draft.during.RandomPickCommand
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
@@ -80,19 +81,23 @@ suspend fun pick(name: String) {
         val draftName = NameConventionsDB.getDiscordTranslation(
             name, guildId, english = Tierlist[guildId].isEnglish
         )!!
-        PickCommand.exec(PickCommandArgs(draftName))
+        PickCommand.exec {
+            this.pokemon = draftName
+        }
     }
 }
 
 suspend fun randomPick(tier: String) {
     testCommand {
-        RandomPickCommand.exec(RandomPickCommandArgs(tier))
+        RandomPickCommand.exec {
+            this.tier = tier
+        }
     }
 }
 
 suspend fun movePick() {
     testCommand {
-        MoveCommand.exec(NoCommandArgs)
+        MoveCommand.exec()
     }
 }
 

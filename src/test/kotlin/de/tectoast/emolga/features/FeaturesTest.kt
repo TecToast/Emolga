@@ -2,11 +2,11 @@ package de.tectoast.emolga.features
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.defaultChannel
 import de.tectoast.emolga.keepAlive
+import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.events.listener
 import io.kotest.core.spec.style.FunSpec
-import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
+import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.interactions.commands.Command
 import kotlin.time.TimeSource
 
@@ -17,11 +17,11 @@ class FeaturesTest : FunSpec({
         println("TEST")
 //        val manager = FeatureManager(setOf(TestFeature, TestButton, TestModal, TestMenu, NestedCommand))
         val manager = FeatureManager("de.tectoast.emolga.features")
-        jda.listener<GenericInteractionCreateEvent> {
+        jda.listener<GenericEvent> {
             timer = TimeSource.Monotonic.markNow()
             manager.handleEvent(it)
         }
-        defaultChannel.guild.updateCommands().addCommands(manager.generateSlashCommandDescriptions()).queue()
+        manager.updateFeatures(jda, updateGuilds = listOf(Constants.G.MY))
 //        defaultChannel.send("test", components = TestMenu(argsBuilder = {
 //            test1 = "lololo"
 //            test2 = "lalala"

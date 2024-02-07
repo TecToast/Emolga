@@ -101,7 +101,7 @@ object DBF {
             }
         }
 
-        object Remove : CommandFeature<UserArg>(::UserArg, CommandSpec("add", "add")) {
+        object Remove : CommandFeature<UserArg>(::UserArg, CommandSpec("remove", "remove")) {
             context(InteractionData)
             override suspend fun exec(e: UserArg) {
                 newSuspendedTransaction {

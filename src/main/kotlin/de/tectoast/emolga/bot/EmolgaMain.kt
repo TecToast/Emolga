@@ -54,7 +54,7 @@ object EmolgaMain {
 
     const val NOTEMPVERSION = true
     private val CONTROLCENTRALGENERATION: Pair<Long, Long?> = 967890099029278740 to 967890640065134602
-    private val featureManager = FeatureManager("de.tectoast.emolga.features")
+    val featureManager = FeatureManager("de.tectoast.emolga.features")
 
     @Throws(Exception::class)
     suspend fun start() {

@@ -5,7 +5,7 @@ import de.tectoast.emolga.features.*
 
 object RWithGuild {
     object Command :
-        CommandFeature<Command.Args>(::Args, CommandSpec("rfilewithguild", "Replay-File with guild")) {
+        CommandFeature<Command.Args>(::Args, CommandSpec("rwithguild", "Replay with guild")) {
         init {
             restrict(flo)
         }

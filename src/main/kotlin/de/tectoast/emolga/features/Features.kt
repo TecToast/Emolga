@@ -341,8 +341,11 @@ open class Arguments {
     fun <T> string(name: String = "", help: String = "", builder: Arg<String, T>.() -> Unit = {}) =
         createArg(name, help, OptionType.STRING, builder)
 
-    fun long(name: String = "", help: String = "", builder: Arg<Long, Long>.() -> Unit = {}) =
-        createArg(name, help, OptionType.INTEGER, builder)
+    fun long(name: String = "", help: String = "", builder: Arg<String, Long>.() -> Unit = {}) =
+        createArg<String, Long>(name, help, OptionType.STRING) {
+            validate { it.toLongOrNull() }
+            builder()
+        }
 
     fun int(name: String = "", help: String = "", builder: Arg<Long, Int>.() -> Unit = {}) =
         createArg<Long, Int>(name, help, OptionType.INTEGER) {
@@ -412,7 +415,6 @@ open class Arguments {
             val nameMatching = enumValues.filterStartsWithIgnoreCase(s) { it.name }
             nameMatching.convertListToAutoCompleteReply()
         }
-        slashCommand(enumValues.map { Choice(it.name, it.name) })
         builder()
     }
 
@@ -612,7 +614,6 @@ class Arg<DiscordType, ParsedType>(
      * @param data The general data of this interaction
      * @param m The value of this argument, MUST ONLY BE OptionMapping or String
      */
-    @Suppress("IMPLICIT_CAST_TO_ANY")
     suspend fun parse(data: InteractionData, m: Any) {
         val validatorResult = data.validator(
             when (m) {

@@ -224,12 +224,14 @@ class CommandResponse(
     val msgEditData: MessageEditData? = null
 ) {
 
+    val msg: String? get() = msgCreateData?.content
+
     fun sendInto(callback: IReplyCallback) {
-        callback.reply(msgCreateData!!).queue()
+        callback.reply(msgCreateData!!).setEphemeral(ephemeral).queue()
     }
 
     fun sendInto(hook: InteractionHook) {
-        hook.sendMessage(msgCreateData!!).queue()
+        hook.sendMessage(msgCreateData!!).setEphemeral(ephemeral).queue()
     }
 
     fun sendInto(channel: MessageChannel) {

@@ -30,7 +30,7 @@ object ReplayChannelCommand :
         }
     }
 
-    object Remove : CommandFeature<NoArgs>(NoArgs(), CommandSpec("", "")) {
+    object Remove : CommandFeature<NoArgs>(NoArgs(), CommandSpec("remove", "Entfernt einen Replaychannel")) {
         context(InteractionData)
         override suspend fun exec(e: NoArgs) {
             val tco = textChannel

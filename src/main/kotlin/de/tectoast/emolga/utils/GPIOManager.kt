@@ -2,7 +2,6 @@
 
 package de.tectoast.emolga.utils
 
-import de.tectoast.emolga.commands.httpClient
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*

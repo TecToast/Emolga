@@ -1,10 +1,10 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select

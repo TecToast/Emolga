@@ -1,6 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.utils.DocEntry
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient

@@ -1,9 +1,12 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.commands.InteractionData
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.utils.Constants
+import kotlin.math.min
 
 object SendFeatures {
     class Args : Arguments() {
@@ -33,5 +36,18 @@ object SendFeatures {
             done(true)
         }
 
+    }
+
+    fun sendToMe(msg: String) {
+        sendToUser(Constants.FLOID, msg)
+    }
+
+    fun sendToUser(id: Long, msg: String) {
+        val jda = jda
+        jda.openPrivateChannelById(id).flatMap { pc ->
+            pc.sendMessage(
+                msg.substring(0, min(msg.length, 2000))
+            )
+        }.queue()
     }
 }

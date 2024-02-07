@@ -1,12 +1,11 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.database.exposed.SDInsertStatus
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
 import dev.minn.jda.ktx.coroutines.await
 
 object AddSDNameCommand : CommandFeature<AddSDNameCommand.Args>(

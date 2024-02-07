@@ -1,11 +1,11 @@
 package de.tectoast.emolga.features.various
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.TimeUtils
 import de.tectoast.emolga.utils.json.Cooldown
 import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.coroutines.await
@@ -39,7 +39,7 @@ object NicknameCommand : CommandFeature<NicknameCommand.Args>(
             if (expiresIn <= 0) return@run
             return reply(
                 "${member.asMention} Du kannst deinen Namen noch nicht wieder ändern!\nCooldown: ${
-                    Command.secondsToTime(expiresIn / 1000)
+                    TimeUtils.secondsToTime(expiresIn / 1000)
                 }"
             )
         }

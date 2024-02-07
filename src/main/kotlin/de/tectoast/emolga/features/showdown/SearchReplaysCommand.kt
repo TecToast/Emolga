@@ -1,10 +1,10 @@
 package de.tectoast.emolga.features.showdown
 
-import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.utils.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.delay
@@ -48,8 +48,8 @@ object SearchReplaysCommand : CommandFeature<SearchReplaysCommand.Args>(
     }
 
     private suspend fun getBody(u1: String, u2: String?) = httpClient.get(
-        "https://replay.pokemonshowdown.com/search.json?user=${Command.toUsername(u1)}".notNullAppend(u2?.let {
-            "&user2=${Command.toUsername(it)}"
+        "https://replay.pokemonshowdown.com/search.json?user=${u1.toUsername()}".notNullAppend(u2?.let {
+            "&user2=${it.toUsername()}"
         }).also { logger.info(it) }
     ).bodyAsText()
 

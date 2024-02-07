@@ -1,20 +1,20 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.features.draft.TipGame
-import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.DraftTimer
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.showdown.AnalysisData
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.EmbedBuilder
 import dev.minn.jda.ktx.messages.SendDefaults
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
@@ -190,11 +190,7 @@ sealed class League {
 
     context (InteractionData)
     open fun handlePoints(
-        tlNameNew: String,
-        officialNew: String,
-        free: Boolean,
-        tier: String,
-        tierOld: String? = null
+        tlNameNew: String, officialNew: String, free: Boolean, tier: String, tierOld: String? = null
     ): Boolean {
         if (!tierlist.mode.withPoints) return false
         val mega = officialNew.isMega
@@ -273,11 +269,9 @@ sealed class League {
         logger.info("Starting draft $leaguename...")
         logger.info(tcid.toString())
         if (names.isEmpty()) {
-            names.putAll(
-                if (table.any { it < 11_000_000_000 }) table.associateWith { "${it - 10_000_000_000}" } else jda.getGuildById(
-                    this.guild
-                )!!.retrieveMembersByIds(table).await()
-                    .associate { it.idLong to it.effectiveName })
+            names.putAll(if (table.any { it < 11_000_000_000 }) table.associateWith { "${it - 10_000_000_000}" } else jda.getGuildById(
+                this.guild
+            )!!.retrieveMembersByIds(table).await().associate { it.idLong to it.effectiveName })
         }
         logger.info(names.toString())
         tc?.let { this.tcid = it.idLong }
@@ -540,8 +534,8 @@ sealed class League {
 
     fun builder() = RequestBuilder(sid)
     context (InteractionData)
-    suspend fun replyPick(pokemon: String, free: Boolean, updrafted: String?) = replyGeneral(
-        "$pokemon ".condAppend(updrafted != null) { "im $updrafted " } + "gepickt!".condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
+    suspend fun replyPick(pokemon: String, free: Boolean, updrafted: String?) =
+        replyGeneral("$pokemon ".condAppend(updrafted != null) { "im $updrafted " } + "gepickt!".condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
 
     context (InteractionData)
     suspend fun replyGeneral(msg: String, components: Collection<LayoutComponent> = SendDefaults.components) {
@@ -572,10 +566,15 @@ sealed class League {
 
     open fun provideReplayChannel(jda: JDA): TextChannel? = null
     open fun provideResultChannel(jda: JDA): TextChannel? = null
-    open fun appendedEmbed(data: AnalysisData, league: LeagueResult, gdData: GamedayData) =
-        Command.getDefaultReplayEmbed(data, league).apply {
-            description = "Spieltag ${gdData.gameday}: $description"
-        }
+
+    open fun appendedEmbed(data: AnalysisData, league: LeagueResult, gdData: GamedayData) = EmbedBuilder {
+        val game = data.game
+        val p1 = game[0].nickname
+        val p2 = game[1].nickname
+        title = "${data.ctx.format} replay: $p1 vs. $p2"
+        url = data.ctx.url.takeIf { it.length > 10 } ?: "https://example.org"
+        description = "Spieltag ${gdData.gameday}: " + league.uids.joinToString(" vs. ") { "<@$it>" }
+    }
 
     /**
      * generate the gameplan coords
@@ -670,7 +669,7 @@ sealed class League {
 
         suspend fun executeTimerOnRefreshedVersion(name: String) {
             val league =
-                db.drafts.findOne(League::leaguename eq name) ?: return Command.sendToMe("League $name not found")
+                db.drafts.findOne(League::leaguename eq name) ?: return SendFeatures.sendToMe("League $name not found")
             league.afterPickOfficial(data = NextPlayerData.Moved(SkipReason.REALTIMER))
         }
 
@@ -787,6 +786,7 @@ sealed interface BypassCurrentPlayerData {
     data object No : BypassCurrentPlayerData
     data class Yes(val user: Long) : BypassCurrentPlayerData
 }
+
 sealed interface DuringTimerSkipMode : TimerSkipMode {
     override suspend fun League.afterPickCall(data: NextPlayerData) = afterPick(data)
 }
@@ -821,10 +821,10 @@ data object LAST_ROUND : DuringTimerSkipMode {
 data object NEXT_PICK : DuringTimerSkipMode {
     override suspend fun League.afterPick(data: NextPlayerData) =
         if (data !is NextPlayerData.Moved && hasMovedTurns()) {
-        movedTurns().removeFirstOrNull()
-        announcePlayer()
-        false
-    } else true
+            movedTurns().removeFirstOrNull()
+            announcePlayer()
+            false
+        } else true
 
 
     override suspend fun League.getPickRound(): Int = movedTurns().firstOrNull() ?: round
@@ -854,18 +854,15 @@ data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
 
 @Serializable
 data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
-    override suspend fun League.afterPick(data: NextPlayerData): Boolean =
-        if (moved.values.any { it.isNotEmpty() }) {
-            if (!pseudoEnd) {
-                tc.sendMessage("Der Draft wäre jetzt vorbei, aber es gibt noch Spieler, die keinen vollständigen Kader haben! Diese können nun in beliebiger Reihenfolge ihre Picks nachholen. Dies sind:\n"
-                        + moved.entries.filter { it.value.isNotEmpty() }
-                    .joinToString("\n") { (user, turns) -> "<@$user>: ${turns.size}x" })
-                    .queue()
-                cancelCurrentTimer()
-                pseudoEnd = true
-            }
-            false
-        } else true
+    override suspend fun League.afterPick(data: NextPlayerData): Boolean = if (moved.values.any { it.isNotEmpty() }) {
+        if (!pseudoEnd) {
+            tc.sendMessage("Der Draft wäre jetzt vorbei, aber es gibt noch Spieler, die keinen vollständigen Kader haben! Diese können nun in beliebiger Reihenfolge ihre Picks nachholen. Dies sind:\n" + moved.entries.filter { it.value.isNotEmpty() }
+                .joinToString("\n") { (user, turns) -> "<@$user>: ${turns.size}x" }).queue()
+            cancelCurrentTimer()
+            pseudoEnd = true
+        }
+        false
+    } else true
 
 
     override suspend fun League.getPickRound(): Int = if (pseudoEnd) {
@@ -903,4 +900,15 @@ sealed interface NextPlayerData {
 
 enum class SkipReason {
     REALTIMER, SKIP
+}
+data class GamedayData(
+    val gameday: Int, val battleindex: Int, val u1IsSecond: Boolean
+) {
+    constructor(gameday: Int, battleindex: Int, u1IsSecond: Boolean, numbers: () -> List<Int>) : this(
+        gameday, battleindex, u1IsSecond
+    ) {
+        this.numbers = numbers
+    }
+
+    lateinit var numbers: () -> List<Int>
 }

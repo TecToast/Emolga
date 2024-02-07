@@ -1,9 +1,9 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into

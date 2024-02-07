@@ -1,12 +1,7 @@
 package de.tectoast.emolga.features.flo
 
 
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.PrivateCommandEvent
-import de.tectoast.emolga.commands.PrivateCommands
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.*
 import kotlin.reflect.full.callSuspend
 import kotlin.reflect.full.declaredMemberFunctions
 
@@ -31,7 +26,7 @@ object PrivCommand : CommandFeature<PrivCommand.Args>(::Args, CommandSpec("priv"
         privCommands[e.cmd]?.let { method ->
             if (method.parameters.run { isEmpty() || size == 1 }) method.callSuspend(PrivateCommands)
             else method.callSuspend(
-                PrivateCommands, PrivateCommandEvent(this)
+                PrivateCommands, self, PrivateData(this)
             )
             if (!isAcknowledged)
                 reply("Command ausgeführt!", ephemeral = true)

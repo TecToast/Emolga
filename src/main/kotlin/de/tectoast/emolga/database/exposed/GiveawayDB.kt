@@ -1,9 +1,9 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.bot.EmolgaMain
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.embedColor
+import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.embedColor
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.util.SLF4J
@@ -33,7 +33,7 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
         private val coroutineScope =
             CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineName("Giveaway") + CoroutineExceptionHandler { _, t ->
                 logger.error("ERROR IN GIVEAWAY SCOPE", t)
-                Command.sendToMe("Error in giveaway scope, look in console")
+                SendFeatures.sendToMe("Error in giveaway scope, look in console")
             })
 
         suspend fun init() {

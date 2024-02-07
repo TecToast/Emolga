@@ -1,11 +1,11 @@
 package de.tectoast.emolga.features.various
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.embedColor
+
 import de.tectoast.emolga.database.exposed.Giveaway
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.TimeUtils
+import de.tectoast.emolga.utils.embedColor
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -40,7 +40,7 @@ object Giveaway {
                     setRequiredRange(1, 20)
                 }
                 validate { s ->
-                    Command.parseShortTime(s).takeIf { it > 0 }
+                    TimeUtils.parseShortTime(s).takeIf { it > 0 }
                 }
                 customErrorMessage = "Das ist keine gültige Zeit!"
             }

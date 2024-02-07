@@ -3,11 +3,10 @@
 package de.tectoast.emolga.features
 
 import com.google.common.reflect.ClassPath
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.RealInteractionData
-import de.tectoast.emolga.commands.condAppend
+import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.annotations.ToTest
+import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
 import kotlinx.coroutines.CoroutineScope
@@ -105,7 +104,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                         data.user == Constants.FLOID, "\nJa Flo, du sollst dich auch bei ihm melden du Kek :^)"
                     )
                 )
-                Command.sendToMe(
+                SendFeatures.sendToMe(
                     "Error in feature ${feature.spec.name}:\n" + "Event: ${e::class.simpleName}\n" + "User: `${data.user}`\n" + "Guild: `${data.gid}` [${data.textChannel.guild.name}\n" + "Channel: `${data.tc}` [${data.textChannel.asMention}" + "Input: ```$e```"
                 )
             }

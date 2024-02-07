@@ -1,6 +1,6 @@
 package de.tectoast.emolga.utils.dconfigurator
 
-import de.tectoast.emolga.commands.condAppend
+import de.tectoast.emolga.utils.condAppend
 import dev.minn.jda.ktx.interactions.components.danger
 import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.interactions.components.success

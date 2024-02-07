@@ -1,15 +1,18 @@
 package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.Giveaway
+import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.FeatureManager
+import de.tectoast.emolga.features.flegmon.BirthdaySystem
+import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.features.various.ControlCentralButton
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
+import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.getCount
 import de.tectoast.emolga.utils.json.only
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.events.listener
@@ -19,6 +22,7 @@ import dev.minn.jda.ktx.jdabuilder.intents
 import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.*
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.OnlineStatus
 import net.dv8tion.jda.api.entities.Activity
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -28,6 +32,8 @@ import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import net.dv8tion.jda.api.utils.cache.CacheFlag.*
 import org.slf4j.LoggerFactory
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 
 var injectedJDA: JDA? = null
@@ -47,6 +53,9 @@ var usedJDA = false
 val jda: JDA by lazy { injectedJDA ?: emolgajda }
 
 object EmolgaMain {
+    const val BOT_DISABLED = false
+    const val DISABLED_TEXT =
+        "Es finden derzeit große interne Umstrukturierungen statt, ich werde voraussichtlich heute Mittag/Nachmittag wieder einsatzbereit sein :)"
 
     lateinit var emolgajda: JDA
     lateinit var flegmonjda: JDA
@@ -59,14 +68,14 @@ object EmolgaMain {
     @Throws(Exception::class)
     suspend fun start() {
         val eventListeners = listOf(DConfiguratorManager)
-        emolgajda = default(Command.tokens.discord) {
+        emolgajda = default(Credentials.tokens.discord) {
             //intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
             intents -= GatewayIntent.MESSAGE_CONTENT
             addEventListeners(*eventListeners.toTypedArray())
             setMemberCachePolicy(MemberCachePolicy.DEFAULT)
         }
         if (NOTEMPVERSION) {
-            flegmonjda = default(Command.tokens.discordflegmon) {
+            flegmonjda = default(Credentials.tokens.discordflegmon) {
                 intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
                 addEventListeners(*eventListeners.toTypedArray())
                 setMemberCachePolicy(MemberCachePolicy.ALL)
@@ -105,10 +114,10 @@ object EmolgaMain {
             } ?: tc.send(embeds = embed, components = components).queue()
         }
         //Ktor.start()
-        Command.awaitNextDay()
+        BirthdaySystem.startSystem()
         if (NOTEMPVERSION) flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
         Database.dbScope.launch {
-            Command.updatePresence()
+            updatePresence()
         }/*val manager = ReactionManager(emolgajda)
         manager // BS
             .registerReaction("827608009571958806", "884567614918111233", "884564674744561684", "884565654227812364")
@@ -129,11 +138,26 @@ object EmolgaMain {
         Giveaway.init()
     }
 
+    suspend fun updatePresence() {
+        if (BOT_DISABLED) {
+            emolgajda.presence.setPresence(
+                OnlineStatus.DO_NOT_DISTURB, Activity.watching("auf den Wartungsmodus")
+            )
+            return
+        }
+        val count = db.statistics.getCount("analysis")
+        if (count % 100 == 0) {
+            emolgajda.getTextChannelById(904481960527794217L)!!
+                .sendMessage(SimpleDateFormat("dd.MM.yyyy").format(Date()) + ": " + count).queue()
+        }
+        emolgajda.presence.setPresence(OnlineStatus.ONLINE, Activity.watching("auf $count analysierte Replays"))
+    }
+
     @Suppress("unused")
     private fun initializeASLCoach(raikou: JDA) {
         val scope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
             logger.error("ERROR IN ASL SCOPE", t)
-            Command.sendToMe("Error in asl scope, look in console")
+            SendFeatures.sendToMe("Error in asl scope, look in console")
         })
         jda.listener<SlashCommandInteractionEvent> { e ->
             if (e.name != "bet") return@listener
@@ -192,13 +216,13 @@ object EmolgaMain {
                         if (t == null || !nbet.validBet() || nbet <= maxBet.second || (t.pointsToSpend() < nbet).also {
                                 if (it) {
                                     logger.info("${event.member!!.effectiveName} wanted to bid $nbet, but only has ${t.pointsToSpend()} points!")
-                                    Command.sendToUser(
+                                    SendFeatures.sendToUser(
                                         event.author.idLong,
                                         "Du hast nicht mehr genug Punkte, um mit $nbet Punkten zu bieten!"
                                     )
                                 }
                             } || (level in t.members).also {
-                                if (it) Command.sendToUser(
+                                if (it) SendFeatures.sendToUser(
                                     event.author.idLong,
                                     "Du kannst hier nicht mitbieten, da du bereits einen Sklaven aus Stufe $level hast, du Kek! (Henny wollte, dass ich das so schreibe)"
                                 )

@@ -1,8 +1,7 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.showdown.Analysis
 
 object MultiReplay {
     object Command : CommandFeature<Command.Args>(
@@ -42,7 +41,7 @@ object MultiReplay {
             val lastIndex = allReplays.lastIndex
             reply("Replays werden analysiert!", ephemeral = true)
             allReplays.forEachIndexed { index, url ->
-                de.tectoast.emolga.commands.Command.analyseReplay(
+                Analysis.analyseReplay(
                     url = url,
                     customReplayChannel = replayChannel,
                     resultchannelParam = resultChannel,

@@ -2,10 +2,10 @@
 
 package de.tectoast.emolga.ktor
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.httpClient
-import de.tectoast.emolga.commands.webJSON
 import de.tectoast.emolga.database.exposed.DiscordAuthDB
+import de.tectoast.emolga.encryption.Credentials
+import de.tectoast.emolga.utils.httpClient
+import de.tectoast.emolga.utils.webJSON
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -56,7 +56,7 @@ object Ktor {
                         accessTokenUrl = "https://discord.com/api/oauth2/token",
                         requestMethod = HttpMethod.Post,
                         clientId = "723829878755164202",
-                        clientSecret = oauth2Secret ?: Command.tokens.oauth2.clientsecret,
+                        clientSecret = oauth2Secret ?: Credentials.tokens.oauth2.clientsecret,
                         defaultScopes = listOf("identify", "guilds"),
                         extraAuthParameters = listOf("grant_type" to "authorization_code")
                     )

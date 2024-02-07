@@ -2,9 +2,10 @@ package de.tectoast.emolga.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
+import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.features.various.CalendarSystem
 import de.tectoast.emolga.utils.json.Tokens
 import kotlinx.coroutines.*
 import org.jetbrains.exposed.sql.*
@@ -32,11 +33,11 @@ class Database(host: String, username: String, password: String) {
         val dbScope =
             CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineName("DBScope") + CoroutineExceptionHandler { _, t ->
                 logger.error("ERROR IN DATABASE SCOPE", t)
-                Command.sendToMe("Error in database scope, look in console")
+                SendFeatures.sendToMe("Error in database scope, look in console")
             })
 
 
-        fun init(cred: Tokens.Database, host: String, withStartUp: Boolean = true): Database {
+        suspend fun init(cred: Tokens.Database, host: String, withStartUp: Boolean = true): Database {
             logger.info("Creating DataSource...")
             instance = Database(host, cred.username, cred.password)
             org.jetbrains.exposed.sql.Database.connect(instance.dataSource)
@@ -44,9 +45,9 @@ class Database(host: String, username: String, password: String) {
             return instance
         }
 
-        private fun onStartUp() {
+        private suspend fun onStartUp() {
             logger.info("Retrieving all startup information...")
-            CalendarDB.allEntries.forEach { Command.scheduleCalendarEntry(it) }
+            CalendarDB.allEntries.forEach { CalendarSystem.scheduleCalendarEntry(it) }
             SpoilerTagsDB.addToList()
         }
     }

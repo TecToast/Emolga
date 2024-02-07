@@ -1,11 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.coordXMod
-import de.tectoast.emolga.commands.toDocRange
-import de.tectoast.emolga.commands.xc
-import de.tectoast.emolga.commands.y
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -31,7 +26,7 @@ class WFS : League() {
     override val docEntry = DocEntry.create(this) {
         newSystem(
             SorterData(
-                "Tabelle!C4:J15".toDocRange(), newMethod = true, cols = listOf(2, 5, 3)
+                "Tabelle!C4:J15", newMethod = true, cols = listOf(2, 5, 3)
             )
         ) {
             b.addSingle(gdi.coordXMod("Spielplan", 2, 'H' - 'D', 5, 17 - 9, 10 + index), defaultGameplanString)

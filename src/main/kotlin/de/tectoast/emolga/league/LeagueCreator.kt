@@ -5,12 +5,9 @@ package de.tectoast.emolga.league
 import com.google.api.services.sheets.v4.model.CellFormat
 import com.google.api.services.sheets.v4.model.Color
 import com.google.api.services.sheets.v4.model.TextFormat
-import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.commands.Command.Companion.convertColor
-import de.tectoast.emolga.commands.Command.Companion.getAsXCoord
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.league.Cols.*
-import de.tectoast.emolga.utils.RequestBuilder
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.SignUpData
@@ -995,7 +992,7 @@ class Addons {
         @Serializable
         @SerialName("GEN5SPRITE")
         data object GEN5SPRITE : DataCol() {
-            override suspend fun getData(o: Pokemon) = Command.getGen5Sprite(o)
+            override suspend fun getData(o: Pokemon) = o.getGen5Sprite()
         }
 
         @Serializable
@@ -1066,7 +1063,7 @@ object GoogleColorSerializer : KSerializer<Color> {
     override val descriptor = PrimitiveSerialDescriptor("Color", PrimitiveKind.STRING)
 
     override fun deserialize(decoder: Decoder): Color {
-        return convertColor(decoder.decodeString().toInt(16))
+        return decoder.decodeString().toInt(16).convertColor()
     }
 
     override fun serialize(encoder: Encoder, value: Color) {
@@ -1082,6 +1079,6 @@ object GoogleColorSerializer : KSerializer<Color> {
 @Suppress("unused")
 object ConditionalFormats {
     val strikethrough = cellFormat(strikethrough = true)
-    val redAndStrikethrough = cellFormat(strikethrough = true, fgColor = convertColor(0xFF0000))
-    val red = cellFormat(fgColor = convertColor(0xFF0000))
+    val redAndStrikethrough = cellFormat(strikethrough = true, fgColor = 0xFF0000.convertColor())
+    val red = cellFormat(fgColor = 0xFF0000.convertColor())
 }

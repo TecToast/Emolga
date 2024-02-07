@@ -4,15 +4,8 @@ import com.google.api.services.sheets.v4.model.CellFormat
 import com.google.api.services.sheets.v4.model.ColorStyle
 import com.google.api.services.sheets.v4.model.TextFormat
 import de.tectoast.emolga.bot.EmolgaMain
-import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.commands.Command.Companion.convertColor
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.utils.DraftTimer
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.TimerInfo
-import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
-import de.tectoast.emolga.utils.automation.structure.DocEntry
-import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
@@ -92,9 +85,9 @@ class NDS : League() {
         )
         val numInRound = data.indexInRound + 1
         if (data is SwitchData) addSingle(
-            "Draft!${Command.getAsXCoord(round * 5 - 3)}${numInRound * 5 + 1}", data.oldmon
+            "Draft!${getAsXCoord(round * 5 - 3)}${numInRound * 5 + 1}", data.oldmon
         )
-        addSingle("Draft!${Command.getAsXCoord(round * 5 - 1)}${numInRound * 5 + 2}", data.pokemon)
+        addSingle("Draft!${getAsXCoord(round * 5 - 1)}${numInRound * 5 + 2}", data.pokemon)
     }
 
     @Transient
@@ -125,7 +118,7 @@ class NDS : League() {
         resultCreator = {
             val y = index.y(10, 6)
             b.addSingle(
-                "$gameplanName!${Command.getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
+                "$gameplanName!${getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
             )
             b.addSingle(coord(gameplanName, gdi.x(9, 4), index.y(10, 3)), numberOne)
             b.addSingle(coord(gameplanName, gdi.x(9, 6), index.y(10, 3)), numberTwo)
@@ -153,7 +146,7 @@ class NDS : League() {
         }
         setStatIfEmpty = false
         sorterData = SorterData(
-            formulaRange = listOf("$tableName!C3:K8".toDocRange(), "$tableName!C12:K17".toDocRange()),
+            formulaRange = listOf("$tableName!C3:K8", "$tableName!C12:K17"),
             newMethod = true,
             cols = listOf(2, 8, -1, 6)
         )
@@ -181,7 +174,7 @@ class NDS : League() {
         val deathFormat = CellFormat().apply {
             textFormat = TextFormat().apply {
                 foregroundColorStyle = ColorStyle().apply {
-                    rgbColor = convertColor(0x000000)
+                    rgbColor = 0x000000.convertColor()
                 }
                 strikethrough = true
             }

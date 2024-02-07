@@ -1,7 +1,7 @@
 package de.tectoast.emolga.league
 
-import de.tectoast.emolga.commands.xc
 import de.tectoast.emolga.utils.records.Coord
+import de.tectoast.emolga.utils.xc
 
 enum class Cols(val spread: Cols? = null) {
     LOGO, PLAYER, TEAMNAME, POKEMON, KILLS, DEATHS, DIFF, KILLSPERUSE, USES, POINTS, WINS, LOOSES, GAMES, STRIKES, KILLSSPREAD(

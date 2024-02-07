@@ -1,22 +1,45 @@
 package de.tectoast.emolga.features.draft.during
 
 
-import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.add
+import de.tectoast.emolga.utils.invoke
 import de.tectoast.emolga.utils.json.MDLTierlist
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.MDL
 import de.tectoast.emolga.utils.json.emolga.draft.MDLPick
 import de.tectoast.emolga.utils.json.emolga.draft.PickData
+import de.tectoast.emolga.utils.randomWithCondition
 import dev.minn.jda.ktx.messages.into
 import mu.KotlinLogging
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 
-object PickMDL {
+object MDLCommands {
     val tiers = mapOf("S" to 1, "A" to 2, "B" to 3, "C" to 3, "D" to 2).toList()
+    val germanTypeList = setOf(
+        "Normal",
+        "Feuer",
+        "Wasser",
+        "Pflanze",
+        "Gestein",
+        "Boden",
+        "Geist",
+        "Unlicht",
+        "Drache",
+        "Fee",
+        "Eis",
+        "Kampf",
+        "Elektro",
+        "Flug",
+        "Gift",
+        "Psycho",
+        "Stahl",
+        "Käfer"
+    )
     private val logger = KotlinLogging.logger {}
 
     enum class MDLAction {
@@ -57,7 +80,7 @@ object PickMDL {
             }
             if (mon.isEmpty() || tier.isEmpty()) {
                 logger.error("No pokemon found without error message: $mem $type")
-                Command.sendToMe("ERROR PICKMDL COMMAND CONSOLE: $mem $type")
+                SendFeatures.sendToMe("ERROR PICKMDL COMMAND CONSOLE: $mem $type")
                 return reply("Es ist ein unbekannter Fehler aufgetreten!")
             }
             val official = NameConventionsDB.getDiscordTranslation(mon, d.guild, false)!!.official
@@ -143,7 +166,7 @@ object PickMDL {
                         usedTiers += temptier
                     }
                     if (newmon.isEmpty() || newtier.isEmpty()) {
-                        Command.sendToMe("ERROR PICKMDL COMMAND CONSOLE: $mem $type")
+                        SendFeatures.sendToMe("ERROR PICKMDL COMMAND CONSOLE: $mem $type")
                         return reply("Es ist ein unbekannter Fehler aufgetreten!")
                     }
                     val newofficial = NameConventionsDB.getDiscordTranslation(newmon, d.guild, false)!!.official
@@ -174,6 +197,34 @@ object PickMDL {
             }
         }
     }
+
+    object TeraMDLCommand :
+        CommandFeature<NoArgs>(NoArgs(), CommandSpec("teramdl", "Randomized den Tera-Typen", Constants.G.VIP)) {
+
+        context(InteractionData)
+        override suspend fun exec(e: NoArgs) {
+            val d =
+                League.byCommand()?.first ?: return reply(
+                    "Es läuft zurzeit kein Draft in diesem Channel!",
+                    ephemeral = true
+                )
+            if (d !is MDL) {
+                reply("Dieser Befehl funktioniert nur im MDL Draft!")
+                return
+            }
+            if (!d.isLastRound) {
+                reply("Dieser Befehl kann nur in der letzten Runde verwendet werden!")
+                return
+            }
+            val type = germanTypeList.random()
+            val mon = d.picks(d.current).random()
+            d.replyGeneral(
+                "die Terakristallisierung gegambled und den Typen `$type` auf ${mon.name} (${mon.tier}) bekommen!"
+            )
+            d.afterPickOfficial()
+        }
+    }
+
 }
 
 

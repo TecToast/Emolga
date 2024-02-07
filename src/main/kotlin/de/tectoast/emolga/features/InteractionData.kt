@@ -1,4 +1,4 @@
-package de.tectoast.emolga.commands
+package de.tectoast.emolga.features
 
 import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.coroutines.await

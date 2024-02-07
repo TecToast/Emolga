@@ -1,10 +1,6 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.PrivateCommands
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 

@@ -1,10 +1,13 @@
 package de.tectoast.emolga.utils.json.emolga
 
 import de.tectoast.emolga.bot.EmolgaMain
-import de.tectoast.emolga.commands.*
+import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.RequestBuilder
+import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.xmod
+import de.tectoast.emolga.utils.ydiv
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -88,7 +91,7 @@ class ASLCoachData(
         }
         val (teamname, teamData) = teamByIndex(order.removeFirst())
         val coach = teamData.members[0] ?: run {
-            Command.sendToMe("lul guter Coach")
+            SendFeatures.sendToMe("lul guter Coach")
             return
         }
         textChannel().sendMessage("<@$coach> ($teamname) darf jemanden in den Ring werfen!").queue()
@@ -165,3 +168,5 @@ class TeamData(
 
 @Serializable
 class Config(val waitFor: Long = 15000, val countdownSeconds: Int = 15, val sendOn: List<Int> = listOf(5, 15))
+
+fun <T, R> Map<T, R>.reverseGet(value: R): T? = this.entries.firstOrNull { it.value == value }?.key

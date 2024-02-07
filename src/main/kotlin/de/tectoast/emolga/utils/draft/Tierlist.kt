@@ -1,7 +1,7 @@
 package de.tectoast.emolga.utils.draft
 
-import de.tectoast.emolga.commands.Language
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League

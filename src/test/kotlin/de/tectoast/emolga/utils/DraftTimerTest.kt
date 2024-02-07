@@ -1,6 +1,5 @@
 package de.tectoast.emolga.utils
 
-import de.tectoast.emolga.commands.defaultTimeFormat
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.Matcher

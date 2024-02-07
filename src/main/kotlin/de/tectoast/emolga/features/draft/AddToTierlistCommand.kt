@@ -1,15 +1,14 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.Command.Companion.allNameConventions
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.filterStartsWithIgnoreCase
 import de.tectoast.emolga.database.dbAsync
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.NameConventionsDB.allNameConventions
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import org.jetbrains.exposed.exceptions.ExposedSQLException
@@ -69,7 +68,7 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
 
 data class AddToTierlistData(val mon: String, val tier: String, val tierlist: Tierlist, val gid: Long) {
 
-    val pkmn = dbAsync { Command.getDataObject(mon, gid) }
+    val pkmn = dbAsync { db.getDataObject(mon, gid) }
     val englishTLName = dbAsync {
         NameConventionsDB.getDiscordTranslation(
             mon,

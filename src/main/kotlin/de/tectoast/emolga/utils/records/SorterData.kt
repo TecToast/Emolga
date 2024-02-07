@@ -1,7 +1,6 @@
 package de.tectoast.emolga.utils.records
 
-import de.tectoast.emolga.commands.DocRange
-import de.tectoast.emolga.utils.automation.structure.DirectCompareData
+import de.tectoast.emolga.utils.DirectCompareData
 
 class SorterData(
     val formulaRange: List<DocRange>,
@@ -20,7 +19,53 @@ class SorterData(
         listOf(formulaRange),
         directCompare, indexer, newMethod, cols
     )
+
+    companion object {
+        operator fun invoke(
+            formulaRange: String,
+            directCompare: List<DirectCompareOption> = listOf(DirectCompareOption.DIFF, DirectCompareOption.KILLS),
+            indexer: ((String) -> Int)? = null,
+            newMethod: Boolean = false,
+            cols: List<Int>
+        ) = SorterData(
+            DocRange[formulaRange],
+            directCompare, indexer, newMethod, cols
+        )
+
+        operator fun invoke(
+            formulaRange: List<String>,
+            directCompare: List<DirectCompareOption> = listOf(DirectCompareOption.DIFF, DirectCompareOption.KILLS),
+            indexer: ((String) -> Int)? = null,
+            newMethod: Boolean = false,
+            cols: List<Int>
+        ) = SorterData(
+            formulaRange.map { DocRange[it] },
+            directCompare, indexer, newMethod, cols
+        )
+    }
 }
+
+data class DocRange(val sheet: String, val xStart: String, val yStart: Int, val xEnd: String, val yEnd: Int) {
+    override fun toString() = "$sheet!$xStart$yStart:$xEnd$yEnd"
+    val firstHalf: String get() = "$sheet!$xStart$yStart"
+
+    companion object {
+        private val numbers = Regex("[0-9]")
+        private val chars = Regex("[A-Z]")
+        operator fun get(string: String): DocRange {
+            val split = string.split('!')
+            val range = split[1].split(':')
+            return DocRange(
+                split[0],
+                range[0].replace(numbers, ""),
+                range[0].replace(chars, "").toInt(),
+                range[1].replace(numbers, ""),
+                range[1].replace(chars, "").toInt()
+            )
+        }
+    }
+}
+
 
 enum class DirectCompareOption {
     DIFF {

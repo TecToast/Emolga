@@ -1,7 +1,7 @@
 package de.tectoast.emolga.utils.json.showdown
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.toSDName
+import de.tectoast.emolga.utils.notNullAppend
+import de.tectoast.emolga.utils.toSDName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -39,18 +39,15 @@ data class Pokemon(
     val speed: Int
         get() = baseStats["spe"]!!
 
-    fun buildStatString(): String {
-        return baseStats.entries.joinToString("\n") { "${statNames[it.key]}: ${it.value}" } + "\nSumme: ${baseStats.values.sum()}"
+    fun getGen5Sprite(): String {
+        return buildString {
+            append("=IMAGE(\"https://play.pokemonshowdown.com/sprites/gen5/")
+            append(
+                (baseSpecies ?: name).toSDName().notNullAppend(forme?.toSDName()?.let { "-$it" })
+            )
+            append(".png\"; 1)")
+        }
     }
-
-    val baseSpeciesAndForme: String
-        get() = Command.getGerNameNoCheck(baseSpecies!!) + "-" + forme
-
-    val baseSpeciesOrName: String
-        get() = baseSpecies ?: name
-
-    val formeSuffix: String?
-        get() = if (forme != null) "-${forme.toSDName()}" else null
 
     companion object {
         val statNames = mapOf(

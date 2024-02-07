@@ -1,16 +1,11 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.embedColor
-import de.tectoast.emolga.commands.indexedBy
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.ButtonFeature
-import de.tectoast.emolga.features.ButtonSpec
-import de.tectoast.emolga.features.intoMultipleRows
+import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.embedColor
+import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -26,6 +21,7 @@ import org.litote.kmongo.*
 
 object Nominate {
     val nominateButtons: MutableMap<Long, Nominate> = HashMap()
+    private val WHITESPACES_SPLITTER = Regex("\\s+")
 
     class Nominate(private val originalMons: List<DraftPokemon>, val mons: List<DraftPokemon>) {
         private val nominated: MutableList<DraftPokemon> = ArrayList(mons)
@@ -143,7 +139,7 @@ object Nominate {
                         .queue()
                 }
                 val list =
-                    nds.picks[if (e.author.idLong == Constants.FLOID) Command.WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toLong() else e.author.idLong]!!.map {
+                    nds.picks[if (e.author.idLong == Constants.FLOID) WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toLong() else e.author.idLong]!!.map {
                         DraftPokemon(
                             NameConventionsDB.convertOfficialToTL(it.name, nds.guild)!!, it.tier, it.free
                         )

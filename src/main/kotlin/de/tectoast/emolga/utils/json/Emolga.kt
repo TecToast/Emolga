@@ -2,11 +2,11 @@ package de.tectoast.emolga.utils.json
 
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.condAppend
-import de.tectoast.emolga.commands.ifTrue
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.features.various.ShiftUser
+import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Soullink
@@ -14,8 +14,8 @@ import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.showdown.Pokemon
+import de.tectoast.emolga.utils.toSDName
 import dev.minn.jda.ktx.interactions.components.SelectOption
-import dev.minn.jda.ktx.interactions.components.StringSelectMenu
 import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.*
@@ -24,6 +24,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import org.bson.BsonDocument
 import org.bson.conversions.Bson
 import org.litote.kmongo.*
@@ -86,11 +87,15 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
         drafts.findOne(League::guild eq gid, League::table all uids.toList())
 
+    suspend fun getDataObject(mon: String, guild: Long = 0): Pokemon {
+        return pokedex.get(NameConventionsDB.getDiscordTranslation(mon, guild, true)!!.official.toSDName())!!
+    }
+
 
     private val scanScope =
         CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineName("ScanScope") + CoroutineExceptionHandler { _, t ->
             logger.error("ERROR IN ScanScope SCOPE", t)
-            Command.sendToMe("Error in scanScope scope, look in console")
+            SendFeatures.sendToMe("Error in scanScope scope, look in console")
         })
 
     suspend fun leagueByGuildAdvanced(gid: Long, game: List<List<DraftName>>, vararg uids: Long): LeagueResult? {
@@ -211,9 +216,12 @@ data class LigaStartData(
     val maxUsersAsString
         get() = (maxUsers.takeIf { it > 0 } ?: "?").toString()
 
-    fun conferenceSelectMenus(uid: Long, initial: Boolean) =
-        StringSelectMenu("cselect;${initial.ifTrue("initial")}:$uid",
-            options = conferences.map { SelectOption(it, it) })
+    fun conferenceSelectMenus(uid: Long, initial: Boolean): StringSelectMenu {
+        return ShiftUser.SelectMenu(options = conferences.map { SelectOption(it, it) }) {
+            this.mode = ShiftUser.SelectMenu.Mode.fromBoolean(initial)
+            this.uid = uid
+        }
+    }
 
     fun getDataByUser(uid: Long) = users[uid] ?: users.values.firstOrNull { it.teammates.contains(uid) }
     fun getOwnerByUser(uid: Long) = users.entries.firstOrNull { it.key == uid || it.value.teammates.contains(uid) }?.key

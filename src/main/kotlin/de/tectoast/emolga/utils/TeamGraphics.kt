@@ -1,17 +1,16 @@
 package de.tectoast.emolga.utils
 
-import de.tectoast.emolga.commands.Command.Companion.getSpriteForTeamGraphic
-import de.tectoast.emolga.commands.RandomTeamData
-import de.tectoast.emolga.commands.file
-import de.tectoast.emolga.commands.indexedBy
-import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.only
 import java.awt.*
 import java.awt.image.BufferedImage
+import java.util.concurrent.atomic.AtomicInteger
 import javax.imageio.ImageIO
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.random.Random
 
 object TeamGraphics {
 
@@ -78,8 +77,27 @@ class TeamGraphic {
             )
         }
             .toMutableList())
-
     }
+
+    private suspend fun getSpriteForTeamGraphic(str: String, data: RandomTeamData, guild: Long): String {
+        if (str == "Sen-Long") data.hasDrampa = true
+        val o = db.getDataObject(str, guild)
+        val odds = db.config.only().teamgraphicShinyOdds
+        return buildString {
+            append("gen5_cropped")
+            if (Random.nextInt(odds) == 0) {
+                append("_shiny")
+                data.shinyCount.incrementAndGet()
+            }
+            append("/")
+            append((o.baseSpecies ?: o.name).toSDName())
+            o.forme?.let {
+                append("-${it.toSDName()}")
+            }
+            append(".png")
+        }
+    }
+
 
 
     private fun execute(): BufferedImage {
@@ -220,3 +238,5 @@ class TeamGraphic {
         )
     }
 }
+
+data class RandomTeamData(val shinyCount: AtomicInteger = AtomicInteger(), var hasDrampa: Boolean = false)

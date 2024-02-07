@@ -1,9 +1,9 @@
 package de.tectoast.emolga.ktor.routes
 
-import de.tectoast.emolga.commands.httpClient
 import de.tectoast.emolga.ktor.emolga
 import de.tectoast.emolga.ktor.getGuilds
 import de.tectoast.emolga.ktor.sessionOrUnauthorized
+import de.tectoast.emolga.utils.httpClient
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*

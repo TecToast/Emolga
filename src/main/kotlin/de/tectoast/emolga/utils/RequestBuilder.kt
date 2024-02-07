@@ -1,7 +1,7 @@
 package de.tectoast.emolga.utils
 
 import com.google.api.services.sheets.v4.model.*
-import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.records.Coord
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
@@ -160,7 +160,7 @@ class RequestBuilder
     }
 
     fun addBGColorChange(sheetId: Int, x: Int, y: Int, c: Color?): RequestBuilder {
-        return addBGColorChange(sheetId, Command.getAsXCoord(x) + y, c)
+        return addBGColorChange(sheetId, x.xc() + y, c)
     }
 
     fun addNoteChange(sheetId: Int, range: String, note: String?): RequestBuilder {
@@ -296,7 +296,7 @@ class RequestBuilder
     }
 
     fun addStrikethroughChange(sheetId: Int, x: Int, y: Int, strikethrough: Boolean): RequestBuilder {
-        return addStrikethroughChange(sheetId, Command.getAsXCoord(x) + y, strikethrough)
+        return addStrikethroughChange(sheetId, x.xc() + y, strikethrough)
     }
 
     private fun addFGColorChange(sheetId: Int, range: String, c: Color?): RequestBuilder {
@@ -318,7 +318,7 @@ class RequestBuilder
     }
 
     fun addFGColorChange(sheetId: Int, x: Int, y: Int, c: Color?): RequestBuilder {
-        return addFGColorChange(sheetId, Command.getAsXCoord(x) + y, c)
+        return addFGColorChange(sheetId, x.xc() + y, c)
     }
 
     private val userEntered: List<ValueRange>
@@ -332,6 +332,8 @@ class RequestBuilder
         requests.clear()
         executed = false
     }
+
+    private fun Throwable.sendStacktraceToMe() = SendFeatures.sendToMe(stackTraceToString())
 
     /**
      * Executes the request to the specified google sheet
@@ -365,7 +367,7 @@ class RequestBuilder
                         }
                     } catch (e: IOException) {
                         e.printStackTrace()
-                        Command.sendStacktraceToMe(e)
+                        e.sendStacktraceToMe()
                     }
                 }
             }
@@ -385,7 +387,7 @@ class RequestBuilder
                             }
                         } catch (e: IOException) {
                             e.printStackTrace()
-                            Command.sendStacktraceToMe(e)
+                            e.sendStacktraceToMe()
                         }
                     }
                 }
@@ -402,7 +404,7 @@ class RequestBuilder
                             }
                         } catch (e: IOException) {
                             e.printStackTrace()
-                            Command.sendStacktraceToMe(e)
+                            e.sendStacktraceToMe()
                         }
                     }
                 }

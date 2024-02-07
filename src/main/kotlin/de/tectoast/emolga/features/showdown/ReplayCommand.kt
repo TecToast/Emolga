@@ -1,11 +1,11 @@
 package de.tectoast.emolga.features.showdown
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.database.exposed.AnalysisDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.utils.showdown.Analysis
 import mu.KotlinLogging
 
 object ReplayCommand : CommandFeature<ReplayCommand.Args>(
@@ -21,7 +21,7 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
                 regex.find(msg)?.run {
                     val url = groupValues[0]
                     logger.info(url)
-                    Command.analyseReplay(
+                    Analysis.analyseReplay(
                         url = url,
                         //customReplayChannel = e.jda.getTextChannelById(999779545316069396),
                         resultchannelParam = e.jda.getTextChannelById(820359155612254258)!!, message = e.message
@@ -49,6 +49,6 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
             reply("Ich habe keinen Zugriff auf den Ergebnischannel!")
             return
         }
-        Command.analyseReplay(url = mr.groupValues[0], resultchannelParam = tc, fromReplayCommand = self)
+        Analysis.analyseReplay(url = mr.groupValues[0], resultchannelParam = tc, fromReplayCommand = self)
     }
 }

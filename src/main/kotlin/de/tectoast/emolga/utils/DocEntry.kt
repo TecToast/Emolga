@@ -1,15 +1,14 @@
-package de.tectoast.emolga.utils.automation.structure
+package de.tectoast.emolga.utils
 
 import com.mongodb.MongoWriteException
-import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.commands.Command.Companion.compareColumns
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.TipGamesDB
-import de.tectoast.emolga.utils.Google
-import de.tectoast.emolga.utils.RequestBuilder
+import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.MatchResult
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
@@ -163,7 +162,7 @@ class DocEntry private constructor(val league: League) {
                     }
                     if (monIndex == -1) {
                         logger.warn("Mon $mon not found in picks of $uid")
-                        Command.sendToMe("Mon $mon not found in picks of $uid\n$url\n${league.leaguename}")
+                        SendFeatures.sendToMe("Mon $mon not found in picks of $uid\n$url\n${league.leaguename}")
                         continue
                     }
                     val (kills, deaths) = data
@@ -231,6 +230,19 @@ class DocEntry private constructor(val league: League) {
             }
         }.execute()
     }
+
+    private fun compareColumns(o1: List<Any>, o2: List<Any>, vararg columns: Int): Int {
+        for (column in columns) {
+            val i1 = o1[column].parseInt()
+            val i2 = o2[column].parseInt()
+            if (i1 != i2) {
+                return i1.compareTo(i2)
+            }
+        }
+        return 0
+    }
+
+    fun Any.parseInt() = (this as? Int) ?: this.toString().toInt()
 
     @Suppress("MemberVisibilityCanBePrivate")
     suspend fun sort() {
@@ -364,6 +376,15 @@ fun interface CombinedStatProcessor : StatProcessor {
 fun interface ResultStatProcessor {
     fun StatProcessorData.process(): Coord
 }
+data class ReplayData(
+    val game: List<DraftPlayer>,
+    val uids: List<Long>,
+    val kd: List<Map<String, Pair<Int, Int>>>,
+    val mons: List<List<String>>,
+    val url: String,
+    val gamedayData: GamedayData,
+    val otherForms: Map<String, List<String>> = emptyMap(),
+)
 
 @Suppress("unused")
 data class AdvancedResult(

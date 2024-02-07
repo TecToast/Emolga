@@ -1,18 +1,18 @@
 package de.tectoast.emolga
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.commands.TestInteractionData
-import de.tectoast.emolga.commands.myJSON
-import de.tectoast.emolga.commands.redirectTestCommandLogsToChannel
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.features.TestInteractionData
 import de.tectoast.emolga.features.draft.during.MoveCommand
 import de.tectoast.emolga.features.draft.during.PickCommand
 import de.tectoast.emolga.features.draft.during.RandomPickCommand
+import de.tectoast.emolga.features.redirectTestCommandLogsToChannel
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.myJSON
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable

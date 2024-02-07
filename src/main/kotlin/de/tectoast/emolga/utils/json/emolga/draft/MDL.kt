@@ -1,10 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.*
-import de.tectoast.emolga.utils.DraftTimer
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.TimerInfo
-import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
@@ -61,7 +57,7 @@ class MDL(val division: Int) : League() {
     override val docEntry = DocEntry.create(this) {
         newSystem(
             SorterData(
-                listOf("Tabelle!D6:K13".toDocRange(), "Tabelle!D18:K25".toDocRange()),
+                listOf("Tabelle!D6:K13", "Tabelle!D18:K25"),
                 newMethod = true,
                 cols = listOf(3, 7, 5)
             )

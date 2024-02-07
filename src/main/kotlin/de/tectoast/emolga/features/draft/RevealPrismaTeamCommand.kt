@@ -1,11 +1,10 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.x
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.x
 import dev.minn.jda.ktx.messages.into
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 

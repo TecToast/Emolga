@@ -1,10 +1,10 @@
 package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.bot.EmolgaMain
-import de.tectoast.emolga.commands.httpClient
 import de.tectoast.emolga.ktor.routes.leagueCreate
 import de.tectoast.emolga.ktor.routes.leagueManage
 import de.tectoast.emolga.utils.SizeLimitedMap
+import de.tectoast.emolga.utils.httpClient
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*

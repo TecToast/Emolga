@@ -1,9 +1,9 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.FlorixButton.Action.*
 import de.tectoast.emolga.utils.GPIOManager
 import de.tectoast.emolga.utils.PC

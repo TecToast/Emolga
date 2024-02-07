@@ -1,8 +1,8 @@
 package de.tectoast.emolga.features.various
 
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.NoArgs
 import de.tectoast.emolga.utils.Constants
 import net.dv8tion.jda.api.Permission

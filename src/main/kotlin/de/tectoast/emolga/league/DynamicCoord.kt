@@ -1,8 +1,8 @@
 package de.tectoast.emolga.league
 
-import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
+import de.tectoast.emolga.utils.y
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

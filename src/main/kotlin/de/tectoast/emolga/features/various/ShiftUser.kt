@@ -1,9 +1,7 @@
 package de.tectoast.emolga.features.various
 
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.PrivateCommands
-import de.tectoast.emolga.commands.indexedBy
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
@@ -58,7 +56,11 @@ object ShiftUser {
         }
 
         enum class Mode {
-            INITIAL, UPDATE
+            INITIAL, UPDATE;
+
+            companion object {
+                fun fromBoolean(initial: Boolean) = if (initial) INITIAL else UPDATE
+            }
         }
 
         context(InteractionData) override suspend fun exec(e: Args) = buttonEvent {

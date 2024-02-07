@@ -1,10 +1,9 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.showdown.Analysis
 import dev.minn.jda.ktx.coroutines.await
 
@@ -24,7 +23,7 @@ object RFileWithGuildCommand :
         val replayData =
             e.file.proxy.download().await().bufferedReader().use { it.readText() }
                 .substringAfter("class=\"battle-log-data\">").substringBefore("</script>").split("\n")
-        Command.analyseReplay(
+        Analysis.analyseReplay(
             "FILE",
             resultchannelParam = textChannel,
             customGuild = e.guild,

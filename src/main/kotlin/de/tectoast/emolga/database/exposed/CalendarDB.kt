@@ -1,6 +1,6 @@
 package de.tectoast.emolga.database.exposed
 
-import de.tectoast.emolga.commands.Command
+import de.tectoast.emolga.features.various.CalendarSystem
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -15,7 +15,7 @@ object CalendarDB : IntIdTable("calendar") {
 
     fun scheduleCalendarEntry(message: String, expires: Long) =
         transaction {
-            Command.scheduleCalendarEntry(CalendarEntry.new {
+            CalendarSystem.scheduleCalendarEntry(CalendarEntry.new {
                 this.message = message
                 this.expires = Instant.ofEpochMilli(expires / 1000 * 1000)
             })

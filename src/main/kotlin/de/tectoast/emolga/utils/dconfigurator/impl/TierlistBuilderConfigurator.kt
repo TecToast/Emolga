@@ -1,12 +1,12 @@
 package de.tectoast.emolga.utils.dconfigurator.impl
 
-import de.tectoast.emolga.commands.condAppend
-import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.dconfigurator.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
+import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.NameConventions
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get

@@ -1,6 +1,6 @@
 package de.tectoast.emolga.league
 
-import de.tectoast.emolga.commands.file
+import de.tectoast.emolga.utils.file
 
 
 sealed class Templater(private val leagueCreator: LeagueCreator, val templatePath: String) {

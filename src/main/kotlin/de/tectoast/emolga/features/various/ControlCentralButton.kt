@@ -1,10 +1,10 @@
 package de.tectoast.emolga.features.various
 
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.PrivateCommands
+import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.draft.Tierlist
 
 object ControlCentralButton : ButtonFeature<ControlCentralButton.Args>(::Args, ButtonSpec("controlcentral")) {
@@ -23,7 +23,7 @@ object ControlCentralButton : ButtonFeature<ControlCentralButton.Args>(::Args, B
         var breakpoint = false
         deferReply(true)
         when (e.mode) {
-            Mode.UPDATE_SLASH -> PrivateCommands.updateSlashCommands()
+            Mode.UPDATE_SLASH -> EmolgaMain.featureManager.updateFeatures(jda)
             Mode.UPDATE_TIERLIST -> Tierlist.setup()
             Mode.BREAKPOINT -> breakpoint = true
         }

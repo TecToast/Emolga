@@ -1,7 +1,8 @@
 package de.tectoast.emolga.encryption
 
-import de.tectoast.emolga.commands.myJSON
+import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.json.Tokens
+import de.tectoast.emolga.utils.myJSON
 import java.io.File
 import java.util.*
 import javax.crypto.Cipher
@@ -11,9 +12,9 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.system.measureTimeMillis
 
-object TokenEncrypter {
-
-    fun decrypt(password: String): Tokens {
+object Credentials {
+    lateinit var tokens: Tokens
+    fun load(password: String) {
         val tokens: Tokens
         println("MEASURE: " + measureTimeMillis {
             tokens = with(Cipher.getInstance("AES/CBC/PKCS5PADDING")) {
@@ -26,6 +27,14 @@ object TokenEncrypter {
                 myJSON.decodeFromString(String(doFinal(Base64.getDecoder().decode(lines[0]))))
             }
         })
-        return tokens
+        this.tokens = tokens
+        injectTokens()
+    }
+
+    private fun injectTokens() {
+        with(tokens.google) {
+            Google.setCredentials(refreshtoken, clientid, clientsecret)
+            Google.generateAccessToken()
+        }
     }
 }

@@ -1,8 +1,7 @@
 package de.tectoast.emolga.features.draft.during
 
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.embedColor
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.AllowedData
 import de.tectoast.emolga.utils.json.emolga.draft.League

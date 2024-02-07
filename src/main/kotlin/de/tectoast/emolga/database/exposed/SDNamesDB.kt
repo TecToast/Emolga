@@ -1,9 +1,9 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.features.flo.SDNamesApprovalButton
+import de.tectoast.emolga.utils.toUsername
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
@@ -23,12 +23,12 @@ object SDNamesDB : Table("sdnames") {
     val ID = long("id")
 
     fun getIDByName(name: String) =
-        transaction { select { NAME eq Command.toUsername(name) }.firstOrNull()?.get(ID) } ?: -1
+        transaction { select { NAME eq name.toUsername() }.firstOrNull()?.get(ID) } ?: -1
 
     fun addIfAbsent(name: String, id: Long): Deferred<SDInsertStatus> {
         return Database.dbScope.async {
             newSuspendedTransaction {
-                val username = Command.toUsername(name)
+                val username = name.toUsername()
                 val existing = select { NAME eq username }.firstOrNull()
                 if (existing == null) {
                     insert {

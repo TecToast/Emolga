@@ -1,6 +1,5 @@
 package de.tectoast.emolga.features.flegmon
 
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.features.*
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import net.dv8tion.jda.api.entities.emoji.Emoji

@@ -1,10 +1,10 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
+import de.tectoast.emolga.features.InteractionData
 
 object SDNamesApprovalButton : ButtonFeature<SDNamesApprovalButton.Args>(::Args, ButtonSpec("sdnamesapproval")) {
     class Args : Arguments() {

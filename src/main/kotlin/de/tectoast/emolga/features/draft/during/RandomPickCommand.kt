@@ -1,16 +1,16 @@
 package de.tectoast.emolga.features.draft.during
 
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.toSDName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.toSDName
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap

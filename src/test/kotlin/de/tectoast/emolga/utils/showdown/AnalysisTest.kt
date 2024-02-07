@@ -1,6 +1,5 @@
 package de.tectoast.emolga.utils.showdown
 
-import de.tectoast.emolga.commands.Command
 import de.tectoast.emolga.utils.json.db
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -20,7 +19,7 @@ class AnalysisTest : FunSpec({
         val gid = 815004128148979723
         val map = game.map {
             it.pokemon.map { mon ->
-                Command.getMonName(mon.pokemon, gid)
+                Analysis.getMonName(mon.pokemon, gid)
             }
         }
         println(db.leagueByGuildAdvanced(gid, map, -1, -1))

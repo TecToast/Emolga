@@ -48,7 +48,7 @@ tasks {
 }
 
 group = "de.tectoast"
-version = "2.0-MONGODB"
+version = "3.0"
 
 val gprUser: String by project
 val gprPassword: String by project

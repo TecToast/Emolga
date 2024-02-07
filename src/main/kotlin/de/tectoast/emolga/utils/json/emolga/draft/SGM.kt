@@ -1,9 +1,8 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.coordXMod
-import de.tectoast.emolga.commands.toDocRange
+import de.tectoast.emolga.utils.DocEntry
 import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.utils.coordXMod
 import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -25,7 +24,7 @@ class SGM : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(SorterData("Tabelle!C4:K13".toDocRange(), newMethod = true, cols = listOf(2, 7, 5))) {
+        newSystem(SorterData("Tabelle!C4:K13", newMethod = true, cols = listOf(2, 7, 5))) {
             b.addSingle(gdi.coordXMod("Spielplan (Spoiler)", 2, 'F' - 'B', 3, 9, 7 + index), defaultGameplanString)
         }
     }

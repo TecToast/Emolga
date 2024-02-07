@@ -1,12 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.coordXMod
-import de.tectoast.emolga.commands.toDocRange
-import de.tectoast.emolga.commands.y
-import de.tectoast.emolga.utils.automation.structure.BasicStatProcessor
-import de.tectoast.emolga.utils.automation.structure.CombinedStatProcessor
-import de.tectoast.emolga.utils.automation.structure.DocEntry
-import de.tectoast.emolga.utils.automation.structure.ResultStatProcessor
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
@@ -44,11 +38,11 @@ class Wooloo : League() {
         rowNumToIndex = { it.minus(4).div(3) }
         sorter(
             "WoolooCupS5L1",
-            SorterData("Tabelle!C3:J10".toDocRange(), newMethod = true, cols = listOf(7, -1, 6))
+            SorterData("Tabelle!C3:J10", newMethod = true, cols = listOf(7, -1, 6))
         )
         sorter(
             "WoolooCupS5L2",
-            SorterData("Tabelle!C3:J10".toDocRange(), newMethod = true, cols = listOf(7, 6))
+            SorterData("Tabelle!C3:J10", newMethod = true, cols = listOf(7, 6))
         )
         resultCreator = {
             b.addSingle(index.coordXMod("Spieltag ${gdi + 1}", 2, 'I' - 'B', 2, 16, 2), defaultGameplanString)

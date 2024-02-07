@@ -1,17 +1,15 @@
 package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.PrivateCommands
-import de.tectoast.emolga.commands.condAppend
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.SignUpData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.toUsername
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.primary
 import kotlinx.coroutines.CoroutineScope
@@ -23,7 +21,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.entities.emoji.Emoji
-import net.dv8tion.jda.api.interactions.modals.Modal
 import java.util.concurrent.ConcurrentHashMap
 
 object SignupManager {
@@ -158,7 +155,7 @@ object SignupManager {
         e: InteractionData? = null
     ): Unit? {
         e?.ephemeralDefault()
-        val sdnameid = Command.toUsername(sdname)
+        val sdnameid = sdname.toUsername()
         if (sdnameid.length !in 1..18) return e?.reply("Dieser Showdown-Name ist ungültig!")
         e?.deferReply(true)
         val (signupMutex, channel) = persistentSignupData.getOrPut(gid) {

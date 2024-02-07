@@ -1,11 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.commands.coordXMod
-import de.tectoast.emolga.commands.y
-import de.tectoast.emolga.utils.DraftTimer
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.TimerInfo
-import de.tectoast.emolga.utils.automation.structure.DocEntry
+import de.tectoast.emolga.utils.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient

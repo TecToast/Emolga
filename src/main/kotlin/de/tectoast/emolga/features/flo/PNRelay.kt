@@ -1,7 +1,7 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.commands.isNotFlo
 import de.tectoast.emolga.features.ListenerProvider
+import de.tectoast.emolga.utils.isNotFlo
 
 object PNRelay : ListenerProvider() {
     private const val EMOLGA_PN = 828044461379682314

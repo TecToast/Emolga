@@ -1,12 +1,12 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.json.db
 
 object TierlistSearchCommand : CommandFeature<TierlistSearchCommand.Args>(
     ::Args,
@@ -34,7 +34,7 @@ object TierlistSearchCommand : CommandFeature<TierlistSearchCommand.Args>(
         val searchTypeEnglish = searchType.second
         val filteredList = mons.filter {
             searchTypeEnglish in dataCache.getOrPut(gid) { mutableMapOf() }
-                .getOrPut(it) { Command.getDataObject(it, gid).types }
+                .getOrPut(it) { db.getDataObject(it, gid).types }
         }
         reply(
             "All diese Mons aus dem ${tier}-Tier besitzen den Typen ${searchType.first}:\n${

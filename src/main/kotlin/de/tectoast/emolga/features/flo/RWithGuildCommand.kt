@@ -1,7 +1,7 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.showdown.Analysis
 
 object RWithGuild {
     object Command :
@@ -21,7 +21,7 @@ object RWithGuild {
                 return replyModal(Modal()).queue()
             }
             deferReply()
-            de.tectoast.emolga.commands.Command.analyseReplay(
+            Analysis.analyseReplay(
                 url,
                 resultchannelParam = textChannel,
                 customGuild = e.guild,
@@ -44,7 +44,7 @@ object RWithGuild {
             val id = e.id
             val urls = e.urls
             urls.split("\n").forEach {
-                de.tectoast.emolga.commands.Command.analyseReplay(
+                Analysis.analyseReplay(
                     it,
                     resultchannelParam = textChannel,
                     customGuild = id

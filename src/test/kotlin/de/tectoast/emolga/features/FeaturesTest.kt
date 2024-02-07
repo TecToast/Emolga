@@ -2,7 +2,6 @@ package de.tectoast.emolga.features
 
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.keepAlive
 import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.events.listener

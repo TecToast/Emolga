@@ -1,8 +1,8 @@
 package de.tectoast.emolga.database.exposed
 
-import de.tectoast.emolga.commands.Language
-import de.tectoast.emolga.commands.Translation
 import de.tectoast.emolga.database.upsert
+import de.tectoast.emolga.utils.Language
+import de.tectoast.emolga.utils.Translation
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction

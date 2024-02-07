@@ -1,6 +1,6 @@
 package de.tectoast.emolga.database.exposed
 
-import de.tectoast.emolga.commands.Language
+import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.NameConventions
@@ -26,6 +26,8 @@ object NameConventionsDB : Table("nameconventions") {
     val COMMON = bool("common")
 
     private val logger = KotlinLogging.logger {}
+
+    val allNameConventions by lazy(::getAll)
 
     suspend fun getAllOtherSpecified(mons: List<String>, lang: Language, guildId: Long): List<String> {
         val nc = db.nameconventions.get(guildId)

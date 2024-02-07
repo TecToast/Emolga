@@ -1,6 +1,5 @@
 package de.tectoast.emolga.features.showdown
 
-import de.tectoast.emolga.commands.InteractionData
 import de.tectoast.emolga.database.exposed.AnalysisDB
 import de.tectoast.emolga.features.*
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel

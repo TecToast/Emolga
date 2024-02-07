@@ -2,14 +2,12 @@
 
 package de.tectoast.emolga.features
 
-import de.tectoast.emolga.commands.Command
-import de.tectoast.emolga.commands.InteractionData
-import de.tectoast.emolga.commands.Translation
-import de.tectoast.emolga.commands.filterStartsWithIgnoreCase
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.Translation
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
+import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
@@ -300,8 +298,8 @@ abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMe
     operator fun invoke(
         placeholder: String? = null,
         options: List<SelectOption>? = this.options,
+        menuBuilder: StringSelectMenu.Builder.() -> Unit = {},
         argsBuilder: ArgBuilder<A> = {},
-        menuBuilder: StringSelectMenu.Builder.() -> Unit = {}
     ) = StringSelectMenu(
         createComponentId(argsBuilder, checkCompId = true),
         placeholder,
@@ -381,7 +379,7 @@ open class Arguments {
             val league = League.onlyChannel(event.channel.idLong)
             //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
             val tierlist = Tierlist[league?.guild ?: gid]
-            val strings = (tierlist?.autoComplete ?: Command.allNameConventions).filterStartsWithIgnoreCase(s)
+            val strings = (tierlist?.autoComplete ?: NameConventionsDB.allNameConventions).filterStartsWithIgnoreCase(s)
             if (strings.size > 25) return@lambda listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
             (if (league == null || tierlist == null) strings
             else strings.map {
@@ -412,7 +410,7 @@ open class Arguments {
         }
         if (enumValues.size <= 25) slashCommand(enumValues.map { Choice(it.name, it.name) })
         else slashCommand { s, _ ->
-            val nameMatching = enumValues.filterStartsWithIgnoreCase(s) { it.name }
+            val nameMatching = enumValues.toSet().filterStartsWithIgnoreCase(s) { it.name }
             nameMatching.convertListToAutoCompleteReply()
         }
         builder()
@@ -462,8 +460,8 @@ open class Arguments {
 
     fun pokemontype(name: String = "", help: String = "", english: Boolean) = createArg(name, help, OptionType.STRING) {
         validate { str ->
-            val t = if (english) Command.getEnglNameWithType(str)
-            else Command.getGerName(str)
+            val t = if (english) Translation.getEnglNameWithType(str)
+            else Translation.getGerName(str)
             if (t.isEmpty || t.type != Translation.Type.TYPE) throw InvalidArgumentException("Ungültiger Typ!")
             if (t.translation == "Psychic" || t.otherLang == "Psychic") {
                 if (english) "Psychic" else "Psycho"
@@ -473,7 +471,7 @@ open class Arguments {
 
     fun pokemontype(name: String = "", help: String = "") = createArg(name, help, OptionType.STRING) {
         validate { str ->
-            val t = Command.getGerName(str)
+            val t = Translation.getGerName(str)
             if (t.isEmpty || t.type != Translation.Type.TYPE) throw InvalidArgumentException("Ungültiger Typ!")
             if (t.translation == "Psychic" || t.otherLang == "Psychic") {
                 "Psycho" to "Psychic"

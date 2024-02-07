@@ -1,12 +1,16 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.commands.*
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.ReplayData
+import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.draft.WifiPlayer
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.surroundWith
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.Embed
@@ -32,8 +36,7 @@ object EnterResult {
     }
 
     object ResWithGuild : CommandFeature<ResWithGuild.Args>(
-        ::Args,
-        CommandSpec("reswithguild", "Startet die interaktive Ergebniseingabe")
+        ::Args, CommandSpec("reswithguild", "Startet die interaktive Ergebniseingabe")
     ) {
         class Args : Arguments() {
             var guild by long("guild", "guild")
@@ -137,11 +140,10 @@ object EnterResult {
         private val wifiPlayers = (0..1).map { WifiPlayer() }
         private val defaultComponents: List<ActionRow> by lazy {
             uids.mapIndexed { index, uid ->
-                ActionRow.of(
-                    ResultMenu("${if (index == 0) "Deine" else "Gegnerische"} Pokemon",
-                        options = picks[uid]!!,
-                        argsBuilder = { this.userindex = index })
-                )
+                ActionRow.of(ResultMenu(
+                    "${if (index == 0) "Deine" else "Gegnerische"} Pokemon",
+                    options = picks[uid]!!,
+                ) { this.userindex = index })
             } + listOf(ActionRow.of(primary("resultfinish;check", "Ergebnis bestätigen")))
         }
 
@@ -248,7 +250,7 @@ object EnterResult {
         }
 
         private fun generateFinalMessage(): String {
-            val spoiler = Command.spoilerTags.contains(league.guild)
+            val spoiler = SpoilerTagsDB.contains(league.guild)
             return "${
                 data.mapIndexed { index, sdPlayer ->
                     mutableListOf<Any>("<@${uids[index]}>", sdPlayer.count { !it.dead }).apply {

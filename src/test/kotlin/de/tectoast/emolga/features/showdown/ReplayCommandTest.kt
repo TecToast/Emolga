@@ -1,7 +1,6 @@
-package de.tectoast.emolga.commands.showdown
+package de.tectoast.emolga.features.showdown
 
 import de.tectoast.emolga.awaitTimeout
-import de.tectoast.emolga.features.showdown.ReplayCommand
 import de.tectoast.emolga.testCommand
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

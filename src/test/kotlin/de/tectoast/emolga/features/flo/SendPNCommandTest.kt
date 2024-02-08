@@ -1,7 +1,6 @@
-package de.tectoast.emolga.commands.flo
+package de.tectoast.emolga.features.flo
 
 import de.tectoast.emolga.features.TestInteractionData
-import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.Constants
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

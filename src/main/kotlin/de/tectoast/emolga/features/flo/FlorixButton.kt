@@ -13,7 +13,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle.DANGER
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle.SUCCESS
 import java.awt.Color
 
-object FlorixButton : ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("")) {
+object FlorixButton : ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("florix")) {
     class Args : Arguments() {
         var pc by enumBasic<PC>()
         var action by enumBasic<Action>()

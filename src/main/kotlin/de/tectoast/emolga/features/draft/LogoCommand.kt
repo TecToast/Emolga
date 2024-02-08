@@ -5,7 +5,6 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.json.*
 import dev.minn.jda.ktx.coroutines.await
@@ -20,12 +19,7 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
     ::Args, CommandSpec(
         "logo",
         "Reicht dein Logo ein",
-        Constants.G.FLP,
-        Constants.G.ASL,
-        665600405136211989,
-        Constants.G.WFS,
-        Constants.G.ADK,
-        Constants.G.NDS
+        *draftGuilds
     )
 ) {
     val allowedFileFormats = setOf("png", "jpg", "jpeg")

@@ -71,12 +71,7 @@ object SignupManager {
         NoArgs(), CommandSpec(
             "signupchange",
             "Ermöglicht es dir, deine Anmeldung anzupassen",
-            Constants.G.ASL,
-            Constants.G.FLP,
-            665600405136211989,
-            Constants.G.WFS,
-            Constants.G.ADK,
-            Constants.G.NDS
+            *draftGuilds
         )
     ) {
         context(InteractionData)

@@ -12,7 +12,7 @@ object StartMenschenhandel : CommandFeature<StartMenschenhandel.Args>(
     CommandSpec("startmenschenhandel", "Startet die beste Sache einer Coach-Season")
 ) {
     class Args : Arguments() {
-        var channel by textchannel("Channel", "Der Channel lol")
+        var channel by messageChannel("Channel", "Der Channel lol")
     }
 
     init {

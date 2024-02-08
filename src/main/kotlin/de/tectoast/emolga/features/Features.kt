@@ -99,7 +99,7 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
     val admin: BooleanCheck = {
         member().hasPermission(Permission.ADMINISTRATOR)
     }
-    val flo = user(Constants.FLOID)
+    val flo: BooleanCheck = { false } // flo may use any feature regardless of this configuration
     val henny = user(Constants.HENNY)
 
     context (InteractionData)
@@ -332,26 +332,26 @@ class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
 open class Arguments {
     val _args = mutableListOf<Arg<*, *>>()
     val args: List<Arg<*, *>> = Collections.unmodifiableList(_args)
-    fun string(name: String = "", help: String = "", builder: Arg<String, String>.() -> Unit = {}) =
+    inline fun string(name: String = "", help: String = "", builder: Arg<String, String>.() -> Unit = {}) =
         createArg(name, help, OptionType.STRING, builder)
 
     @JvmName("stringGeneric")
-    fun <T> string(name: String = "", help: String = "", builder: Arg<String, T>.() -> Unit = {}) =
+    inline fun <T> string(name: String = "", help: String = "", builder: Arg<String, T>.() -> Unit = {}) =
         createArg(name, help, OptionType.STRING, builder)
 
-    fun long(name: String = "", help: String = "", builder: Arg<String, Long>.() -> Unit = {}) =
+    inline fun long(name: String = "", help: String = "", builder: Arg<String, Long>.() -> Unit = {}) =
         createArg<String, Long>(name, help, OptionType.STRING) {
             validate { it.toLongOrNull() }
             builder()
         }
 
-    fun int(name: String = "", help: String = "", builder: Arg<Long, Int>.() -> Unit = {}) =
+    inline fun int(name: String = "", help: String = "", builder: Arg<Long, Int>.() -> Unit = {}) =
         createArg<Long, Int>(name, help, OptionType.INTEGER) {
             validate { it.toInt() }
             builder()
         }
 
-    fun intFromString(
+    inline fun intFromString(
         name: String = "",
         help: String = "",
         throwIfNotNumber: Boolean = false,
@@ -392,7 +392,7 @@ open class Arguments {
         })
     }
 
-    fun boolean(name: String = "", help: String = "", builder: Arg<Boolean, Boolean>.() -> Unit = {}) =
+    inline fun boolean(name: String = "", help: String = "", builder: Arg<Boolean, Boolean>.() -> Unit = {}) =
         createArg(name, help, OptionType.BOOLEAN, builder)
 
     inline fun <reified T : Enum<T>> enumBasic(
@@ -416,7 +416,7 @@ open class Arguments {
         builder()
     }
 
-    fun fromList(
+    inline fun fromList(
         name: String = "", help: String = "", list: List<String>, builder: Arg<String, String>.() -> Unit = {}
     ) = createArg<String, String>(name, help) {
         validate { s ->
@@ -430,10 +430,10 @@ open class Arguments {
         builder()
     }
 
-    fun fromList(
+    inline fun fromList(
         name: String = "",
         help: String = "",
-        listsupplier: suspend () -> List<String>,
+        crossinline listsupplier: suspend () -> List<String>,
         builder: Arg<String, String>.() -> Unit = {}
     ) = createArg(name, help) {
         slashCommand { s, _ ->
@@ -502,18 +502,18 @@ open class Arguments {
             }
         }
 
-    fun member(name: String = "", help: String = "", builder: Arg<Member, Member>.() -> Unit = {}) =
+    inline fun member(name: String = "", help: String = "", builder: Arg<Member, Member>.() -> Unit = {}) =
         createArg(name, help, OptionType.USER, builder)
 
-    fun channel(
+    inline fun channel(
         name: String = "", help: String = "", builder: Arg<GuildChannelUnion, GuildChannelUnion>.() -> Unit = {}
     ) = createArg(name, help, OptionType.CHANNEL, builder)
 
-    fun textchannel(
+    inline fun messageChannel(
         name: String = "", help: String = "", builder: Arg<GuildChannelUnion, GuildMessageChannelUnion>.() -> Unit = {}
     ) = createArg(name, help, OptionType.CHANNEL, builder)
 
-    fun attachment(
+    inline fun attachment(
         name: String = "", help: String = "", builder: Arg<Message.Attachment, Message.Attachment>.() -> Unit = {}
     ) = createArg(name, help, OptionType.ATTACHMENT, builder)
 

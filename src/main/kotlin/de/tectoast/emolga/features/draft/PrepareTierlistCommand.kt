@@ -12,6 +12,9 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         *TierlistBuilderConfigurator.enabledGuilds.toLongArray()
     )
 ) {
+    init {
+        restrict(admin)
+    }
     class Args : Arguments() {
         var docurl by string("Doc-URL", "Die URL des Dokuments, in dem die Namen stehen")
         var tierlistsheet by string("Tierlist-Sheet", "Der Name des Tierlist-Sheets")

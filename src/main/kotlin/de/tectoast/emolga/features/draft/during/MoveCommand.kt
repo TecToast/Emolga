@@ -8,7 +8,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NextPlayerData
 import de.tectoast.emolga.utils.json.emolga.draft.SkipReason
 
-object MoveCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("move", "Verschiebt deinen Pick")) {
+object MoveCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("move", "Verschiebt deinen Pick", *draftGuilds)) {
     context(InteractionData)
     override suspend fun exec(e: NoArgs) {
         League.byCommand()?.first?.let {

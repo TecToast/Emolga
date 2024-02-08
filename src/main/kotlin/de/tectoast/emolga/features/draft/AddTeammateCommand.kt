@@ -4,7 +4,6 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 
@@ -12,8 +11,7 @@ object AddTeammateCommand : CommandFeature<AddTeammateCommand.Args>(
     ::Args, CommandSpec(
         "addteammate",
         "Fügt einen Spieler zu deinem Team hinzu, falls du angemeldet bist",
-        665600405136211989,
-        Constants.G.FLP
+        *draftGuilds
     )
 ) {
     class Args : Arguments() {

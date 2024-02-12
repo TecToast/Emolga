@@ -3,6 +3,8 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import de.tectoast.emolga.*
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.Constants.HENNY
+import de.tectoast.emolga.utils.DraftTimer
+import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.showdown.Analysis
@@ -10,6 +12,7 @@ import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.delay
 import mu.KotlinLogging
 
 private data class GetCurrentMentionData(val current: Long, val allowed: MutableSet<AllowedData>)
@@ -18,7 +21,10 @@ class LeagueTest : FunSpec({
     lateinit var defaultLeague: League
     val logger = KotlinLogging.logger {}
 
-    beforeTest { defaultLeague = Default() }
+    beforeTest {
+        defaultLeague = DefaultLeague()
+        DefaultLeagueSettings.reset()
+    }
 
     context("DirectChecks") {
         context("getCurrentMention") {
@@ -116,15 +122,17 @@ class LeagueTest : FunSpec({
     context("Automation Checks") {
         test("Test") {
             enableReplyRedirect()
-            defaultDuringTimerSkipMode = NEXT_PICK
-            createDraft(
+            DefaultLeagueSettings {
+                duringTimerSkipMode = NEXT_PICK
+            }
+            createTestDraft(
                 name = "Test",
                 playerCount = 3,
                 rounds = 2,
                 hardcodedUserIds = mapOf(0 to FLOID),
                 originalorder = mapOf(1 to listOf(0, 1, 2), 2 to listOf(2, 0, 1))
             )
-            startDraft("TESTTest")
+            startTestDraft("Test")
             movePick()
             randomPick("S")
             randomPick("S")
@@ -135,6 +143,26 @@ class LeagueTest : FunSpec({
             randomPick("S")
             randomPick("S")
             db.league("TESTTest").isRunning shouldBe false
+            keepAlive()
+        }
+        test("StallSeconds") {
+            enableReplyRedirect()
+            DefaultLeagueSettings {
+                timer = DraftTimer(TimerInfo(0, 24, delayInMins = 1)).stallSeconds(20)
+            }
+
+            createTestDraft(
+                name = "StallSeconds",
+                playerCount = 1,
+                rounds = 2
+            )
+            startTestDraft("StallSeconds")
+            logger.info { "Started" }
+            delay(70000)
+            logger.info { "Delay is over" }
+            randomPick("S")
+//            db.league("TESTStallSeconds").usedStallSeconds.values.sum() shouldBe 10
+
             keepAlive()
         }
     }

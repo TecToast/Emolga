@@ -14,7 +14,7 @@ import de.tectoast.emolga.utils.json.SignUpData
 import de.tectoast.emolga.utils.json.TypeIcon
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.AllowedData
-import de.tectoast.emolga.utils.json.emolga.draft.Default
+import de.tectoast.emolga.utils.json.emolga.draft.DefaultLeague
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.showdown.Pokemon
@@ -137,7 +137,7 @@ class LeagueCreator(
             if (leagueindex in disabledLeagueIndexes) return@forEachIndexed
             val b = RequestBuilder(sid)
             saveJSON = saveJSONList.getOrNull(leagueindex) ?: run {
-                (collection.insertOne(Default()).insertedId!! as BsonObjectId).value.toString()
+                (collection.insertOne(DefaultLeague()).insertedId!! as BsonObjectId).value.toString()
             }
             if (copyonly) {
                 val realCollection = db.drafts

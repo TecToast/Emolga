@@ -57,6 +57,7 @@ sealed class League {
     var round = 1
     var current = -1L
     private var cooldown = -1L
+    private var lastPick = -1L
     var pseudoEnd = false
 
     abstract val teamsize: Int
@@ -80,6 +81,7 @@ sealed class League {
 
     val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
     val skippedTurns: MutableMap<Long, MutableSet<Int>> = mutableMapOf()
+    val usedStallSeconds: MutableMap<Long, Int> = mutableMapOf()
 
     internal val names: MutableMap<Long, String> = mutableMapOf()
 
@@ -280,6 +282,7 @@ sealed class League {
             else picks[member] = mutableListOf()
         }
         val updates = mutableListOf<SetTo<*>>()
+        val currentTimeMillis = System.currentTimeMillis()
         if (!fromFile) {
             order.clear()
             order.putAll(originalorder.mapValues { it.value.toMutableList() })
@@ -287,6 +290,7 @@ sealed class League {
             setNextUser()
             moved.clear()
             pseudoEnd = false
+            lastPick = currentTimeMillis
             reset(updates)
             restartTimer()
             sendRound()
@@ -296,8 +300,9 @@ sealed class League {
             updates += ::moved setTo mutableMapOf()
             updates += ::pseudoEnd setTo false
             updates += ::skippedTurns setTo mutableMapOf()
+            updates += ::lastPick setTo currentTimeMillis
         } else {
-            val delay = if (cooldown != -1L) cooldown - System.currentTimeMillis() else timer?.calc(this)
+            val delay = if (cooldown != -1L) cooldown - currentTimeMillis else timer?.calc(this)
             restartTimer(delay)
         }
         updates += ::isRunning setTo true
@@ -507,6 +512,12 @@ sealed class League {
 
     private suspend fun nextPlayer(data: NextPlayerData = NextPlayerData.Normal) {
         if (!isRunning) return
+        timer?.stallSeconds?.let {
+            val ctm = System.currentTimeMillis()
+            val punishSeconds = ((ctm - lastPick - timer!!.getCurrentTimerInfo()
+                .getDelayAfterSkips(skippedTurns[current]?.size ?: 0) * 60000) / 1000).toInt()
+            if (punishSeconds > 0) usedStallSeconds.add(current, punishSeconds)
+        }
         when (data) {
             is NextPlayerData.Normal -> cancelCurrentTimer()
             is NextPlayerData.Moved -> {

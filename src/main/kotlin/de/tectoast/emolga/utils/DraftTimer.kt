@@ -8,6 +8,7 @@ class DraftTimer(
     timersMap: SortedMap<Long, TimerInfo>
 ) {
     val timers = timersMap.entries
+    var stallSeconds = 0
 
     constructor(timerInfo: TimerInfo) : this(timerMap {
         put(0, timerInfo)
@@ -17,11 +18,23 @@ class DraftTimer(
         putAll(timers)
     })
 
+    fun stallSeconds(stallSeconds: Int) = apply { this.stallSeconds = stallSeconds }
 
+
+    fun getCurrentTimerInfo(millis: Long = System.currentTimeMillis()) = timers.first { it.key <= millis }.value
     fun calc(league: League) =
-        calc(timerStart = league.timerStart, howOftenSkipped = league.skippedTurns[league.current]?.size ?: 0)
+        calc(
+            timerStart = league.timerStart,
+            howOftenSkipped = league.skippedTurns[league.current]?.size ?: 0,
+            usedStallSeconds = league.usedStallSeconds[league.current] ?: 0
+        )
 
-    fun calc(now: Long = System.currentTimeMillis(), timerStart: Long? = null, howOftenSkipped: Int = 0): Long {
+    fun calc(
+        now: Long = System.currentTimeMillis(),
+        timerStart: Long? = null,
+        howOftenSkipped: Int = 0,
+        usedStallSeconds: Int = 0
+    ): Long {
         val (delay, duration) = measureTimedValue {
             lateinit var currentTimerInfo: TimerInfo
             val cal = Calendar.getInstance().apply {
@@ -56,6 +69,7 @@ class DraftTimer(
                     currentDelay = currentTimerInfoDelay
                 }
             }
+            cal.add(Calendar.SECOND, (stallSeconds - usedStallSeconds).coerceAtLeast(0))
             cal.timeInMillis - now
 //        cal.add(Calendar.MINUTE, elapsedMinutes)
         }

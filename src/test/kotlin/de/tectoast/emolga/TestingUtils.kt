@@ -29,7 +29,7 @@ suspend fun <T> CompletableDeferred<T>.awaitTimeout(timeout: Long = 3000): T {
     return withTimeout(timeout) { await() }
 }
 
-suspend fun createDraft(
+suspend fun createTestDraft(
     name: String,
     playerCount: Int,
     rounds: Int,
@@ -66,8 +66,8 @@ private class DemoLeague(
     val originalorder: Map<Int, List<Int>>
 )
 
-suspend fun startDraft(name: String) {
-    db.league(name).startDraft(defaultChannel, fromFile = false, switchDraft = false)
+suspend fun startTestDraft(name: String) {
+    db.league("TEST$name").startDraft(defaultChannel, fromFile = false, switchDraft = false)
 }
 
 fun enableReplyRedirect(channel: MessageChannel = defaultChannel) {

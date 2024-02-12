@@ -110,6 +110,7 @@ dependencies {
     testImplementation("io.kotest:kotest-runner-junit5-jvm:5.6.2")
     testImplementation("io.kotest:kotest-assertions-core:5.6.2")
     testImplementation("io.kotest:kotest-framework-datatest:5.6.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0-RC2")
 
 }
 

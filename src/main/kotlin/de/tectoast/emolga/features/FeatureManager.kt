@@ -45,7 +45,10 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
 
     init {
         val featuresSet = loadListeners.filterIsInstance<Feature<*, *, *>>()
-        eventToName = featuresSet.associate { it.eventClass to it.eventToName }
+        eventToName = featuresSet.associate {
+            @Suppress("USELESS_CAST") // compiler bug
+            it.eventClass to (it.eventToName as (GenericInteractionCreateEvent) -> String)
+        }
         features = featuresSet.groupBy { it.eventClass }
             .mapValues { it.value.associate { k -> k.spec.name to k as Feature<*, GenericInteractionCreateEvent, Arguments> } }
         listeners = loadListeners.flatMap { it.registeredListeners }.groupBy { it.first }.mapValues {

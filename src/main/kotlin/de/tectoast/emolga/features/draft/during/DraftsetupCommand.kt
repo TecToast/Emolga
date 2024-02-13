@@ -19,7 +19,7 @@ object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
     }
 
     init {
-        restrict(members(Constants.HENNY))
+        restrict(members(Constants.HENNY, Constants.INK))
     }
 
     context(InteractionData)

@@ -22,7 +22,8 @@ class NDSML : League() {
     override val pickBuffer = 6
 
     @Transient
-    override val timer = DraftTimer(TimerInfo(mapOf(0 to 180, 1 to 150, 2 to 120, 3 to 90, 4 to 60)).set(10, 22))
+    override var timer: DraftTimer? =
+        SimpleTimer(TimerInfo(mapOf(0 to 180, 1 to 150, 2 to 120, 3 to 90, 4 to 60)).set(10, 22))
 
     override val duringTimerSkipMode = NEXT_PICK
     override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED

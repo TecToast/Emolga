@@ -1,10 +1,13 @@
 package de.tectoast.emolga.features
 
+import de.tectoast.emolga.*
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.keepAlive
+import de.tectoast.emolga.features.draft.SwitchTimer
 import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.events.listener
+import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
 import io.kotest.core.spec.style.FunSpec
 import mu.KotlinLogging
 import net.dv8tion.jda.api.events.GenericEvent
@@ -15,17 +18,32 @@ var timer: TimeSource.Monotonic.ValueTimeMark? = null
 private val logger = KotlinLogging.logger {}
 
 class FeaturesTest : FunSpec({
-    test("test") {
-        println("TEST")
-//        val manager = FeatureManager(setOf(TestFeature, TestButton, TestModal, TestMenu, NestedCommand))
-        val manager = EmolgaMain.featureManager
+    test("SwitchTimerTest") {
+        enableDefaultFeatureSystem()
+        val league = createTestDraft("SwitchTimer", 2, 2)()
+        xtestCommand {
+            SwitchTimer.Create.exec {
+                this.league = league
+                this.settings = listOf("0s", "3m", "6m")
+            }
+        }
+        keepAlive()
+    }
+    test("testother") {
+        val manager = FeatureManager(setOf(TestDefer))
         jda.listener<GenericEvent> {
             timer = TimeSource.Monotonic.markNow()
             manager.handleEvent(it)
             logger.info("Handled ${it::class.simpleName} in ${timer!!.elapsedNow()}")
-
         }
-        manager.updateFeatures(jda, updateGuilds = listOf(Constants.G.MY))
+        defaultChannel.send("testorig", components = TestDefer("lul").into()).queue()
+        keepAlive()
+    }
+    test("testmain") {
+        println("TEST")
+//        val manager = FeatureManager(setOf(TestFeature, TestButton, TestModal, TestMenu, NestedCommand))
+        enableDefaultFeatureSystem()
+
 
 //        defaultChannel.send("test", components = TestMenu(argsBuilder = {
 //            test1 = "lololo"
@@ -44,6 +62,29 @@ class FeaturesTest : FunSpec({
         keepAlive()
     }
 })
+
+private suspend fun enableDefaultFeatureSystem(syncFeatures: Boolean = true) {
+    val manager = EmolgaMain.featureManager
+    enableReplyRedirect()
+    jda.listener<GenericEvent> {
+        timer = TimeSource.Monotonic.markNow()
+        manager.handleEvent(it)
+        logger.info("Handled ${it::class.simpleName} in ${timer!!.elapsedNow()}")
+
+    }
+    if (syncFeatures) manager.updateFeatures(jda, updateGuilds = listOf(Constants.G.MY))
+}
+
+object TestDefer : ButtonFeature<TestDefer.Args>(::Args, ButtonSpec("testdefer")) {
+    class Args : Arguments()
+
+    context(InteractionData)
+    override suspend fun exec(e: Args) {
+        deferEdit()
+        edit("testedit")
+        reply("testreply")
+    }
+}
 
 object TestFeature : CommandFeature<TestFeature.Args>(::Args, CommandSpec("testabc", "test")) {
     class Args : Arguments() {

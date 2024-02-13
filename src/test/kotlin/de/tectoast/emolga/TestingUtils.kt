@@ -26,6 +26,9 @@ val defaultChannel by lazy { jda.getTextChannelById(Constants.TEST_TCID)!! }
 
 inline fun testCommand(receiver: TestInteractionData.() -> Unit) = with(TestInteractionData(), receiver)
 
+@Suppress("UNUSED_PARAMETER") // used to disable the command
+inline fun xtestCommand(receiver: TestInteractionData.() -> Unit) = Unit
+
 suspend fun <T> CompletableDeferred<T>.awaitTimeout(timeout: Long = 3000): T {
     return withTimeout(timeout) { await() }
 }
@@ -42,7 +45,7 @@ suspend fun createTestDraft(
     },
     guild: Long = Constants.G.ASL,
     hardcodedUserIds: Map<Int, Long> = emptyMap()
-) {
+): suspend () -> League {
     db.drafts.insertOne(
         myJSON.encodeToString(
             DemoLeague(
@@ -54,7 +57,7 @@ suspend fun createTestDraft(
             )
         )
     )
-
+    return { db.league("TEST$name") }
 }
 
 @Suppress("unused")

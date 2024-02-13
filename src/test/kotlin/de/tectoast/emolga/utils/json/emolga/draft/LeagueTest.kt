@@ -3,7 +3,7 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import de.tectoast.emolga.*
 import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.Constants.HENNY
-import de.tectoast.emolga.utils.DraftTimer
+import de.tectoast.emolga.utils.SimpleTimer
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
@@ -148,7 +148,7 @@ class LeagueTest : FunSpec({
         test("StallSeconds") {
             enableReplyRedirect()
             DefaultLeagueSettings {
-                timer = DraftTimer(TimerInfo(0, 24, delayInMins = 1)).stallSeconds(20)
+                timer = SimpleTimer(TimerInfo(0, 24, delayInMins = 1)).stallSeconds(20)
             }
 
             createTestDraft(

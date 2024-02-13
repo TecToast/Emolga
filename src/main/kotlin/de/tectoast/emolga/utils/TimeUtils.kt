@@ -5,6 +5,10 @@ import java.util.*
 object TimeUtils {
     private val DURATION_PATTERN = Regex("\\d{1,8}[smhd]?")
     private val DURATION_SPLITTER = Regex("[.|:]")
+
+    /**
+     * Parses a time string into seconds.
+     */
     fun parseShortTime(timestring: String): Int {
         var timestr = timestring
         timestr = timestr.lowercase()

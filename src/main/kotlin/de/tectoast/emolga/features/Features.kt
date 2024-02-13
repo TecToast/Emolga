@@ -8,6 +8,7 @@ import de.tectoast.emolga.utils.Translation
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
+import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
@@ -37,6 +38,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.interactions.components.text.TextInput
+import org.litote.kmongo.eq
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
@@ -485,6 +487,12 @@ open class Arguments {
         }
     }
 
+    fun league(name: String = "", help: String = "") = createArg(name, help, OptionType.STRING) {
+        validate {
+            db.drafts.findOne(League::leaguename eq it) ?: throw InvalidArgumentException("Ungültige Liga!")
+        }
+    }
+
     fun list(name: String = "", help: String = "", numOfArgs: Int, requiredNum: Int) =
         object : ReadWriteProperty<Arguments, List<String>> {
             private val argList: List<Arg<String, out String?>> = List(numOfArgs) { i ->
@@ -493,7 +501,7 @@ open class Arguments {
                 }
             }
 
-            private fun String.embedI(i: Int) = if ("%s" in this) format(i) else plus(i)
+            private fun String.embedI(i: Int) = if ("%s" in this) format(i + 1) else plus(i + 1)
             private var parsed: List<String>? = null
 
             override fun getValue(thisRef: Arguments, property: KProperty<*>): List<String> {

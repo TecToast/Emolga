@@ -35,7 +35,7 @@ class ASLCoach : League() {
 
 
     @Transient
-    override val timer = DraftTimer(
+    override var timer: DraftTimer? = SimpleTimer(
         TimerInfo(delaysAfterSkips = mapOf(0 to 120, 1 to 60, 2 to 30))
             .add(10, 22, SATURDAY, SUNDAY)
             .add(14, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)

@@ -39,9 +39,11 @@ abstract class InteractionData(
     var deferred = false
 
     init {
-        redirectTestCommandLogsToChannel?.let { logsChannel ->
-            responseDeferred.invokeOnCompletion {
-                responseDeferred.getCompleted().sendInto(logsChannel)
+        if (this is TestInteractionData) {
+            redirectTestCommandLogsToChannel?.let { logsChannel ->
+                responseDeferred.invokeOnCompletion {
+                    responseDeferred.getCompleted().sendInto(logsChannel)
+                }
             }
         }
     }
@@ -189,8 +191,10 @@ class RealInteractionData(
     override fun edit(msgEditData: MessageEditData) {
         e as IMessageEditCallback
         val response = CommandResponse(msgEditData = msgEditData)
+        if (deferred || acknowledged)
+            response.editInto(e.hook)
+        else response.editInto(e)
         responseDeferred.complete(response)
-        e.editMessage(msgEditData).queue()
     }
 
     override fun replyModal(modal: Modal) {
@@ -235,7 +239,15 @@ class CommandResponse(
     }
 
     fun sendInto(channel: MessageChannel) {
-        channel.sendMessage(msgCreateData!!).queue()
+        msgCreateData?.let { channel.sendMessage(it).queue() }
+    }
+
+    fun editInto(callback: IMessageEditCallback) {
+        callback.editMessage(msgEditData!!).queue()
+    }
+
+    fun editInto(hook: InteractionHook) {
+        hook.editOriginal(msgEditData!!).queue()
     }
 
 }

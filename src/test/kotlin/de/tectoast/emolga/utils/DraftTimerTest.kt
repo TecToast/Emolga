@@ -4,13 +4,14 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.Matcher
 import io.kotest.matchers.MatcherResult
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import java.util.Calendar.*
 
 class DraftTimerTest : FunSpec({
     context("Single Timer") {
-        val timer = DraftTimer(TimerInfo(10, 22))
+        val timer = SimpleTimer(TimerInfo(10, 22))
         test("InTime") {
             val now = format("24.12.2023 12:00")
             timer.testCalc(now) shouldBeTime "24.12.2023 14:00"
@@ -26,7 +27,7 @@ class DraftTimerTest : FunSpec({
 
     }
     context("SingleTimerMultiDay") {
-        val timer = DraftTimer(
+        val timer = SimpleTimer(
             TimerInfo(delayInMins = 120)
                 .add(10, 22, SATURDAY, SUNDAY)
                 .add(14, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)
@@ -46,7 +47,7 @@ class DraftTimerTest : FunSpec({
     }
     context("Multi Timer") {
         context("ShorteningTimer") {
-            val timer = DraftTimer(
+            val timer = ClockDependentTimer(
                 0L to TimerInfo(8, 23),
                 format("24.12.2023 12:00") to TimerInfo(8, 23, 10)
             )
@@ -89,7 +90,7 @@ class DraftTimerTest : FunSpec({
             }
         }
         context("ExtendingTimer") {
-            val timer = DraftTimer(
+            val timer = ClockDependentTimer(
                 0L to TimerInfo(8, 23, 10),
                 format("24.12.2023 12:00") to TimerInfo(8, 23, 120)
             )
@@ -130,7 +131,7 @@ class DraftTimerTest : FunSpec({
         test("InitWithoutDelayThrows") {
             shouldThrow<IllegalArgumentException> { TimerInfo(emptyMap()) }
         }
-        val timer = DraftTimer(
+        val timer = SimpleTimer(
             TimerInfo(delaysAfterSkips = mapOf(0 to 120, 1 to 60, 2 to 30))
                 .add(10, 22, SATURDAY, SUNDAY)
                 .add(14, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)
@@ -165,7 +166,7 @@ class DraftTimerTest : FunSpec({
         }
     }
     test("TimeChange") {
-        val timer = DraftTimer(TimerInfo(10, 22))
+        val timer = SimpleTimer(TimerInfo(10, 22))
         val now = format("28.10.2023 23:00")
         timer.testCalc(now) shouldBe 1698577200000
         val beforeMillis = 1698537600000
@@ -178,16 +179,39 @@ class DraftTimerTest : FunSpec({
         afterSkip[MINUTE] shouldBe 0
         afterMillis - beforeMillis shouldBe 3600000
     }
+    test("SwitchTimer") {
+        val timer = SwitchTimer(
+            mapOf(
+                "1m" to TimerInfo(10, 22, 1),
+                "3m" to TimerInfo(10, 22, 3),
+                "5m" to TimerInfo(10, 22, 5),
+                "0m" to TimerInfo(10, 22, 0)
+            )
+        )
+        shouldThrow<IllegalArgumentException> { timer.switchTo("2m") }
+        timer.currentTimer shouldBe "1m"
+        val now = format("13.02.2024 13:00")
+        timer.testCalc(now) shouldBeTime "13.02.2024 13:01"
+        timer.switchTo("3m")
+        timer.currentTimer shouldBe "3m"
+        timer.testCalc(now) shouldBeTime "13.02.2024 13:03"
+        timer.switchTo("0m")
+        timer.currentTimer shouldBe "0m"
+        timer.testCalc(now).shouldBeNull()
+        timer.switchTo("3m")
+        timer.stallSeconds(120)
+        timer.testCalc(now) shouldBeTime "13.02.2024 13:05"
+    }
 })
 
-private infix fun Long.shouldBeTime(str: String) = this should Matcher { value ->
+private infix fun Long?.shouldBeTime(str: String) = this should Matcher { value ->
     MatcherResult(value == format(str), { "${format(value)} should be $str" }, {
         "${format(value)} should not be $str"
     })
 }
 
 private fun DraftTimer.testCalc(now: Long, timerStart: Long? = null, howOftenSkipped: Int = 0) =
-    calc(now, timerStart, howOftenSkipped) + now
+    calc(now, timerStart, howOftenSkipped)?.plus(now)
 
 private fun format(str: String) = defaultTimeFormat.parse(str).time
-private fun format(date: Long) = defaultTimeFormat.format(date)
+private fun format(date: Long?) = defaultTimeFormat.format(date)

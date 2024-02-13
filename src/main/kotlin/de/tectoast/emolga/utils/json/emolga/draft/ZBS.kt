@@ -11,7 +11,7 @@ class ZBS(private val conference: String) : League() {
     override val teamsize = 11
 
     @Transient
-    override val timer = DraftTimer(TimerInfo(10, 22))
+    override var timer: DraftTimer? = SimpleTimer(TimerInfo(10, 22))
 
     override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
     override val duringTimerSkipMode = NEXT_PICK

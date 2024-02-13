@@ -57,7 +57,6 @@ sealed class League {
     var round = 1
     var current = -1L
     private var cooldown = -1L
-    private var lastPick = -1L
     var pseudoEnd = false
 
     abstract val teamsize: Int
@@ -66,7 +65,6 @@ sealed class League {
     @Transient
     val points: PointsManager = PointsManager()
     val noAutoStart = false
-
     val timerStart: Long? = null
 
     @Transient
@@ -78,9 +76,10 @@ sealed class League {
     val originalorder: Map<Int, List<Int>> = mapOf()
 
     val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
-
     val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
     val skippedTurns: MutableMap<Long, MutableSet<Int>> = mutableMapOf()
+
+    private var lastPick = -1L
     val usedStallSeconds: MutableMap<Long, Int> = mutableMapOf()
 
     internal val names: MutableMap<Long, String> = mutableMapOf()
@@ -120,8 +119,7 @@ sealed class League {
     @Transient
     open val allowPickDuringSwitch = false
 
-    @Transient
-    open val timer: DraftTimer? = null
+    open var timer: DraftTimer? = null
     val isLastRound: Boolean get() = round == totalRounds
     val totalRounds by lazy { originalorder.size }
 
@@ -327,6 +325,7 @@ sealed class League {
         }
     }
 
+    override fun toString() = leaguename
 
     open fun reset(updates: MutableList<SetTo<*>>) {}
 

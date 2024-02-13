@@ -666,6 +666,7 @@ class Arg<DiscordType, ParsedType>(
         return Arg<DiscordType, ParsedType?>(name, help, optionType, args).also {
             copyTo(it)
             it.nullable = true
+            it.defaultValueSet = true
             args.replaceLastArg(it)
         }
     }
@@ -675,6 +676,7 @@ class Arg<DiscordType, ParsedType>(
             copyTo(it)
             val oldSpec = it.spec as? ModalArgSpec
             it.spec = ModalArgSpec(oldSpec?.short ?: true, key, oldSpec?.builder ?: {})
+            it.defaultValueSet = true
             args.replaceLastArg(it)
         }
     }

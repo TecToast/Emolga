@@ -47,18 +47,18 @@ object SignupManager {
                 modal {
                     setRequiredRange(1, 100)
                 }
-            }.defaultNotEnabled()
+            }.defaultNotEnabled(TEAMNAME)
             var sdname by string("Showdown-Name") {
                 modal {
                     setRequiredRange(1, 18)
                 }
             }
             var experiences by string("Erfahrungen") {
-                modal {
+                modal(short = false) {
                     placeholder = "Wie viel Erfahrung hast du im CP-Bereich?"
                     setRequiredRange(1, 100)
                 }
-            }.defaultNotEnabled()
+            }.defaultNotEnabled(EXPERIENCES)
         }
 
         context(InteractionData)
@@ -89,12 +89,15 @@ object SignupManager {
         }
     }
 
+    object TEAMNAME : ModalKey
+    object EXPERIENCES : ModalKey
+
     fun getModal(data: SignUpData?, lsData: LigaStartData) =
         Modal(
             "Anmeldung".condAppend(data != null, "sanpassung"),
             specificallyEnabledArgs = mapOf(
-                Modal.Args::teamname to !lsData.noTeam,
-                Modal.Args::experiences to lsData.withExperiences
+                TEAMNAME to !lsData.noTeam,
+                EXPERIENCES to lsData.withExperiences
             )
         ) {
             change = data != null

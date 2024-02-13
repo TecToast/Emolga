@@ -99,7 +99,7 @@ object EnterResult {
                 default = false
             }
             var remove by boolean("remove", "remove") {
-                modal(defaultNotEnabled = true)
+                modal(modalKey = Remove)
                 default = false
             }
         }
@@ -111,6 +111,8 @@ object EnterResult {
             resultEntry.handleModal(e)
         }
     }
+
+    object Remove : ModalKey
 
 
     private val results = mutableMapOf<Long, ResultEntry>()
@@ -178,7 +180,7 @@ object EnterResult {
             val userindex = e.userindex
             replyModal(ResultModal(
                 "Ergebnis für ${selected.substringAfterLast("#")}",
-                mapOf(ResultModal.Args::remove to data[userindex].any { it.official == selected.substringBefore("#") })
+                mapOf(Remove to data[userindex].any { it.official == selected.substringBefore("#") })
             ) {
                 this.userindex = userindex
                 this.selected = selected

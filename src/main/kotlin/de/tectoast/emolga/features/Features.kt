@@ -41,7 +41,6 @@ import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
-import kotlin.reflect.KProperty1
 import kotlin.reflect.full.isSubclassOf
 
 sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent, in A : Arguments>(
@@ -252,17 +251,22 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
 
     operator fun invoke(
         title: String = this.title,
-        specificallyEnabledArgs: Map<KProperty1<out Arguments, *>, Boolean> = emptyMap(),
+        specificallyEnabledArgs: Map<ModalKey, Boolean> = emptyMap(),
         argsBuilder: ArgBuilder<A> = {}
     ) = Modal(createComponentId(argsBuilder, checkCompId = true), title) {
-        val checkUpMap = specificallyEnabledArgs.mapKeys { it.key.name }
         argsFun().apply(argsBuilder).args.forEach { arg ->
             if (arg.compIdOnly) return@forEach
             val spec = arg.spec as? ModalArgSpec
-            if (spec?.defaultNotEnabled == true && checkUpMap[arg.name] != true) return@forEach
-            if (spec?.short != false) short(arg.name, arg.name, required = !arg.optional, builder = spec?.builder ?: {})
-            else paragraph(
+            spec?.modalEnableKey?.let { key ->
+                if (specificallyEnabledArgs[key] != true) return@forEach
+            }
+            if (spec?.short != false) short(
+                arg.name.nameToDiscordOption(),
                 arg.name,
+                required = !arg.optional,
+                builder = spec?.builder ?: {})
+            else paragraph(
+                arg.name.nameToDiscordOption(),
                 arg.name,
                 required = !arg.optional,
                 placeholder = arg.parsed?.toString(),
@@ -272,9 +276,11 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
     }
 
     companion object {
-        val eventToName: (ModalInteractionEvent) -> String = { it.modalId }
+        val eventToName: (ModalInteractionEvent) -> String = { it.modalId.substringBefore(";") }
     }
 }
+
+interface ModalKey
 
 abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMenuSpec) :
     Feature<SelectMenuSpec, StringSelectInteractionEvent, A>(
@@ -320,15 +326,15 @@ class ModalSpec(name: String) : FeatureSpec(name)
 class SelectMenuSpec(name: String) : FeatureSpec(name)
 
 sealed interface ArgSpec
-class CommandArgSpec(
+data class CommandArgSpec(
     val autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null,
     val choices: List<Choice>? = null
 ) : ArgSpec
 
-class ModalArgSpec(val short: Boolean, val defaultNotEnabled: Boolean, val builder: TextInput.Builder.() -> Unit) :
+data class ModalArgSpec(val short: Boolean, val modalEnableKey: ModalKey?, val builder: TextInput.Builder.() -> Unit) :
     ArgSpec
 
-class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
+data class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
 open class Arguments {
     val _args = mutableListOf<Arg<*, *>>()
     val args: List<Arg<*, *>> = Collections.unmodifiableList(_args)
@@ -591,8 +597,8 @@ class Arg<DiscordType, ParsedType>(
         spec = CommandArgSpec(autocomplete, choices)
     }
 
-    fun modal(short: Boolean = true, defaultNotEnabled: Boolean = false, builder: TextInput.Builder.() -> Unit = {}) {
-        spec = ModalArgSpec(short, defaultNotEnabled, builder)
+    fun modal(short: Boolean = true, modalKey: ModalKey? = null, builder: TextInput.Builder.() -> Unit = {}) {
+        spec = ModalArgSpec(short, modalKey, builder)
     }
 
     override fun getValue(thisRef: Arguments, property: KProperty<*>): ParsedType {
@@ -658,27 +664,30 @@ class Arg<DiscordType, ParsedType>(
 
     fun nullable(): Arg<DiscordType, ParsedType?> {
         return Arg<DiscordType, ParsedType?>(name, help, optionType, args).also {
-            it.default = default
-            it.defaultFunction = defaultFunction
-            it.validator = validator
-            it.spec = spec
+            copyTo(it)
             it.nullable = true
-            it.compIdOnly = compIdOnly
             args.replaceLastArg(it)
         }
     }
 
-    fun defaultNotEnabled(): Arg<DiscordType, ParsedType?> {
+    fun defaultNotEnabled(key: ModalKey): Arg<DiscordType, ParsedType?> {
         return Arg<DiscordType, ParsedType?>(name, help, optionType, args).also {
-            it.default = default
-            it.defaultFunction = defaultFunction
-            it.validator = validator
+            copyTo(it)
             val oldSpec = it.spec as? ModalArgSpec
-            it.spec = ModalArgSpec(oldSpec?.short ?: true, true, oldSpec?.builder ?: {})
-            it.nullable = true
-            it.compIdOnly = compIdOnly
+            it.spec = ModalArgSpec(oldSpec?.short ?: true, key, oldSpec?.builder ?: {})
             args.replaceLastArg(it)
         }
+    }
+
+    private fun copyTo(arg: Arg<DiscordType, ParsedType?>) {
+        val oldDefaultValueSet = defaultValueSet
+        arg.default = default
+        arg.defaultValueSet = oldDefaultValueSet
+        arg.defaultFunction = defaultFunction
+        arg.validator = validator
+        arg.spec = spec
+        arg.nullable = nullable
+        arg.compIdOnly = compIdOnly
     }
 }
 

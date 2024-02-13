@@ -81,7 +81,7 @@ object NameConventionsDB : Table("nameconventions") {
 
     suspend fun checkIfExists(name: String, guildId: Long): Boolean {
         return newSuspendedTransaction {
-            select(((SPECIFIED eq name) or (SPECIFIEDENGLISH eq name)) and (GUILD eq 0 or (GUILD eq guildId))).firstOrNull() != null
+            select((SPECIFIED eq name) and (GUILD eq 0 or (GUILD eq guildId))).firstOrNull() != null
         }
     }
 

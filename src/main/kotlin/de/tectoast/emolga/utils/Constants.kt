@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils
 object Constants {
     const val FLOID = 175910318608744448
     const val HENNY = 297010892678234114
+    const val INK = 242427180942884864
     const val GIVEAWAY_EMOTE_ID = 967390966153609226
     const val GIVEAWAY_EMOTE_NAME = "Happy"
     const val GIVEAWAY_EMOTE_MENTION = "<:$GIVEAWAY_EMOTE_NAME:$GIVEAWAY_EMOTE_ID>"
@@ -14,7 +15,7 @@ object Constants {
     const val TEST_TCID = 1171544197573116004
     const val MYTAG = "@tectoast"
 
-    val DRAFTADMINS = setOf(FLOID, HENNY)
+    val DRAFTADMINS = setOf(FLOID, HENNY, INK)
 
     object G {
         const val ADK = 883292170533077002

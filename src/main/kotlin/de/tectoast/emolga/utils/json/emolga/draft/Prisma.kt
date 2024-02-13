@@ -1,12 +1,18 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.features.draft.during.BanMonCommand
+import de.tectoast.emolga.commands.coordXMod
+import de.tectoast.emolga.commands.draft.during.BanCommandArgs
+import de.tectoast.emolga.commands.toDocRange
+import de.tectoast.emolga.commands.x
+import de.tectoast.emolga.commands.y
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.coordXMod
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.x
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
 @SerialName("Prisma")
@@ -14,6 +20,18 @@ class Prisma : League() {
     override val teamsize = 12
     override val pickBuffer = 5
     val bannedMons: MutableSet<String> = mutableSetOf()
+
+    @Transient
+    override val docEntry = DocEntry.create(this) {
+        newSystem(SorterData("Tabelle!C4:F15", newMethod = true, cols = listOf(3, -1))) {
+            b.addSingle(
+                when (gdi) {
+                    in 2..4 -> Coord("Spielplan", gdi.minus(2).x(4, 3), 10 + index)
+                    else -> Coord("Spielplan", gdi.mod(5).x(4, 5), (gdi / 5).y(14, 3 + index))
+                }, defaultGameplanString
+            )
+        }
+    }
 
     override fun beforePick(): String? {
         return "Dies ist eine Ban-Runde!".takeIf { round in banRounds }

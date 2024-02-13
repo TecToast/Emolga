@@ -6,11 +6,13 @@ import de.tectoast.emolga.keepAlive
 import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.events.listener
 import io.kotest.core.spec.style.FunSpec
+import mu.KotlinLogging
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.interactions.commands.Command
 import kotlin.time.TimeSource
 
 var timer: TimeSource.Monotonic.ValueTimeMark? = null
+private val logger = KotlinLogging.logger {}
 
 class FeaturesTest : FunSpec({
     test("test") {
@@ -20,8 +22,11 @@ class FeaturesTest : FunSpec({
         jda.listener<GenericEvent> {
             timer = TimeSource.Monotonic.markNow()
             manager.handleEvent(it)
+            logger.info("Handled ${it::class.simpleName} in ${timer!!.elapsedNow()}")
+
         }
         manager.updateFeatures(jda, updateGuilds = listOf(Constants.G.MY))
+
 //        defaultChannel.send("test", components = TestMenu(argsBuilder = {
 //            test1 = "lololo"
 //            test2 = "lalala"

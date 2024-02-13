@@ -16,7 +16,9 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
@@ -105,10 +107,22 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                     )
                 )
                 SendFeatures.sendToMe(
-                    "Error in feature ${feature.spec.name}:\n" + "Event: ${e::class.simpleName}\n" + "User: `${data.user}`\n" + "Guild: `${data.gid}` [${data.textChannel.guild.name}\n" + "Channel: `${data.tc}` [${data.textChannel.asMention}" + "Input: ```$e```"
+                    "Error in feature ${feature.spec.name}:\n"
+                            + "Event: ${e::class.simpleName}\n"
+                            + "User: `${data.user}`\n"
+                            + "Guild: `${data.gid}` [${data.textChannel.guild.name}]\n"
+                            + "Channel: `${data.tc}` [${data.textChannel.asMention}]\n"
+                            + "Input: ```${e.stringify()}```"
                 )
             }
         }
+    }
+
+    private fun GenericInteractionCreateEvent.stringify() = when (this) {
+        is SlashCommandInteractionEvent -> this.commandString
+        is GenericComponentInteractionCreateEvent -> this.componentId
+        is ModalInteractionEvent -> this.modalId
+        else -> this.toString()
     }
 
     suspend fun updateFeatures(jda: JDA, updateGuilds: List<Long>? = null) {

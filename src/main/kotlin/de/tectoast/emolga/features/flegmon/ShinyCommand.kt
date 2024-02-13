@@ -123,7 +123,7 @@ object PepeShinyEvent {
         }
     }
 
-    object RejectModal : ModalFeature<RejectModal.Args>(::Args, ModalSpec("")) {
+    object RejectModal : ModalFeature<RejectModal.Args>(::Args, ModalSpec("shinyeventreject")) {
         class Args : Arguments() {
             var user by long().compIdOnly()
             var reason by string("Grund") {

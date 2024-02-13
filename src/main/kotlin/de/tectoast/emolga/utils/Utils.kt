@@ -108,11 +108,6 @@ val otherJSON = Json {
 val defaultTimeFormat = SimpleDateFormat("dd.MM.yyyy HH:mm")
 fun String.file() = File(this)
 
-/**
- * Converts a string or int to an int
- */
-
-
 val String.marker: Marker get() = MarkerFactory.getMarker(this)
 
 fun String.condAppend(check: Boolean, value: String) = if (check) this + value else this

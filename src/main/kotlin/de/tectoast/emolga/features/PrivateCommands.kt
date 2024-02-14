@@ -288,6 +288,11 @@ object PrivateCommands {
         grabbedIDs.clear()
     }
 
+    context(InteractionData)
+    fun printGrabbedIDs() {
+        reply(grabbedIDs.joinToString(prefix = "```", postfix = "```"))
+    }
+
     var userIdForSignupChange: Long? = null
     context(InteractionData)
     fun setUserIdForSignupChange(args: PrivateData) {

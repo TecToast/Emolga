@@ -103,11 +103,14 @@ sealed class League {
 
     context (InteractionData)
     suspend fun lockForPick(data: BypassCurrentPlayerData, block: suspend () -> Unit) {
-        allMutexes.getOrPut(leaguename) { Mutex() }.withLock {
+        getLock(leaguename).withLock {
             // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
             if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
                 // BypassCurrentPlayerData can only be Yes here
                 current = (data as BypassCurrentPlayerData.Yes).user
+            }
+            if (!isCurrentCheck(user)) {
+                return@withLock reply("Du warst etwas zu langsam!", ephemeral = true)
             }
             block()
         }
@@ -677,10 +680,18 @@ sealed class League {
             )
         })
 
+        fun getLock(leaguename: String): Mutex = allMutexes.getOrPut(leaguename) { Mutex() }
+
         suspend fun executeTimerOnRefreshedVersion(name: String) {
-            val league =
-                db.drafts.findOne(League::leaguename eq name) ?: return SendFeatures.sendToMe("League $name not found")
-            league.afterPickOfficial(data = NextPlayerData.Moved(SkipReason.REALTIMER))
+            getLock(name).withLock {
+                val league = db.drafts.findOne(League::leaguename eq name)
+                    ?: return SendFeatures.sendToMe("League $name not found")
+                if (league.cooldown <= System.currentTimeMillis()) league.afterPickOfficial(
+                    data = NextPlayerData.Moved(
+                        SkipReason.REALTIMER
+                    )
+                )
+            }
         }
 
         context (InteractionData)

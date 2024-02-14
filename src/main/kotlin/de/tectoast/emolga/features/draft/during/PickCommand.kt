@@ -43,10 +43,10 @@ object PickCommand :
         val (d, data) = dd
         d.lockForPick(data) l@{
             if (d.isSwitchDraft && !d.allowPickDuringSwitch) {
-                reply("Du kannst während des Switch-Drafts nicht picken!")
-                return@l
+                return@l reply("Du kannst während des Switch-Drafts nicht picken!")
+
             }
-            d.beforePick()?.let { reply(it); return@l }
+            d.beforePick()?.let { return@l reply(it) }
             val mem = d.current
             val tierlist = d.tierlist
             val picks = d.picks(mem)

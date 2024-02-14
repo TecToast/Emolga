@@ -77,6 +77,10 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
         }
     }
 
+    suspend fun permissionCheck(data: InteractionData) = if (data.user == Constants.FLOID) Allowed else {
+        if (!check(data)) NotAllowed else checkSpecial(data)
+    }
+
     fun restrict(check: BooleanCheck) {
         this.check = check
     }
@@ -138,7 +142,7 @@ sealed class AllowedResult {
 
 data object Allowed : AllowedResult()
 open class NotAllowed(val reason: String) : AllowedResult() {
-    companion object : NotAllowed("Du bist nicht berechtigt, diesen Command auszuführen!")
+    companion object : NotAllowed("Du bist nicht berechtigt, diese Interaktion auszuführen!")
 }
 
 /**
@@ -168,7 +172,7 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
     Feature<CommandSpec, SlashCommandInteractionEvent, A>(
         argsFun, spec, SlashCommandInteractionEvent::class, eventToName
     ) {
-    private val autoCompleatableOptions by lazy {
+    private val autoCompletableOptions by lazy {
         defaultArgs.mapNotNull { (it.spec as? CommandArgSpec)?.autocomplete?.let { ac -> it.name.nameToDiscordOption() to ac } }
             .toMap()
     }
@@ -179,8 +183,13 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
     init {
         registerListener<CommandAutoCompleteInteractionEvent> {
             if (it.name != spec.name) return@registerListener
+            permissionCheck(RealInteractionData(it)).let { result ->
+                if (result is NotAllowed) {
+                    return@registerListener it.replyChoiceStrings(result.reason).queue()
+                }
+            }
             val focusedOption = it.focusedOption
-            autoCompleatableOptions[focusedOption.name]?.let { ac ->
+            autoCompletableOptions[focusedOption.name]?.let { ac ->
                 val list = ac(focusedOption.value, it)?.takeIf { l -> l.size <= 25 }
                 it.replyChoiceStrings(list ?: listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")).queue()
             }

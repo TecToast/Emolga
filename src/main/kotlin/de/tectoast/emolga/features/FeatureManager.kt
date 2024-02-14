@@ -79,23 +79,21 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         feature: Feature<*, GenericInteractionCreateEvent, Arguments>,
         e: GenericInteractionCreateEvent,
     ) {
-        val args = feature.argsFun()
         val data = RealInteractionData(e)
-        try {
-            feature.populateArgs(data, e, args)
-        } catch (ex: ArgumentException) {
-            data.reply(
-                ex.message + "\nWenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}.",
-                ephemeral = true
-            )
-            return
-        }
         with(data) {
             try {
-                when (val result = if (user == Constants.FLOID) Allowed else {
-                    if (!feature.check(data)) NotAllowed else feature.checkSpecial(data)
-                }) {
+                when (val result = feature.permissionCheck(data)) {
                     Allowed -> {
+                        val args = feature.argsFun()
+                        try {
+                            feature.populateArgs(data, e, args)
+                        } catch (ex: ArgumentException) {
+                            data.reply(
+                                ex.message + "\nWenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}.",
+                                ephemeral = true
+                            )
+                            return
+                        }
                         feature.exec(args)
                     }
 

@@ -34,7 +34,6 @@ object Credentials {
     private fun injectTokens() {
         with(tokens.google) {
             Google.setCredentials(refreshtoken, clientid, clientsecret)
-            Google.generateAccessToken()
         }
     }
 }

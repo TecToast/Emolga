@@ -65,11 +65,10 @@ object RevealPrisma {
             }
             val pt = prismaTeam[e.timestamp] ?: return reply(":(")
             val pokemonData = pt.nextMon()
-            RequestBuilder.updateSingle(
-                "1nCPIc-R5hAsoDXvTGSuGyk2c1K8DQqTBm1NGvLyYYm0",
+            RequestBuilder("1nCPIc-R5hAsoDXvTGSuGyk2c1K8DQqTBm1NGvLyYYm0").addSingle(
                 "Teamübersicht!${pt.index.x(3, 2)}${pokemonData.ycoord}",
                 pokemonData.pokemon
-            )
+            ).execute()
             reply("+1", ephemeral = true)
         }
     }

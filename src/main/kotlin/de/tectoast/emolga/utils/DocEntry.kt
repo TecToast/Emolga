@@ -254,8 +254,12 @@ class DocEntry private constructor(val league: League) {
                 for (num in formulaRange.indices) {
                     val formulaRange = formulaRange[num]
                     val formula =
-                        Google[sid, formulaRange.run { if (newMethod) "$sheet!$xStart$yStart:$xStart$yEnd" else toString() }, true]
-                    val points = Google[sid, formulaRange.toString(), false]
+                        Google.get(
+                            sid,
+                            formulaRange.run { if (newMethod) "$sheet!$xStart$yStart:$xStart$yEnd" else toString() },
+                            true
+                        )
+                    val points = Google.get(sid, formulaRange.toString(), false)
                     val orig: List<List<Any>?> = ArrayList(points)
                     val table = league.table
                     val indexerToUse: (String) -> Int by lazy {

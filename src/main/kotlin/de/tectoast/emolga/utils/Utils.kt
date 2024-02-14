@@ -8,11 +8,9 @@ import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
+import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.User
 import org.jetbrains.exposed.sql.Column
 import org.slf4j.Marker
@@ -78,6 +76,17 @@ fun Int.convertColor(): Color {
     val c = java.awt.Color(this)
     return Color().setRed(c.red.toFloat() / 255f).setGreen(c.green.toFloat() / 255f).setBlue(c.blue.toFloat() / 255f)
 }
+
+val universalLogger = KotlinLogging.logger("Universal")
+fun createCoroutineScope(name: String, dispatcher: CoroutineDispatcher = Dispatchers.Default) =
+    CoroutineScope(createCoroutineContext(name, dispatcher))
+
+fun createCoroutineContext(name: String, dispatcher: CoroutineDispatcher = Dispatchers.Default) =
+    dispatcher + SupervisorJob() + CoroutineName(name) + CoroutineExceptionHandler { _, t ->
+        t.printStackTrace()
+        universalLogger.error(t) { "Error in $name" }
+        sendToMe("Error in $name scope, look in console")
+    }
 
 val webJSON = Json {
     ignoreUnknownKeys = true

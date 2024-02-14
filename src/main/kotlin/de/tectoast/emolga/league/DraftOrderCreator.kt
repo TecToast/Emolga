@@ -17,11 +17,11 @@ class DraftOrderCreator private constructor() {
     var requestBuilder: RequestBuilder? = null
     var fromDoc: Pair<String, List<String>>? = null
     var disabledDoc = false
-    fun execute(): Map<Int, List<Int>> {
+    suspend fun execute(): Map<Int, List<Int>> {
         val finalOrder = mutableMapOf<Int, List<Int>>()
         val b = requestBuilder ?: RequestBuilder(sid!!)
         fromDoc?.let { (range, list) ->
-            val get = Google[sid!!, range, false]
+            val get = Google.get(sid!!, range, false)
             for (gdi in 0 until rounds) {
                 val order = (0 until playerCount).map {
                     get[it][gdi].toString().indexedBy(list)

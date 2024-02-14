@@ -1,11 +1,9 @@
 package de.tectoast.emolga.utils
 
 import com.google.api.services.sheets.v4.model.*
-import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.records.Coord
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
-import java.io.IOException
 import java.util.regex.Pattern
 
 @Suppress("unused")
@@ -116,12 +114,13 @@ class RequestBuilder
      * @param requests The request(s) that should be sent
      * @return this RequestBuilder
      */
-    private fun addBatch(vararg requests: Request): RequestBuilder {
+    fun addBatch(vararg requests: Request): RequestBuilder {
         requests.map { MyRequest().setRequest(it) }.forEach { this.requests.add(it) }
         return this
     }
 
-    private fun getCellsAsRowData(cellData: CellData, x: Int, y: Int) = List(y) { RowData().setValues(List(x) { cellData }) }
+    private fun getCellsAsRowData(cellData: CellData, x: Int, y: Int) =
+        List(y) { RowData().setValues(List(x) { cellData }) }
 
     private fun addBGColorChange(sheetId: Int, range: String, c: Color?): RequestBuilder {
         val split = range.split(":")
@@ -325,15 +324,13 @@ class RequestBuilder
         get() = requests.filter { it.valueInputOption == ValueInputOption.USER_ENTERED }.map { it.build() }
     private val raw: List<ValueRange>
         get() = requests.filter { it.valueInputOption == ValueInputOption.RAW }.map { it.build() }
-    private val batch: List<Request?>
+    private val batch: List<Request>
         get() = requests.filter { it.valueInputOption == ValueInputOption.BATCH }.map { it.buildBatch() }
 
     fun clear() {
         requests.clear()
         executed = false
     }
-
-    private fun Throwable.sendStacktraceToMe() = SendFeatures.sendToMe(stackTraceToString())
 
     /**
      * Executes the request to the specified google sheet
@@ -354,20 +351,12 @@ class RequestBuilder
         }
         val raw = raw
         val batch = batch
-        val service = Google.sheetsService
         val job = scope.launch {
             launch {
                 if (batch.isNotEmpty()) {
-                    try {
-                        service.spreadsheets().batchUpdate(sid, BatchUpdateSpreadsheetRequest().setRequests(batch))
-                            .execute()
-                        additionalSheets?.forEach {
-                            service.spreadsheets().batchUpdate(it, BatchUpdateSpreadsheetRequest().setRequests(batch))
-                                .execute()
-                        }
-                    } catch (e: IOException) {
-                        e.printStackTrace()
-                        e.sendStacktraceToMe()
+                    Google.batchUpdate(sid, batch)
+                    additionalSheets?.forEach {
+                        Google.batchUpdate(it, batch)
                     }
                 }
             }
@@ -375,36 +364,17 @@ class RequestBuilder
                 launch {
                     if (userentered.isNotEmpty()) {
                         if (!suppressMessages) printUserEntered()
-                        try {
-                            service.spreadsheets().values().batchUpdate(
-                                sid, BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")
-                            ).execute()
-                            additionalSheets?.forEach {
-                                service.spreadsheets().values().batchUpdate(
-                                    it,
-                                    BatchUpdateValuesRequest().setData(userentered).setValueInputOption("USER_ENTERED")
-                                ).execute()
-                            }
-                        } catch (e: IOException) {
-                            e.printStackTrace()
-                            e.sendStacktraceToMe()
+                        Google.batchUpdate(sid, userentered, "USER_ENTERED")
+                        additionalSheets?.forEach {
+                            Google.batchUpdate(it, userentered, "USER_ENTERED")
                         }
                     }
                 }
                 launch {
                     if (raw.isNotEmpty()) {
-                        try {
-                            service.spreadsheets().values()
-                                .batchUpdate(sid, BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW"))
-                                .execute()
-                            additionalSheets?.forEach {
-                                service.spreadsheets().values().batchUpdate(
-                                    it, BatchUpdateValuesRequest().setData(raw).setValueInputOption("RAW")
-                                ).execute()
-                            }
-                        } catch (e: IOException) {
-                            e.printStackTrace()
-                            e.sendStacktraceToMe()
+                        Google.batchUpdate(sid, raw, "RAW")
+                        additionalSheets?.forEach {
+                            Google.batchUpdate(it, raw, "RAW")
                         }
                     }
                 }
@@ -417,6 +387,11 @@ class RequestBuilder
                 it()
             }
         }
+    }
+
+    fun executeAndReset(realExecute: Boolean = true) {
+        execute(realExecute)
+        clear()
     }
 
     fun printUserEntered(userentered: List<ValueRange> = userEntered) {
@@ -462,8 +437,8 @@ class RequestBuilder
             return ValueRange().setValues(send).setRange(range)
         }
 
-        fun buildBatch(): Request? {
-            return request
+        fun buildBatch(): Request {
+            return request!!
         }
 
         override fun toString(): String {
@@ -476,36 +451,6 @@ class RequestBuilder
         private val EVERYTHING_BUT_NUMBER = Pattern.compile("\\D")
         private val EVERYTHING_BUT_CHARS = Pattern.compile("[^a-zA-Z]")
         private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineName("RequestBuilder"))
-        fun updateSingle(sid: String?, range: String?, value: Any, vararg raw: Boolean) {
-            updateRow(sid, range, listOf(value), *raw)
-        }
-
-        private fun updateRow(sid: String?, range: String?, values: List<Any>, vararg raw: Boolean) {
-            updateAll(sid, range, listOf(values), *raw)
-        }
-
-
-        private fun updateAll(sid: String?, range: String?, values: List<List<Any>?>?, vararg raw: Boolean) {
-            scope.launch {
-                try {
-                    Google.sheetsService.spreadsheets().values().update(sid, range, ValueRange().setValues(values))
-                        .setValueInputOption(if (raw.isEmpty() || !raw[0]) "USER_ENTERED" else "RAW").execute()
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                }
-            }
-        }
-
-        fun batchUpdate(sid: String?, vararg requests: Request?) {
-            if (requests.isEmpty()) return
-            try {
-                Google.sheetsService.spreadsheets().batchUpdate(
-                    sid, BatchUpdateSpreadsheetRequest().setRequests(listOf(*requests))
-                ).execute()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }
 
         fun getColumnFromRange(range: String): Int {
             val chars = EVERYTHING_BUT_CHARS.matcher(range).replaceAll("").toCharArray()

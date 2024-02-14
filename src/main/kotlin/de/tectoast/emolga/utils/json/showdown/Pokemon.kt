@@ -49,6 +49,13 @@ data class Pokemon(
         }
     }
 
+    fun getIcon(): String {
+        val str = specialCases[name] ?: ("$num".padStart(3, '0') + (forme?.split("-")?.let { arr ->
+            if (arr[0] in specialForms) arr.last() else arr.first()
+        }?.substring(0, 1)?.lowercase()?.let { x -> "-$x" } ?: ""))
+        return "=IMAGE(\"https://www.serebii.net/pokedex-sv/icon/$str.png\";1)"
+    }
+
     companion object {
         val statNames = mapOf(
             "hp" to "HP",
@@ -58,5 +65,8 @@ data class Pokemon(
             "spd" to "SpDef",
             "spe" to "Init"
         )
+        private val specialForms = listOf("Alola", "Galar", "Mega", "Paldea")
+        private val specialCases =
+            mapOf("Rotom-Fan" to "479-s", "Tauros-Paldea-Combat" to "128-p", "Zygarde-10%" to "718-10")
     }
 }

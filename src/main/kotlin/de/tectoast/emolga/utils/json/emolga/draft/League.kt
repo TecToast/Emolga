@@ -473,6 +473,7 @@ sealed class League {
                 return true
             }
             round++
+            onRoundSwitch()
             if (order[round]?.isEmpty() != false) {
                 finishDraft(msg = "Da alle bereits ihre Drafts beendet haben, ist der Draft vorbei!")
                 return true
@@ -481,6 +482,8 @@ sealed class League {
         }
         return false
     }
+
+    open fun onRoundSwitch() {}
 
     suspend fun finishDraft(msg: String) {
         tc.sendMessage(msg).queue()
@@ -911,6 +914,40 @@ data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
     }
 }
 
+data class MovePicksMode(val turns: Int, val updateColFun: (Int) -> Unit = {}) : DuringTimerSkipMode,
+    AfterTimerSkipMode {
+    override suspend fun League.afterPickCall(data: NextPlayerData) = afterPick(data)
+
+    override suspend fun League.afterPick(data: NextPlayerData): Boolean {
+        when (data) {
+            is NextPlayerData.Moved -> {
+                val curIndex = table.indexOf(current)
+                val indexOf = order[round]!!.indexOf(curIndex)
+                var insertIndex = indexOf + turns + 1
+                var roundToInsert = round
+                if (insertIndex == table.size) insertIndex++
+                if (insertIndex > table.size) {
+                    insertIndex -= table.size
+                    roundToInsert++
+                }
+                if (roundToInsert > totalRounds) {
+                    roundToInsert = totalRounds
+                    insertIndex = order[roundToInsert]!!.size
+                }
+                order[roundToInsert]!!.add(insertIndex, curIndex)
+                updateColFun(roundToInsert)
+            }
+
+            NextPlayerData.Normal -> {
+                if (hasMovedTurns()) movedTurns().removeFirst()
+            }
+        }
+        return true
+    }
+
+    override suspend fun League.getPickRound() = movedTurns().firstOrNull() ?: round
+}
+
 data class AdditionalSet(val col: String, val existent: String, val yeeted: String)
 sealed interface NextPlayerData {
     data object Normal : NextPlayerData
@@ -922,6 +959,7 @@ sealed interface NextPlayerData {
 enum class SkipReason {
     REALTIMER, SKIP
 }
+
 data class GamedayData(
     val gameday: Int, val battleindex: Int, val u1IsSecond: Boolean
 ) {

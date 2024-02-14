@@ -198,7 +198,7 @@ object Analysis {
         )
     }
 
-    internal suspend fun getMonName(s: String, guildId: Long, withDebug: Boolean = false): DraftName {
+    suspend fun getMonName(s: String, guildId: Long, withDebug: Boolean = false): DraftName {
         if (withDebug) logger.info("s = $s")
         val split = s.split("-")
         val withoutLast = split.dropLast(1).joinToString("-")

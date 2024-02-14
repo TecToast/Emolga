@@ -67,7 +67,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         }
         if (e is GenericInteractionCreateEvent) {
             val eventFeatures = features[kClass] ?: return
-            val feature = eventFeatures[eventToName[kClass]!!(e)]!!
+            val feature = eventFeatures[eventToName[kClass]!!(e)] ?: return
             execute(
                 if (e is SlashCommandInteractionEvent && feature is CommandFeature<*> && feature.children.isNotEmpty()) feature.childCommands[e.subcommandName]!! as Feature<*, *, Arguments>
                 else feature, e

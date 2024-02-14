@@ -426,7 +426,7 @@ sealed class League {
                 else str
             }
 
-    fun getTierOf(pokemon: String, insertedTier: String?): TierData? {
+    suspend fun getTierOf(pokemon: String, insertedTier: String?): TierData? {
         val real = tierlist.getTierOf(pokemon) ?: return null
         return if (insertedTier != null && tierlist.mode.withTiers) {
             TierData(tierlist.order.firstOrNull {

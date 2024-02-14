@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.litote.kmongo.eq
@@ -75,8 +76,8 @@ class Tierlist(val guildid: Long) {
         (list + NameConventionsDB.getAllOtherSpecified(list, language, guildid)).toSet()
     }
 
-    fun getTierOf(mon: String) =
-        transaction {
+    suspend fun getTierOf(mon: String) =
+        newSuspendedTransaction {
             select { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
         }
 
@@ -86,6 +87,31 @@ class Tierlist(val guildid: Long) {
             select { guild eq guildid and (Tierlist.tier eq tier) }.orderBy(Random()).limit(amount)
                 .map { DraftPokemon(it[pokemon], tier) }
         }
+    }
+
+    suspend fun retrieveAll() = newSuspendedTransaction {
+        select { guild eq guildid }.map { DraftPokemon(it[pokemon], it[tier]) }
+    }
+
+    suspend fun addOrUpdateTier(mon: String, tier: String) {
+        val existing = getTierOf(mon)
+        if (existing != null) {
+            if (existing != tier) {
+                newSuspendedTransaction {
+                    if (tier in order)
+                        update({ guild eq guildid and (pokemon eq mon) }) {
+                            it[this.tier] = tier
+                        }
+                    else deleteWhere { guild eq guildid and (pokemon eq mon) }
+                }
+            }
+        } else {
+            addPokemon(mon, tier)
+        }
+    }
+
+    suspend fun deleteAllMons() = newSuspendedTransaction {
+        deleteWhere { guild eq guildid }
     }
 
     val monCount

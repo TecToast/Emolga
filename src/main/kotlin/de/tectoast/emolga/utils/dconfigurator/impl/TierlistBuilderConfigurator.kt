@@ -7,12 +7,12 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.embedColor
+import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.NameConventions
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.Embed
-import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -22,6 +22,7 @@ import net.dv8tion.jda.api.interactions.callbacks.IDeferrableCallback
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.batchInsert
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.eq
@@ -30,7 +31,12 @@ import org.litote.kmongo.set
 import org.litote.kmongo.setTo
 
 class TierlistBuilderConfigurator(
-    userId: Long, channelId: Long, guildId: Long, val mons: List<String>, val tierlistcols: List<List<String>>
+    userId: Long,
+    channelId: Long,
+    guildId: Long,
+    val mons: List<String>,
+    val tierlistcols: List<List<String>>,
+    val shiftedMons: List<DraftPokemon>? = null
 ) : DGuildConfigurator("tierlistbuilder", userId, channelId, guildId) {
     override val steps: List<Step<*>> = listOf(step<SlashCommandInteractionEvent> {
         val nc = db.nameconventions.findOne(NameConventions::guild eq guildId)?.data ?: run {
@@ -49,14 +55,14 @@ class TierlistBuilderConfigurator(
                 },
             ) {
                 color = embedColor
-            nc.forEach {
-                field {
-                    name = it.key.replaceFirstChar { c -> c.uppercase() }
-                    value = it.value.replace("(\\S+)", "POKEMON")
-                    inline = true
+                nc.forEach {
+                    field {
+                        name = it.key.replaceFirstChar { c -> c.uppercase() }
+                        value = it.value.replace("(\\S+)", "POKEMON")
+                        inline = true
+                    }
                 }
-            }
-        }).yesNoButtons().queue()
+            }).yesNoButtons().queue()
     }, step<ButtonInteractionEvent> {
         if (isYes) {
             replyModal(nextModal).queue()
@@ -101,21 +107,39 @@ class TierlistBuilderConfigurator(
         NameConventionsDB.addName(mons[index], name, guildId)
         deferReply().queue()
         test(this, options)
-    }, step<StringSelectInteractionEvent> {
-        tierlistMode = when (val s = values[0]) {
-            "points" -> TierlistMode.POINTS
-            "tiers" -> TierlistMode.TIERS
-            "mix" -> TierlistMode.TIERS_WITH_FREE
-            else -> error("Unknown tierlist mode $s")
+    }, step<GenericComponentInteractionCreateEvent> {
+        if (this is StringSelectInteractionEvent) {
+            tierlistMode = when (val s = values[0]) {
+                "points" -> TierlistMode.POINTS
+                "tiers" -> TierlistMode.TIERS
+                "mix" -> TierlistMode.TIERS_WITH_FREE
+                else -> error("Unknown tierlist mode $s")
+            }
+            replyModal(nextModal).queue()
+            hook.editOriginalComponents(
+                ActionRow.of(
+                    StringSelectMenu(
+                        componentId,
+                        options = component.options.map { it.withDefault(false) })
+                )
+            ).queue()
+        } else if (this is ButtonInteractionEvent) {
+            val oldTL = Tierlist[guildId]!!
+            tierlistMode = oldTL.mode
+            prices = oldTL.prices
+            freepicks = oldTL.freepicks
+            points = oldTL.points
+            val tiers = prices!!.keys.toList()
+            val lastTier = tiers.lastIndex
+            for (i in 0..<lastTier) {
+                tiermapping[i] = tiers.elementAt(i)
+            }
+            for (i in lastTier..tierlistcols.lastIndex) {
+                tiermapping[i] = tiers.elementAt(lastTier)
+            }
+            saveToFile()
+            reply("Die Einrichtung der Tierliste wurde abgeschlossen!").queue()
         }
-        replyModal(nextModal).queue()
-        hook.editOriginalComponents(
-            ActionRow.of(
-                StringSelectMenu(
-                    componentId,
-                    options = component.options.map { it.withDefault(false) })
-            )
-        ).queue()
     }, ModalStep({
         Modal("${nextIndex}tierlistbuilder;tierlisttiers", "Tierlist-Tiers") {
             short(
@@ -204,7 +228,7 @@ class TierlistBuilderConfigurator(
                 for (i in lastTier..tierlistcols.lastIndex) {
                     tiermapping[i] = tiers.elementAt(lastTier)
                 }
-                saveToFile()
+                saveToFile(true)
                 reply("Die Einrichtung der Tierliste wurde abgeschlossen!").queue()
                 return@step
             }
@@ -290,22 +314,30 @@ class TierlistBuilderConfigurator(
         )
     )
 
-    private suspend fun saveToFile() {
-        db.tierlist.insertOne(Tierlist(guildId).apply {
-            this.prices += this@TierlistBuilderConfigurator.prices!!
-            this@TierlistBuilderConfigurator.freepicks?.let { this.freepicks += it }
-            this@TierlistBuilderConfigurator.points?.let { this.points = it }
-            this.mode = this@TierlistBuilderConfigurator.tierlistMode!!
-        })
+    private suspend fun saveToFile(fromPrevious: Boolean = false) {
+        if (!fromPrevious) {
+            db.tierlist.insertOne(Tierlist(guildId).apply {
+                this.prices += this@TierlistBuilderConfigurator.prices!!
+                this@TierlistBuilderConfigurator.freepicks?.let { this.freepicks += it }
+                this@TierlistBuilderConfigurator.points?.let { this.points = it }
+                this.mode = this@TierlistBuilderConfigurator.tierlistMode!!
+            })
+        }
+        val shiftMap = shiftedMons?.associate { it.name to it.tier }
         newSuspendedTransaction {
-            Tierlist.batchInsert(tierlistcols.flatMapIndexed { index, strings ->
-                strings.map {
-                    DraftPokemon(
-                        it,
-                        tiermapping[index]!!
-                    )
-                }
-            }, shouldReturnGeneratedValues = false) {
+            Tierlist.deleteWhere { guild eq guildId }
+            Tierlist.batchInsert(
+                (tierlistcols.flatMapIndexed { index, strings ->
+                    strings.map {
+                        DraftPokemon(
+                            it,
+                            shiftMap?.get(it) ?: tiermapping[index]!!
+                        )
+                    }
+                } + shiftedMons.orEmpty()).asSequence().filter { it.tier in prices!! }.distinctBy { it.name }
+                    .sortedWith(compareBy({ it.tier.indexedBy(prices!!.keys.toList()) }, { it.name })),
+                shouldReturnGeneratedValues = false
+            ) {
                 this[Tierlist.guild] = guildId
                 this[Tierlist.pokemon] = it.name
                 this[Tierlist.tier] = it.tier
@@ -314,13 +346,17 @@ class TierlistBuilderConfigurator(
     }
 
     companion object {
-        val modeSelectMenu = StringSelectMenu(
-            "4tierlistbuilder;tierlistmode", options = listOf(
-                SelectOption("Punkte", "points", "Ein Punktedraft"),
-                SelectOption("Tiers", "tiers", "Ein Draft mit festgelegten Tiers"),
-                SelectOption("Tiers mit Free-Picks", "mix", "Ein Draft mit festgelegten Tiers und Free-Picks")
-            )
-        ).into()
+        val modeSelectMenu = listOf(
+            ActionRow.of(
+                StringSelectMenu(
+                    "4tierlistbuilder;tierlistmode", options = listOf(
+                        SelectOption("Punkte", "points", "Ein Punktedraft"),
+                        SelectOption("Tiers", "tiers", "Ein Draft mit festgelegten Tiers"),
+                        SelectOption("Tiers mit Free-Picks", "mix", "Ein Draft mit festgelegten Tiers und Free-Picks")
+                    )
+                )
+            ), ActionRow.of(primary("4tierlistbuilder;old", "Alte Einstellungen verwenden"))
+        )
 
 
         val enabledGuilds = setOf(1054161634895069215, 651152835425075218, 736555250118295622)

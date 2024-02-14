@@ -9,6 +9,7 @@ import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
@@ -421,6 +422,11 @@ object PrivateCommands {
     fun flegmonSendRoles(args: PrivateData) {
         flegmonjda.getTextChannelById(args().toLong())!!.send(components = RoleManagement.RoleGetMenu().into())
             .queue()
+    }
+
+    context(InteractionData)
+    suspend fun deleteTierlist(args: PrivateData) {
+        reply(Tierlist(args().toLong()).deleteAllMons().toString())
     }
 }
 

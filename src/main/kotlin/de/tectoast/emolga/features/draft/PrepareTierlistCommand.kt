@@ -3,6 +3,7 @@ package de.tectoast.emolga.features.draft
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
+import de.tectoast.emolga.utils.draft.DraftPokemon
 
 object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
     ::Args,
@@ -15,10 +16,12 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
     init {
         restrict(admin)
     }
+
     class Args : Arguments() {
         var docurl by string("Doc-URL", "Die URL des Dokuments, in dem die Namen stehen")
         var tierlistsheet by string("Tierlist-Sheet", "Der Name des Tierlist-Sheets")
         var ranges by list("Bereich %s", "Der %s. Bereich", 10, 1)
+        var shiftdata by string("Shift-Data", "Die Shift-Data").nullable()
     }
 
     context(InteractionData)
@@ -27,13 +30,21 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         val tierlistsheet = e.tierlistsheet
         deferReply()
         val tierlistcols = mutableListOf<List<String>>()
+        val shiftedMons = e.shiftdata?.let {
+            val split = it.split(" ")
+            buildList {
+                for (i in split.indices step 2) {
+                    this += DraftPokemon(split[i], split[i + 1])
+                }
+            }
+        }
         try {
             TierlistBuilderConfigurator(
                 userId = user,
                 channelId = tc,
                 guildId = PrivateCommands.guildForTLSetup?.takeUnless { isNotFlo } ?: gid,
                 mons =
-                Google.batchGet(
+                (Google.batchGet(
                     sid,
                     e.ranges.map { "$tierlistsheet!$it" },
                     false,
@@ -41,8 +52,9 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                 )
                     .map { col -> col.flatten().mapNotNull { it?.toString()?.prepareForTL() } }
                     .also { tierlistcols += it }
-                    .flatten().ensureNoDuplicates(),
-                tierlistcols = tierlistcols
+                    .flatten().ensureNoDuplicates() + shiftedMons?.map { it.name }.orEmpty()).distinct(),
+                tierlistcols = tierlistcols,
+                shiftedMons = shiftedMons
             )
         } catch (ex: DuplicatesFoundException) {
             reply(

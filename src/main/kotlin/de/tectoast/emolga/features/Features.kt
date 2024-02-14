@@ -178,6 +178,7 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
 
     init {
         registerListener<CommandAutoCompleteInteractionEvent> {
+            if (it.name != spec.name) return@registerListener
             val focusedOption = it.focusedOption
             autoCompleatableOptions[focusedOption.name]?.let { ac ->
                 val list = ac(focusedOption.value, it)?.takeIf { l -> l.size <= 25 }

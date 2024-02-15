@@ -14,6 +14,15 @@ object SwitchTimer {
         class Args : Arguments() {
             var league by league("Liga", "Der Name der Liga, für die der Timer erstellt werden soll.")
             var settings by list("Timer %s", "Die %s. Einstellung", 5, 1)
+            var stallSeconds by int("Stall-Sekunden", "Die Anzahl an Sekunden, die Spieler überziehen dürfen.") {
+                default = 0
+            }
+            var from by int("Startstunde", "Die Stunde, zu der der Timer startet.") {
+                default = 0
+            }
+            var to by int("Endstunde", "Die Stunde, zu der der Timer endet.") {
+                default = 24
+            }
         }
 
         context(InteractionData)
@@ -22,8 +31,9 @@ object SwitchTimer {
             val settings = e.settings
             val timer = SwitchTimer(settings.associateWith {
                 TimerInfo((TimeUtils.parseShortTime(it).takeIf { n -> n >= 0 }
-                    ?: return reply("`$it` ist keine valide Zeitangabe!")) / 60)
+                    ?: return reply("`$it` ist keine valide Zeitangabe!")) / 60).set(e.from, e.to)
             })
+            timer.stallSeconds = e.stallSeconds
             league.timer = timer
             league.save("SwitchTimer")
             val controlPanel = timer.createControlPanel(league)

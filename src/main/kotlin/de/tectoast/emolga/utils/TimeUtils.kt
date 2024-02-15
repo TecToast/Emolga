@@ -140,4 +140,10 @@ object TimeUtils {
     private fun pluralise(x: Long, singular: String, plural: String): String {
         return if (x == 1L) singular else plural
     }
+
+    fun convertToMinsSecs(seconds: Int): String {
+        val minutes = seconds / 60
+        val remainingSeconds = seconds % 60
+        return "$minutes:${remainingSeconds.toString().padStart(2, '0')}"
+    }
 }

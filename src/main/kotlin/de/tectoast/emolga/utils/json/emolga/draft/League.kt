@@ -118,6 +118,7 @@ sealed class League {
 
 
     val cooldownJob: Job? get() = allTimers[leaguename]
+    val stallSecondJob: Job? get() = allStallSecondTimers[leaguename]
 
     @Transient
     open val allowPickDuringSwitch = false
@@ -302,8 +303,9 @@ sealed class League {
             updates += ::pseudoEnd setTo false
             updates += ::skippedTurns setTo mutableMapOf()
             updates += ::lastPick setTo currentTimeMillis
+            updates += ::usedStallSeconds setTo mutableMapOf()
         } else {
-            val delay = if (cooldown != -1L) cooldown - currentTimeMillis else timer?.calc(this)
+            val delay = if (cooldown > 0) cooldown - currentTimeMillis else timer?.calc(this)
             restartTimer(delay)
         }
         updates += ::isRunning setTo true
@@ -333,10 +335,14 @@ sealed class League {
     open fun reset(updates: MutableList<SetTo<*>>) {}
 
     private fun restartTimer(delay: Long? = timer?.calc(this)) {
-        delay ?: return
+        delay ?: run {
+            cooldown = 0
+            return
+        }
         afterTimerSkipMode?.run {
             if (disableTimer()) {
                 cancelCurrentTimer()
+                cooldown = 0
                 return
             }
         }
@@ -350,7 +356,13 @@ sealed class League {
                 executeTimerOnRefreshedVersion(this@League.leaguename)
             }
         }
+        allStallSecondTimers[leaguename] = timerScope.launch {
+            delay(delay.cleanFromStalledSeconds())
+            handleStallSecondUse()
+        }
     }
+
+    open suspend fun handleStallSecondUse() {}
 
     private fun sendRound() {
         tc.sendMessage("**=== Runde $round ===**").queue()
@@ -360,20 +372,16 @@ sealed class League {
         val currentMention = getCurrentMention()
         val announceData = announceData()
         with(data) {
-            tc.sendMessage(when (this) {
-                NextPlayerData.Normal -> "$currentMention ist dran!$announceData"
-                is NextPlayerData.Moved -> {
-                    buildString {
-                        val skippedUserName = getCurrentName(skippedUser)
-                        if (reason == SkipReason.REALTIMER) append(
-                            "**$skippedUserName** war zu langsam und deshalb ist jetzt $currentMention dran!"
-                        )
-                        else append("Der Pick von $skippedUserName wurde ".condAppend(skippedBy != null) { "von <@$skippedBy> " } + "${if (isSwitchDraft) "geskippt" else "verschoben"} und deshalb ist jetzt $currentMention dran!")
-                        append(announceData)
-                    }
-                }
-            }).queue()
+            if (this is NextPlayerData.Moved) sendSkipMessage()
+            tc.sendMessage("$currentMention ist dran!$announceData").queue()
         }
+    }
+
+    open fun NextPlayerData.Moved.sendSkipMessage() {
+        val skippedUserName = getCurrentName(skippedUser)
+        tc.sendMessage(if (reason == SkipReason.REALTIMER) "**$skippedUserName** war zu langsam!**"
+        else "Der Pick von $skippedUserName wurde ".condAppend(skippedBy != null) { "von <@$skippedBy> " } + "${if (isSwitchDraft) "geskippt" else "verschoben"}!")
+            .queue()
     }
 
     private fun announceData() = buildList {
@@ -390,13 +398,17 @@ sealed class League {
     }.joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
         .condAppend(newTimerForAnnounce) {
             " — Zeit bis: **${
-                leagueTimeFormat.format(
-                    cooldown
+                timeFormat.format(
+                    cooldown.cleanFromStalledSeconds()
                 )
             }**"
         }.also { newTimerForAnnounce = false }/*.condAppend(timerSkipMode?.multiplePicksPossible == true && hasMovedTurns()) {
         movedTurns().size.plus(1).let { " **($it Pick${if (it == 1) "" else "s"})**" }
     }*/
+
+    private fun Long.cleanFromStalledSeconds() = this - currentlyUsedStallSeconds() * 1000
+
+    fun currentlyUsedStallSeconds() = ((timer?.stallSeconds ?: 0) - (usedStallSeconds[current] ?: 0)).coerceAtLeast(0)
 
     open fun beforePick(): String? = null
     open fun beforeSwitch(): String? = null
@@ -483,7 +495,7 @@ sealed class League {
         return false
     }
 
-    open fun onRoundSwitch() {}
+    open suspend fun onRoundSwitch() {}
 
     suspend fun finishDraft(msg: String) {
         tc.sendMessage(msg).queue()
@@ -513,15 +525,18 @@ sealed class League {
 
     fun cancelCurrentTimer(reason: String = "Next player") {
         cooldownJob?.cancel(reason)
+        stallSecondJob?.cancel(reason)
     }
 
     private suspend fun nextPlayer(data: NextPlayerData = NextPlayerData.Normal) {
         if (!isRunning) return
         timer?.stallSeconds?.let {
-            val ctm = System.currentTimeMillis()
-            val punishSeconds = ((ctm - lastPick - timer!!.getCurrentTimerInfo()
-                .getDelayAfterSkips(skippedTurns[current]?.size ?: 0) * 60000) / 1000).toInt()
-            if (punishSeconds > 0) usedStallSeconds.add(current, punishSeconds)
+            if (cooldown > 0) {
+                val ctm = System.currentTimeMillis()
+                val punishSeconds = ((ctm - lastPick - timer!!.getCurrentTimerInfo()
+                    .getDelayAfterSkips(skippedTurns[current]?.size ?: 0) * 60000) / 1000).toInt()
+                if (punishSeconds > 0) usedStallSeconds.add(current, punishSeconds)
+            }
         }
         when (data) {
             is NextPlayerData.Normal -> cancelCurrentTimer()
@@ -531,6 +546,7 @@ sealed class League {
             }
         }
         if (endOfTurn()) return
+        lastPick = System.currentTimeMillis()
         setNextUser()
         restartTimer()
         announcePlayer(data)
@@ -671,10 +687,14 @@ sealed class League {
         }
     }
 
+    val timeFormat get() = if (timer?.stallSeconds == 0) leagueTimeFormat else leagueTimeFormatSecs
+
     companion object {
         val logger: Logger by SLF4J
         val allTimers = mutableMapOf<String, Job>()
+        val allStallSecondTimers = mutableMapOf<String, Job>()
         val leagueTimeFormat = SimpleDateFormat("HH:mm")
+        val leagueTimeFormatSecs = SimpleDateFormat("HH:mm:ss")
         val allMutexes = ConcurrentHashMap<String, Mutex>()
 
         val timerScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
@@ -811,11 +831,11 @@ sealed interface BypassCurrentPlayerData {
     data class Yes(val user: Long) : BypassCurrentPlayerData
 }
 
-sealed interface DuringTimerSkipMode : TimerSkipMode {
+interface DuringTimerSkipMode : TimerSkipMode {
     override suspend fun League.afterPickCall(data: NextPlayerData) = afterPick(data)
 }
 
-sealed interface AfterTimerSkipMode : TimerSkipMode {
+interface AfterTimerSkipMode : TimerSkipMode {
     override suspend fun League.afterPickCall(data: NextPlayerData) = if (draftWouldEnd) afterPick(data) else true
 }
 
@@ -914,39 +934,6 @@ data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
     }
 }
 
-data class MovePicksMode(val turns: Int, val updateColFun: (Int) -> Unit = {}) : DuringTimerSkipMode,
-    AfterTimerSkipMode {
-    override suspend fun League.afterPickCall(data: NextPlayerData) = afterPick(data)
-
-    override suspend fun League.afterPick(data: NextPlayerData): Boolean {
-        when (data) {
-            is NextPlayerData.Moved -> {
-                val curIndex = table.indexOf(current)
-                val indexOf = order[round]!!.indexOf(curIndex)
-                var insertIndex = indexOf + turns + 1
-                var roundToInsert = round
-                if (insertIndex == table.size) insertIndex++
-                if (insertIndex > table.size) {
-                    insertIndex -= table.size
-                    roundToInsert++
-                }
-                if (roundToInsert > totalRounds) {
-                    roundToInsert = totalRounds
-                    insertIndex = order[roundToInsert]!!.size
-                }
-                order[roundToInsert]!!.add(insertIndex, curIndex)
-                updateColFun(roundToInsert)
-            }
-
-            NextPlayerData.Normal -> {
-                if (hasMovedTurns()) movedTurns().removeFirst()
-            }
-        }
-        return true
-    }
-
-    override suspend fun League.getPickRound() = movedTurns().firstOrNull() ?: round
-}
 
 data class AdditionalSet(val col: String, val existent: String, val yeeted: String)
 sealed interface NextPlayerData {

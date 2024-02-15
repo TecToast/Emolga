@@ -16,6 +16,7 @@ import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
+import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
@@ -41,6 +42,8 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.eq
 import org.litote.kmongo.newId
+import org.litote.kmongo.set
+import org.litote.kmongo.setTo
 import org.slf4j.LoggerFactory
 import java.awt.Color
 import java.io.ByteArrayOutputStream
@@ -286,6 +289,11 @@ object PrivateCommands {
     fun grabUserIDs(args: PrivateData) {
         guildForUserIDGrabbing = args().toLong()
         grabbedIDs.clear()
+    }
+    context(InteractionData)
+    suspend fun setTableFromGrabUserIDS(args: PrivateData) {
+        db.db.getCollection<League>(args[0])
+            .updateOne(League::leaguename eq args[1], set(League::table setTo grabbedIDs))
     }
 
     context(InteractionData)

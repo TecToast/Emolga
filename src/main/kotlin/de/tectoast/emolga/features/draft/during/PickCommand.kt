@@ -27,6 +27,7 @@ object PickCommand :
         }
         var random by boolean("random", "RANDOMPICK (not visible)") {
             onlyInCode = true
+            default = false
         }
     }
 

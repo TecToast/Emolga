@@ -390,7 +390,7 @@ open class Arguments {
             val guildId = League.onlyChannel(tc)?.guild ?: gid
             NameConventionsDB.getDiscordTranslation(
                 it, guildId, english = Tierlist[guildId].isEnglish
-            ) ?: throw IllegalArgumentException("Pokemon $it nicht gefunden!")
+            ) ?: throw InvalidArgumentException("Pokemon `$it` nicht gefunden!")
         }
         slashCommand(autocomplete = autocomplete ?: lambda@{ s, event ->
             val gid = event.guild!!.idLong
@@ -467,7 +467,7 @@ open class Arguments {
             try {
                 enumValueOf<T>(it)
             } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException(
+                throw InvalidArgumentException(
                     "Ungültiger Wert für $name! Mögliche Werte: ${enumValues<T>().joinToString(", ")}"
                 )
             }

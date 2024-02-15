@@ -19,7 +19,7 @@ object RandomPickCommand : CommandFeature<RandomPickCommand.Args>(
     ::Args, CommandSpec("randompick", "Well... nen Random-Pick halt", Constants.G.ASL, Constants.G.FLP, Constants.G.WFS)
 ) {
     class Args : Arguments() {
-        var tier by string("tier", "Das Tier, in dem gepickt werden soll")
+        var tier by string("tier", "Das Tier, in dem gepickt werden soll").nullable()
         var type by pokemontype("type", "Der Typ, von dem random gepickt werden soll", true).nullable()
     }
 
@@ -36,11 +36,14 @@ object RandomPickCommand : CommandFeature<RandomPickCommand.Args>(
         val mutex = locks.getOrPut(d.leaguename) { Mutex() }
         mutex.withLock {
             val tierlist = d.tierlist
-            val tier = (tierlist.order.firstOrNull { e.tier.equals(it, ignoreCase = true) }
-                ?: return reply("Das ist kein Tier!")).takeIf {
-                tierRestrictions[gid]?.run { isEmpty() || contains(it) } != false
-            }
-                ?: return reply("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: $tierRestrictions[gid]?.joinToString()}")
+            val tier = e.tier?.let {
+                (tierlist.order.firstOrNull { e.tier.equals(it, ignoreCase = true) }
+                    ?: return reply("Das ist kein Tier!")).takeIf {
+                    tierRestrictions[gid]?.run { isEmpty() || contains(it) } != false
+                }
+                    ?: return reply("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: $tierRestrictions[gid]?.joinToString()}")
+            } ?: if (d.tierlist.mode.withTiers) d.getPossibleTiers()
+                .filter { it.value > 0 }.keys.random() else d.tierlist.order.last()
 
             val list = tierlist.getByTier(tier)!!.shuffled()
 

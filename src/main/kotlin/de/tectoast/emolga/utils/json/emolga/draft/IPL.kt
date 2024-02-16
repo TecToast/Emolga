@@ -1,12 +1,11 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.features.draft.AddToTierlistData
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.TimeUtils
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
-import de.tectoast.emolga.utils.x
+import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -17,10 +16,19 @@ import org.litote.kmongo.setTo
 
 @Serializable
 @SerialName("IPL")
-class IPL(val draftSheetId: Int, var pickTries: Int = 0) : League() {
+class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
     override val teamsize = 12
     override val pickBuffer = 5
 
+    @Transient
+    override val docEntry = DocEntry.create(this) {
+        newSystem(SorterData("C3:I10", newMethod = true, cols = listOf(6, 5, -1))) {
+            b.addRow(
+                gdi.coordXMod("Spielplan (SPOILER)", 3, 'J' - 'B', 4, 8, 5 + index),
+                defaultSplitGameplanStringWithoutUrl
+            )
+        }
+    }
     object MovePicksMode : DuringTimerSkipMode, AfterTimerSkipMode {
         private const val TURNS = 4
         override suspend fun League.afterPickCall(data: NextPlayerData) = afterPick(data)

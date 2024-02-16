@@ -418,5 +418,7 @@ data class AdvancedResult(
     fun Int.swap() = if (swappedNumbers) 1 - this else this
     val defaultGameplanString get() = """=HYPERLINK("$url"; "$numberOne:$numberTwo")"""
     val defaultGameplanStringWithoutUrl get() = "$numberOne:$numberTwo"
+    val defaultSplitGameplanString get() = listOf("$numberOne", """=HYPERLINK("$url"; ":")""", "$numberTwo")
+    val defaultSplitGameplanStringWithoutUrl get() = listOf("$numberOne", ":", "$numberTwo")
 }
 

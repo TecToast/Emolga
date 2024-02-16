@@ -6,6 +6,7 @@ import java.util.*
 @Serializable
 class TimerInfo {
     private val dayToData: MutableMap<Int, TimerData> = mutableMapOf()
+    private var globalTimerData: TimerData? = null
 
     val delayData: @Serializable(with = TreeMapSerializer::class) TreeMap<Int, Int>
 
@@ -28,14 +29,12 @@ class TimerInfo {
     }
 
     operator fun set(from: Int, to: Int): TimerInfo {
-        for (i in 1..7) {
-            dayToData[i] = TimerData(from, to)
-        }
+        globalTimerData = TimerData(from, to)
         return this
     }
 
     operator fun get(day: Int): TimerData {
-        return dayToData[day] ?: throw IllegalStateException("TimerInfo Map Incomplete ($day)")
+        return dayToData[day] ?: globalTimerData ?: throw IllegalStateException("TimerInfo Incomplete ($day)")
     }
 }
 

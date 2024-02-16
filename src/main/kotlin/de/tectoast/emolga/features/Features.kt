@@ -340,7 +340,8 @@ class SelectMenuSpec(name: String) : FeatureSpec(name)
 sealed interface ArgSpec
 data class CommandArgSpec(
     val autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null,
-    val choices: List<Choice>? = null
+    val choices: List<Choice>? = null,
+    val disabledGuilds: Set<Long> = emptySet()
 ) : ArgSpec
 
 data class ModalArgSpec(val short: Boolean, val modalEnableKey: ModalKey?, val builder: TextInput.Builder.() -> Unit) :
@@ -611,9 +612,10 @@ class Arg<DiscordType, ParsedType>(
 
     fun slashCommand(
         choices: List<Choice>? = null,
+        disabledGuilds: Set<Long> = emptySet(),
         autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
     ) {
-        spec = CommandArgSpec(autocomplete, choices)
+        spec = CommandArgSpec(autocomplete, choices, disabledGuilds)
     }
 
     fun modal(short: Boolean = true, modalKey: ModalKey? = null, builder: TextInput.Builder.() -> Unit = {}) {

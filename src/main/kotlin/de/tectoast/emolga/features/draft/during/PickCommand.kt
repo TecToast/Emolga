@@ -4,6 +4,7 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.invoke
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -24,6 +25,7 @@ object PickCommand :
         }.nullable()
         var free by boolean("free", "Ob dieser Pick ein Freepick ist") {
             default = false
+            slashCommand(disabledGuilds = setOf(Constants.G.VIP))
         }
         var random by boolean("random", "RANDOMPICK (not visible)") {
             onlyInCode = true

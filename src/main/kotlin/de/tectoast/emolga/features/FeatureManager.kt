@@ -128,11 +128,23 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
 
     suspend fun updateFeatures(jda: JDA, updateGuilds: List<Long>? = null) {
         val guildSlashFeatures: MutableMap<Long, MutableSet<SlashCommandData>> = mutableMapOf()
-        generateSlashCommandDescriptions().forEach { (feature, desc) ->
-            (feature.spec.guilds + Constants.G.MY).forEach { guildId ->
-                guildSlashFeatures.getOrPut(guildId) { mutableSetOf() }.add(desc)
+
+        loadListeners.filterIsInstance<CommandFeature<*>>().forEach { cmd ->
+            (cmd.spec.guilds + Constants.G.MY).forEach { gid ->
+                val data = Commands.slash(cmd.spec.name, cmd.spec.help).apply {
+                    defaultPermissions = cmd.slashPermissions
+                    if (cmd.children.isNotEmpty()) {
+                        cmd.children.forEach {
+                            addSubcommands(
+                                SubcommandData(it.spec.name, it.spec.help).addOptions(generateOptionData(it, gid))
+                            )
+                        }
+                    } else addOptions(generateOptionData(cmd, gid))
+                }
+                guildSlashFeatures.getOrPut(gid) { mutableSetOf() }.add(data)
             }
         }
+
         for (gid in updateGuilds ?: db.config.only().guildsToUpdate.ifEmpty { guildSlashFeatures.keys }) {
             val commands = guildSlashFeatures[gid] ?: continue
             (if (gid == -1L) jda.updateCommands()
@@ -140,20 +152,10 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         }
     }
 
-    fun generateSlashCommandDescriptions() = loadListeners.filterIsInstance<CommandFeature<*>>().associateWith { cmd ->
-        Commands.slash(cmd.spec.name, cmd.spec.help).apply {
-            defaultPermissions = cmd.slashPermissions
-            if (cmd.children.isNotEmpty()) {
-                cmd.children.forEach {
-                    addSubcommands(SubcommandData(it.spec.name, it.spec.help).addOptions(generateOptionData(it)))
-                }
-            } else addOptions(generateOptionData(cmd))
-        }
-    }
-
-    private fun generateOptionData(feature: CommandFeature<*>) = feature.defaultArgs.mapNotNull { a ->
+    private fun generateOptionData(feature: CommandFeature<*>, gid: Long) = feature.defaultArgs.mapNotNull { a ->
         if (a.onlyInCode) return@mapNotNull null
         val spec = a.spec as? CommandArgSpec
+        if (spec?.disabledGuilds?.let { it.isNotEmpty() && gid in it } == true) return@mapNotNull null
         OptionData(a.optionType, a.name.nameToDiscordOption(), a.help, !a.optional, spec?.autocomplete != null).apply {
             if (spec?.choices != null) addChoices(spec.choices)
         }

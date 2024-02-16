@@ -1,6 +1,7 @@
 package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.SwitchTimer
 import de.tectoast.emolga.utils.TimeUtils
 import de.tectoast.emolga.utils.TimerInfo
@@ -9,7 +10,11 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 object SwitchTimer {
     object Create : CommandFeature<Create.Args>(
         ::Args,
-        CommandSpec("switchtimercreate", "Konfiguriert den Switch-Timer für eine Liga und erstellt ein Control-Panel")
+        CommandSpec(
+            "switchtimercreate",
+            "Konfiguriert den Switch-Timer für eine Liga und erstellt ein Control-Panel",
+            Constants.G.VIP
+        )
     ) {
         class Args : Arguments() {
             var league by league("Liga", "Der Name der Liga, für die der Timer erstellt werden soll.")
@@ -23,6 +28,10 @@ object SwitchTimer {
             var to by int("Endstunde", "Die Stunde, zu der der Timer endet.") {
                 default = 24
             }
+        }
+
+        init {
+            restrict(admin)
         }
 
         context(InteractionData)

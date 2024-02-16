@@ -2,7 +2,8 @@ package de.tectoast.emolga.utils
 
 import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.utils.records.Coord
-import kotlinx.coroutines.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.util.regex.Pattern
 
@@ -450,7 +451,7 @@ class RequestBuilder
         private val logger = LoggerFactory.getLogger(RequestBuilder::class.java)
         private val EVERYTHING_BUT_NUMBER = Pattern.compile("\\D")
         private val EVERYTHING_BUT_CHARS = Pattern.compile("[^a-zA-Z]")
-        private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineName("RequestBuilder"))
+        private val scope = createCoroutineScope("RequestBuilder")
 
         fun getColumnFromRange(range: String): Int {
             val chars = EVERYTHING_BUT_CHARS.matcher(range).replaceAll("").toCharArray()

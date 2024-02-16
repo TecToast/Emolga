@@ -1,13 +1,15 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.bot.EmolgaMain
-import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.embedColor
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.util.SLF4J
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -31,10 +33,7 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<Giveaway>(GiveawaysDB) {
         val logger by SLF4J
         private val coroutineScope =
-            CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineName("Giveaway") + CoroutineExceptionHandler { _, t ->
-                logger.error("ERROR IN GIVEAWAY SCOPE", t)
-                SendFeatures.sendToMe("Error in giveaway scope, look in console")
-            })
+            createCoroutineScope("Giveaway", Dispatchers.Default)
 
         suspend fun init() {
             newSuspendedTransaction {

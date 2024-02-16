@@ -6,6 +6,7 @@ import de.tectoast.emolga.database.exposed.CalendarEntry
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.TimeUtils
+import de.tectoast.emolga.utils.createCoroutineContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -16,7 +17,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import java.text.SimpleDateFormat
 
 object CalendarSystem : CoroutineScope {
-    override val coroutineContext = Dispatchers.IO
+    override val coroutineContext = createCoroutineContext("CalendarSystem", Dispatchers.IO)
     private val calendarFormat = SimpleDateFormat("dd.MM. HH:mm")
 
 

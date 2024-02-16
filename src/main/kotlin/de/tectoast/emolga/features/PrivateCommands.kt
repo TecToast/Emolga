@@ -312,7 +312,7 @@ object PrivateCommands {
         reply("```" + db.nds().run { table - nominations.current().keys }.joinToString { "<@${it}>" } + "```")
     }
 
-    private val teamGraphicScope = CoroutineScope(Dispatchers.IO)
+    private val teamGraphicScope = createCoroutineScope("TeamGraphics", Dispatchers.IO)
     context(InteractionData)
     fun teamgraphics(args: PrivateData) {
         suspend fun List<DraftPokemon>.toTeamGraphics() = FileUpload.fromData(ByteArrayOutputStream().also {

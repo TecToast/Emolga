@@ -5,6 +5,7 @@ import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.condAppend
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.SignUpData
 import de.tectoast.emolga.utils.json.db
@@ -12,7 +13,6 @@ import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.toUsername
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.primary
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap
 object SignupManager {
 
     private val persistentSignupData = ConcurrentHashMap<Long, Pair<Mutex, Channel<LigaStartData>>>()
-    private val signupScope = CoroutineScope(Dispatchers.IO)
+    private val signupScope = createCoroutineScope("Signup", Dispatchers.IO)
 
     object Button : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("signup")) {
         context(InteractionData)

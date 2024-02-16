@@ -2,10 +2,13 @@ package de.tectoast.emolga.utils.repeat
 
 import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.utils.TimeUtils
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
 import de.tectoast.emolga.utils.json.emolga.draft.NDSML
-import kotlinx.coroutines.*
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import mu.KotlinLogging
 import java.time.Duration
 import java.time.Instant
@@ -18,7 +21,7 @@ class RepeatTask(
     printDelays: Boolean = false,
     consumer: suspend (Int) -> Unit,
 ) {
-    private val scope = CoroutineScope(Dispatchers.Default)
+    private val scope = createCoroutineScope("RepeatTask")
 
     init {
         val now = Instant.now()

@@ -78,15 +78,16 @@ fun Int.convertColor(): Color {
 }
 
 val universalLogger = KotlinLogging.logger("Universal")
+private val basicCoroutineContext = SupervisorJob() + CoroutineExceptionHandler { ctx, t ->
+    val name = ctx[CoroutineName]?.name ?: "Unknown"
+    universalLogger.error(t) { "Error in $name" }
+    sendToMe("Error in $name scope\n```${t.stackTraceToString().take(1800)}```")
+}
 fun createCoroutineScope(name: String, dispatcher: CoroutineDispatcher = Dispatchers.Default) =
     CoroutineScope(createCoroutineContext(name, dispatcher))
 
 fun createCoroutineContext(name: String, dispatcher: CoroutineDispatcher = Dispatchers.Default) =
-    dispatcher + SupervisorJob() + CoroutineName(name) + CoroutineExceptionHandler { _, t ->
-        t.printStackTrace()
-        universalLogger.error(t) { "Error in $name" }
-        sendToMe("Error in $name scope, look in console")
-    }
+    basicCoroutineContext + dispatcher + CoroutineName(name)
 
 val webJSON = Json {
     ignoreUnknownKeys = true
@@ -100,10 +101,7 @@ val httpClient = HttpClient(CIO) {
     }
 }
 
-val defaultScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
-    t.printStackTrace()
-    sendToMe("Error in default scope, look in console")
-})
+val defaultScope = createCoroutineScope("Default")
 val myJSON = Json {
     prettyPrint = true
 }

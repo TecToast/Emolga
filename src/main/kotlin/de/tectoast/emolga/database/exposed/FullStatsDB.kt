@@ -1,8 +1,8 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.increment
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.records.UsageData
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
@@ -22,7 +22,7 @@ object FullStatsDB : Table("fullstats") {
     override val primaryKey = PrimaryKey(POKEMON)
 
     private val logger = KotlinLogging.logger {}
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = createCoroutineScope("FullStatsDB", Dispatchers.IO)
     fun add(pkmn: String, k: Int, d: Int, w: Boolean) {
         scope.launch {
             newSuspendedTransaction {

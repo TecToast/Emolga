@@ -7,14 +7,14 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.createCoroutineContext
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
 
 object BirthdaySystem : CoroutineScope {
-    override val coroutineContext = Dispatchers.Default
+    override val coroutineContext = createCoroutineContext("BirthdaySystem")
     fun startSystem() {
         launch {
             while (true) {

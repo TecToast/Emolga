@@ -697,11 +697,7 @@ sealed class League {
         val leagueTimeFormatSecs = SimpleDateFormat("HH:mm:ss")
         val allMutexes = ConcurrentHashMap<String, Mutex>()
 
-        val timerScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
-            logger.error(
-                "ERROR EXECUTING TIMER", t
-            )
-        })
+        val timerScope = createCoroutineScope("LeagueTimer")
 
         fun getLock(leaguename: String): Mutex = allMutexes.getOrPut(leaguename) { Mutex() }
 

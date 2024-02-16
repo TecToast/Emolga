@@ -7,10 +7,9 @@ import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.annotations.ToTest
 import de.tectoast.emolga.utils.condAppend
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
@@ -27,7 +26,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.hasAnnotation
 
 class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
-    private val listenerScope = CoroutineScope(Dispatchers.Default)
+    private val listenerScope = createCoroutineScope("FeatureManagerListener")
 
     constructor(packageName: String) : this(packageName.let {
         ClassPath.from(Thread.currentThread().contextClassLoader).getTopLevelClassesRecursive(packageName).mapNotNull {

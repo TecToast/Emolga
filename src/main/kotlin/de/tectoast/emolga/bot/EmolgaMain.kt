@@ -9,6 +9,7 @@ import de.tectoast.emolga.features.flegmon.BirthdaySystem
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.features.various.ControlCentralButton
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.db
@@ -155,10 +156,7 @@ object EmolgaMain {
 
     @Suppress("unused")
     private fun initializeASLCoach(raikou: JDA) {
-        val scope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineExceptionHandler { _, t ->
-            logger.error("ERROR IN ASL SCOPE", t)
-            SendFeatures.sendToMe("Error in asl scope, look in console")
-        })
+        val scope = createCoroutineScope("ASLCoach")
         jda.listener<SlashCommandInteractionEvent> { e ->
             if (e.name != "bet") return@listener
             val coachdata = db.aslcoach.only()

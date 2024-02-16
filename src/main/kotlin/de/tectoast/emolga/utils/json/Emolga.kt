@@ -4,9 +4,9 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.features.various.ShiftUser
 import de.tectoast.emolga.utils.condAppend
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Soullink
@@ -18,7 +18,9 @@ import de.tectoast.emolga.utils.toSDName
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.into
-import kotlinx.coroutines.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -93,10 +95,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
 
     private val scanScope =
-        CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineName("ScanScope") + CoroutineExceptionHandler { _, t ->
-            logger.error("ERROR IN ScanScope SCOPE", t)
-            SendFeatures.sendToMe("Error in scanScope scope, look in console")
-        })
+        createCoroutineScope("ScanScope")
 
     suspend fun leagueByGuildAdvanced(gid: Long, game: List<List<DraftName>>, vararg uids: Long): LeagueResult? {
         val (leagueResult, duration) = measureTimedValue {

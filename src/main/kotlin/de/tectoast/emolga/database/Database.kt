@@ -4,10 +4,13 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
-import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.features.various.CalendarSystem
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.Tokens
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.statements.InsertStatement
 import org.jetbrains.exposed.sql.statements.Statement
@@ -31,10 +34,7 @@ class Database(host: String, username: String, password: String) {
         private val logger = LoggerFactory.getLogger(Database::class.java)
         private lateinit var instance: Database
         val dbScope =
-            CoroutineScope(Dispatchers.IO + SupervisorJob() + CoroutineName("DBScope") + CoroutineExceptionHandler { _, t ->
-                logger.error("ERROR IN DATABASE SCOPE", t)
-                SendFeatures.sendToMe("Error in database scope, look in console")
-            })
+            createCoroutineScope("Database", Dispatchers.IO)
 
 
         suspend fun init(cred: Tokens.Database, host: String, withStartUp: Boolean = true): Database {

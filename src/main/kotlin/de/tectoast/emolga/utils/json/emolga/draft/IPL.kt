@@ -22,7 +22,7 @@ class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(SorterData("C3:I10", newMethod = true, cols = listOf(6, 5, -1))) {
+        newSystem(SorterData("Tabelle!C3:I10", newMethod = true, cols = listOf(6, 5, -1))) {
             b.addRow(
                 gdi.coordXMod("Spielplan (SPOILER)", 3, 'J' - 'B', 4, 8, 5 + index),
                 defaultSplitGameplanStringWithoutUrl

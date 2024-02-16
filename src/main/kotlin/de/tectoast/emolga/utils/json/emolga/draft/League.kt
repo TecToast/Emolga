@@ -296,7 +296,6 @@ sealed class League {
             moved.clear()
             pseudoEnd = false
             lastPick = currentTimeMillis
-            lastRegularDelay = -1
             reset(updates)
             restartTimer()
             sendRound()
@@ -308,7 +307,6 @@ sealed class League {
             updates += ::skippedTurns setTo mutableMapOf()
             updates += ::lastPick setTo currentTimeMillis
             updates += ::usedStallSeconds setTo mutableMapOf()
-            updates += ::lastRegularDelay setTo -1
         } else {
 
             val delayData = if (cooldown > 0) DelayData(cooldown, regularCooldown, currentTimeMillis) else timer?.calc(

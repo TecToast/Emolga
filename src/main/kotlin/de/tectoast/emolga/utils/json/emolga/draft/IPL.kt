@@ -6,6 +6,7 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
 import de.tectoast.emolga.utils.records.SorterData
+import dev.minn.jda.ktx.coroutines.await
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -29,6 +30,7 @@ class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
             )
         }
     }
+
     object MovePicksMode : DuringTimerSkipMode, AfterTimerSkipMode {
         private const val TURNS = 4
         override suspend fun League.afterPickCall(data: NextPlayerData) = afterPick(data)
@@ -49,11 +51,12 @@ class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
                             roundToInsert++
                             isNextRound = true
                         }
-                        val orderRoundToInsert = order[roundToInsert]!!
                         if (roundToInsert > totalRounds) {
                             roundToInsert = totalRounds
-                            insertIndex = orderRoundToInsert.size
+                            insertIndex = order[roundToInsert]!!.size
+                            isNextRound = false
                         }
+                        val orderRoundToInsert = order[roundToInsert]!!
                         orderRoundToInsert.add(insertIndex, curIndex)
 
                         val b = builder()
@@ -121,21 +124,30 @@ class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
         addStrikethroughChange(draftSheetId, round + 2, pickTries + 5, true)
     }
 
-    override suspend fun handleStallSecondUse() {
-        tc.sendMessage(
-            getCurrentMention() + " Dein Uhrsaring-Zuschlag läuft! Du hast noch ${
-                TimeUtils.convertToMinsSecs(
-                    currentlyUsedStallSeconds()
-                )
-            } Zeit bis du geskippt wirst!"
+    override suspend fun handleStallSecondUsed(): Long {
+        return tc.sendMessage(
+            "${getCurrentMention()} Dein Uhrsaring-Zuschlag läuft! Du wirst <t:${cooldown / 1000}:R> geskippt!"
         ).setStickers(
             StickerSnowflake.fromId(1207743104837492756)
-        ).queue()
+        ).await().idLong
     }
 
     override fun NextPlayerData.Moved.sendSkipMessage() {
         if (reason == SkipReason.SKIP) tc.sendMessage("${getCurrentName(skippedUser)} wurde geskippt!").queue()
-        tc.sendMessage("<@$skippedUser> Dein Uhrsaring-Zuschlag ist abgelaufen. Du wirst geskippt!")
+        else tc.sendMessage("<@$skippedUser> Dein Uhrsaring-Zuschlag ist abgelaufen. Du wirst geskippt!")
             .setStickers(StickerSnowflake.fromId(1207743822826836061)).queue()
+    }
+
+    override suspend fun onNextPlayer(data: NextPlayerData) {
+        lastStallSecondUsedMid?.takeIf { it > 0 }?.let {
+            tc.editMessageById(
+                it, "<@$current> Dein Uhrsaring-Zuschlag ${
+                    if (data is NextPlayerData.Normal) "beträgt noch ${
+                        TimeUtils.secondsToTime((cooldown - System.currentTimeMillis()) / 1000)
+                    }!"
+                    else "wurde vollständig aufgebraucht!"
+                }"
+            ).queue()
+        }
     }
 }

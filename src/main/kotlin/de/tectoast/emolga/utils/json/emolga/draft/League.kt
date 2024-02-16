@@ -56,7 +56,8 @@ sealed class League {
     val guild = -1L
     var round = 1
     var current = -1L
-    private var cooldown = -1L
+    var cooldown = -1L
+    var regularCooldown = -1L
     var pseudoEnd = false
 
     abstract val teamsize: Int
@@ -80,7 +81,9 @@ sealed class League {
     val skippedTurns: MutableMap<Long, MutableSet<Int>> = mutableMapOf()
 
     private var lastPick = -1L
+    private var lastRegularDelay = -1L
     val usedStallSeconds: MutableMap<Long, Int> = mutableMapOf()
+    var lastStallSecondUsedMid: Long? = null
 
     internal val names: MutableMap<Long, String> = mutableMapOf()
 
@@ -293,6 +296,7 @@ sealed class League {
             moved.clear()
             pseudoEnd = false
             lastPick = currentTimeMillis
+            lastRegularDelay = -1
             reset(updates)
             restartTimer()
             sendRound()
@@ -304,9 +308,14 @@ sealed class League {
             updates += ::skippedTurns setTo mutableMapOf()
             updates += ::lastPick setTo currentTimeMillis
             updates += ::usedStallSeconds setTo mutableMapOf()
+            updates += ::lastRegularDelay setTo -1
         } else {
-            val delay = if (cooldown > 0) cooldown - currentTimeMillis else timer?.calc(this)
-            restartTimer(delay)
+
+            val delayData = if (cooldown > 0) DelayData(cooldown, regularCooldown, currentTimeMillis) else timer?.calc(
+                this,
+                currentTimeMillis
+            )
+            restartTimer(delayData)
         }
         updates += ::isRunning setTo true
         db.drafts.updateOneById(id!!, set(*updates.toTypedArray()))
@@ -334,35 +343,46 @@ sealed class League {
 
     open fun reset(updates: MutableList<SetTo<*>>) {}
 
-    private fun restartTimer(delay: Long? = timer?.calc(this)) {
-        delay ?: run {
+    private fun restartTimer(delayData: DelayData? = timer?.calc(this)) {
+        val skipDelay = delayData?.skipDelay
+        skipDelay ?: run {
             cooldown = 0
+            regularCooldown = 0
             return
         }
         afterTimerSkipMode?.run {
             if (disableTimer()) {
                 cancelCurrentTimer()
                 cooldown = 0
+                regularCooldown = 0
                 return
             }
         }
-        cooldown = System.currentTimeMillis() + delay
+        lastRegularDelay = delayData.regularDelay
+        cooldown = delayData.skipTimestamp
+        regularCooldown = delayData.regularTimestamp
         newTimerForAnnounce = true
         logger.info("important".marker, "cooldown = {}", cooldown)
         cancelCurrentTimer("Restarting timer")
         allTimers[leaguename] = timerScope.launch {
-            delay(delay)
+            delay(skipDelay)
             withContext(NonCancellable) {
                 executeTimerOnRefreshedVersion(this@League.leaguename)
             }
         }
-        allStallSecondTimers[leaguename] = timerScope.launch {
-            delay(delay.cleanFromStalledSeconds())
-            handleStallSecondUse()
+        timer?.stallSeconds?.takeIf { it > 0 }?.let {
+            allStallSecondTimers[leaguename] = timerScope.launch {
+                val regularDelay = delayData.regularDelay
+                if (delayData.hasStallSeconds && regularDelay >= 0) {
+                    delay(regularDelay)
+                    lastStallSecondUsedMid = handleStallSecondUsed()
+                    save("StallSecondAnnounce")
+                }
+            }
         }
     }
 
-    open suspend fun handleStallSecondUse() {}
+    open suspend fun handleStallSecondUsed(): Long? = null
 
     private fun sendRound() {
         tc.sendMessage("**=== Runde $round ===**").queue()
@@ -399,16 +419,12 @@ sealed class League {
         .condAppend(newTimerForAnnounce) {
             " — Zeit bis: **${
                 timeFormat.format(
-                    cooldown.cleanFromStalledSeconds()
+                    regularCooldown
                 )
             }**"
         }.also { newTimerForAnnounce = false }/*.condAppend(timerSkipMode?.multiplePicksPossible == true && hasMovedTurns()) {
         movedTurns().size.plus(1).let { " **($it Pick${if (it == 1) "" else "s"})**" }
     }*/
-
-    private fun Long.cleanFromStalledSeconds() = this - currentlyUsedStallSeconds() * 1000
-
-    fun currentlyUsedStallSeconds() = ((timer?.stallSeconds ?: 0) - (usedStallSeconds[current] ?: 0)).coerceAtLeast(0)
 
     open fun beforePick(): String? = null
     open fun beforeSwitch(): String? = null
@@ -530,11 +546,10 @@ sealed class League {
 
     private suspend fun nextPlayer(data: NextPlayerData = NextPlayerData.Normal) {
         if (!isRunning) return
+        val ctm = System.currentTimeMillis()
         timer?.stallSeconds?.let {
             if (cooldown > 0) {
-                val ctm = System.currentTimeMillis()
-                val punishSeconds = ((ctm - lastPick - timer!!.getCurrentTimerInfo()
-                    .getDelayAfterSkips(skippedTurns[current]?.size ?: 0) * 60000) / 1000).toInt()
+                val punishSeconds = ((ctm - lastPick - lastRegularDelay) / 1000).toInt()
                 if (punishSeconds > 0) usedStallSeconds.add(current, punishSeconds)
             }
         }
@@ -546,12 +561,16 @@ sealed class League {
             }
         }
         if (endOfTurn()) return
-        lastPick = System.currentTimeMillis()
+        lastPick = ctm
+        onNextPlayer(data)
         setNextUser()
         restartTimer()
         announcePlayer(data)
+        lastStallSecondUsedMid = 0
         save("NEXT PLAYER SAFE")
     }
+
+    open suspend fun onNextPlayer(data: NextPlayerData) {}
 
     fun addFinished(mem: Long) {
         val index = mem.indexedBy(table)

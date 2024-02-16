@@ -20,7 +20,8 @@ sealed class DraftTimer {
 
     var stallSeconds = 0
     fun stallSeconds(stallSeconds: Int) = apply { this.stallSeconds = stallSeconds }
-    fun calc(league: League) = calc(
+    fun calc(league: League, now: Long = System.currentTimeMillis()) = calc(
+        now = now,
         timerStart = league.timerStart,
         howOftenSkipped = league.skippedTurns[league.current]?.size ?: 0,
         usedStallSeconds = league.usedStallSeconds[league.current] ?: 0
@@ -31,8 +32,8 @@ sealed class DraftTimer {
         timerStart: Long? = null,
         howOftenSkipped: Int = 0,
         usedStallSeconds: Int = 0
-    ): Long? {
-        val (delay, duration) = measureTimedValue {
+    ): DelayData? {
+        val (regularTimestamp, duration) = measureTimedValue {
             lateinit var currentTimerInfo: TimerInfo
             fun currentDelay(): Int? {
                 val calced = currentTimerInfo.getDelayAfterSkips(howOftenSkipped)
@@ -65,15 +66,20 @@ sealed class DraftTimer {
                     currentDelay = currentTimerInfoDelay
                 }
             }
-            cal.add(Calendar.SECOND, (stallSeconds - usedStallSeconds).coerceAtLeast(0))
-            cal.timeInMillis - now
+            cal.timeInMillis
 //        cal.add(Calendar.MINUTE, elapsedMinutes)
         }
         println("DURATION FOR TIMER CALC: ${duration.inWholeMilliseconds}ms")
-        return delay
+        return DelayData(regularTimestamp + (stallSeconds - usedStallSeconds) * 1000, regularTimestamp, now)
     }
 
 
+}
+
+data class DelayData(val skipTimestamp: Long, val regularTimestamp: Long, val now: Long) {
+    val skipDelay get() = skipTimestamp - now
+    val regularDelay get() = regularTimestamp - now
+    val hasStallSeconds get() = skipDelay != regularDelay
 }
 
 @Serializable

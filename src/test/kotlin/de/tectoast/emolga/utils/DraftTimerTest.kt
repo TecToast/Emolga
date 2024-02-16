@@ -211,7 +211,7 @@ private infix fun Long?.shouldBeTime(str: String) = this should Matcher { value 
 }
 
 private fun DraftTimer.testCalc(now: Long, timerStart: Long? = null, howOftenSkipped: Int = 0) =
-    calc(now, timerStart, howOftenSkipped)?.plus(now)
+    calc(now, timerStart, howOftenSkipped)?.skipDelay?.plus(now)
 
 private fun format(str: String) = defaultTimeFormat.parse(str).time
 private fun format(date: Long?) = defaultTimeFormat.format(date)

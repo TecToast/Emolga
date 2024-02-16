@@ -98,22 +98,19 @@ enum class PC(
     private val writePinWPi: Int,
     private val readPinWPi: Int,
     private val writePinBCM: Int,
-    private val readPinBCM: Int,
-    val messageId: Long
+    private val readPinBCM: Int
 ) {
     FLORIX_2(
         2,
         24,
         3,
         15,
-        964571226964115496
     ),
-    FLORIX_3(
+    FLORIX_4(
         3,
         25,
         2,
         14,
-        975076826588282962
     );
 
     fun getWritePin(type: BoardType): String {
@@ -128,12 +125,6 @@ enum class PC(
             BoardType.WPi -> readPinWPi
             BoardType.BCM -> readPinBCM
         }.toString()
-    }
-
-    companion object {
-        fun byMessage(messageId: Long): PC {
-            return entries.first { it.messageId == messageId }
-        }
     }
 }
 

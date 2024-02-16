@@ -372,7 +372,7 @@ object PrivateCommands {
         jda.getTextChannelById(args[0])!!.send(":)", components = FlorixButton("Server starten", ButtonStyle.PRIMARY) {
             this.pc = when (args[1]) {
                 "2" -> PC.FLORIX_2
-                "3" -> PC.FLORIX_3
+                "4" -> PC.FLORIX_4
                 else -> throw IllegalArgumentException()
             }
             this.action = FlorixButton.Action.START

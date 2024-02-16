@@ -1,6 +1,7 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.utils.Language
+import de.tectoast.emolga.utils.MappedCache
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.NameConventions
@@ -115,7 +116,7 @@ object NameConventionsDB : Table("nameconventions") {
         fun Map<String, String>.check() = firstNotNullOfOrNull {
             it.value.toRegex().find(s)?.let { mr -> mr to it.key }
         }
-        val defaultNameConventions = db.defaultNameConventions
+        val defaultNameConventions = db.defaultNameConventions()
         (nc?.check() ?: defaultNameConventions.check())?.also { (mr, key) ->
             list += mr.groupValues[1] + "-" + key to key
         }
@@ -129,12 +130,12 @@ object NameConventionsDB : Table("nameconventions") {
         return null
     }
 
-    private val possibleSpecs by lazy { db.defaultNameConventions.keys }
+    private val possibleSpecs = MappedCache(db.defaultNameConventions) { it.keys }
 
     suspend fun getSDTranslation(s: String, guildId: Long, english: Boolean = false) = getDBTranslation(
         s,
         guildId,
-        possibleSpecs.firstOrNull { s.endsWith("-$it") },
+        possibleSpecs().firstOrNull { s.endsWith("-$it") },
         db.nameconventions.get(guildId),
         english
     )
@@ -163,7 +164,7 @@ object NameConventionsDB : Table("nameconventions") {
                     //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
                     it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                         if (spec != null) {
-                            val pattern = nc[spec] ?: de.tectoast.emolga.utils.json.db.defaultNameConventions[spec]!!
+                            val pattern = nc[spec] ?: de.tectoast.emolga.utils.json.db.defaultNameConventions()[spec]!!
                             val len = pattern.replace("(\\S+)", "").length
                             val replace = pattern.replace("(\\S+)", s.substringBefore("-$spec"))
                             //logger.warn("s: {}, raw: {}, len: {}, replace: {}", s, raw, len, replace)

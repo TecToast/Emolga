@@ -5,6 +5,7 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.various.ShiftUser
+import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -20,7 +21,6 @@ import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -77,10 +77,8 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
     val matchresults by lazy { db.getCollection<MatchResult>("matchresults") }
     val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
-    val defaultNameConventions: Map<String, String> by lazy {
-        runBlocking {
-            nameconventions.find(NameConventions::guild eq 0).first()!!
-        }.data
+    val defaultNameConventions = OneTimeCache {
+        nameconventions.find(NameConventions::guild eq 0).first()!!.data
     }
 
     suspend fun league(name: String) = drafts.findOne(League::leaguename eq name)!!
@@ -313,7 +311,7 @@ suspend fun CoroutineCollection<LigaStartData>.get(guild: Long) = find(LigaStart
 
 @JvmName("getNameConventions")
 suspend fun CoroutineCollection<NameConventions>.get(guild: Long) =
-    find(NameConventions::guild eq guild).first()?.data ?: db.defaultNameConventions
+    find(NameConventions::guild eq guild).first()?.data ?: db.defaultNameConventions()
 
 @JvmName("getPokedex")
 suspend fun CoroutineCollection<Pokemon>.get(id: String) = find(Pokemon::id eq id).first()

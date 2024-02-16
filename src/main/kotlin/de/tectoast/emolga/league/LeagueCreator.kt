@@ -998,16 +998,7 @@ class Addons {
         @Serializable
         @SerialName("ICON")
         data object ICON : DataCol() {
-            override suspend fun getData(o: Pokemon): String {
-
-
-                //println(it)
-                //println(NameConventionsDB.getDiscordTranslation(it, 1234567)!!.official.toSDName())
-                val str = specialCases[o.name] ?: ("${o.num}".padStart(3, '0') + (o.forme?.split("-")?.let { arr ->
-                    if (arr[0] in specialForms) arr.last() else arr.first()
-                }?.substring(0, 1)?.lowercase()?.let { x -> "-$x" } ?: ""))
-                return "=IMAGE(\"https://www.serebii.net/pokedex-${/*if (str.split("-")[0].toInt() > 905 || o.name in gen9Names) */"sv" /*else "swsh"*/}/icon/$str.png\";1)"
-            }
+            override suspend fun getData(o: Pokemon) = o.getIcon()
 
         }
 
@@ -1015,7 +1006,8 @@ class Addons {
 
         companion object {
             private val specialForms = listOf("Alola", "Galar", "Mega", "Paldea")
-            private val specialCases = mapOf("Rotom-Fan" to "479-s", "Tauros-Paldea-Combat" to "128-p")
+            private val specialCases =
+                mapOf("Rotom-Fan" to "479-s", "Tauros-Paldea-Combat" to "128-p", "Zygarde-10%" to "718-10")
             private val gen9Names =
                 listOf("Tauros-Paldea-Combat", "Tauros-Paldea-Blaze", "Tauros-Paldea-Aqua", "Wooper-Paldea")
             /*fun TYPES(wrappedAsImage: Boolean, placeholder: String = "/"): Array<DataCol> = List(2) {

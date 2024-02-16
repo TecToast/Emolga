@@ -60,7 +60,7 @@ object RevealPrisma {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            if (user != Constants.HENNY && user != 213725720407441410L && user != Constants.FLOID) {
+            if (user != Constants.M.HENNY && user != 213725720407441410L && user != Constants.FLOID) {
                 return reply("nö c:", ephemeral = true)
             }
             val pt = prismaTeam[e.timestamp] ?: return reply(":(")

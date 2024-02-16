@@ -105,7 +105,7 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
         member().hasPermission(Permission.ADMINISTRATOR)
     }
     val flo: BooleanCheck = { false } // flo may use any feature regardless of this configuration
-    val henny = user(Constants.HENNY)
+    val henny = user(Constants.M.HENNY)
 
     context (InteractionData)
     abstract suspend fun exec(e: A)

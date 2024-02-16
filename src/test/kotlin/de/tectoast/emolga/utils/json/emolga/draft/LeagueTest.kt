@@ -2,7 +2,7 @@ package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.*
 import de.tectoast.emolga.utils.Constants.FLOID
-import de.tectoast.emolga.utils.Constants.HENNY
+import de.tectoast.emolga.utils.Constants.M.HENNY
 import de.tectoast.emolga.utils.SimpleTimer
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.json.LeagueResult

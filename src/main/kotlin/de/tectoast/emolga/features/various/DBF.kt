@@ -281,7 +281,7 @@ object DBF {
         }
     }
 
-    private val adminChannelProvider = AdminChannelProvider.PN(Constants.HENNY)
+    private val adminChannelProvider = AdminChannelProvider.PN(Constants.M.HENNY)
     private val gameChannel get() = EmolgaMain.emolgajda.getChannel<GuildMessageChannel>(1126193988051931277)!!
     private suspend fun adminChannel() = adminChannelProvider.provideChannel()
     private fun allVoted() = votes.size == members.size

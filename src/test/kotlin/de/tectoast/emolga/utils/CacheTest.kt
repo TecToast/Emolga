@@ -53,6 +53,14 @@ class CacheTest : FunSpec({
             cache() shouldBe 12
             x shouldBe 2
             timed() shouldBe 2
+            delay(500)
+            cache() shouldBe 12
+            x shouldBe 2
+            timed() shouldBe 2
+            delay(1500)
+            cache() shouldBe 13
+            x shouldBe 3
+            timed() shouldBe 3
         }
     }
 })

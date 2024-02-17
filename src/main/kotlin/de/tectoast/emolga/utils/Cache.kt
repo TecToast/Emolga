@@ -41,7 +41,9 @@ class TimedCache<T>(val time: Duration, val function: suspend () -> T) : Refresh
 
 class MappedCache<S, T>(private val cache: Cache<T>, val mapper: suspend (T) -> S) : RefreshableCache<S>() {
     override fun shouldUpdate(now: Instant): Boolean {
-        return if (cache is RefreshableCache) cache.lastUpdate >= lastUpdate else false
+        return if (cache is RefreshableCache) {
+            cache.shouldUpdate(now) || cache.lastUpdate >= lastUpdate
+        } else false
     }
 
     override suspend fun update(): S {

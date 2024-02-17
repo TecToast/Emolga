@@ -25,23 +25,19 @@ object Google {
     private var CLIENTSECRET: String? = null
     private val googleContext = createCoroutineContext("Google", Dispatchers.IO)
 
-    private val trustedTransport = GoogleNetHttpTransport.newTrustedTransport()
-    private val gsonFactory = GsonFactory.getDefaultInstance()
-    private val authorizationHeaderAccessMethod = BearerToken.authorizationHeaderAccessMethod()
-
     private var accesstoken: TimedCache<String> = TimedCache(50.minutes) { generateAccessToken() }
     private val sheetsService = MappedCache(accesstoken) {
         Sheets.Builder(
-            trustedTransport,
-            gsonFactory,
-            Credential(authorizationHeaderAccessMethod).setAccessToken(it)
+            GoogleNetHttpTransport.newTrustedTransport(),
+            GsonFactory.getDefaultInstance(),
+            Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(it)
         ).setApplicationName("emolga").build()
     }
     private val driveService = MappedCache(accesstoken) {
         Drive.Builder(
-            trustedTransport,
-            gsonFactory,
-            Credential(authorizationHeaderAccessMethod).setAccessToken(it)
+            GoogleNetHttpTransport.newTrustedTransport(),
+            GsonFactory.getDefaultInstance(),
+            Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(it)
         ).setApplicationName("emolga").build()
     }
 
@@ -93,7 +89,7 @@ object Google {
 
     suspend fun generateAccessToken(): String = withContext(googleContext) {
         GoogleRefreshTokenRequest(
-            trustedTransport,
+            GoogleNetHttpTransport.newTrustedTransport(),
             GsonFactory.getDefaultInstance(),
             REFRESHTOKEN,
             CLIENTID,

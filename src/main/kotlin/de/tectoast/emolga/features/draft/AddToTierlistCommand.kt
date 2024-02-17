@@ -7,6 +7,7 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.db
@@ -82,5 +83,6 @@ data class AddToTierlistData(val mon: String, val tier: String, val tierlist: Ti
     suspend fun addToTierlistAutocompletion() {
         tierlist.addedViaCommand += mon
         tierlist.addedViaCommand += englishTLName.await()
+        TierlistBuilderConfigurator.checkTL(listOf(mon, englishTLName.await()), gid)
     }
 }

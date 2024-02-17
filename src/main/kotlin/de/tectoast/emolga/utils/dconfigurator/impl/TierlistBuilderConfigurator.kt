@@ -1,7 +1,9 @@
 package de.tectoast.emolga.utils.dconfigurator.impl
 
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.condAppend
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.dconfigurator.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -14,6 +16,8 @@ import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.send
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
@@ -343,6 +347,10 @@ class TierlistBuilderConfigurator(
                 this[Tierlist.tier] = it.tier
             }
         }
+        checkScope.launch {
+            Tierlist.setup()
+            checkTL(Tierlist[guildId]!!.autoComplete(), guildId)
+        }
     }
 
     companion object {
@@ -357,6 +365,17 @@ class TierlistBuilderConfigurator(
                 )
             ), ActionRow.of(primary("4tierlistbuilder;old", "Alte Einstellungen verwenden"))
         )
+        val checkScope = createCoroutineScope("TierlistBuilder", Dispatchers.IO)
+
+        fun checkTL(coll: Collection<String>, gid: Long) {
+            checkScope.launch {
+                coll.forEach {
+                    if (NameConventionsDB.getDiscordTranslation(it, gid) == null) {
+                        SendFeatures.sendToMe("Failed translation for $it in $gid")
+                    }
+                }
+            }
+        }
 
 
         val enabledGuilds = setOf(1054161634895069215, 651152835425075218, 736555250118295622)

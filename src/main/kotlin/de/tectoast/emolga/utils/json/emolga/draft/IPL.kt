@@ -21,6 +21,8 @@ class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
     override val teamsize = 12
     override val pickBuffer = 5
 
+    override val alwaysSendTier = true
+
     @Transient
     override val docEntry = DocEntry.create(this) {
         newSystem(SorterData("Tabelle!C3:I10", newMethod = true, cols = listOf(6, 5, -1))) {

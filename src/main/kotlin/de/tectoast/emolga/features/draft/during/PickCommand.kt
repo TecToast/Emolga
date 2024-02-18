@@ -75,7 +75,7 @@ object PickCommand :
             val saveTier = if (free) officialTier else specifiedTier
             d.savePick(picks, official, saveTier, free)
             //m.delete().queue();
-            if (!e.random) d.replyPick(tlName, free, specifiedTier.takeIf { saveTier != officialTier })
+            if (!e.random) d.replyPick(tlName, free, specifiedTier, saveTier != officialTier)
             if (e.random) {
                 d.replyRandomPick(tlName, specifiedTier)
             } else if (official == "Emolga") {

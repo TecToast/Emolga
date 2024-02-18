@@ -104,6 +104,9 @@ sealed class League {
     @Transient
     var newTimerForAnnounce = false
 
+    @Transient
+    open val alwaysSendTier = false
+
     context (InteractionData)
     suspend fun lockForPick(data: BypassCurrentPlayerData, block: suspend () -> Unit) {
         getLock(leaguename).withLock {
@@ -583,8 +586,10 @@ sealed class League {
 
     fun builder() = RequestBuilder(sid)
     context (InteractionData)
-    suspend fun replyPick(pokemon: String, free: Boolean, updrafted: String?) =
-        replyGeneral("$pokemon ".condAppend(updrafted != null) { "im $updrafted " } + "gepickt!".condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
+    suspend fun replyPick(pokemon: String, free: Boolean, tier: String, updrafted: Boolean) =
+        replyGeneral("$pokemon ".condAppend(alwaysSendTier || updrafted) { "im $tier " } + "gepickt!"
+            .condAppend(updrafted) { " (Hochgedraftet)" }
+            .condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
 
     context (InteractionData)
     suspend fun replyGeneral(msg: String, components: Collection<LayoutComponent> = SendDefaults.components) {

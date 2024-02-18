@@ -112,8 +112,9 @@ object Analysis {
         )
         val league = leaguedata?.league
         val uids = leaguedata?.uids
+        val draftPlayerList = game.map(SDPlayer::toDraftPlayer)
         val gamedayData = defaultScope.async {
-            league?.getGameplayData(uids!![0], uids[1], game)
+            league?.getGameplayData(uids!![0], uids[1], draftPlayerList)?.applyFun()
         }
         val description = game.mapIndexed { index, sdPlayer ->
             mutableListOf<Any>(uids?.get(index)?.let { "<@$it>" } ?: sdPlayer.nickname,
@@ -187,7 +188,7 @@ object Analysis {
             game.map { it.pokemon.associate { p -> p.draftname.official to (p.kills to if (p.isDead) 1 else 0) } }
         league?.docEntry?.analyse(
             ReplayData(
-                game = game,
+                game = draftPlayerList,
                 uids = uids!!,
                 kd = kd,
                 mons = game.map { it.pokemon.map { mon -> mon.draftname.official } },

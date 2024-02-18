@@ -13,6 +13,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.bson.Document
 import org.litote.kmongo.eq
 import org.slf4j.LoggerFactory
@@ -102,7 +103,15 @@ class DocEntry private constructor(val league: League) {
             league.table.size, gameday
         )
 
-    suspend fun analyse(
+    suspend fun analyse(replayData: ReplayData, withSort: Boolean = true) {
+        if (league.storeInsteadSend) {
+            league.storeMatch(replayData)
+            return league.save("DocEntry#Analyse")
+        }
+        analyseWithoutCheck(replayData, withSort)
+    }
+
+    suspend fun analyseWithoutCheck(
         replayData: ReplayData,
         withSort: Boolean = true
     ) {
@@ -209,7 +218,7 @@ class DocEntry private constructor(val league: League) {
         }
 
         resultCreator?.let {
-            val numbers = gamedayData.numbers()
+            val numbers = gamedayData.numbers
             AdvancedResult(
                 b = b,
                 gdi = gameday - 1,
@@ -380,6 +389,8 @@ fun interface CombinedStatProcessor : StatProcessor {
 fun interface ResultStatProcessor {
     fun StatProcessorData.process(): Coord
 }
+
+@Serializable
 data class ReplayData(
     val game: List<DraftPlayer>,
     val uids: List<Long>,

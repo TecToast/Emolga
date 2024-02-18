@@ -515,14 +515,11 @@ class SDPlayer(
     val hittingFutureMoves: MutableList<SDEffect.FutureMoves> = mutableListOf(),
     var winnerOfGame: Boolean = false,
     var teamSize: Int = 6
-) : DraftPlayer() {
+) {
     val allMonsDead: Boolean
         get() = pokemon.all { it.isDead }
-    override val alivePokemon: Int
-        get() = pokemon.count { !it.isDead }
-    override val winner: Boolean
-        get() = winnerOfGame
 
+    fun toDraftPlayer() = DraftPlayer(pokemon.count { !it.isDead }, winnerOfGame)
 }
 
 fun String.cleanSplit() = this.split("|").drop(1)

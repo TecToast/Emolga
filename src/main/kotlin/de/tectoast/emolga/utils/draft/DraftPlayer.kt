@@ -1,7 +1,8 @@
 package de.tectoast.emolga.utils.draft
 
+import kotlinx.serialization.Serializable
 
-abstract class DraftPlayer {
-    abstract val alivePokemon: Int
-    abstract val winner: Boolean
-}
+@Serializable
+data class DraftPlayer(
+    var alivePokemon: Int, var winner: Boolean
+)

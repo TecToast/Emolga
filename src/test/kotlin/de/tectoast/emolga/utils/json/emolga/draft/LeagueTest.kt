@@ -8,6 +8,7 @@ import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.showdown.Analysis
+import de.tectoast.emolga.utils.showdown.SDPlayer
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import io.kotest.core.spec.style.FunSpec
@@ -114,7 +115,7 @@ class LeagueTest : FunSpec({
                 content = url, embeds = league.appendedEmbed(
                     data,
                     LeagueResult(league, uids, otherForms = emptyMap()),
-                    league.getGameplayData(uids[0], uids[1], data.game)
+                    league.getGameplayData(uids[0], uids[1], data.game.map(SDPlayer::toDraftPlayer)).applyFun()
                 ).build().into()
             ).queue()
         }

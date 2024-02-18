@@ -77,6 +77,8 @@ sealed class League {
     val skippedTurns: MutableMap<Long, MutableSet<Int>> = mutableMapOf()
     internal val names: MutableMap<Long, String> = mutableMapOf()
 
+    val replayDatas: MutableMap<Int, MutableMap<Int, ReplayData>> = mutableMapOf()
+
 
     val tc: TextChannel get() = jda.getTextChannelById(tcid) ?: error("No text channel found for guild $guild")
 
@@ -96,6 +98,9 @@ sealed class League {
 
     @Transient
     open val alwaysSendTier = false
+
+    @Transient
+    open val storeInsteadSend = false
 
 
 
@@ -689,6 +694,11 @@ sealed class League {
         )
     }
 
+    fun storeMatch(replayData: ReplayData) {
+        replayDatas.getOrPut(replayData.gamedayData.gameday) { mutableMapOf() }[replayData.gamedayData.battleindex] =
+            replayData
+    }
+
     inner class PointsManager {
         private val points = mutableMapOf<Long, Int>()
 
@@ -972,14 +982,23 @@ enum class SkipReason {
     REALTIMER, SKIP
 }
 
+@Serializable
 data class GamedayData(
     val gameday: Int, val battleindex: Int, val u1IsSecond: Boolean
 ) {
-    constructor(gameday: Int, battleindex: Int, u1IsSecond: Boolean, numbers: () -> List<Int>) : this(
+    var numbers: List<Int> = emptyList()
+
+    @Transient
+    var numbersFun: (() -> List<Int>)? = null
+
+    constructor(gameday: Int, battleindex: Int, u1IsSecond: Boolean, numbersFun: () -> List<Int>) : this(
         gameday, battleindex, u1IsSecond
     ) {
-        this.numbers = numbers
+        this.numbersFun = numbersFun
     }
 
-    lateinit var numbers: () -> List<Int>
+    fun applyFun(): GamedayData {
+        numbers = numbersFun?.invoke() ?: numbers
+        return this
+    }
 }

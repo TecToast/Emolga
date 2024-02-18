@@ -6,13 +6,12 @@ import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.ReplayData
 import de.tectoast.emolga.utils.condAppend
-import de.tectoast.emolga.utils.draft.WifiPlayer
+import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.surroundWith
 import dev.minn.jda.ktx.interactions.components.SelectOption
-import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import net.dv8tion.jda.api.interactions.components.ActionRow
@@ -52,7 +51,7 @@ object EnterResult {
 
     object ResultMenu : SelectMenuFeature<ResultMenu.Args>(::Args, SelectMenuSpec("result")) {
         class Args : Arguments() {
-            var userindex by int("index", "index")
+            var userindex by int("index", "index").compIdOnly()
             var selected by singleOption()
         }
 
@@ -98,8 +97,13 @@ object EnterResult {
                 }
                 default = false
             }
-            var remove by boolean("remove", "remove") {
-                modal(modalKey = Remove)
+            var remove by string<Boolean>("remove", "remove") {
+                modal(modalKey = Remove) {
+                    placeholder = "X wenn ja, sonst leer lassen"
+                }
+                validate {
+                    it.equals("X", ignoreCase = true)
+                }
                 default = false
             }
         }
@@ -122,7 +126,7 @@ object EnterResult {
         val g = guild ?: gid
         val resultEntry = ResultEntry()
         if (resultEntry.init(opponent, u, g)) {
-            results[u] = resultEntry
+            results[user] = resultEntry
         }
     }
 
@@ -142,7 +146,7 @@ object EnterResult {
         private lateinit var gamedayData: GamedayData
 
 
-        private val wifiPlayers = (0..1).map { WifiPlayer() }
+        private val wifiPlayers = (0..1).map { DraftPlayer(0, false) }
         private val defaultComponents: List<ActionRow> by lazy {
             uids.mapIndexed { index, uid ->
                 ActionRow.of(ResultMenu(
@@ -224,20 +228,27 @@ object EnterResult {
                 }
 
                 ResultFinish.Mode.YES -> {
-                    reply(generateFinalMessage())
+                    if (league.storeInsteadSend)
+                        reply(
+                            "Das Ergebnis des Kampfes wurde gespeichert! Es wird dann zum Upload-Zeitpunkt im Doc veröffentlicht.",
+                            ephemeral = true
+                        )
+                    else {
+                        reply(generateFinalMessage())
+                    }
                     league.docEntry?.analyse(
                         ReplayData(
                             game = data.mapIndexed { index, d ->
-                            wifiPlayers[index].apply {
-                                alive = d.size - d.dead
-                                winnerOfGame = d.size != d.dead
-                            }
-                        },
+                                wifiPlayers[index].apply {
+                                    alivePokemon = d.size - d.dead
+                                    winner = d.size != d.dead
+                                }
+                            },
                             uids = uids,
                             kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
                             mons = data.map { l -> l.map { it.official } },
                             url = "WIFI",
-                            gamedayData = gamedayData
+                            gamedayData = gamedayData.applyFun()
                         )
                     )
                 }

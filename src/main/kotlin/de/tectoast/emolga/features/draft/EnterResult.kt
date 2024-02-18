@@ -120,7 +120,10 @@ object EnterResult {
     suspend fun handleStart(opponent: Long, userArg: Long? = null, guild: Long? = null) {
         val u = userArg ?: user
         val g = guild ?: gid
-        results[userArg ?: user] = ResultEntry().apply { init(opponent, u, g) }
+        val resultEntry = ResultEntry()
+        if (resultEntry.init(opponent, u, g)) {
+            results[u] = resultEntry
+        }
     }
 
     class ResultEntry {
@@ -150,16 +153,17 @@ object EnterResult {
         }
 
         context(InteractionData)
-        suspend fun init(opponent: Long, user: Long, guild: Long) {
+        suspend fun init(opponent: Long, user: Long, guild: Long): Boolean {
             uids += user
             uids += opponent
             league = db.leagueByGuild(guild, *uids.toLongArray()) ?: return reply(
                 "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
                 ephemeral = true
-            )
+            ).let { false }
             gamedayData = league.getGameplayData(uids[0], uids[1], wifiPlayers)
             picks = uids.associateWith { getMonsByUid(it) }
             reply(embeds = buildEmbed(), components = defaultComponents, ephemeral = true)
+            return true
         }
 
         private fun buildEmbed() = Embed {

@@ -25,7 +25,7 @@ object Google {
     private var CLIENTSECRET: String? = null
     private val googleContext = createCoroutineContext("Google", Dispatchers.IO)
 
-    private var accesstoken: TimedCache<String> = TimedCache(50.minutes) { generateAccessToken() }
+    private var accesstoken: TimedCache<String> = TimedCache(45.minutes) { generateAccessToken() }
     private val sheetsService = MappedCache(accesstoken) {
         Sheets.Builder(
             GoogleNetHttpTransport.newTrustedTransport(),
@@ -94,6 +94,6 @@ object Google {
             REFRESHTOKEN,
             CLIENTID,
             CLIENTSECRET
-        ).execute().accessToken
+        ).execute().also { universalLogger.info("GENERATEACCESSTOKEN ${it.expiresInSeconds}") }.accessToken
     }
 }

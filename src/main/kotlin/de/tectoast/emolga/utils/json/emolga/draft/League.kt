@@ -29,11 +29,8 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import org.bson.types.ObjectId
-import org.litote.kmongo.SetTo
+import org.litote.kmongo.*
 import org.litote.kmongo.coroutine.updateOne
-import org.litote.kmongo.eq
-import org.litote.kmongo.set
-import org.litote.kmongo.setTo
 import org.slf4j.Logger
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
@@ -56,8 +53,7 @@ sealed class League {
     val guild = -1L
     var round = 1
     var current = -1L
-    var cooldown = -1L
-    var regularCooldown = -1L
+    val timerRelated = TimerRelated()
     var pseudoEnd = false
 
     abstract val teamsize: Int
@@ -79,12 +75,6 @@ sealed class League {
     val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
     val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
     val skippedTurns: MutableMap<Long, MutableSet<Int>> = mutableMapOf()
-
-    private var lastPick = -1L
-    private var lastRegularDelay = -1L
-    val usedStallSeconds: MutableMap<Long, Int> = mutableMapOf()
-    var lastStallSecondUsedMid: Long? = null
-
     internal val names: MutableMap<Long, String> = mutableMapOf()
 
 
@@ -107,20 +97,7 @@ sealed class League {
     @Transient
     open val alwaysSendTier = false
 
-    context (InteractionData)
-    suspend fun lockForPick(data: BypassCurrentPlayerData, block: suspend () -> Unit) {
-        getLock(leaguename).withLock {
-            // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
-            if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
-                // BypassCurrentPlayerData can only be Yes here
-                current = (data as BypassCurrentPlayerData.Yes).user
-            }
-            if (!isCurrentCheck(user)) {
-                return@withLock reply("Du warst etwas zu langsam!", ephemeral = true)
-            }
-            block()
-        }
-    }
+
 
 
     val cooldownJob: Job? get() = allTimers[leaguename]
@@ -145,6 +122,21 @@ sealed class League {
     val newSystemGap get() = teamsize + pickBuffer + 3
 
     open val additionalSet: AdditionalSet? by lazy { AdditionalSet((gamedays + 4).xc(), "X", "Y") }
+
+    context (InteractionData)
+    suspend fun lockForPick(data: BypassCurrentPlayerData, block: suspend () -> Unit) {
+        getLock(leaguename).withLock {
+            // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
+            if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
+                // BypassCurrentPlayerData can only be Yes here
+                current = (data as BypassCurrentPlayerData.Yes).user
+            }
+            if (!isCurrentCheck(user)) {
+                return@withLock reply("Du warst etwas zu langsam!", ephemeral = true)
+            }
+            block()
+        }
+    }
 
     fun RequestBuilder.newSystemPickDoc(data: DraftData) {
         val y = data.memIndex.y(newSystemGap, data.picks.size + 2)
@@ -298,7 +290,7 @@ sealed class League {
             setNextUser()
             moved.clear()
             pseudoEnd = false
-            lastPick = currentTimeMillis
+            timerRelated.lastPick = currentTimeMillis
             reset(updates)
             restartTimer()
             sendRound()
@@ -308,13 +300,16 @@ sealed class League {
             updates += ::moved setTo mutableMapOf()
             updates += ::pseudoEnd setTo false
             updates += ::skippedTurns setTo mutableMapOf()
-            updates += ::lastPick setTo currentTimeMillis
-            updates += ::usedStallSeconds setTo mutableMapOf()
+            updates += League::timerRelated / TimerRelated::lastPick setTo currentTimeMillis
+            updates += League::timerRelated / TimerRelated::usedStallSeconds setTo mutableMapOf()
         } else {
 
-            val delayData = if (cooldown > 0) DelayData(cooldown, regularCooldown, currentTimeMillis) else timer?.calc(
-                this,
+            val delayData = if (timerRelated.cooldown > 0) DelayData(
+                timerRelated.cooldown,
+                timerRelated.regularCooldown,
                 currentTimeMillis
+            ) else timer?.calc(
+                this, currentTimeMillis
             )
             restartTimer(delayData)
         }
@@ -346,38 +341,40 @@ sealed class League {
 
     private fun restartTimer(delayData: DelayData? = timer?.calc(this)) {
         val skipDelay = delayData?.skipDelay
-        skipDelay ?: run {
-            cooldown = 0
-            regularCooldown = 0
-            return
-        }
-        afterTimerSkipMode?.run {
-            if (disableTimer()) {
-                cancelCurrentTimer()
+        with(timerRelated) {
+            skipDelay ?: run {
                 cooldown = 0
                 regularCooldown = 0
                 return
             }
-        }
-        lastRegularDelay = delayData.regularDelay
-        cooldown = delayData.skipTimestamp
-        regularCooldown = delayData.regularTimestamp
-        newTimerForAnnounce = true
-        logger.info("important".marker, "cooldown = {}", cooldown)
-        cancelCurrentTimer("Restarting timer")
-        allTimers[leaguename] = timerScope.launch {
-            delay(skipDelay)
-            withContext(NonCancellable) {
-                executeTimerOnRefreshedVersion(this@League.leaguename)
+            afterTimerSkipMode?.run {
+                if (disableTimer()) {
+                    cancelCurrentTimer()
+                    cooldown = 0
+                    regularCooldown = 0
+                    return
+                }
             }
-        }
-        timer?.stallSeconds?.takeIf { it > 0 }?.let {
-            allStallSecondTimers[leaguename] = timerScope.launch {
-                val regularDelay = delayData.regularDelay
-                if (delayData.hasStallSeconds && regularDelay >= 0) {
-                    delay(regularDelay)
-                    lastStallSecondUsedMid = handleStallSecondUsed()
-                    save("StallSecondAnnounce")
+            lastRegularDelay = delayData.regularDelay
+            cooldown = delayData.skipTimestamp
+            regularCooldown = delayData.regularTimestamp
+            newTimerForAnnounce = true
+            logger.info("important".marker, "cooldown = {}", cooldown)
+            cancelCurrentTimer("Restarting timer")
+            allTimers[leaguename] = timerScope.launch {
+                delay(skipDelay)
+                withContext(NonCancellable) {
+                    executeTimerOnRefreshedVersion(this@League.leaguename)
+                }
+            }
+            timer?.stallSeconds?.takeIf { it > 0 }?.let {
+                allStallSecondTimers[leaguename] = timerScope.launch {
+                    val regularDelay = delayData.regularDelay
+                    if (delayData.hasStallSeconds && regularDelay >= 0) {
+                        delay(regularDelay)
+                        lastStallSecondUsedMid = handleStallSecondUsed()
+                        save("StallSecondAnnounce")
+                    }
                 }
             }
         }
@@ -420,7 +417,7 @@ sealed class League {
         .condAppend(newTimerForAnnounce) {
             " — Zeit bis: **${
                 timeFormat.format(
-                    regularCooldown
+                    timerRelated.regularCooldown
                 )
             }**"
         }.also { newTimerForAnnounce = false }/*.condAppend(timerSkipMode?.multiplePicksPossible == true && hasMovedTurns()) {
@@ -545,7 +542,7 @@ sealed class League {
         stallSecondJob?.cancel(reason)
     }
 
-    private suspend fun nextPlayer(data: NextPlayerData = NextPlayerData.Normal) {
+    private suspend fun nextPlayer(data: NextPlayerData = NextPlayerData.Normal) = with(timerRelated) {
         if (!isRunning) return
         val ctm = System.currentTimeMillis()
         timer?.stallSeconds?.let {
@@ -587,9 +584,9 @@ sealed class League {
     fun builder() = RequestBuilder(sid)
     context (InteractionData)
     suspend fun replyPick(pokemon: String, free: Boolean, tier: String, updrafted: Boolean) =
-        replyGeneral("$pokemon ".condAppend(alwaysSendTier || updrafted) { "im $tier " } + "gepickt!"
-            .condAppend(updrafted) { " (Hochgedraftet)" }
-            .condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
+        replyGeneral("$pokemon ".condAppend(alwaysSendTier || updrafted) { "im $tier " } + "gepickt!".condAppend(
+            updrafted
+        ) { " (Hochgedraftet)" }.condAppend(free) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
 
     context (InteractionData)
     suspend fun replyGeneral(msg: String, components: Collection<LayoutComponent> = SendDefaults.components) {
@@ -727,7 +724,7 @@ sealed class League {
             getLock(name).withLock {
                 val league = db.drafts.findOne(League::leaguename eq name)
                     ?: return SendFeatures.sendToMe("League $name not found")
-                if (league.cooldown <= System.currentTimeMillis()) league.afterPickOfficial(
+                if (league.timerRelated.cooldown <= System.currentTimeMillis()) league.afterPickOfficial(
                     data = NextPlayerData.Moved(
                         SkipReason.REALTIMER
                     )
@@ -769,6 +766,16 @@ sealed class League {
 
 
 }
+
+@Serializable
+data class TimerRelated(
+    var cooldown: Long = -1,
+    var regularCooldown: Long = -1,
+    var lastPick: Long = -1,
+    var lastRegularDelay: Long = -1,
+    val usedStallSeconds: MutableMap<Long, Int> = mutableMapOf(),
+    var lastStallSecondUsedMid: Long? = null
+)
 
 val String.isMega get() = "-Mega" in this
 

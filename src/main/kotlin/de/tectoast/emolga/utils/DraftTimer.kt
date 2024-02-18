@@ -24,7 +24,7 @@ sealed class DraftTimer {
         now = now,
         timerStart = league.timerStart,
         howOftenSkipped = league.skippedTurns[league.current]?.size ?: 0,
-        usedStallSeconds = league.usedStallSeconds[league.current] ?: 0
+        usedStallSeconds = league.timerRelated.usedStallSeconds[league.current] ?: 0
     )
 
     fun calc(

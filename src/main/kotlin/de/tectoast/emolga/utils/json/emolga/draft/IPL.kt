@@ -128,7 +128,7 @@ class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
 
     override suspend fun handleStallSecondUsed(): Long {
         return tc.sendMessage(
-            "${getCurrentMention()} Dein Uhrsaring-Zuschlag läuft! Du wirst <t:${cooldown / 1000}:R> geskippt!"
+            "${getCurrentMention()} Dein Uhrsaring-Zuschlag läuft! Du wirst <t:${timerRelated.cooldown / 1000}:R> geskippt!"
         ).setStickers(
             StickerSnowflake.fromId(1207743104837492756)
         ).await().idLong
@@ -140,7 +140,7 @@ class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
             .setStickers(StickerSnowflake.fromId(1207743822826836061)).queue()
     }
 
-    override suspend fun onNextPlayer(data: NextPlayerData) {
+    override suspend fun onNextPlayer(data: NextPlayerData): Unit = with(timerRelated) {
         lastStallSecondUsedMid?.takeIf { it > 0 }?.let {
             tc.editMessageById(
                 it, "<@$current> Dein Uhrsaring-Zuschlag ${

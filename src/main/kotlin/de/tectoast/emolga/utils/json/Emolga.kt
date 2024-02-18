@@ -4,6 +4,7 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.various.ShiftUser
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.condAppend
@@ -17,7 +18,6 @@ import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.toSDName
 import dev.minn.jda.ktx.interactions.components.SelectOption
-import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -240,7 +240,7 @@ data class LigaStartData(
     fun closeSignup(forced: Boolean = false) {
         val channel = jda.getTextChannelById(announceChannel)!!
         channel.editMessageComponentsById(
-            announceMessageId, primary("signupclosed", "Anmeldung geschlossen", disabled = true).into()
+            announceMessageId, SignupManager.Button("Anmeldung geschlossen", disabled = true).into()
         ).queue()
         val msg = "_----------- Anmeldung geschlossen -----------_"
         channel.sendMessage(msg).queue()

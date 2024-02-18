@@ -11,7 +11,6 @@ import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.generics.getChannel
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
-import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
@@ -162,9 +161,7 @@ object DBF {
         logger.info(members.toString())
         logger.info(lifes.toString())
         adminStatusID = adminChannel().send(
-            "Votes:", components = listOf(
-                primary("dumbestflies;newround", "Neue Runde"),
-            ).into()
+            "Votes:", components = Button("Neue Runde") { mode = Button.Mode.NEWROUND }.into()
         ).await().idLong
         gameStatusID = gameChannel.send(
             generateGameStatusMessage(), components = playerSelectMenu
@@ -220,14 +217,13 @@ object DBF {
     suspend fun updateAdminStatusMessage() {
         val entries = votes.entries.groupingBy { it.value }.eachCount().entries.sortedByDescending { it.value }
         if (allVoted()) votedSet = entries
-        adminChannel().editMessageById(
-            adminStatusID, "Votes:\n${
-                votes.entries.joinToString("\n") {
-                    "<@${it.key}> -> <@${it.value}>"
-                }
-            }\n\nStand der Dinge:\n${
-                entries.joinToString("\n") { "<@${it.key}>: ${it.value}" }
-            }").await()
+        adminChannel().editMessageById(adminStatusID, "Votes:\n${
+            votes.entries.joinToString("\n") {
+                "<@${it.key}> -> <@${it.value}>"
+            }
+        }\n\nStand der Dinge:\n${
+            entries.joinToString("\n") { "<@${it.key}>: ${it.value}" }
+        }").await()
     }
 
     private suspend fun updateGameStatusMessage() {
@@ -289,8 +285,8 @@ object DBF {
     lateinit var regularQuestions: MutableSet<String>
     lateinit var estimateQuestions: MutableSet<String>
     val questionComponents = listOf(
-        primary("dumbestflies;question:normal", "Normal"),
-        primary("dumbestflies;question:estimate", "Schätzen"),
+        Button("Normal") { mode = Button.Mode.QUESTION },
+        Button("Schätzen") { mode = Button.Mode.ESTIMATE },
     ).into()
 
     private fun readQuestions(): List<String> {

@@ -66,7 +66,6 @@ object Nominate {
 
         context(InteractionData)
         fun render() {
-
             edit(embeds = Embed(
                 title = "Nominierungen", color = embedColor, description = generateDescription()
             ).into(), components = mons.map {
@@ -114,7 +113,15 @@ object Nominate {
                         color = embedColor,
                         description = generateDescription()
                     ).into(), components = listOf(
-                        Button.success("nominate;FINISHNOW", "Ja"), Button.danger("nominate;CANCEL", "Nein")
+                        Button.success("nominate;FINISHNOW", "Ja"), Button.danger("nominate;CANCEL", "Nein"),
+                        NominateButton("Ja", ButtonStyle.SUCCESS) {
+                            mode = NominateButton.Mode.FINISH
+                            data = "FINISHNOW"
+                        },
+                        NominateButton("Nein", ButtonStyle.DANGER) {
+                            mode = NominateButton.Mode.FINISH
+                            data = "CANCEL"
+                        }
                     ).into()
                 )
             }

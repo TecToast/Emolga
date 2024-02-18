@@ -12,7 +12,6 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.toUsername
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.interactions.components.primary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -21,6 +20,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.entities.emoji.Emoji
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import java.util.concurrent.ConcurrentHashMap
 
 object SignupManager {
@@ -29,6 +29,10 @@ object SignupManager {
     private val signupScope = createCoroutineScope("Signup", Dispatchers.IO)
 
     object Button : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("signup")) {
+        override val buttonStyle = ButtonStyle.PRIMARY
+        override val label = "Anmelden"
+        override val emoji = Emoji.fromUnicode("✅")
+
         context(InteractionData)
         override suspend fun exec(e: NoArgs) {
             val lsData = db.signups.get(gid)
@@ -122,11 +126,7 @@ object SignupManager {
         val messageid =
             tc.sendMessage(
                 text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**")
-                .addActionRow(
-                    primary(
-                        "signup", "Anmelden", Emoji.fromUnicode("✅")
-                    )
-                ).await().idLong
+                .addActionRow(Button()).await().idLong
         db.signups.insertOne(
             LigaStartData(
                 guild = tc.guild.idLong,

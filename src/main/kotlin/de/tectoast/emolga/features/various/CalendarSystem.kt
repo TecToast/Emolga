@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
-import net.dv8tion.jda.api.interactions.components.buttons.Button
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.text.SimpleDateFormat
 
@@ -36,7 +35,7 @@ object CalendarSystem : CoroutineScope {
 
                 val calendarTc: TextChannel = EmolgaMain.emolgajda.getTextChannelById(Constants.CALENDAR_TCID)!!
                 calendarTc.sendMessage("(<@${Constants.FLOID}>) ${ce.message}")
-                    .setActionRow(Button.primary("calendar;delete", "Löschen")).queue()
+                    .setActionRow(RemindButton()).queue()
                 calendarTc.editMessageById(Constants.CALENDAR_MSGID, buildCalendar()).queue()
 
             } catch (ex: Exception) {
@@ -71,6 +70,7 @@ object CalendarSystem : CoroutineScope {
     }
 
     object RemindButton : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("remind")) {
+        override val label = "Löschen"
         context(InteractionData)
         override suspend fun exec(e: NoArgs) {
             reply(":D", ephemeral = true)

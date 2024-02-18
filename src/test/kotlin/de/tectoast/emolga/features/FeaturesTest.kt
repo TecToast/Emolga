@@ -55,9 +55,6 @@ class FeaturesTest : FunSpec({
 //        jda.getGuildById(Constants.G.MY)!!.upsertCommand("test", "test").addOptions(
 //            OptionData(OptionType.STRING, "test1", "test1"), OptionData(OptionType.STRING, "test2", "test2")
 //        ).queue()
-//        defaultChannel.send("hehehehehe", components = primary(TestButton.createComponentId {
-//            test1 = "testlooooool"
-//        }, ":)").into()).queue()
 
         keepAlive()
     }

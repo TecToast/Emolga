@@ -1,10 +1,7 @@
 package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.EmolgaMain
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.ButtonFeature
-import de.tectoast.emolga.features.ButtonSpec
-import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.defaultScope
 import de.tectoast.emolga.utils.defaultTimeFormat
 import de.tectoast.emolga.utils.embedColor
@@ -12,7 +9,6 @@ import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
@@ -74,14 +70,20 @@ object TipGameManager {
             for ((index, matchup) in matchups.withIndex()) {
                 val u1 = matchup[0]
                 val u2 = matchup[1]
-                val baseid = "tipgame;${league.leaguename}:$num:$index"
-                channel.send(
-                    embeds = Embed(
-                        title = "${names[u1]} vs. ${names[u2]}", color = embedColor
-                    ).into(), components = ActionRow.of(
-                        primary("$baseid:${u1.indexedBy(table)}", names[u1]),
-                        primary("$baseid:${u2.indexedBy(table)}", names[u2]),
-                    ).into()
+                val base: ArgBuilder<VoteButton.Args> = {
+                    this.leaguename = league.leaguename
+                    this.gameday = num
+                    this.index = index
+                }
+                channel.send(embeds = Embed(
+                    title = "${names[u1]} vs. ${names[u2]}", color = embedColor
+                ).into(), components = ActionRow.of(VoteButton(names[u1]!!) {
+                    base()
+                    this.userindex = u1.indexedBy(table)
+                }, VoteButton(names[u2]!!) {
+                    base()
+                    this.userindex = u2.indexedBy(table)
+                }).into()
                 ).queue()
             }
         }
@@ -103,14 +105,13 @@ object TipGameManager {
 @Serializable
 class TipGame(
     val tips: MutableMap<Int, TipGamedayData> = mutableMapOf(),
-    @Serializable(with = DateToStringSerializer::class)
-    val lastSending: Date,
-    @Serializable(with = DateToStringSerializer::class)
-    val lastLockButtons: Date,
+    @Serializable(with = DateToStringSerializer::class) val lastSending: Date,
+    @Serializable(with = DateToStringSerializer::class) val lastLockButtons: Date,
     val interval: String,
     val amount: Int,
     val channel: Long
 )
+
 object DateToStringSerializer : KSerializer<Date> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Date", PrimitiveKind.STRING)
 

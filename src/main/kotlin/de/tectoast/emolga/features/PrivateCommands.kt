@@ -7,6 +7,7 @@ import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
+import de.tectoast.emolga.features.various.ShiftUser
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -20,7 +21,6 @@ import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
@@ -28,13 +28,10 @@ import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
-import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
-import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
 import org.jetbrains.exposed.sql.SortOrder
@@ -45,7 +42,6 @@ import org.litote.kmongo.newId
 import org.litote.kmongo.set
 import org.litote.kmongo.setTo
 import org.slf4j.LoggerFactory
-import java.awt.Color
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.security.SecureRandom
@@ -93,22 +89,6 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun matchUps(args: PrivateData) {
         NDS.doMatchUps(args[0].toInt(), args[1].toBooleanStrict())
-    }
-
-    context(InteractionData)
-    fun setupFlorixControl() {
-        jda.getTextChannelById(964528154549055558L)!!.sendMessageEmbeds(
-            EmbedBuilder().setTitle("FlorixControl").setColor(Color.CYAN).build()
-        ).setActionRow(
-            Button.success("florix;startserver", "Server starten").withEmoji(
-                jda.getEmojiById(964570148692443196L)!!
-            ),
-            Button.secondary("florix;stopserver", "Server stoppen").withEmoji(
-                jda.getEmojiById(964570147220254810L)!!
-            ),
-            Button.danger("florix;poweroff", "PowerOff").withEmoji(Emoji.fromUnicode("⚠️")),
-            Button.primary("florix;status", "Status").withEmoji(Emoji.fromUnicode("ℹ️"))
-        ).queue()
     }
 
     context(InteractionData)
@@ -226,9 +206,10 @@ object PrivateCommands {
                 description = users.joinToString("\n") { "<@${it.key}>" }, color = embedColor
             ) to
                     users.map { (id, _) ->
-                        primary("shiftuser;$id", nameCache[id]!!)
+                        ShiftUser.Button(nameCache[id]!!, ButtonStyle.PRIMARY) { this.uid = id }
                     }.chunked(5).map { ActionRow.of(it) })
         }
+
     }
 
     context(InteractionData)
@@ -290,6 +271,7 @@ object PrivateCommands {
         guildForUserIDGrabbing = args().toLong()
         grabbedIDs.clear()
     }
+
     context(InteractionData)
     suspend fun setTableFromGrabUserIDS(args: PrivateData) {
         db.db.getCollection<League>(args[0])

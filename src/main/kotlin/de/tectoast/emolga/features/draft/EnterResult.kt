@@ -149,7 +149,9 @@ object EnterResult {
                     "${if (index == 0) "Deine" else "Gegnerische"} Pokemon",
                     options = picks[uid]!!,
                 ) { this.userindex = index })
-            } + listOf(ActionRow.of(primary("resultfinish;check", "Ergebnis bestätigen")))
+            } + listOf(ActionRow.of(ResultFinish("Ergebnis bestätigen", ButtonStyle.PRIMARY) {
+                mode = ResultFinish.Mode.CHECK
+            }))
         }
 
         context(InteractionData)

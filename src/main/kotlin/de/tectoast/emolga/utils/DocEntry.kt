@@ -305,7 +305,7 @@ class DocEntry private constructor(val league: League) {
                                     MatchResult::leaguename eq league.leaguename, Document(
                                         "\$expr", Document(
                                             "\$setIsSubset", listOf(
-                                                userids, "\$uids"
+                                                "\$uids", userids
                                             )
                                         )
                                     )

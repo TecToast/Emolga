@@ -26,7 +26,6 @@ class NDS : League() {
 
     val nominations: Nominations = Nominations(1, mutableMapOf())
     val sheetids: Map<String, Int> = mapOf()
-    val teamnames: Map<Long, String> = mapOf()
     val teamtable: List<String> = emptyList()
     val rr = false
 
@@ -37,6 +36,8 @@ class NDS : League() {
     @Transient
     override var timer: DraftTimer? = SimpleTimer(TimerInfo(10, 22, delayInMins = 3 * 60))
     override val additionalSet = null
+
+    fun getTeamname(uid: Long) = teamtable[table.indexOf(uid)]
 
     override fun beforePick(): String? {
         return "Du hast bereits 15 Mons!".takeIf { picks(current).count { it.name != "???" } == 15 }
@@ -138,8 +139,8 @@ class NDS : League() {
                 }
                 if (winnerIndex == i) {
                     val s = "!${(gdi.plus(rrSummand) * 2 + 4).xc()}10"
-                    b.addSingle(teamnames[replayData.uids[i]] + s, "$higherNumber:0")
-                    b.addSingle(teamnames[replayData.uids[1 - i]] + s, "0:$higherNumber")
+                    b.addSingle(getTeamname(replayData.uids[i]) + s, "$higherNumber:0")
+                    b.addSingle(getTeamname(replayData.uids[1 - i]) + s, "0:$higherNumber")
                 }
             }
 
@@ -183,7 +184,6 @@ class NDS : League() {
         suspend fun doMatchUps(gameday: Int, withAnnounce: Boolean = false) {
             val nds = db.nds()
             val table = nds.table
-            val teamnames = nds.teamnames
             val battleorder = nds.battleorder[gameday]!!
             val b = RequestBuilder(nds.sid)
             val tipgameStats = mutableListOf<String>()
@@ -193,8 +193,8 @@ class NDS : League() {
                     val u1 = table[users[index]]
                     val oppoIndex = users[1 - index]
                     val u2 = table[oppoIndex]
-                    val team = teamnames[u1]!!
-                    val oppo = teamnames[u2]!!
+                    val team = nds.getTeamname(u1)
+                    val oppo = nds.getTeamname(u2)
                     tipgameStats += "='$team'!Y2"
                     // Speed values
                     b.addSingle("$team!B18", "={'$oppo'!B16:AE16}")

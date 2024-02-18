@@ -349,7 +349,7 @@ data class ModalArgSpec(val short: Boolean, val modalEnableKey: ModalKey?, val b
 
 data class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
 open class Arguments {
-    val _args = mutableListOf<Arg<*, *>>()
+    private val _args = mutableListOf<Arg<*, *>>()
     val args: List<Arg<*, *>> = Collections.unmodifiableList(_args)
     inline fun string(name: String = "", help: String = "", builder: Arg<String, String>.() -> Unit = {}) =
         createArg(name, help, OptionType.STRING, builder)
@@ -369,18 +369,6 @@ open class Arguments {
             validate { it.toInt() }
             builder()
         }
-
-    inline fun intFromString(
-        name: String = "",
-        help: String = "",
-        throwIfNotNumber: Boolean = false,
-        builder: Arg<String, Int>.() -> Unit = {}
-    ) = createArg<String, Int>(name, help, OptionType.STRING) {
-        validate {
-            it.toIntOrNull() ?: if (throwIfNotNumber) throw InvalidArgumentException("Ungültige Zahl bei $name!") else 0
-        }
-        builder()
-    }
 
     fun draftPokemon(
         name: String = "",
@@ -563,7 +551,11 @@ open class Arguments {
         builder: Arg<DiscordType, ParsedType>.() -> Unit
     ) = Arg<DiscordType, ParsedType>(name, help, optionType, this).also {
         it.builder()
-        _args += it
+        addArg(it)
+    }
+
+    fun addArg(arg: Arg<*, *>) {
+        _args += arg
     }
 
     fun replaceLastArg(arg: Arg<*, *>) {

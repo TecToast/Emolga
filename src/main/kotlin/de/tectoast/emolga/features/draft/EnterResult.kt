@@ -84,13 +84,16 @@ object EnterResult {
         class Args : Arguments() {
             var userindex by int("index", "index").compIdOnly()
             var selected by string("selected", "selected").compIdOnly()
-            var kills by intFromString("kills", "kills") {
+            var kills by string<Int>("kills", "kills") {
+                validate {
+                    it.toIntOrNull() ?: 0
+                }
                 modal {
                     placeholder = "0"
                 }
                 default = 0
             }
-            var dead by createArg<String, Boolean>("dead", "dead") {
+            var dead by string<Boolean>("dead", "dead") {
                 validate { it.equals("X", ignoreCase = true) }
                 modal {
                     placeholder = "X wenn gestorben, sonst leer lassen"
@@ -228,14 +231,14 @@ object EnterResult {
                 }
 
                 ResultFinish.Mode.YES -> {
-                    if (league.storeInsteadSend)
-                        reply(
-                            "Das Ergebnis des Kampfes wurde gespeichert! Es wird dann zum Upload-Zeitpunkt im Doc veröffentlicht.",
-                            ephemeral = true
-                        )
+                    if (league.storeInsteadSend) reply(
+                        "Das Ergebnis des Kampfes wurde gespeichert! Es wird dann zum Upload-Zeitpunkt im Doc veröffentlicht.",
+                        ephemeral = true
+                    )
                     else {
                         reply(generateFinalMessage())
                     }
+                    results.remove(user)
                     league.docEntry?.analyse(
                         ReplayData(
                             game = data.mapIndexed { index, d ->

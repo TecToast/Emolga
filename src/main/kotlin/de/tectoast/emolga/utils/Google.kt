@@ -10,10 +10,7 @@ import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.File
 import com.google.api.services.drive.model.Permission
 import com.google.api.services.sheets.v4.Sheets
-import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest
-import com.google.api.services.sheets.v4.model.BatchUpdateValuesRequest
-import com.google.api.services.sheets.v4.model.Request
-import com.google.api.services.sheets.v4.model.ValueRange
+import com.google.api.services.sheets.v4.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.minutes
@@ -41,39 +38,101 @@ object Google {
         ).setApplicationName("emolga").build()
     }
 
-    fun setCredentials(refreshToken: String?, clientID: String?, clientSecret: String?) {
+    /**
+     * Set the credentials for the Google API
+     * @param refreshToken The refresh token
+     * @param clientID The client ID
+     * @param clientSecret The client secret
+     */
+    fun setCredentials(refreshToken: String, clientID: String, clientSecret: String) {
         REFRESHTOKEN = refreshToken
         CLIENTID = clientID
         CLIENTSECRET = clientSecret
     }
 
-    suspend fun get(spreadsheetId: String, range: String, formula: Boolean): List<List<Any>> =
+    /**
+     * Gets the specified range of data from the specified spreadsheet
+     * @param spreadsheetId The ID of the spreadsheet
+     * @param range The range of the data
+     * @param formula Whether to get the formula or the formatted value
+     * @param majorDimension The major dimension of the data (default: "ROWS")
+     * @return The data, as a list of rows, each row being a list of cells
+     */
+    suspend fun get(
+        spreadsheetId: String,
+        range: String,
+        formula: Boolean,
+        majorDimension: String = "ROWS"
+    ): List<List<Any>> =
         withContext(googleContext) {
             sheetsService().spreadsheets()
-                .values()[spreadsheetId, range].setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
+                .values()[spreadsheetId, range].setMajorDimension(majorDimension)
+                .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
                 .execute().getValues()
         }
 
-    suspend fun batchGet(sid: String, ranges: List<String>, formula: Boolean, majorDimension: String = "ROWS") =
+    /**
+     * Gets the specified ranges of data from the specified spreadsheet
+     * @param sid The ID of the spreadsheet
+     * @param ranges The ranges of the data
+     * @param formula Whether to get the formula or the formatted value
+     * @param majorDimension The major dimension of the data (default: "ROWS")
+     * @return The data, as a list of ranges, each list being a list of rows, each row being a list of cells
+     */
+    suspend fun batchGet(
+        sid: String,
+        ranges: List<String>,
+        formula: Boolean,
+        majorDimension: String = "ROWS"
+    ): List<List<List<Any>>> =
         withContext(googleContext) {
             sheetsService().spreadsheets().values().batchGet(sid).setRanges(ranges).setMajorDimension(majorDimension)
                 .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
                 .execute().valueRanges.map { it.getValues() }
         }
 
-    suspend fun getSheetData(sid: String, ranges: List<String>) = withContext(googleContext) {
+    /**
+     * Gets the full data from the specified ranges of the specified spreadsheet
+     * @param sid The ID of the spreadsheet
+     * @param ranges The ranges of the data
+     * @return The data as Spreadsheet
+     */
+    suspend fun getSheetData(sid: String, ranges: List<String>): Spreadsheet = withContext(googleContext) {
         sheetsService().spreadsheets()[sid].setIncludeGridData(true).setRanges(ranges).execute()
     }
 
-    suspend fun batchUpdate(sid: String, data: List<ValueRange>, mode: String) = withContext(googleContext) {
-        sheetsService().spreadsheets().values()
-            .batchUpdate(sid, BatchUpdateValuesRequest().setData(data).setValueInputOption(mode)).execute()
+    /**
+     * Batch updates the specified data in the specified spreadsheet
+     * @param sid The ID of the spreadsheet
+     * @param data The data to update
+     * @param mode The mode of the update ("RAW" for unformatted, "USER_ENTERED" for formatted)
+     */
+    suspend fun batchUpdate(sid: String, data: List<ValueRange>, mode: String) {
+        withContext(googleContext) {
+            sheetsService().spreadsheets().values()
+                .batchUpdate(sid, BatchUpdateValuesRequest().setData(data).setValueInputOption(mode)).execute()
+        }
     }
 
-    suspend fun batchUpdate(sid: String, data: List<Request>) = withContext(googleContext) {
-        sheetsService().spreadsheets().batchUpdate(sid, BatchUpdateSpreadsheetRequest().setRequests(data)).execute()
+    /**
+     * Batch updates the specified data in the specified spreadsheet
+     * @param sid The ID of the spreadsheet
+     * @param data The data to update
+     */
+    suspend fun batchUpdate(sid: String, data: List<Request>) {
+        withContext(googleContext) {
+            sheetsService().spreadsheets().batchUpdate(sid, BatchUpdateSpreadsheetRequest().setRequests(data)).execute()
+        }
     }
 
+    /**
+     * Uploads the specified file to the specified folder in Google Drive
+     * @param parent The ID of the folder
+     * @param name The name of the file
+     * @param mimeType The MIME type of the file
+     * @param data The data of the file
+     * @return The ID of the file
+     */
     suspend fun uploadFileToDrive(parent: String, name: String, mimeType: String, data: ByteArray): String =
         withContext(googleContext) {
             val fileId = driveService().files().create(
@@ -87,7 +146,12 @@ object Google {
             fileId
         }
 
-    suspend fun generateAccessToken(): String = withContext(googleContext) {
+    /**
+     * Generates an access token with the stored credentials
+     * @return The access token
+     * @see setCredentials
+     */
+    private suspend fun generateAccessToken(): String = withContext(googleContext) {
         GoogleRefreshTokenRequest(
             GoogleNetHttpTransport.newTrustedTransport(),
             GsonFactory.getDefaultInstance(),

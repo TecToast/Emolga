@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class CacheTest : FunSpec({
     var x = 0
@@ -62,5 +63,37 @@ class CacheTest : FunSpec({
             x shouldBe 3
             timed() shouldBe 3
         }
+        test("WithTimedCache2") {
+            val timed = TimedCache(5.seconds) { cacheFun() }
+            val cache = MappedCache(timed) { "$it :D" }
+
+            cache() shouldBe "1 :D"
+            delay(1000)
+            cache() shouldBe "1 :D"
+            delay(1000)
+            cache() shouldBe "1 :D"
+            delay(4000)
+            cache() shouldBe "2 :D"
+            delay(1000)
+            cache() shouldBe "2 :D"
+            delay(4000)
+            cache() shouldBe "3 :D"
+        }
+        test("WithTimedCache3") {
+            val timed = TimedCache(2.seconds) { cacheFun() }
+            var mapCounter = 0
+            val cache = MappedCache(timed) { "$it ${++mapCounter} :D" }
+            cache() shouldBe "1 1 :D"
+            delay(3000)
+            timed()
+            delay(500)
+            cache() shouldBe "2 2 :D"
+        }
     }
 })
+
+private var cacheTest = 0
+private fun cacheFun(): Int {
+    println("I got called")
+    return ++cacheTest
+}

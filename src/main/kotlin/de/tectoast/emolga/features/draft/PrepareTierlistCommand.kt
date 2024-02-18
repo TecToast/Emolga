@@ -50,7 +50,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                     false,
                     "COLUMNS"
                 )
-                    .map { col -> col.flatten().mapNotNull { it?.toString()?.prepareForTL() } }
+                    .map { col -> col.flatten().mapNotNull { it.toString().prepareForTL() } }
                     .also { tierlistcols += it }
                     .flatten().ensureNoDuplicates() + shiftedMons?.map { it.name }.orEmpty()).distinct(),
                 tierlistcols = tierlistcols,

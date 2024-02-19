@@ -58,7 +58,10 @@ object EnterResult {
         context(InteractionData)
         override suspend fun exec(e: Args) {
             val resultEntry = results[user]
-                ?: return reply("Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!")
+                ?: return reply(
+                    "Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!",
+                    ephemeral = true
+                )
             resultEntry.handleSelect(e)
         }
     }
@@ -75,7 +78,10 @@ object EnterResult {
         context(InteractionData)
         override suspend fun exec(e: Args) {
             val resultEntry = results[user]
-                ?: return reply("Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!")
+                ?: return reply(
+                    "Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!",
+                    ephemeral = true
+                )
             resultEntry.handleFinish(e)
         }
     }
@@ -114,7 +120,10 @@ object EnterResult {
         context(InteractionData)
         override suspend fun exec(e: Args) {
             val resultEntry = results[user]
-                ?: return reply("Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!")
+                ?: return reply(
+                    "Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!",
+                    ephemeral = true
+                )
             resultEntry.handleModal(e)
         }
     }

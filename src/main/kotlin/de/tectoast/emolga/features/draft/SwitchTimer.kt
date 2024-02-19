@@ -39,7 +39,7 @@ object SwitchTimer {
             val league = e.league
             val settings = e.settings
             val timer = SwitchTimer(settings.associateWith {
-                TimerInfo((TimeUtils.parseShortTime(it).takeIf { n -> n >= 0 }
+                TimerInfo((TimeUtils.parseShortTime(it).toInt().takeIf { n -> n >= 0 }
                     ?: return reply("`$it` ist keine valide Zeitangabe!")) / 60).set(e.from, e.to)
             })
             timer.stallSeconds = e.stallSeconds

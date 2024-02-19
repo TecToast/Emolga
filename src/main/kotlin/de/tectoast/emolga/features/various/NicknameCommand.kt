@@ -39,7 +39,7 @@ object NicknameCommand : CommandFeature<NicknameCommand.Args>(
             if (expiresIn <= 0) return@run
             return reply(
                 "${member.asMention} Du kannst deinen Namen noch nicht wieder ändern!\nCooldown: ${
-                    TimeUtils.secondsToTime(expiresIn / 1000)
+                    TimeUtils.secondsToTimePretty(expiresIn / 1000)
                 }"
             )
         }

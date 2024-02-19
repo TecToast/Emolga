@@ -148,7 +148,7 @@ class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
             tc.editMessageById(
                 it, "<@$current> Dein Uhrsaring-Zuschlag ${
                     if (data is NextPlayerData.Normal) "beträgt noch ${
-                        TimeUtils.secondsToTime((cooldown - System.currentTimeMillis()) / 1000)
+                        TimeUtils.secondsToTimePretty((cooldown - System.currentTimeMillis()) / 1000)
                     }!"
                     else "wurde vollständig aufgebraucht!"
                 }"

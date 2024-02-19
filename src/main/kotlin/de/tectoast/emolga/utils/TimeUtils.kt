@@ -1,84 +1,89 @@
 package de.tectoast.emolga.utils
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import java.util.*
+import kotlin.time.Duration.Companion.seconds
 
 object TimeUtils {
-    private val DURATION_PATTERN = Regex("\\d{1,8}[smhd]?")
+    private val DURATION_PATTERN = Regex("(\\d{1,8})([smhd]?)")
     private val DURATION_SPLITTER = Regex("[.|:]")
-
-    /**
-     * Parses a time string into seconds.
-     */
-    fun parseShortTime(timestring: String): Int {
-        var timestr = timestring
-        timestr = timestr.lowercase()
-        if (!DURATION_PATTERN.matches(timestr)) return -1
-        var multiplier = 1
-        when (timestr[timestr.length - 1]) {
-            'd' -> {
-                multiplier *= 24
-                multiplier *= 60
-                multiplier *= 60
-                timestr = timestr.substring(0, timestr.length - 1)
-            }
-
-            'h' -> {
-                multiplier *= 60
-                multiplier *= 60
-                timestr = timestr.substring(0, timestr.length - 1)
-            }
-
-            'm' -> {
-                multiplier *= 60
-                timestr = timestr.substring(0, timestr.length - 1)
-            }
-
-            's' -> timestr = timestr.substring(0, timestr.length - 1)
-            else -> {}
+    private val SECONDS_TOSTRING = TreeMap<Int, String>(
+        Comparator.reverseOrder()
+    ).apply {
+        putAll(
+            listOf(
+                60 * 60 * 24 * 365 to "y",
+                60 * 60 * 24 * 7 to "w",
+                60 * 60 * 24 to "d",
+                60 * 60 to "h",
+                60 to "m",
+                1 to "s"
+            )
+        )
+    }
+    private val shortToPretty = mapOf(
+        "y" to ("Jahr" to "Jahre"),
+        "w" to ("Woche" to "Wochen"),
+        "d" to ("Tag" to "Tage"),
+        "h" to ("Stunde" to "Stunden"),
+        "m" to ("Minute" to "Minuten"),
+        "s" to ("Sekunde " to "Sekunden")
+    )
+    private val STRING_TO_SECONDS = run {
+        val map = TreeMap<String, Int>()
+        for ((k, v) in SECONDS_TOSTRING) {
+            map[v] = k
         }
-        return multiplier * timestr.toInt()
+        map[""] = 1
+        map
     }
 
+    fun parseShortTime(timestring: String): Long {
+        var result = 0L
+        timestring.split(" ").forEach {
+            DURATION_PATTERN.find(it)?.destructured?.let { (amount, unit) ->
+                result += amount.toInt() * STRING_TO_SECONDS[unit.lowercase()]!!
+            }
+        }
+        return result
+    }
 
-    fun secondsToTime(timesec: Long): String {
-        var timeseconds = timesec
-        val builder = StringBuilder(20)
-        val years = (timeseconds / (60 * 60 * 24 * 365)).toInt()
-        if (years > 0) {
-            builder.append("**").append(years).append("** ").append(pluralise(years.toLong(), "Jahr", "Jahre"))
-                .append(", ")
-            timeseconds %= (60 * 60 * 24 * 365)
+    private fun secondsToTimeBase(timesec: Long): Map<String, Int> {
+        var remaining = timesec
+        val map = mutableMapOf<String, Int>()
+        SECONDS_TOSTRING.entries.forEach {
+            val amount = timesec / it.key
+            if (amount > 0) {
+                map[it.value] = amount.toInt()
+                remaining %= it.key
+            }
         }
-        val weeks = (timeseconds / (60 * 60 * 24 * 7)).toInt()
-        if (weeks > 0) {
-            builder.append("**").append(weeks).append("** ").append(pluralise(weeks.toLong(), "Woche", "Wochen"))
-                .append(", ")
-            timeseconds %= (60 * 60 * 24 * 7)
+        return map
+    }
+
+    fun secondsToTimePretty(timesec: Long): String {
+        val base = secondsToTimeBase(timesec)
+        val builder = StringBuilder()
+        base.forEach { (k, v) ->
+            val (singular, plural) = shortToPretty[k]!!
+            builder.append("**").append(v).append("** ").append(pluralise(v.toLong(), singular, plural)).append(", ")
         }
-        val days = (timeseconds / (60 * 60 * 24)).toInt()
-        if (days > 0) {
-            builder.append("**").append(days).append("** ").append(pluralise(days.toLong(), "Tag", "Tage")).append(", ")
-            timeseconds %= (60 * 60 * 24)
+        if (builder.endsWith(", ")) builder.substring(0, builder.length - 2)
+        return if (builder.isEmpty()) "**0** Sekunden" else builder.toString()
+    }
+
+    fun secondsToTimeShort(timesec: Long): String {
+        val base = secondsToTimeBase(timesec)
+        val builder = StringBuilder()
+        base.forEach { (k, v) ->
+            builder.append(v).append(k).append(" ")
         }
-        val hours = (timeseconds / (60 * 60)).toInt()
-        if (hours > 0) {
-            builder.append("**").append(hours).append("** ").append(pluralise(hours.toLong(), "Stunde", "Stunden"))
-                .append(", ")
-            timeseconds %= (60 * 60)
-        }
-        val minutes = (timeseconds / 60).toInt()
-        if (minutes > 0) {
-            builder.append("**").append(minutes).append("** ").append(pluralise(minutes.toLong(), "Minute", "Minuten"))
-                .append(", ")
-            timeseconds %= 60
-        }
-        if (timeseconds > 0) {
-            builder.append("**").append(timeseconds).append("** ").append(pluralise(timeseconds, "Sekunde", "Sekunden"))
-        }
-        var str = builder.toString()
-        if (str.endsWith(", ")) str = str.substring(0, str.length - 2)
-        if (str.isEmpty()) str = "**0** Sekunden"
-        return str
+        return builder.toString().trim()
     }
 
     fun parseCalendarTime(str: String): Long {
@@ -140,10 +145,23 @@ object TimeUtils {
     private fun pluralise(x: Long, singular: String, plural: String): String {
         return if (x == 1L) singular else plural
     }
+}
 
-    fun convertToMinsSecs(seconds: Int): String {
-        val minutes = seconds / 60
-        val remainingSeconds = seconds % 60
-        return "$minutes:${remainingSeconds.toString().padStart(2, '0')}"
+@JvmInline
+@Serializable(with = IntervalSerializer::class)
+value class Interval(val seconds: Long) {
+    constructor(str: String) : this(TimeUtils.parseShortTime(str))
+
+    fun toDuration() = seconds.seconds
+}
+
+private object IntervalSerializer : KSerializer<Interval> {
+    override val descriptor = PrimitiveSerialDescriptor("Interval", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: Interval) {
+        encoder.encodeString(TimeUtils.secondsToTimeShort(value.seconds))
+    }
+
+    override fun deserialize(decoder: Decoder): Interval {
+        return Interval(decoder.decodeString())
     }
 }

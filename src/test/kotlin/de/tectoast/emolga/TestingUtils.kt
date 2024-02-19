@@ -13,16 +13,24 @@ import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.myJSON
+import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.litote.kmongo.coroutine.insertOne
 import kotlin.coroutines.suspendCoroutine
 
 val defaultGuild by lazy { jda.getGuildById(Constants.G.MY)!! }
 val defaultChannel by lazy { jda.getTextChannelById(Constants.TEST_TCID)!! }
+val defaultCategory by lazy { jda.getCategoryById(Constants.TEST_CATID)!! }
+
+suspend fun createChannel(name: String): TextChannel {
+    return defaultGuild.getTextChannelsByName(name, true).firstOrNull() ?: defaultCategory.createTextChannel(name)
+        .await()
+}
 
 inline fun testCommand(receiver: TestInteractionData.() -> Unit) = with(TestInteractionData(), receiver)
 

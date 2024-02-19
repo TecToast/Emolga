@@ -146,15 +146,16 @@ object SignupManager {
     suspend fun signupUser(
         gid: Long,
         uid: Long,
-        sdname: String,
+        sdname: String?,
         teamname: String?,
         experiences: String?,
         isChange: Boolean = false,
         e: InteractionData? = null
     ): Unit? {
         e?.ephemeralDefault()
-        val sdnameid = sdname.toUsername()
-        if (sdnameid.length !in 1..18) return e?.reply("Dieser Showdown-Name ist ungültig!")
+        sdname?.let {
+            if (it.toUsername().length !in 1..18) return e?.reply("Dieser Showdown-Name ist ungültig!")
+        }
         e?.deferReply(true)
         val (signupMutex, channel) = persistentSignupData.getOrPut(gid) {
             val c = Channel<LigaStartData>(Channel.CONFLATED)
@@ -175,11 +176,14 @@ object SignupManager {
                     )
                     else uid
                 if (ownerOfTeam in users && !isChange) return e?.reply("Du bist bereits angemeldet!")
-                @Suppress("DeferredResultUnused") SDNamesDB.addIfAbsent(sdname, ownerOfTeam)
+                @Suppress("DeferredResultUnused")
+                sdname?.let {
+                    SDNamesDB.addIfAbsent(it, ownerOfTeam)
+                }
                 val jda = e?.jda ?: jda
                 if (isChange) {
                     val data = users[ownerOfTeam]!!
-                    data.sdname = sdname
+                    data.sdname = sdname ?: "EMPTY"
                     data.teamname = teamname
                     data.experiences = experiences
                     e?.reply("Deine Daten wurden erfolgreich geändert!")
@@ -198,7 +202,7 @@ object SignupManager {
                     (e?.member()) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!.await()
                 }
                 val signUpData = SignUpData(
-                    teamname, sdname, experiences = experiences
+                    teamname, sdname ?: "EMPTY", experiences = experiences
                 ).apply {
                     signupmid = jda.getTextChannelById(signupChannel)!!.sendMessage(
                         toMessage(ownerOfTeam, this@with)

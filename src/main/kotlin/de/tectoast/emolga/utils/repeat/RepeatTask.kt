@@ -96,8 +96,11 @@ class RepeatTask(
                             data.amount,
                             data.intervalBetweenGD.toDuration(),
                             true
-                        ) {
-                            l.refresh().docEntry?.analyseWithoutCheck(data.data[it]!![battle]!!)
+                        ) { gameday ->
+                            val league = l.refresh()
+                            val dataStore = league.replayDataStore ?: return@RepeatTask
+                            dataStore.data[gameday]?.get(battle)?.let { league.docEntry?.analyseWithoutCheck(it) }
+                                ?: throw IllegalStateException("No replay found for gameday $gameday and battle $battle")
                         }
                     }
                 }

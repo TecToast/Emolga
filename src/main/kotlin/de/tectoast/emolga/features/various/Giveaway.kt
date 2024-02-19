@@ -34,7 +34,7 @@ object Giveaway {
         override val title = "Giveaway-Erstellung"
 
         class Args : Arguments() {
-            var time by string<Int>("Dauer des Giveaways") {
+            var time by string<Long>("Dauer des Giveaways") {
                 modal {
                     placeholder = "5h"
                     setRequiredRange(1, 20)

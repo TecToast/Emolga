@@ -67,7 +67,7 @@ object SignupManager {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            signupUser(gid, user, e.sdname, e.teamname, e.experiences, e.change)
+            signupUser(gid, user, e.sdname, e.teamname, e.experiences, e.change, self)
         }
     }
 
@@ -182,7 +182,7 @@ object SignupManager {
                     data.sdname = sdname
                     data.teamname = teamname
                     data.experiences = experiences
-                    e?.sendMessage("Deine Daten wurden erfolgreich geändert!")
+                    e?.reply("Deine Daten wurden erfolgreich geändert!")
                     jda.getTextChannelById(signupChannel)!!.editMessageById(
                         data.signupmid!!, data.toMessage(ownerOfTeam, this)
                     ).queue()
@@ -193,10 +193,10 @@ object SignupManager {
                     save()
                     return null
                 }
-                e?.sendMessage("✅ Du wurdest erfolgreich angemeldet!")
-                giveParticipantRole(
+                e?.reply("✅ Du wurdest erfolgreich angemeldet!")
+                giveParticipantRole {
                     (e?.member()) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!.await()
-                )
+                }
                 val signUpData = SignUpData(
                     teamname, sdname, experiences = experiences
                 ).apply {

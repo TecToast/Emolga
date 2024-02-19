@@ -1,6 +1,5 @@
 package de.tectoast.emolga.utils.json
 
-import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
@@ -224,11 +223,15 @@ data class LigaStartData(
     fun getOwnerByUser(uid: Long) = users.entries.firstOrNull { it.key == uid || it.value.teammates.contains(uid) }?.key
 
     suspend fun save() = db.signups.updateOne(this)
-    fun giveParticipantRole(member: Member) {
+    inline fun giveParticipantRole(memberfun: () -> Member) {
         participantRole?.let {
+            val member = memberfun()
             member.guild.addRoleToMember(member, member.guild.getRoleById(it)!!).queue()
         }
     }
+
+    fun giveParticipantRole(member: Member) = giveParticipantRole { member }
+
 
     fun updateSignupMessage(setMaxUsersToCurrentUsers: Boolean = false) {
         jda.getTextChannelById(announceChannel)!!.editMessageById(

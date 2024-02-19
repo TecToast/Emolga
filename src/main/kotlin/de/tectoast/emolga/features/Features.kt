@@ -275,15 +275,15 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
             val argName = arg.name
             val argId = argName.nameToDiscordOption()
             val required = spec?.required == true || !arg.optional
-            val placeholder = arg.parsed?.toString()
+            val value = arg.parsed?.toString()
             val argBuilder = spec?.builder ?: {}
             if (spec?.short != false) {
                 short(
-                    argId, argName, required = required, placeholder = placeholder, builder = argBuilder
+                    argId, argName, required = required, value = value, builder = argBuilder
                 )
             } else {
                 paragraph(
-                    argId, argName, required = required, placeholder = placeholder, builder = argBuilder
+                    argId, argName, required = required, value = value, builder = argBuilder
                 )
             }
         }

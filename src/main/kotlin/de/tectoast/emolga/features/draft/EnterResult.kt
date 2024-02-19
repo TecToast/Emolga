@@ -241,7 +241,7 @@ object EnterResult {
 
                 ResultFinish.Mode.YES -> {
                     if (league.replayDataStore != null) reply(
-                        "Das Ergebnis des Kampfes wurde gespeichert!",
+                        "Das Ergebnis des Kampfes wurde gespeichert! Du kannst nun die Eingabe-Nachricht verwerfen.",
                         ephemeral = true
                     )
                     else {

@@ -10,7 +10,7 @@ import java.util.*
 import kotlin.time.Duration.Companion.seconds
 
 object TimeUtils {
-    private val DURATION_PATTERN = Regex("(\\d{1,8})([smhd]?)")
+    private val DURATION_PATTERN = Regex("(\\d{1,8})([smhdwy]?)")
     private val DURATION_SPLITTER = Regex("[.|:]")
     private val SECONDS_TOSTRING = TreeMap<Int, String>(
         Comparator.reverseOrder()
@@ -57,7 +57,7 @@ object TimeUtils {
         var remaining = timesec
         val map = mutableMapOf<String, Int>()
         SECONDS_TOSTRING.entries.forEach {
-            val amount = timesec / it.key
+            val amount = remaining / it.key
             if (amount > 0) {
                 map[it.value] = amount.toInt()
                 remaining %= it.key
@@ -147,15 +147,15 @@ object TimeUtils {
     }
 }
 
-@JvmInline
+
 @Serializable(with = IntervalSerializer::class)
-value class Interval(val seconds: Long) {
+class Interval(val seconds: Long) {
     constructor(str: String) : this(TimeUtils.parseShortTime(str))
 
     fun toDuration() = seconds.seconds
 }
 
-private object IntervalSerializer : KSerializer<Interval> {
+object IntervalSerializer : KSerializer<Interval> {
     override val descriptor = PrimitiveSerialDescriptor("Interval", PrimitiveKind.STRING)
     override fun serialize(encoder: Encoder, value: Interval) {
         encoder.encodeString(TimeUtils.secondsToTimeShort(value.seconds))

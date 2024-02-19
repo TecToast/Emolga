@@ -1,6 +1,6 @@
 package de.tectoast.emolga.utils.showdown
 
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import kotlin.reflect.KClass
@@ -108,7 +108,7 @@ sealed class SDEffect(vararg val types: String) {
 
     }
 
-    fun BattleContext.reportUsage() = EmolgaMain.emolgajda.getTextChannelById(1099651412742389820)!!
+    fun BattleContext.reportUsage() = jda.getTextChannelById(1099651412742389820)!!
         .sendMessage("Effect ${this@SDEffect::class.simpleName} was used! $url").queue()
 
     context(BattleContext)

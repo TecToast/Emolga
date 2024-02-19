@@ -1,6 +1,6 @@
 package de.tectoast.emolga.features.various
 
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DumbestFliesDB
 import de.tectoast.emolga.database.exposed.UsedQuestionsDB
 import de.tectoast.emolga.features.*
@@ -268,17 +268,17 @@ object DBF {
 
         data object MyServer : AdminChannelProvider() {
             override suspend fun provideChannel(): MessageChannel =
-                EmolgaMain.emolgajda.getChannel<MessageChannel>(1126196072839139490)!!
+                jda.getChannel<MessageChannel>(1126196072839139490)!!
         }
 
         class PN(private val uid: Long) : AdminChannelProvider() {
             override suspend fun provideChannel(): MessageChannel =
-                EmolgaMain.emolgajda.openPrivateChannelById(uid).await()
+                jda.openPrivateChannelById(uid).await()
         }
     }
 
     private val adminChannelProvider = AdminChannelProvider.PN(Constants.M.HENNY)
-    private val gameChannel get() = EmolgaMain.emolgajda.getChannel<GuildMessageChannel>(1126193988051931277)!!
+    private val gameChannel get() = jda.getChannel<GuildMessageChannel>(1126193988051931277)!!
     private suspend fun adminChannel() = adminChannelProvider.provideChannel()
     private fun allVoted() = votes.size == members.size
     lateinit var allQuestions: List<String>

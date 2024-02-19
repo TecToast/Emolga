@@ -3,7 +3,7 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import com.google.api.services.sheets.v4.model.CellFormat
 import com.google.api.services.sheets.v4.model.ColorStyle
 import com.google.api.services.sheets.v4.model.TextFormat
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -222,7 +222,7 @@ class NDS : League() {
             b.addSingle("TipGameData!N29", gameday + nds.rrSummand)
             if (withAnnounce) {
                 b.withRunnable {
-                    EmolgaMain.emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
+                    jda.getTextChannelById(837425690844201000L)!!.sendMessage(
                         "Jo, kurzer Reminder, die Matchups des nächsten Spieltages sind im Doc, vergesst das Nominieren nicht :)\n<@&856205147754201108>"
                     ).queue()
                 }
@@ -268,7 +268,7 @@ class NDS : League() {
             }
             b.withRunnable {
                 if (onlySpecifiedUsers.isEmpty() && withSend) {
-                    EmolgaMain.emolgajda.getTextChannelById(837425690844201000L)!!.sendMessage(
+                    jda.getTextChannelById(837425690844201000L)!!.sendMessage(
                         """
                 Guten Abend ihr Teilnehmer. Der nächste Spieltag öffnet seine Pforten...Was? Du hast vergessen zu nominieren? Dann hast du wieder mal Pech gehabt. Ab jetzt könnt ihr euch die Nominierungen im Dokument anschauen und verzweifelt feststellen, dass ihr völlig lost gewesen seid bei eurer Entscheidung hehe. Wie dem auch sei, viel Spaß beim Teambuilding. Und passt auf Maxis Mega-Gewaldro auf! Warte, er hat keins mehr? Meine ganzen Konstanten im Leben wurden durchkreuzt...egal, wir hören uns nächste Woche wieder!
 _written by Maxifcn_""".trimIndent()

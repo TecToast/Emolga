@@ -21,7 +21,7 @@ object ControlButtonSetup {
 
     fun init() {
         CONTROLCENTRALGENERATION.takeIf { it.enabled }?.let {
-            val tc = EmolgaMain.emolgajda.getTextChannelById(it.tc)!!
+            val tc = jda.getTextChannelById(it.tc)!!
             val embed = Embed(title = "Kontrollzentrale", color = embedColor).into()
             val components = listOf(
                 ControlCentralButton("Slash-Commands updaten", ButtonStyle.PRIMARY) {
@@ -39,7 +39,7 @@ object ControlButtonSetup {
             } ?: tc.send(embeds = embed, components = components).queue()
         }
         FLORIXCONTROLGENERATION.takeIf { it.enabled }?.let {
-            val tc = EmolgaMain.emolgajda.getTextChannelById(it.tc)!!
+            val tc = jda.getTextChannelById(it.tc)!!
             PC.entries.forEach { pc ->
                 val mid = it.mids[pc]
                 val id = pc.name.takeLast(1)

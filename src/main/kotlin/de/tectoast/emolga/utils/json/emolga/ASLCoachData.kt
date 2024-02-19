@@ -1,6 +1,6 @@
 package de.tectoast.emolga.utils.json.emolga
 
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.indexedBy
@@ -107,7 +107,7 @@ class ASLCoachData(
         }
     }
 
-    private fun textChannel() = EmolgaMain.emolgajda.getTextChannelById(textChannel)!!
+    private fun textChannel() = jda.getTextChannelById(textChannel)!!
 
     suspend fun save() = db.aslcoach.updateOne(this)
     private suspend fun insertIntoDoc(

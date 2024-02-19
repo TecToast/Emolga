@@ -1,6 +1,6 @@
 package de.tectoast.emolga.ktor
 
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.ktor.routes.leagueCreate
 import de.tectoast.emolga.ktor.routes.leagueManage
 import de.tectoast.emolga.utils.SizeLimitedMap
@@ -95,7 +95,7 @@ suspend inline fun <reified T> HttpClient.getWithToken(url: String, accessToken:
 }
 
 fun List<DiscordGuildData>.emolga(): List<GuildData> {
-    val emolgaguilds = EmolgaMain.emolgajda.guilds.map { it.id }
+    val emolgaguilds = jda.guilds.map { it.id }
     return asSequence().filter {
         it.permissions and Permission.MANAGE_SERVER.rawValue > 0
     }.map { gd ->

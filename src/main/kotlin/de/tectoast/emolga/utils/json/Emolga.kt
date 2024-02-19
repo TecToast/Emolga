@@ -231,7 +231,7 @@ data class LigaStartData(
     }
 
     fun updateSignupMessage(setMaxUsersToCurrentUsers: Boolean = false) {
-        EmolgaMain.emolgajda.getTextChannelById(announceChannel)!!.editMessageById(
+        jda.getTextChannelById(announceChannel)!!.editMessageById(
             announceMessageId,
             "$signupMessage\n\n**Teilnehmer: ${users.size}/${if (setMaxUsersToCurrentUsers) users.size else maxUsersAsString}**"
         ).queue()
@@ -244,7 +244,7 @@ data class LigaStartData(
         ).queue()
         val msg = "_----------- Anmeldung geschlossen -----------_"
         channel.sendMessage(msg).queue()
-        if (announceChannel != signupChannel) EmolgaMain.emolgajda.getTextChannelById(signupChannel)!!.sendMessage(msg)
+        if (announceChannel != signupChannel) jda.getTextChannelById(signupChannel)!!.sendMessage(msg)
             .queue()
         if (forced) updateSignupMessage(true)
     }

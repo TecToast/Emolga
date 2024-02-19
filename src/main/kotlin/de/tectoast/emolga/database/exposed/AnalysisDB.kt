@@ -1,7 +1,7 @@
 package de.tectoast.emolga.database.exposed
 
 
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -30,7 +30,7 @@ object AnalysisDB : Table("analysis") {
     fun removeUnused() = transaction {
         var x = 0
         for (row in selectAll()) {
-            if (EmolgaMain.emolgajda.getTextChannelById(row[REPLAY]) == null) {
+            if (jda.getTextChannelById(row[REPLAY]) == null) {
                 deleteWhere { REPLAY eq row[REPLAY] }
                 x++
             }

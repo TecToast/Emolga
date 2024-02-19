@@ -1,7 +1,7 @@
 package de.tectoast.emolga.features
 
-import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.features.draft.SignupManager
@@ -193,7 +193,7 @@ object PrivateCommands {
         data: LigaStartData,
         vararg conferenceIndexes: Int
     ): Map<Int, Pair<MessageEmbed, List<ActionRow>>> {
-        if (nameCache.isEmpty()) EmolgaMain.emolgajda.getTextChannelById(data.signupChannel)!!.guild.retrieveMembersByIds(
+        if (nameCache.isEmpty()) jda.getTextChannelById(data.signupChannel)!!.guild.retrieveMembersByIds(
             data.users.keys
         ).await().forEach { nameCache[it.idLong] = it.effectiveName }
         data.save()
@@ -232,7 +232,7 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun shuffleSignupConferences(args: PrivateData) {
         val data = db.signups.get(args().toLong())!!
-        val tc = EmolgaMain.emolgajda.getTextChannelById(data.shiftChannel!!)!!
+        val tc = jda.getTextChannelById(data.shiftChannel!!)!!
         val conferences = data.conferences
         data.users.values.shuffled().shuffled().forEachIndexed { index, value ->
             value.conference = conferences[index % conferences.size]
@@ -310,7 +310,7 @@ object PrivateCommands {
         teamGraphicScope.launch {
             val league = db.league(args[0])
             val user = args[1].toLong()
-            val tc = args.getOrNull(2)?.let { EmolgaMain.emolgajda.getTextChannelById(it)!! } ?: textChannel
+            val tc = args.getOrNull(2)?.let { jda.getTextChannelById(it)!! } ?: textChannel
             if (user > -1) {
                 tc.sendMessage("Kader von <@${user}>:").addFiles(league.picks[user]!!.toTeamGraphics()).queue()
                 return@launch

@@ -1,6 +1,6 @@
 package de.tectoast.emolga.features.various
 
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.database.exposed.CalendarEntry
 import de.tectoast.emolga.features.*
@@ -33,7 +33,7 @@ object CalendarSystem : CoroutineScope {
                     ce.delete()
                 } ?: return@launch
 
-                val calendarTc: TextChannel = EmolgaMain.emolgajda.getTextChannelById(Constants.CALENDAR_TCID)!!
+                val calendarTc: TextChannel = jda.getTextChannelById(Constants.CALENDAR_TCID)!!
                 calendarTc.sendMessage("(<@${Constants.FLOID}>) ${ce.message}")
                     .setActionRow(RemindButton()).queue()
                 calendarTc.editMessageById(Constants.CALENDAR_MSGID, buildCalendar()).queue()

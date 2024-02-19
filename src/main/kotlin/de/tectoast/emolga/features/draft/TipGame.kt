@@ -1,6 +1,6 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.defaultScope
 import de.tectoast.emolga.utils.defaultTimeFormat
@@ -56,10 +56,10 @@ object TipGameManager {
         defaultScope.launch {
             val docEntry = league.docEntry!!
             val tip = league.tipgame!!
-            val channel = EmolgaMain.emolgajda.getTextChannelById(tip.channel)!!
+            val channel = jda.getTextChannelById(tip.channel)!!
             val matchups = docEntry.getMatchups(num)
             val names =
-                EmolgaMain.emolgajda.getGuildById(league.guild)!!.retrieveMembersByIds(matchups.flatten()).await()
+                jda.getGuildById(league.guild)!!.retrieveMembersByIds(matchups.flatten()).await()
                     .associate { it.idLong to it.effectiveName }
             val table = league.table
             channel.send(
@@ -91,7 +91,7 @@ object TipGameManager {
 
     fun executeTipGameLockButtons(league: League, gameday: Int) {
         defaultScope.launch {
-            EmolgaMain.emolgajda.getTextChannelById(league.tipgame!!.channel)!!.iterableHistory.takeAsync(league.table.size / 2)
+            jda.getTextChannelById(league.tipgame!!.channel)!!.iterableHistory.takeAsync(league.table.size / 2)
                 .await().forEach {
                     it.editMessageComponents(
                         ActionRow.of(it.actionRows[0].buttons.map { button -> button.asDisabled() })

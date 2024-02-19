@@ -1,6 +1,6 @@
 package de.tectoast.emolga.database.exposed
 
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.embedColor
@@ -62,7 +62,7 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
         transaction {
             delete()
         }
-        val tc = EmolgaMain.emolgajda.getTextChannelById(channelid) ?: return
+        val tc = jda.getTextChannelById(channelid) ?: return
         fun edit(msg: String) {
             tc.editMessageById(messageid, msg).queue()
         }

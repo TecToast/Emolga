@@ -1,6 +1,6 @@
 package de.tectoast.emolga.features.various
 
-import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
@@ -111,7 +111,7 @@ object Soullink {
     private val soullinkNames = listOf("Pascal", "David", "Jesse", "Felix")
 
     suspend fun updateSoullink() {
-        EmolgaMain.emolgajda.getTextChannelById(Constants.SOULLINK_TCID)!!
+        jda.getTextChannelById(Constants.SOULLINK_TCID)!!
             .editMessageById(Constants.SOULLINK_MSGID, buildSoullink()).queue()
     }
 

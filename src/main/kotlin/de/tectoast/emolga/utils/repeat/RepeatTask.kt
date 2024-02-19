@@ -1,43 +1,68 @@
 package de.tectoast.emolga.utils.repeat
 
 import de.tectoast.emolga.features.draft.TipGameManager
-import de.tectoast.emolga.utils.TimeUtils
 import de.tectoast.emolga.utils.createCoroutineScope
+import de.tectoast.emolga.utils.defaultTimeFormat
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
 import de.tectoast.emolga.utils.json.emolga.draft.NDSML
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import mu.KotlinLogging
-import java.time.Duration
-import java.time.Instant
-import java.time.temporal.TemporalAmount
+import java.util.*
+import kotlin.time.Duration
 
 class RepeatTask(
     lastExecution: Instant,
     amount: Int,
-    difference: TemporalAmount,
-    printDelays: Boolean = false,
+    difference: Duration,
+    printTimestamps: Boolean = false,
     consumer: suspend (Int) -> Unit,
 ) {
     private val scope = createCoroutineScope("RepeatTask")
+    val allTimestamps = mutableListOf<Long>()
+
+    constructor(
+        lastExecution: String,
+        amount: Int,
+        difference: Duration,
+        printDelays: Boolean = false,
+        consumer: suspend (Int) -> Unit,
+    ) : this(
+        Instant.fromEpochMilliseconds(defaultTimeFormat.parse(lastExecution).time),
+        amount,
+        difference,
+        printDelays,
+        consumer
+    )
 
     init {
-        val now = Instant.now()
-        if (lastExecution.isAfter(now)) {
-            var last = lastExecution
+        val now = Clock.System.now()
+        val nowM = now.toEpochMilliseconds()
+        val (days, hours, minutes, seconds) = difference.toComponents { days, hours, minutes, seconds, _ ->
+            listOf(-days.toInt(), -hours, -minutes, -seconds)
+        }
+        if (lastExecution > now) {
+            val last = Calendar.getInstance().apply { timeInMillis = lastExecution.toEpochMilliseconds() }
             var currAmount = amount
-            while (!last.isBefore(now)) {
+            while (last.timeInMillis >= nowM && currAmount > 0) {
+                val curTime = last.timeInMillis
+                allTimestamps += curTime
                 val finalCurrAmount = currAmount
-                val delay = last.toEpochMilli() - now.toEpochMilli()
-                if (printDelays) System.out.printf("%d -> %d%n", currAmount, delay)
+                val delay = curTime - nowM
+                if (printTimestamps) System.out.printf("%d -> %d%n", currAmount, curTime)
                 scope.launch {
                     delay(delay)
                     consumer(finalCurrAmount)
                 }
                 currAmount--
-                last -= difference
+                last.add(Calendar.DAY_OF_YEAR, days)
+                last.add(Calendar.HOUR_OF_DAY, hours)
+                last.add(Calendar.MINUTE, minutes)
+                last.add(Calendar.SECOND, seconds)
             }
         } else {
             println("LastExecution is in the past, RepeatTask will be terminated")
@@ -54,14 +79,27 @@ class RepeatTask(
             setupManualRepeatTasks()
             db.drafts.find().toFlow().collect { l ->
                 l.takeIf { it.docEntry != null }?.tipgame?.let { tip ->
-                    val duration = Duration.ofSeconds(TimeUtils.parseShortTime(tip.interval).toLong())
+                    val duration = tip.interval.toDuration()
                     logger.info("Draft ${l.leaguename} has tipgame with interval ${tip.interval} and duration $duration")
                     RepeatTask(
-                        tip.lastSending.toInstant(), tip.amount, duration, true
-                    ) { TipGameManager.executeTipGameSending(db.league(l.leaguename), it) }
+                        tip.lastSending, tip.amount, duration, true
+                    ) { TipGameManager.executeTipGameSending(l.refresh(), it) }
                     RepeatTask(
-                        tip.lastLockButtons.toInstant(), tip.amount, duration, true
-                    ) { TipGameManager.executeTipGameLockButtons(db.league(l.leaguename), it) }
+                        tip.lastLockButtons, tip.amount, duration, true
+                    ) { TipGameManager.executeTipGameLockButtons(l.refresh(), it) }
+                }
+                l.replayDataStore?.let { data ->
+                    val size = l.battleorder[1]?.size ?: return@let
+                    repeat(size) { battle ->
+                        RepeatTask(
+                            data.lastUploadStart + data.intervalBetweenMatches.toDuration() * battle,
+                            data.amount,
+                            data.intervalBetweenGD.toDuration(),
+                            true
+                        ) {
+                            l.refresh().docEntry?.analyseWithoutCheck(data.data[it]!![battle]!!)
+                        }
+                    }
                 }
             }
 

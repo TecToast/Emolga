@@ -17,7 +17,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.slf4j.Logger
-import java.time.Duration
+import kotlin.time.Duration.Companion.days
 
 @Suppress("unused")
 @Serializable
@@ -283,11 +283,11 @@ _written by Maxifcn_""".trimIndent()
         fun setupRepeatTasks() {
             logger.info("Setting up matchups repeat tasks")
             RepeatTask(
-                defaultTimeFormat.parse("08.10.2023 20:00").toInstant(), 5, Duration.ofDays(7L), true
+                "08.10.2023 20:00", 5, 7.days, true
             ) { doMatchUps(it, withAnnounce = true) }
             logger.info("Setting up nominations repeat tasks")
             RepeatTask(
-                defaultTimeFormat.parse("11.10.2023 00:00").toInstant(), 5, Duration.ofDays(7L), true
+                "11.10.2023 00:00", 5, 7.days, true
             ) { doNDSNominate() }
         }
     }

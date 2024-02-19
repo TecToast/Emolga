@@ -13,7 +13,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.litote.kmongo.eq
 import org.slf4j.Logger
-import java.time.Duration
+import kotlin.time.Duration.Companion.days
 
 @Serializable
 @SerialName("NDSML")
@@ -77,7 +77,7 @@ class NDSML : League() {
     companion object {
         fun setupRepeatTasks() {
             RepeatTask(
-                defaultTimeFormat.parse("28.01.2024 20:00").toInstant(), 9, Duration.ofDays(7L), true
+                "28.01.2024 20:00", 9, 7.days, true
             ) { doMatchUps(it) }
         }
 

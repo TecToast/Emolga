@@ -2,10 +2,7 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.defaultScope
-import de.tectoast.emolga.utils.defaultTimeFormat
-import de.tectoast.emolga.utils.embedColor
-import de.tectoast.emolga.utils.indexedBy
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.coroutines.await
@@ -13,6 +10,7 @@ import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -23,7 +21,6 @@ import kotlinx.serialization.encoding.Encoder
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import org.litote.kmongo.eq
 import java.awt.Color
-import java.util.*
 
 object TipGameManager {
     object VoteButton : ButtonFeature<VoteButton.Args>(::Args, ButtonSpec("tipgame")) {
@@ -105,22 +102,22 @@ object TipGameManager {
 @Serializable
 class TipGame(
     val tips: MutableMap<Int, TipGamedayData> = mutableMapOf(),
-    @Serializable(with = DateToStringSerializer::class) val lastSending: Date,
-    @Serializable(with = DateToStringSerializer::class) val lastLockButtons: Date,
-    val interval: String,
+    @Serializable(with = InstantToStringSerializer::class) val lastSending: Instant,
+    @Serializable(with = InstantToStringSerializer::class) val lastLockButtons: Instant,
+    val interval: Interval,
     val amount: Int,
     val channel: Long
 )
 
-object DateToStringSerializer : KSerializer<Date> {
+object InstantToStringSerializer : KSerializer<Instant> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Date", PrimitiveKind.STRING)
 
-    override fun serialize(encoder: Encoder, value: Date) {
-        encoder.encodeString(defaultTimeFormat.format(value))
+    override fun serialize(encoder: Encoder, value: Instant) {
+        encoder.encodeString(defaultTimeFormat.format(value.toEpochMilliseconds()))
     }
 
-    override fun deserialize(decoder: Decoder): Date {
-        return defaultTimeFormat.parse(decoder.decodeString())
+    override fun deserialize(decoder: Decoder): Instant {
+        return Instant.fromEpochMilliseconds(defaultTimeFormat.parse(decoder.decodeString()).time)
     }
 }
 

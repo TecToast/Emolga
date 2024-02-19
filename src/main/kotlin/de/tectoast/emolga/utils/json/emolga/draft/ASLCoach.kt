@@ -7,8 +7,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
-import java.time.Duration
 import java.util.Calendar.*
+import kotlin.time.Duration.Companion.days
 
 @Serializable
 @SerialName("ASLCoach")
@@ -23,8 +23,7 @@ class ASLCoach : League() {
     override val docEntry = DocEntry.create(this) {
         newSystem(null) {
             b.addSingle(
-                coord("Spielplan", gdi.x(5, 2), index.y(6, 5 + level)),
-                defaultGameplanString
+                coord("Spielplan", gdi.x(5, 2), index.y(6, 5 + level)), defaultGameplanString
             )
         }
         //sorterData = SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), false, null, 2, 8, 6)
@@ -36,8 +35,7 @@ class ASLCoach : League() {
 
     @Transient
     override var timer: DraftTimer? = SimpleTimer(
-        TimerInfo(delaysAfterSkips = mapOf(0 to 120, 1 to 60, 2 to 30))
-            .add(10, 22, SATURDAY, SUNDAY)
+        TimerInfo(delaysAfterSkips = mapOf(0 to 120, 1 to 60, 2 to 30)).add(10, 22, SATURDAY, SUNDAY)
             .add(14, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)
     )
 
@@ -58,8 +56,7 @@ class ASLCoach : League() {
     companion object {
         fun setupRepeatTasks() {
             RepeatTask(
-                defaultTimeFormat.parse("04.12.2023 00:00").toInstant(),
-                5, Duration.ofDays(7)
+                "04.12.2023 00:00", 5, 7.days
             ) {
                 val msg = "**------------- Spieltag $it -------------**"
                 jda.getTextChannelById(1170477105339973824)!!.sendMessage(msg).queue()

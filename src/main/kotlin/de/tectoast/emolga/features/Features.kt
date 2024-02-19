@@ -272,18 +272,20 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
             spec?.modalEnableKey?.let { key ->
                 if (specificallyEnabledArgs[key] != true) return@forEach
             }
-            if (spec?.short != false) short(
-                arg.name.nameToDiscordOption(),
-                arg.name,
-                required = !arg.optional,
-                builder = spec?.builder ?: {})
-            else paragraph(
-                arg.name.nameToDiscordOption(),
-                arg.name,
-                required = !arg.optional,
-                placeholder = arg.parsed?.toString(),
-                builder = spec.builder
-            )
+            val argName = arg.name
+            val argId = argName.nameToDiscordOption()
+            val required = spec?.required == true || !arg.optional
+            val placeholder = arg.parsed?.toString()
+            val argBuilder = spec?.builder ?: {}
+            if (spec?.short != false) {
+                short(
+                    argId, argName, required = required, placeholder = placeholder, builder = argBuilder
+                )
+            } else {
+                paragraph(
+                    argId, argName, required = required, placeholder = placeholder, builder = argBuilder
+                )
+            }
         }
     }
 
@@ -344,8 +346,9 @@ data class CommandArgSpec(
     val disabledGuilds: Set<Long> = emptySet()
 ) : ArgSpec
 
-data class ModalArgSpec(val short: Boolean, val modalEnableKey: ModalKey?, val builder: TextInput.Builder.() -> Unit) :
-    ArgSpec
+data class ModalArgSpec(
+    val short: Boolean, val modalEnableKey: ModalKey?, val required: Boolean, val builder: TextInput.Builder.() -> Unit
+) : ArgSpec
 
 data class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
 open class Arguments {
@@ -610,8 +613,13 @@ class Arg<DiscordType, ParsedType>(
         spec = CommandArgSpec(autocomplete, choices, disabledGuilds)
     }
 
-    fun modal(short: Boolean = true, modalKey: ModalKey? = null, builder: TextInput.Builder.() -> Unit = {}) {
-        spec = ModalArgSpec(short, modalKey, builder)
+    fun modal(
+        short: Boolean = true,
+        modalKey: ModalKey? = null,
+        required: Boolean = false,
+        builder: TextInput.Builder.() -> Unit = {}
+    ) {
+        spec = ModalArgSpec(short, modalKey, required, builder)
     }
 
     override fun getValue(thisRef: Arguments, property: KProperty<*>): ParsedType {
@@ -684,11 +692,14 @@ class Arg<DiscordType, ParsedType>(
         }
     }
 
-    fun defaultNotEnabled(key: ModalKey): Arg<DiscordType, ParsedType?> {
+    fun defaultNotEnabled(key: ModalKey, required: Boolean? = null): Arg<DiscordType, ParsedType?> {
         return Arg<DiscordType, ParsedType?>(name, help, optionType, args).also {
             copyTo(it)
             val oldSpec = it.spec as? ModalArgSpec
-            it.spec = ModalArgSpec(oldSpec?.short ?: true, key, oldSpec?.builder ?: {})
+            it.spec = ModalArgSpec(oldSpec?.short ?: true,
+                key,
+                required ?: oldSpec?.required ?: false,
+                oldSpec?.builder ?: {})
             it.defaultValueSet = true
             args.replaceLastArg(it)
         }

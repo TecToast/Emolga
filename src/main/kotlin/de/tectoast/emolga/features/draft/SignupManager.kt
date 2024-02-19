@@ -51,7 +51,7 @@ object SignupManager {
                 modal {
                     setRequiredRange(1, 100)
                 }
-            }.defaultNotEnabled(TEAMNAME)
+            }.defaultNotEnabled(TEAMNAME, required = true)
             var sdname by string("Showdown-Name") {
                 modal {
                     setRequiredRange(1, 18)

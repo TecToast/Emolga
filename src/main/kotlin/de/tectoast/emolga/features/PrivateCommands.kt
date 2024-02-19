@@ -9,6 +9,7 @@ import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
 import de.tectoast.emolga.features.various.ShiftUser
 import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.LigaStartData
@@ -422,6 +423,11 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun deleteTierlist(args: PrivateData) {
         reply(Tierlist(args().toLong()).deleteAllMons().toString())
+    }
+
+    context(InteractionData)
+    suspend fun checkTL(args: PrivateData) {
+        TierlistBuilderConfigurator.checkTL(args().toLong())
     }
 }
 

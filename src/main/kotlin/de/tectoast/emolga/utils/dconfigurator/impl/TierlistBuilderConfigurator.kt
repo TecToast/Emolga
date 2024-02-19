@@ -17,6 +17,8 @@ import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -349,7 +351,7 @@ class TierlistBuilderConfigurator(
         }
         checkScope.launch {
             Tierlist.setup()
-            checkTL(Tierlist[guildId]!!.autoComplete(), guildId)
+            checkTL(guildId)
         }
     }
 
@@ -367,13 +369,22 @@ class TierlistBuilderConfigurator(
         )
         val checkScope = createCoroutineScope("TierlistBuilder", Dispatchers.IO)
 
+        suspend fun checkTL(gid: Long) {
+            checkTL(Tierlist[gid]!!.autoComplete(), gid)
+        }
+
         fun checkTL(coll: Collection<String>, gid: Long) {
             checkScope.launch {
-                coll.forEach {
-                    if (NameConventionsDB.getDiscordTranslation(it, gid) == null) {
-                        SendFeatures.sendToMe("Failed translation for $it in $gid")
+                val tl = Tierlist[gid]!!
+                SendFeatures.sendToMe(coll.map {
+                    async {
+                        val discordTranslation = NameConventionsDB.getDiscordTranslation(it, gid)
+                        if (discordTranslation == null || tl.getTierOf(discordTranslation.tlName) == null) {
+                            it
+                        } else
+                            null
                     }
-                }
+                }.awaitAll().filterNotNull().joinToString("\n").take(2000).ifEmpty { "Nichts gefunden!" })
             }
         }
 

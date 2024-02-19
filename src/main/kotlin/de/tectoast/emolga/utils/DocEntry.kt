@@ -104,7 +104,7 @@ class DocEntry private constructor(val league: League) {
         )
 
     suspend fun analyse(replayData: ReplayData, withSort: Boolean = true) {
-        if (league.storeInsteadSend) {
+        if (league.replayDataStore != null) {
             league.storeMatch(replayData)
             return league.save("DocEntry#Analyse")
         }

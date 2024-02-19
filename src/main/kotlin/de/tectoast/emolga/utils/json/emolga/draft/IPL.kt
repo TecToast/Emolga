@@ -24,7 +24,6 @@ class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
     override val alwaysSendTier = true
 
     val isYT by lazy { !leaguename.endsWith("C") }
-    override val storeInsteadSend = isYT
 
     @Transient
     override val docEntry = DocEntry.create(this) {

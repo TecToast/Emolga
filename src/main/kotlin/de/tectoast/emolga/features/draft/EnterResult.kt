@@ -240,8 +240,8 @@ object EnterResult {
                 }
 
                 ResultFinish.Mode.YES -> {
-                    if (league.storeInsteadSend) reply(
-                        "Das Ergebnis des Kampfes wurde gespeichert! Es wird dann zum Upload-Zeitpunkt im Doc veröffentlicht.",
+                    if (league.replayDataStore != null) reply(
+                        "Das Ergebnis des Kampfes wurde gespeichert!",
                         ephemeral = true
                     )
                     else {

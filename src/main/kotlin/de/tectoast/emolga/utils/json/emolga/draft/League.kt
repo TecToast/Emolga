@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.draft.AddToTierlistData
+import de.tectoast.emolga.features.draft.InstantToStringSerializer
 import de.tectoast.emolga.features.draft.TipGame
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.*
@@ -20,6 +21,7 @@ import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -77,7 +79,7 @@ sealed class League {
     val skippedTurns: MutableMap<Long, MutableSet<Int>> = mutableMapOf()
     internal val names: MutableMap<Long, String> = mutableMapOf()
 
-    val replayDatas: MutableMap<Int, MutableMap<Int, ReplayData>> = mutableMapOf()
+    val replayDataStore: ReplayDataStore? = null
 
 
     val tc: TextChannel get() = jda.getTextChannelById(tcid) ?: error("No text channel found for guild $guild")
@@ -98,9 +100,6 @@ sealed class League {
 
     @Transient
     open val alwaysSendTier = false
-
-    @Transient
-    open val storeInsteadSend = false
 
 
 
@@ -695,9 +694,12 @@ sealed class League {
     }
 
     fun storeMatch(replayData: ReplayData) {
-        replayDatas.getOrPut(replayData.gamedayData.gameday) { mutableMapOf() }[replayData.gamedayData.battleindex] =
+        val data = replayDataStore?.data ?: return
+        data.getOrPut(replayData.gamedayData.gameday) { mutableMapOf() }[replayData.gamedayData.battleindex] =
             replayData
     }
+
+    suspend fun refresh() = db.league(leaguename)
 
     inner class PointsManager {
         private val points = mutableMapOf<Long, Int>()
@@ -776,6 +778,15 @@ sealed class League {
 
 
 }
+
+@Serializable
+data class ReplayDataStore(
+    val data: MutableMap<Int, MutableMap<Int, ReplayData>> = mutableMapOf(),
+    @Serializable(with = InstantToStringSerializer::class) val lastUploadStart: Instant,
+    val intervalBetweenGD: Interval,
+    val intervalBetweenMatches: Interval,
+    val amount: Int,
+)
 
 @Serializable
 data class TimerRelated(

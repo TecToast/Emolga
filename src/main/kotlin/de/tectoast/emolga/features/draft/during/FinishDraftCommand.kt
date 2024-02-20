@@ -15,14 +15,16 @@ object FinishDraftCommand :
             "In diesem Channel läuft kein Draft, an welchem du teilnimmst!",
             ephemeral = true
         )
-        if (d.isFinishedForbidden()) return reply("Dieser Draft unterstützt /finishdraft nicht!")
-        d.checkFinishedForbidden(mem)?.let {
-            return reply(it)
+        d.lock {
+            if (d.isFinishedForbidden()) return reply("Dieser Draft unterstützt /finishdraft nicht!")
+            d.checkFinishedForbidden(mem)?.let {
+                return reply(it)
+            }
+            replyAwait("<@${user}> hat den Draft für sich beendet!")
+            d.addFinished(mem)
+            if (d.current == mem)
+                d.afterPickOfficial()
+            d.save()
         }
-        replyAwait("<@${user}> hat den Draft für sich beendet!")
-        d.addFinished(mem)
-        if (d.current == mem)
-            d.afterPickOfficial()
-        d.save()
     }
 }

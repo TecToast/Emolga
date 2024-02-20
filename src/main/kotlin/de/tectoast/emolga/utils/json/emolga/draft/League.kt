@@ -102,8 +102,6 @@ sealed class League {
     open val alwaysSendTier = false
 
 
-
-
     val cooldownJob: Job? get() = allTimers[leaguename]
     val stallSecondJob: Job? get() = allStallSecondTimers[leaguename]
 
@@ -128,16 +126,22 @@ sealed class League {
     open val additionalSet: AdditionalSet? by lazy { AdditionalSet((gamedays + 4).xc(), "X", "Y") }
 
     context (InteractionData)
-    suspend fun lockForPick(data: BypassCurrentPlayerData, block: suspend () -> Unit) {
-        getLock(leaguename).withLock {
+    suspend inline fun lockForPick(data: BypassCurrentPlayerData, block: () -> Unit) {
+        lock {
             // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
             if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
                 // BypassCurrentPlayerData can only be Yes here
                 current = (data as BypassCurrentPlayerData.Yes).user
             }
             if (!isCurrentCheck(user)) {
-                return@withLock reply("Du warst etwas zu langsam!", ephemeral = true)
+                return@lock reply("Du warst etwas zu langsam!", ephemeral = true)
             }
+            block()
+        }
+    }
+
+    suspend inline fun lock(block: () -> Unit) {
+        getLock(leaguename).withLock {
             block()
         }
     }
@@ -401,7 +405,8 @@ sealed class League {
 
     open fun NextPlayerData.Moved.sendSkipMessage() {
         val skippedUserName = getCurrentName(skippedUser)
-        tc.sendMessage(if (reason == SkipReason.REALTIMER) "**$skippedUserName** war zu langsam!**"
+        tc.sendMessage(
+            if (reason == SkipReason.REALTIMER) "**$skippedUserName** war zu langsam!"
         else "Der Pick von $skippedUserName wurde ".condAppend(skippedBy != null) { "von <@$skippedBy> " } + "${if (isSwitchDraft) "geskippt" else "verschoben"}!")
             .queue()
     }

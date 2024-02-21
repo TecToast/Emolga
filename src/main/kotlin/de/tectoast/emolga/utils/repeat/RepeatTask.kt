@@ -1,11 +1,14 @@
 package de.tectoast.emolga.utils.repeat
 
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.draft.TipGameManager
+import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
 import de.tectoast.emolga.utils.json.emolga.draft.NDSML
+import de.tectoast.emolga.utils.json.get
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -107,6 +110,27 @@ class RepeatTask(
                             val dataStore = league.replayDataStore ?: return@RepeatTask
                             dataStore.data[gameday]?.get(battle)?.let { league.docEntry?.analyseWithoutCheck(it) }
                                 ?: throw IllegalStateException("No replay found for gameday $gameday and battle $battle")
+                        }
+                        l.ytSendChannel?.let { ytTC ->
+                            RepeatTask(
+                                data.lastUploadStart + data.intervalBetweenMatches * battle + data.intervalBetweenUploadAndVideo,
+                                data.amount,
+                                data.intervalBetweenGD,
+                                false
+                            ) { gameday ->
+                                val league = l.refresh()
+                                jda.getTextChannelById(ytTC)!!.sendMessage(league.battleorder[gameday]!![battle].map {
+                                    val lastVid =
+                                        Google.fetchLastVideoFromChannel(db.ytchannel.get(league.table[it])!!.channelId)!!
+                                    if ((System.currentTimeMillis() - lastVid.snippet.publishedAt.value) > 1000 * 60 * 60 * 24 * 3) {
+                                        logger.warn("Last video of ${db.ytchannel.get(league.table[it])!!.channelId} is older than 3 days")
+                                    }
+                                    lastVid.id
+                                }.joinToString("\n") {
+                                    "https://www.youtube.com/watch?v=$it"
+                                }).queue()
+                            }
+
                         }
                     }
                 }

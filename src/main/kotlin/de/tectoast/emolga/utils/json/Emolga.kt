@@ -5,9 +5,7 @@ import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.various.ShiftUser
-import de.tectoast.emolga.utils.OneTimeCache
-import de.tectoast.emolga.utils.condAppend
-import de.tectoast.emolga.utils.createCoroutineScope
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Soullink
@@ -15,7 +13,6 @@ import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.showdown.Pokemon
-import de.tectoast.emolga.utils.toSDName
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.async
@@ -33,6 +30,7 @@ import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.reactivestreams.KMongo
+import org.litote.kmongo.serialization.registerSerializer
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.measureTimedValue
 import org.litote.kmongo.serialization.configuration as mongoConfiguration
@@ -74,6 +72,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
     val matchresults by lazy { db.getCollection<MatchResult>("matchresults") }
     val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
+    val ytchannel by lazy { db.getCollection<YTChannel>("ytchannel") }
     val defaultNameConventions = OneTimeCache {
         nameconventions.find(NameConventions::guild eq 0).first()!!.data
     }
@@ -143,6 +142,11 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     }
 }
 
+@Serializable
+data class YTChannel(
+    val user: Long,
+    val channelId: String
+)
 @Serializable
 data class MatchResult(
     val data: List<Int>,
@@ -316,3 +320,6 @@ suspend fun CoroutineCollection<NameConventions>.get(guild: Long) =
 
 @JvmName("getPokedex")
 suspend fun CoroutineCollection<Pokemon>.get(id: String) = find(Pokemon::id eq id).first()
+
+@JvmName("getYTChannel")
+suspend fun CoroutineCollection<YTChannel>.get(user: Long) = find(YTChannel::user eq user).first()

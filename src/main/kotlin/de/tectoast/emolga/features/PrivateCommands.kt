@@ -13,6 +13,7 @@ import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.LigaStartData
+import de.tectoast.emolga.utils.json.YTChannel
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
@@ -31,7 +32,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
@@ -429,11 +429,26 @@ object PrivateCommands {
     suspend fun checkTL(args: PrivateData) {
         TierlistBuilderConfigurator.checkTL(args().toLong())
     }
+
+    context(InteractionData)
+    suspend fun fetchYTChannelsForLeague(args: PrivateData) {
+        val league = db.league(args[0])
+        db.ytchannel.insertMany(league.table.zip(args.drop(1).map {
+            if ("@" !in it) it.substringAfter("channel/") else
+                Google.fetchChannelId(it.substringAfter("@"))
+        }).mapIndexedNotNull { index, data ->
+            val (id, channelId) = data
+            val cid = channelId ?: return@mapIndexedNotNull run {
+                logger.warn("No channel found for $id (testing ${args[index + 1]})")
+                null
+            }
+            YTChannel(id, cid)
+        })
+    }
 }
 
 data class PrivateData(
-    private val event: SlashCommandInteractionEvent,
-    val split: List<String> = event.getOption("args")!!.asString.split(" ")
+    val split: List<String>
 ) : List<String> by split {
     operator fun invoke() = split[0]
 }

@@ -37,12 +37,12 @@ import org.slf4j.Logger
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.properties.Delegates
+import kotlin.time.Duration
 
 
 @Suppress("MemberVisibilityCanBePrivate")
 @Serializable
 sealed class League {
-
     @SerialName("_id")
     @Contextual
     val id: ObjectId? = null
@@ -80,6 +80,7 @@ sealed class League {
     internal val names: MutableMap<Long, String> = mutableMapOf()
 
     val replayDataStore: ReplayDataStore? = null
+    val ytSendChannel: Long? = null
 
 
     val tc: TextChannel get() = jda.getTextChannelById(tcid) ?: error("No text channel found for guild $guild")

@@ -11,6 +11,8 @@ import com.google.api.services.drive.model.File
 import com.google.api.services.drive.model.Permission
 import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.model.*
+import com.google.api.services.youtube.YouTube
+import com.google.api.services.youtube.model.SearchResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.minutes
@@ -22,7 +24,7 @@ object Google {
     private var CLIENTSECRET: String? = null
     private val googleContext = createCoroutineContext("Google", Dispatchers.IO)
 
-    private var accesstoken: TimedCache<String> = TimedCache(45.minutes) { generateAccessToken() }
+    private val accesstoken: TimedCache<String> = TimedCache(45.minutes) { generateAccessToken() }
     private val sheetsService = MappedCache(accesstoken) {
         Sheets.Builder(
             GoogleNetHttpTransport.newTrustedTransport(),
@@ -32,6 +34,13 @@ object Google {
     }
     private val driveService = MappedCache(accesstoken) {
         Drive.Builder(
+            GoogleNetHttpTransport.newTrustedTransport(),
+            GsonFactory.getDefaultInstance(),
+            Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(it)
+        ).setApplicationName("emolga").build()
+    }
+    private val youtubeService = MappedCache(accesstoken) {
+        YouTube.Builder(
             GoogleNetHttpTransport.newTrustedTransport(),
             GsonFactory.getDefaultInstance(),
             Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(it)
@@ -147,6 +156,25 @@ object Google {
         }
 
     /**
+     * Fetches the last video from the specified channel
+     * @param channelId The ID of the channel
+     * @return The search result of last video from the channel or null if there wasn't any
+     */
+    suspend fun fetchLastVideoFromChannel(channelId: String): SearchResult? = withContext(googleContext) {
+        youtubeService().search().list("snippet".l).apply {
+            this.channelId = channelId
+            order = "date"
+            type = listOf("video")
+        }.execute().items.firstOrNull()
+    }
+
+    suspend fun fetchChannelId(channelHandle: String) = withContext(googleContext) {
+        youtubeService().channels().list("snippet".l).apply {
+            forHandle = channelHandle
+        }.execute().items.firstOrNull()?.id
+    }
+
+    /**
      * Generates an access token with the stored credentials
      * @return The access token
      * @see setCredentials
@@ -158,6 +186,6 @@ object Google {
             REFRESHTOKEN,
             CLIENTID,
             CLIENTSECRET
-        ).execute().also { universalLogger.info("GENERATEACCESSTOKEN ${it.expiresInSeconds}") }.accessToken
+        ).execute().also { universalLogger.info("GENERATEACCESSTOKEN ${it.expiresInSeconds} ${it.scope}") }.accessToken
     }
 }

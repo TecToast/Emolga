@@ -1,12 +1,12 @@
 package de.tectoast.emolga.utils
 
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.util.*
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 object TimeUtils {
@@ -148,20 +148,13 @@ object TimeUtils {
 }
 
 
-@Serializable(with = IntervalSerializer::class)
-class Interval(val seconds: Long) {
-    constructor(str: String) : this(TimeUtils.parseShortTime(str))
-
-    fun toDuration() = seconds.seconds
-}
-
-object IntervalSerializer : KSerializer<Interval> {
+object DurationSerializer : KSerializer<Duration> {
     override val descriptor = PrimitiveSerialDescriptor("Interval", PrimitiveKind.STRING)
-    override fun serialize(encoder: Encoder, value: Interval) {
-        encoder.encodeString(TimeUtils.secondsToTimeShort(value.seconds))
+    override fun serialize(encoder: Encoder, value: Duration) {
+        encoder.encodeString(TimeUtils.secondsToTimeShort(value.inWholeSeconds))
     }
 
-    override fun deserialize(decoder: Decoder): Interval {
-        return Interval(decoder.decodeString())
+    override fun deserialize(decoder: Decoder): Duration {
+        return TimeUtils.parseShortTime(decoder.decodeString()).seconds
     }
 }

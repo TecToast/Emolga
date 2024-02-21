@@ -51,9 +51,7 @@ fun initMongo(dbUrl: String = DEFAULT_DB_URL, dbName: String = DEFAULT_DB_NAME) 
 class MongoEmolga(dbUrl: String, dbName: String) {
     private val logger = KotlinLogging.logger {}
     val db = run {
-        /*registerModule(Json {
-
-        }.serializersModule)*/
+        registerSerializer(DurationSerializer)
         mongoConfiguration = mongoConfiguration.copy(classDiscriminator = "type", encodeDefaults = false)
         KMongo.createClient(dbUrl).coroutine.getDatabase(dbName)
     }

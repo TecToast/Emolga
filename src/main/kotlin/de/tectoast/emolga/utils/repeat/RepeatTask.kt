@@ -79,7 +79,7 @@ class RepeatTask(
             setupManualRepeatTasks()
             db.drafts.find().toFlow().collect { l ->
                 l.tipgame?.let { tip ->
-                    val duration = tip.interval.toDuration()
+                    val duration = tip.interval
                     logger.info("Draft ${l.leaguename} has tipgame with interval ${tip.interval} and duration $duration")
                     RepeatTask(
                         tip.lastSending, tip.amount, duration, false
@@ -94,9 +94,9 @@ class RepeatTask(
                     val size = l.battleorder[1]?.size ?: return@let
                     repeat(size) { battle ->
                         RepeatTask(
-                            data.lastUploadStart + data.intervalBetweenMatches.toDuration() * battle,
+                            data.lastUploadStart + data.intervalBetweenMatches * battle,
                             data.amount,
-                            data.intervalBetweenGD.toDuration(),
+                            data.intervalBetweenGD,
                             false
                         ) { gameday ->
                             val league = l.refresh()

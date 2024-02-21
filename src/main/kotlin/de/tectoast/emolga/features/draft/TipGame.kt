@@ -2,7 +2,10 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.createCoroutineContext
+import de.tectoast.emolga.utils.defaultTimeFormat
+import de.tectoast.emolga.utils.embedColor
+import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.coroutines.await
@@ -23,6 +26,7 @@ import kotlinx.serialization.encoding.Encoder
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import org.litote.kmongo.eq
 import java.awt.Color
+import kotlin.time.Duration
 
 object TipGameManager : CoroutineScope {
     override val coroutineContext = createCoroutineContext("TipGameManager", Dispatchers.IO)
@@ -120,7 +124,7 @@ class TipGame(
     val tips: MutableMap<Int, TipGamedayData> = mutableMapOf(),
     @Serializable(with = InstantToStringSerializer::class) val lastSending: Instant,
     @Serializable(with = InstantToStringSerializer::class) val lastLockButtons: Instant?,
-    val interval: Interval,
+    val interval: Duration,
     val amount: Int,
     val channel: Long
 )

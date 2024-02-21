@@ -804,8 +804,9 @@ sealed class League {
 data class ReplayDataStore(
     val data: MutableMap<Int, MutableMap<Int, ReplayData>> = mutableMapOf(),
     @Serializable(with = InstantToStringSerializer::class) val lastUploadStart: Instant,
-    val intervalBetweenGD: Interval,
-    val intervalBetweenMatches: Interval,
+    val intervalBetweenUploadAndVideo: Duration = Duration.ZERO,
+    val intervalBetweenGD: Duration,
+    val intervalBetweenMatches: Duration,
     val amount: Int,
 )
 

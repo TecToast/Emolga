@@ -1,21 +1,19 @@
 package de.tectoast.emolga.features
 
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.OneTimeCache
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import net.dv8tion.jda.api.JDA
-import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.MessageEmbed
-import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
-import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
+import net.dv8tion.jda.api.interactions.callbacks.IDeferrableCallback
 import net.dv8tion.jda.api.interactions.callbacks.IMessageEditCallback
 import net.dv8tion.jda.api.interactions.callbacks.IModalCallback
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
@@ -52,40 +50,13 @@ abstract class InteractionData(
 
     val acknowledged get() = responseDeferred.isCompleted
     val textChannel by lazy { jda.getTextChannelById(tc)!! }
-    private var _member: Member? = member
-    private var _user: User? = member?.user
-    private var _guild: Guild? = member?.guild
+    val member = OneTimeCache(member) { guild().retrieveMemberById(user).await() }
+    val userObj = OneTimeCache(member?.user) { jda.retrieveUserById(user).await() }
+    val guild = OneTimeCache(member?.guild) { jda.getGuildById(gid)!! }
+    val message by lazy { (event as GenericComponentInteractionCreateEvent).message }
+    val hook by lazy { (event as IDeferrableCallback).hook }
     var ephemeralDefault = false
     val jda: JDA = member?.jda ?: de.tectoast.emolga.bot.jda
-    suspend fun member() = _member ?: run {
-        guild().retrieveMemberById(user).await().also { _member = it }!!
-    }
-
-    suspend fun user() = _user ?: run {
-        jda.retrieveUserById(user).await().also { _user = it }!!
-    }
-
-    fun guild() = _guild ?: run {
-        jda.getGuildById(gid)!!.also { _guild = it }
-    }
-
-
-    /**
-     * Executes the given handler if the event exists and is of the given type
-     * @param T The type of the event
-     * @param handler The handler to execute
-     */
-    inline fun <reified T : GenericInteractionCreateEvent> event(handler: T.() -> Unit) {
-        (event as? T)?.handler()
-    }
-
-    inline fun buttonEvent(handler: ButtonInteractionEvent.() -> Unit) = event<ButtonInteractionEvent>(handler)
-
-    inline fun modalEvent(handler: ModalInteractionEvent.() -> Unit) = event<ModalInteractionEvent>(handler)
-
-    inline fun slashEvent(handler: SlashCommandInteractionEvent.() -> Unit) =
-        event<SlashCommandInteractionEvent>(handler)
-
 
     suspend fun awaitResponse() = responseDeferred.await()
     abstract fun reply(

@@ -137,15 +137,14 @@ object PepeShinyEvent {
         override suspend fun exec(e: Args) = modalEvent {
             val uid = e.user
             val reason = e.reason
-            val m = message!!
-            val url = m.contentRaw.substringAfterLast(": ")
+            val url = message.contentRaw.substringAfterLast(": ")
             reply("Deine Begründung wurde an den User gesendet!", ephemeral = true)
             jda.openPrivateChannelById(uid).flatMap {
                 it.sendMessage(
                     "Vielen Dank, dass du das Shiny eingereicht hast. Leider können wir das Shiny unter folgendem Grund nicht berücksichtigen: **$reason**\n\nBild-URL: $url"
                 )
             }.queue()
-            m.delete().queue()
+            message.delete().queue()
         }
     }
 

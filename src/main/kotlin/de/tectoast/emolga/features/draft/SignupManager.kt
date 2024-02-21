@@ -199,7 +199,7 @@ object SignupManager {
                 }
                 e?.reply("✅ Du wurdest erfolgreich angemeldet!")
                 giveParticipantRole {
-                    (e?.member()) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!.await()
+                    (e?.member?.invoke()) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!.await()
                 }
                 val signUpData = SignUpData(
                     teamname, sdname ?: "EMPTY", experiences = experiences

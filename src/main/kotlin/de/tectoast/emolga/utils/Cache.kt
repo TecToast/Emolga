@@ -30,7 +30,10 @@ abstract class RefreshableCache<T> : Cache<T>() {
     abstract fun shouldUpdate(now: Instant): Boolean
 }
 
-class OneTimeCache<T>(val function: suspend () -> T) : Cache<T>() {
+class OneTimeCache<T>(initial: T? = null, val function: suspend () -> T) : Cache<T>() {
+    init {
+        cached = initial
+    }
     override suspend fun update() = function()
 }
 

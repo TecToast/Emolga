@@ -26,7 +26,7 @@ object AddSDNameCommand : CommandFeature<AddSDNameCommand.Args>(
         }
         val name = e.name
         val id = if (idSpecified) idArg!! else user
-        val specifiedName = if (idSpecified) jda.retrieveUserById(id).await().name else user().name
+        val specifiedName = if (idSpecified) jda.retrieveUserById(id).await().name else userObj().name
         when (SDNamesDB.addIfAbsent(name, id).await()) {
             SDInsertStatus.SUCCESS -> {
                 if (idSpecified) {

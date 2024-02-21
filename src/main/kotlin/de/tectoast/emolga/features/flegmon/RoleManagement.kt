@@ -16,7 +16,7 @@ object RoleManagement {
         context(InteractionData)
         override suspend fun exec(e: NoArgs) {
             val g = guild()
-            g.addRoleToMember(user(), g.getRoleById(ACCEPTED_RULES_ROLE)!!).queue()
+            g.addRoleToMember(userObj(), g.getRoleById(ACCEPTED_RULES_ROLE)!!).queue()
             reply("Du hast die Regeln akzeptiert und hast jetzt Zugriff auf den Server!", ephemeral = true)
         }
     }

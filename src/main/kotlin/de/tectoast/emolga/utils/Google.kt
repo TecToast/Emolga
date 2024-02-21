@@ -171,7 +171,7 @@ object Google {
     suspend fun fetchChannelId(channelHandle: String) = withContext(googleContext) {
         youtubeService().channels().list("snippet".l).apply {
             forHandle = channelHandle
-        }.execute().items.firstOrNull()?.id
+        }.execute()?.items?.firstOrNull()?.id
     }
 
     /**

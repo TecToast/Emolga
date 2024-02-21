@@ -12,9 +12,7 @@ object PrivCommand : CommandFeature<PrivCommand.Args>(::Args, CommandSpec("priv"
 
     class Args : Arguments() {
         var cmd by fromList("cmd", "cmd", privCommands.keys.toList())
-        var arguments by string("args", "args") {
-            default = ""
-        }
+        var arguments by list("args", "args", 10, 0)
     }
 
     private val privCommands by lazy {
@@ -22,13 +20,13 @@ object PrivCommand : CommandFeature<PrivCommand.Args>(::Args, CommandSpec("priv"
             .associateBy { it.name }
     }
 
-    context(InteractionData) override suspend fun exec(e: Args) = slashEvent {
+    context(InteractionData) override suspend fun exec(e: Args) {
         privCommands[e.cmd]?.let { method ->
             if (method.parameters.run { isEmpty() || size == 1 }) method.callSuspend(PrivateCommands, self)
             else method.callSuspend(
-                PrivateCommands, self, PrivateData(this)
+                PrivateCommands, self, PrivateData(e.arguments)
             )
-            if (!isAcknowledged)
+            if (!acknowledged)
                 reply("Command ausgeführt!", ephemeral = true)
         } ?: reply("Command nicht gefunden!", ephemeral = true)
     }

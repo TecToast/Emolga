@@ -15,10 +15,10 @@ object RWithGuild {
             var url by string("url", "url")
         }
 
-        context(InteractionData) override suspend fun exec(e: Args) = slashEvent {
+        context(InteractionData) override suspend fun exec(e: Args) {
             val url = e.url
             if (url == "-") {
-                return replyModal(Modal()).queue()
+                return replyModal(Modal())
             }
             deferReply()
             Analysis.analyseReplay(

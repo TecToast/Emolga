@@ -76,7 +76,7 @@ object PepeShinyEvent {
         }
 
         context(InteractionData)
-        override suspend fun exec(e: Args) = buttonEvent {
+        override suspend fun exec(e: Args) {
             val uid = e.user
             when (e.mode) {
                 Mode.APPROVE -> {
@@ -134,7 +134,7 @@ object PepeShinyEvent {
         override val title = "Grund eingeben"
 
         context(InteractionData)
-        override suspend fun exec(e: Args) = modalEvent {
+        override suspend fun exec(e: Args) {
             val uid = e.user
             val reason = e.reason
             val url = message.contentRaw.substringAfterLast(": ")

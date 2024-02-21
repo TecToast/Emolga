@@ -62,22 +62,18 @@ object FlorixButton : ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("flori
             STOPREAL -> {
                 if (!on) return reply("Der Server ist bereits aus!")
                 gpio.stopServer(pc)
-                buttonEvent {
-                    replyAwait("Der Server wurde heruntergefahren!")
-                    textChannel.deleteMessageById(message.id).queue()
-                }
+                replyAwait("Der Server wurde heruntergefahren!")
+                textChannel.deleteMessageById(message.id).queue()
             }
 
             POWEROFFREAL -> {
                 if (!on) return reply("Der Server ist bereits aus!")
                 gpio.powerOff(pc)
-                buttonEvent {
-                    replyAwait("POWEROFF wurde aktiviert!")
-                    textChannel.deleteMessageById(message.id).queue()
-                }
+                replyAwait("POWEROFF wurde aktiviert!")
+                textChannel.deleteMessageById(message.id).queue()
             }
 
-            NO -> buttonEvent {
+            NO -> {
                 reply("Aktion abgebrochen!")
                 textChannel.deleteMessageById(message.id).queue()
             }

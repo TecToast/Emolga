@@ -17,7 +17,7 @@ object ShiftUser {
         }
 
         context(InteractionData)
-        override suspend fun exec(e: Args) = buttonEvent {
+        override suspend fun exec(e: Args) {
             val gid = PrivateCommands.guildForTLSetup ?: gid
             val uid = e.uid
             with(
@@ -30,7 +30,7 @@ object ShiftUser {
                         components = conferenceSelectMenus(uid, false).into()
                     )
                 }
-                deferEdit().queue()
+                deferEdit()
                 val tc = jda.getTextChannelById(shiftChannel!!)!!
                 val user = users[uid]!!
                 val currConf = user.conference!!
@@ -63,7 +63,7 @@ object ShiftUser {
             }
         }
 
-        context(InteractionData) override suspend fun exec(e: Args) = buttonEvent {
+        context(InteractionData) override suspend fun exec(e: Args) {
             val mode = e.mode
             val uid = e.uid
             val gid = PrivateCommands.guildForTLSetup ?: gid

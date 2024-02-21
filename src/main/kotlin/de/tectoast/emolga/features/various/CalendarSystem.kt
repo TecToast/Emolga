@@ -74,9 +74,7 @@ object CalendarSystem : CoroutineScope {
         context(InteractionData)
         override suspend fun exec(e: NoArgs) {
             reply(":D", ephemeral = true)
-            buttonEvent {
-                hook.deleteMessageById(messageId).queue()
-            }
+            hook.deleteMessageById(message.idLong).queue()
         }
     }
 }

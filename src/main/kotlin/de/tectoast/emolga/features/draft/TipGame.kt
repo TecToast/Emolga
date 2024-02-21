@@ -9,6 +9,8 @@ import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.serialization.KSerializer
@@ -22,7 +24,8 @@ import net.dv8tion.jda.api.interactions.components.ActionRow
 import org.litote.kmongo.eq
 import java.awt.Color
 
-object TipGameManager {
+object TipGameManager : CoroutineScope {
+    override val coroutineContext = createCoroutineContext("TipGameManager", Dispatchers.IO)
     object VoteButton : ButtonFeature<VoteButton.Args>(::Args, ButtonSpec("tipgame")) {
         class Args : Arguments() {
             var leaguename by string()
@@ -35,12 +38,14 @@ object TipGameManager {
         override suspend fun exec(e: Args) {
             ephemeralDefault()
             val league = db.drafts.findOne(League::leaguename eq e.leaguename) ?: return reportMissing()
-            val tipgame = league.tipgame ?: return reportMissing()
-            val usermap =
-                tipgame.tips.getOrPut(e.gameday) { TipGamedayData() }.userdata.getOrPut(user) { mutableMapOf() }
-            usermap[e.index] = e.userindex
-            reply("Dein Tipp wurde gespeichert!")
-            league.save()
+            league.lock {
+                val tipgame = league.tipgame ?: return reportMissing()
+                val usermap =
+                    tipgame.tips.getOrPut(e.gameday) { TipGamedayData() }.userdata.getOrPut(user) { mutableMapOf() }
+                usermap[e.index] = e.userindex
+                reply("Dein Tipp wurde gespeichert!")
+                league.save()
+            }
         }
 
         context(InteractionData)
@@ -50,8 +55,7 @@ object TipGameManager {
     }
 
     fun executeTipGameSending(league: League, num: Int) {
-        defaultScope.launch {
-            val docEntry = league.docEntry!!
+        launch {
             val tip = league.tipgame!!
             val channel = jda.getTextChannelById(tip.channel)!!
             val matchups = league.getMatchups(num)
@@ -72,29 +76,29 @@ object TipGameManager {
                     this.gameday = num
                     this.index = index
                 }
-                channel.send(embeds = Embed(
-                    title = "${names[u1]} vs. ${names[u2]}", color = embedColor
-                ).into(), components = ActionRow.of(VoteButton(names[u1]!!) {
-                    base()
-                    this.userindex = u1.indexedBy(table)
-                }, VoteButton(names[u2]!!) {
-                    base()
-                    this.userindex = u2.indexedBy(table)
-                }).into()
+                channel.send(
+                    embeds = Embed(
+                        title = "${names[u1]} vs. ${names[u2]}", color = embedColor
+                    ).into(), components = ActionRow.of(VoteButton(names[u1]!!) {
+                        base()
+                        this.userindex = u1.indexedBy(table)
+                    }, VoteButton(names[u2]!!) {
+                        base()
+                        this.userindex = u2.indexedBy(table)
+                    }).into()
                 ).queue()
             }
         }
     }
 
     fun executeTipGameLockButtons(league: League, gameday: Int) {
-        defaultScope.launch {
-            jda.getTextChannelById(league.tipgame!!.channel)!!.iterableHistory.takeAsync(league.table.size / 2)
+        launch {
+            jda.getTextChannelById(league.tipgame!!.channel)!!.iterableHistory.takeAsync(league.battleorder[gameday]!!.size)
                 .await().forEach {
                     it.editMessageComponents(
                         ActionRow.of(it.actionRows[0].buttons.map { button -> button.asDisabled() })
                     ).queue()
                 }
-            league.onTipGameLockButtons(gameday)
         }
     }
 }
@@ -103,7 +107,7 @@ object TipGameManager {
 class TipGame(
     val tips: MutableMap<Int, TipGamedayData> = mutableMapOf(),
     @Serializable(with = InstantToStringSerializer::class) val lastSending: Instant,
-    @Serializable(with = InstantToStringSerializer::class) val lastLockButtons: Instant,
+    @Serializable(with = InstantToStringSerializer::class) val lastLockButtons: Instant?,
     val interval: Interval,
     val amount: Int,
     val channel: Long

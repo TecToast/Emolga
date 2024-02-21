@@ -153,13 +153,6 @@ class NDS : League() {
         )
     }
 
-    override fun onTipGameLockButtons(gameday: Int) {
-        val map =
-            (tipgame?.tips?.get(gameday) ?: return).userdata.values.flatMap { it.values }.groupingBy { it }.eachCount()
-        RequestBuilder(sid).addColumn("TipGameData!${(gameday + rrSummand + 3).xc()}2", (0..11).map { map[it] ?: 0 })
-            .execute()
-    }
-
     val rrSummand: Int
         get() = if (rr) 5 else 0
     val gameplanName: String

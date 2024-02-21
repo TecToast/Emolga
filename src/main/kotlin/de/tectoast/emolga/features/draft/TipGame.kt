@@ -101,6 +101,18 @@ object TipGameManager : CoroutineScope {
                 }
         }
     }
+
+    fun executeTipGameLockButtonsIndividual(league: League, gameday: Int, mu: Int) {
+        launch {
+            val muCount = league.battleorder[gameday]!!.size
+            jda.getTextChannelById(league.tipgame!!.channel)!!.iterableHistory.takeAsync(muCount - mu).await().last()
+                .let {
+                    it.editMessageComponents(
+                        ActionRow.of(it.actionRows[0].buttons[mu].asDisabled())
+                    ).queue()
+                }
+        }
+    }
 }
 
 @Serializable

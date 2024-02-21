@@ -78,15 +78,17 @@ class RepeatTask(
         suspend fun setupRepeatTasks() {
             setupManualRepeatTasks()
             db.drafts.find().toFlow().collect { l ->
-                l.takeIf { it.docEntry != null }?.tipgame?.let { tip ->
+                l.tipgame?.let { tip ->
                     val duration = tip.interval.toDuration()
                     logger.info("Draft ${l.leaguename} has tipgame with interval ${tip.interval} and duration $duration")
                     RepeatTask(
-                        tip.lastSending, tip.amount, duration, true
+                        tip.lastSending, tip.amount, duration, false
                     ) { TipGameManager.executeTipGameSending(l.refresh(), it) }
-                    RepeatTask(
-                        tip.lastLockButtons, tip.amount, duration, true
-                    ) { TipGameManager.executeTipGameLockButtons(l.refresh(), it) }
+                    tip.lastLockButtons?.let { last ->
+                        RepeatTask(
+                            last, tip.amount, duration, false
+                        ) { TipGameManager.executeTipGameLockButtons(l.refresh(), it) }
+                    }
                 }
                 l.replayDataStore?.let { data ->
                     val size = l.battleorder[1]?.size ?: return@let
@@ -95,9 +97,13 @@ class RepeatTask(
                             data.lastUploadStart + data.intervalBetweenMatches.toDuration() * battle,
                             data.amount,
                             data.intervalBetweenGD.toDuration(),
-                            true
+                            false
                         ) { gameday ->
                             val league = l.refresh()
+                            league.tipgame?.let { _ ->
+                                TipGameManager.executeTipGameLockButtonsIndividual(league, gameday, battle)
+                                delay(2000)
+                            }
                             val dataStore = league.replayDataStore ?: return@RepeatTask
                             dataStore.data[gameday]?.get(battle)?.let { league.docEntry?.analyseWithoutCheck(it) }
                                 ?: throw IllegalStateException("No replay found for gameday $gameday and battle $battle")

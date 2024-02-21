@@ -133,6 +133,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
             (cmd.spec.guilds + Constants.G.MY).forEach { gid ->
                 val data = Commands.slash(cmd.spec.name, cmd.spec.help).apply {
                     defaultPermissions = cmd.slashPermissions
+                    isGuildOnly = true
                     if (cmd.children.isNotEmpty()) {
                         cmd.children.forEach {
                             addSubcommands(

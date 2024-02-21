@@ -162,7 +162,6 @@ sealed class League {
         }
     }
 
-    open fun onTipGameLockButtons(gameday: Int) {}
     open suspend fun AddToTierlistData.addMonToTierlist() {}
 
     open fun isFinishedForbidden() = !isSwitchDraft
@@ -702,6 +701,23 @@ sealed class League {
         val data = replayDataStore?.data ?: return
         data.getOrPut(replayData.gamedayData.gameday) { mutableMapOf() }[replayData.gamedayData.battleindex] =
             replayData
+    }
+
+    fun getMatchups(gameday: Int) =
+        battleorder[gameday]?.map { mu -> mu.map { table[it] } } ?: generateForDay(
+            table.size, gameday
+        )
+
+    private fun generateForDay(size: Int, dayParam: Int): List<List<Long>> {
+        val numDays = size - 1
+        val day = dayParam - 1
+        return buildList {
+            add(listOf(table[day % numDays + 1], table[0]))
+            for (idx in 1 until size / 2) {
+                add(listOf(table[(day + idx) % numDays + 1], table[(day + numDays - idx) % numDays + 1]))
+            }
+        }
+
     }
 
     suspend fun refresh() = db.league(leaguename)

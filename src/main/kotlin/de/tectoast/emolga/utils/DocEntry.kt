@@ -85,23 +85,6 @@ class DocEntry private constructor(val league: League) {
     }
 
 
-    private fun generateForDay(size: Int, dayParam: Int): List<List<Long>> {
-        val numDays = size - 1
-        val day = dayParam - 1
-        val table = league.table
-        return buildList {
-            add(listOf(table[day % numDays + 1], table[0]))
-            for (idx in 1 until size / 2) {
-                add(listOf(table[(day + idx) % numDays + 1], table[(day + numDays - idx) % numDays + 1]))
-            }
-        }
-
-    }
-
-    fun getMatchups(gameday: Int) =
-        league.battleorder[gameday]?.map { mu -> mu.map { league.table[it] } } ?: generateForDay(
-            league.table.size, gameday
-        )
 
     suspend fun analyse(replayData: ReplayData, withSort: Boolean = true) {
         if (league.replayDataStore != null) {

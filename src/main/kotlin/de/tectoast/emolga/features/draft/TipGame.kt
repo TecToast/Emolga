@@ -54,7 +54,7 @@ object TipGameManager {
             val docEntry = league.docEntry!!
             val tip = league.tipgame!!
             val channel = jda.getTextChannelById(tip.channel)!!
-            val matchups = docEntry.getMatchups(num)
+            val matchups = league.getMatchups(num)
             val names =
                 jda.getGuildById(league.guild)!!.retrieveMembersByIds(matchups.flatten()).await()
                     .associate { it.idLong to it.effectiveName }

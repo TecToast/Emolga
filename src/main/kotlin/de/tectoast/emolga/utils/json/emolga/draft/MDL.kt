@@ -6,7 +6,6 @@ import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import org.litote.kmongo.SetTo
 
 @Serializable
 @SerialName("MDL")
@@ -23,7 +22,7 @@ class MDL(val division: Int) : League() {
     @Transient
     var currentMon: MDLPick? = null
 
-    override fun reset(updates: MutableList<SetTo<*>>) {
+    override fun reset() {
         jokers.clear()
         table.forEach { jokers[it] = 3 }
     }

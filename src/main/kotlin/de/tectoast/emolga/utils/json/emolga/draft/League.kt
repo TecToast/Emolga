@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.jda
@@ -22,20 +24,20 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
+import kotlinx.serialization.*
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import org.bson.types.ObjectId
-import org.litote.kmongo.*
 import org.litote.kmongo.coroutine.updateOne
+import org.litote.kmongo.eq
 import org.slf4j.Logger
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.set
 import kotlin.properties.Delegates
 import kotlin.time.Duration
 
@@ -48,14 +50,20 @@ sealed class League {
     val id: ObjectId? = null
     val sid: String = "yay"
     val leaguename: String = "ERROR"
+
+    @EncodeDefault
     var isRunning: Boolean = false
     val picks: MutableMap<Long, MutableList<DraftPokemon>> = mutableMapOf()
     val battleorder: MutableMap<Int, List<List<Int>>> = mutableMapOf()
     val allowed: MutableMap<Long, MutableSet<AllowedData>> = mutableMapOf()
     val guild = -1L
+
+    @EncodeDefault
     var round = 1
     var current = -1L
     val timerRelated = TimerRelated()
+
+    @EncodeDefault
     var pseudoEnd = false
 
     abstract val teamsize: Int
@@ -75,7 +83,11 @@ sealed class League {
     val originalorder: Map<Int, List<Int>> = mapOf()
 
     val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
+
+    @EncodeDefault
     val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
+
+    @EncodeDefault
     val skippedTurns: MutableMap<Long, MutableSet<Int>> = mutableMapOf()
     internal val names: MutableMap<Long, String> = mutableMapOf()
 
@@ -289,7 +301,7 @@ sealed class League {
             if (fromFile || isSwitchDraft) picks.putIfAbsent(member, mutableListOf())
             else picks[member] = mutableListOf()
         }
-        val updates = mutableListOf<SetTo<*>>()
+        isRunning = true
         val currentTimeMillis = System.currentTimeMillis()
         if (!fromFile) {
             order.clear()
@@ -299,17 +311,13 @@ sealed class League {
             moved.clear()
             pseudoEnd = false
             timerRelated.lastPick = currentTimeMillis
-            reset(updates)
+            timerRelated.usedStallSeconds.clear()
+            skippedTurns.clear()
+            reset()
             restartTimer()
             sendRound()
             announcePlayer()
             save("StartDraft")
-            updates += ::round setTo 1
-            updates += ::moved setTo mutableMapOf()
-            updates += ::pseudoEnd setTo false
-            updates += ::skippedTurns setTo mutableMapOf()
-            updates += League::timerRelated / TimerRelated::lastPick setTo currentTimeMillis
-            updates += League::timerRelated / TimerRelated::usedStallSeconds setTo mutableMapOf()
         } else {
 
             val delayData = if (timerRelated.cooldown > 0) DelayData(
@@ -321,8 +329,6 @@ sealed class League {
             )
             restartTimer(delayData)
         }
-        updates += ::isRunning setTo true
-        db.drafts.updateOneById(id!!, set(*updates.toTypedArray()))
         logger.info("Started!")
     }
 
@@ -345,7 +351,7 @@ sealed class League {
 
     override fun toString() = leaguename
 
-    open fun reset(updates: MutableList<SetTo<*>>) {}
+    open fun reset() {}
 
     private fun restartTimer(delayData: DelayData? = timer?.calc(this)) {
         val skipDelay = delayData?.skipDelay
@@ -526,12 +532,9 @@ sealed class League {
         //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
         logger.info("Draft ended!")
         isRunning = false
-        logger.info("Draft isRunning {}", isRunning)
         logger.info("Saving......... $leaguename")
         save("END SAVE")
         logger.info("Saved!")
-        db.drafts.updateOneById(id!!, set(League::isRunning setTo false))
-        logger.info("SAVED SEPARATELY")
     }
 
     internal open suspend fun getCurrentMention(): String {
@@ -815,8 +818,10 @@ data class ReplayDataStore(
 data class TimerRelated(
     var cooldown: Long = -1,
     var regularCooldown: Long = -1,
+    @EncodeDefault
     var lastPick: Long = -1,
     var lastRegularDelay: Long = -1,
+    @EncodeDefault
     val usedStallSeconds: MutableMap<Long, Int> = mutableMapOf(),
     var lastStallSecondUsedMid: Long? = null
 )

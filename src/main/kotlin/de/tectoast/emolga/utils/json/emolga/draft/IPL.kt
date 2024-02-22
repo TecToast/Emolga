@@ -1,23 +1,19 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
 import de.tectoast.emolga.utils.records.SorterData
 import dev.minn.jda.ktx.coroutines.await
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
+import kotlinx.serialization.*
 import net.dv8tion.jda.api.entities.sticker.StickerSnowflake
-import org.litote.kmongo.SetTo
-import org.litote.kmongo.set
-import org.litote.kmongo.setTo
 
 @Serializable
 @SerialName("IPL")
-class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
+class IPL(private val draftSheetId: Int, @EncodeDefault var pickTries: Int = 0) : League() {
     override val teamsize = 12
     override val pickBuffer = 5
 
@@ -112,14 +108,13 @@ class IPL(private val draftSheetId: Int, var pickTries: Int = 0) : League() {
         builder().addRow("Data!K${index + 600}", listOf(mon, data.getIcon(), data.speed, tier)).execute()
     }
 
-    override fun reset(updates: MutableList<SetTo<*>>) {
-        updates += IPL::pickTries setTo 0
+    override fun reset() {
+        pickTries = 0
     }
 
     override suspend fun onRoundSwitch() {
         println("Updating pickTries")
         pickTries = 0
-        db.drafts.updateOneById(id!!, set(IPL::pickTries setTo 0))
     }
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {

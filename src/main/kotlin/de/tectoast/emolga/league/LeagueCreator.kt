@@ -108,7 +108,6 @@ class LeagueCreator(
     suspend inline fun <reified T> String.put(key: String, value: T) {
         collection.updateOne("{_id: ObjectId('$this')}", "{\$set:{\"$key\":${Json.encodeToString(value)}}}")
         League::table contains 5
-//        collection.updateOne("", set(League::leaguename setTo ""))
     }
 
     suspend fun String.get(): League {

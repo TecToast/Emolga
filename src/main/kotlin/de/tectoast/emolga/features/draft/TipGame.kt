@@ -2,10 +2,7 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.createCoroutineContext
-import de.tectoast.emolga.utils.defaultTimeFormat
-import de.tectoast.emolga.utils.embedColor
-import de.tectoast.emolga.utils.indexedBy
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.coroutines.await
@@ -124,6 +121,7 @@ class TipGame(
     val tips: MutableMap<Int, TipGamedayData> = mutableMapOf(),
     @Serializable(with = InstantToStringSerializer::class) val lastSending: Instant,
     @Serializable(with = InstantToStringSerializer::class) val lastLockButtons: Instant?,
+    @Serializable(with = DurationSerializer::class)
     val interval: Duration,
     val amount: Int,
     val channel: Long

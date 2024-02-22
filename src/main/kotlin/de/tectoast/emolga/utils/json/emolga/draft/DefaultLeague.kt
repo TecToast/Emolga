@@ -8,11 +8,9 @@ import kotlinx.serialization.Serializable
 @SerialName("Default")
 class DefaultLeague : League() {
     override val teamsize = 69
-    override val duringTimerSkipMode: DuringTimerSkipMode?
-        get() = DefaultLeagueSettings.duringTimerSkipMode
+    override val duringTimerSkipMode by DefaultLeagueSettings::duringTimerSkipMode
 
-    override val afterTimerSkipMode: AfterTimerSkipMode
-        get() = DefaultLeagueSettings.afterTimerSkipMode
+    override val afterTimerSkipMode by DefaultLeagueSettings::afterTimerSkipMode
 
 
     override var timer: DraftTimer? by DefaultLeagueSettings::timer

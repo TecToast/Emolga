@@ -2,11 +2,11 @@ package de.tectoast.emolga.utils
 
 import com.mongodb.MongoWriteException
 import de.tectoast.emolga.database.Database
-import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.MatchResult
+import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -193,7 +193,7 @@ class DocEntry private constructor(val league: League) {
             val gamedayTips = tg.tips[gameday]
             if (gamedayTips?.evaluated?.contains(battleindex) == true) return@let
             gamedayTips?.userdata?.entries?.filter { it.value[battleindex] == winningIndex }?.map { it.key }?.forEach {
-                TipGamesDB.addPointToUser(it, leagueName)
+                TipGameUserData.addCorrectGameday(it, gameday, leagueName)
             }
             if (gamedayTips?.evaluated?.add(battleindex) != null) {
                 league.save()

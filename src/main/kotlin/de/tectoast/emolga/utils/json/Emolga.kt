@@ -74,6 +74,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val matchresults by lazy { db.getCollection<MatchResult>("matchresults") }
     val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
     val ytchannel by lazy { db.getCollection<YTChannel>("ytchannel") }
+    val tipgameuserdata by lazy { db.getCollection<TipGameUserData>("tipgameuserdata") }
     val defaultNameConventions = OneTimeCache {
         nameconventions.find(NameConventions::guild eq 0).first()!!.data
     }
@@ -104,7 +105,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                                 (it.data?.otherFormes?.filterNot { forme -> "-Alola" in forme || "-Galar" in forme || "-Hisui" in forme }
                                     .orEmpty() + it.data?.baseSpecies).filterNotNull()
                                     .also { list ->
-                                otherFormesEngl[it] = list
+                                        otherFormesEngl[it] = list
                                     }.size) > 0
                     }
                     val allSDTranslations =
@@ -144,10 +145,40 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 }
 
 @Serializable
+data class TipGameUserData(
+    val user: Long,
+    val league: String,
+    val orderGuesses: MutableMap<Int, Int> = mutableMapOf(),
+    val correctGuesses: MutableSet<Int> = mutableSetOf()
+) {
+    companion object {
+        suspend fun addCorrectGameday(user: Long, gameday: Int, league: String) {
+            db.tipgameuserdata.updateOne(
+                createFilter(user, league),
+                addToSet(TipGameUserData::correctGuesses, gameday),
+                upsert()
+            )
+        }
+
+        suspend fun setOrderGuess(user: Long, league: String, rank: Int, userindex: Int) {
+            db.tipgameuserdata.updateOne(
+                createFilter(user, league),
+                set(TipGameUserData::orderGuesses.keyProjection(rank) setTo userindex),
+                upsert()
+            )
+        }
+
+        private fun createFilter(user: Long, league: String) =
+            and(TipGameUserData::user eq user, TipGameUserData::league eq league)
+    }
+}
+
+@Serializable
 data class YTChannel(
     val user: Long,
     val channelId: String
 )
+
 @Serializable
 data class MatchResult(
     val data: List<Int>,

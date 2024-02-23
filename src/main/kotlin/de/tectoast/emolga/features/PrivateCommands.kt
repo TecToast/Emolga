@@ -3,8 +3,8 @@ package de.tectoast.emolga.features
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.TipGamesDB
 import de.tectoast.emolga.features.draft.SignupManager
+import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
 import de.tectoast.emolga.features.various.ShiftUser
@@ -12,16 +12,13 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.emolga.utils.json.LigaStartData
-import de.tectoast.emolga.utils.json.YTChannel
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.*
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
-import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage
@@ -35,9 +32,6 @@ import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
-import org.jetbrains.exposed.sql.SortOrder
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.eq
 import org.litote.kmongo.newId
 import org.litote.kmongo.set
@@ -95,20 +89,17 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun printTipGame(args: PrivateData) {
         File("tipgame_${defaultTimeFormat.format(Date()).replace(" ", "_")}.txt").also { it.createNewFile() }.writeText(
-            newSuspendedTransaction {
-                TipGamesDB.run {
-                    val size: Int
-                    select { LEAGUE_NAME eq args() }.orderBy(this.CORRECT_GUESSES, SortOrder.DESC).toList()
-                        .also { size = it.size }.withIndex()
-                        .joinToString("\n") {
-                            val row = it.value
-                            "${
-                                (it.index + 1).toString().padStart(size.toString().length, '0')
-                            }. <@${row[this.USERID]}>: ${row[this.CORRECT_GUESSES]}"
-                        }
+            db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
+                .map { it.user to it.correctGuesses.size }
+                .sortedByDescending { it.second }
+                .mapIndexed { index, pair -> "${index + 1}<@${pair.first}>: ${pair.second}" }
+                .joinToString("\n")
+        )
+    }
 
-                }
-            })
+    context(InteractionData)
+    suspend fun rankSelect(args: PrivateData) {
+        reply(components = TipGameManager.RankSelect.createFromLeague(db.league(args[0]), args[1].toInt()).into())
     }
 
     context(InteractionData)

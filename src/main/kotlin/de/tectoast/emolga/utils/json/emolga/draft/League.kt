@@ -321,9 +321,7 @@ sealed class League {
         } else {
 
             val delayData = if (timerRelated.cooldown > 0) DelayData(
-                timerRelated.cooldown,
-                timerRelated.regularCooldown,
-                currentTimeMillis
+                timerRelated.cooldown, timerRelated.regularCooldown, currentTimeMillis
             ) else timer?.calc(
                 this, currentTimeMillis
             )
@@ -707,10 +705,9 @@ sealed class League {
             replayData
     }
 
-    fun getMatchups(gameday: Int) =
-        battleorder[gameday]?.map { mu -> mu.map { table[it] } } ?: generateForDay(
-            table.size, gameday
-        )
+    fun getMatchups(gameday: Int) = battleorder[gameday]?.map { mu -> mu.map { table[it] } } ?: generateForDay(
+        table.size, gameday
+    )
 
     private fun generateForDay(size: Int, dayParam: Int): List<List<Long>> {
         val numDays = size - 1
@@ -725,6 +722,16 @@ sealed class League {
     }
 
     suspend fun refresh() = db.league(leaguename)
+
+    fun buildStoreStatus(gameday: Int): String {
+        val dataStore = replayDataStore ?: error("No replay data store found")
+        val gamedayData = dataStore.data[gameday].orEmpty()
+        return "## Aktueller Stand von Spieltag $gameday:\n" +
+                (0..<battleorder[1]!!.size).joinToString("\n") {
+                    "${battleorder[gameday]!!.joinToString("vs. ") { u -> "<@$u>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
+                }
+
+    }
 
     inner class PointsManager {
         private val points = mutableMapOf<Long, Int>()
@@ -808,24 +815,23 @@ sealed class League {
 data class ReplayDataStore(
     val data: MutableMap<Int, MutableMap<Int, ReplayData>> = mutableMapOf(),
     @Serializable(with = InstantToStringSerializer::class) val lastUploadStart: Instant,
-    @Serializable(with = DurationSerializer::class)
-    val intervalBetweenUploadAndVideo: Duration = Duration.ZERO,
-    @Serializable(with = DurationSerializer::class)
-    val intervalBetweenGD: Duration,
-    @Serializable(with = DurationSerializer::class)
-    val intervalBetweenMatches: Duration,
+    val lastReminder: Reminder? = null,
+    @Serializable(with = DurationSerializer::class) val intervalBetweenUploadAndVideo: Duration = Duration.ZERO,
+    @Serializable(with = DurationSerializer::class) val intervalBetweenGD: Duration,
+    @Serializable(with = DurationSerializer::class) val intervalBetweenMatches: Duration,
     val amount: Int,
 )
+
+@Serializable
+data class Reminder(@Serializable(with = InstantToStringSerializer::class) val lastSend: Instant, val channel: Long)
 
 @Serializable
 data class TimerRelated(
     var cooldown: Long = -1,
     var regularCooldown: Long = -1,
-    @EncodeDefault
-    var lastPick: Long = -1,
+    @EncodeDefault var lastPick: Long = -1,
     var lastRegularDelay: Long = -1,
-    @EncodeDefault
-    val usedStallSeconds: MutableMap<Long, Int> = mutableMapOf(),
+    @EncodeDefault val usedStallSeconds: MutableMap<Long, Int> = mutableMapOf(),
     var lastStallSecondUsedMid: Long? = null
 )
 

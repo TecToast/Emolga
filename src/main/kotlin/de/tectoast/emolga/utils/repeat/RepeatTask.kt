@@ -130,12 +130,16 @@ class RepeatTask(
                                     "https://www.youtube.com/watch?v=$it"
                                 }).queue()
                             }
-
+                        }
+                        data.lastReminder?.let { last ->
+                            RepeatTask(last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
+                                jda.getTextChannelById(last.channel)!!
+                                    .sendMessage(l.refresh().buildStoreStatus(gameday)).queue()
+                            }
                         }
                     }
                 }
             }
-
         }
 
         private fun setupManualRepeatTasks() {

@@ -128,7 +128,7 @@ class TipGame(
 )
 
 object InstantToStringSerializer : KSerializer<Instant> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Date", PrimitiveKind.STRING)
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Instant", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: Instant) {
         encoder.encodeString(defaultTimeFormat.format(value.toEpochMilliseconds()))

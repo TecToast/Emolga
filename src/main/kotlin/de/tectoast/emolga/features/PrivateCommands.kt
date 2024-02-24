@@ -436,6 +436,11 @@ object PrivateCommands {
             YTChannel(id, cid)
         })
     }
+
+    context(InteractionData)
+    fun getGuildIcon(args: PrivateData) {
+        reply(jda.getGuildById(args().toLong())!!.iconUrl.toString())
+    }
 }
 
 data class PrivateData(

@@ -191,12 +191,8 @@ class DocEntry private constructor(val league: League) {
             val winningIndex = (if (game[0].winner) uids[0] else uids[1]).indexedBy(league.table)
             val leagueName = league.leaguename
             val gamedayTips = tg.tips[gameday]
-            if (gamedayTips?.evaluated?.contains(battleindex) == true) return@let
-            gamedayTips?.userdata?.entries?.filter { it.value[battleindex] == winningIndex }?.map { it.key }?.forEach {
+            gamedayTips?.entries?.filter { it.value[battleindex] == winningIndex }?.map { it.key }?.forEach {
                 TipGameUserData.addCorrectGameday(it, gameday, leagueName)
-            }
-            if (gamedayTips?.evaluated?.add(battleindex) != null) {
-                league.save()
             }
         }
 

@@ -46,7 +46,7 @@ object TipGameManager : CoroutineScope {
             league.lock {
                 val tipgame = league.tipgame ?: return reportMissing()
                 val usermap =
-                    tipgame.tips.getOrPut(e.gameday) { TipGamedayData() }.userdata.getOrPut(user) { mutableMapOf() }
+                    tipgame.tips.getOrPut(e.gameday) { mutableMapOf() }.getOrPut(user) { mutableMapOf() }
                 usermap[e.index] = e.userindex
                 reply("Dein Tipp wurde gespeichert!")
                 league.save()
@@ -155,7 +155,7 @@ object TipGameManager : CoroutineScope {
 
 @Serializable
 class TipGame(
-    val tips: MutableMap<Int, TipGamedayData> = mutableMapOf(),
+    val tips: MutableMap<Int, MutableMap<Long, MutableMap<Int, Int>>> = mutableMapOf(),
     @Serializable(with = InstantToStringSerializer::class) val lastSending: Instant,
     @Serializable(with = InstantToStringSerializer::class) val lastLockButtons: Instant?,
     @Serializable(with = DurationSerializer::class)
@@ -175,9 +175,3 @@ object InstantToStringSerializer : KSerializer<Instant> {
         return Instant.fromEpochMilliseconds(defaultTimeFormat.parse(decoder.decodeString()).time)
     }
 }
-
-@Serializable
-class TipGamedayData(
-    val userdata: MutableMap<Long, MutableMap<Int, Int>> = mutableMapOf(),
-    val evaluated: MutableList<Int> = mutableListOf()
-)

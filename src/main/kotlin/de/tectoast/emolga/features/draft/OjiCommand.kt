@@ -117,7 +117,12 @@ object Oji {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            val tlName = e.mon.tlName
+            deferReply(true)
+            val mon = e.mon
+            if (!db.league(e.league).picks.values.flatten().any { it.name == mon.official }) {
+                return reply("Dieses Pokemon wurde nicht in der Liga gepickt!", ephemeral = true)
+            }
+            val tlName = mon.tlName
             TipGameUserData.setTopKiller(user, e.league, tlName)
             reply("Dein persönlicher Top-Killer-Guess ist nun **$tlName**!", ephemeral = true)
         }

@@ -155,31 +155,24 @@ data class TipGameUserData(
 ) {
     companion object {
         suspend fun addCorrectGameday(user: Long, gameday: Int, league: String) {
-            db.tipgameuserdata.updateOne(
-                createFilter(user, league),
-                addToSet(TipGameUserData::correctGuesses, gameday),
-                upsert()
-            )
+            update(user, league, addToSet(TipGameUserData::correctGuesses, gameday))
         }
 
         suspend fun setOrderGuess(user: Long, league: String, rank: Int, userindex: Int) {
-            db.tipgameuserdata.updateOne(
-                createFilter(user, league),
-                set(TipGameUserData::orderGuesses.keyProjection(rank) setTo userindex),
-                upsert()
-            )
+            update(user, league, set(TipGameUserData::orderGuesses.keyProjection(rank) setTo userindex))
         }
 
         suspend fun setTopKiller(user: Long, league: String, mon: String) {
-            db.tipgameuserdata.updateOne(
-                createFilter(user, league),
-                set(TipGameUserData::topkiller setTo mon),
-                upsert()
-            )
+            update(user, league, set(TipGameUserData::topkiller setTo mon))
         }
 
-        private fun createFilter(user: Long, league: String) =
-            and(TipGameUserData::user eq user, TipGameUserData::league eq league)
+        private suspend fun update(user: Long, league: String, update: Bson) =
+            db.tipgameuserdata.updateOne(
+                and(TipGameUserData::user eq user, TipGameUserData::league eq league),
+                update,
+                upsert()
+            )
+
     }
 }
 

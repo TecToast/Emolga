@@ -276,11 +276,11 @@ _written by Maxifcn_""".trimIndent()
         fun setupRepeatTasks() {
             logger.info("Setting up matchups repeat tasks")
             RepeatTask(
-                "08.10.2023 20:00", 5, 7.days, true
+                "24.03.2024 20:00", 5, 7.days
             ) { doMatchUps(it, withAnnounce = true) }
             logger.info("Setting up nominations repeat tasks")
             RepeatTask(
-                "11.10.2023 00:00", 5, 7.days, true
+                "27.03.2024 00:00", 5, 7.days
             ) { doNDSNominate() }
         }
     }

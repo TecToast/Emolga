@@ -7,7 +7,7 @@ import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
-import de.tectoast.emolga.utils.json.emolga.draft.NDSML
+import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.get
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -143,9 +143,9 @@ class RepeatTask(
         }
 
         private fun setupManualRepeatTasks() {
-//            NDS.setupRepeatTasks()
+            NDS.setupRepeatTasks()
             ASLCoach.setupRepeatTasks()
-            NDSML.setupRepeatTasks()
+//            NDSML.setupRepeatTasks()
         }
     }
 }

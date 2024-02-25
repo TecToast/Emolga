@@ -727,7 +727,7 @@ sealed class League {
         val gamedayData = dataStore.data[gameday].orEmpty()
         return "## Aktueller Stand von Spieltag $gameday:\n" +
                 (0..<battleorder[1]!!.size).joinToString("\n") {
-                    "${battleorder[gameday]!!.joinToString("vs. ") { u -> "<@$u>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
+                    "${battleorder[gameday]!![it].joinToString(" vs. ") { u -> "<@${table[u]}>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
                 }
 
     }

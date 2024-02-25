@@ -2,6 +2,7 @@
 
 package de.tectoast.emolga.features
 
+import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Translation
@@ -374,6 +375,7 @@ open class Arguments {
     fun draftPokemon(
         name: String = "",
         help: String = "",
+        builder: Arg<String, DraftName>.() -> Unit = {},
         autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
     ) = createArg(name, help, OptionType.STRING) {
         validate {
@@ -399,6 +401,7 @@ open class Arguments {
                     }) "$it (GEPICKT)" else it
             }).sorted()
         })
+        builder()
     }
 
     inline fun boolean(name: String = "", help: String = "", builder: Arg<Boolean, Boolean>.() -> Unit = {}) =

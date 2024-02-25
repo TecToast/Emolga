@@ -176,28 +176,27 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
         defaultArgs.mapNotNull { (it.spec as? CommandArgSpec)?.autocomplete?.let { ac -> it.name.nameToDiscordOption() to ac } }
             .toMap()
     }
-    val children: Collection<CommandFeature<*>>
-    val childCommands: Map<String, CommandFeature<*>>
+    val children = (this::class.nestedClasses as Collection<KClass<out CommandFeature<*>>>).filter {
+        it.isSubclassOf(CommandFeature::class)
+    }.map { it.objectInstance!! }
+    val childCommands = children.associateBy { it.spec.name }
     var slashPermissions: DefaultMemberPermissions = DefaultMemberPermissions.ENABLED
 
     init {
         registerListener<CommandAutoCompleteInteractionEvent> {
-            if (it.name != spec.name) return@registerListener
+            if (it.name != spec.name && it.name != it.subcommandName) return@registerListener
             permissionCheck(RealInteractionData(it)).let { result ->
                 if (result is NotAllowed) {
                     return@registerListener it.replyChoiceStrings(result.reason).queue()
                 }
             }
             val focusedOption = it.focusedOption
-            autoCompletableOptions[focusedOption.name]?.let { ac ->
+            val options = childCommands[it.subcommandName]?.autoCompletableOptions ?: autoCompletableOptions
+            options[focusedOption.name]?.let { ac ->
                 val list = ac(focusedOption.value, it)?.takeIf { l -> l.size <= 25 }
                 it.replyChoiceStrings(list ?: listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")).queue()
             }
         }
-        children = (this::class.nestedClasses as Collection<KClass<out CommandFeature<*>>>).filter {
-            it.isSubclassOf(CommandFeature::class)
-        }.map { it.objectInstance!! }
-        childCommands = children.associateBy { it.spec.name }
     }
 
     override suspend fun populateArgs(data: InteractionData, e: SlashCommandInteractionEvent, args: A) {

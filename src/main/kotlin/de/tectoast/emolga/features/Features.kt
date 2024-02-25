@@ -38,7 +38,6 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.interactions.components.text.TextInput
-import org.litote.kmongo.eq
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
@@ -443,11 +442,11 @@ open class Arguments {
     inline fun fromList(
         name: String = "",
         help: String = "",
-        crossinline listsupplier: suspend () -> List<String>,
+        crossinline listsupplier: suspend (CommandAutoCompleteInteractionEvent) -> List<String>,
         builder: Arg<String, String>.() -> Unit = {}
     ) = createArg(name, help) {
-        slashCommand { s, _ ->
-            listsupplier().filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
+        slashCommand { s, event ->
+            listsupplier(event).filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
         }
         builder()
     }

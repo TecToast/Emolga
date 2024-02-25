@@ -12,7 +12,7 @@ object Soullink {
         Team, Box, RIP
     }
 
-    private fun Arguments.location() = fromList("Location", "Die Location", { db.soullink.only().order })
+    private fun Arguments.location() = fromList("Location", "Die Location", { _ -> db.soullink.only().order })
     private fun Arguments.status() =
         enumBasic<Status>("Status", "Der Status")
 

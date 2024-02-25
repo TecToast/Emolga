@@ -41,7 +41,7 @@ object TipGameManager : CoroutineScope {
         context(InteractionData)
         override suspend fun exec(e: Args) {
             ephemeralDefault()
-            val league = db.drafts.findOne(League::leaguename eq e.leaguename) ?: return reportMissing()
+            val league = db.getLeague(e.leaguename) ?: return reportMissing()
             league.lock {
                 val tipgame = league.tipgame ?: return reportMissing()
                 val usermap =

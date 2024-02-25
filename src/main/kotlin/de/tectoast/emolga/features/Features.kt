@@ -492,7 +492,7 @@ open class Arguments {
 
     fun league(name: String = "", help: String = "") = createArg(name, help, OptionType.STRING) {
         validate {
-            db.drafts.findOne(League::leaguename eq it) ?: throw InvalidArgumentException("Ungültige Liga!")
+            db.getLeague(it) ?: throw InvalidArgumentException("Ungültige Liga!")
         }
     }
 

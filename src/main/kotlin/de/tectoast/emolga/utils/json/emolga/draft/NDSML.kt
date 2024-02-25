@@ -11,7 +11,6 @@ import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import org.litote.kmongo.eq
 import org.slf4j.Logger
 import kotlin.time.Duration.Companion.days
 
@@ -82,7 +81,7 @@ class NDSML : League() {
         }
 
         suspend fun doMatchUps(gameday: Int) {
-            val ndsml = db.drafts.findOne(League::leaguename eq "NDSML")!!
+            val ndsml = db.league("NDSML")
             val table = ndsml.table
             val teamnames =
                 db.signups.get(Constants.G.NDS)!!.users.toList().associate { it.first to it.second.teamname!! }

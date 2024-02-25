@@ -319,7 +319,6 @@ sealed class League {
             announcePlayer()
             save("StartDraft")
         } else {
-
             val delayData = if (timerRelated.cooldown > 0) DelayData(
                 timerRelated.cooldown, timerRelated.regularCooldown, currentTimeMillis
             ) else timer?.calc(
@@ -766,7 +765,7 @@ sealed class League {
 
         suspend fun executeTimerOnRefreshedVersion(name: String) {
             getLock(name).withLock {
-                val league = db.drafts.findOne(League::leaguename eq name)
+                val league = db.getLeague(name)
                     ?: return SendFeatures.sendToMe("League $name not found")
                 if (league.timerRelated.cooldown <= System.currentTimeMillis()) league.afterPickOfficial(
                     data = NextPlayerData.Moved(

@@ -335,15 +335,8 @@ sealed class League {
 
     suspend fun save(from: String = "") {
         val l = this@League
-        db.drafts.updateOne(l).also {
-            logger.info(
-                "Saving... Result: {} Leaguename: {} isRunning {} FROM {}",
-                it.toString(),
-                l.leaguename,
-                l.isRunning,
-                from
-            )
-        }
+        logger.debug("Saving league from $from")
+        db.drafts.updateOne(l)
     }
 
     override fun toString() = leaguename
@@ -525,13 +518,8 @@ sealed class League {
 
     suspend fun finishDraft(msg: String) {
         tc.sendMessage(msg).queue()
-        //ndsdoc(tierlist, pokemon, d, mem, tier, round);
-        //aslCoachDoc(tierlist, pokemon, d, mem, needed, round, null);
-        logger.info("Draft ended!")
         isRunning = false
-        logger.info("Saving......... $leaguename")
         save("END SAVE")
-        logger.info("Saved!")
     }
 
     internal open suspend fun getCurrentMention(): String {

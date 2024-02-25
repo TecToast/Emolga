@@ -159,7 +159,7 @@ object PrivateCommands {
     suspend fun startOrderingUsers(args: PrivateData) {
         val tc = jda.getTextChannelById(args[0])!!
         val extended = args[1].toBoolean()
-        val data = db.signups.get(guildForTLSetup ?: tc.guild.idLong)!!
+        val data = db.signups.get(guildForMyStuff ?: tc.guild.idLong)!!
         val conferences = args.drop(2)
         val confMap = conferences.mapNotNull {
             val split = it.split(":")
@@ -258,10 +258,10 @@ object PrivateCommands {
         db.league(args()).docEntry!!.sort()
     }
 
-    var guildForTLSetup: Long? = null
+    var guildForMyStuff: Long? = null
     context(InteractionData)
-    fun setGuildForTLSetup(args: PrivateData) {
-        guildForTLSetup = args().toLong()
+    fun setGuildForMyStuff(args: PrivateData) {
+        guildForMyStuff = args().toLong()
     }
 
     var guildForUserIDGrabbing: Long? = Constants.G.WARRIOR

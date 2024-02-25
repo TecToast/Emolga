@@ -42,7 +42,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
             TierlistBuilderConfigurator(
                 userId = user,
                 channelId = tc,
-                guildId = PrivateCommands.guildForTLSetup?.takeUnless { isNotFlo } ?: gid,
+                guildId = PrivateCommands.guildForMyStuff?.takeUnless { isNotFlo } ?: gid,
                 mons =
                 (Google.batchGet(
                     sid,

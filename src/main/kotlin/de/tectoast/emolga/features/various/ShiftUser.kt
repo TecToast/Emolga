@@ -18,7 +18,7 @@ object ShiftUser {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            val gid = PrivateCommands.guildForTLSetup ?: gid
+            val gid = PrivateCommands.guildForMyStuff ?: gid
             val uid = e.uid
             with(
                 db.signups.get(gid)
@@ -66,7 +66,7 @@ object ShiftUser {
         context(InteractionData) override suspend fun exec(e: Args) {
             val mode = e.mode
             val uid = e.uid
-            val gid = PrivateCommands.guildForTLSetup ?: gid
+            val gid = PrivateCommands.guildForMyStuff ?: gid
             val data = db.signups.get(gid) ?: return
             val user = data.users[uid]!!
             val oldConf = user.conference.indexedBy(data.conferences)

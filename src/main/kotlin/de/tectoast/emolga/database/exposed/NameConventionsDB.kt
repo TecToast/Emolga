@@ -1,5 +1,7 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.features.PrivateCommands
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.MappedCache
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -110,7 +112,8 @@ object NameConventionsDB : Table("nameconventions") {
         return getDBTranslation(mon, guildId, spec, nc, english = Tierlist[guildId].isEnglish)?.tlName
     }
 
-    suspend fun getDiscordTranslation(s: String, guildId: Long, english: Boolean = false): DraftName? {
+    suspend fun getDiscordTranslation(s: String, guildIdArg: Long, english: Boolean = false): DraftName? {
+        val guildId = if (guildIdArg == Constants.G.MY) PrivateCommands.guildForMyStuff ?: guildIdArg else guildIdArg
         val list = mutableListOf<Pair<String, String?>>()
         val nc = db.nameconventions.findOne(NameConventions::guild eq guildId)?.data
         fun Map<String, String>.check() = firstNotNullOfOrNull {

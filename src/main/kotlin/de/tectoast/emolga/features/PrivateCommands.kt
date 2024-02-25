@@ -99,7 +99,15 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun rankSelect(args: PrivateData) {
-        reply(components = TipGameManager.RankSelect.createFromLeague(db.league(args[0]), args[1].toInt()).into())
+        val league = db.league(args[0])
+        reply(components = (1..args[1].toInt()).map {
+            ActionRow.of(
+                TipGameManager.RankSelect.createFromLeague(
+                    league,
+                    it
+                )
+            )
+        })
     }
 
     context(InteractionData)

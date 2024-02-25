@@ -13,7 +13,12 @@ import net.dv8tion.jda.api.entities.sticker.StickerSnowflake
 
 @Serializable
 @SerialName("IPL")
-class IPL(private val draftSheetId: Int, @EncodeDefault var pickTries: Int = 0) : League() {
+class IPL(
+    private val draftSheetId: Int,
+    @EncodeDefault var pickTries: Int = 0,
+    val teamtable: List<String> = listOf(),
+    val emotes: List<String> = listOf()
+) : League() {
     override val teamsize = 12
     override val pickBuffer = 5
 

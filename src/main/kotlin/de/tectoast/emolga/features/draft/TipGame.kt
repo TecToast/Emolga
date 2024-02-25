@@ -5,6 +5,7 @@ import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.draft.IPL
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.SelectOption
@@ -22,9 +23,9 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
-import org.litote.kmongo.eq
 import java.awt.Color
 import kotlin.time.Duration
 
@@ -67,9 +68,14 @@ object TipGameManager : CoroutineScope {
 
         suspend fun createFromLeague(league: League, rank: Int): StringSelectMenu {
             val names = jda.getGuildById(league.guild)!!.retrieveMembersByIds(league.table).await()
-                .associate { it.idLong to it.effectiveName }
+                .associate { it.idLong to it.user.effectiveName }
             return this("Platz $rank", options = league.table.mapIndexed { index, user ->
-                SelectOption(names[user]!!, index.toString())
+                if (league is IPL) SelectOption(
+                    league.teamtable[index],
+                    index.toString(),
+                    emoji = Emoji.fromFormatted(league.emotes[index])
+                )
+                else SelectOption(names[user]!!, index.toString())
             }) {
                 this.league = league
                 this.rank = rank

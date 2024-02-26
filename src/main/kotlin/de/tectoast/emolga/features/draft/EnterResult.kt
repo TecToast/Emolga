@@ -1,5 +1,6 @@
 package de.tectoast.emolga.features.draft
 
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 import de.tectoast.emolga.features.*
@@ -10,7 +11,9 @@ import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.emolga.reverseGet
 import de.tectoast.emolga.utils.surroundWith
+import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
@@ -24,13 +27,30 @@ object EnterResult {
     object ResultCommand : CommandFeature<ResultCommand.Args>(
         ::Args, CommandSpec("result", "Startet die interaktive Ergebniseingabe", Constants.G.VIP, Constants.G.COMMUNITY)
     ) {
+        private val nameCache = mutableMapOf<String, Map<Long, String>>() // guild -> uid -> name
+        private val leagueCache = mutableMapOf<Long, String>()
         class Args : Arguments() {
-            var opponent by member("Gegner", "Dein Gegner in diesem Kampf")
+            var opponent by fromList("Gegner", "Dein Gegner", {
+                db.leagueByGuild(it.guild?.idLong ?: -1, it.user.idLong).handle(it.user.idLong)
+            })
+        }
+
+        private suspend fun League?.handle(user: Long): List<String> {
+            this ?: return listOf("Du bist in keiner Liga auf diesem Server!")
+            leagueCache[user] = leaguename
+            return nameCache.getOrPut(leaguename) {
+                jda.getGuildById(guild)!!.retrieveMembersByIds(table).await()
+                    .associate { it.idLong to it.user.effectiveName }
+            }.values.toList()
         }
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            handleStart(e.opponent.idLong)
+            val oppo = nameCache[leagueCache[user]]?.reverseGet(e.opponent) ?: return reply(
+                "Gegner wurde nicht gefunden, hast du dich an die Autovervollständigung gehalten?",
+                ephemeral = true
+            )
+            handleStart(oppo)
         }
     }
 

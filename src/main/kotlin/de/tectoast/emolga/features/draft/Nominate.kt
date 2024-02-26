@@ -15,7 +15,6 @@ import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import org.litote.kmongo.*
 
@@ -70,14 +69,17 @@ object Nominate {
                 title = "Nominierungen", color = embedColor, description = generateDescription()
             ).into(), components = mons.map {
                 val s = it.name
-                NominateButton(s, if (isNominated(s)) ButtonStyle.PRIMARY else ButtonStyle.SECONDARY) { data = s }
+                val isNom = isNominated(s)
+                NominateButton(s, if (isNom) ButtonStyle.PRIMARY else ButtonStyle.SECONDARY) {
+                    data = s; this.mode = if (isNom) NominateButton.Mode.UNNOMINATE else NominateButton.Mode.NOMINATE
+                }
             }.intoMultipleRows().toMutableList().apply {
                 add(
                     ActionRow.of(NominateButton(
                         buttonStyle = ButtonStyle.SUCCESS,
                         emoji = Emoji.fromUnicode("✅"),
                         disabled = nominated.size != 11
-                    ) { data = "FINISH" })
+                    ) { mode = NominateButton.Mode.FINISH; data = "NOTNOW" })
                 )
             })
         }
@@ -113,14 +115,12 @@ object Nominate {
                         color = embedColor,
                         description = generateDescription()
                     ).into(), components = listOf(
-                        Button.success("nominate;FINISHNOW", "Ja"), Button.danger("nominate;CANCEL", "Nein"),
                         NominateButton("Ja", ButtonStyle.SUCCESS) {
                             mode = NominateButton.Mode.FINISH
                             data = "FINISHNOW"
                         },
                         NominateButton("Nein", ButtonStyle.DANGER) {
-                            mode = NominateButton.Mode.FINISH
-                            data = "CANCEL"
+                            mode = NominateButton.Mode.CANCEL
                         }
                     ).into()
                 )
@@ -158,23 +158,23 @@ object Nominate {
                 ).into(), components = list.map {
                     NominateButton(
                         label = it.name, buttonStyle = ButtonStyle.PRIMARY
-                    ) { data = it.name }
+                    ) { data = it.name; mode = Mode.UNNOMINATE }
                 }.intoMultipleRows().toMutableList().apply {
                     add(
                         ActionRow.of(NominateButton(
                             buttonStyle = ButtonStyle.SUCCESS,
                             emoji = Emoji.fromUnicode("✅"),
                             disabled = true
-                        ) { data = "FINISH" })
+                        ) { mode = Mode.FINISH;data = "NOTNOW" })
                     )
                 })
-                ).queue { nominateButtons[it.idLong] = n }
+                ).queue { nominateButtons[e.author.idLong] = n }
                 nds.save()
             }
         }
 
         enum class Mode {
-            NOMINATE, UNNOMINATE, FINISH
+            NOMINATE, UNNOMINATE, FINISH, CANCEL
         }
 
         class Args : Arguments() {
@@ -198,6 +198,9 @@ object Nominate {
 
                 Mode.FINISH -> {
                     n.finish(e.data == "FINISHNOW")
+                }
+                Mode.CANCEL -> {
+                    n.render()
                 }
             }
         }

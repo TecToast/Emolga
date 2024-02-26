@@ -81,7 +81,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     suspend fun league(name: String) = getLeague(name)!!
     suspend fun getLeague(name: String) = drafts.findOne(League::leaguename eq name)
-    suspend fun nds() = (league("NDS") as NDS).also { println("NAME: ${it.leaguename}") }
+    suspend fun nds() = (league("NDS") as NDS)
 
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
         drafts.findOne(League::guild eq gid, League::table all uids.toList())

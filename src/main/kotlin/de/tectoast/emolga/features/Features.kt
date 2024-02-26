@@ -223,7 +223,7 @@ abstract class ButtonFeature<A : Arguments>(argsFun: () -> A, spec: ButtonSpec) 
         val argsFromEvent = e.componentId.substringAfter(";").split(";")
         for ((index, arg) in args.args.withIndex()) {
             val m = argsFromEvent.getOrNull(index)?.takeIf { it.isNotBlank() }
-            if (m != null) arg.parse(data, m)
+            arg.parse(data, m.orEmpty())
         }
     }
 

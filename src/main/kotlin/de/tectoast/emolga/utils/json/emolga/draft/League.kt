@@ -3,10 +3,12 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.features.draft.InstantToStringSerializer
 import de.tectoast.emolga.features.draft.TipGame
+import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPlayer
@@ -17,8 +19,7 @@ import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.showdown.AnalysisData
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.messages.EmbedBuilder
-import dev.minn.jda.ktx.messages.SendDefaults
+import dev.minn.jda.ktx.messages.*
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -28,11 +29,13 @@ import kotlinx.serialization.*
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
+import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import org.bson.types.ObjectId
 import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.eq
 import org.slf4j.Logger
+import java.awt.Color
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
@@ -692,20 +695,66 @@ sealed class League {
             replayData
     }
 
-    fun getMatchups(gameday: Int) = battleorder[gameday]?.map { mu -> mu.map { table[it] } } ?: generateForDay(
-        table.size, gameday
-    )
+    fun getMatchups(gameday: Int) = getMatchupsIndices(gameday).map { mu -> mu.map { table[it] } }
+    fun getMatchupsIndices(gameday: Int) = battleorder[gameday]!!
 
-    private fun generateForDay(size: Int, dayParam: Int): List<List<Long>> {
-        val numDays = size - 1
-        val day = dayParam - 1
-        return buildList {
-            add(listOf(table[day % numDays + 1], table[0]))
-            for (idx in 1 until size / 2) {
-                add(listOf(table[(day + idx) % numDays + 1], table[(day + numDays - idx) % numDays + 1]))
+    open fun executeTipGameSending(num: Int) {
+        launch {
+            val tip = tipgame!!
+            val channel = jda.getTextChannelById(tip.channel)!!
+            val matchups = getMatchups(num)
+            val names =
+                jda.getGuildById(guild)!!.retrieveMembersByIds(matchups.flatten()).await()
+                    .associate { it.idLong to it.effectiveName }
+            channel.send(
+                embeds = Embed(
+                    title = "Spieltag $num", color = Color.YELLOW.rgb
+                ).into()
+            ).queue()
+            for ((index, matchup) in matchups.withIndex()) {
+                val u1 = matchup[0]
+                val u2 = matchup[1]
+                val base: ArgBuilder<TipGameManager.VoteButton.Args> = {
+                    this.leaguename = leaguename
+                    this.gameday = num
+                    this.index = index
+                }
+                channel.send(
+                    embeds = Embed(
+                        title = "${names[u1]} vs. ${names[u2]}", color = embedColor
+                    ).into(), components = ActionRow.of(TipGameManager.VoteButton(names[u1]!!) {
+                        base()
+                        this.userindex = u1.indexedBy(table)
+                    }, TipGameManager.VoteButton(names[u2]!!) {
+                        base()
+                        this.userindex = u2.indexedBy(table)
+                    }).into()
+                ).queue()
             }
         }
+    }
 
+    fun executeTipGameLockButtons(gameday: Int) {
+        launch {
+            jda.getTextChannelById(tipgame!!.channel)!!.iterableHistory.takeAsync(battleorder[gameday]!!.size)
+                .await().forEach {
+                    it.editMessageComponents(
+                        ActionRow.of(it.actionRows[0].buttons.map { button -> button.asDisabled() })
+                    ).queue()
+                }
+        }
+    }
+
+    fun executeTipGameLockButtonsIndividual(gameday: Int, mu: Int) {
+        launch {
+            val muCount = battleorder[gameday]!!.size
+            jda.getTextChannelById(tipgame!!.channel)!!.iterableHistory.takeAsync(muCount - mu).await().last()
+                .let {
+                    it.editMessageComponents(
+                        ActionRow.of(it.actionRows[0].buttons[mu].asDisabled())
+                    ).queue()
+                }
+        }
     }
 
     suspend fun refresh() = db.league(leaguename)
@@ -739,7 +788,8 @@ sealed class League {
 
     val timeFormat get() = if (timer?.stallSeconds == 0) leagueTimeFormat else leagueTimeFormatSecs
 
-    companion object {
+    companion object : CoroutineScope {
+        override val coroutineContext = createCoroutineContext("League", Dispatchers.IO)
         val logger: Logger by SLF4J
         val allTimers = mutableMapOf<String, Job>()
         val allStallSecondTimers = mutableMapOf<String, Job>()

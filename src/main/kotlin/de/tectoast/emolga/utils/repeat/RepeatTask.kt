@@ -1,7 +1,6 @@
 package de.tectoast.emolga.utils.repeat
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
@@ -85,12 +84,12 @@ class RepeatTask(
                     val duration = tip.interval
                     logger.info("Draft ${l.leaguename} has tipgame with interval ${tip.interval} and duration $duration")
                     RepeatTask(
-                        tip.lastSending, tip.amount, duration, false
-                    ) { TipGameManager.executeTipGameSending(l.refresh(), it) }
+                        tip.lastSending, tip.amount, duration, true
+                    ) { l.refresh().executeTipGameSending(it) }
                     tip.lastLockButtons?.let { last ->
                         RepeatTask(
                             last, tip.amount, duration, false
-                        ) { TipGameManager.executeTipGameLockButtons(l.refresh(), it) }
+                        ) { l.refresh().executeTipGameLockButtons(it) }
                     }
                 }
                 l.replayDataStore?.let { data ->
@@ -104,7 +103,7 @@ class RepeatTask(
                         ) { gameday ->
                             val league = l.refresh()
                             league.tipgame?.let { _ ->
-                                TipGameManager.executeTipGameLockButtonsIndividual(league, gameday, battle)
+                                l.refresh().executeTipGameLockButtonsIndividual(gameday, battle)
                                 delay(2000)
                             }
                             val dataStore = league.replayDataStore ?: return@RepeatTask

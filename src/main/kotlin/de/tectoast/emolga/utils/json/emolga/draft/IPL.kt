@@ -2,14 +2,24 @@
 
 package de.tectoast.emolga.utils.json.emolga.draft
 
+import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.draft.AddToTierlistData
+import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
 import de.tectoast.emolga.utils.records.SorterData
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.Embed
+import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
+import kotlinx.coroutines.launch
 import kotlinx.serialization.*
+import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.entities.sticker.StickerSnowflake
+import net.dv8tion.jda.api.interactions.components.ActionRow
+import java.awt.Color
 
 @Serializable
 @SerialName("IPL")
@@ -152,6 +162,42 @@ class IPL(
                     else "wurde vollständig aufgebraucht!"
                 }"
             ).queue()
+        }
+    }
+
+    override fun executeTipGameSending(num: Int) {
+        launch {
+            val tip = tipgame!!
+            val channel = jda.getTextChannelById(tip.channel)!!
+            val matchups = getMatchupsIndices(num)
+            channel.send(
+                embeds = Embed(
+                    title = "Spieltag $num", color = Color.YELLOW.rgb
+                ).into()
+            ).queue()
+            for ((index, matchup) in matchups.withIndex()) {
+                val u1 = matchup[0]
+                val u2 = matchup[1]
+                val base: ArgBuilder<TipGameManager.VoteButton.Args> = {
+                    this.leaguename = this@IPL.leaguename
+                    this.gameday = num
+                    this.index = index
+                }
+                val t1 = teamtable[u1]
+                val t2 = teamtable[u2]
+                channel.send(
+                    embeds = Embed(
+                        title = "$t1 ${emotes[u1]} vs. ${emotes[u2]} $t2", color = embedColor
+                    ).into(),
+                    components = ActionRow.of(TipGameManager.VoteButton(t1, emoji = Emoji.fromFormatted(emotes[u1])) {
+                        base()
+                        this.userindex = u1
+                    }, TipGameManager.VoteButton(t2, emoji = Emoji.fromFormatted(emotes[u1])) {
+                        base()
+                        this.userindex = u2
+                    }).into()
+                ).queue()
+            }
         }
     }
 }

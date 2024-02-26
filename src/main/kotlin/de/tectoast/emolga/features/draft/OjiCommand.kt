@@ -11,6 +11,7 @@ import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import org.litote.kmongo.eq
+import org.litote.kmongo.regex
 
 object Oji {
     object OjiCommand : CommandFeature<NoArgs>(
@@ -84,6 +85,23 @@ object Oji {
                 ).queue()
             }
         }
+
+        object TipGameStats : CommandFeature<NoArgs>(
+            NoArgs(),
+            CommandSpec("tipgamestats", "Zeigt den aktuellen Stand des Tippspiels an.")
+        ) {
+            context(InteractionData)
+            override suspend fun exec(e: NoArgs) {
+                val points = db.tipgameuserdata.find(TipGameUserData::league regex "^IPL").toList().groupBy { it.user }
+                    .mapValues { it.value.sumOf { d -> d.correctGuesses.size } }
+                reply(
+                    "Teilnehmeranzahl: ${points.size}\n\n" + points.entries.sortedByDescending { it.value }.take(10)
+                        .mapIndexed { index, entry -> "${index + 1}. <@${entry.key}>: ${entry.value}" }
+                        .joinToString("\n").ifEmpty { "_Keine Punkte bisher vergeben_" }, ephemeral = true
+                )
+            }
+        }
+
 
         context(InteractionData) override suspend fun exec(e: NoArgs) {
             // do nothing

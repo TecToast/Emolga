@@ -38,6 +38,7 @@ object TipGameManager : CoroutineScope {
         context(InteractionData)
         override suspend fun exec(e: Args) {
             ephemeralDefault()
+            deferReply()
             val league = db.getLeague(e.leaguename) ?: return reportMissing()
             league.lock {
                 val tipgame = league.tipgame ?: return reportMissing()

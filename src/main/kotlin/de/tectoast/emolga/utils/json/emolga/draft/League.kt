@@ -757,6 +757,8 @@ sealed class League {
         }
     }
 
+    open suspend fun executeYoutubeSend(ytTC: Long, gameday: Int, battle: Int) {}
+
     suspend fun refresh() = db.league(leaguename)
 
     fun buildStoreStatus(gameday: Int): String {

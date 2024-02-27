@@ -7,6 +7,8 @@ import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
 import de.tectoast.emolga.utils.records.SorterData
@@ -199,5 +201,30 @@ class IPL(
                 ).queue()
             }
         }
+    }
+
+    override suspend fun executeYoutubeSend(ytTC: Long, gameday: Int, battle: Int) {
+        jda.getTextChannelById(ytTC)!!.sendMessage(buildString {
+            if (battle == 0 || battle == 3) append("<@&878744967680512021>")
+            append("**Spieltag $gameday**\n_Kampf ${battle + 1}_\n\n")
+            val muData = battleorder[gameday]!![battle]
+            append(muData.joinToString("vs. ") { emotes[it] })
+            append("\n\n")
+            val videoIds = muData.map {
+                val lastVid = Google.fetchLastVideoFromChannel(db.ytchannel.get(table[it])!!.channelId)!!
+                if ((System.currentTimeMillis() - lastVid.snippet.publishedAt.value) > 1000 * 60 * 60
+                    || !lastVid.snippet.description.contains("IPL")
+                ) {
+                    null
+                } else lastVid.id.videoId
+            }
+            val names = jda.getGuildById(guild)!!.retrieveMembersByIds(muData.map { table[it] }).await()
+                .associate { it.idLong to it.user.effectiveName }
+            videoIds.forEachIndexed { index, vid ->
+                val uid = table[index]
+                append("${names[uid]}'s Sicht: ")
+                append(vid?.let { "https://www.youtube.com/watch?v=$it" } ?: "_noch nicht hochgeladen_")
+            }
+        }).queue()
     }
 }

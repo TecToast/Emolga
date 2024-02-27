@@ -80,6 +80,7 @@ object ShiftUser {
                         data.shiftMessageIds = PrivateCommands.generateOrderingMessages(data).values.map {
                             tc.send(embeds = it.first.into(), components = it.second).await().idLong
                         }
+                        data.save()
                         return
                     }
                     edit(

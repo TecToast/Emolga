@@ -78,16 +78,18 @@ class RepeatTask(
         suspend fun setupRepeatTasks() {
             setupManualRepeatTasks()
             db.drafts.find().toFlow().collect { l ->
+                val name = l.leaguename
+                suspend fun refresh() = db.league(name)
                 l.tipgame?.let { tip ->
                     val duration = tip.interval
-                    logger.info("Draft ${l.leaguename} has tipgame with interval ${tip.interval} and duration $duration")
+                    logger.info("Draft $name has tipgame with interval ${tip.interval} and duration $duration")
                     RepeatTask(
                         tip.lastSending, tip.amount, duration, false
-                    ) { l.refresh().executeTipGameSending(it) }
+                    ) { refresh().executeTipGameSending(it) }
                     tip.lastLockButtons?.let { last ->
                         RepeatTask(
                             last, tip.amount, duration, false
-                        ) { l.refresh().executeTipGameLockButtons(it) }
+                        ) { refresh().executeTipGameLockButtons(it) }
                     }
                 }
                 l.replayDataStore?.let { data ->
@@ -99,9 +101,9 @@ class RepeatTask(
                             data.intervalBetweenGD,
                             false
                         ) { gameday ->
-                            val league = l.refresh()
+                            val league = db.league(name)
                             league.tipgame?.let { _ ->
-                                l.refresh().executeTipGameLockButtonsIndividual(gameday, battle)
+                                refresh().executeTipGameLockButtonsIndividual(gameday, battle)
                                 delay(2000)
                             }
                             val dataStore = league.replayDataStore ?: return@RepeatTask
@@ -116,13 +118,13 @@ class RepeatTask(
                                 data.intervalBetweenGD,
                                 true
                             ) { gameday ->
-                                l.refresh().executeYoutubeSend(ytTC, gameday, battle)
+                                refresh().executeYoutubeSend(ytTC, gameday, battle)
                             }
                         }
                         data.lastReminder?.let { last ->
                             RepeatTask(last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
                                 jda.getTextChannelById(last.channel)!!
-                                    .sendMessage(l.refresh().buildStoreStatus(gameday)).queue()
+                                    .sendMessage(refresh().buildStoreStatus(gameday)).queue()
                             }
                         }
                     }

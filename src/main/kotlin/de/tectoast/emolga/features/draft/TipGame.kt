@@ -2,15 +2,14 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.DurationSerializer
-import de.tectoast.emolga.utils.createCoroutineContext
-import de.tectoast.emolga.utils.defaultTimeFormat
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.IPL
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.SelectOption
+import dev.minn.jda.ktx.messages.Embed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Instant
@@ -27,6 +26,7 @@ import kotlin.time.Duration
 
 object TipGameManager : CoroutineScope {
     override val coroutineContext = createCoroutineContext("TipGameManager", Dispatchers.IO)
+
     object VoteButton : ButtonFeature<VoteButton.Args>(::Args, ButtonSpec("tipgame")) {
         class Args : Arguments() {
             var leaguename by string()
@@ -41,10 +41,19 @@ object TipGameManager : CoroutineScope {
             val league = db.getLeague(e.leaguename) ?: return reportMissing()
             league.lock {
                 val tipgame = league.tipgame ?: return reportMissing()
-                val usermap =
-                    tipgame.tips.getOrPut(e.gameday) { mutableMapOf() }.getOrPut(user) { mutableMapOf() }
-                usermap[e.index] = e.userindex
+                val gamedayMap = tipgame.tips.getOrPut(e.gameday) { mutableMapOf() }
+                val userMap = gamedayMap.getOrPut(user) { mutableMapOf() }
+                userMap[e.index] = e.userindex
                 reply("Dein Tipp wurde gespeichert!")
+                if (tipgame.withCurrentState) {
+                    message.editMessageEmbeds(
+                        Embed(title = message.embeds[0].title,
+                            description = "Bisherige Votes: " + league.battleorder(e.gameday)[e.index].joinToString(":") { u ->
+                                gamedayMap.values.count { u in it.values }.toString()
+                            }, color = embedColor
+                        )
+                    ).queue()
+                }
                 league.save()
             }
         }
@@ -67,9 +76,7 @@ object TipGameManager : CoroutineScope {
                 .associate { it.idLong to it.user.effectiveName }
             return this("Platz $rank", options = league.table.mapIndexed { index, user ->
                 if (league is IPL) SelectOption(
-                    league.teamtable[index],
-                    index.toString(),
-                    emoji = Emoji.fromFormatted(league.emotes[index])
+                    league.teamtable[index], index.toString(), emoji = Emoji.fromFormatted(league.emotes[index])
                 )
                 else SelectOption(names[user]!!, index.toString())
             }) {
@@ -94,10 +101,10 @@ class TipGame(
     val tips: MutableMap<Int, MutableMap<Long, MutableMap<Int, Int>>> = mutableMapOf(),
     @Serializable(with = InstantToStringSerializer::class) val lastSending: Instant,
     @Serializable(with = InstantToStringSerializer::class) val lastLockButtons: Instant? = null,
-    @Serializable(with = DurationSerializer::class)
-    val interval: Duration,
+    @Serializable(with = DurationSerializer::class) val interval: Duration,
     val amount: Int,
-    val channel: Long
+    val channel: Long,
+    val withCurrentState: Boolean = false
 )
 
 object InstantToStringSerializer : KSerializer<Instant> {

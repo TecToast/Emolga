@@ -708,7 +708,9 @@ sealed class League {
                     .associate { it.idLong to it.effectiveName }
             channel.send(
                 embeds = Embed(
-                    title = "Spieltag $num", color = Color.YELLOW.rgb
+                    title = "Spieltag $num",
+                    color = Color.YELLOW.rgb,
+                    description = if (tip.withCurrentState) "Bisherige Votes: 0:0" else null
                 ).into()
             ).queue()
             for ((index, matchup) in matchups.withIndex()) {

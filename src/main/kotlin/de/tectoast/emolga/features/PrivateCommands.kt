@@ -17,7 +17,6 @@ import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
-import de.tectoast.emolga.utils.json.emolga.draft.IPL
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import dev.minn.jda.ktx.coroutines.await
@@ -30,7 +29,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
-import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
@@ -453,35 +451,9 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun fixIPLTip() {
-        val num = 1
-        val ids = listOf(1211915623995670578, 1211915626814111785, 1211915629330829382, 1211915630857682945)
-        with(db.league("IPLS4L2") as IPL) {
-            val tip = tipgame!!
-            val channel = jda.getTextChannelById(tip.channel)!!
-            val matchups = getMatchupsIndices(num)
-            for ((index, matchup) in matchups.withIndex()) {
-                val u1 = matchup[0]
-                val u2 = matchup[1]
-                val base: ArgBuilder<TipGameManager.VoteButton.Args> = {
-                    this.leaguename = this@with.leaguename
-                    this.gameday = num
-                    this.index = index
-                }
-                val t1 = teamtable[u1]
-                val t2 = teamtable[u2]
-                channel.editMessageComponentsById(
-                    ids[index],
-                    ActionRow.of(TipGameManager.VoteButton(t1, emoji = Emoji.fromFormatted(emotes[u1])) {
-                        base()
-                        this.userindex = u1
-                    }, TipGameManager.VoteButton(t2, emoji = Emoji.fromFormatted(emotes[u2])) {
-                        base()
-                        this.userindex = u2
-                    }).into()
-                ).queue()
-            }
-        }
+    suspend fun testYTSend(args: PrivateData) {
+        val league = db.league(args[0])
+        league.executeYoutubeSend(args[1].toLong(), args[2].toInt(), args[3].toInt())
     }
 }
 

@@ -92,12 +92,34 @@ object Oji {
         ) {
             context(InteractionData)
             override suspend fun exec(e: NoArgs) {
-                val points = db.tipgameuserdata.find(TipGameUserData::league regex "^IPL").toList().groupBy { it.user }
+                val dataList = db.tipgameuserdata.find(TipGameUserData::league regex "^IPL").toList()
+                val leagues = dataList.partition { it.league == "IPLS4L1" }.toList()
+                val points = dataList.groupBy { it.user }
                     .mapValues { it.value.sumOf { d -> d.correctGuesses.size } }
                 reply(
-                    "Teilnehmeranzahl: ${points.size}\n\n" + points.entries.sortedByDescending { it.value }.take(10)
-                        .mapIndexed { index, entry -> "${index + 1}. <@${entry.key}>: ${entry.value}" }
-                        .joinToString("\n").ifEmpty { "_Keine Punkte bisher vergeben_" }, ephemeral = true
+                    buildString {
+                        append("Teilnehmeranzahl: ${points.size}\n\n")
+                        append(points.entries.sortedByDescending { it.value }.take(10)
+                            .mapIndexed { index, entry -> "${index + 1}. <@${entry.key}>: ${entry.value}" }
+                            .joinToString("\n").ifEmpty { "_Keine Punkte bisher vergeben_" })
+                        append("\n\n")
+                        for (l in 1..2) {
+                            append("Liga $l:\n")
+                            val league = db.league("IPLS4L$l")
+                            for (i in 1..3) {
+                                append("Platz $i: ")
+                                append(leagues[l - 1].groupingBy { it.orderGuesses[i] }.eachCount()
+                                    .filterKeys { it != null }.entries.sortedByDescending { it.value }
+                                    .joinToString { "**${it.value}x** <@${league.table[it.key!!]}>" })
+                                append("\n")
+                            }
+                            append("TopKiller-Guesses: ")
+                            append(leagues[l - 1].groupingBy { it.topkiller }.eachCount()
+                                .filterKeys { it != null }.entries.sortedByDescending { it.value }
+                                .joinToString { "**${it.value}x** ${it.key}" })
+                            append("\n\n")
+                        }
+                    }, ephemeral = true
                 )
             }
         }

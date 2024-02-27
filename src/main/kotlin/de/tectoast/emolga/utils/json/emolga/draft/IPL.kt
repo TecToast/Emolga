@@ -173,6 +173,7 @@ class IPL(
             val channel = jda.getTextChannelById(tip.channel)!!
             val matchups = getMatchupsIndices(num)
             channel.send(
+                content = "<@&878744967680512021>",
                 embeds = Embed(
                     title = "Spieltag $num", color = Color.YELLOW.rgb
                 ).into()
@@ -194,7 +195,7 @@ class IPL(
                     components = ActionRow.of(TipGameManager.VoteButton(t1, emoji = Emoji.fromFormatted(emotes[u1])) {
                         base()
                         this.userindex = u1
-                    }, TipGameManager.VoteButton(t2, emoji = Emoji.fromFormatted(emotes[u1])) {
+                    }, TipGameManager.VoteButton(t2, emoji = Emoji.fromFormatted(emotes[u2])) {
                         base()
                         this.userindex = u2
                     }).into()

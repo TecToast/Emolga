@@ -12,7 +12,7 @@ object PrivCommand : CommandFeature<PrivCommand.Args>(::Args, CommandSpec("priv"
 
     class Args : Arguments() {
         var cmd by fromList("cmd", "cmd", privCommands.keys.toList())
-        var arguments by list("args", "args", 10, 0)
+        var arguments by list("args", "args", 10, 0, startAt = 0)
     }
 
     private val privCommands by lazy {

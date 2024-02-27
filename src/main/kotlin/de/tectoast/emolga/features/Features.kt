@@ -497,7 +497,7 @@ open class Arguments {
         }
     }
 
-    fun list(name: String = "", help: String = "", numOfArgs: Int, requiredNum: Int) =
+    fun list(name: String = "", help: String = "", numOfArgs: Int, requiredNum: Int, startAt: Int = 1) =
         object : ReadWriteProperty<Arguments, List<String>> {
             private val argList: List<Arg<String, out String?>> = List(numOfArgs) { i ->
                 createArg<String, String>(name.embedI(i), help.embedI(i), OptionType.STRING) {}.run {
@@ -505,7 +505,7 @@ open class Arguments {
                 }
             }
 
-            private fun String.embedI(i: Int) = if ("%s" in this) format(i + 1) else plus(i + 1)
+            private fun String.embedI(i: Int) = if ("%s" in this) format(i + startAt) else plus(i + startAt)
             private var parsed: List<String>? = null
 
             override fun getValue(thisRef: Arguments, property: KProperty<*>): List<String> {

@@ -206,10 +206,10 @@ class IPL(
 
     override suspend fun executeYoutubeSend(ytTC: Long, gameday: Int, battle: Int) {
         jda.getTextChannelById(ytTC)!!.sendMessage(buildString {
-            if (battle == 0 || battle == 3) append("<@&878744967680512021>")
+            if (battle == 0 || battle == 3) append("<@&878744967680512021>\n")
             append("**Spieltag $gameday**\n_Kampf ${battle + 1}_\n\n")
             val muData = battleorder[gameday]!![battle]
-            append(muData.joinToString("vs. ") { emotes[it] })
+            append(muData.joinToString(" vs. ") { emotes[it] })
             append("\n\n")
             val videoIds = muData.map {
                 val lastVid = Google.fetchLastVideoFromChannel(db.ytchannel.get(table[it])!!.channelId)!!
@@ -222,9 +222,10 @@ class IPL(
             val names = jda.getGuildById(guild)!!.retrieveMembersByIds(muData.map { table[it] }).await()
                 .associate { it.idLong to it.user.effectiveName }
             videoIds.forEachIndexed { index, vid ->
-                val uid = table[index]
+                val uid = table[muData[index]]
                 append("${names[uid]}'s Sicht: ")
                 append(vid?.let { "https://www.youtube.com/watch?v=$it" } ?: "_noch nicht hochgeladen_")
+                append("\n")
             }
         }).queue()
     }

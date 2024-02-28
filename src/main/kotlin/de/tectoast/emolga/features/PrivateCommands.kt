@@ -27,15 +27,18 @@ import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
-import org.litote.kmongo.eq
-import org.litote.kmongo.newId
-import org.litote.kmongo.set
-import org.litote.kmongo.setTo
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.or
+import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -43,6 +46,7 @@ import java.security.SecureRandom
 import java.util.*
 import java.util.regex.Pattern
 import javax.imageio.ImageIO
+import kotlin.time.measureTime
 
 @Suppress("unused")
 object PrivateCommands {
@@ -88,13 +92,11 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun printTipGame(args: PrivateData) {
-        File("tipgame_${defaultTimeFormat.format(Date()).replace(" ", "_")}.txt").also { it.createNewFile() }.writeText(
-            db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
-                .map { it.user to it.correctGuesses.size }
-                .sortedByDescending { it.second }
-                .mapIndexed { index, pair -> "${index + 1}<@${pair.first}>: ${pair.second}" }
-                .joinToString("\n")
-        )
+        File("tipgame_${defaultTimeFormat.format(Date()).replace(" ", "_")}.txt").also { it.createNewFile() }
+            .writeText(db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
+                .map { it.user to it.correctGuesses.size }.sortedByDescending { it.second }
+                .mapIndexed { index, pair -> "${index + 1}<@${pair.first}>: ${pair.second}" }.joinToString("\n")
+            )
     }
 
     context(InteractionData)
@@ -103,8 +105,7 @@ object PrivateCommands {
         reply(components = (1..args[1].toInt()).map {
             ActionRow.of(
                 TipGameManager.RankSelect.createFromLeague(
-                    league,
-                    it
+                    league, it
                 )
             )
         })
@@ -144,8 +145,7 @@ object PrivateCommands {
         val maxUsers = args[3].toInt()
         val roleId = args[4].toLong().takeIf { it > 0 }
         val experiences = args[5].toBooleanStrict()
-        val text = args.drop(6).joinToString(" ")
-            .replace("\\n", "\n")
+        val text = args.drop(6).joinToString(" ").replace("\\n", "\n")
         SignupManager.createSignup(tc.idLong, args[1].toLong(), args[2].toLong(), maxUsers, roleId, experiences, text)
     }
 
@@ -174,8 +174,7 @@ object PrivateCommands {
         if (extended) {
             val uid = data.users.keys.first()
             tc.sendMessageEmbeds(Embed(title = "Einteilung", description = "<@$uid>"))
-                .addActionRow(data.conferenceSelectMenus(uid, true))
-                .queue()
+                .addActionRow(data.conferenceSelectMenus(uid, true)).queue()
         } else {
             data.users.values.forEachIndexed { index, value ->
                 value.conference = conferences[index % conferences.size]
@@ -189,8 +188,7 @@ object PrivateCommands {
 
     private val nameCache = mutableMapOf<Long, String>()
     suspend fun generateOrderingMessages(
-        data: LigaStartData,
-        vararg conferenceIndexes: Int
+        data: LigaStartData, vararg conferenceIndexes: Int
     ): Map<Int, Pair<MessageEmbed, List<ActionRow>>> {
         if (nameCache.isEmpty()) jda.getTextChannelById(data.signupChannel)!!.guild.retrieveMembersByIds(
             data.users.keys
@@ -203,11 +201,11 @@ object PrivateCommands {
         }.sortedBy { data.conferences.indexOf(it.key) }.associate { (conference, users) ->
             conference.indexedBy(data.conferences) to (Embed(
                 title = "Conference: $conference (${users.size}/${data.maxUsersAsString})",
-                description = users.joinToString("\n") { "<@${it.key}>" }, color = embedColor
-            ) to
-                    users.map { (id, _) ->
-                        ShiftUser.Button(nameCache[id]!!, ButtonStyle.PRIMARY) { this.uid = id }
-                    }.chunked(5).map { ActionRow.of(it) })
+                description = users.joinToString("\n") { "<@${it.key}>" },
+                color = embedColor
+            ) to users.map { (id, _) ->
+                ShiftUser.Button(nameCache[id]!!, ButtonStyle.PRIMARY) { this.uid = id }
+            }.chunked(5).map { ActionRow.of(it) })
         }
 
     }
@@ -249,8 +247,7 @@ object PrivateCommands {
         val ligaStartData = db.signups.get(guild)!!
         val data = ligaStartData.users[user]!!
         jda.getTextChannelById(ligaStartData.signupChannel)!!
-            .editMessageById(data.signupmid!!, data.toMessage(user, ligaStartData))
-            .queue()
+            .editMessageById(data.signupmid!!, data.toMessage(user, ligaStartData)).queue()
     }
 
     context(InteractionData)
@@ -299,12 +296,9 @@ object PrivateCommands {
     fun teamgraphics(args: PrivateData) {
         suspend fun List<DraftPokemon>.toTeamGraphics() = FileUpload.fromData(ByteArrayOutputStream().also {
             ImageIO.write(
-                TeamGraphics.fromDraftPokemon(this).first,
-                "png",
-                it
+                TeamGraphics.fromDraftPokemon(this).first, "png", it
             )
-        }
-            .toByteArray(), "yay.png")
+        }.toByteArray(), "yay.png")
         done(true)
         teamGraphicScope.launch {
             val league = db.league(args[0])
@@ -319,12 +313,9 @@ object PrivateCommands {
                     val (bufferedImage, _) = TeamGraphics.fromDraftPokemon(l)
                     u to FileUpload.fromData(ByteArrayOutputStream().also {
                         ImageIO.write(
-                            bufferedImage,
-                            "png",
-                            it
+                            bufferedImage, "png", it
                         )
-                    }
-                        .toByteArray(), "yay.png")
+                    }.toByteArray(), "yay.png")
 
                 }
             }.awaitAll().forEach { tc.sendMessage("Kader von <@${it.first}>:").addFiles(it.second).queue() }
@@ -340,9 +331,7 @@ object PrivateCommands {
                 val team = (1..5).map { db.league("ASLS12L$it") }.first { m in it.table }.picks[m]!!
                 reply(files = FileUpload.fromData(ByteArrayOutputStream().also {
                     ImageIO.write(
-                        TeamGraphics.fromDraftPokemon(team).first,
-                        "png",
-                        it
+                        TeamGraphics.fromDraftPokemon(team).first, "png", it
                     )
                 }.toByteArray(), "yay.png").into())
             }
@@ -363,11 +352,9 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun updateGoogleStatistics() {
-        RequestBuilder("1_8eutglTucjqgo-sPsdNrlFf-vjKADXrdPDj389wwbY").addAll(
-            "Data!A2",
+        RequestBuilder("1_8eutglTucjqgo-sPsdNrlFf-vjKADXrdPDj389wwbY").addAll("Data!A2",
             db.statistics.find(Statistics::meta eq "analysis").toList()
-                .map { listOf(defaultTimeFormat.format(it.timestamp.toEpochMilli()), it.count) })
-            .execute()
+                .map { listOf(defaultTimeFormat.format(it.timestamp.toEpochMilli()), it.count) }).execute()
     }
 
     private data class CoachData(val coachId: Long, val roleId: Long, val prefix: String)
@@ -394,10 +381,7 @@ object PrivateCommands {
             data = teams.mapValues {
                 val data = it.value
                 TeamData(
-                    members = mutableMapOf(0 to data.coachId),
-                    points = 4500,
-                    role = data.roleId,
-                    prefix = data.prefix
+                    members = mutableMapOf(0 to data.coachId), points = 4500, role = data.roleId, prefix = data.prefix
                 )
             },
             sid = "1U7XDcLrJT8Y4TkP1Gm6wpdpDOn256GBf8-q3zBonuso",
@@ -409,14 +393,13 @@ object PrivateCommands {
 
     context(InteractionData)
     fun flegmonSendRules(args: PrivateData) {
-        flegmonjda.getTextChannelById(args().toLong())!!
-            .send(components = RoleManagement.RuleAcceptButton().into()).queue()
+        flegmonjda.getTextChannelById(args().toLong())!!.send(components = RoleManagement.RuleAcceptButton().into())
+            .queue()
     }
 
     context(InteractionData)
     fun flegmonSendRoles(args: PrivateData) {
-        flegmonjda.getTextChannelById(args().toLong())!!.send(components = RoleManagement.RoleGetMenu().into())
-            .queue()
+        flegmonjda.getTextChannelById(args().toLong())!!.send(components = RoleManagement.RoleGetMenu().into()).queue()
     }
 
     context(InteractionData)
@@ -433,8 +416,7 @@ object PrivateCommands {
     suspend fun fetchYTChannelsForLeague(args: PrivateData) {
         val league = db.league(args[0])
         db.ytchannel.insertMany(league.table.zip(args.drop(1).map {
-            if ("@" !in it) it.substringAfter("channel/") else
-                Google.fetchChannelId(it.substringAfter("@"))
+            if ("@" !in it) it.substringAfter("channel/") else Google.fetchChannelId(it.substringAfter("@"))
         }).mapIndexedNotNull { index, data ->
             val (id, channelId) = data
             val cid = channelId ?: return@mapIndexedNotNull run {
@@ -455,6 +437,46 @@ object PrivateCommands {
         val league = db.league(args[0])
         league.executeYoutubeSend(args[1].toLong(), args[2].toInt(), args[3].toInt())
     }
+
+    context(InteractionData)
+    suspend fun dbSpeedLetsGo() {
+        val col = db.db.getCollection<NameCon>("customnamecon")
+        val test = "Emolga"
+        val guildId = 0L
+        println(measureTime {
+            newSuspendedTransaction {
+                val query1 =
+                    ((NameConventionsDB.GERMAN eq test) or (NameConventionsDB.ENGLISH eq test) or (NameConventionsDB.SPECIFIED eq test) or (NameConventionsDB.SPECIFIEDENGLISH eq test)) and (NameConventionsDB.GUILD eq 0 or (NameConventionsDB.GUILD eq guildId))
+                NameConventionsDB.select {
+                    query1
+                }
+            }
+        })
+        val query2 = and(
+            or(
+                NameCon::german eq test,
+                NameCon::english eq test,
+                NameCon::specified eq test,
+                NameCon::specenglish eq test,
+            ), NameCon::guild eq guildId
+        )
+        println(query2.json)
+        println(measureTime {
+            col.findOne(query2)
+        })
+    }
+
+    @Serializable
+    data class NameCon(
+        val guild: Long,
+        val german: String,
+        val english: String,
+        val specified: String,
+        val specenglish: String,
+        val hasHyphen: Boolean,
+        val common: Boolean
+    )
+
 }
 
 data class PrivateData(

@@ -22,8 +22,8 @@ object NameConventionsDB : Table("nameconventions") {
     val GUILD = long("guild")
     val GERMAN = varchar("german", 50)
     val ENGLISH = varchar("english", 50)
-    private val SPECIFIED = varchar("specified", 50)
-    private val SPECIFIEDENGLISH = varchar("specifiedenglish", 50)
+    val SPECIFIED = varchar("specified", 50)
+    val SPECIFIEDENGLISH = varchar("specifiedenglish", 50)
     private val HASHYPHENINNAME = bool("hashypheninname")
 
     val COMMON = bool("common")

@@ -214,8 +214,7 @@ class IPL(
             append("\n\n")
             val videoIds = muData.mapIndexed { index, it ->
                 val lastVid = Google.fetchLastVideoFromChannel(db.ytchannel.get(table[it])!!.channelId)!!
-                if ((System.currentTimeMillis() - lastVid.snippet.publishedAt.value) > 1000 * 60 * 60 * 24
-                    || !lastVid.snippet.description.contains("IPL")
+                if ((System.currentTimeMillis() - lastVid.snippet.publishedAt.value) > 1000 * 60 * 60 * 4
                 ) {
                     null
                 } else {

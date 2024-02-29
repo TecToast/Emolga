@@ -17,6 +17,7 @@ import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
+import de.tectoast.emolga.utils.json.emolga.draft.IPL
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import dev.minn.jda.ktx.coroutines.await
@@ -30,7 +31,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
+import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionRow
+import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -94,7 +97,7 @@ object PrivateCommands {
     suspend fun printTipGame(args: PrivateData) {
         File("tipgame_${defaultTimeFormat.format(Date()).replace(" ", "_")}.txt").also { it.createNewFile() }
             .writeText(db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
-                .map { it.user to it.correctGuesses.size }.sortedByDescending { it.second }
+                .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }
                 .mapIndexed { index, pair -> "${index + 1}<@${pair.first}>: ${pair.second}" }.joinToString("\n")
             )
     }
@@ -476,6 +479,62 @@ object PrivateCommands {
         val hasHyphen: Boolean,
         val common: Boolean
     )
+
+    context(InteractionData)
+    suspend fun disableFirstRowButtons(args: PrivateData) {
+        val m = jda.getTextChannelById(args[0])!!.retrieveMessageById(args[1]).await()
+        m.editMessageComponents(m.components.map {
+            if (it is ActionRow) ActionRow.of(it.components.map { b ->
+                if (b is Button) b.withDisabled(true) else b
+            }) else it
+        }).queue()
+    }
+
+    context(InteractionData)
+    suspend fun fixIPLTip() {
+        val num = 1
+        val ids = listOf(1211915623995670578, 1211915626814111785, 1211915629330829382, 1211915630857682945)
+        with(db.league("IPLS4L2") as IPL) {
+            val tip = tipgame!!
+            val channel = jda.getTextChannelById(tip.channel)!!
+            val matchups = getMatchupsIndices(num)
+            for ((index, matchup) in matchups.withIndex()) {
+                val u1 = matchup[0]
+                val u2 = matchup[1]
+                val base: ArgBuilder<TipGameManager.VoteButton.Args> = {
+                    this.leaguename = this@with.leaguename
+                    this.gameday = num
+                    this.index = index
+                }
+                val t1 = teamtable[u1]
+                val t2 = teamtable[u2]
+                channel.editMessageComponentsById(
+                    ids[index],
+                    ActionRow.of(
+                        TipGameManager.VoteButton(
+                            t1,
+                            disabled = index <= 2,
+                            emoji = Emoji.fromFormatted(emotes[u1])
+                        ) {
+                            base()
+                            this.userindex = u1
+                        },
+                        TipGameManager.VoteButton(t2, disabled = index <= 2, emoji = Emoji.fromFormatted(emotes[u2])) {
+                            base()
+                            this.userindex = u2
+                        }).into()
+                ).queue()
+            }
+        }
+    }
+
+    context(InteractionData)
+    suspend fun analyseMatchresults(args: PrivateData) {
+        val league = db.league(args[0])
+        league.replayDataStore!!.data[args[1].toInt()]!!.forEach { (_, replay) ->
+            league.docEntry!!.analyseWithoutCheck(replay, withSort = false, realExecute = false)
+        }
+    }
 
 }
 

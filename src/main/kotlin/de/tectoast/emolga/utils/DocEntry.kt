@@ -96,7 +96,8 @@ class DocEntry private constructor(val league: League) {
 
     suspend fun analyseWithoutCheck(
         replayData: ReplayData,
-        withSort: Boolean = true
+        withSort: Boolean = true,
+        realExecute: Boolean = true
     ) {
         val (game, uids, kd, _, url, gamedayData, otherForms) = replayData
         val (gameday, battleindex, u1IsSecond) = gamedayData
@@ -192,7 +193,7 @@ class DocEntry private constructor(val league: League) {
             val leagueName = league.leaguename
             val gamedayTips = tg.tips[gameday]
             gamedayTips?.entries?.filter { it.value[battleindex] == winningIndex }?.map { it.key }?.forEach {
-                TipGameUserData.addCorrectGameday(it, gameday, leagueName)
+                TipGameUserData.addCorrectBattle(it, leagueName, gameday, battleindex)
             }
         }
 
@@ -210,13 +211,13 @@ class DocEntry private constructor(val league: League) {
                 league = league
             ).it()
         }
-        customB?.execute()
+        customB?.execute(realExecute)
         b.withRunnable(3000) {
             if (withSort) {
                 matchresultJob.join()
                 sort()
             }
-        }.execute()
+        }.execute(realExecute)
     }
 
     private fun compareColumns(o1: List<Any>, o2: List<Any>, vararg columns: Int): Int {

@@ -103,7 +103,7 @@ class RepeatTask(
                         ) { gameday ->
                             val league = db.league(name)
                             league.tipgame?.let { _ ->
-                                refresh().executeTipGameLockButtonsIndividual(gameday, battle)
+                                league.executeTipGameLockButtonsIndividual(gameday, battle)
                                 delay(2000)
                             }
                             val dataStore = league.replayDataStore ?: return@RepeatTask

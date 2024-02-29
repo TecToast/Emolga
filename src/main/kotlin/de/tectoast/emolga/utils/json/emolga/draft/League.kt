@@ -751,10 +751,12 @@ sealed class League {
     fun executeTipGameLockButtonsIndividual(gameday: Int, mu: Int) {
         launch {
             val muCount = battleorder[gameday]!!.size
-            jda.getTextChannelById(tipgame!!.channel)!!.iterableHistory.takeAsync(muCount - mu).await().last()
+            jda.getTextChannelById(tipgame!!.channel)!!.iterableHistory.takeAsync(muCount + 1).await().let {
+                it.dropWhile { m -> !m.author.isBot }[muCount - mu - 1]
+            }
                 .let {
                     it.editMessageComponents(
-                        ActionRow.of(it.actionRows[0].buttons[mu].asDisabled())
+                        ActionRow.of(it.actionRows[0].buttons.map { b -> b.asDisabled() })
                     ).queue()
                 }
         }

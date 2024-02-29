@@ -1,11 +1,14 @@
 package de.tectoast.emolga.features.draft
 
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
@@ -90,12 +93,19 @@ object Oji {
             NoArgs(),
             CommandSpec("tipgamestats", "Zeigt den aktuellen Stand des Tippspiels an.")
         ) {
+            private val nameMap = OneTimeCache {
+                jda.getGuildById(Constants.G.VIP)!!
+                    .retrieveMembersByIds(db.league("IPLS4L1").table + db.league("IPLS4L2").table).await()
+                    .associate { it.idLong to it.user.effectiveName }
+            }
             context(InteractionData)
             override suspend fun exec(e: NoArgs) {
+                deferReply(true)
                 val dataList = db.tipgameuserdata.find(TipGameUserData::league regex "^IPL").toList()
                 val leagues = dataList.partition { it.league == "IPLS4L1" }.toList()
                 val points = dataList.groupBy { it.user }
-                    .mapValues { it.value.sumOf { d -> d.correctGuesses.size } }
+                    .mapValues { it.value.sumOf { d -> d.correctGuesses.values.sumOf { l -> l.size } } }
+                val names = nameMap()
                 reply(
                     buildString {
                         append("Teilnehmeranzahl: ${points.size}\n\n")
@@ -110,7 +120,7 @@ object Oji {
                                 append("Platz $i: ")
                                 append(leagues[l - 1].groupingBy { it.orderGuesses[i] }.eachCount()
                                     .filterKeys { it != null }.entries.sortedByDescending { it.value }
-                                    .joinToString { "**${it.value}x** <@${league.table[it.key!!]}>" })
+                                    .joinToString { "**${it.value}x** `${names[league.table[it.key!!]]}`" })
                                 append("\n")
                             }
                             append("TopKiller-Guesses: ")

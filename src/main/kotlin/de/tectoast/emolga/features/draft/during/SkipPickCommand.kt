@@ -5,6 +5,7 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.NoArgs
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NextPlayerData
 import de.tectoast.emolga.utils.json.emolga.draft.SkipReason
@@ -16,7 +17,10 @@ object SkipPickCommand :
     init {
         restrict {
             val mem = member()
-            mem.hasPermission(Permission.ADMINISTRATOR) || DraftAdminsDB.isAdmin(mem.guild.idLong, mem)
+            user in Constants.DRAFTADMINS || mem.hasPermission(Permission.ADMINISTRATOR) || DraftAdminsDB.isAdmin(
+                mem.guild.idLong,
+                mem
+            )
         }
     }
 

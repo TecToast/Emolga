@@ -160,12 +160,15 @@ object Google {
      * @param channelId The ID of the channel
      * @return The search result of last video from the channel or null if there wasn't any
      */
-    suspend fun fetchLastVideoFromChannel(channelId: String): SearchResult? = withContext(googleContext) {
+    suspend fun fetchLastVideoFromChannel(channelId: String): SearchResult? =
+        fetchLatestVideosFromChannel(channelId).firstOrNull()
+
+    suspend fun fetchLatestVideosFromChannel(channelId: String): List<SearchResult> = withContext(googleContext) {
         youtubeService().search().list("snippet".l).apply {
             this.channelId = channelId
             order = "date"
             type = listOf("video")
-        }.execute().items.firstOrNull()
+        }.execute().items
     }
 
     suspend fun fetchChannelId(channelHandle: String) = withContext(googleContext) {

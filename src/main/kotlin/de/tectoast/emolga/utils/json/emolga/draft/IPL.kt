@@ -173,8 +173,7 @@ class IPL(
             val channel = jda.getTextChannelById(tip.channel)!!
             val matchups = getMatchupsIndices(num)
             channel.send(
-                content = "<@&878744967680512021>",
-                embeds = Embed(
+                content = "<@&878744967680512021>", embeds = Embed(
                     title = "Spieltag $num", color = Color.YELLOW.rgb
                 ).into()
             ).queue()
@@ -213,19 +212,20 @@ class IPL(
             append(muData.joinToString(" vs. ") { emotes[it] })
             append("\n\n")
             val videoIds = muData.mapIndexed { index, it ->
-                val lastVid = Google.fetchLastVideoFromChannel(db.ytchannel.get(table[it])!!.channelId)!!
-                if ((System.currentTimeMillis() - lastVid.snippet.publishedAt.value) > 1000 * 60 * 60 * 4
-                ) {
-                    null
-                } else {
-                    val videoId = lastVid.id.videoId
-                    b.addSingle(
-                        gameday.minus(1)
-                            .coordXMod("Spielplan (SPOILERFREI)", 3, 'J' - 'B', 3 + index * 3, 8, 5 + battle),
-                        "=HYPERLINK(\"https://www.youtube.com/watch?v=$videoId\"; \"Kampf\nanschauen\")"
-                    )
-                    videoId
-                }
+                val lastVid =
+                    Google.fetchLatestVideosFromChannel(db.ytchannel.get(table[it])!!.channelId).filter { lastVid ->
+                        (System.currentTimeMillis() - lastVid.snippet.publishedAt.value) <= 1000 * 60 * 60 * 4
+                    }.let { vids ->
+                        vids.singleOrNull() ?: vids.first { it.snippet.title.contains("IPL", ignoreCase = true) }
+                    }
+
+                val videoId = lastVid.id.videoId
+                b.addSingle(
+                    gameday.minus(1).coordXMod("Spielplan (SPOILERFREI)", 3, 'J' - 'B', 3 + index * 3, 8, 5 + battle),
+                    "=HYPERLINK(\"https://www.youtube.com/watch?v=$videoId\"; \"Kampf\nanschauen\")"
+                )
+                videoId
+
             }
             val names = jda.getGuildById(guild)!!.retrieveMembersByIds(muData.map { table[it] }).await()
                 .associate { it.idLong to it.user.effectiveName }

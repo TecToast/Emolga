@@ -77,7 +77,7 @@ class IPL(
                         orderRoundToInsert.add(insertIndex, curIndex)
 
                         val b = builder()
-                        val sheetName = "Draft- und Moderation"
+                        val sheetName = "Draftreihenfolge"
                         val rTIIndex = roundToInsert - 1
                         val rIndex = round - 1
                         b.addSingle(Coord(sheetName, rIndex.x(1, 3), 5 + pickTries), "")

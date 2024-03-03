@@ -98,7 +98,7 @@ object TipGameManager : CoroutineScope {
 }
 
 @Serializable
-class TipGame(
+data class TipGame(
     val tips: MutableMap<Int, MutableMap<Long, MutableMap<Int, Int>>> = mutableMapOf(),
     @Serializable(with = InstantToStringSerializer::class) val lastSending: Instant,
     @Serializable(with = InstantToStringSerializer::class) val lastLockButtons: Instant? = null,
@@ -112,10 +112,13 @@ object InstantToStringSerializer : KSerializer<Instant> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Instant", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: Instant) {
+        universalLogger.info("Serializing $value")
         encoder.encodeString(defaultTimeFormat.format(value.toEpochMilliseconds()))
     }
 
     override fun deserialize(decoder: Decoder): Instant {
-        return Instant.fromEpochMilliseconds(defaultTimeFormat.parse(decoder.decodeString()).time)
+        val decodeString = decoder.decodeString()
+        universalLogger.info("Deserializing $decodeString")
+        return Instant.fromEpochMilliseconds(defaultTimeFormat.parse(decodeString).time)
     }
 }

@@ -121,11 +121,11 @@ class RepeatTask(
                                 refresh().executeYoutubeSend(ytTC, gameday, battle)
                             }
                         }
-                        data.lastReminder?.let { last ->
-                            RepeatTask(last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
-                                jda.getTextChannelById(last.channel)!!
-                                    .sendMessage(refresh().buildStoreStatus(gameday)).queue()
-                            }
+                    }
+                    data.lastReminder?.let { last ->
+                        RepeatTask(last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
+                            jda.getTextChannelById(last.channel)!!
+                                .sendMessage(refresh().buildStoreStatus(gameday)).queue()
                         }
                     }
                 }

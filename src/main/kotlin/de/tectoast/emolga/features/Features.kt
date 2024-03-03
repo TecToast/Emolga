@@ -8,6 +8,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Translation
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
+import de.tectoast.emolga.utils.filterContainsIgnoreCase
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -390,7 +391,7 @@ open class Arguments {
             //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
             val tierlist = Tierlist[league?.guild ?: gid]
             val strings =
-                (tierlist?.autoComplete() ?: NameConventionsDB.allNameConventions).filterStartsWithIgnoreCase(s)
+                (tierlist?.autoComplete() ?: NameConventionsDB.allNameConventions).filterContainsIgnoreCase(s)
             if (strings.size > 25) return@lambda listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
             (if (league == null || tierlist == null) strings
             else strings.map {

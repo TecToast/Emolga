@@ -93,6 +93,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                             )
                             return
                         }
+                        logger.info(buildLogMessage(feature, e))
                         feature.exec(args)
                     }
 
@@ -109,13 +110,25 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                     ephemeral = true
                 )
                 SendFeatures.sendToMe(
-                    ("Error in feature ${feature.spec.name}:\n" + "Event: ${e::class.simpleName}\n" + "User: `${data.user}`\n" + (if (data.gid != -1L) {
-                        "Guild: `${data.gid}` [${data.textChannel.guild.name}]\n" + "Channel: `${data.tc}` [${data.textChannel.asMention}]\n"
-                    } else "" + "Input: ```${e.stringify()}```\n```") + ex.stackTraceToString() + "```").take(2000)
+                    buildErrorMessage(feature, e, data, ex)
                 )
             }
         }
     }
+
+    private fun buildLogMessage(
+        feature: Feature<*, GenericInteractionCreateEvent, Arguments>, e: GenericInteractionCreateEvent
+    ) = "${feature.spec.name} ${e.stringify()} by ${e.user.name} in ${e.channel?.name} in ${e.guild?.name ?: "DM"}"
+
+    private fun buildErrorMessage(
+        feature: Feature<*, GenericInteractionCreateEvent, Arguments>,
+        e: GenericInteractionCreateEvent,
+        data: RealInteractionData,
+        ex: Exception
+    ) =
+        ("Error in feature ${feature.spec.name}:\n" + "Event: ${e::class.simpleName}\n" + "User: `${data.user}`\n" + (if (data.gid != -1L) {
+            "Guild: `${data.gid}` [${data.textChannel.guild.name}]\n" + "Channel: `${data.tc}` [${data.textChannel.asMention}]\n"
+        } else "" + "Input: ```${e.stringify()}```\n```") + ex.stackTraceToString()).take(1997) + "```"
 
     private fun GenericInteractionCreateEvent.stringify() = when (this) {
         is SlashCommandInteractionEvent -> this.commandString

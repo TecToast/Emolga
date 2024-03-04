@@ -717,7 +717,7 @@ sealed class League {
                 val u1 = matchup[0]
                 val u2 = matchup[1]
                 val base: ArgBuilder<TipGameManager.VoteButton.Args> = {
-                    this.leaguename = leaguename
+                    this.leaguename = this@League.leaguename
                     this.gameday = num
                     this.index = index
                 }

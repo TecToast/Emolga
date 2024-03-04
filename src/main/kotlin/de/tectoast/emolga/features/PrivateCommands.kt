@@ -32,8 +32,8 @@ import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.entities.emoji.Emoji
+import net.dv8tion.jda.api.interactions.components.ActionComponent
 import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -355,7 +355,8 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun updateGoogleStatistics() {
-        RequestBuilder("1_8eutglTucjqgo-sPsdNrlFf-vjKADXrdPDj389wwbY").addAll("Data!A2",
+        RequestBuilder("1_8eutglTucjqgo-sPsdNrlFf-vjKADXrdPDj389wwbY").suppressMessages().addAll(
+            "Data!A2",
             db.statistics.find(Statistics::meta eq "analysis").toList()
                 .map { listOf(defaultTimeFormat.format(it.timestamp.toEpochMilli()), it.count) }).execute()
     }
@@ -481,13 +482,15 @@ object PrivateCommands {
     )
 
     context(InteractionData)
-    suspend fun disableFirstRowButtons(args: PrivateData) {
-        val m = jda.getTextChannelById(args[0])!!.retrieveMessageById(args[1]).await()
-        m.editMessageComponents(m.components.map {
-            if (it is ActionRow) ActionRow.of(it.components.map { b ->
-                if (b is Button) b.withDisabled(true) else b
-            }) else it
-        }).queue()
+    suspend fun disableIt(args: PrivateData) {
+        for (mid in args.drop(1)) {
+            val m = jda.getTextChannelById(args[0])!!.retrieveMessageById(mid).await()
+            m.editMessageComponents(m.components.map {
+                if (it is ActionRow) ActionRow.of(it.components.map { b ->
+                    if (b is ActionComponent) b.withDisabled(true) else b
+                }) else it
+            }).queue()
+        }
     }
 
     context(InteractionData)
@@ -535,6 +538,13 @@ object PrivateCommands {
             league.docEntry!!.analyseWithoutCheck(replay, withSort = false, realExecute = false)
         }
     }
+
+    context(InteractionData)
+    suspend fun executeTipGameSending(args: PrivateData) {
+        db.league(args[0]).executeTipGameSending(args[1].toInt())
+    }
+
+
 
 }
 

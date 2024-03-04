@@ -9,5 +9,5 @@ available someday in the future.
 The main language of the bot is German (because me and the main users are German), full english support is planned.
 
 Contributions are welcome, feel free to open an issue or a pull request.
-For contact, you can join the [Emolga's discord server](https://discord.gg/WYfKHPCgs9) or contact me directly on discord
+For contact, you can join [Emolga's discord server](https://discord.gg/WYfKHPCgs9) or contact me directly on discord
 (`@tectoast`).

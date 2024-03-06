@@ -93,7 +93,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                             )
                             return
                         }
-                        logger.info(buildLogMessage(feature, e))
+                        logger.info(buildLogMessage(e))
                         feature.exec(args)
                     }
 
@@ -117,8 +117,8 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
     }
 
     private fun buildLogMessage(
-        feature: Feature<*, GenericInteractionCreateEvent, Arguments>, e: GenericInteractionCreateEvent
-    ) = "${feature.spec.name} ${e.stringify()} by ${e.user.name} in ${e.channel?.name} in ${e.guild?.name ?: "DM"}"
+        e: GenericInteractionCreateEvent
+    ) = "${e.stringify()} by ${e.user.name} in ${e.channel?.name} in ${e.guild?.name ?: "DM"}"
 
     private fun buildErrorMessage(
         feature: Feature<*, GenericInteractionCreateEvent, Arguments>,

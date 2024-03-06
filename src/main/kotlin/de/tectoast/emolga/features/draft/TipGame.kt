@@ -112,13 +112,10 @@ object InstantToStringSerializer : KSerializer<Instant> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Instant", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: Instant) {
-        universalLogger.info("Serializing $value")
         encoder.encodeString(defaultTimeFormat.format(value.toEpochMilliseconds()))
     }
 
     override fun deserialize(decoder: Decoder): Instant {
-        val decodeString = decoder.decodeString()
-        universalLogger.info("Deserializing $decodeString")
-        return Instant.fromEpochMilliseconds(defaultTimeFormat.parse(decodeString).time)
+        return Instant.fromEpochMilliseconds(defaultTimeFormat.parse(decoder.decodeString()).time)
     }
 }

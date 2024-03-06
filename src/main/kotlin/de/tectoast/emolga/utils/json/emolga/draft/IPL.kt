@@ -220,12 +220,14 @@ class IPL(
                     }
 
                 val videoId = lastVid.id.videoId
+                val range =
+                    gameday.minus(1).CoordXMod("Spielplan (SPOILERFREI)", 3, 'J' - 'B', 3 + index * 3, 8, 5 + battle)
                 b.addSingle(
-                    gameday.minus(1).coordXMod("Spielplan (SPOILERFREI)", 3, 'J' - 'B', 3 + index * 3, 8, 5 + battle),
+                    range,
                     "=HYPERLINK(\"https://www.youtube.com/watch?v=$videoId\"; \"Kampf\nanschauen\")"
                 )
+                b.addFGColorChange(216749258, range.x, range.y, 0x1155cc.convertColor())
                 videoId
-
             }
             val names = jda.getGuildById(guild)!!.retrieveMembersByIds(muData.map { table[it] }).await()
                 .associate { it.idLong to it.user.effectiveName }

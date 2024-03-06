@@ -1,6 +1,5 @@
 package de.tectoast.emolga.utils
 
-import com.mongodb.MongoWriteException
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.draft.DraftPlayer
@@ -111,7 +110,7 @@ class DocEntry private constructor(val league: League) {
             totalDeaths += it.second
         }
         val matchresultJob = Database.dbScope.launch {
-            try {
+            ignoreDuplicatesMongo {
                 db.matchresults.insertOne(
                     MatchResult(
                         listOf(totalKills, totalDeaths),
@@ -120,8 +119,6 @@ class DocEntry private constructor(val league: League) {
                         gameday
                     )
                 )
-            } catch (ex: MongoWriteException) {
-                if (ex.code != 11000) throw ex
             }
         }
         val sid = league.sid

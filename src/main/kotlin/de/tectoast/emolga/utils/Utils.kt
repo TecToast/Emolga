@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils
 
 import com.google.api.services.sheets.v4.model.Color
+import com.mongodb.MongoWriteException
 import de.tectoast.emolga.database.exposed.TranslationsDB
 import de.tectoast.emolga.features.flo.SendFeatures.sendToMe
 import de.tectoast.emolga.utils.Constants.FLOID
@@ -152,6 +153,17 @@ fun <T> Collection<T>.filterContainsIgnoreCase(other: String, tostring: (T) -> S
 
 
 fun Double.roundToDigits(digits: Int) = "%.${digits}f".format(this)
+
+inline fun ignoreException(predicate: (Throwable) -> Boolean = { true }, block: () -> Unit) {
+    try {
+        block()
+    } catch (e: Throwable) {
+        if (!predicate(e)) throw e
+    }
+}
+
+inline fun ignoreDuplicatesMongo(block: () -> Unit) =
+    ignoreException({ it is MongoWriteException && it.code == 11000 }, block)
 
 enum class Language(val translationCol: Column<String>, val otherCol: Column<String>) {
     GERMAN(TranslationsDB.GERMANNAME, TranslationsDB.ENGLISHNAME), ENGLISH(

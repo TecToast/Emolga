@@ -2,6 +2,7 @@ package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.utils.ignoreDuplicatesMongo
 import de.tectoast.emolga.utils.json.YTVideo
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -72,7 +73,9 @@ fun Route.ytSubscribtions() {
                 logger.info("Link: $link")
                 logger.info("Published: $published")
                 logger.info("Updated: $updated")
-                db.ytvideos.insertOne(YTVideo(channelId, videoId, title, published, updated))
+                ignoreDuplicatesMongo {
+                    db.ytvideos.insertOne(YTVideo(channelId, videoId, title, published, updated))
+                }
                 //logger.info("Thumbnail: $thumbnail")
             }
         }

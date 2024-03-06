@@ -86,7 +86,7 @@ dependencies {
     implementation("org.jsoup:jsoup:1.16.1")
     //implementation("org.slf4j:slf4j-simple:1.7.32")
 
-    implementation("ch.qos.logback:logback-classic:1.4.11")
+    implementation("ch.qos.logback:logback-classic:1.5.2")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     //implementation("mysql:mysql-connector-java:8.0.29")
     //implementation("com.github.TecToast:JSOLF:a43c3e06c7")

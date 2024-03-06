@@ -71,6 +71,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val matchresults by lazy { db.getCollection<MatchResult>("matchresults") }
     val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
     val ytchannel by lazy { db.getCollection<YTChannel>("ytchannel") }
+    val ytvideos by lazy { db.getCollection<YTVideo>("ytvideos") }
     val tipgameuserdata by lazy { db.getCollection<TipGameUserData>("tipgameuserdata") }
     val statestore by lazy { db.getCollection<StateStore>("statestore") }
     val defaultNameConventions = OneTimeCache {
@@ -173,6 +174,15 @@ data class TipGameUserData(
 
     }
 }
+
+@Serializable
+data class YTVideo(
+    val channelId: String,
+    val videoId: String,
+    val title: String,
+    val publishedAt: String,
+    val updated: String
+)
 
 @Serializable
 data class YTChannel(

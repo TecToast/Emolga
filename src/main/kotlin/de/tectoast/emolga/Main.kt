@@ -35,6 +35,7 @@ suspend fun main() {
     Tierlist.setup()
     defaultScope.launch {
         RepeatTask.setupRepeatTasks()
+//        setupYTSuscribtions()
     }
     logger.info("Starting DB...")
     Database.init(Credentials.tokens.database, "localhost")

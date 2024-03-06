@@ -2,131 +2,19 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.embedColor
-import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.Nominations
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
-import org.litote.kmongo.*
 
 object Nominate {
-    val nominateButtons: MutableMap<Long, Nominate> = HashMap()
     private val WHITESPACES_SPLITTER = Regex("\\s+")
 
-    class Nominate(private val originalMons: List<DraftPokemon>, val mons: List<DraftPokemon>) {
-        private val nominated: MutableList<DraftPokemon> = ArrayList(mons)
-        private val notNominated: MutableList<DraftPokemon> = ArrayList(mons.size)
-
-        fun unnominate(name: String) = mons.first { it.name == name }.let {
-            nominated.remove(it)
-            notNominated.add(it)
-        }
-
-
-        fun nominate(name: String) = mons.first { it.name == name }.let {
-            notNominated.remove(it)
-            nominated.add(it)
-        }
-
-        private fun isNominated(s: String) = nominated.any { it.name == s }
-
-        companion object {
-            private val tiers = listOf("S", "A", "B")
-            val comparator = compareBy<DraftPokemon>({ it.tier.indexedBy(tiers) }, { it.name })
-        }
-
-        private fun List<DraftPokemon>.toMessage(): String {
-            return this.sortedWith(comparator).joinToString("\n") {
-                "${it.tier}: ${it.name}"
-            }
-        }
-
-        private fun List<DraftPokemon>.toJSON() = this.sortedWith(comparator).joinToString(";") {
-            it.indexedBy(originalMons).toString()
-        }
-
-        fun generateDescription(): String {
-            return buildString {
-                append("**Nominiert: (${nominated.size})**\n")
-                append(nominated.toMessage())
-                append("\n**Nicht nominiert: (").append(notNominated.size).append(")**\n")
-                append(notNominated.toMessage())
-            }
-        }
-
-        context(InteractionData)
-        fun render() {
-            edit(embeds = Embed(
-                title = "Nominierungen", color = embedColor, description = generateDescription()
-            ).into(), components = mons.map {
-                val s = it.name
-                val isNom = isNominated(s)
-                NominateButton(s, if (isNom) ButtonStyle.PRIMARY else ButtonStyle.SECONDARY) {
-                    data = s; this.mode = if (isNom) NominateButton.Mode.UNNOMINATE else NominateButton.Mode.NOMINATE
-                }
-            }.intoMultipleRows().toMutableList().apply {
-                add(
-                    ActionRow.of(NominateButton(
-                        buttonStyle = ButtonStyle.SUCCESS,
-                        emoji = Emoji.fromUnicode("✅"),
-                        disabled = nominated.size != 11
-                    ) { mode = NominateButton.Mode.FINISH; data = "NOTNOW" })
-                )
-            })
-        }
-
-        private fun buildJSONString(): String {
-            return buildString {
-                append(nominated.toJSON())
-                append(";")
-                append(notNominated.toJSON())
-            }
-        }
-
-        context(InteractionData)
-        suspend fun finish(now: Boolean) {
-            if (now) {
-                val nom = db.nds().nominations
-                val day = nom.current()
-                if (user in day) return reply("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!")
-                db.drafts.updateOne(
-                    League::leaguename eq "NDS", set(
-                        (NDS::nominations / Nominations::nominated).keyProjection(nom.currentDay)
-                            .keyProjection(user) setTo buildJSONString()
-                    )
-                )
-                return reply("Deine Nominierung wurde gespeichert!")
-            }
-            if (nominated.size != 11) {
-                reply(content = "Du musst exakt 11 Pokemon nominieren!", ephemeral = true)
-            } else {
-                edit(
-                    embeds = Embed(
-                        title = "Bist du dir wirklich sicher? Die Nominierung kann nicht rückgängig gemacht werden!",
-                        color = embedColor,
-                        description = generateDescription()
-                    ).into(), components = listOf(
-                        NominateButton("Ja", ButtonStyle.SUCCESS) {
-                            mode = NominateButton.Mode.FINISH
-                            data = "FINISHNOW"
-                        },
-                        NominateButton("Nein", ButtonStyle.DANGER) {
-                            mode = NominateButton.Mode.CANCEL
-                        }
-                    ).into()
-                )
-            }
-        }
-    }
 
     object NominateButton : ButtonFeature<NominateButton.Args>(::Args, ButtonSpec("nominate")) {
 
@@ -145,31 +33,34 @@ object Nominate {
                     return@registerPNListener e.channel.sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!")
                         .queue()
                 }
+                val nomUser =
+                    if (e.author.idLong == Constants.FLOID) WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toLong() else e.author.idLong
                 val list =
-                    nds.picks[if (e.author.idLong == Constants.FLOID) WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toLong() else e.author.idLong]!!.map {
+                    nds.picks[nomUser]!!.map {
                         DraftPokemon(
                             NameConventionsDB.convertOfficialToTL(it.name, nds.guild)!!, it.tier, it.free
                         )
                     }
                 val sortedList = list.sortedWith(tiercomparator)
-                val n = Nominate(list, sortedList)
-                e.channel.sendMessage(MessageCreate(embeds = Embed(
-                    title = "Nominierungen", color = embedColor, description = n.generateDescription()
-                ).into(), components = list.map {
-                    NominateButton(
-                        label = it.name, buttonStyle = ButtonStyle.PRIMARY
-                    ) { data = it.name; mode = Mode.UNNOMINATE }
-                }.intoMultipleRows().toMutableList().apply {
-                    add(
-                        ActionRow.of(NominateButton(
-                            buttonStyle = ButtonStyle.SUCCESS,
-                            emoji = Emoji.fromUnicode("✅"),
-                            disabled = true
-                        ) { mode = Mode.FINISH;data = "NOTNOW" })
-                    )
-                })
-                ).queue { nominateButtons[e.author.idLong] = n }
-                nds.save()
+                NominateState(e.author.idLong, nomUser, list, sortedList).process {
+                    e.channel.sendMessage(MessageCreate(embeds = Embed(
+                        title = "Nominierungen", color = embedColor, description = generateDescription()
+                    ).into(), components = sortedList.map {
+                        NominateButton(
+                            label = it.name, buttonStyle = ButtonStyle.PRIMARY
+                        ) { data = it.name; mode = Mode.UNNOMINATE }
+                    }.intoMultipleRows().toMutableList().apply {
+                        add(
+                            ActionRow.of(NominateButton(
+                                buttonStyle = ButtonStyle.SUCCESS,
+                                emoji = Emoji.fromUnicode("✅"),
+                                disabled = true
+                            ) { mode = Mode.FINISH;data = "NOTNOW" })
+                        )
+                    })
+                    ).queue()
+                    nds.save()
+                }
             }
         }
 
@@ -184,25 +75,28 @@ object Nominate {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            val n = nominateButtons[user] ?: return reply("Diese Nachricht ist veraltet! Nutze erneut `!nominate`!")
-            when (e.mode) {
-                Mode.NOMINATE -> {
-                    n.nominate(e.data)
-                    n.render()
-                }
+            StateStore.process<NominateState> {
+                when (e.mode) {
+                    Mode.NOMINATE -> {
+                        nominate(e.data)
+                        render()
+                    }
 
-                Mode.UNNOMINATE -> {
-                    n.unnominate(e.data)
-                    n.render()
-                }
+                    Mode.UNNOMINATE -> {
+                        unnominate(e.data)
+                        render()
+                    }
 
-                Mode.FINISH -> {
-                    n.finish(e.data == "FINISHNOW")
-                }
-                Mode.CANCEL -> {
-                    n.render()
+                    Mode.FINISH -> {
+                        finish(e.data == "FINISHNOW")
+                    }
+
+                    Mode.CANCEL -> {
+                        render()
+                    }
                 }
             }
+
         }
     }
 }

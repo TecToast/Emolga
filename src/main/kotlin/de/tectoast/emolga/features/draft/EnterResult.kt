@@ -1,26 +1,15 @@
 package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.ReplayData
-import de.tectoast.emolga.utils.condAppend
-import de.tectoast.emolga.utils.draft.DraftPlayer
+import de.tectoast.emolga.utils.ResultEntry
+import de.tectoast.emolga.utils.StateStore
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.reverseGet
-import de.tectoast.emolga.utils.surroundWith
+import de.tectoast.emolga.utils.process
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.interactions.components.SelectOption
-import dev.minn.jda.ktx.messages.Embed
-import dev.minn.jda.ktx.messages.into
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
-import net.dv8tion.jda.api.interactions.components.selections.SelectOption
-import kotlin.properties.Delegates
 
 object EnterResult {
 
@@ -29,6 +18,7 @@ object EnterResult {
     ) {
         private val nameCache = mutableMapOf<String, Map<Long, String>>() // guild -> uid -> name
         private val leagueCache = mutableMapOf<Long, String>()
+
         class Args : Arguments() {
             var opponent by fromList("Gegner", "Dein Gegner", {
                 db.leagueByGuild(it.guild?.idLong ?: -1, it.user.idLong).handle(it.user.idLong)
@@ -47,9 +37,9 @@ object EnterResult {
         context(InteractionData)
         override suspend fun exec(e: Args) {
             val oppo = nameCache[leagueCache[user]]?.reverseGet(e.opponent) ?: return reply(
-                "Gegner wurde nicht gefunden, hast du dich an die Autovervollständigung gehalten?",
-                ephemeral = true
+                "Gegner wurde nicht gefunden, hast du dich an die Autovervollständigung gehalten?", ephemeral = true
             )
+            deferReply(true)
             handleStart(oppo)
         }
     }
@@ -77,12 +67,9 @@ object EnterResult {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            val resultEntry = results[user]
-                ?: return reply(
-                    "Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!",
-                    ephemeral = true
-                )
-            resultEntry.handleSelect(e)
+            StateStore.process<ResultEntry> {
+                handleSelect(e)
+            }
         }
     }
 
@@ -97,12 +84,9 @@ object EnterResult {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            val resultEntry = results[user]
-                ?: return reply(
-                    "Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!",
-                    ephemeral = true
-                )
-            resultEntry.handleFinish(e)
+            StateStore.process<ResultEntry> {
+                handleFinish(e)
+            }
         }
     }
 
@@ -139,192 +123,26 @@ object EnterResult {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            val resultEntry = results[user]
-                ?: return reply(
-                    "Scheinbar wurde der Bot neugestartet, seitdem du das Menü geöffnet hast. Bitte starte die Eingabe erneut!",
-                    ephemeral = true
-                )
-            resultEntry.handleModal(e)
+            StateStore.process<ResultEntry> {
+                handleModal(e)
+            }
         }
     }
 
     object Remove : ModalKey
 
-
-    private val results = mutableMapOf<Long, ResultEntry>()
     context(InteractionData)
     suspend fun handleStart(opponent: Long, userArg: Long? = null, guild: Long? = null) {
         val u = userArg ?: user
         val g = guild ?: gid
-        val resultEntry = ResultEntry()
-        if (resultEntry.init(opponent, u, g)) {
-            results[user] = resultEntry
+        val league = db.leagueByGuild(g, u, opponent) ?: return reply(
+            "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
+            ephemeral = true
+        )
+        ResultEntry(user, league).process {
+            init(opponent, u)
         }
     }
 
-    class ResultEntry {
-        val data: List<MutableList<MonData>> = listOf(mutableListOf(), mutableListOf())
-        val uids = mutableListOf<Long>()
-        var league by Delegates.notNull<League>()
 
-        private fun getPicksByUid(uid: Long) = league.providePicksForGameday(gamedayData.gameday)[uid]!!
-        private suspend fun getMonsByUid(uid: Long) = getPicksByUid(uid).sortedWith(league.tierorderingComparator).map {
-            (it.name to NameConventionsDB.convertOfficialToTL(
-                it.name, league.guild
-            )!!).let { (official, tl) -> SelectOption(tl, "$official#$tl") }
-        }
-
-        lateinit var picks: Map<Long, List<SelectOption>>
-        private lateinit var gamedayData: GamedayData
-
-
-        private val wifiPlayers = (0..1).map { DraftPlayer(0, false) }
-        private val defaultComponents: List<ActionRow> by lazy {
-            uids.mapIndexed { index, uid ->
-                ActionRow.of(ResultMenu(
-                    "${if (index == 0) "Deine" else "Gegnerische"} Pokemon",
-                    options = picks[uid]!!,
-                ) { this.userindex = index })
-            } + listOf(ActionRow.of(ResultFinish("Ergebnis bestätigen", ButtonStyle.PRIMARY) {
-                mode = ResultFinish.Mode.CHECK
-            }))
-        }
-
-        context(InteractionData)
-        suspend fun init(opponent: Long, user: Long, guild: Long): Boolean {
-            uids += user
-            uids += opponent
-            league = db.leagueByGuild(guild, *uids.toLongArray()) ?: return reply(
-                "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
-                ephemeral = true
-            ).let { false }
-            gamedayData = league.getGameplayData(uids[0], uids[1], wifiPlayers)
-            picks = uids.associateWith { getMonsByUid(it) }
-            reply(embeds = buildEmbed(), components = defaultComponents, ephemeral = true)
-            return true
-        }
-
-        private fun buildEmbed() = Embed {
-            title = "Interaktive Ergebnis-Eingabe"
-            description = "Wähle im Menü unten ein Pokemon aus!"
-            data.forEachIndexed { i, map ->
-                field {
-                    name = "${if (i == 0) "Deine" else "Gegnerische"} Pokemon"
-                    value = map.joinToString("\n")
-                    inline = false
-                }
-            }
-        }.into()
-
-        context(InteractionData)
-        fun handleSelect(e: ResultMenu.Args) {
-            val selected = e.selected
-            val userindex = e.userindex
-            replyModal(ResultModal(
-                "Ergebnis für ${selected.substringAfterLast("#")}",
-                mapOf(Remove to data[userindex].any { it.official == selected.substringBefore("#") })
-            ) {
-                this.userindex = userindex
-                this.selected = selected
-            })
-        }
-
-        context(InteractionData)
-        fun handleModal(e: ResultModal.Args) {
-            val userindex = e.userindex
-            val (official, tl) = e.selected.split("#")
-            val list = data[userindex]
-            list.indexOfFirst { it.official == official }.let {
-                if (e.remove && it != -1) {
-                    list.removeAt(it)
-                    return@let
-                }
-                val monData = MonData(tl, official, e.kills, e.dead)
-                if (it == -1) list.add(monData)
-                else list[it] = monData
-            }
-            edit(embeds = buildEmbed())
-        }
-
-        context(InteractionData)
-        suspend fun handleFinish(e: ResultFinish.Args) {
-            if (checkConditionsForFinish()) return
-            when (e.mode) {
-                ResultFinish.Mode.CHECK -> {
-                    val originalComponents = defaultComponents
-                    val buttons = ActionRow.of(ResultFinish("Wirklich bestätigen", ButtonStyle.SUCCESS) {
-                        mode = ResultFinish.Mode.YES
-                    }, ResultFinish("Abbrechen", ButtonStyle.DANGER) { mode = ResultFinish.Mode.NO })
-                    val newComponents = originalComponents + listOf(buttons)
-                    edit(components = newComponents)
-                }
-
-                ResultFinish.Mode.YES -> {
-                    if (league.replayDataStore != null) reply(
-                        "Das Ergebnis des Kampfes wurde gespeichert! Du kannst nun die Eingabe-Nachricht verwerfen.",
-                        ephemeral = true
-                    )
-                    else {
-                        reply(generateFinalMessage())
-                    }
-                    results.remove(user)
-                    league.docEntry?.analyse(
-                        ReplayData(
-                            game = data.mapIndexed { index, d ->
-                                wifiPlayers[index].apply {
-                                    alivePokemon = d.size - d.dead
-                                    winner = d.size != d.dead
-                                }
-                            },
-                            uids = uids,
-                            kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
-                            mons = data.map { l -> l.map { it.official } },
-                            url = "WIFI",
-                            gamedayData = gamedayData.applyFun()
-                        )
-                    )
-                }
-
-                ResultFinish.Mode.NO -> edit(components = defaultComponents)
-            }
-        }
-
-        context(InteractionData)
-        private fun checkConditionsForFinish(): Boolean {
-            if (data[0].isEmpty() || data[1].isEmpty()) return reply(
-                "Du hast noch keine Daten eingeben!", ephemeral = true
-            ).let { true }
-            if ((0..1).any { data[it].kills != data[1 - it].dead }) return reply(
-                "Die Kills und Tode müssen übereinstimmen!", ephemeral = true
-            ).let { true }
-            return false
-        }
-
-        private fun generateFinalMessage(): String {
-            val spoiler = SpoilerTagsDB.contains(league.guild)
-            return "${
-                data.mapIndexed { index, sdPlayer ->
-                    mutableListOf<Any>("<@${uids[index]}>", sdPlayer.count { !it.dead }).apply {
-                        if (spoiler) add(
-                            1, "||"
-                        )
-                    }.let { if (index % 2 > 0) it.asReversed() else it }
-                }.joinToString(":") { it.joinToString(" ") }
-            }\n\n${
-                data.mapIndexed { index, monData ->
-                    "<@${uids[index]}>:\n${monData.joinToString("\n").surroundWith(if (spoiler) "||" else "")}"
-                }.joinToString("\n\n")
-            }"
-        }
-
-        private val List<MonData>.kills get() = sumOf { it.kills }
-        private val List<MonData>.dead get() = sumOf { (if (it.dead) 1 else 0).toInt() }
-
-        data class MonData(val pokemon: String, val official: String, val kills: Int, val dead: Boolean) {
-            override fun toString(): String {
-                return "$pokemon $kills".condAppend(dead) { " X" }
-            }
-        }
-
-    }
 }

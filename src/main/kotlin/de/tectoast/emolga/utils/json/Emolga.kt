@@ -5,9 +5,7 @@ import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.various.ShiftUser
-import de.tectoast.emolga.utils.OneTimeCache
-import de.tectoast.emolga.utils.condAppend
-import de.tectoast.emolga.utils.createCoroutineScope
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Soullink
@@ -15,7 +13,6 @@ import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.showdown.Pokemon
-import de.tectoast.emolga.utils.toSDName
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.async
@@ -75,6 +72,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
     val ytchannel by lazy { db.getCollection<YTChannel>("ytchannel") }
     val tipgameuserdata by lazy { db.getCollection<TipGameUserData>("tipgameuserdata") }
+    val statestore by lazy { db.getCollection<StateStore>("statestore") }
     val defaultNameConventions = OneTimeCache {
         nameconventions.find(NameConventions::guild eq 0).first()!!.data
     }

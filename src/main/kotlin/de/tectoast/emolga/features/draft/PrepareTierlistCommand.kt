@@ -21,8 +21,44 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         var docurl by string("Doc-URL", "Die URL des Dokuments, in dem die Namen stehen")
         var tierlistsheet by string("Tierlist-Sheet", "Der Name des Tierlist-Sheets")
         var ranges by list("Bereich %s", "Der %s. Bereich", 10, 1)
-        var shiftdata by string("Shift-Data", "Die Shift-Data").nullable()
+        var shiftMode by enumBasic<ShiftMode>("Shift-Mode", "Der Shift-Mode").nullable()
+        var shiftData by string("Shift-Data", "Die Shift-Data").nullable()
     }
+
+    enum class ShiftMode {
+        N {
+            override fun parseMons(str: String): List<DraftPokemon> {
+                val split = str.split(" ")
+                return buildList {
+                    for (i in split.indices step 2) {
+                        this += DraftPokemon(split[i], split[i + 1])
+                    }
+                }
+            }
+        },
+        H {
+            override fun parseMons(str: String): List<DraftPokemon> {
+                val split = str.split(Regex("\\s+"))
+                return buildList {
+                    var index = 0
+                    var currentTier = ""
+                    while (index in split.indices) {
+                        val curr = split[index]
+                        if (curr.endsWith(":")) {
+                            currentTier = curr.replace(":", "").trim()
+                            index++
+                            continue
+                        }
+                        this += DraftPokemon(curr, currentTier)
+                        index += 2
+                    }
+                }
+            }
+        };
+
+        abstract fun parseMons(str: String): List<DraftPokemon>
+    }
+
 
     context(InteractionData)
     override suspend fun exec(e: Args) {
@@ -30,13 +66,8 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         val tierlistsheet = e.tierlistsheet
         deferReply()
         val tierlistcols = mutableListOf<List<String>>()
-        val shiftedMons = e.shiftdata?.let {
-            val split = it.split(" ")
-            buildList {
-                for (i in split.indices step 2) {
-                    this += DraftPokemon(split[i], split[i + 1])
-                }
-            }
+        val shiftedMons = e.shiftData?.let {
+            e.shiftMode!!.parseMons(it)
         }
         try {
             TierlistBuilderConfigurator(

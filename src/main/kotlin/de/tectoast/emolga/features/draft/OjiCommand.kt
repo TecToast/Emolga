@@ -89,48 +89,65 @@ object Oji {
             }
         }
 
+        private val nameMap = OneTimeCache {
+            jda.getGuildById(Constants.G.VIP)!!
+                .retrieveMembersByIds(db.league("IPLS4L1").table + db.league("IPLS4L2").table).await()
+                .associate { it.idLong to it.user.effectiveName }
+        }
+        private val leagueOrga = setOf(Constants.M.OJI, Constants.M.TARI, 298458563469246464, Constants.FLOID)
+        context(InteractionData)
+        private suspend fun executeTipGameState(withoutAdmin: Boolean) {
+            deferReply(true)
+            val dataList = db.tipgameuserdata.find(TipGameUserData::league regex "^IPL").toList()
+            val leagues = dataList.partition { it.league == "IPLS4L1" }.toList()
+            val names = nameMap()
+            val points =
+                dataList.groupBy { it.user }.filterKeys { !withoutAdmin || (it !in names && it !in leagueOrga) }
+                    .mapValues { it.value.sumOf { d -> d.correctGuesses.values.sumOf { l -> l.size } } }
+            reply(
+                buildString {
+                    append("Teilnehmeranzahl: ${points.size}\n\n")
+                    append(points.entries.sortedByDescending { it.value }.take(10)
+                        .mapIndexed { index, entry -> "${index + 1}. <@${entry.key}>: ${entry.value}" }
+                        .joinToString("\n").ifEmpty { "_Keine Punkte bisher vergeben_" })
+                    append("\n\n")
+                    for (l in 1..2) {
+                        append("Liga $l:\n")
+                        val league = db.league("IPLS4L$l")
+                        for (i in 1..3) {
+                            append("Platz $i: ")
+                            append(leagues[l - 1].groupingBy { it.orderGuesses[i] }.eachCount()
+                                .filterKeys { it != null }.entries.sortedByDescending { it.value }
+                                .joinToString { "**${it.value}x** `${names[league.table[it.key!!]]}`" })
+                            append("\n")
+                        }
+                        append("TopKiller-Guesses: ")
+                        append(leagues[l - 1].groupingBy { it.topkiller }.eachCount()
+                            .filterKeys { it != null }.entries.sortedByDescending { it.value }
+                            .joinToString { "**${it.value}x** ${it.key}" })
+                        append("\n\n")
+                    }
+                }, ephemeral = true
+            )
+        }
+
         object TipGameStats : CommandFeature<NoArgs>(
             NoArgs(),
             CommandSpec("tipgamestats", "Zeigt den aktuellen Stand des Tippspiels an.")
         ) {
-            private val nameMap = OneTimeCache {
-                jda.getGuildById(Constants.G.VIP)!!
-                    .retrieveMembersByIds(db.league("IPLS4L1").table + db.league("IPLS4L2").table).await()
-                    .associate { it.idLong to it.user.effectiveName }
-            }
             context(InteractionData)
             override suspend fun exec(e: NoArgs) {
-                deferReply(true)
-                val dataList = db.tipgameuserdata.find(TipGameUserData::league regex "^IPL").toList()
-                val leagues = dataList.partition { it.league == "IPLS4L1" }.toList()
-                val points = dataList.groupBy { it.user }
-                    .mapValues { it.value.sumOf { d -> d.correctGuesses.values.sumOf { l -> l.size } } }
-                val names = nameMap()
-                reply(
-                    buildString {
-                        append("Teilnehmeranzahl: ${points.size}\n\n")
-                        append(points.entries.sortedByDescending { it.value }.take(10)
-                            .mapIndexed { index, entry -> "${index + 1}. <@${entry.key}>: ${entry.value}" }
-                            .joinToString("\n").ifEmpty { "_Keine Punkte bisher vergeben_" })
-                        append("\n\n")
-                        for (l in 1..2) {
-                            append("Liga $l:\n")
-                            val league = db.league("IPLS4L$l")
-                            for (i in 1..3) {
-                                append("Platz $i: ")
-                                append(leagues[l - 1].groupingBy { it.orderGuesses[i] }.eachCount()
-                                    .filterKeys { it != null }.entries.sortedByDescending { it.value }
-                                    .joinToString { "**${it.value}x** `${names[league.table[it.key!!]]}`" })
-                                append("\n")
-                            }
-                            append("TopKiller-Guesses: ")
-                            append(leagues[l - 1].groupingBy { it.topkiller }.eachCount()
-                                .filterKeys { it != null }.entries.sortedByDescending { it.value }
-                                .joinToString { "**${it.value}x** ${it.key}" })
-                            append("\n\n")
-                        }
-                    }, ephemeral = true
-                )
+                executeTipGameState(false)
+            }
+        }
+
+        object TipGameStatsWOAdmin : CommandFeature<NoArgs>(
+            NoArgs(),
+            CommandSpec("tipgamestatswithoutorga", "Zeigt den aktuellen Stand des Tippspiels ohne Orga an.")
+        ) {
+            context(InteractionData)
+            override suspend fun exec(e: NoArgs) {
+                executeTipGameState(true)
             }
         }
 

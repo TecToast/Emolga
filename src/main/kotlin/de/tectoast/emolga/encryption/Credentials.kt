@@ -1,5 +1,6 @@
 package de.tectoast.emolga.encryption
 
+import de.tectoast.emolga.ktor.Ktor
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.json.Tokens
 import de.tectoast.emolga.utils.myJSON
@@ -35,5 +36,6 @@ object Credentials {
         with(tokens.google) {
             Google.setCredentials(refreshtoken, clientid, clientsecret)
         }
+        Ktor.oauth2Secret = tokens.oauth2.clientsecret
     }
 }

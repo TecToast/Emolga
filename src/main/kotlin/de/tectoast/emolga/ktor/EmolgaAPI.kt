@@ -19,10 +19,14 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
 
 private val logger = KotlinLogging.logger {}
+private suspend fun PipelineContext<*, ApplicationCall>.respondSuccess() =
+    call.respond(HttpStatusCode.OK, "{\"message\": \"Hello there! Schnüffelst du hier etwa rum?\"}")
 fun Route.emolgaAPI() {
+    val disabled = !Ktor.devMode
     authenticate("auth-oauth-discord") {
         get("/login") {}
         get("/discordauth") {
+            if (disabled) return@get respondSuccess()
             val principal: OAuthAccessTokenResponse.OAuth2 = call.principal() ?: run {
                 call.response.status(HttpStatusCode.BadRequest)
                 return@get
@@ -42,10 +46,12 @@ fun Route.emolgaAPI() {
     }
 
     get("/userdata") {
+        if (disabled) return@get respondSuccess()
         val session = call.sessions.get<UserSession>() ?: return@get call.respond("{}")
         call.respond(httpClient.getUserData(session.accessToken).emolga())
     }
     get("/logout") {
+        if (disabled) return@get respondSuccess()
         call.sessions.clear<UserSession>()
         call.respondRedirect("https://emolga.tectoast.de/")
     }

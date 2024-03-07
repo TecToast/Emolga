@@ -18,6 +18,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.mapNotNull
@@ -39,7 +40,7 @@ private val ytClient = HttpClient(CIO) {
 suspend fun setupYTSuscribtions() {
     db.drafts.find(League::replayDataStore exists true).toFlow()
         .flatMapMerge { it.table.asFlow().mapNotNull { u -> db.ytchannel.get(u)?.channelId } }
-        .collect { subscribeToYTChannel(it) }
+        .collect { subscribeToYTChannel(it); delay(1000) }
 }
 
 private val mac: Mac by lazy {
@@ -61,8 +62,9 @@ fun Route.ytSubscribtions() {
             val receiveText = call.receiveText()
             if (call.request.headers["X-Hub-Signature"]?.substringAfter("=") != mac.doFinal(receiveText.toByteArray())
                     .let {
-                    it.joinToString("") { b -> "%02x".format(b) }
-                }) return@post SendFeatures.sendToMe(
+                        it.joinToString("") { b -> "%02x".format(b) }
+                    }
+            ) return@post SendFeatures.sendToMe(
                 "Invalid Signature! ${call.request.headers["X-Hub-Signature"]} ```$receiveText```".take(2000)
             )
             Jsoup.parse(receiveText).select("entry").forEach {

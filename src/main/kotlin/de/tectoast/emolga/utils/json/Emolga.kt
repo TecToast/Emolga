@@ -76,6 +76,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val ytvideos by lazy { db.getCollection<YTVideo>("ytvideos") }
     val tipgameuserdata by lazy { db.getCollection<TipGameUserData>("tipgameuserdata") }
     val statestore by lazy { db.getCollection<StateStore>("statestore") }
+    val intervaltaskdata by lazy { db.getCollection<IntervalTaskData>("intervaltaskdata") }
     val defaultNameConventions = OneTimeCache {
         nameconventions.find(NameConventions::guild eq 0).first()!!.data
     }
@@ -176,6 +177,13 @@ data class TipGameUserData(
 
     }
 }
+
+@Serializable
+data class IntervalTaskData(
+    val name: String,
+    val nextExecution: @Serializable(with = InstantAsDateSerializer::class) Instant,
+    val notAfter: @Serializable(with = InstantAsDateSerializer::class) Instant = Instant.DISTANT_FUTURE,
+)
 
 @Serializable
 data class YTVideo(
@@ -367,3 +375,6 @@ suspend fun CoroutineCollection<Pokemon>.get(id: String) = find(Pokemon::id eq i
 
 @JvmName("getYTChannel")
 suspend fun CoroutineCollection<YTChannel>.get(user: Long) = find(YTChannel::user eq user).first()
+
+@JvmName("getIntervalTaskData")
+suspend fun CoroutineCollection<IntervalTaskData>.get(name: String) = find(IntervalTaskData::name eq name).first()

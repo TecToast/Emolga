@@ -7,6 +7,7 @@ import de.tectoast.emolga.ktor.Ktor
 import de.tectoast.emolga.utils.defaultScope
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.initMongo
+import de.tectoast.emolga.utils.repeat.IntervalTask
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
@@ -35,7 +36,7 @@ suspend fun main() {
     Tierlist.setup()
     defaultScope.launch {
         RepeatTask.setupRepeatTasks()
-//        setupYTSuscribtions()
+        IntervalTask.setupIntervalTasks()
     }
     logger.info("Starting DB...")
     Database.init(Credentials.tokens.database, "localhost")

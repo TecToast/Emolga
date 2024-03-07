@@ -57,10 +57,11 @@ fun Route.ytSubscribtions() {
         post {
             call.respondText(status = HttpStatusCode.Accepted) { "" }
             val receiveText = call.receiveText()
-            if (call.request.headers["X-Hub-Signature"] != mac.doFinal(receiveText.toByteArray()).let {
+            if (call.request.headers["X-Hub-Signature"]?.substringAfter("=") != mac.doFinal(receiveText.toByteArray())
+                    .let {
                     it.joinToString("") { b -> "%02x".format(b) }
                 }) return@post SendFeatures.sendToMe(
-                "Invalid Signature! ${call.request.headers.entries()} $receiveText".take(2000)
+                "Invalid Signature! ${call.request.headers["X-Hub-Signature"]} ```$receiveText```".take(2000)
             )
             Jsoup.parse(receiveText).select("entry").forEach {
                 val title = it.select("title").text()

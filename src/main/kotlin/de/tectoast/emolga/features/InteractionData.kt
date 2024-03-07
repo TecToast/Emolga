@@ -56,7 +56,7 @@ abstract class InteractionData(
     val message by lazy { (event as GenericComponentInteractionCreateEvent).message }
     val hook by lazy { (event as IDeferrableCallback).hook }
     var ephemeralDefault = false
-    val jda: JDA = member?.jda ?: de.tectoast.emolga.bot.jda
+    val jda: JDA by lazy { member?.jda ?: de.tectoast.emolga.bot.jda }
 
     suspend fun awaitResponse() = responseDeferred.await()
     abstract fun reply(

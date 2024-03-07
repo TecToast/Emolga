@@ -50,7 +50,7 @@ sealed class StateStore {
         forDeletion = true
     }
 
-    private fun createFilter() = and(StateStore::uid eq uid, Filters.eq("type", this::class.simpleName!!))
+    private fun createFilter() = and(Filters.eq("type", this::class.simpleName!!), StateStore::uid eq uid)
 
     companion object {
         context(InteractionData)

@@ -21,9 +21,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.datetime.Instant
 import mu.KotlinLogging
 import org.jsoup.Jsoup
 import org.litote.kmongo.exists
+import org.litote.kmongo.serialization.TemporalExtendedJsonSerializer
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -75,13 +77,24 @@ fun Route.ytSubscribtions() {
                 logger.info("Published: $published")
                 logger.info("Updated: $updated")
                 ignoreDuplicatesMongo {
-                    db.ytvideos.insertOne(YTVideo(channelId, videoId, title, published, updated))
+                    db.ytvideos.insertOne(YTVideo(channelId, videoId, title, Instant.parse(published)))
                 }
                 //logger.info("Thumbnail: $thumbnail")
             }
         }
     }
 }
+
+object InstantAsDateSerializer : TemporalExtendedJsonSerializer<Instant>() {
+    override fun epochMillis(temporal: Instant): Long {
+        return temporal.toEpochMilliseconds()
+    }
+
+    override fun instantiate(date: Long): Instant {
+        return Instant.fromEpochMilliseconds(date)
+    }
+}
+
 
 suspend fun subscribeToYTChannel(channelID: String) {
     logger.info(

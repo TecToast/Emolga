@@ -5,6 +5,7 @@ import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.various.ShiftUser
+import de.tectoast.emolga.ktor.InstantAsDateSerializer
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
@@ -17,6 +18,7 @@ import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -180,8 +182,7 @@ data class YTVideo(
     val channelId: String,
     val videoId: String,
     val title: String,
-    val publishedAt: String,
-    val updated: String
+    val publishedAt: @Serializable(with = InstantAsDateSerializer::class) Instant
 )
 
 @Serializable

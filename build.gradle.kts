@@ -1,9 +1,9 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "1.9.22"
+val kVersion = "1.9.23"
 plugins {
-    val kVersion = "1.9.22"
+    val kVersion = "1.9.23"
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("com.github.johnrengelman.shadow") version "8.1.1"

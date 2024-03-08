@@ -75,7 +75,7 @@ class ResultEntry : StateStore {
     var leaguename: String = ""
 
     val data: List<MutableList<MonData>> = listOf(mutableListOf(), mutableListOf())
-    val uids = mutableListOf<Long>()
+    private val uids = mutableListOf<Long>()
 
     @Transient
     val league = OneTimeCache { db.league(leaguename) }
@@ -187,19 +187,23 @@ class ResultEntry : StateStore {
                     reply(generateFinalMessage())
                 }
                 delete()
+                val game = data.mapIndexed { index, d ->
+                    wifiPlayers[index].apply {
+                        alivePokemon = d.size - d.dead
+                        winner = d.size != d.dead
+                    }
+                }
                 league.docEntry?.analyse(
                     ReplayData(
-                        game = data.mapIndexed { index, d ->
-                            wifiPlayers[index].apply {
-                                alivePokemon = d.size - d.dead
-                                winner = d.size != d.dead
-                            }
-                        },
+                        game = game,
                         uids = uids,
                         kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
                         mons = data.map { l -> l.map { it.official } },
                         url = "WIFI",
-                        gamedayData = gamedayData.applyFun()
+                        gamedayData = gamedayData.apply {
+                            numbers = game.map { it.alivePokemon }
+                                .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
+                        }
                     )
                 )
             }

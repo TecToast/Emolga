@@ -114,7 +114,7 @@ object Analysis {
         val uids = leaguedata?.uids
         val draftPlayerList = game.map(SDPlayer::toDraftPlayer)
         val gamedayData = defaultScope.async {
-            league?.getGameplayData(uids!![0], uids[1], draftPlayerList)?.applyFun()
+            league?.getGameplayData(uids!![0], uids[1], draftPlayerList)
         }
         val description = game.mapIndexed { index, sdPlayer ->
             mutableListOf<Any>(uids?.get(index)?.let { "<@$it>" } ?: sdPlayer.nickname,

@@ -676,13 +676,13 @@ sealed class League {
         val indices = listOf(i1, i2)
         val (battleindex, numbers) = battleorder[gameday]?.let { battleorder ->
             val battleusers = battleorder.firstOrNull { it.contains(i1) }.orEmpty()
-            (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1) to {
-                (0..1).asSequence().sortedBy { battleusers.indexOf(indices[it]) }.map { game[it].alivePokemon }.toList()
-            }
+            (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1) to
+                    (0..1).asSequence().sortedBy { battleusers.indexOf(indices[it]) }.map { game[it].alivePokemon }
+                        .toList()
+
         } ?: run {
-            battleind to {
-                (0..1).map { game[it].alivePokemon }.let { if (u1IsSecond) it.reversed() else it }
-            }
+            battleind to
+                    (0..1).map { game[it].alivePokemon }.let { if (u1IsSecond) it.reversed() else it }
         }
         return GamedayData(
             gameday, battleindex, u1IsSecond, numbers
@@ -703,9 +703,8 @@ sealed class League {
             val tip = tipgame!!
             val channel = jda.getTextChannelById(tip.channel)!!
             val matchups = getMatchups(num)
-            val names =
-                jda.getGuildById(guild)!!.retrieveMembersByIds(matchups.flatten()).await()
-                    .associate { it.idLong to it.effectiveName }
+            val names = jda.getGuildById(guild)!!.retrieveMembersByIds(matchups.flatten()).await()
+                .associate { it.idLong to it.effectiveName }
             channel.send(
                 embeds = Embed(
                     title = "Spieltag $num",
@@ -738,8 +737,8 @@ sealed class League {
 
     fun executeTipGameLockButtons(gameday: Int) {
         launch {
-            jda.getTextChannelById(tipgame!!.channel)!!.iterableHistory.takeAsync(battleorder[gameday]!!.size)
-                .await().forEach {
+            jda.getTextChannelById(tipgame!!.channel)!!.iterableHistory.takeAsync(battleorder[gameday]!!.size).await()
+                .forEach {
                     it.editMessageComponents(
                         ActionRow.of(it.actionRows[0].buttons.map { button -> button.asDisabled() })
                     ).queue()
@@ -753,12 +752,11 @@ sealed class League {
             val muCount = battleorder[gameday]!!.size
             jda.getTextChannelById(tipgame!!.channel)!!.iterableHistory.takeAsync(muCount + 1).await().let {
                 it.dropWhile { m -> !m.author.isBot }[muCount - mu - 1]
+            }.let {
+                it.editMessageComponents(
+                    ActionRow.of(it.actionRows[0].buttons.map { b -> b.asDisabled() })
+                ).queue()
             }
-                .let {
-                    it.editMessageComponents(
-                        ActionRow.of(it.actionRows[0].buttons.map { b -> b.asDisabled() })
-                    ).queue()
-                }
         }
     }
 
@@ -767,10 +765,9 @@ sealed class League {
     fun buildStoreStatus(gameday: Int): String {
         val dataStore = replayDataStore ?: error("No replay data store found")
         val gamedayData = dataStore.data[gameday].orEmpty()
-        return "## Aktueller Stand von Spieltag $gameday:\n" +
-                (0..<battleorder[1]!!.size).joinToString("\n") {
-                    "${battleorder[gameday]!![it].joinToString(" vs. ") { u -> "<@${table[u]}>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
-                }
+        return "## Aktueller Stand von Spieltag $gameday:\n" + (0..<battleorder[1]!!.size).joinToString("\n") {
+            "${battleorder[gameday]!![it].joinToString(" vs. ") { u -> "<@${table[u]}>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
+        }
 
     }
 
@@ -808,8 +805,7 @@ sealed class League {
 
         suspend fun executeTimerOnRefreshedVersion(name: String) {
             getLock(name).withLock {
-                val league = db.getLeague(name)
-                    ?: return SendFeatures.sendToMe("League $name not found")
+                val league = db.getLeague(name) ?: return SendFeatures.sendToMe("League $name not found")
                 if (league.timerRelated.cooldown <= System.currentTimeMillis()) league.afterPickOfficial(
                     data = NextPlayerData.Moved(
                         SkipReason.REALTIMER
@@ -1074,21 +1070,5 @@ enum class SkipReason {
 
 @Serializable
 data class GamedayData(
-    val gameday: Int, val battleindex: Int, val u1IsSecond: Boolean
-) {
-    var numbers: List<Int> = emptyList()
-
-    @Transient
-    var numbersFun: (() -> List<Int>)? = null
-
-    constructor(gameday: Int, battleindex: Int, u1IsSecond: Boolean, numbersFun: () -> List<Int>) : this(
-        gameday, battleindex, u1IsSecond
-    ) {
-        this.numbersFun = numbersFun
-    }
-
-    fun applyFun(): GamedayData {
-        numbers = numbersFun?.invoke() ?: numbers
-        return this
-    }
-}
+    val gameday: Int, val battleindex: Int, val u1IsSecond: Boolean, var numbers: List<Int> = emptyList()
+)

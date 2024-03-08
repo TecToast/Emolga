@@ -673,16 +673,13 @@ sealed class League {
             battleind = it.second
             u1IsSecond = it.third
         }.first
-        val indices = listOf(i1, i2)
         val (battleindex, numbers) = battleorder[gameday]?.let { battleorder ->
-            val battleusers = battleorder.firstOrNull { it.contains(i1) }.orEmpty()
             (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1) to
-                    (0..1).asSequence().sortedBy { battleusers.indexOf(indices[it]) }.map { game[it].alivePokemon }
-                        .toList()
+                    (0..1).reversedIf(u1IsSecond).map { game[it].alivePokemon }
 
         } ?: run {
             battleind to
-                    (0..1).map { game[it].alivePokemon }.let { if (u1IsSecond) it.reversed() else it }
+                    (0..1).map { game[it].alivePokemon }.reversedIf(u1IsSecond)
         }
         return GamedayData(
             gameday, battleindex, u1IsSecond, numbers

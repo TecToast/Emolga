@@ -165,6 +165,8 @@ inline fun ignoreException(predicate: (Throwable) -> Boolean = { true }, block: 
 inline fun ignoreDuplicatesMongo(block: () -> Unit) =
     ignoreException({ it is MongoWriteException && it.code == 11000 }, block)
 
+fun <T> Iterable<T>.reversedIf(condition: Boolean) = if (condition) reversed() else this.toList()
+
 enum class Language(val translationCol: Column<String>, val otherCol: Column<String>) {
     GERMAN(TranslationsDB.GERMANNAME, TranslationsDB.ENGLISHNAME), ENGLISH(
         TranslationsDB.ENGLISHNAME, TranslationsDB.GERMANNAME

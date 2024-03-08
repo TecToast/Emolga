@@ -406,7 +406,7 @@ sealed class League {
         val skippedUserName = getCurrentName(skippedUser)
         tc.sendMessage(
             if (reason == SkipReason.REALTIMER) "**$skippedUserName** war zu langsam!"
-        else "Der Pick von $skippedUserName wurde ".condAppend(skippedBy != null) { "von <@$skippedBy> " } + "${if (isSwitchDraft) "geskippt" else "verschoben"}!")
+            else "Der Pick von $skippedUserName wurde ".condAppend(skippedBy != null) { "von <@$skippedBy> " } + "${if (isSwitchDraft) "geskippt" else "verschoben"}!")
             .queue()
     }
 
@@ -673,14 +673,11 @@ sealed class League {
             battleind = it.second
             u1IsSecond = it.third
         }.first
-        val (battleindex, numbers) = battleorder[gameday]?.let { battleorder ->
-            (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1) to
-                    (0..1).reversedIf(u1IsSecond).map { game[it].alivePokemon }
+        val numbers = (0..1).reversedIf(u1IsSecond).map { game[it].alivePokemon }
+        val battleindex = battleorder[gameday]?.let { battleorder ->
+            (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1)
+        } ?: battleind
 
-        } ?: run {
-            battleind to
-                    (0..1).map { game[it].alivePokemon }.reversedIf(u1IsSecond)
-        }
         return GamedayData(
             gameday, battleindex, u1IsSecond, numbers
         )

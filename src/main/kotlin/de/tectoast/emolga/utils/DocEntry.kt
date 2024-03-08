@@ -99,7 +99,7 @@ class DocEntry private constructor(val league: League) {
         realExecute: Boolean = true
     ) {
         val (game, uids, kd, _, url, gamedayData, otherForms) = replayData
-        val (gameday, battleindex, u1IsSecond) = gamedayData
+        val (gameday, battleindex, u1IsSecond, numbers) = gamedayData
         if (cancelIf(replayData, gameday)) return
         val sorted = uids.sorted()
         val lookUpIndex = if (uids[0] == sorted[0]) 0 else 1
@@ -195,7 +195,6 @@ class DocEntry private constructor(val league: League) {
         }
 
         resultCreator?.let {
-            val numbers = gamedayData.numbers
             AdvancedResult(
                 b = b,
                 gdi = gameday - 1,

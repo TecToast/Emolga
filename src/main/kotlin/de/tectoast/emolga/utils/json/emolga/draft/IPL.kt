@@ -212,22 +212,23 @@ class IPL(
             append(muData.joinToString(" vs. ") { emotes[it] })
             append("\n\n")
             val videoIds = muData.mapIndexed { index, it ->
-                val lastVid =
                     Google.fetchLatestVideosFromChannel(db.ytchannel.get(table[it])!!.channelId).filter { lastVid ->
                         (System.currentTimeMillis() - lastVid.snippet.publishedAt.value) <= 1000 * 60 * 60 * 4
                     }.let { vids ->
-                        vids.singleOrNull() ?: vids.first { it.snippet.title.contains("IPL", ignoreCase = true) }
+                        println(vids.map { it.snippet.title })
+                        vids.singleOrNull() ?: vids.firstOrNull { it.snippet.title.contains("IPL", ignoreCase = true) }
+                    }?.let { lastVid ->
+                        val videoId = lastVid.id.videoId
+                        val range =
+                            gameday.minus(1)
+                                .CoordXMod("Spielplan (SPOILERFREI)", 3, 'J' - 'B', 3 + index * 3, 8, 5 + battle)
+                        b.addSingle(
+                            range,
+                            "=HYPERLINK(\"https://www.youtube.com/watch?v=$videoId\"; \"Kampf\nanschauen\")"
+                        )
+                        b.addFGColorChange(216749258, range.x, range.y, 0x1155cc.convertColor())
+                        videoId
                     }
-
-                val videoId = lastVid.id.videoId
-                val range =
-                    gameday.minus(1).CoordXMod("Spielplan (SPOILERFREI)", 3, 'J' - 'B', 3 + index * 3, 8, 5 + battle)
-                b.addSingle(
-                    range,
-                    "=HYPERLINK(\"https://www.youtube.com/watch?v=$videoId\"; \"Kampf\nanschauen\")"
-                )
-                b.addFGColorChange(216749258, range.x, range.y, 0x1155cc.convertColor())
-                videoId
             }
             val names = jda.getGuildById(guild)!!.retrieveMembersByIds(muData.map { table[it] }).await()
                 .associate { it.idLong to it.user.effectiveName }

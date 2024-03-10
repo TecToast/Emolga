@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
 import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.callbacks.IDeferrableCallback
@@ -53,7 +54,9 @@ abstract class InteractionData(
     val member = OneTimeCache(member) { guild().retrieveMemberById(user).await() }
     val userObj = OneTimeCache(member?.user) { jda.retrieveUserById(user).await() }
     val guild = OneTimeCache(member?.guild) { jda.getGuildById(gid)!! }
-    val message by lazy { (event as GenericComponentInteractionCreateEvent).message }
+    val message by lazy {
+        (event as? GenericComponentInteractionCreateEvent)?.message ?: (event as ModalInteractionEvent).message!!
+    }
     val hook by lazy { (event as IDeferrableCallback).hook }
     var ephemeralDefault = false
     val jda: JDA by lazy { member?.jda ?: de.tectoast.emolga.bot.jda }

@@ -18,9 +18,9 @@ import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
+import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
-import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import kotlin.reflect.KClass
 import kotlin.reflect.full.hasAnnotation
@@ -137,28 +137,52 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         else -> this.toString()
     }
 
-    suspend fun updateFeatures(jda: JDA, updateGuilds: List<Long>? = null) {
-        val guildSlashFeatures: MutableMap<Long, MutableSet<SlashCommandData>> = mutableMapOf()
+    context(MutableMap<Long, MutableSet<CommandData>>)
+    private inline fun LongArray.addToFeatures(func: (Long) -> CommandData) = forEach {
+        getOrPut(it) { mutableSetOf() }.add(func(it))
+    }
 
-        loadListeners.filterIsInstance<CommandFeature<*>>().forEach { cmd ->
-            (cmd.spec.guilds + Constants.G.MY).forEach { gid ->
-                val data = Commands.slash(cmd.spec.name, cmd.spec.help).apply {
-                    defaultPermissions = cmd.slashPermissions
-                    isGuildOnly = true
-                    if (cmd.children.isNotEmpty()) {
-                        cmd.children.forEach {
-                            addSubcommands(
-                                SubcommandData(it.spec.name, it.spec.help).addOptions(generateOptionData(it, gid))
-                            )
+    suspend fun updateFeatures(jda: JDA, updateGuilds: List<Long>? = null) {
+        val guildFeatures: MutableMap<Long, MutableSet<CommandData>> = mutableMapOf()
+        with(guildFeatures) {
+            loadListeners.filterIsInstance<Feature<*, *, *>>().forEach { cmd ->
+                if (cmd.spec !is GuildedFeatureSpec) return@forEach
+                val gids = cmd.spec.guilds + Constants.G.MY
+                when (cmd) {
+                    is CommandFeature<*> -> {
+                        gids.addToFeatures { gid ->
+                            Commands.slash(cmd.spec.name, cmd.spec.help).apply {
+                                defaultPermissions = cmd.slashPermissions
+                                isGuildOnly = true
+                                if (cmd.children.isNotEmpty()) {
+                                    cmd.children.forEach {
+                                        addSubcommands(
+                                            SubcommandData(it.spec.name, it.spec.help).addOptions(
+                                                generateOptionData(
+                                                    it,
+                                                    gid
+                                                )
+                                            )
+                                        )
+                                    }
+                                } else addOptions(generateOptionData(cmd, gid))
+                            }
                         }
-                    } else addOptions(generateOptionData(cmd, gid))
+                    }
+
+                    is MessageContextFeature -> {
+                        gids.addToFeatures {
+                            Commands.message(cmd.spec.name)
+                        }
+                    }
+
+                    else -> {}
                 }
-                guildSlashFeatures.getOrPut(gid) { mutableSetOf() }.add(data)
             }
         }
 
-        for (gid in updateGuilds ?: db.config.only().guildsToUpdate.ifEmpty { guildSlashFeatures.keys }) {
-            val commands = guildSlashFeatures[gid] ?: continue
+        for (gid in updateGuilds ?: db.config.only().guildsToUpdate.ifEmpty { guildFeatures.keys }) {
+            val commands = guildFeatures[gid] ?: continue
             (if (gid == -1L) jda.updateCommands()
             else jda.getGuildById(gid)?.updateCommands())?.addCommands(commands)?.queue()
         }

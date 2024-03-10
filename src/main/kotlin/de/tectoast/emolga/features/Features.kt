@@ -26,6 +26,7 @@ import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent
+import net.dv8tion.jda.api.events.interaction.command.MessageContextInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
@@ -333,11 +334,33 @@ abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMe
     }
 }
 
+abstract class MessageContextFeature(spec: MessageContextSpec) :
+    Feature<MessageContextSpec, MessageContextInteractionEvent, MessageContextArgs>(
+        ::MessageContextArgs,
+        spec,
+        MessageContextInteractionEvent::class,
+        eventToName
+    ) {
+    override suspend fun populateArgs(
+        data: InteractionData,
+        e: MessageContextInteractionEvent,
+        args: MessageContextArgs
+    ) {
+        args.message = e.target
+    }
+
+    companion object {
+        val eventToName: (MessageContextInteractionEvent) -> String = { it.interaction.name }
+    }
+}
+
 sealed class FeatureSpec(open val name: String)
-class CommandSpec(name: String, val help: String, vararg val guilds: Long) : FeatureSpec(name)
+sealed class GuildedFeatureSpec(name: String, vararg val guilds: Long) : FeatureSpec(name)
+class CommandSpec(name: String, val help: String, vararg guilds: Long) : GuildedFeatureSpec(name, *guilds)
 class ButtonSpec(name: String) : FeatureSpec(name)
 class ModalSpec(name: String) : FeatureSpec(name)
 class SelectMenuSpec(name: String) : FeatureSpec(name)
+class MessageContextSpec(name: String, vararg guilds: Long) : GuildedFeatureSpec(name, *guilds)
 
 sealed interface ArgSpec
 data class CommandArgSpec(
@@ -576,6 +599,10 @@ interface Nameable {
 object NoArgs : Arguments() {
     private val argsFun = { this }
     operator fun invoke() = argsFun
+}
+
+class MessageContextArgs : Arguments() {
+    var message by createArg<Message, Message> { }
 }
 
 class Arg<DiscordType, ParsedType>(

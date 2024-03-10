@@ -39,7 +39,9 @@ sealed class StateStore {
     }
 
     private suspend fun save() {
-        db.statestore.updateOne(createFilter(), this, upsert())
+        val filter = createFilter()
+        if (db.statestore.findOne(filter) == null) db.statestore.insertOne(this)
+        else db.statestore.updateOne(filter, this)
     }
 
     private suspend fun deleteFromDB() {

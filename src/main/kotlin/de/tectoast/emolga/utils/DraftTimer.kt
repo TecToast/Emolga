@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import mu.KotlinLogging
 import java.util.*
 import kotlin.time.measureTimedValue
 
@@ -69,10 +70,13 @@ sealed class DraftTimer {
             cal.timeInMillis
 //        cal.add(Calendar.MINUTE, elapsedMinutes)
         }
-        println("DURATION FOR TIMER CALC: ${duration.inWholeMilliseconds}ms")
+        logger.debug { "DURATION FOR TIMER CALC: ${duration.inWholeMilliseconds}ms" }
         return DelayData(regularTimestamp + (stallSeconds - usedStallSeconds) * 1000, regularTimestamp, now)
     }
 
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
 }
 

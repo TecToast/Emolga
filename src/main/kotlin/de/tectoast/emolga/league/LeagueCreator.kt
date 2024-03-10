@@ -27,6 +27,7 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
+import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import org.bson.BsonObjectId
 import org.jetbrains.exposed.sql.select
@@ -358,6 +359,7 @@ class Addons {
             require(list.containsAll(Addon::class.sealedSubclasses))
             list
         }
+        private val logger = KotlinLogging.logger {}
     }
 
     var gameplanIndexes: Map<Int, List<List<Int>>>? = null
@@ -370,7 +372,7 @@ class Addons {
             (onlyExecuteAddons.isEmpty() || onlyExecuteAddons.contains(it::class)) && it::class !in disabledAddons
         }.sortedBy { allAddons.indexOf(it::class) }.forEach {
             with(it) {
-                println("Executing $this")
+                logger.info("Executing $this")
                 execute(b)
             }
         }
@@ -423,7 +425,7 @@ class Addons {
                                 else -> {
                                     error("Invalid column at killlist $col")
                                 }
-                            }.also { println(col.name + " " + it) })
+                            }.also { logger.info(col.name + " " + it) })
                         }
                     }
                 }
@@ -645,7 +647,7 @@ class Addons {
                     val pokedex = de.tectoast.emolga.utils.json.db.pokedex.find().toList().associateBy { it.id }
                     tierlist.forEach {
                         val tlName = it.name
-                        //println(tlName)
+                        //logger.info(tlName)
                         val translation = NameConventionsDB.getDiscordTranslation(
                             tlName, guild, english = true
                         )!!
@@ -754,10 +756,10 @@ class Addons {
                         val teamIdx = day % numDays + 1
                         file.add(listOf(teamIdx, 0).let { if (randomized) it.shuffled() else it })
                         for (idx in 1 until halfSize) {
-                            println("idx = $idx")
+                            logger.info("idx = $idx")
                             val firstTeam = (day + idx) % numDays + 1
                             val secondTeam = (day + numDays - idx) % numDays + 1
-                            //System.out.println(teams.get(firstTeam) + "   " + teams.get(secondTeam));
+                            //System.out.logger.info(teams.get(firstTeam) + "   " + teams.get(secondTeam));
                             file.add(listOf(firstTeam, secondTeam).let { if (randomized) it.shuffled() else it })
                         }
                         list += file
@@ -837,11 +839,11 @@ class Addons {
             val gameplanIndexes = addons!!.gameplanIndexes
             repeat(playerCount) { i ->
                 val monCoord = teamsiteMonCoord!!(i)
-                println("DATACOLS SIZE $datacols")
+                logger.info("DATACOLS SIZE $datacols")
 
                 (gameplanIndexes?.keys?.sorted()?.map { it - 1 } ?: (0 until gamedays)).forEach { gdi ->
                     if (headercols != null) {
-                        println("HEADERCOLS NOT NULL")
+                        logger.info("HEADERCOLS NOT NULL")
                         b.addRow(beginHeader(i).run { "$sheet!${gdi.x(datacols.size + gapBetweenGamedays, x)}$y" },
                             headercols!!.map { (key, value) ->
                                 when (key) {

@@ -182,7 +182,6 @@ class NDS : League() {
             val tipgameStats = mutableListOf<String>()
             for (users in battleorder) {
                 for (index in 0..1) {
-                    println(users)
                     val u1 = table[users[index]]
                     val oppoIndex = users[1 - index]
                     val u2 = table[oppoIndex]

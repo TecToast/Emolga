@@ -1,6 +1,5 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.createChannel
 import de.tectoast.emolga.defaultChannel
 import de.tectoast.emolga.keepAlive
@@ -23,7 +22,6 @@ class SignupManagerTest : FunSpec({
             false,
             "GuMo"
         )
-        println(jda.selfUser.name)
         val scope = createCoroutineScope("SignupTest", Dispatchers.IO)
         delay(5000)
         repeat(20) {

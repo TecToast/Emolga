@@ -11,7 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import mu.KotlinLogging
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.text.SimpleDateFormat
 
@@ -19,6 +19,7 @@ object CalendarSystem : CoroutineScope {
     override val coroutineContext = createCoroutineContext("CalendarSystem", Dispatchers.IO)
     private val calendarFormat = SimpleDateFormat("dd.MM. HH:mm")
 
+    private val logger = KotlinLogging.logger {}
 
     fun scheduleCalendarEntry(ce: CalendarEntry) {
         launch {
@@ -26,20 +27,17 @@ object CalendarSystem : CoroutineScope {
             try {
                 newSuspendedTransaction {
                     if (runCatching { ce.refresh() }.let {
-                            println(
-                                it.exceptionOrNull()?.stackTraceToString()
-                            ); it.isFailure
+                            it.exceptionOrNull()?.let { ex -> logger.error("Failed to refresh calendar entry", ex) }
+                            it.isFailure
                         }) return@newSuspendedTransaction null
                     ce.delete()
                 } ?: return@launch
 
-                val calendarTc: TextChannel = jda.getTextChannelById(Constants.CALENDAR_TCID)!!
-                calendarTc.sendMessage("(<@${Constants.FLOID}>) ${ce.message}")
-                    .setActionRow(RemindButton()).queue()
+                val calendarTc = jda.getTextChannelById(Constants.CALENDAR_TCID)!!
+                calendarTc.sendMessage("(<@${Constants.FLOID}>) ${ce.message}").setActionRow(RemindButton()).queue()
                 calendarTc.editMessageById(Constants.CALENDAR_MSGID, buildCalendar()).queue()
-
             } catch (ex: Exception) {
-                ex.printStackTrace()
+                logger.error(ex) { "Failed to send calendar entry" }
             }
         }
     }
@@ -64,8 +62,8 @@ object CalendarSystem : CoroutineScope {
             val message = e.text
             CalendarDB.scheduleCalendarEntry(message, expires)
             reply("Reminder gesetzt!", ephemeral = true)
-            jda.getTextChannelById(Constants.CALENDAR_TCID)!!
-                .editMessageById(Constants.CALENDAR_MSGID, buildCalendar()).queue()
+            jda.getTextChannelById(Constants.CALENDAR_TCID)!!.editMessageById(Constants.CALENDAR_MSGID, buildCalendar())
+                .queue()
         }
     }
 

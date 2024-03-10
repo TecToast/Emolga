@@ -130,7 +130,6 @@ class IPL(
     }
 
     override suspend fun onRoundSwitch() {
-        println("Updating pickTries")
         pickTries = 0
     }
 
@@ -215,7 +214,7 @@ class IPL(
                     Google.fetchLatestVideosFromChannel(db.ytchannel.get(table[it])!!.channelId).filter { lastVid ->
                         (System.currentTimeMillis() - lastVid.snippet.publishedAt.value) <= 1000 * 60 * 60 * 4
                     }.let { vids ->
-                        println(vids.map { it.snippet.title })
+                        logger.info(vids.map { it.snippet.title }.toString())
                         vids.singleOrNull() ?: vids.firstOrNull { it.snippet.title.contains("IPL", ignoreCase = true) }
                     }?.let { lastVid ->
                         val videoId = lastVid.id.videoId

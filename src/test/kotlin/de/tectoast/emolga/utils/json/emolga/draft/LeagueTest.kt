@@ -115,7 +115,7 @@ class LeagueTest : FunSpec({
                 content = url, embeds = league.appendedEmbed(
                     data,
                     LeagueResult(league, uids, otherForms = emptyMap()),
-                    league.getGameplayData(uids[0], uids[1], data.game.map(SDPlayer::toDraftPlayer)).applyFun()
+                    league.getGameplayData(uids[0], uids[1], data.game.map(SDPlayer::toDraftPlayer))
                 ).build().into()
             ).queue()
         }

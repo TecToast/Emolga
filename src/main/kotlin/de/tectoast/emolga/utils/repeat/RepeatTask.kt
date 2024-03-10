@@ -53,7 +53,7 @@ class RepeatTask(
                 allTimestamps += curTime
                 val finalCurrAmount = currAmount
                 val delay = curTime - nowM
-                if (printTimestamps) System.out.printf("%d -> %d%n", currAmount, curTime)
+                if (printTimestamps) logger.debug("{} -> {}", currAmount, curTime)
                 scope.launch {
                     delay(delay)
                     consumer(finalCurrAmount)
@@ -65,7 +65,7 @@ class RepeatTask(
                 last.add(Calendar.SECOND, seconds)
             }
         } else {
-            println("LastExecution is in the past, RepeatTask will be terminated")
+            logger.info("LastExecution is in the past, RepeatTask will be terminated")
         }
     }
 

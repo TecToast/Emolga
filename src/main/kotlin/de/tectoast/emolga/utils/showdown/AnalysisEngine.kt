@@ -214,7 +214,6 @@ sealed class SDEffect(vararg val types: String) {
     data object Damage : SDEffect("-damage") {
         context(BattleContext)
         override fun execute(split: List<String>) {
-                //println(split)
             val damagedMon = split[1].parsePokemon()
                 val fainted = "fnt" in split[2]
                 val amount = damagedMon.hp - split[2].substringBefore("/").replace(otherThanNumbers, "").toInt()

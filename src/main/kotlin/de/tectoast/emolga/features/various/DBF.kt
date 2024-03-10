@@ -293,7 +293,6 @@ object DBF {
         val questions = mutableSetOf<String>()
         val streak = mutableMapOf<String, String>()
         for (line in "questionsraw.txt".file().readLines()) {
-            //if("?" !in line) println(line)
             if (streak.isNotEmpty() && !line.endsWith(">")) {
                 questions += streak.entries.joinToString("\n") { it.key + " ---> " + it.value }
                 streak.clear()

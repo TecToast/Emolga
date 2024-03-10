@@ -40,7 +40,7 @@ class FeaturesTest : FunSpec({
         keepAlive()
     }
     test("testmain") {
-        println("TEST")
+        logger.info("TEST")
 //        val manager = FeatureManager(setOf(TestFeature, TestButton, TestModal, TestMenu, NestedCommand))
         enableDefaultFeatureSystem()
 
@@ -106,8 +106,8 @@ object TestFeature : CommandFeature<TestFeature.Args>(::Args, CommandSpec("testa
     context(InteractionData)
     override suspend fun exec(e: Args) {
         reply("test1: ${e.test1}, test2: ${e.test2}")
-        if (e.test3) println(":DDDDDDDDDDDDDDDDD")
-        println("GuMo ${timer!!.elapsedNow()}")
+        if (e.test3) logger.info(":DDDDDDDDDDDDDDDDD")
+        logger.info("GuMo ${timer!!.elapsedNow()}")
     }
 }
 
@@ -129,7 +129,7 @@ object NestedCommand : CommandFeature<Arguments>(::Arguments, CommandSpec("neste
 
         context(InteractionData) override suspend fun exec(e: Args) {
             reply("FIRST test1: ${e.test1}, test2: ${e.test2}")
-            println("GuMo ${timer!!.elapsedNow()}")
+            logger.info("GuMo ${timer!!.elapsedNow()}")
         }
     }
 
@@ -143,7 +143,7 @@ object NestedCommand : CommandFeature<Arguments>(::Arguments, CommandSpec("neste
 
         context(InteractionData) override suspend fun exec(e: Args) {
             reply("SECOND test1: ${e.test1}, test2: ${e.test2}")
-            println("GuMo ${timer!!.elapsedNow()}")
+            logger.info("GuMo ${timer!!.elapsedNow()}")
         }
     }
 
@@ -163,7 +163,7 @@ object TestButton : ButtonFeature<TestButton.Args>(::Args, ButtonSpec("test")) {
 
     context(InteractionData) override suspend fun exec(e: Args) {
         replyModal(TestModal())
-        println("GuMo ${timer!!.elapsedNow()}")
+        logger.info("GuMo ${timer!!.elapsedNow()}")
     }
 }
 
@@ -184,7 +184,7 @@ object TestModal : ModalFeature<TestModal.Args>(::Args, ModalSpec("test")) {
     context(InteractionData) override suspend fun exec(e: Args) {
         reply("test1: ${e.test1}, test2: ${e.test2}")
 
-        println("GuMo ${timer!!.elapsedNow()}")
+        logger.info("GuMo ${timer!!.elapsedNow()}")
     }
 
 }
@@ -200,7 +200,7 @@ object TestMenu : SelectMenuFeature<TestMenu.Args>(::Args, SelectMenuSpec("test"
 
     context(InteractionData) override suspend fun exec(e: Args) {
         reply("test1: ${e.test1}, test2: ${e.test2}, option: ${e.option}")
-        println("GuMo ${timer!!.elapsedNow()}")
+        logger.info("GuMo ${timer!!.elapsedNow()}")
     }
 
 }

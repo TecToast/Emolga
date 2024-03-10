@@ -118,7 +118,6 @@ class TeamGraphic {
             lastNum = startX
             minOffset = min(minOffset, startX)
             maxOffset = maxOf(maxOffset, startX + row.size * 397)
-            //println("MaxOffset: $maxOffset")
             row.forEach { toexecute.add { g, i -> executeSlot(g, it, index, startX + i) } }
             indexToStartX[index] = startX
         }
@@ -167,9 +166,6 @@ class TeamGraphic {
         for (xc in xcoord - width / 2..xcoord + width / 2) {
             for (yc in ycoord - height / 2..ycoord + height / 2) {
                 if (!cyanHexagon.contains(xc, yc)) {
-                    if (alreadySent.add(pokemon) || pokemon == "celesteela") {
-                        println("$pokemon -> ${xc + xcoord - width / 2} ${yc + ycoord - height / 2}")
-                    }
                     graphics.drawRect(xc, yc, 1, 1)
                 }
             }

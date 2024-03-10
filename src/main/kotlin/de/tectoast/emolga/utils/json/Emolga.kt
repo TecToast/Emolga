@@ -42,6 +42,8 @@ private const val DEFAULT_DB_URL = "mongodb://florirp5.fritz.box:27017/"
 private const val DEFAULT_DB_NAME = "emolga"
 private var delegateDb: MongoEmolga? = null
 
+private val logger = KotlinLogging.logger {}
+
 fun initMongo(dbUrl: String = DEFAULT_DB_URL, dbName: String = DEFAULT_DB_NAME) {
     delegateDb?.let { error("MongoDB already initialized!") }
     delegateDb = MongoEmolga(dbUrl, dbName)
@@ -142,7 +144,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
             val league = league(currentLeague!!)
             LeagueResult(league, filterNotNull.map { it.user }, allOtherFormesGerman)
         }
-        println("DURATION: ${duration.inWholeMilliseconds}")
+        logger.debug { "DURATION: ${duration.inWholeMilliseconds}" }
         return leagueResult
     }
 }
@@ -358,7 +360,7 @@ data class LogoChecksum(
 
 suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!
 suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) =
-    updateOne(BsonDocument(), update.also { println(it.json) })
+    updateOne(BsonDocument(), update.also { logger.debug { it.json } })
 
 @Suppress("unused") // used in other projects
 suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: String) = updateOne("{}", update)

@@ -10,9 +10,11 @@ import de.tectoast.emolga.utils.invoke
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.PickData
 import de.tectoast.emolga.utils.json.emolga.draft.isMega
+import mu.KotlinLogging
 
 object PickCommand :
     CommandFeature<PickCommand.Args>(PickCommand::Args, CommandSpec("pick", "Pickt ein Pokemon", *draftGuilds)) {
+    private val logger = KotlinLogging.logger {}
 
     class Args : Arguments() {
         var pokemon by draftPokemon("pokemon", "Das Pokemon, das gepickt werden soll")
@@ -38,8 +40,7 @@ object PickCommand :
         val dd = League.byCommand() ?: return run {
             if (!acknowledged) {
                 reply(
-                    "Es läuft zurzeit kein Draft in diesem Channel!",
-                    ephemeral = true
+                    "Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true
                 )
             }
         }
@@ -54,22 +55,18 @@ object PickCommand :
             val tierlist = d.tierlist
             val picks = d.picks(mem)
             val (tlName, official, _) = e.pokemon
-            println("tlName: $tlName, official: $official")
-            val (specifiedTier, officialTier) =
-                (d.getTierOf(tlName, e.tier)
-                    ?: return@l reply("Dieses Pokemon ist nicht in der Tierliste!"))
+            logger.info("tlName: $tlName, official: $official")
+            val (specifiedTier, officialTier) = (d.getTierOf(tlName, e.tier)
+                ?: return@l reply("Dieses Pokemon ist nicht in der Tierliste!"))
 
             d.checkUpdraft(specifiedTier, officialTier)?.let { return@l reply(it) }
             if (d.isPicked(official, officialTier)) return@l reply("Dieses Pokemon wurde bereits gepickt!")
             val tlMode = tierlist.mode
-            val free = e.free
-                .takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } ?: false
+            val free =
+                e.free.takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } ?: false
             if (!free && d.handleTiers(specifiedTier, officialTier)) return@l
             if (d.handlePoints(
-                    tlNameNew = tlName,
-                    officialNew = official,
-                    free = free,
-                    tier = officialTier
+                    tlNameNew = tlName, officialNew = official, free = free, tier = officialTier
                 )
             ) return@l
             val saveTier = if (free) officialTier else specifiedTier

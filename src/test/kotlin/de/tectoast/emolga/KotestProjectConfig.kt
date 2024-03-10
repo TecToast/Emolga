@@ -9,14 +9,17 @@ import de.tectoast.emolga.utils.json.initMongo
 import io.kotest.core.config.AbstractProjectConfig
 import io.kotest.mpp.env
 import kotlinx.coroutines.delay
+import mu.KotlinLogging
 import org.litote.kmongo.regex
 
 object KotestProjectConfig : AbstractProjectConfig() {
     override val failOnEmptyTestSuite = false
 
+    private val logger = KotlinLogging.logger {}
+
     override suspend fun beforeProject() {
         initMongo()
-        println(db.drafts.deleteMany(League::leaguename regex Regex("^TEST")).deletedCount)
+        logger.info(db.drafts.deleteMany(League::leaguename regex Regex("^TEST")).deletedCount.toString())
         val username = env("DBUSER")!!
         val password = env("DBPASSWORD")!!
         val host = env("DBHOST")!!
@@ -24,12 +27,12 @@ object KotestProjectConfig : AbstractProjectConfig() {
     }
 
     override suspend fun afterProject() {
-        println("AFTER PROJECT")
+        logger.info("AFTER PROJECT")
         if (usedJDA) {
-            println("SHUTTING DOWN JDA")
+            logger.info("SHUTTING DOWN JDA")
             delay(3000)
         }
-        println("SHUTTING DOWN")
+        logger.info("SHUTTING DOWN")
     }
 
 }

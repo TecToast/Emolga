@@ -20,9 +20,7 @@ import org.litote.kmongo.coroutine.updateOne
 
 @Serializable
 class ASLCoachData(
-    @SerialName("_id")
-    @Contextual
-    val id: Id<ASLCoachData>,
+    @SerialName("_id") @Contextual val id: Id<ASLCoachData>,
     val table: List<String> = emptyList(),
     val data: Map<String, TeamData> = mutableMapOf(),
     private val sid: String,
@@ -52,13 +50,10 @@ class ASLCoachData(
                 originalorder.remove(toremove)
                 order.remove(toremove)
             }
-            println("PREFIX: $prefix")
             try {
                 prefix?.let {
                     user.modifyNickname("[$it] ${user.effectiveName.substringAfterLast("]").trim()}").queue(
-                        { idk ->
-                            println("Nickname changed! $idk")
-                        }
+                        {},
                     ) { ex ->
                         ex.printStackTrace()
                     }
@@ -77,8 +72,7 @@ class ASLCoachData(
     private fun teamByIndex(index: Int) = table[index].let { it to data[it]!! }
 
     suspend fun isPlayer(mem: Member) = mem.idLong in participants()
-    fun isTaken(mem: Long) =
-        data.values.any { datas -> (1..3).any { datas.members[it] == mem } }
+    fun isTaken(mem: Long) = data.values.any { datas -> (1..3).any { datas.members[it] == mem } }
 
     suspend fun getLevelByMember(mem: Member): Int = participants()[mem.idLong]!!
 
@@ -111,10 +105,7 @@ class ASLCoachData(
 
     suspend fun save() = db.aslcoach.updateOne(this)
     private suspend fun insertIntoDoc(
-        user: Member,
-        coach: Long,
-        level: Int,
-        prize: Int
+        user: Member, coach: Long, level: Int, prize: Int
     ) {
         val row = participants().keys.toList().indexOf(user.idLong) + 4
         table.indexOf(teamnameByCoach(coach)).let {

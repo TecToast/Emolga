@@ -105,10 +105,8 @@ class GamePlanCreator private constructor() {
                     val teamIdx = day % numDays + 1
                     file.add(listOf(teamIdx, 0).let { if (randomized) it.shuffled() else it })
                     for (idx in 1 until halfSize) {
-                        println("idx = $idx")
                         val firstTeam = (day + idx) % numDays + 1
                         val secondTeam = (day + numDays - idx) % numDays + 1
-                        //System.out.println(teams.get(firstTeam) + "   " + teams.get(secondTeam));
                         file.add(listOf(firstTeam, secondTeam).let { if (randomized) it.shuffled() else it })
                     }
                     list += file

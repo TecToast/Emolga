@@ -447,7 +447,7 @@ object PrivateCommands {
         val col = db.db.getCollection<NameCon>("customnamecon")
         val test = "Emolga"
         val guildId = 0L
-        println(measureTime {
+        logger.info(measureTime {
             newSuspendedTransaction {
                 val query1 =
                     ((NameConventionsDB.GERMAN eq test) or (NameConventionsDB.ENGLISH eq test) or (NameConventionsDB.SPECIFIED eq test) or (NameConventionsDB.SPECIFIEDENGLISH eq test)) and (NameConventionsDB.GUILD eq 0 or (NameConventionsDB.GUILD eq guildId))
@@ -455,7 +455,7 @@ object PrivateCommands {
                     query1
                 }
             }
-        })
+        }.toString())
         val query2 = and(
             or(
                 NameCon::german eq test,
@@ -464,10 +464,10 @@ object PrivateCommands {
                 NameCon::specenglish eq test,
             ), NameCon::guild eq guildId
         )
-        println(query2.json)
-        println(measureTime {
+        logger.info(query2.json)
+        logger.info(measureTime {
             col.findOne(query2)
-        })
+        }.toString())
     }
 
     @Serializable
@@ -512,12 +512,9 @@ object PrivateCommands {
                 val t1 = teamtable[u1]
                 val t2 = teamtable[u2]
                 channel.editMessageComponentsById(
-                    ids[index],
-                    ActionRow.of(
+                    ids[index], ActionRow.of(
                         TipGameManager.VoteButton(
-                            t1,
-                            disabled = index <= 2,
-                            emoji = Emoji.fromFormatted(emotes[u1])
+                            t1, disabled = index <= 2, emoji = Emoji.fromFormatted(emotes[u1])
                         ) {
                             base()
                             this.userindex = u1
@@ -543,7 +540,6 @@ object PrivateCommands {
     suspend fun executeTipGameSending(args: PrivateData) {
         db.league(args[0]).executeTipGameSending(args[1].toInt())
     }
-
 
 
 }

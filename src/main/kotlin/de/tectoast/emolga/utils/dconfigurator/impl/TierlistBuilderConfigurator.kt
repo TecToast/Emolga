@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import mu.KotlinLogging
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
@@ -275,7 +276,7 @@ class TierlistBuilderConfigurator(
             }?.let { (mr, key) ->
                 mr.groupValues[1] + "-" + key
             }
-            println("Testing $mon <=> $regForm")
+            logger.debug { "Testing $mon <=> $regForm" }
             if (!NameConventionsDB.checkIfExists(
                     regForm ?: mon, guildId
                 ) && (regForm == null || !NameConventionsDB.checkIfExists(mon, guildId))
@@ -356,6 +357,7 @@ class TierlistBuilderConfigurator(
     }
 
     companion object {
+        private val logger = KotlinLogging.logger {}
         val modeSelectMenu = listOf(
             ActionRow.of(
                 StringSelectMenu(

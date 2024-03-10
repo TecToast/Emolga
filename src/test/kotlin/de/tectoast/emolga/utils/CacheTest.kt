@@ -3,9 +3,11 @@ package de.tectoast.emolga.utils
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.delay
+import mu.KotlinLogging
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
+private val logger = KotlinLogging.logger {}
 class CacheTest : FunSpec({
     var x = 0
     beforeTest {
@@ -94,6 +96,6 @@ class CacheTest : FunSpec({
 
 private var cacheTest = 0
 private fun cacheFun(): Int {
-    println("I got called")
+    logger.info("CacheFun")
     return ++cacheTest
 }

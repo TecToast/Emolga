@@ -25,7 +25,7 @@ suspend fun main() {
         logger.info("Enter Token Key:")
         key = String(console.readPassword())
         try {
-            println("Begin decrypt...")
+            logger.info("Begin decrypt...")
             Credentials.load(key)
             break
         } catch (e: BadPaddingException) {

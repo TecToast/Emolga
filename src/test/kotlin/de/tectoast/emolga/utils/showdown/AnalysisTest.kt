@@ -3,6 +3,9 @@ package de.tectoast.emolga.utils.showdown
 import de.tectoast.emolga.utils.json.db
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import mu.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
 
 class AnalysisTest : FunSpec({
     test("HealStats") {
@@ -22,6 +25,6 @@ class AnalysisTest : FunSpec({
                 Analysis.getMonName(mon.pokemon, gid)
             }
         }
-        println(db.leagueByGuildAdvanced(gid, map, -1, -1))
+        logger.info(db.leagueByGuildAdvanced(gid, map, -1, -1).toString())
     }
 })

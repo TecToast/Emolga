@@ -226,8 +226,8 @@ object Analysis {
             }.getOrDefault(listOf(""))
             gameNullable = retrieved.takeIf { it.size > 1 }
             if (gameNullable == null) {
-                println(retrieved)
-                println("Showdown antwortet nicht")
+                logger.info(retrieved.toString())
+                logger.info("Showdown antwortet nicht")
                 answer?.invoke("Der Showdown-Server antwortet nicht, ich versuche es in 10 Sekunden erneut...")
                 delay(10.seconds)
             } else break

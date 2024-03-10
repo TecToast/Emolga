@@ -4,6 +4,7 @@ import de.tectoast.emolga.ktor.Ktor
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.json.Tokens
 import de.tectoast.emolga.utils.myJSON
+import mu.KotlinLogging
 import java.io.File
 import java.util.*
 import javax.crypto.Cipher
@@ -15,9 +16,10 @@ import kotlin.system.measureTimeMillis
 
 object Credentials {
     lateinit var tokens: Tokens
+    private val logger = KotlinLogging.logger {}
     fun load(password: String) {
         val tokens: Tokens
-        println("MEASURE: " + measureTimeMillis {
+        logger.debug("MEASURE: " + measureTimeMillis {
             tokens = with(Cipher.getInstance("AES/CBC/PKCS5PADDING")) {
                 val lines = File("tokens.txt").readLines()
                 init(Cipher.DECRYPT_MODE, run {

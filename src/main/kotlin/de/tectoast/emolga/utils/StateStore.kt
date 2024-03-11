@@ -255,7 +255,7 @@ class ResultEntry : StateStore {
 }
 
 @Serializable
-@SerialName("Nominate")
+@SerialName("NominateState")
 class NominateState : StateStore {
 
     private val originalMons: List<DraftPokemon>

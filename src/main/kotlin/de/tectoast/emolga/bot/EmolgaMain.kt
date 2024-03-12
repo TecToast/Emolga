@@ -23,6 +23,7 @@ import kotlinx.coroutines.*
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.OnlineStatus
 import net.dv8tion.jda.api.entities.Activity
+import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
@@ -65,6 +66,7 @@ object EmolgaMain {
 
     @Throws(Exception::class)
     suspend fun start() {
+        Message.suppressContentIntentWarning()
         val eventListeners = listOf(DConfiguratorManager)
         emolgajda = default(Credentials.tokens.discord) {
             //intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)

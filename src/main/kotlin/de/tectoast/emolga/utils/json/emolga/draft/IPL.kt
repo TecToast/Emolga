@@ -7,8 +7,6 @@ import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
 import de.tectoast.emolga.utils.records.SorterData
@@ -202,32 +200,35 @@ class IPL(
         }
     }
 
-    override suspend fun executeYoutubeSend(ytTC: Long, gameday: Int, battle: Int) {
+    override suspend fun executeYoutubeSend(
+        ytTC: Long,
+        gameday: Int,
+        battle: Int,
+        strategy: VideoProvideStrategy,
+        overrideEnabled: Boolean
+    ) {
         val b = builder()
+        val ytVideoSaveData = replayDataStore?.data?.get(gameday)?.get(battle)?.ytVideoSaveData
+        if (!overrideEnabled && ytVideoSaveData?.enabled != true) return logger.info("ExecuteYTSend: Not enabled")
+        ytVideoSaveData?.enabled = false
         jda.getTextChannelById(ytTC)!!.sendMessage(buildString {
             if (battle == 0 || battle == 3) append("<@&878744967680512021>\n")
             append("**Spieltag $gameday**\n_Kampf ${battle + 1}_\n\n")
             val muData = battleorder[gameday]!![battle]
             append(muData.joinToString(" vs. ") { emotes[it] })
             append("\n\n")
-            val videoIds = muData.mapIndexed { index, it ->
-                    Google.fetchLatestVideosFromChannel(db.ytchannel.get(table[it])!!.channelId).filter { lastVid ->
-                        (System.currentTimeMillis() - lastVid.snippet.publishedAt.value) <= 1000 * 60 * 60 * 4
-                    }.let { vids ->
-                        logger.info(vids.map { it.snippet.title }.toString())
-                        vids.singleOrNull() ?: vids.firstOrNull { it.snippet.title.contains("IPL", ignoreCase = true) }
-                    }?.let { lastVid ->
-                        val videoId = lastVid.id.videoId
-                        val range =
-                            gameday.minus(1)
-                                .CoordXMod("Spielplan (SPOILERFREI)", 3, 'J' - 'B', 3 + index * 3, 8, 5 + battle)
-                        b.addSingle(
-                            range,
-                            "=HYPERLINK(\"https://www.youtube.com/watch?v=$videoId\"; \"Kampf\nanschauen\")"
-                        )
-                        b.addFGColorChange(216749258, range.x, range.y, 0x1155cc.convertColor())
-                        videoId
-                    }
+            val videoIds = muData.mapIndexed { index, uindex ->
+                strategy.run { provideVideoId(index, uindex) }?.let { videoId ->
+                    val range =
+                        gameday.minus(1)
+                            .CoordXMod("Spielplan (SPOILERFREI)", 3, 'J' - 'B', 3 + index * 3, 8, 5 + battle)
+                    b.addSingle(
+                        range,
+                        "=HYPERLINK(\"https://www.youtube.com/watch?v=$videoId\"; \"Kampf\nanschauen\")"
+                    )
+                    b.addFGColorChange(216749258, range.x, range.y, 0x1155cc.convertColor())
+                    videoId
+                }
             }
             val names = jda.getGuildById(guild)!!.retrieveMembersByIds(muData.map { table[it] }).await()
                 .associate { it.idLong to it.user.effectiveName }
@@ -239,5 +240,6 @@ class IPL(
             }
         }).queue()
         b.execute()
+        save("YTSubSave")
     }
 }

@@ -40,7 +40,7 @@ object Ktor {
         routing {
             route("/api") {
                 emolgaAPI()
-                ytSubscribtions()
+                ytSubscriptions()
             }
         }
     }

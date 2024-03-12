@@ -40,7 +40,7 @@ class IntervalTask(name: String, delay: Duration, consumer: suspend () -> Unit) 
 
     companion object : CoroutineScope {
         fun setupIntervalTasks() {
-            IntervalTask("YTSubscribtions", 4.days) {
+            IntervalTask("YTSubscriptions", 4.days) {
                 setupYTSuscribtions()
             }
         }

@@ -20,6 +20,7 @@ import de.tectoast.emolga.utils.json.emolga.TeamData
 import de.tectoast.emolga.utils.json.emolga.draft.IPL
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
+import de.tectoast.emolga.utils.json.emolga.draft.VideoProvideStrategy
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage
@@ -439,7 +440,13 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun testYTSend(args: PrivateData) {
         val league = db.league(args[0])
-        league.executeYoutubeSend(args[1].toLong(), args[2].toInt(), args[3].toInt())
+        league.executeYoutubeSend(
+            ytTC = args[1].toLong(),
+            gameday = args[2].toInt(),
+            battle = args[3].toInt(),
+            strategy = VideoProvideStrategy.Fetch,
+            overrideEnabled = args.getOrNull(4)?.toBooleanStrict() ?: false
+        )
     }
 
     context(InteractionData)

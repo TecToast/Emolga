@@ -2,10 +2,12 @@ package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.ignoreDuplicatesMongo
 import de.tectoast.emolga.utils.json.YTVideo
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.emolga.draft.VideoProvideStrategy
 import de.tectoast.emolga.utils.json.get
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -52,7 +54,7 @@ private val mac: Mac by lazy {
     }
 }
 
-fun Route.ytSubscribtions() {
+fun Route.ytSubscriptions() {
     route("/youtube") {
         get {
             call.respondText(call.request.queryParameters["hub.challenge"]!!)
@@ -78,10 +80,29 @@ fun Route.ytSubscribtions() {
                 logger.info("Link: $link")
                 logger.info("Published: $published")
                 logger.info("Updated: $updated")
-                ignoreDuplicatesMongo {
-                    db.ytvideos.insertOne(YTVideo(channelId, videoId, title, Instant.parse(published)))
+                if (ignoreDuplicatesMongo {
+                        db.ytvideos.insertOne(YTVideo(channelId, videoId, title, Instant.parse(published)))
+                    } && "IPL" in title) {
+                    val uid = db.ytchannel.get(channelId)!!.user
+                    League.executeOnFreshLock({ db.leagueByGuild(Constants.G.VIP, uid)!! }) {
+                        val data =
+                            replayDataStore!!.getLastEnabledReplayData(uid) ?: return@forEach SendFeatures.sendToMe(
+                                "No ReplayData found for $uid in $leaguename"
+                            )
+                        val ytSave = data.ytVideoSaveData
+                        ytSave.vids[data.uids.indexOf(uid)] = videoId
+                        if (ytSave.vids.size == data.uids.size) {
+                            executeYoutubeSend(
+                                ytSendChannel!!,
+                                data.gamedayData.gameday,
+                                data.gamedayData.battleindex,
+                                VideoProvideStrategy.Subscribe(ytSave),
+                                true
+                            )
+                        }
+                        save("YTSubSave")
+                    }
                 }
-                //logger.info("Thumbnail: $thumbnail")
             }
         }
     }

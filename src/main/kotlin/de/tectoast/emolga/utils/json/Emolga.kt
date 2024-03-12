@@ -375,8 +375,10 @@ suspend fun CoroutineCollection<NameConventions>.get(guild: Long) =
 @JvmName("getPokedex")
 suspend fun CoroutineCollection<Pokemon>.get(id: String) = find(Pokemon::id eq id).first()
 
-@JvmName("getYTChannel")
+@JvmName("getYTChannelByUser")
 suspend fun CoroutineCollection<YTChannel>.get(user: Long) = find(YTChannel::user eq user).first()
 
+@JvmName("getYTChannelByChannelId")
+suspend fun CoroutineCollection<YTChannel>.get(channelId: String) = find(YTChannel::channelId eq channelId).first()
 @JvmName("getIntervalTaskData")
 suspend fun CoroutineCollection<IntervalTaskData>.get(name: String) = find(IntervalTaskData::name eq name).first()

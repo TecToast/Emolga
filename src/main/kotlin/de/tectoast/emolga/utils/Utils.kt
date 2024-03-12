@@ -154,14 +154,26 @@ fun <T> Collection<T>.filterContainsIgnoreCase(other: String, tostring: (T) -> S
 
 fun Double.roundToDigits(digits: Int) = "%.${digits}f".format(this)
 
-inline fun ignoreException(predicate: (Throwable) -> Boolean = { true }, block: () -> Unit) {
-    try {
+/**
+ * Ignores an exception if the predicate returns true
+ * @return true if the operation succeeded normally, false if the exception was ignored
+ * @throws Throwable the exception if the predicate returns false
+ */
+inline fun ignoreException(predicate: (Throwable) -> Boolean = { true }, block: () -> Unit): Boolean {
+    return try {
         block()
+        true
     } catch (e: Throwable) {
-        if (!predicate(e)) throw e
+        if (predicate(e)) false
+        else throw e
     }
 }
 
+/**
+ * Ignores an duplicate entry exception
+ * @return true if the operation succeeded normally, false if the element was there
+ * @throws Throwable the exception if the predicate returns false
+ */
 inline fun ignoreDuplicatesMongo(block: () -> Unit) =
     ignoreException({ it is MongoWriteException && it.code == 11000 }, block)
 

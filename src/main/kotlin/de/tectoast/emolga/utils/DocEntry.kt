@@ -98,7 +98,7 @@ class DocEntry private constructor(val league: League) {
         withSort: Boolean = true,
         realExecute: Boolean = true
     ) {
-        val (game, uids, kd, _, url, gamedayData, otherForms) = replayData
+        val (game, uids, kd, _, url, gamedayData, otherForms, _) = replayData
         val (gameday, battleindex, u1IsSecond, numbers) = gamedayData
         if (cancelIf(replayData, gameday)) return
         val sorted = uids.sorted()
@@ -375,7 +375,11 @@ data class ReplayData(
     val url: String,
     val gamedayData: GamedayData,
     val otherForms: Map<String, List<String>> = emptyMap(),
+    val ytVideoSaveData: YTVideoSaveData = YTVideoSaveData()
 )
+
+@Serializable
+data class YTVideoSaveData(var enabled: Boolean = false, val vids: MutableMap<Int, String> = mutableMapOf())
 
 @Suppress("unused")
 data class AdvancedResult(

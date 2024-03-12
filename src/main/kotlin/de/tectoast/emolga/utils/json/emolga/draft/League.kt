@@ -17,6 +17,7 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.showdown.AnalysisData
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.*
@@ -754,7 +755,14 @@ sealed class League {
         }
     }
 
-    open suspend fun executeYoutubeSend(ytTC: Long, gameday: Int, battle: Int) {}
+    open suspend fun executeYoutubeSend(
+        ytTC: Long,
+        gameday: Int,
+        battle: Int,
+        strategy: VideoProvideStrategy,
+        overrideEnabled: Boolean = false
+    ) {
+    }
 
     fun buildStoreStatus(gameday: Int): String {
         val dataStore = replayDataStore ?: error("No replay data store found")
@@ -796,6 +804,15 @@ sealed class League {
         val timerScope = createCoroutineScope("LeagueTimer")
 
         fun getLock(leaguename: String): Mutex = allMutexes.getOrPut(leaguename) { Mutex() }
+
+        suspend inline fun executeOnFreshLock(leagueSupplier: () -> League, block: League.() -> Unit) {
+            val league = leagueSupplier()
+            val lock = getLock(league.leaguename)
+            val wasLocked = lock.isLocked
+            lock.withLock {
+                (if (wasLocked) leagueSupplier() else league).apply(block)
+            }
+        }
 
         suspend fun executeTimerOnRefreshedVersion(name: String) {
             getLock(name).withLock {
@@ -852,7 +869,12 @@ data class ReplayDataStore(
     @Serializable(with = DurationSerializer::class) val intervalBetweenGD: Duration,
     @Serializable(with = DurationSerializer::class) val intervalBetweenMatches: Duration,
     val amount: Int,
-)
+) {
+    fun getLastEnabledReplayData(uid: Long): ReplayData? {
+        return data.values.reversed()
+            .firstNotNullOfOrNull { v -> v.values.lastOrNull { it.ytVideoSaveData.enabled && uid in it.uids } }
+    }
+}
 
 @Serializable
 data class Reminder(@Serializable(with = InstantToStringSerializer::class) val lastSend: Instant, val channel: Long)
@@ -1066,3 +1088,25 @@ enum class SkipReason {
 data class GamedayData(
     val gameday: Int, val battleindex: Int, val u1IsSecond: Boolean, var numbers: List<Int> = emptyList()
 )
+
+sealed interface VideoProvideStrategy {
+    suspend fun League.provideVideoId(index: Int, uindex: Int): String?
+
+    data object Fetch : VideoProvideStrategy {
+        override suspend fun League.provideVideoId(index: Int, uindex: Int): String? {
+            return Google.fetchLatestVideosFromChannel(db.ytchannel.get(table[uindex])!!.channelId).filter { lastVid ->
+                (System.currentTimeMillis() - lastVid.snippet.publishedAt.value) <= 1000 * 60 * 60 * 4
+            }.let { vids ->
+                League.logger.info(vids.map { it.snippet.title }.toString())
+                vids.singleOrNull() ?: vids.firstOrNull { it.snippet.title.contains("IPL", ignoreCase = true) }
+            }?.id?.videoId
+        }
+    }
+
+    data class Subscribe(private val ytData: YTVideoSaveData) : VideoProvideStrategy {
+        override suspend fun League.provideVideoId(index: Int, uindex: Int): String? {
+            return ytData.vids[index]
+        }
+    }
+
+}

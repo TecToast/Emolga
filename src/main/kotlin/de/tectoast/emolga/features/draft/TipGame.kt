@@ -41,7 +41,7 @@ object TipGameManager : CoroutineScope {
             deferReply()
             val league = db.getLeague(e.leaguename) ?: return reportMissing()
             league.lock {
-                val tipgame = league.tipgame ?: return reportMissing()
+                val tipgame = tipgame ?: return reportMissing()
                 val gamedayMap = tipgame.tips.getOrPut(e.gameday) { mutableMapOf() }
                 val userMap = gamedayMap.getOrPut(user) { mutableMapOf() }
                 userMap[e.index] = e.userindex
@@ -49,13 +49,13 @@ object TipGameManager : CoroutineScope {
                 if (tipgame.withCurrentState) {
                     message.editMessageEmbeds(
                         Embed(title = message.embeds[0].title,
-                            description = "Bisherige Votes: " + league.battleorder(e.gameday)[e.index].joinToString(":") { u ->
+                            description = "Bisherige Votes: " + battleorder(e.gameday)[e.index].joinToString(":") { u ->
                                 gamedayMap.values.count { u in it.values }.toString()
                             }, color = embedColor
                         )
                     ).queue()
                 }
-                league.save()
+                save()
             }
         }
 

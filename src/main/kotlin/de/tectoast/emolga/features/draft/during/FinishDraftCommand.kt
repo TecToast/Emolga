@@ -16,15 +16,15 @@ object FinishDraftCommand :
             ephemeral = true
         )
         d.lock {
-            if (d.isFinishedForbidden()) return reply("Dieser Draft unterstützt /finishdraft nicht!")
-            d.checkFinishedForbidden(mem)?.let {
+            if (isFinishedForbidden()) return reply("Dieser Draft unterstützt /finishdraft nicht!")
+            checkFinishedForbidden(mem)?.let {
                 return reply(it)
             }
             replyAwait("<@${user}> hat den Draft für sich beendet!")
-            d.addFinished(mem)
-            if (d.current == mem)
-                d.afterPickOfficial()
-            d.save()
+            addFinished(mem)
+            if (current == mem)
+                afterPickOfficial()
+            save()
         }
     }
 }

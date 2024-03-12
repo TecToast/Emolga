@@ -156,9 +156,9 @@ sealed class League {
         }
     }
 
-    suspend inline fun lock(block: () -> Unit) {
+    suspend inline fun lock(block: League.() -> Unit) {
         getLock(leaguename).withLock {
-            block()
+            apply(block)
         }
     }
 

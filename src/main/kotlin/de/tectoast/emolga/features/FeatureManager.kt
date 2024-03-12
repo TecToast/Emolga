@@ -182,7 +182,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         }
 
         for (gid in updateGuilds ?: db.config.only().guildsToUpdate.ifEmpty { guildFeatures.keys }) {
-            val commands = guildFeatures[gid] ?: continue
+            val commands = guildFeatures[gid].orEmpty()
             (if (gid == -1L) jda.updateCommands()
             else jda.getGuildById(gid)?.updateCommands())?.addCommands(commands)?.queue()
         }

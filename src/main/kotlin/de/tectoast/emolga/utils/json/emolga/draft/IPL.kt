@@ -211,6 +211,7 @@ class IPL(
         val ytVideoSaveData = replayDataStore?.data?.get(gameday)?.get(battle)?.ytVideoSaveData
         if (!overrideEnabled && ytVideoSaveData?.enabled != true) return logger.info("ExecuteYTSend: Not enabled")
         ytVideoSaveData?.enabled = false
+        ytVideoSaveData?.done = true
         jda.getTextChannelById(ytTC)!!.sendMessage(buildString {
             if (battle == 0 || battle == 3) append("<@&878744967680512021>\n")
             append("**Spieltag $gameday**\n_Kampf ${battle + 1}_\n\n")

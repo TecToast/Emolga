@@ -7,8 +7,8 @@ import de.tectoast.emolga.utils.ignoreDuplicatesMongo
 import de.tectoast.emolga.utils.json.YTVideo
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.VideoProvideStrategy
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.surroundWith
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
@@ -69,6 +69,7 @@ fun Route.ytSubscriptions() {
             ) return@post SendFeatures.sendToMe(
                 "Invalid Signature! ${call.request.headers["X-Hub-Signature"]} ```$receiveText```".take(2000)
             )
+            SendFeatures.sendToMe(receiveText.take(2000 - 6).surroundWith("```"))
             Jsoup.parse(receiveText).select("entry").forEach {
                 val title = it.select("title").text()
                 val link = it.select("link").attr("href")
@@ -90,17 +91,13 @@ fun Route.ytSubscriptions() {
                                 "No ReplayData found for $uid in $leaguename"
                             )
                         val ytSave = data.ytVideoSaveData
-                        ytSave.vids[data.uids.indexOf(uid)] = videoId
-                        if (ytSave.vids.size == data.uids.size) {
-                            executeYoutubeSend(
-                                ytSendChannel!!,
-                                data.gamedayData.gameday,
-                                data.gamedayData.battleindex,
-                                VideoProvideStrategy.Subscribe(ytSave),
-                                true
+                        ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(
+                            table.indexOf(
+                                uid
                             )
-                        }
-                        save("YTSubSave")
+                        )] = videoId
+                        if (!data.checkIfBothVideosArePresent(this))
+                            save("YTSubSave")
                     }
                 }
             }

@@ -872,7 +872,7 @@ data class ReplayDataStore(
 ) {
     fun getLastEnabledReplayData(uid: Long): ReplayData? {
         return data.values.reversed()
-            .firstNotNullOfOrNull { v -> v.values.lastOrNull { it.ytVideoSaveData.enabled && uid in it.uids } }
+            .firstNotNullOfOrNull { v -> v.values.lastOrNull { !it.ytVideoSaveData.done && uid in it.uids } }
     }
 }
 

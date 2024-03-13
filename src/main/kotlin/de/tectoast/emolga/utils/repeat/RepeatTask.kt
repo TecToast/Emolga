@@ -1,19 +1,19 @@
 package de.tectoast.emolga.utils.repeat
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.utils.ReplayData
-import de.tectoast.emolga.utils.YTVideoSaveData
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.*
+import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
+import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.emolga.draft.NDS
+import de.tectoast.emolga.utils.json.emolga.draft.VideoProvideStrategy
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import mu.KotlinLogging
-import org.litote.kmongo.*
 import java.util.*
 import kotlin.time.Duration
 
@@ -103,7 +103,7 @@ class RepeatTask(
                             data.intervalBetweenGD,
                             false
                         ) { gameday ->
-                            val league = db.league(name)
+                            val league = refresh()
                             var shouldDelay = false
                             league.tipgame?.let { _ ->
                                 league.executeTipGameLockButtonsIndividual(gameday, battle)
@@ -111,15 +111,12 @@ class RepeatTask(
                             }
                             val dataStore = league.replayDataStore ?: return@RepeatTask
                             dataStore.data[gameday]?.get(battle)?.let {
-                                db.drafts.updateOne(
-                                    League::leaguename eq name,
-                                    set(
-                                        (League::replayDataStore / ReplayDataStore::data).keyProjection(gameday)
-                                            .keyProjection(battle) / ReplayData::ytVideoSaveData / YTVideoSaveData::enabled setTo true
-                                    )
-                                )
+                                it.ytVideoSaveData.enabled = true
+                                val shouldSave = !it.checkIfBothVideosArePresent(league)
                                 if (shouldDelay) delay(2000)
                                 league.docEntry?.analyseWithoutCheck(it)
+                                if (shouldSave)
+                                    league.save("RepeatTaskYT")
                             }
                                 ?: throw IllegalStateException("No replay found for gameday $gameday and battle $battle")
                         }

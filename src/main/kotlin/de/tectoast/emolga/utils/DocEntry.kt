@@ -9,6 +9,7 @@ import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.utils.json.emolga.draft.VideoProvideStrategy
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.coroutines.launch
@@ -82,7 +83,6 @@ class DocEntry private constructor(val league: League) {
         this.resultCreator = resultCreator
         this.sorterData = sorterData
     }
-
 
 
     suspend fun analyse(replayData: ReplayData, withSort: Boolean = true) {
@@ -376,10 +376,28 @@ data class ReplayData(
     val gamedayData: GamedayData,
     val otherForms: Map<String, List<String>> = emptyMap(),
     val ytVideoSaveData: YTVideoSaveData = YTVideoSaveData()
-)
+) {
+    suspend fun checkIfBothVideosArePresent(league: League): Boolean {
+        val ytSave = ytVideoSaveData
+        val shouldExecute = ytSave.vids.size == uids.size
+        if (shouldExecute) {
+            league.executeYoutubeSend(
+                league.ytSendChannel!!,
+                gamedayData.gameday,
+                gamedayData.battleindex,
+                VideoProvideStrategy.Subscribe(ytSave)
+            )
+        }
+        return shouldExecute
+    }
+}
 
 @Serializable
-data class YTVideoSaveData(var enabled: Boolean = false, val vids: MutableMap<Int, String> = mutableMapOf())
+data class YTVideoSaveData(
+    var enabled: Boolean = false,
+    var done: Boolean = false,
+    val vids: MutableMap<Int, String> = mutableMapOf()
+)
 
 @Suppress("unused")
 data class AdvancedResult(

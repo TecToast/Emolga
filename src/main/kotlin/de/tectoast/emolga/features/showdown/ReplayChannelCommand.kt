@@ -8,7 +8,8 @@ object ReplayChannelCommand :
     CommandFeature<NoArgs>(NoArgs(), CommandSpec("replaychannel", "Konfiguriert die Replay-Channel", -1)) {
 
     object Add : CommandFeature<Add.Args>(
-        ::Args, CommandSpec("add", "Fügt einen Replaychannel hinzu, standardmäßig dieser Channel")
+        ::Args,
+        CommandSpec("add", "Fügt einen Replaychannel hinzu, standardmäßig ist dieser Channel der Ergebnis-Channel")
     ) {
         class Args : Arguments() {
             var channel by channel("Channel", "Der Channel, wo die Ergebnisse reingeschickt werden sollen (optional)") {

@@ -5,14 +5,13 @@ import de.tectoast.emolga.bot.jda
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
 
 object AnalysisDB : Table("analysis") {
     val REPLAY = long("replay")
     val RESULT = long("result")
     val GUILD = long("guild")
 
-    fun insertChannel(replayChannel: Long, resultChannel: Long, guildId: Long) = transaction {
+    suspend fun insertChannel(replayChannel: Long, resultChannel: Long, guildId: Long) = newSuspendedTransaction {
         select { REPLAY eq replayChannel }.firstOrNull()?.get(RESULT) ?: run {
             insert {
                 it[REPLAY] = replayChannel
@@ -23,11 +22,11 @@ object AnalysisDB : Table("analysis") {
         }
     }
 
-    fun deleteChannel(replayChannel: Long) = transaction {
+    suspend fun deleteChannel(replayChannel: Long) = newSuspendedTransaction {
         deleteWhere { REPLAY eq replayChannel } != 0
     }
 
-    fun removeUnused() = transaction {
+    suspend fun removeUnused() = newSuspendedTransaction {
         var x = 0
         for (row in selectAll()) {
             if (jda.getTextChannelById(row[REPLAY]) == null) {

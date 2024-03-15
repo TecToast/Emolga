@@ -4,6 +4,7 @@ import de.tectoast.emolga.bot.EmolgaMain.start
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.ktor.Ktor
+import de.tectoast.emolga.logging.LogConfigReload
 import de.tectoast.emolga.utils.defaultScope
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.initMongo
@@ -42,6 +43,8 @@ suspend fun main() {
     Database.init(Credentials.tokens.database, "localhost")
     logger.info("Starting KTor...")
     Ktor.start()
+    logger.info("Starting LogConfigReload...")
+    LogConfigReload.start()
     logger.info("Starting EmolgaMain...")
     start()
     //logger.info("Starting KTor...")

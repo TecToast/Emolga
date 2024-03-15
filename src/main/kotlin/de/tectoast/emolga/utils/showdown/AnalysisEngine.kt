@@ -3,13 +3,19 @@ package de.tectoast.emolga.utils.showdown
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.utils.draft.DraftPlayer
+import de.tectoast.emolga.utils.showdown.PokemonSaveKey.*
 import mu.KotlinLogging
 import kotlin.properties.Delegates
 import kotlin.reflect.KClass
 
 private val otherThanNumbers = Regex("[^0-9]")
 private val logger = KotlinLogging.logger {}
-data class SDPokemon(var pokemon: String, val player: Int) {
+
+data class SDPokemon(
+    var pokemon: String,
+    val player: Int,
+    val pokemonSaves: MutableMap<PokemonSaveKey, SDPokemon> = mutableMapOf()
+) : MutableMap<PokemonSaveKey, SDPokemon> by pokemonSaves {
     private val effects: MutableMap<SDEffect, SDPokemon> = mutableMapOf()
     val volatileEffects: MutableMap<String, SDPokemon> = mutableMapOf()
     var kills = 0
@@ -21,10 +27,6 @@ data class SDPokemon(var pokemon: String, val player: Int) {
     var damageDealt = 0
     var revivedAmount = 0
     var isDead = false
-    var lastDamageBy: SDPokemon? = null
-    var itemObtainedFrom: SDPokemon? = null
-    var targetForTrick: SDPokemon? = null
-    var perishedBy: SDPokemon? = null
     val zoroLines = mutableMapOf<IntRange, SDPokemon>()
     val otherNames = mutableSetOf<String>()
     var nickname: String? = null
@@ -67,12 +69,12 @@ data class SDPokemon(var pokemon: String, val player: Int) {
         val claimer = this.withZoroCheck()
         if (fainted) {
             val idx = monsOnField[damagedMon.player].indexOf(damagedMon)
-            if (damagedMon.player == claimer.player) (damagedMon.lastDamageBy
+            if (damagedMon.player == claimer.player) (damagedMon[LAST_DAMAGE_BY]
                 ?: monsOnField.getOrNull(1 - damagedMon.player)?.let { field ->
                     field.getOrElse(1 - idx) { field[idx] }
                 })?.addKill(activeKill) else claimer.addKill(activeKill)
         }
-        if (damagedMon.player != claimer.player) damagedMon.lastDamageBy = claimer
+        if (damagedMon.player != claimer.player) damagedMon[LAST_DAMAGE_BY] = claimer
         damagedMon.hp -= amount
         claimer.damageDealt += amount
         totalDmgAmount += amount
@@ -100,6 +102,10 @@ data class SDPokemon(var pokemon: String, val player: Int) {
     }
 }
 
+enum class PokemonSaveKey {
+    LAST_DAMAGE_BY, ITEM_OBTAINED_FROM, TARGET_FOR_TRICK, PERISHED_BY
+}
+
 @Suppress("unused")
 sealed class SDEffect(vararg val types: String) {
     open val name: String? = null
@@ -123,7 +129,7 @@ sealed class SDEffect(vararg val types: String) {
     fun List<String>.getSource(): SDPokemon? {
         val inlined = this.dropWhile { !it.startsWith("[from]") }
         if (inlined.isNotEmpty()) return inlined.getOrNull(1)?.parsePokemon() ?: this[1].parsePokemon().let {
-            it.itemObtainedFrom.takeIf { "item:" in inlined[0] } ?: it
+            it[ITEM_OBTAINED_FROM].takeIf { "item:" in inlined[0] } ?: it
         }
         this.firstOrNull { it.startsWith("[of] p") }?.let { return it.parsePokemon() }
         return lastLine.cleanSplit().takeIf { it.getOrNull(0) == "-activate" }
@@ -176,7 +182,7 @@ sealed class SDEffect(vararg val types: String) {
                 switchIn.volatileEffects.putAll(monsOnField[pl][idx].volatileEffects)
             }
             monsOnField[pl][idx] = switchIn
-            switchIn.setNewHPAndHeal(split[3].replace(otherThanNumbers, "").substringBefore("/").toInt())
+            switchIn.setNewHPAndHeal(split[3].substringBefore("/").replace(otherThanNumbers, "").toInt())
         }
     }
 
@@ -220,59 +226,59 @@ sealed class SDEffect(vararg val types: String) {
         context(BattleContext)
         override fun execute(split: List<String>) {
             val damagedMon = split[1].parsePokemon()
-                val fainted = "fnt" in split[2]
-                val amount = damagedMon.hp - split[2].substringBefore("/").replace(otherThanNumbers, "").toInt()
-                if (split.size > 4 && "[of]" in split[4] && split[3].substringAfter("[from] ") !in damagedMon.volatileEffects) {
-                    split[4].parsePokemon().claimDamage(damagedMon, fainted, amount)
-                    return
-                }
-                split.getOrNull(3)?.substringAfter("[from] ")?.let {
-                    when (it) {
-                        "psn", "tox", "brn" -> {
-                            damagedMon.getEffectSource(Status)?.claimDamage(damagedMon, fainted, amount)
-                        }
-
-                        "Recoil", "recoil", "mindblown", "steelbeam", "highjumpkick", "supercellslam" -> {
-                            val (pl, idx) = split[1].parsePokemonLocation()
-                            (damagedMon.lastDamageBy ?: monsOnField.getOrNull(1 - pl)?.let { field ->
-                                field.getOrElse(1 - idx) { field[idx] }
-                            })?.claimDamage(
-                                damagedMon, fainted, amount
-                            )
-                        }
-
-                        else -> {
-                            if (it.startsWith("item: ")) {
-                                (damagedMon.itemObtainedFrom ?: damagedMon).claimDamage(
-                                    damagedMon, fainted, amount
-                                )
-                            }
-                        }
+            val fainted = "fnt" in split[2]
+            val amount = damagedMon.hp - split[2].substringBefore("/").replace(otherThanNumbers, "").toInt()
+            if (split.size > 4 && "[of]" in split[4] && split[3].substringAfter("[from] ") !in damagedMon.volatileEffects) {
+                split[4].parsePokemon().claimDamage(damagedMon, fainted, amount)
+                return
+            }
+            split.getOrNull(3)?.substringAfter("[from] ")?.let {
+                when (it) {
+                    "psn", "tox", "brn" -> {
+                        damagedMon.getEffectSource(Status)?.claimDamage(damagedMon, fainted, amount)
                     }
-                    findResponsiblePokemon<Hazards>(it, side = damagedMon.player)?.claimDamage(
-                        damagedMon, fainted, amount
-                    )
-                    activeWeather?.let { w ->
-                        if (w.first == it) w.second.claimDamage(
+
+                    "Recoil", "recoil", "mindblown", "steelbeam", "highjumpkick", "supercellslam" -> {
+                        val (pl, idx) = split[1].parsePokemonLocation()
+                        (damagedMon[LAST_DAMAGE_BY] ?: monsOnField.getOrNull(1 - pl)?.let { field ->
+                            field.getOrElse(1 - idx) { field[idx] }
+                        })?.claimDamage(
                             damagedMon, fainted, amount
                         )
                     }
-                    damagedMon.volatileEffects.entries.firstOrNull { h ->
-                        h.key == it || h.key == it.substringAfter(":").trim()
-                    }?.value?.claimDamage(
-                        damagedMon, fainted, amount
-                    )
-                    Unit
-                } ?: run {
-                    sdPlayers.getOrNull(1 - damagedMon.player)?.let { p ->
-                        p.hittingFutureMoves.removeFirstOrNull()?.let {
-                            p.fieldConditions[it]?.claimDamage(damagedMon, fainted, amount)
-                            return@run
+
+                    else -> {
+                        if (it.startsWith("item: ")) {
+                            (damagedMon[ITEM_OBTAINED_FROM] ?: damagedMon).claimDamage(
+                                damagedMon, fainted, amount
+                            )
                         }
                     }
-                    // TODO: Future Moves work in FFA
-                    lastMove.parsePokemon().claimDamage(damagedMon, fainted, amount, activeKill = true)
                 }
+                findResponsiblePokemon<Hazards>(it, side = damagedMon.player)?.claimDamage(
+                    damagedMon, fainted, amount
+                )
+                activeWeather?.let { w ->
+                    if (w.first == it) w.second.claimDamage(
+                        damagedMon, fainted, amount
+                    )
+                }
+                damagedMon.volatileEffects.entries.firstOrNull { h ->
+                    h.key == it || h.key == it.substringAfter(":").trim()
+                }?.value?.claimDamage(
+                    damagedMon, fainted, amount
+                )
+                Unit
+            } ?: run {
+                sdPlayers.getOrNull(1 - damagedMon.player)?.let { p ->
+                    p.hittingFutureMoves.removeFirstOrNull()?.let {
+                        p.fieldConditions[it]?.claimDamage(damagedMon, fainted, amount)
+                        return@run
+                    }
+                }
+                // TODO: Future Moves work in FFA
+                lastMove.parsePokemon().claimDamage(damagedMon, fainted, amount, activeKill = true)
+            }
         }
     }
 
@@ -282,11 +288,11 @@ sealed class SDEffect(vararg val types: String) {
             val pkmn = split[1].parsePokemon()
             if (split[0] == "move") {
                 if (split[2] == "Perish Song") {
-                    monsOnField.flatten().forEach { it.perishedBy = pkmn }
+                    monsOnField.flatten().forEach { it[PERISHED_BY] = pkmn }
                 }
             } else {
                 if (split.getOrNull(2) == "perish0") {
-                    pkmn.perishedBy?.claimDamage(pkmn, true, pkmn.hp)
+                    pkmn[PERISHED_BY]?.claimDamage(pkmn, true, pkmn.hp)
                 }
             }
         }
@@ -342,7 +348,7 @@ sealed class SDEffect(vararg val types: String) {
                 }
                 val (pl, idx) = split[1].parsePokemonLocation()
                 val boomed = monsOnField[pl][idx]
-                (boomed.lastDamageBy ?: monsOnField.getOrNull(1 - pl)?.let {
+                (boomed[LAST_DAMAGE_BY] ?: monsOnField.getOrNull(1 - pl)?.let {
                     it.getOrNull(1 - idx) ?: it[idx]
                 })?.claimDamage(boomed, true, boomed.hp)
             }
@@ -362,12 +368,16 @@ sealed class SDEffect(vararg val types: String) {
                 "-activate" -> if (moves.any { it == split.getOrNull(2)?.substringAfter(": ") }) {
                     val p1 = split[1].parsePokemon()
                     val p2 = split[3].parsePokemon()
-                    p1.targetForTrick = p2
-                    p2.targetForTrick = p1
+                    p1[TARGET_FOR_TRICK] = p2
+                    p2[TARGET_FOR_TRICK] = p1
                 }
 
                 "-item" -> if (split.getOrNull(3)?.substringAfter("move:")?.trim()?.let { it in moves } == true) {
-                    split[1].parsePokemon().let { it.itemObtainedFrom = it.targetForTrick }
+                    split[1].parsePokemon().let {
+                        it[TARGET_FOR_TRICK]?.let { target ->
+                            it[ITEM_OBTAINED_FROM] = target
+                        } ?: logger.warn { "No target for Trickeroo found!" }
+                    }
                 }
             }
         }

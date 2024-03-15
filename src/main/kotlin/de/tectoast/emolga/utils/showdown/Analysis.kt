@@ -260,7 +260,7 @@ object Analysis {
             if (line.startsWith("|player|")) {
                 val i = split[1][1].digitToInt() - 1
                 //if (i !in nicknames)
-                if (split.size > 2) nicknames[i] = split[2].also { logger.warn("Setting nickname of $i to $it") }
+                if (split.size > 2) nicknames[i] = split[2].also { logger.info("Setting nickname of $i to $it") }
             }
             if (line.startsWith("|switch") || line.startsWith("|drag")) {
                 val (player, _) = split[1].parsePokemonLocation()

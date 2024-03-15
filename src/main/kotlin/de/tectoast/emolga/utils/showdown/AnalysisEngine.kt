@@ -3,15 +3,20 @@ package de.tectoast.emolga.utils.showdown
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.utils.draft.DraftPlayer
+import mu.KotlinLogging
+import kotlin.properties.Delegates
 import kotlin.reflect.KClass
 
 private val otherThanNumbers = Regex("[^0-9]")
+private val logger = KotlinLogging.logger {}
 data class SDPokemon(var pokemon: String, val player: Int) {
     private val effects: MutableMap<SDEffect, SDPokemon> = mutableMapOf()
     val volatileEffects: MutableMap<String, SDPokemon> = mutableMapOf()
     var kills = 0
     var activeKills = 0
-    var hp = 100
+    var hp by Delegates.observable(100) { _, _, new ->
+        logger.debug { "$pokemon has $new" }
+    }
     var healed = 0
     var damageDealt = 0
     var revivedAmount = 0

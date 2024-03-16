@@ -547,6 +547,12 @@ object PrivateCommands {
     suspend fun executeTipGameSending(args: PrivateData) {
         db.league(args[0]).executeTipGameSending(args[1].toInt())
     }
+    context(InteractionData)
+    suspend fun speedLeague() {
+        reply((0..<10).map { measureTime { db.league("IPLS4L1") }.inWholeMilliseconds }.average().toString())
+        reply((0..<10).map { measureTime { db.leagueByGuild(Constants.G.VIP, 297010892678234114) }.inWholeMilliseconds }
+            .average().toString())
+    }
 
 
 }

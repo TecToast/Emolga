@@ -414,7 +414,7 @@ open class Arguments {
             //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
             val tierlist = Tierlist[league?.guild ?: gid]
             val strings =
-                (tierlist?.autoComplete() ?: NameConventionsDB.allNameConventions).filterContainsIgnoreCase(s)
+                (tierlist?.autoComplete() ?: NameConventionsDB.allNameConventions()).filterContainsIgnoreCase(s)
             if (strings.size > 25) return@lambda listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
             (if (league == null || tierlist == null) strings
             else strings.map {

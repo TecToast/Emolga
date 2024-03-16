@@ -4,6 +4,7 @@ import de.tectoast.emolga.features.PrivateCommands
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.MappedCache
+import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.NameConventions
@@ -15,7 +16,6 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.litote.kmongo.eq
 
 object NameConventionsDB : Table("nameconventions") {
@@ -30,11 +30,11 @@ object NameConventionsDB : Table("nameconventions") {
 
     private val logger = KotlinLogging.logger {}
 
-    val allNameConventions by lazy(::getAll)
+    val allNameConventions = OneTimeCache { getAll() }
 
     suspend fun getAllOtherSpecified(mons: List<String>, lang: Language, guildId: Long): List<String> {
         val nc = db.nameconventions.get(guildId)
-        return transaction {
+        return newSuspendedTransaction {
             val checkLang = if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH
             val resultLang = if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED
             select(checkLang inList mons).map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] } +
@@ -53,7 +53,7 @@ object NameConventionsDB : Table("nameconventions") {
         }
     }
 
-    fun getAll() = transaction {
+    private suspend fun getAll() = newSuspendedTransaction {
         selectAll().flatMap { setOf(it[GERMAN], it[ENGLISH]) }.toSet()
     }
 

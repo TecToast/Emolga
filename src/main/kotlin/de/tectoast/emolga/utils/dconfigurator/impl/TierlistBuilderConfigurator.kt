@@ -144,7 +144,7 @@ class TierlistBuilderConfigurator(
             for (i in lastTier..tierlistcols.lastIndex) {
                 tiermapping[i] = tiers.elementAt(lastTier)
             }
-            saveToFile()
+            saveToFile(true)
             reply("Die Einrichtung der Tierliste wurde abgeschlossen!").queue()
         }
     }, ModalStep({
@@ -235,7 +235,7 @@ class TierlistBuilderConfigurator(
                 for (i in lastTier..tierlistcols.lastIndex) {
                     tiermapping[i] = tiers.elementAt(lastTier)
                 }
-                saveToFile(true)
+                saveToFile(false)
                 reply("Die Einrichtung der Tierliste wurde abgeschlossen!").queue()
                 return@step
             }

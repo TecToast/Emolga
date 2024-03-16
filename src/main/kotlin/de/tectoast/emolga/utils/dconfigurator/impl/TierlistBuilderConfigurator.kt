@@ -65,7 +65,7 @@ class TierlistBuilderConfigurator(
                 nc.forEach {
                     field {
                         name = it.key.replaceFirstChar { c -> c.uppercase() }
-                        value = it.value.replace("(\\S+)", "POKEMON")
+                        value = it.value.replace("(.+)", "POKEMON")
                         inline = true
                     }
                 }
@@ -98,7 +98,7 @@ class TierlistBuilderConfigurator(
             }?.let {
                 db.nameconventions.updateOne(
                     NameConventions::guild eq guildId,
-                    set(NameConventions::data.keyProjection(form) setTo it.replace("POKEMON", "(\\S+)"))
+                    set(NameConventions::data.keyProjection(form) setTo it.replace("POKEMON", "(.+)"))
                 )
             }
         }
@@ -357,7 +357,7 @@ class TierlistBuilderConfigurator(
     }
 
     companion object {
-        private val logger = KotlinLogging.logger {}
+        val logger = KotlinLogging.logger {}
         val modeSelectMenu = listOf(
             ActionRow.of(
                 StringSelectMenu(
@@ -371,22 +371,28 @@ class TierlistBuilderConfigurator(
         )
         val checkScope = createCoroutineScope("TierlistBuilder", Dispatchers.IO)
 
-        suspend fun checkTL(gid: Long) {
-            checkTL(Tierlist[gid]!!.autoComplete(), gid)
+        fun defaultSendHandler(s: String) = SendFeatures.sendToMe(s.take(2000))
+        suspend inline fun checkTL(gid: Long, crossinline handle: (String) -> Unit = ::defaultSendHandler) {
+            checkTL(Tierlist[gid]!!.autoComplete(), gid, handle)
         }
 
-        fun checkTL(coll: Collection<String>, gid: Long) {
+        inline fun checkTL(
+            coll: Collection<String>,
+            gid: Long,
+            crossinline handle: (String) -> Unit = ::defaultSendHandler
+        ) {
             checkScope.launch {
                 val tl = Tierlist[gid]!!
-                SendFeatures.sendToMe(coll.map {
+                handle(coll.map {
                     async {
                         val discordTranslation = NameConventionsDB.getDiscordTranslation(it, gid)
+                        logger.debug { "Checking $it -> $discordTranslation" }
                         if (discordTranslation == null || tl.getTierOf(discordTranslation.tlName) == null) {
                             it
                         } else
                             null
                     }
-                }.awaitAll().filterNotNull().joinToString("\n").take(2000).ifEmpty { "Nichts gefunden!" })
+                }.awaitAll().filterNotNull().joinToString("\n").ifEmpty { "Nichts gefunden!" })
             }
         }
 

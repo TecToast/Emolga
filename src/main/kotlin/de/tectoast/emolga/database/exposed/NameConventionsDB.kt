@@ -8,7 +8,6 @@ import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.NameConventions
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import mu.KotlinLogging
@@ -17,6 +16,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.eq
+import de.tectoast.emolga.utils.json.db as emolgaDB
 
 object NameConventionsDB : Table("nameconventions") {
     val GUILD = long("guild")
@@ -33,7 +33,7 @@ object NameConventionsDB : Table("nameconventions") {
     val allNameConventions = OneTimeCache { getAll() }
 
     suspend fun getAllOtherSpecified(mons: List<String>, lang: Language, guildId: Long): List<String> {
-        val nc = db.nameconventions.get(guildId)
+        val nc = emolgaDB.nameconventions.get(guildId)
         return newSuspendedTransaction {
             val checkLang = if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH
             val resultLang = if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED
@@ -107,7 +107,7 @@ object NameConventionsDB : Table("nameconventions") {
     }
 
     suspend fun convertOfficialToTL(mon: String, guildId: Long): String? {
-        val nc = db.nameconventions.get(guildId)
+        val nc = emolgaDB.nameconventions.get(guildId)
         val spec = nc.keys.firstOrNull { mon.endsWith("-$it") }
         return getDBTranslation(mon, guildId, spec, nc, english = Tierlist[guildId].isEnglish)?.tlName
     }
@@ -115,11 +115,11 @@ object NameConventionsDB : Table("nameconventions") {
     suspend fun getDiscordTranslation(s: String, guildIdArg: Long, english: Boolean = false): DraftName? {
         val guildId = if (guildIdArg == Constants.G.MY) PrivateCommands.guildForMyStuff ?: guildIdArg else guildIdArg
         val list = mutableListOf<Pair<String, String?>>()
-        val nc = db.nameconventions.findOne(NameConventions::guild eq guildId)?.data
+        val nc = emolgaDB.nameconventions.findOne(NameConventions::guild eq guildId)?.data
         fun Map<String, String>.check() = firstNotNullOfOrNull {
             it.value.toRegex().find(s)?.let { mr -> mr to it.key }
         }
-        val defaultNameConventions = db.defaultNameConventions()
+        val defaultNameConventions = emolgaDB.defaultNameConventions()
         (nc?.check() ?: defaultNameConventions.check())?.also { (mr, key) ->
             list += mr.groupValues[1] + "-" + key to key
         }
@@ -133,13 +133,13 @@ object NameConventionsDB : Table("nameconventions") {
         return null
     }
 
-    private val possibleSpecs = MappedCache(db.defaultNameConventions) { it.keys }
+    private val possibleSpecs = MappedCache(emolgaDB.defaultNameConventions) { it.keys }
 
     suspend fun getSDTranslation(s: String, guildId: Long, english: Boolean = false) = getDBTranslation(
         s,
         guildId,
         possibleSpecs().firstOrNull { s.endsWith("-$it") },
-        db.nameconventions.get(guildId),
+        emolgaDB.nameconventions.get(guildId),
         english
     )
 
@@ -164,12 +164,11 @@ object NameConventionsDB : Table("nameconventions") {
                 GUILD to SortOrder.DESC
             ).firstOrNull()?.let {
                 return@newSuspendedTransaction DraftName(
-                    //if ("-" in it[specified] && "-" !in it[german]) it[german] else it[specified],
                     it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                         if (spec != null) {
-                            val pattern = nc[spec] ?: de.tectoast.emolga.utils.json.db.defaultNameConventions()[spec]!!
-                            val len = pattern.replace("(\\S+)", "").length
-                            val replace = pattern.replace("(\\S+)", s.substringBefore("-$spec"))
+                            val pattern = nc[spec] ?: emolgaDB.defaultNameConventions()[spec]!!
+                            val len = pattern.replace("(.+)", "").length
+                            val replace = pattern.replace("(.+)", s.substringBefore("-$spec"))
                             //logger.warn("s: {}, raw: {}, len: {}, replace: {}", s, raw, len, replace)
                             val replLen = replace.length
                             val coercedLen = len.coerceAtMost(replLen)

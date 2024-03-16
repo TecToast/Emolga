@@ -21,6 +21,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         var docurl by string("Doc-URL", "Die URL des Dokuments, in dem die Namen stehen")
         var tierlistsheet by string("Tierlist-Sheet", "Der Name des Tierlist-Sheets")
         var ranges by list("Bereich %s", "Der %s. Bereich", 10, 1)
+        var complexSign by string("Komplexsymbol", "Das Symbol für Komplexbanns").nullable()
         var shiftMode by enumBasic<ShiftMode>("Shift-Mode", "Der Shift-Mode").nullable()
         var shiftData by string("Shift-Data", "Die Shift-Data").nullable()
     }
@@ -69,6 +70,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         val shiftedMons = e.shiftData?.let {
             e.shiftMode!!.parseMons(it)
         }
+        val complexSign = e.complexSign
         try {
             TierlistBuilderConfigurator(
                 userId = user,
@@ -81,7 +83,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                     false,
                     "COLUMNS"
                 )
-                    .map { col -> col.flatten().mapNotNull { it.toString().prepareForTL() } }
+                    .map { col -> col.flatten().mapNotNull { it.toString().prepareForTL(complexSign) } }
                     .also { tierlistcols += it }
                     .flatten().ensureNoDuplicates() + shiftedMons?.map { it.name }.orEmpty()).distinct(),
                 tierlistcols = tierlistcols,
@@ -99,11 +101,12 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
     }
 }
 
-private val complexSigns = setOf("*", "^", "(")
-private fun String.prepareForTL(): String? {
+private val complexSigns = setOf("*", "^")
+private fun String.prepareForTL(complexSign: String?): String? {
     if (toIntOrNull() != null) return null
     var x = this
     complexSigns.forEach { x = x.substringBefore(it) }
+    complexSign?.let { x = x.substringBefore(it) }
     return x.trim().takeUnless { it.isBlank() }
 }
 

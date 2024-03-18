@@ -37,7 +37,7 @@ object NameConventionsDB : Table("nameconventions") {
         return newSuspendedTransaction {
             val checkLang = if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH
             val resultLang = if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED
-            select(checkLang inList mons).map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] } +
+            select((GUILD eq 0 or (GUILD eq guildId)) and (checkLang inList mons)).map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] } +
                     mons.mapNotNull { mon ->
                         nc.values.firstNotNullOfOrNull { it.toRegex().find(mon) }?.run {
                             select { checkLang eq groupValues[1] }.firstOrNull()

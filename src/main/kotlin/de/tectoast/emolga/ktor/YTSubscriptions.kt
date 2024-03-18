@@ -8,6 +8,8 @@ import de.tectoast.emolga.utils.json.YTVideo
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.repeat.RepeatTask
+import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import de.tectoast.emolga.utils.surroundWith
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -84,24 +86,31 @@ fun Route.ytSubscriptions() {
                 if (ignoreDuplicatesMongo {
                         db.ytvideos.insertOne(YTVideo(channelId, videoId, title, Instant.parse(published)))
                     } && "IPL" in title) {
-                    val uid = db.ytchannel.get(channelId)!!.user
-                    League.executeOnFreshLock({ db.leagueByGuild(Constants.G.VIP, uid)!! }) {
-                        val data =
-                            replayDataStore!!.getLastEnabledReplayData(uid) ?: return@forEach SendFeatures.sendToMe(
-                                "No ReplayData found for $uid in $leaguename"
-                            )
-                        val ytSave = data.ytVideoSaveData
-                        ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(
-                            table.indexOf(
-                                uid
-                            )
-                        )] = videoId
-                        if (!data.checkIfBothVideosArePresent(this))
-                            save("YTSubSave")
-                    }
+                    handleIPLVideo(channelId, videoId)
                 }
             }
         }
+    }
+}
+
+suspend fun handleIPLVideo(channelId: String, videoId: String) {
+    val uid = db.ytchannel.get(channelId)!!.user
+    League.executeOnFreshLock({ db.leagueByGuild(Constants.G.VIP, uid)!! }) {
+        logger.info("League found: $leaguename")
+        val data = RepeatTask.getTask(leaguename, RepeatTaskType.BattleRegister)?.findNearestTimestamp()
+            ?.let { replayDataStore!!.data[it]?.values?.firstOrNull { data -> uid in data.uids } }
+            ?: return SendFeatures.sendToMe(
+                "No ReplayData found for $uid in $leaguename"
+            )
+        val ytSave = data.ytVideoSaveData
+        ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(
+            table.indexOf(
+                uid
+            )
+        )] = videoId
+        val shouldSave = !data.checkIfBothVideosArePresent(this)
+        logger.info("ShouldSave: $shouldSave")
+        if (shouldSave) save("YTSubSave")
     }
 }
 

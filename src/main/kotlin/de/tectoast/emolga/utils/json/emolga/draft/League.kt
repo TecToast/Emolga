@@ -869,12 +869,7 @@ data class ReplayDataStore(
     @Serializable(with = DurationSerializer::class) val intervalBetweenGD: Duration,
     @Serializable(with = DurationSerializer::class) val intervalBetweenMatches: Duration,
     val amount: Int,
-) {
-    fun getLastEnabledReplayData(uid: Long): ReplayData? {
-        return data.values.reversed()
-            .firstNotNullOfOrNull { v -> v.values.lastOrNull { !it.ytVideoSaveData.done && uid in it.uids } }
-    }
-}
+)
 
 @Serializable
 data class Reminder(@Serializable(with = InstantToStringSerializer::class) val lastSend: Instant, val channel: Long)

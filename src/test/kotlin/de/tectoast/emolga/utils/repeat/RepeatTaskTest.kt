@@ -9,11 +9,11 @@ private val logger = KotlinLogging.logger {}
 class RepeatTaskTest : FunSpec({
     test("RepeatTask") {
         val (value, duration) = measureTimedValue {
-            RepeatTask("13.04.2024 14:00", 7, 7.days, false) {
+            RepeatTask("Test", RepeatTaskType.Other("Test"), "13.04.2024 14:00", 7, 7.days, false) {
                 logger.info(it.toString())
             }
         }
-        value.allTimestamps.forEach {
+        value.taskTimestamps.forEach {
             logger.info(it.toString())
         }
         logger.info(duration.toString())

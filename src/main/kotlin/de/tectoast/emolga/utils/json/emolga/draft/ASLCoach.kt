@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.repeat.RepeatTask
+import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -56,7 +57,7 @@ class ASLCoach : League() {
     companion object {
         fun setupRepeatTasks() {
             RepeatTask(
-                "04.12.2023 00:00", 5, 7.days
+                "ASL", RepeatTaskType.Other("Announce"), "04.12.2023 00:00", 5, 7.days
             ) {
                 val msg = "**------------- Spieltag $it -------------**"
                 jda.getTextChannelById(1170477105339973824)!!.sendMessage(msg).queue()

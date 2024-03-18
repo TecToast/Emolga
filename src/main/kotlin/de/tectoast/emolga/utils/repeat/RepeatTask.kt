@@ -8,6 +8,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.emolga.draft.VideoProvideStrategy
+import de.tectoast.emolga.utils.repeat.RepeatTaskType.*
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -16,8 +17,11 @@ import kotlinx.datetime.Instant
 import mu.KotlinLogging
 import java.util.*
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 
 class RepeatTask(
+    val leaguename: String,
+    val type: RepeatTaskType,
     lastExecution: Instant,
     amount: Int,
     difference: Duration,
@@ -25,15 +29,19 @@ class RepeatTask(
     consumer: suspend (Int) -> Unit,
 ) {
     private val scope = createCoroutineScope("RepeatTask")
-    val allTimestamps = mutableListOf<Long>()
+    val taskTimestamps = TreeMap<Instant, Int>()
 
     constructor(
+        leaguename: String,
+        type: RepeatTaskType,
         lastExecution: String,
         amount: Int,
         difference: Duration,
         printDelays: Boolean = false,
         consumer: suspend (Int) -> Unit,
     ) : this(
+        leaguename,
+        type,
         Instant.fromEpochMilliseconds(defaultTimeFormat.parse(lastExecution).time),
         amount,
         difference,
@@ -52,8 +60,8 @@ class RepeatTask(
             var currAmount = amount
             while (last.timeInMillis >= nowM && currAmount > 0) {
                 val curTime = last.timeInMillis
-                allTimestamps += curTime
                 val finalCurrAmount = currAmount
+                taskTimestamps[Instant.fromEpochMilliseconds(curTime)] = finalCurrAmount
                 val delay = curTime - nowM
                 if (printTimestamps) logger.debug("{} -> {}", currAmount, curTime)
                 scope.launch {
@@ -66,6 +74,7 @@ class RepeatTask(
                 last.add(Calendar.MINUTE, minutes)
                 last.add(Calendar.SECOND, seconds)
             }
+            allTasks.getOrPut(leaguename) { mutableMapOf() }[type] = this
         } else {
             logger.info("LastExecution is in the past, RepeatTask will be terminated")
         }
@@ -75,8 +84,14 @@ class RepeatTask(
         scope.cancel("Clear called")
     }
 
+    fun findNearestTimestamp(now: Instant = Clock.System.now()): Int? {
+        return taskTimestamps.ceilingEntry(now - 5.hours)?.value
+    }
+
     companion object {
         private val logger = KotlinLogging.logger {}
+        private val allTasks = mutableMapOf<String, MutableMap<RepeatTaskType, RepeatTask>>()
+        fun getTask(leaguename: String, type: RepeatTaskType) = allTasks[leaguename]?.get(type)
         suspend fun setupRepeatTasks() {
             setupManualRepeatTasks()
             db.drafts.find().toFlow().collect { l ->
@@ -86,11 +101,11 @@ class RepeatTask(
                     val duration = tip.interval
                     logger.info("Draft $name has tipgame with interval ${tip.interval} and duration $duration")
                     RepeatTask(
-                        tip.lastSending, tip.amount, duration, false
+                        name, TipGameSending, tip.lastSending, tip.amount, duration, false
                     ) { refresh().executeTipGameSending(it) }
                     tip.lastLockButtons?.let { last ->
                         RepeatTask(
-                            last, tip.amount, duration, false
+                            name, TipGameLockButtons, last, tip.amount, duration, false
                         ) { refresh().executeTipGameLockButtons(it) }
                     }
                 }
@@ -98,10 +113,12 @@ class RepeatTask(
                     val size = l.battleorder[1]?.size ?: return@let
                     repeat(size) { battle ->
                         RepeatTask(
+                            name,
+                            BattleRegister,
                             data.lastUploadStart + data.intervalBetweenMatches * battle,
                             data.amount,
                             data.intervalBetweenGD,
-                            false
+                            false,
                         ) { gameday ->
                             val league = refresh()
                             var shouldDelay = false
@@ -123,10 +140,12 @@ class RepeatTask(
                         logger.info("YTSendChannel ${l.leaguename} $battle")
                         l.ytSendChannel?.let { ytTC ->
                             RepeatTask(
+                                name,
+                                YTSend,
                                 data.lastUploadStart + data.intervalBetweenMatches * battle + data.intervalBetweenUploadAndVideo,
                                 data.amount,
                                 data.intervalBetweenGD,
-                                true
+                                true,
                             ) { gameday ->
                                 League.executeOnFreshLock({ refresh() }) {
                                     executeYoutubeSend(ytTC, gameday, battle, VideoProvideStrategy.Fetch)
@@ -135,7 +154,7 @@ class RepeatTask(
                         }
                     }
                     data.lastReminder?.let { last ->
-                        RepeatTask(last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
+                        RepeatTask(name, LastReminder, last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
                             jda.getTextChannelById(last.channel)!!
                                 .sendMessage(refresh().buildStoreStatus(gameday)).queue()
                         }
@@ -150,4 +169,13 @@ class RepeatTask(
 //            NDSML.setupRepeatTasks()
         }
     }
+}
+
+sealed interface RepeatTaskType {
+    data object TipGameSending : RepeatTaskType
+    data object TipGameLockButtons : RepeatTaskType
+    data object BattleRegister : RepeatTaskType
+    data object YTSend : RepeatTaskType
+    data object LastReminder : RepeatTaskType
+    data class Other(val descriptor: String) : RepeatTaskType
 }

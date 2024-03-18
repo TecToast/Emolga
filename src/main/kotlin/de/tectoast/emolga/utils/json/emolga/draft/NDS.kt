@@ -12,6 +12,7 @@ import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
+import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -275,11 +276,11 @@ _written by Maxifcn_""".trimIndent()
         fun setupRepeatTasks() {
             logger.info("Setting up matchups repeat tasks")
             RepeatTask(
-                "24.03.2024 20:00", 5, 7.days
+                "NDS", RepeatTaskType.Other("Matchups"), "24.03.2024 20:00", 5, 7.days
             ) { doMatchUps(it, withAnnounce = true) }
             logger.info("Setting up nominations repeat tasks")
             RepeatTask(
-                "27.03.2024 00:00", 5, 7.days
+                "NDS", RepeatTaskType.Other("Nominate"), "27.03.2024 00:00", 5, 7.days
             ) { doNDSNominate() }
         }
     }

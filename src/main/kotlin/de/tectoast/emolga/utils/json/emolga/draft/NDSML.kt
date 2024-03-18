@@ -7,6 +7,7 @@ import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
+import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -76,7 +77,7 @@ class NDSML : League() {
     companion object {
         fun setupRepeatTasks() {
             RepeatTask(
-                "28.01.2024 20:00", 9, 7.days, true
+                "NDSML", RepeatTaskType.Other("Matchups"), "28.01.2024 20:00", 9, 7.days, true
             ) { doMatchUps(it) }
         }
 

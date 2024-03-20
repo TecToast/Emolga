@@ -10,7 +10,6 @@ import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
-import de.tectoast.emolga.utils.surroundWith
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
@@ -71,7 +70,7 @@ fun Route.ytSubscriptions() {
             ) return@post SendFeatures.sendToMe(
                 "Invalid Signature! ${call.request.headers["X-Hub-Signature"]} ```$receiveText```".take(2000)
             )
-            SendFeatures.sendToMe(receiveText.take(2000 - 6).surroundWith("```"))
+//            SendFeatures.sendToMe(receiveText.take(2000 - 6).surroundWith("```"))
             Jsoup.parse(receiveText).select("entry").forEach {
                 val title = it.select("title").text()
                 val link = it.select("link").attr("href")

@@ -25,7 +25,6 @@ import net.dv8tion.jda.api.utils.FileUpload
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import net.dv8tion.jda.api.utils.messages.MessageEditData
 
-@OptIn(ExperimentalCoroutinesApi::class)
 abstract class InteractionData(
     open val user: Long,
     open val tc: Long,
@@ -36,16 +35,6 @@ abstract class InteractionData(
 
     val responseDeferred: CompletableDeferred<CommandResponse> = CompletableDeferred()
     var deferred = false
-
-    init {
-        if (this is TestInteractionData) {
-            redirectTestCommandLogsToChannel?.let { logsChannel ->
-                responseDeferred.invokeOnCompletion {
-                    responseDeferred.getCompleted().sendInto(logsChannel)
-                }
-            }
-        }
-    }
 
     val self get() = this
 
@@ -58,7 +47,7 @@ abstract class InteractionData(
         (event as? GenericComponentInteractionCreateEvent)?.message ?: (event as ModalInteractionEvent).message!!
     }
     val hook by lazy { (event as IDeferrableCallback).hook }
-    var ephemeralDefault = false
+    private var ephemeralDefault = false
     val jda: JDA by lazy { member?.jda ?: de.tectoast.emolga.bot.jda }
 
     suspend fun awaitResponse() = responseDeferred.await()
@@ -121,8 +110,18 @@ abstract class InteractionData(
 
 var redirectTestCommandLogsToChannel: MessageChannel? = null
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TEST_TCID, gid: Long = Constants.G.MY) :
     InteractionData(user, tc, gid) {
+
+    init {
+        redirectTestCommandLogsToChannel?.let { logsChannel ->
+            responseDeferred.invokeOnCompletion {
+                responseDeferred.getCompleted().sendInto(logsChannel)
+            }
+        }
+    }
+
     override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
         responseDeferred.complete(CommandResponse(ephemeral, msgCreateData))
     }

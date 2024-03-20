@@ -395,7 +395,6 @@ data class ReplayData(
 @Serializable
 data class YTVideoSaveData(
     var enabled: Boolean = false,
-    var done: Boolean = false,
     val vids: MutableMap<Int, String> = mutableMapOf()
 )
 

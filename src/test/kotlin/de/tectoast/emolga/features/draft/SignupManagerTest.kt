@@ -17,14 +17,14 @@ class SignupManagerTest : FunSpec({
             defaultChannel.idLong,
             signupChannel.idLong,
             defaultChannel.idLong,
-            16,
+            40,
             null,
             false,
             "GuMo"
         )
         val scope = createCoroutineScope("SignupTest", Dispatchers.IO)
         delay(5000)
-        repeat(20) {
+        repeat(50) {
             scope.launch {
                 SignupManager.signupUser(Constants.G.MY, Constants.FLOID + 1 + it, null, "GuMo", null)
             }

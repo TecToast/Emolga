@@ -13,6 +13,7 @@ import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.http.*
 import kotlinx.coroutines.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
@@ -60,8 +61,12 @@ object Analysis {
                     send("Showdown antwortet nicht. Versuche es später nochmal.")
                 }
 
+                is ShowdownDoesntExistException -> {
+                    send("Das Replay existiert nicht (mehr)! Sicher, dass der Link korrekt ist?")
+                }
+
                 is ShowdownParseException -> {
-                    send("Das Replay konnte nicht analysiert werden! Sicher dass es ein valides Replay ist? Wenn ja, melde dich bitte auf meinem im Profil verlinkten Support-Server.")
+                    send("Das Replay konnte nicht analysiert werden! Sicher, dass es ein valides Replay ist? Wenn ja, melde dich bitte auf meinem im Profil verlinkten Support-Server.")
                 }
 
                 else -> {
@@ -218,15 +223,19 @@ object Analysis {
     suspend fun analyse(link: String, answer: ((String) -> Unit)? = null, debugMode: Boolean = false): AnalysisData {
         var gameNullable: List<String>? = null
         for (i in 0..1) {
+            var statusCode: HttpStatusCode? = null
             val retrieved = runCatching {
                 withContext(Dispatchers.IO) {
                     logger.info("Reading URL... {}", link)
-                    httpClient.get("$link.log").bodyAsText().split("\n")
+                    httpClient.get("$link.log").also { statusCode = it.status }.bodyAsText().split("\n")
                 }
             }.getOrDefault(listOf(""))
             gameNullable = retrieved.takeIf { it.size > 1 }
             if (gameNullable == null) {
                 logger.info(retrieved.toString())
+                if (statusCode == HttpStatusCode.NotFound) {
+                    throw ShowdownDoesntExistException()
+                }
                 logger.info("Showdown antwortet nicht")
                 answer?.invoke("Der Showdown-Server antwortet nicht, ich versuche es in 10 Sekunden erneut...")
                 delay(10.seconds)
@@ -351,3 +360,4 @@ data class AnalysisData(
 sealed class ShowdownException : Exception()
 class ShowdownDoesNotAnswerException : ShowdownException()
 class ShowdownParseException : ShowdownException()
+class ShowdownDoesntExistException : ShowdownException()

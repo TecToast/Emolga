@@ -3,7 +3,6 @@ package de.tectoast.emolga.utils
 import com.google.api.services.sheets.v4.model.Color
 import com.mongodb.MongoWriteException
 import de.tectoast.emolga.database.exposed.TranslationsDB
-import de.tectoast.emolga.features.flo.SendFeatures.sendToMe
 import de.tectoast.emolga.utils.Constants.FLOID
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -82,7 +81,6 @@ val universalLogger = KotlinLogging.logger("Universal")
 private val basicCoroutineContext = SupervisorJob() + CoroutineExceptionHandler { ctx, t ->
     val name = ctx[CoroutineName]?.name ?: "Unknown"
     universalLogger.error(t) { "Error in $name" }
-    sendToMe("Error in $name scope\n```${t.stackTraceToString().take(1800)}```")
 }
 fun createCoroutineScope(name: String, dispatcher: CoroutineDispatcher = Dispatchers.Default) =
     CoroutineScope(createCoroutineContext(name, dispatcher))

@@ -33,12 +33,13 @@ abstract class InteractionData(
     open val event: GenericInteractionCreateEvent? = null
 ) {
 
+    val acknowledged: CompletableDeferred<Unit> = CompletableDeferred()
     val responseDeferred: CompletableDeferred<CommandResponse> = CompletableDeferred()
     var deferred = false
 
     val self get() = this
 
-    val acknowledged get() = responseDeferred.isCompleted
+    val replied get() = responseDeferred.isCompleted
     val textChannel by lazy { jda.getTextChannelById(tc)!! }
     val member = OneTimeCache(member) { guild().retrieveMemberById(user).await() }
     val userObj = OneTimeCache(member?.user) { jda.retrieveUserById(user).await() }
@@ -104,6 +105,10 @@ abstract class InteractionData(
         textChannel.sendMessage(msg).queue()
     }
 
+    protected fun markAcknowledged() {
+        acknowledged.complete(Unit)
+    }
+
 
     val isNotFlo get() = user != Constants.FLOID
 }
@@ -123,27 +128,33 @@ class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TES
     }
 
     override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
+        markAcknowledged()
         responseDeferred.complete(CommandResponse(ephemeral, msgCreateData))
     }
 
     override fun edit(msgEditData: MessageEditData) {
+        markAcknowledged()
         responseDeferred.complete(CommandResponse(msgEditData = msgEditData))
     }
 
     override fun replyModal(modal: Modal) {
+        markAcknowledged()
         responseDeferred.complete(CommandResponse())
     }
 
     override fun deferReply(ephemeral: Boolean) {
+        markAcknowledged()
         deferred = true
     }
 
     override fun deferEdit() {
+        markAcknowledged()
         deferred = true
     }
 
 
     override suspend fun replyAwait(ephemeral: Boolean, msgCreateData: MessageCreateData) {
+        markAcknowledged()
         responseDeferred.complete(CommandResponse(ephemeral, msgCreateData))
     }
 }
@@ -155,23 +166,26 @@ class RealInteractionData(
     override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
         e as IReplyCallback
         val response = CommandResponse(ephemeral, msgCreateData)
-        if (deferred || acknowledged)
+        if (deferred || replied)
             response.sendInto(e.hook)
         else response.sendInto(e)
+        markAcknowledged()
         responseDeferred.complete(response)
     }
 
     override fun edit(msgEditData: MessageEditData) {
         e as IMessageEditCallback
         val response = CommandResponse(msgEditData = msgEditData)
-        if (deferred || acknowledged)
+        if (deferred || replied)
             response.editInto(e.hook)
         else response.editInto(e)
+        markAcknowledged()
         responseDeferred.complete(response)
     }
 
     override fun replyModal(modal: Modal) {
         e as IModalCallback
+        markAcknowledged()
         responseDeferred.complete(CommandResponse())
         e.replyModal(modal).queue()
     }
@@ -179,17 +193,20 @@ class RealInteractionData(
     override fun deferReply(ephemeral: Boolean) {
         e as IReplyCallback
         deferred = true
+        markAcknowledged()
         e.deferReply(ephemeral).queue()
     }
 
     override fun deferEdit() {
         e as IMessageEditCallback
         deferred = true
+        markAcknowledged()
         e.deferEdit().queue()
     }
 
     override suspend fun replyAwait(ephemeral: Boolean, msgCreateData: MessageCreateData) {
         e as IReplyCallback
+        markAcknowledged()
         responseDeferred.complete(CommandResponse(ephemeral, msgCreateData))
         e.reply(msgCreateData).setEphemeral(ephemeral).await()
     }

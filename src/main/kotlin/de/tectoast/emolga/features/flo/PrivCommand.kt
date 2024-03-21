@@ -26,7 +26,7 @@ object PrivCommand : CommandFeature<PrivCommand.Args>(::Args, CommandSpec("priv"
             else method.callSuspend(
                 PrivateCommands, self, PrivateData(e.arguments)
             )
-            if (!acknowledged)
+            if (!replied)
                 reply("Command ausgeführt!", ephemeral = true)
         } ?: reply("Command nicht gefunden!", ephemeral = true)
     }

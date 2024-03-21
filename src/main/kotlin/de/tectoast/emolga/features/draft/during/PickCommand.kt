@@ -38,7 +38,7 @@ object PickCommand :
     context(InteractionData)
     override suspend fun exec(e: Args) {
         val dd = League.byCommand() ?: return run {
-            if (!acknowledged) {
+            if (!replied) {
                 reply(
                     "Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true
                 )

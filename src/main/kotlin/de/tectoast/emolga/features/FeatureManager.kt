@@ -11,6 +11,7 @@ import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.GenericEvent
@@ -24,9 +25,12 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import kotlin.reflect.KClass
 import kotlin.reflect.full.hasAnnotation
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
     private val listenerScope = createCoroutineScope("FeatureManagerListener")
+    private val surveillanceScope = createCoroutineScope("FeatureManagerSurveillance")
 
     constructor(packageName: String) : this(packageName.let {
         ClassPath.from(Thread.currentThread().contextClassLoader).getTopLevelClassesRecursive(packageName).mapNotNull {
@@ -79,6 +83,17 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         e: GenericInteractionCreateEvent,
     ) {
         val data = RealInteractionData(e)
+        surveillanceScope.launch {
+            val executionStart = TimeSource.Monotonic.markNow()
+            withTimeoutOrNull(10000) {
+                data.acknowledged.await()
+            }
+            val duration = executionStart.elapsedNow()
+            if (duration > 2.seconds)
+                logger.warn(
+                    "Interaction not acknowledged after 2s (needed ${executionStart.elapsedNow()}): ${buildLogMessage(e)}"
+                )
+        }
         with(data) {
             try {
                 when (val result = feature.permissionCheck(data)) {
@@ -105,7 +120,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                 ex.printStackTrace()
                 reply(
                     "Es ist ein Fehler beim Ausführen der Interaktion aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (${Constants.MYTAG}).".condAppend(
-                        data.user == Constants.FLOID, "\nJa Flo, du sollst dich auch bei ihm melden du Kek :^)"
+                        data.user == Constants.FLOID, "\nJa Flo, du sollst dich auch bei ihm melden :^)"
                     ),
                     ephemeral = true
                 )
@@ -159,8 +174,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                                         addSubcommands(
                                             SubcommandData(it.spec.name, it.spec.help).addOptions(
                                                 generateOptionData(
-                                                    it,
-                                                    gid
+                                                    it, gid
                                                 )
                                             )
                                         )

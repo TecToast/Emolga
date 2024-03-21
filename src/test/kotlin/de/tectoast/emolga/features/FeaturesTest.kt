@@ -9,8 +9,10 @@ import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import io.kotest.core.spec.style.FunSpec
+import kotlinx.coroutines.delay
 import mu.KotlinLogging
 import net.dv8tion.jda.api.events.GenericEvent
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.interactions.commands.Command
 import kotlin.time.TimeSource
 
@@ -58,7 +60,24 @@ class FeaturesTest : FunSpec({
 
         keepAlive()
     }
+    test("SurveillanceSystem") {
+        defaultGuild.upsertCommand("surveillance", "surveillance").queue()
+        val featureManager = FeatureManager(setOf(SurveillanceSystemTestCommand))
+        jda.listener<SlashCommandInteractionEvent> {
+            featureManager.handleEvent(it)
+        }
+        keepAlive()
+    }
 })
+
+object SurveillanceSystemTestCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("surveillance", "surveillance")) {
+
+    context(InteractionData)
+    override suspend fun exec(e: NoArgs) {
+        delay(4000)
+        reply("GuMo")
+    }
+}
 
 private suspend fun enableDefaultFeatureSystem(syncFeatures: Boolean = true) {
     val manager = EmolgaMain.featureManager

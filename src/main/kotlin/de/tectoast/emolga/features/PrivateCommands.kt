@@ -164,9 +164,11 @@ object PrivateCommands {
         val tc = jda.getTextChannelById(args[0])!!
         val extended = args[1].toBoolean()
         val data = db.signups.get(guildForMyStuff ?: tc.guild.idLong)!!
-        val conferences = args.drop(2)
-        val confMap = conferences.mapNotNull {
+        val conferencesRaw = args.drop(2)
+        val conferences = mutableListOf<String>()
+        val confMap = conferencesRaw.mapNotNull {
             val split = it.split(":")
+            conferences += split[0]
             split.getOrNull(1)?.toLong()?.let { id -> split[0] to id }
         }.toMap()
         data.shiftChannel = tc.idLong
@@ -539,7 +541,7 @@ object PrivateCommands {
     suspend fun analyseMatchresults(args: PrivateData) {
         val league = db.league(args[0])
         league.replayDataStore!!.data[args[1].toInt()]!!.forEach { (_, replay) ->
-            league.docEntry!!.analyseWithoutCheck(replay, withSort = false, realExecute = false)
+            league.docEntry!!.analyseWithoutCheck(replay, withSort = false, realExecute = args[2].toBooleanStrict())
         }
     }
 

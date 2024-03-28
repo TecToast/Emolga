@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils.json
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.various.ShiftUser
 import de.tectoast.emolga.ktor.InstantAsDateSerializer
@@ -89,6 +90,9 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
         drafts.findOne(League::guild eq gid, League::table all uids.toList())
+
+    context(InteractionData)
+    suspend fun leagueByCommand() = leagueByGuild(gid, user)
 
     suspend fun getDataObject(mon: String, guild: Long = 0): Pokemon {
         return pokedex.get(NameConventionsDB.getDiscordTranslation(mon, guild, true)!!.official.toSDName())!!

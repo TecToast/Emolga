@@ -10,6 +10,8 @@ import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.NameConventions
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.showdown.Pokemon
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import mu.KotlinLogging
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -37,19 +39,16 @@ object NameConventionsDB : Table("nameconventions") {
         return newSuspendedTransaction {
             val checkLang = if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH
             val resultLang = if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED
-            select((GUILD eq 0 or (GUILD eq guildId)) and (checkLang inList mons)).map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] } +
-                    mons.mapNotNull { mon ->
-                        nc.values.firstNotNullOfOrNull { it.toRegex().find(mon) }?.run {
-                            select { checkLang eq groupValues[1] }.firstOrNull()
-                                ?.get(resultLang)?.let { repl ->
-                                    if (mon != value) return@let null
-                                    value.replace(
-                                        groupValues[1],
-                                        repl
-                                    )
-                                }
-                        }
+            select((GUILD eq 0 or (GUILD eq guildId)) and (checkLang inList mons)).map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] } + mons.mapNotNull { mon ->
+                nc.values.firstNotNullOfOrNull { it.toRegex().find(mon) }?.run {
+                    select { checkLang eq groupValues[1] }.firstOrNull()?.get(resultLang)?.let { repl ->
+                        if (mon != value) return@let null
+                        value.replace(
+                            groupValues[1], repl
+                        )
                     }
+                }
+            }
         }
     }
 
@@ -119,6 +118,7 @@ object NameConventionsDB : Table("nameconventions") {
         fun Map<String, String>.check() = firstNotNullOfOrNull {
             it.value.toRegex().find(s)?.let { mr -> mr to it.key }
         }
+
         val defaultNameConventions = emolgaDB.defaultNameConventions()
         (nc?.check() ?: defaultNameConventions.check())?.also { (mr, key) ->
             list += mr.groupValues[1] + "-" + key to key
@@ -136,11 +136,7 @@ object NameConventionsDB : Table("nameconventions") {
     private val possibleSpecs = MappedCache(emolgaDB.defaultNameConventions) { it.keys }
 
     suspend fun getSDTranslation(s: String, guildId: Long, english: Boolean = false) = getDBTranslation(
-        s,
-        guildId,
-        possibleSpecs().firstOrNull { s.endsWith("-$it") },
-        emolgaDB.nameconventions.get(guildId),
-        english
+        s, guildId, possibleSpecs().firstOrNull { s.endsWith("-$it") }, emolgaDB.nameconventions.get(guildId), english
     )
 
     suspend fun getAllSDTranslationOnlyOfficialGerman(list: List<String>): Map<String, String> {
@@ -190,7 +186,8 @@ object NameConventionsDB : Table("nameconventions") {
     }
 }
 
-data class DraftName(val tlName: String, val official: String, val guildspecific: Boolean = false) {
+@Serializable
+data class DraftName(val tlName: String, val official: String, @Transient val guildspecific: Boolean = false) {
     var data: Pokemon? = null
     val displayName get() = if (guildspecific) tlName else official
 }

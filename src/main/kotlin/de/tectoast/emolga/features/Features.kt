@@ -319,11 +319,13 @@ abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMe
     operator fun invoke(
         placeholder: String? = null,
         options: List<SelectOption>? = this.options,
+        disabled: Boolean = false,
         menuBuilder: StringSelectMenu.Builder.() -> Unit = {},
         argsBuilder: ArgBuilder<A> = {},
     ) = StringSelectMenu(
         createComponentId(argsBuilder, checkCompId = true),
         placeholder,
+        disabled = disabled,
         valueRange = selectableOptions,
         options = options.orEmpty(),
         builder = menuBuilder
@@ -423,7 +425,7 @@ open class Arguments {
                             NameConventionsDB.getDiscordTranslation(it, league.guild)!!.official
                         }
                     }) "$it (GEPICKT)" else it
-            }).sorted()
+            }).sortedWith(compareBy({ !it.startsWith(s) }, { it }))
         })
         builder()
     }

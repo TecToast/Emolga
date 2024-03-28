@@ -167,4 +167,13 @@ class LeagueTest : FunSpec({
             keepAlive()
         }
     }
+    test("CreateDefaultTestLeague") {
+        createTestDraft(
+            "ASL",
+            3,
+            0,
+            originalorder = emptyMap(),
+            hardcodedUserIds = mapOf(0 to FLOID, 1 to 694543579414134802, 2 to HENNY)
+        )
+    }
 })

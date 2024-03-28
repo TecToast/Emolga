@@ -3,13 +3,13 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.features.draft.InstantToStringSerializer
 import de.tectoast.emolga.features.draft.TipGame
 import de.tectoast.emolga.features.draft.TipGameManager
-import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -141,6 +141,8 @@ sealed class League {
     val newSystemGap get() = teamsize + pickBuffer + 3
 
     open val additionalSet: AdditionalSet? by lazy { AdditionalSet((gamedays + 4).xc(), "X", "Y") }
+
+    val queuedPicks: MutableMap<Long, QueuePicksData> = mutableMapOf()
 
     context (InteractionData)
     suspend inline fun lockForPick(data: BypassCurrentPlayerData, block: () -> Unit) {
@@ -805,19 +807,27 @@ sealed class League {
 
         fun getLock(leaguename: String): Mutex = allMutexes.getOrPut(leaguename) { Mutex() }
 
-        suspend inline fun executeOnFreshLock(leagueSupplier: () -> League, block: League.() -> Unit) {
-            val league = leagueSupplier()
+        suspend inline fun executeOnFreshLock(
+            leagueSupplier: () -> League?,
+            onNotFound: () -> Unit = {},
+            block: League.() -> Unit
+        ) {
+            val league = leagueSupplier() ?: return onNotFound()
             val lock = getLock(league.leaguename)
             val wasLocked = lock.isLocked
             lock.withLock {
-                (if (wasLocked) leagueSupplier() else league).apply(block)
+                (if (wasLocked) leagueSupplier()!! else league).apply(block)
             }
         }
 
+        suspend inline fun executeOnFreshLock(name: String, block: League.() -> Unit) = getLock(name).withLock {
+            val league = db.getLeague(name) ?: return@withLock logger.error("ExecuteOnFreshLock failed for $name")
+            league.block()
+        }
+
         suspend fun executeTimerOnRefreshedVersion(name: String) {
-            getLock(name).withLock {
-                val league = db.getLeague(name) ?: return SendFeatures.sendToMe("League $name not found")
-                if (league.timerRelated.cooldown <= System.currentTimeMillis()) league.afterPickOfficial(
+            executeOnFreshLock(name) {
+                if (timerRelated.cooldown <= System.currentTimeMillis()) afterPickOfficial(
                     data = NextPlayerData.Moved(
                         SkipReason.REALTIMER
                     )
@@ -856,9 +866,10 @@ sealed class League {
 
         suspend fun onlyChannel(tc: Long) = db.drafts.find(League::isRunning eq true, League::tcid eq tc).first()
     }
-
-
 }
+
+@Serializable
+data class QueuePicksData(var enabled: Boolean = false, var queued: MutableList<DraftName> = mutableListOf())
 
 @Serializable
 data class ReplayDataStore(

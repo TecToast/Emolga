@@ -43,5 +43,6 @@ object Constants {
         const val INK = 242427180942884864
         const val OJI = 265917650490753025
         const val TARI = 232950767454126090
+        const val DASOR = 694543579414134802
     }
 }

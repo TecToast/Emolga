@@ -1,11 +1,15 @@
 package de.tectoast.emolga.utils
 
 import com.mongodb.client.model.Filters
+import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.draft.EnterResult
 import de.tectoast.emolga.features.draft.Nominate
+import de.tectoast.emolga.features.draft.during.QueuePicks
+import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode
+import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode.*
 import de.tectoast.emolga.features.intoMultipleRows
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -14,6 +18,7 @@ import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
+import de.tectoast.emolga.utils.json.emolga.draft.QueuePicksData
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
@@ -30,8 +35,12 @@ import org.litote.kmongo.*
 sealed class StateStore {
     var uid: Long = -1
 
+    constructor(uid: Long) {
+        this.uid = uid
+    }
+
     @Transient
-    var forDeletion = false
+    private var forDeletion = false
 
     suspend fun afterOperation() {
         if (forDeletion) deleteFromDB()
@@ -82,8 +91,7 @@ class ResultEntry : StateStore {
     @Transient
     val league = OneTimeCache { db.league(leaguename) }
 
-    constructor(uid: Long, league: League) {
-        this.uid = uid
+    constructor(uid: Long, league: League) : super(uid) {
         this.leaguename = league.leaguename
     }
 
@@ -196,8 +204,7 @@ class ResultEntry : StateStore {
                     }
                 }
                 league.docEntry?.analyse(
-                    ReplayData(
-                        game = game,
+                    ReplayData(game = game,
                         uids = uids,
                         kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
                         mons = data.map { l -> l.map { it.official } },
@@ -205,8 +212,7 @@ class ResultEntry : StateStore {
                         gamedayData = gamedayData.apply {
                             numbers = game.map { it.alivePokemon }
                                 .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
-                        }
-                    )
+                        })
                 )
             }
 
@@ -264,8 +270,7 @@ class NominateState : StateStore {
     private val notNominated: MutableList<DraftPokemon>
     private val nomUser: Long
 
-    constructor(uid: Long, nomUser: Long, originalMons: List<DraftPokemon>, mons: List<DraftPokemon>) {
-        this.uid = uid
+    constructor(uid: Long, nomUser: Long, originalMons: List<DraftPokemon>, mons: List<DraftPokemon>) : super(uid) {
         this.nomUser = nomUser
         this.originalMons = originalMons
         this.mons = mons
@@ -364,16 +369,174 @@ class NominateState : StateStore {
                     title = "Bist du dir wirklich sicher? Die Nominierung kann nicht rückgängig gemacht werden!",
                     color = embedColor,
                     description = generateDescription()
-                ).into(), components = listOf(
-                    Nominate.NominateButton("Ja", ButtonStyle.SUCCESS) {
-                        mode = Nominate.NominateButton.Mode.FINISH
-                        data = "FINISHNOW"
-                    },
-                    Nominate.NominateButton("Nein", ButtonStyle.DANGER) {
-                        mode = Nominate.NominateButton.Mode.CANCEL
-                    }
-                ).into()
+                ).into(), components = listOf(Nominate.NominateButton("Ja", ButtonStyle.SUCCESS) {
+                    mode = Nominate.NominateButton.Mode.FINISH
+                    data = "FINISHNOW"
+                }, Nominate.NominateButton("Nein", ButtonStyle.DANGER) {
+                    mode = Nominate.NominateButton.Mode.CANCEL
+                }).into()
             )
         }
+    }
+}
+
+@Serializable
+@SerialName("QueuePicks")
+class QueuePicks : StateStore {
+
+    var leaguename = ""
+    var currentlyEnabled = false
+
+    private val currentState: MutableList<DraftName>
+
+    constructor(uid: Long, leaguename: String, currentData: QueuePicksData) : super(uid) {
+        this.leaguename = leaguename
+        this.currentState = currentData.queued.toMutableList()
+        this.currentlyEnabled = currentData.enabled
+    }
+
+    private fun buildStateEmbed(currentMon: String?) = Embed {
+        color = embedColor
+        title = "Deine gequeueten Picks"
+        description =
+            "Hier kannst du die Pokemon verschieben oder entfernen.\n" +
+                    "Allgemein ist die hier aufgezeigte Liste eine Kopie deiner echten Liste, die erst nach dem Klick auf `Speichern` oder `Speichern und aktivieren` aktualisiert wird.\n" +
+                    "Da über den `/queuepicks add` Befehl das Pokemon direkt in die echte Liste hinzugefügt wird, muss man danach hier `Neue Pokemon laden` klicken, um die Liste zu aktualisieren.\n" +
+                    "Alternativ kann man auch ein neues Verwaltungsfenster über `/queuepicks manage` öffnen."
+        field(
+            "Aktuelle Reihenfolge",
+            currentState.mapIndexed { index, draftName -> "${index + 1}. ${draftName.tlName}" }.joinToString("\n"),
+            false
+        )
+        field("Status", if (currentlyEnabled) "Aktiv" else "Inaktiv", false)
+        currentMon?.let {
+            field("Aktuelles Pokemon", it, false)
+        }
+    }.into()
+
+    private fun buildSelectMenu() = listOf(
+        if (currentState.isEmpty()) ActionRow.of(
+            QueuePicks.Menu(
+                placeholder = "Keine Picks mehr",
+                disabled = true,
+                options = listOf(SelectOption("Keine Picks", "Keine Picks"))
+            )
+        ) else ActionRow.of(QueuePicks.Menu(options = currentState.map { SelectOption(it.tlName, it.tlName) }))
+    ) + controlButtons
+
+    private fun buildButtons(tlName: String): List<ActionRow> {
+        val first = currentState.firstOrNull()?.tlName == tlName
+        val last = currentState.lastOrNull()?.tlName == tlName
+        return listOf(ActionRow.of(QueuePicks.ControlButton(
+            "Hoch", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬆"), disabled = first
+        ) {
+            mon = tlName; controlMode = UP
+        },
+            QueuePicks.ControlButton("Runter", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬇"), disabled = last) {
+                mon = tlName; controlMode = DOWN
+            },
+            QueuePicks.ControlButton(
+                "Neuen Platz auswählen",
+                ButtonStyle.SECONDARY,
+                Emoji.fromUnicode("1\uFE0F⃣")
+            ) {
+                mon = tlName; controlMode = MODAL
+            },
+            QueuePicks.ControlButton("Entfernen", ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
+                mon = tlName; controlMode = REMOVE
+            }), ActionRow.of(QueuePicks.ControlButton("Abbrechen", ButtonStyle.SECONDARY) {
+            controlMode = CANCEL
+        })
+        )
+    }
+
+    context(InteractionData)
+    fun init() {
+        reply(embeds = buildStateEmbed(null), components = buildSelectMenu(), ephemeral = true)
+    }
+
+    context(InteractionData)
+    fun handleSelect(tlName: String) {
+        edit(embeds = buildStateEmbed(tlName), components = buildButtons(tlName))
+    }
+
+    context(InteractionData)
+    fun handleButton(tlName: String, controlMode: ControlMode) {
+        val index = currentState.indexOfFirst { it.tlName == tlName }
+        val currentMon = when (controlMode) {
+            UP -> {
+                if (index == 0) return reply("Das Pokemon ist bereits an erster Stelle!", ephemeral = true)
+                val mon = currentState.removeAt(index)
+                currentState.add(index - 1, mon)
+                mon.tlName
+            }
+
+            DOWN -> {
+                if (index == currentState.lastIndex) return reply(
+                    "Das Pokemon ist bereits an letzter Stelle!", ephemeral = true
+                )
+                val mon = currentState.removeAt(index)
+                currentState.add(index + 1, mon)
+                mon.tlName
+            }
+
+            REMOVE -> {
+                currentState.removeAt(index)
+                null
+            }
+
+            CANCEL -> {
+                null
+            }
+
+            MODAL -> return replyModal(QueuePicks.SetLocationModal {
+                this.mon = tlName
+            })
+        }
+        edit(embeds = buildStateEmbed(currentMon),
+            components = currentMon?.let { buildButtons(it) } ?: buildSelectMenu())
+    }
+
+    context(InteractionData)
+    fun setLocation(tlName: String, location: Int) {
+        val index = currentState.indexOfFirst { it.tlName == tlName }
+        val mon = currentState.removeAt(index)
+        currentState.add(location.minus(1).coerceIn(currentState.indices), mon)
+        edit(
+            embeds = buildStateEmbed(tlName), components = buildButtons(tlName)
+        )
+    }
+
+    context(InteractionData)
+    suspend fun finish(enable: Boolean) {
+        ephemeralDefault()
+        deferEdit()
+        League.executeOnFreshLock(leaguename) {
+            val data = queuedPicks.getOrPut(user) { QueuePicksData() }
+            data.queued = currentState.toMutableList()
+            data.enabled = enable
+            currentlyEnabled = enable
+            edit(embeds = buildStateEmbed(null), components = emptyList())
+            save()
+            delete()
+            reply("Deine neue Queue-Pick-Reihenfolge wurde gespeichert!\nDas System ist für dich zurzeit **${if (enable) "" else "de"}aktiviert**.")
+        }
+    }
+
+    context(InteractionData)
+    suspend fun reload() {
+        val data = db.league(leaguename).queuedPicks.getOrPut(user) { QueuePicksData() }
+        currentState += data.queued.filter { it !in currentState }
+        edit(embeds = buildStateEmbed(null), components = buildSelectMenu())
+    }
+
+
+    companion object {
+        val controlButtons =
+            listOf(ActionRow.of(QueuePicks.ReloadButton()), ActionRow.of(QueuePicks.FinishButton("Speichern") {
+                enable = false
+            }, QueuePicks.FinishButton("Speichern und aktivieren") {
+                enable = true
+            }))
     }
 }

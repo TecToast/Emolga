@@ -1,6 +1,6 @@
 package de.tectoast.emolga
 
-import de.tectoast.emolga.bot.EmolgaMain.start
+import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.ktor.Ktor
@@ -33,6 +33,9 @@ suspend fun main() {
             logger.error("Wrong Key!")
         }
     }
+    logger.info("Launching Bots...")
+    EmolgaMain.launchBots()
+    logger.info("Starting MongoDB...")
     initMongo()
     Tierlist.setup()
     defaultScope.launch {
@@ -46,7 +49,5 @@ suspend fun main() {
     logger.info("Starting LogConfigReload...")
     LogConfigReload.start()
     logger.info("Starting EmolgaMain...")
-    start()
-    //logger.info("Starting KTor...")
-    //Ktor.start()
+    EmolgaMain.startListeners()
 }

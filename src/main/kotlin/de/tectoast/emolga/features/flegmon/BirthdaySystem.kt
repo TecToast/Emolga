@@ -24,10 +24,8 @@ object BirthdaySystem : CoroutineScope {
                 c[Calendar.MINUTE] = 0
                 c[Calendar.SECOND] = 0
                 val tilnextday = c.timeInMillis - System.currentTimeMillis() + 1000
-                if (EmolgaMain.NOTEMPVERSION) {
-                    delay(tilnextday)
-                    BirthdayDB.checkBirthdays(c, EmolgaMain.flegmonjda.getTextChannelById(605650587329232896L)!!)
-                } else break
+                delay(tilnextday)
+                BirthdayDB.checkBirthdays(c, EmolgaMain.flegmonjda.getTextChannelById(605650587329232896L)!!)
             }
         }
     }

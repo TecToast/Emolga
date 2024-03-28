@@ -2,8 +2,11 @@ package de.tectoast.emolga.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.exposed.CalendarDB
+import de.tectoast.emolga.database.exposed.Giveaway
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
+import de.tectoast.emolga.features.flegmon.BirthdaySystem
 import de.tectoast.emolga.features.various.CalendarSystem
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.Tokens
@@ -49,6 +52,9 @@ class Database(host: String, username: String, password: String) {
             logger.info("Retrieving all startup information...")
             CalendarDB.allEntries.forEach { CalendarSystem.scheduleCalendarEntry(it) }
             SpoilerTagsDB.addToList()
+            Giveaway.init()
+            EmolgaMain.updatePresence()
+            BirthdaySystem.startSystem()
         }
     }
 }

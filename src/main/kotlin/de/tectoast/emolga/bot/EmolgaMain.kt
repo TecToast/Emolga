@@ -1,13 +1,11 @@
 package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
-import de.tectoast.emolga.database.Database
-import de.tectoast.emolga.database.exposed.Giveaway
 import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.FeatureManager
-import de.tectoast.emolga.features.flegmon.BirthdaySystem
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import de.tectoast.emolga.utils.json.db
@@ -51,7 +49,7 @@ var usedJDA = false
     private set
 val jda: JDA by lazy { injectedJDA ?: emolgajda }
 
-object EmolgaMain {
+object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
     const val BOT_DISABLED = false
     const val DISABLED_TEXT =
         "Es finden derzeit große interne Umstrukturierungen statt, ich werde voraussichtlich heute Mittag/Nachmittag wieder einsatzbereit sein :)"
@@ -60,26 +58,18 @@ object EmolgaMain {
     lateinit var flegmonjda: JDA
     private val logger = LoggerFactory.getLogger(EmolgaMain::class.java)
 
-    const val NOTEMPVERSION = true
+    val featureManager = OneTimeCache { FeatureManager("de.tectoast.emolga.features") }
 
-    val featureManager = FeatureManager("de.tectoast.emolga.features")
-
-    @Throws(Exception::class)
-    suspend fun start() {
+    fun launchBots() {
         Message.suppressContentIntentWarning()
-        val eventListeners = listOf(DConfiguratorManager)
         emolgajda = default(Credentials.tokens.discord) {
             //intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
             intents -= GatewayIntent.MESSAGE_CONTENT
-            addEventListeners(*eventListeners.toTypedArray())
             setMemberCachePolicy(MemberCachePolicy.DEFAULT)
         }
-        if (NOTEMPVERSION) {
-            flegmonjda = default(Credentials.tokens.discordflegmon) {
-                intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
-                addEventListeners(*eventListeners.toTypedArray())
-                setMemberCachePolicy(MemberCachePolicy.ALL)
-            }
+        flegmonjda = default(Credentials.tokens.discordflegmon) {
+            intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
+            setMemberCachePolicy(MemberCachePolicy.ALL)
         }
 //        Command.tokens.discordraikou.takeIf { it != "" }?.let {
 //            initializeASLCoach(default(it) {
@@ -87,38 +77,23 @@ object EmolgaMain {
 //            })
 //        }
 //        initializeASLS11(emolgajda)
-        for (jda in if (NOTEMPVERSION) listOf(emolgajda, flegmonjda) else listOf(emolgajda)) {
+    }
+
+    @Throws(Exception::class)
+    fun startListeners() {
+        launch {
+            featureManager.updateCachedValue()
+        }
+        for (jda in listOf(emolgajda, flegmonjda)) {
             jda.listener<GenericEvent> {
-                featureManager.handleEvent(it)
+                featureManager().handleEvent(it)
             }
             DConfiguratorManager.registerEvent(jda)
             jda.awaitReady()
         }
         logger.info("Discord Bots loaded!")
         ControlButtonSetup.init()
-        //Ktor.start()
-        BirthdaySystem.startSystem()
-        if (NOTEMPVERSION) flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
-        Database.dbScope.launch {
-            updatePresence()
-        }/*val manager = ReactionManager(emolgajda)
-        manager // BS
-            .registerReaction("827608009571958806", "884567614918111233", "884564674744561684", "884565654227812364")
-            .registerReaction("827608009571958806", "884567614918111233", "884564533295869962", "884565697479458826")
-            .registerReaction("827608009571958806", "884567614918111233", "884565288564195348", "884565609663320086")
-            .registerReaction("827608009571958806", "884567614918111233", "886748333484441650", "886746672120606771")
-            .registerReaction("827608009571958806", "884567614918111233", "886748333484441650", "886746672120606771")
-            .registerReaction("827608009571958806", "884567614918111233", "921389285188440115", "921387730200584222")*//*GiveawayManager.forAll {
-            Giveaway(
-                it.getLong("channelid"),
-                it.getLong("hostid"),
-                it.getTimestamp("end").toInstant(),
-                it.getInt("winners"),
-                it.getString("prize"),
-                it.getLong("messageid")
-            )
-        }*/
-        Giveaway.init()
+        flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
     }
 
     suspend fun updatePresence() {

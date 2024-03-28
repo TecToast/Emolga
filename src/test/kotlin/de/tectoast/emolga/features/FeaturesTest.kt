@@ -80,7 +80,7 @@ object SurveillanceSystemTestCommand : CommandFeature<NoArgs>(NoArgs(), CommandS
 }
 
 private suspend fun enableDefaultFeatureSystem(syncFeatures: Boolean = true) {
-    val manager = EmolgaMain.featureManager
+    val manager = EmolgaMain.featureManager()
     enableReplyRedirect()
     jda.listener<GenericEvent> {
         timer = TimeSource.Monotonic.markNow()

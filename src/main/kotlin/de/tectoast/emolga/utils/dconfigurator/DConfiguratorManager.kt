@@ -3,9 +3,8 @@ package de.tectoast.emolga.utils.dconfigurator
 import dev.minn.jda.ktx.events.listener
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
-import net.dv8tion.jda.api.hooks.ListenerAdapter
 
-object DConfiguratorManager : ListenerAdapter() {
+object DConfiguratorManager {
     private val activeConfigurators: MutableMap<String, DConfigurator> = mutableMapOf()
     // KeyFormat: userid;tcid
 

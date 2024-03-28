@@ -23,7 +23,7 @@ object ControlCentralButton : ButtonFeature<ControlCentralButton.Args>(::Args, B
         var breakpoint = false
         deferReply(true)
         when (e.mode) {
-            Mode.UPDATE_SLASH -> EmolgaMain.featureManager.updateFeatures(jda)
+            Mode.UPDATE_SLASH -> EmolgaMain.featureManager().updateFeatures(jda)
             Mode.UPDATE_TIERLIST -> Tierlist.setup()
             Mode.BREAKPOINT -> breakpoint = true
         }

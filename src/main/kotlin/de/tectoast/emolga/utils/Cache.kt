@@ -8,9 +8,13 @@ abstract class Cache<T> {
     protected var cached: T? = null
     open suspend operator fun invoke(): T {
         if (cached == null) {
-            cached = update()
+            updateCachedValue()
         }
         return cached!!
+    }
+
+    suspend fun updateCachedValue() {
+        cached = update()
     }
 
     abstract suspend fun update(): T

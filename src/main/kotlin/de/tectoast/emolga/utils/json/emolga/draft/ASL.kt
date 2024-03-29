@@ -40,28 +40,22 @@ class ASL(
         //cancelIf = { _, gd -> gd == 10 }
     }
 
-    @Transient
-    override val additionalSet = AdditionalSet("N", "X", "Y")
-
     override fun provideReplayChannel(jda: JDA) = jda.getTextChannelById(replayChannel)
     override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(resultChannel)
 
     override suspend fun AddToTierlistData.addMonToTierlist() {
-        builder().addRow("Data!K${index + 600}", listOf(mon, pkmn.await().speed, tier, englishTLName)).execute()
+        builder().addRow("Data!B${index + 600}", listOf(mon, pkmn.await().speed, tier, englishTLName)).execute()
     }
 
 
     @Transient
     override var timer: DraftTimer? = SimpleTimer(
-        TimerInfo(delayInMins = 120).add(10, 22, SATURDAY, SUNDAY)
+        TimerInfo(delaysAfterSkips = mapOf(0 to 120, 1 to 60, 2 to 30)).add(10, 22, SATURDAY, SUNDAY)
             .add(14, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)
     )
 
 
     override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
-
-    override fun isFinishedForbidden() = false
-
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
         addSingle(

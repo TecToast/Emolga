@@ -1,5 +1,6 @@
 package de.tectoast.emolga.features.draft.during
 
+import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.QueuePicks
@@ -46,11 +47,18 @@ object QueuePicks {
                 League.executeOnFreshLock({ db.leagueByCommand() },
                     { return reply("Du bist in keiner Liga auf diesem Server!") }) {
                     val data = queuedPicks.getOrPut(user) { QueuePicksData() }
-                    if (data.queued.contains(e.mon)) return reply("Du hast dieses Pokemon bereits in deiner Queue!")
-                    data.queued += e.mon
+                    val mon = e.mon
+                    if (data.queued.contains(mon)) return reply("Du hast dieses Pokemon bereits in deiner Queue!")
+                    val newlist = data.queued.toMutableList().apply { add(mon) }
+                    if (checkIfTeamCantBeFinished(user, newlist))
+                        return reply("Wenn du dieses Pokemon holen wollen würdest, könnte dein Team nicht mehr vervollständigt werden!")
+                    StateStore.processIgnore<QueuePicks> {
+                        addNewMon(mon)
+                    }
+                    data.queued = newlist
                     data.enabled = false
                     save("QueuePickAdd")
-                    reply("`${e.mon.tlName}` wurde zu deinen gequeueten Picks hinzugefügt! Außerdem wurde das System für dich deaktiviert, damit du das Pokemon noch an die richtige Stelle schieben kannst :)")
+                    reply("`${mon.tlName}` wurde zu deinen gequeueten Picks hinzugefügt! Außerdem wurde das System für dich deaktiviert, damit du das Pokemon noch an die richtige Stelle schieben kannst :)")
                 }
 
             }
@@ -61,6 +69,10 @@ object QueuePicks {
             League.executeOnFreshLock({ db.leagueByCommand() },
                 { return reply("Du bist in keiner Liga auf diesem Server!") }) {
                 val data = queuedPicks.getOrPut(user) { QueuePicksData() }
+                if (checkIfTeamCantBeFinished(
+                        user, data.queued
+                    )
+                ) return reply("Mit der aktuellen Queue könnte dein Kader nicht vervollständigt werden!")
                 data.enabled = enable
                 save("QueuePickActivation")
             }
@@ -118,7 +130,6 @@ object QueuePicks {
     }
 
     object FinishButton : ButtonFeature<FinishButton.Args>(::Args, ButtonSpec("queuepicksfinish")) {
-        override val buttonStyle = ButtonStyle.SUCCESS
 
         class Args : Arguments() {
             var enable by boolean()
@@ -150,8 +161,11 @@ object QueuePicks {
 
         class Args : Arguments() {
             var mon by string().compIdOnly()
-            var location by string<Int>("Position", "Die Position, an die das Pokemon verschoben werden soll") {
+            var location by string<Int>("Position") {
                 validate { it.toIntOrNull() }
+                modal {
+                    placeholder = "Die Position, an die das Pokemon verschoben werden soll"
+                }
             }
         }
 
@@ -161,5 +175,12 @@ object QueuePicks {
                 setLocation(e.mon, e.location)
             }
         }
+    }
+
+    context(League)
+    suspend fun checkIfTeamCantBeFinished(uid: Long, currentState: List<DraftName>): Boolean {
+        return points[uid] - currentState.sumOf { tierlist.getPointsNeeded(tierlist.getTierOf(it.tlName)!!) } < minimumNeededPointsForTeamCompletion(
+            (picks[uid]?.size ?: 0) + currentState.size
+        )
     }
 }

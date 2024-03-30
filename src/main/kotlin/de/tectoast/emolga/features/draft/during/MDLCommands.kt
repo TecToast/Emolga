@@ -129,12 +129,9 @@ object MDLCommands {
                                     pokemonofficial = official,
                                     tier = tier,
                                     mem = d.current,
-                                    indexInRound = indexInRound(round),
-                                    changedIndex = picks.indexOfFirst { it.name == official },
-                                    picks = picks,
                                     round = round,
-                                    memIndex = table.indexOf(d.current),
-                                    freePick = false
+                                    freePick = false,
+                                    updrafted = false
                                 )
                             ).let { b }
                         }.execute()
@@ -182,12 +179,9 @@ object MDLCommands {
                                     pokemonofficial = newofficial,
                                     tier = newtier,
                                     mem = d.current,
-                                    indexInRound = indexInRound(round),
-                                    changedIndex = picks.indexOfFirst { it.name == newofficial },
-                                    picks = picks,
                                     round = round,
-                                    memIndex = table.indexOf(d.current),
-                                    freePick = false
+                                    freePick = false,
+                                    updrafted = false
                                 )
                             ).let { b }
                         }.execute()

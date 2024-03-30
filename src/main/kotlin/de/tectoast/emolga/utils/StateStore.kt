@@ -10,6 +10,7 @@ import de.tectoast.emolga.features.draft.Nominate
 import de.tectoast.emolga.features.draft.during.QueuePicks
 import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode
 import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode.*
+import de.tectoast.emolga.features.draft.during.QueuePicks.checkIfTeamCantBeFinished
 import de.tectoast.emolga.features.intoMultipleRows
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -22,9 +23,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.QueuePicksData
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
+import kotlinx.serialization.*
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
@@ -66,11 +65,16 @@ sealed class StateStore {
     companion object {
         context(InteractionData)
         suspend inline fun <reified T : StateStore> process(block: T.() -> Unit) {
-            (db.statestore.findOne(StateStore::uid eq user, Filters.eq<String?>("type", T::class.simpleName)) as T?
-                ?: return reply(
-                    "Diese Interaktion ist nicht mehr gültig! Starte sie wenn nötig erneut!", ephemeral = true
-                )).process(block)
+            processIgnore<T>(block) ?: reply(
+                "Diese Interaktion ist nicht mehr gültig! Starte sie wenn nötig erneut!", ephemeral = true
+            )
         }
+
+        context(InteractionData)
+        suspend inline fun <reified T : StateStore> processIgnore(block: T.() -> Unit) =
+            (db.statestore.findOne(StateStore::uid eq user, Filters.eq<String?>("type", T::class.simpleName)) as T?)
+                ?.process(block)
+
     }
 }
 
@@ -382,17 +386,26 @@ class NominateState : StateStore {
 
 @Serializable
 @SerialName("QueuePicks")
+@OptIn(ExperimentalSerializationApi::class)
 class QueuePicks : StateStore {
 
     var leaguename = ""
     var currentlyEnabled = false
 
+    @EncodeDefault
     private val currentState: MutableList<DraftName>
+
+    @EncodeDefault
+    private val addedMeanwhile: MutableList<DraftName> = mutableListOf()
 
     constructor(uid: Long, leaguename: String, currentData: QueuePicksData) : super(uid) {
         this.leaguename = leaguename
         this.currentState = currentData.queued.toMutableList()
         this.currentlyEnabled = currentData.enabled
+    }
+
+    fun addNewMon(mon: DraftName) {
+        addedMeanwhile.add(mon)
     }
 
     private fun buildStateEmbed(currentMon: String?) = Embed {
@@ -444,7 +457,7 @@ class QueuePicks : StateStore {
             },
             QueuePicks.ControlButton("Entfernen", ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
                 mon = tlName; controlMode = REMOVE
-            }), ActionRow.of(QueuePicks.ControlButton("Abbrechen", ButtonStyle.SECONDARY) {
+            }), ActionRow.of(QueuePicks.ControlButton("Bestätigen", ButtonStyle.SUCCESS) {
             controlMode = CANCEL
         })
         )
@@ -500,8 +513,9 @@ class QueuePicks : StateStore {
     context(InteractionData)
     fun setLocation(tlName: String, location: Int) {
         val index = currentState.indexOfFirst { it.tlName == tlName }
+        val range = currentState.indices
         val mon = currentState.removeAt(index)
-        currentState.add(location.minus(1).coerceIn(currentState.indices), mon)
+        currentState.add(location.minus(1).coerceIn(range), mon)
         edit(
             embeds = buildStateEmbed(tlName), components = buildButtons(tlName)
         )
@@ -512,6 +526,11 @@ class QueuePicks : StateStore {
         ephemeralDefault()
         deferEdit()
         League.executeOnFreshLock(leaguename) {
+            if (checkIfTeamCantBeFinished(
+                    uid,
+                    currentState
+                )
+            ) return reply("Mit dieser Queue hast du nicht genug Punkte für ein vollständiges Team!")
             val data = queuedPicks.getOrPut(user) { QueuePicksData() }
             data.queued = currentState.toMutableList()
             data.enabled = enable
@@ -524,19 +543,26 @@ class QueuePicks : StateStore {
     }
 
     context(InteractionData)
-    suspend fun reload() {
-        val data = db.league(leaguename).queuedPicks.getOrPut(user) { QueuePicksData() }
-        currentState += data.queued.filter { it !in currentState }
+    fun reload() {
+        currentState += addedMeanwhile
+        addedMeanwhile.clear()
         edit(embeds = buildStateEmbed(null), components = buildSelectMenu())
     }
 
 
     companion object {
         val controlButtons =
-            listOf(ActionRow.of(QueuePicks.ReloadButton()), ActionRow.of(QueuePicks.FinishButton("Speichern") {
-                enable = false
-            }, QueuePicks.FinishButton("Speichern und aktivieren") {
-                enable = true
-            }))
+            listOf(
+                ActionRow.of(QueuePicks.ReloadButton()),
+                ActionRow.of(
+                    QueuePicks.FinishButton(
+                        "Speichern und deaktivieren",
+                        buttonStyle = ButtonStyle.SECONDARY
+                    ) {
+                        enable = false
+                    }, QueuePicks.FinishButton("Speichern und aktivieren", buttonStyle = ButtonStyle.SUCCESS) {
+                        enable = true
+                    })
+            )
     }
 }

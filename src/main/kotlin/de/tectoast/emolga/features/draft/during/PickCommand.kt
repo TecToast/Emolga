@@ -1,5 +1,6 @@
 package de.tectoast.emolga.features.draft.during
 
+import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
@@ -46,59 +47,83 @@ object PickCommand :
         }
         val (d, data) = dd
         d.lockForPick(data) l@{
-            if (d.isSwitchDraft && !d.allowPickDuringSwitch) {
-                return@l reply("Du kannst während des Switch-Drafts nicht picken!")
-
-            }
-            d.beforePick()?.let { return@l reply(it) }
-            val mem = d.current
-            val tierlist = d.tierlist
-            val picks = d.picks(mem)
-            val (tlName, official, _) = e.pokemon
-            logger.info("tlName: $tlName, official: $official")
-            val (specifiedTier, officialTier) = (d.getTierOf(tlName, e.tier)
-                ?: return@l reply("Dieses Pokemon ist nicht in der Tierliste!"))
-
-            d.checkUpdraft(specifiedTier, officialTier)?.let { return@l reply(it) }
-            if (d.isPicked(official, officialTier)) return@l reply("Dieses Pokemon wurde bereits gepickt!")
-            val tlMode = tierlist.mode
-            val free =
-                e.free.takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } ?: false
-            if (!free && d.handleTiers(specifiedTier, officialTier)) return@l
-            if (d.handlePoints(
-                    tlNameNew = tlName, officialNew = official, free = free, tier = officialTier
-                )
-            ) return@l
-            val saveTier = if (free) officialTier else specifiedTier
-            d.savePick(picks, official, saveTier, free)
-            //m.delete().queue();
-            if (!e.random) d.replyPick(tlName, free, specifiedTier, saveTier != officialTier)
-            if (e.random) {
-                d.replyRandomPick(tlName, specifiedTier)
-            } else if (official == "Emolga") {
-                sendMessage("<:Happy:967390966153609226> ".repeat(5))
-            }
-            val round = d.getPickRoundOfficial()
-            with(d) {
-                builder().let { b ->
-                    b.pickDoc(
-                        PickData(
-                            league = d,
-                            pokemon = tlName,
-                            pokemonofficial = official,
-                            tier = saveTier,
-                            mem = mem,
-                            indexInRound = indexInRound(round),
-                            changedIndex = picks.indexOfFirst { it.name == official },
-                            picks = picks,
-                            round = round,
-                            memIndex = table.indexOf(mem),
-                            freePick = free
-                        )
-                    )?.let { b }
-                }?.execute()
-            }
-            d.afterPickOfficial()
+            executeWithinLock(e.pokemon, e.tier, e.free, e.random, fromQueue = false)
         }
     }
+
+    context(InteractionData)
+    suspend fun League.executeWithinLock(
+        pokemon: DraftName,
+        tier: String?,
+        free: Boolean,
+        random: Boolean,
+        fromQueue: Boolean
+    ) {
+        val pickData = formalPick(pokemon, tier, free) as? PickData ?: return
+        respond(pickData, random, fromQueue)
+        insertIntoDoc(pickData)
+        if (!fromQueue)
+            afterPickOfficial()
+    }
+
+    private suspend fun League.insertIntoDoc(pickData: PickData) {
+        builder().let { b ->
+            b.pickDoc(pickData)?.let { b }
+        }?.execute()
+    }
+
+    context(InteractionData)
+    private suspend fun League.respond(
+        pickData: PickData, random: Boolean = false, fromQueue: Boolean
+    ) {
+        if (fromQueue) {
+            tc.sendMessage("**${getCurrentName()}** hat ${pickData.displayName()} aus der Queue gepickt!").queue()
+        } else {
+            if (!random) replyPick(pickData)
+            if (random) {
+                replyRandomPick(pickData)
+            } else if (pickData.pokemonofficial == "Emolga") {
+                sendMessage("<:Happy:967390966153609226> ".repeat(5))
+            }
+        }
+    }
+
+    context(InteractionData)
+    private suspend fun League.formalPick(pokemon: DraftName, tier: String? = null, free: Boolean = false): Any? {
+        if (isSwitchDraft && !allowPickDuringSwitch) {
+            return reply("Du kannst während des Switch-Drafts nicht picken!")
+        }
+        beforePick()?.let { return reply(it) }
+        val mem = current
+        val tierlist = tierlist
+        val picks = picks(mem)
+        val (tlName, official, _) = pokemon
+        logger.info("tlName: $tlName, official: $official")
+        val (specifiedTier, officialTier) = (getTierOf(tlName, tier)
+            ?: return reply("Dieses Pokemon ist nicht in der Tierliste!"))
+        checkUpdraft(specifiedTier, officialTier)?.let { return reply(it) }
+        if (isPicked(official, officialTier)) return reply("Dieses Pokemon wurde bereits gepickt!")
+        val tlMode = tierlist.mode
+        val freepick =
+            free.takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } ?: false
+        if (!freepick && handleTiers(specifiedTier, officialTier)) return null
+        if (handlePoints(
+                tlNameNew = tlName, officialNew = official, free = freepick, tier = officialTier
+            )
+        ) return null
+        val saveTier = if (freepick) officialTier else specifiedTier
+        savePick(picks, official, saveTier, freepick)
+        lastPickedMon = pokemon
+        return PickData(
+            league = this,
+            pokemon = tlName,
+            pokemonofficial = official,
+            tier = saveTier,
+            mem = mem,
+            round = getPickRoundOfficial(),
+            freePick = free,
+            updrafted = saveTier != officialTier
+        )
+    }
+
 }

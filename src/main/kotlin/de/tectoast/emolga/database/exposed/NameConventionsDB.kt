@@ -26,7 +26,7 @@ object NameConventionsDB : Table("nameconventions") {
     val ENGLISH = varchar("english", 50)
     val SPECIFIED = varchar("specified", 50)
     val SPECIFIEDENGLISH = varchar("specifiedenglish", 50)
-    private val HASHYPHENINNAME = bool("hashypheninname")
+    val HASHYPHENINNAME = bool("hashypheninname")
 
     val COMMON = bool("common")
 
@@ -190,4 +190,12 @@ object NameConventionsDB : Table("nameconventions") {
 data class DraftName(val tlName: String, val official: String, @Transient val guildspecific: Boolean = false) {
     var data: Pokemon? = null
     val displayName get() = if (guildspecific) tlName else official
+    override fun equals(other: Any?): Boolean {
+        if (other !is DraftName) return false
+        return official == other.official
+    }
+
+    override fun hashCode(): Int {
+        return official.hashCode()
+    }
 }

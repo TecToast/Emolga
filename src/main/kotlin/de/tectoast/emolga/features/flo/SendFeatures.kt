@@ -6,7 +6,12 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Constants
-import kotlin.math.min
+import dev.minn.jda.ktx.messages.Mentions
+import dev.minn.jda.ktx.messages.SendDefaults
+import dev.minn.jda.ktx.messages.send
+import net.dv8tion.jda.api.entities.MessageEmbed
+import net.dv8tion.jda.api.interactions.components.LayoutComponent
+import net.dv8tion.jda.api.utils.FileUpload
 
 object SendFeatures {
     class Args : Arguments() {
@@ -42,12 +47,18 @@ object SendFeatures {
         sendToUser(Constants.FLOID, msg)
     }
 
-    fun sendToUser(id: Long, msg: String) {
+    fun sendToUser(
+        id: Long,
+        content: String = SendDefaults.content,
+        embeds: Collection<MessageEmbed> = SendDefaults.embeds,
+        components: Collection<LayoutComponent> = SendDefaults.components,
+        files: Collection<FileUpload> = emptyList(),
+        tts: Boolean = false,
+        mentions: Mentions = Mentions.default(),
+    ) {
         val jda = jda
         jda.openPrivateChannelById(id).flatMap { pc ->
-            pc.sendMessage(
-                msg.substring(0, min(msg.length, 2000))
-            )
+            pc.send(content.take(2000), embeds, components, files, tts, mentions)
         }.queue()
     }
 }

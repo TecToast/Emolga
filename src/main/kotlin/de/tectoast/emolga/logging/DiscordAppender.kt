@@ -34,6 +34,7 @@ class DiscordAppender : UnsynchronizedAppenderBase<ILoggingEvent>() {
 
 
     override fun append(eventObject: ILoggingEvent) {
+        if (eventObject.loggerName == "de.tectoast.emolga.Main") return
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             channel.send(Embed {
                 title = eventObject.loggerName.substringAfterLast(".")

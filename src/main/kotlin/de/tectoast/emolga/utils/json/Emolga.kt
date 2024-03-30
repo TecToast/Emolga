@@ -91,6 +91,9 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
         drafts.findOne(League::guild eq gid, League::table all uids.toList())
 
+    suspend fun leagueForAutocomplete(tc: Long, gid: Long, user: Long) =
+        drafts.findOne(or(League::tcid eq tc, and(League::guild eq gid, League::table contains user)))
+
     context(InteractionData)
     suspend fun leagueByCommand() = leagueByGuild(gid, user)
 
@@ -99,8 +102,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     }
 
 
-    private val scanScope =
-        createCoroutineScope("ScanScope")
+    private val scanScope = createCoroutineScope("ScanScope")
 
     suspend fun leagueByGuildAdvanced(gid: Long, game: List<List<DraftName>>, vararg uids: Long): LeagueResult? {
         val (leagueResult, duration) = measureTimedValue {
@@ -110,12 +112,10 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                     val mons = game[index]
                     val otherFormesEngl = mutableMapOf<DraftName, List<String>>()
                     val (possibleOtherForm, noOtherForm) = mons.partition {
-                        (
-                                (it.data?.otherFormes?.filterNot { forme -> "-Alola" in forme || "-Galar" in forme || "-Hisui" in forme }
-                                    .orEmpty() + it.data?.baseSpecies).filterNotNull()
-                                    .also { list ->
-                                        otherFormesEngl[it] = list
-                                    }.size) > 0
+                        ((it.data?.otherFormes?.filterNot { forme -> "-Alola" in forme || "-Galar" in forme || "-Hisui" in forme }
+                            .orEmpty() + it.data?.baseSpecies).filterNotNull().also { list ->
+                            otherFormesEngl[it] = list
+                        }.size) > 0
                     }
                     val allSDTranslations =
                         NameConventionsDB.getAllSDTranslationOnlyOfficialGerman(possibleOtherForm.flatMap { otherFormesEngl[it].orEmpty() })
@@ -124,11 +124,8 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                     }.toMap()
                     allOtherFormesGerman.putAll(otherFormesGerman)
                     val filters = possibleOtherForm.map {
-                        or(
-                            PickedMonsData::mons contains it.official,
-                            otherFormesGerman[it.official].orEmpty()
-                                .let { mega -> PickedMonsData::mons `in` mega }
-                        )
+                        or(PickedMonsData::mons contains it.official,
+                            otherFormesGerman[it.official].orEmpty().let { mega -> PickedMonsData::mons `in` mega })
                     }.toTypedArray()
                     val query = and(
                         *(if (noOtherForm.isNotEmpty()) arrayOf((PickedMonsData::mons all noOtherForm.map { it.official })) else emptyArray()),
@@ -174,12 +171,9 @@ data class TipGameUserData(
             update(user, league, set(TipGameUserData::topkiller setTo mon))
         }
 
-        private suspend fun update(user: Long, league: String, update: Bson) =
-            db.tipgameuserdata.updateOne(
-                and(TipGameUserData::user eq user, TipGameUserData::league eq league),
-                update,
-                upsert()
-            )
+        private suspend fun update(user: Long, league: String, update: Bson) = db.tipgameuserdata.updateOne(
+            and(TipGameUserData::user eq user, TipGameUserData::league eq league), update, upsert()
+        )
 
     }
 }
@@ -201,8 +195,7 @@ data class YTVideo(
 
 @Serializable
 data class YTChannel(
-    val user: Long,
-    val channelId: String
+    val user: Long, val channelId: String
 )
 
 @Serializable
@@ -307,8 +300,7 @@ data class LigaStartData(
         ).queue()
         val msg = "_----------- Anmeldung geschlossen -----------_"
         channel.sendMessage(msg).queue()
-        if (announceChannel != signupChannel) jda.getTextChannelById(signupChannel)!!.sendMessage(msg)
-            .queue()
+        if (announceChannel != signupChannel) jda.getTextChannelById(signupChannel)!!.sendMessage(msg).queue()
         if (forced) updateSignupMessage(true)
     }
 
@@ -344,22 +336,17 @@ class Shinycount(
 
 @Serializable
 data class ShinyEvent(
-    val user: Long,
-    val shinies: List<ShinyData>,
-    val points: Int,
-    val messageId: Long? = null
+    val user: Long, val shinies: List<ShinyData>, val points: Int, val messageId: Long? = null
 ) {
     @Serializable
     data class ShinyData(
-        val game: String,
-        val method: String
+        val game: String, val method: String
     )
 }
 
 @Serializable
 data class LogoChecksum(
-    val checksum: String,
-    val fileId: String
+    val checksum: String, val fileId: String
 )
 
 suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!
@@ -384,5 +371,6 @@ suspend fun CoroutineCollection<YTChannel>.get(user: Long) = find(YTChannel::use
 
 @JvmName("getYTChannelByChannelId")
 suspend fun CoroutineCollection<YTChannel>.get(channelId: String) = find(YTChannel::channelId eq channelId).first()
+
 @JvmName("getIntervalTaskData")
 suspend fun CoroutineCollection<IntervalTaskData>.get(name: String) = find(IntervalTaskData::name eq name).first()

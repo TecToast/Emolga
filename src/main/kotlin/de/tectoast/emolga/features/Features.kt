@@ -412,8 +412,7 @@ open class Arguments {
         }
         slashCommand(autocomplete = autocomplete ?: lambda@{ s, event ->
             val gid = event.guild!!.idLong
-            val league = League.onlyChannel(event.channel.idLong)
-            //val alreadyPicked = league?.picks?.values?.flatten()?.map { it.name } ?: emptyList()
+            val league = db.leagueForAutocomplete(event.channel.idLong, gid, event.user.idLong)
             val tierlist = Tierlist[league?.guild ?: gid]
             val strings =
                 (tierlist?.autoComplete() ?: NameConventionsDB.allNameConventions()).filterContainsIgnoreCase(s)

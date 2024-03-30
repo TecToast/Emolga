@@ -19,7 +19,7 @@ object MoveCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("move", "Versc
                 return reply("Der Draft ist quasi schon vorbei, du kannst jetzt nicht mehr moven!")
             }
             it.triggerMove()
-            replyAwait("Du hast deinen Pick verschoben!")
+            it.replyGeneral("den Pick verschoben!")
             it.afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP))
         }
     }

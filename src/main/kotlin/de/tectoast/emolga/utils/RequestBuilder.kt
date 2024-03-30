@@ -2,6 +2,8 @@ package de.tectoast.emolga.utils
 
 import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.utils.records.Coord
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
@@ -21,6 +23,7 @@ class RequestBuilder
     private var suppressMessages = false
     private var additionalSheets: Array<String>? = null
     private var onlyBatch = false
+    private var realExecute = true
     fun withRunnable(r: suspend () -> Unit): RequestBuilder {
         runnable = r
         return this
@@ -333,10 +336,15 @@ class RequestBuilder
         executed = false
     }
 
+    fun execute(realExecute: Boolean = true) {
+        this.realExecute = realExecute
+        scheduleForExecution(this)
+    }
+
     /**
      * Executes the request to the specified google sheet
      */
-    fun execute(realExecute: Boolean = true) {
+    private fun internalExecute() {
         check(!executed) {
             """
      Already executed RequestBuilder with requests:
@@ -452,6 +460,21 @@ class RequestBuilder
         private val EVERYTHING_BUT_NUMBER = Pattern.compile("\\D")
         private val EVERYTHING_BUT_CHARS = Pattern.compile("[^a-zA-Z]")
         private val scope = createCoroutineScope("RequestBuilder")
+        private val channelCollectScope = createCoroutineScope("RequestBuilderChannelCollect")
+        private val channel = Channel<RequestBuilder>(Channel.UNLIMITED)
+
+        init {
+            channelCollectScope.launch {
+                while (true) {
+                    channel.receive().internalExecute()
+                    delay(2000)
+                }
+            }
+        }
+
+        private fun scheduleForExecution(b: RequestBuilder) {
+            defaultScope.launch(start = CoroutineStart.UNDISPATCHED) { channel.send(b) }
+        }
 
         fun getColumnFromRange(range: String): Int {
             val chars = EVERYTHING_BUT_CHARS.matcher(range).replaceAll("").toCharArray()

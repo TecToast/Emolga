@@ -14,7 +14,6 @@ import com.google.api.services.sheets.v4.model.*
 import com.google.api.services.youtube.YouTube
 import com.google.api.services.youtube.model.SearchResult
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.minutes
 
@@ -184,14 +183,12 @@ object Google {
      * @see setCredentials
      */
     private suspend fun generateAccessToken(): String = withContext(googleContext) {
-        val accessToken = GoogleRefreshTokenRequest(
+        GoogleRefreshTokenRequest(
             GoogleNetHttpTransport.newTrustedTransport(),
             GsonFactory.getDefaultInstance(),
             REFRESHTOKEN,
             CLIENTID,
             CLIENTSECRET
         ).execute().also { universalLogger.info("GENERATEACCESSTOKEN ${it.expiresInSeconds} ${it.scope}") }.accessToken
-        delay(5000)
-        accessToken
     }
 }

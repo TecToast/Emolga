@@ -333,6 +333,50 @@ sealed class League {
             restartTimer(delayData)
         }
         logger.info("Started!")
+    suspend fun startDraft(
+        tc: GuildMessageChannel?, fromFile: Boolean, switchDraft: Boolean?, nameGuildId: Long? = null
+    ) {
+        lock {
+            switchDraft?.let { this.isSwitchDraft = it }
+            logger.info("Starting draft $leaguename...")
+            logger.info(tcid.toString())
+            if (names.isEmpty()) {
+                names.putAll(if (table.any { it < 11_000_000_000 }) table.associateWith { "${it - 10_000_000_000}" } else jda.getGuildById(
+                    nameGuildId ?: this.guild
+                )!!.retrieveMembersByIds(table).await().associate { it.idLong to it.effectiveName })
+            }
+            logger.info(names.toString())
+            tc?.let { this.tcid = it.idLong }
+            for (member in table) {
+                if (fromFile || isSwitchDraft) picks.putIfAbsent(member, mutableListOf())
+                else picks[member] = mutableListOf()
+            }
+            isRunning = true
+            val currentTimeMillis = System.currentTimeMillis()
+            if (!fromFile) {
+                order.clear()
+                order.putAll(originalorder.mapValues { it.value.toMutableList() })
+                round = 1
+                moved.clear()
+                pseudoEnd = false
+                timerRelated.lastPick = currentTimeMillis
+                timerRelated.usedStallSeconds.clear()
+                skippedTurns.clear()
+                reset()
+                sendRound()
+                restartTimer()
+                announcePlayer()
+                save("StartDraft")
+            } else {
+                val delayData = if (timerRelated.cooldown > 0) DelayData(
+                    timerRelated.cooldown, timerRelated.regularCooldown, currentTimeMillis
+                ) else timer?.calc(
+                    this, currentTimeMillis
+                )
+                restartTimer(delayData)
+            }
+            logger.info("Started!")
+        }
     }
 
     fun setNextUser() {

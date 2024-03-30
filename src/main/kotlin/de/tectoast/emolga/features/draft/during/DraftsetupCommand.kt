@@ -16,6 +16,7 @@ object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
         var switchdraft by boolean("switchdraft", "Ob es ein Switchdraft sein soll") {
             default = false
         }
+        var nameguild by long("NameGuild", "Der Server, von dem die Namen geholt werden sollen").nullable()
     }
 
     init {
@@ -24,7 +25,8 @@ object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
 
     context(InteractionData)
     override suspend fun exec(e: Args) {
-        db.league(e.name).startDraft(textChannel, fromFile = false, switchDraft = e.switchdraft)
+        db.league(e.name)
+            .startDraft(textChannel, fromFile = false, switchDraft = e.switchdraft, nameGuildId = e.nameguild)
         reply("+1", ephemeral = true)
     }
 }

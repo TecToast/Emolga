@@ -28,23 +28,13 @@ object DraftPermissionCommand :
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            db.drafts.find(League::guild eq gid, League::table contains user).first()?.let { l ->
+            League.executeOnFreshLock({ db.leagueByCommand() },
+                { reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) {
                 val mem = e.user
                 if (mem.user.isBot) return reply("Du kannst keine Bots als Ersatzdrafter hinzufügen!")
                 val withMention = e.withmention
                 val id = mem.idLong
-                val allowed = l.allowed
-                val set = allowed.getOrPut(user) { mutableSetOf() }
-                val selfmention = withMention.selfmention
-                val othermention = withMention.othermention
-                for ((userid, mention) in setOf(Pair(user, selfmention), Pair(id, othermention))) {
-                    (set.firstOrNull { it.u == userid }?.let { d -> d.mention = mention } ?: set.add(
-                        AllowedData(
-                            userid,
-                            mention
-                        )
-                    ))
-                }
+                val set = performPermissionAdd(user, id, withMention)
                 reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {
                     description = set.sortedWith { o1, o2 ->
                         if (o1.u == user) -1
@@ -52,9 +42,25 @@ object DraftPermissionCommand :
                         else 0
                     }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
                 }.into())
-                l.save()
-            } ?: reply("Du nimmst nicht an einer Liga auf diesem Server teil!")
+                save()
+            }
         }
+    }
+
+    context(League)
+    fun performPermissionAdd(user: Long, toadd: Long, withMention: Allow.Mention): Set<AllowedData> {
+        val set = allowed.getOrPut(user) { mutableSetOf() }
+        val selfmention = withMention.selfmention
+        val othermention = withMention.othermention
+        for ((userid, mention) in setOf(Pair(user, selfmention), Pair(toadd, othermention))) {
+            (set.firstOrNull { it.u == userid }?.let { d -> d.mention = mention } ?: set.add(
+                AllowedData(
+                    userid,
+                    mention
+                )
+            ))
+        }
+        return set
     }
 
     object Deny : CommandFeature<Deny.Args>(::Args, CommandSpec("deny", "Verbiete einer Person das Ersatzdraften")) {

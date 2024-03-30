@@ -5,6 +5,7 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.draft.TipGameManager
+import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
 import de.tectoast.emolga.features.various.ShiftUser
@@ -39,6 +40,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -549,11 +551,44 @@ object PrivateCommands {
     suspend fun executeTipGameSending(args: PrivateData) {
         db.league(args[0]).executeTipGameSending(args[1].toInt())
     }
+
     context(InteractionData)
     suspend fun speedLeague() {
         reply((0..<10).map { measureTime { db.league("IPLS4L1") }.inWholeMilliseconds }.average().toString())
         reply((0..<10).map { measureTime { db.leagueByGuild(Constants.G.VIP, 297010892678234114) }.inWholeMilliseconds }
             .average().toString())
+    }
+
+    context(InteractionData)
+    suspend fun copyTLToMyServer(args: PrivateData) {
+        newSuspendedTransaction {
+            val gid = args().toLong()
+            Tierlist.batchInsert(Tierlist[gid]!!.retrieveAll(), shouldReturnGeneratedValues = false) {
+                this[Tierlist.guild] = Constants.G.MY
+                this[Tierlist.pokemon] = it.name
+                this[Tierlist.tier] = it.tier
+            }
+            NameConventionsDB.batchInsert(NameConventionsDB.select { NameConventionsDB.GUILD eq gid }) {
+                this[NameConventionsDB.GUILD] = Constants.G.MY
+                this[NameConventionsDB.GERMAN] = it[NameConventionsDB.GERMAN]
+                this[NameConventionsDB.ENGLISH] = it[NameConventionsDB.ENGLISH]
+                this[NameConventionsDB.SPECIFIED] = it[NameConventionsDB.SPECIFIED]
+                this[NameConventionsDB.SPECIFIEDENGLISH] = it[NameConventionsDB.SPECIFIEDENGLISH]
+                this[NameConventionsDB.HASHYPHENINNAME] = it[NameConventionsDB.HASHYPHENINNAME]
+                this[NameConventionsDB.COMMON] = it[NameConventionsDB.COMMON]
+            }
+        }
+    }
+
+    context(InteractionData)
+    suspend fun addDraftPermission(args: PrivateData) {
+        League.executeOnFreshLock(args[0]) {
+            DraftPermissionCommand.performPermissionAdd(
+                args[1].toLong(),
+                args[2].toLong(),
+                DraftPermissionCommand.Allow.Mention.valueOf(args[3])
+            )
+        }
     }
 
 

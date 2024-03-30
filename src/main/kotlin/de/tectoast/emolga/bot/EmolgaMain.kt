@@ -9,8 +9,10 @@ import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.getCount
 import de.tectoast.emolga.utils.json.only
+import de.tectoast.emolga.utils.marker
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.jdabuilder.cache
@@ -25,9 +27,11 @@ import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import net.dv8tion.jda.api.utils.cache.CacheFlag.*
+import org.litote.kmongo.eq
 import org.slf4j.LoggerFactory
 import java.text.SimpleDateFormat
 import java.util.*
@@ -66,6 +70,14 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
             //intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
             intents -= GatewayIntent.MESSAGE_CONTENT
             setMemberCachePolicy(MemberCachePolicy.DEFAULT)
+        }
+        emolgajda.listener<ReadyEvent> {
+            logger.info("important".marker, "Emolga is now online!")
+            db.drafts.find(League::isRunning eq true).toList().forEach {
+                if (it.noAutoStart) return@forEach
+                logger.info("important".marker, "Starting draft ${it.leaguename}...")
+                it.startDraft(null, true, null)
+            }
         }
         flegmonjda = default(Credentials.tokens.discordflegmon) {
             intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)

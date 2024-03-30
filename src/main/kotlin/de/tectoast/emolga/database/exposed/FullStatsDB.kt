@@ -9,7 +9,6 @@ import mu.KotlinLogging
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
 
 object FullStatsDB : Table("fullstats") {
     val POKEMON = varchar("pokemon", 30)
@@ -36,7 +35,7 @@ object FullStatsDB : Table("fullstats") {
 
     }
 
-    fun getData(mon: String) = transaction {
+    suspend fun getData(mon: String) = newSuspendedTransaction {
         val userobj = select { POKEMON eq mon }.firstOrNull()
         if (userobj == null) {
             UsageData(0, 0, 0, 0, 0)

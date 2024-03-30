@@ -43,8 +43,8 @@ object CalendarSystem : CoroutineScope {
     }
 
 
-    private fun buildCalendar(): String {
-        return CalendarDB.allEntries.sortedBy { it.expires }
+    private suspend fun buildCalendar(): String {
+        return CalendarDB.getAllEntries().sortedBy { it.expires }
             .joinToString("\n") { "**${calendarFormat.format(it.expires.toEpochMilli())}:** ${it.message}" }
             .ifEmpty { "_leer_" }
     }

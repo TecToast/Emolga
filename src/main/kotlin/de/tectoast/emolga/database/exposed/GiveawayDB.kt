@@ -16,7 +16,6 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.javatime.timestamp
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -59,7 +58,7 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
     var winners by GiveawaysDB.WINNERS
 
     private suspend fun finish() {
-        transaction {
+        newSuspendedTransaction {
             delete()
         }
         val tc = jda.getTextChannelById(channelid) ?: return

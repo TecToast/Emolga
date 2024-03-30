@@ -58,7 +58,7 @@ object RandomTeamGrafikCommand : CommandFeature<NoArgs>(
         mapOf("S" to 2, "A" to 3, "B" to 2, "C" to 3, "D" to 2),
     )
 
-    private fun generateTeam(guild: Long = Constants.G.ASL): List<DraftPokemon> {
+    private suspend fun generateTeam(guild: Long = Constants.G.ASL): List<DraftPokemon> {
         return Tierlist[guild]!!.retrieveTierlistMap(sets.random())
     }
 }

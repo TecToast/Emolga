@@ -12,7 +12,6 @@ import kotlinx.serialization.Transient
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.litote.kmongo.eq
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -59,7 +58,7 @@ class Tierlist(val guildid: Long) {
         }
     }
 
-    fun addPokemon(mon: String, tier: String) = transaction {
+    suspend fun addPokemon(mon: String, tier: String) = newSuspendedTransaction {
         insert {
             it[guild] = this@Tierlist.guildid
             it[pokemon] = mon
@@ -67,8 +66,8 @@ class Tierlist(val guildid: Long) {
         }
     }
 
-    fun getByTier(tier: String): List<String>? {
-        return transaction {
+    suspend fun getByTier(tier: String): List<String>? {
+        return newSuspendedTransaction {
             select { guild eq guildid and (Tierlist.tier eq tier) }.map { it[pokemon] }.ifEmpty { null }
         }
     }
@@ -84,7 +83,7 @@ class Tierlist(val guildid: Long) {
         }
 
 
-    fun retrieveTierlistMap(map: Map<String, Int>) = transaction {
+    suspend fun retrieveTierlistMap(map: Map<String, Int>) = newSuspendedTransaction {
         map.entries.flatMap { (tier, amount) ->
             select { guild eq guildid and (Tierlist.tier eq tier) }.orderBy(Random()).limit(amount)
                 .map { DraftPokemon(it[pokemon], tier) }

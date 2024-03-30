@@ -23,7 +23,6 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
@@ -312,9 +311,9 @@ object DBF {
     }
 
     @Suppress("unused")
-    fun sendQuestionsToUser() {
+    suspend fun sendQuestionsToUser() {
         val questions = readQuestions().toMutableList()
-        val indexesToRemove = transaction { UsedQuestionsDB.selectAll().map { it[UsedQuestionsDB.index] } }
+        val indexesToRemove = newSuspendedTransaction { UsedQuestionsDB.selectAll().map { it[UsedQuestionsDB.index] } }
         // remove from questions all indexes in indexesToRemove
         for (i in indexesToRemove.sortedDescending()) {
             questions.removeAt(i)
@@ -334,7 +333,7 @@ object DBF {
     }
 
     context(InteractionData)
-    fun newNormalQuestion() {
+    suspend fun newNormalQuestion() {
         val question = regularQuestions.randomOrNull() ?: return reply(
             "Keine Fragen mehr!", ephemeral = true
         )
@@ -344,7 +343,7 @@ object DBF {
     }
 
     context(InteractionData)
-    fun newEstimateQuestion() {
+    suspend fun newEstimateQuestion() {
         val question = estimateQuestions.randomOrNull() ?: return reply(
             "Keine Fragen mehr!", ephemeral = true
         )

@@ -1,11 +1,12 @@
 package de.tectoast.emolga.database.exposed
 
-import de.tectoast.emolga.database.upsert
 import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.Translation
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.or
+import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 object TranslationsDB : Table("translations") {
     val ENGLISHID = varchar("englishid", 30)
@@ -20,14 +21,14 @@ object TranslationsDB : Table("translations") {
 
     override val primaryKey = PrimaryKey(ENGLISHID, TYPE)
 
-    fun getTranslation(
+    suspend fun getTranslation(
         id: String,
         checkOnlyEnglish: Boolean,
         language: Language,
         withCap: Boolean = false,
         modification: String = "default"
     ) =
-        transaction {
+        newSuspendedTransaction {
             select { (ENGLISHID eq id).let { if (checkOnlyEnglish) it else it or (GERMANID eq id) } and (CAP eq withCap) and (MODIFICATION eq modification) }.firstOrNull()
                 ?.let {
                     Translation(
@@ -40,26 +41,5 @@ object TranslationsDB : Table("translations") {
                 }
         }
 
-    fun getEnglishIdsAndGermanNames(col: Collection<String>) = transaction {
-        select { ENGLISHID inList col }.map { it[ENGLISHID] to it[GERMANNAME] }
-    }
-
-    fun addNick(nick: String, t: Translation) = transaction {
-        upsert(
-            nick,
-            mapOf(
-                GERMANID to nick,
-                ENGLISHNAME to t.otherLang,
-                GERMANNAME to t.translation,
-                TYPE to t.type,
-                ISNICK to true
-            ),
-            ENGLISHID
-        )
-    }
-
-    fun removeNick(nick: String) = transaction {
-        deleteWhere { (ENGLISHID eq nick) and (ISNICK eq true) } != 0
-    }
 
 }

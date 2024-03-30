@@ -16,14 +16,13 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
 
 object SDNamesDB : Table("sdnames") {
     val NAME = varchar("name", 18)
     val ID = long("id")
 
-    fun getIDByName(name: String) =
-        transaction { select { NAME eq name.toUsername() }.firstOrNull()?.get(ID) } ?: -1
+    suspend fun getIDByName(name: String) =
+        newSuspendedTransaction { select { NAME eq name.toUsername() }.firstOrNull()?.get(ID) } ?: -1
 
     fun addIfAbsent(name: String, id: Long): Deferred<SDInsertStatus> {
         return Database.dbScope.async {

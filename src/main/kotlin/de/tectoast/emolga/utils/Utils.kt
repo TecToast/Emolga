@@ -209,7 +209,7 @@ data class Translation(
             return emptyTranslation
         }
 
-        fun getGerName(s: String): Translation {
+        suspend fun getGerName(s: String): Translation {
             val id = s.toSDName()
             if (translationsCacheGerman.containsKey(id)) return translationsCacheGerman.getValue(id)
             return TranslationsDB.getTranslation(id, false, Language.GERMAN)?.also {
@@ -217,7 +217,7 @@ data class Translation(
             } ?: empty()
         }
 
-        fun getEnglNameWithType(s: String): Translation {
+        suspend fun getEnglNameWithType(s: String): Translation {
             val id = s.toSDName()
             if (translationsCacheEnglish.containsKey(id)) return translationsCacheEnglish.getValue(id)
             return TranslationsDB.getTranslation(id, false, Language.ENGLISH)?.also {

@@ -18,7 +18,7 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.statements.InsertStatement
 import org.jetbrains.exposed.sql.statements.Statement
 import org.jetbrains.exposed.sql.transactions.TransactionManager
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 import javax.sql.DataSource
 
@@ -50,7 +50,7 @@ class Database(host: String, username: String, password: String) {
 
         private suspend fun onStartUp() {
             logger.info("Retrieving all startup information...")
-            CalendarDB.allEntries.forEach { CalendarSystem.scheduleCalendarEntry(it) }
+            CalendarDB.getAllEntries().forEach { CalendarSystem.scheduleCalendarEntry(it) }
             SpoilerTagsDB.addToList()
             Giveaway.init()
             EmolgaMain.updatePresence()
@@ -108,7 +108,7 @@ fun <T : Table, K : Any> T.upsert(key: K, map: Map<Column<*>, Any>, checkcol: Co
 fun Statement<*>.execute() = execute(TransactionManager.current())
 private fun Any.escaped() = if (this is String) "'$this'" else this.toString()
 val Table.firstPrimary get() = primaryKey!!.columns.first()
-fun <T : Table> T.forAll(block: T.(ResultRow) -> Unit) = transaction {
+suspend fun <T : Table> T.forAll(block: T.(ResultRow) -> Unit) = newSuspendedTransaction {
     selectAll().forEach {
         block(it)
     }

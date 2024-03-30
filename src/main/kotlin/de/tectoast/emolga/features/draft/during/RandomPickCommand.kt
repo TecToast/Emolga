@@ -41,7 +41,7 @@ object RandomPickCommand : CommandFeature<RandomPickCommand.Args>(
                     ?: return reply("Das ist kein Tier!")).takeIf {
                     tierRestrictions[gid]?.run { isEmpty() || contains(it) } != false
                 }
-                    ?: return reply("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: $tierRestrictions[gid]?.joinToString()}")
+                    ?: return reply("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: ${tierRestrictions[gid]?.joinToString()}")
             } ?: if (d.tierlist.mode.withTiers) d.getPossibleTiers()
                 .filter { it.value > 0 }.keys.random() else d.tierlist.order.last()
 

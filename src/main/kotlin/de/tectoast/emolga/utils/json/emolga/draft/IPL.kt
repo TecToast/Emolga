@@ -120,7 +120,7 @@ class IPL(
 
     override suspend fun AddToTierlistData.addMonToTierlist() {
         val data = pkmn.await()
-        builder().addRow("Data!K${index + 600}", listOf(mon, data.getIcon(), data.speed, tier)).execute()
+        builder().addRow("Data!K${index() + 600}", listOf(mon, data.getIcon(), data.speed, tier)).execute()
     }
 
     override fun reset() {

@@ -44,7 +44,7 @@ class ASL(
     override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(resultChannel)
 
     override suspend fun AddToTierlistData.addMonToTierlist() {
-        builder().addRow("Data!B${index + 600}", listOf(mon, pkmn.await().speed, tier, englishTLName)).execute()
+        builder().addRow("Data!B${index() + 600}", listOf(mon, pkmn.await().speed, tier, englishTLName)).execute()
     }
 
 

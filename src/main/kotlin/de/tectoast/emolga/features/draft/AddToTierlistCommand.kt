@@ -7,6 +7,7 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
@@ -78,7 +79,7 @@ data class AddToTierlistData(val mon: String, val tier: String, val tierlist: Ti
         )!!.tlName
     }
 
-    val index by lazy { tierlist.monCount - 1 }
+    val index = OneTimeCache { tierlist.getMonCount() - 1 }
 
     suspend fun addToTierlistAutocompletion() {
         tierlist.addedViaCommand += mon

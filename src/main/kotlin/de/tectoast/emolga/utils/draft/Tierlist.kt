@@ -116,10 +116,9 @@ class Tierlist(val guildid: Long) {
         deleteWhere { guild eq guildid }
     }
 
-    val monCount
-        get() = transaction {
-            select { guild eq guildid }.count().toInt()
-        }
+    suspend fun getMonCount() = newSuspendedTransaction {
+        select { guild eq guildid }.count().toInt()
+    }
 
     companion object : ReadOnlyProperty<League, Tierlist>, Table("tierlists") {
         /**

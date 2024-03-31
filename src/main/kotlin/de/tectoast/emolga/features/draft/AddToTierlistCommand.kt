@@ -43,13 +43,13 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
         val mon = e.mon.tlName
         val tier = e.tier ?: tierlist.prices.keys.last()
         if (tier !in tierlist.prices) {
-            return reply("Das Tier $tier existiert nicht!")
+            return reply("Das Tier `$tier` existiert nicht!")
         }
         try {
             tierlist.addPokemon(mon, tier)
         } catch (ex: ExposedSQLException) {
             if (ex.cause is SQLIntegrityConstraintViolationException) {
-                return reply("Das Pokemon $mon existiert bereits!")
+                return reply("Das Pokemon `$mon` existiert bereits!")
             }
             reply("Es ist ein unbekannter Fehler aufgetreten!")
             ex.printStackTrace()

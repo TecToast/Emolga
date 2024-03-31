@@ -96,6 +96,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         }
         with(data) {
             try {
+                logger.info(buildLogMessage(e))
                 when (val result = feature.permissionCheck(data)) {
                     Allowed -> {
                         val args = feature.argsFun()
@@ -108,7 +109,6 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                             )
                             return
                         }
-                        logger.info(buildLogMessage(e))
                         feature.exec(args)
                     }
 

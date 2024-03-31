@@ -49,6 +49,7 @@ object QueuePicks {
                     val data = queuedPicks.getOrPut(user) { QueuePicksData() }
                     val mon = e.mon
                     if (data.queued.contains(mon)) return reply("Du hast dieses Pokemon bereits in deiner Queue!")
+                    tierlist.getTierOf(mon.tlName) ?: return reply("Das Pokemon ist nicht in der Tierlist!")
                     val newlist = data.queued.toMutableList().apply { add(mon) }
                     if (checkIfTeamCantBeFinished(user, newlist))
                         return reply("Wenn du dieses Pokemon holen wollen würdest, könnte dein Team nicht mehr vervollständigt werden!")

@@ -347,15 +347,19 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    fun florixcontrol(args: PrivateData) {
-        jda.getTextChannelById(args[0])!!.send(":)", components = FlorixButton("Server starten", ButtonStyle.PRIMARY) {
-            this.pc = when (args[1]) {
+    suspend fun florixcontrol(args: PrivateData) {
+        (if (args[0].toBoolean()) jda.openPrivateChannelById(args[1])
+            .await() else jda.getTextChannelById(args[1])!!).send(
+            ":)",
+            components = FlorixButton("Server starten", ButtonStyle.PRIMARY) {
+                this.pc = when (args[2]) {
                 "2" -> PC.FLORIX_2
                 "4" -> PC.FLORIX_4
                 else -> throw IllegalArgumentException()
             }
             this.action = FlorixButton.Action.START
-        }.into())
+            }.into()
+        ).queue()
     }
 
     context(InteractionData)

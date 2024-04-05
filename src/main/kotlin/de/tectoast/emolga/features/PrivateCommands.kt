@@ -592,6 +592,7 @@ object PrivateCommands {
                 args[2].toLong(),
                 DraftPermissionCommand.Allow.Mention.valueOf(args[3])
             )
+            save("addDraftPermission")
         }
     }
 

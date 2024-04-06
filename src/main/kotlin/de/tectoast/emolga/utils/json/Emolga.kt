@@ -92,7 +92,8 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         drafts.findOne(League::guild eq gid, League::table all uids.toList())
 
     suspend fun leagueForAutocomplete(tc: Long, gid: Long, user: Long) =
-        drafts.findOne(or(League::tcid eq tc, and(League::guild eq gid, League::table contains user)))
+        drafts.find(or(League::tcid eq tc, and(League::guild eq gid, League::table contains user))).toList()
+            .maxByOrNull { it.tcid == tc }
 
     context(InteractionData)
     suspend fun leagueByCommand() = leagueByGuild(gid, user)

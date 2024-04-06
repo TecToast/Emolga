@@ -77,7 +77,7 @@ object PickCommand :
         pickData: PickData, random: Boolean = false, fromQueue: Boolean
     ) {
         if (fromQueue) {
-            tc.sendMessage("**${getCurrentName()}** hat ${pickData.displayName()} aus der Queue gepickt!").queue()
+            tc.sendMessage("**<@${current}>** hat ${pickData.displayName()} aus der Queue gepickt!").queue()
         } else {
             if (!random) replyPick(pickData)
             if (random) {

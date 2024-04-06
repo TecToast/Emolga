@@ -3,46 +3,23 @@ package de.tectoast.emolga.utils.records
 import de.tectoast.emolga.utils.DirectCompareData
 
 class SorterData(
-    val formulaRange: List<DocRange>,
+    val formulaRange: List<String>,
     val directCompare: List<DirectCompareOption> = listOf(DirectCompareOption.DIFF, DirectCompareOption.KILLS),
     val indexer: ((String) -> Int)? = null,
     val newMethod: Boolean = false,
     val cols: List<Int>
 ) {
+    val formulaRangeParsed = formulaRange.map { DocRange[it] }
     constructor(
-        formulaRange: DocRange,
+        formulaRange: String,
         directCompare: List<DirectCompareOption> = listOf(DirectCompareOption.DIFF, DirectCompareOption.KILLS),
         indexer: ((String) -> Int)? = null,
         newMethod: Boolean = false,
         cols: List<Int>
     ) : this(
-        listOf(formulaRange),
-        directCompare, indexer, newMethod, cols
+        listOf(formulaRange), directCompare, indexer, newMethod, cols
     )
 
-    companion object {
-        operator fun invoke(
-            formulaRange: String,
-            directCompare: List<DirectCompareOption> = listOf(DirectCompareOption.DIFF, DirectCompareOption.KILLS),
-            indexer: ((String) -> Int)? = null,
-            newMethod: Boolean = false,
-            cols: List<Int>
-        ) = SorterData(
-            DocRange[formulaRange],
-            directCompare, indexer, newMethod, cols
-        )
-
-        operator fun invoke(
-            formulaRange: List<String>,
-            directCompare: List<DirectCompareOption> = listOf(DirectCompareOption.DIFF, DirectCompareOption.KILLS),
-            indexer: ((String) -> Int)? = null,
-            newMethod: Boolean = false,
-            cols: List<Int>
-        ) = SorterData(
-            formulaRange.map { DocRange[it] },
-            directCompare, indexer, newMethod, cols
-        )
-    }
 }
 
 data class DocRange(val sheet: String, val xStart: String, val yStart: Int, val xEnd: String, val yEnd: Int) {

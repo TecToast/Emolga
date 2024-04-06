@@ -2,11 +2,11 @@ package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
-import java.util.Calendar.*
 
 @Serializable
 @SerialName("ASL")
@@ -21,13 +21,11 @@ class ASL(
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        /*newSystem(
+        newSystem(
             SorterData(
                 formulaRange = listOf(
-                    "Tabelle!C16:J19".toDocRange(),
-                    "Tabelle!C24:J27".toDocRange()
+                    "Tabelle!C4:J11",
                 ),
-                directCompare = true,
                 newMethod = true,
                 cols = listOf(7, -1, 6, 4)
             ), resultCreator = {
@@ -36,7 +34,7 @@ class ASL(
                     else "Spielplan!" + getAsXCoord((gdi % 2) * 4 + 5) + ((gdi / 6) * 18 + 4 + index),
                     defaultGameplanString
                 )
-            })*/
+            })
         //cancelIf = { _, gd -> gd == 10 }
     }
 

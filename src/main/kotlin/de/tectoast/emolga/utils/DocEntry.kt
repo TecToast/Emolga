@@ -236,8 +236,8 @@ class DocEntry private constructor(val league: League) {
                 val sid = league.sid
                 val b = RequestBuilder(sid)
                 logger.info("Start sorting...")
-                for (num in formulaRange.indices) {
-                    val formulaRange = formulaRange[num]
+                for (num in formulaRangeParsed.indices) {
+                    val formulaRange = formulaRangeParsed[num]
                     val formula =
                         Google.get(
                             sid,

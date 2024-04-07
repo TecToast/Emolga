@@ -95,6 +95,7 @@ object Oji {
                 .associate { it.idLong to it.user.effectiveName }
         }
         private val leagueOrga = setOf(Constants.M.OJI, Constants.M.TARI, 298458563469246464, Constants.FLOID)
+        private val alwaysIncluded = setOf(720387214739111968)
         context(InteractionData)
         private suspend fun executeTipGameState(withoutAdmin: Boolean) {
             deferReply(true)
@@ -102,7 +103,8 @@ object Oji {
             val leagues = dataList.partition { it.league == "IPLS4L1" }.toList()
             val names = nameMap()
             val points =
-                dataList.groupBy { it.user }.filterKeys { !withoutAdmin || (it !in names && it !in leagueOrga) }
+                dataList.groupBy { it.user }
+                    .filterKeys { it in alwaysIncluded || (!withoutAdmin || (it !in names && it !in leagueOrga)) }
                     .mapValues { it.value.sumOf { d -> d.correctGuesses.values.sumOf { l -> l.size } } }
             reply(
                 buildString {

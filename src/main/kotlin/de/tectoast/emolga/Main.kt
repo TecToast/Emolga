@@ -33,10 +33,10 @@ suspend fun main() {
             logger.error("Wrong Key!")
         }
     }
-    logger.info("Launching Bots...")
-    EmolgaMain.launchBots()
     logger.info("Starting MongoDB...")
     initMongo()
+    logger.info("Launching Bots...")
+    EmolgaMain.launchBots()
     Tierlist.setup()
     defaultScope.launch {
         RepeatTask.setupRepeatTasks()

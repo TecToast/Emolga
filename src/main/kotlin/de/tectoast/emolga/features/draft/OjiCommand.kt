@@ -105,7 +105,7 @@ object Oji {
             val points =
                 dataList.groupBy { it.user }
                     .filterKeys { it in alwaysIncluded || (!withoutAdmin || (it !in names && it !in leagueOrga)) }
-                    .mapValues { it.value.sumOf { d -> d.correctGuesses.values.sumOf { l -> l.size } } }
+                    .mapValues { it.value.sumOf { d -> d.correctGuesses.values.sumOf { l -> l.size } + (if (d.correctTopkiller) 3 else 0) + d.correctOrderGuesses.sumOf { co -> 4 - co } } }
             reply(
                 buildString {
                     append("Teilnehmeranzahl: ${points.size}\n\n")

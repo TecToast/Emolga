@@ -157,7 +157,9 @@ data class TipGameUserData(
     val league: String,
     val orderGuesses: MutableMap<Int, Int> = mutableMapOf(),
     val correctGuesses: MutableMap<Int, MutableSet<Int>> = mutableMapOf(),
-    val topkiller: String? = null
+    val topkiller: String? = null,
+    val correctTopkiller: Boolean = false,
+    val correctOrderGuesses: Set<Int> = setOf()
 ) {
     companion object {
         suspend fun addCorrectBattle(user: Long, league: String, gameday: Int, battle: Int) {

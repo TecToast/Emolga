@@ -546,7 +546,7 @@ sealed class League {
             .ifNotEmpty { ", $it" } + other.joinToString { "<@${it.u}>" }.ifNotEmpty { ", ||$it||" }
     }
 
-    internal fun getCurrentName(mem: Long = current) = names[mem]!!
+    fun getCurrentName(mem: Long = current) = names[mem]!!
 
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
 

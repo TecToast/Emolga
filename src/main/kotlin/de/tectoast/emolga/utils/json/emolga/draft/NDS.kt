@@ -23,12 +23,12 @@ import kotlin.time.Duration.Companion.days
 @Suppress("unused")
 @Serializable
 @SerialName("NDS")
-class NDS : League() {
+class NDS(val rr: Boolean) : League() {
 
     val nominations: Nominations = Nominations(1, mutableMapOf())
     val sheetids: Map<String, Int> = mapOf()
     val teamtable: List<String> = emptyList()
-    val rr = false
+
 
     override fun isFinishedForbidden() = false
     override val teamsize = 15
@@ -71,7 +71,6 @@ class NDS : League() {
     }
 
     override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
-        //logger.info(d.order.get(d.round).stream().map(Member::getEffectiveName).collect(Collectors.joining(", ")));
         doc(data)
     }
 
@@ -276,11 +275,11 @@ _written by Maxifcn_""".trimIndent()
         fun setupRepeatTasks() {
             logger.info("Setting up matchups repeat tasks")
             RepeatTask(
-                "NDS", RepeatTaskType.Other("Matchups"), "24.03.2024 20:00", 5, 7.days
+                "NDS", RepeatTaskType.Other("Matchups"), "05.05.2024 20:00", 5, 7.days
             ) { doMatchUps(it, withAnnounce = true) }
             logger.info("Setting up nominations repeat tasks")
             RepeatTask(
-                "NDS", RepeatTaskType.Other("Nominate"), "27.03.2024 00:00", 5, 7.days
+                "NDS", RepeatTaskType.Other("Nominate"), "08.03.2024 00:00", 5, 7.days
             ) { doNDSNominate() }
         }
     }

@@ -536,7 +536,7 @@ class QueuePicks : StateStore {
             data.enabled = enable
             currentlyEnabled = enable
             edit(embeds = buildStateEmbed(null), components = emptyList())
-            save()
+            save("QueuePicksManage")
             delete()
             reply("Deine neue Queue-Pick-Reihenfolge wurde gespeichert!\nDas System ist für dich zurzeit **${if (enable) "" else "de"}aktiviert**.")
         }

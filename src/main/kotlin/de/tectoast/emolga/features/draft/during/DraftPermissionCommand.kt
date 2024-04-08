@@ -42,7 +42,7 @@ object DraftPermissionCommand :
                         else 0
                     }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
                 }.into())
-                save()
+                save("DraftPermission Allow")
             }
         }
     }
@@ -82,7 +82,7 @@ object DraftPermissionCommand :
                         else 0
                     }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
                 }.into())
-                l.save()
+                l.save("DraftPermission Deny")
             } ?: reply("Du nimmst nicht an einer Liga auf diesem Server teil!")
         }
     }

@@ -24,7 +24,7 @@ object FinishDraftCommand :
             addFinished(mem)
             if (current == mem)
                 afterPickOfficial()
-            save()
+            save("FinishDraft")
         }
     }
 }

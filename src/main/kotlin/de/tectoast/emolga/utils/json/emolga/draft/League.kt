@@ -25,12 +25,12 @@ import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.showdown.AnalysisData
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.*
-import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.*
+import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
@@ -39,7 +39,6 @@ import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import org.bson.types.ObjectId
 import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.eq
-import org.slf4j.Logger
 import java.awt.Color
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
@@ -353,9 +352,9 @@ sealed class League {
         current = order[round]!!.nextCurrent()
     }
 
-    suspend fun save(from: String = "") {
+    suspend fun save(from: String) {
         val l = this@League
-        logger.debug("Saving league from $from")
+        logger.debug { "Saving league from $from" }
         db.drafts.updateOne(l)
     }
 
@@ -840,7 +839,7 @@ sealed class League {
 
     companion object : CoroutineScope {
         override val coroutineContext = createCoroutineContext("League", Dispatchers.IO)
-        val logger: Logger by SLF4J
+        val logger = KotlinLogging.logger {}
         val allTimers = mutableMapOf<String, Job>()
         val allStallSecondTimers = mutableMapOf<String, Job>()
         val leagueTimeFormat = SimpleDateFormat("HH:mm")

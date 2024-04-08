@@ -55,7 +55,7 @@ object TipGameManager : CoroutineScope {
                         )
                     ).queue()
                 }
-                save()
+                save("TipGame")
             }
         }
 

@@ -269,7 +269,7 @@ _written by Maxifcn_""".trimIndent()
             }.execute()
             logger.info("dbcallTime = $dbcallTime")
             if (!prevDay) nom.currentDay++
-            nds.save()
+            nds.save("Nominate RepeatTask")
         }
 
         fun setupRepeatTasks() {
@@ -279,7 +279,7 @@ _written by Maxifcn_""".trimIndent()
             ) { doMatchUps(it, withAnnounce = true) }
             logger.info("Setting up nominations repeat tasks")
             RepeatTask(
-                "NDS", RepeatTaskType.Other("Nominate"), "08.03.2024 00:00", 5, 7.days
+                "NDS", RepeatTaskType.Other("Nominate"), "08.05.2024 00:00", 5, 7.days
             ) { doNDSNominate() }
         }
     }

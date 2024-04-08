@@ -59,7 +59,7 @@ object Nominate {
                         )
                     })
                     ).queue()
-                    nds.save()
+                    nds.save("Nominate")
                 }
             }
         }

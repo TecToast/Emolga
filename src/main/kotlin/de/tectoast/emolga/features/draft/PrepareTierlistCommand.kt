@@ -4,6 +4,7 @@ import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.records.DocRange
 
 object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
     ::Args,
@@ -72,6 +73,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         }
         val complexSign = e.complexSign
         try {
+            val (_, _, yStart, _, yEnd) = DocRange[e.ranges.first()]
             TierlistBuilderConfigurator(
                 userId = user,
                 channelId = tc,
@@ -79,7 +81,11 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                 mons =
                 (Google.batchGet(
                     sid,
-                    e.ranges.map { "$tierlistsheet!$it" },
+                    e.ranges.map {
+                        if (it.contains(":")) return@map "$tierlistsheet!$it"
+                        val char = it.take(1)
+                        "$tierlistsheet!$char$yStart:$char$yEnd"
+                    },
                     false,
                     "COLUMNS"
                 )

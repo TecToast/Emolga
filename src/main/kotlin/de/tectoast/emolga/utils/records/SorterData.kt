@@ -25,13 +25,14 @@ class SorterData(
 data class DocRange(val sheet: String, val xStart: String, val yStart: Int, val xEnd: String, val yEnd: Int) {
     override fun toString() = "$sheet!$xStart$yStart:$xEnd$yEnd"
     val firstHalf: String get() = "$sheet!$xStart$yStart"
+    val withoutSheet: String get() = "$xStart$yStart:$xEnd$yEnd"
 
     companion object {
         private val numbers = Regex("[0-9]")
         private val chars = Regex("[A-Z]")
         operator fun get(string: String): DocRange {
             val split = string.split('!')
-            val range = split[1].split(':')
+            val range = (split.getOrNull(1) ?: split[0]).split(':')
             return DocRange(
                 split[0],
                 range[0].replace(numbers, ""),

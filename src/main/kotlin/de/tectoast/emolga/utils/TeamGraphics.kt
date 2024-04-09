@@ -14,7 +14,7 @@ import kotlin.random.Random
 
 object TeamGraphics {
 
-    const val offset = 199
+    const val OFFSET = 199
     val tierlist = listOf("S", "A", "B", "C", "D")
     val specialColors = listOf(
         "emolga",
@@ -111,7 +111,7 @@ class TeamGraphic {
             val startX = if (index == 0) normal else {
                 val oldsize = mons[index - 1].size
                 val csize = row.size
-                (lastNum + (if (oldsize > csize) TeamGraphics.offset else if (oldsize < csize) -TeamGraphics.offset else TeamGraphics.offset) + additionalOffset(
+                (lastNum + (if (oldsize > csize) TeamGraphics.OFFSET else if (oldsize < csize) -TeamGraphics.OFFSET else TeamGraphics.OFFSET) + additionalOffset(
                     oldsize, csize
                 ) /*- 2 * offset * ((oldsize - csize) / 2)*/)
             }
@@ -139,8 +139,8 @@ class TeamGraphic {
 
     private fun additionalOffset(oldsize: Int, csize: Int): Int {
         return when (oldsize.minus(csize)) {
-            4 -> 2 * TeamGraphics.offset
-            -3 -> -2 * TeamGraphics.offset
+            4 -> 2 * TeamGraphics.OFFSET
+            -3 -> -2 * TeamGraphics.OFFSET
             else -> 0
         }
     }

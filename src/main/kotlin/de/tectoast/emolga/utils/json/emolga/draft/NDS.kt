@@ -162,6 +162,17 @@ class NDS(val rr: Boolean) : League() {
     val tableName: String
         get() = if (rr) "Tabelle RR" else "Tabelle HR"
 
+    override fun setupRepeatTasks() {
+        logger.info("Setting up matchups repeat tasks")
+        RepeatTask(
+            "NDS", RepeatTaskType.Other("Matchups"), "05.05.2024 20:00", 5, 7.days
+        ) { doMatchUps(it, withAnnounce = true) }
+        logger.info("Setting up nominations repeat tasks")
+        RepeatTask(
+            "NDS", RepeatTaskType.Other("Nominate"), "08.05.2024 00:00", 5, 7.days
+        ) { doNDSNominate() }
+    }
+
     companion object {
         val logger: Logger by SLF4J
 
@@ -270,17 +281,6 @@ _written by Maxifcn_""".trimIndent()
             logger.info("dbcallTime = $dbcallTime")
             if (!prevDay) nom.currentDay++
             nds.save("Nominate RepeatTask")
-        }
-
-        fun setupRepeatTasks() {
-            logger.info("Setting up matchups repeat tasks")
-            RepeatTask(
-                "NDS", RepeatTaskType.Other("Matchups"), "05.05.2024 20:00", 5, 7.days
-            ) { doMatchUps(it, withAnnounce = true) }
-            logger.info("Setting up nominations repeat tasks")
-            RepeatTask(
-                "NDS", RepeatTaskType.Other("Nominate"), "08.05.2024 00:00", 5, 7.days
-            ) { doNDSNominate() }
         }
     }
 }

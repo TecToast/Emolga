@@ -54,8 +54,8 @@ class ASLCoach : League() {
         )
     }
 
-    companion object {
-        fun setupRepeatTasks() {
+
+    override fun setupRepeatTasks() {
             RepeatTask(
                 "ASL", RepeatTaskType.Other("Announce"), "04.12.2023 00:00", 5, 7.days
             ) {
@@ -64,7 +64,7 @@ class ASLCoach : League() {
                 jda.getTextChannelById(1170477327839412365)!!.sendMessage(msg).queue()
             }
         }
-    }
+
 }
 
 

@@ -4,9 +4,7 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.ASLCoach
 import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.emolga.draft.VideoProvideStrategy
 import de.tectoast.emolga.utils.repeat.RepeatTaskType.*
 import kotlinx.coroutines.cancel
@@ -93,10 +91,10 @@ class RepeatTask(
         private val allTasks = mutableMapOf<String, MutableMap<RepeatTaskType, RepeatTask>>()
         fun getTask(leaguename: String, type: RepeatTaskType) = allTasks[leaguename]?.get(type)
         suspend fun setupRepeatTasks() {
-            setupManualRepeatTasks()
             db.drafts.find().toFlow().collect { l ->
                 val name = l.leaguename
                 suspend fun refresh() = db.league(name)
+                l.setupRepeatTasks()
                 l.tipgame?.let { tip ->
                     val duration = tip.interval
                     logger.info("Draft $name has tipgame with interval ${tip.interval} and duration $duration")
@@ -161,12 +159,6 @@ class RepeatTask(
                     }
                 }
             }
-        }
-
-        private fun setupManualRepeatTasks() {
-            NDS.setupRepeatTasks()
-            ASLCoach.setupRepeatTasks()
-//            NDSML.setupRepeatTasks()
         }
     }
 }

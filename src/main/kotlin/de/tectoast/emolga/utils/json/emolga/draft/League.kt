@@ -189,6 +189,8 @@ sealed class League {
 
     open suspend fun AddToTierlistData.addMonToTierlist() {}
 
+    open fun setupRepeatTasks() {}
+
     open fun isFinishedForbidden() = !isSwitchDraft
 
     open fun checkFinishedForbidden(mem: Long): String? = null

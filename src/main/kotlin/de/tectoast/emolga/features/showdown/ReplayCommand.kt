@@ -6,7 +6,9 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.showdown.Analysis
+import dev.minn.jda.ktx.generics.getChannel
 import mu.KotlinLogging
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 
 object ReplayCommand : CommandFeature<ReplayCommand.Args>(
     ::Args,
@@ -44,7 +46,7 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
         val mr = regex.find(e.url) ?: return reply("Das ist kein gültiges Replay!")
         val channel = AnalysisDB.getResultChannel(tc)
             ?: return reply("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
-        val tc = jda.getTextChannelById(channel)
+        val tc = jda.getChannel<GuildMessageChannel>(channel)
         if (tc == null) {
             reply("Ich habe keinen Zugriff auf den Ergebnischannel!")
             return

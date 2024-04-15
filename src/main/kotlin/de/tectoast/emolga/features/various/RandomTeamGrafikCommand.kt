@@ -36,13 +36,12 @@ object RandomTeamGrafikCommand : CommandFeature<NoArgs>(
             replyAwait(files = FileUpload.fromData(os.toByteArray(), "epischerrandomkader.png").into())
             randomTeamData.run {
                 shinyCount.get().let {
-                    if (it > 0) textChannel.sendMessage("**Du hast einfach ${if (it == 1) "ein Shiny" else "$it Shinies"} bekommen :o**")
-                        .queue()
+                    if (it > 0) reply("**Du hast einfach ${if (it == 1) "ein Shiny" else "$it Shinies"} bekommen :o**")
                 }
                 if (hasDrampa) {
                     db.statistics.increment("drampacounter")
-                    textChannel.sendMessage("**DRAMPA** (Nr. ${db.statistics.getCount("drampacounter")})").queue()
-                    textChannel.sendMessage("<@446274734389198848>").queue()
+                    reply("**DRAMPA** (Nr. ${db.statistics.getCount("drampacounter")})")
+                    reply("<@446274734389198848>")
                 }
             }
 

@@ -19,13 +19,12 @@ object ReplayChannelCommand :
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            val tco = textChannel
-            val res = e.channel ?: tco
-            val l = AnalysisDB.insertChannel(tco.idLong, res.idLong, tco.guild.idLong)
+            val res = e.channel?.idLong ?: tc
+            val l = AnalysisDB.insertChannel(tc, res, gid)
             if (l == -1L) {
-                reply(if (tco.idLong == res.idLong) "Dieser Channel ist nun ein Replaychannel, somit werden alle Replay-Ergebnisse automatisch hier reingeschickt!" else "Alle Ergebnisse der Replays aus ${tco.asMention} werden von nun an in den Channel ${res.asMention} geschickt!")
+                reply(if (tc == res) "Dieser Channel ist nun ein Replaychannel, somit werden alle Replay-Ergebnisse automatisch hier reingeschickt!" else "Alle Ergebnisse der Replays aus <#${tc}> werden von nun an in den Channel <#${res}> geschickt!")
             } else {
-                reply("Die Replays aus diesem Channel werden ${if (l == res.idLong) "bereits" else "zurzeit"} in den Channel <#$l> geschickt! Mit /replaychannel remove kannst du dies ändern.")
+                reply("Die Replays aus diesem Channel werden ${if (l == res) "bereits" else "zurzeit"} in den Channel <#$l> geschickt! Mit /replaychannel remove kannst du dies ändern.")
             }
         }
     }
@@ -33,8 +32,7 @@ object ReplayChannelCommand :
     object Remove : CommandFeature<NoArgs>(NoArgs(), CommandSpec("remove", "Entfernt einen Replaychannel")) {
         context(InteractionData)
         override suspend fun exec(e: NoArgs) {
-            val tco = textChannel
-            if (AnalysisDB.deleteChannel(tco.idLong)) {
+            if (AnalysisDB.deleteChannel(tc)) {
                 reply("Dieser Channel ist kein Replaychannel mehr!")
             } else {
                 reply("Dieser Channel ist zurzeit kein Replaychannel!")

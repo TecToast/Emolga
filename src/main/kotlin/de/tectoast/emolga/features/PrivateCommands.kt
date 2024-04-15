@@ -353,11 +353,11 @@ object PrivateCommands {
             ":)",
             components = FlorixButton("Server starten", ButtonStyle.PRIMARY) {
                 this.pc = when (args[2]) {
-                "2" -> PC.FLORIX_2
-                "4" -> PC.FLORIX_4
-                else -> throw IllegalArgumentException()
-            }
-            this.action = FlorixButton.Action.START
+                    "2" -> PC.FLORIX_2
+                    "4" -> PC.FLORIX_4
+                    else -> throw IllegalArgumentException()
+                }
+                this.action = FlorixButton.Action.START
             }.into()
         ).queue()
     }
@@ -593,6 +593,26 @@ object PrivateCommands {
                 DraftPermissionCommand.Allow.Mention.valueOf(args[3])
             )
             save("addDraftPermission")
+        }
+    }
+
+    context(InteractionData)
+    suspend fun tipgameAdditionals(args: PrivateData) {
+        val leaguename = args[0]
+        val topkiller = args[1]
+        val top3 = args.drop(2).map { it.toInt() } // don't access 0
+        db.tipgameuserdata.find(TipGameUserData::league eq leaguename).toFlow().collect {
+            val filter = and(TipGameUserData::user eq it.user, TipGameUserData::league eq leaguename)
+            if (it.topkiller == topkiller) db.tipgameuserdata.updateOne(
+                filter,
+                set(TipGameUserData::correctTopkiller setTo true)
+            )
+            for (i in 1..3) {
+                if (it.orderGuesses[i] == top3[i - 1]) db.tipgameuserdata.updateOne(
+                    filter,
+                    addToSet(TipGameUserData::correctOrderGuesses, i)
+                )
+            }
         }
     }
 

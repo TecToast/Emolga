@@ -788,7 +788,7 @@ sealed class League {
                     it.editMessageComponents(
                         ActionRow.of(it.actionRows[0].buttons.map { button -> button.asDisabled() })
                     ).queue()
-                    delay(1000)
+                    delay(2000)
                 }
         }
     }

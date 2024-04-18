@@ -458,6 +458,20 @@ object PrivateCommands {
     }
 
     context(InteractionData)
+    suspend fun testYTSendSub(args: PrivateData) {
+        val league = db.league(args[0])
+        val gameday = args[2].toInt()
+        val battle = args[3].toInt()
+        league.executeYoutubeSend(
+            ytTC = args[1].toLong(),
+            gameday = gameday,
+            battle = battle,
+            strategy = VideoProvideStrategy.Subscribe(league.replayDataStore!!.data[gameday]!![battle]!!.ytVideoSaveData),
+            overrideEnabled = args.getOrNull(4)?.toBooleanStrict() ?: false
+        )
+    }
+
+    context(InteractionData)
     suspend fun dbSpeedLetsGo() {
         val col = db.db.getCollection<NameCon>("customnamecon")
         val test = "Emolga"

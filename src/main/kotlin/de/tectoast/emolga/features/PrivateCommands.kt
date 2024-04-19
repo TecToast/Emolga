@@ -619,6 +619,16 @@ object PrivateCommands {
         }
     }
 
+    context(InteractionData)
+    suspend fun moveLeaguesToArchive(args: PrivateData) {
+        val archive = db.db.getCollection<League>("oldleague")
+        args.forEach {
+            val league = db.league(it)
+            archive.insertOne(league)
+            db.drafts.deleteOne(League::leaguename eq it)
+        }
+    }
+
 
 }
 

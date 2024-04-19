@@ -3,7 +3,6 @@
 package de.tectoast.emolga.features
 
 import com.google.common.reflect.ClassPath
-import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.annotations.ToTest
 import de.tectoast.emolga.utils.condAppend
@@ -124,7 +123,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                     ),
                     ephemeral = true
                 )
-                SendFeatures.sendToMe(
+                logger.error(
                     buildErrorMessage(feature, e, data, ex)
                 )
             }

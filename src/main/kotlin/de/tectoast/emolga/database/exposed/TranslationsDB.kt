@@ -5,7 +5,7 @@ import de.tectoast.emolga.utils.Translation
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.or
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 object TranslationsDB : Table("translations") {
@@ -29,7 +29,8 @@ object TranslationsDB : Table("translations") {
         modification: String = "default"
     ) =
         newSuspendedTransaction {
-            select { (ENGLISHID eq id).let { if (checkOnlyEnglish) it else it or (GERMANID eq id) } and (CAP eq withCap) and (MODIFICATION eq modification) }.firstOrNull()
+            selectAll().where { (ENGLISHID eq id).let { if (checkOnlyEnglish) it else it or (GERMANID eq id) } and (CAP eq withCap) and (MODIFICATION eq modification) }
+                .firstOrNull()
                 ?.let {
                     Translation(
                         it[language.translationCol],

@@ -68,30 +68,30 @@ class Tierlist(val guildid: Long) {
 
     suspend fun getByTier(tier: String): List<String>? {
         return newSuspendedTransaction {
-            select { guild eq guildid and (Tierlist.tier eq tier) }.map { it[pokemon] }.ifEmpty { null }
+            selectAll().where { guild eq guildid and (Tierlist.tier eq tier) }.map { it[pokemon] }.ifEmpty { null }
         }
     }
 
     private suspend fun getAllForAutoComplete() = newSuspendedTransaction {
-        val list = select { guild eq guildid }.map { it[pokemon] }
+        val list = selectAll().where { guild eq guildid }.map { it[pokemon] }
         (list + NameConventionsDB.getAllOtherSpecified(list, language, guildid)).toSet()
     }
 
     suspend fun getTierOf(mon: String) =
         newSuspendedTransaction {
-            select { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
+            selectAll().where { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
         }
 
 
     suspend fun retrieveTierlistMap(map: Map<String, Int>) = newSuspendedTransaction {
         map.entries.flatMap { (tier, amount) ->
-            select { guild eq guildid and (Tierlist.tier eq tier) }.orderBy(Random()).limit(amount)
+            selectAll().where { guild eq guildid and (Tierlist.tier eq tier) }.orderBy(Random()).limit(amount)
                 .map { DraftPokemon(it[pokemon], tier) }
         }
     }
 
     suspend fun retrieveAll() = newSuspendedTransaction {
-        select { guild eq guildid }.map { DraftPokemon(it[pokemon], it[tier]) }
+        selectAll().where { guild eq guildid }.map { DraftPokemon(it[pokemon], it[tier]) }
     }
 
     suspend fun addOrUpdateTier(mon: String, tier: String) {
@@ -116,7 +116,7 @@ class Tierlist(val guildid: Long) {
     }
 
     suspend fun getMonCount() = newSuspendedTransaction {
-        select { guild eq guildid }.count().toInt()
+        selectAll().where { guild eq guildid }.count().toInt()
     }
 
     companion object : ReadOnlyProperty<League, Tierlist>, Table("tierlists") {

@@ -30,7 +30,7 @@ import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import org.bson.BsonObjectId
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.litote.kmongo.contains
@@ -97,7 +97,8 @@ class LeagueCreator(
 
     val tierlist by lazy {
         transaction {
-            Tierlist.select { Tierlist.guild eq guild }.map { DraftPokemon(it[Tierlist.pokemon], it[Tierlist.tier]) }
+            Tierlist.selectAll().where { Tierlist.guild eq guild }
+                .map { DraftPokemon(it[Tierlist.pokemon], it[Tierlist.tier]) }
         }
     }
 

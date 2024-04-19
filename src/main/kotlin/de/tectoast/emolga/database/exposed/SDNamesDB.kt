@@ -14,7 +14,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 object SDNamesDB : Table("sdnames") {
@@ -22,13 +22,13 @@ object SDNamesDB : Table("sdnames") {
     val ID = long("id")
 
     suspend fun getIDByName(name: String) =
-        newSuspendedTransaction { select { NAME eq name.toUsername() }.firstOrNull()?.get(ID) } ?: -1
+        newSuspendedTransaction { selectAll().where { NAME eq name.toUsername() }.firstOrNull()?.get(ID) } ?: -1
 
     fun addIfAbsent(name: String, id: Long): Deferred<SDInsertStatus> {
         return Database.dbScope.async {
             newSuspendedTransaction {
                 val username = name.toUsername()
-                val existing = select { NAME eq username }.firstOrNull()
+                val existing = selectAll().where { NAME eq username }.firstOrNull()
                 if (existing == null) {
                     insert {
                         it[NAME] = username

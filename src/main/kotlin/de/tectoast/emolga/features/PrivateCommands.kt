@@ -42,7 +42,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.or
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
@@ -52,6 +52,9 @@ import java.security.SecureRandom
 import java.util.*
 import java.util.regex.Pattern
 import javax.imageio.ImageIO
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.set
 import kotlin.time.measureTime
 
 @Suppress("unused")
@@ -466,7 +469,7 @@ object PrivateCommands {
             newSuspendedTransaction {
                 val query1 =
                     ((NameConventionsDB.GERMAN eq test) or (NameConventionsDB.ENGLISH eq test) or (NameConventionsDB.SPECIFIED eq test) or (NameConventionsDB.SPECIFIEDENGLISH eq test)) and (NameConventionsDB.GUILD eq 0 or (NameConventionsDB.GUILD eq guildId))
-                NameConventionsDB.select {
+                NameConventionsDB.selectAll().where {
                     query1
                 }
             }
@@ -572,7 +575,7 @@ object PrivateCommands {
                 this[Tierlist.pokemon] = it.name
                 this[Tierlist.tier] = it.tier
             }
-            NameConventionsDB.batchInsert(NameConventionsDB.select { NameConventionsDB.GUILD eq gid }) {
+            NameConventionsDB.batchInsert(NameConventionsDB.selectAll().where { NameConventionsDB.GUILD eq gid }) {
                 this[NameConventionsDB.GUILD] = Constants.G.MY
                 this[NameConventionsDB.GERMAN] = it[NameConventionsDB.GERMAN]
                 this[NameConventionsDB.ENGLISH] = it[NameConventionsDB.ENGLISH]

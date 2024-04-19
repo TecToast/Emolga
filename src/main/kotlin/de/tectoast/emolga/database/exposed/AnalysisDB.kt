@@ -2,8 +2,11 @@ package de.tectoast.emolga.database.exposed
 
 
 import de.tectoast.emolga.bot.jda
-import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 object AnalysisDB : Table("analysis") {
@@ -12,7 +15,7 @@ object AnalysisDB : Table("analysis") {
     val GUILD = long("guild")
 
     suspend fun insertChannel(replayChannel: Long, resultChannel: Long, guildId: Long) = newSuspendedTransaction {
-        select { REPLAY eq replayChannel }.firstOrNull()?.get(RESULT) ?: run {
+        selectAll().where { REPLAY eq replayChannel }.firstOrNull()?.get(RESULT) ?: run {
             insert {
                 it[REPLAY] = replayChannel
                 it[RESULT] = resultChannel
@@ -38,6 +41,6 @@ object AnalysisDB : Table("analysis") {
     }
 
     suspend fun getResultChannel(tc: Long): Long? =
-        newSuspendedTransaction { select { REPLAY eq tc }.firstOrNull()?.get(RESULT) }
+        newSuspendedTransaction { selectAll().where { REPLAY eq tc }.firstOrNull()?.get(RESULT) }
 
 }

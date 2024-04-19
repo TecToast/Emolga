@@ -5,7 +5,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insertIgnore
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 object DiscordAuthDB : Table("discordauth"), SessionStorage {
@@ -15,7 +15,7 @@ object DiscordAuthDB : Table("discordauth"), SessionStorage {
 
     override suspend fun read(id: String): String {
         return newSuspendedTransaction {
-            select { ID eq id }.firstOrNull()?.get(VALUE) ?: throw NoSuchElementException()
+            selectAll().where { ID eq id }.firstOrNull()?.get(VALUE) ?: throw NoSuchElementException()
         }
     }
 

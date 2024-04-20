@@ -25,6 +25,10 @@ import kotlin.time.Duration.Companion.days
 @SerialName("NDS")
 class NDS(val rr: Boolean) : League() {
 
+    init {
+        enableFlags(AllowPickDuringSwitch)
+    }
+
     val nominations: Nominations = Nominations(1, mutableMapOf())
     val sheetids: Map<String, Int> = mapOf()
     val teamtable: List<String> = emptyList()
@@ -90,9 +94,6 @@ class NDS(val rr: Boolean) : League() {
         )
         addSingle("Draft!${getAsXCoord(round * 5 - 1)}${numInRound * 5 + 2}", data.pokemon)
     }
-
-    @Transient
-    override val allowPickDuringSwitch = true
 
     @Transient
     override val docEntry = DocEntry.create(this) {

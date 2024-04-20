@@ -79,7 +79,7 @@ sealed class League {
 
     @Transient
     val points: PointsManager = PointsManager()
-    val enabledFlags: Set<FeatureFlag> = setOf()
+    val enabledFlags: MutableSet<LeagueFlag> = mutableSetOf()
     val noAutoStart = false
     val timerStart: Long? = null
 
@@ -128,9 +128,6 @@ sealed class League {
     val stallSecondJob: Job? get() = allStallSecondTimers[leaguename]
 
     @Transient
-    open val allowPickDuringSwitch = false
-
-    @Transient
     var lastPickedMon: DraftName? = null
 
     open var timer: DraftTimer? = null
@@ -151,6 +148,14 @@ sealed class League {
     open val additionalSet: AdditionalSet? by lazy { AdditionalSet((gamedays + 4).xc(), "X", "Y") }
 
     val queuedPicks: MutableMap<Long, QueuePicksData> = mutableMapOf()
+    protected fun enableFlags(vararg flags: LeagueFlag) {
+        enabledFlags += flags
+    }
+
+    inline fun <reified T> flag() = enabledFlags.any { it is T }
+    inline fun <reified T> flag(block: T.() -> Unit) {
+        (enabledFlags.firstOrNull { it is T } as T?)?.block()
+    }
 
     context (InteractionData)
     suspend inline fun lockForPick(data: BypassCurrentPlayerData, block: League.() -> Unit) {
@@ -913,8 +918,12 @@ sealed class League {
     }
 }
 
-enum class FeatureFlag {
-    AllowPickDuringSwitch;
+@Serializable
+sealed interface LeagueFlag
+
+@Serializable
+@SerialName("AllowPickDuringSwitch")
+data object AllowPickDuringSwitch : LeagueFlag
 
     context(League)
     operator fun invoke() {

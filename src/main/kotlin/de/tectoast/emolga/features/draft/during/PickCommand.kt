@@ -8,6 +8,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.invoke
+import de.tectoast.emolga.utils.json.emolga.draft.AllowPickDuringSwitch
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.PickData
 import de.tectoast.emolga.utils.json.emolga.draft.isMega
@@ -90,7 +91,7 @@ object PickCommand :
 
     context(InteractionData)
     private suspend fun League.formalPick(pokemon: DraftName, tier: String? = null, free: Boolean = false): Any? {
-        if (isSwitchDraft && !allowPickDuringSwitch) {
+        if (isSwitchDraft && !flag<AllowPickDuringSwitch>()) {
             return reply("Du kannst während des Switch-Drafts nicht picken!")
         }
         beforePick()?.let { return reply(it) }

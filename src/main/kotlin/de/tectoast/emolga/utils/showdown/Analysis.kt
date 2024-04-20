@@ -80,15 +80,15 @@ object Analysis {
             return
         }
         val (game, ctx) = data
-        if ((0..1).any { i ->
+        val g = resultchannelParam.guild
+        val gid = customGuild ?: g.idLong
+        if (gid != Constants.G.MY && (0..1).any { i ->
                 game[i].pokemon.sumOf { it.kills } > game[1 - i].pokemon.sumOf {
                     it.deadCount
                 }
             }) {
             SendFeatures.sendToMe("ACHTUNG ACHTUNG! KILLS SIND MEHR ALS DEATHS :o\n$url\n${resultchannelParam.asMention}")
         }
-        val g = resultchannelParam.guild
-        val gid = customGuild ?: g.idLong
         val u1 = game[0].nickname
         val u2 = game[1].nickname
         val uid1db = SDNamesDB.getIDByName(u1)

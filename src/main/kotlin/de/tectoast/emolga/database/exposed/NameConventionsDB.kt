@@ -39,9 +39,10 @@ object NameConventionsDB : Table("nameconventions") {
         return newSuspendedTransaction {
             val checkLang = if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH
             val resultLang = if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED
-            select((GUILD eq 0 or (GUILD eq guildId)) and (checkLang inList mons)).map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] } + mons.mapNotNull { mon ->
+            selectAll().where((GUILD eq 0 or (GUILD eq guildId)) and (checkLang inList mons))
+                .map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] } + mons.mapNotNull { mon ->
                 nc.values.firstNotNullOfOrNull { it.toRegex().find(mon) }?.run {
-                    select { checkLang eq groupValues[1] }.firstOrNull()?.get(resultLang)?.let { repl ->
+                    selectAll().where { checkLang eq groupValues[1] }.firstOrNull()?.get(resultLang)?.let { repl ->
                         if (mon != value) return@let null
                         value.replace(
                             groupValues[1], repl
@@ -83,7 +84,7 @@ object NameConventionsDB : Table("nameconventions") {
 
     suspend fun checkIfExists(name: String, guildId: Long): Boolean {
         return newSuspendedTransaction {
-            select((SPECIFIED eq name) and (GUILD eq 0 or (GUILD eq guildId))).firstOrNull() != null
+            selectAll().where((SPECIFIED eq name) and (GUILD eq 0 or (GUILD eq guildId))).firstOrNull() != null
         }
     }
 
@@ -92,7 +93,7 @@ object NameConventionsDB : Table("nameconventions") {
             insert {
                 it[GUILD] = guildId
                 it[GERMAN] = germanName
-                val row = select(GERMAN eq germanName).first()
+                val row = selectAll().where(GERMAN eq germanName).first()
                 it[ENGLISH] = row[ENGLISH]
                 it[SPECIFIED] = tlName
                 it[SPECIFIEDENGLISH] = run {
@@ -141,14 +142,14 @@ object NameConventionsDB : Table("nameconventions") {
 
     suspend fun getAllSDTranslationOnlyOfficialGerman(list: List<String>): Map<String, String> {
         return newSuspendedTransaction {
-            select(ENGLISH inList list).associate { it[ENGLISH] to it[GERMAN] }
+            selectAll().where(ENGLISH inList list).associate { it[ENGLISH] to it[GERMAN] }
         }
     }
 
     @Suppress("unused")
     suspend fun getAllSDTranslationOnlyOfficialEnglish(list: List<String>): Map<String, String> {
         return newSuspendedTransaction {
-            select(GERMAN inList list).associate { it[GERMAN] to it[ENGLISH] }
+            selectAll().where(GERMAN inList list).associate { it[GERMAN] to it[ENGLISH] }
         }
     }
 
@@ -156,7 +157,8 @@ object NameConventionsDB : Table("nameconventions") {
         test: String, guildId: Long, spec: String? = null, nc: Map<String, String>, english: Boolean = false
     ): DraftName? {
         return newSuspendedTransaction {
-            select(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId))).orderBy(
+            selectAll().where(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId)))
+                .orderBy(
                 GUILD to SortOrder.DESC
             ).firstOrNull()?.let {
                 return@newSuspendedTransaction DraftName(

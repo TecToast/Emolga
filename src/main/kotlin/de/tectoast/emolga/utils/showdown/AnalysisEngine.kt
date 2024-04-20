@@ -12,9 +12,7 @@ private val otherThanNumbers = Regex("[^0-9]")
 private val logger = KotlinLogging.logger {}
 
 data class SDPokemon(
-    var pokemon: String,
-    val player: Int,
-    val pokemonSaves: MutableMap<PokemonSaveKey, SDPokemon> = mutableMapOf()
+    var pokemon: String, val player: Int, val pokemonSaves: MutableMap<PokemonSaveKey, SDPokemon> = mutableMapOf()
 ) : MutableMap<PokemonSaveKey, SDPokemon> by pokemonSaves {
     private val effects: MutableMap<SDEffect, SDPokemon> = mutableMapOf()
     val volatileEffects: MutableMap<String, SDPokemon> = mutableMapOf()
@@ -25,7 +23,7 @@ data class SDPokemon(
     }
     var healed = 0
     var damageDealt = 0
-    var revivedAmount = 0
+    private var revivedAmount = 0
     var isDead = false
     val zoroLines = mutableMapOf<IntRange, SDPokemon>()
     val otherNames = mutableSetOf<String>()
@@ -132,8 +130,8 @@ sealed class SDEffect(vararg val types: String) {
             it[ITEM_OBTAINED_FROM].takeIf { "item:" in inlined[0] } ?: it
         }
         this.firstOrNull { it.startsWith("[of] p") }?.let { return it.parsePokemon() }
-        return lastLine.cleanSplit().takeIf { it.getOrNull(0) == "-activate" }
-            ?.getOrNull(1)?.parsePokemon() ?: lastMove.cleanSplit().getOrNull(1)?.parsePokemon()
+        return lastLine.cleanSplit().takeIf { it.getOrNull(0) == "-activate" }?.getOrNull(1)?.parsePokemon()
+            ?: lastMove.cleanSplit().getOrNull(1)?.parsePokemon()
     }
 
     data object Turn : SDEffect("turn") {
@@ -149,7 +147,7 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>) {
             val (pl, i) = split[1].parsePokemonLocation()
             val oldMon = monsOnField[pl][i]
-            val newMon = sdPlayers[pl].pokemon.first { it.hasName(split[2].substringBefore(",")) }
+            val newMon = sdPlayers[pl].pokemon.first { it.hasName(split[2].substringBefore(",")) && !it.isDead }
             newMon.volatileEffects.putAll(oldMon.volatileEffects)
             oldMon.volatileEffects.clear()
             monsOnField[pl][i] = newMon
@@ -168,14 +166,14 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>) {
             val (pl, idx) = split[1].parsePokemonLocation()
             val nickname = split[1].substringAfter(": ")
-
             val playerSide = sdPlayers[pl]
             val monName = split[2].substringBefore(",")
-            playerSide.pokemon.firstOrNull { it.pokemon.endsWith("-*") && monName.split("-")[0] == it.pokemon.split("-")[0] }
-                ?.let {
-                    it.pokemon = monName
-                }
-            val switchIn = playerSide.pokemon.first { it.hasName(monName) }
+            playerSide.pokemon.firstOrNull {
+                !it.isDead && it.pokemon.endsWith("-*") && monName.split("-")[0] == it.pokemon.split("-")[0]
+            }?.let {
+                it.pokemon = monName
+            }
+            val switchIn = playerSide.pokemon.first { !it.isDead && it.hasName(monName) }
             switchIn.setNickname(nickname)
             if (split.getOrNull(4) == "[from] Baton Pass") {
                 switchIn.volatileEffects.clear()
@@ -425,8 +423,7 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>) {
             if (split[0] == "-start") {
                 if (split.getOrNull(2) == "move: $moveName") {
-                    sdPlayers[split[1].parsePokemonLocation().first].fieldConditions[this] =
-                        split[1].parsePokemon()
+                    sdPlayers[split[1].parsePokemonLocation().first].fieldConditions[this] = split[1].parsePokemon()
                 }
             } else if (split[0] == "-end") {
                 if (split.getOrNull(2) == "move: $moveName") {

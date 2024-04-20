@@ -98,26 +98,27 @@ class NDS(val rr: Boolean) : League() {
     override val docEntry = DocEntry.create(this) {
         killProcessor = BasicStatProcessor {
             Coord(
-                "Data", gameday + 6 + rrSummand, plindex * 17 + 2 + monindex
+                "Data", gameday + 6, plindex * 17 + 2 + monindex
             )
         }
         deathProcessor = BasicStatProcessor {
             Coord(
-                "Data", gameday + 18 + rrSummand, plindex * 17 + 2 + monindex
+                "Data", gameday + 18, plindex * 17 + 2 + monindex
             )
         }
         winProcessor = ResultStatProcessor {
             Coord(
-                "Data", gameday + 6 + rrSummand, plindex * 17 + 18
+                "Data", gameday + 6, plindex * 17 + 18
             )
         }
         looseProcessor = ResultStatProcessor {
             Coord(
-                "Data", gameday + 18 + rrSummand, plindex * 17 + 18
+                "Data", gameday + 18, plindex * 17 + 18
             )
         }
         resultCreator = {
             val y = index.y(10, 6)
+            val gdi = gdi - rrSummand
             b.addSingle(
                 "$gameplanName!${getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
             )
@@ -138,7 +139,7 @@ class NDS(val rr: Boolean) : League() {
                     )
                 }
                 if (winnerIndex == i) {
-                    val s = "!${(gdi.plus(rrSummand) * 2 + 4).xc()}10"
+                    val s = "!${(gdi * 2 + 4).xc()}10"
                     b.addSingle(getTeamname(replayData.uids[i]) + s, "$higherNumber:0")
                     b.addSingle(getTeamname(replayData.uids[1 - i]) + s, "0:$higherNumber")
                 }
@@ -222,7 +223,7 @@ class NDS(val rr: Boolean) : League() {
                 }
             }
             b.addColumn("TipGameData!N16", tipgameStats)
-            b.addSingle("TipGameData!N29", gameday + nds.rrSummand)
+            b.addSingle("TipGameData!N29", gameday)
             if (withAnnounce) {
                 b.withRunnable {
                     jda.getTextChannelById(837425690844201000L)!!.sendMessage(

@@ -7,7 +7,7 @@ import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 object AddConventionCommand : CommandFeature<AddConventionCommand.Args>(
@@ -24,7 +24,7 @@ object AddConventionCommand : CommandFeature<AddConventionCommand.Args>(
             slashCommand { s, _ ->
                 newSuspendedTransaction {
                     NameConventionsDB.run {
-                        select { GUILD eq 0 and (GERMAN like "$s%") and (COMMON eq false) }.toList()
+                        selectAll().where { GUILD eq 0 and (GERMAN like "$s%") and (COMMON eq false) }.toList()
                             .takeIf { it.size <= 25 }
                             ?.map { it[GERMAN] }
                     }

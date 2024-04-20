@@ -11,7 +11,7 @@ object PrivCommand : CommandFeature<PrivCommand.Args>(::Args, CommandSpec("priv"
     }
 
     class Args : Arguments() {
-        var cmd by fromList("cmd", "cmd", privCommands.keys.toList())
+        var cmd by fromList("cmd", "cmd", privCommands.keys)
         var arguments by list("args", "args", 10, 0, startAt = 0)
     }
 

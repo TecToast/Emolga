@@ -25,13 +25,13 @@ object EnterResult {
             })
         }
 
-        private suspend fun League?.handle(user: Long): List<String> {
+        private suspend fun League?.handle(user: Long): Collection<String> {
             this ?: return listOf("Du bist in keiner Liga auf diesem Server!")
             leagueCache[user] = leaguename
             return nameCache.getOrPut(leaguename) {
                 jda.getGuildById(guild)!!.retrieveMembersByIds(table).await()
                     .associate { it.idLong to it.user.effectiveName }
-            }.values.toList()
+            }.values
         }
 
         context(InteractionData)

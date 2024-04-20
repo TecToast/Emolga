@@ -49,7 +49,7 @@ object MDLCommands {
     object PickMDLCommand :
         CommandFeature<PickMDLCommand.Args>(::Args, CommandSpec("pickmdl", "Gamblen :)", Constants.G.VIP)) {
         class Args : Arguments() {
-            var type by fromList("Typ", "Der Typ, der gewählt werden soll", germanTypeList.toList())
+            var type by fromList("Typ", "Der Typ, der gewählt werden soll", germanTypeList)
         }
 
 

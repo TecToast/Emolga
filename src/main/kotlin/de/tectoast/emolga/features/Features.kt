@@ -454,15 +454,18 @@ open class Arguments {
     }
 
     inline fun fromList(
-        name: String = "", help: String = "", list: List<String>, builder: Arg<String, String>.() -> Unit = {}
+        name: String = "",
+        help: String = "",
+        collection: Collection<String>,
+        builder: Arg<String, String>.() -> Unit = {}
     ) = createArg<String, String>(name, help) {
         validate { s ->
-            s.takeIf { it in list }
+            s.takeIf { it in collection }
                 ?: throw InvalidArgumentException("Keine valide Angabe! Halte dich an die Autovervollständigung!")
         }
-        if (list.size <= 25) slashCommand(list.map { Choice(it, it) })
+        if (collection.size <= 25) slashCommand(collection.map { Choice(it, it) })
         else slashCommand { s, _ ->
-            list.filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
+            collection.filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
         }
         builder()
     }
@@ -470,11 +473,11 @@ open class Arguments {
     inline fun fromList(
         name: String = "",
         help: String = "",
-        crossinline listsupplier: suspend (CommandAutoCompleteInteractionEvent) -> List<String>,
+        crossinline collSupplier: suspend (CommandAutoCompleteInteractionEvent) -> Collection<String>,
         builder: Arg<String, String>.() -> Unit = {}
     ) = createArg(name, help) {
         slashCommand { s, event ->
-            listsupplier(event).filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
+            collSupplier(event).filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
         }
         builder()
     }

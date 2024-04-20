@@ -49,6 +49,7 @@ import kotlin.properties.Delegates
 import kotlin.time.Duration
 
 
+@OptIn(ExperimentalSerializationApi::class)
 @Suppress("MemberVisibilityCanBePrivate")
 @Serializable
 sealed class League {
@@ -78,6 +79,7 @@ sealed class League {
 
     @Transient
     val points: PointsManager = PointsManager()
+    val enabledFlags: Set<FeatureFlag> = setOf()
     val noAutoStart = false
     val timerStart: Long? = null
 
@@ -908,6 +910,15 @@ sealed class League {
         }
 
         suspend fun onlyChannel(tc: Long) = db.drafts.find(League::isRunning eq true, League::tcid eq tc).first()
+    }
+}
+
+enum class FeatureFlag {
+    AllowPickDuringSwitch;
+
+    context(League)
+    operator fun invoke() {
+
     }
 }
 

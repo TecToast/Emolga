@@ -35,6 +35,7 @@ object Constants {
         const val BSP = 1077517941043642428
         const val PIKAS = 665600405136211989
         const val COMMUNITY = 1036657324909146153
+        const val HELBIN = 1063512573175152730
     }
 
     object M {

@@ -115,7 +115,7 @@ dependencies {
     ktor()
 
     // Utils
-    implementation("org.jsoup:jsoup:1.16.1")
+    implementation("org.jsoup:jsoup:1.17.2")
 
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5-jvm:5.6.2")

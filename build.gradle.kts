@@ -108,7 +108,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:0.49.0")
     implementation("org.jetbrains.exposed:exposed-java-time:0.49.0")
     // MongoDB
-    implementation("org.litote.kmongo:kmongo-coroutine-serialization:4.10.0")
+    implementation("org.litote.kmongo:kmongo-coroutine-serialization:4.11.0")
     implementation("org.litote.kmongo:kmongo-id-serialization:4.10.0")
 
     // Ktor

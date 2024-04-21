@@ -368,7 +368,7 @@ sealed interface ArgSpec
 data class CommandArgSpec(
     val autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null,
     val choices: List<Choice>? = null,
-    val disabledGuilds: Set<Long> = emptySet()
+    val guildChecker: GuildChecker? = null
 ) : ArgSpec
 
 data class ModalArgSpec(
@@ -595,6 +595,14 @@ open class Arguments {
         _args += arg
     }
 }
+/**
+ * Result:
+ * - null -> argument should not be present
+ * - true -> argument is present and required
+ * - false -> argument is present and optional
+
+ */
+typealias GuildChecker = suspend (Long) -> Boolean?
 
 interface Nameable {
     val prettyName: String
@@ -640,10 +648,10 @@ class Arg<DiscordType, ParsedType>(
 
     fun slashCommand(
         choices: List<Choice>? = null,
-        disabledGuilds: Set<Long> = emptySet(),
+        guildChecker: GuildChecker? = null,
         autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
     ) {
-        spec = CommandArgSpec(autocomplete, choices, disabledGuilds)
+        spec = CommandArgSpec(autocomplete, choices, guildChecker)
     }
 
     fun modal(

@@ -194,19 +194,16 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
             }
         }
 
-        for (gid in updateGuilds ?: db.config.only().guildsToUpdate.ifEmpty { guildFeatures.keys }) {
-            val commands = guildFeatures[gid].orEmpty()
-            (if (gid == -1L) jda.updateCommands()
-            else jda.getGuildById(gid)!!.updateCommands()).addCommands(commands).queue()
-        }
-    }
-
-    private fun generateOptionData(feature: CommandFeature<*>, gid: Long) = feature.defaultArgs.mapNotNull { a ->
-        if (a.onlyInCode) return@mapNotNull null
-        val spec = a.spec as? CommandArgSpec
-        if (spec?.disabledGuilds?.let { it.isNotEmpty() && gid in it } == true) return@mapNotNull null
-        OptionData(a.optionType, a.name.nameToDiscordOption(), a.help, !a.optional, spec?.autocomplete != null).apply {
-            if (spec?.choices != null) addChoices(spec.choices)
+    private suspend fun generateOptionData(feature: CommandFeature<*>, gid: Long): List<OptionData> {
+        logger.debug { "Generating options for ${feature.spec.name}" }
+        return feature.defaultArgs.mapNotNull { a ->
+            if (a.onlyInCode) return@mapNotNull null
+            val spec = a.spec as? CommandArgSpec
+            val required = if (spec?.guildChecker != null) (spec.guildChecker.invoke(gid)
+                ?: return@mapNotNull null) else !a.optional
+            OptionData(a.optionType, a.name.nameToDiscordOption(), a.help, required, spec?.autocomplete != null).apply {
+                if (spec?.choices != null) addChoices(spec.choices)
+            }
         }
     }
 

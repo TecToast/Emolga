@@ -7,11 +7,7 @@ import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
-import de.tectoast.emolga.utils.invoke
-import de.tectoast.emolga.utils.json.emolga.draft.AllowPickDuringSwitch
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.PickData
-import de.tectoast.emolga.utils.json.emolga.draft.isMega
+import de.tectoast.emolga.utils.json.emolga.draft.*
 import mu.KotlinLogging
 
 object PickCommand :
@@ -41,16 +37,14 @@ object PickCommand :
 
     context(InteractionData)
     override suspend fun exec(e: Args) {
-        val dd = League.byCommand() ?: return run {
-            if (!replied) {
-                reply(
-                    "Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true
-                )
-            }
-        }
-        val (d, data) = dd
-        d.lockForPick(data) l@{
-            executeWithinLock(e.pokemon, e.tier, e.free, e.random, fromQueue = false)
+        League.executePickLike {
+            beforePick()?.let { return reply(it) }
+            executeWithinLock(
+                e.pokemon,
+                e.tier,
+                e.free,
+                if (e.random) PickMessageType.RANDOM else PickMessageType.REGULAR
+            )
         }
     }
 
@@ -59,13 +53,14 @@ object PickCommand :
         pokemon: DraftName,
         tier: String?,
         free: Boolean,
-        random: Boolean,
-        fromQueue: Boolean
+        type: PickMessageType
     ) {
         val pickData = formalPick(pokemon, tier, free) as? PickData ?: return
-        respond(pickData, random, fromQueue)
+        with(pickData) {
+            type.reply()
+        }
         insertIntoDoc(pickData)
-        if (!fromQueue)
+        if (type != PickMessageType.QUEUE)
             afterPickOfficial()
     }
 
@@ -76,30 +71,12 @@ object PickCommand :
     }
 
     context(InteractionData)
-    private suspend fun League.respond(
-        pickData: PickData, random: Boolean = false, fromQueue: Boolean
-    ) {
-        if (fromQueue) {
-            tc.sendMessage("**<@${current}>** hat ${pickData.displayName()} aus der Queue gepickt!").queue()
-        } else {
-            if (!random) replyPick(pickData)
-            if (random) {
-                replyRandomPick(pickData)
-            } else if (pickData.pokemonofficial == "Emolga") {
-                sendMessage("<:Happy:967390966153609226> ".repeat(5))
-            }
-        }
-    }
-
-    context(InteractionData)
     private suspend fun League.formalPick(pokemon: DraftName, tier: String? = null, free: Boolean = false): Any? {
-        if (isSwitchDraft && !flag<AllowPickDuringSwitch>()) {
+        if (isSwitchDraft && !config<AllowPickDuringSwitch>()) {
             return reply("Du kannst während des Switch-Drafts nicht picken!")
         }
-        beforePick()?.let { return reply(it) }
         val mem = current
         val tierlist = tierlist
-        val picks = picks(mem)
         val (tlName, official, _) = pokemon
         logger.info("tlName: $tlName, official: $official")
         val (specifiedTier, officialTier) = (getTierOf(tlName, tier)
@@ -111,22 +88,23 @@ object PickCommand :
             free.takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } ?: false
         if (!freepick && handleTiers(specifiedTier, officialTier)) return null
         if (handlePoints(
-                tlNameNew = tlName, officialNew = official, free = freepick, tier = officialTier
+                free = freepick, tier = officialTier, mega = official.isMega
             )
         ) return null
         val saveTier = if (freepick) officialTier else specifiedTier
-        savePick(picks, official, saveTier, freepick)
         lastPickedMon = pokemon
-        return PickData(
+        val pickData = PickData(
             league = this,
             pokemon = tlName,
             pokemonofficial = official,
             tier = saveTier,
             mem = mem,
             round = getPickRoundOfficial(),
-            freePick = free,
+            freePick = freepick,
             updrafted = saveTier != officialTier
         )
+        savePick(pickData)
+        return pickData
     }
 
 }

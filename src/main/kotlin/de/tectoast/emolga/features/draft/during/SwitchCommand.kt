@@ -66,8 +66,6 @@ object SwitchCommand :
             }
             if (d.handleTiers(newtier.specified, newtier.official, fromSwitch = true)) return@l
             if (d.handlePoints(
-                    tlNameNew = newmon.tlName,
-                    officialNew = newmon.official,
                     free = false,
                     tier = newtier.official,
                     tierOld = oldtier

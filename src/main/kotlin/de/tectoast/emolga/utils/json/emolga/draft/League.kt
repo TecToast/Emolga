@@ -15,10 +15,7 @@ import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.features.draft.during.PickCommand
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.draft.DraftPlayer
-import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.emolga.utils.draft.TierlistMode
+import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -46,6 +43,8 @@ import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
 import kotlin.properties.Delegates
+import kotlin.reflect.KClass
+import kotlin.reflect.full.primaryConstructor
 import kotlin.time.Duration
 
 
@@ -79,7 +78,7 @@ sealed class League {
 
     @Transient
     val points: PointsManager = PointsManager()
-    val enabledFlags: MutableSet<LeagueFlag> = mutableSetOf()
+    val configs: MutableSet<LeagueConfig> = mutableSetOf()
     val noAutoStart = false
     val timerStart: Long? = null
 
@@ -148,14 +147,22 @@ sealed class League {
     open val additionalSet: AdditionalSet? by lazy { AdditionalSet((gamedays + 4).xc(), "X", "Y") }
 
     val queuedPicks: MutableMap<Long, QueuePicksData> = mutableMapOf()
-    protected fun enableFlags(vararg flags: LeagueFlag) {
-        enabledFlags += flags
+    val randomLeagueData: RandomLeagueData = RandomLeagueData()
+
+    protected fun enableConfig(vararg flags: LeagueConfig) {
+        configs += flags
     }
 
-    inline fun <reified T> flag() = enabledFlags.any { it is T }
-    inline fun <reified T> flag(block: T.() -> Unit) {
-        (enabledFlags.firstOrNull { it is T } as T?)?.block()
+
+    inline fun <reified T : LeagueConfig> getConfig() = (configs.firstOrNull { it is T } as T?)
+    inline fun <reified T : LeagueConfig> getConfigOrDefault() = getConfig<T>() ?: LeagueConfig.getDefaultConfig<T>()
+    inline fun <reified T : LeagueConfig> config() = configs.any { it is T }
+    inline fun <reified T : LeagueConfig> config(block: T.() -> Unit) {
+        getConfig<T>()?.block()
     }
+
+
+    fun index(mem: Long) = table.indexOf(mem)
 
     context (InteractionData)
     suspend inline fun lockForPick(data: BypassCurrentPlayerData, block: League.() -> Unit) {
@@ -202,8 +209,8 @@ sealed class League {
 
     open fun checkFinishedForbidden(mem: Long): String? = null
 
-    open fun savePick(picks: MutableList<DraftPokemon>, pokemon: String, tier: String, free: Boolean) {
-        picks.add(DraftPokemon(pokemon, tier, free))
+    open fun savePick(pickData: PickData) {
+        picks(current).add(DraftPokemon(pickData.pokemonofficial, pickData.tier, pickData.freePick))
     }
 
     open fun saveSwitch(picks: MutableList<DraftPokemon>, oldmon: String, newmon: String, newtier: String): Int {
@@ -231,12 +238,32 @@ sealed class League {
     open suspend fun isPicked(mon: String, tier: String? = null) =
         picks.values.any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
 
+    suspend inline fun firstAvailableMon(
+        coll: Collection<String>,
+        checker: ((String) -> Boolean) = { true }
+    ): DraftName? {
+        val alreadyPicked = picks.values.flatten().map { it.name }.toSet()
+        return coll.firstNotNullOfOrNull {
+            val draftName = NameConventionsDB.getDiscordTranslation(
+                it, guild, tierlist.isEnglish
+            )!!
+            if (it !in alreadyPicked && checker(
+                    NameConventionsDB.getDiscordTranslation(
+                        it,
+                        guild,
+                        english = true
+                    )!!.official
+                )
+            ) draftName
+            else null
+        }
+    }
+
     context (InteractionData)
     open fun handlePoints(
-        tlNameNew: String, officialNew: String, free: Boolean, tier: String, tierOld: String? = null
+        free: Boolean, tier: String, tierOld: String? = null, mega: Boolean = false
     ): Boolean {
         if (!tierlist.mode.withPoints) return false
-        val mega = officialNew.isMega
         if (tierlist.mode.isTiersWithFree() && !(tierlist.variableMegaPrice && mega) && !free) return false
         val cpicks = picks[current]!!
         val currentPicksHasMega = cpicks.any { it.name.isMega }
@@ -339,6 +366,11 @@ sealed class League {
                 timerRelated.lastPick = currentTimeMillis
                 timerRelated.usedStallSeconds.clear()
                 skippedTurns.clear()
+                config<RandomPickConfig> {
+                    if (hasJokers())
+                        table.indices.forEach { randomLeagueData.jokers[it] = jokers }
+                    randomLeagueData.currentMon?.disabled = true
+                }
                 reset()
                 sendRound()
                 handleQueuedPicks()
@@ -454,7 +486,8 @@ sealed class League {
         movedTurns().size.plus(1).let { " **($it Pick${if (it == 1) "" else "s"})**" }
     }*/
 
-    open fun beforePick(): String? = null
+    open fun beforePick(): String? =
+        if (getConfigOrDefault<RandomPickConfig>().hasJokers()) "In diesem Draft sind keine regulären Picks möglich!" else null
     open fun beforeSwitch(): String? = null
     open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
@@ -582,6 +615,7 @@ sealed class League {
         if (endOfTurn()) return
         lastPick = ctm
         onNextPlayer(data)
+        randomLeagueData.currentMon?.disabled = true
         if (data is NextPlayerData.Moved) data.sendSkipMessage()
         if (handleQueuedPicks()) return
         restartTimer()
@@ -599,7 +633,7 @@ sealed class League {
             with(queueInteractionData) outer@{
                 with(PickCommand) {
                     executeWithinLock(
-                        queuedMon, null, free = false, random = false, fromQueue = true
+                        queuedMon, null, free = false, PickMessageType.QUEUE
                     )
                 }
             }
@@ -640,12 +674,6 @@ sealed class League {
     open val dataSheet: String = "Data"
 
     fun builder() = RequestBuilder(sid)
-    context (InteractionData)
-    suspend fun replyPick(data: PickData) = with(data) {
-        replyGeneral("${displayName()} ".condAppend(alwaysSendTier || updrafted) { "im $tier " } + "gepickt!".condAppend(
-            updrafted
-        ) { " (Hochgedraftet)" }.condAppend(freePick) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
-    }
 
     context (InteractionData)
     suspend fun replyGeneral(msg: String, components: Collection<LayoutComponent> = SendDefaults.components) {
@@ -655,11 +683,6 @@ sealed class League {
             } $msg", components = components
         )
     }
-
-    context (InteractionData)
-    suspend fun replyRandomPick(data: PickData) = replyGeneral(
-        "einen Random-Pick im ${data.tier} gemacht und **${data.displayName()}** bekommen!"
-    )
 
     context (InteractionData)
     suspend fun replySwitch(oldmon: String, newmon: String) {
@@ -885,6 +908,18 @@ sealed class League {
             }
         }
 
+        context(InteractionData)
+        suspend inline fun executePickLike(block: League.() -> Unit) {
+            val (d, data) = byCommand() ?: return run {
+                if (!replied) {
+                    reply(
+                        "Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true
+                    )
+                }
+            }
+            d.lockForPick(data, block)
+        }
+
         context (InteractionData)
         suspend fun byCommand(): Pair<League, BypassCurrentPlayerData>? {
             val onlyChannel = onlyChannel(tc)
@@ -919,17 +954,191 @@ sealed class League {
 }
 
 @Serializable
-sealed interface LeagueFlag
+sealed interface LeagueConfig {
+    companion object {
+        val defaultConfigs = mutableMapOf<KClass<*>, LeagueConfig>()
+        inline fun <reified T : LeagueConfig> getDefaultConfig(): T {
+            return defaultConfigs.getOrPut(T::class) { T::class.primaryConstructor!!.callBy(emptyMap()) } as T
+        }
+    }
+}
 
 @Serializable
 @SerialName("AllowPickDuringSwitch")
-data object AllowPickDuringSwitch : LeagueFlag
+data object AllowPickDuringSwitch : LeagueConfig
 
-    context(League)
-    operator fun invoke() {
+@Serializable
+@SerialName("RandomPick")
+data class RandomPickConfig(
+    val disabled: Boolean = false,
+    val mode: RandomPickMode = RandomPickMode.Default(),
+    val jokers: Int = 0,
+    val onlyOneMega: Boolean = false,
+    val tierRestrictions: Set<String> = emptySet()
+) : LeagueConfig {
+    fun hasJokers() = jokers > 0
+}
 
+data class RandomPickUserInput(val tier: String?, val type: String?)
+
+@Serializable
+sealed interface RandomPickMode {
+    context(InteractionData)
+    suspend fun League.getRandomPick(input: RandomPickUserInput, config: RandomPickConfig): Pair<DraftName, String>?
+
+    /**
+     * @return a map of the possible command options for the randompick command [true = required, false = optional, null = not available]
+     */
+    fun provideCommandOptions(): Map<RandomPickArgument, Boolean>
+
+    @Serializable
+    @SerialName("Default")
+    data class Default(val tierRequired: Boolean = false, val typeAllowed: Boolean = true) : RandomPickMode {
+        override fun provideCommandOptions(): Map<RandomPickArgument, Boolean> {
+            return buildMap {
+                put(RandomPickArgument.TIER, tierRequired)
+                if (typeAllowed)
+                    put(RandomPickArgument.TYPE, false)
+            }
+        }
+
+        context(InteractionData) override suspend fun League.getRandomPick(
+            input: RandomPickUserInput,
+            config: RandomPickConfig
+        ): Pair<DraftName, String>? {
+            if (tierRequired && input.tier == null) return replyNull("Du musst ein Tier angeben!")
+            val tier = parseTier(input.tier, config) ?: return null
+            val list = tierlist.getByTier(tier)!!.shuffled()
+            val skipMega = config.onlyOneMega && picks[current]!!.any { it.name.isMega }
+            return firstAvailableMon(list) { english ->
+                if (skipMega && english.isMega) return@firstAvailableMon false
+                if (input.type != null) input.type in db.pokedex.get(english.toSDName())!!.types else true
+            }?.let { it to tier }
+                ?: return replyNull("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")
+        }
+    }
+
+    // Only compatible with TierlistMode.TIERS
+    @Serializable
+    @SerialName("TypeTierlist")
+    data object TypeTierlist : RandomPickMode {
+        private val logger = KotlinLogging.logger {}
+        override fun provideCommandOptions(): Map<RandomPickArgument, Boolean> {
+            return mapOf(RandomPickArgument.TYPE to true)
+        }
+
+        context(InteractionData) override suspend fun League.getRandomPick(
+            input: RandomPickUserInput,
+            config: RandomPickConfig
+        ): Pair<DraftName, String>? {
+            val type = input.type ?: return replyNull("Du musst einen Typen angeben!")
+            val picks = picks[current]!!
+            var mon: DraftName? = null
+            var tier: String? = null
+            val usedTiers = mutableSetOf<String>()
+            val skipMega = config.onlyOneMega && picks.any { it.name.isMega }
+            for (i in 0..<100) {
+                val temptier =
+                    tierlist.prices.filter { (tier, amount) -> tier !in usedTiers && picks.count { mon -> mon.tier == tier } < amount }.keys.randomOrNull()
+                        ?: return replyNull("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
+                val tempmon =
+                    firstAvailableMon(tierlist.getWithTierAndType(temptier, type)) { !(it.isMega && skipMega) }
+                if (tempmon != null) {
+                    mon = tempmon
+                    tier = temptier
+                    break
+                }
+                usedTiers += temptier
+            }
+            if (mon == null) {
+                logger.error("No pokemon found without error message: $current $type")
+                return replyNull("Es ist ein unbekannter Fehler aufgetreten!")
+            }
+            return mon to tier!!
+        }
+    }
+
+    context(League, InteractionData)
+    fun parseTier(tier: String?, config: RandomPickConfig): String? {
+        if (tier == null) return if (tierlist.mode.withTiers) getPossibleTiers()
+            .filter { it.value > 0 }.keys.random() else tierlist.order.last()
+        val parsedTier = tierlist.order.firstOrNull { it.equals(tier, ignoreCase = true) }
+        if (parsedTier == null) {
+            return replyNull("Das Tier `$tier` existiert nicht!")
+        }
+        if (config.tierRestrictions.isNotEmpty() && parsedTier !in config.tierRestrictions) {
+            return replyNull("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: ${config.tierRestrictions.joinToString()}")
+        }
+        if (handleTiers(parsedTier, parsedTier)) return null
+        if (handlePoints(false, parsedTier)) return null
+        return parsedTier
     }
 }
+
+@Serializable
+data class RandomLeagueData(
+    var currentMon: RandomLeaguePick? = null,
+    val jokers: MutableMap<Int, Int> = mutableMapOf()
+)
+
+@Serializable
+data class RandomLeaguePick(
+    val official: String,
+    val tlName: String,
+    val tier: String,
+    val data: Map<String, String?> = mapOf(),
+    var disabled: Boolean = false
+)
+
+
+enum class RandomPickArgument {
+    TIER, TYPE
+}
+
+enum class PickMessageType {
+    REGULAR {
+        context(League, InteractionData, PickData) override suspend fun reply() {
+            replyGeneral("${displayName()} ".condAppend(alwaysSendTier || updrafted) { "im $tier " } + "gepickt!".condAppend(
+                updrafted
+            ) { " (Hochgedraftet)" }.condAppend(freePick) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
+            checkEmolga()
+        }
+    },
+    QUEUE {
+        context(League, InteractionData, PickData) override suspend fun reply() {
+            this@League.tc.sendMessage("**<@${current}>** hat ${displayName()} aus der Queue gepickt!").queue()
+            checkEmolga()
+        }
+    },
+    RANDOM {
+        context(League, InteractionData, PickData) override suspend fun reply() {
+            replyGeneral(
+                "einen Random-Pick im $tier gemacht und **${displayName()}** bekommen!"
+            )
+        }
+    },
+    ACCEPT {
+        context(League, InteractionData, PickData) override suspend fun reply() {
+            replyAwait("Akzeptiert: **${displayName()} (${tier})**!")
+        }
+    },
+    REROLL {
+        context(League, InteractionData, PickData) override suspend fun reply() {
+            replyAwait("Reroll: **${displayName()} (${tier})**!")
+        }
+    };
+
+    context(League, InteractionData, PickData)
+    abstract suspend fun reply()
+
+    context(PickData, InteractionData)
+    fun checkEmolga() {
+        if (pokemonofficial == "Emolga") {
+            sendMessage("<:Happy:967390966153609226> ".repeat(5))
+        }
+    }
+}
+
 
 @Serializable
 data class QueuePicksData(var enabled: Boolean = false, var queued: MutableList<DraftName> = mutableListOf())

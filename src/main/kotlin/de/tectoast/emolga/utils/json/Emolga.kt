@@ -89,7 +89,10 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     suspend fun nds() = (league("NDS") as NDS)
 
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
-        drafts.findOne(League::guild eq gid, League::table all uids.toList())
+        drafts.findOne(
+            League::guild eq gid,
+            *(if (uids.isEmpty()) emptyArray() else arrayOf(League::table all uids.toList()))
+        )
 
     suspend fun leagueForAutocomplete(tc: Long, gid: Long, user: Long) =
         drafts.find(or(League::tcid eq tc, and(League::guild eq gid, League::table contains user))).toList()

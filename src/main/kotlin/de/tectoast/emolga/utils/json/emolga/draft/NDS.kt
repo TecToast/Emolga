@@ -26,7 +26,7 @@ import kotlin.time.Duration.Companion.days
 class NDS(val rr: Boolean) : League() {
 
     init {
-        enableFlags(AllowPickDuringSwitch)
+        enableConfig(AllowPickDuringSwitch)
     }
 
     val nominations: Nominations = Nominations(1, mutableMapOf())
@@ -54,10 +54,10 @@ class NDS(val rr: Boolean) : League() {
         else -> null
     }
 
-    override fun savePick(picks: MutableList<DraftPokemon>, pokemon: String, tier: String, free: Boolean) {
-        picks.first { it.name == "???" }.apply {
-            this.name = pokemon
-            this.tier = tier
+    override fun savePick(pickData: PickData) {
+        picks(current).first { it.name == "???" }.apply {
+            this.name = pickData.pokemonofficial
+            this.tier = pickData.tier
         }
     }
 
@@ -167,11 +167,11 @@ class NDS(val rr: Boolean) : League() {
     override fun setupRepeatTasks() {
         logger.info("Setting up matchups repeat tasks")
         RepeatTask(
-            "NDS", RepeatTaskType.Other("Matchups"), "05.05.2024 20:00", 5, 7.days
+            "NDS", RepeatTaskType.Other("Matchups"), "05.05.2024 20:00", 10, 7.days
         ) { doMatchUps(it, withAnnounce = true) }
         logger.info("Setting up nominations repeat tasks")
         RepeatTask(
-            "NDS", RepeatTaskType.Other("Nominate"), "08.05.2024 00:00", 5, 7.days
+            "NDS", RepeatTaskType.Other("Nominate"), "08.05.2024 00:00", 10, 7.days
         ) { doNDSNominate() }
     }
 

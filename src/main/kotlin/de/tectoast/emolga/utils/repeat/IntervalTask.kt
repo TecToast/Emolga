@@ -1,6 +1,5 @@
 package de.tectoast.emolga.utils.repeat
 
-import de.tectoast.emolga.ktor.setupYTSuscribtions
 import de.tectoast.emolga.utils.createCoroutineContext
 import de.tectoast.emolga.utils.json.IntervalTaskData
 import de.tectoast.emolga.utils.json.db
@@ -14,7 +13,6 @@ import org.litote.kmongo.set
 import org.litote.kmongo.setTo
 import org.litote.kmongo.upsert
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
 
 class IntervalTask(name: String, delay: Duration, consumer: suspend () -> Unit) {
 
@@ -40,9 +38,9 @@ class IntervalTask(name: String, delay: Duration, consumer: suspend () -> Unit) 
 
     companion object : CoroutineScope {
         fun setupIntervalTasks() {
-            IntervalTask("YTSubscriptions", 4.days) {
-                setupYTSuscribtions()
-            }
+//            IntervalTask("YTSubscriptions", 4.days) {
+//                setupYTSuscribtions()
+//            }
         }
 
         override val coroutineContext = createCoroutineContext("IntervalTask")

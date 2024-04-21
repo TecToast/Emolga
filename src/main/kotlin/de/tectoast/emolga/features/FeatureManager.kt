@@ -60,7 +60,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
 
 
     suspend fun handleEvent(e: GenericEvent) {
-        logger.debug { "Handling ${e::class.simpleName}" }
+        logger.trace { "Handling ${e::class.simpleName}" }
         val kClass = e::class
         listeners[kClass]?.forEach {
             listenerScope.launch {
@@ -165,21 +165,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                 when (cmd) {
                     is CommandFeature<*> -> {
                         gids.addToFeatures { gid ->
-                            Commands.slash(cmd.spec.name, cmd.spec.help).apply {
-                                defaultPermissions = cmd.slashPermissions
-                                isGuildOnly = true
-                                if (cmd.children.isNotEmpty()) {
-                                    cmd.children.forEach {
-                                        addSubcommands(
-                                            SubcommandData(it.spec.name, it.spec.help).addOptions(
-                                                generateOptionData(
-                                                    it, gid
-                                                )
-                                            )
-                                        )
-                                    }
-                                } else addOptions(generateOptionData(cmd, gid))
-                            }
+                            buildSlashCommandData(cmd, gid)
                         }
                     }
 
@@ -193,6 +179,38 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                 }
             }
         }
+
+        for (gid in updateGuilds ?: db.config.only().guildsToUpdate.ifEmpty { guildFeatures.keys }) {
+            val commands = guildFeatures[gid].orEmpty()
+            (if (gid == -1L) jda.updateCommands()
+            else jda.getGuildById(gid)!!.updateCommands()).addCommands(commands).queue()
+        }
+    }
+
+    private suspend fun buildSlashCommandData(
+        cmd: CommandFeature<*>,
+        gid: Long
+    ) = Commands.slash(cmd.spec.name, cmd.spec.help).apply {
+        defaultPermissions = cmd.slashPermissions
+        isGuildOnly = true
+        if (cmd.children.isNotEmpty()) {
+            cmd.children.forEach {
+                addSubcommands(
+                    SubcommandData(it.spec.name, it.spec.help).addOptions(
+                        generateOptionData(
+                            it, gid
+                        )
+                    )
+                )
+            }
+        } else addOptions(generateOptionData(cmd, gid))
+    }
+
+    suspend fun updateSingleCommand(name: String, gid: Long, jda: JDA = de.tectoast.emolga.bot.jda) {
+        jda.getGuildById(gid)!!
+            .upsertCommand(buildSlashCommandData(loadListeners.first { it is CommandFeature<*> && it.spec.name == name } as CommandFeature<*>,
+                gid)).queue()
+    }
 
     private suspend fun generateOptionData(feature: CommandFeature<*>, gid: Long): List<OptionData> {
         logger.debug { "Generating options for ${feature.spec.name}" }

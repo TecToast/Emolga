@@ -30,7 +30,7 @@ import net.dv8tion.jda.api.interactions.components.ActionRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.eq
 import org.litote.kmongo.keyProjection
@@ -108,7 +108,7 @@ class TierlistBuilderConfigurator(
         val name = getOption<String>("name")!!
         newSuspendedTransaction {
             NameConventionsDB.run {
-                select(GERMAN eq name).firstOrNull()
+                selectAll().where(GERMAN eq name).firstOrNull()
             }
         } ?: throw InvalidArgumentException("Dieser Name entspricht nicht meinen Konventionen!")
         NameConventionsDB.addName(mons[index], name, guildId)

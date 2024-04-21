@@ -80,6 +80,19 @@ abstract class InteractionData(
         ephemeral: Boolean = ephemeralDefault,
     ) = reply(ephemeral, MessageCreate(content, embeds, files, components, tts, mentions))
 
+    fun <T> replyNull(
+        content: String = SendDefaults.content,
+        embeds: Collection<MessageEmbed> = SendDefaults.embeds,
+        components: Collection<LayoutComponent> = SendDefaults.components,
+        files: Collection<FileUpload> = emptyList(),
+        tts: Boolean = false,
+        mentions: Mentions = Mentions.default(),
+        ephemeral: Boolean = ephemeralDefault,
+    ): T? {
+        reply(ephemeral, MessageCreate(content, embeds, files, components, tts, mentions))
+        return null
+    }
+
     fun edit(
         content: String? = null,
         embeds: Collection<MessageEmbed>? = null,

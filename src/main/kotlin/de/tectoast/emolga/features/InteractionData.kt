@@ -178,21 +178,21 @@ class RealInteractionData(
 
     override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
         e as IReplyCallback
+        markAcknowledged()
         val response = CommandResponse(ephemeral, msgCreateData)
         if (deferred || replied)
             response.sendInto(e.hook)
         else response.sendInto(e)
-        markAcknowledged()
         responseDeferred.complete(response)
     }
 
     override fun edit(msgEditData: MessageEditData) {
         e as IMessageEditCallback
+        markAcknowledged()
         val response = CommandResponse(msgEditData = msgEditData)
         if (deferred || replied)
             response.editInto(e.hook)
         else response.editInto(e)
-        markAcknowledged()
         responseDeferred.complete(response)
     }
 
@@ -219,9 +219,12 @@ class RealInteractionData(
 
     override suspend fun replyAwait(ephemeral: Boolean, msgCreateData: MessageCreateData) {
         e as IReplyCallback
+        val response = CommandResponse(ephemeral, msgCreateData)
         markAcknowledged()
-        responseDeferred.complete(CommandResponse(ephemeral, msgCreateData))
-        e.reply(msgCreateData).setEphemeral(ephemeral).await()
+        if (deferred || replied)
+            response.sendIntoAwait(e.hook)
+        else response.sendIntoAwait(e)
+        responseDeferred.complete(response)
     }
 }
 
@@ -240,6 +243,15 @@ class CommandResponse(
     fun sendInto(hook: InteractionHook) {
         hook.sendMessage(msgCreateData!!).setEphemeral(ephemeral).queue()
     }
+
+    suspend fun sendIntoAwait(callback: IReplyCallback) {
+        callback.reply(msgCreateData!!).setEphemeral(ephemeral).await()
+    }
+
+    suspend fun sendIntoAwait(hook: InteractionHook) {
+        hook.sendMessage(msgCreateData!!).setEphemeral(ephemeral).await()
+    }
+
 
     fun sendInto(channel: MessageChannel) {
         msgCreateData?.let { channel.sendMessage(it).queue() }

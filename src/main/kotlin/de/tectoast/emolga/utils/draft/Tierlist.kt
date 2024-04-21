@@ -90,6 +90,11 @@ class Tierlist(val guildid: Long) {
         }
     }
 
+    suspend fun getWithTierAndType(providedTier: String, providedType: String) = newSuspendedTransaction {
+        selectAll().where { (guild eq guildid) and (tier eq providedTier) and (type eq providedType) }
+            .map { it[pokemon] }
+    }
+
     suspend fun retrieveAll() = newSuspendedTransaction {
         selectAll().where { guild eq guildid }.map { DraftPokemon(it[pokemon], it[tier]) }
     }
@@ -126,6 +131,7 @@ class Tierlist(val guildid: Long) {
         val guild = long("guild")
         val pokemon = varchar("pokemon", 30)
         val tier = varchar("tier", 8)
+        val type = varchar("type", 10).nullable()
         private var setupCalled = false
 
         val tierlists: MutableMap<Long, Tierlist> = mutableMapOf()

@@ -45,7 +45,7 @@ class DiscordAppender : UnsynchronizedAppenderBase<ILoggingEvent>() {
                 }
                 field {
                     name = "Message"
-                    value = eventObject.formattedMessage.surroundWith("```")
+                    value = eventObject.formattedMessage.take(1024 - 6).surroundWith("```")
                     inline = false
                 }
                 eventObject.throwableProxy?.let {

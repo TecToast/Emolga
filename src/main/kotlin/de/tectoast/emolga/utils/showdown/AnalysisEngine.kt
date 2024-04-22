@@ -173,7 +173,7 @@ sealed class SDEffect(vararg val types: String) {
             }?.let {
                 it.pokemon = monName
             }
-            val switchIn = playerSide.pokemon.first { !it.isDead && it.hasName(monName) }
+            val switchIn = playerSide.pokemon.sortedBy { it.isDead }.first { it.hasName(monName) }
             switchIn.setNickname(nickname)
             if (split.getOrNull(4) == "[from] Baton Pass") {
                 switchIn.volatileEffects.clear()

@@ -1,14 +1,19 @@
 package de.tectoast.emolga.utils
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
 
 abstract class Cache<T> {
     protected var cached: T? = null
+    protected val lock = Mutex()
     open suspend operator fun invoke(): T {
-        if (cached == null) {
-            updateCachedValue()
+        lock.withLock {
+            if (cached == null) {
+                updateCachedValue()
+            }
         }
         return cached!!
     }
@@ -23,10 +28,12 @@ abstract class Cache<T> {
 abstract class RefreshableCache<T> : Cache<T>() {
     var lastUpdate = Instant.DISTANT_PAST
     override suspend operator fun invoke(): T {
-        val now = Clock.System.now()
-        if (cached == null || shouldUpdate(now)) {
-            lastUpdate = now
-            cached = update()
+        lock.withLock {
+            val now = Clock.System.now()
+            if (cached == null || shouldUpdate(now)) {
+                lastUpdate = now
+                cached = update()
+            }
         }
         return cached!!
     }
@@ -38,6 +45,7 @@ class OneTimeCache<T>(initial: T? = null, val function: suspend () -> T) : Cache
     init {
         cached = initial
     }
+
     override suspend fun update() = function()
 }
 

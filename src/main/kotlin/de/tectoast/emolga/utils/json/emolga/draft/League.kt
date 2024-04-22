@@ -327,6 +327,7 @@ sealed class League {
     }
 
     suspend fun afterPickOfficial(data: NextPlayerData = NextPlayerData.Normal) {
+        randomLeagueData.currentMon?.disabled = true
         (duringTimerSkipMode?.takeIf { !draftWouldEnd } ?: afterTimerSkipMode)?.apply {
             if (afterPickCall(data).also { save("AfterPickOfficial") }) nextPlayer(data)
         } ?: nextPlayer(data)
@@ -615,7 +616,6 @@ sealed class League {
         if (endOfTurn()) return
         lastPick = ctm
         onNextPlayer(data)
-        randomLeagueData.currentMon?.disabled = true
         if (data is NextPlayerData.Moved) data.sendSkipMessage()
         if (handleQueuedPicks()) return
         restartTimer()

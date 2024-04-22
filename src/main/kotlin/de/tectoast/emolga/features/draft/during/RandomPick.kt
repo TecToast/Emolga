@@ -83,7 +83,11 @@ object RandomPick {
                     val jokerAmount = randomLeagueData.jokers[index(mem)] ?: 0
                     if (jokerAmount > 0) {
                         replyGeneral(
-                            "gegambled: **${draftname.tlName} ($tier)**!",
+                            "gegambled: **${draftname.tlName}/${
+                                NameConventionsDB.getSDTranslation(
+                                    draftname.official, guild, english = true
+                                )!!.tlName
+                            } ($tier)**!",
                             components = listOf(
                                 Button("Akzeptieren", ButtonStyle.SUCCESS) {
                                     action = RandomPickAction.ACCEPT

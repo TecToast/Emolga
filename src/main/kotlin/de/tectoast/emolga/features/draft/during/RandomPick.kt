@@ -2,6 +2,7 @@ package de.tectoast.emolga.features.draft.during
 
 
 import de.tectoast.emolga.database.exposed.DraftName
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.features.draft.during.PickCommand.executeWithinLock
 import de.tectoast.emolga.utils.Constants
@@ -61,6 +62,7 @@ object RandomPick {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
+            deferReply()
             League.executePickLike {
                 val config = getConfigOrDefault<RandomPickConfig>()
                 if (config.disabled) return reply("RandomPick ist in dieser Liga deaktiviert!")
@@ -112,6 +114,7 @@ object RandomPick {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
+            deferReply()
             League.executePickLike {
                 val data = randomLeagueData
                 val (official, tlName, tier, map, disabled) = data.currentMon ?: return reply(

@@ -1,8 +1,10 @@
 package de.tectoast.emolga.utils
 
+import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.services.sheets.v4.model.*
 import de.tectoast.emolga.utils.records.Coord
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -344,7 +346,7 @@ class RequestBuilder
     /**
      * Executes the request to the specified google sheet
      */
-    private fun internalExecute() {
+    private fun internalExecute(tries: Int = 0) {
         check(!executed) {
             """
      Already executed RequestBuilder with requests:
@@ -360,7 +362,7 @@ class RequestBuilder
         }
         val raw = raw
         val batch = batch
-        val job = scope.launch {
+        val job = scope.async {
             launch {
                 if (batch.isNotEmpty()) {
                     Google.batchUpdate(sid, batch)
@@ -386,6 +388,25 @@ class RequestBuilder
                             Google.batchUpdate(it, raw, "RAW")
                         }
                     }
+                }
+            }
+        }
+        scope.launch {
+            try {
+                job.await()
+            } catch (ex: GoogleJsonResponseException) {
+                if (ex.details.code == 401) {
+                    val newTries = tries + 1
+                    val timeMillis = newTries * 3000L
+                    logger.info("Got 401, trying again in {}ms", timeMillis)
+                    delay(timeMillis)
+                    if (newTries < 3) {
+                        internalExecute(newTries)
+                    } else {
+                        throw ex
+                    }
+                } else {
+                    throw ex
                 }
             }
         }

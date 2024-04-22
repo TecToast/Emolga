@@ -247,7 +247,7 @@ sealed class League {
             val draftName = NameConventionsDB.getDiscordTranslation(
                 it, guild, tierlist.isEnglish
             )!!
-            if (it !in alreadyPicked && checker(
+            if (draftName.official !in alreadyPicked && checker(
                     NameConventionsDB.getDiscordTranslation(
                         it,
                         guild,

@@ -119,21 +119,21 @@ class NDS(val rr: Boolean) : League() {
         }
         resultCreator = {
             val y = index.y(10, 6)
-            val gdi = gdi - rrSummand
+            val normedGdi = gdi - rrSummand
             b.addSingle(
-                "$gameplanName!${getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
+                "$gameplanName!${getAsXCoord(normedGdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
             )
-            b.addSingle(coord(gameplanName, gdi.x(9, 4), index.y(10, 3)), numberOne)
-            b.addSingle(coord(gameplanName, gdi.x(9, 6), index.y(10, 3)), numberTwo)
+            b.addSingle(coord(gameplanName, normedGdi.x(9, 4), index.y(10, 3)), numberOne)
+            b.addSingle(coord(gameplanName, normedGdi.x(9, 6), index.y(10, 3)), numberTwo)
             for (i in 0..1) {
-                val x = gdi.x(9, i.y(8, 1))
+                val x = normedGdi.x(9, i.y(8, 1))
                 val dataI = i.swap()
                 logger.info("i: $i")
                 logger.info("dataI: $dataI")
                 b.addColumn(
                     coord(gameplanName, x, y),
                     this.replayData.mons[dataI].map { NameConventionsDB.convertOfficialToTL(it, guild)!! })
-                b.addColumn(coord(gameplanName, gdi.x(9, i.y(4, 3)), y), kills[dataI])
+                b.addColumn(coord(gameplanName, normedGdi.x(9, i.y(4, 3)), y), kills[dataI])
                 this.deaths[dataI].forEachIndexed { index, dead ->
                     if (dead) b.addCellFormatChange(
                         gameplanSheet, "$x${y + index}", deathFormat, "textFormat(foregroundColorStyle,strikethrough)"

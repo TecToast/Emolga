@@ -185,8 +185,8 @@ sealed class League {
         }
     }
 
-    fun RequestBuilder.newSystemPickDoc(data: DraftData) {
-        val y = data.memIndex.y(newSystemGap, data.picks.size + 2)
+    fun RequestBuilder.newSystemPickDoc(data: DraftData, insertionIndex: Int = data.picks.size - 1) {
+        val y = data.memIndex.y(newSystemGap, insertionIndex + 3)
         addSingle("$dataSheet!B$y", data.pokemon)
         additionalSet?.let {
             addSingle("$dataSheet!${it.col}$y", it.existent)
@@ -534,11 +534,11 @@ sealed class League {
     }
 
 
-    fun PickData.getTierInsertIndex(): Int {
+    fun PickData.getTierInsertIndex(takePicks: Int = picks.size): Int {
         var index = 0
         for (entry in tierlist.prices.entries) {
             if (entry.key == this.tier) {
-                return this.picks.count { !it.free && it.tier == this.tier } + index - 1
+                return this.picks.take(takePicks).count { !it.free && it.tier == this.tier } + index - 1
             }
             index += entry.value
         }

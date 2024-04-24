@@ -1,40 +1,29 @@
 package de.tectoast.emolga.features.draft.during
 
-import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.invoke
 import de.tectoast.emolga.utils.json.emolga.draft.BypassCurrentPlayerData
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.SwitchData
 import mu.KotlinLogging
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 object SwitchCommand :
     CommandFeature<SwitchCommand.Args>(::Args, CommandSpec("switch", "Switcht ein Pokemon", *draftGuilds)) {
-    private val tlNameCache = SizeLimitedMap<String, String>(1000)
+
     private val logger = KotlinLogging.logger {}
 
     class Args : Arguments() {
-        var oldmon by draftPokemon("Altes Mon", "Das Pokemon, was rausgeschmissen werden soll") { s, e ->
-            newSuspendedTransaction {
-                League.onlyChannel(e.channel.idLong)?.let {
-                    val tl = it.tierlist
-                    it.picks[it.current]!!.filter { p -> p.name != "???" && !p.quit }.sortedWith(
-                        compareBy({ mon -> tl.order.indexOf(mon.tier) },
-                            { mon -> mon.name })
-                    ).map { mon ->
-                        logger.debug(mon.name)
-                        tlNameCache[mon.name] ?: NameConventionsDB.convertOfficialToTL(
-                            mon.name, it.guild
-                        )!!.also { tlName -> tlNameCache[mon.name] = tlName }
-                    }.filter { mon -> mon.startsWith(s, true) }
-                }
+        var oldmon by draftPokemon(
+            "Altes Mon",
+            "Das Pokemon, was rausgeschmissen werden soll",
+            autocomplete = { s, event ->
+                val league = League.onlyChannel(event.channelIdLong) ?: return@draftPokemon null
+                monOfTeam(s, league, league.current)
             }
-        }
+        )
         var newmon by draftPokemon("Neues Mon", "Das Pokemon, was stattdessen reinkommen soll")
     }
 

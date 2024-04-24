@@ -4,17 +4,15 @@ package de.tectoast.emolga.features
 
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.Translation
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
-import de.tectoast.emolga.utils.filterContainsIgnoreCase
-import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
 import dev.minn.jda.ktx.interactions.components.button
+import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
@@ -41,6 +39,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.interactions.components.text.TextInput
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
@@ -594,6 +593,30 @@ open class Arguments {
     fun replaceLastArg(arg: Arg<*, *>) {
         _args.removeLast()
         _args += arg
+    }
+
+    companion object {
+        val logger = KotlinLogging.logger {}
+        val tlNameCache = SizeLimitedMap<String, String>(1000)
+
+        // Helpers
+        suspend inline fun monOfTeam(s: String, league: League, user: Long): List<String>? {
+            return newSuspendedTransaction {
+                val tl = league.tierlist
+                val picks = league.picks[user] ?: return@newSuspendedTransaction null
+                picks.filter { p -> p.name != "???" && !p.quit }.sortedWith(
+                    compareBy({ mon -> tl.order.indexOf(mon.tier) },
+                        { mon -> mon.name })
+                ).map { mon ->
+                    logger.debug(mon.name)
+                    tlNameCache[mon.name] ?: NameConventionsDB.convertOfficialToTL(
+                        mon.name, league.guild
+                    )!!.also { tlName -> tlNameCache[mon.name] = tlName }
+                }.filter { mon -> mon.startsWith(s, true) }
+
+            }
+        }
+
     }
 }
 /**

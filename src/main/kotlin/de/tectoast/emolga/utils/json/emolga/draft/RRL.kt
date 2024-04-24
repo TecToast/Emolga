@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -39,5 +40,21 @@ class RRL : League() {
             "${(data.roundIndex + 3).xc()}${division.y(21 - 4, 6 + data.indexInRound)}",
             strikethrough = true
         )
+    }
+
+    @Transient
+    override val docEntry = DocEntry.create(this) {
+        newSystem(
+            SorterData(
+                listOf("Tabelle!D6:K13", "Tabelle!D18:K25"),
+                newMethod = true,
+                cols = listOf(3, 7, 5)
+            )
+        ) {
+            b.addSingle(
+                if (gdi == 6) "Spielplan!${division.x('N' - 'C', 6)}${35 + index}"
+                else gdi.coordYMod("Spielplan", 3, 4, division.y('N' - 'C', 4), 9, 8 + index), defaultGameplanString
+            )
+        }
     }
 }

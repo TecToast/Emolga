@@ -13,9 +13,12 @@ import de.tectoast.emolga.utils.json.emolga.draft.PickData
 import de.tectoast.emolga.utils.json.emolga.draft.RandomPickConfig
 import de.tectoast.emolga.utils.json.emolga.draft.RandomPickUserInput
 import de.tectoast.emolga.utils.y
+import mu.KotlinLogging
 
 object NuzlockeCommand :
     CommandFeature<NuzlockeCommand.Args>(::Args, CommandSpec("nuzlocke", "Rerollt ein Mon", Constants.G.HELBIN)) {
+    private val logger = KotlinLogging.logger {}
+
     init {
         restrict(admin)
     }
@@ -24,15 +27,17 @@ object NuzlockeCommand :
         val user by member("User", "Der User, dessen Mon rerollt wird")
         val mon by draftPokemon("Mon", "Das Mon, das rerollt wird", autocomplete = { s, event ->
             val user =
-                event.getOption("user")?.asMember ?: return@draftPokemon listOf("Du musst einen User zuerst angeben!")
-            val league = db.leagueByGuild(event.guild?.idLong ?: -1, user.idLong)
-                ?: return@draftPokemon listOf("Der User `${user.effectiveName}` nimmt an keiner Liga auf diesem Server teil!")
-            monOfTeam(s, league, user.idLong)
+                event.getOption("user")?.asString?.toLongOrNull()
+                    ?: return@draftPokemon listOf("Du musst einen User zuerst angeben!")
+            val league = db.leagueByGuild(event.guild?.idLong ?: -1, user)
+                ?: return@draftPokemon listOf("Der angegebene User nimmt an keiner Liga auf diesem Server teil!")
+            monOfTeam(s, league, user)
         })
     }
 
     context(InteractionData) override suspend fun exec(e: Args) {
         ephemeralDefault()
+        deferReply()
         val target = e.user.idLong
         val mention = e.user.asMention
         League.executeOnFreshLock({ db.leagueByGuild(gid, target) },
@@ -46,7 +51,7 @@ object NuzlockeCommand :
             val config = getConfigOrDefault<RandomPickConfig>()
             val (draftname, tier) = with(config.mode) {
                 getRandomPick(
-                    RandomPickUserInput(tier = oldMon.tier, type = null), config
+                    RandomPickUserInput(tier = oldMon.tier, type = null, ignoreRestrictions = true), config
                 )
             } ?: return
             picks[index] = DraftPokemon(draftname.official, tier)
@@ -75,6 +80,8 @@ object NuzlockeCommand :
                     25 + data.changedOnTeamsiteIndex
                 ), data.pokemon
             )
+            b.execute(true)
+            reply("Das Pokemon `${e.mon.tlName}` von $mention wurde zu `${draftname.tlName}` rerollt!")
             save("NuzlockeCommand")
         }
     }

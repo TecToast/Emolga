@@ -979,7 +979,7 @@ data class RandomPickConfig(
     fun hasJokers() = jokers > 0
 }
 
-data class RandomPickUserInput(val tier: String?, val type: String?)
+data class RandomPickUserInput(val tier: String?, val type: String?, val ignoreRestrictions: Boolean = false)
 
 @Serializable
 sealed interface RandomPickMode {
@@ -1007,7 +1007,7 @@ sealed interface RandomPickMode {
             config: RandomPickConfig
         ): Pair<DraftName, String>? {
             if (tierRequired && input.tier == null) return replyNull("Du musst ein Tier angeben!")
-            val tier = parseTier(input.tier, config) ?: return null
+            val tier = if (input.ignoreRestrictions) input.tier!! else parseTier(input.tier, config) ?: return null
             val list = tierlist.getByTier(tier)!!.shuffled()
             val skipMega = config.onlyOneMega && picks[current]!!.any { it.name.isMega }
             return firstAvailableMon(list) { english ->

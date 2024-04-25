@@ -83,7 +83,7 @@ object NuzlockeCommand :
                     5,
                     (leaguename.last().digitToInt()).y('P' - 'C', 4),
                     34,
-                    25 + data.changedOnTeamsiteIndex
+                    25 + data.getTierInsertIndex(index + 1)
                 ), data.pokemon
             )
             b.execute(true)

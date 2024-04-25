@@ -13,11 +13,9 @@ import de.tectoast.emolga.utils.json.emolga.draft.PickData
 import de.tectoast.emolga.utils.json.emolga.draft.RandomPickConfig
 import de.tectoast.emolga.utils.json.emolga.draft.RandomPickUserInput
 import de.tectoast.emolga.utils.y
-import mu.KotlinLogging
 
 object NuzlockeCommand :
     CommandFeature<NuzlockeCommand.Args>(::Args, CommandSpec("nuzlocke", "Rerollt ein Mon", Constants.G.HELBIN)) {
-    private val logger = KotlinLogging.logger {}
 
     init {
         restrict(admin)
@@ -33,6 +31,10 @@ object NuzlockeCommand :
                 ?: return@draftPokemon listOf("Der angegebene User nimmt an keiner Liga auf diesem Server teil!")
             monOfTeam(s, league, user)
         })
+        val newMon by draftPokemon(
+            "NewMonIfWished",
+            "Falls das Pokemon manuell entschieden wurde, hier angeben"
+        ).nullable()
     }
 
     context(InteractionData) override suspend fun exec(e: Args) {
@@ -48,12 +50,16 @@ object NuzlockeCommand :
                 return reply("Das Pokemon `${e.mon.tlName}` befindet sich nicht im Kader von $mention!")
             }
             val oldMon = picks[index]
-            val config = getConfigOrDefault<RandomPickConfig>()
-            val (draftname, tier) = with(config.mode) {
-                getRandomPick(
-                    RandomPickUserInput(tier = oldMon.tier, type = null, ignoreRestrictions = true), config
-                )
-            } ?: return
+            val (draftname, tier) = e.newMon?.let {
+                it to tierlist.getTierOf(it.official)!!
+            } ?: run {
+                val config = getConfigOrDefault<RandomPickConfig>()
+                with(config.mode) {
+                    getRandomPick(
+                        RandomPickUserInput(tier = oldMon.tier, type = null, ignoreRestrictions = true), config
+                    )
+                } ?: return
+            }
             picks[index] = DraftPokemon(draftname.official, tier)
             val b = builder()
             val data = PickData(

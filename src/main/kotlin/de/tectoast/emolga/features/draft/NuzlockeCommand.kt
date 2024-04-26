@@ -38,7 +38,6 @@ object NuzlockeCommand :
     }
 
     context(InteractionData) override suspend fun exec(e: Args) {
-        ephemeralDefault()
         deferReply()
         val target = e.user.idLong
         val mention = e.user.asMention

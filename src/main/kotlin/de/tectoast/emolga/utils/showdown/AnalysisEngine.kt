@@ -339,7 +339,7 @@ sealed class SDEffect(vararg val types: String) {
                     var i = currentLineIndex + 1
                     while (i < game.size) {
                         val line = game[i]
-                        if ("-fail" in line || "-immune" in line) return
+                        if ("-fail" in line || "-immune" in line || "-activate" in line) return
                         if ("|turn" in line || "|move" in line) break
                         i++
                     }
@@ -352,7 +352,7 @@ sealed class SDEffect(vararg val types: String) {
             }
         }
 
-        private val explosionMoves = listOf(
+        private val explosionMoves = setOf(
             "Explosion", "Self-Destruct", "Memento", "Final Gambit", "Misty Explosion", "Healing Wish", "Lunar Dance"
         )
     }

@@ -95,7 +95,7 @@ dependencies {
     implementation("club.minnced:jda-ktx:0.11.0-beta.20")
 
     // Google
-    implementation("com.google.apis:google-api-services-sheets:v4-rev20230815-2.0.0")
+    implementation("com.google.apis:google-api-services-sheets:v4-rev20240423-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20240327-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20240417-2.0.0")
 

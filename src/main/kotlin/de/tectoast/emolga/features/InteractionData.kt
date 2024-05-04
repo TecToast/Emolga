@@ -3,12 +3,14 @@ package de.tectoast.emolga.features
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.OneTimeCache
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.generics.getChannel
 import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.MessageEmbed
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
@@ -40,7 +42,7 @@ abstract class InteractionData(
     val self get() = this
 
     val replied get() = responseDeferred.isCompleted
-    val textChannel by lazy { jda.getTextChannelById(tc)!! }
+    val textChannel by lazy { jda.getChannel<GuildMessageChannel>(tc)!! }
     val member = OneTimeCache(member) { guild().retrieveMemberById(user).await() }
     val userObj = OneTimeCache(member?.user) { jda.retrieveUserById(user).await() }
     val guild = OneTimeCache(member?.guild) { jda.getGuildById(gid)!! }
@@ -129,7 +131,12 @@ abstract class InteractionData(
 var redirectTestCommandLogsToChannel: MessageChannel? = null
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TEST_TCID, gid: Long = Constants.G.MY) :
+class TestInteractionData(
+    user: Long = Constants.FLOID,
+    tc: Long = Constants.TEST_TCID,
+    gid: Long = Constants.G.MY,
+    val sendReplyInTc: Boolean = false
+) :
     InteractionData(user, tc, gid) {
 
     init {
@@ -142,6 +149,7 @@ class TestInteractionData(user: Long = Constants.FLOID, tc: Long = Constants.TES
 
     override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
         markAcknowledged()
+        if (sendReplyInTc) textChannel.sendMessage(msgCreateData).queue()
         responseDeferred.complete(CommandResponse(ephemeral, msgCreateData))
     }
 

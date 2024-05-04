@@ -1,14 +1,17 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
+import de.tectoast.emolga.features.TestInteractionData
+import de.tectoast.emolga.features.draft.NuzlockeCommand
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.records.SorterData
+import de.tectoast.emolga.utils.showdown.PlayerSaveKey
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
 @Serializable
 @SerialName("RRL")
-class RRL : League() {
+class RRL(val rerollChannel: Long) : League() {
     override val teamsize = 11
 
     @Transient
@@ -27,18 +30,11 @@ class RRL : League() {
         newSystemPickDoc(data)
         addSingle(
             data.memIndex.coordXMod(
-                "Kader",
-                2,
-                5,
-                division.y('P' - 'C', 4),
-                34,
-                25 + data.changedOnTeamsiteIndex
+                "Kader", 2, 5, division.y('P' - 'C', 4), 34, 25 + data.changedOnTeamsiteIndex
             ), data.pokemon
         )
         addStrikethroughChange(
-            340699480,
-            "${(data.roundIndex + 3).xc()}${division.y(21 - 4, 6 + data.indexInRound)}",
-            strikethrough = true
+            340699480, "${(data.roundIndex + 3).xc()}${division.y(21 - 4, 6 + data.indexInRound)}", strikethrough = true
         )
     }
 
@@ -46,9 +42,7 @@ class RRL : League() {
     override val docEntry = DocEntry.create(this) {
         newSystem(
             SorterData(
-                listOf("Tabelle!D6:K13", "Tabelle!D18:K25"),
-                newMethod = true,
-                cols = listOf(3, 7, 5)
+                listOf("Tabelle!D6:K13", "Tabelle!D18:K25"), newMethod = true, cols = listOf(3, 7, 5)
             )
         ) {
             b.addSingle(
@@ -57,4 +51,22 @@ class RRL : League() {
             )
         }
     }
+
+    override suspend fun onReplayAnalyse(data: ReplayData) {
+        for (i in data.uids.indices) {
+            val sdPlayer = data.game[i].sdPlayer ?: continue
+            val mon = sdPlayer[PlayerSaveKey.FIRST_FAINTED] ?: continue
+            with(rerollInteractionData) {
+                if (sdPlayer.containsZoro()) {
+                    sendMessage("Im Team von ${sdPlayer.nickname} befindet sich ein Pokemon mit Illusion, zur Sicherheit wurde der automatische Reroll abgebrochen.")
+                    return
+                }
+                val uid = data.uids[i]
+                NuzlockeCommand.executeMonSwitch(uid, mon.draftname)
+            }
+        }
+    }
+
+    private val rerollInteractionData get() = TestInteractionData(tc = rerollChannel, sendReplyInTc = true)
+
 }

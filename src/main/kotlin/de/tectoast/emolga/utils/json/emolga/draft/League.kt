@@ -709,6 +709,8 @@ sealed class League {
         description = "Spieltag ${gdData.gameday}: " + league.uids.joinToString(" vs. ") { "<@$it>" }
     }
 
+    open suspend fun onReplayAnalyse(data: ReplayData) {}
+
     /**
      * generate the gameplan coords
      * @param u1 the first user

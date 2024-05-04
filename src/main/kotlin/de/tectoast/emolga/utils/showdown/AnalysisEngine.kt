@@ -104,6 +104,10 @@ enum class PokemonSaveKey {
     LAST_DAMAGE_BY, ITEM_OBTAINED_FROM, TARGET_FOR_TRICK, PERISHED_BY
 }
 
+enum class PlayerSaveKey {
+    FIRST_FAINTED
+}
+
 @Suppress("unused")
 sealed class SDEffect(vararg val types: String) {
     open val name: String? = null
@@ -302,6 +306,7 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>) {
             val fainted = split[1].parsePokemon()
             fainted.isDead = true
+            sdPlayers[fainted.player].putIfAbsent(PlayerSaveKey.FIRST_FAINTED, fainted)
             val lastLine = lastLine.cleanSplit()
             if (lastLine.getOrNull(0) == "-activate" && lastLine.getOrNull(2) == "move: Destiny Bond") {
                 lastLine.getOrNull(1)?.parsePokemon()?.claimDamage(fainted, true, fainted.hp)
@@ -525,12 +530,15 @@ class SDPlayer(
     val fieldConditions: MutableMap<SDEffect, SDPokemon> = mutableMapOf(),
     val hittingFutureMoves: MutableList<SDEffect.FutureMoves> = mutableListOf(),
     var winnerOfGame: Boolean = false,
-    var teamSize: Int = 6
-) {
+    var teamSize: Int = 6,
+    private val playerSaves: MutableMap<PlayerSaveKey, SDPokemon> = mutableMapOf()
+) : MutableMap<PlayerSaveKey, SDPokemon> by playerSaves {
     val allMonsDead: Boolean
         get() = pokemon.all { it.isDead }
 
-    fun toDraftPlayer() = DraftPlayer(pokemon.count { !it.isDead }, winnerOfGame)
+    fun toDraftPlayer() = DraftPlayer(pokemon.count { !it.isDead }, winnerOfGame, this)
+
+    fun containsZoro() = pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }
 }
 
 fun String.cleanSplit() = this.split("|").drop(1)

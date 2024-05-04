@@ -178,7 +178,7 @@ object Analysis {
         }
         var shouldSendZoro = false
         for (ga in game) {
-            if (ga.pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }) {
+            if (ga.containsZoro()) {
                 resultchannelParam.sendMessage(
                     "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
                 ).queue()

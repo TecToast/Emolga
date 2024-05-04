@@ -1,5 +1,6 @@
 package de.tectoast.emolga.features.draft
 
+import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
@@ -39,17 +40,21 @@ object NuzlockeCommand :
 
     context(InteractionData) override suspend fun exec(e: Args) {
         deferReply()
-        val target = e.user.idLong
-        val mention = e.user.asMention
+        executeMonSwitch(e.user.idLong, e.mon, e.newMon)
+    }
+
+    context(InteractionData)
+    suspend fun executeMonSwitch(target: Long, mon: DraftName, newMon: DraftName? = null) {
+        val mention = "<@$target>"
         League.executeOnFreshLock({ db.leagueByGuild(gid, target) },
             { reply("Es wurde keine Liga von $mention gefunden!") }) {
             val picks = picks[target]!!
-            val index = picks.indexOfFirst { it.name == e.mon.official }
+            val index = picks.indexOfFirst { it.name == mon.official }
             if (index < 0) {
-                return reply("Das Pokemon `${e.mon.tlName}` befindet sich nicht im Kader von $mention!")
+                return reply("Das Pokemon `${mon.tlName}` befindet sich nicht im Kader von $mention!")
             }
             val oldMon = picks[index]
-            val (draftname, tier) = e.newMon?.let {
+            val (draftname, tier) = newMon?.let {
                 it to tierlist.getTierOf(it.official)!!
             } ?: run {
                 val config = getConfigOrDefault<RandomPickConfig>()
@@ -86,7 +91,7 @@ object NuzlockeCommand :
                 ), data.pokemon
             )
             b.execute(true)
-            reply("Das Pokemon `${e.mon.tlName}` von $mention wurde zu `${draftname.tlName}` rerollt!")
+            reply("Das Pokemon `${mon.tlName}` von $mention wurde zu `${draftname.tlName}` rerollt!")
             save("NuzlockeCommand")
         }
     }

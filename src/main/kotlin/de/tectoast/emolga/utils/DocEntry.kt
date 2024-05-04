@@ -98,6 +98,7 @@ class DocEntry private constructor(val league: League) {
         withSort: Boolean = true,
         realExecute: Boolean = true
     ) {
+        league.onReplayAnalyse(replayData)
         val (game, uids, kd, _, url, gamedayData, otherForms, _) = replayData
         val (gameday, battleindex, u1IsSecond, numbers) = gamedayData
         if (cancelIf(replayData, gameday)) return

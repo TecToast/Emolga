@@ -5,7 +5,7 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.TestInteractionData
 import de.tectoast.emolga.features.draft.during.MoveCommand
 import de.tectoast.emolga.features.draft.during.PickCommand
-import de.tectoast.emolga.features.draft.during.RandomPickCommand
+import de.tectoast.emolga.features.draft.during.RandomPick
 import de.tectoast.emolga.features.redirectTestCommandLogsToChannel
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -100,7 +100,7 @@ suspend fun pick(name: String) {
 
 suspend fun randomPick(tier: String) {
     testCommand {
-        RandomPickCommand.exec {
+        RandomPick.Command.exec {
             this.tier = tier
         }
     }

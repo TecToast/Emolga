@@ -14,6 +14,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.PickData
 import de.tectoast.emolga.utils.json.emolga.draft.RandomPickConfig
 import de.tectoast.emolga.utils.json.emolga.draft.RandomPickUserInput
 import de.tectoast.emolga.utils.y
+import dev.minn.jda.ktx.coroutines.await
 
 object NuzlockeCommand :
     CommandFeature<NuzlockeCommand.Args>(::Args, CommandSpec("nuzlocke", "Rerollt ein Mon", Constants.G.HELBIN)) {
@@ -47,7 +48,13 @@ object NuzlockeCommand :
     suspend fun executeMonSwitch(target: Long, mon: DraftName, newMon: DraftName? = null) {
         val mention = "<@$target>"
         League.executeOnFreshLock({ db.leagueByGuild(gid, target) },
-            { reply("Es wurde keine Liga von $mention gefunden!") }) {
+            {
+                reply(
+                    "Es wurde keine Liga von `${
+                        guild().retrieveMemberById(target).await().effectiveName
+                    }` gefunden!"
+                )
+            }) {
             val picks = picks[target]!!
             val index = picks.indexOfFirst { it.name == mon.official }
             if (index < 0) {

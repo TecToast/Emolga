@@ -67,6 +67,11 @@ class RRL(val rerollChannel: Long) : League() {
         }
     }
 
-    private val rerollInteractionData get() = TestInteractionData(tc = rerollChannel, sendReplyInTc = true)
+    private val rerollInteractionData
+        get() = TestInteractionData(
+            tc = rerollChannel,
+            gid = Constants.G.HELBIN,
+            sendReplyInTc = true
+        )
 
 }

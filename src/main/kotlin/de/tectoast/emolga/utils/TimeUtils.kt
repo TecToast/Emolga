@@ -10,8 +10,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 object TimeUtils {
-    private val DURATION_PATTERN = Regex("(\\d{1,8})([smhdwy]?)")
-    private val DURATION_SPLITTER = Regex("[.|:]")
     private val SECONDS_TOSTRING = TreeMap<Int, String>(
         Comparator.reverseOrder()
     ).apply {
@@ -26,14 +24,6 @@ object TimeUtils {
             )
         )
     }
-    private val shortToPretty = mapOf(
-        "y" to ("Jahr" to "Jahre"),
-        "w" to ("Woche" to "Wochen"),
-        "d" to ("Tag" to "Tage"),
-        "h" to ("Stunde" to "Stunden"),
-        "m" to ("Minute" to "Minuten"),
-        "s" to ("Sekunde " to "Sekunden")
-    )
     private val STRING_TO_SECONDS = run {
         val map = TreeMap<String, Int>()
         for ((k, v) in SECONDS_TOSTRING) {
@@ -42,6 +32,16 @@ object TimeUtils {
         map[""] = 1
         map
     }
+    private val shortToPretty = mapOf(
+        "y" to ("Jahr" to "Jahre"),
+        "w" to ("Woche" to "Wochen"),
+        "d" to ("Tag" to "Tage"),
+        "h" to ("Stunde" to "Stunden"),
+        "m" to ("Minute" to "Minuten"),
+        "s" to ("Sekunde " to "Sekunden")
+    )
+    private val DURATION_PATTERN = Regex("(\\d{1,8})([${STRING_TO_SECONDS.keys.joinToString("")}])")
+    private val DURATION_SPLITTER = Regex("[.|:]")
 
     fun parseShortTime(timestring: String): Long {
         var result = 0L
@@ -87,59 +87,42 @@ object TimeUtils {
     }
 
     fun parseCalendarTime(str: String): Long {
-        var timestr = str.lowercase()
-        if (!DURATION_PATTERN.matches(timestr)) {
-            val calendar = Calendar.getInstance()
-            calendar[Calendar.SECOND] = 0
-            var hoursSet = false
-            for (s in str.split(";", " ")) {
-                val split = DURATION_SPLITTER.split(s)
-                if (s.contains(".")) {
-                    calendar[Calendar.DAY_OF_MONTH] = split[0].toInt()
-                    calendar[Calendar.MONTH] = split[1].toInt() - 1
-                } else if (s.contains(":")) {
-                    calendar[Calendar.HOUR_OF_DAY] = split[0].toInt()
-                    calendar[Calendar.MINUTE] = split[1].toInt()
-                    hoursSet = true
-                }
-            }
-            if (!hoursSet) {
-                calendar[Calendar.HOUR_OF_DAY] = 15
-                calendar[Calendar.MINUTE] = 0
-            }
-            return calendar.timeInMillis
+        val timestr = str.lowercase()
+        if (timestr.any { it.isLetter() }) {
+            return System.currentTimeMillis() + parseShortTime(timestr) * 1000
         }
-        var multiplier = 1000
-        when (timestr[timestr.length - 1]) {
-            'w' -> {
-                multiplier *= 7
-                multiplier *= 24
-                multiplier *= 60
-                multiplier *= 60
-                timestr = timestr.substring(0, timestr.length - 1)
-            }
-
-            'd' -> {
-                multiplier *= 24
-                multiplier *= 60
-                multiplier *= 60
-                timestr = timestr.substring(0, timestr.length - 1)
-            }
-
-            'h' -> {
-                multiplier *= 60
-                multiplier *= 60
-                timestr = timestr.substring(0, timestr.length - 1)
-            }
-
-            'm' -> {
-                multiplier *= 60
-                timestr = timestr.substring(0, timestr.length - 1)
-            }
-
-            's' -> timestr = timestr.substring(0, timestr.length - 1)
+        val now = System.currentTimeMillis()
+        val calendar = Calendar.getInstance().apply { timeInMillis = now }
+        calendar[Calendar.SECOND] = 0
+        val split = str.split(" ", ";")
+        val first = split[0]
+        val second = split.getOrNull(1)
+        if ("." in first) {
+            calendar.handleDay(first, now)
+            calendar.handleTime(second, now)
+        } else {
+            calendar.handleTime(first, now)
         }
-        return System.currentTimeMillis() + multiplier.toLong() * timestr.toInt()
+        return calendar.timeInMillis
+    }
+
+    private fun Calendar.handleDay(str: String, now: Long) {
+        val date = str.split(".")
+        this[Calendar.DAY_OF_MONTH] = date[0].toInt()
+        date.getOrNull(1)?.let { this[Calendar.MONTH] = it.toInt() - 1 }
+        if (this.timeInMillis < now) {
+            this.add(Calendar.MONTH, 1)
+        }
+    }
+
+    private fun Calendar.handleTime(strInput: String?, now: Long) {
+        val str = strInput ?: "15:00"
+        val time = str.split(":")
+        this[Calendar.HOUR_OF_DAY] = time[0].toInt()
+        this[Calendar.MINUTE] = time.getOrNull(1)?.toInt() ?: 0
+        if (this.timeInMillis < now) {
+            this.add(Calendar.DAY_OF_MONTH, 1)
+        }
     }
 
     private fun pluralise(x: Long, singular: String, plural: String): String {

@@ -70,10 +70,11 @@ object DraftPermissionCommand :
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            db.drafts.find(League::guild eq gid, League::table contains user).first()?.let { l ->
+            League.executeOnFreshLock({ db.drafts.find(League::guild eq gid, League::table contains user).first() },
+                { reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) {
                 val mem = e.user
                 if (mem.idLong == user) return reply("Du darfst tatsächlich immer picken :)")
-                val set = l.allowed.getOrPut(user) { mutableSetOf() }
+                val set = allowed.getOrPut(user) { mutableSetOf() }
                 set.removeIf { it.u == mem.idLong }
                 reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {
                     description = set.sortedWith { o1, o2 ->
@@ -82,8 +83,8 @@ object DraftPermissionCommand :
                         else 0
                     }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
                 }.into())
-                l.save("DraftPermission Deny")
-            } ?: reply("Du nimmst nicht an einer Liga auf diesem Server teil!")
+                save("DraftPermission Deny")
+            }
         }
     }
 

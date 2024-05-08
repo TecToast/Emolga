@@ -73,8 +73,8 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         }
         emolgajda.listener<ReadyEvent> {
             logger.info("important".marker, "Emolga is now online!")
-            db.drafts.find(League::isRunning eq true).toList().forEach {
-                if (it.noAutoStart) return@forEach
+            db.drafts.find(League::isRunning eq true).toFlow().collect {
+                if (it.noAutoStart) return@collect
                 logger.info("important".marker, "Starting draft ${it.leaguename}...")
                 it.startDraft(null, true, null)
             }

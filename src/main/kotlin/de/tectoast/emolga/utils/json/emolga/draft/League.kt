@@ -878,7 +878,7 @@ sealed class League {
         val allStallSecondTimers = mutableMapOf<String, Job>()
         val leagueTimeFormat = SimpleDateFormat("HH:mm")
         val leagueTimeFormatSecs = SimpleDateFormat("HH:mm:ss")
-        val allMutexes = ConcurrentHashMap<String, Mutex>()
+        private val allMutexes = ConcurrentHashMap<String, Mutex>()
         val queueInteractionData = TestInteractionData(tc = 1099651412742389820)
         val timerScope = createCoroutineScope("LeagueTimer")
 

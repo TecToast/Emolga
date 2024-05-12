@@ -643,6 +643,19 @@ object PrivateCommands {
         }
     }
 
+    context(InteractionData)
+    suspend fun switchUser(args: PrivateData) {
+        val league = db.league(args[0])
+        val old = args[1].toLong()
+        val new = args[2].toLong()
+        db.drafts.updateOne(
+            and(League::leaguename eq league.leaguename, League::table contains old), combine(
+                set(League::table.posOp setTo new),
+                rename(League::picks.keyProjection(old), League::picks.keyProjection(new))
+            )
+        )
+    }
+
 
 }
 

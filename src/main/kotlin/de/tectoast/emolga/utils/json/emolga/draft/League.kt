@@ -146,7 +146,7 @@ sealed class League {
 
     open val additionalSet: AdditionalSet? by lazy { AdditionalSet((gamedays + 4).xc(), "X", "Y") }
 
-    val queuedPicks: MutableMap<Long, QueuePicksData> = mutableMapOf()
+    val queuedPicks: MutableMap<Int, QueuePicksData> = mutableMapOf()
     val randomLeagueData: RandomLeagueData = RandomLeagueData()
 
     protected fun enableConfig(vararg flags: LeagueConfig) {
@@ -628,7 +628,7 @@ sealed class League {
         while (true) {
             checkForQueuedPicksChanges()
             setNextUser()
-            val queuePicksData = queuedPicks[current]?.takeIf { it.enabled } ?: break
+            val queuePicksData = queuedPicks[index(current)]?.takeIf { it.enabled } ?: break
             val queuedMon = queuePicksData.queued.firstOrNull() ?: break
             with(queueInteractionData) outer@{
                 with(PickCommand) {
@@ -646,9 +646,9 @@ sealed class League {
         val newMon = lastPickedMon ?: return
         queuedPicks.entries.filter { newMon in it.value.queued }.forEach { (mem, data) ->
             data.queued.remove(newMon)
-            if (mem != current) {
+            if (mem != index(current)) {
                 SendFeatures.sendToUser(
-                    mem, embeds = Embed(
+                    table[mem], embeds = Embed(
                         title = "Queue-Pick-Warnung",
                         color = 0xff0000,
                         description = "`${newMon.tlName}` aus deiner Queue wurde gepickt.\nDas System wurde für dich deaktiviert, damit du umplanen kannst."

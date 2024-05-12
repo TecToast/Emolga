@@ -531,7 +531,7 @@ class QueuePicks : StateStore {
                     currentState
                 )
             ) return reply("Mit dieser Queue hast du nicht genug Punkte für ein vollständiges Team!")
-            val data = queuedPicks.getOrPut(user) { QueuePicksData() }
+            val data = queuedPicks.getOrPut(index(user)) { QueuePicksData() }
             data.queued = currentState.toMutableList()
             data.enabled = enable
             currentlyEnabled = enable

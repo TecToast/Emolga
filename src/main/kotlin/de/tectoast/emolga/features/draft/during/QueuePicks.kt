@@ -21,7 +21,7 @@ object QueuePicks {
             context(InteractionData)
             override suspend fun exec(e: NoArgs) {
                 val league = db.leagueByCommand() ?: return reply("Du bist in keiner Liga auf diesem Server!")
-                val currentData = league.queuedPicks.getOrPut(user) { QueuePicksData() }
+                val currentData = league.queuedPicks.getOrPut(league.index(user)) { QueuePicksData() }
                 val currentState = currentData.queued
                 if (currentState.isEmpty()) return reply(
                     "Du hast zurzeit keine Picks in der Queue! Füge welche über /queuepicks add hinzu!",
@@ -46,7 +46,7 @@ object QueuePicks {
                 deferReply()
                 League.executeOnFreshLock({ db.leagueByCommand() },
                     { return reply("Du bist in keiner Liga auf diesem Server!") }) {
-                    val data = queuedPicks.getOrPut(user) { QueuePicksData() }
+                    val data = queuedPicks.getOrPut(index(user)) { QueuePicksData() }
                     val mon = e.mon
                     if (data.queued.contains(mon)) return reply("Du hast dieses Pokemon bereits in deiner Queue!")
                     tierlist.getTierOf(mon.tlName) ?: return reply("Das Pokemon ist nicht in der Tierlist!")
@@ -69,7 +69,7 @@ object QueuePicks {
         suspend fun changeActivation(enable: Boolean) {
             League.executeOnFreshLock({ db.leagueByCommand() },
                 { return reply("Du bist in keiner Liga auf diesem Server!") }) {
-                val data = queuedPicks.getOrPut(user) { QueuePicksData() }
+                val data = queuedPicks.getOrPut(index(user)) { QueuePicksData() }
                 if (checkIfTeamCantBeFinished(
                         user, data.queued
                     )

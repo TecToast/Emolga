@@ -47,9 +47,7 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
-import java.io.File
 import java.security.SecureRandom
-import java.util.*
 import java.util.regex.Pattern
 import javax.imageio.ImageIO
 import kotlin.collections.component1
@@ -101,10 +99,10 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun printTipGame(args: PrivateData) {
-        File("tipgame_${defaultTimeFormat.format(Date()).replace(" ", "_")}.txt").also { it.createNewFile() }
-            .writeText(db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
+        reply(db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
                 .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }
-                .mapIndexed { index, pair -> "${index + 1}<@${pair.first}>: ${pair.second}" }.joinToString("\n")
+            .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
+            .joinToString("\n", prefix = "```", postfix = "```")
             )
     }
 

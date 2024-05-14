@@ -106,10 +106,14 @@ object NameConventionsDB : Table("nameconventions") {
         }
     }
 
-    suspend fun convertOfficialToTL(mon: String, guildId: Long): String? {
+    suspend fun convertOfficialToTLFull(mon: String, guildId: Long, plusOther: Boolean = false): DraftName? {
         val nc = emolgaDB.nameconventions.get(guildId)
         val spec = nc.keys.firstOrNull { mon.endsWith("-$it") }
-        return getDBTranslation(mon, guildId, spec, nc, english = Tierlist[guildId].isEnglish)?.tlName
+        return getDBTranslation(mon, guildId, spec, nc, english = Tierlist[guildId].isEnglish, plusOther = plusOther)
+    }
+
+    suspend fun convertOfficialToTL(mon: String, guildId: Long): String? {
+        return convertOfficialToTLFull(mon, guildId)?.tlName
     }
 
     suspend fun getDiscordTranslation(s: String, guildIdArg: Long, english: Boolean = false): DraftName? {
@@ -154,42 +158,57 @@ object NameConventionsDB : Table("nameconventions") {
     }
 
     private suspend fun getDBTranslation(
-        test: String, guildId: Long, spec: String? = null, nc: Map<String, String>, english: Boolean = false
+        test: String,
+        guildId: Long,
+        spec: String? = null,
+        nc: Map<String, String>,
+        english: Boolean = false,
+        plusOther: Boolean = false
     ): DraftName? {
         return newSuspendedTransaction {
             selectAll().where(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId)))
                 .orderBy(
-                GUILD to SortOrder.DESC
-            ).firstOrNull()?.let {
-                return@newSuspendedTransaction DraftName(
-                    it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
-                        if (spec != null) {
-                            val pattern = nc[spec] ?: emolgaDB.defaultNameConventions()[spec]!!
-                            val len = pattern.replace("(.+)", "").length
-                            val replace = pattern.replace("(.+)", s.substringBefore("-$spec"))
-                            //logger.warn("s: {}, raw: {}, len: {}, replace: {}", s, raw, len, replace)
-                            val replLen = replace.length
-                            val coercedLen = len.coerceAtMost(replLen)
-                            if (replace.substring(0, coercedLen) == replace.substring(
-                                    coercedLen, (2 * len).coerceAtMost(replLen)
-                                )
-                            ) replace.substring(coercedLen) else if (replace.substring(replLen - len) == replace.substring(
-                                    (replLen - 2 * len).coerceAtLeast(0), replLen - len
-                                )
-                            ) replace.substring(
-                                0, replLen - len
-                            ) else replace
-                        } else s
-                    }, it[if (english) ENGLISH else GERMAN], it[GUILD] != 0L || spec != null
-                )
-            }
+                    GUILD to SortOrder.DESC
+                ).firstOrNull()?.let {
+                    return@newSuspendedTransaction DraftName(
+                        it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
+                            if (spec != null) {
+                                val pattern = nc[spec] ?: emolgaDB.defaultNameConventions()[spec]!!
+                                val len = pattern.replace("(.+)", "").length
+                                val replace = pattern.replace("(.+)", s.substringBefore("-$spec"))
+                                //logger.warn("s: {}, raw: {}, len: {}, replace: {}", s, raw, len, replace)
+                                val replLen = replace.length
+                                val coercedLen = len.coerceAtMost(replLen)
+                                if (replace.substring(0, coercedLen) == replace.substring(
+                                        coercedLen, (2 * len).coerceAtMost(replLen)
+                                    )
+                                ) replace.substring(coercedLen) else if (replace.substring(replLen - len) == replace.substring(
+                                        (replLen - 2 * len).coerceAtLeast(0), replLen - len
+                                    )
+                                ) replace.substring(
+                                    0, replLen - len
+                                ) else replace
+                            } else s
+                        },
+                        it[if (english) ENGLISH else GERMAN],
+                        it[GUILD] != 0L || spec != null,
+                        if (plusOther) if (english) it[SPECIFIED] else it[SPECIFIEDENGLISH] else null,
+                        if (plusOther) if (english) it[GERMAN] else it[ENGLISH] else null
+                    )
+                }
             null
         }
     }
 }
 
 @Serializable
-data class DraftName(val tlName: String, val official: String, @Transient val guildspecific: Boolean = false) {
+data class DraftName(
+    val tlName: String,
+    val official: String,
+    @Transient val guildspecific: Boolean = false,
+    @Transient val otherTl: String? = null,
+    @Transient val otherOfficial: String? = null
+) {
     var data: Pokemon? = null
     val displayName get() = if (guildspecific) tlName else official
     override fun equals(other: Any?): Boolean {

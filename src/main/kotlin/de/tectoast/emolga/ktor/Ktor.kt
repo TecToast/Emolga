@@ -74,7 +74,7 @@ object Ktor {
         authentication {
             oauth("auth-oauth-discord") {
                 urlProvider =
-                    { if (devMode) "http://localhost:5173/api/discordauth" else "https://emolga.tectoast.de/api/discordauth" }
+                    { if (devMode) "http://localhost:3000/api/discordauth" else "https://emolga.tectoast.de/api/discordauth" }
                 providerLookup = {
                     OAuthServerSettings.OAuth2ServerSettings(
                         name = "discord",

@@ -28,7 +28,7 @@ fun Route.emolgaAPI() {
         get("/discordauth") {
             if (disabled) return@get respondSuccess()
             val principal: OAuthAccessTokenResponse.OAuth2 = call.principal() ?: run {
-                call.response.status(HttpStatusCode.BadRequest)
+                call.respond(HttpStatusCode.BadRequest)
                 return@get
             }
             val accessToken = principal.accessToken
@@ -41,13 +41,12 @@ fun Route.emolgaAPI() {
                     user.id
                 )
             )
-            call.respondRedirect(if (Ktor.devMode) "http://localhost:5173/" else "https://emolga.tectoast.de/")
+            call.respondRedirect(if (Ktor.devMode) "http://localhost:3000/" else "https://emolga.tectoast.de/")
         }
     }
-
     get("/userdata") {
         if (disabled) return@get respondSuccess()
-        val session = call.sessions.get<UserSession>() ?: return@get call.respond("{}")
+        val session = call.sessions.get<UserSession>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
         call.respond(httpClient.getUserData(session.accessToken).emolga())
     }
     get("/logout") {

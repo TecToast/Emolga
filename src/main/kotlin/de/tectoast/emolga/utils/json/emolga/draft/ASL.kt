@@ -72,7 +72,7 @@ class ASL(
 
     override fun setupRepeatTasks() {
         RepeatTask(
-            "ASL", RepeatTaskType.Other("Announce"), "20.05.2024 00:00", 7, 7.days
+            "ASL", RepeatTaskType.Other("Announce"), "27.05.2024 00:00", 7, 7.days
         ) {
             executeGamedaySending(it)
         }

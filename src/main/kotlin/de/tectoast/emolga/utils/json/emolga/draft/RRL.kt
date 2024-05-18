@@ -53,6 +53,7 @@ class RRL(val rerollChannel: Long) : League() {
     }
 
     override suspend fun onReplayAnalyse(data: ReplayData) {
+        if (rrlDisableAutoReroll) return
         for (i in data.uids.indices) {
             val sdPlayer = data.game[i].sdPlayer ?: continue
             val mon = sdPlayer[PlayerSaveKey.FIRST_FAINTED] ?: continue
@@ -75,3 +76,5 @@ class RRL(val rerollChannel: Long) : League() {
         )
 
 }
+
+var rrlDisableAutoReroll = false

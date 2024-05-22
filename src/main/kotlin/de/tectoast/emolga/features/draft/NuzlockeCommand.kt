@@ -57,6 +57,7 @@ object NuzlockeCommand :
             }) {
             val picks = picks[target]!!
             val index = picks.indexOfFirst { it.name == mon.official }
+                .let { if (it == -1) picks.indexOfFirst { it.name in mon.official } else it }
             if (index < 0) {
                 return reply("Das Pokemon `${mon.tlName}` befindet sich nicht im Kader von $mention!")
             }

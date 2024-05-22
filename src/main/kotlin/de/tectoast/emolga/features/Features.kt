@@ -46,7 +46,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.isSubclassOf
 
-sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent, in A : Arguments>(
+sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent, A : Arguments>(
     val argsFun: () -> @UnsafeVariance A,
     val spec: T,
     val eventClass: KClass<@UnsafeVariance E>,
@@ -64,7 +64,7 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
         spec.name + ";" + argsFun().apply(argsBuilder).args.filter { !checkCompId || it.compIdOnly }
             .joinToString(";") { it.parsed?.toString() ?: "" }
 
-    fun buildArgs(argsBuilder: ArgBuilder<@UnsafeVariance A>) = argsFun().apply(argsBuilder)
+    fun buildArgs(argsBuilder: ArgBuilder<A>) = argsFun().apply(argsBuilder)
 
     protected suspend inline fun populateArgs(
         data: InteractionData, args: List<Arg<*, *>>, parser: (String, Int) -> Any?
@@ -132,7 +132,7 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
         )
     }
 }
-typealias ArgBuilder<A> = A.() -> Unit
+typealias ArgBuilder<A> = (@UnsafeVariance A).() -> Unit
 typealias BooleanCheck = suspend InteractionData.() -> Boolean
 typealias AllowedResultCheck = suspend InteractionData.() -> AllowedResult
 
@@ -761,9 +761,10 @@ class Arg<DiscordType, ParsedType>(
         return Arg<DiscordType, ParsedType?>(name, help, optionType, args).also {
             copyTo(it)
             val oldSpec = it.spec as? ModalArgSpec
-            it.spec = ModalArgSpec(oldSpec?.short ?: true,
+            it.spec = ModalArgSpec(
+                oldSpec?.short != false,
                 key,
-                required ?: oldSpec?.required ?: false,
+                required ?: oldSpec?.required == true,
                 oldSpec?.builder ?: {})
             it.defaultValueSet = true
             args.replaceLastArg(it)

@@ -29,13 +29,12 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
 
     enum class ShiftMode {
         N {
+            val regex = Regex("(.*?)\\s\\S+\\s?->\\s?(\\S+)")
             override fun parseMons(str: String): List<DraftPokemon> {
-                val split = str.split(" ")
-                return buildList {
-                    for (i in split.indices step 2) {
-                        this += DraftPokemon(split[i], split[i + 1])
-                    }
-                }
+                return regex.findAll(str).map {
+                    val (mon, tier) = it.destructured
+                    DraftPokemon(mon.trim(), tier.trim())
+                }.toList()
             }
         },
         H {
@@ -83,8 +82,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                     sid,
                     e.ranges.map {
                         if (it.contains(":")) return@map "$tierlistsheet!$it"
-                        val char = it.take(1)
-                        "$tierlistsheet!$char$yStart:$char$yEnd"
+                        "$tierlistsheet!$it$yStart:$it$yEnd"
                     },
                     false,
                     "COLUMNS"

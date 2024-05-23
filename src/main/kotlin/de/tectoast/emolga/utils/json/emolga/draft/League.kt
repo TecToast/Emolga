@@ -185,12 +185,13 @@ sealed class League {
         }
     }
 
-    fun RequestBuilder.newSystemPickDoc(data: DraftData, insertionIndex: Int = data.picks.size - 1) {
+    fun RequestBuilder.newSystemPickDoc(data: DraftData, insertionIndex: Int = data.picks.size - 1): Int {
         val y = data.memIndex.y(newSystemGap, insertionIndex + 3)
         addSingle("$dataSheet!B$y", data.pokemon)
         additionalSet?.let {
             addSingle("$dataSheet!${it.col}$y", it.existent)
         }
+        return y
     }
 
     fun RequestBuilder.newSystemSwitchDoc(data: SwitchData) {

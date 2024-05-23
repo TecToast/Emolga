@@ -7,12 +7,14 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
+import de.tectoast.emolga.utils.y
 import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -36,38 +38,35 @@ class NDS(val rr: Boolean) : League() {
 
     override fun isFinishedForbidden() = false
     override val teamsize = 15
-    override val pickBuffer = -1
+    override val pickBuffer = 12
 
     @Transient
     override var timer: DraftTimer? = SimpleTimer(TimerInfo(10, 22, delayInMins = 3 * 60))
-    override val additionalSet = null
+
+    @Transient
+    override val additionalSet = AdditionalSet("D", "X", "Y")
 
     fun getTeamname(uid: Long) = teamtable[table.indexOf(uid)]
 
     override fun beforePick(): String? {
-        return "Du hast bereits 15 Mons!".takeIf { picks(current).count { it.name != "???" } == 15 }
+        return "Du hast bereits 15 Mons!".takeIf { picks(current).count { !it.quit } == 15 }
     }
 
     override fun checkFinishedForbidden(mem: Long) = when {
-        picks[mem]!!.filter { it.name != "???" }.size < 15 -> "Du hast noch keine 15 Pokemon!"
+        picks[mem]!!.filter { !it.quit }.size < 15 -> "Du hast noch keine 15 Pokemon!"
         !getPossibleTiers().values.all { it == 0 } -> "Du musst noch deine Tiers ausgleichen!"
         else -> null
     }
 
-    override fun savePick(pickData: PickData) {
-        picks(current).first { it.name == "???" }.apply {
-            this.name = pickData.pokemonofficial
-            this.tier = pickData.tier
-        }
-    }
-
     override fun saveSwitch(picks: MutableList<DraftPokemon>, oldmon: String, newmon: String, newtier: String): Int {
-        val index = picks.sortedWith(tierorderingComparator).indexOfFirst { it.name == oldmon }
+        if (rr) {
+            return super.saveSwitch(picks, oldmon, newmon, newtier)
+        }
         picks.first { it.name == oldmon }.apply {
             this.name = newmon
             this.tier = newtier
         }
-        return index
+        return -1
     }
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
@@ -79,17 +78,21 @@ class NDS(val rr: Boolean) : League() {
     }
 
     private suspend fun RequestBuilder.doc(data: DraftData) {
-        val index = data.memIndex
-        val y = index * 17 + 2 + data.changedIndex
-        addSingle("Data!B$y", data.pokemon)
+        val isSwitch = data is SwitchData
+        val y = newSystemPickDoc(data, if (rr) data.picks.size - 1 else data.changedIndex)
+        if (isSwitch && rr) {
+            additionalSet.let {
+                addSingle("$dataSheet!${it.col}${data.memIndex.y(newSystemGap, data.oldIndex + 3)}", it.yeeted)
+            }
+        }
         addSingle("Data!AF$y", 2)
         addColumn(
-            "Data!F${index * 17 + 2}",
-            data.picks.filter { it.name != "???" }.sortedWith(tierorderingComparator)
+            "Data!F${data.memIndex * 30 + 3}",
+            data.picks.filter { !it.quit }.sortedWith(tierorderingComparator)
                 .map { NameConventionsDB.convertOfficialToTL(it.name, guild)!! }.toList()
         )
         val numInRound = data.indexInRound + 1
-        if (data is SwitchData) addSingle(
+        if (isSwitch) addSingle(
             "Draft!${getAsXCoord(round * 5 - 3)}${numInRound * 5 + 1}", data.oldmon
         )
         addSingle("Draft!${getAsXCoord(round * 5 - 1)}${numInRound * 5 + 2}", data.pokemon)
@@ -99,22 +102,22 @@ class NDS(val rr: Boolean) : League() {
     override val docEntry = DocEntry.create(this) {
         killProcessor = BasicStatProcessor {
             Coord(
-                "Data", gameday + 6, plindex * 17 + 2 + monindex
+                "Data", gameday + 6, plindex * 30 + 3 + monindex
             )
         }
         deathProcessor = BasicStatProcessor {
             Coord(
-                "Data", gameday + 18, plindex * 17 + 2 + monindex
+                "Data", gameday + 18, plindex * 30 + 3 + monindex
             )
         }
         winProcessor = ResultStatProcessor {
             Coord(
-                "Data", gameday + 6, plindex * 17 + 18
+                "Data", gameday + 6, plindex * 30 + 30
             )
         }
         looseProcessor = ResultStatProcessor {
             Coord(
-                "Data", gameday + 18, plindex * 17 + 18
+                "Data", gameday + 18, plindex * 30 + 30
             )
         }
         resultCreator = {
@@ -218,13 +221,11 @@ class NDS(val rr: Boolean) : League() {
                     b.addSingle("$team!AE10", "='$oppo'!AA10")
                     b.addSingle("$team!AC11", "='$oppo'!Y11")
                     // Conditional formatting tiers
-                    val y = oppoIndex * 2 + 300
+                    val y = oppoIndex * 2 + 500
                     b.addSingle("$team!B49", "={Data!B$y:AE$y}")
-
                 }
             }
-            b.addColumn("TipGameData!N16", tipgameStats)
-            b.addSingle("TipGameData!N29", gameday)
+            b.execute()
             if (withAnnounce) {
                 b.withRunnable {
                     jda.getTextChannelById(837425690844201000L)!!.sendMessage(
@@ -232,7 +233,6 @@ class NDS(val rr: Boolean) : League() {
                     ).queue()
                 }
             }
-            b.execute()
         }
 
 

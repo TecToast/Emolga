@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Nominations(
     var currentDay: Int = 1,
-    val nominated: MutableMap<Int, MutableMap<Long, String>> = mutableMapOf()
+    val nominated: MutableMap<Int, MutableMap<Long, List<Int>>> = mutableMapOf()
 ) {
     fun current() = nominated[currentDay]!!
 }

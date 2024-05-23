@@ -239,37 +239,28 @@ class NDS(val rr: Boolean) : League() {
         suspend fun doNDSNominate(prevDay: Boolean = false, withSend: Boolean = true, vararg onlySpecifiedUsers: Long) {
             val nds = db.nds()
             val nom = nds.nominations
-            val table = nds.table
             var cday = nom.currentDay
             if (prevDay) cday--
-            val o = nom.nominated[cday]!!
+            val dayData = nom.nominated[cday]!!
             val picks = nds.picks
-            val sid = nds.sid
-            val b = RequestBuilder(sid)
-            val tiers = listOf("S", "A", "B")
+            val b = RequestBuilder(nds.sid)
             var dbcallTime = 0L
             for (u in onlySpecifiedUsers.takeIf { it.isNotEmpty() }?.toList() ?: picks.keys) {
-                val pmons: MutableList<DraftPokemon> = picks[u]!!
-                if (u !in o) {
-                    if (cday == 1) {
-                        val comp = compareBy<DraftPokemon>({ it.tier.indexedBy(tiers) }, { it.name })
-                        o[u] = (buildString {
-                            append(pmons.sortedWith(comp).joinToString(";") { it.indexedBy(pmons).toString() })
-                        })
-                    } else {
-                        o[u] = nom.nominated[cday - 1]!![u]!!
-                    }
+                val pmons = picks[u]!!
+                if (u !in dayData) {
+                    dayData[u] = if (cday == 1) {
+                        pmons.sortedWith(nds.tierorderingComparator)
+                            .map { it.indexedBy(pmons) }
+                    } else nom.nominated[cday - 1]!![u]!!
                 }
-                //logger.info("o.get(u) = " + o.get(u));
-                val str = o[u]!!
+                val indices = dayData[u]!!
                 val start = System.currentTimeMillis()
-                val mons: List<String> =
-                    str.split(";").map { NameConventionsDB.convertOfficialToTL(pmons[it.toInt()].name, nds.guild)!! }
+                val mons = indices.map { NameConventionsDB.convertOfficialToTL(pmons[it].name, nds.guild)!! }
                 dbcallTime += System.currentTimeMillis() - start
                 logger.info("mons = $mons")
                 logger.info("u = $u")
-                val index = table.indexOf(u)
-                b.addColumn("Data!F${index.y(17, 2)}", mons)
+                val index = nds.table.indexOf(u)
+                b.addColumn("Data!F${index.y(30, 3)}", mons)
             }
             b.withRunnable {
                 if (onlySpecifiedUsers.isEmpty() && withSend) {

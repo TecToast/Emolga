@@ -307,8 +307,8 @@ class NominateState : StateStore {
         }
     }
 
-    private fun List<DraftPokemon>.toJSON() = this.sortedWith(comparator).joinToString(";") {
-        it.indexedBy(originalMons).toString()
+    private fun List<DraftPokemon>.toJSON() = this.sortedWith(comparator).map {
+        it.indexedBy(originalMons)
     }
 
     fun generateDescription(): String {
@@ -342,12 +342,8 @@ class NominateState : StateStore {
         })
     }
 
-    private fun buildJSONString(): String {
-        return buildString {
-            append(nominated.toJSON())
-            append(";")
-            append(notNominated.toJSON())
-        }
+    private fun buildJSONList(): List<Int> {
+        return nominated.toJSON() + notNominated.toJSON()
     }
 
     context(InteractionData)
@@ -359,7 +355,7 @@ class NominateState : StateStore {
             db.drafts.updateOne(
                 League::leaguename eq "NDS", set(
                     (NDS::nominations / Nominations::nominated).keyProjection(nom.currentDay)
-                        .keyProjection(nomUser) setTo buildJSONString()
+                        .keyProjection(nomUser) setTo buildJSONList()
                 )
             )
             delete()

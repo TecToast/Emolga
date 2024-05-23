@@ -24,7 +24,7 @@ fun Route.leagueManage() {
                     val pkmn = db.pokedex.get(sdName)!!
                     AdvancedPokemonData(
                         draftName.tlName,
-                        pkmn.name.lowercase(),
+                        pkmn.spriteName,
                         mon.tier,
                         pkmn.types
                     )

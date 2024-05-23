@@ -56,6 +56,11 @@ data class Pokemon(
         return "=IMAGE(\"https://www.serebii.net/pokedex-sv/icon/$str.png\";1)"
     }
 
+    val baseSpeciesOrName: String
+        get() = baseSpecies ?: name
+
+    val spriteName: String get() = baseSpeciesOrName.toSDName().notNullAppend(forme?.toSDName()?.let { "-$it" })
+
     companion object {
         val statNames = mapOf(
             "hp" to "HP",

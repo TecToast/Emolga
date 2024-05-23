@@ -65,13 +65,13 @@ object PrivateCommands {
         Translation.translationsCacheGerman.forEach { (str, t) ->
             logger.info(str)
             logger.info(t.toString())
-            logger.info("=====")
+            logger.info("=====>")
         }
         logger.info(">>>>>>>>>>>>>>>>>>>>>>>>>>")
         Translation.translationsCacheEnglish.forEach { (str, t) ->
             logger.info(str)
             logger.info(t.toString())
-            logger.info("=====")
+            logger.info("<=====")
         }
         done()
     }
@@ -454,7 +454,7 @@ object PrivateCommands {
             gameday = args[2].toInt(),
             battle = args[3].toInt(),
             strategy = VideoProvideStrategy.Fetch,
-            overrideEnabled = args.getOrNull(4)?.toBooleanStrict() ?: false
+            overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
         )
     }
 
@@ -468,7 +468,7 @@ object PrivateCommands {
             gameday = gameday,
             battle = battle,
             strategy = VideoProvideStrategy.Subscribe(league.replayDataStore!!.data[gameday]!![battle]!!.ytVideoSaveData),
-            overrideEnabled = args.getOrNull(4)?.toBooleanStrict() ?: false
+            overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
         )
     }
 

@@ -1,5 +1,3 @@
-@file:Suppress("unused")
-
 package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.database.exposed.DiscordAuthDB

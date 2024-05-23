@@ -764,7 +764,7 @@ class Arg<DiscordType, ParsedType>(
             it.spec = ModalArgSpec(
                 oldSpec?.short != false,
                 key,
-                required ?: oldSpec?.required == true,
+                (required ?: oldSpec?.required) == true,
                 oldSpec?.builder ?: {})
             it.defaultValueSet = true
             args.replaceLastArg(it)

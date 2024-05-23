@@ -26,7 +26,7 @@ object PickCommand :
         var free by boolean("free", "Ob dieser Pick ein Freepick ist") {
             default = false
             slashCommand(guildChecker = {
-                Tierlist[it]?.mode?.isTiersWithFree() ?: false
+                Tierlist[it]?.mode?.isTiersWithFree() == true
             })
         }
         var random by boolean("random", "RANDOMPICK (not visible)") {
@@ -85,7 +85,7 @@ object PickCommand :
         if (isPicked(official, officialTier)) return reply("Dieses Pokemon wurde bereits gepickt!")
         val tlMode = tierlist.mode
         val freepick =
-            free.takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } ?: false
+            free.takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } == true
         if (!freepick && handleTiers(specifiedTier, officialTier)) return null
         if (handlePoints(
                 free = freepick, tier = officialTier, mega = official.isMega

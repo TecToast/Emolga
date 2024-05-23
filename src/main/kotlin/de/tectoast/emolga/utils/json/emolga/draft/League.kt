@@ -1192,7 +1192,7 @@ sealed class DraftData(
     abstract val changedOnTeamsiteIndex: Int
 }
 
-@Suppress("unused")
+
 data class PickData(
     override val league: League,
     override val pokemon: String,
@@ -1310,7 +1310,7 @@ data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
         for (i in 1..totalRounds) {
             moved.forEach { (user, turns) -> if (i in turns) order.add(user.indexedBy(table)) }
         }
-        if (order.size > 0) {
+        if (order.isNotEmpty()) {
             pseudoEnd = true
         }
     }

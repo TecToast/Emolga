@@ -233,7 +233,7 @@ sealed class League {
     }
 
     open suspend fun isCurrent(user: Long): Boolean {
-        return allowed[current]?.any { it.u == user } ?: false
+        return allowed[current]?.any { it.u == user } == true
     }
 
     open suspend fun isPicked(mon: String, tier: String? = null) =
@@ -346,7 +346,8 @@ sealed class League {
             switchDraft?.let { this.isSwitchDraft = it }
             logger.info("Starting draft $leaguename...")
             logger.info(tcid.toString())
-            if (names.isEmpty()) {
+            if (!names.keys.containsAll(table)) {
+                names.clear()
                 names.putAll(if (table.any { it < 11_000_000_000 }) table.associateWith { "${it - 10_000_000_000}" } else jda.getGuildById(
                     nameGuildId ?: this.guild
                 )!!.retrieveMembersByIds(table).await().associate { it.idLong to it.effectiveName })

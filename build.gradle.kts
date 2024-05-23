@@ -58,7 +58,7 @@ repositories {
     mavenCentral()
 }
 
-val ktorVersion = "2.3.8"
+val ktorVersion = "2.3.11"
 val ktorDependencies = listOf(
     // Client
     "ktor-client-core",
@@ -82,7 +82,7 @@ dependencies {
     // Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.0-RC")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
 
     // Logging
@@ -91,22 +91,22 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:5.0.0-beta.23")
+    implementation("net.dv8tion:JDA:5.0.0-beta.24")
     implementation("club.minnced:jda-ktx:0.11.0-beta.20")
 
     // Google
-    implementation("com.google.apis:google-api-services-sheets:v4-rev20230815-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20240327-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20240417-2.0.0")
+    implementation("com.google.apis:google-api-services-sheets:v4-rev20240514-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20240509-2.0.0")
+    implementation("com.google.apis:google-api-services-youtube:v3-rev20240514-2.0.0")
 
     // Database
     // MySQL
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.3.3")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.4.0")
     implementation("com.zaxxer:HikariCP:5.1.0")
-    implementation("org.jetbrains.exposed:exposed-core:0.49.0")
-    implementation("org.jetbrains.exposed:exposed-dao:0.49.0")
-    implementation("org.jetbrains.exposed:exposed-jdbc:0.49.0")
-    implementation("org.jetbrains.exposed:exposed-java-time:0.49.0")
+    implementation("org.jetbrains.exposed:exposed-core:0.50.1")
+    implementation("org.jetbrains.exposed:exposed-dao:0.50.1")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.50.1")
+    implementation("org.jetbrains.exposed:exposed-java-time:0.50.1")
     // MongoDB
     implementation("org.litote.kmongo:kmongo-coroutine-serialization:4.11.0")
     implementation("org.litote.kmongo:kmongo-id-serialization:4.11.0")
@@ -118,10 +118,10 @@ dependencies {
     implementation("org.jsoup:jsoup:1.17.2")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:5.8.1")
-    testImplementation("io.kotest:kotest-assertions-core:5.8.1")
-    testImplementation("io.kotest:kotest-framework-datatest:5.8.1")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0-RC2")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:5.9.0")
+    testImplementation("io.kotest:kotest-assertions-core:5.9.0")
+    testImplementation("io.kotest:kotest-framework-datatest:5.9.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
 
 }
 

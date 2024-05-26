@@ -16,8 +16,15 @@ object RoleManagement {
         context(InteractionData)
         override suspend fun exec(e: NoArgs) {
             val g = guild()
+            if (member().roles.any { it.idLong == ACCEPTED_RULES_ROLE }) return reply(
+                "Du hast die Regeln bereits akzeptiert!",
+                ephemeral = true
+            )
             g.addRoleToMember(userObj(), g.getRoleById(ACCEPTED_RULES_ROLE)!!).queue()
-            reply("Du hast die Regeln akzeptiert und hast jetzt Zugriff auf den Server!", ephemeral = true)
+            reply(
+                "Du hast die Regeln akzeptiert und hast jetzt Zugriff auf den Server!\nWeitere optionale Rollen kannst du dir in <#1243646697242890373> abholen.",
+                ephemeral = true
+            )
         }
     }
 
@@ -27,7 +34,7 @@ object RoleManagement {
         }
 
         class Args : Arguments() {
-            var selection by multiOption(roles.indices)
+            var selection by multiOption(0..roles.size)
         }
 
         context(InteractionData)
@@ -47,18 +54,30 @@ object RoleManagement {
         RoleData(
             "pokemon",
             "Pokémon",
-            "Pokémon whatever",
+            "Alles rund um das Thema Pokémon",
             605669233715576842,
             Emoji.fromCustom("Pokeball", 967390967550332968, false)
         ),
         RoleData(
             "tcg",
             "TCG",
-            "TCG whatever",
-            1177356119576940687,
-            Emoji.fromCustom("TCG", 796663053952352297, false)
+            "Für Sammler und Spieler der Pokémon Sammelpappe",
+            796663053952352297,
+            Emoji.fromCustom("TCG", 1177333576040194118, false)
         ),
-        RoleData("labertaschen", "Labertaschen", "Labertaschen whatever", 636266356437942341),
-        RoleData("shiny", "Shiny Voice", "Shiny Voice whatever", 918210427798831104, Emoji.fromUnicode("✨"))
+        RoleData(
+            "labertaschen",
+            "Labertaschen",
+            "Für gesellige Talks und Quatsch im Voice",
+            636266356437942341,
+            Emoji.fromUnicode("\uD83D\uDCAC")
+        ),
+        RoleData(
+            "shiny",
+            "Shiny Voice",
+            "Für Shinyhunter, die nicht gerne alleine hunten",
+            918210427798831104,
+            Emoji.fromUnicode("✨")
+        )
     )
 }

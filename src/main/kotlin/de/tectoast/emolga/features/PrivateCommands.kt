@@ -413,7 +413,8 @@ object PrivateCommands {
 
     context(InteractionData)
     fun flegmonSendRoles(args: PrivateData) {
-        flegmonjda.getTextChannelById(args().toLong())!!.send(components = RoleManagement.RoleGetMenu().into()).queue()
+        flegmonjda.getTextChannelById(args().toLong())!!
+            .send(components = RoleManagement.RoleGetMenu(placeholder = "Rollen auswählen").into()).queue()
     }
 
     context(InteractionData)

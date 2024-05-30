@@ -37,9 +37,8 @@ tasks {
         archiveVersion.set("")
     }
     withType<KotlinCompile> {
-        kotlinOptions {
-            freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
-            jvmTarget = "20"
+        compilerOptions {
+            freeCompilerArgs.add("-Xcontext-receivers")
         }
     }
     /*withType(KotlinCompile::class.java) {
@@ -96,7 +95,7 @@ dependencies {
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20240514-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20240509-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20240521-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20240514-2.0.0")
 
     // Database
@@ -108,8 +107,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:0.50.1")
     implementation("org.jetbrains.exposed:exposed-java-time:0.50.1")
     // MongoDB
-    implementation("org.litote.kmongo:kmongo-coroutine-serialization:4.11.0")
-    implementation("org.litote.kmongo:kmongo-id-serialization:4.11.0")
+    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.1.0")
+    implementation("org.litote.kmongo:kmongo-id-serialization:5.1.0")
 
     // Ktor
     ktor()

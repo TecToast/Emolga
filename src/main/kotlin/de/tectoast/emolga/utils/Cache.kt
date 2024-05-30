@@ -1,3 +1,5 @@
+@file:Suppress("UNCHECKED_CAST")
+
 package de.tectoast.emolga.utils
 
 import kotlinx.coroutines.sync.Mutex
@@ -15,7 +17,7 @@ abstract class Cache<T> {
                 updateCachedValue()
             }
         }
-        return cached!!
+        return cached as T
     }
 
     suspend fun updateCachedValue() {
@@ -35,7 +37,7 @@ abstract class RefreshableCache<T> : Cache<T>() {
                 cached = update()
             }
         }
-        return cached!!
+        return cached as T
     }
 
     abstract fun shouldUpdate(now: Instant): Boolean

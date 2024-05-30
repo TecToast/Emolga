@@ -26,7 +26,7 @@ object PickCommand :
         var free by boolean("free", "Ob dieser Pick ein Freepick ist") {
             default = false
             slashCommand(guildChecker = {
-                Tierlist[it]?.mode?.isTiersWithFree() == true
+                Tierlist[gid]?.mode?.isTiersWithFree() == true
             })
         }
         var random by boolean("random", "RANDOMPICK (not visible)") {

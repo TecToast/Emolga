@@ -8,7 +8,6 @@ import de.tectoast.emolga.features.draft.during.PickCommand.executeWithinLock
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.add
 import de.tectoast.emolga.utils.invoke
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.*
 import dev.minn.jda.ktx.messages.into
 import mu.KotlinLogging
@@ -47,13 +46,13 @@ object RandomPick {
         class Args : Arguments() {
             var tier by string("tier", "Das Tier, in dem gepickt werden soll") {
                 slashCommand(guildChecker = {
-                    val league = db.leagueByGuild(it) ?: return@slashCommand false
+                    val league = league() ?: return@slashCommand false
                     league.getConfigOrDefault<RandomPickConfig>().mode.provideCommandOptions()[RandomPickArgument.TIER]
                 })
             }.nullable()
             var type by fromList("Typ", "Der Typ, der gewählt werden soll", germanTypeList) {
                 slashCommand(guildChecker = {
-                    val league = db.leagueByGuild(it) ?: return@slashCommand false
+                    val league = league() ?: return@slashCommand false
                     league.getConfigOrDefault<RandomPickConfig>().mode.provideCommandOptions()[RandomPickArgument.TYPE]
                 })
             }.nullable()

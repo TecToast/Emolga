@@ -626,7 +626,11 @@ open class Arguments {
  * - false -> argument is present and optional
 
  */
-typealias GuildChecker = suspend (Long) -> Boolean?
+typealias GuildChecker = suspend CommandProviderData.() -> Boolean?
+
+class CommandProviderData(val gid: Long) {
+    val league = OneTimeCache { db.leagueByGuild(gid) }
+}
 
 interface Nameable {
     val prettyName: String

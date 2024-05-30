@@ -404,12 +404,7 @@ open class Arguments {
         builder: Arg<String, DraftName>.() -> Unit = {},
         autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
     ) = createArg(name, help, OptionType.STRING) {
-        validate {
-            val guildId = League.onlyChannel(tc)?.guild ?: gid
-            NameConventionsDB.getDiscordTranslation(
-                it, guildId, english = Tierlist[guildId].isEnglish
-            ) ?: throw InvalidArgumentException("Pokemon `$it` nicht gefunden!")
-        }
+        validateDraftPokemon()
         slashCommand(autocomplete = autocomplete ?: lambda@{ s, event ->
             val gid = event.guild!!.idLong
             val league = db.leagueForAutocomplete(event.channel.idLong, gid, event.user.idLong)
@@ -498,7 +493,12 @@ open class Arguments {
         builder()
     }
 
-    fun pokemontype(name: String = "", help: String = "", english: Boolean) = createArg(name, help, OptionType.STRING) {
+    fun pokemontype(
+        name: String = "",
+        help: String = "",
+        english: Boolean,
+        builder: Arg<String, String>.() -> Unit = {}
+    ) = createArg(name, help, OptionType.STRING) {
         validate { str ->
             val t = if (english) Translation.getEnglNameWithType(str)
             else Translation.getGerName(str)
@@ -507,6 +507,7 @@ open class Arguments {
                 if (english) "Psychic" else "Psycho"
             } else t.translation
         }
+        builder()
     }
 
     fun pokemontype(name: String = "", help: String = "") = createArg(name, help, OptionType.STRING) {
@@ -614,6 +615,15 @@ open class Arguments {
                     )!!.also { tlName -> tlNameCache[mon.name] = tlName }
                 }.filter { mon -> mon.startsWith(s, true) }
 
+            }
+        }
+
+        fun Arg<String, DraftName>.validateDraftPokemon() {
+            validate {
+                val guildId = League.onlyChannel(tc)?.guild ?: gid
+                NameConventionsDB.getDiscordTranslation(
+                    it, guildId, english = Tierlist[guildId].isEnglish
+                ) ?: throw InvalidArgumentException("Pokemon `$it` nicht gefunden!")
             }
         }
 

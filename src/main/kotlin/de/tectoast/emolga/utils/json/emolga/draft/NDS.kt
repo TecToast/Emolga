@@ -5,6 +5,7 @@ import com.google.api.services.sheets.v4.model.ColorStyle
 import com.google.api.services.sheets.v4.model.TextFormat
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.league.DynamicCoord
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.indexedBy
@@ -27,14 +28,34 @@ import kotlin.time.Duration.Companion.days
 @SerialName("NDS")
 class NDS(val rr: Boolean) : League() {
 
-    init {
-        enableConfig(AllowPickDuringSwitch)
-    }
 
     val nominations: Nominations = Nominations(1, mutableMapOf())
     val sheetids: Map<String, Int> = mapOf()
     val teamtable: List<String> = emptyList()
 
+    init {
+        enableConfig(AllowPickDuringSwitch)
+        val z = TZDataHolder(
+            DynamicCoord.DynamicSheet(teamtable, "AA8"),
+            "Data!\$B\$2000:\$H\$3000",
+            6
+        )
+        val mon = z.copy(coord = DynamicCoord.DynamicSheet(teamtable, "AA10"))
+        val type = TZDataHolder(
+            DynamicCoord.DynamicSheet(teamtable, "Y11"),
+            "Data!\$B\$400:\$C$417",
+            2
+        )
+        enableConfig(
+            TeraAndZ(
+                z = z,
+                tera = TeraData(
+                    mon = mon,
+                    type = type
+                )
+            )
+        )
+    }
 
     override fun isFinishedForbidden() = false
     override val teamsize = 15

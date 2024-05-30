@@ -14,6 +14,7 @@ import de.tectoast.emolga.features.draft.TipGame
 import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.features.draft.during.PickCommand
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.league.DynamicCoord
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.json.LeagueResult
@@ -1143,6 +1144,15 @@ enum class PickMessageType {
     }
 }
 
+@Serializable
+@SerialName("TeraAndZ")
+data class TeraAndZ(val z: TZDataHolder? = null, val tera: TeraData? = null) : LeagueConfig
+
+@Serializable
+data class TZDataHolder(val coord: DynamicCoord, val searchRange: String, val searchColumn: Int)
+
+@Serializable
+data class TeraData(val type: TZDataHolder, val mon: TZDataHolder)
 
 @Serializable
 data class QueuePicksData(var enabled: Boolean = false, var queued: MutableList<DraftName> = mutableListOf())

@@ -7,12 +7,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class DynamicCoord : (Int) -> Coord {
+sealed interface DynamicCoord : (Int) -> Coord {
 
 
     @Serializable
     @SerialName("HardCoded")
-    data class HardCoded(val coords: Map<Int, Coord>) : DynamicCoord() {
+    data class HardCoded(val coords: Map<Int, Coord>) : DynamicCoord {
         override fun invoke(i: Int) = coords[i] ?: throw CouldNotCalculateException()
     }
 
@@ -25,7 +25,7 @@ sealed class DynamicCoord : (Int) -> Coord {
         private val xSummand: Int,
         private val yFactor: Int,
         private val ySummand: Int
-    ) : DynamicCoord() {
+    ) : DynamicCoord {
         override operator fun invoke(i: Int) = i.CoordXMod(sheet, num, xFactor, xSummand, yFactor, ySummand)
     }
 
@@ -36,7 +36,7 @@ sealed class DynamicCoord : (Int) -> Coord {
         private val xFactor: Int,
         private val xSummand: Int,
         private val ySummand: Int
-    ) : DynamicCoord() {
+    ) : DynamicCoord {
         override operator fun invoke(i: Int) = Coord(sheet, i.y(xFactor, xSummand), ySummand)
     }
 
@@ -47,8 +47,18 @@ sealed class DynamicCoord : (Int) -> Coord {
         private val xSummand: Int,
         private val yFactor: Int,
         private val ySummand: Int
-    ) : DynamicCoord() {
+    ) : DynamicCoord {
         override operator fun invoke(i: Int) = Coord(sheet, xSummand, i.y(yFactor, ySummand))
+    }
+
+
+    @Serializable
+    @SerialName("DynamicSheet")
+    data class DynamicSheet(
+        private val sheets: List<String>,
+        private val coordOnSheet: String,
+    ) : DynamicCoord {
+        override operator fun invoke(i: Int) = Coord(sheets[i], coordOnSheet)
     }
 
 }

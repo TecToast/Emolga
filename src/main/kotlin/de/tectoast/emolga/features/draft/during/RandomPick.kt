@@ -143,7 +143,7 @@ object RandomPick {
                         data.jokers.add(memIndex, -1)
                         val config = getConfigOrDefault<RandomPickConfig>()
                         val (newdraftname, newtier) = with(config.mode) {
-                            getRandomPick(RandomPickUserInput(tier, map["type"]), config)
+                            getRandomPick(RandomPickUserInput(tier, map["type"], skipMon = official), config)
                         } ?: return
                         executeWithinLock(newdraftname, newtier, false, PickMessageType.REROLL)
                     }

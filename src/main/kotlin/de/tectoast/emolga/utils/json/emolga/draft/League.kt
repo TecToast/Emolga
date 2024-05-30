@@ -241,19 +241,16 @@ sealed class League {
         picks.values.any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
 
     suspend inline fun firstAvailableMon(
-        coll: Collection<String>,
-        checker: ((String) -> Boolean) = { true }
+        tlNames: Collection<String>, checker: ((german: String, english: String) -> Boolean) = { _, _ -> true }
     ): DraftName? {
-        val alreadyPicked = picks.values.flatten().map { it.name }.toSet()
-        return coll.firstNotNullOfOrNull {
+        val alreadyPicked = picks.values.flatten().mapTo(mutableSetOf()) { it.name }
+        return tlNames.firstNotNullOfOrNull {
             val draftName = NameConventionsDB.getDiscordTranslation(
                 it, guild, tierlist.isEnglish
             )!!
             if (draftName.official !in alreadyPicked && checker(
-                    NameConventionsDB.getDiscordTranslation(
-                        it,
-                        guild,
-                        english = true
+                    draftName.official, NameConventionsDB.getDiscordTranslation(
+                        it, guild, english = true
                     )!!.official
                 )
             ) draftName
@@ -371,8 +368,7 @@ sealed class League {
                 timerRelated.usedStallSeconds.clear()
                 skippedTurns.clear()
                 config<RandomPickConfig> {
-                    if (hasJokers())
-                        table.indices.forEach { randomLeagueData.jokers[it] = jokers }
+                    if (hasJokers()) table.indices.forEach { randomLeagueData.jokers[it] = jokers }
                     randomLeagueData.currentMon?.disabled = true
                 }
                 reset()
@@ -492,6 +488,7 @@ sealed class League {
 
     open fun beforePick(): String? =
         if (getConfigOrDefault<RandomPickConfig>().hasJokers()) "In diesem Draft sind keine regulären Picks möglich!" else null
+
     open fun beforeSwitch(): String? = null
     open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
@@ -984,7 +981,9 @@ data class RandomPickConfig(
     fun hasJokers() = jokers > 0
 }
 
-data class RandomPickUserInput(val tier: String?, val type: String?, val ignoreRestrictions: Boolean = false)
+data class RandomPickUserInput(
+    val tier: String?, val type: String?, val ignoreRestrictions: Boolean = false, val skipMon: String? = null
+)
 
 @Serializable
 sealed interface RandomPickMode {
@@ -1002,21 +1001,19 @@ sealed interface RandomPickMode {
         override fun provideCommandOptions(): Map<RandomPickArgument, Boolean> {
             return buildMap {
                 put(RandomPickArgument.TIER, tierRequired)
-                if (typeAllowed)
-                    put(RandomPickArgument.TYPE, false)
+                if (typeAllowed) put(RandomPickArgument.TYPE, false)
             }
         }
 
         context(InteractionData) override suspend fun League.getRandomPick(
-            input: RandomPickUserInput,
-            config: RandomPickConfig
+            input: RandomPickUserInput, config: RandomPickConfig
         ): Pair<DraftName, String>? {
             if (tierRequired && input.tier == null) return replyNull("Du musst ein Tier angeben!")
             val tier = if (input.ignoreRestrictions) input.tier!! else parseTier(input.tier, config) ?: return null
             val list = tierlist.getByTier(tier)!!.shuffled()
             val skipMega = config.onlyOneMega && picks[current]!!.any { it.name.isMega }
-            return firstAvailableMon(list) { english ->
-                if (skipMega && english.isMega) return@firstAvailableMon false
+            return firstAvailableMon(list) { german, english ->
+                if (german == input.skipMon || (skipMega && english.isMega)) return@firstAvailableMon false
                 if (input.type != null) input.type in db.pokedex.get(english.toSDName())!!.types else true
             }?.let { it to tier }
                 ?: return replyNull("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")
@@ -1033,8 +1030,7 @@ sealed interface RandomPickMode {
         }
 
         context(InteractionData) override suspend fun League.getRandomPick(
-            input: RandomPickUserInput,
-            config: RandomPickConfig
+            input: RandomPickUserInput, config: RandomPickConfig
         ): Pair<DraftName, String>? {
             val type = input.type ?: return replyNull("Du musst einen Typen angeben!")
             val picks = picks[current]!!
@@ -1046,8 +1042,9 @@ sealed interface RandomPickMode {
                 val temptier =
                     tierlist.prices.filter { (tier, amount) -> tier !in usedTiers && picks.count { mon -> mon.tier == tier } < amount }.keys.randomOrNull()
                         ?: return replyNull("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
-                val tempmon =
-                    firstAvailableMon(tierlist.getWithTierAndType(temptier, type)) { !(it.isMega && skipMega) }
+                val tempmon = firstAvailableMon(
+                    tierlist.getWithTierAndType(temptier, type)
+                ) { german, english -> german != input.skipMon && !(german.isMega && skipMega) }
                 if (tempmon != null) {
                     mon = tempmon
                     tier = temptier
@@ -1065,8 +1062,7 @@ sealed interface RandomPickMode {
 
     context(League, InteractionData)
     fun parseTier(tier: String?, config: RandomPickConfig): String? {
-        if (tier == null) return if (tierlist.mode.withTiers) getPossibleTiers()
-            .filter { it.value > 0 }.keys.random() else tierlist.order.last()
+        if (tier == null) return if (tierlist.mode.withTiers) getPossibleTiers().filter { it.value > 0 }.keys.random() else tierlist.order.last()
         val parsedTier = tierlist.order.firstOrNull { it.equals(tier, ignoreCase = true) }
         if (parsedTier == null) {
             return replyNull("Das Tier `$tier` existiert nicht!")
@@ -1082,8 +1078,7 @@ sealed interface RandomPickMode {
 
 @Serializable
 data class RandomLeagueData(
-    var currentMon: RandomLeaguePick? = null,
-    val jokers: MutableMap<Int, Int> = mutableMapOf()
+    var currentMon: RandomLeaguePick? = null, val jokers: MutableMap<Int, Int> = mutableMapOf()
 )
 
 @Serializable

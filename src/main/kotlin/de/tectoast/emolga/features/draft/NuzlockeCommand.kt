@@ -68,7 +68,12 @@ object NuzlockeCommand :
                 val config = getConfigOrDefault<RandomPickConfig>()
                 with(config.mode) {
                     getRandomPick(
-                        RandomPickUserInput(tier = oldMon.tier, type = null, ignoreRestrictions = true), config
+                        RandomPickUserInput(
+                            tier = oldMon.tier,
+                            type = null,
+                            ignoreRestrictions = true,
+                            skipMon = mon.official
+                        ), config
                     )
                 } ?: return
             }

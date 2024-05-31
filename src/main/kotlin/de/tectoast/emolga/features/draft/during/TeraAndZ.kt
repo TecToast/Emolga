@@ -27,7 +27,7 @@ object TeraAndZ {
             )
             replyModal(
                 Modal(
-                    title = "Bitte gib folgende Daten ein, falls du diese ändern möchtest",
+                    title = "Änderungswünsche für Tera- und Z-User",
                     specificallyEnabledArgs = mapOf(
                         Z to (config.z != null),
                         Tera to (config.tera != null)
@@ -41,14 +41,20 @@ object TeraAndZ {
         class Args : Arguments() {
             var tera by string<DraftName>("tera", "Dein Tera-User") {
                 validateDraftPokemon()
-                modal(modalKey = Tera)
+                modal(modalKey = Tera) {
+                    placeholder = "Tera-User oder sonst leer lassen"
+                }
             }.nullable()
             var type by pokemontype("type", "Dein Tera-Typ", english = true) {
-                modal(modalKey = Tera)
+                modal(modalKey = Tera) {
+                    placeholder = "Tera-Typ oder leer lassen"
+                }
             }.nullable()
             var z by string<DraftName>("z", "Dein Z-User") {
                 validateDraftPokemon()
-                modal(modalKey = Z)
+                modal(modalKey = Z) {
+                    placeholder = "Z-User oder leer lassen"
+                }
             }.nullable()
         }
 
@@ -62,7 +68,17 @@ object TeraAndZ {
             val str = StringBuilder()
             config.z?.let { zconf ->
                 e.z?.let {
-                    if (!picks.any { p -> p.name == it.official }) return reply("Das Pokemon `${it.tlName}` befindet sich nicht in deinem Kader!")
+                    val selected = picks.firstOrNull { p -> p.name == it.official } ?: return reply(
+                        "Das Pokemon `${it.tlName}` befindet sich nicht in deinem Kader!",
+                        ephemeral = true
+                    )
+                    zconf.firstTierAllowed?.let { tier ->
+                        val order = league.tierlist.order
+                        if (order.indexOf(selected.tier) < order.indexOf(tier)) return reply(
+                            "Z-User dürfen maximal im ${tier}-Tier sein, `${it.tlName}` befindet sich im ${selected.tier}-Tier!",
+                            ephemeral = true
+                        )
+                    }
                     b.addSingle(
                         zconf.coord(index),
                         "=WENNFEHLER(SVERWEIS(\"${it.tlName}\";${zconf.searchRange};${zconf.searchColumn};0))"
@@ -72,7 +88,17 @@ object TeraAndZ {
             }
             config.tera?.let { tconf ->
                 e.tera?.let {
-                    if (!picks.any { p -> p.name == it.official }) return reply("Das Pokemon `${it.tlName}` befindet sich nicht in deinem Kader!")
+                    val selected = picks.firstOrNull { p -> p.name == it.official } ?: return reply(
+                        "Das Pokemon `${it.tlName}` befindet sich nicht in deinem Kader!",
+                        ephemeral = true
+                    )
+                    tconf.mon.firstTierAllowed?.let { tier ->
+                        val order = league.tierlist.order
+                        if (order.indexOf(selected.tier) < order.indexOf(tier)) return reply(
+                            "Tera-User dürfen maximal im ${tier}-Tier sein, `${it.tlName}` befindet sich im ${selected.tier}-Tier!",
+                            ephemeral = true
+                        )
+                    }
                     val mon = tconf.mon
                     b.addSingle(
                         mon.coord(index),

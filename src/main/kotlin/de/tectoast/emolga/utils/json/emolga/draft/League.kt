@@ -1144,7 +1144,12 @@ enum class PickMessageType {
 data class TeraAndZ(val z: TZDataHolder? = null, val tera: TeraData? = null) : LeagueConfig
 
 @Serializable
-data class TZDataHolder(val coord: DynamicCoord, val searchRange: String, val searchColumn: Int)
+data class TZDataHolder(
+    val coord: DynamicCoord,
+    val searchRange: String,
+    val searchColumn: Int,
+    val firstTierAllowed: String? = null
+)
 
 @Serializable
 data class TeraData(val type: TZDataHolder, val mon: TZDataHolder)

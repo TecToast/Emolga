@@ -36,15 +36,16 @@ class NDS(val rr: Boolean) : League() {
     init {
         enableConfig(AllowPickDuringSwitch)
         val z = TZDataHolder(
-            DynamicCoord.DynamicSheet(teamtable, "AA8"),
-            "Data!\$B\$2000:\$H\$3000",
-            6
+            coord = DynamicCoord.DynamicSheet(teamtable, "AA8"),
+            searchRange = "Data!\$B\$2000:\$H\$3000",
+            searchColumn = 6,
+            firstTierAllowed = "B"
         )
         val mon = z.copy(coord = DynamicCoord.DynamicSheet(teamtable, "AA10"))
         val type = TZDataHolder(
-            DynamicCoord.DynamicSheet(teamtable, "Y11"),
-            "Data!\$B\$400:\$C$417",
-            2
+            coord = DynamicCoord.DynamicSheet(teamtable, "Y11"),
+            searchRange = "Data!\$B\$400:\$C$417",
+            searchColumn = 2
         )
         enableConfig(
             TeraAndZ(

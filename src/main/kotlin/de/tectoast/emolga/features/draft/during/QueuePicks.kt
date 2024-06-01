@@ -1,9 +1,9 @@
 package de.tectoast.emolga.features.draft.during
 
-import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.QueuePicks
+import de.tectoast.emolga.utils.QueuedAction
 import de.tectoast.emolga.utils.StateStore
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -48,13 +48,13 @@ object QueuePicks {
                     { return reply("Du bist in keiner Liga auf diesem Server!") }) {
                     val data = queuedPicks.getOrPut(index(user)) { QueuePicksData() }
                     val mon = e.mon
-                    if (data.queued.contains(mon)) return reply("Du hast dieses Pokemon bereits in deiner Queue!")
+                    if (data.queued.any { it.g == mon }) return reply("Du hast dieses Pokemon bereits in deiner Queue!")
                     tierlist.getTierOf(mon.tlName) ?: return reply("Das Pokemon ist nicht in der Tierlist!")
-                    val newlist = data.queued.toMutableList().apply { add(mon) }
+                    val newlist = data.queued.toMutableList().apply { add(QueuedAction(mon)) }
                     if (checkIfTeamCantBeFinished(user, newlist))
                         return reply("Wenn du dieses Pokemon holen wollen würdest, könnte dein Team nicht mehr vervollständigt werden!")
-                    StateStore.processIgnore<QueuePicks> {
-                        addNewMon(mon)
+                    StateStore.processIgnoreMissing<QueuePicks> {
+                        addNewMon(QueuedAction(mon))
                     }
                     data.queued = newlist
                     data.enabled = false
@@ -179,8 +179,14 @@ object QueuePicks {
     }
 
     context(League)
-    suspend fun checkIfTeamCantBeFinished(uid: Long, currentState: List<DraftName>): Boolean {
-        return points[uid] - currentState.sumOf { tierlist.getPointsNeeded(tierlist.getTierOf(it.tlName)!!) } < minimumNeededPointsForTeamCompletion(
+    suspend fun checkIfTeamCantBeFinished(uid: Long, currentState: List<QueuedAction>): Boolean {
+        var gPoints = 0
+        var yPoints = 0
+        for (data in currentState) {
+            gPoints += tierlist.getPointsNeeded(tierlist.getTierOf(data.g.tlName)!!)
+            yPoints += data.y?.let { tierlist.getPointsNeeded(tierlist.getTierOf(it.tlName)!!) } ?: 0
+        }
+        return points[uid] - gPoints + yPoints < minimumNeededPointsForTeamCompletion(
             (picks[uid]?.size ?: 0) + currentState.size
         )
     }

@@ -80,15 +80,17 @@ class NDS(val rr: Boolean) : League() {
         else -> null
     }
 
-    override fun saveSwitch(picks: MutableList<DraftPokemon>, oldmon: String, newmon: String, newtier: String): Int {
+    override fun SwitchData.saveSwitch() {
         if (rr) {
-            return super.saveSwitch(picks, oldmon, newmon, newtier)
+            // super implementation, currently not possible to call directly
+            picks.first { it.name == oldmon.official }.quit = true
+            picks += DraftPokemon(pokemonofficial, tier)
+            return
         }
-        picks.first { it.name == oldmon }.apply {
-            this.name = newmon
-            this.tier = newtier
+        picks.first { it.name == oldmon.official }.apply {
+            this.name = pokemonofficial
+            this.tier = this@saveSwitch.tier
         }
-        return -1
     }
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
@@ -115,7 +117,7 @@ class NDS(val rr: Boolean) : League() {
         )
         val numInRound = data.indexInRound + 1
         if (isSwitch) addSingle(
-            "Draft!${getAsXCoord(round * 5 - 3)}${numInRound * 5 + 1}", data.oldmon
+            "Draft!${getAsXCoord(round * 5 - 3)}${numInRound * 5 + 1}", data.oldmon.tlName
         )
         addSingle("Draft!${getAsXCoord(round * 5 - 1)}${numInRound * 5 + 2}", data.pokemon)
     }

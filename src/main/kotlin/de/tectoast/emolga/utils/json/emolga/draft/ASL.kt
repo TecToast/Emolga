@@ -66,7 +66,10 @@ class ASL(
 
     override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
         newSystemSwitchDoc(data)
-        addRow("Zwischendraft!${data.roundIndex.x(4, 3)}${data.indexInRound + 4}", listOf(data.oldmon, data.pokemon))
+        addRow(
+            "Zwischendraft!${data.roundIndex.x(4, 3)}${data.indexInRound + 4}",
+            listOf(data.oldmon.tlName, data.pokemon)
+        )
     }
 
 

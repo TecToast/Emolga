@@ -12,8 +12,11 @@ import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.Control
 import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode.*
 import de.tectoast.emolga.features.draft.during.QueuePicks.checkIfTeamCantBeFinished
 import de.tectoast.emolga.features.intoMultipleRows
+import de.tectoast.emolga.utils.draft.DraftInput
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.draft.PickInput
+import de.tectoast.emolga.utils.draft.SwitchInput
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
@@ -65,13 +68,13 @@ sealed class StateStore {
     companion object {
         context(InteractionData)
         suspend inline fun <reified T : StateStore> process(block: T.() -> Unit) {
-            processIgnore<T>(block) ?: reply(
+            processIgnoreMissing<T>(block) ?: reply(
                 "Diese Interaktion ist nicht mehr gültig! Starte sie wenn nötig erneut!", ephemeral = true
             )
         }
 
         context(InteractionData)
-        suspend inline fun <reified T : StateStore> processIgnore(block: T.() -> Unit) =
+        suspend inline fun <reified T : StateStore> processIgnoreMissing(block: T.() -> Unit) =
             (db.statestore.findOne(StateStore::uid eq user, Filters.eq<String?>("type", T::class.simpleName)) as T?)
                 ?.process(block)
 
@@ -389,10 +392,10 @@ class QueuePicks : StateStore {
     var currentlyEnabled = false
 
     @EncodeDefault
-    private val currentState: MutableList<DraftName>
+    private val currentState: MutableList<QueuedAction>
 
     @EncodeDefault
-    private val addedMeanwhile: MutableList<DraftName> = mutableListOf()
+    private val addedMeanwhile: MutableList<QueuedAction> = mutableListOf()
 
     constructor(uid: Long, leaguename: String, currentData: QueuePicksData) : super(uid) {
         this.leaguename = leaguename
@@ -400,7 +403,7 @@ class QueuePicks : StateStore {
         this.currentlyEnabled = currentData.enabled
     }
 
-    fun addNewMon(mon: DraftName) {
+    fun addNewMon(mon: QueuedAction) {
         addedMeanwhile.add(mon)
     }
 
@@ -414,7 +417,8 @@ class QueuePicks : StateStore {
                     "Alternativ kann man auch ein neues Verwaltungsfenster über `/queuepicks manage` öffnen."
         field(
             "Aktuelle Reihenfolge",
-            currentState.mapIndexed { index, draftName -> "${index + 1}. ${draftName.tlName}" }.joinToString("\n"),
+            currentState.mapIndexed { index, draftName -> "${index + 1}. ".notNullAppend(draftName.y) { it.tlName + " -> " } + draftName.g.tlName }
+                .joinToString("\n"),
             false
         )
         field("Status", if (currentlyEnabled) "Aktiv" else "Inaktiv", false)
@@ -430,12 +434,12 @@ class QueuePicks : StateStore {
                 disabled = true,
                 options = listOf(SelectOption("Keine Picks", "Keine Picks"))
             )
-        ) else ActionRow.of(QueuePicks.Menu(options = currentState.map { SelectOption(it.tlName, it.tlName) }))
+        ) else ActionRow.of(QueuePicks.Menu(options = currentState.map { SelectOption(it.g.tlName, it.g.tlName) }))
     ) + controlButtons
 
     private fun buildButtons(tlName: String): List<ActionRow> {
-        val first = currentState.firstOrNull()?.tlName == tlName
-        val last = currentState.lastOrNull()?.tlName == tlName
+        val first = currentState.firstOrNull()?.g?.tlName == tlName
+        val last = currentState.lastOrNull()?.g?.tlName == tlName
         return listOf(ActionRow.of(QueuePicks.ControlButton(
             "Hoch", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬆"), disabled = first
         ) {
@@ -471,13 +475,13 @@ class QueuePicks : StateStore {
 
     context(InteractionData)
     fun handleButton(tlName: String, controlMode: ControlMode) {
-        val index = currentState.indexOfFirst { it.tlName == tlName }
+        val index = currentState.indexOfFirst { it.g.tlName == tlName }
         val currentMon = when (controlMode) {
             UP -> {
                 if (index == 0) return reply("Das Pokemon ist bereits an erster Stelle!", ephemeral = true)
                 val mon = currentState.removeAt(index)
                 currentState.add(index - 1, mon)
-                mon.tlName
+                mon.g.tlName
             }
 
             DOWN -> {
@@ -486,7 +490,7 @@ class QueuePicks : StateStore {
                 )
                 val mon = currentState.removeAt(index)
                 currentState.add(index + 1, mon)
-                mon.tlName
+                mon.g.tlName
             }
 
             REMOVE -> {
@@ -508,7 +512,7 @@ class QueuePicks : StateStore {
 
     context(InteractionData)
     fun setLocation(tlName: String, location: Int) {
-        val index = currentState.indexOfFirst { it.tlName == tlName }
+        val index = currentState.indexOfFirst { it.g.tlName == tlName }
         val range = currentState.indices
         val mon = currentState.removeAt(index)
         currentState.add(location.minus(1).coerceIn(range), mon)
@@ -560,5 +564,12 @@ class QueuePicks : StateStore {
                         enable = true
                     })
             )
+    }
+}
+
+@Serializable
+data class QueuedAction(val g: DraftName, val y: DraftName? = null) {
+    fun buildDraftInput(): DraftInput {
+        return if (y != null) SwitchInput(y, g) else PickInput(g, null, false)
     }
 }

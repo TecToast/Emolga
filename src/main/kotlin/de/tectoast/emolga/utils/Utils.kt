@@ -119,7 +119,9 @@ val String.marker: Marker get() = MarkerFactory.getMarker(this)
 fun String.condAppend(check: Boolean, value: String) = if (check) this + value else this
 inline fun String.condAppend(check: Boolean, value: () -> String) = if (check) this + value() else this
 
-fun String.notNullAppend(value: String?) = if (value != null) this + value else this
+fun String.notNullAppend(value: String?) = notNullAppend(value) { it }
+inline fun <T> String.notNullAppend(value: T?, mapper: (T) -> String) =
+    if (value != null) this + mapper(value) else this
 
 val <T> T.l get() = listOf(this)
 
@@ -138,12 +140,13 @@ fun <K> MutableMap<K, Int>.add(key: K, value: Int) = compute(key) { _, v ->
 }
 
 operator fun <K, V> Map<K, V>.invoke(key: K) = getValue(key)
-fun <T> Collection<T>.filterStartsWithIgnoreCase(other: String, tostring: (T) -> String = { it.toString() }) =
+inline fun <T> Collection<T>.filterStartsWithIgnoreCase(other: String, tostring: (T) -> String = { it.toString() }) =
     mapNotNull {
         val str = tostring(it)
         if (str.startsWith(other, ignoreCase = true)) str else null
     }
-fun <T> Collection<T>.filterContainsIgnoreCase(other: String, tostring: (T) -> String = { it.toString() }) =
+
+inline fun <T> Collection<T>.filterContainsIgnoreCase(other: String, tostring: (T) -> String = { it.toString() }) =
     mapNotNull {
         val str = tostring(it)
         if (str.contains(other, ignoreCase = true)) str else null

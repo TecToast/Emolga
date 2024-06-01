@@ -12,11 +12,11 @@ import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.features.draft.InstantToStringSerializer
 import de.tectoast.emolga.features.draft.TipGame
 import de.tectoast.emolga.features.draft.TipGameManager
-import de.tectoast.emolga.features.draft.during.PickCommand
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.DynamicCoord
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
+import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -211,19 +211,18 @@ sealed class League {
 
     open fun checkFinishedForbidden(mem: Long): String? = null
 
-    open fun savePick(pickData: PickData) {
-        picks(current).add(DraftPokemon(pickData.pokemonofficial, pickData.tier, pickData.freePick))
+    open fun PickData.savePick() {
+        picks.add(DraftPokemon(pokemonofficial, tier, freePick))
     }
 
-    open fun saveSwitch(picks: MutableList<DraftPokemon>, oldmon: String, newmon: String, newtier: String): Int {
-        picks.first { it.name == oldmon }.quit = true
-        picks += DraftPokemon(newmon, newtier, false)
-        return -1
+    open fun SwitchData.saveSwitch() {
+        picks.first { it.name == oldmon.official }.quit = true
+        picks += DraftPokemon(pokemonofficial, tier)
     }
 
-    open suspend fun RequestBuilder.pickDoc(data: PickData): Unit? = null
+    open suspend fun RequestBuilder.pickDoc(data: PickData) {}
 
-    open suspend fun RequestBuilder.switchDoc(data: SwitchData): Unit? = null
+    open suspend fun RequestBuilder.switchDoc(data: SwitchData) {}
 
     open fun providePicksForGameday(gameday: Int): Map<Long, List<DraftPokemon>> = picks
 
@@ -489,7 +488,6 @@ sealed class League {
     open fun beforePick(): String? =
         if (getConfigOrDefault<RandomPickConfig>().hasJokers()) "In diesem Draft sind keine regulären Picks möglich!" else null
 
-    open fun beforeSwitch(): String? = null
     open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
     fun getPossibleTiers(mem: Long = current, forAutocomplete: Boolean = false): MutableMap<String, Int> {
@@ -534,11 +532,12 @@ sealed class League {
     }
 
 
-    fun PickData.getTierInsertIndex(takePicks: Int = picks.size): Int {
+    fun DraftData.getTierInsertIndex(takePicks: Int = picks.size): Int {
         var index = 0
+        val picksToUse = this.picks.take(takePicks)
         for (entry in tierlist.prices.entries) {
             if (entry.key == this.tier) {
-                return this.picks.take(takePicks).count { !it.free && it.tier == this.tier } + index - 1
+                return picksToUse.count { !it.free && !it.quit && it.tier == this.tier } + index - 1
             }
             index += entry.value
         }
@@ -631,11 +630,7 @@ sealed class League {
             val queuePicksData = queuedPicks[index(current)]?.takeIf { it.enabled } ?: break
             val queuedMon = queuePicksData.queued.firstOrNull() ?: break
             with(queueInteractionData) outer@{
-                with(PickCommand) {
-                    executeWithinLock(
-                        queuedMon, null, free = false, PickMessageType.QUEUE
-                    )
-                }
+                executeWithinLock(queuedMon.buildDraftInput(), type = DraftMessageType.QUEUE)
             }
             if (endOfTurn()) return true
         }
@@ -644,8 +639,8 @@ sealed class League {
 
     private fun checkForQueuedPicksChanges() {
         val newMon = lastPickedMon ?: return
-        queuedPicks.entries.filter { newMon in it.value.queued }.forEach { (mem, data) ->
-            data.queued.remove(newMon)
+        queuedPicks.entries.filter { it.value.queued.any { mon -> mon.g == newMon } }.forEach { (mem, data) ->
+            data.queued.removeIf { mon -> mon.g == newMon }
             if (mem != index(current)) {
                 SendFeatures.sendToUser(
                     table[mem], embeds = Embed(
@@ -1095,50 +1090,6 @@ enum class RandomPickArgument {
     TIER, TYPE
 }
 
-enum class PickMessageType {
-    REGULAR {
-        context(League, InteractionData, PickData) override suspend fun reply() {
-            replyGeneral("${displayName()} ".condAppend(alwaysSendTier || updrafted) { "im $tier " } + "gepickt!".condAppend(
-                updrafted
-            ) { " (Hochgedraftet)" }.condAppend(freePick) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
-            checkEmolga()
-        }
-    },
-    QUEUE {
-        context(League, InteractionData, PickData) override suspend fun reply() {
-            this@League.tc.sendMessage("**<@${current}>** hat ${displayName()} aus der Queue gepickt!").queue()
-            checkEmolga()
-        }
-    },
-    RANDOM {
-        context(League, InteractionData, PickData) override suspend fun reply() {
-            replyGeneral(
-                "einen Random-Pick im $tier gemacht und **${displayName()}** bekommen!"
-            )
-        }
-    },
-    ACCEPT {
-        context(League, InteractionData, PickData) override suspend fun reply() {
-            replyAwait("Akzeptiert: **${displayName()} (${tier})**!")
-        }
-    },
-    REROLL {
-        context(League, InteractionData, PickData) override suspend fun reply() {
-            replyAwait("Reroll: **${displayName()} (${tier})**!")
-        }
-    };
-
-    context(League, InteractionData, PickData)
-    abstract suspend fun reply()
-
-    context(PickData, InteractionData)
-    fun checkEmolga() {
-        if (pokemonofficial == "Emolga") {
-            sendMessage("<:Happy:967390966153609226> ".repeat(5))
-        }
-    }
-}
-
 @Serializable
 @SerialName("TeraAndZ")
 data class TeraAndZ(val z: TZDataHolder? = null, val tera: TeraData? = null) : LeagueConfig
@@ -1155,7 +1106,7 @@ data class TZDataHolder(
 data class TeraData(val type: TZDataHolder, val mon: TZDataHolder)
 
 @Serializable
-data class QueuePicksData(var enabled: Boolean = false, var queued: MutableList<DraftName> = mutableListOf())
+data class QueuePicksData(var enabled: Boolean = false, var queued: MutableList<QueuedAction> = mutableListOf())
 
 @Serializable
 data class ReplayDataStore(
@@ -1200,6 +1151,14 @@ sealed class DraftData(
     val changedIndex get() = picks.indexOfFirst { it.name == pokemonofficial }
     val picks by lazy { league.picks[mem]!! }
     abstract val changedOnTeamsiteIndex: Int
+
+    val displayName = OneTimeCache {
+        "$pokemon/${
+            NameConventionsDB.getSDTranslation(
+                pokemonofficial, league.guild, english = true
+            )!!.tlName
+        }"
+    }
 }
 
 
@@ -1216,14 +1175,6 @@ data class PickData(
     override val changedOnTeamsiteIndex: Int by lazy {
         with(league) { getTierInsertIndex() }
     }
-
-    val displayName = OneTimeCache {
-        "$pokemon/${
-            NameConventionsDB.getSDTranslation(
-                pokemonofficial, league.guild, english = true
-            )!!.tlName
-        }"
-    }
 }
 
 
@@ -1234,10 +1185,19 @@ class SwitchData(
     tier: String,
     mem: Long,
     round: Int,
-    val oldmon: String,
-    val oldIndex: Int,
-    override val changedOnTeamsiteIndex: Int
-) : DraftData(league, pokemon, pokemonofficial, tier, mem, round)
+    val oldmon: DraftName,
+    val oldIndex: Int
+) : DraftData(league, pokemon, pokemonofficial, tier, mem, round) {
+    override val changedOnTeamsiteIndex by lazy { with(league) { getTierInsertIndex(oldIndex + 1) } }
+
+    val oldDisplayName = OneTimeCache {
+        "${oldmon.tlName}/${
+            NameConventionsDB.getSDTranslation(
+                oldmon.official, league.guild, english = true
+            )!!.tlName
+        }"
+    }
+}
 
 data class TierData(val specified: String, val official: String)
 

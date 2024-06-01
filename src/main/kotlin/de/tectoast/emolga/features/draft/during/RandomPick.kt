@@ -4,9 +4,11 @@ package de.tectoast.emolga.features.draft.during
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.features.draft.during.PickCommand.executeWithinLock
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.add
+import de.tectoast.emolga.utils.draft.DraftMessageType
+import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
+import de.tectoast.emolga.utils.draft.PickInput
 import de.tectoast.emolga.utils.invoke
 import de.tectoast.emolga.utils.json.emolga.draft.*
 import dev.minn.jda.ktx.messages.into
@@ -104,7 +106,7 @@ object RandomPick {
                         return
                     }
                 }
-                executeWithinLock(draftname, tier, free = false, PickMessageType.RANDOM)
+                executeWithinLock(PickInput(draftname, tier, free = false), DraftMessageType.RANDOM)
             }
         }
     }
@@ -130,7 +132,10 @@ object RandomPick {
                 )
                 when (e.action) {
                     RandomPickAction.ACCEPT -> {
-                        executeWithinLock(DraftName(tlName, official), tier, free = false, PickMessageType.ACCEPT)
+                        executeWithinLock(
+                            PickInput(DraftName(tlName, official), tier, free = false),
+                            DraftMessageType.ACCEPT
+                        )
                     }
 
                     RandomPickAction.REROLL -> {
@@ -145,7 +150,7 @@ object RandomPick {
                         val (newdraftname, newtier) = with(config.mode) {
                             getRandomPick(RandomPickUserInput(tier, map["type"], skipMon = official), config)
                         } ?: return
-                        executeWithinLock(newdraftname, newtier, false, PickMessageType.REROLL)
+                        executeWithinLock(PickInput(newdraftname, newtier, false), DraftMessageType.REROLL)
                     }
                 }
             }

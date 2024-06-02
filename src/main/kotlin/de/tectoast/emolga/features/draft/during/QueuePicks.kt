@@ -6,8 +6,10 @@ import de.tectoast.emolga.utils.QueuePicks
 import de.tectoast.emolga.utils.QueuedAction
 import de.tectoast.emolga.utils.StateStore
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.draft.AllowPickDuringSwitch
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.QueuePicksData
+import de.tectoast.emolga.utils.notNullPrepend
 import de.tectoast.emolga.utils.process
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
@@ -38,6 +40,15 @@ object QueuePicks {
         object Add : CommandFeature<Add.Args>(::Args, CommandSpec("add", "Füge einen Pick hinzu")) {
             class Args : Arguments() {
                 var mon by draftPokemon("Pokemon", "Das Pokemon, das du hinzufügen möchtest")
+                var oldmon by draftPokemon(
+                    "Altes Mon",
+                    "Das Pokemon, was rausgeschmissen werden soll",
+                    autocomplete = { s, event ->
+                        val league = db.leagueByGuild(event.guild?.idLong ?: -1, event.user.idLong)
+                            ?: return@draftPokemon listOf("Du nimmt an keiner Liga auf diesem Server teil!")
+                        monOfTeam(s, league, event.user.idLong)
+                    }
+                ).nullable()
             }
 
             context(InteractionData)
@@ -46,20 +57,41 @@ object QueuePicks {
                 deferReply()
                 League.executeOnFreshLock({ db.leagueByCommand() },
                     { return reply("Du bist in keiner Liga auf diesem Server!") }) {
+                    val oldmon = e.oldmon
+                    if (oldmon == null && !isRunning && picks.isNotEmpty() && !config<AllowPickDuringSwitch>()) {
+                        return reply("Im kommenden Draft können nur Switches gemacht werden, dementsprechend musst du ein altes Pokemon angeben!")
+                    }
+                    if (picks[user]?.any { it.name == oldmon?.official } != true) {
+                        return reply("Du besitzt `${oldmon?.tlName}` nicht!")
+                    }
+                    if (isPicked(e.mon.official)) {
+                        return reply("`${e.mon.tlName}` wurde bereits gepickt!")
+                    }
                     val data = queuedPicks.getOrPut(index(user)) { QueuePicksData() }
                     val mon = e.mon
-                    if (data.queued.any { it.g == mon }) return reply("Du hast dieses Pokemon bereits in deiner Queue!")
-                    tierlist.getTierOf(mon.tlName) ?: return reply("Das Pokemon ist nicht in der Tierlist!")
-                    val newlist = data.queued.toMutableList().apply { add(QueuedAction(mon)) }
+                    for (q in data.queued) {
+                        if (q.g == mon) return reply("Du hast `${mon.tlName}` bereits in deiner Queue!")
+                        if (oldmon != null && q.y == oldmon) return reply("Du planst bereits, `${oldmon.tlName}` rauszuwerfen!")
+                    }
+                    tierlist.getTierOf(mon.tlName) ?: return reply("`${mon.tlName}` ist nicht in der Tierlist!")
+                    oldmon?.let {
+                        tierlist.getTierOf(it.tlName) ?: return reply("`${it.tlName}` ist nicht in der Tierlist!")
+                    }
+                    val queuedAction = QueuedAction(mon, oldmon)
+                    val newlist = data.queued.toMutableList().apply { add(queuedAction) }
                     if (checkIfTeamCantBeFinished(user, newlist))
                         return reply("Wenn du dieses Pokemon holen wollen würdest, könnte dein Team nicht mehr vervollständigt werden!")
                     StateStore.processIgnoreMissing<QueuePicks> {
-                        addNewMon(QueuedAction(mon))
+                        addNewMon(queuedAction)
                     }
                     data.queued = newlist
                     data.enabled = false
                     save("QueuePickAdd")
-                    reply("`${mon.tlName}` wurde zu deinen gequeueten Picks hinzugefügt! Außerdem wurde das System für dich deaktiviert, damit du das Pokemon noch an die richtige Stelle schieben kannst :)")
+                    reply(
+                        "`${mon.tlName}` wurde zu deinen gequeueten Picks hinzugefügt! Außerdem wurde das System für dich deaktiviert, damit du das Pokemon noch an die richtige Stelle schieben kannst :)".notNullPrepend(
+                            oldmon
+                        ) { "`${it.tlName}` -> " }
+                    )
                 }
 
             }

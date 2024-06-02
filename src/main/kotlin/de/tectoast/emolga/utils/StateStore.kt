@@ -434,7 +434,7 @@ class QueuePicks : StateStore {
                 disabled = true,
                 options = listOf(SelectOption("Keine Picks", "Keine Picks"))
             )
-        ) else ActionRow.of(QueuePicks.Menu(options = currentState.map { SelectOption(it.g.tlName, it.g.tlName) }))
+        ) else ActionRow.of(QueuePicks.Menu(options = currentState.map { SelectOption(it.toString(), it.g.tlName) }))
     ) + controlButtons
 
     private fun buildButtons(tlName: String): List<ActionRow> {
@@ -571,5 +571,9 @@ class QueuePicks : StateStore {
 data class QueuedAction(val g: DraftName, val y: DraftName? = null) {
     fun buildDraftInput(): DraftInput {
         return if (y != null) SwitchInput(y, g) else PickInput(g, null, false)
+    }
+
+    override fun toString(): String {
+        return g.tlName.notNullPrepend(y) { "${it.tlName} -> " }
     }
 }

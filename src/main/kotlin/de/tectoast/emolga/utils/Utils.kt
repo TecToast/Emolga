@@ -123,6 +123,9 @@ fun String.notNullAppend(value: String?) = notNullAppend(value) { it }
 inline fun <T> String.notNullAppend(value: T?, mapper: (T) -> String) =
     if (value != null) this + mapper(value) else this
 
+fun String.notNullPrepend(value: String?) = notNullPrepend(value) { it }
+inline fun <T> String.notNullPrepend(value: T?, mapper: (T) -> String) =
+    if (value != null) mapper(value) + this else this
 val <T> T.l get() = listOf(this)
 
 inline val User.isFlo: Boolean get() = this.idLong == FLOID

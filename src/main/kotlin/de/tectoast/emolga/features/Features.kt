@@ -601,7 +601,7 @@ open class Arguments {
         val tlNameCache = SizeLimitedMap<String, String>(1000)
 
         // Helpers
-        suspend inline fun monOfTeam(s: String, league: League, user: Long): List<String>? {
+        suspend fun monOfTeam(s: String, league: League, user: Long): List<String>? {
             return newSuspendedTransaction {
                 val tl = league.tierlist
                 val picks = league.picks[user] ?: return@newSuspendedTransaction null

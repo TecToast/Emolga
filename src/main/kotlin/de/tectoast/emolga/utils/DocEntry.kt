@@ -219,8 +219,8 @@ class DocEntry private constructor(val league: League) {
 
     private fun compareColumns(o1: List<Any>, o2: List<Any>, vararg columns: Int): Int {
         for (column in columns) {
-            val i1 = o1[column].parseInt()
-            val i2 = o2[column].parseInt()
+            val i1 = o1.getOrNull(column).parseInt()
+            val i2 = o2.getOrNull(column).parseInt()
             if (i1 != i2) {
                 return i1.compareTo(i2)
             }
@@ -228,7 +228,7 @@ class DocEntry private constructor(val league: League) {
         return 0
     }
 
-    fun Any.parseInt() = (this as? Int) ?: this.toString().toInt()
+    fun Any?.parseInt() = (this as? Int) ?: this?.toString()?.toIntOrNull() ?: 0
 
     @Suppress("MemberVisibilityCanBePrivate")
     suspend fun sort() {
@@ -263,7 +263,7 @@ class DocEntry private constructor(val league: League) {
                         val colsUntilDirectCompare = cols.takeWhile { it != -1 }
                         val colsAfterDirectCompare = cols.dropWhile { it != -1 }.drop(1)
                         val directCompare = points.groupBy {
-                            colsUntilDirectCompare.map { col -> it[col].parseInt() }
+                            colsUntilDirectCompare.map { col -> it.getOrNull(col).parseInt() }
                         }
                         val preSorted =
                             directCompare.entries.sortedWith(Comparator<Map.Entry<List<Int>, List<List<Any>>>> { o1, o2 ->

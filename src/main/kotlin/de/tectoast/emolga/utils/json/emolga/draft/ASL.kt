@@ -10,6 +10,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
+import java.util.Calendar.*
 import kotlin.time.Duration.Companion.days
 
 @Serializable
@@ -48,12 +49,11 @@ class ASL(
         ).execute()
     }
 
-
-//    @Transient
-//    override var timer: DraftTimer? = SimpleTimer(
-//        TimerInfo(delaysAfterSkips = mapOf(0 to 120, 1 to 60, 2 to 30)).add(10, 22, SATURDAY, SUNDAY)
-//            .add(14, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)
-//    )
+    @Transient
+    override var timer: DraftTimer? = SimpleTimer(
+        TimerInfo(delaysAfterSkips = mapOf(0 to 120, 1 to 60, 2 to 30)).add(10, 22, SATURDAY, SUNDAY)
+            .add(14, 22, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)
+    )
 
 
     override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED

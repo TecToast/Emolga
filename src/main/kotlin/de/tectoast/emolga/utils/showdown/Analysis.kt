@@ -321,12 +321,12 @@ object Analysis {
                 val split = line.cleanSplit()
                 if (split.isEmpty()) continue
                 val operation = split[0]
-                if (operation == "move") lastMove = line
+                if (operation == "move") lastMove = IndexedValue(currentLineIndex, split[1])
                 currentLineIndex++
                 logger.debug(line)
-                nextLine = game.getOrNull(currentLineIndex + 1) ?: ""
+                nextLine = IndexedValue(currentLineIndex + 1, game.getOrNull(currentLineIndex + 1) ?: "")
                 SDEffect.effects[operation]?.let { it.forEach { e -> e.execute(split) } }
-                lastLine = line
+                lastLine = IndexedValue(currentLineIndex - 1, game.getOrNull(currentLineIndex - 1) ?: "")
             }
             logger.info("Finished analyse!")
             val totalDmg = totalDmgAmount.toDouble()

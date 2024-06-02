@@ -134,8 +134,15 @@ sealed class SDEffect(vararg val types: String) {
             it[ITEM_OBTAINED_FROM].takeIf { "item:" in inlined[0] } ?: it
         }
         this.firstOrNull { it.startsWith("[of] p") }?.let { return it.parsePokemon() }
-        return lastLine.cleanSplit().takeIf { it.getOrNull(0) == "-activate" }?.getOrNull(1)?.parsePokemon()
-            ?: lastMove.cleanSplit().getOrNull(1)?.parsePokemon()
+        return lastLine.value.cleanSplit().takeIf { it.getOrNull(0) == "-activate" }?.getOrNull(1)?.parsePokemon()
+            ?: run {
+                for (i in currentLineIndex downTo lastMove.index) {
+                    val line = game[i]
+                    if (line.startsWith("|switch") || line.startsWith("|upkeep")) return@run null
+                    if (line.startsWith("|move")) return@run line.cleanSplit().getOrNull(1)?.parsePokemon()
+                }
+                null
+            }
     }
 
     data object Turn : SDEffect("turn") {
@@ -172,10 +179,13 @@ sealed class SDEffect(vararg val types: String) {
             val nickname = split[1].substringAfter(": ")
             val playerSide = sdPlayers[pl]
             val monName = split[2].substringBefore(",")
-            playerSide.pokemon.firstOrNull {
-                !it.isDead && it.pokemon.endsWith("-*") && monName.split("-")[0] == it.pokemon.split("-")[0]
-            }?.let {
-                it.pokemon = monName
+            run starcheck@{
+                playerSide.pokemon.firstOrNull {
+                    if (monName == it.pokemon) return@starcheck
+                    !it.isDead && it.pokemon.endsWith("-*") && monName.split("-")[0] == it.pokemon.split("-")[0]
+                }?.let {
+                    it.pokemon = monName
+                }
             }
             val switchIn = playerSide.pokemon.sortedBy { it.isDead }.first { it.hasName(monName) }
             switchIn.setNickname(nickname)
@@ -279,7 +289,7 @@ sealed class SDEffect(vararg val types: String) {
                     }
                 }
                 // TODO: Future Moves work in FFA
-                lastMove.parsePokemon().claimDamage(damagedMon, fainted, amount, activeKill = true)
+                lastMove.value.parsePokemon().claimDamage(damagedMon, fainted, amount, activeKill = true)
             }
         }
     }
@@ -307,7 +317,7 @@ sealed class SDEffect(vararg val types: String) {
             val fainted = split[1].parsePokemon()
             fainted.isDead = true
             sdPlayers[fainted.player].putIfAbsent(PlayerSaveKey.FIRST_FAINTED, fainted)
-            val lastLine = lastLine.cleanSplit()
+            val lastLine = lastLine.value.cleanSplit()
             if (lastLine.getOrNull(0) == "-activate" && lastLine.getOrNull(2) == "move: Destiny Bond") {
                 lastLine.getOrNull(1)?.parsePokemon()?.claimDamage(fainted, true, fainted.hp)
             }
@@ -390,7 +400,7 @@ sealed class SDEffect(vararg val types: String) {
         context(BattleContext)
         override fun execute(split: List<String>) {
             if (split.getOrNull(2) != "[upkeep]") activeWeather =
-                split[1] to (split.getOrNull(3)?.parsePokemon() ?: lastMove.parsePokemon())
+                split[1] to (split.getOrNull(3)?.parsePokemon() ?: lastMove.value.parsePokemon())
         }
     }
 
@@ -463,7 +473,7 @@ sealed class SDEffect(vararg val types: String) {
     sealed class Hazards(override val name: String) : SDEffect("-sidestart") {
         context(BattleContext)
         override fun execute(split: List<String>) {
-            val pokemon = lastMove.parsePokemon()
+            val pokemon = lastMove.value.parsePokemon()
             val type = split[2].substringAfter(": ")
             allHazards.firstOrNull { it.name == type }?.let {
                 sdPlayers[split[1][1].digitToInt() - 1].fieldConditions[it] = pokemon
@@ -505,12 +515,12 @@ private fun <T : Any> KClass<T>.dataobjects() = this.sealedSubclasses.mapNotNull
 data class BattleContext(
     val url: String,
     val monsOnField: List<MutableList<SDPokemon>>,
-    var lastMove: String = "",
+    var lastMove: IndexedValue<String> = IndexedValue(0, ""),
     val sdPlayers: List<SDPlayer>,
     var activeWeather: Pair<String, SDPokemon>? = null,
     var randomBattle: Boolean = false,
-    var lastLine: String = "",
-    var nextLine: String = "",
+    var lastLine: IndexedValue<String> = IndexedValue(0, ""),
+    var nextLine: IndexedValue<String> = IndexedValue(0, ""),
     var currentLineIndex: Int = -1,
     var turn: Int = 0,
     var format: String = "unknown",

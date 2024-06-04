@@ -647,10 +647,10 @@ sealed class League {
                     table[mem], embeds = Embed(
                         title = "Queue-Pick-Warnung",
                         color = 0xff0000,
-                        description = "`${newMon.tlName}` aus deiner Queue wurde gepickt.\nDas System wurde für dich deaktiviert, damit du umplanen kannst."
+                        description = "`${newMon.tlName}` aus deiner Queue wurde gepickt.\n${if (data.disableIfSniped) "Das System wurde für dich deaktiviert, damit du umplanen kannst." else "Das System läuft jedoch für dich weiter."}"
                     ).into()
                 )
-                data.enabled = false
+                data.enabled = !data.disableIfSniped
             }
         }
         lastPickedMon = null
@@ -1107,7 +1107,11 @@ data class TZDataHolder(
 data class TeraData(val type: TZDataHolder, val mon: TZDataHolder)
 
 @Serializable
-data class QueuePicksData(var enabled: Boolean = false, var queued: MutableList<QueuedAction> = mutableListOf())
+data class QueuePicksData(
+    var enabled: Boolean = false,
+    var disableIfSniped: Boolean = true,
+    var queued: MutableList<QueuedAction> = mutableListOf()
+)
 
 @Serializable
 data class ReplayDataStore(

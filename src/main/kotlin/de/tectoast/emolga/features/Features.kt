@@ -415,7 +415,7 @@ open class Arguments {
             (if (league == null || tierlist == null) strings
             else strings.map {
                 if (league.picks.values.flatten().any { p ->
-                        p.name == tierlist.tlToOfficialCache.getOrPut(it) {
+                        !p.quit && p.name == tierlist.tlToOfficialCache.getOrPut(it) {
                             NameConventionsDB.getDiscordTranslation(it, league.guild)!!.official
                         }
                     }) "$it (GEPICKT)" else it

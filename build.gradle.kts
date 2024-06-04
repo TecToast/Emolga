@@ -105,7 +105,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-core:0.50.1")
     implementation("org.jetbrains.exposed:exposed-dao:0.50.1")
     implementation("org.jetbrains.exposed:exposed-jdbc:0.50.1")
-    implementation("org.jetbrains.exposed:exposed-java-time:0.50.1")
+    implementation("org.jetbrains.exposed:exposed-java-time:0.51.1")
     // MongoDB
     implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.1.0")
     implementation("org.litote.kmongo:kmongo-id-serialization:5.1.0")

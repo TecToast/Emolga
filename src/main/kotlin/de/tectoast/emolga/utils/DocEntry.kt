@@ -230,8 +230,7 @@ class DocEntry private constructor(val league: League) {
 
     fun Any?.parseInt() = (this as? Int) ?: this?.toString()?.toIntOrNull() ?: 0
 
-    @Suppress("MemberVisibilityCanBePrivate")
-    suspend fun sort() {
+    suspend fun sort(realExecute: Boolean = true) {
         try {
             (sorterDatas[league.leaguename] ?: sorterDatas["default"])?.run {
                 val sid = league.sid
@@ -331,7 +330,7 @@ class DocEntry private constructor(val league: League) {
                     }
                     b.addAll(formulaRange.firstHalf, sendname)
                 }
-                b.execute()
+                b.execute(realExecute)
             }
         } catch (ex: Exception) {
             logger.error("I hate my life", ex)

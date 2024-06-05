@@ -446,7 +446,7 @@ sealed class League {
     open suspend fun handleStallSecondUsed(): Long? = null
 
     private fun sendRound() {
-        tc.sendMessage("**=== Runde $round ===**").queue()
+        tc.sendMessage("## === Runde $round ===").queue()
     }
 
     open suspend fun announcePlayer() {

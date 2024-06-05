@@ -544,9 +544,9 @@ sealed class League {
         error("Tier ${this.tier} not found by user $current")
     }
 
-    fun triggerMove(reason: SkipReason) {
+    fun triggerMove(data: NextPlayerData.Moved) {
         if (!isSwitchDraft) moved.getOrPut(current) { mutableListOf() }.let { if (round !in it) it += round }
-        if (reason == SkipReason.REALTIMER)
+        if (data.reason == SkipReason.REALTIMER || data.skippedBy != null)
             skippedTurns.getOrPut(current) { mutableSetOf() } += round
     }
 
@@ -609,7 +609,7 @@ sealed class League {
         when (data) {
             is NextPlayerData.Normal -> cancelCurrentTimer()
             is NextPlayerData.Moved -> {
-                triggerMove(data.reason)
+                triggerMove(data)
                 data.skippedUser = current
             }
         }

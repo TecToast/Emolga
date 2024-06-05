@@ -18,7 +18,6 @@ object MoveCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("move", "Versc
             if (it.pseudoEnd) {
                 return reply("Der Draft ist quasi schon vorbei, du kannst jetzt nicht mehr moven!")
             }
-            it.triggerMove(SkipReason.SKIP)
             it.replyGeneral("den Pick verschoben!")
             it.afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP))
         }

@@ -19,26 +19,16 @@ object DraftUtils {
     suspend fun executeWithinLock(
         input: DraftInput, type: DraftMessageType
     ) {
-        val pickData = input.formalActionAndReply(type) as? DraftData ?: return
-        insertIntoDoc(pickData)
+        input.execute(type)
         if (type != QUEUE) afterPickOfficial()
     }
 
-    private suspend fun League.insertIntoDoc(pickData: DraftData) {
-        builder().takeIf {
-            when (pickData) {
-                is PickData -> it.pickDoc(pickData)
-                is SwitchData -> it.switchDoc(pickData)
-                else -> null
-            } != null
-        }?.execute()
-    }
 }
 
 
 interface DraftInput {
     context(InteractionData, League)
-    suspend fun formalActionAndReply(type: DraftMessageType): Any?
+    suspend fun execute(type: DraftMessageType)
 
     context(DraftData, InteractionData)
     fun checkEmolga() {
@@ -52,7 +42,7 @@ interface DraftInput {
 
 data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolean) : DraftInput {
     context(InteractionData, League)
-    override suspend fun formalActionAndReply(type: DraftMessageType): Any? {
+    override suspend fun execute(type: DraftMessageType) {
         if (isSwitchDraft && !config<AllowPickDuringSwitch>()) {
             return reply("Du kannst während des Switch-Drafts nicht picken!")
         }
@@ -67,11 +57,11 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
         val tlMode = tierlist.mode
         val freepick =
             free.takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } == true
-        if (!freepick && handleTiers(specifiedTier, officialTier)) return null
+        if (!freepick && handleTiers(specifiedTier, officialTier)) return
         if (handlePoints(
                 free = freepick, tier = officialTier, mega = official.isMega
             )
-        ) return null
+        ) return
         val saveTier = if (freepick) officialTier else specifiedTier
         lastPickedMon = pokemon
         val pickData = PickData(
@@ -87,7 +77,6 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
         pickData.savePick()
         pickData.reply(type)
         builder().apply { pickDoc(pickData) }.execute()
-        return pickData
     }
 
     context(InteractionData, League)
@@ -117,7 +106,7 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
 
 data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInput {
     context(InteractionData, League)
-    override suspend fun formalActionAndReply(type: DraftMessageType): Any? {
+    override suspend fun execute(type: DraftMessageType) {
         if (!isSwitchDraft) {
             return reply("Dieser Draft ist kein Switch-Draft, daher wird /switch nicht unterstützt!")
         }
@@ -128,15 +117,15 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
             ?: return reply("${oldmon.tlName} befindet sich nicht in deinem Kader!")
         val newtier = getTierOf(newmon.tlName, null) ?: return reply("Das neue Pokemon ist nicht in der Tierliste!")
         val oldtier = getTierOf(oldmon.tlName, null)!!.specified
-        checkUpdraft(oldDraftMon.tier, newtier.official)?.let { reply(it); return null }
+        checkUpdraft(oldDraftMon.tier, newtier.official)?.let { reply(it); return }
         if (isPicked(newmon.official, newtier.official)) {
             return reply("${newmon.tlName} wurde bereits gepickt!")
         }
-        if (handleTiers(newtier.specified, newtier.official, fromSwitch = true)) return null
+        if (handleTiers(newtier.specified, newtier.official, fromSwitch = true)) return
         if (handlePoints(
                 free = false, tier = newtier.official, tierOld = oldtier
             )
-        ) return null
+        ) return
         lastPickedMon = newmon
         val oldIndex = draftPokemons.indexOfFirst { it.name == oldmon.official }
         val switchData = SwitchData(
@@ -152,7 +141,6 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
         switchData.saveSwitch()
         switchData.reply(type)
         builder().apply { switchDoc(switchData) }.execute()
-        return switchData
     }
 
     context(InteractionData, League)

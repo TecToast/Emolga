@@ -600,7 +600,7 @@ sealed class League {
     private suspend fun nextPlayer(data: NextPlayerData = NextPlayerData.Normal) = with(timerRelated) {
         if (!isRunning) return
         val ctm = System.currentTimeMillis()
-        timer?.stallSeconds?.let {
+        timer?.stallSeconds?.takeIf { it > 0 }?.let {
             if (cooldown > 0) {
                 val punishSeconds = ((ctm - lastPick - lastRegularDelay) / 1000).toInt()
                 if (punishSeconds > 0) usedStallSeconds.add(current, punishSeconds)

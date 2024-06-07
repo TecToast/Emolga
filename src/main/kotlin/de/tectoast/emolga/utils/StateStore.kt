@@ -93,7 +93,7 @@ class ResultEntry : StateStore {
     var leaguename: String = ""
 
     val data: List<MutableList<MonData>> = listOf(mutableListOf(), mutableListOf())
-    private val uids = mutableListOf<Long>()
+    private val uids = mutableListOf<Int>()
 
     @Transient
     val league = OneTimeCache { db.league(leaguename) }
@@ -103,15 +103,15 @@ class ResultEntry : StateStore {
     }
 
 
-    private suspend fun getPicksByUid(uid: Long) = league().providePicksForGameday(gamedayData.gameday)[uid]!!
-    private suspend fun getMonsByUid(uid: Long) = getPicksByUid(uid).sortedWith(league().tierorderingComparator).map {
+    private suspend fun getPicksByUid(uid: Int) = league().providePicksForGameday(gamedayData.gameday)[uid]!!
+    private suspend fun getMonsByUid(uid: Int) = getPicksByUid(uid).sortedWith(league().tierorderingComparator).map {
         (it.name to NameConventionsDB.convertOfficialToTL(
             it.name, league().guild
         )!!).let { (official, tl) -> SelectOption(tl, "$official#$tl") }
     }
 
     @Transient
-    val picks: Cache<Map<Long, List<SelectOption>>> = OneTimeCache { uids.associateWith { getMonsByUid(it) } }
+    val picks: Cache<Map<Int, List<SelectOption>>> = OneTimeCache { uids.indices.associateWith { getMonsByUid(it) } }
     private lateinit var gamedayData: GamedayData
 
 
@@ -122,7 +122,7 @@ class ResultEntry : StateStore {
         uids.mapIndexed { index, uid ->
             ActionRow.of(EnterResult.ResultMenu(
                 "${if (index == 0) "Deine" else "Gegnerische"} Pokemon",
-                options = picks()[uid]!!,
+                options = picks()[index]!!,
             ) { this.userindex = index })
         } + listOf(ActionRow.of(EnterResult.ResultFinish("Ergebnis bestätigen", ButtonStyle.PRIMARY) {
             mode = EnterResult.ResultFinish.Mode.CHECK
@@ -131,9 +131,10 @@ class ResultEntry : StateStore {
 
     context(InteractionData)
     suspend fun init(opponent: Long, user: Long) {
-        uids += user
-        uids += opponent
-        gamedayData = league().getGameplayData(uids[0], uids[1], wifiPlayers)
+        val l = league()
+        uids += l(user)
+        uids += l(opponent)
+        gamedayData = l.getGameplayData(uids[0], uids[1], wifiPlayers)
         reply(embeds = buildEmbed(), components = defaultComponents(), ephemeral = true)
     }
 
@@ -275,9 +276,9 @@ class NominateState : StateStore {
     private val mons: List<DraftPokemon>
     private val nominated: MutableList<DraftPokemon>
     private val notNominated: MutableList<DraftPokemon>
-    private val nomUser: Long
+    private val nomUser: Int
 
-    constructor(uid: Long, nomUser: Long, originalMons: List<DraftPokemon>, mons: List<DraftPokemon>) : super(uid) {
+    constructor(uid: Long, nomUser: Int, originalMons: List<DraftPokemon>, mons: List<DraftPokemon>) : super(uid) {
         this.nomUser = nomUser
         this.originalMons = originalMons
         this.mons = mons
@@ -527,7 +528,7 @@ class QueuePicks : StateStore {
         deferEdit()
         League.executeOnFreshLock(leaguename) {
             if (checkIfTeamCantBeFinished(
-                    uid,
+                    this(uid),
                     currentState
                 )
             ) return reply("Mit dieser Queue hast du nicht genug Punkte für ein vollständiges Team!")

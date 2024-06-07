@@ -37,24 +37,25 @@ object DraftStatusCommand : CommandFeature<DraftStatusCommand.Args>(
                 if (external) "<@$mem> nimmt nicht an der Liga teil!" else "Du nimmst nicht an der Liga teil!",
                 ephemeral = true
             )
+            val idx = this(mem)
             reply(
                 embeds = Embed(
                     title = if (external) "Draft-Status von $externalName" else "Dein Draft-Status", color = embedColor
                 ) {
                     field {
                         name = "Bisheriger Kader"
-                        value = picks[mem]?.sortedWith(compareBy({ it.tier.indexedBy(order) }, { it.name }))
+                        value = picks[idx]?.sortedWith(compareBy({ it.tier.indexedBy(order) }, { it.name }))
                             ?.joinToString("\n") { it.tier + ": " + it.name }?.takeUnless { it.isBlank() } ?: "_nichts_"
                         inline = false
                     }
                     if (mode.withPoints) field {
                         name = "Mögliche Punkte"
-                        value = points[mem].toString()
+                        value = points[idx].toString()
                         inline = false
                     }
                     if (mode.withTiers) field {
                         name = "Mögliche Tiers"
-                        value = getPossibleTiersAsString(mem)
+                        value = getPossibleTiersAsString(idx)
                         inline = false
                     }
                 }.into(), ephemeral = true

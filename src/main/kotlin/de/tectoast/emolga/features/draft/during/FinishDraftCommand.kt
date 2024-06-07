@@ -17,12 +17,13 @@ object FinishDraftCommand :
         )
         d.lock {
             if (isFinishedForbidden()) return reply("Dieser Draft unterstützt /finishdraft nicht!")
-            checkFinishedForbidden(mem)?.let {
+            val idx = this(mem)
+            checkFinishedForbidden(idx)?.let {
                 return reply(it)
             }
             replyAwait("<@${user}> hat den Draft für sich beendet!")
-            addFinished(mem)
-            if (current == mem)
+            addFinished(idx)
+            if (current == idx)
                 afterPickOfficial()
             save("FinishDraft")
         }

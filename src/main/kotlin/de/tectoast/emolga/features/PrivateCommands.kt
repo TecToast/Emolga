@@ -88,7 +88,7 @@ object PrivateCommands {
         NDS.doNDSNominate(
             prevDay = args[0].toBooleanStrict(),
             withSend = args[1].toBooleanStrict(),
-            onlySpecifiedUsers = args.drop(2).map { it.toLong() }.toLongArray()
+            onlySpecifiedUsers = args.drop(2).map { it.toInt() }.toIntArray()
         )
     }
 
@@ -314,7 +314,7 @@ object PrivateCommands {
             val user = args[1].toLong()
             val tc = args.getOrNull(2)?.let { jda.getTextChannelById(it)!! } ?: textChannel
             if (user > -1) {
-                tc.sendMessage("Kader von <@${user}>:").addFiles(league.picks[user]!!.toTeamGraphics()).queue()
+                tc.sendMessage("Kader von <@${user}>:").addFiles(league.picks[league(user)]!!.toTeamGraphics()).queue()
                 return@launch
             }
             league.picks.entries.map { (u, l) ->
@@ -330,21 +330,6 @@ object PrivateCommands {
             }.awaitAll().forEach { tc.sendMessage("Kader von <@${it.first}>:").addFiles(it.second).queue() }
         }
 
-    }
-
-    context(InteractionData)
-    suspend fun specaslgraphics(args: PrivateData) {
-        coroutineScope {
-            launch {
-                val m = args().toLong()
-                val team = (1..5).map { db.league("ASLS12L$it") }.first { m in it.table }.picks[m]!!
-                reply(files = FileUpload.fromData(ByteArrayOutputStream().also {
-                    ImageIO.write(
-                        TeamGraphics.fromDraftPokemon(team).first, "png", it
-                    )
-                }.toByteArray(), "yay.png").into())
-            }
-        }
     }
 
     context(InteractionData)

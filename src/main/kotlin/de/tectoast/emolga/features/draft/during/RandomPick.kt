@@ -72,7 +72,7 @@ object RandomPick {
                     "Du hast bereits ein Mon gegambled!",
                     ephemeral = true
                 )
-                val mem = current
+                val idx = current
                 val type = e.type
                 val (draftname, tier) = with(config.mode) {
                     getRandomPick(
@@ -81,7 +81,7 @@ object RandomPick {
                     )
                 } ?: return
                 if (hasJokers) {
-                    val jokerAmount = randomLeagueData.jokers[index(mem)] ?: 0
+                    val jokerAmount = randomLeagueData.jokers[idx] ?: 0
                     if (jokerAmount > 0) {
                         replyGeneral(
                             "gegambled: **${draftname.tlName}/${
@@ -139,13 +139,11 @@ object RandomPick {
                     }
 
                     RandomPickAction.REROLL -> {
-                        val mem = current
-                        val memIndex = index(mem)
-                        if (data.jokers[memIndex]!! <= 0) return reply(
+                        if (data.jokers[current]!! <= 0) return reply(
                             "Du hast keine Joker mehr!",
                             ephemeral = true
                         )
-                        data.jokers.add(memIndex, -1)
+                        data.jokers.add(current, -1)
                         val config = getConfigOrDefault<RandomPickConfig>()
                         val (newdraftname, newtier) = with(config.mode) {
                             getRandomPick(RandomPickUserInput(tier, map["type"], skipMon = official), config)

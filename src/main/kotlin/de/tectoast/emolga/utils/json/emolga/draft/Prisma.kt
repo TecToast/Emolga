@@ -34,7 +34,7 @@ class Prisma : League() {
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data.copy(round = convertToPickRound(data.round)))
         addPokemonToDraftorderSheet(data.pokemon)
-        addSingle(data.memIndex.coordXMod("Teamseite", 4, 4, 3, 15, 4 + data.changedOnTeamsiteIndex), data.pokemon)
+        addSingle(data.idx.coordXMod("Teamseite", 4, 4, 3, 15, 4 + data.changedOnTeamsiteIndex), data.pokemon)
     }
 
     override suspend fun isPicked(mon: String, tier: String?): Boolean {

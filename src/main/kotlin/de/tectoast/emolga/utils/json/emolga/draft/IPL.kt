@@ -54,7 +54,6 @@ class IPL(
             if (this is IPL) {
                 when (data) {
                     is NextPlayerData.Moved -> {
-                        val curIndex = table.indexOf(current) // 6
                         var insertIndex = TURNS
                         val currentOrder = order[round]!!
                         val size = currentOrder.size
@@ -72,7 +71,7 @@ class IPL(
                             isNextRound = false
                         }
                         val orderRoundToInsert = order[roundToInsert]!!
-                        orderRoundToInsert.add(insertIndex, curIndex)
+                        orderRoundToInsert.add(insertIndex, this.current)
 
                         val b = builder()
                         val sheetName = "Draftreihenfolge"
@@ -133,7 +132,7 @@ class IPL(
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
-        addSingle(data.memIndex.firstMonCoord().plusY(data.changedOnTeamsiteIndex), data.pokemon)
+        addSingle(data.idx.firstMonCoord().plusY(data.changedOnTeamsiteIndex), data.pokemon)
         addStrikethroughChange(draftSheetId, round + 2, pickTries + 5, true)
     }
 

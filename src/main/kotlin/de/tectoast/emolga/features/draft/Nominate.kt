@@ -21,6 +21,10 @@ object Nominate {
         private val tiercomparator: Comparator<DraftPokemon> =
             compareBy({ it.tier.indexedBy(listOf("S", "A", "B", "C", "D")) }, { it.name })
 
+        init {
+            restrict { user in db.nds().table }
+        }
+
 
         override val label = ""
         override val buttonStyle = ButtonStyle.PRIMARY
@@ -29,12 +33,13 @@ object Nominate {
             registerPNListener("!nominate") { e ->
                 val nds = db.nds()
                 val nom = nds.nominations
-                if (e.author.idLong in nom.nominated.getOrPut(nom.currentDay) { mutableMapOf() }) {
+                val idx = nds(e.author.idLong)
+                if (idx in nom.nominated.getOrPut(nom.currentDay) { mutableMapOf() }) {
                     return@registerPNListener e.channel.sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!")
                         .queue()
                 }
                 val nomUser =
-                    if (e.author.idLong == Constants.FLOID) WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toLong() else e.author.idLong
+                    if (e.author.idLong == Constants.FLOID) WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toInt() else idx
                 val list =
                     nds.picks[nomUser]!!.map {
                         DraftPokemon(

@@ -68,14 +68,14 @@ class NDS(val rr: Boolean) : League() {
     @Transient
     override val additionalSet = AdditionalSet("D", "X", "Y")
 
-    fun getTeamname(uid: Long) = teamtable[table.indexOf(uid)]
+    fun getTeamname(idx: Int) = teamtable[idx]
 
     override fun beforePick(): String? {
         return "Du hast bereits 15 Mons!".takeIf { picks(current).count { !it.quit } == 15 }
     }
 
-    override fun checkFinishedForbidden(mem: Long) = when {
-        picks[mem]!!.filter { !it.quit }.size < 15 -> "Du hast noch keine 15 Pokemon!"
+    override fun checkFinishedForbidden(idx: Int) = when {
+        picks[idx]!!.filter { !it.quit }.size < 15 -> "Du hast noch keine 15 Pokemon!"
         !getPossibleTiers().values.all { it == 0 } -> "Du musst noch deine Tiers ausgleichen!"
         else -> null
     }
@@ -106,12 +106,12 @@ class NDS(val rr: Boolean) : League() {
         val y = newSystemPickDoc(data, if (rr) data.picks.size - 1 else data.changedIndex)
         if (isSwitch && rr) {
             additionalSet.let {
-                addSingle("$dataSheet!${it.col}${data.memIndex.y(newSystemGap, data.oldIndex + 3)}", it.yeeted)
+                addSingle("$dataSheet!${it.col}${data.idx.y(newSystemGap, data.oldIndex + 3)}", it.yeeted)
             }
         }
         addSingle("Data!AF$y", 2)
         addColumn(
-            "Data!F${data.memIndex * 30 + 3}",
+            "Data!F${data.idx * 30 + 3}",
             data.picks.filter { !it.quit }.sortedWith(tierorderingComparator)
                 .map { NameConventionsDB.convertOfficialToTL(it.name, guild)!! }.toList()
         )
@@ -216,15 +216,15 @@ class NDS(val rr: Boolean) : League() {
 
         suspend fun doMatchUps(gameday: Int, withAnnounce: Boolean = false) {
             val nds = db.nds()
-            val table = nds.table
+            nds.table
             val battleorder = nds.battleorder[gameday]!!
             val b = RequestBuilder(nds.sid)
             val tipgameStats = mutableListOf<String>()
             for (users in battleorder) {
                 for (index in 0..1) {
-                    val u1 = table[users[index]]
+                    val u1 = users[index]
                     val oppoIndex = users[1 - index]
-                    val u2 = table[oppoIndex]
+                    val u2 = oppoIndex
                     val team = nds.getTeamname(u1)
                     val oppo = nds.getTeamname(u2)
                     tipgameStats += "='$team'!Y2"
@@ -260,7 +260,7 @@ class NDS(val rr: Boolean) : League() {
         }
 
 
-        suspend fun doNDSNominate(prevDay: Boolean = false, withSend: Boolean = true, vararg onlySpecifiedUsers: Long) {
+        suspend fun doNDSNominate(prevDay: Boolean = false, withSend: Boolean = true, vararg onlySpecifiedUsers: Int) {
             val nds = db.nds()
             val nom = nds.nominations
             var cday = nom.currentDay
@@ -269,7 +269,7 @@ class NDS(val rr: Boolean) : League() {
             val picks = nds.picks
             val b = RequestBuilder(nds.sid)
             var dbcallTime = 0L
-            for (u in onlySpecifiedUsers.takeIf { it.isNotEmpty() }?.toList() ?: picks.keys) {
+            for (u in onlySpecifiedUsers.takeIf { it.isNotEmpty() }?.toList() ?: nds.table.indices) {
                 val pmons = picks[u]!!
                 if (u !in dayData) {
                     dayData[u] = if (cday == 1) {
@@ -283,8 +283,7 @@ class NDS(val rr: Boolean) : League() {
                 dbcallTime += System.currentTimeMillis() - start
                 logger.info("mons = $mons")
                 logger.info("u = $u")
-                val index = nds.table.indexOf(u)
-                b.addColumn("Data!F${index.y(30, 3)}", mons)
+                b.addColumn("Data!F${u.y(30, 3)}", mons)
             }
             b.withRunnable {
                 if (onlySpecifiedUsers.isEmpty() && withSend) {

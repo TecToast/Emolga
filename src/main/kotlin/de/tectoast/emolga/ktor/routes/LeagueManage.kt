@@ -18,7 +18,7 @@ fun Route.leagueManage() {
         val send = db.drafts.find(League::table contains u).toList().map {
             LeagueData(
                 it.leaguename,
-                it.providePicksForGameday(1)[u]!!.map { mon ->
+                it.providePicksForGameday(1)[it(u)]!!.map { mon ->
                     val draftName = NameConventionsDB.convertOfficialToTLFull(mon.name, it.guild, plusOther = true)!!
                     val sdName = draftName.otherOfficial!!.toSDName()
                     val pkmn = db.pokedex.get(sdName)!!

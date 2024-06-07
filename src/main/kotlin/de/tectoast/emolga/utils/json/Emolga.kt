@@ -137,7 +137,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                     )
                     val finalQuery = and(PickedMonsData::guild eq gid, query)
                     val possible = pickedMons.find(finalQuery).toList()
-                    possible.singleOrNull() ?: possible.firstOrNull { it.user == uid }
+                    possible.singleOrNull()
                 }
             }.awaitAll().filterNotNull()
             if (filterNotNull.size != uids.size) return null
@@ -147,7 +147,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                 else if (currentLeague != pickedMon.leaguename) return null
             }
             val league = league(currentLeague!!)
-            LeagueResult(league, filterNotNull.map { it.user }, allOtherFormesGerman)
+            LeagueResult(league, filterNotNull.map { it.idx }, allOtherFormesGerman)
         }
         logger.debug { "DURATION: ${duration.inWholeMilliseconds}" }
         return leagueResult
@@ -207,7 +207,7 @@ data class YTChannel(
 @Serializable
 data class MatchResult(
     val data: List<Int>,
-    val uids: List<Long>,
+    val indices: List<Int>,
     val leaguename: String,
     val gameday: Int,
 ) {
@@ -215,8 +215,8 @@ data class MatchResult(
 }
 
 @Serializable
-data class PickedMonsData(val leaguename: String, val guild: Long, val user: Long, val mons: List<String>)
-data class LeagueResult(val league: League, val uids: List<Long>, val otherForms: Map<String, List<String>>)
+data class PickedMonsData(val leaguename: String, val guild: Long, val idx: Int, val mons: List<String>)
+data class LeagueResult(val league: League, val uids: List<Int>, val otherForms: Map<String, List<String>>)
 
 @Serializable
 data class TypeIcon(

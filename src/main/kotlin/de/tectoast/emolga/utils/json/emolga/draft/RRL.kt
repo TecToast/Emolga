@@ -29,7 +29,7 @@ class RRL(val rerollChannel: Long) : League() {
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
         addSingle(
-            data.memIndex.coordXMod(
+            data.idx.coordXMod(
                 "Kader", 2, 5, division.y('P' - 'C', 4), 34, 25 + data.changedOnTeamsiteIndex
             ), data.pokemon
         )
@@ -63,7 +63,7 @@ class RRL(val rerollChannel: Long) : League() {
                     return
                 }
                 val uid = data.uids[i]
-                NuzlockeCommand.executeMonSwitch(uid, mon.draftname)
+                NuzlockeCommand.executeMonSwitch(get(uid), mon.draftname)
             }
         }
     }

@@ -16,7 +16,7 @@ class WFS : League() {
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
-        addSingle("Kader!${data.memIndex.plus(3).xc()}${data.changedOnTeamsiteIndex + 6}", data.pokemon)
+        addSingle("Kader!${data.idx.plus(3).xc()}${data.changedOnTeamsiteIndex + 6}", data.pokemon)
         val x = data.roundIndex.y(2, 2)
         addSingle("Draftreihenfolge!${x.xc()}${data.indexInRound + 20}", data.pokemon)
         addStrikethroughChange(1109858057, x, data.indexInRound + 4, true)

@@ -128,9 +128,8 @@ class DocEntry private constructor(val league: League) {
         val dataB = customB ?: b
         val picks = league.providePicksForGameday(gameday)
         for ((i, uid) in uids.withIndex()) {
-            val index = league.table.indexOf(uid)
             val generalStatProcessorData = StatProcessorData(
-                plindex = index, gameday = gameday, battleindex = battleindex, u1IsSecond = u1IsSecond, fightIndex = i
+                plindex = uid, gameday = gameday, battleindex = battleindex, u1IsSecond = u1IsSecond, fightIndex = i
             )
 
             fun Set<StatProcessor>.checkTotal(total: Int) {
@@ -246,7 +245,7 @@ class DocEntry private constructor(val league: League) {
                         )
                     val points = Google.get(sid, formulaRange.toString(), false)
                     val orig: List<List<Any>?> = ArrayList(points)
-                    val table = league.table
+                    league.table
                     val indexerToUse: (String) -> Int by lazy {
                         if (newMethod) { str: String ->
                             rowNumToIndex(
@@ -275,23 +274,23 @@ class DocEntry private constructor(val league: League) {
                         preSorted.flatMap { pre ->
                             val toCompare = pre.value
                             if (toCompare.size == 1) toCompare else {
-                                val userids =
-                                    toCompare.map { u -> table[indexerToUse(formula[orig.indexOf(u)][0].toString())] }
+                                val useridxs =
+                                    toCompare.map { u -> indexerToUse(formula[orig.indexOf(u)][0].toString()) }
                                 val allRelevantMatches = db.matchresults.find(
                                     MatchResult::leaguename eq league.leaguename, Document(
                                         "\$expr", Document(
                                             "\$setIsSubset", listOf(
-                                                "\$uids", userids
+                                                "\$uids", useridxs
                                             )
                                         )
                                     )
                                 ).toList()
-                                val data = mutableMapOf<Long, DirectCompareData>()
-                                userids.forEachIndexed { index, l ->
+                                val data = mutableMapOf<Int, DirectCompareData>()
+                                useridxs.forEachIndexed { index, l ->
                                     data[l] = DirectCompareData(0, 0, 0, index)
                                 }
                                 allRelevantMatches.forEach {
-                                    val uids = it.uids
+                                    val uids = it.indices
                                     val winnerIndex = it.winnerIndex
                                     val winnerData = data[uids[winnerIndex]]!!
                                     val looserData = data[uids[1 - winnerIndex]]!!
@@ -303,7 +302,7 @@ class DocEntry private constructor(val league: League) {
                                     looserData.kills += deathsForWinner
                                     looserData.deaths += killsForWinner
                                 }
-                                data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Long, DirectCompareData>> { o1, o2 ->
+                                data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Int, DirectCompareData>> { o1, o2 ->
                                     val compare = o1.value.points.compareTo(o2.value.points)
                                     if (compare != 0) return@Comparator compare
                                     for (directCompareOption in this.directCompare) {
@@ -369,7 +368,7 @@ fun interface ResultStatProcessor {
 @Serializable
 data class ReplayData(
     val game: List<DraftPlayer>,
-    val uids: List<Long>,
+    val uids: List<Int>,
     val kd: List<Map<String, Pair<Int, Int>>>,
     val mons: List<List<String>>,
     val url: String,
@@ -411,7 +410,7 @@ data class AdvancedResult(
     val league: League
 ) {
     val tableIndexes by lazy {
-        (0..1).map { league.table.indexOf(replayData.uids[it]) }
+        replayData.uids
     }
     val deaths by lazy {
         (0..1).map { replayData.kd[it].values.map { s -> s.second == 1 } }

@@ -111,7 +111,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     suspend fun leagueByGuildAdvanced(gid: Long, game: List<List<DraftName>>, vararg uids: Long): LeagueResult? {
         val (leagueResult, duration) = measureTimedValue {
             val allOtherFormesGerman = ConcurrentHashMap<String, List<String>>()
-            val filterNotNull = uids.mapIndexed { index, uid ->
+            val (dp1, dp2) = uids.mapIndexed { index, uid ->
                 scanScope.async {
                     val mons = game[index]
                     val otherFormesEngl = mutableMapOf<DraftName, List<String>>()
@@ -136,18 +136,21 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                         *filters
                     )
                     val finalQuery = and(PickedMonsData::guild eq gid, query)
-                    val possible = pickedMons.find(finalQuery).toList()
-                    possible.singleOrNull()
+                    pickedMons.find(finalQuery).toList()
                 }
-            }.awaitAll().filterNotNull()
-            if (filterNotNull.size != uids.size) return null
-            var currentLeague: String? = null
-            for (pickedMon in filterNotNull) {
-                if (currentLeague == null) currentLeague = pickedMon.leaguename
-                else if (currentLeague != pickedMon.leaguename) return null
+            }.awaitAll()
+            var resultList: List<PickedMonsData>? = null
+            outer@ for (d1 in dp1) {
+                for (d2 in dp2) {
+                    if (d1.leaguename == d2.leaguename) {
+                        resultList = listOf(d1, d2)
+                        break@outer
+                    }
+                }
             }
-            val league = league(currentLeague!!)
-            LeagueResult(league, filterNotNull.map { it.idx }, allOtherFormesGerman)
+            if (resultList == null) return@measureTimedValue null
+            val league = league(resultList[0].leaguename)
+            LeagueResult(league, resultList.map { it.idx }, allOtherFormesGerman)
         }
         logger.debug { "DURATION: ${duration.inWholeMilliseconds}" }
         return leagueResult

@@ -1,6 +1,7 @@
 package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.database.exposed.DraftName
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
@@ -104,7 +105,15 @@ object NuzlockeCommand :
                 ), data.pokemon
             )
             b.execute(true)
-            reply("Das Pokemon `${mon.tlName}` von $mention wurde zu `${draftname.tlName}` rerollt!")
+            reply(
+                "Das Pokemon `${mon.tlName}` von $mention wurde zu `${draftname.tlName}/${
+                    NameConventionsDB.getSDTranslation(
+                        draftname.official,
+                        gid,
+                        english = true
+                    )?.tlName
+                }` rerollt!"
+            )
             save("NuzlockeCommand")
         }
     }

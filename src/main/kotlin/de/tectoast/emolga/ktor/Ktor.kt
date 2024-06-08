@@ -3,7 +3,6 @@ package de.tectoast.emolga.ktor
 import de.tectoast.emolga.database.exposed.DiscordAuthDB
 import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.utils.httpClient
-import de.tectoast.emolga.utils.universalLogger
 import de.tectoast.emolga.utils.webJSON
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -11,12 +10,9 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.server.plugins.*
 import io.ktor.server.plugins.callloging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import kotlinx.serialization.SerialName
@@ -44,27 +40,7 @@ object Ktor {
                 emolgaAPI()
                 ytSubscriptions()
             }
-            route("/private") {
-                get("/dyndns") {
-                    call.handleDynDNS()
-                }
-                post {
-                    call.handleDynDNS()
-                }
-                patch {
-                    call.handleDynDNS()
-                }
-            }
         }
-    }
-
-    private suspend fun ApplicationCall.handleDynDNS() {
-        universalLogger.warn(
-            "${request.origin}\n\n${
-                request.headers.entries().joinToString("\n") { "${it.key}=${it.value}" }
-            }\n\n${receiveText()}"
-        )
-        respond(HttpStatusCode.OK)
     }
 
 

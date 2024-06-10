@@ -82,13 +82,6 @@ object Analysis {
         val (game, ctx) = data
         val g = resultchannelParam.guild
         val gid = customGuild ?: g.idLong
-        if (gid != Constants.G.MY && (0..1).any { i ->
-                game[i].pokemon.sumOf { it.kills } > game[1 - i].pokemon.sumOf {
-                    it.deadCount
-                }
-            }) {
-            SendFeatures.sendToMe("ACHTUNG ACHTUNG! KILLS SIND MEHR ALS DEATHS :o\n$url\n${resultchannelParam.asMention}")
-        }
         val u1 = game[0].nickname
         val u2 = game[1].nickname
         val uid1db = SDNamesDB.getIDByName(u1)
@@ -188,6 +181,12 @@ object Analysis {
         if (shouldSendZoro) {
             jda.getTextChannelById(1016636599305515018)!!.sendMessage(url).queue()
         }
+        if (gid != Constants.G.MY && game.indices.fold(0 to 0) { old, i ->
+                val (kills, deaths) = game[i].totalKDCount
+                (old.first + kills) to (old.second + deaths)
+            }.let { it.first != it.second }) {
+            SendFeatures.sendToMe(if (shouldSendZoro) "Zoroark... " else "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
+        }
         logger.info("In Emolga Listener!")
         val kd =
             game.map { it.pokemon.associate { p -> p.draftname.official to (p.kills to if (p.isDead) 1 else 0) } }
@@ -220,6 +219,7 @@ object Analysis {
         }
         //}
     }
+
     suspend fun analyse(link: String, answer: ((String) -> Unit)? = null, debugMode: Boolean = false): AnalysisData {
         var gameNullable: List<String>? = null
         for (i in 0..1) {

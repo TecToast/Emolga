@@ -546,6 +546,17 @@ class SDPlayer(
     val allMonsDead: Boolean
         get() = pokemon.all { it.isDead }
 
+    val totalKDCount: Pair<Int, Int>
+        get() {
+            var kills = 0
+            var deaths = 0
+            pokemon.forEach {
+                kills += it.kills
+                deaths += it.deadCount
+            }
+            return kills to deaths
+        }
+
     fun toDraftPlayer() = DraftPlayer(pokemon.count { !it.isDead }, winnerOfGame, this)
 
     fun containsZoro() = pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }

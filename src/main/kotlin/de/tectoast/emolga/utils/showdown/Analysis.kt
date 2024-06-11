@@ -185,7 +185,7 @@ object Analysis {
                 val (kills, deaths) = game[i].totalKDCount
                 (old.first + kills) to (old.second + deaths)
             }.let { it.first != it.second }) {
-            SendFeatures.sendToMe(if (shouldSendZoro) "Zoroark... " else "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
+            SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
         }
         logger.info("In Emolga Listener!")
         val kd =

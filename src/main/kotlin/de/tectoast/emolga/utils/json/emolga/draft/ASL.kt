@@ -27,7 +27,8 @@ class ASL(
     override val docEntry = DocEntry.create(this) {
         newSystem(SorterData(
             formulaRange = listOf(
-                "Tabelle!C4:J11",
+                "Tabelle!C16:J19",
+                "Tabelle!C24:J27",
             ), newMethod = true, cols = listOf(7, -1, 6, 4)
         ), resultCreator = {
             b.addSingle(

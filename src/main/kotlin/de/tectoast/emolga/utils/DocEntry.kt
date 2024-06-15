@@ -99,11 +99,11 @@ class DocEntry private constructor(val league: League) {
         realExecute: Boolean = true
     ) {
         league.onReplayAnalyse(replayData)
-        val (game, uids, kd, _, url, gamedayData, otherForms, _) = replayData
+        val (game, uindices, kd, _, url, gamedayData, otherForms, _) = replayData
         val (gameday, battleindex, u1IsSecond, numbers) = gamedayData
         if (cancelIf(replayData, gameday)) return
-        val sorted = uids.sorted()
-        val lookUpIndex = if (uids[0] == sorted[0]) 0 else 1
+        val sorted = uindices.sorted()
+        val lookUpIndex = if (uindices[0] == sorted[0]) 0 else 1
         var totalKills = 0
         var totalDeaths = 0
         kd[lookUpIndex].values.forEach {
@@ -114,10 +114,10 @@ class DocEntry private constructor(val league: League) {
             ignoreDuplicatesMongo {
                 db.matchresults.insertOne(
                     MatchResult(
-                        listOf(totalKills, totalDeaths),
-                        sorted,
-                        league.leaguename,
-                        gameday
+                        data = listOf(totalKills, totalDeaths),
+                        indices = sorted,
+                        leaguename = league.leaguename,
+                        gameday = gameday
                     )
                 )
             }
@@ -127,10 +127,9 @@ class DocEntry private constructor(val league: League) {
         val customB = customDataSid?.let(::RequestBuilder)
         val dataB = customB ?: b
         val picks = league.providePicksForGameday(gameday)
-        for ((i, uid) in uids.withIndex()) {
-            val index = league.table.indexOf(uid)
+        for ((i, idx) in uindices.withIndex()) {
             val generalStatProcessorData = StatProcessorData(
-                plindex = index, gameday = gameday, battleindex = battleindex, u1IsSecond = u1IsSecond, fightIndex = i
+                plindex = idx, gameday = gameday, battleindex = battleindex, u1IsSecond = u1IsSecond, fightIndex = i
             )
 
             fun Set<StatProcessor>.checkTotal(total: Int) {
@@ -146,14 +145,14 @@ class DocEntry private constructor(val league: League) {
                 }
             }
             if (!killProcessors.all { it is CombinedStatProcessor } || !deathProcessors.all { it is CombinedStatProcessor }) {
-                val monsInOrder = monsOrder(picks[uid]!!)
+                val monsInOrder = monsOrder(picks[idx]!!)
                 for ((mon, data) in kd[i]) {
                     val monIndex = monsInOrder.indexOfFirst {
                         it == mon || otherForms[mon]?.contains(it) == true
                     }
                     if (monIndex == -1) {
-                        logger.warn("Mon $mon not found in picks of $uid")
-                        SendFeatures.sendToMe("Mon $mon not found in picks of $uid\n$url\n${league.leaguename}")
+                        logger.warn("Mon $mon not found in picks of $idx")
+                        SendFeatures.sendToMe("Mon $mon not found in picks of $idx\n$url\n${league.leaguename}")
                         continue
                     }
                     val (kills, deaths) = data
@@ -187,7 +186,7 @@ class DocEntry private constructor(val league: League) {
         }
 
         league.tipgame?.let { tg ->
-            val winningIndex = (if (game[0].winner) uids[0] else uids[1]).indexedBy(league.table)
+            val winningIndex = (if (game[0].winner) uindices[0] else uindices[1]).indexedBy(league.table)
             val leagueName = league.leaguename
             val gamedayTips = tg.tips[gameday]
             gamedayTips?.entries?.filter { it.value[battleindex] == winningIndex }?.map { it.key }?.forEach {
@@ -246,7 +245,7 @@ class DocEntry private constructor(val league: League) {
                         )
                     val points = Google.get(sid, formulaRange.toString(), false)
                     val orig: List<List<Any>?> = ArrayList(points)
-                    val table = league.table
+                    league.table
                     val indexerToUse: (String) -> Int by lazy {
                         if (newMethod) { str: String ->
                             rowNumToIndex(
@@ -275,23 +274,23 @@ class DocEntry private constructor(val league: League) {
                         preSorted.flatMap { pre ->
                             val toCompare = pre.value
                             if (toCompare.size == 1) toCompare else {
-                                val userids =
-                                    toCompare.map { u -> table[indexerToUse(formula[orig.indexOf(u)][0].toString())] }
+                                val useridxs =
+                                    toCompare.map { u -> indexerToUse(formula[orig.indexOf(u)][0].toString()) }
                                 val allRelevantMatches = db.matchresults.find(
                                     MatchResult::leaguename eq league.leaguename, Document(
                                         "\$expr", Document(
                                             "\$setIsSubset", listOf(
-                                                "\$uids", userids
+                                                "\$indices", useridxs
                                             )
                                         )
                                     )
                                 ).toList()
-                                val data = mutableMapOf<Long, DirectCompareData>()
-                                userids.forEachIndexed { index, l ->
+                                val data = mutableMapOf<Int, DirectCompareData>()
+                                useridxs.forEachIndexed { index, l ->
                                     data[l] = DirectCompareData(0, 0, 0, index)
                                 }
                                 allRelevantMatches.forEach {
-                                    val uids = it.uids
+                                    val uids = it.indices
                                     val winnerIndex = it.winnerIndex
                                     val winnerData = data[uids[winnerIndex]]!!
                                     val looserData = data[uids[1 - winnerIndex]]!!
@@ -303,7 +302,7 @@ class DocEntry private constructor(val league: League) {
                                     looserData.kills += deathsForWinner
                                     looserData.deaths += killsForWinner
                                 }
-                                data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Long, DirectCompareData>> { o1, o2 ->
+                                data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Int, DirectCompareData>> { o1, o2 ->
                                     val compare = o1.value.points.compareTo(o2.value.points)
                                     if (compare != 0) return@Comparator compare
                                     for (directCompareOption in this.directCompare) {
@@ -369,7 +368,7 @@ fun interface ResultStatProcessor {
 @Serializable
 data class ReplayData(
     val game: List<DraftPlayer>,
-    val uids: List<Long>,
+    val uindices: List<Int>,
     val kd: List<Map<String, Pair<Int, Int>>>,
     val mons: List<List<String>>,
     val url: String,
@@ -379,7 +378,7 @@ data class ReplayData(
 ) {
     suspend fun checkIfBothVideosArePresent(league: League): Boolean {
         val ytSave = ytVideoSaveData
-        val shouldExecute = ytSave.vids.size == uids.size
+        val shouldExecute = ytSave.vids.size == uindices.size
         if (shouldExecute) {
             league.executeYoutubeSend(
                 league.ytSendChannel!!,
@@ -411,7 +410,7 @@ data class AdvancedResult(
     val league: League
 ) {
     val tableIndexes by lazy {
-        (0..1).map { league.table.indexOf(replayData.uids[it]) }
+        replayData.uindices
     }
     val deaths by lazy {
         (0..1).map { replayData.kd[it].values.map { s -> s.second == 1 } }

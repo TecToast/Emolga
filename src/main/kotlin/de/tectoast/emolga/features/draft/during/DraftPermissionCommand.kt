@@ -49,7 +49,7 @@ object DraftPermissionCommand :
 
     context(League)
     fun performPermissionAdd(user: Long, toadd: Long, withMention: Allow.Mention): Set<AllowedData> {
-        val set = allowed.getOrPut(user) { mutableSetOf() }
+        val set = allowed.getOrPut(this@League(user)) { mutableSetOf() }
         val selfmention = withMention.selfmention
         val othermention = withMention.othermention
         for ((userid, mention) in setOf(Pair(user, selfmention), Pair(toadd, othermention))) {
@@ -74,7 +74,7 @@ object DraftPermissionCommand :
                 { reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) {
                 val mem = e.user
                 if (mem.idLong == user) return reply("Du darfst tatsächlich immer picken :)")
-                val set = allowed.getOrPut(user) { mutableSetOf() }
+                val set = allowed.getOrPut(this(user)) { mutableSetOf() }
                 set.removeIf { it.u == mem.idLong }
                 reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {
                     description = set.sortedWith { o1, o2 ->

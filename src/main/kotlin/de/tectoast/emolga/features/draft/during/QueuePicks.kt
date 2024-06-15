@@ -46,7 +46,7 @@ object QueuePicks {
                     autocomplete = { s, event ->
                         val league = db.leagueByGuild(event.guild?.idLong ?: -1, event.user.idLong)
                             ?: return@draftPokemon listOf("Du nimmt an keiner Liga auf diesem Server teil!")
-                        monOfTeam(s, league, event.user.idLong)
+                        monOfTeam(s, league, league(event.user.idLong))
                     }
                 ).nullable()
             }
@@ -58,16 +58,17 @@ object QueuePicks {
                 League.executeOnFreshLock({ db.leagueByCommand() },
                     { return reply("Du bist in keiner Liga auf diesem Server!") }) {
                     val oldmon = e.oldmon
+                    val idx = this(user)
                     if (oldmon == null && !isRunning && picks.isNotEmpty() && !config<AllowPickDuringSwitch>()) {
                         return reply("Im kommenden Draft können nur Switches gemacht werden, dementsprechend musst du ein altes Pokemon angeben!")
                     }
-                    if (picks[user]?.any { it.name == oldmon?.official } != true) {
+                    if (picks[idx]?.any { it.name == oldmon?.official } != true) {
                         return reply("Du besitzt `${oldmon?.tlName}` nicht!")
                     }
                     if (isPicked(e.mon.official)) {
                         return reply("`${e.mon.tlName}` wurde bereits gepickt!")
                     }
-                    val data = queuedPicks.getOrPut(index(user)) { QueuePicksData() }
+                    val data = queuedPicks.getOrPut(idx) { QueuePicksData() }
                     val mon = e.mon
                     for (q in data.queued) {
                         if (q.g == mon) return reply("Du hast `${mon.tlName}` bereits in deiner Queue!")
@@ -79,7 +80,7 @@ object QueuePicks {
                     }
                     val queuedAction = QueuedAction(mon, oldmon)
                     val newlist = data.queued.toMutableList().apply { add(queuedAction) }
-                    if (checkIfTeamCantBeFinished(user, newlist))
+                    if (checkIfTeamCantBeFinished(idx, newlist))
                         return reply("Wenn du dieses Pokemon holen wollen würdest, könnte dein Team nicht mehr vervollständigt werden!")
                     StateStore.processIgnoreMissing<QueuePicks> {
                         addNewMon(queuedAction)
@@ -101,9 +102,10 @@ object QueuePicks {
         suspend fun changeActivation(enable: Boolean) {
             League.executeOnFreshLock({ db.leagueByCommand() },
                 { return reply("Du bist in keiner Liga auf diesem Server!") }) {
-                val data = queuedPicks.getOrPut(index(user)) { QueuePicksData() }
+                val idx = this(user)
+                val data = queuedPicks.getOrPut(idx) { QueuePicksData() }
                 if (checkIfTeamCantBeFinished(
-                        user, data.queued
+                        idx, data.queued
                     )
                 ) return reply("Mit der aktuellen Queue könnte dein Kader nicht vervollständigt werden!")
                 data.enabled = enable
@@ -211,15 +213,15 @@ object QueuePicks {
     }
 
     context(League)
-    suspend fun checkIfTeamCantBeFinished(uid: Long, currentState: List<QueuedAction>): Boolean {
+    suspend fun checkIfTeamCantBeFinished(idx: Int, currentState: List<QueuedAction>): Boolean {
         var gPoints = 0
         var yPoints = 0
         for (data in currentState) {
             gPoints += tierlist.getPointsNeeded(tierlist.getTierOf(data.g.tlName)!!)
             yPoints += data.y?.let { tierlist.getPointsNeeded(tierlist.getTierOf(it.tlName)!!) } ?: 0
         }
-        return points[uid] - gPoints + yPoints < minimumNeededPointsForTeamCompletion(
-            (picks[uid]?.size ?: 0) + currentState.size
+        return points[idx] - gPoints + yPoints < minimumNeededPointsForTeamCompletion(
+            (picks[idx]?.size ?: 0) + currentState.size
         )
     }
 }

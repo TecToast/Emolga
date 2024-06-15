@@ -39,6 +39,7 @@ import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.eq
 import java.awt.Color
 import java.text.SimpleDateFormat
+import java.util.ArrayList
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -61,14 +62,14 @@ sealed class League {
 
     @EncodeDefault
     var isRunning: Boolean = false
-    val picks: MutableMap<Long, MutableList<DraftPokemon>> = mutableMapOf()
+    val picks: MutableMap<Int, MutableList<DraftPokemon>> = mutableMapOf()
     val battleorder: MutableMap<Int, List<List<Int>>> = mutableMapOf()
-    val allowed: MutableMap<Long, MutableSet<AllowedData>> = mutableMapOf()
+    val allowed: MutableMap<Int, MutableSet<AllowedData>> = mutableMapOf()
     val guild = -1L
 
     @EncodeDefault
     var round = 1
-    var current = -1L
+    var current = -1
     val timerRelated = TimerRelated()
 
     @EncodeDefault
@@ -94,11 +95,11 @@ sealed class League {
     val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
 
     @EncodeDefault
-    val moved: MutableMap<Long, MutableList<Int>> = mutableMapOf()
+    val moved: MutableMap<Int, MutableList<Int>> = mutableMapOf()
 
     @EncodeDefault
-    val skippedTurns: MutableMap<Long, MutableSet<Int>> = mutableMapOf()
-    internal val names: MutableMap<Long, String> = mutableMapOf()
+    val skippedTurns: MutableMap<Int, MutableSet<Int>> = mutableMapOf()
+    internal val names: MutableList<String> = mutableListOf()
 
     val replayDataStore: ReplayDataStore? = null
     val ytSendChannel: Long? = null
@@ -136,7 +137,7 @@ sealed class League {
 
     var isSwitchDraft = false
 
-    val table: List<Long> = listOf()
+    val table: List<Long> = ArrayList()
 
     val tipgame: TipGame? = null
 
@@ -164,6 +165,8 @@ sealed class League {
 
 
     fun index(mem: Long) = table.indexOf(mem)
+    operator fun invoke(mem: Long) = table.indexOf(mem)
+    operator fun get(index: Int) = table[index]
 
     context (InteractionData)
     suspend inline fun lockForPick(data: BypassCurrentPlayerData, block: League.() -> Unit) {
@@ -187,7 +190,7 @@ sealed class League {
     }
 
     fun RequestBuilder.newSystemPickDoc(data: DraftData, insertionIndex: Int = data.picks.size - 1): Int {
-        val y = data.memIndex.y(newSystemGap, insertionIndex + 3)
+        val y = data.idx.y(newSystemGap, insertionIndex + 3)
         addSingle("$dataSheet!B$y", data.pokemon)
         additionalSet?.let {
             addSingle("$dataSheet!${it.col}$y", it.existent)
@@ -197,7 +200,7 @@ sealed class League {
 
     fun RequestBuilder.newSystemSwitchDoc(data: SwitchData) {
         newSystemPickDoc(data)
-        val y = data.memIndex.y(newSystemGap, data.oldIndex + 3)
+        val y = data.idx.y(newSystemGap, data.oldIndex + 3)
         additionalSet?.let {
             addSingle("$dataSheet!${it.col}$y", it.yeeted)
         }
@@ -209,7 +212,7 @@ sealed class League {
 
     open fun isFinishedForbidden() = !isSwitchDraft
 
-    open fun checkFinishedForbidden(mem: Long): String? = null
+    open fun checkFinishedForbidden(mem: Int): String? = null
 
     open fun PickData.savePick() {
         picks.add(DraftPokemon(pokemonofficial, tier, freePick))
@@ -224,11 +227,11 @@ sealed class League {
 
     open suspend fun RequestBuilder.switchDoc(data: SwitchData) {}
 
-    open fun providePicksForGameday(gameday: Int): Map<Long, List<DraftPokemon>> = picks
+    open fun providePicksForGameday(gameday: Int): Map<Int, List<DraftPokemon>> = picks
 
 
     suspend fun isCurrentCheck(user: Long): Boolean {
-        if (current == user || user in Constants.DRAFTADMINS) return true
+        if (this[current] == user || user in Constants.DRAFTADMINS) return true
         return isCurrent(user)
     }
 
@@ -334,7 +337,7 @@ sealed class League {
 
     val draftWouldEnd get() = isLastRound && order[round]!!.isEmpty()
 
-    private fun MutableList<Int>.nextCurrent() = table[this.removeAt(0)]
+    private fun MutableList<Int>.nextCurrent() = this.removeAt(0)
 
     suspend fun startDraft(
         tc: GuildMessageChannel?, fromFile: Boolean, switchDraft: Boolean?, nameGuildId: Long? = null
@@ -343,17 +346,18 @@ sealed class League {
             switchDraft?.let { this.isSwitchDraft = it }
             logger.info("Starting draft $leaguename...")
             logger.info(tcid.toString())
-            if (!names.keys.containsAll(table)) {
+            if (!fromFile) {
                 names.clear()
-                names.putAll(if (table.any { it < 11_000_000_000 }) table.associateWith { "${it - 10_000_000_000}" } else jda.getGuildById(
+                names.addAll(if (table.any { it < 11_000_000_000 }) table.map { "${it - 10_000_000_000}" } else jda.getGuildById(
                     nameGuildId ?: this.guild
-                )!!.retrieveMembersByIds(table).await().associate { it.idLong to it.effectiveName })
+                )!!.retrieveMembersByIds(table).await().sortedBy { it.idLong.indexedBy(table) }
+                    .map { it.effectiveName })
             }
             logger.info(names.toString())
             tc?.let { this.tcid = it.idLong }
-            for (member in table) {
-                if (fromFile || isSwitchDraft) picks.putIfAbsent(member, mutableListOf())
-                else picks[member] = mutableListOf()
+            for (idx in table.indices) {
+                if (fromFile || isSwitchDraft) picks.putIfAbsent(idx, mutableListOf())
+                else picks[idx] = mutableListOf()
             }
             isRunning = true
             val currentTimeMillis = System.currentTimeMillis()
@@ -490,8 +494,8 @@ sealed class League {
 
     open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
-    fun getPossibleTiers(mem: Long = current, forAutocomplete: Boolean = false): MutableMap<String, Int> {
-        val cpicks = picks[mem]!!
+    fun getPossibleTiers(idx: Int = current, forAutocomplete: Boolean = false): MutableMap<String, Int> {
+        val cpicks = picks[idx]!!
         return tierlist.prices.toMutableMap().let { possible ->
             cpicks.forEach { pick ->
                 pick.takeUnless { it.name == "???" || it.free || it.quit }
@@ -509,11 +513,11 @@ sealed class League {
 
     open fun manipulatePossibleTiers(picks: MutableList<DraftPokemon>, possible: MutableMap<String, Int>) {}
 
-    fun getPossibleTiersAsString(mem: Long = current) =
-        getPossibleTiers(mem).entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
+    fun getPossibleTiersAsString(idx: Int = current) =
+        getPossibleTiers(idx).entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
             .joinToString { "${it.value}x **".condAppend(it.key.toIntOrNull() != null, "Tier ") + "${it.key}**" }
             .let { str ->
-                if (tierlist.mode.isTiersWithFree()) str + "; ${tierlist.freePicksAmount - picks[mem]!!.count { it.free }}x **Free Pick**"
+                if (tierlist.mode.isTiersWithFree()) str + "; ${tierlist.freePicksAmount - picks[idx]!!.count { it.free }}x **Free Pick**"
                 else str
             }
 
@@ -550,8 +554,8 @@ sealed class League {
             skippedTurns.getOrPut(current) { mutableSetOf() } += round
     }
 
-    fun hasMovedTurns(user: Long = current) = movedTurns(user).isNotEmpty()
-    fun movedTurns(user: Long = current) = moved[user] ?: mutableListOf()
+    fun hasMovedTurns(idx: Int = current) = movedTurns(idx).isNotEmpty()
+    fun movedTurns(idx: Int = current) = moved[idx] ?: mutableListOf()
 
     private suspend fun endOfTurn(): Boolean {
         logger.debug("End of turn")
@@ -581,14 +585,15 @@ sealed class League {
     }
 
     internal open suspend fun getCurrentMention(): String {
-        val data = allowed[current] ?: return "<@$current>"
-        val currentData = data.firstOrNull { it.u == current } ?: AllowedData(current, true)
-        val (teammates, other) = data.filter { it.mention && it.u != current }.partition { it.teammate }
-        return (if (currentData.mention) "<@$current>" else "**${getCurrentName()}**") + teammates.joinToString { "<@${it.u}>" }
+        val currentId = this[current]
+        val data = allowed[current] ?: return "<@$currentId>"
+        val currentData = data.firstOrNull { it.u == currentId } ?: AllowedData(currentId, true)
+        val (teammates, other) = data.filter { it.mention && it.u != currentId }.partition { it.teammate }
+        return (if (currentData.mention) "<@$currentId>" else "**${getCurrentName()}**") + teammates.joinToString { "<@${it.u}>" }
             .ifNotEmpty { ", $it" } + other.joinToString { "<@${it.u}>" }.ifNotEmpty { ", ||$it||" }
     }
 
-    fun getCurrentName(mem: Long = current) = names[mem]!!
+    fun getCurrentName(idx: Int = current) = names[idx]
 
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
 
@@ -628,7 +633,7 @@ sealed class League {
         while (true) {
             checkForQueuedPicksChanges()
             setNextUser()
-            val queuePicksData = queuedPicks[index(current)]?.takeIf { it.enabled } ?: break
+            val queuePicksData = queuedPicks[current]?.takeIf { it.enabled } ?: break
             val queuedMon = queuePicksData.queued.firstOrNull() ?: break
             with(queueInteractionData) outer@{
                 executeWithinLock(queuedMon.buildDraftInput(), type = DraftMessageType.QUEUE)
@@ -642,7 +647,7 @@ sealed class League {
         val newMon = lastPickedMon ?: return
         queuedPicks.entries.filter { it.value.queued.any { mon -> mon.g == newMon } }.forEach { (mem, data) ->
             data.queued.removeIf { mon -> mon.g == newMon }
-            if (mem != index(current)) {
+            if (mem != current) {
                 SendFeatures.sendToUser(
                     table[mem], embeds = Embed(
                         title = "Queue-Pick-Warnung",
@@ -658,9 +663,8 @@ sealed class League {
 
     open suspend fun onNextPlayer(data: NextPlayerData) {}
 
-    fun addFinished(mem: Long) {
-        val index = mem.indexedBy(table)
-        order.values.forEach { it.remove(index) }
+    fun addFinished(idx: Int) {
+        order.values.forEach { it.remove(idx) }
     }
 
     @Transient
@@ -675,7 +679,7 @@ sealed class League {
     suspend fun replyGeneral(msg: String, components: Collection<LayoutComponent> = SendDefaults.components) {
         replyAwait(
             "<@${user}> hat${
-                if (user != current) " für **${getCurrentName()}**" else ""
+                if (user != this[current]) " für **${getCurrentName()}**" else ""
             } $msg", components = components
         )
     }
@@ -702,60 +706,24 @@ sealed class League {
         val p2 = game[1].nickname
         title = "${data.ctx.format} replay: $p1 vs. $p2"
         url = data.ctx.url.takeIf { it.length > 10 } ?: "https://example.org"
-        description = "Spieltag ${gdData.gameday}: " + league.uids.joinToString(" vs. ") { "<@$it>" }
+        description = "Spieltag ${gdData.gameday}: " + league.uindices.joinToString(" vs. ") { "<@${table[it]}>" }
     }
 
     open suspend fun onReplayAnalyse(data: ReplayData) {}
 
-    /**
-     * generate the gameplan coords
-     * @param u1 the first user
-     * @param u1 the second user
-     * @return a triple containing the gameday, the battle index and if p1 is the second user
-     */
-    private fun gameplanCoords(u1: Long, u2: Long): Triple<Int, Int, Boolean> {
-        val size = table.size
-        val numDays = size - 1
-        val halfSize = size / 2
-        val list = table.run { listOf(indexOf(u1), indexOf(u2)) }
-        for (day in 0 until numDays) {
-            val teamIdx = day % numDays + 1
-            if (0 in list) {
-                if (list[1 - list.indexOf(0)] == teamIdx) return Triple(day + 1, 0, list[0] == 0)
-                continue
-            }
-            for (idx in 1 until halfSize) {
-                val firstTeam = (day + idx) % numDays + 1
-                val secondTeam = (day + numDays - idx) % numDays + 1
-                if (firstTeam in list) {
-                    if (list[1 - list.indexOf(firstTeam)] == secondTeam) return Triple(
-                        day + 1, idx, list[0] == secondTeam
-                    )
-                    break
-                }
-            }
-        }
-        error("Didnt found matchup for $u1 & $u2 in $leaguename")
-    }
-
-    fun getGameplayData(uid1: Long, uid2: Long, game: List<DraftPlayer>): GamedayData {
+    fun getGameplayData(idx1: Int, idx2: Int, game: List<DraftPlayer>): GamedayData {
         var battleind = -1
         var u1IsSecond = false
-        val i1 = table.indexOf(uid1)
-        val i2 = table.indexOf(uid2)
-        val gameday = if (battleorder.isNotEmpty()) battleorder.asIterable().reversed().firstNotNullOfOrNull {
+        val gameday = battleorder.asIterable().reversed().firstNotNullOfOrNull {
             if (it.value.any { l ->
-                    l.containsAll(listOf(i1, i2)).also { b ->
-                        if (b) u1IsSecond = l.indexOf(i1) == 1
+                    l.containsAll(listOf(idx1, idx2)).also { b ->
+                        if (b) u1IsSecond = l.indexOf(idx1) == 1
                     }
                 }) it.key else null
-        } ?: -1 else gameplanCoords(uid1, uid2).also {
-            battleind = it.second
-            u1IsSecond = it.third
-        }.first
+        } ?: -1
         val numbers = (0..1).reversedIf(u1IsSecond).map { game[it].alivePokemon }
         val battleindex = battleorder[gameday]?.let { battleorder ->
-            (battleorder.indices.firstOrNull { battleorder[it].contains(i1) } ?: -1)
+            (battleorder.indices.firstOrNull { battleorder[it].contains(idx1) } ?: -1)
         } ?: battleind
 
         return GamedayData(
@@ -849,19 +817,19 @@ sealed class League {
     }
 
     inner class PointsManager {
-        private val points = mutableMapOf<Long, Int>()
+        private val points = mutableMapOf<Int, Int>()
 
-        operator fun get(member: Long) = points.getOrPut(member) {
+        operator fun get(idx: Int) = points.getOrPut(idx) {
             val isPoints = tierlist.mode.isPoints()
-            tierlist.points - picks[member].orEmpty().filterNot { it.quit }.sumOf {
+            tierlist.points - picks[idx].orEmpty().filterNot { it.quit }.sumOf {
                 if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
                     it.tier
                 ) else if (tierlist.variableMegaPrice && it.name.isMega) it.tier.substringAfter("#").toInt() else 0
             }
         }
 
-        fun add(member: Long, points: Int) {
-            this.points[member] = this[member] + points
+        fun add(idx: Int, points: Int) {
+            this.points[idx] = this[idx] + points
         }
     }
 
@@ -1133,7 +1101,7 @@ data class TimerRelated(
     var regularCooldown: Long = -1,
     @EncodeDefault var lastPick: Long = -1,
     var lastRegularDelay: Long = -1,
-    @EncodeDefault val usedStallSeconds: MutableMap<Long, Int> = mutableMapOf(),
+    @EncodeDefault val usedStallSeconds: MutableMap<Int, Int> = mutableMapOf(),
     var lastStallSecondUsedMid: Long? = null
 )
 
@@ -1147,14 +1115,13 @@ sealed class DraftData(
     open val pokemon: String,
     open val pokemonofficial: String,
     open val tier: String,
-    open val mem: Long,
+    open val idx: Int,
     open val round: Int,
 ) {
     val roundIndex get() = round - 1
     val indexInRound get() = league.indexInRound(round)
-    val memIndex get() = league.table.indexOf(mem)
     val changedIndex get() = picks.indexOfFirst { it.name == pokemonofficial }
-    val picks by lazy { league.picks[mem]!! }
+    val picks by lazy { league.picks[idx]!! }
     abstract val changedOnTeamsiteIndex: Int
 
     val displayName = OneTimeCache {
@@ -1172,11 +1139,11 @@ data class PickData(
     override val pokemon: String,
     override val pokemonofficial: String,
     override val tier: String,
-    override val mem: Long,
+    override val idx: Int,
     override val round: Int,
     val freePick: Boolean,
     val updrafted: Boolean
-) : DraftData(league, pokemon, pokemonofficial, tier, mem, round) {
+) : DraftData(league, pokemon, pokemonofficial, tier, idx, round) {
     override val changedOnTeamsiteIndex: Int by lazy {
         with(league) { getTierInsertIndex() }
     }
@@ -1188,7 +1155,7 @@ class SwitchData(
     pokemon: String,
     pokemonofficial: String,
     tier: String,
-    mem: Long,
+    mem: Int,
     round: Int,
     val oldmon: DraftName,
     val oldIndex: Int
@@ -1223,7 +1190,7 @@ sealed interface TimerSkipMode {
 
 sealed interface BypassCurrentPlayerData {
     data object No : BypassCurrentPlayerData
-    data class Yes(val user: Long) : BypassCurrentPlayerData
+    data class Yes(val user: Int) : BypassCurrentPlayerData
 }
 
 interface DuringTimerSkipMode : TimerSkipMode {
@@ -1311,10 +1278,11 @@ data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
 
     override suspend fun League.bypassCurrentPlayerCheck(user: Long): BypassCurrentPlayerData {
         val no = BypassCurrentPlayerData.No
+        val idx = this(user)
         // Are we in the pseudo end?
         if (!pseudoEnd) return no
         // Has the user moved turns?
-        if (hasMovedTurns(user)) return BypassCurrentPlayerData.Yes(user)
+        if (hasMovedTurns(idx)) return BypassCurrentPlayerData.Yes(idx)
         // Is the user not in the table (for security reasons)?
         if (user in table) return no
         // Has the user permission for exactly one player?
@@ -1334,7 +1302,7 @@ data class AdditionalSet(val col: String, val existent: String, val yeeted: Stri
 sealed interface NextPlayerData {
     data object Normal : NextPlayerData
     data class Moved(val reason: SkipReason, val skippedBy: Long? = null) : NextPlayerData {
-        var skippedUser by Delegates.notNull<Long>()
+        var skippedUser by Delegates.notNull<Int>()
     }
 }
 

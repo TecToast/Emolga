@@ -32,7 +32,7 @@ object NuzlockeCommand :
                     ?: return@draftPokemon listOf("Du musst einen User zuerst angeben!")
             val league = db.leagueByGuild(event.guild?.idLong ?: -1, user)
                 ?: return@draftPokemon listOf("Der angegebene User nimmt an keiner Liga auf diesem Server teil!")
-            monOfTeam(s, league, user)
+            monOfTeam(s, league, league(user))
         })
         val newMon by draftPokemon(
             "NewMonIfWished",
@@ -56,7 +56,8 @@ object NuzlockeCommand :
                     }` gefunden!"
                 )
             }) {
-            val picks = picks[target]!!
+            val idx = this(target)
+            val picks = picks[idx]!!
             val index = picks.indexOfFirst { it.name == mon.official }
                 .let { if (it == -1) picks.indexOfFirst { it.name in mon.official } else it }
             if (index < 0) {
@@ -85,7 +86,7 @@ object NuzlockeCommand :
                 draftname.tlName,
                 draftname.official,
                 tier,
-                target,
+                idx,
                 index - 1,
                 freePick = false,
                 updrafted = false
@@ -95,7 +96,7 @@ object NuzlockeCommand :
                 insertionIndex = index
             )
             b.addSingle(
-                data.memIndex.coordXMod(
+                data.idx.coordXMod(
                     "Kader",
                     2,
                     5,

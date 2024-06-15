@@ -69,7 +69,7 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
             pokemon = tlName,
             pokemonofficial = official,
             tier = saveTier,
-            mem = mem,
+            idx = mem,
             round = getPickRoundOfficial(),
             freePick = freepick,
             updrafted = saveTier != officialTier

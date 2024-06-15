@@ -109,18 +109,19 @@ object Analysis {
             gid, game.map { it.pokemon.map { mon -> mon.draftname } }, uid1db, uid2db
         )
         val league = leaguedata?.league
-        val uids = leaguedata?.uids
+        val uindices = leaguedata?.uindices
         val draftPlayerList = game.map(SDPlayer::toDraftPlayer)
         val gamedayData = defaultScope.async {
-            league?.getGameplayData(uids!![0], uids[1], draftPlayerList)
+            league?.getGameplayData(uindices!![0], uindices[1], draftPlayerList)
         }
         val description = game.mapIndexed { index, sdPlayer ->
-            mutableListOf<Any>(uids?.get(index)?.let { "<@$it>" } ?: sdPlayer.nickname,
+            mutableListOf<Any>(
+                leaguedata?.mentions[index] ?: sdPlayer.nickname,
                 sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
             ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
         }.joinToString(":") { it.joinToString(" ") }
             .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.mapIndexed { index, player ->
-            "${uids?.get(index)?.let { "<@$it>" } ?: player.nickname}:".condAppend(
+            "${leaguedata?.mentions[index] ?: player.nickname}:".condAppend(
                 player.allMonsDead && !spoiler, " (alle tot)"
             ) + "\n".condAppend(spoiler, "||") + monStrings[index].condAppend(spoiler, "||")
         }.joinToString("\n\n")
@@ -140,7 +141,7 @@ object Analysis {
         val resultChannel =
             league?.provideResultChannel(jda).takeIf { useReplayResultChannelAnyways || customGuild == null }
                 ?: resultchannelParam
-        logger.info("uids = $uids")
+        logger.info("uids = $uindices")
         logger.info("u1 = $u1")
         logger.info("u2 = $u2")
         if (league != null) {
@@ -193,7 +194,7 @@ object Analysis {
         league?.docEntry?.analyse(
             ReplayData(
                 game = draftPlayerList,
-                uids = uids!!,
+                uindices = uindices!!,
                 kd = kd,
                 mons = game.map { it.pokemon.map { mon -> mon.draftname.official } },
                 url = url,

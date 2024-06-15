@@ -61,10 +61,10 @@ object TeraAndZ {
         context(InteractionData)
         override suspend fun exec(e: Args) {
             val league = db.leagueByCommand() ?: return reply("Dieser Command ist hier nicht verfügbar!")
-            val picks = league.picks[user]!!
+            val idx = league.index(user)
+            val picks = league.picks[idx]!!
             val config = league.getConfigOrDefault<TeraAndZ>()
             val b = league.builder()
-            val index = league.index(user)
             val str = StringBuilder()
             config.z?.let { zconf ->
                 e.z?.let {
@@ -80,7 +80,7 @@ object TeraAndZ {
                         )
                     }
                     b.addSingle(
-                        zconf.coord(index),
+                        zconf.coord(idx),
                         "=WENNFEHLER(SVERWEIS(\"${it.tlName}\";${zconf.searchRange};${zconf.searchColumn};0))"
                     )
                     str.append("Z-User: `${it.tlName}`\n")
@@ -101,7 +101,7 @@ object TeraAndZ {
                     }
                     val mon = tconf.mon
                     b.addSingle(
-                        mon.coord(index),
+                        mon.coord(idx),
                         "=WENNFEHLER(SVERWEIS(\"${it.tlName}\";${mon.searchRange};${mon.searchColumn};0))"
                     )
                     str.append("Tera-User: `${it.tlName}`\n")
@@ -109,7 +109,7 @@ object TeraAndZ {
                 e.type?.let {
                     val type = tconf.type
                     b.addSingle(
-                        type.coord(index),
+                        type.coord(idx),
                         "=WENNFEHLER(SVERWEIS(\"${it}\";${type.searchRange};${type.searchColumn};0))"
                     )
                     str.append("Tera-Typ: `${it}`")

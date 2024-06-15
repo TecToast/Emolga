@@ -29,7 +29,7 @@ class RRL(val rerollChannel: Long) : League() {
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
         addSingle(
-            data.memIndex.coordXMod(
+            data.idx.coordXMod(
                 "Kader", 2, 5, division.y('P' - 'C', 4), 34, 25 + data.changedOnTeamsiteIndex
             ), data.pokemon
         )
@@ -54,7 +54,7 @@ class RRL(val rerollChannel: Long) : League() {
 
     override suspend fun onReplayAnalyse(data: ReplayData) {
         if (rrlDisableAutoReroll) return
-        for (i in data.uids.indices) {
+        for (i in data.uindices.indices) {
             val sdPlayer = data.game[i].sdPlayer ?: continue
             val mon = sdPlayer[PlayerSaveKey.FIRST_FAINTED] ?: continue
             with(rerollInteractionData) {
@@ -62,8 +62,8 @@ class RRL(val rerollChannel: Long) : League() {
                     sendMessage("Im Team von ${sdPlayer.nickname} befindet sich ein Pokemon mit Illusion, zur Sicherheit wurde der automatische Reroll abgebrochen.")
                     return
                 }
-                val uid = data.uids[i]
-                NuzlockeCommand.executeMonSwitch(uid, mon.draftname)
+                val idx = data.uindices[i]
+                NuzlockeCommand.executeMonSwitch(get(idx), mon.draftname)
             }
         }
     }

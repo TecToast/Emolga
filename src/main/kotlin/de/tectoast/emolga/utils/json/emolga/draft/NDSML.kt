@@ -35,8 +35,9 @@ class NDSML : League() {
             val y = index.y(10, 6)
             val gameplanName = "Spielplan"
             val gameplanSheet = 453772599
+            val league = db.league("NDSML")
             val teamnames =
-                db.signups.get(Constants.G.NDS)!!.users.toList().associate { it.first to it.second.teamname!! }
+                db.signups.get(Constants.G.NDS)!!.users.toList().associate { league(it.first) to it.second.teamname!! }
             b.addSingle(
                 "$gameplanName!${getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
             )
@@ -61,8 +62,8 @@ class NDSML : League() {
                 }
                 if (winnerIndex == i) {
                     val s = "!${(gdi * 2 + 4).xc()}10"
-                    b.addSingle(teamnames[replayData.uids[i]] + s, "$higherNumber:0")
-                    b.addSingle(teamnames[replayData.uids[1 - i]] + s, "0:$higherNumber")
+                    b.addSingle(teamnames[replayData.uindices[i]] + s, "$higherNumber:0")
+                    b.addSingle(teamnames[replayData.uindices[1 - i]] + s, "0:$higherNumber")
                 }
             }
         }
@@ -70,7 +71,7 @@ class NDSML : League() {
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
-        addSingle("Data!AA${data.memIndex.y(newSystemGap, data.changedOnTeamsiteIndex + 3)}", data.pokemon)
+        addSingle("Data!AA${data.idx.y(newSystemGap, data.changedOnTeamsiteIndex + 3)}", data.pokemon)
         addSingle("Draftreihenfolge!${data.roundIndex.x(2, 2)}${data.indexInRound.y(2, 5)}", data.pokemon)
     }
 

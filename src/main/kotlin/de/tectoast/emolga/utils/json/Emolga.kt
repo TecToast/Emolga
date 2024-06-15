@@ -86,7 +86,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     suspend fun league(name: String) = getLeague(name)!!
     suspend fun getLeague(name: String) = drafts.findOne(League::leaguename eq name)
-    suspend fun nds() = (league("NDS") as NDS)
+    suspend fun nds() = (drafts.findOne(League::leaguename regex "^NDS") as NDS)
 
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
         drafts.findOne(
@@ -111,7 +111,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     suspend fun leagueByGuildAdvanced(gid: Long, game: List<List<DraftName>>, vararg uids: Long): LeagueResult? {
         val (leagueResult, duration) = measureTimedValue {
             val allOtherFormesGerman = ConcurrentHashMap<String, List<String>>()
-            val filterNotNull = uids.mapIndexed { index, uid ->
+            val (dp1, dp2) = uids.mapIndexed { index, uid ->
                 scanScope.async {
                     val mons = game[index]
                     val otherFormesEngl = mutableMapOf<DraftName, List<String>>()
@@ -136,18 +136,21 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                         *filters
                     )
                     val finalQuery = and(PickedMonsData::guild eq gid, query)
-                    val possible = pickedMons.find(finalQuery).toList()
-                    possible.singleOrNull() ?: possible.firstOrNull { it.user == uid }
+                    pickedMons.find(finalQuery).toList()
                 }
-            }.awaitAll().filterNotNull()
-            if (filterNotNull.size != uids.size) return null
-            var currentLeague: String? = null
-            for (pickedMon in filterNotNull) {
-                if (currentLeague == null) currentLeague = pickedMon.leaguename
-                else if (currentLeague != pickedMon.leaguename) return null
+            }.awaitAll()
+            var resultList: List<PickedMonsData>? = null
+            outer@ for (d1 in dp1) {
+                for (d2 in dp2) {
+                    if (d1.leaguename == d2.leaguename) {
+                        resultList = listOf(d1, d2)
+                        break@outer
+                    }
+                }
             }
-            val league = league(currentLeague!!)
-            LeagueResult(league, filterNotNull.map { it.user }, allOtherFormesGerman)
+            if (resultList == null) return@measureTimedValue null
+            val league = league(resultList[0].leaguename)
+            LeagueResult(league, resultList.map { it.idx }, allOtherFormesGerman)
         }
         logger.debug { "DURATION: ${duration.inWholeMilliseconds}" }
         return leagueResult
@@ -207,7 +210,7 @@ data class YTChannel(
 @Serializable
 data class MatchResult(
     val data: List<Int>,
-    val uids: List<Long>,
+    val indices: List<Int>,
     val leaguename: String,
     val gameday: Int,
 ) {
@@ -215,8 +218,10 @@ data class MatchResult(
 }
 
 @Serializable
-data class PickedMonsData(val leaguename: String, val guild: Long, val user: Long, val mons: List<String>)
-data class LeagueResult(val league: League, val uids: List<Long>, val otherForms: Map<String, List<String>>)
+data class PickedMonsData(val leaguename: String, val guild: Long, val idx: Int, val mons: List<String>)
+data class LeagueResult(val league: League, val uindices: List<Int>, val otherForms: Map<String, List<String>>) {
+    val mentions = uindices.map { "<@${league.table[it]}>" }
+}
 
 @Serializable
 data class TypeIcon(

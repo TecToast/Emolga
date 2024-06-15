@@ -39,7 +39,7 @@ object RevealPrisma {
             val user = e.user
             val prisma = db.league("Prisma")
             val picks = prisma.picks
-            val jsonList = picks[user.idLong]!!.reversed()
+            val jsonList = picks[prisma(user.idLong)]!!.reversed()
             val timestamp = System.currentTimeMillis()
             reply(
                 "**" + user.effectiveName + "**", components = RevealPrismaButton { this.timestamp = timestamp }.into()

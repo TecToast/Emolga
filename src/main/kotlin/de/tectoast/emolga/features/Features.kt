@@ -601,10 +601,10 @@ open class Arguments {
         val tlNameCache = SizeLimitedMap<String, String>(1000)
 
         // Helpers
-        suspend fun monOfTeam(s: String, league: League, user: Long): List<String>? {
+        suspend fun monOfTeam(s: String, league: League, idx: Int): List<String>? {
             return newSuspendedTransaction {
                 val tl = league.tierlist
-                val picks = league.picks[user] ?: return@newSuspendedTransaction null
+                val picks = league.picks[idx] ?: return@newSuspendedTransaction null
                 picks.filter { p -> p.name != "???" && !p.quit }.sortedWith(
                     compareBy({ mon -> tl.order.indexOf(mon.tier) },
                         { mon -> mon.name })

@@ -39,7 +39,7 @@ class ADK : League() {
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
         addSingle(
-            data.memIndex.coordXMod(
+            data.idx.coordXMod(
                 "Kaderübersicht",
                 3,
                 'I' - 'C',

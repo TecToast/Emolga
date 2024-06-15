@@ -62,8 +62,8 @@ class NDSML : League() {
                 }
                 if (winnerIndex == i) {
                     val s = "!${(gdi * 2 + 4).xc()}10"
-                    b.addSingle(teamnames[replayData.uids[i]] + s, "$higherNumber:0")
-                    b.addSingle(teamnames[replayData.uids[1 - i]] + s, "0:$higherNumber")
+                    b.addSingle(teamnames[replayData.uindices[i]] + s, "$higherNumber:0")
+                    b.addSingle(teamnames[replayData.uindices[1 - i]] + s, "0:$higherNumber")
                 }
             }
         }

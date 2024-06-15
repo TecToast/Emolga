@@ -168,8 +168,8 @@ class NDS(val rr: Boolean) : League() {
                 }
                 if (winnerIndex == i) {
                     val s = "!${(gdi * 2 + 4).xc()}10"
-                    b.addSingle(getTeamname(replayData.uids[i]) + s, "$higherNumber:0")
-                    b.addSingle(getTeamname(replayData.uids[1 - i]) + s, "0:$higherNumber")
+                    b.addSingle(getTeamname(replayData.uindices[i]) + s, "$higherNumber:0")
+                    b.addSingle(getTeamname(replayData.uindices[1 - i]) + s, "0:$higherNumber")
                 }
             }
 

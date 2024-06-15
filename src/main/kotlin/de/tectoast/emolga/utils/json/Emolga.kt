@@ -86,7 +86,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     suspend fun league(name: String) = getLeague(name)!!
     suspend fun getLeague(name: String) = drafts.findOne(League::leaguename eq name)
-    suspend fun nds() = (league("NDS") as NDS)
+    suspend fun nds() = (drafts.findOne(League::leaguename regex "^NDS") as NDS)
 
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
         drafts.findOne(
@@ -219,7 +219,9 @@ data class MatchResult(
 
 @Serializable
 data class PickedMonsData(val leaguename: String, val guild: Long, val idx: Int, val mons: List<String>)
-data class LeagueResult(val league: League, val uids: List<Int>, val otherForms: Map<String, List<String>>)
+data class LeagueResult(val league: League, val uindices: List<Int>, val otherForms: Map<String, List<String>>) {
+    val mentions = uindices.map { "<@${league.table[it]}>" }
+}
 
 @Serializable
 data class TypeIcon(

@@ -213,7 +213,7 @@ class ResultEntry : StateStore {
                 }
                 league.docEntry?.analyse(
                     ReplayData(game = game,
-                        uids = uids,
+                        uindices = uids,
                         kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
                         mons = data.map { l -> l.map { it.official } },
                         url = "WIFI",

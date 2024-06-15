@@ -706,7 +706,7 @@ sealed class League {
         val p2 = game[1].nickname
         title = "${data.ctx.format} replay: $p1 vs. $p2"
         url = data.ctx.url.takeIf { it.length > 10 } ?: "https://example.org"
-        description = "Spieltag ${gdData.gameday}: " + league.uids.joinToString(" vs. ") { "<@$it>" }
+        description = "Spieltag ${gdData.gameday}: " + league.uindices.joinToString(" vs. ") { "<@${table[it]}>" }
     }
 
     open suspend fun onReplayAnalyse(data: ReplayData) {}

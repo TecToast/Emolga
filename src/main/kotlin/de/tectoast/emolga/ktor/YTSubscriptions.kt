@@ -98,7 +98,7 @@ suspend fun handleIPLVideo(channelId: String, videoId: String) {
         logger.info("League found: $leaguename")
         val idx = this(uid)
         val data = RepeatTask.getTask(leaguename, RepeatTaskType.BattleRegister)?.findNearestTimestamp()
-            ?.let { replayDataStore!!.data[it]?.values?.firstOrNull { data -> idx in data.uids } }
+            ?.let { replayDataStore!!.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
             ?: return SendFeatures.sendToMe(
                 "No ReplayData found for $uid in $leaguename"
             )

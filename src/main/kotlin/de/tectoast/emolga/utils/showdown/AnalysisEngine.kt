@@ -101,7 +101,7 @@ data class SDPokemon(
 }
 
 enum class PokemonSaveKey {
-    LAST_DAMAGE_BY, ITEM_OBTAINED_FROM, TARGET_FOR_TRICK, PERISHED_BY
+    LAST_DAMAGE_BY, ITEM_OBTAINED_FROM, TARGET_FOR_TRICK
 }
 
 enum class PlayerSaveKey {
@@ -210,7 +210,7 @@ sealed class SDEffect(vararg val types: String) {
                     .mapValues { if (num == usingPlayer) pkmn else it.value }
             }
             for (i in 0..1) {
-                Hazards.allHazards.forEach { h -> players[i].fieldConditions.remove(h) }
+                removeConditionOfType<Hazards>(i)
                 players[i].fieldConditions.putAll(hazards[1 - i])
             }
         }
@@ -270,11 +270,8 @@ sealed class SDEffect(vararg val types: String) {
                 findResponsiblePokemon<Hazards>(it, side = damagedMon.player)?.claimDamage(
                     damagedMon, fainted, amount
                 )
-                activeWeather?.let { w ->
-                    if (w.first == it) w.second.claimDamage(
-                        damagedMon, fainted, amount
-                    )
-                }
+                findGlobalResponsiblePokemon<Weather>(it)?.claimDamage(damagedMon, fainted, amount)
+
                 damagedMon.volatileEffects.entries.firstOrNull { h ->
                     h.key == it || h.key == it.substringAfter(":").trim()
                 }?.value?.claimDamage(
@@ -300,11 +297,11 @@ sealed class SDEffect(vararg val types: String) {
             val pkmn = split[1].parsePokemon()
             if (split[0] == "move") {
                 if (split[2] == "Perish Song") {
-                    monsOnField.flatten().forEach { it[PERISHED_BY] = pkmn }
+                    globalConditions[PerishSong] = pkmn
                 }
             } else {
                 if (split.getOrNull(2) == "perish0") {
-                    pkmn[PERISHED_BY]?.claimDamage(pkmn, true, pkmn.hp)
+                    globalConditions[PerishSong]?.claimDamage(pkmn, true, pkmn.hp)
                 }
             }
         }
@@ -396,12 +393,20 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    data object Weather : SDEffect("-weather") {
+    sealed class Weather(override val name: String) : SDEffect("-weather") {
         context(BattleContext)
         override fun execute(split: List<String>) {
-            if (split.getOrNull(2) != "[upkeep]") activeWeather =
-                split[1] to (split.getOrNull(3)?.parsePokemon() ?: lastMove.value.parsePokemon())
+            if (split[1] != name) return
+            if (split.getOrNull(2) != "[upkeep]") globalConditions[this] =
+                (split.getOrNull(3)?.parsePokemon() ?: lastMove.value.parsePokemon())
         }
+
+        data object SunnyDay : Weather("SunnyDay")
+        data object RainDance : Weather("RainDance")
+        data object Sandstorm : Weather("Sandstorm")
+        data object Hail : Weather("Hail")
+        data object DesolateLand : Weather("DesolateLand")
+        data object PrimordialSea : Weather("PrimordialSea")
     }
 
 
@@ -452,9 +457,9 @@ sealed class SDEffect(vararg val types: String) {
         context(BattleContext)
         override fun execute(split: List<String>) {
             val usedMove = split[2]
-            allHeals.firstOrNull { it.name == usedMove }?.let {
+            if (usedMove == name) {
                 val (side, num) = split[1].parsePokemonLocation()
-                sdPlayers[side].fieldConditions[it] = monsOnField[side][num]
+                sdPlayers[side].fieldConditions[this] = monsOnField[side][num]
             }
         }
 
@@ -462,12 +467,6 @@ sealed class SDEffect(vararg val types: String) {
         data object HealingWish : RemoteHeal("Healing Wish")
         data object LunarDance : RemoteHeal("Lunar Dance")
         data object RevivalBlessing : RemoteHeal("Revival Blessing")
-
-        companion object {
-            val allHeals by lazy {
-                RemoteHeal::class.dataobjects()
-            }
-        }
     }
 
     sealed class Hazards(override val name: String) : SDEffect("-sidestart") {
@@ -475,8 +474,8 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>) {
             val pokemon = lastMove.value.parsePokemon()
             val type = split[2].substringAfter(": ")
-            allHazards.firstOrNull { it.name == type }?.let {
-                sdPlayers[split[1][1].digitToInt() - 1].fieldConditions[it] = pokemon
+            if (type == name) {
+                sdPlayers[split[1][1].digitToInt() - 1].fieldConditions[this] = pokemon
             }
         }
 
@@ -484,12 +483,6 @@ sealed class SDEffect(vararg val types: String) {
         data object Spikes : Hazards("Spikes")
         data object ToxicSpikes : Hazards("Toxic Spikes")
         data object SteelSurge : Hazards("G-Max Steelsurge")
-        companion object {
-
-            val allHazards by lazy {
-                Hazards::class.dataobjects()
-            }
-        }
     }
 
     data object Teamsize : SDEffect("teamsize") {
@@ -517,7 +510,7 @@ data class BattleContext(
     val monsOnField: List<MutableList<SDPokemon>>,
     var lastMove: IndexedValue<String> = IndexedValue(0, ""),
     val sdPlayers: List<SDPlayer>,
-    var activeWeather: Pair<String, SDPokemon>? = null,
+    val globalConditions: MutableMap<SDEffect, SDPokemon> = mutableMapOf(),
     var randomBattle: Boolean = false,
     var lastLine: IndexedValue<String> = IndexedValue(0, ""),
     var nextLine: IndexedValue<String> = IndexedValue(0, ""),
@@ -530,6 +523,11 @@ data class BattleContext(
 ) {
     inline fun <reified T : SDEffect> findResponsiblePokemon(name: String, side: Int) =
         sdPlayers[side].fieldConditions.entries.firstOrNull { (it.key as? T)?.name == name }?.value
+    inline fun <reified T : SDEffect> findGlobalResponsiblePokemon(name: String) =
+        globalConditions.entries.firstOrNull { (it.key as? T)?.name == name }?.value
+
+    inline fun <reified T : SDEffect> removeConditionOfType(side: Int) =
+        sdPlayers[side].fieldConditions.keys.removeIf { it is T }
 
     val vgc by lazy { "VGC" in format }
 }

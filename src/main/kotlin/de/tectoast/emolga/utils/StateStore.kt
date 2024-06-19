@@ -357,7 +357,7 @@ class NominateState : StateStore {
             val day = nom.current()
             if (nomUser in day) return reply("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!")
             db.drafts.updateOne(
-                League::leaguename eq "NDS", set(
+                db.ndsQuery, set(
                     (NDS::nominations / Nominations::nominated).keyProjection(nom.currentDay)
                         .keyProjection(nomUser) setTo buildJSONList()
                 )

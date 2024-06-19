@@ -57,6 +57,8 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         KMongo.createClient(dbUrl).coroutine.getDatabase(dbName)
     }
 
+    val ndsQuery by lazy { League::leaguename regex "^NDS" }
+
     val config by lazy { db.getCollection<Config>("config") }
     val statistics by lazy { db.getCollection<Statistics>("statistics") }
     val signups by lazy { db.getCollection<LigaStartData>("signups") }
@@ -86,7 +88,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     suspend fun league(name: String) = getLeague(name)!!
     suspend fun getLeague(name: String) = drafts.findOne(League::leaguename eq name)
-    suspend fun nds() = (drafts.findOne(League::leaguename regex "^NDS") as NDS)
+    suspend fun nds() = (drafts.findOne(ndsQuery) as NDS)
 
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) =
         drafts.findOne(

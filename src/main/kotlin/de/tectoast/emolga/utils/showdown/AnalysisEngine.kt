@@ -347,16 +347,23 @@ sealed class SDEffect(vararg val types: String) {
         context(BattleContext)
         override fun execute(split: List<String>) {
             if (split[2] in explosionMoves) {
+                val (pl, idx) = split[1].parsePokemonLocation()
                 run {
                     var i = currentLineIndex + 1
                     while (i < game.size) {
                         val line = game[i]
-                        if ("-fail" in line || "-immune" in line || "-activate" in line) return
+                        val faintCheck = line.cleanSplit()
+                        if (faintCheck.getOrNull(0) == "faint") {
+                            val fainted = faintCheck[1].parsePokemonLocation()
+                            if (fainted.first == pl && fainted.second == idx) {
+                                return@run
+                            }
+                        }
                         if ("|turn" in line || "|move" in line) break
                         i++
                     }
+                    return
                 }
-                val (pl, idx) = split[1].parsePokemonLocation()
                 val boomed = monsOnField[pl][idx]
                 (boomed[LAST_DAMAGE_BY] ?: monsOnField.getOrNull(1 - pl)?.let {
                     it.getOrNull(1 - idx) ?: it[idx]

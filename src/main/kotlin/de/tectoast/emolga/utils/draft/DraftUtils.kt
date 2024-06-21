@@ -19,8 +19,8 @@ object DraftUtils {
     suspend fun executeWithinLock(
         input: DraftInput, type: DraftMessageType
     ) {
-        input.execute(type)
-        if (type != QUEUE) afterPickOfficial()
+        val success = input.execute(type)
+        if (success && type != QUEUE) afterPickOfficial()
     }
 
 }
@@ -28,7 +28,7 @@ object DraftUtils {
 
 interface DraftInput {
     context(InteractionData, League)
-    suspend fun execute(type: DraftMessageType)
+    suspend fun execute(type: DraftMessageType): Boolean
 
     context(DraftData, InteractionData)
     fun checkEmolga() {
@@ -42,26 +42,26 @@ interface DraftInput {
 
 data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolean) : DraftInput {
     context(InteractionData, League)
-    override suspend fun execute(type: DraftMessageType) {
+    override suspend fun execute(type: DraftMessageType): Boolean {
         if (isSwitchDraft && !config<AllowPickDuringSwitch>()) {
-            return reply("Du kannst während des Switch-Drafts nicht picken!")
+            return reply("Du kannst während des Switch-Drafts nicht picken!").let { false }
         }
         val mem = current
         val tierlist = tierlist
         val (tlName, official, _) = pokemon
         logger.info("tlName: $tlName, official: $official")
         val (specifiedTier, officialTier) = (getTierOf(tlName, tier)
-            ?: return reply("Dieses Pokemon ist nicht in der Tierliste!"))
-        checkUpdraft(specifiedTier, officialTier)?.let { return reply(it) }
-        if (isPicked(official, officialTier)) return reply("Dieses Pokemon wurde bereits gepickt!")
+            ?: return reply("Dieses Pokemon ist nicht in der Tierliste!").let { false })
+        checkUpdraft(specifiedTier, officialTier)?.let { return reply(it).let { false } }
+        if (isPicked(official, officialTier)) return reply("Dieses Pokemon wurde bereits gepickt!").let { false }
         val tlMode = tierlist.mode
         val freepick =
             free.takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } == true
-        if (!freepick && handleTiers(specifiedTier, officialTier)) return
+        if (!freepick && handleTiers(specifiedTier, officialTier)) return false
         if (handlePoints(
                 free = freepick, tier = officialTier, mega = official.isMega
             )
-        ) return
+        ) return false
         val saveTier = if (freepick) officialTier else specifiedTier
         lastPickedMon = pokemon
         val pickData = PickData(
@@ -77,6 +77,7 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
         pickData.savePick()
         pickData.reply(type)
         builder().apply { pickDoc(pickData) }.execute()
+        return true
     }
 
     context(InteractionData, League)
@@ -106,26 +107,27 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
 
 data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInput {
     context(InteractionData, League)
-    override suspend fun execute(type: DraftMessageType) {
+    override suspend fun execute(type: DraftMessageType): Boolean {
         if (!isSwitchDraft) {
-            return reply("Dieser Draft ist kein Switch-Draft, daher wird /switch nicht unterstützt!")
+            return reply("Dieser Draft ist kein Switch-Draft, daher wird /switch nicht unterstützt!").let { false }
         }
         val mem = current
         logger.info("Switching $oldmon to $newmon")
         val draftPokemons = picks[mem]!!
         val oldDraftMon = draftPokemons.firstOrNull { it.name == oldmon.official }
-            ?: return reply("${oldmon.tlName} befindet sich nicht in deinem Kader!")
-        val newtier = getTierOf(newmon.tlName, null) ?: return reply("Das neue Pokemon ist nicht in der Tierliste!")
+            ?: return reply("${oldmon.tlName} befindet sich nicht in deinem Kader!").let { false }
+        val newtier =
+            getTierOf(newmon.tlName, null) ?: return reply("Das neue Pokemon ist nicht in der Tierliste!").let { false }
         val oldtier = getTierOf(oldmon.tlName, null)!!.specified
-        checkUpdraft(oldDraftMon.tier, newtier.official)?.let { reply(it); return }
+        checkUpdraft(oldDraftMon.tier, newtier.official)?.let { return reply(it).let { false }; }
         if (isPicked(newmon.official, newtier.official)) {
-            return reply("${newmon.tlName} wurde bereits gepickt!")
+            return reply("${newmon.tlName} wurde bereits gepickt!").let { false }
         }
-        if (handleTiers(newtier.specified, newtier.official, fromSwitch = true)) return
+        if (handleTiers(newtier.specified, newtier.official, fromSwitch = true)) return false
         if (handlePoints(
                 free = false, tier = newtier.official, tierOld = oldtier
             )
-        ) return
+        ) return false
         lastPickedMon = newmon
         val oldIndex = draftPokemons.indexOfFirst { it.name == oldmon.official }
         val switchData = SwitchData(
@@ -141,6 +143,7 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
         switchData.saveSwitch()
         switchData.reply(type)
         builder().apply { switchDoc(switchData) }.execute()
+        return true
     }
 
     context(InteractionData, League)

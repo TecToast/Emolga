@@ -10,6 +10,7 @@ import kotlinx.serialization.Transient
 @SerialName("UPA")
 class UPA : League() {
     override val teamsize = 12
+    override val pickBuffer = 5
 
     @Transient
     override var timer: DraftTimer? = SimpleTimer(TimerInfo(10, 22, delayInMins = 120))

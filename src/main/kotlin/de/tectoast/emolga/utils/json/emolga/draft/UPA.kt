@@ -45,7 +45,7 @@ class UPA : League() {
         ) {
             b.addSingle(
                 if (gdi == 6) "Spielplan!${division.x('N' - 'C', 6)}${35 + index}"
-                else gdi.coordYMod("Spielplan", 3, 4, division.y('N' - 'C', 4), 9, 8 + index), defaultGameplanString
+                else gdi.coordXMod("Spielplan", 2, 4, division.y('N' - 'C', 4), 9, 8 + index), defaultGameplanString
             )
         }
     }

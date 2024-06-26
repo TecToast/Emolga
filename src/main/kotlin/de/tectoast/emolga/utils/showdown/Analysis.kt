@@ -189,8 +189,7 @@ object Analysis {
             SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
         }
         logger.info("In Emolga Listener!")
-        val kd =
-            game.map { it.pokemon.associate { p -> p.draftname.official to (p.kills to if (p.isDead) 1 else 0) } }
+        val kd = game.map { it.pokemon.associate { p -> p.draftname.official to (p.kills to if (p.isDead) 1 else 0) } }
         league?.docEntry?.analyse(
             ReplayData(
                 game = draftPlayerList,
@@ -211,10 +210,12 @@ object Analysis {
         if (split.last() == "*") return getMonName(withoutLast, guildId, withDebug)
         return if (s == "_unbekannt_") DraftName("_unbekannt_", "UNKNOWN")
         else {
-            val pkdata = db.pokedex.get(s.toSDName())
-            (NameConventionsDB.getSDTranslation(
-                pkdata?.takeIf { it.requiredAbility != null }?.baseSpecies ?: s, guildId
-            ) ?: DraftName(
+            var pkdata = db.pokedex.get(s.toSDName())
+            (NameConventionsDB.getSDTranslation(pkdata?.takeIf { it.requiredAbility != null }?.baseSpecies?.also {
+                pkdata = db.pokedex.get(
+                    it.toSDName()
+                )
+            } ?: s, guildId) ?: DraftName(
                 s, s
             )).apply { data = pkdata }
         }

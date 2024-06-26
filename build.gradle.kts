@@ -57,7 +57,7 @@ repositories {
     mavenCentral()
 }
 
-val exposedVersion = "0.51.1"
+val exposedVersion = "0.52.0"
 val ktorVersion = "2.3.11"
 val ktorDependencies = listOf(
     // Client

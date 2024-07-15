@@ -41,7 +41,7 @@ object Nominate {
                 val nomUser =
                     if (e.author.idLong == Constants.FLOID) WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toInt() else idx
                 val list =
-                    nds.picks[nomUser]!!.map {
+                    nds.picks[nomUser]!!.filter { !it.quit }.map {
                         DraftPokemon(
                             NameConventionsDB.convertOfficialToTL(it.name, nds.guild)!!, it.tier, it.free
                         )

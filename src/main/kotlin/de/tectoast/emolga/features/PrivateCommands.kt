@@ -297,7 +297,8 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun ndsPrintMissingNominations() {
-        reply("```" + db.nds().run { table - nominations.current().keys }.joinToString { "<@${it}>" } + "```")
+        val nds = db.nds()
+        reply("```" + nds.run { table.indices - nominations.current().keys }.joinToString { "<@${nds[it]}>" } + "```")
     }
 
     private val teamGraphicScope = createCoroutineScope("TeamGraphics", Dispatchers.IO)

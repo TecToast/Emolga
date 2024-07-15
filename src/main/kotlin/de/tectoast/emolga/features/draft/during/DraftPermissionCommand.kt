@@ -7,8 +7,6 @@ import de.tectoast.emolga.utils.json.emolga.draft.AllowedData
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
-import org.litote.kmongo.contains
-import org.litote.kmongo.eq
 
 object DraftPermissionCommand :
     CommandFeature<NoArgs>(NoArgs(), CommandSpec("draftpermission", "Konfiguriert deine Ersatzdrafter", *draftGuilds)) {
@@ -70,7 +68,8 @@ object DraftPermissionCommand :
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            League.executeOnFreshLock({ db.drafts.find(League::guild eq gid, League::table contains user).first() },
+            League.executeOnFreshLock(
+                { db.leagueByCommand() },
                 { reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) {
                 val mem = e.user
                 if (mem.idLong == user) return reply("Du darfst tatsächlich immer picken :)")

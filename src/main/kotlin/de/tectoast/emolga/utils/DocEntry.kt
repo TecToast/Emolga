@@ -186,7 +186,7 @@ class DocEntry private constructor(val league: League) {
         }
 
         league.tipgame?.let { tg ->
-            val winningIndex = (if (game[0].winner) uindices[0] else uindices[1]).indexedBy(league.table)
+            val winningIndex = (if (game[0].winner) uindices[0] else uindices[1])
             val leagueName = league.leaguename
             val gamedayTips = tg.tips[gameday]
             gamedayTips?.entries?.filter { it.value[battleindex] == winningIndex }?.map { it.key }?.forEach {

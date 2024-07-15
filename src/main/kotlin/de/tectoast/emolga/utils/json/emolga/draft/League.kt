@@ -595,7 +595,7 @@ sealed class League {
 
     fun getCurrentName(idx: Int = current) = names[idx]
 
-    fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current.indexedBy(table))
+    fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current)
 
     fun cancelCurrentTimer(reason: String = "Next player") {
         cooldownJob?.cancel(reason)

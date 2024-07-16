@@ -104,7 +104,7 @@ class RepeatTask(
                     tip.lastLockButtons?.let { last ->
                         RepeatTask(
                             name, TipGameLockButtons, last, tip.amount, duration, false
-                        ) { refresh().executeTipGameLockButtons(it) }
+                        ) { refresh().executeTipGameLockButtons() }
                     }
                 }
                 l.replayDataStore?.let { data ->

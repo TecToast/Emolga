@@ -98,6 +98,11 @@ object PrivateCommands {
     }
 
     context(InteractionData)
+    suspend fun tipGameLockButtons(args: PrivateData) {
+        db.league(args[0]).executeTipGameLockButtons()
+    }
+
+    context(InteractionData)
     suspend fun printTipGame(args: PrivateData) {
         reply(db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
                 .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }

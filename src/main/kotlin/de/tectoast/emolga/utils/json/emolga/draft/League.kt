@@ -777,9 +777,10 @@ sealed class League {
         }
     }
 
-    fun executeTipGameLockButtons(gameday: Int) {
+    fun executeTipGameLockButtons() {
         launch {
-            jda.getTextChannelById(tipgame!!.channel)!!.iterableHistory.takeAsync(battleorder[gameday]!!.size).await()
+            jda.getTextChannelById(tipgame!!.channel)!!.iterableHistory.takeAsync(battleorder.entries.first().value.size)
+                .await()
                 .forEach {
                     it.editMessageComponents(
                         ActionRow.of(it.actionRows[0].buttons.map { button -> button.asDisabled() })

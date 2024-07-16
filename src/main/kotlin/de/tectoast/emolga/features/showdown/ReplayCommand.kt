@@ -20,7 +20,7 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
         registerPNListener { e ->
             val msg = e.message.contentDisplay
             if (msg.contains("https://") || msg.contains("http://")) {
-                regex.find(msg)?.run {
+                Analysis.regex.find(msg)?.run {
                     val url = groupValues[0]
                     logger.info(url)
                     Analysis.analyseReplay(
@@ -37,13 +37,11 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
         var url by string("Replay-Link", "Der Replay-Link")
     }
 
-    val regex =
-        Regex("https://replay\\.(?:ess\\.tectoast\\.de|pokemonshowdown\\.com)/(?:[a-z]+-)?([^-]+)-\\d+[-a-z0-9]*")
+
 
     context(InteractionData)
     override suspend fun exec(e: Args) {
         deferReply()
-        val mr = regex.find(e.url) ?: return reply("Das ist kein gültiges Replay!")
         val channel = AnalysisDB.getResultChannel(tc)
             ?: return reply("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
         val tc = jda.getChannel<GuildMessageChannel>(channel)
@@ -51,6 +49,6 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
             reply("Ich habe keinen Zugriff auf den Ergebnischannel!")
             return
         }
-        Analysis.analyseReplay(url = mr.groupValues[0], resultchannelParam = tc, fromReplayCommand = self)
+        Analysis.analyseReplay(url = e.url, resultchannelParam = tc, fromReplayCommand = self)
     }
 }

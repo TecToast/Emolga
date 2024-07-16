@@ -28,7 +28,7 @@ object RFileWithGuildCommand :
             resultchannelParam = textChannel,
             customGuild = e.guild,
             fromReplayCommand = self,
-            analysisData = Analysis.analyseFromString(replayData, "FILE"),
+            analysisData = Analysis.analyseFromLog(replayData, "FILE"),
             useReplayResultChannelAnyways = true
         )
     }

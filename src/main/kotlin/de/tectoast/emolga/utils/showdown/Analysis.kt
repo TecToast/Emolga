@@ -69,6 +69,10 @@ object Analysis {
                     send("Das Replay konnte nicht analysiert werden! Sicher, dass es ein valides Replay ist? Wenn ja, melde dich bitte auf meinem im Profil verlinkten Support-Server.")
                 }
 
+                is InvalidReplayException -> {
+                    send("Das ist kein gültiges Replay!")
+                }
+
                 else -> {
                     val msg =
                         "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
@@ -222,14 +226,46 @@ object Analysis {
         //}
     }
 
-    suspend fun analyse(link: String, answer: ((String) -> Unit)? = null, debugMode: Boolean = false): AnalysisData {
+
+    enum class ReplayServerMode {
+        LOG {
+            override fun getLogFromWebsiteText(text: String) = text
+            override fun mapURL(url: String) = "$url.log"
+        },
+        SCRAPE {
+            private val logRegex =
+                Regex("<script type=\"text/plain\" class=\"log\">(.*?)</script>", RegexOption.DOT_MATCHES_ALL)
+
+            override fun getLogFromWebsiteText(text: String) =
+                logRegex.find(text)?.groupValues[1] ?: ""
+        };
+
+        abstract fun getLogFromWebsiteText(text: String): String
+        open fun mapURL(url: String) = url
+    }
+
+    val regex =
+        Regex("https://(replay\\.(?:ess\\.tectoast\\.de|pokemonshowdown\\.com)|battling.p-insurgence.com/replays)/(?:[a-z]+-)?[^-]+-\\d+[-a-z0-9]*")
+
+    val modeByServer = mapOf<String, ReplayServerMode>(
+        "replay.pokemonshowdown.com" to ReplayServerMode.LOG,
+        "replay.ess.tectoast.de" to ReplayServerMode.LOG,
+        "battling.p-insurgence.com/replays" to ReplayServerMode.SCRAPE
+    )
+
+    suspend fun analyse(url: String, answer: ((String) -> Unit)? = null, debugMode: Boolean = false): AnalysisData {
         var gameNullable: List<String>? = null
+        val mr = regex.find(url) ?: throw InvalidReplayException()
+        val mode = modeByServer[mr.groupValues[1]] ?: throw InvalidReplayException()
+        val mappedURL = mode.mapURL(url)
+        @Suppress("unused")
         for (i in 0..1) {
             var statusCode: HttpStatusCode? = null
             val retrieved = runCatching {
                 withContext(Dispatchers.IO) {
-                    logger.info("Reading URL... {}", link)
-                    httpClient.get("$link.log").also { statusCode = it.status }.bodyAsText().split("\n")
+                    logger.info("Reading URL... {}", url)
+                    val text = httpClient.get(mappedURL).also { statusCode = it.status }.bodyAsText()
+                    mode.getLogFromWebsiteText(text).split("\n")
                 }
             }.getOrDefault(listOf(""))
             gameNullable = retrieved.takeIf { it.size > 1 }
@@ -245,11 +281,11 @@ object Analysis {
         }
         logger.info("Starting analyse!")
         val game = gameNullable ?: throw ShowdownDoesNotAnswerException()
-        return analyseFromString(game, link, debugMode)
+        return analyseFromLog(game, url, debugMode)
     }
 
-    fun analyseFromString(
-        game: List<String>, link: String, debugMode: Boolean = false
+    fun analyseFromLog(
+        game: List<String>, url: String, debugMode: Boolean = false
     ): AnalysisData {
         var amount = 1
         val nicknames: MutableMap<Int, String> = mutableMapOf()
@@ -303,12 +339,12 @@ object Analysis {
         }
         return with(
             BattleContext(
-                url = link,
+                url = url,
                 monsOnField = List(playerCount) { buildDummys(amount) },
                 sdPlayers = (0 until playerCount).map {
                     SDPlayer(
                         nicknames[it] ?: run {
-                            File("replayerrors/$link${System.currentTimeMillis()}.txt").also { f -> f.createNewFile() }
+                            File("replayerrors/$url${System.currentTimeMillis()}.txt").also { f -> f.createNewFile() }
                                 .writeText(game.joinToString("\n"))
                             throw ShowdownParseException()
                         }, allMons[it].orEmpty().toMutableList()
@@ -363,3 +399,4 @@ sealed class ShowdownException : Exception()
 class ShowdownDoesNotAnswerException : ShowdownException()
 class ShowdownParseException : ShowdownException()
 class ShowdownDoesntExistException : ShowdownException()
+class InvalidReplayException : ShowdownException()

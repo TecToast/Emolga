@@ -11,6 +11,8 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
+import de.tectoast.emolga.utils.records.Coord
+import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import de.tectoast.emolga.utils.y
@@ -120,65 +122,65 @@ class NDS(val rr: Boolean) : League() {
         addSingle("Draft!${getAsXCoord(round * 5 - 1)}${numInRound * 5 + 2}", data.pokemon)
     }
 
-//    @Transient
-//    override val docEntry = DocEntry.create(this) {
-//        killProcessor = BasicStatProcessor {
-//            Coord(
-//                "Data", gameday + 6, plindex * 30 + 3 + monindex
-//            )
-//        }
-//        deathProcessor = BasicStatProcessor {
-//            Coord(
-//                "Data", gameday + 18, plindex * 30 + 3 + monindex
-//            )
-//        }
-//        winProcessor = ResultStatProcessor {
-//            Coord(
-//                "Data", gameday + 6, plindex * 30 + 30
-//            )
-//        }
-//        looseProcessor = ResultStatProcessor {
-//            Coord(
-//                "Data", gameday + 18, plindex * 30 + 30
-//            )
-//        }
-//        resultCreator = {
-//            val y = index.y(10, 6)
-//            val normedGdi = gdi - rrSummand
-//            b.addSingle(
-//                "$gameplanName!${getAsXCoord(normedGdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
-//            )
-//            b.addSingle(coord(gameplanName, normedGdi.x(9, 4), index.y(10, 3)), numberOne)
-//            b.addSingle(coord(gameplanName, normedGdi.x(9, 6), index.y(10, 3)), numberTwo)
-//            for (i in 0..1) {
-//                val x = normedGdi.x(9, i.y(8, 1))
-//                val dataI = i.swap()
-//                logger.info("i: $i")
-//                logger.info("dataI: $dataI")
-//                b.addColumn(
-//                    coord(gameplanName, x, y),
-//                    this.replayData.mons[dataI].map { NameConventionsDB.convertOfficialToTL(it, guild)!! })
-//                b.addColumn(coord(gameplanName, normedGdi.x(9, i.y(4, 3)), y), kills[dataI])
-//                this.deaths[dataI].forEachIndexed { index, dead ->
-//                    if (dead) b.addCellFormatChange(
-//                        gameplanSheet, "$x${y + index}", deathFormat, "textFormat(foregroundColorStyle,strikethrough)"
-//                    )
-//                }
-//                if (winnerIndex == i) {
-//                    val s = "!${(gdi * 2 + 4).xc()}10"
-//                    b.addSingle(getTeamname(replayData.uindices[i]) + s, "$higherNumber:0")
-//                    b.addSingle(getTeamname(replayData.uindices[1 - i]) + s, "0:$higherNumber")
-//                }
-//            }
-//
-//        }
-//        setStatIfEmpty = false
-//        sorterData = SorterData(
-//            formulaRange = listOf("$tableName!C3:K8", "$tableName!C12:K17"),
-//            newMethod = true,
-//            cols = listOf(2, 8, -1, 6)
-//        )
-//    }
+    @Transient
+    override val docEntry = DocEntry.create(this) {
+        killProcessor = BasicStatProcessor {
+            Coord(
+                "Data", gameday + 6, plindex * 30 + 3 + monindex
+            )
+        }
+        deathProcessor = BasicStatProcessor {
+            Coord(
+                "Data", gameday + 18, plindex * 30 + 3 + monindex
+            )
+        }
+        winProcessor = ResultStatProcessor {
+            Coord(
+                "Data", gameday + 6, plindex * 30 + 30
+            )
+        }
+        looseProcessor = ResultStatProcessor {
+            Coord(
+                "Data", gameday + 18, plindex * 30 + 30
+            )
+        }
+        resultCreator = {
+            val y = index.y(10, 6)
+            val normedGdi = gdi - rrSummand
+            b.addSingle(
+                "$gameplanName!${getAsXCoord(normedGdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
+            )
+            b.addSingle(coord(gameplanName, normedGdi.x(9, 4), index.y(10, 3)), numberOne)
+            b.addSingle(coord(gameplanName, normedGdi.x(9, 6), index.y(10, 3)), numberTwo)
+            for (i in 0..1) {
+                val x = normedGdi.x(9, i.y(8, 1))
+                val dataI = i.swap()
+                logger.info("i: $i")
+                logger.info("dataI: $dataI")
+                b.addColumn(
+                    coord(gameplanName, x, y),
+                    this.replayData.mons[dataI].map { NameConventionsDB.convertOfficialToTL(it, guild)!! })
+                b.addColumn(coord(gameplanName, normedGdi.x(9, i.y(4, 3)), y), kills[dataI])
+                this.deaths[dataI].forEachIndexed { index, dead ->
+                    if (dead) b.addCellFormatChange(
+                        gameplanSheet, "$x${y + index}", deathFormat, "textFormat(foregroundColorStyle,strikethrough)"
+                    )
+                }
+                if (winnerIndex == i) {
+                    val s = "!${(gdi * 2 + 4).xc()}10"
+                    b.addSingle(getTeamname(replayData.uindices[i]) + s, "$higherNumber:0")
+                    b.addSingle(getTeamname(replayData.uindices[1 - i]) + s, "0:$higherNumber")
+                }
+            }
+
+        }
+        setStatIfEmpty = false
+        sorterData = SorterData(
+            formulaRange = listOf("$tableName!C3:K8", "$tableName!C12:K17"),
+            newMethod = true,
+            cols = listOf(2, 8, -1, 6)
+        )
+    }
 
     val rrSummand: Int
         get() = if (rr) 5 else 0

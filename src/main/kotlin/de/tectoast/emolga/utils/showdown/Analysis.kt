@@ -356,11 +356,11 @@ object Analysis {
             )
         ) {
             for (line in game) {
+                currentLineIndex++
                 val split = line.cleanSplit()
                 if (split.isEmpty()) continue
                 val operation = split[0]
                 if (operation == "move") lastMove = IndexedValue(currentLineIndex, split[1])
-                currentLineIndex++
                 logger.debug(line)
                 nextLine = IndexedValue(currentLineIndex + 1, game.getOrNull(currentLineIndex + 1) ?: "")
                 lastLine = IndexedValue(currentLineIndex - 1, game.getOrNull(currentLineIndex - 1) ?: "")

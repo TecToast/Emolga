@@ -105,10 +105,10 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun printTipGame(args: PrivateData) {
         reply(db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
-                .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }
+            .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }
             .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
             .joinToString("\n", prefix = "```", postfix = "```")
-            )
+        )
     }
 
     context(InteractionData)
@@ -625,11 +625,16 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun moveLeaguesToArchive(args: PrivateData) {
-        val archive = db.db.getCollection<League>("oldleague")
+        val archiveLeague = db.db.getCollection<League>("oldleague")
+        val currentLeague = db.drafts
+        val archiveMR = db.db.getCollection<MatchResult>("oldmatchresults")
+        val currentMR = db.db.getCollection<MatchResult>("matchresults")
         args.forEach {
             val league = db.league(it)
-            archive.insertOne(league)
-            db.drafts.deleteOne(League::leaguename eq it)
+            archiveLeague.insertOne(league)
+            currentLeague.deleteOne(League::leaguename eq it)
+            archiveMR.insertMany(currentMR.find(MatchResult::leaguename eq it).toList())
+            currentMR.deleteMany(MatchResult::leaguename eq it)
         }
     }
 

@@ -270,7 +270,7 @@ class NDS(val rr: Boolean) : League() {
             val b = RequestBuilder(nds.sid)
             var dbcallTime = 0L
             for (u in onlySpecifiedUsers.takeIf { it.isNotEmpty() }?.toList() ?: nds.table.indices) {
-                val pmons = picks[u]!!
+                val pmons = picks[u]!!.filter { !it.quit }
                 if (u !in dayData) {
                     dayData[u] = if (cday == 1) {
                         pmons.sortedWith(nds.tierorderingComparator)

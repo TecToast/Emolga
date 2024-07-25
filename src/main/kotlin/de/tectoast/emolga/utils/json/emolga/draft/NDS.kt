@@ -272,7 +272,7 @@ class NDS(val rr: Boolean) : League() {
             for (u in onlySpecifiedUsers.takeIf { it.isNotEmpty() }?.toList() ?: nds.table.indices) {
                 val pmons = picks[u]!!.filter { !it.quit }
                 if (u !in dayData) {
-                    dayData[u] = if (cday == 1) {
+                    dayData[u] = if (cday % 5 == 1) {
                         pmons.sortedWith(nds.tierorderingComparator)
                             .map { it.indexedBy(pmons) }
                     } else nom.nominated[cday - 1]!![u]!!

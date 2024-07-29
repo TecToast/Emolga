@@ -59,7 +59,8 @@ class IntervalTask(name: String, provideNextExecution: () -> Instant, consumer: 
                 cal.set(Calendar.SECOND, Random.nextInt(0..59))
                 Instant.fromEpochMilliseconds(cal.timeInMillis)
             }) {
-                jda.getTextChannelById(1266027507019153473)!!.sendMessage(possibleMessages.random()).queue()
+                jda.getTextChannelById(1266027507019153473)!!
+                    .sendMessage(possibleMessages.random() + "\n\n**UND SPIEL ZELDA FERTIG!**").queue()
             }
         }
 

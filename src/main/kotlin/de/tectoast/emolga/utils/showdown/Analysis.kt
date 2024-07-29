@@ -25,7 +25,7 @@ import kotlin.time.Duration.Companion.seconds
 object Analysis {
 
     suspend fun analyseReplay(
-        url: String,
+        urlProvided: String,
         customReplayChannel: GuildMessageChannel? = null,
         resultchannelParam: GuildMessageChannel,
         message: Message? = null,
@@ -53,7 +53,7 @@ object Analysis {
             return
         }
         val data = try {
-            analysisData ?: analyse(url, ::send, resultchannelParam.guild.idLong == Constants.G.MY)
+            analysisData ?: analyse(urlProvided, ::send, resultchannelParam.guild.idLong == Constants.G.MY)
             //game = Analysis.analyse(url, m);
         } catch (ex: Exception) {
             when (ex) {
@@ -76,7 +76,7 @@ object Analysis {
                 else -> {
                     val msg =
                         "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
-                    SendFeatures.sendToMe("Fehler beim Auswerten des Replays: $url ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}")
+                    SendFeatures.sendToMe("Fehler beim Auswerten des Replays: $urlProvided ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}")
                     send(msg)
                     ex.printStackTrace()
                 }
@@ -84,6 +84,7 @@ object Analysis {
             return
         }
         val (game, ctx) = data
+        val url = ctx.url
         val g = resultchannelParam.guild
         val gid = customGuild ?: g.idLong
         val u1 = game[0].nickname
@@ -253,10 +254,15 @@ object Analysis {
         "battling.p-insurgence.com/replays" to ReplayServerMode.SCRAPE
     )
 
-    suspend fun analyse(url: String, answer: ((String) -> Unit)? = null, debugMode: Boolean = false): AnalysisData {
+    suspend fun analyse(
+        urlProvided: String,
+        answer: ((String) -> Unit)? = null,
+        debugMode: Boolean = false
+    ): AnalysisData {
         var gameNullable: List<String>? = null
-        val mr = regex.find(url) ?: throw InvalidReplayException()
+        val mr = regex.find(urlProvided) ?: throw InvalidReplayException()
         val mode = modeByServer[mr.groupValues[1]] ?: throw InvalidReplayException()
+        val url = mr.groupValues[0]
         val mappedURL = mode.mapURL(url)
         @Suppress("unused")
         for (i in 0..1) {

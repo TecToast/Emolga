@@ -42,7 +42,7 @@ object MultiReplay {
             reply("Replays werden analysiert!", ephemeral = true)
             allReplays.forEachIndexed { index, url ->
                 Analysis.analyseReplay(
-                    url = url,
+                    urlProvided = url,
                     customReplayChannel = replayChannel,
                     resultchannelParam = resultChannel,
                     customGuild = replayChannel.guild.idLong,

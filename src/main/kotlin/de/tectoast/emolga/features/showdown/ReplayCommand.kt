@@ -24,7 +24,7 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
                     val url = groupValues[0]
                     logger.info(url)
                     Analysis.analyseReplay(
-                        url = url,
+                        urlProvided = url,
                         //customReplayChannel = e.jda.getTextChannelById(999779545316069396),
                         resultchannelParam = e.jda.getTextChannelById(820359155612254258)!!, message = e.message
                     )
@@ -49,6 +49,6 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
             reply("Ich habe keinen Zugriff auf den Ergebnischannel!")
             return
         }
-        Analysis.analyseReplay(url = e.url, resultchannelParam = tc, fromReplayCommand = self)
+        Analysis.analyseReplay(urlProvided = e.url, resultchannelParam = tc, fromReplayCommand = self)
     }
 }

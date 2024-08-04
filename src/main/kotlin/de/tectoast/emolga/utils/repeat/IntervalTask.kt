@@ -14,7 +14,7 @@ import org.litote.kmongo.eq
 import org.litote.kmongo.set
 import org.litote.kmongo.setTo
 import org.litote.kmongo.upsert
-import java.util.Calendar
+import java.util.*
 import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.time.Duration
@@ -60,7 +60,7 @@ class IntervalTask(name: String, provideNextExecution: () -> Instant, consumer: 
                 Instant.fromEpochMilliseconds(cal.timeInMillis)
             }) {
                 jda.getTextChannelById(1266027507019153473)!!
-                    .sendMessage(possibleMessages.random() + "\n\n**UND SPIEL ZELDA FERTIG!**").queue()
+                    .sendMessage(possibleMessages.random()).queue()
             }
         }
 

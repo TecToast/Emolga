@@ -267,7 +267,7 @@ data class LigaStartData(
     var conferenceRoleIds: Map<String, Long> = mapOf(),
     var shiftMessageIds: List<Long> = listOf(),
     var shiftChannel: Long? = null,
-    val maxUsers: Int,
+    var maxUsers: Int,
     val announceChannel: Long,
     val announceMessageId: Long,
     var extended: Boolean = false,
@@ -315,6 +315,16 @@ data class LigaStartData(
         channel.sendMessage(msg).queue()
         if (announceChannel != signupChannel) jda.getTextChannelById(signupChannel)!!.sendMessage(msg).queue()
         if (forced) updateSignupMessage(true)
+    }
+
+    suspend fun reopenSignup(newMaxUsers: Int) {
+        maxUsers = newMaxUsers
+        val channel = jda.getTextChannelById(announceChannel)!!
+        channel.editMessageComponentsById(
+            announceMessageId, SignupManager.Button().into()
+        ).queue()
+        updateSignupMessage()
+        save()
     }
 
     val full get() = maxUsers > 0 && users.size >= maxUsers

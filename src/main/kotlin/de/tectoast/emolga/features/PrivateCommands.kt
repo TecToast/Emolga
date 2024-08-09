@@ -166,6 +166,11 @@ object PrivateCommands {
         db.signups.get(args().toLong())!!.closeSignup(forced = true)
     }
 
+    context(InteractionData)
+    suspend fun reopenSignup(args: PrivateData) {
+        db.signups.get(args[0].toLong())!!.reopenSignup(args[1].toInt())
+    }
+
     // Channel, extended, conferences
     context(InteractionData)
     suspend fun startOrderingUsers(args: PrivateData) {

@@ -160,7 +160,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         val guildFeatures: MutableMap<Long, MutableSet<CommandData>> = mutableMapOf()
         with(guildFeatures) {
             loadListeners.filterIsInstance<Feature<*, *, *>>().forEach { cmd ->
-                if (cmd.spec !is GuildedFeatureSpec) return@forEach
+                if (cmd.spec !is GuildedFeatureSpec || cmd.disabled) return@forEach
                 val gids = cmd.spec.guilds + Constants.G.MY
                 when (cmd) {
                     is CommandFeature<*> -> {

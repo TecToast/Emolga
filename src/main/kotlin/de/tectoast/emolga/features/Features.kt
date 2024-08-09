@@ -58,6 +58,7 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
         private set
 
     val defaultArgs by lazy { argsFun().args }
+    var disabled = false
     abstract suspend fun populateArgs(data: InteractionData, e: @UnsafeVariance E, args: A)
 
     fun createComponentId(argsBuilder: ArgBuilder<@UnsafeVariance A>, checkCompId: Boolean = false) =

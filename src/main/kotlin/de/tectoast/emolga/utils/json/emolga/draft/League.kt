@@ -39,7 +39,6 @@ import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.eq
 import java.awt.Color
 import java.text.SimpleDateFormat
-import java.util.ArrayList
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -1003,13 +1002,14 @@ sealed interface RandomPickMode {
             var tier: String? = null
             val usedTiers = mutableSetOf<String>()
             val skipMega = config.onlyOneMega && picks.any { it.name.isMega }
-            for (i in 0..<100) {
+            val prices = tierlist.prices
+            for (i in 0..prices.size) {
                 val temptier =
-                    tierlist.prices.filter { (tier, amount) -> tier !in usedTiers && picks.count { mon -> mon.tier == tier } < amount }.keys.randomOrNull()
+                    prices.filter { (tier, amount) -> tier !in usedTiers && picks.count { mon -> mon.tier == tier } < amount }.keys.randomOrNull()
                         ?: return replyNull("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
                 val tempmon = firstAvailableMon(
-                    tierlist.getWithTierAndType(temptier, type)
-                ) { german, english -> german != input.skipMon && !(german.isMega && skipMega) }
+                    tierlist.getWithTierAndType(temptier, type).shuffled()
+                ) { german, _ -> german != input.skipMon && !(german.isMega && skipMega) }
                 if (tempmon != null) {
                     mon = tempmon
                     tier = temptier

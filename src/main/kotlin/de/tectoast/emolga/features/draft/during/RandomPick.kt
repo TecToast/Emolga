@@ -13,6 +13,7 @@ import de.tectoast.emolga.utils.invoke
 import de.tectoast.emolga.utils.json.emolga.draft.*
 import dev.minn.jda.ktx.messages.into
 import mu.KotlinLogging
+import net.dv8tion.jda.api.interactions.commands.Command.Choice
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 
@@ -56,7 +57,7 @@ object RandomPick {
                 slashCommand(guildChecker = {
                     val league = league() ?: return@slashCommand false
                     league.getConfigOrDefault<RandomPickConfig>().mode.provideCommandOptions()[RandomPickArgument.TYPE]
-                })
+                }, choices = germanTypeList.map { Choice(it, it) })
             }.nullable()
         }
 
@@ -72,7 +73,6 @@ object RandomPick {
                     "Du hast bereits ein Mon gegambled!",
                     ephemeral = true
                 )
-                val idx = current
                 val type = e.type
                 val (draftname, tier) = with(config.mode) {
                     getRandomPick(
@@ -80,35 +80,43 @@ object RandomPick {
                         config
                     )
                 } ?: return
-                if (hasJokers) {
-                    val jokerAmount = randomLeagueData.jokers[idx] ?: 0
-                    if (jokerAmount > 0) {
-                        replyGeneral(
-                            "gegambled: **${draftname.tlName}/${
-                                NameConventionsDB.getSDTranslation(
-                                    draftname.official, guild, english = true
-                                )!!.tlName
-                            } ($tier)**!",
-                            components = listOf(
-                                Button("Akzeptieren", ButtonStyle.SUCCESS) {
-                                    action = RandomPickAction.ACCEPT
-                                },
-                                Button(
-                                    "Joker einlösen (noch $jokerAmount übrig)",
-                                    ButtonStyle.DANGER
-                                ) {
-                                    action = RandomPickAction.REROLL
-                                }).into()
-                        )
-                        randomLeagueData.currentMon =
-                            RandomLeaguePick(draftname.official, draftname.tlName, tier, mapOf("type" to type))
-                        save("RandomPick")
-                        return
-                    }
-                }
+                if (hasJokers && rerollOption(draftname, tier, type)) return
                 executeWithinLock(PickInput(draftname, tier, free = false), DraftMessageType.RANDOM)
             }
         }
+    }
+
+    context(InteractionData)
+    private suspend fun League.rerollOption(
+        draftname: DraftName,
+        tier: String,
+        type: String?
+    ): Boolean {
+        val jokerAmount = randomLeagueData.jokers[current] ?: 0
+        if (jokerAmount > 0) {
+            replyGeneral(
+                "gegambled: **${draftname.tlName}/${
+                    NameConventionsDB.getSDTranslation(
+                        draftname.official, guild, english = true
+                    )!!.tlName
+                } ($tier)**!",
+                components = listOf(
+                    Button("Akzeptieren", ButtonStyle.SUCCESS) {
+                        action = RandomPickAction.ACCEPT
+                    },
+                    Button(
+                        "Joker einlösen (noch $jokerAmount übrig)",
+                        ButtonStyle.DANGER
+                    ) {
+                        action = RandomPickAction.REROLL
+                    }).into()
+            )
+            randomLeagueData.currentMon =
+                RandomLeaguePick(draftname.official, draftname.tlName, tier, mapOf("type" to type))
+            save("RandomPick")
+            return true
+        }
+        return false
     }
 
     object Button : ButtonFeature<Button.Args>(::Args, ButtonSpec("randompick")) {
@@ -121,8 +129,7 @@ object RandomPick {
         override suspend fun exec(e: Args) {
             deferReply()
             League.executePickLike {
-                val data = randomLeagueData
-                val (official, tlName, tier, map, disabled) = data.currentMon ?: return reply(
+                val (official, tlName, tier, map, disabled) = randomLeagueData.currentMon ?: return reply(
                     "Es gibt zurzeit keinen Pick!",
                     ephemeral = true
                 )
@@ -139,15 +146,17 @@ object RandomPick {
                     }
 
                     RandomPickAction.REROLL -> {
-                        if (data.jokers[current]!! <= 0) return reply(
+                        if (randomLeagueData.jokers[current]!! <= 0) return reply(
                             "Du hast keine Joker mehr!",
                             ephemeral = true
                         )
-                        data.jokers.add(current, -1)
+                        randomLeagueData.jokers.add(current, -1)
                         val config = getConfigOrDefault<RandomPickConfig>()
+                        val type = map["type"]
                         val (newdraftname, newtier) = with(config.mode) {
-                            getRandomPick(RandomPickUserInput(tier, map["type"], skipMon = official), config)
+                            getRandomPick(RandomPickUserInput(tier, type, skipMon = official), config)
                         } ?: return
+                        if (rerollOption(newdraftname, newtier, type)) return
                         executeWithinLock(PickInput(newdraftname, newtier, false), DraftMessageType.REROLL)
                     }
                 }

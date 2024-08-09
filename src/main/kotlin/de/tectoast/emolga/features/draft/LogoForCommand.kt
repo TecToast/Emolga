@@ -9,8 +9,13 @@ import de.tectoast.emolga.utils.Constants
 object LogoForCommand :
     CommandFeature<LogoForCommand.Args>(
         ::Args,
-        CommandSpec("logofor", "Reicht ein Logo für jemanden ein", Constants.G.ASL, Constants.G.FLP)
+        CommandSpec("logofor", "Reicht ein Logo für jemanden ein", Constants.G.ASL, Constants.G.FLP, Constants.G.VIP)
     ) {
+
+    init {
+        restrict(roles(702233714360582154))
+    }
+
     class Args : Arguments() {
         var user by member("User", "Der User")
         var logo by attachment("Logo", "Das Logo")

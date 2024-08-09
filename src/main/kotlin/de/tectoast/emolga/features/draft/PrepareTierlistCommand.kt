@@ -2,8 +2,10 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Google
+import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.records.CoordXMod
 import de.tectoast.emolga.utils.records.DocRange
 
 object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
@@ -25,6 +27,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         var complexSign by string("Komplexsymbol", "Das Symbol für Komplexbanns").nullable()
         var shiftMode by enumBasic<ShiftMode>("Shift-Mode", "Der Shift-Mode").nullable()
         var shiftData by string("Shift-Data", "Die Shift-Data").nullable()
+        var dataMapper by enumBasic<DataMapper>("DataMapper", "Der potenzielle DataMapper").nullable()
     }
 
     enum class ShiftMode {
@@ -60,6 +63,38 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         abstract fun parseMons(str: String): List<DraftPokemon>
     }
 
+    enum class DataMapper {
+        MDL {
+            val data = OneTimeCache {
+                val yCoords = listOf(3, 59, 105, 155, 214)
+                val ranges = buildList {
+                    for (i in 0..<18) {
+                        val y = yCoords[i / 4]
+                        add(
+                            i.CoordXMod("Tierlist", 4, 6, 8, 56, 3).setY(y)
+                                .spreadTo(2, yCoords.getOrNull(i / 4 + 1)?.minus(y + 1) ?: 60)
+                        )
+                    }
+                }
+                val get = Google.batchGet("1iPnZKaAUW9xn5cgL-ME45a1P_FZksB_VJOJi90_Vw_8", ranges, false)
+                buildMap {
+                    for (subList in get) {
+                        val type = subList[0][1].toString()
+                        subList.drop(2).forEach {
+                            put(it[1].toString(), ExternalTierlistData(it[0].toString(), type))
+                        }
+                    }
+                }
+            }
+
+            override suspend fun dataOf(mon: String): ExternalTierlistData {
+                return data()[mon] ?: error("No Data found for $mon")
+            }
+        };
+
+        abstract suspend fun dataOf(mon: String): ExternalTierlistData
+    }
+
 
     context(InteractionData)
     override suspend fun exec(e: Args) {
@@ -71,8 +106,9 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
             e.shiftMode!!.parseMons(it)
         }
         val complexSign = e.complexSign
+        val ranges = e.ranges.flatMap { it.split(";") }
         try {
-            val (_, _, yStart, _, yEnd) = DocRange[e.ranges.first()]
+            val (_, _, yStart, _, yEnd) = DocRange[ranges.first()]
             TierlistBuilderConfigurator(
                 userId = user,
                 channelId = tc,
@@ -80,7 +116,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                 mons =
                 (Google.batchGet(
                     sid,
-                    e.ranges.map {
+                    ranges.map {
                         if (it.contains(":")) return@map "$tierlistsheet!$it"
                         "$tierlistsheet!$it$yStart:$it$yEnd"
                     },
@@ -91,7 +127,8 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                     .also { tierlistcols += it }
                     .flatten().ensureNoDuplicates() + shiftedMons?.map { it.name }.orEmpty()).distinct(),
                 tierlistcols = tierlistcols,
-                shiftedMons = shiftedMons
+                shiftedMons = shiftedMons,
+                tierMapper = e.dataMapper?.let { mapper -> { mapper.dataOf(it) } }
             )
         } catch (ex: DuplicatesFoundException) {
             reply(
@@ -121,3 +158,5 @@ fun List<String>.ensureNoDuplicates(): List<String> {
 }
 
 class DuplicatesFoundException(val duplicates: List<String>) : Exception()
+
+data class ExternalTierlistData(val tier: String?, val type: String? = null)

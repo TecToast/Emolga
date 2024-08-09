@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.dconfigurator.impl
 
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.features.draft.ExternalTierlistData
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.createCoroutineScope
@@ -43,7 +44,8 @@ class TierlistBuilderConfigurator(
     guildId: Long,
     val mons: List<String>,
     val tierlistcols: List<List<String>>,
-    val shiftedMons: List<DraftPokemon>? = null
+    val shiftedMons: List<DraftPokemon>? = null,
+    private val tierMapper: (suspend (String) -> ExternalTierlistData?)? = null
 ) : DGuildConfigurator("tierlistbuilder", userId, channelId, guildId) {
     override val steps: List<Step<*>> = listOf(step<SlashCommandInteractionEvent> {
         val nc = db.nameconventions.findOne(NameConventions::guild eq guildId)?.data ?: run {
@@ -336,18 +338,23 @@ class TierlistBuilderConfigurator(
             Tierlist.batchInsert(
                 (tierlistcols.flatMapIndexed { index, strings ->
                     strings.map {
-                        DraftPokemon(
-                            it,
-                            shiftMap?.get(it) ?: tiermapping[index]!!
+                        val tierlistData = tierMapper?.invoke(it)
+                        ProcessedDraftPokemon(
+                            DraftPokemon(
+                                it, shiftMap?.get(it) ?: tiermapping[index]!!
+                            ), tierlistData
                         )
                     }
-                } + shiftedMons.orEmpty()).asSequence().filter { it.tier in prices!! }.distinctBy { it.name }
+                } + shiftedMons.orEmpty().map { ProcessedDraftPokemon(it, null) }).asSequence()
+                    .filter { it.tier in prices!! }
+                    .distinctBy { it.name }
                     .sortedWith(compareBy({ it.tier.indexedBy(prices!!.keys.toList()) }, { it.name })),
                 shouldReturnGeneratedValues = false
             ) {
                 this[Tierlist.guild] = guildId
                 this[Tierlist.pokemon] = it.name
                 this[Tierlist.tier] = it.tier
+                this[Tierlist.type] = it.type
             }
         }
         checkScope.launch {
@@ -399,4 +406,10 @@ class TierlistBuilderConfigurator(
 
         val enabledGuilds = setOf(1054161634895069215, 651152835425075218, 736555250118295622)
     }
+}
+
+data class ProcessedDraftPokemon(val name: String, val tier: String, val type: String?) {
+    constructor(draftPokemon: DraftPokemon, externalTierlistData: ExternalTierlistData?) : this(
+        draftPokemon.name, externalTierlistData?.tier ?: draftPokemon.tier, externalTierlistData?.type
+    )
 }

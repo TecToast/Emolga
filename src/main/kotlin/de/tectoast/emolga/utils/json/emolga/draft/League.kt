@@ -711,7 +711,6 @@ sealed class League {
     open suspend fun onReplayAnalyse(data: ReplayData) {}
 
     fun getGameplayData(idx1: Int, idx2: Int, game: List<DraftPlayer>): GamedayData {
-        var battleind = -1
         var u1IsSecond = false
         val gameday = battleorder.asIterable().reversed().firstNotNullOfOrNull {
             if (it.value.any { l ->
@@ -723,7 +722,7 @@ sealed class League {
         val numbers = (0..1).reversedIf(u1IsSecond).map { game[it].alivePokemon }
         val battleindex = battleorder[gameday]?.let { battleorder ->
             (battleorder.indices.firstOrNull { battleorder[it].contains(idx1) } ?: -1)
-        } ?: battleind
+        } ?: -1
 
         return GamedayData(
             gameday, battleindex, u1IsSecond, numbers
@@ -946,7 +945,10 @@ data class RandomPickConfig(
 }
 
 data class RandomPickUserInput(
-    val tier: String?, val type: String?, val ignoreRestrictions: Boolean = false, val skipMon: String? = null
+    val tier: String?,
+    val type: String?,
+    val ignoreRestrictions: Boolean = false,
+    val skipMons: Set<String> = emptySet()
 )
 
 @Serializable
@@ -977,7 +979,7 @@ sealed interface RandomPickMode {
             val list = tierlist.getByTier(tier)!!.shuffled()
             val skipMega = config.onlyOneMega && picks[current]!!.any { it.name.isMega }
             return firstAvailableMon(list) { german, english ->
-                if (german == input.skipMon || (skipMega && english.isMega)) return@firstAvailableMon false
+                if (german in input.skipMons || (skipMega && english.isMega)) return@firstAvailableMon false
                 if (input.type != null) input.type in db.pokedex.get(english.toSDName())!!.types else true
             }?.let { it to tier }
                 ?: return replyNull("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")
@@ -1009,7 +1011,7 @@ sealed interface RandomPickMode {
                         ?: return replyNull("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
                 val tempmon = firstAvailableMon(
                     tierlist.getWithTierAndType(temptier, type).shuffled()
-                ) { german, _ -> german != input.skipMon && !(german.isMega && skipMega) }
+                ) { german, _ -> german in input.skipMons && !(german.isMega && skipMega) }
                 if (tempmon != null) {
                     mon = tempmon
                     tier = temptier
@@ -1019,7 +1021,7 @@ sealed interface RandomPickMode {
             }
             if (mon == null) {
                 logger.error("No pokemon found without error message: $current $type")
-                return replyNull("Es ist ein unbekannter Fehler aufgetreten!")
+                return replyNull("Es ist konnte kein passendes Pokemon gefunden werden! (<@${Constants.FLOID}>)")
             }
             return mon to tier!!
         }
@@ -1052,6 +1054,7 @@ data class RandomLeaguePick(
     val tlName: String,
     val tier: String,
     val data: Map<String, String?> = mapOf(),
+    val history: Set<String> = setOf(),
     var disabled: Boolean = false
 )
 

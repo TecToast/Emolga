@@ -90,7 +90,8 @@ object RandomPick {
     private suspend fun League.rerollOption(
         draftname: DraftName,
         tier: String,
-        type: String?
+        type: String?,
+        history: Set<String> = emptySet()
     ): Boolean {
         val jokerAmount = randomLeagueData.jokers[current] ?: 0
         if (jokerAmount > 0) {
@@ -112,7 +113,13 @@ object RandomPick {
                     }).into()
             )
             randomLeagueData.currentMon =
-                RandomLeaguePick(draftname.official, draftname.tlName, tier, mapOf("type" to type))
+                RandomLeaguePick(
+                    draftname.official,
+                    draftname.tlName,
+                    tier,
+                    mapOf("type" to type),
+                    history = history + draftname.official
+                )
             save("RandomPick")
             return true
         }
@@ -129,7 +136,7 @@ object RandomPick {
         override suspend fun exec(e: Args) {
             deferReply()
             League.executePickLike {
-                val (official, tlName, tier, map, disabled) = randomLeagueData.currentMon ?: return reply(
+                val (official, tlName, tier, map, history, disabled) = randomLeagueData.currentMon ?: return reply(
                     "Es gibt zurzeit keinen Pick!",
                     ephemeral = true
                 )
@@ -154,7 +161,7 @@ object RandomPick {
                         val config = getConfigOrDefault<RandomPickConfig>()
                         val type = map["type"]
                         val (newdraftname, newtier) = with(config.mode) {
-                            getRandomPick(RandomPickUserInput(tier, type, skipMon = official), config)
+                            getRandomPick(RandomPickUserInput(tier, type, skipMons = history), config)
                         } ?: return
                         if (rerollOption(newdraftname, newtier, type)) return
                         executeWithinLock(PickInput(newdraftname, newtier, false), DraftMessageType.REROLL)

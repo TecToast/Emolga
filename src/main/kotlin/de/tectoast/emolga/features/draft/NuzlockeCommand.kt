@@ -74,7 +74,7 @@ object NuzlockeCommand :
                             tier = oldMon.tier,
                             type = null,
                             ignoreRestrictions = true,
-                            skipMon = mon.official
+                            skipMons = setOf(mon.official)
                         ), config
                     )
                 } ?: return

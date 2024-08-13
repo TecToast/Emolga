@@ -101,7 +101,7 @@ data class SDPokemon(
 }
 
 enum class PokemonSaveKey {
-    LAST_DAMAGE_BY, ITEM_OBTAINED_FROM, TARGET_FOR_TRICK
+    LAST_DAMAGE_BY, ITEM_OBTAINED_FROM, TARGET_FOR_TRICK, FUTURE_MOVE_SOURCE
 }
 
 enum class PlayerSaveKey {
@@ -149,7 +149,7 @@ sealed class SDEffect(vararg val types: String) {
         context(BattleContext)
         override fun execute(split: List<String>) {
             turn = split[1].toInt()
-            sdPlayers.forEach { it.hittingFutureMoves.clear() }
+            sdPlayers.forEach { it.hittingFutureMove = null }
         }
     }
 
@@ -237,7 +237,8 @@ sealed class SDEffect(vararg val types: String) {
     data object Damage : SDEffect("-damage") {
         context(BattleContext)
         override fun execute(split: List<String>) {
-            val damagedMon = split[1].parsePokemon()
+            val damagedMonLocation = split[1].parsePokemonLocation()
+            val damagedMon = monsOnField[damagedMonLocation.first][damagedMonLocation.second]
             val fainted = "fnt" in split[2]
             val amount = damagedMon.hp - split[2].substringBefore("/").replace(otherThanNumbers, "").toInt()
             if (split.size > 4 && "[of]" in split[4] && split[3].substringAfter("[from] ") !in damagedMon.volatileEffects) {
@@ -279,9 +280,10 @@ sealed class SDEffect(vararg val types: String) {
                 )
                 Unit
             } ?: run {
-                sdPlayers.getOrNull(1 - damagedMon.player)?.let { p ->
-                    p.hittingFutureMoves.removeFirstOrNull()?.let {
-                        p.fieldConditions[it]?.claimDamage(damagedMon, fainted, amount)
+                val p = sdPlayers[damagedMonLocation.first]
+                p.hittingFutureMove?.let { (idx, move) ->
+                    if (damagedMonLocation.second == idx) {
+                        p.fieldConditions[move]?.claimDamage(damagedMon, fainted, amount)
                         return@run
                     }
                 }
@@ -314,9 +316,16 @@ sealed class SDEffect(vararg val types: String) {
             val fainted = split[1].parsePokemon()
             fainted.isDead = true
             sdPlayers[fainted.player].putIfAbsent(PlayerSaveKey.FIRST_FAINTED, fainted)
-            val lastLine = lastLine.value.cleanSplit()
-            if (lastLine.getOrNull(0) == "-activate" && lastLine.getOrNull(2) == "move: Destiny Bond") {
-                lastLine.getOrNull(1)?.parsePokemon()?.claimDamage(fainted, true, fainted.hp)
+            var cLineIndex = currentLineIndex - 1
+            while (cLineIndex >= 0) {
+                val line = game[cLineIndex].cleanSplit()
+                val first = line.getOrNull(0)
+                if (first == "-activate" && line.getOrNull(2) == "move: Destiny Bond") {
+                    line.getOrNull(1)?.parsePokemon()?.claimDamage(fainted, true, fainted.hp)
+                    break
+                }
+                if (first == "move" || first == "turn") break
+                cLineIndex--
             }
         }
     }
@@ -365,7 +374,8 @@ sealed class SDEffect(vararg val types: String) {
                     return
                 }
                 val boomed = monsOnField[pl][idx]
-                (boomed[LAST_DAMAGE_BY] ?: monsOnField.getOrNull(1 - pl)?.let {
+                (boomed[LAST_DAMAGE_BY] ?: split.getOrNull(3)?.takeIf { it.startsWith("p") }?.parsePokemon()
+                ?: monsOnField.getOrNull(1 - pl)?.let {
                     it.getOrNull(1 - idx) ?: it[idx]
                 })?.claimDamage(boomed, true, boomed.hp)
             }
@@ -449,13 +459,16 @@ sealed class SDEffect(vararg val types: String) {
         context(BattleContext)
         override fun execute(split: List<String>) {
             if (split[0] == "-start") {
-                if (split.getOrNull(2) == "move: $moveName") {
-                    sdPlayers[split[1].parsePokemonLocation().first].fieldConditions[this] = split[1].parsePokemon()
+                if (split.getOrNull(2)?.contains(moveName) == true) {
+                    sdPlayers[lastLine.value.cleanSplit()[3].parsePokemonLocation().first].fieldConditions[this] =
+                        split[1].parsePokemon()
                 }
             } else if (split[0] == "-end") {
-                if (split.getOrNull(2) == "move: $moveName") {
-                    sdPlayers.getOrNull(1 - split[1].parsePokemonLocation().first)?.hittingFutureMoves?.add(this)
+                if (split.getOrNull(2)?.contains(moveName) == true) {
+                    val (p, idx) = split[1].parsePokemonLocation()
+                    sdPlayers.getOrNull(p)?.hittingFutureMove = idx to this
                 }
+                // TODO: Future Moves shoot on one slot on the opponent, save it there (prepared)
             }
         }
     }
@@ -543,7 +556,7 @@ class SDPlayer(
     val nickname: String,
     val pokemon: MutableList<SDPokemon>,
     val fieldConditions: MutableMap<SDEffect, SDPokemon> = mutableMapOf(),
-    val hittingFutureMoves: MutableList<SDEffect.FutureMoves> = mutableListOf(),
+    var hittingFutureMove: Pair<Int, SDEffect.FutureMoves>? = null,
     var winnerOfGame: Boolean = false,
     var teamSize: Int = 6,
     private val playerSaves: MutableMap<PlayerSaveKey, SDPokemon> = mutableMapOf()

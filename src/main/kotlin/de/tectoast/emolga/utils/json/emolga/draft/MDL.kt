@@ -47,7 +47,7 @@ class MDL : League() {
             )
         ) {
             b.addRow(
-                gdi.CoordXMod("Spielplan", 3, 8, 3, 8, 5),
+                gdi.CoordXMod("Spielplan", 3, 8, 3, 8, 5 + index),
                 listOf("$numberOne", "", """=HYPERLINK("$url"; ":")""", "$numberTwo")
             )
         }

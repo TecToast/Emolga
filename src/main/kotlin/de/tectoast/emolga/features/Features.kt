@@ -527,15 +527,49 @@ open class Arguments {
         }
     }
 
+    fun <DiscordType, ParsedType> genericList(
+        name: String,
+        help: String,
+        numOfArgs: Int,
+        requiredNum: Int,
+        type: OptionType,
+        startAt: Int = 1
+    ) = object : ReadWriteProperty<Arguments, List<ParsedType>> {
+        private val argList: List<Arg<DiscordType, out ParsedType?>> = List(numOfArgs) { i ->
+            createArg<DiscordType, ParsedType>(name.embedI(i, startAt), help.embedI(i, startAt), type) {}.run {
+                if (i >= requiredNum) nullable() else this
+            }
+        }
+
+        private var parsed: List<ParsedType>? = null
+        override fun getValue(
+            thisRef: Arguments,
+            property: KProperty<*>
+        ): List<ParsedType> {
+            if (parsed == null) {
+                parsed = argList.mapNotNull { it.parsed }
+            }
+            return parsed!!
+        }
+
+        override fun setValue(
+            thisRef: Arguments,
+            property: KProperty<*>,
+            value: List<ParsedType>
+        ) {
+            parsed = value
+        }
+    }
+
+    private fun String.embedI(i: Int, startAt: Int) = if ("%s" in this) format(i + startAt) else plus(i + startAt)
     fun list(name: String = "", help: String = "", numOfArgs: Int, requiredNum: Int, startAt: Int = 1) =
         object : ReadWriteProperty<Arguments, List<String>> {
             private val argList: List<Arg<String, out String?>> = List(numOfArgs) { i ->
-                createArg<String, String>(name.embedI(i), help.embedI(i), OptionType.STRING) {}.run {
+                createArg<String, String>(name.embedI(i, startAt), help.embedI(i, startAt), OptionType.STRING) {}.run {
                     if (i >= requiredNum) nullable() else this
                 }
             }
 
-            private fun String.embedI(i: Int) = if ("%s" in this) format(i + startAt) else plus(i + startAt)
             private var parsed: List<String>? = null
 
             override fun getValue(thisRef: Arguments, property: KProperty<*>): List<String> {

@@ -370,7 +370,9 @@ data class ShinyEvent(
 @Serializable
 data class LogoChecksum(
     val checksum: String, val fileId: String
-)
+) {
+    val url get() = "https://drive.google.com/uc?export=download&id=${fileId}"
+}
 
 suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!
 suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) =

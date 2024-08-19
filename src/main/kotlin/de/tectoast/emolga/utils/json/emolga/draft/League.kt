@@ -741,6 +741,14 @@ sealed class League {
     open fun executeTipGameSending(num: Int) {
         launch {
             val tip = tipgame!!
+            var shouldSave = false
+            for (gameday in tip.tips.keys.toList()) {
+                if (gameday >= num) {
+                    tip.tips.remove(gameday)
+                    shouldSave = true
+                }
+            }
+            if (shouldSave) save("TipGameSending ResetOfTipGame")
             val channel = jda.getTextChannelById(tip.channel)!!
             val matchups = getMatchups(num)
             val names = jda.getGuildById(guild)!!.retrieveMembersByIds(matchups.flatten()).await()

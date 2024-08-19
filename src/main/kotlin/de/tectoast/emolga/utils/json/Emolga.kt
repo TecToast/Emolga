@@ -110,7 +110,12 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     private val scanScope = createCoroutineScope("ScanScope")
 
-    suspend fun leagueByGuildAdvanced(gid: Long, game: List<List<DraftName>>, vararg uids: Long): LeagueResult? {
+    suspend fun leagueByGuildAdvanced(
+        gid: Long,
+        game: List<List<DraftName>>,
+        prefetchedLeague: League? = null,
+        vararg uids: Long
+    ): LeagueResult? {
         val (leagueResult, duration) = measureTimedValue {
             val allOtherFormesGerman = ConcurrentHashMap<String, List<String>>()
             val (dp1, dp2) = uids.mapIndexed { index, uid ->
@@ -151,7 +156,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                 }
             }
             if (resultList == null) return@measureTimedValue null
-            val league = league(resultList[0].leaguename)
+            val league = prefetchedLeague ?: league(resultList[0].leaguename)
             LeagueResult(league, resultList.map { it.idx }, allOtherFormesGerman)
         }
         logger.debug { "DURATION: ${duration.inWholeMilliseconds}" }

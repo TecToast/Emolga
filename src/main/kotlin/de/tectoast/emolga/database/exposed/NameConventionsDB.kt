@@ -93,15 +93,15 @@ object NameConventionsDB : Table("nameconventions") {
             insert {
                 it[GUILD] = guildId
                 it[GERMAN] = germanName
-                val row = selectAll().where(GERMAN eq germanName).first()
+                val row = selectAll().where(GERMAN eq germanName and (GUILD eq 0)).first()
                 it[ENGLISH] = row[ENGLISH]
                 it[SPECIFIED] = tlName
-                it[SPECIFIEDENGLISH] = run {
+                it[SPECIFIEDENGLISH] = /*run {
                     val baseName = row[GERMAN].split("-").let { base ->
                         if (row[HASHYPHENINNAME]) base.take(2).joinToString("-") else base[0]
                     }
                     tlName.replace(baseName, row[ENGLISH].split("-").first())
-                }
+                }*/ row[SPECIFIEDENGLISH]
             }
         }
     }

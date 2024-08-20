@@ -1,3 +1,5 @@
+@file:Suppress("UsePropertyAccessSyntax")
+
 package de.tectoast.emolga.utils
 
 import com.google.api.client.auth.oauth2.BearerToken
@@ -93,7 +95,7 @@ object Google {
         ranges: List<String>,
         formula: Boolean,
         majorDimension: String = "ROWS"
-    ): List<List<List<Any>>> =
+    ): List<List<List<Any?>>> =
         withContext(googleContext) {
             sheetsService().spreadsheets().values().batchGet(sid).setRanges(ranges).setMajorDimension(majorDimension)
                 .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")

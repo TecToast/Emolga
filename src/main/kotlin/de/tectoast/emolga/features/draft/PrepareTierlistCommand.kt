@@ -123,7 +123,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                     false,
                     "COLUMNS"
                 )
-                    .map { col -> col.flatten().mapNotNull { it.toString().prepareForTL(complexSign) } }
+                    .mapNotNull { col -> col.flatten().mapNotNull { it.toString().prepareForTL(complexSign) } }
                     .also { tierlistcols += it }
                     .flatten().ensureNoDuplicates() + shiftedMons?.map { it.name }.orEmpty()).distinct(),
                 tierlistcols = tierlistcols,

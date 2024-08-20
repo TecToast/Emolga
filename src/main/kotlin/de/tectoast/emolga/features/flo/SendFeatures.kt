@@ -19,13 +19,15 @@ object SendFeatures {
         var msg by string("msg", "msg")
     }
 
+    private fun String.convertForSend() = this.replace("\\n", "\n")
+
     object SendPNCommand : CommandFeature<Args>(::Args, CommandSpec("sendpn", "Sendet eine PN an einen User")) {
         init {
             restrict(flo)
         }
 
         context(InteractionData) override suspend fun exec(e: Args) {
-            jda.openPrivateChannelById(e.id).flatMap { it.sendMessage(e.msg) }.queue()
+            jda.openPrivateChannelById(e.id).flatMap { it.sendMessage(e.msg.convertForSend()) }.queue()
             done(true)
         }
 
@@ -37,7 +39,7 @@ object SendFeatures {
         }
 
         context(InteractionData) override suspend fun exec(e: Args) {
-            jda.getTextChannelById(e.id)!!.sendMessage(e.msg).queue()
+            jda.getTextChannelById(e.id)!!.sendMessage(e.msg.convertForSend()).queue()
             done(true)
         }
 

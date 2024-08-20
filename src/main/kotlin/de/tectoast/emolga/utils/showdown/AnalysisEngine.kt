@@ -460,7 +460,7 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>) {
             if (split[0] == "-start") {
                 if (split.getOrNull(2)?.contains(moveName) == true) {
-                    sdPlayers[lastLine.value.cleanSplit()[3].parsePokemonLocation().first].fieldConditions[this] =
+                    sdPlayers[lastLine.value.cleanSplit()[3].parsePlayerLocation()].fieldConditions[this] =
                         split[1].parsePokemon()
                 }
             } else if (split[0] == "-end") {
@@ -588,6 +588,8 @@ fun String.parsePokemonLocation() = substringAfter('p').substringBefore(':').let
     val p = it[0].digitToInt() - 1
     p to if (p > 1) 0 else it[1].cToI()
 }
+
+fun String.parsePlayerLocation() = substringAfter('p').substringBefore(':')[0].digitToInt() - 1
 
 private fun Char.cToI(): Int {
     return this.code - 97 //ich mag ganz viele leckere Kekse nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom Bounjour!

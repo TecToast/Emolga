@@ -12,7 +12,7 @@ object StartMenschenhandel : CommandFeature<StartMenschenhandel.Args>(
     CommandSpec("startmenschenhandel", "Startet die beste Sache einer Coach-Season")
 ) {
     class Args : Arguments() {
-        var channel by messageChannel("Channel", "Der Channel lol")
+        var channel by long("Channel", "Der Channel lol")
     }
 
     init {
@@ -22,10 +22,11 @@ object StartMenschenhandel : CommandFeature<StartMenschenhandel.Args>(
 
     context(InteractionData)
     override suspend fun exec(e: Args) {
-        val tc = e.channel
+        val tcid = e.channel
+        done(true)
         db.aslcoach.only().apply {
-            textChannel = tc.idLong
-            tc.sendMessage("Möge der Menschenhandel beginnen!").queue()
+            textChannel = tcid
+            jda.getTextChannelById(tcid)!!.sendMessage("Möge der Menschenhandel beginnen!").queue()
             nextCoach()
             save()
         }

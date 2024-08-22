@@ -158,6 +158,11 @@ inline fun <T> Collection<T>.filterContainsIgnoreCase(other: String, tostring: (
 
 fun Double.roundToDigits(digits: Int) = "%.${digits}f".format(this)
 
+inline fun Boolean.ifTrue(block: () -> Unit): Boolean {
+    if (this) block()
+    return this
+}
+
 /**
  * Ignores an exception if the predicate returns true
  * @return true if the operation succeeded normally, false if the exception was ignored

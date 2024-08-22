@@ -304,7 +304,7 @@ class RequestBuilder
         return addStrikethroughChange(sheetId, x.xc() + y, strikethrough)
     }
 
-    private fun addFGColorChange(sheetId: Int, range: String, c: Color?): RequestBuilder {
+    fun addFGColorChange(sheetId: Int, range: String, c: Color?): RequestBuilder {
         val split = range.split(":")
         val s1 = split[0]
         val s2 = if (split.size == 1) s1 else split[1]
@@ -429,7 +429,7 @@ class RequestBuilder
         logger.info("sid = $sid")
         for (i in userentered.indices) {
             val range = userentered[i]
-            logger.info("{}: {} -> {}", i, range.range, range.getValues())
+            logger.info("{}: {} -> {}", i, range.range, range.values)
         }
     }
 

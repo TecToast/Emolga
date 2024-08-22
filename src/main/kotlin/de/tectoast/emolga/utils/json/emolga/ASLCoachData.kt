@@ -2,21 +2,27 @@ package de.tectoast.emolga.utils.json.emolga
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.MappedCache
+import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.RequestBuilder
+import de.tectoast.emolga.utils.convertColor
+import de.tectoast.emolga.utils.coordXMod
 import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.xmod
 import de.tectoast.emolga.utils.ydiv
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.Member
 import org.litote.kmongo.Id
 import org.litote.kmongo.coroutine.updateOne
+import java.util.concurrent.TimeUnit
+
+data class CoachMemberData(val level: Int, val teamindex: Int, val team: String)
 
 @Serializable
 class ASLCoachData(
@@ -32,57 +38,61 @@ class ASLCoachData(
     var round: Int = 0
 ) {
     fun teamByCoach(mem: Long): TeamData? = data.values.firstOrNull { it.members[0]!! == mem }
-    fun indexOfMember(mem: Long): Triple<Int, Int, String> = data.entries.first { mem in it.value.members.values }
-        .let { en -> Triple(en.value.members.entries.first { it.value == mem }.key, en.key.indexedBy(table), en.key) }
+    fun dataOfMember(mem: Long) = data.entries.first { mem in it.value.members.values }
+        .let { en ->
+            CoachMemberData(
+                en.value.members.entries.first { it.value == mem }.key,
+                en.key.indexedBy(table),
+                en.key
+            )
+        }
 
     fun roleIdByMember(mem: Long) = data.values.first { mem in it.members.values }.role
 
     fun teammembersByMember(mem: Long) = data.values.first { mem in it.members.values }.members.values
-    private fun teamnameByCoach(mem: Long): String = data.entries.first { it.value.members[0]!! == mem }.key
-    suspend fun addUserToTeam(user: Member, coach: Long, prize: Int) {
-        val level = getLevelByMember(user)
+    fun teamnameByCoach(mem: Long): String = data.entries.first { it.value.members[0]!! == mem }.key
+    suspend fun addUserToTeam(member: Member, coach: Long, prize: Int) {
+        val level = getLevelByMember(member)
         teamByCoach(coach)!!.apply {
-            members[level] = user.idLong
+            members[level] = member.idLong
             points -= prize
-            //if(members.size == 5) order.values.forEach { l -> l.removeIf { it == table.indexOf(data.reverseGet(this))} }
-            if (members.size == TEAMSIZE) {
+            if (members.size >= config.teamSize) {
                 val toremove = table.indexOf(data.reverseGet(this))
                 originalorder.remove(toremove)
                 order.remove(toremove)
             }
             try {
                 prefix?.let {
-                    user.modifyNickname("[$it] ${user.effectiveName.substringAfterLast("]").trim()}").queue(
-                        {},
-                    ) { ex ->
-                        ex.printStackTrace()
+                    val newName = "[$it] ${member.effectiveName}"
+                    if (newName.length <= 32 && member.guild.selfMember.canInteract(member)) {
+                        member.modifyNickname("[$it] ${member.effectiveName.substringAfterLast("]").trim()}").queue(
+                            {},
+                        ) { ex ->
+                            ex.printStackTrace()
+                        }
                     }
                 }
-                user.guild.addRoleToMember(user, user.jda.getRoleById(role)!!).queue()
+                member.guild.addRoleToMember(member, member.jda.getRoleById(role)!!)
+                    .queueAfter(3000, TimeUnit.MILLISECONDS)
             } catch (ex: Exception) {
                 ex.printStackTrace()
                 if (ex is CancellationException) throw ex
             }
         }
-
-        insertIntoDoc(user, coach, level, prize)
+        insertIntoDoc(member, coach, level, prize)
     }
 
 
     private fun teamByIndex(index: Int) = table[index].let { it to data[it]!! }
 
     suspend fun isPlayer(mem: Member) = mem.idLong in participants()
-    fun isTaken(mem: Long) = data.values.any { datas -> (1..3).any { datas.members[it] == mem } }
+    fun isTaken(mem: Long) = data.values.any { datas -> (1..(config.teamSize - 1)).any { datas.members[it] == mem } }
 
     suspend fun getLevelByMember(mem: Member): Int = participants()[mem.idLong]!!
 
     fun nextCoach() {
-
         refillOrderIfEmpty()
-        if (order.isEmpty()) {
-            textChannel().sendMessage("Der Menschenhandel is vorbei :3").queue()
-            return
-        }
+        if (order.isEmpty()) return textChannel().sendMessage("Der Menschenhandel ist vorbei :3").queue()
         val (teamname, teamData) = teamByIndex(order.removeFirst())
         val coach = teamData.members[0] ?: run {
             SendFeatures.sendToMe("lul guter Coach")
@@ -107,37 +117,33 @@ class ASLCoachData(
     private suspend fun insertIntoDoc(
         user: Member, coach: Long, level: Int, prize: Int
     ) {
-        val row = participants().keys.toList().indexOf(user.idLong) + 4
+        val groupBy = groupedParticipants()
+        val entries = groupBy[level.toString()]!!
+        val siteCoord =
+            level.minus(1).coordXMod("Menschenhandel", 2, 2, 20, 14, 7 + entries.indexOfFirst { it.key == user.idLong })
+                .substringAfter("!")
         table.indexOf(teamnameByCoach(coach)).let {
             RequestBuilder(sid).addRow(
-                "Menschenhandel!${it.xmod(6, 3, 2)}${it.ydiv(6, 16, 14 + level)}", listOf("=T$row", prize)
-            ).addStrikethroughChange(959039009, "T$row", true).execute()
+                "Menschenhandel!${it.xmod(6, 3, 2)}${it.ydiv(6, 17, 14 + level)}", listOf("=$siteCoord", prize)
+            ).addStrikethroughChange(85312398, siteCoord, true)
+                .addFGColorChange(85312398, siteCoord, 0xFF0000.convertColor()).execute()
         }
     }
 
     companion object {
-        const val TEAMSIZE = 4
 
-        private var _participants: Map<Long, Int>? = null
-
-        private val mutex = Mutex()
-        suspend fun participants(): Map<Long, Int> {
-            init()
-            return _participants!!
+        val groupedParticipants = OneTimeCache {
+            val data = db.signups.get(Constants.G.ASL)!!
+            data.users.entries.groupBy { it.value.conference!! }
         }
 
-        private suspend fun init() {
-            mutex.withLock {
-                if (_participants == null) {
-                    val data = db.signups.get(518008523653775366)!!
-                    val groupBy = data.users.entries.groupBy { it.value.conference }
-                    _participants = buildMap {
-                        for ((index, conference) in data.conferences.withIndex()) {
-                            val confnum = conference.toIntOrNull() ?: continue
-                            putAll(groupBy[conference]!!.map { it.key }.associateWith { confnum })
-                            put(index.toLong(), -1)
-                        }
-                    }
+        val participants = MappedCache(groupedParticipants) { groupBy ->
+            val data = db.signups.get(Constants.G.ASL)!!
+            buildMap {
+                for ((index, conference) in data.conferences.withIndex()) {
+                    val confnum = conference.toIntOrNull() ?: continue
+                    if (confnum == 0) continue
+                    putAll(groupBy[conference]!!.map { it.key }.associateWith { confnum })
                 }
             }
         }
@@ -152,11 +158,16 @@ class TeamData(
     val role: Long,
     val prefix: String? = null
 ) {
-    fun pointsToSpend(): Int = points - ((ASLCoachData.TEAMSIZE - 1 - members.size) * 100)
+    fun pointsToSpend(data: ASLCoachData): Int = points - ((data.config.teamSize - 1 - members.size) * 100)
 
 }
 
 @Serializable
-class Config(val waitFor: Long = 15000, val countdownSeconds: Int = 15, val sendOn: List<Int> = listOf(5, 15))
+class Config(
+    val waitFor: Long = 15000,
+    val countdownSeconds: Int = 15,
+    val sendOn: List<Int> = listOf(5, 15),
+    val teamSize: Int = 5
+)
 
 fun <T, R> Map<T, R>.reverseGet(value: R): T? = this.entries.firstOrNull { it.value == value }?.key

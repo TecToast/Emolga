@@ -372,18 +372,18 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun initializeCoachSeason() {
         val teams = mapOf(
-            "Dragorangensaft" to CoachData(268813717863530496, 1159431733557608458, "EDS"),
-            "Roserades Restaurants" to CoachData(230715385962430465, 1159432029218283551, "ROS"),
-            "Let Him Cook" to CoachData(302421572004872193, 1159432116757614602, "LHC"),
-            "Dönersichel" to CoachData(293827461698027521, 1159432596116209665, "DS"),
-            "Keldeogg's Frosties" to CoachData(441290844381642782, 1159432673756975154, "KF"),
-            "Muffin-san's little bakery" to CoachData(264333612432752640, 1159432842841948230, "MLB"),
-            "Sweet Tooth" to CoachData(725650285858521128, 1159432937381576746, "ST"),
-            "Verspeisen sie Barsch?" to CoachData(207211269911085056, 1159432981472096296, "VSA"),
-            "Flutsch-Finger Fluffeluff" to CoachData(310517476322574338, 1159433134249627648, "FFF"),
-            "Spicy Dino Nugget Gang" to CoachData(239836406594273280, 1159433205582147685, "SDG"),
-            "Well-Baked Backel" to CoachData(567135876308795392, 1159433481328283760, "WBB"),
-            "Ape Tower" to CoachData(324265924905402370, 1159433552413335603, "PZT")
+            "BINDING OF ISSOO" to CoachData(324265924905402370, 1272878415342469131, "BOI"),
+            "FOLLOW THE FIREFLIES" to CoachData(239836406594273280, 1272878693689331733, "FTF"),
+            "KNIGHTLEY GALLADES" to CoachData(689440028505538574, 1272878151390855181, "KG"),
+            "LIVE REACT OF RUIN" to CoachData(232950767454126090, 1272905894031523860, "LROR"),
+            "DÖNERSICHEL" to CoachData(293827461698027521, 1273189725905223721, "DS"),
+            "NEVAIO CITY NIDOQUEENS" to CoachData(317306765265862666, 1273275766184087574, "NCN"),
+            "THE TERMANITAR" to CoachData(429172327985446912, 1273557295464321075, "TT"),
+            "1. CPC KÖLN" to CoachData(367704349528555520, 1273626291551338496, "CPC"),
+            "NOOB" to CoachData(207211269911085056, 1274280568258957333, "NOOB"),
+            "SUPER TANDEBROS" to CoachData(441290844381642782, 1274280735057903658, "ST"),
+            "LOW-LIFE LUCARIO" to CoachData(694816734053531678, 1274280403833982978, "LLL"),
+            "HENNY'S HÄHNCHEN" to CoachData(297010892678234114, 1274280928386220113, "HENNY")
         )
         val aslCoachData = ASLCoachData(
             newId(),
@@ -391,10 +391,10 @@ object PrivateCommands {
             data = teams.mapValues {
                 val data = it.value
                 TeamData(
-                    members = mutableMapOf(0 to data.coachId), points = 4500, role = data.roleId, prefix = data.prefix
+                    members = mutableMapOf(0 to data.coachId), points = 6000, role = data.roleId, prefix = data.prefix
                 )
             },
-            sid = "1U7XDcLrJT8Y4TkP1Gm6wpdpDOn256GBf8-q3zBonuso",
+            sid = "1Hd-YHH-9YVgPy23eO9-i16rsZF_vLkifKbUd0oGW5WA",
             originalorder = List(12) { it }.shuffled(SecureRandom()).toMutableList(),
             config = Config(),
         )

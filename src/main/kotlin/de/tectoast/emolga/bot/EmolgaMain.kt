@@ -6,9 +6,11 @@ import de.tectoast.emolga.features.FeatureManager
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
+import de.tectoast.emolga.utils.defaultScope
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.getCount
+import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.marker
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.jdabuilder.cache
@@ -76,9 +78,13 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
             intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
             setMemberCachePolicy(MemberCachePolicy.ALL)
         }
-        Credentials.tokens.discordraikou.takeIf { it != "" }?.let {
-            raikoujda = default(it) {
-                intents += GatewayIntent.MESSAGE_CONTENT
+        defaultScope.launch {
+            if (db.config.only().raikou) {
+                Credentials.tokens.discordraikou.takeIf { it != "" }?.let {
+                    raikoujda = default(it) {
+                        intents += GatewayIntent.MESSAGE_CONTENT
+                    }
+                }
             }
         }
     }
@@ -113,11 +119,6 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
                 .sendMessage(SimpleDateFormat("dd.MM.yyyy").format(Date()) + ": " + count).queue()
         }
         emolgajda.presence.setPresence(OnlineStatus.ONLINE, Activity.watching("auf $count analysierte Replays"))
-    }
-
-    @Suppress("unused")
-    private fun initializeASLCoach(raikou: JDA) {
-
     }
 
 

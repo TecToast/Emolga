@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package de.tectoast.emolga.utils.json.emolga
 
 import de.tectoast.emolga.bot.jda
@@ -15,6 +17,8 @@ import de.tectoast.emolga.utils.xmod
 import de.tectoast.emolga.utils.ydiv
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Contextual
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.Member
@@ -30,12 +34,14 @@ class ASLCoachData(
     val table: List<String> = emptyList(),
     val data: Map<String, TeamData> = mutableMapOf(),
     private val sid: String,
+    @EncodeDefault
     val order: MutableList<Int> = mutableListOf(),
     val originalorder: MutableList<Int> = mutableListOf(),
     val config: Config = Config(),
     var textChannel: Long = 820359155612254258,
     var currentCoach: Long = -1,
-    var round: Int = 0
+    @EncodeDefault
+    var round: Int = 1
 ) {
     fun teamByCoach(mem: Long): TeamData? = data.values.firstOrNull { it.members[0]!! == mem }
     fun dataOfMember(mem: Long) = data.entries.first { mem in it.value.members.values }

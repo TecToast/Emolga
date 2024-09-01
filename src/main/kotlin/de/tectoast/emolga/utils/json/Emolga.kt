@@ -6,6 +6,8 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.various.ShiftUser
+import de.tectoast.emolga.features.various.ShinyEvent
+import de.tectoast.emolga.features.various.ShinyEvent.SingleGame
 import de.tectoast.emolga.ktor.InstantAsDateSerializer
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -15,6 +17,7 @@ import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.showdown.Pokemon
+import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.async
@@ -24,6 +27,7 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
+import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import org.bson.BsonDocument
@@ -73,7 +77,8 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val pickedMons by lazy { db.getCollection<PickedMonsData>("pickedmons") }
     val tierlist by lazy { db.getCollection<Tierlist>("tierlist") }
     val shinycount by lazy { db.getCollection<Shinycount>() }
-    val shinyEvent by lazy { db.getCollection<ShinyEvent>("shinyevent") }
+    val shinyEventConfig by lazy { db.getCollection<ShinyEventConfig>("shinyeventconfig") }
+    val shinyEventResults by lazy { db.getCollection<ShinyEventResult>("shinyeventresults") }
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
     val matchresults by lazy { db.getCollection<MatchResult>("matchresults") }
     val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
@@ -363,13 +368,68 @@ class Shinycount(
 )
 
 @Serializable
-data class ShinyEvent(
-    val user: Long, val shinies: List<ShinyData>, val points: Int, val messageId: Long? = null
+data class ShinyEventResult(
+    val eventName: String, val user: Long, val shinies: List<ShinyData>, val points: Int, val messageId: Long? = null
 ) {
     @Serializable
     data class ShinyData(
-        val game: String, val method: String
+        val game: String,
+        val method: String,
+        @Serializable(with = InstantAsDateSerializer::class) val timestamp: Instant
     )
+}
+
+@Serializable
+data class ShinyEventConfig(
+    val name: String,
+    val guild: Long,
+    val bot: Bot,
+    val methods: Map<String, Configuration> = mapOf(),
+    val checkChannel: Long,
+    val finalChannel: Long,
+    val pointChannel: Long
+) {
+    enum class Bot {
+        EMOLGA, FLEGMON
+    }
+
+    @Serializable
+    data class Configuration(val games: List<String>, val points: Int)
+
+    val groupedByGame = buildMap {
+        methods.entries.forEach {
+            val gameName = it.key.substringBefore("(") to it.value
+            it.value.games.forEach { game ->
+                val result = runCatching { SingleGame.valueOf(game) }.getOrElse { ShinyEvent.groupedGames[game] }
+                    ?: error("Game $game not found")
+                result.games.forEach { key ->
+                    getOrPut(key.name) { mutableListOf<Pair<String, Configuration>>() }.add(
+                        gameName
+                    )
+                }
+            }
+        }
+    }
+
+    fun getConfigurationByNameAndGame(game: SingleGame, name: String): Configuration? {
+        val list = groupedByGame[game.name] ?: return null
+        return list.firstOrNull { it.first == name }?.second
+    }
+
+    suspend fun updateUser(uid: Long, jda: JDA) {
+        val filter = and(ShinyEventResult::user eq uid, ShinyEventResult::eventName eq name)
+        db.shinyEventResults.findOne(filter)?.let {
+            val channel = jda.getTextChannelById(pointChannel)!!
+            if (it.messageId == null) {
+                db.shinyEventResults.updateOne(
+                    filter,
+                    set(ShinyEventResult::messageId setTo channel.sendMessage("<@$uid>: ${it.points}").await().idLong)
+                )
+            } else {
+                channel.editMessageById(it.messageId, "<@$uid>: ${it.points}").await()
+            }
+        }
+    }
 }
 
 @Serializable

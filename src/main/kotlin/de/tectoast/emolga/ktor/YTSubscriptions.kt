@@ -58,7 +58,9 @@ private val mac: Mac by lazy {
 fun Route.ytSubscriptions() {
     route("/youtube") {
         get {
-            call.respondText(call.request.queryParameters["hub.challenge"]!!)
+            val challenge =
+                call.request.queryParameters["hub.challenge"] ?: return@get call.respond(HttpStatusCode.NotFound)
+            call.respondText(challenge)
         }
         post {
             call.respondText(status = HttpStatusCode.Accepted) { "" }

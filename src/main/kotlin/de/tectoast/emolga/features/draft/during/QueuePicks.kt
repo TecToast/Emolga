@@ -160,7 +160,7 @@ object QueuePicks {
         context(InteractionData)
         override suspend fun exec(e: Args) {
             StateStore.process<QueuePicks> {
-                handleButton(e.mon, e.controlMode)
+                handleButton(e)
             }
         }
     }

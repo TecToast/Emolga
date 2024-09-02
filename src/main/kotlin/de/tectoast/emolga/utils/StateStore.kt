@@ -8,7 +8,6 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.draft.EnterResult
 import de.tectoast.emolga.features.draft.Nominate
 import de.tectoast.emolga.features.draft.during.QueuePicks
-import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode
 import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode.*
 import de.tectoast.emolga.features.draft.during.QueuePicks.checkIfTeamCantBeFinished
 import de.tectoast.emolga.features.intoMultipleRows
@@ -475,9 +474,9 @@ class QueuePicks : StateStore {
     }
 
     context(InteractionData)
-    fun handleButton(tlName: String, controlMode: ControlMode) {
-        val index = currentState.indexOfFirst { it.g.tlName == tlName }
-        val currentMon = when (controlMode) {
+    fun handleButton(e: QueuePicks.ControlButton.Args) {
+        val index by lazy { currentState.indexOfFirst { it.g.tlName == e.mon } }
+        val currentMon = when (e.controlMode) {
             UP -> {
                 if (index == 0) return reply("Das Pokemon ist bereits an erster Stelle!", ephemeral = true)
                 val mon = currentState.removeAt(index)
@@ -504,7 +503,7 @@ class QueuePicks : StateStore {
             }
 
             MODAL -> return replyModal(QueuePicks.SetLocationModal {
-                this.mon = tlName
+                this.mon = e.mon
             })
         }
         edit(embeds = buildStateEmbed(currentMon),

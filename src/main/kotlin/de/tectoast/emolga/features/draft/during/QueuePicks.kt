@@ -22,6 +22,7 @@ object QueuePicks {
         object Manage : CommandFeature<NoArgs>(NoArgs(), CommandSpec("manage", "Verwalte deine gequeueten Picks")) {
             context(InteractionData)
             override suspend fun exec(e: NoArgs) {
+                ephemeralDefault()
                 val league = db.leagueByCommand() ?: return reply("Du bist in keiner Liga auf diesem Server!")
                 val currentData = league.queuedPicks.getOrPut(league.index(user)) { QueuePicksData() }
                 val currentState = currentData.queued
@@ -62,8 +63,8 @@ object QueuePicks {
                     if (oldmon == null && !isRunning && picks.isNotEmpty() && !config<AllowPickDuringSwitch>()) {
                         return reply("Im kommenden Draft können nur Switches gemacht werden, dementsprechend musst du ein altes Pokemon angeben!")
                     }
-                    if (picks[idx]?.any { it.name == oldmon?.official } != true) {
-                        return reply("Du besitzt `${oldmon?.tlName}` nicht!")
+                    if (oldmon != null && picks[idx]?.any { it.name == oldmon?.official } != true) {
+                        return reply("Du besitzt `${oldmon.tlName}` nicht!")
                     }
                     if (isPicked(e.mon.official)) {
                         return reply("`${e.mon.tlName}` wurde bereits gepickt!")

@@ -274,6 +274,27 @@ object PrivateCommands {
         db.league(args()).docEntry!!.sort()
     }
 
+    context(InteractionData)
+    suspend fun unsignupUser(args: PrivateData) {
+        val (guild, user) = args.map { it.toLong() }
+        val signup = db.signups.get(guild)!!
+        val data = signup.users[user]!!
+        jda.getTextChannelById(signup.signupChannel)!!.deleteMessageById(data.signupmid!!).queue()
+        data.logomid?.let {
+            jda.getTextChannelById(signup.logoChannel)!!.deleteMessageById(it).queue()
+        }
+        val wasFull = signup.full
+        signup.users.remove(user)
+        if (wasFull) {
+            val channel = jda.getTextChannelById(signup.announceChannel)!!
+            channel.editMessageComponentsById(
+                signup.announceMessageId, SignupManager.Button().into()
+            ).queue()
+        }
+        signup.updateSignupMessage()
+        signup.save()
+    }
+
     var guildForMyStuff: Long? = null
     context(InteractionData)
     fun setGuildForMyStuff(args: PrivateData) {

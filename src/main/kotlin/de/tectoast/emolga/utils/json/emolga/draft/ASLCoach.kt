@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.serialization.SerialName
@@ -22,12 +23,11 @@ class ASLCoach : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(null) {
+        newSystem(SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), cols = listOf(2, 8, 6))) {
             b.addSingle(
                 coord("Spielplan", gdi.x(5, 2), index.y(6, 5 + level)), defaultGameplanString
             )
         }
-        //sorterData = SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), false, null, 2, 8, 6)
     }
 
     override fun provideReplayChannel(jda: JDA) = jda.getTextChannelById(1170477105339973824)

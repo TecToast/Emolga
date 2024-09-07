@@ -1088,8 +1088,10 @@ data class TeraData(val type: TZDataHolder, val mon: TZDataHolder)
 
 @Serializable
 data class QueuePicksData(
+    @EncodeDefault
     var enabled: Boolean = false,
     var disableIfSniped: Boolean = true,
+    @EncodeDefault
     var queued: MutableList<QueuedAction> = mutableListOf()
 )
 

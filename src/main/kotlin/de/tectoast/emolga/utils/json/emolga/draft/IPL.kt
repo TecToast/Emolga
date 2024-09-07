@@ -153,7 +153,7 @@ class IPL(
     override suspend fun onNextPlayer(data: NextPlayerData): Unit = with(timerRelated) {
         lastStallSecondUsedMid?.takeIf { it > 0 }?.let {
             tc.editMessageById(
-                it, "<@$current> Dein Uhrsaring-Zuschlag ${
+                it, "<@${table[current]}> Dein Uhrsaring-Zuschlag ${
                     if (data is NextPlayerData.Normal) "beträgt noch ${
                         TimeUtils.secondsToTimePretty((cooldown - System.currentTimeMillis()) / 1000)
                     }!"

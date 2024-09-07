@@ -91,7 +91,7 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
             }
 
             QUEUE -> {
-                this@League.tc.sendMessage("**<@${current}>** hat ${displayName()} gepickt! [Queue]").queue()
+                this@League.tc.sendMessage("**<@${table[current]}>** hat ${displayName()} gepickt! [Queue]").queue()
                 checkEmolga()
             }
 
@@ -155,7 +155,7 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
             }
 
             QUEUE -> {
-                this@League.tc.sendMessage("**<@${current}>** hat ${oldDisplayName()} gegen ${displayName()} getauscht! [Queue]")
+                this@League.tc.sendMessage("**<@${table[current]}>** hat ${oldDisplayName()} gegen ${displayName()} getauscht! [Queue]")
                     .queue()
                 checkEmolga()
             }

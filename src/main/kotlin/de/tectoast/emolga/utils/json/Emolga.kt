@@ -92,6 +92,8 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     }
 
     suspend fun league(name: String) = getLeague(name)!!
+    suspend fun leagueByPrefix(prefix: String) = getLeagueByPrefix(prefix)!!
+    suspend fun getLeagueByPrefix(prefix: String) = drafts.findOne(League::leaguename regex "^$prefix")
     suspend fun getLeague(name: String) = drafts.findOne(League::leaguename eq name)
     suspend fun nds() = (drafts.findOne(ndsQuery) as NDS)
 

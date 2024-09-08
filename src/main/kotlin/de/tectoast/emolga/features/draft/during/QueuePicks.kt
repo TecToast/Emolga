@@ -16,7 +16,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 object QueuePicks {
     object Command : CommandFeature<NoArgs>(
-        NoArgs(), CommandSpec("queuepicks", "Verwalte deine gequeueten Picks", Constants.G.ASL)
+        NoArgs(), CommandSpec("queuepicks", "Verwalte deine gequeueten Picks", Constants.G.ASL, Constants.G.NDS)
     ) {
 
         object Manage : CommandFeature<NoArgs>(NoArgs(), CommandSpec("manage", "Verwalte deine gequeueten Picks")) {

@@ -20,7 +20,7 @@ object DraftUtils {
         input: DraftInput, type: DraftMessageType
     ) {
         val success = input.execute(type)
-        if (success && type != QUEUE) afterPickOfficial()
+        if (success) afterPickOfficial()
     }
 
 }

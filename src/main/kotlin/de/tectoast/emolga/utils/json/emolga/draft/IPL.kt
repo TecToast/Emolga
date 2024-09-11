@@ -50,7 +50,7 @@ class IPL(
         private const val TURNS = 4
         override suspend fun League.afterPickCall(data: NextPlayerData) = afterPick(data)
 
-        override suspend fun League.afterPick(data: NextPlayerData): Boolean {
+        override suspend fun League.afterPick(data: NextPlayerData): TimerSkipResult {
             if (this is IPL) {
                 when (data) {
                     is NextPlayerData.Moved -> {
@@ -98,7 +98,7 @@ class IPL(
             } else {
                 error("Not IPL")
             }
-            return true
+            return TimerSkipResult.NEXT
         }
 
         context(IPL)
@@ -150,7 +150,7 @@ class IPL(
             .setStickers(StickerSnowflake.fromId(1207743822826836061)).queue()
     }
 
-    override suspend fun onNextPlayer(data: NextPlayerData): Unit = with(timerRelated) {
+    override suspend fun onAfterPick(data: NextPlayerData): Unit = with(timerRelated) {
         lastStallSecondUsedMid?.takeIf { it > 0 }?.let {
             tc.editMessageById(
                 it, "<@${table[current]}> Dein Uhrsaring-Zuschlag ${

@@ -39,8 +39,8 @@ object SearchReplaysCommand : CommandFeature<SearchReplaysCommand.Args>(
         } else body
         try {
             reply(
-                myJSON.decodeFromString<List<Replay>>(jsonstring).take(15)
-                    .joinToString("\n") { "${it.p1} vs ${it.p2}: https://replay.pokemonshowdown.com/${it.id}" }
+                otherJSON.decodeFromString<List<Replay>>(jsonstring).take(15)
+                    .joinToString("\n") { "${it.players.joinToString(" vs ")}: https://replay.pokemonshowdown.com/${it.id}" }
                     .ifEmpty { "Es wurde kein Kampf ${u2?.let { "zwischen $u1 und $it" } ?: "von $u1"} hochgeladen!" })
         } catch (ex: Exception) {
             reply("Es konnte keine Verbindung zum Showdown-Server hergestellt werden!")
@@ -58,5 +58,5 @@ object SearchReplaysCommand : CommandFeature<SearchReplaysCommand.Args>(
 
 
     @Serializable
-    data class Replay(val id: String, val p1: String, val p2: String, val uploadtime: Long, val format: String)
+    data class Replay(val id: String, val players: List<String>, val uploadtime: Long, val format: String)
 }

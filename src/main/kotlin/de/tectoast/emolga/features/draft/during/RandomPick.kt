@@ -4,12 +4,10 @@ package de.tectoast.emolga.features.draft.during
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.add
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.draft.PickInput
-import de.tectoast.emolga.utils.invoke
 import de.tectoast.emolga.utils.json.emolga.draft.*
 import dev.minn.jda.ktx.messages.into
 import mu.KotlinLogging
@@ -168,34 +166,6 @@ object RandomPick {
                     }
                 }
             }
-        }
-    }
-
-
-    object TeraMDLCommand :
-        CommandFeature<NoArgs>(NoArgs(), CommandSpec("teramdl", "Randomized den Tera-Typen", Constants.G.VIP)) {
-
-        context(InteractionData)
-        override suspend fun exec(e: NoArgs) {
-            val d =
-                League.byCommand()?.first ?: return reply(
-                    "Es läuft zurzeit kein Draft in diesem Channel!",
-                    ephemeral = true
-                )
-            if (d !is RRL) {
-                reply("Dieser Befehl funktioniert nur im MDL Draft!")
-                return
-            }
-            if (!d.isLastRound) {
-                reply("Dieser Befehl kann nur in der letzten Runde verwendet werden!")
-                return
-            }
-            val type = germanTypeList.random()
-            val mon = d.picks(d.current).random()
-            d.replyGeneral(
-                "die Terakristallisierung gegambled und den Typen `$type` auf ${mon.name} (${mon.tier}) bekommen!"
-            )
-            d.afterPickOfficial()
         }
     }
 

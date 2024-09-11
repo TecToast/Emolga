@@ -12,16 +12,13 @@ object SkipCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("skip", "Über
 
     context(InteractionData)
     override suspend fun exec(e: NoArgs) {
-        val d =
-            League.byCommand()?.first ?: return reply(
-                "Es läuft zurzeit kein Draft in diesem Channel!",
-                ephemeral = true
-            )
-        if (!d.isSwitchDraft) {
-            reply("Dieser Draft ist kein Switch-Draft, daher wird /skip nicht unterstützt!")
-            return
+        League.executePickLike {
+            if (!isSwitchDraft) {
+                reply("Dieser Draft ist kein Switch-Draft, daher wird /skip nicht unterstützt!")
+                return
+            }
+            replySkip()
+            afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP, current))
         }
-        d.replySkip()
-        d.afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP))
     }
 }

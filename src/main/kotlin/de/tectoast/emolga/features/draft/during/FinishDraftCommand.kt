@@ -10,14 +10,9 @@ object FinishDraftCommand :
     CommandFeature<NoArgs>(NoArgs(), CommandSpec("finishdraft", "Beendet für dich den Draft", *draftGuilds)) {
     context(InteractionData)
     override suspend fun exec(e: NoArgs) {
-        val mem = user
-        val d = League.onlyChannel(tc)?.takeIf { mem in it.table } ?: return reply(
-            "In diesem Channel läuft kein Draft, an welchem du teilnimmst!",
-            ephemeral = true
-        )
-        d.lock {
+        League.executeAsNotCurrent(asParticipant = true) {
             if (isFinishedForbidden()) return reply("Dieser Draft unterstützt /finishdraft nicht!")
-            val idx = this(mem)
+            val idx = this(user)
             checkFinishedForbidden(idx)?.let {
                 return reply(it)
             }
@@ -25,7 +20,8 @@ object FinishDraftCommand :
             addFinished(idx)
             if (current == idx)
                 afterPickOfficial()
-            save("FinishDraft")
+            else
+                save("FinishDraft")
         }
     }
 }

@@ -167,21 +167,6 @@ sealed class League {
     operator fun invoke(mem: Long) = table.indexOf(mem)
     operator fun get(index: Int) = table[index]
 
-    context (InteractionData)
-    suspend inline fun lockForPick(data: BypassCurrentPlayerData, block: League.() -> Unit) {
-        lock {
-            // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
-            if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
-                // BypassCurrentPlayerData can only be Yes here
-                current = (data as BypassCurrentPlayerData.Yes).user
-            }
-            if (!isCurrentCheck(user)) {
-                return@lock reply("Du warst etwas zu langsam!", ephemeral = true)
-            }
-            block()
-        }
-    }
-
     suspend inline fun lock(block: League.() -> Unit) {
         getLock(leaguename).withLock {
             apply(block)
@@ -858,11 +843,17 @@ sealed class League {
         suspend inline fun executeOnFreshLock(
             leagueSupplier: () -> League?, onNotFound: () -> Unit = {}, block: League.() -> Unit
         ) {
-            val league = leagueSupplier() ?: return onNotFound()
-            val lock = getLock(league.leaguename)
+            executeOnFreshLock(leagueSupplier, League::leaguename, onNotFound, block)
+        }
+
+        suspend inline fun <T> executeOnFreshLock(
+            supplier: () -> T?, leagueNameMapper: (T) -> String, onNotFound: () -> Unit = {}, block: T.() -> Unit
+        ) {
+            val league = supplier() ?: return onNotFound()
+            val lock = getLock(leagueNameMapper(league))
             val wasLocked = lock.isLocked
             lock.withLock {
-                (if (wasLocked) leagueSupplier()!! else league).apply(block)
+                (if (wasLocked) supplier()!! else league).apply(block)
             }
         }
 
@@ -883,14 +874,23 @@ sealed class League {
 
         context(InteractionData)
         suspend inline fun executePickLike(block: League.() -> Unit) {
-            val (d, data) = byCommand() ?: return run {
+            executeOnFreshLock({ byCommand() }, { it.first.leaguename }, {
                 if (!replied) {
                     reply(
                         "Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true
                     )
                 }
+            }) {
+                // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
+                if (first.pseudoEnd && first.afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
+                    // BypassCurrentPlayerData can only be Yes here
+                    first.current = (second as BypassCurrentPlayerData.Yes).user
+                }
+                if (!first.isCurrentCheck(user)) {
+                    return@executeOnFreshLock reply("Du warst etwas zu langsam!", ephemeral = true)
+                }
+                first.block()
             }
-            d.lockForPick(data, block)
         }
 
         context (InteractionData)
@@ -923,6 +923,16 @@ sealed class League {
         }
 
         suspend fun onlyChannel(tc: Long) = db.drafts.find(League::isRunning eq true, League::tcid eq tc).first()
+        context(InteractionData)
+        suspend inline fun executeAsNotCurrent(asParticipant: Boolean, block: League.() -> Unit) {
+            executeOnFreshLock({ onlyChannel(tc)?.takeIf { !asParticipant || user in it.table } }, {
+                reply(
+                    if (asParticipant) "In diesem Channel läuft kein Draft, an welchem du teilnimmst!" else "Es läuft zurzeit kein Draft in diesem Channel!",
+                    ephemeral = true
+                )
+            }, block)
+
+        }
     }
 }
 

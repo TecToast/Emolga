@@ -26,11 +26,9 @@ object SkipPickCommand :
 
     context(InteractionData)
     override suspend fun exec(e: NoArgs) {
-        val d = League.onlyChannel(tc) ?: return reply(
-            "Es läuft zurzeit kein Draft in diesem Channel!",
-            ephemeral = true
-        )
-        d.afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP, skippedBy = user))
-        reply("+1", ephemeral = true)
+        League.executeAsNotCurrent(asParticipant = false) {
+            afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP, skippedUser = current, skippedBy = user))
+            reply("+1", ephemeral = true)
+        }
     }
 }

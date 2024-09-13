@@ -25,13 +25,13 @@ class ASLCoach : League() {
     override val docEntry = DocEntry.create(this) {
         newSystem(SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), cols = listOf(2, 8, 6))) {
             b.addSingle(
-                coord("Spielplan", gdi.x(5, 2), index.y(6, 5 + level)), defaultGameplanString
+                coord("Spielplan", gdi.x(5, 2), index.y(7, 6 + level)), defaultGameplanString
             )
         }
     }
 
-    override fun provideReplayChannel(jda: JDA) = jda.getTextChannelById(1170477105339973824)
-    override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(1170477327839412365)
+    override fun provideReplayChannel(jda: JDA) = jda.getTextChannelById(1283883488763707447)
+    override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(1283883574835154955)
 
 
     @Transient

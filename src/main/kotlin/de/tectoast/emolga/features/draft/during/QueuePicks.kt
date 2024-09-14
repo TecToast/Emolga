@@ -5,6 +5,8 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.QueuePicks
 import de.tectoast.emolga.utils.QueuedAction
 import de.tectoast.emolga.utils.StateStore
+import de.tectoast.emolga.utils.add
+import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.AllowPickDuringSwitch
 import de.tectoast.emolga.utils.json.emolga.draft.League
@@ -41,15 +43,13 @@ object QueuePicks {
         object Add : CommandFeature<Add.Args>(::Args, CommandSpec("add", "Füge einen Pick hinzu")) {
             class Args : Arguments() {
                 var mon by draftPokemon("Pokemon", "Das Pokemon, das du hinzufügen möchtest")
-                var oldmon by draftPokemon(
-                    "Altes Mon",
+                var oldmon by draftPokemon("Altes Mon",
                     "Das Pokemon, was rausgeschmissen werden soll",
                     autocomplete = { s, event ->
                         val league = db.leagueByGuild(event.guild?.idLong ?: -1, event.user.idLong)
                             ?: return@draftPokemon listOf("Du nimmt an keiner Liga auf diesem Server teil!")
                         monOfTeam(s, league, league(event.user.idLong))
-                    }
-                ).nullable()
+                    }).nullable()
             }
 
             context(InteractionData)
@@ -63,7 +63,7 @@ object QueuePicks {
                     if (oldmon == null && !isRunning && picks.isNotEmpty() && !config<AllowPickDuringSwitch>()) {
                         return reply("Im kommenden Draft können nur Switches gemacht werden, dementsprechend musst du ein altes Pokemon angeben!")
                     }
-                    if (oldmon != null && picks[idx]?.any { it.name == oldmon?.official } != true) {
+                    if (oldmon != null && picks[idx]?.any { it.name == oldmon.official } != true) {
                         return reply("Du besitzt `${oldmon.tlName}` nicht!")
                     }
                     if (isPicked(e.mon.official)) {
@@ -81,19 +81,16 @@ object QueuePicks {
                     }
                     val queuedAction = QueuedAction(mon, oldmon)
                     val newlist = data.queued.toMutableList().apply { add(queuedAction) }
-                    if (checkIfTeamCantBeFinished(idx, newlist))
-                        return reply("Wenn du dieses Pokemon holen wollen würdest, könnte dein Team nicht mehr vervollständigt werden!")
+                    if (isIllegal(idx, newlist)) return
                     StateStore.processIgnoreMissing<QueuePicks> {
                         addNewMon(queuedAction)
                     }
                     data.queued = newlist
                     data.enabled = false
                     save("QueuePickAdd")
-                    reply(
-                        "`${mon.tlName}` wurde zu deinen gequeueten Picks hinzugefügt! Außerdem wurde das System für dich deaktiviert, damit du das Pokemon noch an die richtige Stelle schieben kannst :)".notNullPrepend(
-                            oldmon
-                        ) { "`${it.tlName}` -> " }
-                    )
+                    reply("`${mon.tlName}` wurde zu deinen gequeueten Picks hinzugefügt! Außerdem wurde das System für dich deaktiviert, damit du das Pokemon noch an die richtige Stelle schieben kannst :)".notNullPrepend(
+                        oldmon
+                    ) { "`${it.tlName}` -> " })
                 }
 
             }
@@ -105,10 +102,7 @@ object QueuePicks {
                 { return reply("Du bist in keiner Liga auf diesem Server!") }) {
                 val idx = this(user)
                 val data = queuedPicks.getOrPut(idx) { QueuePicksData() }
-                if (checkIfTeamCantBeFinished(
-                        idx, data.queued
-                    )
-                ) return reply("Mit der aktuellen Queue könnte dein Kader nicht vervollständigt werden!")
+                if (isIllegal(idx, data.queued)) return
                 data.enabled = enable
                 save("QueuePickActivation")
             }
@@ -213,16 +207,40 @@ object QueuePicks {
         }
     }
 
-    context(League)
-    suspend fun checkIfTeamCantBeFinished(idx: Int, currentState: List<QueuedAction>): Boolean {
-        var gPoints = 0
-        var yPoints = 0
-        for (data in currentState) {
-            gPoints += tierlist.getPointsNeeded(tierlist.getTierOf(data.g.tlName)!!)
-            yPoints += data.y?.let { tierlist.getPointsNeeded(tierlist.getTierOf(it.tlName)!!) } ?: 0
+    context(League, InteractionData)
+    suspend fun isIllegal(idx: Int, currentState: List<QueuedAction>): Boolean {
+        return when (tierlist.mode) {
+            TierlistMode.POINTS -> {
+                var gPoints = 0
+                var yPoints = 0
+                for (data in currentState) {
+                    gPoints += tierlist.getPointsNeeded(tierlist.getTierOf(data.g.tlName)!!)
+                    yPoints += data.y?.let { tierlist.getPointsNeeded(tierlist.getTierOf(it.tlName)!!) } ?: 0
+                }
+                val result = points[idx] - gPoints + yPoints < minimumNeededPointsForTeamCompletion(
+                    (picks[idx]?.size ?: 0) + currentState.size
+                )
+                if (result) reply("Mit dieser Queue könnte dein Team nicht mehr vervollständigt werden!")
+                result
+            }
+
+            TierlistMode.TIERS -> {
+                val tiers = getPossibleTiers(idx)
+                currentState.forEach {
+                    tiers.add(tierlist.getTierOf(it.g.tlName)!!, -1)
+                    it.y?.let { y -> tiers.add(tierlist.getTierOf(y.tlName)!!, 1) }
+                }
+                tiers.entries.firstOrNull { it.value < 0 }?.let {
+                    reply("Mit dieser Queue hättest du zu viele Pokemon im `${it.key}`-Tier!")
+                    true
+                } == true
+            }
+
+            TierlistMode.TIERS_WITH_FREE -> {
+                reply("Das Queuen von Picks ist in Drafts mit Freepicks derzeit noch nicht möglich.")
+                true
+            }
         }
-        return points[idx] - gPoints + yPoints < minimumNeededPointsForTeamCompletion(
-            (picks[idx]?.size ?: 0) + currentState.size
-        )
+
     }
 }

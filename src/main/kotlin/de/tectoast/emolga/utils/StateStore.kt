@@ -9,7 +9,7 @@ import de.tectoast.emolga.features.draft.EnterResult
 import de.tectoast.emolga.features.draft.Nominate
 import de.tectoast.emolga.features.draft.during.QueuePicks
 import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode.*
-import de.tectoast.emolga.features.draft.during.QueuePicks.checkIfTeamCantBeFinished
+import de.tectoast.emolga.features.draft.during.QueuePicks.isIllegal
 import de.tectoast.emolga.features.intoMultipleRows
 import de.tectoast.emolga.utils.draft.DraftInput
 import de.tectoast.emolga.utils.draft.DraftPlayer
@@ -526,11 +526,7 @@ class QueuePicks : StateStore {
         ephemeralDefault()
         deferEdit()
         League.executeOnFreshLock(leaguename) {
-            if (checkIfTeamCantBeFinished(
-                    this(uid),
-                    currentState
-                )
-            ) return reply("Mit dieser Queue hast du nicht genug Punkte für ein vollständiges Team!")
+            if (isIllegal(this(uid), currentState)) return
             val data = queuedPicks.getOrPut(index(user)) { QueuePicksData() }
             data.queued = currentState.toMutableList()
             data.enabled = enable

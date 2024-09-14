@@ -13,6 +13,7 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
+import mu.KotlinLogging
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.litote.kmongo.eq
 import java.sql.SQLIntegrityConstraintViolationException
@@ -21,6 +22,7 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
     ::Args,
     CommandSpec("addtotierlist", "Fügt ein Mon in die Tierliste ein", *draftGuilds)
 ) {
+    private val logger = KotlinLogging.logger {}
     class Args : Arguments() {
         var mon by draftPokemon("Mon", "Das Mon") { s, _ ->
             allNameConventions().filterStartsWithIgnoreCase(s).takeIf { it.size <= 25 }?.sorted()
@@ -52,7 +54,7 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
                 return reply("Das Pokemon `$mon` existiert bereits!")
             }
             reply("Es ist ein unbekannter Fehler aufgetreten!")
-            ex.printStackTrace()
+            logger.error("Error in AddToTierlistCommand", ex)
             return
         }
         reply("`$mon` ist nun im $tier-Tier!")

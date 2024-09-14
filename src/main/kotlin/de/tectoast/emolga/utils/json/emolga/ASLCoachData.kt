@@ -21,6 +21,7 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Member
 import org.litote.kmongo.Id
 import org.litote.kmongo.coroutine.updateOne
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeUnit
 
 data class CoachMemberData(val level: Int, val teamindex: Int, val team: String)
 
+private val logger = KotlinLogging.logger {}
 @Serializable
 class ASLCoachData(
     @SerialName("_id") @Contextual val id: Id<ASLCoachData>,
@@ -74,14 +76,14 @@ class ASLCoachData(
                         member.modifyNickname("[$it] ${member.effectiveName.substringAfterLast("]").trim()}").queue(
                             {},
                         ) { ex ->
-                            ex.printStackTrace()
+                            logger.error("Couldnt modify nickname", ex)
                         }
                     }
                 }
                 member.guild.addRoleToMember(member, member.jda.getRoleById(role)!!)
                     .queueAfter(3000, TimeUnit.MILLISECONDS)
             } catch (ex: Exception) {
-                ex.printStackTrace()
+                logger.error("unknown", ex)
                 if (ex is CancellationException) throw ex
             }
         }

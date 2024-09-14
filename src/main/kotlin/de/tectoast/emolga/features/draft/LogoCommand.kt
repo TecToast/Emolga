@@ -10,6 +10,7 @@ import de.tectoast.emolga.utils.json.*
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.utils.FileUpload
 import org.litote.kmongo.*
@@ -22,6 +23,7 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
         *draftGuilds
     )
 ) {
+    private val logger = KotlinLogging.logger {}
     val allowedFileFormats = setOf("png", "jpg", "jpeg")
 
     class Args : Arguments() {
@@ -99,11 +101,11 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
                     val bytes = try {
                         attachment.proxy.download().await().readAllBytes()
                     } catch (ex: Exception) {
-                        ex.printStackTrace()
+                        logger.error("Couldnt download logo", ex)
                         reply("Das Logo konnte nicht heruntergeladen werden!", ephemeral = true)
                         return@withContext null
                     }
-                    if (!ignoreRequirements && bytes.size > 1024 * 1024 * 3) {
+                    if (!ignoreRequirements && bytes.size > 1024 * 1024 * 5) {
                         reply("Das Logo darf nicht größer als 3MB sein!", ephemeral = true)
                         return@withContext null
                     }

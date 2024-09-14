@@ -76,9 +76,11 @@ object Analysis {
                 else -> {
                     val msg =
                         "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
-                    SendFeatures.sendToMe("Fehler beim Auswerten des Replays: $urlProvided ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}")
                     send(msg)
-                    ex.printStackTrace()
+                    logger.error(
+                        "Fehler beim Auswerten des Replays: $urlProvided ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}",
+                        ex
+                    )
                 }
             }
             return

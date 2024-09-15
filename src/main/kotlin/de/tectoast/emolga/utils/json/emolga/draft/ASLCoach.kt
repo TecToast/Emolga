@@ -56,14 +56,22 @@ class ASLCoach : League() {
 
 
     override fun setupRepeatTasks() {
-            RepeatTask(
-                "ASL", RepeatTaskType.Other("Announce"), "04.12.2023 00:00", 5, 7.days
-            ) {
-                val msg = "**------------- Spieltag $it -------------**"
-                jda.getTextChannelById(1170477105339973824)!!.sendMessage(msg).queue()
-                jda.getTextChannelById(1170477327839412365)!!.sendMessage(msg).queue()
-            }
+        if (!leaguename.endsWith("1")) return
+        RepeatTask(
+            "ASL", RepeatTaskType.Other("Announce"), "16.12.2024 00:00", 8, 14.days, printDelays = true
+        ) {
+            val msg = "**------------- ${
+                when (it) {
+                    6 -> "Viertelfinale"
+                    7 -> "Halbfinale"
+                    8 -> "Finale"
+                    else -> "Spieltag $it"
+                }
+            } -------------**"
+            provideReplayChannel(jda)!!.sendMessage(msg).queue()
+            provideResultChannel(jda)!!.sendMessage(msg).queue()
         }
+    }
 
 }
 

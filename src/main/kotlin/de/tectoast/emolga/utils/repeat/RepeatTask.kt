@@ -61,7 +61,7 @@ class RepeatTask(
                 val finalCurrAmount = currAmount
                 taskTimestamps[Instant.fromEpochMilliseconds(curTime)] = finalCurrAmount
                 val delay = curTime - nowM
-                if (printTimestamps) logger.debug("{} -> {}", currAmount, curTime)
+                if (printTimestamps) logger.info("{} -> {}", currAmount, defaultTimeFormat.format(curTime))
                 scope.launch {
                     delay(delay)
                     consumer(finalCurrAmount)
@@ -74,7 +74,7 @@ class RepeatTask(
             }
             allTasks.getOrPut(leaguename) { mutableMapOf() }[type] = this
         } else {
-            logger.info("LastExecution is in the past, RepeatTask will be terminated")
+            logger.info("LastExecution is in the past, RepeatTask will be terminated {} {}", leaguename, type)
         }
     }
 

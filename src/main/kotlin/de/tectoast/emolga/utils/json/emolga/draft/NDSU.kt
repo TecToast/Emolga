@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.league.DynamicCoord
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -29,15 +30,35 @@ class NDSU : League() {
     override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
     val logger: Logger by SLF4J
 
+    val teamtable: List<String> = emptyList()
+
+    init {
+        val mon = TZDataHolder(
+            coord = DynamicCoord.DynamicSheet(teamtable, "AA8"),
+            searchRange = "Data!\$B\$1000:\$C\$2000",
+            searchColumn = 2
+        )
+        val type = TZDataHolder(
+            coord = DynamicCoord.DynamicSheet(teamtable, "Y9"),
+            searchRange = "Data!\$B\$400:\$C$417",
+            searchColumn = 2
+        )
+        enableConfig(
+            TeraAndZ(
+                tera = TeraData(
+                    mon = mon,
+                    type = type
+                )
+            )
+        )
+    }
+
     @Transient
     override val docEntry = DocEntry.create(this) {
         newSystem(SorterData("Tabelle!C3:K12", newMethod = true, cols = listOf(2, 8, 6))) {
             val y = index.y(10, 6)
             val gameplanName = "Spielplan"
             val gameplanSheet = 453772599
-            val league = db.league("NDSML")
-            val teamnames =
-                db.signups.get(Constants.G.NDS)!!.users.toList().associate { league(it.first) to it.second.teamname!! }
             b.addSingle(
                 "$gameplanName!${getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
             )
@@ -62,8 +83,8 @@ class NDSU : League() {
                 }
                 if (winnerIndex == i) {
                     val s = "!${(gdi * 2 + 4).xc()}10"
-                    b.addSingle(teamnames[replayData.uindices[i]] + s, "$higherNumber:0")
-                    b.addSingle(teamnames[replayData.uindices[1 - i]] + s, "0:$higherNumber")
+                    b.addSingle(teamtable[replayData.uindices[i]] + s, "$higherNumber:0")
+                    b.addSingle(teamtable[replayData.uindices[1 - i]] + s, "0:$higherNumber")
                 }
             }
         }

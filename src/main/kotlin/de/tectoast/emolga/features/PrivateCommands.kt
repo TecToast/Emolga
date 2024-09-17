@@ -683,6 +683,11 @@ object PrivateCommands {
         )
     }
 
+    context(InteractionData)
+    suspend fun startGroupedPoints() {
+        db.shinyEventConfig.only().updateDiscord(jda)
+    }
+
 
 }
 

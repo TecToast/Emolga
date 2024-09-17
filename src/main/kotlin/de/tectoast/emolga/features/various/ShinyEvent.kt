@@ -112,7 +112,7 @@ object ShinyEvent {
                         options = upsert()
                     )
                     message.delete().queue()
-                    config.updateUser(uid, jda)
+                    config.updateDiscord(jda)
                 }
 
                 Mode.REJECT -> {

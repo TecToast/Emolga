@@ -126,6 +126,8 @@ class NDSU : League() {
                 // Tera
                 b.addSingle("$team!AE8", "='$oppo'!AA8")
                 b.addSingle("$team!AC9", "='$oppo'!Y9")
+                // Arceus
+                b.addSingle("$team!AE10", "='$oppo'!AA10")
             }
         }
         b.execute()

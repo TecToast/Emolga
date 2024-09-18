@@ -153,7 +153,6 @@ object ShinyEvent {
 
     interface Game {
         val games: Set<SingleGame>
-        fun containsGame(game: SingleGame): Boolean = game in games
         operator fun plus(other: Game): Game = CombinedGame(games + other.games)
     }
 

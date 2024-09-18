@@ -386,16 +386,12 @@ data class ShinyEventResult(
 data class ShinyEventConfig(
     val name: String,
     val guild: Long,
-    val bot: Bot,
     val methods: Map<String, Configuration> = mapOf(),
     val checkChannel: Long,
     val finalChannel: Long,
     val pointChannel: Long,
     val pointMessageId: Long? = null
 ) {
-    enum class Bot {
-        EMOLGA, FLEGMON
-    }
 
     @Serializable
     data class Configuration(val games: List<String>, val points: Int)

@@ -116,7 +116,6 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                     }
                 }
             } catch (ex: Exception) {
-                ex.printStackTrace()
                 reply(
                     "Es ist ein Fehler beim Ausführen der Interaktion aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (${Constants.MYTAG}).".condAppend(
                         data.user == Constants.FLOID, "\nJa Flo, du sollst dich auch bei ihm melden :^)"

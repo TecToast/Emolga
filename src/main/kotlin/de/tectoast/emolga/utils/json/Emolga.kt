@@ -19,6 +19,7 @@ import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.SelectOption
+import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -385,15 +386,12 @@ data class ShinyEventResult(
 data class ShinyEventConfig(
     val name: String,
     val guild: Long,
-    val bot: Bot,
     val methods: Map<String, Configuration> = mapOf(),
     val checkChannel: Long,
     val finalChannel: Long,
-    val pointChannel: Long
+    val pointChannel: Long,
+    val pointMessageId: Long? = null
 ) {
-    enum class Bot {
-        EMOLGA, FLEGMON
-    }
 
     @Serializable
     data class Configuration(val games: List<String>, val points: Int)
@@ -418,18 +416,20 @@ data class ShinyEventConfig(
         return list.firstOrNull { it.first == name }?.second
     }
 
-    suspend fun updateUser(uid: Long, jda: JDA) {
-        val filter = and(ShinyEventResult::user eq uid, ShinyEventResult::eventName eq name)
-        db.shinyEventResults.findOne(filter)?.let {
-            val channel = jda.getTextChannelById(pointChannel)!!
-            if (it.messageId == null) {
-                db.shinyEventResults.updateOne(
-                    filter,
-                    set(ShinyEventResult::messageId setTo channel.sendMessage("<@$uid>: ${it.points}").await().idLong)
-                )
-            } else {
-                channel.editMessageById(it.messageId, "<@$uid>: ${it.points}").await()
-            }
+    suspend fun updateDiscord(jda: JDA) {
+        val filter = and(ShinyEventResult::eventName eq name)
+        val msg =
+            "## Punktestand\n" + db.shinyEventResults.find(filter).sort(descending(ShinyEventResult::points)).toList()
+                .mapIndexed { index, res -> "${index + 1}. <@${res.user}>: ${res.points}" }.joinToString("\n")
+        val channel = jda.getTextChannelById(pointChannel)!!
+        if (pointMessageId == null) {
+            val pid = channel.sendMessage(msg).await().idLong
+            db.shinyEventConfig.updateOne(
+                ShinyEventConfig::name eq name,
+                set(ShinyEventConfig::pointMessageId setTo pid)
+            )
+        } else {
+            channel.editMessage(pointMessageId.toString(), msg).queue()
         }
     }
 }

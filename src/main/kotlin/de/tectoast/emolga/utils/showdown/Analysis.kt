@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.showdown
 
 import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
@@ -8,6 +9,7 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.increment
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.records.toCoord
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
@@ -19,7 +21,11 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
+import org.jetbrains.exposed.sql.insertIgnore
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.io.File
+import kotlin.math.absoluteValue
 import kotlin.time.Duration.Companion.seconds
 
 object Analysis {
@@ -76,9 +82,11 @@ object Analysis {
                 else -> {
                     val msg =
                         "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
-                    SendFeatures.sendToMe("Fehler beim Auswerten des Replays: $urlProvided ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}")
                     send(msg)
-                    ex.printStackTrace()
+                    logger.error(
+                        "Fehler beim Auswerten des Replays: $urlProvided ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}",
+                        ex
+                    )
                 }
             }
             return
@@ -194,6 +202,35 @@ object Analysis {
             SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
         }
         logger.info("In Emolga Listener!")
+        Database.dbScope.launch {
+            newSuspendedTransaction {
+                val replayChannelId = fromReplayCommand?.tc ?: replayChannel?.idLong ?: return@newSuspendedTransaction
+                val endlessId =
+                    EndlessLeagueChannelsDB.selectAll().where { EndlessLeagueChannelsDB.CHANNEL eq replayChannelId }
+                        .firstOrNull()?.get(
+                            EndlessLeagueChannelsDB.ID
+                        ) ?: return@newSuspendedTransaction
+                if (EndlessLeagueDataDB.insertIgnore {
+                        it[ID] = endlessId
+                        it[URL] = url
+                    }.insertedCount > 0) {
+                    val newSize =
+                        EndlessLeagueDataDB.select(EndlessLeagueDataDB.ID).where { EndlessLeagueDataDB.ID eq endlessId }
+                            .count()
+                    // new replay for this id
+                    val info = EndlessLeagueInfoDB.selectAll().where { EndlessLeagueInfoDB.ID eq endlessId }.first()
+                    RequestBuilder(info[EndlessLeagueInfoDB.SID]).addRow(
+                        info[EndlessLeagueInfoDB.STARTCOORD].toCoord()
+                            .plusY(newSize.toInt() - 1),
+                        listOf(
+                            url,
+                            *listOf(u1, u2).let { if (game[0].winnerOfGame) it else it.reversed() }.toTypedArray(),
+                            game[0].totalKDCount.let { it.first - it.second }.absoluteValue
+                        )
+                    ).execute()
+                }
+            }
+        }
         val kd = game.map { it.pokemon.associate { p -> p.draftname.official to (p.kills to if (p.isDead) 1 else 0) } }
         league?.docEntry?.analyse(
             ReplayData(
@@ -237,8 +274,7 @@ object Analysis {
             private val logRegex =
                 Regex("<script type=\"text/plain\" class=\"log\">(.*?)</script>", RegexOption.DOT_MATCHES_ALL)
 
-            override fun getLogFromWebsiteText(text: String) =
-                logRegex.find(text)?.groupValues[1] ?: ""
+            override fun getLogFromWebsiteText(text: String) = logRegex.find(text)?.groupValues[1] ?: ""
         };
 
         abstract fun getLogFromWebsiteText(text: String): String
@@ -255,17 +291,14 @@ object Analysis {
     )
 
     suspend fun analyse(
-        urlProvided: String,
-        answer: ((String) -> Unit)? = null,
-        debugMode: Boolean = false
+        urlProvided: String, answer: ((String) -> Unit)? = null, debugMode: Boolean = false
     ): AnalysisData {
         var gameNullable: List<String>? = null
         val mr = regex.find(urlProvided) ?: throw InvalidReplayException()
         val mode = modeByServer[mr.groupValues[1]] ?: throw InvalidReplayException()
         val url = mr.groupValues[0]
         val mappedURL = mode.mapURL(url)
-        @Suppress("unused")
-        for (i in 0..1) {
+        @Suppress("unused") for (i in 0..1) {
             var statusCode: HttpStatusCode? = null
             val retrieved = runCatching {
                 withContext(Dispatchers.IO) {

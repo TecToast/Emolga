@@ -2,6 +2,8 @@ package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
@@ -23,7 +25,9 @@ class ASLCoach : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), cols = listOf(2, 8, 6))) {
+        newSystem(SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), indexer = {
+            it.substringAfter("'").substringBeforeLast("'").indexedBy(TEAMS())
+        }, includeAllLevels = true, cols = listOf(2, -1, 8, 6))) {
             b.addSingle(
                 coord("Spielplan", gdi.x(5, 2), index.y(7, 6 + level)), defaultGameplanString
             )
@@ -56,14 +60,26 @@ class ASLCoach : League() {
 
 
     override fun setupRepeatTasks() {
-            RepeatTask(
-                "ASL", RepeatTaskType.Other("Announce"), "04.12.2023 00:00", 5, 7.days
-            ) {
-                val msg = "**------------- Spieltag $it -------------**"
-                jda.getTextChannelById(1170477105339973824)!!.sendMessage(msg).queue()
-                jda.getTextChannelById(1170477327839412365)!!.sendMessage(msg).queue()
-            }
+        if (!leaguename.endsWith("1")) return
+        RepeatTask(
+            "ASL", RepeatTaskType.Other("Announce"), "16.12.2024 00:00", 8, 14.days, printDelays = true
+        ) {
+            val msg = "**------------- ${
+                when (it) {
+                    6 -> "Viertelfinale"
+                    7 -> "Halbfinale"
+                    8 -> "Finale"
+                    else -> "Spieltag $it"
+                }
+            } -------------**"
+            provideReplayChannel(jda)!!.sendMessage(msg).queue()
+            provideResultChannel(jda)!!.sendMessage(msg).queue()
         }
+    }
+
+    companion object {
+        val TEAMS = OneTimeCache { db.aslcoach.only().table.map { it.uppercase() } }
+    }
 
 }
 

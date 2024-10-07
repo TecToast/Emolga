@@ -542,9 +542,9 @@ sealed class League {
     open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
     fun getPossibleTiers(idx: Int = current, forAutocomplete: Boolean = false): MutableMap<String, Int> {
-        val cpicks = picks[idx]!!
+        val cpicks = picks[idx]
         return tierlist.prices.toMutableMap().let { possible ->
-            cpicks.forEach { pick ->
+            cpicks?.forEach { pick ->
                 pick.takeUnless { it.name == "???" || it.free || it.quit }
                     ?.let { possible[it.tier] = possible[it.tier]!! - 1 }
             }
@@ -552,13 +552,13 @@ sealed class League {
         }.also { possible ->
             if (tierlist.variableMegaPrice) {
                 possible.keys.toList().forEach { if (it.startsWith("Mega#")) possible.remove(it) }
-                if (!forAutocomplete) possible["Mega"] = if (cpicks.none { it.name.isMega }) 1 else 0
+                if (!forAutocomplete) possible["Mega"] = if (cpicks?.none { it.name.isMega } != false) 1 else 0
             }
             manipulatePossibleTiers(cpicks, possible)
         }
     }
 
-    open fun manipulatePossibleTiers(picks: MutableList<DraftPokemon>, possible: MutableMap<String, Int>) {}
+    open fun manipulatePossibleTiers(picks: MutableList<DraftPokemon>?, possible: MutableMap<String, Int>) {}
 
     fun getPossibleTiersAsString(idx: Int = current) =
         getPossibleTiers(idx).entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }

@@ -1,9 +1,9 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.league.DynamicCoord
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
@@ -29,15 +29,35 @@ class NDSU : League() {
     override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
     val logger: Logger by SLF4J
 
+    val teamtable: List<String> = emptyList()
+
+    init {
+        val mon = TZDataHolder(
+            coord = DynamicCoord.DynamicSheet(teamtable, "AA8"),
+            searchRange = "Data!\$B\$1000:\$C\$2000",
+            searchColumn = 2
+        )
+        val type = TZDataHolder(
+            coord = DynamicCoord.DynamicSheet(teamtable, "Y9"),
+            searchRange = "Data!\$B\$400:\$C$417",
+            searchColumn = 2
+        )
+        enableConfig(
+            TeraAndZ(
+                tera = TeraData(
+                    mon = mon,
+                    type = type
+                )
+            )
+        )
+    }
+
     @Transient
     override val docEntry = DocEntry.create(this) {
         newSystem(SorterData("Tabelle!C3:K12", newMethod = true, cols = listOf(2, 8, 6))) {
             val y = index.y(10, 6)
             val gameplanName = "Spielplan"
             val gameplanSheet = 453772599
-            val league = db.league("NDSML")
-            val teamnames =
-                db.signups.get(Constants.G.NDS)!!.users.toList().associate { league(it.first) to it.second.teamname!! }
             b.addSingle(
                 "$gameplanName!${getAsXCoord(gdi * 9 + 5)}${index * 10 + 4}", "=HYPERLINK(\"$url\"; \"Link\")"
             )
@@ -62,8 +82,8 @@ class NDSU : League() {
                 }
                 if (winnerIndex == i) {
                     val s = "!${(gdi * 2 + 4).xc()}10"
-                    b.addSingle(teamnames[replayData.uindices[i]] + s, "$higherNumber:0")
-                    b.addSingle(teamnames[replayData.uindices[1 - i]] + s, "0:$higherNumber")
+                    b.addSingle(teamtable[replayData.uindices[i]] + s, "$higherNumber:0")
+                    b.addSingle(teamtable[replayData.uindices[1 - i]] + s, "0:$higherNumber")
                 }
             }
         }
@@ -74,44 +94,43 @@ class NDSU : League() {
         addSingle("Draftreihenfolge!${data.roundIndex.x(2, 2)}${data.indexInRound.y(2, 5)}", data.pokemon)
     }
 
-    companion object {
-        fun setupRepeatTasks() {
-            RepeatTask(
-                "NDSU", RepeatTaskType.Other("Matchups"), "28.01.2024 20:00", 9, 7.days, true
-            ) { doMatchUps(it) }
-        }
-
-        suspend fun doMatchUps(gameday: Int) {
-            val league = db.leagueByPrefix("NDSML")
-            val table = league.table
-            val teamnames =
-                db.signups.get(Constants.G.NDS)!!.users.toList().associate { it.first to it.second.teamname!! }
-            val battleorder = league.battleorder[gameday]!!
-            val b = RequestBuilder(league.sid)
-            for (users in battleorder) {
-                for (index in 0..1) {
-                    val u1 = table[users[index]]
-                    val oppoIndex = users[1 - index]
-                    val u2 = table[oppoIndex]
-                    val team = teamnames[u1]!!
-                    val oppo = teamnames[u2]!!
-                    // Speed values
-                    b.addSingle("$team!B17", "={${Coord(oppo, "B15").spreadTo(x = 11 * 2)}}")
-                    // Icons
-                    b.addSingle("$team!B18", "={${Coord(oppo, "B14").spreadTo(x = 11 * 2)}}")
-                    // KD
-                    b.addSingle("$team!B20", "={${Coord(oppo, "B13").spreadTo(x = 11 * 2)}}")
-                    // MU
-                    b.addColumn(
-                        "$team!A17", listOf(
-                            "=${Coord(oppo, "Y2")}", "=${Coord(oppo, "B2")}"
-                        )
-                    )
-
-
-                }
-            }
-            b.execute()
-        }
+    override fun setupRepeatTasks() {
+        RepeatTask(
+            "NDSU", RepeatTaskType.Other("Matchups"), "10.11.2024 20:00", 9, 7.days, true
+        ) { doMatchUps(it) }
     }
+
+
+    suspend fun doMatchUps(gameday: Int) {
+        val league = db.leagueByPrefix("NDSU")
+        val battleorder = league.battleorder[gameday]!!
+        val b = RequestBuilder(league.sid)
+        for (users in battleorder) {
+            for (index in 0..1) {
+                val u1 = users[index]
+                val u2 = users[1 - index]
+                val team = teamtable[u1]
+                val oppo = teamtable[u2]
+                // Speed values
+                b.addSingle("$team!B17", "={${Coord(oppo, "B15").spreadTo(x = 11 * 2)}}")
+                // Icons
+                b.addSingle("$team!B18", "={${Coord(oppo, "B14").spreadTo(x = 11 * 2)}}")
+                // KD
+                b.addSingle("$team!B20", "={${Coord(oppo, "B13").spreadTo(x = 11 * 2)}}")
+                // MU
+                b.addColumn(
+                    "$team!A17", listOf(
+                        "=${Coord(oppo, "Y2")}", "=${Coord(oppo, "B2")}"
+                    )
+                )
+                // Tera
+                b.addSingle("$team!AE8", "='$oppo'!AA8")
+                b.addSingle("$team!AC9", "='$oppo'!Y9")
+                // Arceus
+                b.addSingle("$team!AE10", "='$oppo'!AA10")
+            }
+        }
+        b.execute()
+    }
+
 }

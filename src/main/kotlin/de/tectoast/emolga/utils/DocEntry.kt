@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.bson.Document
 import org.litote.kmongo.eq
+import org.litote.kmongo.regex
 import org.slf4j.LoggerFactory
 
 
@@ -246,13 +247,22 @@ class DocEntry private constructor(val league: League) {
                     val points = Google.get(sid, formulaRange.toString(), false)
                     val orig: List<List<Any>?> = ArrayList(points)
                     league.table
-                    val indexerToUse: (String) -> Int by lazy {
-                        if (newMethod) { str: String ->
-                            rowNumToIndex(
-                                str.replace("$", "").substring(league.dataSheet.length + 4).substringBefore(":").toInt()
-                            )
+                    val indexerToUse by lazy {
+                        if (newMethod) {
+                            val new: suspend (String) -> Int = { str: String ->
+                                rowNumToIndex(
+                                    str.replace("$", "").substring(league.dataSheet.length + 4).substringBefore(":")
+                                        .toInt()
+                                )
+                            }
+                            new
                         } else indexer!!
                     }
+                    val leagueCheckToUse =
+                        if (includeAllLevels)
+                            MatchResult::leaguename regex "^${
+                                league.leaguename.dropLast(1)
+                            }" else MatchResult::leaguename eq league.leaguename
                     val finalOrder = if (-1 !in cols) {
                         points.sortedWith(Comparator<List<Any>> { o1, o2 ->
                             compareColumns(o1, o2, *cols.toIntArray())
@@ -277,7 +287,7 @@ class DocEntry private constructor(val league: League) {
                                 val useridxs =
                                     toCompare.map { u -> indexerToUse(formula[orig.indexOf(u)][0].toString()) }
                                 val allRelevantMatches = db.matchresults.find(
-                                    MatchResult::leaguename eq league.leaguename, Document(
+                                    leagueCheckToUse, Document(
                                         "\$expr", Document(
                                             "\$setIsSubset", listOf(
                                                 "\$indices", useridxs

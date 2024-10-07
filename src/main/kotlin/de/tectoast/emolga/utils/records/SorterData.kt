@@ -5,19 +5,22 @@ import de.tectoast.emolga.utils.DirectCompareData
 class SorterData(
     val formulaRange: List<String>,
     val directCompare: List<DirectCompareOption> = listOf(DirectCompareOption.DIFF, DirectCompareOption.KILLS),
-    val indexer: ((String) -> Int)? = null,
+    val indexer: (suspend (String) -> Int)? = null,
+    val includeAllLevels: Boolean = false,
     val newMethod: Boolean = false,
     val cols: List<Int>
 ) {
     val formulaRangeParsed = formulaRange.map { DocRange[it] }
+
     constructor(
         formulaRange: String,
         directCompare: List<DirectCompareOption> = listOf(DirectCompareOption.DIFF, DirectCompareOption.KILLS),
-        indexer: ((String) -> Int)? = null,
+        indexer: (suspend (String) -> Int)? = null,
+        includeAllLevels: Boolean = false,
         newMethod: Boolean = false,
         cols: List<Int>
     ) : this(
-        listOf(formulaRange), directCompare, indexer, newMethod, cols
+        listOf(formulaRange), directCompare, indexer, includeAllLevels, newMethod, cols
     )
 
 }

@@ -21,6 +21,7 @@ import de.tectoast.emolga.utils.json.emolga.TeamData
 import de.tectoast.emolga.utils.json.emolga.draft.IPL
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
+import de.tectoast.emolga.utils.json.emolga.draft.NDSU
 import de.tectoast.emolga.utils.json.emolga.draft.VideoProvideStrategy
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
@@ -95,6 +96,11 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun matchUps(args: PrivateData) {
         NDS.doMatchUps(args[0].toInt(), args[1].toBooleanStrict())
+    }
+
+    context(InteractionData)
+    suspend fun ndsuMatchUps(args: PrivateData) {
+        (db.leagueByPrefix("NDSU") as NDSU).doMatchUps(args[0].toInt())
     }
 
     context(InteractionData)
@@ -675,6 +681,11 @@ object PrivateCommands {
                 rename(League::picks.keyProjection(old), League::picks.keyProjection(new))
             )
         )
+    }
+
+    context(InteractionData)
+    suspend fun startGroupedPoints() {
+        db.shinyEventConfig.only().updateDiscord(jda)
     }
 
 

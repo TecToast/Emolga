@@ -69,7 +69,7 @@ object Ktor {
     private fun Application.installPlugins() {
         install(Sessions) {
             cookie<UserSession>("user_session", DiscordAuthDB) {
-                cookie.extensions["SameSite"] = "None"
+                cookie.extensions["SameSite"] = "Lax"
                 cookie.httpOnly = true
             }
         }

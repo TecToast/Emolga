@@ -29,6 +29,9 @@ class IntervalTask(name: String, provideNextExecution: () -> Instant, consumer: 
     init {
         launch {
             val startData = db.intervaltaskdata.get(name)
+            startData?.notAfter?.let {
+                if (Clock.System.now() > it) return@launch
+            }
             val now = Clock.System.now()
             delay((startData?.nextExecution ?: now) - now)
             consumer()

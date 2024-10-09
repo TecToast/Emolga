@@ -662,9 +662,11 @@ object PrivateCommands {
         val archiveMR = db.db.getCollection<MatchResult>("oldmatchresults")
         val currentMR = db.db.getCollection<MatchResult>("matchresults")
         args.forEach {
-            val league = db.league(it)
-            archiveLeague.insertOne(league)
-            currentLeague.deleteOne(League::leaguename eq it)
+            if (!it.matches(Regex("^NDSS\\d+$"))) {
+                val league = db.league(it)
+                archiveLeague.insertOne(league)
+                currentLeague.deleteOne(League::leaguename eq it)
+            }
             archiveMR.insertMany(currentMR.find(MatchResult::leaguename eq it).toList())
             currentMR.deleteMany(MatchResult::leaguename eq it)
         }

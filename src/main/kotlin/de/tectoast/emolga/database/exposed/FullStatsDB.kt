@@ -28,15 +28,13 @@ object FullStatsDB : Table("fullstats") {
         scope.launch {
             newSuspendedTransaction {
                 logger.debug("Adding to FSM {} {} {}", pkmn, k, d)
-                upsert(
-                    onUpdate = listOf(
-                        KILLS to KILLS.plus(k),
-                        DEATHS to DEATHS.plus(d),
-                        USES to USES.plus(1),
-                        WINS to WINS.plus(if (w) 1 else 0),
-                        LOOSES to LOOSES.plus(if (!w) 1 else 0)
-                    )
-                ) {
+                upsert(onUpdate = {
+                    it[KILLS] = KILLS.plus(k)
+                    it[DEATHS] = DEATHS.plus(d)
+                    it[USES] = USES.plus(1)
+                    it[WINS] = WINS.plus(if (w) 1 else 0)
+                    it[LOOSES] = LOOSES.plus(if (!w) 1 else 0)
+                }) {
                     it[POKEMON] = pkmn
                     it[KILLS] = k
                     it[DEATHS] = d

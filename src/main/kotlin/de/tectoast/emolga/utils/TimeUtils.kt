@@ -109,9 +109,10 @@ object TimeUtils {
     private fun Calendar.handleDay(str: String, now: Long) {
         val date = str.split(".")
         this[Calendar.DAY_OF_MONTH] = date[0].toInt()
-        date.getOrNull(1)?.let { this[Calendar.MONTH] = it.toInt() - 1 }
+        date.getOrNull(1)?.toIntOrNull()?.let { this[Calendar.MONTH] = it - 1 }
+        date.getOrNull(2)?.toIntOrNull()?.let { this[Calendar.YEAR] = it }
         if (this.timeInMillis < now) {
-            this.add(Calendar.MONTH, 1)
+            this.add(Calendar.YEAR, 1)
         }
     }
 

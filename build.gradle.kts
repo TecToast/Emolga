@@ -102,7 +102,7 @@ dependencies {
     // Database
     // MySQL
     implementation("org.mariadb.jdbc:mariadb-java-client:3.5.0")
-    implementation("com.zaxxer:HikariCP:6.0.0")
+    implementation("com.zaxxer:HikariCP:6.2.1")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")

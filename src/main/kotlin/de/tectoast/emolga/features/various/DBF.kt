@@ -277,7 +277,7 @@ object DBF {
     }
 
     private val adminChannelProvider = AdminChannelProvider.PN(Constants.M.HENNY)
-    private val gameChannel get() = jda.getChannel<GuildMessageChannel>(1126193988051931277)!!
+    private val gameChannel get() = jda.getChannel<GuildMessageChannel>(1314561631933562922)!!
     private suspend fun adminChannel() = adminChannelProvider.provideChannel()
     private fun allVoted() = votes.size == members.size
     lateinit var allQuestions: List<String>

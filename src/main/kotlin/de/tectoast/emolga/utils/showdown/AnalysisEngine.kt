@@ -4,6 +4,7 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.showdown.PokemonSaveKey.*
+import de.tectoast.emolga.utils.toUsername
 import mu.KotlinLogging
 import kotlin.properties.Delegates
 import kotlin.reflect.KClass
@@ -516,7 +517,7 @@ sealed class SDEffect(vararg val types: String) {
     data object Win : SDEffect("win") {
         context(BattleContext)
         override fun execute(split: List<String>) {
-            sdPlayers.first { it.nickname == split[1] }.winnerOfGame = true
+            sdPlayers.first { it.nickname.toUsername() == split[1].toUsername() }.winnerOfGame = true
         }
     }
 

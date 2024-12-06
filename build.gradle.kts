@@ -1,7 +1,7 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "2.0.21"
+val kVersion = "2.1.0"
 plugins {
     val kVersion = "2.0.0"
     kotlin("jvm") version kVersion
@@ -97,11 +97,11 @@ dependencies {
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20241008-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20241027-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20241105-2.0.0")
+    implementation("com.google.apis:google-api-services-youtube:v3-rev20241117-2.0.0")
 
     // Database
     // MySQL
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.0")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.1")
     implementation("com.zaxxer:HikariCP:6.2.1")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
@@ -115,7 +115,7 @@ dependencies {
     ktor()
 
     // Utils
-    implementation("org.jsoup:jsoup:1.18.1")
+    implementation("org.jsoup:jsoup:1.18.3")
 
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M1")

@@ -57,7 +57,7 @@ repositories {
     mavenCentral()
 }
 
-val exposedVersion = "0.56.0"
+val exposedVersion = "0.57.0"
 val ktorVersion = "2.3.12"
 val ktorDependencies = listOf(
     // Client
@@ -95,9 +95,9 @@ dependencies {
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google
-    implementation("com.google.apis:google-api-services-sheets:v4-rev20241008-2.0.0")
+    implementation("com.google.apis:google-api-services-sheets:v4-rev20241203-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20241027-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20241117-2.0.0")
+    implementation("com.google.apis:google-api-services-youtube:v3-rev20241203-2.0.0")
 
     // Database
     // MySQL

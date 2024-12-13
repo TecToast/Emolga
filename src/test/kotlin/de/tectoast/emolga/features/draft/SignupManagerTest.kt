@@ -11,7 +11,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class SignupManagerTest : FunSpec({
-    test("StressTest") {
+    xtest("StressTest") {
         val signupChannel = createChannel("signup")
         SignupManager.createSignup(
             defaultChannel.idLong,

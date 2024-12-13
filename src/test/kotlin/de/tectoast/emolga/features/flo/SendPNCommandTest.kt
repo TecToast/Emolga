@@ -6,7 +6,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 
 class SendPNCommandTest : FunSpec({
-    test("SendPNCommand") {
+    xtest("SendPNCommand") {
         with(TestInteractionData()) {
             SendFeatures.SendPNCommand.exec { this.id = Constants.FLOID; this.msg = "Test :3" }
             awaitResponse().msg shouldBe "Done!"

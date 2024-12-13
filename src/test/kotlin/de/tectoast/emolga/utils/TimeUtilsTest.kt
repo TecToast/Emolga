@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.longs.shouldBeBetween
 import io.kotest.matchers.shouldBe
 import java.util.*
 
@@ -21,5 +22,7 @@ class TimeUtilsTest : FunSpec({
         println(TimeUtils.parseCalendarTime("15:00").f)
         println(TimeUtils.parseCalendarTime("10.5. 12:42").f)
         println(TimeUtils.parseCalendarTime("2h 30").f)
+        val calced = TimeUtils.parseCalendarTime("01.01.2025 12:00")
+        calced.shouldBeBetween(1735729200000, 1735729200000 + 1000)
     }
 })

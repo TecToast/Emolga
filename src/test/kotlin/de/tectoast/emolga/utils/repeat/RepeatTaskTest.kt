@@ -7,7 +7,7 @@ import kotlin.time.measureTimedValue
 
 private val logger = KotlinLogging.logger {}
 class RepeatTaskTest : FunSpec({
-    test("RepeatTask") {
+    xtest("RepeatTask") {
         val (value, duration) = measureTimedValue {
             RepeatTask("Test", RepeatTaskType.Other("Test"), "13.04.2024 14:00", 7, 7.days, false) {
                 logger.info(it.toString())

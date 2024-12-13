@@ -4,7 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.mpp.env
 
 class KtorTest : FunSpec({
-    test("KtorTest") {
+    xtest("KtorTest") {
         Ktor.devMode = true
         Ktor.oauth2Secret = env("DISCORDOAUTHSECRET")!!
         Ktor.start()

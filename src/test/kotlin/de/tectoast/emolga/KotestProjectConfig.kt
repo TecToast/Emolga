@@ -18,6 +18,7 @@ object KotestProjectConfig : AbstractProjectConfig() {
     private val logger = KotlinLogging.logger {}
 
     override suspend fun beforeProject() {
+        println("INITIALIZING")
         initMongo()
         logger.info(db.drafts.deleteMany(League::leaguename regex Regex("^TEST")).deletedCount.toString())
         val username = env("DBUSER")!!

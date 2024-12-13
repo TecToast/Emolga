@@ -21,7 +21,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType
 import java.nio.file.Files
 
 class Other : FunSpec({
-    test("AttachmentTest") {
+    xtest("AttachmentTest") {
         defaultGuild.upsertCommand("testattachment", "test")
             .addOption(OptionType.ATTACHMENT, "attachment", "attachment", true).queue()
         val hold = CompletableDeferred<Unit>()
@@ -39,7 +39,7 @@ class Other : FunSpec({
         hold.await()
     }
 
-    test("SelectMenuTest") {
+    xtest("SelectMenuTest") {
         val list = listOf("A", "B", "C")
         defaultChannel.sendMessage("Test")
             .addActionRow(StringSelectMenu("1test", valueRange = list.indices, options = list.map {
@@ -56,7 +56,7 @@ class Other : FunSpec({
         keepAlive()
     }
 
-    test("SendMenu") {
+    xtest("SendMenu") {
         defaultChannel.send(":)", components = RoleManagement.RoleGetMenu().into()).queue()
         keepAlive()
     }

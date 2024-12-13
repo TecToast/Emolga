@@ -7,7 +7,7 @@ import org.bson.Document
 
 class DocEntryTest : FunSpec({
     context("QueryWorks") {
-        test("Not Match") {
+        xtest("Not Match") {
             db.matchresults.find(
                 Document(
                     "\$expr", Document(

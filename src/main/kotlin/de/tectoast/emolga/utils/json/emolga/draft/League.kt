@@ -449,6 +449,7 @@ sealed class League {
                 }
                 reset()
                 sendRound()
+                setNextUser()
                 if (tryQueuePick()) return
                 restartTimer()
                 announcePlayer()
@@ -522,7 +523,7 @@ sealed class League {
 
     open suspend fun handleStallSecondUsed(): Long? = null
 
-    private fun sendRound() {
+    protected open fun sendRound() {
         tc.sendMessage("## === Runde $round ===").queue()
     }
 

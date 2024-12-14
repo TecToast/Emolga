@@ -9,7 +9,7 @@ import de.tectoast.emolga.utils.draft.DraftUtils
 import de.tectoast.emolga.utils.draft.PickInput
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
-import de.tectoast.emolga.utils.json.emolga.draft.*
+import de.tectoast.emolga.utils.json.emolga.draft.League
 
 object PickCommand :
     CommandFeature<PickCommand.Args>(PickCommand::Args, CommandSpec("pick", "Pickt ein Pokemon", *draftGuilds)) {
@@ -38,7 +38,6 @@ object PickCommand :
     context(InteractionData)
     override suspend fun exec(e: Args) {
         League.executePickLike {
-            beforePick()?.let { return reply(it) }
             DraftUtils.executeWithinLock(
                 PickInput(e.pokemon, e.tier, e.free),
                 if (e.random) DraftMessageType.RANDOM else DraftMessageType.REGULAR

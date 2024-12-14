@@ -17,6 +17,7 @@ import de.tectoast.emolga.league.DynamicCoord
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
+import de.tectoast.emolga.utils.draft.Tierlist.Companion.getValue
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -32,6 +33,7 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import org.bson.types.ObjectId
@@ -40,9 +42,6 @@ import org.litote.kmongo.eq
 import java.awt.Color
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.set
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 import kotlin.time.Duration
@@ -96,7 +95,7 @@ sealed class League {
     val moved: MutableMap<Int, MutableList<Int>> = mutableMapOf()
 
     @EncodeDefault
-    val skippedTurns: MutableMap<Int, MutableSet<Int>> = mutableMapOf()
+    val punishableSkippedTurns: MutableMap<Int, MutableSet<Int>> = mutableMapOf()
     internal val names: MutableList<String> = mutableListOf()
 
     val replayDataStore: ReplayDataStore? = null
@@ -149,8 +148,11 @@ sealed class League {
     val queuedPicks: MutableMap<Int, QueuePicksData> = mutableMapOf()
     val randomLeagueData: RandomLeagueData = RandomLeagueData()
 
+    @EncodeDefault
+    val bannedMons: MutableMap<Int, MutableSet<DraftPokemon>> = mutableMapOf()
+
     protected fun enableConfig(vararg flags: LeagueConfig) {
-        configs += flags
+        configs += flags.filter { f -> configs.none { f::class == it::class } }
     }
 
 
@@ -206,9 +208,15 @@ sealed class League {
         picks += DraftPokemon(pokemonofficial, tier)
     }
 
+    open fun BanData.saveBan() {
+        bannedMons.getOrPut(round) { mutableSetOf() }.add(DraftPokemon(pokemonofficial, tier))
+    }
+
     open suspend fun RequestBuilder.pickDoc(data: PickData) {}
 
     open suspend fun RequestBuilder.switchDoc(data: SwitchData) {}
+
+    open suspend fun RequestBuilder.banDoc(data: BanData) {}
 
     open fun providePicksForGameday(gameday: Int): Map<Int, List<DraftPokemon>> = picks
 
@@ -223,12 +231,12 @@ sealed class League {
     }
 
     open suspend fun isPicked(mon: String, tier: String? = null) =
-        picks.values.any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
+        (picks.values + bannedMons.values).any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
 
     suspend inline fun firstAvailableMon(
         tlNames: Collection<String>, checker: ((german: String, english: String) -> Boolean) = { _, _ -> true }
     ): DraftName? {
-        val alreadyPicked = picks.values.flatten().mapTo(mutableSetOf()) { it.name }
+        val alreadyPicked = (picks.values + bannedMons.values).flatten().mapTo(mutableSetOf()) { it.name }
         return tlNames.firstNotNullOfOrNull {
             val draftName = NameConventionsDB.getDiscordTranslation(
                 it, guild, tierlist.isEnglish
@@ -326,7 +334,20 @@ sealed class League {
             this@League.cancelCurrentTimer()
         }
         if (data is NextPlayerData.Moved) {
-            triggerMove(data)
+            addPunishableSkippedRound(data)
+            getConfig<DraftBanConfig>()?.let { config ->
+                if (config.skipBehavior == BanSkipBehavior.RANDOM) {
+                    val data = config.banRounds[round] ?: return@let
+                    val tier = data.getPossibleBanTiers(getAlreadyBannedMonsInThisRound()).random()
+                    val possibleMons = tierlist.getByTier(tier) ?: return@let
+                    val selectedMon = firstAvailableMon(possibleMons) ?: return@let
+                    with(queueInteractionData) outer@{
+                        executeWithinLock(BanInput(selectedMon), DraftMessageType.RANDOM)
+                    }
+                    return
+                }
+            }
+            addToMoved(data)
             data.sendSkipMessage()
         }
         if (result == TimerSkipResult.NEXT) {
@@ -348,6 +369,8 @@ sealed class League {
         announcePlayer()
         save("NEXT PLAYER SAFE")
     }
+
+    fun getAlreadyBannedMonsInThisRound(): Set<DraftPokemon> = bannedMons[round].orEmpty()
 
     private fun TimerRelated.handleStallSecondPunishment(ctm: Long) {
         timer?.stallSeconds?.takeIf { it > 0 }?.let {
@@ -418,7 +441,8 @@ sealed class League {
                 pseudoEnd = false
                 timerRelated.lastPick = currentTimeMillis
                 timerRelated.usedStallSeconds.clear()
-                skippedTurns.clear()
+                punishableSkippedTurns.clear()
+                bannedMons.clear()
                 config<RandomPickConfig> {
                     if (hasJokers()) table.indices.forEach { randomLeagueData.jokers[it] = jokers }
                     randomLeagueData.currentMon?.disabled = true
@@ -517,6 +541,15 @@ sealed class League {
     }
 
     fun announceData(withTimerAnnounce: Boolean = true, idx: Int = current) = buildList {
+        getConfig<DraftBanConfig>()?.let { config ->
+            config.banRounds[round]?.let {
+                add(
+                    "Mögliche Tiers zum Bannen: ${
+                        it.getPossibleBanTiers(getAlreadyBannedMonsInThisRound()).joinToString { s -> "**$s**" }
+                    }")
+                return@buildList
+            }
+        }
         with(tierlist.mode) {
             if (withTiers) {
                 getPossibleTiersAsString(idx).let { if (it.isNotEmpty()) add("Mögliche Tiers: $it") }
@@ -536,8 +569,17 @@ sealed class League {
             }**"
         }.also { newTimerForAnnounce = false }
 
-    open fun beforePick(): String? =
-        if (getConfigOrDefault<RandomPickConfig>().hasJokers()) "In diesem Draft sind keine regulären Picks möglich!" else null
+    open fun checkLegalDraftInput(input: DraftInput, type: DraftMessageType): String? {
+        if (input is PickInput && type != DraftMessageType.RANDOM && getConfigOrDefault<RandomPickConfig>().hasJokers()) return "In diesem Draft sind keine regulären Picks möglich!"
+        getConfig<DraftBanConfig>()?.let {
+            it.banRounds[round]?.let {
+                if (input !is BanInput) return "Die aktuelle Runde (**$round**) ist eine Ban-Runde, dementsprechend kann man nichts picken!"
+            }
+                ?: if (input is BanInput) return "Die aktuelle Runde (**$round**) ist **keine** Ban-Runde, dementsprechend kann man nichts bannen!" else Unit
+        }
+        if (input is PickInput && picks(current).count { !it.quit } >= teamsize) return "Dein Kader ist bereits voll!"
+        return null
+    }
 
     open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
@@ -595,9 +637,14 @@ sealed class League {
         error("Tier ${this.tier} not found by user $current")
     }
 
-    fun triggerMove(data: NextPlayerData.Moved) {
+    fun addToMoved(data: NextPlayerData.Moved) {
         if (!isSwitchDraft) moved.getOrPut(current) { mutableListOf() }.let { if (round !in it) it += round }
-        if (data.reason == SkipReason.REALTIMER || data.skippedBy != null) skippedTurns.getOrPut(current) { mutableSetOf() } += round
+    }
+
+    private fun addPunishableSkippedRound(data: NextPlayerData.Moved) {
+        if (System.currentTimeMillis() > (timer?.getCurrentTimerInfo()?.startPunishSkipsTime
+                ?: 0) && (data.reason == SkipReason.REALTIMER || data.skippedBy != null)
+        ) punishableSkippedTurns.getOrPut(current) { mutableSetOf() } += round
     }
 
     fun hasMovedTurns(idx: Int = current) = movedTurns(idx).isNotEmpty()
@@ -664,13 +711,26 @@ sealed class League {
     fun builder() = RequestBuilder(sid)
 
     context (InteractionData)
-    suspend fun replyGeneral(msg: String, components: Collection<LayoutComponent> = SendDefaults.components) {
-        replyAwait(
-            "<@${user}> hat${
-                if (user != this[current]) " für **${getCurrentName()}**" else ""
-            } $msg", components = components
+    suspend fun replyGeneral(
+        msg: String,
+        components: Collection<LayoutComponent> = SendDefaults.components,
+        ifTestUseTc: MessageChannel? = null
+    ) = replyWithTestInteractionCheck(
+        "<@${user}> hat${
+            if (user != this[current]) " für **${getCurrentName()}**" else ""
+        } $msg", components, ifTestUseTc
+    )
+
+
+    context(InteractionData)
+    suspend fun replyWithTestInteractionCheck(
+        content: String,
+        components: Collection<LayoutComponent> = SendDefaults.components,
+        ifTestUseTc: MessageChannel? = null
+    ) = ifTestUseTc?.takeIf { self is TestInteractionData }?.send(content, components = components)?.await()
+        ?: replyAwait(
+            content, components = components
         )
-    }
 
     context (InteractionData)
     suspend fun replySwitch(oldmon: String, newmon: String) {
@@ -954,6 +1014,14 @@ sealed interface LeagueConfig {
 data object AllowPickDuringSwitch : LeagueConfig
 
 @Serializable
+@SerialName("DraftBanConfig")
+data class DraftBanConfig(
+    val banRounds: Map<Int, BanRoundConfig> = mapOf(),
+    val notBannable: Set<String> = setOf(),
+    val skipBehavior: BanSkipBehavior = BanSkipBehavior.NOTHING
+) : LeagueConfig
+
+@Serializable
 @SerialName("RandomPick")
 data class RandomPickConfig(
     val disabled: Boolean = false,
@@ -1193,6 +1261,17 @@ class SwitchData(
     }
 }
 
+class BanData(
+    league: League,
+    pokemon: String,
+    pokemonofficial: String,
+    tier: String,
+    mem: Int,
+    round: Int,
+) : DraftData(league, pokemon, pokemonofficial, tier, mem, round) {
+    override val changedOnTeamsiteIndex = -1 // not used for BanData
+}
+
 data class TierData(val specified: String, val official: String)
 
 sealed interface TimerSkipMode {
@@ -1360,4 +1439,43 @@ sealed interface VideoProvideStrategy {
         }
     }
 
+}
+
+@Serializable
+sealed interface BanRoundConfig {
+
+    fun checkBan(tier: String, alreadyBanned: Set<DraftPokemon>): String?
+    fun getPossibleBanTiers(alreadyBanned: Set<DraftPokemon>): List<String>
+
+
+    @Serializable
+    @SerialName("FixedTier")
+    data class FixedTier(val tier: String) : BanRoundConfig {
+        override fun checkBan(tier: String, alreadyBanned: Set<DraftPokemon>) =
+            if (this.tier != tier) "In dieser Runde können nur Pokemon aus dem `${this.tier}`-Tier gebannt werden!" else null
+
+        override fun getPossibleBanTiers(alreadyBanned: Set<DraftPokemon>) = listOf(tier)
+    }
+
+    @Serializable
+    @SerialName("FixedTierSet")
+    data class FixedTierSet(val tierSet: Map<String, Int>) : BanRoundConfig {
+        override fun checkBan(
+            tier: String, alreadyBanned: Set<DraftPokemon>
+        ): String? {
+            val originalBanAmount = tierSet[tier] ?: return "Man kann keine Pokemon aus dem `$tier`-Tier bannen!"
+            val alreadyBannedAmount = alreadyBanned.count { it.tier == tier }
+            return if (originalBanAmount - alreadyBannedAmount <= 0) "Du kannst aus dem $tier-Tier keine Pokemon mehr bannen!" else null
+        }
+
+        override fun getPossibleBanTiers(alreadyBanned: Set<DraftPokemon>): List<String> {
+            val alreadyBanned = alreadyBanned.groupBy { it.tier }
+            return tierSet.entries.filter { it.value - (alreadyBanned[it.key]?.size ?: 0) > 0 }.map { it.key }
+        }
+    }
+}
+
+
+enum class BanSkipBehavior {
+    NOTHING, RANDOM
 }

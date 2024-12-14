@@ -323,7 +323,7 @@ sealed class League {
         randomLeagueData.currentMon?.disabled = true
         checkForQueuedPicksChanges()
         onAfterPick(data)
-        val result = (duringTimerSkipMode?.takeIf { !draftWouldEnd } ?: afterTimerSkipMode)?.run {
+        val result = (duringTimerSkipMode?.takeUnless { draftWouldEnd } ?: afterTimerSkipMode)?.run {
             afterPickCall(data).also { save("AfterPickOfficial") }
         } ?: TimerSkipResult.NEXT
         val ctm = System.currentTimeMillis()

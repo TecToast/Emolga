@@ -399,7 +399,7 @@ class TierlistBuilderConfigurator(
                         } else
                             null
                     }
-                }.awaitAll().filterNotNull().joinToString("\n").ifEmpty { "Nichts gefunden!" })
+                }.awaitAll().filterNotNull().joinToString("\n"))
             }
         }
 

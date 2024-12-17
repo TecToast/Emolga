@@ -7,22 +7,22 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Pokemon(
     val id: String = "ERROR",
-    val name: String,
-    val num: Int,
-    val types: List<String>,
-    val baseStats: Map<String, Int>,
+    val name: String = "ERROR",
+    val num: Int = -1,
+    val types: List<String> = listOf(),
+    val baseStats: Map<String, Int> = mapOf(),
     val formeOrder: List<String>? = null,
     val forme: String? = null,
     val baseSpecies: String? = null,
     val prevo: String? = null,
-    val abilities: Map<String, String>,
-    val eggGroups: List<String>,
+    val abilities: Map<String, String> = mapOf(),
+    val eggGroups: List<String> = listOf(),
     val otherFormes: List<String>? = null,
     val cosmeticFormes: List<String>? = null,
     val genderRatio: Map<String, Double>? = null,
     val gender: String? = null,
-    val heightm: Double,
-    val weightkg: Double,
+    val heightm: Double = -1.0,
+    val weightkg: Double = -1.0,
 
     val requiredAbility: String? = null,
     val requiredItem: String? = null,
@@ -33,6 +33,8 @@ data class Pokemon(
     val evoMove: String? = null,
     val evoItem: String? = null,
     val evoCondition: String? = null,
+
+    val isNonstandard: String? = null,
 
     ) {
 

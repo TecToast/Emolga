@@ -282,11 +282,11 @@ object Analysis {
     }
 
     val regex =
-        Regex("https://(replay\\.(?:ess\\.tectoast\\.de|pokemonshowdown\\.com)|battling.p-insurgence.com/replays)/(?:[a-z]+-)?[^-]+-\\d+[-a-z0-9]*")
+        Regex("https://(replays?\\.(?:tectoast\\.de|pokemonshowdown\\.com)|battling.p-insurgence.com/replays)/(?:[a-z]+-)?[^-]+-\\d+[-a-z0-9]*")
 
     val modeByServer = mapOf<String, ReplayServerMode>(
         "replay.pokemonshowdown.com" to ReplayServerMode.LOG,
-        "replay.ess.tectoast.de" to ReplayServerMode.LOG,
+        "replays.tectoast.de" to ReplayServerMode.LOG,
         "battling.p-insurgence.com/replays" to ReplayServerMode.SCRAPE
     )
 

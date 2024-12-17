@@ -382,6 +382,7 @@ sealed class League {
     }
 
     private suspend fun tryQueuePick(idx: Int = current): Boolean {
+        getConfig<DraftBanConfig>()?.banRounds[round]?.let { return false }
         val queuePicksData = queuedPicks[idx]?.takeIf { it.enabled } ?: return false
         val queuedMon = queuePicksData.queued.firstOrNull() ?: return false
         with(queueInteractionData) outer@{

@@ -9,6 +9,7 @@ class TimerInfo {
     private var globalTimerData: TimerData? = null
 
     val delayData: @Serializable(with = TreeMapSerializer::class) TreeMap<Int, Int>
+    var startPunishSkipsTime: Long = 0
 
     fun getDelayAfterSkips(howOftenSkipped: Int): Int = delayData.floorEntry(howOftenSkipped).value
 

@@ -8,15 +8,14 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.league.DynamicCoord
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
-import de.tectoast.emolga.utils.y
 import dev.minn.jda.ktx.util.SLF4J
+import dev.minn.jda.ktx.util.SLF4J.getValue
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -69,10 +68,6 @@ class NDS(val rr: Boolean) : League() {
     override val additionalSet = AdditionalSet("D", "X", "Y")
 
     fun getTeamname(idx: Int) = teamtable[idx]
-
-    override fun beforePick(): String? {
-        return "Du hast bereits 15 Mons!".takeIf { picks(current).count { !it.quit } == 15 }
-    }
 
     override fun checkFinishedForbidden(idx: Int) = when {
         picks[idx]!!.filter { !it.quit }.size < 15 -> "Du hast noch keine 15 Pokemon!"

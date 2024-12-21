@@ -46,7 +46,9 @@ object SendFeatures {
     }
 
     fun sendToMe(msg: String) {
-        sendToUser(Constants.FLOID, msg)
+        if (msg.isNotBlank()) {
+            sendToUser(Constants.FLOID, msg)
+        }
     }
 
     fun sendToUser(

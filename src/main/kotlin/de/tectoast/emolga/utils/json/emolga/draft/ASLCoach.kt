@@ -4,7 +4,6 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
-import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.serialization.SerialName
@@ -25,9 +24,7 @@ class ASLCoach : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(SorterData(listOf("Tabellen!B5:J10", "Tabellen!B13:J18"), indexer = {
-            it.substringAfter("'").substringBeforeLast("'").indexedBy(TEAMS())
-        }, includeAllLevels = true, cols = listOf(2, -1, 8, 6))) {
+        newSystem(sorterData = null) {
             b.addSingle(
                 coord("Spielplan", gdi.x(5, 2), index.y(7, 6 + level)), defaultGameplanString
             )

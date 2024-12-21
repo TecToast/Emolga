@@ -5,18 +5,14 @@ import de.tectoast.emolga.utils.Constants.FLOID
 import de.tectoast.emolga.utils.Constants.M.HENNY
 import de.tectoast.emolga.utils.SimpleTimer
 import de.tectoast.emolga.utils.TimerInfo
-import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.showdown.Analysis
-import de.tectoast.emolga.utils.showdown.SDPlayer
-import dev.minn.jda.ktx.messages.into
-import dev.minn.jda.ktx.messages.send
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.delay
 import mu.KotlinLogging
 
-private data class GetCurrentMentionData(val current: Long, val allowed: MutableSet<AllowedData>)
+private data class GetCurrentMentionData(val current: Int, val allowed: MutableSet<AllowedData>)
 class LeagueTest : FunSpec({
 
     lateinit var defaultLeague: League
@@ -31,9 +27,7 @@ class LeagueTest : FunSpec({
         context("getCurrentMention") {
             beforeTest {
                 logger.info { "setting names" }
-                defaultLeague.names[FLOID] = "Flo"
-                defaultLeague.names[HENNY] = "Henny"
-                defaultLeague.names[723829878755164202] = "Emolga"
+                defaultLeague.names.addAll(listOf("Flo", "Henny", "Emolga"))
             }
             fun apply(data: GetCurrentMentionData) {
                 defaultLeague.current = data.current
@@ -41,21 +35,21 @@ class LeagueTest : FunSpec({
                 defaultLeague.allowed[data.current] = data.allowed
             }
             test("only self mention") {
-                apply(GetCurrentMentionData(FLOID, mutableSetOf(AllowedData(FLOID, true), AllowedData(HENNY, false))))
+                apply(GetCurrentMentionData(0, mutableSetOf(AllowedData(FLOID, true), AllowedData(HENNY, false))))
                 defaultLeague.getCurrentMention() shouldBe "<@$FLOID>"
             }
             test("both mention") {
-                apply(GetCurrentMentionData(FLOID, mutableSetOf(AllowedData(FLOID, true), AllowedData(HENNY, true))))
+                apply(GetCurrentMentionData(0, mutableSetOf(AllowedData(FLOID, true), AllowedData(HENNY, true))))
                 defaultLeague.getCurrentMention() shouldBe "<@$FLOID>, ||<@$HENNY>||"
             }
             test("only other mention") {
-                apply(GetCurrentMentionData(FLOID, mutableSetOf(AllowedData(FLOID, false), AllowedData(HENNY, true))))
+                apply(GetCurrentMentionData(0, mutableSetOf(AllowedData(FLOID, false), AllowedData(HENNY, true))))
                 defaultLeague.getCurrentMention() shouldBe "**Flo**, ||<@$HENNY>||"
             }
             test("with only teammate") {
                 apply(
                     GetCurrentMentionData(
-                        FLOID, mutableSetOf(
+                        0, mutableSetOf(
                             AllowedData(FLOID, true), AllowedData(
                                 HENNY, true, teammate = true
                             )
@@ -67,7 +61,7 @@ class LeagueTest : FunSpec({
             test("with teammate + other") {
                 apply(
                     GetCurrentMentionData(
-                        FLOID, mutableSetOf(
+                        0, mutableSetOf(
                             AllowedData(FLOID, true), AllowedData(
                                 HENNY, true, teammate = true
                             ), AllowedData(723829878755164202, true)
@@ -79,7 +73,7 @@ class LeagueTest : FunSpec({
             test("only teammate and other") {
                 apply(
                     GetCurrentMentionData(
-                        FLOID, mutableSetOf(
+                        0, mutableSetOf(
                             AllowedData(FLOID, false), AllowedData(
                                 HENNY, true, teammate = true
                             ), AllowedData(723829878755164202, true)
@@ -91,7 +85,7 @@ class LeagueTest : FunSpec({
             test("only teammate") {
                 apply(
                     GetCurrentMentionData(
-                        FLOID, mutableSetOf(
+                        0, mutableSetOf(
                             AllowedData(FLOID, false), AllowedData(
                                 HENNY, true, teammate = true
                             ), AllowedData(723829878755164202, false)
@@ -103,24 +97,10 @@ class LeagueTest : FunSpec({
         }
 
         test("names is unset if called here") {
-            defaultLeague.names shouldBe mutableMapOf()
-        }
-
-        test("AppendedEmbed") {
-            val url = "https://replay.pokemonshowdown.com/gen9nationaldexag-1984877421"
-            val data = Analysis.analyse(url)
-            val uids = listOf(324265924905402370, 207211269911085056)
-            val league = db.league("ASLS13L0")
-            defaultChannel.send(
-                content = url, embeds = league.appendedEmbed(
-                    data,
-                    LeagueResult(league, uids, otherForms = emptyMap()),
-                    league.getGameplayData(uids[0], uids[1], data.game.map(SDPlayer::toDraftPlayer))
-                ).build().into()
-            ).queue()
+            defaultLeague.names.shouldBeEmpty()
         }
     }
-    context("Automation Checks") {
+    xcontext("Automation Checks") {
         test("Test") {
             enableReplyRedirect()
             DefaultLeagueSettings {
@@ -167,7 +147,7 @@ class LeagueTest : FunSpec({
             keepAlive()
         }
     }
-    test("CreateDefaultTestLeague") {
+    xtest("CreateDefaultTestLeague") {
         createTestDraft(
             "ASL",
             3,

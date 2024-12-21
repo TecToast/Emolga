@@ -57,7 +57,7 @@ repositories {
     mavenCentral()
 }
 
-val exposedVersion = "0.56.0"
+val exposedVersion = "0.57.0"
 val ktorVersion = "2.3.12"
 val ktorDependencies = listOf(
     // Client
@@ -95,9 +95,9 @@ dependencies {
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google
-    implementation("com.google.apis:google-api-services-sheets:v4-rev20241008-2.0.0")
+    implementation("com.google.apis:google-api-services-sheets:v4-rev20241203-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20241027-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20241117-2.0.0")
+    implementation("com.google.apis:google-api-services-youtube:v3-rev20241203-2.0.0")
 
     // Database
     // MySQL
@@ -120,8 +120,7 @@ dependencies {
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M1")
     testImplementation("io.kotest:kotest-assertions-core:6.0.0.M1")
-    testImplementation("io.kotest:kotest-framework-datatest:6.0.0.M1")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
 
 }
 

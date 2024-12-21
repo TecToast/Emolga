@@ -13,7 +13,6 @@ import kotlinx.serialization.Transient
 class Prisma : League() {
     override val teamsize = 12
     override val pickBuffer = 5
-    val bannedMons: MutableSet<String> = mutableSetOf()
 
     @Transient
     override val docEntry = DocEntry.create(this) {
@@ -27,23 +26,10 @@ class Prisma : League() {
         }
     }
 
-    override fun beforePick(): String? {
-        return "Dies ist eine Ban-Runde!".takeIf { round in banRounds }
-    }
-
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data.copy(round = convertToPickRound(data.round)))
         addPokemonToDraftorderSheet(data.pokemon)
         addSingle(data.idx.coordXMod("Teamseite", 4, 4, 3, 15, 4 + data.changedOnTeamsiteIndex), data.pokemon)
-    }
-
-    override suspend fun isPicked(mon: String, tier: String?): Boolean {
-        return super.isPicked(mon, tier) || mon in bannedMons
-    }
-
-    override fun checkUpdraft(specifiedTier: String, officialTier: String): String? {
-        val allowedTier = tierRanges.first { round in it.first }.second
-        return if (officialTier != allowedTier) "In dieser Runde dürfen nur Pokemon aus dem $allowedTier-Tier gepickt/gebannt werden!" else null
     }
 
     private fun RequestBuilder.addPokemonToDraftorderSheet(pokemon: String) {

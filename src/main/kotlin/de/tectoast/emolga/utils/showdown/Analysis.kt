@@ -220,9 +220,7 @@ object Analysis {
                     // new replay for this id
                     val info = EndlessLeagueInfoDB.selectAll().where { EndlessLeagueInfoDB.ID eq endlessId }.first()
                     RequestBuilder(info[EndlessLeagueInfoDB.SID]).addRow(
-                        info[EndlessLeagueInfoDB.STARTCOORD].toCoord()
-                            .plusY(newSize.toInt() - 1),
-                        listOf(
+                        info[EndlessLeagueInfoDB.STARTCOORD].toCoord().plusY(newSize.toInt() - 1), listOf(
                             url,
                             *listOf(u1, u2).let { if (game[0].winnerOfGame) it else it.reversed() }.toTypedArray(),
                             game[0].totalKDCount.let { it.first - it.second }.absoluteValue
@@ -353,14 +351,17 @@ object Analysis {
                 val monName = split[2].substringBefore(",")
                 if (player !in allMons && !randomBattle) randomBattle = true
                 if (randomBattle) {
-                    allMons[player]?.any { it.hasName(monName) } == true || allMons.getOrPut(player) { mutableListOf() }
-                        .add(SDPokemon(monName, player))
+                    if (allMons[player]?.any { it.hasName(monName) } != true) {
+                        allMons.getOrPut(player) { mutableListOf() }.add(SDPokemon(monName, player))
+                    }
                 }
             }
             if (line.startsWith("|detailschange|")) {
                 val (player, _) = split[1].parsePokemonLocation()
                 val oldMonName = split[1].substringAfter(" ")
-                allMons[player]?.firstOrNull { it.hasName(oldMonName) }?.otherNames?.add(split[2].substringBefore(","))
+                allMons[player]?.firstOrNull { it.hasName(oldMonName) || it.pokemon.startsWith(oldMonName) }?.otherNames?.add(
+                    split[2].substringBefore(",")
+                )
             }
             if (line.startsWith("|replace|")) {
                 val (player, _) = split[1].parsePokemonLocation()

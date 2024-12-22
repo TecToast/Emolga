@@ -80,14 +80,14 @@ val ktorDependencies = listOf(
 
 dependencies {
     // Kotlin
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.16")
-    implementation("ch.qos.logback:logback-classic:1.5.12")
+    implementation("ch.qos.logback:logback-classic:1.5.14")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
@@ -120,7 +120,7 @@ dependencies {
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M1")
     testImplementation("io.kotest:kotest-assertions-core:6.0.0.M1")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
 
 }
 

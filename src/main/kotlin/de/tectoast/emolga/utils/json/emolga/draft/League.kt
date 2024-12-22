@@ -565,9 +565,7 @@ sealed class League {
     }.joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
         .condAppend(withTimerAnnounce && newTimerForAnnounce) {
             " — Zeit bis: **${
-                timeFormat.format(
-                    timerRelated.regularCooldown
-                )
+                formatTimeFormatBasedOnDistance(timerRelated.regularCooldown)
             }**"
         }.also { newTimerForAnnounce = false }
 
@@ -890,13 +888,17 @@ sealed class League {
         }
     }
 
-    val timeFormat get() = if (timer?.stallSeconds == 0) leagueTimeFormat else leagueTimeFormatSecs
+    fun formatTimeFormatBasedOnDistance(cooldown: Long) = buildString {
+        if (cooldown - System.currentTimeMillis() >= 24 * 3600 * 1000) append(dayTimeFormat.format(cooldown)).append(" ")
+        append((if (timer?.stallSeconds == 0) leagueTimeFormat else leagueTimeFormatSecs).format(cooldown))
+    }
 
     companion object : CoroutineScope {
         override val coroutineContext = createCoroutineContext("League", Dispatchers.IO)
         val logger = KotlinLogging.logger {}
         val allTimers = mutableMapOf<String, Job>()
         val allStallSecondTimers = mutableMapOf<String, Job>()
+        val dayTimeFormat = SimpleDateFormat("dd.MM.")
         val leagueTimeFormat = SimpleDateFormat("HH:mm")
         val leagueTimeFormatSecs = SimpleDateFormat("HH:mm:ss")
         private val allMutexes = ConcurrentHashMap<String, Mutex>()

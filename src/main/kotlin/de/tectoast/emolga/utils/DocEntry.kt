@@ -145,7 +145,7 @@ class DocEntry private constructor(val league: League) {
                     }
                 }
             }
-            if (!killProcessors.all { it is CombinedStatProcessor } || !deathProcessors.all { it is CombinedStatProcessor }) {
+            if (idx in picks && !killProcessors.all { it is CombinedStatProcessor } || !deathProcessors.all { it is CombinedStatProcessor }) {
                 val monsInOrder = monsOrder(picks[idx]!!)
                 for ((mon, data) in kd[i]) {
                     val monIndex = monsInOrder.indexOfFirst {

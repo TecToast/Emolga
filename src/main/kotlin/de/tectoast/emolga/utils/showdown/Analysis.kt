@@ -119,7 +119,7 @@ object Analysis {
             }.joinToString("\n")
         }
         val leaguedata = db.leagueByGuildAdvanced(
-            gid, game.map { it.pokemon.map { mon -> mon.draftname } }, null, uid1db, uid2db
+            gid, game, ctx, null, uid1db, uid2db
         )
         val league = leaguedata?.league
         val uindices = leaguedata?.uindices

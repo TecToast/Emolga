@@ -759,7 +759,7 @@ sealed class League {
 
     open suspend fun onReplayAnalyse(data: ReplayData) {}
 
-    fun getGameplayData(idx1: Int, idx2: Int, game: List<DraftPlayer>): GamedayData {
+    fun getGamedayData(idx1: Int, idx2: Int, game: List<DraftPlayer>): GamedayData {
         var u1IsSecond = false
         val gameday = battleorder.asIterable().reversed().firstNotNullOfOrNull {
             if (it.value.any { l ->

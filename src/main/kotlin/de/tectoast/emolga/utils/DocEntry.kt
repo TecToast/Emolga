@@ -112,6 +112,7 @@ class DocEntry private constructor(val league: League) {
             val (game, uindices, kd, _, url, gamedayData, otherForms, _) = replayData
             val (gameday, battleindex, u1IsSecond, _) = gamedayData
             if (cancelIf(replayData, gameday)) return
+            if (gameday == -1) return
             val sorted = uindices.sorted()
             val lookUpIndex = if (uindices[0] == sorted[0]) 0 else 1
             var totalKills = 0

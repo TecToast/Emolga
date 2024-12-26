@@ -254,19 +254,23 @@ object Analysis {
             }
             val kd =
                 game.map { it.pokemon.associate { p -> p.draftname.official to (p.kills to if (p.isDead) 1 else 0) } }
-            replayDatas += ReplayData(
-                game = draftPlayerList,
-                uindices = uindices!!,
-                kd = kd,
-                mons = game.map { it.pokemon.map { mon -> mon.draftname.official } },
-                url = url,
-                gamedayData = gamedayData.await()!!,
-                otherForms = leaguedata.otherForms,
+            if (leaguedata != null) {
+                replayDatas += ReplayData(
+                    game = draftPlayerList,
+                    uindices = uindices!!,
+                    kd = kd,
+                    mons = game.map { it.pokemon.map { mon -> mon.draftname.official } },
+                    url = url,
+                    gamedayData = gamedayData.await()!!,
+                    otherForms = leaguedata.otherForms,
+                )
+            }
+        }
+        if (replayDatas.isNotEmpty()) {
+            league?.docEntry?.analyse(
+                replayDatas, withSort = withSort
             )
         }
-        league?.docEntry?.analyse(
-            replayDatas, withSort = withSort
-        )
     }
 
     suspend fun getMonName(s: String, guildId: Long, withDebug: Boolean = false): DraftName {

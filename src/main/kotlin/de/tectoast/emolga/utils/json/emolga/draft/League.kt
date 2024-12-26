@@ -151,6 +151,8 @@ sealed class League {
     @EncodeDefault
     val bannedMons: MutableMap<Int, MutableSet<DraftPokemon>> = mutableMapOf()
 
+    val randomPickRoundData: MutableMap<Int, Map<String, Int>> = mutableMapOf()
+
     protected fun enableConfig(vararg flags: LeagueConfig) {
         configs += flags.filter { f -> configs.none { f::class == it::class } }
     }
@@ -234,14 +236,15 @@ sealed class League {
         (picks.values + bannedMons.values).any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
 
     suspend inline fun firstAvailableMon(
-        tlNames: Collection<String>, checker: ((german: String, english: String) -> Boolean) = { _, _ -> true }
+        tlNames: Collection<String>,
+        checker: (DraftName.(german: String, english: String) -> Boolean) = { _, _ -> true }
     ): DraftName? {
         val alreadyPicked = (picks.values + bannedMons.values).flatten().mapTo(mutableSetOf()) { it.name }
         return tlNames.firstNotNullOfOrNull {
             val draftName = NameConventionsDB.getDiscordTranslation(
                 it, guild, tierlist.isEnglish
             )!!
-            if (draftName.official !in alreadyPicked && checker(
+            if (draftName.official !in alreadyPicked && draftName.checker(
                     draftName.official, NameConventionsDB.getDiscordTranslation(
                         it, guild, english = true
                     )!!.official
@@ -383,6 +386,15 @@ sealed class League {
 
     private suspend fun tryQueuePick(idx: Int = current): Boolean {
         getConfig<DraftBanConfig>()?.banRounds[round]?.let { return false }
+        getConfig<RandomPickRound>()?.takeIf { round in it.rounds }?.run {
+            val randomMon = getRandomMon()
+            with(queueInteractionData) outer@{
+                executeWithinLock(
+                    PickInput(pokemon = randomMon, tier = null, free = false), type = DraftMessageType.QUEUE
+                )
+            }
+            return true
+        }
         val queuePicksData = queuedPicks[idx]?.takeIf { it.enabled } ?: return false
         val queuedMon = queuePicksData.queued.firstOrNull() ?: return false
         with(queueInteractionData) outer@{
@@ -1168,6 +1180,47 @@ data class TZDataHolder(
 
 @Serializable
 data class TeraData(val type: TZDataHolder, val mon: TZDataHolder)
+
+@Serializable
+@SerialName("RandomPickRound")
+data class RandomPickRound(
+    val rounds: Set<Int> = setOf(), val tiers: Map<String, Int>, val doubleTypeOptOut: Set<Int> = emptySet()
+) : LeagueConfig {
+    suspend fun League.getRandomMon(): DraftName {
+        val optOut = current in doubleTypeOptOut
+        val tier = tiers.entries.randomWithCondition { (tier, amount) ->
+            (randomPickRoundData[current]?.get(tier) ?: 0) < amount
+        }!!.key
+        val list = tierlist.getByTier(tier)!!.shuffled()
+        val typesSoFar = picks[current].orEmpty().flatMap {
+            typeCache.getOrPut(it.name) {
+                db.pokedex.get(
+                    NameConventionsDB.getSDTranslation(
+                        it.name, guild, english = true
+                    )!!.official
+                )!!.types
+            }
+        }.groupingBy { it }.eachCount()
+        var bestSoFar: Pair<Int, DraftName>? = null
+        firstAvailableMon(list) { german, english ->
+            if (optOut) return this
+            val types = typeCache.getOrPut(german) { db.pokedex.get(english.toSDName())!!.types }
+            val count = types.groupingBy { it }.eachCount()
+            val score = count.entries.sumOf { (type, amount) ->
+                (typesSoFar[type] ?: 0) * amount
+            }
+            if (bestSoFar == null || score > bestSoFar.first) {
+                bestSoFar = score to this
+            }
+            bestSoFar.first == 0
+        }
+        return bestSoFar?.second ?: error("No mon found")
+    }
+
+    companion object {
+        val typeCache = SizeLimitedMap<String, List<String>>(200)
+    }
+}
 
 @Serializable
 data class QueuePicksData(

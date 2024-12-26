@@ -7,6 +7,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.increment
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.toCoord
@@ -40,6 +41,21 @@ object Analysis {
         withSort: Boolean = true,
         analysisData: AnalysisData? = null,
         useReplayResultChannelAnyways: Boolean = false
+    ) = analyseReplay(
+        listOf(urlProvided), customReplayChannel, resultchannelParam, message, fromReplayCommand, customGuild, withSort,
+        analysisData, useReplayResultChannelAnyways
+    )
+
+    suspend fun analyseReplay(
+        urlsProvided: List<String>,
+        customReplayChannel: GuildMessageChannel? = null,
+        resultchannelParam: GuildMessageChannel,
+        message: Message? = null,
+        fromReplayCommand: InteractionData? = null,
+        customGuild: Long? = null,
+        withSort: Boolean = true,
+        analysisData: AnalysisData? = null,
+        useReplayResultChannelAnyways: Boolean = false
     ) {
         //defaultScope.launch {
         if (EmolgaMain.BOT_DISABLED && resultchannelParam.guild.idLong != Constants.G.MY) {
@@ -58,87 +74,91 @@ object Analysis {
             send("Ich habe keine Berechtigung, im konfigurierten Channel ${resultchannelParam.asMention} zu schreiben!")
             return
         }
-        val data = try {
-            analysisData ?: analyse(urlProvided, ::send, resultchannelParam.guild.idLong == Constants.G.MY)
-            //game = Analysis.analyse(url, m);
-        } catch (ex: Exception) {
-            when (ex) {
-                is ShowdownDoesNotAnswerException -> {
-                    send("Showdown antwortet nicht. Versuche es später nochmal.")
-                }
+        var league: League? = null
+        val replayDatas = mutableListOf<ReplayData>()
+        for (urlProvided in urlsProvided) {
 
-                is ShowdownDoesntExistException -> {
-                    send("Das Replay existiert nicht (mehr)! Sicher, dass der Link korrekt ist?")
-                }
-
-                is ShowdownParseException -> {
-                    send("Das Replay konnte nicht analysiert werden! Sicher, dass es ein valides Replay ist? Wenn ja, melde dich bitte auf meinem im Profil verlinkten Support-Server.")
-                }
-
-                is InvalidReplayException -> {
-                    send("Das ist kein gültiges Replay!")
-                }
-
-                else -> {
-                    val msg =
-                        "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
-                    send(msg)
-                    logger.error(
-                        "Fehler beim Auswerten des Replays: $urlProvided ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}",
-                        ex
-                    )
-                }
-            }
-            return
-        }
-        val (game, ctx) = data
-        val url = ctx.url
-        val g = resultchannelParam.guild
-        val gid = customGuild ?: g.idLong
-        val u1 = game[0].nickname
-        val u2 = game[1].nickname
-        val uid1db = SDNamesDB.getIDByName(u1)
-        val uid2db = SDNamesDB.getIDByName(u2)
-        logger.info("Analysed!")
-        val spoiler = SpoilerTagsDB.contains(gid)
-        game.forEach {
-            it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
-        }
-        val activePassive = ActivePassiveKillsDB.hasEnabled(gid)
-        val monStrings = game.map { player ->
-            player.pokemon.map { mon ->
-                getMonName(mon.pokemon, gid).also {
-                    mon.draftname = it
-                }.displayName.let {
-                    if (activePassive) {
-                        "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
-                    } else {
-                        it.condAppend(mon.kills > 0, " ${mon.kills}")
+            val data = try {
+                analysisData ?: analyse(urlProvided, ::send, resultchannelParam.guild.idLong == Constants.G.MY)
+                //game = Analysis.analyse(url, m);
+            } catch (ex: Exception) {
+                when (ex) {
+                    is ShowdownDoesNotAnswerException -> {
+                        send("Showdown antwortet nicht. Versuche es später nochmal.")
                     }
-                }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
-            }.joinToString("\n")
-        }
-        val leaguedata = db.leagueByGuildAdvanced(
-            gid, game, ctx, null, uid1db, uid2db
-        )
-        val league = leaguedata?.league
-        val uindices = leaguedata?.uindices
-        val draftPlayerList = game.map(SDPlayer::toDraftPlayer)
-        val gamedayData = defaultScope.async {
-            league?.getGamedayData(uindices!![0], uindices[1], draftPlayerList)
-        }
-        val description = game.mapIndexed { index, sdPlayer ->
-            mutableListOf<Any>(
-                leaguedata?.mentions[index] ?: sdPlayer.nickname,
-                sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
-            ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
-        }.joinToString(":") { it.joinToString(" ") }
-            .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.mapIndexed { index, player ->
-            "${leaguedata?.mentions[index] ?: player.nickname}:".condAppend(
-                player.allMonsDead && !spoiler, " (alle tot)"
-            ) + "\n".condAppend(spoiler, "||") + monStrings[index].condAppend(spoiler, "||")
-        }.joinToString("\n\n")
-        val embed = Embed(description = description)
+
+                    is ShowdownDoesntExistException -> {
+                        send("Das Replay existiert nicht (mehr)! Sicher, dass der Link korrekt ist?")
+                    }
+
+                    is ShowdownParseException -> {
+                        send("Das Replay konnte nicht analysiert werden! Sicher, dass es ein valides Replay ist? Wenn ja, melde dich bitte auf meinem im Profil verlinkten Support-Server.")
+                    }
+
+                    is InvalidReplayException -> {
+                        send("Das ist kein gültiges Replay!")
+                    }
+
+                    else -> {
+                        val msg =
+                            "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
+                        send(msg)
+                        logger.error(
+                            "Fehler beim Auswerten des Replays: $urlProvided ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}",
+                            ex
+                        )
+                    }
+                }
+                return
+            }
+            val (game, ctx) = data
+            val url = ctx.url
+            val g = resultchannelParam.guild
+            val gid = customGuild ?: g.idLong
+            val u1 = game[0].nickname
+            val u2 = game[1].nickname
+            val uid1db = SDNamesDB.getIDByName(u1)
+            val uid2db = SDNamesDB.getIDByName(u2)
+            logger.info("Analysed!")
+            val spoiler = SpoilerTagsDB.contains(gid)
+            game.forEach {
+                it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
+            }
+            val activePassive = ActivePassiveKillsDB.hasEnabled(gid)
+            val monStrings = game.map { player ->
+                player.pokemon.map { mon ->
+                    getMonName(mon.pokemon, gid).also {
+                        mon.draftname = it
+                    }.displayName.let {
+                        if (activePassive) {
+                            "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
+                        } else {
+                            it.condAppend(mon.kills > 0, " ${mon.kills}")
+                        }
+                    }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
+                }.joinToString("\n")
+            }
+            val leaguedata = db.leagueByGuildAdvanced(
+                gid, game, ctx, null, uid1db, uid2db
+            )
+            league = leaguedata?.league
+            val uindices = leaguedata?.uindices
+            val draftPlayerList = game.map(SDPlayer::toDraftPlayer)
+            val gamedayData = defaultScope.async {
+                league?.getGamedayData(uindices!![0], uindices[1], draftPlayerList)
+            }
+            val description = game.mapIndexed { index, sdPlayer ->
+                mutableListOf<Any>(
+                    leaguedata?.mentions[index] ?: sdPlayer.nickname,
+                    sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
+                ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
+            }.joinToString(":") { it.joinToString(" ") }
+                .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.mapIndexed { index, player ->
+                "${leaguedata?.mentions[index] ?: player.nickname}:".condAppend(
+                    player.allMonsDead && !spoiler, " (alle tot)"
+                ) + "\n".condAppend(spoiler, "||") + monStrings[index].condAppend(spoiler, "||")
+            }.joinToString("\n\n")
+            val embed = Embed(description = description)
 
 //            if (league is ASL) {
 //                val gdData = gamedayData.await()
@@ -147,91 +167,94 @@ object Analysis {
 //                    return
 //                }
 //            }
-        val jda = resultchannelParam.jda
-        val replayChannel =
-            league?.provideReplayChannel(jda).takeIf { useReplayResultChannelAnyways || customGuild == null }
-                ?: customReplayChannel
-        val resultChannel =
-            league?.provideResultChannel(jda).takeIf { useReplayResultChannelAnyways || customGuild == null }
-                ?: resultchannelParam
-        logger.info("uids = $uindices")
-        logger.info("u1 = $u1")
-        logger.info("u2 = $u2")
-        if (league != null) {
-            resultChannel.sendMessageEmbeds(embed).queue()
-        } else {
-            resultChannel.sendMessage(description).queue()
-        }
-        defaultScope.launch {
-            val gdData = gamedayData.await()
-            val tosend = MessageCreate(
-                content = url, embeds = league?.appendedEmbed(data, leaguedata, gdData!!)?.build()?.into().orEmpty()
-            )
-            replayChannel?.sendMessage(tosend)?.queue()
-            fromReplayCommand?.reply(msgCreateData = tosend)
-        }
-        if (resultchannelParam.guild.idLong != Constants.G.MY) {
-            db.statistics.increment("analysis")
-            game.forEach { player ->
-                player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
-                    FullStatsDB.add(
-                        it.draftname.official, it.kills, if (it.isDead) 1 else 0, player.winnerOfGame
-                    )
-                }
+            val jda = resultchannelParam.jda
+            val replayChannel =
+                league?.provideReplayChannel(jda).takeIf { useReplayResultChannelAnyways || customGuild == null }
+                    ?: customReplayChannel
+            val resultChannel =
+                league?.provideResultChannel(jda).takeIf { useReplayResultChannelAnyways || customGuild == null }
+                    ?: resultchannelParam
+            logger.info("uids = $uindices")
+            logger.info("u1 = $u1")
+            logger.info("u2 = $u2")
+            if (league != null) {
+                resultChannel.sendMessageEmbeds(embed).queue()
+            } else {
+                resultChannel.sendMessage(description).queue()
             }
             defaultScope.launch {
-                EmolgaMain.updatePresence()
+                val gdData = gamedayData.await()
+                val tosend = MessageCreate(
+                    content = url,
+                    embeds = league?.appendedEmbed(data, leaguedata!!, gdData!!)?.build()?.into().orEmpty()
+                )
+                replayChannel?.sendMessage(tosend)?.queue()
+                fromReplayCommand?.reply(msgCreateData = tosend)
             }
-        }
-        var shouldSendZoro = false
-        for (ga in game) {
-            if (ga.containsZoro()) {
-                resultchannelParam.sendMessage(
-                    "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
-                ).queue()
-                shouldSendZoro = true
-            }
-        }
-        if (shouldSendZoro) {
-            jda.getTextChannelById(1016636599305515018)!!.sendMessage(url).queue()
-        }
-        if (gid != Constants.G.MY && game.indices.fold(0 to 0) { old, i ->
-                val (kills, deaths) = game[i].totalKDCount
-                (old.first + kills) to (old.second + deaths)
-            }.let { it.first != it.second }) {
-            SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
-        }
-        logger.info("In Emolga Listener!")
-        Database.dbScope.launch {
-            newSuspendedTransaction {
-                val replayChannelId = fromReplayCommand?.tc ?: replayChannel?.idLong ?: return@newSuspendedTransaction
-                val endlessId =
-                    EndlessLeagueChannelsDB.selectAll().where { EndlessLeagueChannelsDB.CHANNEL eq replayChannelId }
-                        .firstOrNull()?.get(
-                            EndlessLeagueChannelsDB.ID
-                        ) ?: return@newSuspendedTransaction
-                if (EndlessLeagueDataDB.insertIgnore {
-                        it[ID] = endlessId
-                        it[URL] = url
-                    }.insertedCount > 0) {
-                    val newSize =
-                        EndlessLeagueDataDB.select(EndlessLeagueDataDB.ID).where { EndlessLeagueDataDB.ID eq endlessId }
-                            .count()
-                    // new replay for this id
-                    val info = EndlessLeagueInfoDB.selectAll().where { EndlessLeagueInfoDB.ID eq endlessId }.first()
-                    RequestBuilder(info[EndlessLeagueInfoDB.SID]).addRow(
-                        info[EndlessLeagueInfoDB.STARTCOORD].toCoord().plusY(newSize.toInt() - 1), listOf(
-                            url,
-                            *listOf(u1, u2).let { if (game[0].winnerOfGame) it else it.reversed() }.toTypedArray(),
-                            game[0].totalKDCount.let { it.first - it.second }.absoluteValue
+            if (resultchannelParam.guild.idLong != Constants.G.MY) {
+                db.statistics.increment("analysis")
+                game.forEach { player ->
+                    player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
+                        FullStatsDB.add(
+                            it.draftname.official, it.kills, if (it.isDead) 1 else 0, player.winnerOfGame
                         )
-                    ).execute()
+                    }
+                }
+                defaultScope.launch {
+                    EmolgaMain.updatePresence()
                 }
             }
-        }
-        val kd = game.map { it.pokemon.associate { p -> p.draftname.official to (p.kills to if (p.isDead) 1 else 0) } }
-        league?.docEntry?.analyse(
-            ReplayData(
+            var shouldSendZoro = false
+            for (ga in game) {
+                if (ga.containsZoro()) {
+                    resultchannelParam.sendMessage(
+                        "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
+                    ).queue()
+                    shouldSendZoro = true
+                }
+            }
+            if (shouldSendZoro) {
+                jda.getTextChannelById(1016636599305515018)!!.sendMessage(url).queue()
+            }
+            if (gid != Constants.G.MY && game.indices.fold(0 to 0) { old, i ->
+                    val (kills, deaths) = game[i].totalKDCount
+                    (old.first + kills) to (old.second + deaths)
+                }.let { it.first != it.second }) {
+                SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
+            }
+            logger.info("In Emolga Listener!")
+            Database.dbScope.launch {
+                newSuspendedTransaction {
+                    val replayChannelId =
+                        fromReplayCommand?.tc ?: replayChannel?.idLong ?: return@newSuspendedTransaction
+                    val endlessId =
+                        EndlessLeagueChannelsDB.selectAll().where { EndlessLeagueChannelsDB.CHANNEL eq replayChannelId }
+                            .firstOrNull()?.get(
+                                EndlessLeagueChannelsDB.ID
+                            ) ?: return@newSuspendedTransaction
+                    if (EndlessLeagueDataDB.insertIgnore {
+                            it[ID] = endlessId
+                            it[URL] = url
+                        }.insertedCount > 0) {
+                        val newSize =
+                            EndlessLeagueDataDB.select(EndlessLeagueDataDB.ID)
+                                .where { EndlessLeagueDataDB.ID eq endlessId }
+                                .count()
+                        // new replay for this id
+                        val info = EndlessLeagueInfoDB.selectAll().where { EndlessLeagueInfoDB.ID eq endlessId }.first()
+                        RequestBuilder(info[EndlessLeagueInfoDB.SID]).addRow(
+                            info[EndlessLeagueInfoDB.STARTCOORD].toCoord().plusY(newSize.toInt() - 1), listOf(
+                                url,
+                                *listOf(u1, u2).let { if (game[0].winnerOfGame) it else it.reversed() }.toTypedArray(),
+                                game[0].totalKDCount.let { it.first - it.second }.absoluteValue
+                            )
+                        ).execute()
+                    }
+                }
+            }
+            val kd =
+                game.map { it.pokemon.associate { p -> p.draftname.official to (p.kills to if (p.isDead) 1 else 0) } }
+            replayDatas += ReplayData(
                 game = draftPlayerList,
                 uindices = uindices!!,
                 kd = kd,
@@ -239,7 +262,10 @@ object Analysis {
                 url = url,
                 gamedayData = gamedayData.await()!!,
                 otherForms = leaguedata.otherForms,
-            ), withSort = withSort
+            )
+        }
+        league?.docEntry?.analyse(
+            replayDatas, withSort = withSort
         )
     }
 

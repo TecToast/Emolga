@@ -129,7 +129,7 @@ class RepeatTask(
                                 it.ytVideoSaveData.enabled = true
                                 val shouldSave = !it.checkIfBothVideosArePresent(league)
                                 if (shouldDelay) delay(2000)
-                                league.docEntry?.analyseWithoutCheck(it)
+                                league.docEntry?.analyseWithoutCheck(listOf(it))
                                 if (shouldSave)
                                     league.save("RepeatTaskYT")
                             }

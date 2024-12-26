@@ -236,6 +236,7 @@ data class MatchResult(
     val indices: List<Int>,
     val leaguename: String,
     val gameday: Int,
+    val matchNum: Int = 0
 ) {
     val winnerIndex get() = if (data[0] > data[1]) 0 else 1
 }

@@ -207,7 +207,9 @@ class ResultEntry : StateStore {
                     }
                 }
                 league.docEntry?.analyse(
-                    ReplayData(game = game,
+                    listOf(
+                        ReplayData(
+                            game = game,
                         uindices = uids,
                         kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
                         mons = data.map { l -> l.map { it.official } },
@@ -216,6 +218,7 @@ class ResultEntry : StateStore {
                             numbers = game.map { it.alivePokemon }
                                 .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
                         })
+                    )
                 )
             }
 

@@ -87,16 +87,16 @@ dependencies {
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.16")
-    implementation("ch.qos.logback:logback-classic:1.5.14")
+    implementation("ch.qos.logback:logback-classic:1.5.15")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:5.2.1")
+    implementation("net.dv8tion:JDA:5.2.2")
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20241203-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20241027-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20241206-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20241203-2.0.0")
 
     // Database

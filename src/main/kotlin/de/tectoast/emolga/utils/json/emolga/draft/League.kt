@@ -326,16 +326,6 @@ sealed class League {
         randomLeagueData.currentMon?.disabled = true
         checkForQueuedPicksChanges()
         onAfterPick(data)
-        val result = (duringTimerSkipMode?.takeUnless { draftWouldEnd } ?: afterTimerSkipMode)?.run {
-            afterPickCall(data).also { save("AfterPickOfficial") }
-        } ?: TimerSkipResult.NEXT
-        val ctm = System.currentTimeMillis()
-        timerRelated.lastPick = ctm
-        timerRelated.lastStallSecondUsedMid = 0
-        if (result != TimerSkipResult.SAME) {
-            timerRelated.handleStallSecondPunishment(ctm)
-            this@League.cancelCurrentTimer()
-        }
         if (data is NextPlayerData.Moved) {
             addPunishableSkippedRound(data)
             getConfig<DraftBanConfig>()?.let { config ->
@@ -352,6 +342,16 @@ sealed class League {
             }
             addToMoved(data)
             data.sendSkipMessage()
+        }
+        val result = (duringTimerSkipMode?.takeUnless { draftWouldEnd } ?: afterTimerSkipMode)?.run {
+            afterPickCall(data).also { save("AfterPickOfficial") }
+        } ?: TimerSkipResult.NEXT
+        val ctm = System.currentTimeMillis()
+        timerRelated.lastPick = ctm
+        timerRelated.lastStallSecondUsedMid = 0
+        if (result != TimerSkipResult.SAME) {
+            timerRelated.handleStallSecondPunishment(ctm)
+            this@League.cancelCurrentTimer()
         }
         if (result == TimerSkipResult.NEXT) {
             if (endOfTurn()) return

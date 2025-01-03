@@ -415,7 +415,7 @@ sealed class League {
                         description = "`${newMon.tlName}` aus deiner Queue wurde gepickt.\n${if (data.disableIfSniped) "Das System wurde für dich deaktiviert, damit du umplanen kannst." else "Das System läuft jedoch für dich weiter."}"
                     ).into()
                 )
-                data.enabled = !data.disableIfSniped
+                data.enabled = data.enabled && !data.disableIfSniped
             }
         }
         lastPickedMon = null

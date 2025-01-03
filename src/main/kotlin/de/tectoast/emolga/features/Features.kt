@@ -615,6 +615,11 @@ open class Arguments {
             validate { list -> list.map { validator(it) } }
     }
 
+    fun multiOption(range: IntRange) =
+        createArg<List<String>, List<String>>("", "", OptionType.STRING) {
+            spec = SelectMenuArgSpec(range)
+        }
+
     inline fun <DiscordType, ParsedType> createArg(
         name: String = "",
         help: String = "",

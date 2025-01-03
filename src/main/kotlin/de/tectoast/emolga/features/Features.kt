@@ -329,7 +329,7 @@ abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMe
         createComponentId(argsBuilder, checkCompId = true),
         placeholder,
         disabled = disabled,
-        valueRange = selectableOptions,
+        valueRange = selectableOptions.let { if (it.isEmpty()) 1..(options?.size ?: 0) else it },
         options = options.orEmpty(),
         builder = menuBuilder
     )
@@ -609,8 +609,10 @@ open class Arguments {
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
-    fun multiOption(range: IntRange) = createArg<List<String>, List<String>>("", "", OptionType.STRING) {
+    fun <T> multiOption(range: IntRange, validator: suspend InteractionData.(String) -> T) =
+        createArg<List<String>, List<T>>("", "", OptionType.STRING) {
         spec = SelectMenuArgSpec(range)
+            validate { list -> list.map { validator(it) } }
     }
 
     inline fun <DiscordType, ParsedType> createArg(

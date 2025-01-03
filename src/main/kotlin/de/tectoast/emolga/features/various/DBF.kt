@@ -4,6 +4,7 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DumbestFliesDB
 import de.tectoast.emolga.database.exposed.UsedQuestionsDB
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.features.various.DBF.Button
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.file
@@ -14,10 +15,15 @@ import dev.minn.jda.ktx.interactions.components.StringSelectMenu
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
+import dev.minn.jda.ktx.util.ref
 import mu.KotlinLogging
+import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
+import net.dv8tion.jda.api.interactions.commands.OptionType
+import net.dv8tion.jda.api.interactions.components.ActionRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
@@ -26,6 +32,253 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
+
+class SimpleLifeBarEvent(
+    val maxLifes: Int,
+    val hasVote: Boolean,
+    val hasAnswer: Boolean,
+    val jda: JDA,
+    val host: Long,
+    gameChannelId: Long,
+    users: List<Member>,
+) {
+    val members = mutableMapOf<Long, String>()
+    var adminStatusID = -1L
+    var gameStatusID = -1L
+    val lifes = mutableMapOf<Long, Int>().withDefault { maxLifes }
+    val votes = mutableMapOf<Long, Long>()
+    val answers = mutableMapOf<Long, String>()
+    var votedSet: List<Map.Entry<Long, Int>> = listOf()
+
+    val gameChannel by jda.getTextChannelById(gameChannelId)!!.ref()
+    val adminChannel by jda.openPrivateChannelById(host).complete().ref()
+    private val gameStatusComponents
+        get() = buildList {
+            if (hasAnswer) {
+                add(
+                    ActionRow.of(
+                        SimpleLifeBarEventManager.AnswerButton()
+                    )
+                )
+            }
+            if (hasVote) add(
+                ActionRow.of(
+                    SimpleLifeBarEventManager.VoteMenu(
+                        "Wähle eine Person c:",
+                        options = members.entries.map { SelectOption(it.value, it.key.toString()) }) {
+                        this.host = host
+                    })
+            )
+        }
+
+    private val adminStatusComponents
+        get() = buildList {
+
+        }
+
+    init {
+        users.forEach {
+            members[it.idLong] = it.effectiveName
+            lifes[it.idLong] = maxLifes
+        }
+        adminStatusID = adminChannel.send(
+            buildString {
+                if (hasAnswer) append("Antworten:\n\n")
+                if (hasVote) append("Votes:\n\nStand der Dinge:")
+            }, components = Button("Neue Runde") { mode = Button.Mode.NEWROUND }.into()
+        ).complete().idLong
+        gameStatusID = gameChannel.send(
+            generateGameStatusMessage(), components = if (hasVote) gameStatusComponents else emptyList()
+        ).complete().idLong
+    }
+
+    fun loseLive(id: Long) {
+        lifes[id] = (lifes.getValue(id) - 1).coerceAtLeast(0)
+        if (lifes[id] == 0) {
+            members.remove(id)
+            lifes.remove(id)
+        }
+    }
+
+    private fun allVoted() = votes.size == members.size
+
+    private fun generateGameStatusMessage() = "Leben:\n${
+        members.keys.joinToString("\n") {
+            val currentLifes = lifes.getValue(it)
+            "<@${it}>: ${"<:heartfull:1126238135664255036>".repeat(currentLifes)}${
+                "<:heartempty:1126238132619202610>".repeat(
+                    maxLifes - currentLifes
+                )
+            }".condAppend(it in votes, " ✅").condAppend(it in answers, " ✉")
+        }
+    }"
+
+
+    suspend fun updateAdminStatusMessage() {
+        adminChannel.editMessageById(
+            adminStatusID, buildString {
+                if (hasAnswer) {
+                    append("Antworten:\n")
+                    append(answers.entries.joinToString("\n") { "<@${it.key}>: `${it.value}`" })
+                }
+                if (hasVote) {
+                    val entries =
+                        DBF.votes.entries.groupingBy { it.value }.eachCount().entries.sortedByDescending { it.value }
+                    if (allVoted()) votedSet = entries
+                    append(
+                        "Votes:\n${
+                            DBF.votes.entries.joinToString("\n") {
+                                "<@${it.key}> -> <@${it.value}>"
+                            }
+                        }\n\nStand der Dinge:\n${
+                            entries.joinToString("\n") { "<@${it.key}>: ${it.value}" }
+                        }")
+                }
+
+            }).await()
+    }
+
+    private suspend fun updateGameStatusMessage() {
+        gameStatusID.takeIf { it != -1L }?.let {
+            gameChannel.editMessage(
+                it.toString(), generateGameStatusMessage(), components = gameStatusComponents
+            ).await()
+        }
+    }
+
+    context(InteractionData)
+    suspend fun addVote(from: Long, to: Long) {
+        if (!hasVote) return reply("Es gibt keine Votes!", ephemeral = true)
+        if (from !in members) return reply("Du spielst nicht mit!", ephemeral = true)
+        if (from == to) return reply("Du kannst nicht für dich selbst voten!")
+        votes[from] = to
+        updateGameStatusMessage()
+        updateAdminStatusMessage()
+        if (allVoted()) adminChannel.sendMessage("Alle haben gevotet!").delay(1.seconds.toJavaDuration()).flatMap(
+            Message::delete
+        ).queue()
+    }
+
+    context(InteractionData)
+    suspend fun addAnswer(from: Long, input: String) {
+        if (!hasAnswer) return reply("Es gibt keine Inputs!", ephemeral = true)
+        if (from !in members) return reply("Du spielst nicht mit!", ephemeral = true)
+        answers[from] = input
+        updateGameStatusMessage()
+        updateAdminStatusMessage()
+        if (answers.size == members.size) adminChannel.sendMessage("Alle haben geantwortet!")
+            .delay(1.seconds.toJavaDuration()).flatMap(
+                Message::delete
+            ).queue()
+    }
+
+    context(InteractionData)
+    suspend fun removeLifes(users: List<Long>) {
+        users.forEach {
+            loseLive(it)
+        }
+        updateGameStatusMessage()
+        updateAdminStatusMessage()
+    }
+
+    context(InteractionData)
+    fun replyWithAnswerModal() {
+        replyModal(SimpleLifeBarEventManager.AnswerModal {
+            this.host = host
+        })
+    }
+}
+
+object SimpleLifeBarEventManager {
+    val events = mutableMapOf<Long, SimpleLifeBarEvent>()
+
+    object Command :
+        CommandFeature<Command.Args>(::Args, CommandSpec("simplelifebar", "simplelifebar", Constants.G.COMMUNITY)) {
+
+        class Args : Arguments() {
+            var maxlifes by int("maxlifes", "maxlifes") {
+                default = 3
+            }
+            var hasVote by boolean(
+                "hasVote", "Ob die Teilmehmer abstimmen können sollen, wer ein Leben verliert (Der Dümmste fliegt)"
+            )
+            var hasInput by boolean(
+                "hasInput", "Ob die Teilnehmer eine Eingabe machen können sollen, die der Moderator sehen kann"
+            )
+            var users by genericList<Member, Member>("user", "Teilnehmer", 10, 1, OptionType.USER)
+        }
+
+        context(InteractionData)
+        override suspend fun exec(e: Args) {
+            events[user] = SimpleLifeBarEvent(
+                maxLifes = e.maxlifes,
+                hasVote = e.hasVote,
+                hasAnswer = e.hasInput,
+                jda = jda,
+                host = user,
+                gameChannelId = tc,
+                users = e.users
+            )
+        }
+
+
+    }
+
+    object VoteMenu : SelectMenuFeature<VoteMenu.Args>(::Args, SelectMenuSpec("simplelifebar")) {
+        class Args : Arguments() {
+            var host by long().compIdOnly()
+            var user by singleOption { it.toLong() }
+        }
+
+        context(InteractionData)
+        override suspend fun exec(e: Args) {
+            val event = events[e.host] ?: return reply("Das Event läuft derzeit nicht!", ephemeral = true)
+            event.addVote(user, e.user)
+        }
+    }
+
+    object AnswerButton : ButtonFeature<AnswerButton.Args>(::Args, ButtonSpec("simplelifebar")) {
+        override val label = "Antwort abgeben"
+
+        class Args : Arguments() {
+            var host by long().compIdOnly()
+        }
+
+        context(InteractionData)
+        override suspend fun exec(e: Args) {
+            val event = events[e.host] ?: return reply("Das Event läuft derzeit nicht!", ephemeral = true)
+            event.replyWithAnswerModal()
+        }
+    }
+
+    object AnswerModal : ModalFeature<AnswerModal.Args>(::Args, ModalSpec("simplelifebar")) {
+        override val title = "Antwort eingeben"
+
+        class Args : Arguments() {
+            var host by long().compIdOnly()
+            var answer by string("Antwort", "Deine Antwort")
+        }
+
+        context(InteractionData)
+        override suspend fun exec(e: Args) {
+            val event = events[e.host] ?: return reply("Das Event läuft derzeit nicht!", ephemeral = true)
+            event.addAnswer(user, e.answer)
+        }
+    }
+
+    object LifeDecreaseMenu : SelectMenuFeature<LifeDecreaseMenu.Args>(::Args, SelectMenuSpec("simplelifebar")) {
+        class Args : Arguments() {
+            var host by long().compIdOnly()
+            var users by multiOption(IntRange.EMPTY) { it.toLong() }
+        }
+
+        context(InteractionData)
+        override suspend fun exec(e: Args) {
+            val event = events[e.host] ?: return reply("Das Event läuft derzeit nicht!", ephemeral = true)
+            event.removeLifes(e.users)
+        }
+    }
+}
 
 object DBF {
     val members = mutableMapOf<Long, String>()
@@ -216,7 +469,8 @@ object DBF {
     suspend fun updateAdminStatusMessage() {
         val entries = votes.entries.groupingBy { it.value }.eachCount().entries.sortedByDescending { it.value }
         if (allVoted()) votedSet = entries
-        adminChannel().editMessageById(adminStatusID, "Votes:\n${
+        adminChannel().editMessageById(
+            adminStatusID, "Votes:\n${
             votes.entries.joinToString("\n") {
                 "<@${it.key}> -> <@${it.value}>"
             }
@@ -237,7 +491,8 @@ object DBF {
         val highestVote = votedSet.maxOf { it.value }
         val members = votedSet.filter { it.value == highestVote }.map { it.key }
         if (members.size > 1) {
-            return reply("Es gibt einen Gleichstand zwischen: ${
+            return reply(
+                "Es gibt einen Gleichstand zwischen: ${
                 members.joinToString("") { "<@${it}>" }
             }", ephemeral = true)
         }
@@ -271,8 +526,7 @@ object DBF {
         }
 
         class PN(private val uid: Long) : AdminChannelProvider() {
-            override suspend fun provideChannel(): MessageChannel =
-                jda.openPrivateChannelById(uid).await()
+            override suspend fun provideChannel(): MessageChannel = jda.openPrivateChannelById(uid).await()
         }
     }
 

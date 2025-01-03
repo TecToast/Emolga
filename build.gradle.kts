@@ -57,7 +57,7 @@ repositories {
     mavenCentral()
 }
 
-val exposedVersion = "0.56.0"
+val exposedVersion = "0.57.0"
 val ktorVersion = "2.3.12"
 val ktorDependencies = listOf(
     // Client
@@ -80,24 +80,24 @@ val ktorDependencies = listOf(
 
 dependencies {
     // Kotlin
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.16")
-    implementation("ch.qos.logback:logback-classic:1.5.12")
+    implementation("ch.qos.logback:logback-classic:1.5.14")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:5.2.1")
+    implementation("net.dv8tion:JDA:5.2.2")
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google
-    implementation("com.google.apis:google-api-services-sheets:v4-rev20241008-2.0.0")
+    implementation("com.google.apis:google-api-services-sheets:v4-rev20241203-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20241027-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20241117-2.0.0")
+    implementation("com.google.apis:google-api-services-youtube:v3-rev20241203-2.0.0")
 
     // Database
     // MySQL
@@ -120,8 +120,7 @@ dependencies {
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M1")
     testImplementation("io.kotest:kotest-assertions-core:6.0.0.M1")
-    testImplementation("io.kotest:kotest-framework-datatest:6.0.0.M1")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
 
 }
 

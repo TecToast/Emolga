@@ -4,12 +4,8 @@ import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.draft.DraftMessageType.*
-import de.tectoast.emolga.utils.json.emolga.draft.AllowPickDuringSwitch
-import de.tectoast.emolga.utils.json.emolga.draft.DraftData
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.PickData
-import de.tectoast.emolga.utils.json.emolga.draft.SwitchData
-import de.tectoast.emolga.utils.json.emolga.draft.isMega
+import de.tectoast.emolga.utils.json.emolga.draft.*
+import dev.minn.jda.ktx.coroutines.await
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -19,6 +15,7 @@ object DraftUtils {
     suspend fun executeWithinLock(
         input: DraftInput, type: DraftMessageType
     ) {
+        checkLegalDraftInput(input, type)?.let { return reply(it) }
         val success = input.execute(type)
         if (success) afterPickOfficial()
     }
@@ -31,9 +28,13 @@ interface DraftInput {
     suspend fun execute(type: DraftMessageType): Boolean
 
     context(DraftData, InteractionData)
-    fun checkEmolga() {
+    fun checkEmolga(happy: Boolean = true) {
         if (pokemonofficial == "Emolga") {
-            sendMessage("<:Happy:967390966153609226> ".repeat(5))
+            if (happy) {
+                sendMessage("<:Happy:967390966153609226> ".repeat(5))
+            } else {
+                sendMessage("<a:mademolga:1317190059337973770> ".repeat(5))
+            }
         }
     }
 
@@ -91,12 +92,12 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
             }
 
             QUEUE -> {
-                this@League.tc.sendMessage("**<@${table[current]}>** hat ${displayName()} gepickt! [Queue]").queue()
+                this@League.tc.sendMessage("**<@${table[current]}>** hat ${displayName()} gepickt! [Queue]").await()
                 checkEmolga()
             }
 
             RANDOM -> replyGeneral(
-                "einen Random-Pick im $tier gemacht und **${displayName()}** bekommen!"
+                "einen Random-Pick im $tier gemacht und **${displayName()}** bekommen!", ifTestUseTc = this@League.tc
             )
 
             ACCEPT -> replyAwait("Akzeptiert: **${displayName()} (${tier})**!")
@@ -160,11 +161,64 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
                 checkEmolga()
             }
 
-            RANDOM -> replyGeneral("Random-Switch: ${oldDisplayName()} gegen ${displayName()} getauscht!")
+            RANDOM -> replyGeneral(
+                "Random-Switch: ${oldDisplayName()} gegen ${displayName()} getauscht!",
+                ifTestUseTc = this@League.tc
+            )
             ACCEPT -> replyAwait("Akzeptiert: ${oldDisplayName()} gegen ${displayName()} getauscht!")
             REROLL -> replyAwait("Reroll: ${oldDisplayName()} gegen ${displayName()} getauscht!")
         }
     }
+}
+
+data class BanInput(val pokemon: DraftName) : DraftInput {
+    context(InteractionData, League)
+    override suspend fun execute(type: DraftMessageType): Boolean {
+        val config =
+            getConfig<DraftBanConfig>() ?: return reply("In diesem Draft sind keine Bans vorgesehen!").let { false }
+        if (pokemon.official in config.notBannable) return reply("`${pokemon.tlName}` kann nicht gebannt werden!").let { false }
+        val banRoundConfig =
+            config.banRounds[round] ?: return reply("Runde **$round** ist keine Ban-Runde!").let { false }
+        val tier = (getTierOf(pokemon.tlName, insertedTier = null)
+            ?: return reply("Dieses Pokemon ist nicht in der Tierliste!").let { false }).official
+        banRoundConfig.checkBan(tier, getAlreadyBannedMonsInThisRound())?.let { reason ->
+            return reply(reason).let { false }
+        }
+        if (isPicked(
+                pokemon.official,
+                tier
+            )
+        ) return reply("Dieses Pokemon wurde bereits gebannt/gepickt!").let { false }
+        val banData = BanData(this@League, pokemon.tlName, pokemon.official, tier, current, round)
+        lastPickedMon = pokemon
+        banData.saveBan()
+        banData.reply(type)
+        builder().apply { banDoc(banData) }.execute()
+        return true
+    }
+
+    context(InteractionData, League)
+    suspend fun BanData.reply(type: DraftMessageType) {
+        when (type) {
+            REGULAR -> {
+                replyGeneral("${displayName()} ($tier) gebannt!")
+                checkEmolga(happy = false)
+            }
+
+            QUEUE -> {
+                this@League.tc.sendMessage("<@${table[current]}> hat ${displayName()} gebannt! [Queue]").queue()
+                checkEmolga(happy = false)
+            }
+
+            RANDOM -> replyWithTestInteractionCheck(
+                "Timer ausgelaufen: Ich habe ${displayName()} ($tier) für <@${table[current]}> gebannt!",
+                ifTestUseTc = this@League.tc
+            )
+
+            ACCEPT, REROLL -> {}
+        }
+    }
+
 }
 
 enum class DraftMessageType {

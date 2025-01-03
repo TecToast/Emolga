@@ -1,24 +1,22 @@
 package de.tectoast.emolga.features.draft.during
 
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.QueuePicks
-import de.tectoast.emolga.utils.QueuedAction
-import de.tectoast.emolga.utils.StateStore
-import de.tectoast.emolga.utils.add
 import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.AllowPickDuringSwitch
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.QueuePicksData
-import de.tectoast.emolga.utils.notNullPrepend
-import de.tectoast.emolga.utils.process
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 object QueuePicks {
     object Command : CommandFeature<NoArgs>(
-        NoArgs(), CommandSpec("queuepicks", "Verwalte deine gequeueten Picks", Constants.G.ASL, Constants.G.NDS)
+        NoArgs(), CommandSpec(
+            "queuepicks", "Verwalte deine gequeueten Picks", Constants.G.ASL, Constants.G.NDS,
+            Constants.G.EPP
+        )
     ) {
 
         object Manage : CommandFeature<NoArgs>(NoArgs(), CommandSpec("manage", "Verwalte deine gequeueten Picks")) {

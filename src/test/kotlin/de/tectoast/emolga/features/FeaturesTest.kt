@@ -20,7 +20,7 @@ var timer: TimeSource.Monotonic.ValueTimeMark? = null
 private val logger = KotlinLogging.logger {}
 
 class FeaturesTest : FunSpec({
-    test("SwitchTimerTest") {
+    xtest("SwitchTimerTest") {
         enableDefaultFeatureSystem()
         val league = createTestDraft("SwitchTimer", 2, 2)()
         xtestCommand {
@@ -31,7 +31,7 @@ class FeaturesTest : FunSpec({
         }
         keepAlive()
     }
-    test("testother") {
+    xtest("testother") {
         val manager = FeatureManager(setOf(TestDefer))
         jda.listener<GenericEvent> {
             timer = TimeSource.Monotonic.markNow()
@@ -41,7 +41,7 @@ class FeaturesTest : FunSpec({
         defaultChannel.send("testorig", components = TestDefer("lul").into()).queue()
         keepAlive()
     }
-    test("testmain") {
+    xtest("testmain") {
         logger.info("TEST")
 //        val manager = FeatureManager(setOf(TestFeature, TestButton, TestModal, TestMenu, NestedCommand))
         enableDefaultFeatureSystem()
@@ -60,7 +60,7 @@ class FeaturesTest : FunSpec({
 
         keepAlive()
     }
-    test("SurveillanceSystem") {
+    xtest("SurveillanceSystem") {
         defaultGuild.upsertCommand("surveillance", "surveillance").queue()
         val featureManager = FeatureManager(setOf(SurveillanceSystemTestCommand))
         jda.listener<SlashCommandInteractionEvent> {

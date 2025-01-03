@@ -17,6 +17,8 @@ import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
 import de.tectoast.emolga.utils.json.showdown.Pokemon
+import de.tectoast.emolga.utils.showdown.BattleContext
+import de.tectoast.emolga.utils.showdown.SDPlayer
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.editMessage
@@ -120,15 +122,21 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     suspend fun leagueByGuildAdvanced(
         gid: Long,
-        game: List<List<DraftName>>,
+        game: List<SDPlayer>,
+        ctx: BattleContext,
         prefetchedLeague: League? = null,
         vararg uids: Long
     ): LeagueResult? {
+        if (ctx.randomBattle) {
+            val league = leagueByGuild(gid, *uids) ?: return null
+            return LeagueResult(league, uids.map { league.table.indexOf(it) }, emptyMap())
+        }
+        val matchMons = game.map { it.pokemon.map { mon -> mon.draftname } }
         val (leagueResult, duration) = measureTimedValue {
             val allOtherFormesGerman = ConcurrentHashMap<String, List<String>>()
             val (dp1, dp2) = uids.mapIndexed { index, uid ->
                 scanScope.async {
-                    val mons = game[index]
+                    val mons = matchMons[index]
                     val otherFormesEngl = mutableMapOf<DraftName, List<String>>()
                     val (possibleOtherForm, noOtherForm) = mons.partition {
                         ((it.data?.otherFormes?.filterNot { forme -> "-Alola" in forme || "-Galar" in forme || "-Hisui" in forme }
@@ -228,6 +236,7 @@ data class MatchResult(
     val indices: List<Int>,
     val leaguename: String,
     val gameday: Int,
+    val matchNum: Int = 0
 ) {
     val winnerIndex get() = if (data[0] > data[1]) 0 else 1
 }

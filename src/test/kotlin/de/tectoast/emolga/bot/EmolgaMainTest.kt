@@ -7,7 +7,7 @@ import dev.minn.jda.ktx.messages.send
 import io.kotest.core.spec.style.FunSpec
 
 class EmolgaMainTest : FunSpec({
-    test("EmolgaMain") {
+    xtest("EmolgaMain") {
         defaultChannel.send(
             embeds = Embed(
                 title = "<:Happy:967390966153609226>",

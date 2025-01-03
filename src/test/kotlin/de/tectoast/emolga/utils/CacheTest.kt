@@ -37,6 +37,9 @@ class CacheTest : FunSpec({
         }
     }
     context("MappedCache") {
+        beforeTest {
+            cacheTest = 0
+        }
         test("WithOneTimeCache") {
             val oneTime = OneTimeCache { ++x }
             val cache = MappedCache(oneTime) { it + 10 }

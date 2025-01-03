@@ -129,7 +129,8 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
             Constants.G.WFS,
             Constants.G.ADK,
             Constants.G.COMMUNITY,
-            Constants.G.HELBIN
+            Constants.G.HELBIN,
+            Constants.G.EPP
         )
     }
 }
@@ -416,11 +417,10 @@ open class Arguments {
             if (strings.size > 25) return@lambda listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
             (if (league == null || tierlist == null) strings
             else strings.map {
-                if (league.picks.values.flatten().any { p ->
-                        !p.quit && p.name == tierlist.tlToOfficialCache.getOrPut(it) {
-                            NameConventionsDB.getDiscordTranslation(it, league.guild)!!.official
-                        }
-                    }) "$it (GEPICKT)" else it
+                val officialName = tierlist.tlToOfficialCache.getOrPut(it) {
+                    NameConventionsDB.getDiscordTranslation(it, league.guild)!!.official
+                }
+                if (league.isPicked(officialName)) "$it (NICHT VERFÜGBAR)" else it
             }).sortedWith(compareBy({ !it.startsWith(s) }, { it }))
         })
         builder()

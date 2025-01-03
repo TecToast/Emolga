@@ -11,11 +11,7 @@ import de.tectoast.emolga.features.draft.during.QueuePicks
 import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode.*
 import de.tectoast.emolga.features.draft.during.QueuePicks.isIllegal
 import de.tectoast.emolga.features.intoMultipleRows
-import de.tectoast.emolga.utils.draft.DraftInput
-import de.tectoast.emolga.utils.draft.DraftPlayer
-import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.draft.PickInput
-import de.tectoast.emolga.utils.draft.SwitchInput
+import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
@@ -133,7 +129,7 @@ class ResultEntry : StateStore {
         val l = league()
         uids += l(user)
         uids += l(opponent)
-        gamedayData = l.getGameplayData(uids[0], uids[1], wifiPlayers)
+        gamedayData = l.getGamedayData(uids[0], uids[1], wifiPlayers)
         reply(embeds = buildEmbed(), components = defaultComponents(), ephemeral = true)
     }
 
@@ -211,7 +207,9 @@ class ResultEntry : StateStore {
                     }
                 }
                 league.docEntry?.analyse(
-                    ReplayData(game = game,
+                    listOf(
+                        ReplayData(
+                            game = game,
                         uindices = uids,
                         kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
                         mons = data.map { l -> l.map { it.official } },
@@ -220,6 +218,7 @@ class ResultEntry : StateStore {
                             numbers = game.map { it.alivePokemon }
                                 .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
                         })
+                    )
                 )
             }
 

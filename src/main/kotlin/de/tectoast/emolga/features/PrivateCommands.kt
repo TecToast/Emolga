@@ -18,11 +18,7 @@ import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
-import de.tectoast.emolga.utils.json.emolga.draft.IPL
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.NDS
-import de.tectoast.emolga.utils.json.emolga.draft.NDSU
-import de.tectoast.emolga.utils.json.emolga.draft.VideoProvideStrategy
+import de.tectoast.emolga.utils.json.emolga.draft.*
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage
@@ -51,9 +47,6 @@ import java.io.ByteArrayOutputStream
 import java.security.SecureRandom
 import java.util.regex.Pattern
 import javax.imageio.ImageIO
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.set
 import kotlin.time.measureTime
 
 @Suppress("unused")
@@ -586,7 +579,11 @@ object PrivateCommands {
     suspend fun analyseMatchresults(args: PrivateData) {
         val league = db.league(args[0])
         league.replayDataStore!!.data[args[1].toInt()]!!.forEach { (_, replay) ->
-            league.docEntry!!.analyseWithoutCheck(replay, withSort = false, realExecute = args[2].toBooleanStrict())
+            league.docEntry!!.analyseWithoutCheck(
+                listOf(replay),
+                withSort = false,
+                realExecute = args[2].toBooleanStrict()
+            )
         }
     }
 

@@ -3,12 +3,11 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val kVersion = "2.1.0"
 plugins {
-    val kVersion = "2.0.0"
+    val kVersion = "2.1.0"
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("maven-publish")
-    id("io.gitlab.arturbosch.detekt").version("1.23.0")
     application
 }
 
@@ -18,7 +17,7 @@ application {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_20
+    sourceCompatibility = JavaVersion.VERSION_21
     withSourcesJar()
 }
 

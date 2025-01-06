@@ -14,7 +14,7 @@ private val logger = KotlinLogging.logger {}
 
 data class SDPokemon(
     var pokemon: String, val player: Int, val pokemonSaves: MutableMap<PokemonSaveKey, SDPokemon> = mutableMapOf()
-) : MutableMap<PokemonSaveKey, SDPokemon> by pokemonSaves {
+) {
     private val effects: MutableMap<SDEffect, SDPokemon> = mutableMapOf()
     val volatileEffects: MutableMap<String, SDPokemon> = mutableMapOf()
     var kills = 0
@@ -98,6 +98,11 @@ data class SDPokemon(
     fun revive() {
         isDead = false
         revivedAmount++
+    }
+
+    operator fun get(key: PokemonSaveKey) = pokemonSaves[key]
+    operator fun set(key: PokemonSaveKey, value: SDPokemon) {
+        pokemonSaves[key] = value
     }
 }
 
@@ -369,7 +374,7 @@ sealed class SDEffect(vararg val types: String) {
                                 return@run
                             }
                         }
-                        if ("|turn" in line || "|move" in line) break
+                        if (line.startsWith("|turn") || line.startsWith("|move")) break
                         i++
                     }
                     return

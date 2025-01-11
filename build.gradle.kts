@@ -80,13 +80,13 @@ val ktorDependencies = listOf(
 dependencies {
     // Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.16")
-    implementation("ch.qos.logback:logback-classic:1.5.15")
+    implementation("ch.qos.logback:logback-classic:1.5.16")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
@@ -96,7 +96,7 @@ dependencies {
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20241203-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20241206-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20241203-2.0.0")
+    implementation("com.google.apis:google-api-services-youtube:v3-rev20250101-2.0.0")
 
     // Database
     // MySQL
@@ -107,7 +107,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
     // MongoDB
-    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.1.0")
+    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.2.0")
     implementation("org.litote.kmongo:kmongo-id-serialization:5.1.0")
 
     // Ktor

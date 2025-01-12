@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.repeat
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.ktor.setupYTSuscribtions
 import de.tectoast.emolga.utils.createCoroutineContext
 import de.tectoast.emolga.utils.json.IntervalTaskData
 import de.tectoast.emolga.utils.json.db
@@ -18,6 +19,7 @@ import java.util.*
 import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 
 class IntervalTask(name: String, provideNextExecution: () -> Instant, consumer: suspend () -> Unit) {
     constructor(name: String, delay: Duration, consumer: suspend () -> Unit) : this(
@@ -51,9 +53,9 @@ class IntervalTask(name: String, provideNextExecution: () -> Instant, consumer: 
 
     companion object : CoroutineScope {
         fun setupIntervalTasks() {
-//            IntervalTask("YTSubscriptions", 4.days) {
-//                setupYTSuscribtions()
-//            }
+            IntervalTask("YTSubscriptions", 4.days) {
+                setupYTSuscribtions()
+            }
             IntervalTask("Snips", {
                 val cal = Calendar.getInstance()
                 cal.add(Calendar.DAY_OF_YEAR, 1)

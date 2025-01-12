@@ -253,7 +253,12 @@ data class TypeIcon(
 )
 
 @Serializable
-data class Config(val teamgraphicShinyOdds: Int, val guildsToUpdate: List<Long> = listOf(), val raikou: Boolean = false)
+data class Config(
+    val teamgraphicShinyOdds: Int,
+    val guildsToUpdate: List<Long> = listOf(),
+    val raikou: Boolean = false,
+    val ytLeagues: Map<String, Long> = mapOf()
+)
 
 @Serializable
 data class Configuration(

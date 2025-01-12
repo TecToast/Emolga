@@ -31,6 +31,7 @@ class DocEntry private constructor(val league: League) {
     }
 
     var customDataSid: String? = null
+    var spoilerDocSid: String? = null
     var killProcessor: StatProcessor
         get() = error("Not implemented")
         set(value) = killProcessors.add(value).let {}
@@ -90,7 +91,9 @@ class DocEntry private constructor(val league: League) {
     suspend fun analyse(replayData: List<ReplayData>, withSort: Boolean = true) {
         if (league.replayDataStore != null) {
             replayData.forEach(league::storeMatch)
-            return league.save("DocEntry#Analyse")
+            league.save("DocEntry#Analyse")
+            spoilerDocSid?.let { analyseWithoutCheck(replayData, withSort, overrideSid = it) }
+            return
         }
         analyseWithoutCheck(replayData, withSort)
     }
@@ -98,10 +101,11 @@ class DocEntry private constructor(val league: League) {
     suspend fun analyseWithoutCheck(
         replayDatas: List<ReplayData>,
         withSort: Boolean = true,
-        realExecute: Boolean = true
+        realExecute: Boolean = true,
+        overrideSid: String? = null
     ) {
         val matchResultJobs = mutableSetOf<Job>()
-        val sid = league.sid
+        val sid = overrideSid ?: league.sid
         val b = RequestBuilder(sid)
         val customB = customDataSid?.let(::RequestBuilder)
         val dataB = customB ?: b

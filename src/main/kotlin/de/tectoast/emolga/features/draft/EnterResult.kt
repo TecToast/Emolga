@@ -14,7 +14,10 @@ import dev.minn.jda.ktx.coroutines.await
 object EnterResult {
 
     object ResultCommand : CommandFeature<ResultCommand.Args>(
-        ::Args, CommandSpec("result", "Startet die interaktive Ergebniseingabe", Constants.G.VIP, Constants.G.COMMUNITY)
+        ::Args, CommandSpec(
+            "result", "Startet die interaktive Ergebniseingabe", Constants.G.VIP, Constants.G.COMMUNITY,
+            Constants.G.EPP
+        )
     ) {
         private val nameCache = mutableMapOf<String, Map<Long, String>>() // guild -> uid -> name
         private val leagueCache = mutableMapOf<Long, String>()

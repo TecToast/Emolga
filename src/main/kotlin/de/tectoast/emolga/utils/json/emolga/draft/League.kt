@@ -21,6 +21,7 @@ import de.tectoast.emolga.utils.draft.Tierlist.Companion.getValue
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.showdown.AnalysisData
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.*
@@ -1486,7 +1487,13 @@ sealed interface VideoProvideStrategy {
                 (System.currentTimeMillis() - lastVid.snippet.publishedAt.value) <= 1000 * 60 * 60 * 4
             }.let { vids ->
                 League.logger.info(vids.map { it.snippet.title }.toString())
-                vids.singleOrNull() ?: vids.firstOrNull { it.snippet.title.contains("IPL", ignoreCase = true) }
+                vids.singleOrNull() ?: run {
+                    val ytLeagues = db.config.only().ytLeagues.keys
+                    vids.firstOrNull {
+                        val title = it.snippet.title
+                        ytLeagues.any { league -> title.contains(league, ignoreCase = true) }
+                    }
+                }
             }?.id?.videoId
         }
     }

@@ -2,12 +2,12 @@ package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.flo.SendFeatures
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.ignoreDuplicatesMongo
 import de.tectoast.emolga.utils.json.YTVideo
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import io.ktor.client.*
@@ -86,17 +86,21 @@ fun Route.ytSubscriptions() {
                 logger.info("Updated: $updated")
                 if (ignoreDuplicatesMongo {
                         db.ytvideos.insertOne(YTVideo(channelId, videoId, title, Instant.parse(published)))
-                    } && "IPL" in title) {
-                    handleIPLVideo(channelId, videoId)
+                    }) {
+                    db.config.only().ytLeagues.forEach { (short, gid) ->
+                        if (title.contains(short, ignoreCase = true)) {
+                            handleVideo(channelId, videoId, gid)
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-suspend fun handleIPLVideo(channelId: String, videoId: String) {
+suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
     val uid = db.ytchannel.get(channelId)!!.user
-    League.executeOnFreshLock({ db.leagueByGuild(Constants.G.VIP, uid)!! }) {
+    League.executeOnFreshLock({ db.leagueByGuild(gid, uid)!! }) {
         logger.info("League found: $leaguename")
         val idx = this(uid)
         val data = RepeatTask.getTask(leaguename, RepeatTaskType.BattleRegister)?.findNearestTimestamp()

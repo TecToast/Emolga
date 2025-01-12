@@ -1,14 +1,18 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
+import de.tectoast.emolga.utils.BasicStatProcessor
+import de.tectoast.emolga.utils.DocEntry
 import de.tectoast.emolga.utils.RequestBuilder
+import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
 @SerialName("EPP")
-class EPP : League() {
+class EPP(val spoilerSid: String) : League() {
     override val teamsize = 11
     override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
 
@@ -19,6 +23,14 @@ class EPP : League() {
             startPunishSkipsTime = 1734177600000
         }
     )*/
+    @Transient
+    override val docEntry = DocEntry.create(this) {
+        monsOrder = { list -> list.sortedBy { it.tier.indexedBy(tierlist.order) }.map { it.name } }
+        spoilerDocSid = spoilerSid
+        killProcessor = BasicStatProcessor {
+            plindex.CoordXMod("Kader", 2, 'P' - 'B', 5 + gdi, 19, monindex + 9)
+        }
+    }
 
     override fun sendRound() {
         tc.sendMessage("## === Runde ${if (round == 1) "Bann" else round - 1} ===").queue()

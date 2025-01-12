@@ -88,7 +88,7 @@ class ResultEntry : StateStore {
     var leaguename: String = ""
 
     val data: List<MutableList<MonData>> = listOf(mutableListOf(), mutableListOf())
-    private val uids = mutableListOf<Int>()
+    private val uidxs = mutableListOf<Int>()
 
     @Transient
     val league = OneTimeCache { db.league(leaguename) }
@@ -98,15 +98,15 @@ class ResultEntry : StateStore {
     }
 
 
-    private suspend fun getPicksByUid(uid: Int) = league().providePicksForGameday(gamedayData.gameday)[uid]!!
-    private suspend fun getMonsByUid(uid: Int) = getPicksByUid(uid).sortedWith(league().tierorderingComparator).map {
+    private suspend fun getPicksByUid(idx: Int) = league().providePicksForGameday(gamedayData.gameday)[idx]!!
+    private suspend fun getMonsByUid(idx: Int) = getPicksByUid(idx).sortedWith(league().tierorderingComparator).map {
         (it.name to NameConventionsDB.convertOfficialToTL(
             it.name, league().guild
         )!!).let { (official, tl) -> SelectOption(tl, "$official#$tl") }
     }
 
     @Transient
-    val picks: Cache<Map<Int, List<SelectOption>>> = OneTimeCache { uids.indices.associateWith { getMonsByUid(it) } }
+    val picks: Cache<Map<Int, List<SelectOption>>> = OneTimeCache { uidxs.associateWith { getMonsByUid(it) } }
     private lateinit var gamedayData: GamedayData
 
 
@@ -114,10 +114,10 @@ class ResultEntry : StateStore {
 
     @Transient
     private val defaultComponents: Cache<List<ActionRow>> = OneTimeCache {
-        uids.mapIndexed { index, uid ->
+        uidxs.mapIndexed { index, idx ->
             ActionRow.of(EnterResult.ResultMenu(
                 "${if (index == 0) "Deine" else "Gegnerische"} Pokemon",
-                options = picks()[index]!!,
+                options = picks()[idx]!!,
             ) { this.userindex = index })
         } + listOf(ActionRow.of(EnterResult.ResultFinish("Ergebnis bestätigen", ButtonStyle.PRIMARY) {
             mode = EnterResult.ResultFinish.Mode.CHECK
@@ -127,9 +127,9 @@ class ResultEntry : StateStore {
     context(InteractionData)
     suspend fun init(opponent: Long, user: Long) {
         val l = league()
-        uids += l(user)
-        uids += l(opponent)
-        gamedayData = l.getGamedayData(uids[0], uids[1], wifiPlayers)
+        uidxs += l(user)
+        uidxs += l(opponent)
+        gamedayData = l.getGamedayData(uidxs[0], uidxs[1], wifiPlayers)
         reply(embeds = buildEmbed(), components = defaultComponents(), ephemeral = true)
     }
 
@@ -210,7 +210,7 @@ class ResultEntry : StateStore {
                     listOf(
                         ReplayData(
                             game = game,
-                        uindices = uids,
+                            uindices = uidxs,
                         kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
                         mons = data.map { l -> l.map { it.official } },
                         url = "WIFI",
@@ -241,7 +241,7 @@ class ResultEntry : StateStore {
         val spoiler = SpoilerTagsDB.contains(league().guild)
         return "${
             data.mapIndexed { index, sdPlayer ->
-                mutableListOf<Any>("<@${uids[index]}>", sdPlayer.count { !it.dead }).apply {
+                mutableListOf<Any>("<@${uidxs[index]}>", sdPlayer.count { !it.dead }).apply {
                     if (spoiler) add(
                         1, "||"
                     )
@@ -249,7 +249,7 @@ class ResultEntry : StateStore {
             }.joinToString(":") { it.joinToString(" ") }
         }\n\n${
             data.mapIndexed { index, monData ->
-                "<@${uids[index]}>:\n${monData.joinToString("\n").surroundWith(if (spoiler) "||" else "")}"
+                "<@${uidxs[index]}>:\n${monData.joinToString("\n").surroundWith(if (spoiler) "||" else "")}"
             }.joinToString("\n\n")
         }"
     }

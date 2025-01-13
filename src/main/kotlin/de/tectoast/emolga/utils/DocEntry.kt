@@ -224,11 +224,7 @@ class DocEntry private constructor(val league: League) {
                 uindicesOfFirstGame[groupBy
                     .maxByOrNull { it.value.size }?.key.indexedBy(sdNamesOfFirstGame)]
             league.tipgame?.let { tg ->
-                val leagueName = league.leaguename
-                val gamedayTips = tg.tips[gameday]
-                gamedayTips?.entries?.filter { it.value[battleindex] == winningIndex }?.map { it.key }?.forEach {
-                    TipGameUserData.addCorrectBattle(it, leagueName, gameday, battleindex)
-                }
+                TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winningIndex)
             }
             val numbers =
                 sdNamesOfFirstGame.map { groupBy[it]?.size ?: 0 }.let { if (u1IsSecond) it.reversed() else it }
@@ -250,11 +246,7 @@ class DocEntry private constructor(val league: League) {
             val uindices = firstData.uindices
             winningIndex = (if (game[0].winner) uindices[0] else uindices[1])
             league.tipgame?.let { tg ->
-                val leagueName = league.leaguename
-                val gamedayTips = tg.tips[gameday]
-                gamedayTips?.entries?.filter { it.value[battleindex] == winningIndex }?.map { it.key }?.forEach {
-                    TipGameUserData.addCorrectBattle(it, leagueName, gameday, battleindex)
-                }
+                TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winningIndex)
             }
             val numbers = firstData.gamedayData.numbers
             resultCreator?.let {

@@ -22,6 +22,9 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
+import org.litote.kmongo.and
+import org.litote.kmongo.eq
+import org.litote.kmongo.keyProjection
 import kotlin.time.Duration
 
 object TipGameManager : CoroutineScope {
@@ -40,20 +43,24 @@ object TipGameManager : CoroutineScope {
             ephemeralDefault()
             deferReply()
             val league = db.getLeague(e.leaguename) ?: return reportMissing()
-            league.lock {
-                val tipgame = tipgame ?: return reportMissing()
-                TipGameUserData.addVote(user, e.leaguename, e.gameday, e.index, e.userindex)
-                reply("Dein Tipp wurde gespeichert!")
-                if (tipgame.withCurrentState) {
-                    message.editMessageEmbeds(
-                        Embed(title = message.embeds[0].title,
-                            description = "Bisherige Votes: " + battleorder(e.gameday)[e.index].joinToString(":") { u ->
-                                gamedayMap.values.count { u in it.values }.toString()
-                            }, color = embedColor
-                        )
-                    ).queue()
-                }
-                save("TipGame")
+            val tipgame = league.tipgame ?: return reportMissing()
+            TipGameUserData.addVote(user, e.leaguename, e.gameday, e.index, e.userindex)
+            reply("Dein Tipp wurde gespeichert!")
+            if (tipgame.withCurrentState) {
+                message.editMessageEmbeds(
+                    Embed(
+                        title = message.embeds[0].title,
+                        description = "Bisherige Votes: " + league.battleorder(e.gameday)[e.index].map {
+                            db.tipgameuserdata.countDocuments(
+                                and(
+                                    TipGameUserData::league eq e.leaguename,
+                                    TipGameUserData::tips.keyProjection(e.gameday).keyProjection(e.index) eq it
+                                )
+                            ).toString()
+                        }.joinToString(":"),
+                        color = embedColor
+                    )
+                ).queue()
             }
         }
 

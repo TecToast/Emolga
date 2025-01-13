@@ -56,7 +56,7 @@ repositories {
     mavenCentral()
 }
 
-val exposedVersion = "0.57.0"
+val exposedVersion = "0.58.0"
 val ktorVersion = "2.3.12"
 val ktorDependencies = listOf(
     // Client
@@ -94,7 +94,7 @@ dependencies {
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google
-    implementation("com.google.apis:google-api-services-sheets:v4-rev20241203-2.0.0")
+    implementation("com.google.apis:google-api-services-sheets:v4-rev20250106-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20241206-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20250101-2.0.0")
 
@@ -107,7 +107,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
     // MongoDB
-    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.2.0")
+    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.2.1")
     implementation("org.litote.kmongo:kmongo-id-serialization:5.2.0")
 
     // Ktor

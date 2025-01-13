@@ -42,9 +42,7 @@ object TipGameManager : CoroutineScope {
             val league = db.getLeague(e.leaguename) ?: return reportMissing()
             league.lock {
                 val tipgame = tipgame ?: return reportMissing()
-                val gamedayMap = tipgame.tips.getOrPut(e.gameday) { mutableMapOf() }
-                val userMap = gamedayMap.getOrPut(user) { mutableMapOf() }
-                userMap[e.index] = e.userindex
+                TipGameUserData.addVote(user, e.leaguename, e.gameday, e.index, e.userindex)
                 reply("Dein Tipp wurde gespeichert!")
                 if (tipgame.withCurrentState) {
                     message.editMessageEmbeds(
@@ -99,7 +97,6 @@ object TipGameManager : CoroutineScope {
 
 @Serializable
 data class TipGame(
-    val tips: MutableMap<Int, MutableMap<Long, MutableMap<Int, Int>>> = mutableMapOf(),
     @Serializable(with = InstantToStringSerializer::class) val lastSending: Instant,
     @Serializable(with = InstantToStringSerializer::class) val lastLockButtons: Instant? = null,
     @Serializable(with = DurationSerializer::class) val interval: Duration,

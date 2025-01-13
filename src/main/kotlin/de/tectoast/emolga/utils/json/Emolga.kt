@@ -188,7 +188,8 @@ data class TipGameUserData(
     val correctGuesses: MutableMap<Int, MutableSet<Int>> = mutableMapOf(),
     val topkiller: String? = null,
     val correctTopkiller: Boolean = false,
-    val correctOrderGuesses: Set<Int> = setOf()
+    val correctOrderGuesses: Set<Int> = setOf(),
+    val tips: MutableMap<Int, MutableMap<Int, Int>> = mutableMapOf()
 ) {
     companion object {
         suspend fun addCorrectBattle(user: Long, league: String, gameday: Int, battle: Int) {
@@ -203,9 +204,18 @@ data class TipGameUserData(
             update(user, league, set(TipGameUserData::topkiller setTo mon))
         }
 
+        suspend fun addVote(user: Long, league: String, gameday: Int, battle: Int, userIndex: Int) {
+            update(
+                user,
+                league,
+                set(TipGameUserData::tips.keyProjection(gameday).keyProjection(battle) setTo userIndex)
+            )
+        }
+
         private suspend fun update(user: Long, league: String, update: Bson) = db.tipgameuserdata.updateOne(
             and(TipGameUserData::user eq user, TipGameUserData::league eq league), update, upsert()
         )
+
 
     }
 }

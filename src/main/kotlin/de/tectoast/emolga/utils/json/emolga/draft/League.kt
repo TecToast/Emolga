@@ -819,8 +819,7 @@ sealed class League {
             channel.send(
                 embeds = Embed(
                     title = "Spieltag $num",
-                    color = Color.YELLOW.rgb,
-                    description = if (tip.withCurrentState) "Bisherige Votes: 0:0" else null
+                    color = Color.YELLOW.rgb
                 ).into()
             ).queue()
             for ((index, matchup) in matchups.withIndex()) {
@@ -833,7 +832,8 @@ sealed class League {
                 }
                 channel.send(
                     embeds = Embed(
-                        title = "${names[u1]} vs. ${names[u2]}", color = embedColor
+                        title = "${names[u1]} vs. ${names[u2]}", color = embedColor,
+                        description = if (tip.withCurrentState) "Bisherige Votes: 0:0" else null
                     ).into(), components = ActionRow.of(TipGameManager.VoteButton(names[u1]!!) {
                         base()
                         this.userindex = u1.indexedBy(table)

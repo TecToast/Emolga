@@ -670,14 +670,6 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun migrateTipGameTips() {
-        val tips = db.league("EPPS3Rot").tipgame!!.tips[1]!!
-        tips.forEach { (user, tip) ->
-            db.tipgameuserdata.insertOne(TipGameUserData(user, "EPPS3Rot", tips = mutableMapOf(1 to tip)))
-        }
-    }
-
-    context(InteractionData)
     suspend fun switchUser(args: PrivateData) {
         val league = db.league(args[0])
         val old = args[1].toLong()

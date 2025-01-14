@@ -807,7 +807,7 @@ sealed class League {
             val channel = jda.getTextChannelById(tip.channel)!!
             val matchups = getMatchups(num)
             val names = jda.getGuildById(guild)!!.retrieveMembersByIds(matchups.flatten()).await()
-                .associate { it.idLong to it.effectiveName }
+                .associate { it.idLong to it.user.effectiveName }
             channel.send(
                 embeds = Embed(
                     title = "Spieltag $num",

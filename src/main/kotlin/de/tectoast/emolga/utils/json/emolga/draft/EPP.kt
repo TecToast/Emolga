@@ -1,11 +1,10 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
-import de.tectoast.emolga.utils.BasicStatProcessor
-import de.tectoast.emolga.utils.DocEntry
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.indexedBy
+import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
+import dev.minn.jda.ktx.coroutines.await
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -42,6 +41,48 @@ class EPP(val spoilerSid: String) : League() {
 
     override suspend fun RequestBuilder.banDoc(data: BanData) {
         addSingle(Coord("Draft", "AB", 15 + data.indexInRound), data.pokemon)
+    }
+
+    override suspend fun executeYoutubeSend(
+        ytTC: Long,
+        gameday: Int,
+        battle: Int,
+        strategy: VideoProvideStrategy,
+        overrideEnabled: Boolean
+    ) {
+        val b = builder()
+        val ytVideoSaveData = replayDataStore?.data?.get(gameday)?.get(battle)?.ytVideoSaveData
+        if (!overrideEnabled && ytVideoSaveData?.enabled != true) return logger.info("ExecuteYTSend: Not enabled")
+        ytVideoSaveData?.enabled = false
+        jda.getTextChannelById(ytTC)!!.sendMessage(buildString {
+            append("**Spieltag $gameday**\n_Kampf ${battle + 1}_\n\n")
+            val muData = battleorder[gameday]!![battle]
+            append(muData.joinToString(" vs. ") { "<@${table[it]}>" })
+            append("\n\n")
+            val videoIds = muData.mapIndexed { index, uindex ->
+                strategy.run { provideVideoId(index, uindex) }?.let { videoId ->
+                    val range =
+                        gameday.minus(1)
+                            .CoordXMod("Spielplan (SPOILERFREI)", 3, 'J' - 'B', 3 + index * 3, 8, 5 + battle)
+                    b.addSingle(
+                        range,
+                        "=HYPERLINK(\"https://www.youtube.com/watch?v=$videoId\"; \"Kampf\nanschauen\")"
+                    )
+                    b.addFGColorChange(216749258, range.x, range.y, 0x1155cc.convertColor())
+                    videoId
+                }
+            }
+            val names = jda.getGuildById(guild)!!.retrieveMembersByIds(muData.map { table[it] }).await()
+                .associate { it.idLong to it.user.effectiveName }
+            videoIds.forEachIndexed { index, vid ->
+                val uid = table[muData[index]]
+                append("${names[uid]}'s Sicht: ")
+                append(vid?.let { "https://www.youtube.com/watch?v=$it" } ?: "_noch nicht hochgeladen_")
+                append("\n")
+            }
+        }).queue()
+        b.execute()
+        save("YTSubSave")
     }
 
 

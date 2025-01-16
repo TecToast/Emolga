@@ -41,7 +41,8 @@ interface DraftInput {
 }
 
 
-data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolean) : DraftInput {
+data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolean, val noCost: Boolean = false) :
+    DraftInput {
     context(InteractionData, League)
     override suspend fun execute(type: DraftMessageType): Boolean {
         if (isSwitchDraft && !config<AllowPickDuringSwitch>()) {
@@ -59,7 +60,7 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
         val freepick =
             free.takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } == true
         if (!freepick && handleTiers(specifiedTier, officialTier)) return false
-        if (handlePoints(
+        if (!noCost && handlePoints(
                 free = freepick, tier = officialTier, mega = official.isMega
             )
         ) return false
@@ -75,7 +76,7 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
             freePick = freepick,
             updrafted = saveTier != officialTier
         )
-        pickData.savePick()
+        pickData.savePick(noCost)
         pickData.reply(type)
         builder().apply { pickDoc(pickData) }.execute()
         return true

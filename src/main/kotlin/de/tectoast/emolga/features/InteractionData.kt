@@ -135,7 +135,7 @@ class TestInteractionData(
     user: Long = Constants.FLOID,
     tc: Long = Constants.TEST_TCID,
     gid: Long = Constants.G.MY,
-    val sendReplyInTc: Boolean = false
+    val sendReplyInTc: Boolean = true
 ) :
     InteractionData(user, tc, gid) {
 

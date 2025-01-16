@@ -30,6 +30,7 @@ class Tierlist(val guildid: Long) {
     var points = 0
     val language = Language.GERMAN
     val variableMegaPrice = false
+    val maxMonsToPay = Int.MAX_VALUE
 
 
     val order get() = prices.keys.toList()

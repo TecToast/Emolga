@@ -43,6 +43,7 @@ import org.litote.kmongo.eq
 import java.awt.Color
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.min
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 import kotlin.time.Duration
@@ -202,8 +203,8 @@ sealed class League {
 
     open fun checkFinishedForbidden(mem: Int): String? = null
 
-    open fun PickData.savePick() {
-        picks.add(DraftPokemon(pokemonofficial, tier, freePick))
+    open fun PickData.savePick(noCost: Boolean = false) {
+        picks.add(DraftPokemon(pokemonofficial, tier, freePick, noCost = noCost))
     }
 
     open fun SwitchData.saveSwitch() {
@@ -294,7 +295,7 @@ sealed class League {
     }
 
     fun minimumNeededPointsForTeamCompletion(picksSizeAfterAdd: Int) =
-        (totalRounds - picksSizeAfterAdd) * tierlist.prices.values.min()
+        (min(totalRounds, tierlist.maxMonsToPay) - picksSizeAfterAdd) * tierlist.prices.values.min()
 
     context (InteractionData)
     open fun handleTiers(
@@ -391,7 +392,8 @@ sealed class League {
             val randomMon = getRandomMon()
             with(queueInteractionData) outer@{
                 executeWithinLock(
-                    PickInput(pokemon = randomMon, tier = null, free = false), type = DraftMessageType.QUEUE
+                    PickInput(pokemon = randomMon, tier = null, free = false, noCost = true),
+                    type = DraftMessageType.QUEUE
                 )
             }
             return true
@@ -883,7 +885,7 @@ sealed class League {
 
         operator fun get(idx: Int) = points.getOrPut(idx) {
             val isPoints = tierlist.mode.isPoints()
-            tierlist.points - picks[idx].orEmpty().filterNot { it.quit }.sumOf {
+            tierlist.points - picks[idx].orEmpty().filterNot { it.quit || it.noCost }.sumOf {
                 if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
                     it.tier
                 ) else if (tierlist.variableMegaPrice && it.name.isMega) it.tier.substringAfter("#").toInt() else 0
@@ -1191,7 +1193,7 @@ data class RandomPickRound(
                 db.pokedex.get(
                     NameConventionsDB.getSDTranslation(
                         it.name, guild, english = true
-                    )!!.official
+                    )!!.official.toSDName()
                 )!!.types
             }
         }.groupingBy { it }.eachCount()

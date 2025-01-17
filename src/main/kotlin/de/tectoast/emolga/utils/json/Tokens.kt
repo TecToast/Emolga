@@ -21,7 +21,8 @@ data class Tokens(
 
     @Serializable
     data class Subscriber(
-        val secret: String
+        val secret: String,
+        val callback: String,
     )
 
     @Serializable

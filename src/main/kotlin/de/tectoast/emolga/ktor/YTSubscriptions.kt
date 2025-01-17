@@ -132,14 +132,15 @@ object InstantAsDateSerializer : TemporalExtendedJsonSerializer<Instant>() {
 
 
 suspend fun subscribeToYTChannel(channelID: String) {
+    val config = Credentials.tokens.subscriber
     logger.info(
         ytClient.post("https://pubsubhubbub.appspot.com/subscribe") {
             setBody(FormDataContent(Parameters.build {
-                append("hub.callback", "https://emolga.tectoast.de/api/youtube")
+                append("hub.callback", config.callback)
                 append("hub.mode", "subscribe")
                 append("hub.topic", "https://www.youtube.com/xml/feeds/videos.xml?channel_id=$channelID")
                 append("hub.verify", "async")
-                append("hub.secret", Credentials.tokens.subscriber.secret)
+                append("hub.secret", config.secret)
             }))
         }.bodyAsText()
     )

@@ -55,22 +55,13 @@ class EPP(val spoilerSid: String) : League() {
         if (!overrideEnabled && ytVideoSaveData?.enabled != true) return logger.info("ExecuteYTSend: Not enabled")
         ytVideoSaveData?.enabled = false
         jda.getTextChannelById(ytTC)!!.sendMessage(buildString {
+            append("<@&818198125755498598>\n")
             append("**Spieltag $gameday**\n_Kampf ${battle + 1}_\n\n")
             val muData = battleorder[gameday]!![battle]
             append(muData.joinToString(" vs. ") { "<@${table[it]}>" })
             append("\n\n")
             val videoIds = muData.mapIndexed { index, uindex ->
-                strategy.run { provideVideoId(index, uindex) }?.let { videoId ->
-                    val range =
-                        gameday.minus(1)
-                            .CoordXMod("Spielplan (SPOILERFREI)", 3, 'J' - 'B', 3 + index * 3, 8, 5 + battle)
-                    b.addSingle(
-                        range,
-                        "=HYPERLINK(\"https://www.youtube.com/watch?v=$videoId\"; \"Kampf\nanschauen\")"
-                    )
-                    b.addFGColorChange(216749258, range.x, range.y, 0x1155cc.convertColor())
-                    videoId
-                }
+                strategy.run { provideVideoId(index, uindex) }
             }
             val names = jda.getGuildById(guild)!!.retrieveMembersByIds(muData.map { table[it] }).await()
                 .associate { it.idLong to it.user.effectiveName }

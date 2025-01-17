@@ -12,7 +12,6 @@ import de.tectoast.emolga.utils.repeat.IntervalTask
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
-import javax.crypto.BadPaddingException
 
 
 private val logger = KotlinLogging.logger {}
@@ -20,19 +19,7 @@ private val logger = KotlinLogging.logger {}
 
 suspend fun main() {
     logger.info("Starting Bot...")
-    val console = System.console()
-    var key: String
-    while (true) {
-        logger.info("Enter Token Key:")
-        key = String(console.readPassword())
-        try {
-            logger.info("Begin decrypt...")
-            Credentials.load(key)
-            break
-        } catch (e: BadPaddingException) {
-            logger.error("Wrong Key!")
-        }
-    }
+    Credentials.load()
     logger.info("Starting MongoDB...")
     initMongo()
     logger.info("Launching Bots...")

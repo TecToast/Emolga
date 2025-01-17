@@ -5,6 +5,7 @@ package de.tectoast.emolga.utils.json.emolga.draft
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.TipGameMessagesDB
 import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.TestInteractionData
@@ -17,7 +18,6 @@ import de.tectoast.emolga.league.DynamicCoord
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
-import de.tectoast.emolga.utils.draft.Tierlist.Companion.getValue
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -824,7 +824,7 @@ sealed class League {
                     this.gameday = num
                     this.index = index
                 }
-                channel.send(
+                val messageId = channel.send(
                     embeds = Embed(
                         title = "${names[u1]} vs. ${names[u2]}", color = embedColor,
                         description = if (tip.withCurrentState) "Bisherige Votes: 0:0" else null
@@ -835,35 +835,37 @@ sealed class League {
                         base()
                         this.userindex = u2.indexedBy(table)
                     }).into()
-                ).queue()
+                ).await().idLong
+                TipGameMessagesDB.set(leaguename, num, index, messageId)
             }
         }
     }
 
-    fun executeTipGameLockButtons() {
+    fun executeTipGameLockButtons(gameday: Int) {
         launch {
-            jda.getTextChannelById(tipgame!!.channel)!!.iterableHistory.takeAsync(battleorder.entries.first().value.size)
-                .await().forEach {
-                    it.editMessageComponents(
-                        ActionRow.of(it.actionRows[0].buttons.map { button -> button.asDisabled() })
-                    ).queue()
-                    delay(2000)
-                }
+            TipGameMessagesDB.get(leaguename, gameday).forEach {
+                lockButtonsOnMessage(it)
+                delay(2000)
+            }
         }
     }
 
 
     fun executeTipGameLockButtonsIndividual(gameday: Int, mu: Int) {
         launch {
-            val muCount = battleorder[gameday]!!.size
-            jda.getTextChannelById(tipgame!!.channel)!!.iterableHistory.takeAsync(muCount + 1).await().let {
-                it.dropWhile { m -> !m.author.isBot }[muCount - mu - 1]
-            }.let {
-                it.editMessageComponents(
-                    ActionRow.of(it.actionRows[0].buttons.map { b -> b.asDisabled() })
-                ).queue()
+            TipGameMessagesDB.get(leaguename, gameday, mu).forEach {
+                lockButtonsOnMessage(it)
             }
         }
+    }
+
+    private suspend fun lockButtonsOnMessage(
+        messageId: Long
+    ) {
+        val tipGameChannel = jda.getTextChannelById(tipgame!!.channel)!!
+        val message = tipGameChannel.retrieveMessageById(messageId).await()
+        message.editMessageComponents(ActionRow.of(message.actionRows[0].buttons.map { button -> button.asDisabled() }))
+            .queue()
     }
 
     open suspend fun executeYoutubeSend(

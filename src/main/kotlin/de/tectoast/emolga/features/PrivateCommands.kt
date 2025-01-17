@@ -99,7 +99,7 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun tipGameLockButtons(args: PrivateData) {
-        db.league(args[0]).executeTipGameLockButtons()
+        db.league(args[0]).executeTipGameLockButtons(args[1].toInt())
     }
 
     context(InteractionData)

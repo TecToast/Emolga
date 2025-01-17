@@ -104,7 +104,7 @@ class RepeatTask(
                     tip.lastLockButtons?.let { last ->
                         RepeatTask(
                             name, TipGameLockButtons, last, tip.amount, duration, false
-                        ) { refresh().executeTipGameLockButtons() }
+                        ) { refresh().executeTipGameLockButtons(it) }
                     }
                 }
                 l.replayDataStore?.let { data ->
@@ -120,10 +120,10 @@ class RepeatTask(
                         ) { gameday ->
                             val league = refresh()
                             var shouldDelay = false
-                            /*league.tipgame?.let { _ ->
+                            league.tipgame?.let { _ ->
                                 league.executeTipGameLockButtonsIndividual(gameday, battle)
                                 shouldDelay = true
-                            }*/
+                            }
                             val dataStore = league.replayDataStore ?: return@RepeatTask
                             dataStore.data[gameday]?.get(battle)?.let {
                                 it.ytVideoSaveData.enabled = true

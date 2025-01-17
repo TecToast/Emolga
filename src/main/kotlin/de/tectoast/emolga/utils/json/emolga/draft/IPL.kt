@@ -3,6 +3,7 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.exposed.TipGameMessagesDB
 import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.features.draft.TipGameManager
@@ -183,7 +184,7 @@ class IPL(
                 }
                 val t1 = teamtable[u1]
                 val t2 = teamtable[u2]
-                channel.send(
+                val messageId = channel.send(
                     embeds = Embed(
                         title = "$t1 ${emotes[u1]} vs. ${emotes[u2]} $t2", color = embedColor
                     ).into(),
@@ -194,7 +195,8 @@ class IPL(
                         base()
                         this.userindex = u2
                     }).into()
-                ).queue()
+                ).await().idLong
+                TipGameMessagesDB.set(leaguename, num, index, messageId)
             }
         }
     }

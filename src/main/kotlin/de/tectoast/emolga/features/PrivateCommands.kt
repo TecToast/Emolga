@@ -9,6 +9,7 @@ import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
 import de.tectoast.emolga.features.various.ShiftUser
+import de.tectoast.emolga.ktor.subscribeToYTChannel
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -541,6 +542,18 @@ object PrivateCommands {
     }
 
     context(InteractionData)
+    suspend fun enableIt(args: PrivateData) {
+        for (mid in args.drop(1)) {
+            val m = jda.getTextChannelById(args[0])!!.retrieveMessageById(mid).await()
+            m.editMessageComponents(m.components.map {
+                if (it is ActionRow) ActionRow.of(it.components.map { b ->
+                    if (b is ActionComponent) b.withDisabled(false) else b
+                }) else it
+            }).queue()
+        }
+    }
+
+    context(InteractionData)
     suspend fun fixIPLTip() {
         val num = 1
         val ids = listOf(1211915623995670578, 1211915626814111785, 1211915629330829382, 1211915630857682945)
@@ -685,6 +698,11 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun startGroupedPoints() {
         db.shinyEventConfig.only().updateDiscord(jda)
+    }
+
+    context(InteractionData)
+    suspend fun subscribeToYT(args: PrivateData) {
+        subscribeToYTChannel(args())
     }
 
 

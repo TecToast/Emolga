@@ -915,6 +915,7 @@ sealed class League {
         private val allMutexes = ConcurrentHashMap<String, Mutex>()
         val queueInteractionData = TestInteractionData(tc = 1099651412742389820)
         val timerScope = createCoroutineScope("LeagueTimer")
+        val leagueNameRegex = Regex(".*?S\\d+(.*)")
 
         fun getLock(leaguename: String): Mutex = allMutexes.getOrPut(leaguename) { Mutex() }
 

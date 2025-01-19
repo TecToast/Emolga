@@ -1,22 +1,16 @@
 package de.tectoast.emolga.utils.json.emolga.draft
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.exposed.TipGameMessagesDB
-import de.tectoast.emolga.features.ArgBuilder
-import de.tectoast.emolga.features.draft.TipGameManager
-import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.BasicStatProcessor
+import de.tectoast.emolga.utils.DocEntry
+import de.tectoast.emolga.utils.RequestBuilder
+import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.messages.Embed
-import dev.minn.jda.ktx.messages.into
-import dev.minn.jda.ktx.messages.send
-import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import java.awt.Color
 
 @Serializable
 @SerialName("EPP")
@@ -50,50 +44,6 @@ class EPP(val spoilerSid: String) : League() {
 
     override suspend fun RequestBuilder.banDoc(data: BanData) {
         addSingle(Coord("Draft", "AB", 15 + data.indexInRound), data.pokemon)
-    }
-
-    override fun executeTipGameSending(num: Int) {
-        launch {
-            val tip = tipgame!!
-            val channel = jda.getTextChannelById(tip.channel)!!
-            val matchups = getMatchups(num)
-            val names = jda.getGuildById(guild)!!.retrieveMembersByIds(matchups.flatten()).await()
-                .associate { it.idLong to it.user.effectiveName }
-            channel.send(
-                embeds = Embed(
-                    title = "Spieltag $num",
-                    color = when (leagueNameRegex.find(leaguename)?.groupValues[1]) {
-                        "Rot" -> 0xFF0000
-                        "Blau" -> 0x0000FF
-                        "Gold" -> 0xFFD700
-                        "Silber" -> 0xC0C0C0
-                        else -> Color.YELLOW.rgb
-                    }
-                ).into()
-            ).queue()
-            for ((index, matchup) in matchups.withIndex()) {
-                val u1 = matchup[0]
-                val u2 = matchup[1]
-                val base: ArgBuilder<TipGameManager.VoteButton.Args> = {
-                    this.leaguename = this@EPP.leaguename
-                    this.gameday = num
-                    this.index = index
-                }
-                val messageId = channel.send(
-                    embeds = Embed(
-                        title = "${names[u1]} vs. ${names[u2]}", color = embedColor,
-                        description = if (tip.withCurrentState) "Bisherige Votes: 0:0" else null
-                    ).into(), components = ActionRow.of(TipGameManager.VoteButton(names[u1]!!) {
-                        base()
-                        this.userindex = u1.indexedBy(table)
-                    }, TipGameManager.VoteButton(names[u2]!!) {
-                        base()
-                        this.userindex = u2.indexedBy(table)
-                    }).into()
-                ).await().idLong
-                TipGameMessagesDB.set(leaguename, num, index, messageId)
-            }
-        }
     }
 
     override suspend fun executeYoutubeSend(

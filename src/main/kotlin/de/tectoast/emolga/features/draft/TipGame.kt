@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.Instant
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
@@ -25,6 +26,7 @@ import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import org.litote.kmongo.and
 import org.litote.kmongo.eq
 import org.litote.kmongo.keyProjection
+import java.awt.Color
 import kotlin.time.Duration
 
 object TipGameManager : CoroutineScope {
@@ -109,8 +111,34 @@ data class TipGame(
     @Serializable(with = DurationSerializer::class) val interval: Duration,
     val amount: Int,
     val channel: Long,
+    val colorConfig: TipGameColorConfig = TipGameColorConfig.Default,
     val withCurrentState: Boolean = false
 )
+
+@Serializable
+sealed interface TipGameColorConfig {
+    suspend fun provideEmbedColor(league: League): Int
+
+    @Serializable
+    @SerialName("Default")
+    object Default : TipGameColorConfig {
+        override suspend fun provideEmbedColor(league: League): Int {
+            return Color.YELLOW.rgb
+        }
+    }
+
+    @Serializable
+    @SerialName("FromConf")
+    data class FromConf(val map: Map<String, Int>) : TipGameColorConfig {
+        override suspend fun provideEmbedColor(league: League): Int {
+            return map[League.leagueNameRegex.find(league.leaguename)?.groupValues[1]] ?: Default.provideEmbedColor(
+                league
+            )
+        }
+    }
+
+
+}
 
 object InstantToStringSerializer : KSerializer<Instant> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Instant", PrimitiveKind.STRING)

@@ -40,7 +40,6 @@ import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import org.bson.types.ObjectId
 import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.eq
-import java.awt.Color
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.min
@@ -807,13 +806,14 @@ sealed class League {
         launch {
             val tip = tipgame!!
             val channel = jda.getTextChannelById(tip.channel)!!
-            val matchups = getMatchups(num)
-            val names = jda.getGuildById(guild)!!.retrieveMembersByIds(matchups.flatten()).await()
-                .associate { it.idLong to it.user.effectiveName }
+            val matchups = getMatchupsIndices(num)
+            val names =
+                jda.getGuildById(guild)!!.retrieveMembersByIds(table).await().sortedBy { it.idLong.indexedBy(table) }
+                    .map { it.effectiveName }
             channel.send(
                 embeds = Embed(
                     title = "Spieltag $num",
-                    color = Color.YELLOW.rgb
+                    color = tip.colorConfig.provideEmbedColor(this@League)
                 ).into()
             ).queue()
             for ((index, matchup) in matchups.withIndex()) {
@@ -828,12 +828,12 @@ sealed class League {
                     embeds = Embed(
                         title = "${names[u1]} vs. ${names[u2]}", color = embedColor,
                         description = if (tip.withCurrentState) "Bisherige Votes: 0:0" else null
-                    ).into(), components = ActionRow.of(TipGameManager.VoteButton(names[u1]!!) {
+                    ).into(), components = ActionRow.of(TipGameManager.VoteButton(names[u1]) {
                         base()
-                        this.userindex = u1.indexedBy(table)
-                    }, TipGameManager.VoteButton(names[u2]!!) {
+                        this.userindex = u1
+                    }, TipGameManager.VoteButton(names[u2]) {
                         base()
-                        this.userindex = u2.indexedBy(table)
+                        this.userindex = u2
                     }).into()
                 ).await().idLong
                 TipGameMessagesDB.set(leaguename, num, index, messageId)

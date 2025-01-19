@@ -128,12 +128,10 @@ sealed interface TipGameColorConfig {
     }
 
     @Serializable
-    @SerialName("FromConf")
-    data class FromConf(val map: Map<String, Int>) : TipGameColorConfig {
+    @SerialName("Fixed")
+    data class Fixed(val color: Int) : TipGameColorConfig {
         override suspend fun provideEmbedColor(league: League): Int {
-            return map[League.leagueNameRegex.find(league.leaguename)?.groupValues[1]] ?: Default.provideEmbedColor(
-                league
-            )
+            return color
         }
     }
 

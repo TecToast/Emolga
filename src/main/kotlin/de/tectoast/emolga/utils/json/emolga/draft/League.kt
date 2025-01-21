@@ -876,10 +876,10 @@ sealed class League {
     fun buildStoreStatus(gameday: Int): String {
         val dataStore = replayDataStore ?: error("No replay data store found")
         val gamedayData = dataStore.data[gameday].orEmpty()
-        return "## Aktueller Stand von Spieltag $gameday:\n" + (0..<battleorder[1]!!.size).joinToString("\n") {
-            "${battleorder[gameday]!![it].joinToString(" vs. ") { u -> "<@${table[u]}>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
+        val gameplan = battleorder[gameday] ?: return "Spieltag $gameday: Keine Spiele"
+        return "## Aktueller Stand von Spieltag $gameday [$leaguename]:\n" + gameplan.indices.joinToString("\n") {
+            "${gameplan[it].joinToString(" vs. ") { u -> "<@${table[u]}>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
         }
-
     }
 
     inner class PointsManager {

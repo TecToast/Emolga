@@ -1,4 +1,4 @@
-package de.tectoast.emolga.league
+package de.tectoast.emolga.leaguecreator
 
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod

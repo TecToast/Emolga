@@ -10,10 +10,10 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.coordXMod
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.PickData
-import de.tectoast.emolga.utils.json.emolga.draft.RandomPickConfig
-import de.tectoast.emolga.utils.json.emolga.draft.RandomPickUserInput
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.PickData
+import de.tectoast.emolga.league.RandomPickConfig
+import de.tectoast.emolga.league.RandomPickUserInput
 import de.tectoast.emolga.utils.y
 import dev.minn.jda.ktx.coroutines.await
 

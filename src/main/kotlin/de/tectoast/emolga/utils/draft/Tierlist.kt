@@ -5,7 +5,7 @@ import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient

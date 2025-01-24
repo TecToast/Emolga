@@ -4,7 +4,7 @@ import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.litote.kmongo.eq

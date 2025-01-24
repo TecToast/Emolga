@@ -7,9 +7,9 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.MatchResult
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.VideoProvideStrategy
+import de.tectoast.emolga.league.GamedayData
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.coroutines.Job

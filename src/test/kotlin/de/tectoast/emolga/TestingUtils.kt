@@ -11,13 +11,12 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.myJSON
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.litote.kmongo.coroutine.insertOne

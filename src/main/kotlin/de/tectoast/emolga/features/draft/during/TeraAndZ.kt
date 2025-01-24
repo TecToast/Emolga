@@ -4,7 +4,7 @@ import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.TeraAndZ
+import de.tectoast.emolga.league.TeraAndZ
 
 object TeraAndZ {
 

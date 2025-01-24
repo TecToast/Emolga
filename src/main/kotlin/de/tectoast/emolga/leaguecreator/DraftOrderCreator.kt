@@ -1,10 +1,9 @@
-package de.tectoast.emolga.league
+package de.tectoast.emolga.leaguecreator
 
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.records.Coord
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 

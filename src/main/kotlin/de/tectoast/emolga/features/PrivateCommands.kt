@@ -5,12 +5,14 @@ import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.draft.SignupManager
-import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
 import de.tectoast.emolga.features.various.ShiftUser
 import de.tectoast.emolga.ktor.subscribeToYTChannel
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.NDS
+import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -20,7 +22,6 @@ import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
-import de.tectoast.emolga.utils.json.emolga.draft.*
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage
@@ -32,7 +33,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
-import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionComponent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle

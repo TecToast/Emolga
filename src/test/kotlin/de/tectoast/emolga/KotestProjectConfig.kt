@@ -4,7 +4,7 @@ import de.tectoast.emolga.bot.usedJDA
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.utils.json.Tokens
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.initMongo
 import io.kotest.core.config.AbstractProjectConfig
 import io.kotest.mpp.env

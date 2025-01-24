@@ -7,7 +7,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.emolga.increment
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.toCoord

@@ -1,7 +1,7 @@
 package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.features.draft.SwitchTimer
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import kotlinx.serialization.KSerializer

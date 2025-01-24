@@ -13,8 +13,8 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Statistics
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.NDS
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer

@@ -4,8 +4,8 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.VideoProvideStrategy
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.repeat.RepeatTaskType.*
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay

@@ -14,10 +14,10 @@ import de.tectoast.emolga.features.intoMultipleRows
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
-import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.NDS
-import de.tectoast.emolga.utils.json.emolga.draft.QueuePicksData
+import de.tectoast.emolga.league.GamedayData
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.NDS
+import de.tectoast.emolga.league.QueuePicksData
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into

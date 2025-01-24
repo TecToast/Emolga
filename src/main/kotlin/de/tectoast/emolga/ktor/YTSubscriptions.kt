@@ -5,7 +5,7 @@ import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.ignoreDuplicatesMongo
 import de.tectoast.emolga.utils.json.YTVideo
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.repeat.RepeatTask

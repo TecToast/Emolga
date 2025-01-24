@@ -1,11 +1,11 @@
-package de.tectoast.emolga.utils.json.emolga.draft
+package de.tectoast.emolga.league
 
 import com.google.api.services.sheets.v4.model.CellFormat
 import com.google.api.services.sheets.v4.model.ColorStyle
 import com.google.api.services.sheets.v4.model.TextFormat
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.league.DynamicCoord
+import de.tectoast.emolga.leaguecreator.DynamicCoord
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
@@ -20,6 +20,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.slf4j.Logger
+import kotlin.collections.contains
+import kotlin.collections.set
 import kotlin.time.Duration.Companion.days
 
 @Suppress("unused")

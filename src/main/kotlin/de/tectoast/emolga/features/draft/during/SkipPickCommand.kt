@@ -6,9 +6,9 @@ import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.NoArgs
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.NextPlayerData
-import de.tectoast.emolga.utils.json.emolga.draft.SkipReason
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.NextPlayerData
+import de.tectoast.emolga.league.SkipReason
 import net.dv8tion.jda.api.Permission
 
 object SkipPickCommand :

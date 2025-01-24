@@ -1,21 +1,21 @@
 @file:Suppress("unused")
 
-package de.tectoast.emolga.league
+package de.tectoast.emolga.leaguecreator
 
 import com.google.api.services.sheets.v4.model.CellFormat
 import com.google.api.services.sheets.v4.model.Color
 import com.google.api.services.sheets.v4.model.TextFormat
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.league.Cols.*
+import de.tectoast.emolga.leaguecreator.Cols.*
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.SignUpData
 import de.tectoast.emolga.utils.json.TypeIcon
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.AllowedData
-import de.tectoast.emolga.utils.json.emolga.draft.DefaultLeague
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.AllowedData
+import de.tectoast.emolga.league.DefaultLeague
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.records.Coord
@@ -40,7 +40,7 @@ import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
 import kotlin.reflect.KClass
-import de.tectoast.emolga.league.Templater.ShowdownScriptTemplate.Format as ScriptFormat
+import de.tectoast.emolga.leaguecreator.Templater.ShowdownScriptTemplate.Format as ScriptFormat
 
 @Serializable
 class LeagueCreator(

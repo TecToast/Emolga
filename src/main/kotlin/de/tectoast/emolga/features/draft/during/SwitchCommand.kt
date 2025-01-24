@@ -7,7 +7,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils
 import de.tectoast.emolga.utils.draft.SwitchInput
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import mu.KotlinLogging
 
 object SwitchCommand :

@@ -6,7 +6,7 @@ import de.tectoast.emolga.features.FeatureManager
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.emolga.getCount
 import de.tectoast.emolga.utils.json.only
 import dev.minn.jda.ktx.events.listener

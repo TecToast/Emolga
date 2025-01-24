@@ -1,4 +1,4 @@
-package de.tectoast.emolga.utils.json.emolga.draft
+package de.tectoast.emolga.league
 
 import de.tectoast.emolga.utils.DraftTimer
 import kotlinx.serialization.SerialName

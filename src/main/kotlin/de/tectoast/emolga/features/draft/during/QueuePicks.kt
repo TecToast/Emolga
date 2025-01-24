@@ -5,9 +5,9 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.QueuePicks
 import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.AllowPickDuringSwitch
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.QueuePicksData
+import de.tectoast.emolga.league.AllowPickDuringSwitch
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.QueuePicksData
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 

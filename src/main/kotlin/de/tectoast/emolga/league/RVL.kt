@@ -1,4 +1,4 @@
-package de.tectoast.emolga.utils.json.emolga.draft
+package de.tectoast.emolga.league
 
 import de.tectoast.emolga.utils.DocEntry
 import de.tectoast.emolga.utils.ResultStatProcessor

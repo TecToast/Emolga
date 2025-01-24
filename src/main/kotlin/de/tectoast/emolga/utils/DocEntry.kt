@@ -56,10 +56,6 @@ class DocEntry private constructor(val league: League) {
     var rowNumToIndex: (Int) -> Int = { it.minus(league.newSystemGap + 1).div(league.newSystemGap) }
     private val gamedays get() = league.gamedays
 
-    fun sorter(leaguename: String, sorterData: SorterData) {
-        sorterDatas[leaguename] = sorterData
-    }
-
     fun newSystem(sorterData: SorterData?, resultCreator: (suspend AdvancedResult.() -> Unit)) {
         val dataSheet = league.dataSheet
         val gap = league.newSystemGap
@@ -417,7 +413,6 @@ data class StatProcessorData(
     var monindex: Int = -1
         get() = if (field == -1) error("monindex not set (must be BasicStatProcessor to be usable)") else field
 
-    val gameplanIndex get() = if (u1IsSecond) 1 - fightIndex else fightIndex
     val gdi by lazy { gameday - 1 }
 
     fun withMonIndex(monindex: Int) = copy().apply { this.monindex = monindex }

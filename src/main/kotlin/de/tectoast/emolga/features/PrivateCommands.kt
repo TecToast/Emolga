@@ -94,11 +94,6 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun ndsuMatchUps(args: PrivateData) {
-        (db.leagueByPrefix("NDSU") as NDSU).doMatchUps(args[0].toInt())
-    }
-
-    context(InteractionData)
     suspend fun tipGameLockButtons(args: PrivateData) {
         db.league(args[0]).executeTipGameLockButtons(args[1].toInt())
     }
@@ -110,18 +105,6 @@ object PrivateCommands {
             .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
             .joinToString("\n", prefix = "```", postfix = "```")
         )
-    }
-
-    context(InteractionData)
-    suspend fun rankSelect(args: PrivateData) {
-        val league = db.league(args[0])
-        reply(components = (1..args[1].toInt()).map {
-            ActionRow.of(
-                TipGameManager.RankSelect.createFromLeague(
-                    league, it
-                )
-            )
-        })
     }
 
     context(InteractionData)
@@ -551,41 +534,6 @@ object PrivateCommands {
                     if (b is ActionComponent) b.withDisabled(false) else b
                 }) else it
             }).queue()
-        }
-    }
-
-    context(InteractionData)
-    suspend fun fixIPLTip() {
-        val num = 1
-        val ids = listOf(1211915623995670578, 1211915626814111785, 1211915629330829382, 1211915630857682945)
-        with(db.league("IPLS4L2") as IPL) {
-            val tip = tipgame!!
-            val channel = jda.getTextChannelById(tip.channel)!!
-            val matchups = getMatchupsIndices(num)
-            for ((index, matchup) in matchups.withIndex()) {
-                val u1 = matchup[0]
-                val u2 = matchup[1]
-                val base: ArgBuilder<TipGameManager.VoteButton.Args> = {
-                    this.leaguename = this@with.leaguename
-                    this.gameday = num
-                    this.index = index
-                }
-                val t1 = teamtable[u1]
-                val t2 = teamtable[u2]
-                channel.editMessageComponentsById(
-                    ids[index], ActionRow.of(
-                        TipGameManager.VoteButton(
-                            t1, disabled = index <= 2, emoji = Emoji.fromFormatted(emotes[u1])
-                        ) {
-                            base()
-                            this.userindex = u1
-                        },
-                        TipGameManager.VoteButton(t2, disabled = index <= 2, emoji = Emoji.fromFormatted(emotes[u2])) {
-                            base()
-                            this.userindex = u2
-                        }).into()
-                ).queue()
-            }
         }
     }
 

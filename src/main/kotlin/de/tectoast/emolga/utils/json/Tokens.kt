@@ -32,13 +32,6 @@ data class Tokens(
     )
 
     @Serializable
-    data class Website(
-        val path: String,
-        val password: String,
-        val keyalias: String
-    )
-
-    @Serializable
     data class Oauth2(
         val clientsecret: String
     )

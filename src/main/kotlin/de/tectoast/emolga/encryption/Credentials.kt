@@ -4,12 +4,10 @@ import de.tectoast.emolga.ktor.Ktor
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.json.Tokens
 import de.tectoast.emolga.utils.myJSON
-import mu.KotlinLogging
 import java.io.File
 
 object Credentials {
     lateinit var tokens: Tokens
-    private val logger = KotlinLogging.logger {}
     fun load() {
         this.tokens = myJSON.decodeFromString(File(System.getenv("CONFIG_FILE") ?: "config.json").readText())
         injectTokens()

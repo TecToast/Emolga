@@ -83,7 +83,7 @@ sealed class League {
     val timerStart: Long? = null
 
     @Transient
-    open val afterTimerSkipMode: AfterTimerSkipMode? = null
+    open val afterTimerSkipMode: AfterTimerSkipMode = AFTER_DRAFT_UNORDERED
 
     @Transient
     open val duringTimerSkipMode: DuringTimerSkipMode? = null
@@ -341,12 +341,12 @@ sealed class League {
                     return
                 }
             }
-            addToMoved(data)
+            addToMoved()
             data.sendSkipMessage()
         }
-        val result = (duringTimerSkipMode?.takeUnless { draftWouldEnd } ?: afterTimerSkipMode)?.run {
+        val result = (duringTimerSkipMode?.takeUnless { draftWouldEnd } ?: afterTimerSkipMode).run {
             afterPickCall(data).also { save("AfterPickOfficial") }
-        } ?: TimerSkipResult.NEXT
+        }
         val ctm = System.currentTimeMillis()
         timerRelated.lastPick = ctm
         timerRelated.lastStallSecondUsedMid = 0
@@ -503,7 +503,7 @@ sealed class League {
                 regularCooldown = 0
                 return
             }
-            afterTimerSkipMode?.run {
+            afterTimerSkipMode.run {
                 if (disableTimer()) {
                     cancelCurrentTimer()
                     cooldown = 0
@@ -651,7 +651,7 @@ sealed class League {
         error("Tier ${this.tier} not found by user $current")
     }
 
-    fun addToMoved(data: NextPlayerData.Moved) {
+    fun addToMoved() {
         if (!isSwitchDraft) moved.getOrPut(current) { mutableListOf() }.let { if (round !in it) it += round }
     }
 
@@ -747,17 +747,12 @@ sealed class League {
         )
 
     context (InteractionData)
-    suspend fun replySwitch(oldmon: String, newmon: String) {
-        replyGeneral("$oldmon gegen $newmon getauscht!")
-    }
-
-    context (InteractionData)
     suspend fun replySkip() {
         replyGeneral("den Pick übersprungen!")
     }
 
     suspend fun getPickRoundOfficial() =
-        afterTimerSkipMode?.run { getPickRound().also { save("GET PICK ROUND") } } ?: round
+        afterTimerSkipMode.run { getPickRound().also { save("GET PICK ROUND") } }
 
     open fun provideReplayChannel(jda: JDA): TextChannel? = null
     open fun provideResultChannel(jda: JDA): TextChannel? = null
@@ -799,7 +794,6 @@ sealed class League {
             replayData
     }
 
-    fun getMatchups(gameday: Int) = getMatchupsIndices(gameday).map { mu -> mu.map { table[it] } }
     fun getMatchupsIndices(gameday: Int) = battleorder[gameday]!!
 
     open fun executeTipGameSending(num: Int) {
@@ -915,7 +909,6 @@ sealed class League {
         private val allMutexes = ConcurrentHashMap<String, Mutex>()
         val queueInteractionData = TestInteractionData(tc = 1099651412742389820)
         val timerScope = createCoroutineScope("LeagueTimer")
-        val leagueNameRegex = Regex(".*?S\\d+(.*)")
 
         fun getLock(leaguename: String): Mutex = allMutexes.getOrPut(leaguename) { Mutex() }
 
@@ -979,7 +972,7 @@ sealed class League {
             return onlyChannel?.run {
                 val uid = user
                 if (pseudoEnd) {
-                    val data = afterTimerSkipMode?.run { bypassCurrentPlayerCheck(uid) }
+                    val data = afterTimerSkipMode.run { bypassCurrentPlayerCheck(uid) }
                     when (data) {
                         is BypassCurrentPlayerData.Yes -> {
                             return@run this to data
@@ -989,8 +982,6 @@ sealed class League {
                             reply("Du hast keine offenen Picks mehr!")
                             return null
                         }
-
-                        else -> {}
                     }
                 }
                 if (!isCurrentCheck(uid)) {
@@ -1110,19 +1101,21 @@ sealed interface RandomPickMode {
             val usedTiers = mutableSetOf<String>()
             val skipMega = config.onlyOneMega && picks.any { it.name.isMega }
             val prices = tierlist.prices
-            for (i in 0..prices.size) {
-                val temptier =
-                    prices.filter { (tier, amount) -> tier !in usedTiers && picks.count { mon -> mon.tier == tier } < amount }.keys.randomOrNull()
-                        ?: return replyNull("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
-                val tempmon = firstAvailableMon(
-                    tierlist.getWithTierAndType(temptier, type).shuffled()
-                ) { german, _ -> german in input.skipMons && !(german.isMega && skipMega) }
-                if (tempmon != null) {
-                    mon = tempmon
-                    tier = temptier
-                    break
+            run {
+                repeat(prices.size) {
+                    val temptier =
+                        prices.filter { (tier, amount) -> tier !in usedTiers && picks.count { mon -> mon.tier == tier } < amount }.keys.randomOrNull()
+                            ?: return replyNull("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
+                    val tempmon = firstAvailableMon(
+                        tierlist.getWithTierAndType(temptier, type).shuffled()
+                    ) { german, _ -> german in input.skipMons && !(german.isMega && skipMega) }
+                    if (tempmon != null) {
+                        mon = tempmon
+                        tier = temptier
+                        return@run
+                    }
+                    usedTiers += temptier
                 }
-                usedTiers += temptier
             }
             if (mon == null) {
                 logger.error("No pokemon found without error message: $current $type")

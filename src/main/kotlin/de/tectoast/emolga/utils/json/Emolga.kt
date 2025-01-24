@@ -12,7 +12,6 @@ import de.tectoast.emolga.ktor.InstantAsDateSerializer
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
-import de.tectoast.emolga.utils.json.emolga.Soullink
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.draft.NDS
@@ -70,16 +69,12 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val statistics by lazy { db.getCollection<Statistics>("statistics") }
     val signups by lazy { db.getCollection<LigaStartData>("signups") }
     val drafts by lazy { db.getCollection<League>("league") }
-    val soullink by lazy { db.getCollection<Soullink>("soullink") }
-    val emolgachannel by lazy { db.getCollection<EmolgaChannelConfig>("emolgachannel") }
     val cooldowns by lazy { db.getCollection<Cooldown>("cooldowns") }
-    val configuration by lazy { db.getCollection<Configuration>("configuration") }
     val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
     val typeicons by lazy { db.getCollection<TypeIcon>("typeicons") }
     val pokedex by lazy { db.getCollection<Pokemon>("pokedex") }
     val pickedMons by lazy { db.getCollection<PickedMonsData>("pickedmons") }
     val tierlist by lazy { db.getCollection<Tierlist>("tierlist") }
-    val shinycount by lazy { db.getCollection<Shinycount>() }
     val shinyEventConfig by lazy { db.getCollection<ShinyEventConfig>("shinyeventconfig") }
     val shinyEventResults by lazy { db.getCollection<ShinyEventResult>("shinyeventresults") }
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
@@ -206,10 +201,6 @@ data class TipGameUserData(
             update(user, league, set(TipGameUserData::orderGuesses.keyProjection(rank) setTo userindex))
         }
 
-        suspend fun setTopKiller(user: Long, league: String, mon: String) {
-            update(user, league, set(TipGameUserData::topkiller setTo mon))
-        }
-
         suspend fun addVote(user: Long, league: String, gameday: Int, battle: Int, userIndex: Int) {
             update(
                 user,
@@ -282,11 +273,6 @@ data class Configuration(
     val guild: Long,
     @SerialName("_id") @Contextual val id: Id<Configuration> = newId(),
     val data: MutableMap<String, MutableMap<String, Int>> = mutableMapOf()
-)
-
-@Serializable
-data class EmolgaChannelConfig(
-    val guild: Long, val channels: List<Long>
 )
 
 @Serializable
@@ -392,14 +378,6 @@ data class SignUpData(
         "Teamname: **$teamname**\n"
     } + "Showdown-Name: **$sdname**"
 }
-
-@Serializable
-class Shinycount(
-    val names: Map<Long, String>,
-    val counter: Map<String, MutableMap<String, Long>>,
-    val methodorder: List<String>,
-    val userorder: List<Long>
-)
 
 @Serializable
 data class ShinyEventResult(

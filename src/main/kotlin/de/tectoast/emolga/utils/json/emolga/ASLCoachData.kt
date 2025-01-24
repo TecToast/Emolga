@@ -10,7 +10,6 @@ import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.convertColor
 import de.tectoast.emolga.utils.coordXMod
-import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.xmod
@@ -26,8 +25,6 @@ import net.dv8tion.jda.api.entities.Member
 import org.litote.kmongo.Id
 import org.litote.kmongo.coroutine.updateOne
 import java.util.concurrent.TimeUnit
-
-data class CoachMemberData(val level: Int, val teamindex: Int, val team: String)
 
 private val logger = KotlinLogging.logger {}
 @Serializable
@@ -46,18 +43,7 @@ class ASLCoachData(
     var round: Int = 1
 ) {
     fun teamByCoach(mem: Long): TeamData? = data.values.firstOrNull { it.members[0]!! == mem }
-    fun dataOfMember(mem: Long) = data.entries.first { mem in it.value.members.values }
-        .let { en ->
-            CoachMemberData(
-                en.value.members.entries.first { it.value == mem }.key,
-                en.key.indexedBy(table),
-                en.key
-            )
-        }
 
-    fun roleIdByMember(mem: Long) = data.values.first { mem in it.members.values }.role
-
-    fun teammembersByMember(mem: Long) = data.values.first { mem in it.members.values }.members.values
     fun teamnameByCoach(mem: Long): String = data.entries.first { it.value.members[0]!! == mem }.key
     suspend fun addUserToTeam(member: Member, coach: Long, prize: Int) {
         val level = getLevelByMember(member)

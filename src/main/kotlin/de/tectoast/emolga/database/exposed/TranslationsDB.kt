@@ -15,7 +15,6 @@ object TranslationsDB : Table("translations") {
     val GERMANNAME = varchar("germanname", 30)
     val TYPE = varchar("type", 7)
     val MODIFICATION = varchar("modification", 7).default("default")
-    val ISNICK = bool("isnick").default(false)
     val FORME = varchar("forme", 10).nullable()
     val CAP = bool("cap").default(false)
 

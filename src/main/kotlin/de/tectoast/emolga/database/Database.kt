@@ -14,6 +14,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import mu.KLogging
+import mu.KotlinLogging
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.selectAll
@@ -24,21 +26,16 @@ import org.slf4j.LoggerFactory
 import javax.sql.DataSource
 
 class Database(host: String, username: String, password: String) {
-    val dataSource: DataSource
-
-    init {
-        //dataSource = new MariaDbPoolDataSource("jdbc:mariadb://localhost/emolga?user=%s&password=%s&minPoolSize=1".formatted(username, password));
-        val conf = HikariConfig()
-        conf.jdbcUrl =
+    val dataSource = HikariDataSource(HikariConfig().apply {
+        jdbcUrl =
             "jdbc:mariadb://$host/emolga?user=$username&password=$password&minPoolSize=1&rewriteBatchedStatements=true"
-        dataSource = HikariDataSource(conf)
-    }
+    })
+
 
     companion object {
-        private val logger = LoggerFactory.getLogger(Database::class.java)
+        private val logger = KotlinLogging.logger {}
         private lateinit var instance: Database
-        val dbScope =
-            createCoroutineScope("Database", Dispatchers.IO)
+        val dbScope = createCoroutineScope("Database", Dispatchers.IO)
 
 
         suspend fun init(cred: Tokens.Database, host: String, withStartUp: Boolean = true): Database {
@@ -57,15 +54,6 @@ class Database(host: String, username: String, password: String) {
             EmolgaMain.updatePresence()
             BirthdaySystem.startSystem()
         }
-    }
-}
-
-fun Statement<*>.execute() = execute(TransactionManager.current())
-private fun Any.escaped() = if (this is String) "'$this'" else this.toString()
-val Table.firstPrimary get() = primaryKey!!.columns.first()
-suspend fun <T : Table> T.forAll(block: T.(ResultRow) -> Unit) = newSuspendedTransaction {
-    selectAll().forEach {
-        block(it)
     }
 }
 

@@ -91,10 +91,6 @@ data class DelayData(val skipTimestamp: Long, val regularTimestamp: Long, val no
 class ClockDependentTimer(val timers: @Serializable(with = TreeMapSerializer::class) TreeMap<Long, TimerInfo>) :
     DraftTimer() {
 
-    constructor(timerInfo: TimerInfo) : this(timerMap {
-        put(0L, timerInfo)
-    })
-
     constructor(vararg timers: Pair<Long, TimerInfo>) : this(timerMap {
         putAll(timers)
     })

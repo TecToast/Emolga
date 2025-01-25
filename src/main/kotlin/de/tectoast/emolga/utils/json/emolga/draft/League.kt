@@ -809,7 +809,7 @@ sealed class League {
             val matchups = getMatchupsIndices(num)
             val names =
                 jda.getGuildById(guild)!!.retrieveMembersByIds(table).await().sortedBy { it.idLong.indexedBy(table) }
-                    .map { it.effectiveName }
+                    .map { it.user.effectiveName }
             channel.send(
                 embeds = Embed(
                     title = "Spieltag $num",

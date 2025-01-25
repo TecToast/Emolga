@@ -136,6 +136,8 @@ sealed class League {
     open val additionalSet: AdditionalSet? by lazy { AdditionalSet((gamedays + 4).xc(), "X", "Y") }
 
     val config: LeagueConfig = LeagueConfig()
+
+    @EncodeDefault
     var draftData: ResettableLeagueData = ResettableLeagueData()
     val persistentData: PersistentLeagueData = PersistentLeagueData()
 
@@ -436,21 +438,14 @@ sealed class League {
                 else picks[idx] = mutableListOf()
             }
             val currentTimeMillis = System.currentTimeMillis()
-            val timerRelated = draftData.timer
             if (!fromFile) {
                 order.clear()
                 order.putAll(originalorder.mapValues { it.value.toMutableList() })
                 round = 1
                 draftState = DraftState.ON
                 moved.clear()
-                timerRelated.lastPick = currentTimeMillis
-                timerRelated.usedStallSeconds.clear()
-                draftData.draftBan.bannedMons.clear()
+                draftData = ResettableLeagueData()
                 punishableSkippedTurns.clear()
-                config.randomPick.run {
-                    if (hasJokers()) table.indices.forEach { draftData.randomPick.jokers[it] = jokers }
-                    draftData.randomPick.currentMon?.disabled = true
-                }
                 reset()
                 sendRound()
                 if (tryQueuePick()) return
@@ -458,6 +453,7 @@ sealed class League {
                 announcePlayer()
                 save("StartDraft")
             } else {
+                val timerRelated = draftData.timer
                 val delayData = if (timerRelated.cooldown > 0) DelayData(
                     timerRelated.cooldown, timerRelated.regularCooldown, currentTimeMillis
                 ) else config.timer?.calc(

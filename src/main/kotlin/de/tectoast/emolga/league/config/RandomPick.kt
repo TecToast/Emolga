@@ -126,7 +126,7 @@ sealed interface RandomPickMode {
 
 @Serializable
 data class RandomLeagueData(
-    var currentMon: RandomLeaguePick? = null, val jokers: MutableMap<Int, Int> = mutableMapOf()
+    var currentMon: RandomLeaguePick? = null, val usedJokers: MutableMap<Int, Int> = mutableMapOf()
 )
 
 @Serializable

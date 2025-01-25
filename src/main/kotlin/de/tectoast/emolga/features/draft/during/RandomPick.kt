@@ -94,7 +94,7 @@ object RandomPick {
         type: String?,
         history: Set<String> = emptySet()
     ): Boolean {
-        val jokerAmount = draftData.randomPick.jokers[current] ?: 0
+        val jokerAmount = config.randomPick.jokers - (draftData.randomPick.usedJokers[current] ?: 0)
         if (jokerAmount > 0) {
             replyGeneral(
                 "gegambled: **${draftname.tlName}/${
@@ -154,11 +154,11 @@ object RandomPick {
                     }
 
                     RandomPickAction.REROLL -> {
-                        if (draftData.randomPick.jokers[current]!! <= 0) return reply(
+                        if ((draftData.randomPick.usedJokers[current] ?: 0) >= config.randomPick.jokers) return reply(
                             "Du hast keine Joker mehr!",
                             ephemeral = true
                         )
-                        draftData.randomPick.jokers.add(current, -1)
+                        draftData.randomPick.usedJokers.add(current, 1)
                         val config = config.randomPick
                         val type = map["type"]
                         val (newdraftname, newtier) = with(config.mode) {

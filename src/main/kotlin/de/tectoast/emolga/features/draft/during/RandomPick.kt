@@ -5,10 +5,9 @@ import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.league.RandomLeaguePick
-import de.tectoast.emolga.league.RandomPickArgument
-import de.tectoast.emolga.league.RandomPickConfig
-import de.tectoast.emolga.league.RandomPickUserInput
+import de.tectoast.emolga.league.config.RandomLeaguePick
+import de.tectoast.emolga.league.config.RandomPickArgument
+import de.tectoast.emolga.league.config.RandomPickUserInput
 import de.tectoast.emolga.utils.add
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
@@ -52,13 +51,13 @@ object RandomPick {
             var tier by string("tier", "Das Tier, in dem gepickt werden soll") {
                 slashCommand(guildChecker = {
                     val league = league() ?: return@slashCommand false
-                    league.getConfigOrDefault<RandomPickConfig>().mode.provideCommandOptions()[RandomPickArgument.TIER]
+                    league.config.randomPick.mode.provideCommandOptions()[RandomPickArgument.TIER]
                 })
             }.nullable()
             var type by fromList("Typ", "Der Typ, der gewählt werden soll", germanTypeList) {
                 slashCommand(guildChecker = {
                     val league = league() ?: return@slashCommand false
-                    league.getConfigOrDefault<RandomPickConfig>().mode.provideCommandOptions()[RandomPickArgument.TYPE]
+                    league.config.randomPick.mode.provideCommandOptions()[RandomPickArgument.TYPE]
                 }, choices = germanTypeList.map { Choice(it, it) })
             }.nullable()
         }
@@ -68,10 +67,10 @@ object RandomPick {
         override suspend fun exec(e: Args) {
             deferReply()
             League.executePickLike {
-                val config = getConfigOrDefault<RandomPickConfig>()
+                val config = config.randomPick
                 if (config.disabled) return reply("RandomPick ist in dieser Liga deaktiviert!")
                 val hasJokers = config.hasJokers()
-                if (hasJokers && randomLeagueData.currentMon?.disabled == false) return reply(
+                if (hasJokers && draftData.randomPick.currentMon?.disabled == false) return reply(
                     "Du hast bereits ein Mon gegambled!",
                     ephemeral = true
                 )
@@ -95,7 +94,7 @@ object RandomPick {
         type: String?,
         history: Set<String> = emptySet()
     ): Boolean {
-        val jokerAmount = randomLeagueData.jokers[current] ?: 0
+        val jokerAmount = draftData.randomPick.jokers[current] ?: 0
         if (jokerAmount > 0) {
             replyGeneral(
                 "gegambled: **${draftname.tlName}/${
@@ -114,7 +113,7 @@ object RandomPick {
                         action = RandomPickAction.REROLL
                     }).into()
             )
-            randomLeagueData.currentMon =
+            draftData.randomPick.currentMon =
                 RandomLeaguePick(
                     draftname.official,
                     draftname.tlName,
@@ -138,7 +137,7 @@ object RandomPick {
         override suspend fun exec(e: Args) {
             deferReply()
             League.executePickLike {
-                val (official, tlName, tier, map, history, disabled) = randomLeagueData.currentMon ?: return reply(
+                val (official, tlName, tier, map, history, disabled) = draftData.randomPick.currentMon ?: return reply(
                     "Es gibt zurzeit keinen Pick!",
                     ephemeral = true
                 )
@@ -155,12 +154,12 @@ object RandomPick {
                     }
 
                     RandomPickAction.REROLL -> {
-                        if (randomLeagueData.jokers[current]!! <= 0) return reply(
+                        if (draftData.randomPick.jokers[current]!! <= 0) return reply(
                             "Du hast keine Joker mehr!",
                             ephemeral = true
                         )
-                        randomLeagueData.jokers.add(current, -1)
-                        val config = getConfigOrDefault<RandomPickConfig>()
+                        draftData.randomPick.jokers.add(current, -1)
+                        val config = config.randomPick
                         val type = map["type"]
                         val (newdraftname, newtier) = with(config.mode) {
                             getRandomPick(RandomPickUserInput(tier, type, skipMons = history), config)

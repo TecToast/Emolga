@@ -3,12 +3,14 @@ package de.tectoast.emolga.bot
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.FeatureManager
-import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.utils.OneTimeCache
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.emolga.getCount
 import de.tectoast.emolga.utils.json.only
+import de.tectoast.emolga.utils.marker
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.jdabuilder.cache
 import dev.minn.jda.ktx.jdabuilder.default
@@ -65,7 +67,6 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         emolgajda.listener<ReadyEvent> {
             logger.info("important".marker, "Emolga is now online!")
             db.drafts.find(League::isRunning eq true).toFlow().collect {
-                if (it.noAutoStart) return@collect
                 logger.info("important".marker, "Starting draft ${it.leaguename}...")
                 it.startDraft(null, true, null)
             }

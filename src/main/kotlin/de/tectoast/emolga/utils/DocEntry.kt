@@ -2,14 +2,14 @@ package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.league.GamedayData
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.MatchResult
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.GamedayData
-import de.tectoast.emolga.league.League
-import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
 import kotlinx.coroutines.Job
@@ -85,7 +85,7 @@ class DocEntry private constructor(val league: League) {
 
 
     suspend fun analyse(replayData: List<ReplayData>, withSort: Boolean = true) {
-        if (league.replayDataStore != null) {
+        if (league.config.replayDataStore != null) {
             replayData.forEach(league::storeMatch)
             league.save("DocEntry#Analyse")
             spoilerDocSid?.let { analyseWithoutCheck(replayData, withSort, overrideSid = it) }
@@ -219,7 +219,7 @@ class DocEntry private constructor(val league: League) {
             winningIndex =
                 uindicesOfFirstGame[groupBy
                     .maxByOrNull { it.value.size }?.key.indexedBy(sdNamesOfFirstGame)]
-            league.tipgame?.let { tg ->
+            league.config.tipgame?.let { tg ->
                 TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winningIndex)
             }
             val numbers =
@@ -241,7 +241,7 @@ class DocEntry private constructor(val league: League) {
             val game = firstData.game
             val uindices = firstData.uindices
             winningIndex = (if (game[0].winner) uindices[0] else uindices[1])
-            league.tipgame?.let { tg ->
+            league.config.tipgame?.let { tg ->
                 TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winningIndex)
             }
             val numbers = firstData.gamedayData.numbers
@@ -446,9 +446,10 @@ data class ReplayData(
     suspend fun checkIfBothVideosArePresent(league: League): Boolean {
         val ytSave = ytVideoSaveData
         val shouldExecute = ytSave.vids.size == uindices.size
+        val sendChannel = league.config.youtube?.sendChannel ?: return false
         if (shouldExecute) {
             league.executeYoutubeSend(
-                league.ytSendChannel!!,
+                sendChannel,
                 gamedayData.gameday,
                 gamedayData.battleindex,
                 VideoProvideStrategy.Subscribe(ytSave)

@@ -1,13 +1,12 @@
 package de.tectoast.emolga.features.draft.during
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.config.QueuePicksUserData
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.QueuePicks
 import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.AllowPickDuringSwitch
-import de.tectoast.emolga.league.League
-import de.tectoast.emolga.league.QueuePicksData
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
@@ -24,7 +23,8 @@ object QueuePicks {
             override suspend fun exec(e: NoArgs) {
                 ephemeralDefault()
                 val league = db.leagueByCommand() ?: return reply("Du bist in keiner Liga auf diesem Server!")
-                val currentData = league.queuedPicks.getOrPut(league.index(user)) { QueuePicksData() }
+                val currentData =
+                    league.persistentData.queuePicks.queuedPicks.getOrPut(league.index(user)) { QueuePicksUserData() }
                 val currentState = currentData.queued
                 if (currentState.isEmpty()) return reply(
                     "Du hast zurzeit keine Picks in der Queue! Füge welche über /queuepicks add hinzu!",
@@ -58,7 +58,7 @@ object QueuePicks {
                     { return reply("Du bist in keiner Liga auf diesem Server!") }) {
                     val oldmon = e.oldmon
                     val idx = this(user)
-                    if (oldmon == null && !isRunning && picks.isNotEmpty() && !config<AllowPickDuringSwitch>()) {
+                    if (oldmon == null && !isRunning && picks.isNotEmpty() && !config.allowPickDuringSwitch.enabled) {
                         return reply("Im kommenden Draft können nur Switches gemacht werden, dementsprechend musst du ein altes Pokemon angeben!")
                     }
                     if (oldmon != null && picks[idx]?.any { it.name == oldmon.official } != true) {
@@ -67,7 +67,7 @@ object QueuePicks {
                     if (isPicked(e.mon.official)) {
                         return reply("`${e.mon.tlName}` wurde bereits gepickt!")
                     }
-                    val data = queuedPicks.getOrPut(idx) { QueuePicksData() }
+                    val data = persistentData.queuePicks.queuedPicks.getOrPut(idx) { QueuePicksUserData() }
                     val mon = e.mon
                     for (q in data.queued) {
                         if (q.g == mon) return reply("Du hast `${mon.tlName}` bereits in deiner Queue!")
@@ -99,7 +99,7 @@ object QueuePicks {
             League.executeOnFreshLock({ db.leagueByCommand() },
                 { return reply("Du bist in keiner Liga auf diesem Server!") }) {
                 val idx = this(user)
-                val data = queuedPicks.getOrPut(idx) { QueuePicksData() }
+                val data = persistentData.queuePicks.queuedPicks.getOrPut(idx) { QueuePicksUserData() }
                 if (isIllegal(idx, data.queued)) return
                 data.enabled = enable
                 save("QueuePickActivation")

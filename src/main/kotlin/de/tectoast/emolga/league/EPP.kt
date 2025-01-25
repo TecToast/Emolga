@@ -54,7 +54,7 @@ class EPP(val spoilerSid: String) : League() {
         overrideEnabled: Boolean
     ) {
         val b = builder()
-        val ytVideoSaveData = replayDataStore?.data?.get(gameday)?.get(battle)?.ytVideoSaveData
+        val ytVideoSaveData = persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
         if (!overrideEnabled && ytVideoSaveData?.enabled != true) return logger.info("ExecuteYTSend: Not enabled")
         ytVideoSaveData?.enabled = false
         jda.getTextChannelById(ytTC)!!.sendMessage(buildString {

@@ -5,7 +5,6 @@ import com.google.api.services.sheets.v4.model.ColorStyle
 import com.google.api.services.sheets.v4.model.TextFormat
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.leaguecreator.DynamicCoord
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
@@ -15,13 +14,10 @@ import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import dev.minn.jda.ktx.util.SLF4J
-import dev.minn.jda.ktx.util.SLF4J.getValue
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.slf4j.Logger
-import kotlin.collections.contains
-import kotlin.collections.set
 import kotlin.time.Duration.Companion.days
 
 @Suppress("unused")
@@ -34,37 +30,9 @@ class NDS(val rr: Boolean) : League() {
     val sheetids: Map<String, Int> = mapOf()
     val teamtable: List<String> = emptyList()
 
-    init {
-        enableConfig(AllowPickDuringSwitch)
-        val z = TZDataHolder(
-            coord = DynamicCoord.DynamicSheet(teamtable, "AA8"),
-            searchRange = "Data!\$B\$2000:\$H\$3000",
-            searchColumn = 6,
-            firstTierAllowed = "B"
-        )
-        val mon = z.copy(coord = DynamicCoord.DynamicSheet(teamtable, "AA10"))
-        val type = TZDataHolder(
-            coord = DynamicCoord.DynamicSheet(teamtable, "Y11"),
-            searchRange = "Data!\$B\$400:\$C$417",
-            searchColumn = 2
-        )
-        enableConfig(
-            TeraAndZ(
-                z = z,
-                tera = TeraData(
-                    mon = mon,
-                    type = type
-                )
-            )
-        )
-    }
-
     override fun isFinishedForbidden() = false
     override val teamsize = 15
     override val pickBuffer = 12
-
-    @Transient
-    override var timer: DraftTimer? = SimpleTimer(TimerInfo(10, 22, delayInMins = 3 * 60))
 
     @Transient
     override val additionalSet = AdditionalSet("D", "X", "Y")

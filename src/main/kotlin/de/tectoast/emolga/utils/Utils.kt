@@ -17,7 +17,6 @@ import org.slf4j.Marker
 import org.slf4j.MarkerFactory
 import java.io.File
 import java.text.SimpleDateFormat
-import kotlin.collections.set
 import kotlin.math.pow
 
 fun <T> T.indexedBy(list: List<T>) = list.indexOf(this)
@@ -263,3 +262,5 @@ data class Translation(
         this.isEmpty = type == Type.UNKNOWN
     }
 }
+
+val String.isMega get() = "-Mega" in this

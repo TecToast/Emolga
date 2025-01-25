@@ -10,15 +10,15 @@ import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.TestInteractionData
 import de.tectoast.emolga.features.draft.AddToTierlistData
-import de.tectoast.emolga.features.draft.InstantToStringSerializer
-import de.tectoast.emolga.features.draft.TipGame
 import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.features.flo.SendFeatures
-import de.tectoast.emolga.leaguecreator.DynamicCoord
+import de.tectoast.emolga.league.config.LeagueConfig
+import de.tectoast.emolga.league.config.PersistentLeagueData
+import de.tectoast.emolga.league.config.ResettableLeagueData
+import de.tectoast.emolga.league.config.TimerRelated
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
-import de.tectoast.emolga.utils.invoke
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -29,7 +29,6 @@ import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Instant
 import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
@@ -44,10 +43,10 @@ import org.litote.kmongo.eq
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.min
-import kotlin.reflect.KClass
-import kotlin.reflect.full.primaryConstructor
-import kotlin.time.Duration
 
+enum class DraftState {
+    OFF, ON, PSEUDOEND
+}
 
 @OptIn(ExperimentalSerializationApi::class)
 @Suppress("MemberVisibilityCanBePrivate")
@@ -60,7 +59,9 @@ sealed class League {
     val leaguename: String = "ERROR"
 
     @EncodeDefault
-    var isRunning: Boolean = false
+    var draftState: DraftState = DraftState.OFF
+    val isRunning: Boolean get() = draftState != DraftState.OFF
+    val pseudoEnd: Boolean get() = draftState == DraftState.PSEUDOEND
     val picks: MutableMap<Int, MutableList<DraftPokemon>> = mutableMapOf()
     val battleorder: MutableMap<Int, List<List<Int>>> = mutableMapOf()
     val allowed: MutableMap<Int, MutableSet<AllowedData>> = mutableMapOf()
@@ -68,20 +69,16 @@ sealed class League {
 
     @EncodeDefault
     var round = 1
-    var current = -1
-    val timerRelated = TimerRelated()
+    val current get() = currentPseudoEnd ?: order[round]!![0]
 
-    @EncodeDefault
-    var pseudoEnd = false
+    @Transient
+    var currentPseudoEnd: Int? = null
 
     abstract val teamsize: Int
     open val gamedays: Int by lazy { battleorder.let { if (it.isEmpty()) table.size - 1 else it.size } }
 
     @Transient
     val points: PointsManager = PointsManager()
-    val configs: MutableSet<LeagueConfig> = mutableSetOf()
-    val noAutoStart = false
-    val timerStart: Long? = null
 
     @Transient
     open val afterTimerSkipMode: AfterTimerSkipMode = AFTER_DRAFT_UNORDERED
@@ -98,10 +95,7 @@ sealed class League {
 
     @EncodeDefault
     val punishableSkippedTurns: MutableMap<Int, MutableSet<Int>> = mutableMapOf()
-    internal val names: MutableList<String> = mutableListOf()
-
-    val replayDataStore: ReplayDataStore? = null
-    val ytSendChannel: Long? = null
+    val names: MutableList<String> = mutableListOf()
 
 
     val tc: TextChannel get() = jda.getTextChannelById(tcid) ?: error("No text channel found for guild $guild")
@@ -120,9 +114,6 @@ sealed class League {
     @Transient
     var newTimerForAnnounce = false
 
-    @Transient
-    open val alwaysSendTier = false
-
 
     val cooldownJob: Job? get() = allTimers[leaguename]
     val stallSecondJob: Job? get() = allStallSecondTimers[leaguename]
@@ -130,15 +121,12 @@ sealed class League {
     @Transient
     var lastPickedMon: DraftName? = null
 
-    open var timer: DraftTimer? = null
     val isLastRound: Boolean get() = round == totalRounds
     val totalRounds by lazy { originalorder.size }
 
     var isSwitchDraft = false
 
     val table: List<Long> = ArrayList()
-
-    val tipgame: TipGame? = null
 
     val tierorderingComparator by lazy { compareBy<DraftPokemon>({ tierlist.order.indexOf(it.tier) }, { it.name }) }
 
@@ -147,25 +135,17 @@ sealed class League {
 
     open val additionalSet: AdditionalSet? by lazy { AdditionalSet((gamedays + 4).xc(), "X", "Y") }
 
-    val queuedPicks: MutableMap<Int, QueuePicksData> = mutableMapOf()
-    val randomLeagueData: RandomLeagueData = RandomLeagueData()
+    val config: LeagueConfig = LeagueConfig()
+    var draftData: ResettableLeagueData = ResettableLeagueData()
+    val persistentData: PersistentLeagueData = PersistentLeagueData()
 
-    @EncodeDefault
-    val bannedMons: MutableMap<Int, MutableSet<DraftPokemon>> = mutableMapOf()
+    val draftWouldEnd get() = isLastRound && order[round]!!.isEmpty()
 
-    val randomPickRoundData: MutableMap<Int, MutableMap<String, Int>> = mutableMapOf()
+    @Transient
+    open val docEntry: DocEntry? = null
 
-    protected fun enableConfig(vararg flags: LeagueConfig) {
-        configs += flags.filter { f -> configs.none { f::class == it::class } }
-    }
-
-
-    inline fun <reified T : LeagueConfig> getConfig() = (configs.firstOrNull { it is T } as T?)
-    inline fun <reified T : LeagueConfig> getConfigOrDefault() = getConfig<T>() ?: LeagueConfig.getDefaultConfig<T>()
-    inline fun <reified T : LeagueConfig> config() = configs.any { it is T }
-    inline fun <reified T : LeagueConfig> config(block: T.() -> Unit) {
-        getConfig<T>()?.block()
-    }
+    @Transient
+    open val dataSheet: String = "Data"
 
 
     fun index(mem: Long) = table.indexOf(mem)
@@ -213,7 +193,7 @@ sealed class League {
     }
 
     open fun BanData.saveBan() {
-        bannedMons.getOrPut(round) { mutableSetOf() }.add(DraftPokemon(pokemonofficial, tier))
+        draftData.draftBan.bannedMons.getOrPut(round) { mutableSetOf() }.add(DraftPokemon(pokemonofficial, tier))
     }
 
     open suspend fun RequestBuilder.pickDoc(data: PickData) {}
@@ -235,13 +215,21 @@ sealed class League {
     }
 
     open suspend fun isPicked(mon: String, tier: String? = null) =
-        (picks.values + bannedMons.values).any { l -> l.any { !it.quit && it.name.equals(mon, ignoreCase = true) } }
+        (picks.values + draftData.draftBan.bannedMons.values).any { l ->
+            l.any {
+                !it.quit && it.name.equals(
+                    mon,
+                    ignoreCase = true
+                )
+            }
+        }
 
     suspend inline fun firstAvailableMon(
         tlNames: Collection<String>,
         checker: (DraftName.(german: String, english: String) -> Boolean) = { _, _ -> true }
     ): DraftName? {
-        val alreadyPicked = (picks.values + bannedMons.values).flatten().mapTo(mutableSetOf()) { it.name }
+        val alreadyPicked =
+            (picks.values + draftData.draftBan.bannedMons.values).flatten().mapTo(mutableSetOf()) { it.name }
         return tlNames.firstNotNullOfOrNull {
             val draftName = NameConventionsDB.getDiscordTranslation(
                 it, guild, tierlist.isEnglish
@@ -325,12 +313,12 @@ sealed class League {
 
     suspend fun afterPickOfficial(data: NextPlayerData = NextPlayerData.Normal) {
         if (!isRunning) return
-        randomLeagueData.currentMon?.disabled = true
+        this.draftData.randomPick.currentMon?.disabled = true
         checkForQueuedPicksChanges()
         onAfterPick(data)
         if (data is NextPlayerData.Moved) {
             addPunishableSkippedRound(data)
-            getConfig<DraftBanConfig>()?.let { config ->
+            config.draftBan?.let { config ->
                 if (config.skipBehavior == BanSkipBehavior.RANDOM) {
                     val data = config.banRounds[round] ?: return@let
                     val tier = data.getPossibleBanTiers(getAlreadyBannedMonsInThisRound()).random()
@@ -349,6 +337,7 @@ sealed class League {
             afterPickCall(data).also { save("AfterPickOfficial") }
         }
         val ctm = System.currentTimeMillis()
+        val timerRelated = this.draftData.timer
         timerRelated.lastPick = ctm
         timerRelated.lastStallSecondUsedMid = 0
         if (result != TimerSkipResult.SAME) {
@@ -357,7 +346,7 @@ sealed class League {
         }
         if (result == TimerSkipResult.NEXT) {
             if (endOfTurn()) return
-            setNextUser()
+            nextUser()
         }
         if (result == TimerSkipResult.PSEUDOEND) {
             val randomOrder = moved.values.flatten().toSet().shuffled()
@@ -375,10 +364,10 @@ sealed class League {
         save("NEXT PLAYER SAFE")
     }
 
-    fun getAlreadyBannedMonsInThisRound(): Set<DraftPokemon> = bannedMons[round].orEmpty()
+    fun getAlreadyBannedMonsInThisRound(): Set<DraftPokemon> = draftData.draftBan.bannedMons[round].orEmpty()
 
     private fun TimerRelated.handleStallSecondPunishment(ctm: Long) {
-        timer?.stallSeconds?.takeIf { it > 0 }?.let {
+        config.timer?.stallSeconds?.takeIf { it > 0 }?.let {
             if (cooldown > 0) {
                 val punishSeconds = ((ctm - lastPick - lastRegularDelay) / 1000).toInt()
                 if (punishSeconds > 0) usedStallSeconds.add(current, punishSeconds)
@@ -387,8 +376,8 @@ sealed class League {
     }
 
     private suspend fun tryQueuePick(idx: Int = current): Boolean {
-        getConfig<DraftBanConfig>()?.banRounds[round]?.let { return false }
-        getConfig<RandomPickRound>()?.takeIf { round in it.rounds }?.run {
+        config.draftBan?.banRounds[round]?.let { return false }
+        config.randomPickRound?.takeIf { round in it.rounds }?.run {
             val randomMon = getRandomMon()
             with(queueInteractionData) outer@{
                 executeWithinLock(
@@ -398,7 +387,7 @@ sealed class League {
             }
             return true
         }
-        val queuePicksData = queuedPicks[idx]?.takeIf { it.enabled } ?: return false
+        val queuePicksData = persistentData.queuePicks.queuedPicks[idx]?.takeIf { it.enabled } ?: return false
         val queuedMon = queuePicksData.queued.firstOrNull() ?: return false
         with(queueInteractionData) outer@{
             executeWithinLock(queuedMon.buildDraftInput(), type = DraftMessageType.QUEUE)
@@ -408,24 +397,23 @@ sealed class League {
 
     private fun checkForQueuedPicksChanges() {
         val newMon = lastPickedMon ?: return
-        queuedPicks.entries.filter { it.value.queued.any { mon -> mon.g == newMon } }.forEach { (mem, data) ->
-            data.queued.removeIf { mon -> mon.g == newMon }
-            if (mem != current) {
-                SendFeatures.sendToUser(
-                    table[mem], embeds = Embed(
-                        title = "Queue-Pick-Warnung",
-                        color = 0xff0000,
-                        description = "`${newMon.tlName}` aus deiner Queue wurde gepickt.\n${if (data.disableIfSniped) "Das System wurde für dich deaktiviert, damit du umplanen kannst." else "Das System läuft jedoch für dich weiter."}"
-                    ).into()
-                )
-                data.enabled = data.enabled && !data.disableIfSniped
+        persistentData.queuePicks.queuedPicks.entries.filter { it.value.queued.any { mon -> mon.g == newMon } }
+            .forEach { (mem, data) ->
+                data.queued.removeIf { mon -> mon.g == newMon }
+                if (mem != current) {
+                    SendFeatures.sendToUser(
+                        table[mem], embeds = Embed(
+                            title = "Queue-Pick-Warnung",
+                            color = 0xff0000,
+                            description = "`${newMon.tlName}` aus deiner Queue wurde gepickt.\n${if (data.disableIfSniped) "Das System wurde für dich deaktiviert, damit du umplanen kannst." else "Das System läuft jedoch für dich weiter."}"
+                        ).into()
+                    )
+                    data.enabled = data.enabled && !data.disableIfSniped
+                }
             }
-        }
         lastPickedMon = null
     }
 
-
-    val draftWouldEnd get() = isLastRound && order[round]!!.isEmpty()
 
     suspend fun startDraft(
         tc: GuildMessageChannel?, fromFile: Boolean, switchDraft: Boolean?, nameGuildId: Long? = null
@@ -447,25 +435,24 @@ sealed class League {
                 if (fromFile || isSwitchDraft) picks.putIfAbsent(idx, mutableListOf())
                 else picks[idx] = mutableListOf()
             }
-            isRunning = true
             val currentTimeMillis = System.currentTimeMillis()
+            val timerRelated = draftData.timer
             if (!fromFile) {
                 order.clear()
                 order.putAll(originalorder.mapValues { it.value.toMutableList() })
                 round = 1
+                draftState = DraftState.ON
                 moved.clear()
-                pseudoEnd = false
                 timerRelated.lastPick = currentTimeMillis
                 timerRelated.usedStallSeconds.clear()
+                draftData.draftBan.bannedMons.clear()
                 punishableSkippedTurns.clear()
-                bannedMons.clear()
-                config<RandomPickConfig> {
-                    if (hasJokers()) table.indices.forEach { randomLeagueData.jokers[it] = jokers }
-                    randomLeagueData.currentMon?.disabled = true
+                config.randomPick.run {
+                    if (hasJokers()) table.indices.forEach { draftData.randomPick.jokers[it] = jokers }
+                    draftData.randomPick.currentMon?.disabled = true
                 }
                 reset()
                 sendRound()
-                setNextUser()
                 if (tryQueuePick()) return
                 restartTimer()
                 announcePlayer()
@@ -473,7 +460,7 @@ sealed class League {
             } else {
                 val delayData = if (timerRelated.cooldown > 0) DelayData(
                     timerRelated.cooldown, timerRelated.regularCooldown, currentTimeMillis
-                ) else timer?.calc(
+                ) else config.timer?.calc(
                     this, currentTimeMillis
                 )
                 restartTimer(delayData)
@@ -482,8 +469,8 @@ sealed class League {
         }
     }
 
-    fun setNextUser() {
-        current = order[round]!!.removeAt(0)
+    fun nextUser() {
+        order[round]!!.removeAt(0)
     }
 
     suspend fun save(from: String) {
@@ -496,9 +483,9 @@ sealed class League {
 
     open fun reset() {}
 
-    private fun restartTimer(delayData: DelayData? = timer?.calc(this)) {
+    private fun restartTimer(delayData: DelayData? = config.timer?.calc(this)) {
         val skipDelay = delayData?.skipDelay
-        with(timerRelated) {
+        with(draftData.timer) {
             skipDelay ?: run {
                 cooldown = 0
                 regularCooldown = 0
@@ -524,7 +511,7 @@ sealed class League {
                     executeTimerOnRefreshedVersion(leaguename)
                 }
             }
-            timer?.stallSeconds?.takeIf { it > 0 }?.let {
+            config.timer?.stallSeconds?.takeIf { it > 0 }?.let {
                 allStallSecondTimers[leaguename] = timerScope.launch {
                     val regularDelay = delayData.regularDelay
                     if (delayData.hasStallSeconds && regularDelay >= 0) {
@@ -558,7 +545,7 @@ sealed class League {
     }
 
     fun announceData(withTimerAnnounce: Boolean = true, idx: Int = current) = buildList {
-        getConfig<DraftBanConfig>()?.let { config ->
+        config.draftBan?.let { config ->
             config.banRounds[round]?.let {
                 add(
                     "Mögliche Tiers zum Bannen: ${
@@ -580,13 +567,13 @@ sealed class League {
     }.joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
         .condAppend(withTimerAnnounce && newTimerForAnnounce) {
             " — Zeit bis: **${
-                formatTimeFormatBasedOnDistance(timerRelated.regularCooldown)
+                formatTimeFormatBasedOnDistance(draftData.timer.regularCooldown)
             }**"
         }.also { newTimerForAnnounce = false }
 
     open fun checkLegalDraftInput(input: DraftInput, type: DraftMessageType): String? {
-        if (input is PickInput && type != DraftMessageType.RANDOM && getConfigOrDefault<RandomPickConfig>().hasJokers()) return "In diesem Draft sind keine regulären Picks möglich!"
-        getConfig<DraftBanConfig>()?.let {
+        if (input is PickInput && type != DraftMessageType.RANDOM && config.randomPick.hasJokers()) return "In diesem Draft sind keine regulären Picks möglich!"
+        config.draftBan?.let {
             it.banRounds[round]?.let {
                 if (input !is BanInput) return "Die aktuelle Runde (**$round**) ist eine Ban-Runde, dementsprechend kann man nichts picken!"
             }
@@ -657,7 +644,7 @@ sealed class League {
     }
 
     private fun addPunishableSkippedRound(data: NextPlayerData.Moved) {
-        if (System.currentTimeMillis() > (timer?.getCurrentTimerInfo()?.startPunishSkipsTime
+        if (System.currentTimeMillis() > (config.timer?.getCurrentTimerInfo()?.startPunishSkipsTime
                 ?: 0) && (data.reason == SkipReason.REALTIMER || data.skippedBy != null)
         ) punishableSkippedTurns.getOrPut(current) { mutableSetOf() } += round
     }
@@ -688,7 +675,7 @@ sealed class League {
 
     suspend fun finishDraft(msg: String) {
         tc.sendMessage(msg).queue()
-        isRunning = false
+        draftState = DraftState.OFF
         save("END SAVE")
     }
 
@@ -716,12 +703,6 @@ sealed class League {
     fun addFinished(idx: Int) {
         order.values.forEach { it.remove(idx) }
     }
-
-    @Transient
-    open val docEntry: DocEntry? = null
-
-    @Transient
-    open val dataSheet: String = "Data"
 
     fun builder() = RequestBuilder(sid)
 
@@ -790,8 +771,7 @@ sealed class League {
     }
 
     fun storeMatch(replayData: ReplayData) {
-        val data = replayDataStore?.data ?: return
-        data.getOrPut(replayData.gamedayData.gameday) { mutableMapOf() }[replayData.gamedayData.battleindex] =
+        persistentData.replayDataStore.data.getOrPut(replayData.gamedayData.gameday) { mutableMapOf() }[replayData.gamedayData.battleindex] =
             replayData
     }
 
@@ -799,7 +779,7 @@ sealed class League {
 
     open fun executeTipGameSending(num: Int) {
         launch {
-            val tip = tipgame!!
+            val tip = config.tipgame ?: return@launch
             val channel = jda.getTextChannelById(tip.channel)!!
             val matchups = getMatchupsIndices(num)
             val names =
@@ -857,7 +837,8 @@ sealed class League {
     private suspend fun lockButtonsOnMessage(
         messageId: Long
     ) {
-        val tipGameChannel = jda.getTextChannelById(tipgame!!.channel)!!
+        val tipgame = config.tipgame ?: return
+        val tipGameChannel = jda.getTextChannelById(tipgame.channel)!!
         val message = tipGameChannel.retrieveMessageById(messageId).await()
         message.editMessageComponents(ActionRow.of(message.actionRows[0].buttons.map { button -> button.asDisabled() }))
             .queue()
@@ -869,8 +850,8 @@ sealed class League {
     }
 
     fun buildStoreStatus(gameday: Int): String {
-        val dataStore = replayDataStore ?: error("No replay data store found")
-        val gamedayData = dataStore.data[gameday].orEmpty()
+        if (config.replayDataStore == null) return "ReplayDataStore not enabled"
+        val gamedayData = persistentData.replayDataStore.data[gameday].orEmpty()
         val gameplan = battleorder[gameday] ?: return "Spieltag $gameday: Keine Spiele"
         return "## Aktueller Stand von Spieltag $gameday [$leaguename]:\n" + gameplan.indices.joinToString("\n") {
             "${gameplan[it].joinToString(" vs. ") { u -> "<@${table[u]}>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
@@ -896,7 +877,7 @@ sealed class League {
 
     fun formatTimeFormatBasedOnDistance(cooldown: Long) = buildString {
         if (cooldown - System.currentTimeMillis() >= 24 * 3600 * 1000) append(dayTimeFormat.format(cooldown)).append(" ")
-        append((if (timer?.stallSeconds == 0) leagueTimeFormat else leagueTimeFormatSecs).format(cooldown))
+        append((if (config.timer?.stallSeconds == 0) leagueTimeFormat else leagueTimeFormatSecs).format(cooldown))
     }
 
     companion object : CoroutineScope {
@@ -937,7 +918,7 @@ sealed class League {
 
         suspend fun executeTimerOnRefreshedVersion(name: String) {
             executeOnFreshLock(name) {
-                if (timerRelated.cooldown <= System.currentTimeMillis()) afterPickOfficial(
+                if (draftData.timer.cooldown <= System.currentTimeMillis()) afterPickOfficial(
                     data = NextPlayerData.Moved(
                         SkipReason.REALTIMER, current
                     )
@@ -957,7 +938,7 @@ sealed class League {
                 // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
                 if (first.pseudoEnd && first.afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
                     // BypassCurrentPlayerData can only be Yes here
-                    first.current = (second as BypassCurrentPlayerData.Yes).user
+                    first.currentPseudoEnd = (second as BypassCurrentPlayerData.Yes).user
                 }
                 if (!first.isCurrentCheck(user)) {
                     return@executeOnFreshLock reply("Du warst etwas zu langsam!", ephemeral = true)
@@ -1006,248 +987,6 @@ sealed class League {
         }
     }
 }
-
-@Serializable
-sealed interface LeagueConfig {
-    companion object {
-        val defaultConfigs = mutableMapOf<KClass<*>, LeagueConfig>()
-        inline fun <reified T : LeagueConfig> getDefaultConfig(): T {
-            return defaultConfigs.getOrPut(T::class) { T::class.primaryConstructor!!.callBy(emptyMap()) } as T
-        }
-    }
-}
-
-@Serializable
-@SerialName("AllowPickDuringSwitch")
-data object AllowPickDuringSwitch : LeagueConfig
-
-@Serializable
-@SerialName("DraftBanConfig")
-data class DraftBanConfig(
-    val banRounds: Map<Int, BanRoundConfig> = mapOf(),
-    val notBannable: Set<String> = setOf(),
-    val skipBehavior: BanSkipBehavior = BanSkipBehavior.NOTHING
-) : LeagueConfig
-
-@Serializable
-@SerialName("RandomPick")
-data class RandomPickConfig(
-    val disabled: Boolean = false,
-    val mode: RandomPickMode = RandomPickMode.Default(),
-    val jokers: Int = 0,
-    val onlyOneMega: Boolean = false,
-    val tierRestrictions: Set<String> = emptySet()
-) : LeagueConfig {
-    fun hasJokers() = jokers > 0
-}
-
-data class RandomPickUserInput(
-    val tier: String?,
-    val type: String?,
-    val ignoreRestrictions: Boolean = false,
-    val skipMons: Set<String> = emptySet()
-)
-
-@Serializable
-sealed interface RandomPickMode {
-    context(InteractionData)
-    suspend fun League.getRandomPick(input: RandomPickUserInput, config: RandomPickConfig): Pair<DraftName, String>?
-
-    /**
-     * @return a map of the possible command options for the randompick command [true = required, false = optional, null = not available]
-     */
-    fun provideCommandOptions(): Map<RandomPickArgument, Boolean>
-
-    @Serializable
-    @SerialName("Default")
-    data class Default(val tierRequired: Boolean = false, val typeAllowed: Boolean = true) : RandomPickMode {
-        override fun provideCommandOptions(): Map<RandomPickArgument, Boolean> {
-            return buildMap {
-                put(RandomPickArgument.TIER, tierRequired)
-                if (typeAllowed) put(RandomPickArgument.TYPE, false)
-            }
-        }
-
-        context(InteractionData) override suspend fun League.getRandomPick(
-            input: RandomPickUserInput, config: RandomPickConfig
-        ): Pair<DraftName, String>? {
-            if (tierRequired && input.tier == null) return replyNull("Du musst ein Tier angeben!")
-            val tier = if (input.ignoreRestrictions) input.tier!! else parseTier(input.tier, config) ?: return null
-            val list = tierlist.getByTier(tier)!!.shuffled()
-            val skipMega = config.onlyOneMega && picks[current]!!.any { it.name.isMega }
-            return firstAvailableMon(list) { german, english ->
-                if (german in input.skipMons || (skipMega && english.isMega)) return@firstAvailableMon false
-                if (input.type != null) input.type in db.pokedex.get(english.toSDName())!!.types else true
-            }?.let { it to tier }
-                ?: return replyNull("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")
-        }
-    }
-
-    // Only compatible with TierlistMode.TIERS
-    @Serializable
-    @SerialName("TypeTierlist")
-    data object TypeTierlist : RandomPickMode {
-        private val logger = KotlinLogging.logger {}
-        override fun provideCommandOptions(): Map<RandomPickArgument, Boolean> {
-            return mapOf(RandomPickArgument.TYPE to true)
-        }
-
-        context(InteractionData) override suspend fun League.getRandomPick(
-            input: RandomPickUserInput, config: RandomPickConfig
-        ): Pair<DraftName, String>? {
-            val type = input.type ?: return replyNull("Du musst einen Typen angeben!")
-            val picks = picks[current]!!
-            var mon: DraftName? = null
-            var tier: String? = null
-            val usedTiers = mutableSetOf<String>()
-            val skipMega = config.onlyOneMega && picks.any { it.name.isMega }
-            val prices = tierlist.prices
-            run {
-                repeat(prices.size) {
-                    val temptier =
-                        prices.filter { (tier, amount) -> tier !in usedTiers && picks.count { mon -> mon.tier == tier } < amount }.keys.randomOrNull()
-                            ?: return replyNull("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
-                    val tempmon = firstAvailableMon(
-                        tierlist.getWithTierAndType(temptier, type).shuffled()
-                    ) { german, _ -> german in input.skipMons && !(german.isMega && skipMega) }
-                    if (tempmon != null) {
-                        mon = tempmon
-                        tier = temptier
-                        return@run
-                    }
-                    usedTiers += temptier
-                }
-            }
-            if (mon == null) {
-                logger.error("No pokemon found without error message: $current $type")
-                return replyNull("Es ist konnte kein passendes Pokemon gefunden werden! (<@${Constants.FLOID}>)")
-            }
-            return mon to tier!!
-        }
-    }
-
-    context(League, InteractionData)
-    fun parseTier(tier: String?, config: RandomPickConfig): String? {
-        if (tier == null) return if (tierlist.mode.withTiers) getPossibleTiers().filter { it.value > 0 }.keys.random() else tierlist.order.last()
-        val parsedTier = tierlist.order.firstOrNull { it.equals(tier, ignoreCase = true) }
-        if (parsedTier == null) {
-            return replyNull("Das Tier `$tier` existiert nicht!")
-        }
-        if (config.tierRestrictions.isNotEmpty() && parsedTier !in config.tierRestrictions) {
-            return replyNull("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: ${config.tierRestrictions.joinToString()}")
-        }
-        if (handleTiers(parsedTier, parsedTier)) return null
-        if (handlePoints(false, parsedTier)) return null
-        return parsedTier
-    }
-}
-
-@Serializable
-data class RandomLeagueData(
-    var currentMon: RandomLeaguePick? = null, val jokers: MutableMap<Int, Int> = mutableMapOf()
-)
-
-@Serializable
-data class RandomLeaguePick(
-    val official: String,
-    val tlName: String,
-    val tier: String,
-    val data: Map<String, String?> = mapOf(),
-    val history: Set<String> = setOf(),
-    var disabled: Boolean = false
-)
-
-
-enum class RandomPickArgument {
-    TIER, TYPE
-}
-
-@Serializable
-@SerialName("TeraAndZ")
-data class TeraAndZ(val z: TZDataHolder? = null, val tera: TeraData? = null) : LeagueConfig
-
-@Serializable
-data class TZDataHolder(
-    val coord: DynamicCoord, val searchRange: String, val searchColumn: Int, val firstTierAllowed: String? = null
-)
-
-@Serializable
-data class TeraData(val type: TZDataHolder, val mon: TZDataHolder)
-
-@Serializable
-@SerialName("RandomPickRound")
-data class RandomPickRound(
-    val rounds: Set<Int> = setOf(), val tiers: Map<String, Int>, val doubleTypeOptOut: Set<Int> = emptySet()
-) : LeagueConfig {
-    suspend fun League.getRandomMon(): DraftName {
-        val optOut = current in doubleTypeOptOut
-        val tier = tiers.entries.randomWithCondition { (tier, amount) ->
-            (randomPickRoundData[current]?.get(tier) ?: 0) < amount
-        }!!.key
-        val list = tierlist.getByTier(tier)!!.shuffled()
-        val typesSoFar = picks[current].orEmpty().flatMap {
-            typeCache.getOrPut(it.name) {
-                db.pokedex.get(
-                    NameConventionsDB.getSDTranslation(
-                        it.name, guild, english = true
-                    )!!.official.toSDName()
-                )!!.types
-            }
-        }.groupingBy { it }.eachCount()
-        var bestSoFar: Pair<Int, DraftName>? = null
-        firstAvailableMon(list) { german, english ->
-            if (optOut) return this
-            val types = typeCache.getOrPut(german) { db.pokedex.get(english.toSDName())!!.types }
-            val count = types.groupingBy { it }.eachCount()
-            val score = count.entries.sumOf { (type, amount) ->
-                (typesSoFar[type] ?: 0) * amount
-            }
-            if (bestSoFar == null || score < bestSoFar.first) {
-                bestSoFar = score to this
-            }
-            bestSoFar.first == 0
-        }
-        randomPickRoundData.getOrPut(current) { mutableMapOf() }.add(tier, 1)
-        return bestSoFar?.second ?: error("No mon found")
-    }
-
-    companion object {
-        val typeCache = SizeLimitedMap<String, List<String>>(200)
-    }
-}
-
-@Serializable
-data class QueuePicksData(
-    @EncodeDefault var enabled: Boolean = false,
-    var disableIfSniped: Boolean = true,
-    @EncodeDefault var queued: MutableList<QueuedAction> = mutableListOf()
-)
-
-@Serializable
-data class ReplayDataStore(
-    val data: MutableMap<Int, MutableMap<Int, ReplayData>> = mutableMapOf(),
-    @Serializable(with = InstantToStringSerializer::class) val lastUploadStart: Instant,
-    val lastReminder: Reminder? = null,
-    @Serializable(with = DurationSerializer::class) val intervalBetweenUploadAndVideo: Duration = Duration.ZERO,
-    @Serializable(with = DurationSerializer::class) val intervalBetweenGD: Duration,
-    @Serializable(with = DurationSerializer::class) val intervalBetweenMatches: Duration,
-    val amount: Int,
-)
-
-@Serializable
-data class Reminder(@Serializable(with = InstantToStringSerializer::class) val lastSend: Instant, val channel: Long)
-
-@Serializable
-data class TimerRelated(
-    var cooldown: Long = -1,
-    var regularCooldown: Long = -1,
-    @EncodeDefault var lastPick: Long = -1,
-    var lastRegularDelay: Long = -1,
-    @EncodeDefault val usedStallSeconds: MutableMap<Int, Int> = mutableMapOf(),
-    var lastStallSecondUsedMid: Long? = null
-)
-
-val String.isMega get() = "-Mega" in this
 
 @Serializable
 data class AllowedData(val u: Long, var mention: Boolean = false, var teammate: Boolean = false)
@@ -1405,7 +1144,7 @@ data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
             moved.forEach { (user, turns) -> if (i in turns) order.add(user.indexedBy(table)) }
         }
         if (order.isNotEmpty()) {
-            pseudoEnd = true
+            draftState = DraftState.PSEUDOEND
         }
     }
 }
@@ -1419,7 +1158,7 @@ data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
                     .joinToString("\n") { (user, turns) -> "<@${table[user]}>: ${turns.size}${announceData(false)}" })
                     .queue()
                 cancelCurrentTimer()
-                pseudoEnd = true
+                draftState = DraftState.PSEUDOEND
             }
             TimerSkipResult.PSEUDOEND
         } else TimerSkipResult.NEXT

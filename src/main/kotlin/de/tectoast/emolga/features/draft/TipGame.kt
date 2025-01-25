@@ -4,10 +4,10 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import dev.minn.jda.ktx.messages.Embed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,7 +42,7 @@ object TipGameManager : CoroutineScope {
             ephemeralDefault()
             deferReply()
             val league = db.getLeague(e.leaguename) ?: return reportMissing()
-            val tipgame = league.tipgame ?: return reportMissing()
+            val tipgame = league.config.tipgame ?: return reportMissing()
             TipGameUserData.addVote(user, e.leaguename, e.gameday, e.index, e.userindex)
             reply("Dein Tipp wurde gespeichert!")
             if (tipgame.withCurrentState) {

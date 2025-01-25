@@ -43,7 +43,7 @@ object SwitchTimer {
                     ?: return reply("`$it` ist keine valide Zeitangabe!")) / 60).set(e.from, e.to)
             })
             timer.stallSeconds = e.stallSeconds
-            league.timer = timer
+            league.config.timer = timer
             league.save("SwitchTimer")
             val controlPanel = timer.createControlPanel(league)
             reply(ephemeral = false, embeds = controlPanel.first, components = controlPanel.second)
@@ -61,7 +61,7 @@ object SwitchTimer {
         context(InteractionData)
         override suspend fun exec(e: Args) {
             val l = e.league
-            (l.timer as? SwitchTimer)?.let {
+            (l.config.timer as? SwitchTimer)?.let {
                 it.switchTo(e.switchTo)
                 l.save("SwitchTimer")
                 deferEdit()

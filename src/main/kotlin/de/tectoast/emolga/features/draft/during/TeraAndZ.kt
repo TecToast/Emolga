@@ -4,7 +4,6 @@ import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.TeraAndZ
 
 object TeraAndZ {
 
@@ -21,7 +20,7 @@ object TeraAndZ {
                 "Du nimmst nicht an einer Liga auf diesem Server teil!",
                 ephemeral = true
             )
-            val config = league.getConfig<TeraAndZ>() ?: return reply(
+            val config = league.config.teraAndZ ?: return reply(
                 "Dieser Command ist hier nicht verfügbar!",
                 ephemeral = true
             )
@@ -60,10 +59,12 @@ object TeraAndZ {
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            val league = db.leagueByCommand() ?: return reply("Dieser Command ist hier nicht verfügbar!")
+            val league =
+                db.leagueByCommand() ?: return reply("Dieser Command ist hier nicht verfügbar!", ephemeral = true)
             val idx = league.index(user)
             val picks = league.picks[idx]!!
-            val config = league.getConfigOrDefault<TeraAndZ>()
+            val config =
+                league.config.teraAndZ ?: return reply("Dieser Command ist hier nicht verfügbar!", ephemeral = true)
             val b = league.builder()
             val str = StringBuilder()
             config.z?.let { zconf ->

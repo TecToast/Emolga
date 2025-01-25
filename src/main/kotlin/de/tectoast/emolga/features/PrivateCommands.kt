@@ -469,7 +469,7 @@ object PrivateCommands {
             ytTC = args[1].toLong(),
             gameday = gameday,
             battle = battle,
-            strategy = VideoProvideStrategy.Subscribe(league.replayDataStore!!.data[gameday]!![battle]!!.ytVideoSaveData),
+            strategy = VideoProvideStrategy.Subscribe(league.persistentData.replayDataStore.data[gameday]!![battle]!!.ytVideoSaveData),
             overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
         )
     }
@@ -540,7 +540,7 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun analyseMatchresults(args: PrivateData) {
         val league = db.league(args[0])
-        league.replayDataStore!!.data[args[1].toInt()]!!.forEach { (_, replay) ->
+        league.persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
             league.docEntry!!.analyseWithoutCheck(
                 listOf(replay),
                 withSort = false,

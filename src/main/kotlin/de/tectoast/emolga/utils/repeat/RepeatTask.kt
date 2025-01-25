@@ -1,11 +1,11 @@
 package de.tectoast.emolga.utils.repeat
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
-import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.repeat.RepeatTaskType.*
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -95,7 +95,7 @@ class RepeatTask(
                 val name = l.leaguename
                 suspend fun refresh() = db.league(name)
                 l.setupRepeatTasks()
-                l.tipgame?.let { tip ->
+                l.config.tipgame?.let { tip ->
                     val duration = tip.interval
                     logger.info("Draft $name has tipgame with interval ${tip.interval} and duration $duration")
                     RepeatTask(
@@ -107,7 +107,7 @@ class RepeatTask(
                         ) { refresh().executeTipGameLockButtons(it) }
                     }
                 }
-                l.replayDataStore?.let { data ->
+                l.config.replayDataStore?.let { data ->
                     val size = l.battleorder[1]?.size ?: return@let
                     repeat(size) { battle ->
                         RepeatTask(
@@ -120,11 +120,11 @@ class RepeatTask(
                         ) { gameday ->
                             val league = refresh()
                             var shouldDelay = false
-                            league.tipgame?.let { _ ->
+                            league.config.tipgame?.let { _ ->
                                 league.executeTipGameLockButtonsIndividual(gameday, battle)
                                 shouldDelay = true
                             }
-                            val dataStore = league.replayDataStore ?: return@RepeatTask
+                            val dataStore = league.persistentData.replayDataStore
                             dataStore.data[gameday]?.get(battle)?.let {
                                 it.ytVideoSaveData.enabled = true
                                 val shouldSave = !it.checkIfBothVideosArePresent(league)
@@ -136,7 +136,7 @@ class RepeatTask(
                                 ?: throw IllegalStateException("No replay found for gameday $gameday and battle $battle")
                         }
                         logger.info("YTSendChannel ${l.leaguename} $battle")
-                        l.ytSendChannel?.let { ytTC ->
+                        l.config.youtube?.sendChannel?.let { ytTC ->
                             RepeatTask(
                                 name,
                                 YTSend,
@@ -151,7 +151,7 @@ class RepeatTask(
                             }
                         }
                     }
-                    data.lastReminder?.let { last ->
+                    data.lastGamesMadeReminder?.let { last ->
                         RepeatTask(name, LastReminder, last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
                             jda.getTextChannelById(last.channel)!!
                                 .sendMessage(refresh().buildStoreStatus(gameday)).queue()

@@ -18,14 +18,15 @@ import kotlin.time.measureTimedValue
 sealed class DraftTimer {
     private val isNoMultiTimer = this !is ClockDependentTimer
     abstract fun getCurrentTimerInfo(millis: Long = System.currentTimeMillis()): TimerInfo
+    val timerStart: Long? = null
 
     var stallSeconds = 0
     fun stallSeconds(stallSeconds: Int) = apply { this.stallSeconds = stallSeconds }
     fun calc(league: League, now: Long = System.currentTimeMillis()) = calc(
         now = now,
-        timerStart = league.timerStart,
+        timerStart = timerStart,
         howOftenSkipped = league.punishableSkippedTurns[league.current]?.size ?: 0,
-        usedStallSeconds = league.timerRelated.usedStallSeconds[league.current] ?: 0
+        usedStallSeconds = league.draftData.timer.usedStallSeconds[league.current] ?: 0
     )
 
     fun calc(

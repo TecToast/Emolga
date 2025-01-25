@@ -11,8 +11,6 @@ class DefaultLeague : League() {
     override val duringTimerSkipMode by DefaultLeagueSettings::duringTimerSkipMode
 
     override val afterTimerSkipMode by DefaultLeagueSettings::afterTimerSkipMode
-
-    override var timer: DraftTimer? by DefaultLeagueSettings::timer
 }
 
 object DefaultLeagueSettings {

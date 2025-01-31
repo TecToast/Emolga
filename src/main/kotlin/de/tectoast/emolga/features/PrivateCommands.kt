@@ -1,5 +1,6 @@
 package de.tectoast.emolga.features
 
+import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
@@ -705,6 +706,20 @@ object PrivateCommands {
         subscribeToYTChannel(args())
     }
 
+    context(InteractionData)
+    suspend fun enableMaintenance(args: PrivateData) {
+        val reason = args()
+        db.config.updateOnly(set(de.tectoast.emolga.utils.json.Config::maintenance setTo reason))
+        EmolgaMain.maintenance = reason
+        EmolgaMain.updatePresence()
+    }
+
+    context(InteractionData)
+    suspend fun disableMaintenance() {
+        db.config.updateOnly(set(de.tectoast.emolga.utils.json.Config::maintenance setTo null))
+        EmolgaMain.maintenance = null
+        EmolgaMain.updatePresence()
+    }
 
 }
 

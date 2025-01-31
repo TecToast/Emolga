@@ -273,7 +273,8 @@ data class Config(
     val teamgraphicShinyOdds: Int,
     val guildsToUpdate: List<Long> = listOf(),
     val raikou: Boolean = false,
-    val ytLeagues: Map<String, Long> = mapOf()
+    val ytLeagues: Map<String, Long> = mapOf(),
+    var maintenance: String? = null,
 )
 
 @Serializable

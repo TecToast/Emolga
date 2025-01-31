@@ -3,26 +3,25 @@ package de.tectoast.emolga.bot
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.FeatureManager
-import de.tectoast.emolga.utils.OneTimeCache
-import de.tectoast.emolga.utils.createCoroutineScope
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
-import de.tectoast.emolga.utils.defaultScope
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.emolga.getCount
 import de.tectoast.emolga.utils.json.only
-import de.tectoast.emolga.utils.marker
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.jdabuilder.cache
 import dev.minn.jda.ktx.jdabuilder.default
 import dev.minn.jda.ktx.jdabuilder.intents
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.OnlineStatus
 import net.dv8tion.jda.api.entities.Activity
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.session.ReadyEvent
+import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import net.dv8tion.jda.api.utils.cache.CacheFlag.*
@@ -48,16 +47,13 @@ var usedJDA = false
 val jda: JDA by lazy { injectedJDA ?: emolgajda }
 
 object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
-    const val BOT_DISABLED = false
-    const val DISABLED_TEXT =
-        "Es finden derzeit große interne Umstrukturierungen statt, ich werde voraussichtlich heute Mittag/Nachmittag wieder einsatzbereit sein :)"
-
     lateinit var emolgajda: JDA
     lateinit var flegmonjda: JDA
     var raikoujda: JDA? = null
     private val logger = LoggerFactory.getLogger(EmolgaMain::class.java)
 
     val featureManager = OneTimeCache { FeatureManager("de.tectoast.emolga.features") }
+    var maintenance: String? = null
 
     fun launchBots() {
         Message.suppressContentIntentWarning()
@@ -90,12 +86,22 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
     }
 
     @Throws(Exception::class)
-    fun startListeners() {
+    suspend fun startListeners() {
         launch {
             featureManager.updateCachedValue()
         }
+        db.config.only().maintenance?.let {
+            maintenance = it
+            updatePresence()
+        }
         for (jda in listOf(emolgajda, flegmonjda)) {
             jda.listener<GenericEvent> {
+                if (it is IReplyCallback && it.user.idLong != Constants.FLOID) {
+                    maintenance?.let { reason ->
+                        it.reply(reason).setEphemeral(true).queue()
+                        return@listener
+                    }
+                }
                 featureManager().handleEvent(it)
             }
             DConfiguratorManager.registerEvent(jda)
@@ -107,10 +113,8 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
     }
 
     suspend fun updatePresence() {
-        if (BOT_DISABLED) {
-            emolgajda.presence.setPresence(
-                OnlineStatus.DO_NOT_DISTURB, Activity.watching("auf den Wartungsmodus")
-            )
+        if (maintenance != null) {
+            emolgajda.presence.setPresence(OnlineStatus.DO_NOT_DISTURB, Activity.customStatus("Wartungsarbeiten"))
             return
         }
         val count = db.statistics.getCount("analysis")

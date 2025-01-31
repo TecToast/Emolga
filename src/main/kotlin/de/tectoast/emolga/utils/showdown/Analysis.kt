@@ -57,11 +57,6 @@ object Analysis {
         analysisData: AnalysisData? = null,
         useReplayResultChannelAnyways: Boolean = false
     ) {
-        //defaultScope.launch {
-        if (EmolgaMain.BOT_DISABLED && resultchannelParam.guild.idLong != Constants.G.MY) {
-            (message?.channel ?: resultchannelParam).sendMessage(EmolgaMain.DISABLED_TEXT).queue()
-            return
-        }
 
         logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannelParam.id)
         fun send(msg: String) {

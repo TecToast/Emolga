@@ -1,13 +1,7 @@
-package de.tectoast.emolga.utils.json.emolga.draft
+package de.tectoast.emolga.league
 
 import de.tectoast.emolga.*
-import de.tectoast.emolga.league.AllowedData
-import de.tectoast.emolga.league.DefaultLeague
-import de.tectoast.emolga.league.DefaultLeagueSettings
-import de.tectoast.emolga.league.League
-import de.tectoast.emolga.league.NEXT_PICK
-import de.tectoast.emolga.utils.Constants.FLOID
-import de.tectoast.emolga.utils.Constants.M.HENNY
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.SimpleTimer
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.json.db
@@ -17,7 +11,6 @@ import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.delay
 import mu.KotlinLogging
 
-private data class GetCurrentMentionData(val current: Int, val allowed: MutableSet<AllowedData>)
 class LeagueTest : FunSpec({
 
     lateinit var defaultLeague: League
@@ -35,69 +28,84 @@ class LeagueTest : FunSpec({
                 defaultLeague.names.addAll(listOf("Flo", "Henny", "Emolga"))
             }
             fun apply(data: GetCurrentMentionData) {
-                defaultLeague.current = data.current
+                defaultLeague.currentOverride = data.current
                 defaultLeague.allowed.clear()
                 defaultLeague.allowed[data.current] = data.allowed
             }
             test("only self mention") {
-                apply(GetCurrentMentionData(0, mutableSetOf(AllowedData(FLOID, true), AllowedData(HENNY, false))))
-                defaultLeague.getCurrentMention() shouldBe "<@$FLOID>"
+                apply(
+                    GetCurrentMentionData(
+                        0,
+                        mutableSetOf(AllowedData(Constants.FLOID, true), AllowedData(Constants.M.HENNY, false))
+                    )
+                )
+                defaultLeague.getCurrentMention() shouldBe "<@${Constants.FLOID}>"
             }
             test("both mention") {
-                apply(GetCurrentMentionData(0, mutableSetOf(AllowedData(FLOID, true), AllowedData(HENNY, true))))
-                defaultLeague.getCurrentMention() shouldBe "<@$FLOID>, ||<@$HENNY>||"
+                apply(
+                    GetCurrentMentionData(
+                        0,
+                        mutableSetOf(AllowedData(Constants.FLOID, true), AllowedData(Constants.M.HENNY, true))
+                    )
+                )
+                defaultLeague.getCurrentMention() shouldBe "<@${Constants.FLOID}>, ||<@${Constants.M.HENNY}>||"
             }
             test("only other mention") {
-                apply(GetCurrentMentionData(0, mutableSetOf(AllowedData(FLOID, false), AllowedData(HENNY, true))))
-                defaultLeague.getCurrentMention() shouldBe "**Flo**, ||<@$HENNY>||"
+                apply(
+                    GetCurrentMentionData(
+                        0,
+                        mutableSetOf(AllowedData(Constants.FLOID, false), AllowedData(Constants.M.HENNY, true))
+                    )
+                )
+                defaultLeague.getCurrentMention() shouldBe "**Flo**, ||<@${Constants.M.HENNY}>||"
             }
             test("with only teammate") {
                 apply(
                     GetCurrentMentionData(
                         0, mutableSetOf(
-                            AllowedData(FLOID, true), AllowedData(
-                                HENNY, true, teammate = true
+                            AllowedData(Constants.FLOID, true), AllowedData(
+                                Constants.M.HENNY, true, teammate = true
                             )
                         )
                     )
                 )
-                defaultLeague.getCurrentMention() shouldBe "<@$FLOID>, <@$HENNY>"
+                defaultLeague.getCurrentMention() shouldBe "<@${Constants.FLOID}>, <@${Constants.M.HENNY}>"
             }
             test("with teammate + other") {
                 apply(
                     GetCurrentMentionData(
                         0, mutableSetOf(
-                            AllowedData(FLOID, true), AllowedData(
-                                HENNY, true, teammate = true
+                            AllowedData(Constants.FLOID, true), AllowedData(
+                                Constants.M.HENNY, true, teammate = true
                             ), AllowedData(723829878755164202, true)
                         )
                     )
                 )
-                defaultLeague.getCurrentMention() shouldBe "<@$FLOID>, <@$HENNY>, ||<@723829878755164202>||"
+                defaultLeague.getCurrentMention() shouldBe "<@${Constants.FLOID}>, <@${Constants.M.HENNY}>, ||<@723829878755164202>||"
             }
             test("only teammate and other") {
                 apply(
                     GetCurrentMentionData(
                         0, mutableSetOf(
-                            AllowedData(FLOID, false), AllowedData(
-                                HENNY, true, teammate = true
+                            AllowedData(Constants.FLOID, false), AllowedData(
+                                Constants.M.HENNY, true, teammate = true
                             ), AllowedData(723829878755164202, true)
                         )
                     )
                 )
-                defaultLeague.getCurrentMention() shouldBe "**Flo**, <@$HENNY>, ||<@723829878755164202>||"
+                defaultLeague.getCurrentMention() shouldBe "**Flo**, <@${Constants.M.HENNY}>, ||<@723829878755164202>||"
             }
             test("only teammate") {
                 apply(
                     GetCurrentMentionData(
                         0, mutableSetOf(
-                            AllowedData(FLOID, false), AllowedData(
-                                HENNY, true, teammate = true
+                            AllowedData(Constants.FLOID, false), AllowedData(
+                                Constants.M.HENNY, true, teammate = true
                             ), AllowedData(723829878755164202, false)
                         )
                     )
                 )
-                defaultLeague.getCurrentMention() shouldBe "**Flo**, <@$HENNY>"
+                defaultLeague.getCurrentMention() shouldBe "**Flo**, <@${Constants.M.HENNY}>"
             }
         }
 
@@ -115,7 +123,7 @@ class LeagueTest : FunSpec({
                 name = "Test",
                 playerCount = 3,
                 rounds = 2,
-                hardcodedUserIds = mapOf(0 to FLOID),
+                hardcodedUserIds = mapOf(0 to Constants.FLOID),
                 originalorder = mapOf(1 to listOf(0, 1, 2), 2 to listOf(2, 0, 1))
             )
             startTestDraft("Test")
@@ -158,7 +166,9 @@ class LeagueTest : FunSpec({
             3,
             0,
             originalorder = emptyMap(),
-            hardcodedUserIds = mapOf(0 to FLOID, 1 to 694543579414134802, 2 to HENNY)
+            hardcodedUserIds = mapOf(0 to Constants.FLOID, 1 to 694543579414134802, 2 to Constants.M.HENNY)
         )
     }
 })
+
+private data class GetCurrentMentionData(val current: Int, val allowed: MutableSet<AllowedData>)

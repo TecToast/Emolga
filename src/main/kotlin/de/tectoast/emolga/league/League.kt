@@ -69,10 +69,10 @@ sealed class League {
 
     @EncodeDefault
     var round = 1
-    val current get() = currentPseudoEnd ?: order[round]!![0]
+    val current get() = currentOverride ?: order[round]!![0]
 
     @Transient
-    var currentPseudoEnd: Int? = null
+    var currentOverride: Int? = null
 
     abstract val teamsize: Int
     open val gamedays: Int by lazy { battleorder.let { if (it.isEmpty()) table.size - 1 else it.size } }
@@ -846,7 +846,7 @@ sealed class League {
     }
 
     fun buildStoreStatus(gameday: Int): String {
-        if (config.replayDataStore == null) return "ReplayDataStore not enabled"
+        config.replayDataStore ?: return "ReplayDataStore not enabled"
         val gamedayData = persistentData.replayDataStore.data[gameday].orEmpty()
         val gameplan = battleorder[gameday] ?: return "Spieltag $gameday: Keine Spiele"
         return "## Aktueller Stand von Spieltag $gameday [$leaguename]:\n" + gameplan.indices.joinToString("\n") {
@@ -934,7 +934,7 @@ sealed class League {
                 // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
                 if (first.pseudoEnd && first.afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
                     // BypassCurrentPlayerData can only be Yes here
-                    first.currentPseudoEnd = (second as BypassCurrentPlayerData.Yes).user
+                    first.currentOverride = (second as BypassCurrentPlayerData.Yes).user
                 }
                 if (!first.isCurrentCheck(user)) {
                     return@executeOnFreshLock reply("Du warst etwas zu langsam!", ephemeral = true)

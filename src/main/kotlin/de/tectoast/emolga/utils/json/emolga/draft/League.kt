@@ -152,7 +152,7 @@ sealed class League {
     @EncodeDefault
     val bannedMons: MutableMap<Int, MutableSet<DraftPokemon>> = mutableMapOf()
 
-    val randomPickRoundData: MutableMap<Int, Map<String, Int>> = mutableMapOf()
+    val randomPickRoundData: MutableMap<Int, MutableMap<String, Int>> = mutableMapOf()
 
     protected fun enableConfig(vararg flags: LeagueConfig) {
         configs += flags.filter { f -> configs.none { f::class == it::class } }
@@ -279,7 +279,7 @@ sealed class League {
             if (mega) 0 else it
         }
         if (pointsBack == 0 && when (tierlist.mode) {
-                TierlistMode.POINTS -> minimumNeededPointsForTeamCompletion(cpicks.size + 1) > points[current] - needed
+                TierlistMode.POINTS -> minimumNeededPointsForTeamCompletion(cpicks.count { !it.noCost } + 1) > points[current] - needed
                 TierlistMode.TIERS_WITH_FREE -> (tierlist.freePicksAmount - (cpicks.count { it.free } + (if (free) 1 else 0))) * tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" && "Mega#" !in it.key }
                     .minOf { it.value } > points[current] - needed - variableMegaPrice
 
@@ -1208,11 +1208,12 @@ data class RandomPickRound(
             val score = count.entries.sumOf { (type, amount) ->
                 (typesSoFar[type] ?: 0) * amount
             }
-            if (bestSoFar == null || score > bestSoFar.first) {
+            if (bestSoFar == null || score < bestSoFar.first) {
                 bestSoFar = score to this
             }
             bestSoFar.first == 0
         }
+        randomPickRoundData.getOrPut(current) { mutableMapOf() }.add(tier, 1)
         return bestSoFar?.second ?: error("No mon found")
     }
 

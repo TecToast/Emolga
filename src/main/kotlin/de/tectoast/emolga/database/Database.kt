@@ -14,16 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import mu.KLogging
 import mu.KotlinLogging
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.statements.Statement
-import org.jetbrains.exposed.sql.transactions.TransactionManager
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.slf4j.LoggerFactory
-import javax.sql.DataSource
 
 class Database(host: String, username: String, password: String) {
     val dataSource = HikariDataSource(HikariConfig().apply {

@@ -90,7 +90,7 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:5.2.2")
+    implementation("net.dv8tion:JDA:5.3.0")
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google

@@ -1,7 +1,7 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "2.1.0"
+val kVersion = "2.1.10"
 plugins {
     val kVersion = "2.1.0"
     kotlin("jvm") version kVersion
@@ -90,13 +90,13 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:5.2.2")
+    implementation("net.dv8tion:JDA:5.3.0")
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250106-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20241206-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20250101-2.0.0")
+    implementation("com.google.apis:google-api-services-youtube:v3-rev20250128-2.0.0")
 
     // Database
     // MySQL
@@ -108,7 +108,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
     // MongoDB
     implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.2.1")
-    implementation("org.litote.kmongo:kmongo-id-serialization:5.2.0")
+    implementation("org.litote.kmongo:kmongo-id-serialization:5.2.1")
 
     // Ktor
     ktor()

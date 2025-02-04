@@ -11,13 +11,13 @@ import de.tectoast.emolga.features.draft.during.QueuePicks
 import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode.*
 import de.tectoast.emolga.features.draft.during.QueuePicks.isIllegal
 import de.tectoast.emolga.features.intoMultipleRows
+import de.tectoast.emolga.league.GamedayData
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.NDS
+import de.tectoast.emolga.league.config.QueuePicksUserData
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
-import de.tectoast.emolga.utils.json.emolga.draft.GamedayData
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.NDS
-import de.tectoast.emolga.utils.json.emolga.draft.QueuePicksData
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
@@ -192,7 +192,7 @@ class ResultEntry : StateStore {
             }
 
             EnterResult.ResultFinish.Mode.YES -> {
-                if (league.replayDataStore != null) reply(
+                if (league.config.replayDataStore != null) reply(
                     "Das Ergebnis des Kampfes wurde gespeichert! Du kannst nun die Eingabe-Nachricht verwerfen.",
                     ephemeral = true
                 )
@@ -396,7 +396,7 @@ class QueuePicks : StateStore {
     @EncodeDefault
     private val addedMeanwhile: MutableList<QueuedAction> = mutableListOf()
 
-    constructor(uid: Long, leaguename: String, currentData: QueuePicksData) : super(uid) {
+    constructor(uid: Long, leaguename: String, currentData: QueuePicksUserData) : super(uid) {
         this.leaguename = leaguename
         this.currentState = currentData.queued.toMutableList()
         this.currentlyEnabled = currentData.enabled
@@ -526,7 +526,7 @@ class QueuePicks : StateStore {
         deferEdit()
         League.executeOnFreshLock(leaguename) {
             if (isIllegal(this(uid), currentState)) return
-            val data = queuedPicks.getOrPut(index(user)) { QueuePicksData() }
+            val data = persistentData.queuePicks.queuedPicks.getOrPut(index(user)) { QueuePicksUserData() }
             data.queued = currentState.toMutableList()
             data.enabled = enable
             currentlyEnabled = enable

@@ -7,7 +7,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.emolga.increment
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.toCoord
@@ -57,11 +57,6 @@ object Analysis {
         analysisData: AnalysisData? = null,
         useReplayResultChannelAnyways: Boolean = false
     ) {
-        //defaultScope.launch {
-        if (EmolgaMain.BOT_DISABLED && resultchannelParam.guild.idLong != Constants.G.MY) {
-            (message?.channel ?: resultchannelParam).sendMessage(EmolgaMain.DISABLED_TEXT).queue()
-            return
-        }
 
         logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannelParam.id)
         fun send(msg: String) {

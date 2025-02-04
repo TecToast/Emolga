@@ -2,9 +2,10 @@ package de.tectoast.emolga.utils.draft
 
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.league.*
 import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.draft.DraftMessageType.*
-import de.tectoast.emolga.utils.json.emolga.draft.*
+import de.tectoast.emolga.utils.isMega
 import dev.minn.jda.ktx.coroutines.await
 import mu.KotlinLogging
 
@@ -41,10 +42,11 @@ interface DraftInput {
 }
 
 
-data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolean) : DraftInput {
+data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolean, val noCost: Boolean = false) :
+    DraftInput {
     context(InteractionData, League)
     override suspend fun execute(type: DraftMessageType): Boolean {
-        if (isSwitchDraft && !config<AllowPickDuringSwitch>()) {
+        if (isSwitchDraft && !config.allowPickDuringSwitch.enabled) {
             return reply("Du kannst während des Switch-Drafts nicht picken!").let { false }
         }
         val mem = current
@@ -59,7 +61,7 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
         val freepick =
             free.takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } == true
         if (!freepick && handleTiers(specifiedTier, officialTier)) return false
-        if (handlePoints(
+        if (!noCost && handlePoints(
                 free = freepick, tier = officialTier, mega = official.isMega
             )
         ) return false
@@ -75,7 +77,7 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
             freePick = freepick,
             updrafted = saveTier != officialTier
         )
-        pickData.savePick()
+        pickData.savePick(noCost)
         pickData.reply(type)
         builder().apply { pickDoc(pickData) }.execute()
         return true
@@ -85,7 +87,7 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
     suspend fun PickData.reply(type: DraftMessageType) {
         when (type) {
             REGULAR -> {
-                replyGeneral("${displayName()} ".condAppend(alwaysSendTier || updrafted) { "im $tier " } + "gepickt!".condAppend(
+                replyGeneral("${displayName()} ".condAppend(config.draftSend.alwaysSendTier || updrafted) { "im $tier " } + "gepickt!".condAppend(
                     updrafted
                 ) { " (Hochgedraftet)" }.condAppend(freePick) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
                 checkEmolga()
@@ -165,6 +167,7 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
                 "Random-Switch: ${oldDisplayName()} gegen ${displayName()} getauscht!",
                 ifTestUseTc = this@League.tc
             )
+
             ACCEPT -> replyAwait("Akzeptiert: ${oldDisplayName()} gegen ${displayName()} getauscht!")
             REROLL -> replyAwait("Reroll: ${oldDisplayName()} gegen ${displayName()} getauscht!")
         }
@@ -174,8 +177,7 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
 data class BanInput(val pokemon: DraftName) : DraftInput {
     context(InteractionData, League)
     override suspend fun execute(type: DraftMessageType): Boolean {
-        val config =
-            getConfig<DraftBanConfig>() ?: return reply("In diesem Draft sind keine Bans vorgesehen!").let { false }
+        val config = config.draftBan ?: return reply("In diesem Draft sind keine Bans vorgesehen!").let { false }
         if (pokemon.official in config.notBannable) return reply("`${pokemon.tlName}` kann nicht gebannt werden!").let { false }
         val banRoundConfig =
             config.banRounds[round] ?: return reply("Runde **$round** ist keine Ban-Runde!").let { false }

@@ -3,8 +3,8 @@ package de.tectoast.emolga.features.draft.during
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.AllowedData
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.AllowedData
+import de.tectoast.emolga.league.League
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 

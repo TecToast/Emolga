@@ -21,20 +21,14 @@ data class Tokens(
 
     @Serializable
     data class Subscriber(
-        val secret: String
+        val secret: String,
+        val callback: String,
     )
 
     @Serializable
     data class Database(
         val username: String,
         val password: String
-    )
-
-    @Serializable
-    data class Website(
-        val path: String,
-        val password: String,
-        val keyalias: String
     )
 
     @Serializable

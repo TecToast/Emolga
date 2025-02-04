@@ -103,16 +103,6 @@ object Google {
         }
 
     /**
-     * Gets the full data from the specified ranges of the specified spreadsheet
-     * @param sid The ID of the spreadsheet
-     * @param ranges The ranges of the data
-     * @return The data as Spreadsheet
-     */
-    suspend fun getSheetData(sid: String, ranges: List<String>): Spreadsheet = withContext(googleContext) {
-        sheetsService().spreadsheets()[sid].setIncludeGridData(true).setRanges(ranges).execute()
-    }
-
-    /**
      * Batch updates the specified data in the specified spreadsheet
      * @param sid The ID of the spreadsheet
      * @param data The data to update
@@ -156,14 +146,6 @@ object Google {
             driveService().permissions().create(fileId, Permission().setType("anyone").setRole("reader")).execute()
             fileId
         }
-
-    /**
-     * Fetches the last video from the specified channel
-     * @param channelId The ID of the channel
-     * @return The search result of last video from the channel or null if there wasn't any
-     */
-    suspend fun fetchLastVideoFromChannel(channelId: String): SearchResult? =
-        fetchLatestVideosFromChannel(channelId).firstOrNull()
 
     suspend fun fetchLatestVideosFromChannel(channelId: String): List<SearchResult> = withContext(googleContext) {
         youtubeService().search().list("snippet".l).apply {

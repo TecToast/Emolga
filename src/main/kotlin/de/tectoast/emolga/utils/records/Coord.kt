@@ -1,6 +1,6 @@
 package de.tectoast.emolga.utils.records
 
-import de.tectoast.emolga.league.LeagueCreator
+import de.tectoast.emolga.leaguecreator.LeagueCreator
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.xc
 import kotlinx.serialization.SerialName

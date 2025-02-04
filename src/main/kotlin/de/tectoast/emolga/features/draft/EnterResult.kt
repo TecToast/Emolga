@@ -6,7 +6,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.ResultEntry
 import de.tectoast.emolga.utils.StateStore
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.emolga.reverseGet
 import de.tectoast.emolga.utils.process
 import dev.minn.jda.ktx.coroutines.await

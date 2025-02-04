@@ -8,7 +8,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.BanInput
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 
 object BanMonCommand : CommandFeature<BanMonCommand.Args>(
     ::Args,

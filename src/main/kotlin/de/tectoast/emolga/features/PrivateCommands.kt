@@ -1,14 +1,18 @@
 package de.tectoast.emolga.features
 
+import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.draft.SignupManager
-import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
 import de.tectoast.emolga.features.various.ShiftUser
+import de.tectoast.emolga.ktor.subscribeToYTChannel
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.NDS
+import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -18,7 +22,6 @@ import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
-import de.tectoast.emolga.utils.json.emolga.draft.*
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage
@@ -30,7 +33,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
-import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionComponent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
@@ -92,13 +94,8 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun ndsuMatchUps(args: PrivateData) {
-        (db.leagueByPrefix("NDSU") as NDSU).doMatchUps(args[0].toInt())
-    }
-
-    context(InteractionData)
     suspend fun tipGameLockButtons(args: PrivateData) {
-        db.league(args[0]).executeTipGameLockButtons()
+        db.league(args[0]).executeTipGameLockButtons(args[1].toInt())
     }
 
     context(InteractionData)
@@ -108,18 +105,6 @@ object PrivateCommands {
             .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
             .joinToString("\n", prefix = "```", postfix = "```")
         )
-    }
-
-    context(InteractionData)
-    suspend fun rankSelect(args: PrivateData) {
-        val league = db.league(args[0])
-        reply(components = (1..args[1].toInt()).map {
-            ActionRow.of(
-                TipGameManager.RankSelect.createFromLeague(
-                    league, it
-                )
-            )
-        })
     }
 
     context(InteractionData)
@@ -484,7 +469,7 @@ object PrivateCommands {
             ytTC = args[1].toLong(),
             gameday = gameday,
             battle = battle,
-            strategy = VideoProvideStrategy.Subscribe(league.replayDataStore!!.data[gameday]!![battle]!!.ytVideoSaveData),
+            strategy = VideoProvideStrategy.Subscribe(league.persistentData.replayDataStore.data[gameday]!![battle]!!.ytVideoSaveData),
             overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
         )
     }
@@ -541,44 +526,21 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun fixIPLTip() {
-        val num = 1
-        val ids = listOf(1211915623995670578, 1211915626814111785, 1211915629330829382, 1211915630857682945)
-        with(db.league("IPLS4L2") as IPL) {
-            val tip = tipgame!!
-            val channel = jda.getTextChannelById(tip.channel)!!
-            val matchups = getMatchupsIndices(num)
-            for ((index, matchup) in matchups.withIndex()) {
-                val u1 = matchup[0]
-                val u2 = matchup[1]
-                val base: ArgBuilder<TipGameManager.VoteButton.Args> = {
-                    this.leaguename = this@with.leaguename
-                    this.gameday = num
-                    this.index = index
-                }
-                val t1 = teamtable[u1]
-                val t2 = teamtable[u2]
-                channel.editMessageComponentsById(
-                    ids[index], ActionRow.of(
-                        TipGameManager.VoteButton(
-                            t1, disabled = index <= 2, emoji = Emoji.fromFormatted(emotes[u1])
-                        ) {
-                            base()
-                            this.userindex = u1
-                        },
-                        TipGameManager.VoteButton(t2, disabled = index <= 2, emoji = Emoji.fromFormatted(emotes[u2])) {
-                            base()
-                            this.userindex = u2
-                        }).into()
-                ).queue()
-            }
+    suspend fun enableIt(args: PrivateData) {
+        for (mid in args.drop(1)) {
+            val m = jda.getTextChannelById(args[0])!!.retrieveMessageById(mid).await()
+            m.editMessageComponents(m.components.map {
+                if (it is ActionRow) ActionRow.of(it.components.map { b ->
+                    if (b is ActionComponent) b.withDisabled(false) else b
+                }) else it
+            }).queue()
         }
     }
 
     context(InteractionData)
     suspend fun analyseMatchresults(args: PrivateData) {
         val league = db.league(args[0])
-        league.replayDataStore!!.data[args[1].toInt()]!!.forEach { (_, replay) ->
+        league.persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
             league.docEntry!!.analyseWithoutCheck(
                 listOf(replay),
                 withSort = false,
@@ -670,14 +632,6 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun migrateTipGameTips() {
-        val tips = db.league("EPPS3Rot").tipgame!!.tips[1]!!
-        tips.forEach { (user, tip) ->
-            db.tipgameuserdata.insertOne(TipGameUserData(user, "EPPS3Rot", tips = mutableMapOf(1 to tip)))
-        }
-    }
-
-    context(InteractionData)
     suspend fun switchUser(args: PrivateData) {
         val league = db.league(args[0])
         val old = args[1].toLong()
@@ -695,6 +649,25 @@ object PrivateCommands {
         db.shinyEventConfig.only().updateDiscord(jda)
     }
 
+    context(InteractionData)
+    suspend fun subscribeToYT(args: PrivateData) {
+        subscribeToYTChannel(args())
+    }
+
+    context(InteractionData)
+    suspend fun enableMaintenance(args: PrivateData) {
+        val reason = args()
+        db.config.updateOnly(set(de.tectoast.emolga.utils.json.Config::maintenance setTo reason))
+        EmolgaMain.maintenance = reason
+        EmolgaMain.updatePresence()
+    }
+
+    context(InteractionData)
+    suspend fun disableMaintenance() {
+        db.config.updateOnly(set(de.tectoast.emolga.utils.json.Config::maintenance setTo null))
+        EmolgaMain.maintenance = null
+        EmolgaMain.updatePresence()
+    }
 
 }
 

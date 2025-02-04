@@ -6,14 +6,13 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.PickData
+import de.tectoast.emolga.league.config.RandomPickUserInput
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.coordXMod
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
-import de.tectoast.emolga.utils.json.emolga.draft.PickData
-import de.tectoast.emolga.utils.json.emolga.draft.RandomPickConfig
-import de.tectoast.emolga.utils.json.emolga.draft.RandomPickUserInput
 import de.tectoast.emolga.utils.y
 import dev.minn.jda.ktx.coroutines.await
 
@@ -67,7 +66,7 @@ object NuzlockeCommand :
             val (draftname, tier) = newMon?.let {
                 it to tierlist.getTierOf(it.official)!!
             } ?: run {
-                val config = getConfigOrDefault<RandomPickConfig>()
+                val config = config.randomPick
                 with(config.mode) {
                     getRandomPick(
                         RandomPickUserInput(

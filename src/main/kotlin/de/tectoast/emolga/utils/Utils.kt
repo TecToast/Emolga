@@ -17,7 +17,6 @@ import org.slf4j.Marker
 import org.slf4j.MarkerFactory
 import java.io.File
 import java.text.SimpleDateFormat
-import kotlin.collections.set
 import kotlin.math.pow
 
 fun <T> T.indexedBy(list: List<T>) = list.indexOf(this)
@@ -123,12 +122,10 @@ fun String.notNullAppend(value: String?) = notNullAppend(value) { it }
 inline fun <T> String.notNullAppend(value: T?, mapper: (T) -> String) =
     if (value != null) this + mapper(value) else this
 
-fun String.notNullPrepend(value: String?) = notNullPrepend(value) { it }
 inline fun <T> String.notNullPrepend(value: T?, mapper: (T) -> String) =
     if (value != null) mapper(value) + this else this
 val <T> T.l get() = listOf(this)
 
-inline val User.isFlo: Boolean get() = this.idLong == FLOID
 inline val User.isNotFlo: Boolean get() = this.idLong != FLOID
 inline fun String.ifNotEmpty(block: (String) -> String): String {
     return if (this.isNotEmpty()) block(this) else this
@@ -265,3 +262,5 @@ data class Translation(
         this.isEmpty = type == Type.UNKNOWN
     }
 }
+
+val String.isMega get() = "-Mega" in this

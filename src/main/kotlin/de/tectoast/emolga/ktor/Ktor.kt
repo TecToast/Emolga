@@ -19,7 +19,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.User
 import org.slf4j.event.Level
-import kotlin.collections.set
 
 object Ktor {
     var devMode = false
@@ -30,6 +29,15 @@ object Ktor {
         embeddedServer(CIO, port = 58700) {
             module()
         }.also { server = it }.start()
+        embeddedServer(
+            CIO,
+            port = Credentials.tokens.subscriber.callback.let {
+                if (":" in it) it.substringAfter("//").substringAfter(":").substringBefore("/").toInt() else 443
+            }) {
+            routing {
+                ytSubscriptions()
+            }
+        }.start()
     }
 
     private fun Application.module() {
@@ -38,7 +46,6 @@ object Ktor {
         routing {
             route("/api") {
                 emolgaAPI()
-                ytSubscriptions()
             }
         }
     }

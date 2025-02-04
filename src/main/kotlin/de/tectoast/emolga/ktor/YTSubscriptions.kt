@@ -2,10 +2,11 @@ package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.utils.ignoreDuplicatesMongo
 import de.tectoast.emolga.utils.json.YTVideo
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.draft.League
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.repeat.RepeatTask
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.datetime.Instant
 import mu.KotlinLogging
 import org.jsoup.Jsoup
+import org.litote.kmongo.div
 import org.litote.kmongo.exists
 import org.litote.kmongo.serialization.TemporalExtendedJsonSerializer
 import javax.crypto.Mac
@@ -41,7 +43,7 @@ private val ytClient = HttpClient(CIO) {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun setupYTSuscribtions() {
-    db.drafts.find(League::replayDataStore exists true).toFlow()
+    db.drafts.find(League::config / LeagueConfig::replayDataStore exists true).toFlow()
         .flatMapMerge { it.table.asFlow().mapNotNull { u -> db.ytchannel.get(u)?.channelId } }
         .collect { subscribeToYTChannel(it); delay(1000) }
 }
@@ -104,7 +106,7 @@ suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
         logger.info("League found: $leaguename")
         val idx = this(uid)
         val data = RepeatTask.getTask(leaguename, RepeatTaskType.BattleRegister)?.findNearestTimestamp()
-            ?.let { replayDataStore!!.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
+            ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
             ?: return SendFeatures.sendToMe(
                 "No ReplayData found for $uid in $leaguename"
             )
@@ -132,14 +134,15 @@ object InstantAsDateSerializer : TemporalExtendedJsonSerializer<Instant>() {
 
 
 suspend fun subscribeToYTChannel(channelID: String) {
+    val config = Credentials.tokens.subscriber
     logger.info(
         ytClient.post("https://pubsubhubbub.appspot.com/subscribe") {
             setBody(FormDataContent(Parameters.build {
-                append("hub.callback", "https://emolga.tectoast.de/api/youtube")
+                append("hub.callback", config.callback)
                 append("hub.mode", "subscribe")
                 append("hub.topic", "https://www.youtube.com/xml/feeds/videos.xml?channel_id=$channelID")
                 append("hub.verify", "async")
-                append("hub.secret", Credentials.tokens.subscriber.secret)
+                append("hub.secret", config.secret)
             }))
         }.bodyAsText()
     )

@@ -4,7 +4,6 @@ package de.tectoast.emolga.features
 
 import com.google.common.reflect.ClassPath
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.annotations.ToTest
 import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.db
@@ -23,7 +22,6 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData
 import kotlin.reflect.KClass
-import kotlin.reflect.full.hasAnnotation
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
@@ -33,11 +31,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
 
     constructor(packageName: String) : this(packageName.let {
         ClassPath.from(Thread.currentThread().contextClassLoader).getTopLevelClassesRecursive(packageName).mapNotNull {
-            val cl = it.load().kotlin
-            if (cl.hasAnnotation<ToTest>()) {
-                logger.warn("Feature ${cl.simpleName} needs to be tested!")
-            }
-            findAllFeaturesRecursively(cl)
+            findAllFeaturesRecursively(it.load().kotlin)
         }.flatten().toSet()
     })
 

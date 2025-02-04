@@ -1,7 +1,7 @@
 package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.features.draft.SwitchTimer
-import de.tectoast.emolga.utils.json.emolga.draft.League
+import de.tectoast.emolga.league.League
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import kotlinx.serialization.KSerializer
@@ -18,14 +18,15 @@ import kotlin.time.measureTimedValue
 sealed class DraftTimer {
     private val isNoMultiTimer = this !is ClockDependentTimer
     abstract fun getCurrentTimerInfo(millis: Long = System.currentTimeMillis()): TimerInfo
+    val timerStart: Long? = null
 
     var stallSeconds = 0
     fun stallSeconds(stallSeconds: Int) = apply { this.stallSeconds = stallSeconds }
     fun calc(league: League, now: Long = System.currentTimeMillis()) = calc(
         now = now,
-        timerStart = league.timerStart,
+        timerStart = timerStart,
         howOftenSkipped = league.punishableSkippedTurns[league.current]?.size ?: 0,
-        usedStallSeconds = league.timerRelated.usedStallSeconds[league.current] ?: 0
+        usedStallSeconds = league.draftData.timer.usedStallSeconds[league.current] ?: 0
     )
 
     fun calc(
@@ -90,10 +91,6 @@ data class DelayData(val skipTimestamp: Long, val regularTimestamp: Long, val no
 @SerialName("CD")
 class ClockDependentTimer(val timers: @Serializable(with = TreeMapSerializer::class) TreeMap<Long, TimerInfo>) :
     DraftTimer() {
-
-    constructor(timerInfo: TimerInfo) : this(timerMap {
-        put(0L, timerInfo)
-    })
 
     constructor(vararg timers: Pair<Long, TimerInfo>) : this(timerMap {
         putAll(timers)

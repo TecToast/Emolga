@@ -118,22 +118,7 @@ class RepeatTask(
                             data.intervalBetweenGD,
                             false,
                         ) { gameday ->
-                            val league = refresh()
-                            var shouldDelay = false
-                            league.config.tipgame?.let { _ ->
-                                league.executeTipGameLockButtonsIndividual(gameday, battle)
-                                shouldDelay = true
-                            }
-                            val dataStore = league.persistentData.replayDataStore
-                            dataStore.data[gameday]?.get(battle)?.let {
-                                it.ytVideoSaveData.enabled = true
-                                val shouldSave = !it.checkIfBothVideosArePresent(league)
-                                if (shouldDelay) delay(2000)
-                                league.docEntry?.analyseWithoutCheck(listOf(it))
-                                if (shouldSave)
-                                    league.save("RepeatTaskYT")
-                            }
-                                ?: throw IllegalStateException("No replay found for gameday $gameday and battle $battle")
+                            executeBattleRegister(refresh(), gameday, battle)
                         }
                         logger.info("YTSendChannel ${l.leaguename} $battle")
                         l.config.youtube?.sendChannel?.let { ytTC ->
@@ -159,6 +144,24 @@ class RepeatTask(
                     }
                 }
             }
+        }
+
+        suspend fun executeBattleRegister(league: League, gameday: Int, battle: Int) {
+            var shouldDelay = false
+            league.config.tipgame?.let { _ ->
+                league.executeTipGameLockButtonsIndividual(gameday, battle)
+                shouldDelay = true
+            }
+            val dataStore = league.persistentData.replayDataStore
+            dataStore.data[gameday]?.get(battle)?.let {
+                it.ytVideoSaveData.enabled = true
+                val shouldSave = !it.checkIfBothVideosArePresent(league)
+                if (shouldDelay) delay(2000)
+                league.docEntry?.analyseWithoutCheck(listOf(it))
+                if (shouldSave)
+                    league.save("RepeatTaskYT")
+            }
+                ?: throw IllegalStateException("No replay found for gameday $gameday and battle $battle")
         }
     }
 }

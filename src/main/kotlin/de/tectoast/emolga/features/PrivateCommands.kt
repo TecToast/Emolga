@@ -22,6 +22,7 @@ import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
+import de.tectoast.emolga.utils.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.editMessage
@@ -667,6 +668,11 @@ object PrivateCommands {
         db.config.updateOnly(set(de.tectoast.emolga.utils.json.Config::maintenance setTo null))
         EmolgaMain.maintenance = null
         EmolgaMain.updatePresence()
+    }
+
+    context(InteractionData)
+    suspend fun executeBattleRegister(args: PrivateData) {
+        RepeatTask.executeBattleRegister(db.league(args[0]), args[1].toInt(), args[2].toInt())
     }
 
 }

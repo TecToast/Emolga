@@ -35,6 +35,7 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
+import net.dv8tion.jda.api.interactions.modals.Modal
 import org.bson.BsonDocument
 import org.bson.conversions.Bson
 import org.litote.kmongo.*
@@ -396,31 +397,34 @@ sealed interface LogoSettings {
 data class LigaStartData(
     @SerialName("_id") @Contextual val id: Id<LigaStartData> = newId(),
     val guild: Long,
-    val users: MutableList<SignUpData> = mutableListOf(),
     val signupChannel: Long,
-    val logoSettings: LogoSettings? = null,
     val signupMessage: String,
     val announceChannel: Long,
     val announceMessageId: Long,
-    var conferences: List<String> = listOf(),
-    var conferenceRoleIds: Map<String, Long> = mapOf(),
+    val logoSettings: LogoSettings? = null,
     var maxUsers: Int,
     val participantRole: Long? = null,
+    var conferences: List<String> = listOf(),
+    var conferenceRoleIds: Map<String, Long> = mapOf(),
     val signupStructure: List<SignUpInput> = listOf(),
+    val users: MutableList<SignUpData> = mutableListOf(),
 ) {
     val maxUsersAsString
         get() = (maxUsers.takeIf { it > 0 } ?: "?").toString()
 
-    fun buildModal(old: SignUpData?) = Modal("signup;", "Anmeldung") {
-        signupStructure.forEach {
-            val options = it.getModalInputOptions()
-            short(
-                id = it.id,
-                label = options.label,
-                required = options.required,
-                placeholder = options.placeholder,
-                value = old?.data?.get(it.id)
-            )
+    fun buildModal(old: SignUpData?): Modal? {
+        if (signupStructure.isEmpty()) return null
+        return Modal("signup;", "Anmeldung") {
+            signupStructure.forEach {
+                val options = it.getModalInputOptions()
+                short(
+                    id = it.id,
+                    label = options.label,
+                    required = options.required,
+                    placeholder = options.placeholder,
+                    value = old?.data?.get(it.id)
+                )
+            }
         }
     }
 

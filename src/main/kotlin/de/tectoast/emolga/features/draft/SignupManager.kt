@@ -38,7 +38,12 @@ object SignupManager {
             if (lsData.getDataByUser(user) != null) {
                 return reply("Du bist bereits angemeldet!", ephemeral = true)
             }
-            replyModal(lsData.buildModal(old = null))
+            val modal = lsData.buildModal(old = null)
+            if (modal == null) {
+                signupUser(gid, user, emptyMap(), e = self)
+                return
+            }
+            replyModal(modal)
         }
     }
 
@@ -58,7 +63,9 @@ object SignupManager {
                 "Du bist derzeit nicht angemeldet!",
                 ephemeral = true
             )
-            replyModal(ligaStartData.buildModal(signUpData))
+            val modal = ligaStartData.buildModal(signUpData)
+            if (modal == null) return reply("Es gibt keine Daten, die du ändern kannst!", ephemeral = true)
+            replyModal(modal)
         }
     }
 

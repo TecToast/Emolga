@@ -293,11 +293,16 @@ sealed interface SignUpValidateResult {
 }
 
 @Serializable
-sealed class SignUpInput(val id: String) {
+sealed class SignUpInput() {
+    abstract val id: String
+
     @Serializable
-    data object SDName : SignUpInput("sdname") {
+    @SerialName("SDName")
+    data object SDName : SignUpInput() {
+        override val id = "sdname"
+
         override fun getModalInputOptions(): ModalInputOptions {
-            return ModalInputOptions("Showdown-Name", true, requiredLength = 1..18)
+            return ModalInputOptions(label = "Showdown-Name", required = true, requiredLength = 1..18)
         }
 
         override fun validate(data: String) = SignUpValidateResult.wrapNullable(
@@ -308,23 +313,29 @@ sealed class SignUpInput(val id: String) {
     }
 
     @Serializable
-    data object TeamName : SignUpInput("teamname") {
+    @SerialName("TeamName")
+    data object TeamName : SignUpInput() {
+        override val id = "teamname"
+
         override fun getModalInputOptions(): ModalInputOptions {
-            return ModalInputOptions("Teamname", true, requiredLength = 1..100)
+            return ModalInputOptions(label = "Teamname", required = true, requiredLength = 1..100)
         }
 
         override fun getDisplayTitle() = "Teamname"
     }
 
     @Serializable
-    data class OfList(val name: String, val list: List<String>, val visibleForAll: Boolean) : SignUpInput("oflist") {
+    @SerialName("OfList")
+    data class OfList(val name: String, val list: List<String>, val visibleForAll: Boolean) : SignUpInput() {
+        override val id = "oflist_$name"
+
         override fun getModalInputOptions(): ModalInputOptions {
-            return ModalInputOptions(name, true, placeholder = list.joinToString(" ODER "))
+            return ModalInputOptions(label = name, required = true, placeholder = list.joinToString(" ODER "))
         }
 
         override fun validate(data: String) = SignUpValidateResult.wrapNullable(
             list.firstOrNull { it.equals(data, ignoreCase = true) },
-            "Ungültige Eingabe! Mögliche Werte: ${list.joinToString(", ") { opt -> "`$opt`" }}"
+            "Erlaubte Werte: ${list.joinToString(", ") { opt -> "`$opt`" }}"
         )
 
         override fun getDisplayTitle() = name.takeIf { visibleForAll }
@@ -349,6 +360,7 @@ sealed interface LogoSettings {
             data.logomid?.let { mid -> tc.deleteMessageById(mid).queue(/* success = */ null, /* failure = */ null) }
             val logoMid = tc.sendMessage(getMsgTitle(data)).addFiles(logoData.toFileUpload()).await().idLong
             data.logomid = logoMid
+            lsData.save()
         }
 
         private fun getMsgTitle(data: SignUpData): String = "**Logo von ${data.formatName()}:**"
@@ -402,7 +414,7 @@ data class LigaStartData(
     fun buildModal(old: SignUpData?) = Modal("signup;", "Anmeldung") {
         signupStructure.forEach {
             val options = it.getModalInputOptions()
-            paragraph(
+            short(
                 id = it.id,
                 label = options.label,
                 required = options.required,
@@ -420,7 +432,7 @@ data class LigaStartData(
             val result = config.validate(it.asString)
             when (result) {
                 is SignUpValidateResult.Error -> {
-                    errors += result.message
+                    errors += "Fehler bei **${config.getModalInputOptions().label}**:\n${result.message}"
                     "" to ""
                 }
 
@@ -430,7 +442,7 @@ data class LigaStartData(
             }
         }
         if (errors.isNotEmpty()) {
-            e.reply_("Fehler bei der Eingabe:\n${errors.joinToString("\n")}", ephemeral = true).queue()
+            e.reply_("❌ Anmeldung nicht erfolgreich:\n\n${errors.joinToString("\n\n")}", ephemeral = true).queue()
             return
         }
         SignupManager.signupUser(guild, e.user.idLong, data, change, RealInteractionData(e))

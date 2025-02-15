@@ -25,7 +25,7 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
     )
 ) {
     private val logger = KotlinLogging.logger {}
-    val allowedFileFormats = setOf("png", "jpg", "jpeg")
+    val allowedFileFormats = setOf("png", "jpg", "jpeg", "webp")
 
     class Args : Arguments() {
         var logo by attachment("Logo", "Das Logo")

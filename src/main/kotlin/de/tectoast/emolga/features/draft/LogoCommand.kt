@@ -1,19 +1,20 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Google
-import de.tectoast.emolga.utils.json.*
+import de.tectoast.emolga.utils.json.LogoChecksum
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.utils.FileUpload
-import org.litote.kmongo.*
+import org.litote.kmongo.eq
 import java.security.MessageDigest
 
 object LogoCommand : CommandFeature<LogoCommand.Args>(
@@ -38,38 +39,21 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
     context(InteractionData)
     suspend fun insertLogo(logo: Message.Attachment, uid: Long) {
         deferReply(ephemeral = true)
-        val ligaStartData = db.signups.get(gid)!!
-        if (uid !in ligaStartData.users) {
-            return reply("Du bist nicht angemeldet!", ephemeral = true)
+        val lsData = db.signups.get(gid)!!
+        if (lsData.logoSettings == null) {
+            return reply("In dieser Liga gibt es keine eigenen Logos!", ephemeral = true)
         }
-        if (ligaStartData.noTeam) {
-            return reply("In dieser Liga gibt es keine eigenen Teams!", ephemeral = true)
-        }
+        val signUpData = lsData.getDataByUser(uid) ?: return reply("Du bist nicht angemeldet!", ephemeral = true)
         val logoData = LogoInputData.fromAttachment(logo) ?: return
+        lsData.logoSettings.handleLogo(lsData, signUpData, logoData)
         reply("Das Logo wurde erfolgreich hochgeladen!", ephemeral = true)
-        val signUpData = ligaStartData.users[uid]!!
-        val tc = jda.getTextChannelById(ligaStartData.logoChannel)!!
-        signUpData.logomid?.let {
-            tc.deleteMessageById(it).queue(null) {}
-        }
-        val logoMid = tc.sendMessage(
-            "**Logo von ${
-                listOf(
-                    uid,
-                    *signUpData.teammates.toTypedArray()
-                ).joinToString(" & ") { "<@$it>" }
-            } (${signUpData.teamname}):**"
-        )
-            .addFiles(logoData.toFileUpload()).await().idLong
-        uploadToCloud(
-            logoData,
-            LogoCloudHandler.SignupLogo(gid, uid, logoMid),
-        )
+        val checksum = uploadToCloud(logoData)
+        signUpData.logoChecksum = checksum
     }
 
     suspend fun uploadToCloud(
         data: LogoInputData,
-        handler: LogoCloudHandler,
+        handler: (LogoChecksum) -> Unit = {},
     ) =
         withContext(Dispatchers.IO) {
             val logoData = db.logochecksum.findOne(LogoChecksum::checksum eq data.checksum) ?: run {
@@ -79,7 +63,8 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
                 )
                 LogoChecksum(data.checksum, fileId).also { db.logochecksum.insertOne(it) }
             }
-            handler.handle(logoData)
+            handler(logoData)
+            logoData.checksum
         }
 
     data class LogoInputData(val fileExtension: String, val bytes: ByteArray) {
@@ -115,28 +100,6 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
 
             }
         }
-    }
-
-    interface LogoCloudHandler {
-        suspend fun handle(data: LogoChecksum)
-        data class SignupLogo(val gid: Long, val uid: Long, val logoMid: Long) : LogoCloudHandler {
-            override suspend fun handle(data: LogoChecksum) {
-                db.signups.updateOne(
-                    LigaStartData::guild eq gid,
-                    set(
-                        LigaStartData::users.keyProjection(uid) / SignUpData::logoUrl setTo data.checksum,
-                        LigaStartData::users.keyProjection(uid) / SignUpData::logomid setTo logoMid
-                    )
-                )
-            }
-        }
-
-        data object Other : LogoCloudHandler {
-            override suspend fun handle(data: LogoChecksum) {
-                jda.getTextChannelById(447357526997073932)!!.sendMessage(data.url).queue()
-            }
-        }
-
     }
 
 

@@ -4,11 +4,11 @@ package de.tectoast.emolga.features
 
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
 import dev.minn.jda.ktx.interactions.components.button
@@ -154,7 +154,7 @@ open class NotAllowed(val reason: String) : AllowedResult() {
  */
 abstract class ListenerProvider {
     val registeredListeners: MutableSet<Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>> = mutableSetOf()
-    inline fun <reified T : GenericEvent> ListenerProvider.registerListener(noinline listener: suspend (T) -> Unit) {
+    inline fun <reified T : GenericEvent> registerListener(noinline listener: suspend (T) -> Unit) {
         registeredListeners += (T::class to listener) as Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>
     }
 

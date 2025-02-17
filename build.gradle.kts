@@ -95,7 +95,7 @@ dependencies {
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250106-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20241206-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20250210-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20250128-2.0.0")
 
     // Database

@@ -582,6 +582,11 @@ object PrivateCommands {
         RepeatTask.executeBattleRegister(db.league(args[0]), args[1].toInt(), args[2].toInt())
     }
 
+    context(InteractionData)
+    suspend fun updateFlegmonSlash() {
+        EmolgaMain.featureManager().updateFeatures(flegmonjda)
+    }
+
 }
 
 data class PrivateData(

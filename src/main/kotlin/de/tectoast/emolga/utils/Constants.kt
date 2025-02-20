@@ -32,6 +32,7 @@ object Constants {
         const val COMMUNITY = 1036657324909146153
         const val HELBIN = 1063512573175152730
         const val EPP = 699185903590965278
+        const val LOEWE = 1042904158652616745
     }
 
     object M {

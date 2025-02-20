@@ -5,6 +5,7 @@ import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.draft.SignupManager
+import de.tectoast.emolga.features.draft.SignupManager.Button
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
@@ -180,7 +181,7 @@ object PrivateCommands {
         if (wasFull) {
             val channel = jda.getTextChannelById(signup.announceChannel)!!
             channel.editMessageComponentsById(
-                signup.announceMessageId, SignupManager.Button().into()
+                signup.announceMessageId, Button().into()
             ).queue()
         }
         signup.updateSignupMessage()
@@ -585,6 +586,46 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun updateFlegmonSlash() {
         EmolgaMain.featureManager().updateFeatures(flegmonjda)
+    }
+
+    // Order:
+    // Announcechannel mit Button
+    // Channel in dem die Anmeldungen reinkommen
+    // AnzahlTeilnehmer
+    // Message
+    context(InteractionData)
+    suspend fun createSignup(args: PrivateData) {
+        val tc = jda.getTextChannelById(args[0])!!
+        val maxUsers = args[2].toInt()
+        val text = args.drop(3).joinToString(" ").replace("\\n", "\n")
+        val messageid =
+            tc.sendMessage(
+                text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**")
+                .addActionRow(Button()).await().idLong
+        db.signups.insertOne(
+            LigaStartData(
+                guild = tc.guild.idLong,
+                signupChannel = args[1].toLong(),
+                signupMessage = text,
+                announceChannel = tc.idLong,
+                announceMessageId = messageid,
+                maxUsers = maxUsers,
+            )
+        )
+    }
+
+    context(InteractionData)
+    suspend fun fixLogos() {
+        val lsData = db.signups.only()
+        val tc = jda.getTextChannelById(lsData.signupChannel)!!
+        val messages = tc.iterableHistory.takeWhileAsync { it.author.idLong == jda.selfUser.idLong }.await()
+        for (m in messages) {
+            if (m.attachments.isEmpty()) continue
+            val hash = m.attachments.first().url.substringBefore("?").substringAfterLast("/").substringBefore(".")
+            val uid = m.mentions.users.first().idLong
+            lsData.users.first { it.users.contains(uid) }.logoChecksum = hash
+        }
+        lsData.save()
     }
 
 }

@@ -49,6 +49,7 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
         reply("Das Logo wurde erfolgreich hochgeladen!", ephemeral = true)
         val checksum = uploadToCloud(logoData)
         signUpData.logoChecksum = checksum
+        lsData.save()
     }
 
     suspend fun uploadToCloud(
@@ -90,8 +91,8 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
                         reply("Das Logo konnte nicht heruntergeladen werden!", ephemeral = true)
                         return@withContext null
                     }
-                    if (!ignoreRequirements && bytes.size > 1024 * 1024 * 5) {
-                        reply("Das Logo darf nicht größer als 3MB sein!", ephemeral = true)
+                    if (!ignoreRequirements && bytes.size > 1024 * 1024 * 10) {
+                        reply("Das Logo darf nicht größer als 10MB sein!", ephemeral = true)
                         return@withContext null
                     }
                     bytes

@@ -375,6 +375,12 @@ sealed interface LogoSettings {
                 tc.editMessage(mid.toString(), getMsgTitle(data)).queue()
             }
         }
+
+        override fun handleSignupRemoved(data: SignUpData) {
+            val tc = jda.getTextChannelById(channelId)
+                ?: return logger.warn { "Channel $channelId for LogoSettings not found" }
+            data.logomid?.let { mid -> tc.deleteMessageById(mid).queue() }
+        }
     }
 
     @Serializable
@@ -391,6 +397,7 @@ sealed interface LogoSettings {
 
     suspend fun handleLogo(lsData: LigaStartData, data: SignUpData, logoData: LogoCommand.LogoInputData)
     fun handleSignupChange(data: SignUpData) {}
+    fun handleSignupRemoved(data: SignUpData) {}
 }
 
 @Serializable
@@ -506,6 +513,24 @@ data class LigaStartData(
         jda.getTextChannelById(signupChannel)!!.editMessageById(data.signupmid!!, data.toMessage(this)).queue()
         logoSettings?.handleSignupChange(data)
         save()
+    }
+
+    suspend fun handleSignupChange(uid: Long) {
+        users.firstOrNull { it.users.contains(uid) }?.let { handleSignupChange(it) }
+    }
+
+    suspend fun deleteUser(uid: Long) {
+        val data = users.firstOrNull { it.users.contains(uid) } ?: return
+        data.users.remove(uid)
+        if (data.users.isEmpty()) {
+            data.signupmid?.let { jda.getTextChannelById(signupChannel)!!.deleteMessageById(it).queue() }
+            logoSettings?.handleSignupRemoved(data)
+            users.remove(data)
+            save()
+        } else {
+            handleSignupChange(data)
+        }
+        updateSignupMessage()
     }
 
     val full get() = maxUsers > 0 && users.size >= maxUsers

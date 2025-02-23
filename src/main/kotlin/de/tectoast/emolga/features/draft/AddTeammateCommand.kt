@@ -24,6 +24,7 @@ object AddTeammateCommand : CommandFeature<AddTeammateCommand.Args>(
             db.signups.get(gid) ?: return reply("Es läuft derzeit keine Anmeldung auf diesem Server!", ephemeral = true)
         val data = lsData.getDataByUser(user) ?: return reply("Du bist nicht angemeldet!")
         val member = e.user
+        if (lsData.getDataByUser(member.idLong) != null) return reply("${member.asMention} ist bereits angemeldet!")
         lsData.handleNewUserInTeam(member, data)
         reply("Du hast ${member.asMention} zu deinem Team hinzugefügt!", ephemeral = true)
     }

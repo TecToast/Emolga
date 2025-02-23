@@ -82,7 +82,6 @@ class IntervalTask(name: String, provideNextExecution: () -> Instant, consumer: 
                     "Glaubst du auch noch daran?",
             "Der Literaturnobelpreis holt sich nicht von alleine! \uD83E\uDEE1 ",
             "Vergangenheits-Lorelay sagt: \"Schreib was!\"",
-            "Wär´s nicht cool, dein zweites Buch mit 20 rauszuhauen? \uD83D\uDE0E",
             "Wir beide wissen, dass sowohl dein Geist als auch dein Vokabular dadurch gut ausgelastet werden..."
         )
 

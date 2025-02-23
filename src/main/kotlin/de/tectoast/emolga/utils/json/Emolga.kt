@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package de.tectoast.emolga.utils.json
 
 import de.tectoast.emolga.bot.jda
@@ -28,9 +30,7 @@ import dev.minn.jda.ktx.messages.reply_
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.datetime.Instant
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Member
@@ -411,6 +411,7 @@ data class LigaStartData(
     val logoSettings: LogoSettings? = null,
     var maxUsers: Int,
     val participantRole: Long? = null,
+    @EncodeDefault
     var conferences: List<String> = listOf(),
     var conferenceRoleIds: Map<String, Long> = mapOf(),
     val signupStructure: List<SignUpInput> = listOf(),

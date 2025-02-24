@@ -12,6 +12,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
 import mu.KotlinLogging
 import java.util.*
 import kotlin.time.Duration
@@ -82,8 +84,9 @@ class RepeatTask(
         scope.cancel("Clear called")
     }
 
-    fun findNearestTimestamp(now: Instant = Clock.System.now()): Int? {
-        return taskTimestamps.ceilingEntry(now - 5.hours)?.value
+    fun findNearestTimestampOnSameDay(now: Instant = Clock.System.now()): Int? {
+        val entry = taskTimestamps.ceilingEntry(now - 1.hours)
+        return entry?.value?.takeIf { entry.key.daysUntil(now, TimeZone.UTC) == 0 }
     }
 
     companion object {
@@ -131,7 +134,10 @@ class RepeatTask(
                                 true,
                             ) { gameday ->
                                 League.executeOnFreshLock({ refresh() }) {
-                                    executeYoutubeSend(ytTC, gameday, battle, VideoProvideStrategy.Fetch)
+                                    val ytData =
+                                        persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
+                                            ?: return@executeOnFreshLock
+                                    executeYoutubeSend(ytTC, gameday, battle, VideoProvideStrategy.Subscribe(ytData))
                                 }
                             }
                         }

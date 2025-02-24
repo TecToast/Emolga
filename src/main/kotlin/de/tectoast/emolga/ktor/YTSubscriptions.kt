@@ -34,6 +34,7 @@ import org.litote.kmongo.exists
 import org.litote.kmongo.serialization.TemporalExtendedJsonSerializer
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import kotlin.time.Duration.Companion.minutes
 
 private val logger = KotlinLogging.logger {}
 
@@ -86,6 +87,16 @@ fun Route.ytSubscriptions() {
                 logger.info("Link: $link")
                 logger.info("Published: $published")
                 logger.info("Updated: $updated")
+                try {
+                    val pub = Instant.parse(published)
+                    val upd = Instant.parse(updated)
+                    if (upd - pub > 5.minutes) {
+                        logger.warn("Video $link is updated, ignoring")
+                        return@forEach
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error parsing date in YT", e)
+                }
                 if (ignoreDuplicatesMongo {
                         db.ytvideos.insertOne(YTVideo(channelId, videoId, title, Instant.parse(published)))
                     }) {
@@ -105,7 +116,7 @@ suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
     League.executeOnFreshLock({ db.leagueByGuild(gid, uid)!! }) {
         logger.info("League found: $leaguename")
         val idx = this(uid)
-        val data = RepeatTask.getTask(leaguename, RepeatTaskType.BattleRegister)?.findNearestTimestamp()
+        val data = RepeatTask.getTask(leaguename, RepeatTaskType.BattleRegister)?.findNearestTimestampOnSameDay()
             ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
             ?: return SendFeatures.sendToMe(
                 "No ReplayData found for $uid in $leaguename"

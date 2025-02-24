@@ -4,7 +4,6 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.draft.SignupManager.Button
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
@@ -626,6 +625,13 @@ object PrivateCommands {
             lsData.users.first { it.users.contains(uid) }.logoChecksum = hash
         }
         lsData.save()
+    }
+
+    context(InteractionData)
+    suspend fun printTables(args: PrivateData) {
+        reply(db.drafts.find(League::guild eq args().toLong()).toList().joinToString("\n") {
+            it.leaguename + " " + it.table.joinToString { m -> "<@$m>" }
+        })
     }
 
 }

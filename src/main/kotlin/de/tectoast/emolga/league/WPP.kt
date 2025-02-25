@@ -23,7 +23,6 @@ class WPP : League() {
         strategy: VideoProvideStrategy,
         overrideEnabled: Boolean
     ) {
-        val b = builder()
         val ytVideoSaveData = persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
         if (!overrideEnabled && ytVideoSaveData?.enabled != true) return logger.info("ExecuteYTSend: Not enabled")
         ytVideoSaveData?.enabled = false
@@ -45,7 +44,6 @@ class WPP : League() {
                 append("\n")
             }
         }).queue()
-        b.execute()
         save("YTSubSave")
     }
 }

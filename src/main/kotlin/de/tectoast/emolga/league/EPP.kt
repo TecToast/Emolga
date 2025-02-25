@@ -53,7 +53,6 @@ class EPP(val spoilerSid: String) : League() {
         strategy: VideoProvideStrategy,
         overrideEnabled: Boolean
     ) {
-        val b = builder()
         val ytVideoSaveData = persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
         if (!overrideEnabled && ytVideoSaveData?.enabled != true) return logger.info("ExecuteYTSend: Not enabled")
         ytVideoSaveData?.enabled = false
@@ -75,7 +74,6 @@ class EPP(val spoilerSid: String) : League() {
                 append("\n")
             }
         }).queue()
-        b.execute()
         save("YTSubSave")
     }
 

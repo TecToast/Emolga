@@ -13,7 +13,7 @@ class WPP : League() {
     override val teamsize = 11
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
-        addSingle(data.roundIndex.minus(1).CoordXMod("Draft", 4, 5, 3, 11, 4 + data.indexInRound), data.pokemon)
+        addSingle(data.roundIndex.CoordXMod("Draft", 4, 5, 3, 11, 4 + data.indexInRound), data.pokemon)
     }
 
     override suspend fun executeYoutubeSend(

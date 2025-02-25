@@ -29,6 +29,7 @@ import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionE
 import net.dv8tion.jda.api.interactions.callbacks.IDeferrableCallback
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
@@ -45,6 +46,7 @@ class TierlistBuilderConfigurator(
     val mons: List<String>,
     val tierlistcols: List<List<String>>,
     val shiftedMons: List<DraftPokemon>? = null,
+    val tlIdentifier: String? = null,
     private val tierMapper: (suspend (String) -> ExternalTierlistData?)? = null
 ) : DGuildConfigurator("tierlistbuilder", userId, channelId, guildId) {
     override val steps: List<Step<*>> = listOf(step<SlashCommandInteractionEvent> {
@@ -133,7 +135,7 @@ class TierlistBuilderConfigurator(
                 )
             ).queue()
         } else if (this is ButtonInteractionEvent) {
-            val oldTL = Tierlist[guildId]!!
+            val oldTL = Tierlist[guildId, tlIdentifier]!!
             tierlistMode = oldTL.mode
             prices = oldTL.prices
             freepicks = oldTL.freepicks
@@ -325,7 +327,7 @@ class TierlistBuilderConfigurator(
 
     private suspend fun saveToFile(fromPrevious: Boolean = false) {
         if (!fromPrevious) {
-            db.tierlist.insertOne(Tierlist(guildId).apply {
+            db.tierlist.insertOne(Tierlist(guildId, tlIdentifier).apply {
                 this.prices += this@TierlistBuilderConfigurator.prices!!
                 this@TierlistBuilderConfigurator.freepicks?.let { this.freepicks += it }
                 this@TierlistBuilderConfigurator.points?.let { this.points = it }
@@ -334,7 +336,7 @@ class TierlistBuilderConfigurator(
         }
         val shiftMap = shiftedMons?.associate { it.name to it.tier }
         newSuspendedTransaction {
-            Tierlist.deleteWhere { guild eq guildId }
+            Tierlist.deleteWhere { guild eq guildId and (identifierCol eq tlIdentifier) }
             Tierlist.batchInsert(
                 (tierlistcols.flatMapIndexed { index, strings ->
                     strings.map {
@@ -355,11 +357,12 @@ class TierlistBuilderConfigurator(
                 this[Tierlist.pokemon] = it.name
                 this[Tierlist.tier] = it.tier
                 this[Tierlist.type] = it.type
+                this[Tierlist.identifierCol] = tlIdentifier
             }
         }
         checkScope.launch {
             Tierlist.setup()
-            checkTL(guildId)
+            checkTL(guildId, tlIdentifier)
         }
     }
 
@@ -379,17 +382,22 @@ class TierlistBuilderConfigurator(
         val checkScope = createCoroutineScope("TierlistBuilder", Dispatchers.IO)
 
         fun defaultSendHandler(s: String) = SendFeatures.sendToMe(s.take(2000))
-        suspend inline fun checkTL(gid: Long, crossinline handle: (String) -> Unit = ::defaultSendHandler) {
-            checkTL(Tierlist[gid]!!.autoComplete(), gid, handle)
+        suspend inline fun checkTL(
+            gid: Long,
+            identifier: String? = null,
+            crossinline handle: (String) -> Unit = ::defaultSendHandler
+        ) {
+            checkTL(Tierlist[gid, identifier]!!.autoComplete(), gid, identifier, handle)
         }
 
         inline fun checkTL(
             coll: Collection<String>,
             gid: Long,
+            identifier: String? = null,
             crossinline handle: (String) -> Unit = ::defaultSendHandler
         ) {
             checkScope.launch {
-                val tl = Tierlist[gid]!!
+                val tl = Tierlist[gid, identifier]!!
                 handle(coll.map {
                     async {
                         val discordTranslation = NameConventionsDB.getDiscordTranslation(it, gid)

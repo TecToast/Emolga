@@ -1,11 +1,11 @@
 package de.tectoast.emolga.utils.draft
 
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -18,7 +18,7 @@ import kotlin.reflect.KProperty
 
 @Suppress("unused")
 @Serializable
-class Tierlist(val guildid: Long) {
+class Tierlist(val guildid: Long, val identifier: String? = null) {
 
     /**
      * The price for each tier
@@ -36,6 +36,7 @@ class Tierlist(val guildid: Long) {
     val order get() = prices.keys.toList()
 
     val freePicksAmount get() = freepicks["#AMOUNT#"] ?: 0
+    val basePredicate get() = guild eq guildid and (identifierCol eq identifier)
 
     @Transient
     private val _autoComplete = OneTimeCache { getAllForAutoComplete() }
@@ -46,7 +47,7 @@ class Tierlist(val guildid: Long) {
     val tlToOfficialCache = SizeLimitedMap<String, String>(1000)
 
     fun setup() {
-        tierlists[this.guildid] = this
+        tierlists.getOrPut(guildid) { mutableMapOf() }[identifier ?: ""] = this
     }
 
 
@@ -64,40 +65,41 @@ class Tierlist(val guildid: Long) {
             it[guild] = this@Tierlist.guildid
             it[pokemon] = mon
             it[this.tier] = tier
+            it[this.identifierCol] = identifier
         }
     }
 
     suspend fun getByTier(tier: String): List<String>? {
         return newSuspendedTransaction {
-            selectAll().where { guild eq guildid and (Tierlist.tier eq tier) }.map { it[pokemon] }.ifEmpty { null }
+            selectAll().where { basePredicate and (Tierlist.tier eq tier) }.map { it[pokemon] }.ifEmpty { null }
         }
     }
 
     private suspend fun getAllForAutoComplete() = newSuspendedTransaction {
-        val list = selectAll().where { guild eq guildid }.map { it[pokemon] }
+        val list = selectAll().where { basePredicate }.map { it[pokemon] }
         (list + NameConventionsDB.getAllOtherSpecified(list, language, guildid)).toSet()
     }
 
     suspend fun getTierOf(mon: String) =
         newSuspendedTransaction {
-            selectAll().where { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
+            selectAll().where { basePredicate and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
         }
 
 
     suspend fun retrieveTierlistMap(map: Map<String, Int>) = newSuspendedTransaction {
         map.entries.flatMap { (tier, amount) ->
-            selectAll().where { guild eq guildid and (Tierlist.tier eq tier) }.orderBy(Random()).limit(amount)
+            selectAll().where { basePredicate and (Tierlist.tier eq tier) }.orderBy(Random()).limit(amount)
                 .map { DraftPokemon(it[pokemon], tier) }
         }
     }
 
     suspend fun getWithTierAndType(providedTier: String, providedType: String) = newSuspendedTransaction {
-        selectAll().where { (guild eq guildid) and (tier eq providedTier) and (type eq providedType) }
+        selectAll().where { basePredicate and (tier eq providedTier) and (type eq providedType) }
             .map { it[pokemon] }
     }
 
     suspend fun retrieveAll() = newSuspendedTransaction {
-        selectAll().where { guild eq guildid }.map { DraftPokemon(it[pokemon], it[tier]) }
+        selectAll().where { basePredicate }.map { DraftPokemon(it[pokemon], it[tier]) }
     }
 
     suspend fun addOrUpdateTier(mon: String, tier: String) {
@@ -106,10 +108,10 @@ class Tierlist(val guildid: Long) {
             if (existing != tier) {
                 newSuspendedTransaction {
                     if (tier in order)
-                        update({ guild eq guildid and (pokemon eq mon) }) {
+                        update({ basePredicate and (pokemon eq mon) }) {
                             it[this.tier] = tier
                         }
-                    else deleteWhere { guild eq guildid and (pokemon eq mon) }
+                    else deleteWhere { basePredicate and (pokemon eq mon) }
                 }
             }
         } else {
@@ -118,11 +120,11 @@ class Tierlist(val guildid: Long) {
     }
 
     suspend fun deleteAllMons() = newSuspendedTransaction {
-        deleteWhere { guild eq guildid }
+        deleteWhere { basePredicate }
     }
 
     suspend fun getMonCount() = newSuspendedTransaction {
-        selectAll().where { guild eq guildid }.count().toInt()
+        selectAll().where { basePredicate }.count().toInt()
     }
 
     companion object : ReadOnlyProperty<League, Tierlist>, Table("tierlists") {
@@ -133,9 +135,10 @@ class Tierlist(val guildid: Long) {
         val pokemon = varchar("pokemon", 30)
         val tier = varchar("tier", 8)
         val type = varchar("type", 10).nullable()
+        val identifierCol = varchar("identifier", 30).nullable()
         private var setupCalled = false
 
-        val tierlists: MutableMap<Long, Tierlist> = mutableMapOf()
+        val tierlists: MutableMap<Long, MutableMap<String, Tierlist>> = mutableMapOf()
         private val REPLACE_NONSENSE = Regex("[^a-zA-Z\\d-:%ßäöüÄÖÜé ]")
         suspend fun setup() {
             tierlists.clear()
@@ -144,14 +147,14 @@ class Tierlist(val guildid: Long) {
         }
 
         override fun getValue(thisRef: League, property: KProperty<*>): Tierlist {
-            return get(thisRef.guild)!!
+            return get(thisRef.guild, thisRef.config.customTierlist?.identifier)!!
         }
 
         /**
          * Gets the tierlist for the given guild (or fetches it in case it's not in the cache, which is only possible in test env)
          */
-        operator fun get(guild: Long): Tierlist? {
-            return tierlists[guild]
+        operator fun get(guild: Long, identifier: String? = null): Tierlist? {
+            return tierlists[guild]?.get(identifier ?: "")
                 ?: if (setupCalled) null
                 else runBlocking { db.tierlist.findOne(Tierlist::guildid eq guild) }?.apply { setup() }
         }

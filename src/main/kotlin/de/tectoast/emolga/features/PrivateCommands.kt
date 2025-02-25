@@ -333,7 +333,7 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun checkTL(args: PrivateData) {
-        TierlistBuilderConfigurator.checkTL(args().toLong())
+        TierlistBuilderConfigurator.checkTL(args[0].toLong(), args.getOrNull(1))
     }
 
     context(InteractionData)

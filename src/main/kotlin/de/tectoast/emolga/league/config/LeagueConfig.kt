@@ -17,6 +17,7 @@ data class LeagueConfig(
     val randomPickRound: RandomPickRoundConfig? = null,
     val teraAndZ: TeraAndZ? = null,
     val youtube: YouTubeConfig? = null,
+    val customTierlist: CustomTierlistConfig? = null,
 )
 
 

@@ -91,7 +91,7 @@ fun Route.ytSubscriptions() {
                     val pub = Instant.parse(published)
                     val upd = Instant.parse(updated)
                     if (upd - pub > 5.minutes) {
-                        logger.warn("Video $link is updated, ignoring")
+                        logger.info("Video $link is updated, ignoring")
                         return@forEach
                     }
                 } catch (e: Exception) {

@@ -12,6 +12,9 @@ import kotlinx.serialization.Serializable
 class WPP : League() {
     override val teamsize = 11
 
+    override val duringTimerSkipMode = NEXT_PICK
+    override val afterTimerSkipMode = AFTER_DRAFT_ORDERED
+
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         addSingle(data.roundIndex.CoordXMod("Draft", 4, 5, 3, 11, 4 + data.indexInRound), data.pokemon)
     }

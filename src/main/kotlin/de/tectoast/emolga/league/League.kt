@@ -40,6 +40,7 @@ import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import org.bson.types.ObjectId
 import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.eq
+import org.litote.kmongo.ne
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.contracts.ExperimentalContracts
@@ -972,7 +973,9 @@ sealed class League {
             }
         }
 
-        suspend fun onlyChannel(tc: Long) = db.drafts.find(League::isRunning eq true, League::tcid eq tc).first()
+        suspend fun onlyChannel(tc: Long) =
+            db.drafts.find(League::draftState ne DraftState.OFF, League::tcid eq tc).first()
+
         context(InteractionData)
         suspend inline fun executeAsNotCurrent(asParticipant: Boolean, block: League.() -> Unit) {
             executeOnFreshLock({ onlyChannel(tc)?.takeIf { !asParticipant || user in it.table } }, {

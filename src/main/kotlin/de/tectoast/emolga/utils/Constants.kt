@@ -11,7 +11,7 @@ object Constants {
     const val TEST_CATID = 1171541834397401149
     const val MYTAG = "@tectoast"
 
-    val DRAFTADMINS = setOf(FLOID, M.HENNY, M.INK, M.OJI, M.TARI)
+    val DRAFTADMINS = setOf(FLOID, M.HENNY, 689440028505538574)
 
     object G {
         const val ADK = 883292170533077002

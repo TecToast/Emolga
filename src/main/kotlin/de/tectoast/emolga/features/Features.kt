@@ -412,7 +412,7 @@ open class Arguments {
         slashCommand(autocomplete = autocomplete ?: lambda@{ s, event ->
             val gid = event.guild!!.idLong
             val league = db.leagueForAutocomplete(event.channel.idLong, gid, event.user.idLong)
-            val tierlist = Tierlist[league?.guild ?: gid]
+            val tierlist = league?.tierlist ?: Tierlist[gid]
             val strings =
                 (tierlist?.autoComplete() ?: NameConventionsDB.allNameConventions()).filterContainsIgnoreCase(s)
             if (strings.size > 25) return@lambda listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")

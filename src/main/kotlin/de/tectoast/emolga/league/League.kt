@@ -102,8 +102,6 @@ sealed class League {
 
 
     val tc: TextChannel get() = jda.getTextChannelById(tcid) ?: error("No text channel found for guild $guild")
-    val currentTimerSkipMode: TimerSkipMode
-        get() = duringTimerSkipMode?.takeUnless { draftWouldEnd } ?: afterTimerSkipMode
 
     var tcid: Long = -1
 
@@ -146,7 +144,7 @@ sealed class League {
     var draftData: ResettableLeagueData = ResettableLeagueData()
     val persistentData: PersistentLeagueData = PersistentLeagueData()
 
-    val draftWouldEnd get() = isLastRound && order[round]!!.isEmpty()
+    val draftWouldEnd get() = isLastRound && order[round]!!.size == 1
 
     @Transient
     open val docEntry: DocEntry? = null
@@ -339,8 +337,12 @@ sealed class League {
             addToMoved()
             data.sendSkipMessage()
         }
-        val result = currentTimerSkipMode.run {
-            afterPickCall(data).also { save("AfterPickOfficial") }
+        val result = run {
+            val duringResult = duringTimerSkipMode?.run { afterPickCall(data).also { save("AfterPickOfficial") } }
+            if (duringResult == TimerSkipResult.SAME) return@run TimerSkipResult.SAME
+            if (draftWouldEnd) afterTimerSkipMode.run {
+                afterPickCall(data).also { save("AfterPickOfficial") }
+            } else duringResult
         }
         val ctm = System.currentTimeMillis()
         val timerRelated = this.draftData.timer
@@ -351,8 +353,8 @@ sealed class League {
             this@League.cancelCurrentTimer()
         }
         if (result == TimerSkipResult.NEXT) {
-            if (endOfTurn()) return
             nextUser()
+            if (endOfTurn()) return
         }
         if (result == TimerSkipResult.NOCONCRETE) {
             val randomOrder = moved.values.flatten().toSet().shuffled()
@@ -645,7 +647,7 @@ sealed class League {
 
     private fun addPunishableSkippedRound(data: NextPlayerData.Moved) {
         if (System.currentTimeMillis() > (config.timer?.getCurrentTimerInfo()?.startPunishSkipsTime
-                ?: 0) && (data.reason == SkipReason.REALTIMER || data.skippedBy != null)
+                ?: 0)
         ) punishableSkippedTurns.getOrPut(current) { mutableSetOf() } += round
     }
 
@@ -733,7 +735,7 @@ sealed class League {
         replyGeneral("den Pick übersprungen!")
     }
 
-    suspend fun getPickRoundOfficial() = currentTimerSkipMode.run { getPickRound().also { save("GET PICK ROUND") } }
+    suspend fun getPickRoundOfficial() = (duringTimerSkipMode).run { getPickRound().also { save("GET PICK ROUND") } }
 
     open fun provideReplayChannel(jda: JDA): TextChannel? = null
     open fun provideResultChannel(jda: JDA): TextChannel? = null
@@ -952,7 +954,7 @@ sealed class League {
             logger.info("leaguename {}", onlyChannel?.leaguename)
             return onlyChannel?.run {
                 val uid = user
-                if (pseudoEnd) {
+                if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
                     val data = afterTimerSkipMode.run { bypassCurrentPlayerCheck(uid) }
                     when (data) {
                         is BypassCurrentPlayerData.Yes -> {
@@ -1098,24 +1100,24 @@ interface AfterTimerSkipMode : TimerSkipMode {
 data object LAST_ROUND : DuringTimerSkipMode {
     override suspend fun League.afterPick(data: NextPlayerData): TimerSkipResult {
         if (isLastRound && data.isNormalPick() && hasMovedTurns()) {
+            movedTurns().removeFirst()
             return TimerSkipResult.SAME
         }
         return TimerSkipResult.NEXT
     }
 
-    override suspend fun League.getPickRound() =
-        if (round < totalRounds) round else movedTurns().removeFirstOrNull() ?: round
+    override suspend fun League.getPickRound() = if (round < totalRounds) round else movedTurns().firstOrNull() ?: round
 
 }
 
 @Serializable
 data object NEXT_PICK : DuringTimerSkipMode {
-    override suspend fun League.afterPick(data: NextPlayerData) =
-        if (data.isNormalPick() && hasMovedTurns()) {
-            TimerSkipResult.SAME
-        } else TimerSkipResult.NEXT
+    override suspend fun League.afterPick(data: NextPlayerData) = if (data.isNormalPick() && hasMovedTurns()) {
+        movedTurns().removeFirst()
+        TimerSkipResult.SAME
+    } else TimerSkipResult.NEXT
 
-    override suspend fun League.getPickRound(): Int = movedTurns().removeFirstOrNull() ?: round
+    override suspend fun League.getPickRound(): Int = movedTurns().firstOrNull() ?: round
 }
 
 @Serializable

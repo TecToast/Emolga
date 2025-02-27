@@ -1007,11 +1007,10 @@ sealed class DraftData(
     abstract val changedOnTeamsiteIndex: Int
 
     val displayName = OneTimeCache {
-        "$pokemon/${
-            NameConventionsDB.getSDTranslation(
-                pokemonofficial, league.guild, english = true
-            )!!.tlName
-        }"
+        val englishName = NameConventionsDB.getSDTranslation(
+            pokemonofficial, league.guild, english = true
+        )!!.tlName
+        pokemon.condAppend(pokemon != englishName, "/$englishName")
     }
 }
 

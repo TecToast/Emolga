@@ -14,7 +14,7 @@ object QueuePicks {
     object Command : CommandFeature<NoArgs>(
         NoArgs(), CommandSpec(
             "queuepicks", "Verwalte deine gequeueten Picks", Constants.G.ASL, Constants.G.NDS,
-            Constants.G.EPP
+            Constants.G.EPP, Constants.G.LOEWE
         )
     ) {
 

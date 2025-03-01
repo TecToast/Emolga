@@ -146,7 +146,7 @@ sealed class League {
     var draftData: ResettableLeagueData = ResettableLeagueData()
     val persistentData: PersistentLeagueData = PersistentLeagueData()
 
-    val draftWouldEnd get() = isLastRound && order[round]!!.isEmpty()
+    val draftWouldEnd get() = isLastRound && order[round]!!.size == 1
 
     @Transient
     open val docEntry: DocEntry? = null
@@ -339,8 +339,16 @@ sealed class League {
             addToMoved()
             data.sendSkipMessage()
         }
-        val result = currentTimerSkipMode.run {
-            afterPickCall(data).also { save("AfterPickOfficial") }
+        val result = if (draftWouldEnd) {
+            duringTimerSkipMode?.run {
+                val duringResult = afterPickCall(data)
+                if (duringResult == TimerSkipResult.SAME) return@run TimerSkipResult.SAME
+                afterTimerSkipMode.run {
+                    afterPickCall(data).also { save("AfterPickOfficial") }
+                }
+            }
+        } else {
+            duringTimerSkipMode?.run { afterPickCall(data) } ?: TimerSkipResult.NEXT
         }
         val ctm = System.currentTimeMillis()
         val timerRelated = this.draftData.timer
@@ -654,7 +662,7 @@ sealed class League {
 
     private suspend fun endOfTurn(): Boolean {
         logger.debug("End of turn")
-        if (order[round]!!.isEmpty()) {
+        if (order[round]!!.size == 1) {
             logger.debug("No more players")
             if (round == totalRounds) {
                 finishDraft(msg = "Der Draft ist vorbei!")
@@ -952,7 +960,7 @@ sealed class League {
             logger.info("leaguename {}", onlyChannel?.leaguename)
             return onlyChannel?.run {
                 val uid = user
-                if (pseudoEnd) {
+                if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
                     val data = afterTimerSkipMode.run { bypassCurrentPlayerCheck(uid) }
                     when (data) {
                         is BypassCurrentPlayerData.Yes -> {
@@ -1095,38 +1103,29 @@ interface AfterTimerSkipMode : TimerSkipMode {
 }
 
 @Serializable
-data object LAST_ROUND : DuringTimerSkipMode {
+data object NEXT_PICK : DuringTimerSkipMode {
     override suspend fun League.afterPick(data: NextPlayerData): TimerSkipResult {
-        if (isLastRound && data.isNormalPick() && hasMovedTurns()) {
-            return TimerSkipResult.SAME
-        }
-        return TimerSkipResult.NEXT
+        return if (data.isNormalPick() && hasMovedTurns()) {
+            movedTurns().removeFirstOrNull()
+            if (pseudoEnd && !hasMovedTurns()) TimerSkipResult.NEXT else TimerSkipResult.SAME
+        } else TimerSkipResult.NEXT
     }
 
-    override suspend fun League.getPickRound() =
-        if (round < totalRounds) round else movedTurns().removeFirstOrNull() ?: round
-
-}
-
-@Serializable
-data object NEXT_PICK : DuringTimerSkipMode {
-    override suspend fun League.afterPick(data: NextPlayerData) =
-        if (data.isNormalPick() && hasMovedTurns()) {
-            TimerSkipResult.SAME
-        } else TimerSkipResult.NEXT
-
-    override suspend fun League.getPickRound(): Int = movedTurns().removeFirstOrNull() ?: round
+    override suspend fun League.getPickRound(): Int = movedTurns().firstOrNull() ?: round
 }
 
 @Serializable
 data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
     override suspend fun League.afterPick(data: NextPlayerData): TimerSkipResult {
+        if (pseudoEnd && data.isNormalPick()) {
+            movedTurns().removeFirstOrNull()
+        }
         populateAfterDraft()
         return TimerSkipResult.NEXT
     }
 
 
-    override suspend fun League.getPickRound() = if (pseudoEnd) movedTurns().removeFirst()
+    override suspend fun League.getPickRound() = if (pseudoEnd) movedTurns().firstOrNull() ?: round
     else round
 
     private fun League.populateAfterDraft() {

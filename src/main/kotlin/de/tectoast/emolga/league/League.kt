@@ -359,8 +359,8 @@ sealed class League {
             this@League.cancelCurrentTimer()
         }
         if (result == TimerSkipResult.NEXT) {
-            if (endOfTurn()) return
             nextUser()
+            if (endOfTurn()) return
         }
         if (result == TimerSkipResult.NOCONCRETE) {
             val randomOrder = moved.values.flatten().toSet().shuffled()
@@ -662,7 +662,7 @@ sealed class League {
 
     private suspend fun endOfTurn(): Boolean {
         logger.debug("End of turn")
-        if (order[round]!!.size == 1) {
+        if (order[round]!!.isEmpty()) {
             logger.debug("No more players")
             if (round == totalRounds) {
                 finishDraft(msg = "Der Draft ist vorbei!")

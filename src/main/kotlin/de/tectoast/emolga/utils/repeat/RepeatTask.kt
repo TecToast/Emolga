@@ -105,18 +105,21 @@ class RepeatTask(
         suspend fun setupRepeatTasks() {
             db.drafts.find().toFlow().collect { l ->
                 val name = l.leaguename
-                suspend fun refresh() = db.league(name)
                 l.setupRepeatTasks()
                 l.config.tipgame?.let { tip ->
                     val duration = tip.interval
                     logger.info("Draft $name has tipgame with interval ${tip.interval} and duration $duration")
                     RepeatTask(
                         name, TipGameSending, tip.lastSending, tip.amount, duration, false
-                    ) { refresh().executeTipGameSending(it) }
+                    ) {
+                        League.executeOnFreshLock(name) { executeTipGameSending(it) }
+                    }
                     tip.lastLockButtons?.let { last ->
                         RepeatTask(
                             name, TipGameLockButtons, last, tip.amount, duration, false
-                        ) { refresh().executeTipGameLockButtons(it) }
+                        ) {
+                            League.executeOnFreshLock(name) { executeTipGameLockButtons(it) }
+                        }
                     }
                 }
                 l.config.replayDataStore?.let { data ->
@@ -130,7 +133,7 @@ class RepeatTask(
                             data.intervalBetweenGD,
                             false,
                         ) { gameday ->
-                            executeRegisterInDoc(refresh(), gameday, battle)
+                            League.executeOnFreshLock(name) { executeRegisterInDoc(this, gameday, battle) }
                         }
                         logger.info("YTSendChannel ${l.leaguename} $battle")
                         l.config.youtube?.sendChannel?.let { ytTC ->
@@ -142,7 +145,7 @@ class RepeatTask(
                                 data.intervalBetweenGD,
                                 true,
                             ) { gameday ->
-                                League.executeOnFreshLock({ refresh() }) {
+                                League.executeOnFreshLock(name) {
                                     val ytData =
                                         persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
                                             ?: return@executeOnFreshLock
@@ -153,8 +156,10 @@ class RepeatTask(
                     }
                     data.lastGamesMadeReminder?.let { last ->
                         RepeatTask(name, LastReminder, last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
-                            jda.getTextChannelById(last.channel)!!
-                                .sendMessage(refresh().buildStoreStatus(gameday)).queue()
+                            League.executeOnFreshLock(name) {
+                                jda.getTextChannelById(last.channel)!!
+                                    .sendMessage(buildStoreStatus(gameday)).queue()
+                            }
                         }
                     }
                 }

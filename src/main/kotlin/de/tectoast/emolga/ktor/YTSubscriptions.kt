@@ -4,7 +4,7 @@ import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
-import de.tectoast.emolga.league.config.ReplayDataStoreConfig
+import de.tectoast.emolga.league.config.YouTubeConfig
 import de.tectoast.emolga.utils.ignoreDuplicatesMongo
 import de.tectoast.emolga.utils.json.YTVideo
 import de.tectoast.emolga.utils.json.db
@@ -31,7 +31,7 @@ import kotlinx.datetime.Instant
 import mu.KotlinLogging
 import org.jsoup.Jsoup
 import org.litote.kmongo.div
-import org.litote.kmongo.eq
+import org.litote.kmongo.exists
 import org.litote.kmongo.serialization.TemporalExtendedJsonSerializer
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
@@ -45,7 +45,7 @@ private val ytClient = HttpClient(CIO) {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun setupYTSuscribtions() {
-    db.drafts.find(League::config / LeagueConfig::replayDataStore / ReplayDataStoreConfig::withYT eq true).toFlow()
+    db.drafts.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
         .flatMapMerge { it.table.asFlow().mapNotNull { u -> db.ytchannel.get(u)?.channelId } }
         .collect { subscribeToYTChannel(it); delay(1000) }
 }
@@ -147,15 +147,14 @@ object InstantAsDateSerializer : TemporalExtendedJsonSerializer<Instant>() {
 
 suspend fun subscribeToYTChannel(channelID: String) {
     val config = Credentials.tokens.subscriber
-    logger.info(
-        ytClient.post("https://pubsubhubbub.appspot.com/subscribe") {
-            setBody(FormDataContent(Parameters.build {
-                append("hub.callback", config.callback)
-                append("hub.mode", "subscribe")
-                append("hub.topic", "https://www.youtube.com/xml/feeds/videos.xml?channel_id=$channelID")
-                append("hub.verify", "async")
-                append("hub.secret", config.secret)
-            }))
-        }.bodyAsText()
-    )
+    ytClient.post("https://pubsubhubbub.appspot.com/subscribe") {
+        setBody(FormDataContent(Parameters.build {
+            append("hub.callback", config.callback)
+            append("hub.mode", "subscribe")
+            append("hub.topic", "https://www.youtube.com/xml/feeds/videos.xml?channel_id=$channelID")
+            append("hub.verify", "async")
+            append("hub.secret", config.secret)
+        }))
+    }.bodyAsText()
+
 }

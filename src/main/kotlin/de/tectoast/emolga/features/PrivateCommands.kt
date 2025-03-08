@@ -8,6 +8,7 @@ import de.tectoast.emolga.features.draft.SignupManager.Button
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
+import de.tectoast.emolga.ktor.setupYTSuscribtions
 import de.tectoast.emolga.ktor.subscribeToYTChannel
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
@@ -578,11 +579,6 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun executeBattleRegister(args: PrivateData) {
-        RepeatTask.executeRegisterInDoc(db.league(args[0]), args[1].toInt(), args[2].toInt())
-    }
-
-    context(InteractionData)
     suspend fun updateFlegmonSlash() {
         EmolgaMain.featureManager().updateFeatures(flegmonjda)
     }
@@ -632,6 +628,12 @@ object PrivateCommands {
         reply(db.drafts.find(League::guild eq args().toLong()).toList().joinToString("\n") {
             it.leaguename + " " + it.table.joinToString { m -> "<@$m>" }
         })
+    }
+
+
+    context(InteractionData)
+    suspend fun setupYouTubeSubscriptions(args: PrivateData) {
+        setupYTSuscribtions()
     }
 
 }

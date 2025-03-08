@@ -169,7 +169,8 @@ class RepeatTask(
             }
             val dataStore = league.persistentData.replayDataStore
             dataStore.data[gameday]?.get(battle)?.let {
-                it.ytVideoSaveData.enabled = true
+                if (league.config.youtube != null)
+                    it.ytVideoSaveData.enabled = true
                 val shouldSave = !it.checkIfBothVideosArePresent(league)
                 if (shouldDelay) delay(2000)
                 league.docEntry?.analyseWithoutCheck(listOf(it))

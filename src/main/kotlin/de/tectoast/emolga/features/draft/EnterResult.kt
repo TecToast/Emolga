@@ -2,11 +2,11 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.ResultEntry
 import de.tectoast.emolga.utils.StateStore
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.emolga.reverseGet
 import de.tectoast.emolga.utils.process
 import dev.minn.jda.ktx.coroutines.await
@@ -16,7 +16,7 @@ object EnterResult {
     object ResultCommand : CommandFeature<ResultCommand.Args>(
         ::Args, CommandSpec(
             "result", "Startet die interaktive Ergebniseingabe", Constants.G.VIP, Constants.G.COMMUNITY,
-            Constants.G.EPP
+            Constants.G.EPP, Constants.G.LOEWE
         )
     ) {
         private val nameCache = mutableMapOf<String, Map<Long, String>>() // guild -> uid -> name

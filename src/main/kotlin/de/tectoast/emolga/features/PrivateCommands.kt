@@ -22,7 +22,6 @@ import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
-import de.tectoast.emolga.utils.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
@@ -460,7 +459,7 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun executeTipGameSending(args: PrivateData) {
-        db.league(args[0]).executeTipGameSending(args[1].toInt())
+        db.league(args[0]).executeTipGameSending(args[1].toInt(), args.getOrNull(2)?.toLong())
     }
 
     context(InteractionData)

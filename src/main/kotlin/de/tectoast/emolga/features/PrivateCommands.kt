@@ -579,7 +579,7 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun executeBattleRegister(args: PrivateData) {
-        RepeatTask.executeBattleRegister(db.league(args[0]), args[1].toInt(), args[2].toInt())
+        RepeatTask.executeRegisterInDoc(db.league(args[0]), args[1].toInt(), args[2].toInt())
     }
 
     context(InteractionData)

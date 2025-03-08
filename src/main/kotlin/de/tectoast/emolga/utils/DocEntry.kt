@@ -12,6 +12,8 @@ import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
+import de.tectoast.emolga.utils.repeat.RepeatTask
+import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -85,11 +87,16 @@ class DocEntry private constructor(val league: League) {
 
 
     suspend fun analyse(replayData: List<ReplayData>, withSort: Boolean = true) {
-        if (league.config.replayDataStore != null) {
+        val store = league.config.replayDataStore
+        if (store != null) {
             replayData.forEach(league::storeMatch)
             league.save("DocEntry#Analyse")
             spoilerDocSid?.let { analyseWithoutCheck(replayData, withSort, overrideSid = it) }
-            return
+            val gameday = replayData.first().gamedayData.gameday
+            val currentDay = RepeatTask.getTask(league.leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfWeek()
+                ?: Int.MAX_VALUE
+            if (currentDay <= gameday)
+                return
         }
         analyseWithoutCheck(replayData, withSort)
     }

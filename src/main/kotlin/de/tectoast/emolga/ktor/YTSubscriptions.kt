@@ -4,6 +4,7 @@ import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
+import de.tectoast.emolga.league.config.ReplayDataStoreConfig
 import de.tectoast.emolga.utils.ignoreDuplicatesMongo
 import de.tectoast.emolga.utils.json.YTVideo
 import de.tectoast.emolga.utils.json.db
@@ -30,7 +31,7 @@ import kotlinx.datetime.Instant
 import mu.KotlinLogging
 import org.jsoup.Jsoup
 import org.litote.kmongo.div
-import org.litote.kmongo.exists
+import org.litote.kmongo.eq
 import org.litote.kmongo.serialization.TemporalExtendedJsonSerializer
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
@@ -44,7 +45,7 @@ private val ytClient = HttpClient(CIO) {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun setupYTSuscribtions() {
-    db.drafts.find(League::config / LeagueConfig::replayDataStore exists true).toFlow()
+    db.drafts.find(League::config / LeagueConfig::replayDataStore / ReplayDataStoreConfig::withYT eq true).toFlow()
         .flatMapMerge { it.table.asFlow().mapNotNull { u -> db.ytchannel.get(u)?.channelId } }
         .collect { subscribeToYTChannel(it); delay(1000) }
 }
@@ -116,10 +117,10 @@ suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
     League.executeOnFreshLock({ db.leagueByGuild(gid, uid)!! }) {
         logger.info("League found: $leaguename")
         val idx = this(uid)
-        val data = RepeatTask.getTask(leaguename, RepeatTaskType.BattleRegister)?.findNearestTimestampOnSameDay()
+        val data = RepeatTask.getTask(leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfDay()
             ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
             ?: return SendFeatures.sendToMe(
-                "No ReplayData found for $uid in $leaguename"
+                "No ReplayData found for <@$uid> ($uid) in $leaguename"
             )
         val ytSave = data.ytVideoSaveData
         ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(

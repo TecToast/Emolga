@@ -5,9 +5,9 @@ import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.emolga.increment
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.toCoord
@@ -381,7 +381,7 @@ object Analysis {
                     }
                 }
             }
-            if (line.startsWith("|detailschange|")) {
+            if (line.startsWith("|detailschange|") || line.startsWith("|-formechange|")) {
                 val (player, _) = split[1].parsePokemonLocation()
                 val oldMonName = split[1].substringAfter(" ")
                 allMons[player]?.firstOrNull { it.hasName(oldMonName) || it.pokemon.startsWith(oldMonName) }?.otherNames?.add(

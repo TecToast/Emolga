@@ -115,10 +115,11 @@ class ResultEntry : StateStore {
     @Transient
     private val defaultComponents: Cache<List<ActionRow>> = OneTimeCache {
         uidxs.mapIndexed { index, idx ->
-            ActionRow.of(EnterResult.ResultMenu(
-                "${if (index == 0) "Deine" else "Gegnerische"} Pokemon",
-                options = picks()[idx]!!,
-            ) { this.userindex = index })
+            ActionRow.of(
+                EnterResult.ResultMenu(
+                    "${if (index == 0) "Deine" else "Gegnerische"} Pokemon",
+                    options = picks()[idx]!!,
+                ) { this.userindex = index })
         } + listOf(ActionRow.of(EnterResult.ResultFinish("Ergebnis bestätigen", ButtonStyle.PRIMARY) {
             mode = EnterResult.ResultFinish.Mode.CHECK
         }))
@@ -130,6 +131,11 @@ class ResultEntry : StateStore {
         uidxs += l(user)
         uidxs += l(opponent)
         gamedayData = l.getGamedayData(uidxs[0], uidxs[1], wifiPlayers)
+        if (gamedayData.gameday == -1) {
+            reply("Im Spielplan ist kein Kampf zwischen dir und <@$opponent> geplant!", ephemeral = true)
+            delete()
+            return
+        }
         reply(embeds = buildEmbed(), components = defaultComponents(), ephemeral = true)
     }
 
@@ -149,13 +155,14 @@ class ResultEntry : StateStore {
     fun handleSelect(e: EnterResult.ResultMenu.Args) {
         val selected = e.selected
         val userindex = e.userindex
-        replyModal(EnterResult.ResultModal(
-            "Ergebnis für ${selected.substringAfterLast("#")}",
-            mapOf(EnterResult.Remove to data[userindex].any { it.official == selected.substringBefore("#") })
-        ) {
-            this.userindex = userindex
-            this.selected = selected
-        })
+        replyModal(
+            EnterResult.ResultModal(
+                "Ergebnis für ${selected.substringAfterLast("#")}",
+                mapOf(EnterResult.Remove to data[userindex].any { it.official == selected.substringBefore("#") })
+            ) {
+                this.userindex = userindex
+                this.selected = selected
+            })
     }
 
     context(InteractionData)
@@ -211,13 +218,13 @@ class ResultEntry : StateStore {
                         ReplayData(
                             game = game,
                             uindices = uidxs,
-                        kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
-                        mons = data.map { l -> l.map { it.official } },
-                        url = "WIFI",
-                        gamedayData = gamedayData.apply {
-                            numbers = game.map { it.alivePokemon }
-                                .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
-                        })
+                            kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
+                            mons = data.map { l -> l.map { it.official } },
+                            url = "WIFI",
+                            gamedayData = gamedayData.apply {
+                                numbers = game.map { it.alivePokemon }
+                                    .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
+                            })
                     )
                 )
             }
@@ -324,7 +331,8 @@ class NominateState : StateStore {
 
     context(InteractionData)
     fun render() {
-        edit(embeds = Embed(
+        edit(
+            embeds = Embed(
             title = "Nominierungen", color = embedColor, description = generateDescription()
         ).into(), components = mons.map {
             val s = it.name
@@ -335,11 +343,12 @@ class NominateState : StateStore {
             }
         }.intoMultipleRows().toMutableList().apply {
             add(
-                ActionRow.of(Nominate.NominateButton(
-                    buttonStyle = ButtonStyle.SUCCESS,
-                    emoji = Emoji.fromUnicode("✅"),
-                    disabled = nominated.size != 11
-                ) { mode = Nominate.NominateButton.Mode.FINISH; data = "NOTNOW" })
+                ActionRow.of(
+                    Nominate.NominateButton(
+                        buttonStyle = ButtonStyle.SUCCESS,
+                        emoji = Emoji.fromUnicode("✅"),
+                        disabled = nominated.size != 11
+                    ) { mode = Nominate.NominateButton.Mode.FINISH; data = "NOTNOW" })
             )
         })
     }
@@ -439,11 +448,13 @@ class QueuePicks : StateStore {
     private fun buildButtons(tlName: String): List<ActionRow> {
         val first = currentState.firstOrNull()?.g?.tlName == tlName
         val last = currentState.lastOrNull()?.g?.tlName == tlName
-        return listOf(ActionRow.of(QueuePicks.ControlButton(
-            "Hoch", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬆"), disabled = first
-        ) {
-            mon = tlName; controlMode = UP
-        },
+        return listOf(
+            ActionRow.of(
+                QueuePicks.ControlButton(
+                    "Hoch", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬆"), disabled = first
+                ) {
+                    mon = tlName; controlMode = UP
+                },
             QueuePicks.ControlButton("Runter", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬇"), disabled = last) {
                 mon = tlName; controlMode = DOWN
             },
@@ -505,7 +516,8 @@ class QueuePicks : StateStore {
                 this.mon = e.mon
             })
         }
-        edit(embeds = buildStateEmbed(currentMon),
+        edit(
+            embeds = buildStateEmbed(currentMon),
             components = currentMon?.let { buildButtons(it) } ?: buildSelectMenu())
     }
 

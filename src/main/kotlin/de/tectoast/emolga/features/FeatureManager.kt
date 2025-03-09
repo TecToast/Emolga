@@ -4,7 +4,6 @@ package de.tectoast.emolga.features
 
 import com.google.common.reflect.ClassPath
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
@@ -111,9 +110,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                 }
             } catch (ex: Exception) {
                 reply(
-                    "Es ist ein Fehler beim Ausführen der Interaktion aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (${Constants.MYTAG}).".condAppend(
-                        data.user == Constants.FLOID, "\nJa Flo, du sollst dich auch bei ihm melden :^)"
-                    ),
+                    "Es ist ein Fehler beim Ausführen der Interaktion aufgetreten!\nDieser wurde bereits gemeldet und sollte zeitnah behoben werden.",
                     ephemeral = true
                 )
                 logger.error(

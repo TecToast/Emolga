@@ -184,7 +184,7 @@ class ResultEntry : StateStore {
 
     context(InteractionData)
     suspend fun handleFinish(e: EnterResult.ResultFinish.Args) {
-        if (checkConditionsForFinish()) return
+        if (invalidConditionsForFinish()) return
         val league = league()
         when (e.mode) {
             EnterResult.ResultFinish.Mode.CHECK -> {
@@ -234,12 +234,16 @@ class ResultEntry : StateStore {
     }
 
     context(InteractionData)
-    private fun checkConditionsForFinish(): Boolean {
+    private fun invalidConditionsForFinish(): Boolean {
         if (data[0].isEmpty() || data[1].isEmpty()) return reply(
             "Du hast noch keine Daten eingeben!", ephemeral = true
         ).let { true }
         if ((0..1).any { data[it].kills != data[1 - it].dead }) return reply(
             "Die Kills und Tode müssen übereinstimmen!", ephemeral = true
+        ).let { true }
+        if (data[0].size != data[1].size) return reply(
+            "Die Anzahl der Pokemon muss übereinstimmen!",
+            ephemeral = true
         ).let { true }
         return false
     }

@@ -19,6 +19,7 @@ import org.slf4j.event.Level
 
 object Ktor {
     var devMode = false
+    val injectedRouteHandlers: MutableMap<String, suspend ApplicationCall.() -> Unit> = mutableMapOf()
     var oauth2Secret: String? = null
     var server: ApplicationEngine? = null
 

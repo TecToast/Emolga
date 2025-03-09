@@ -29,6 +29,11 @@ fun Route.emolgaAPI() {
         get("/validateuser") {
             call.respond(GuildManagerDB.isUserAuthorized(call.userId))
         }
+        Ktor.injectedRouteHandlers.forEach { (path, handler) ->
+            get(path) {
+                handler(call)
+            }
+        }
         get("/guilds") {
             val guilds = GuildManagerDB.getGuildsForUser(call.userId)
             call.respond(guilds.mapNotNull {

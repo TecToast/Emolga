@@ -1137,7 +1137,7 @@ data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
             }
         }
         order += coll
-        if (order.isNotEmpty() && draftState != DraftState.PSEUDOEND) {
+        if (coll.isNotEmpty() && draftState != DraftState.PSEUDOEND) {
             draftState = DraftState.PSEUDOEND
             tc.sendMessage("Die regulären Picks sind nun vorbei, nun werden die fehlenden Picks (in der Reihenfolge wie sie übersprungen wurden) nachgeholt.")
                 .queue()

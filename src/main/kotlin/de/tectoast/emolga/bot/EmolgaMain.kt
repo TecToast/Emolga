@@ -65,9 +65,11 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         }
         emolgajda.listener<ReadyEvent> {
             logger.info("important".marker, "Emolga is now online!")
-            db.drafts.find(League::draftState ne DraftState.OFF).toFlow().collect {
+            db.league.find(League::draftState ne DraftState.OFF).toFlow().collect {
                 logger.info("important".marker, "Starting draft ${it.leaguename}...")
-                it.startDraft(null, true, null)
+                League.executeOnFreshLock({ it }) {
+                    startDraft(null, true, null)
+                }
             }
         }
         flegmonjda = default(Credentials.tokens.discordflegmon) {

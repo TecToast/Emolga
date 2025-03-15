@@ -142,7 +142,7 @@ class LeagueCreator(
                 (collection.insertOne(DefaultLeague()).insertedId!! as BsonObjectId).value.toString()
             }
             if (copyonly) {
-                val realCollection = db.drafts
+                val realCollection = db.league
                 realCollection.insertOne(collection.findOne("{_id: ObjectId('$saveJSON')}")!!)
                 return@forEachIndexed
             }

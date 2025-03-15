@@ -17,7 +17,6 @@ import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.league.config.QueuePicksUserData
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.Nominations
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
@@ -26,7 +25,8 @@ import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
-import org.litote.kmongo.*
+import org.litote.kmongo.and
+import org.litote.kmongo.eq
 
 @Serializable
 sealed class StateStore {
@@ -185,7 +185,6 @@ class ResultEntry : StateStore {
     context(InteractionData)
     suspend fun handleFinish(e: EnterResult.ResultFinish.Args) {
         if (invalidConditionsForFinish()) return
-        val league = league()
         when (e.mode) {
             EnterResult.ResultFinish.Mode.CHECK -> {
                 val originalComponents = defaultComponents()
@@ -199,34 +198,36 @@ class ResultEntry : StateStore {
             }
 
             EnterResult.ResultFinish.Mode.YES -> {
-                if (league.config.replayDataStore != null) reply(
-                    "Das Ergebnis des Kampfes wurde gespeichert! Du kannst nun die Eingabe-Nachricht verwerfen.",
-                    ephemeral = true
-                )
-                else {
-                    reply(generateFinalMessage())
-                }
-                delete()
-                val game = data.mapIndexed { index, d ->
-                    wifiPlayers[index].apply {
-                        alivePokemon = d.size - d.dead
-                        winner = d.size != d.dead
-                    }
-                }
-                league.docEntry?.analyse(
-                    listOf(
-                        ReplayData(
-                            game = game,
-                            uindices = uidxs,
-                            kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
-                            mons = data.map { l -> l.map { it.official } },
-                            url = "WIFI",
-                            gamedayData = gamedayData.apply {
-                                numbers = game.map { it.alivePokemon }
-                                    .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
-                            })
+                League.executeOnFreshLock(leaguename) {
+                    if (config.replayDataStore != null) reply(
+                        "Das Ergebnis des Kampfes wurde gespeichert! Du kannst nun die Eingabe-Nachricht verwerfen.",
+                        ephemeral = true
                     )
-                )
+                    else {
+                        reply(generateFinalMessage())
+                    }
+                    delete()
+                    val game = data.mapIndexed { index, d ->
+                        wifiPlayers[index].apply {
+                            alivePokemon = d.size - d.dead
+                            winner = d.size != d.dead
+                        }
+                    }
+                    docEntry?.analyse(
+                        listOf(
+                            ReplayData(
+                                game = game,
+                                uindices = uidxs,
+                                kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
+                                mons = data.map { l -> l.map { it.official } },
+                                url = "WIFI",
+                                gamedayData = gamedayData.apply {
+                                    numbers = game.map { it.alivePokemon }
+                                        .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
+                                })
+                        )
+                    )
+                }
             }
 
             EnterResult.ResultFinish.Mode.NO -> edit(components = defaultComponents())
@@ -337,24 +338,24 @@ class NominateState : StateStore {
     fun render() {
         edit(
             embeds = Embed(
-            title = "Nominierungen", color = embedColor, description = generateDescription()
-        ).into(), components = mons.map {
-            val s = it.name
-            val isNom = isNominated(s)
-            Nominate.NominateButton(s, if (isNom) ButtonStyle.PRIMARY else ButtonStyle.SECONDARY) {
-                data = s; this.mode =
-                if (isNom) Nominate.NominateButton.Mode.UNNOMINATE else Nominate.NominateButton.Mode.NOMINATE
-            }
-        }.intoMultipleRows().toMutableList().apply {
-            add(
-                ActionRow.of(
-                    Nominate.NominateButton(
-                        buttonStyle = ButtonStyle.SUCCESS,
-                        emoji = Emoji.fromUnicode("✅"),
-                        disabled = nominated.size != 11
-                    ) { mode = Nominate.NominateButton.Mode.FINISH; data = "NOTNOW" })
-            )
-        })
+                title = "Nominierungen", color = embedColor, description = generateDescription()
+            ).into(), components = mons.map {
+                val s = it.name
+                val isNom = isNominated(s)
+                Nominate.NominateButton(s, if (isNom) ButtonStyle.PRIMARY else ButtonStyle.SECONDARY) {
+                    data = s; this.mode =
+                    if (isNom) Nominate.NominateButton.Mode.UNNOMINATE else Nominate.NominateButton.Mode.NOMINATE
+                }
+            }.intoMultipleRows().toMutableList().apply {
+                add(
+                    ActionRow.of(
+                        Nominate.NominateButton(
+                            buttonStyle = ButtonStyle.SUCCESS,
+                            emoji = Emoji.fromUnicode("✅"),
+                            disabled = nominated.size != 11
+                        ) { mode = Nominate.NominateButton.Mode.FINISH; data = "NOTNOW" })
+                )
+            })
     }
 
     private fun buildJSONList(): List<Int> {
@@ -364,17 +365,15 @@ class NominateState : StateStore {
     context(InteractionData)
     suspend fun finish(now: Boolean) {
         if (now) {
-            val nom = db.nds().nominations
-            val day = nom.current()
-            if (nomUser in day) return reply("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!")
-            db.drafts.updateOne(
-                db.ndsQuery, set(
-                    (NDS::nominations / Nominations::nominated).keyProjection(nom.currentDay)
-                        .keyProjection(nomUser) setTo buildJSONList()
-                )
-            )
-            delete()
-            return reply("Deine Nominierung wurde gespeichert!")
+            League.executeOnFreshLock({ db.nds() }) {
+                val nom = (this as NDS).nominations
+                val day = nom.current()
+                if (nomUser in day) return reply("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!")
+                day[nomUser] = buildJSONList()
+                save()
+                delete()
+                return reply("Deine Nominierung wurde gespeichert!")
+            }
         }
         if (nominated.size != 11) {
             reply(content = "Du musst exakt 11 Pokemon nominieren!", ephemeral = true)
@@ -459,21 +458,21 @@ class QueuePicks : StateStore {
                 ) {
                     mon = tlName; controlMode = UP
                 },
-            QueuePicks.ControlButton("Runter", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬇"), disabled = last) {
-                mon = tlName; controlMode = DOWN
-            },
-            QueuePicks.ControlButton(
-                "Neuen Platz auswählen",
-                ButtonStyle.SECONDARY,
-                Emoji.fromUnicode("1\uFE0F⃣")
-            ) {
-                mon = tlName; controlMode = MODAL
-            },
-            QueuePicks.ControlButton("Entfernen", ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
-                mon = tlName; controlMode = REMOVE
-            }), ActionRow.of(QueuePicks.ControlButton("Bestätigen", ButtonStyle.SUCCESS) {
-            controlMode = CANCEL
-        })
+                QueuePicks.ControlButton("Runter", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬇"), disabled = last) {
+                    mon = tlName; controlMode = DOWN
+                },
+                QueuePicks.ControlButton(
+                    "Neuen Platz auswählen",
+                    ButtonStyle.SECONDARY,
+                    Emoji.fromUnicode("1\uFE0F⃣")
+                ) {
+                    mon = tlName; controlMode = MODAL
+                },
+                QueuePicks.ControlButton("Entfernen", ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
+                    mon = tlName; controlMode = REMOVE
+                }), ActionRow.of(QueuePicks.ControlButton("Bestätigen", ButtonStyle.SUCCESS) {
+                controlMode = CANCEL
+            })
         )
     }
 

@@ -124,7 +124,7 @@ class SwitchTimer(val timerInfos: Map<String, TimerInfo>, var currentTimer: Stri
         color = embedColor
     }.into() to timerInfos.keys.map { name ->
         SwitchTimer.Button(label = name) {
-            this.league = league
+            this.league = league.leaguename
             this.switchTo = name
         }
     }.into()

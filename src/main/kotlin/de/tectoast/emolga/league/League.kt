@@ -46,6 +46,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.math.min
+import kotlin.time.measureTime
 
 enum class DraftState {
     OFF, ON, PSEUDOEND
@@ -76,6 +77,9 @@ sealed class League {
 
     @Transient
     var currentOverride: Int? = null
+
+    @Transient
+    var shouldSave = false
 
     abstract val teamsize: Int
     open val gamedays: Int by lazy { battleorder.let { if (it.isEmpty()) table.size - 1 else it.size } }
@@ -159,12 +163,6 @@ sealed class League {
     fun index(mem: Long) = table.indexOf(mem)
     operator fun invoke(mem: Long) = table.indexOf(mem)
     operator fun get(index: Int) = table[index]
-
-    suspend inline fun lock(block: League.() -> Unit) {
-        getLock(leaguename).withLock {
-            apply(block)
-        }
-    }
 
     fun RequestBuilder.newSystemPickDoc(data: DraftData, insertionIndex: Int = data.picks.size - 1): Int {
         val y = data.idx.y(newSystemGap, insertionIndex + 3)
@@ -435,59 +433,55 @@ sealed class League {
     suspend fun startDraft(
         tc: GuildMessageChannel?, fromFile: Boolean, switchDraft: Boolean?, nameGuildId: Long? = null
     ) {
-        lock {
-            switchDraft?.let { this.isSwitchDraft = it }
-            logger.info("Starting draft $leaguename...")
-            logger.info(tcid.toString())
-            if (!fromFile) {
-                names.clear()
-                names.addAll(if (table.any { it < 11_000_000_000 }) table.map { "${it - 10_000_000_000}" } else jda.getGuildById(
-                    nameGuildId ?: this.guild
-                )!!.retrieveMembersByIds(table).await().sortedBy { it.idLong.indexedBy(table) }
-                    .map { it.effectiveName })
-            }
-            logger.info(names.toString())
-            tc?.let { this.tcid = it.idLong }
-            for (idx in table.indices) {
-                if (fromFile || isSwitchDraft) picks.putIfAbsent(idx, mutableListOf())
-                else picks[idx] = mutableListOf()
-            }
-            val currentTimeMillis = System.currentTimeMillis()
-            if (!fromFile) {
-                order.clear()
-                order.putAll(originalorder.mapValues { it.value.toMutableList() })
-                round = 1
-                draftState = DraftState.ON
-                moved.clear()
-                draftData = ResettableLeagueData()
-                punishableSkippedTurns.clear()
-                reset()
-                sendRound()
-                if (tryQueuePick()) return
-                restartTimer()
-                announcePlayer()
-                save("StartDraft")
-            } else {
-                val timerRelated = draftData.timer
-                val delayData = if (timerRelated.cooldown > 0) DelayData(
-                    timerRelated.cooldown, timerRelated.regularCooldown, currentTimeMillis
-                ) else config.timer?.calc(
-                    this, currentTimeMillis
-                )
-                restartTimer(delayData)
-            }
-            logger.info("Started!")
+        switchDraft?.let { this.isSwitchDraft = it }
+        logger.info("Starting draft $leaguename...")
+        logger.info(tcid.toString())
+        if (!fromFile) {
+            names.clear()
+            names.addAll(if (table.any { it < 11_000_000_000 }) table.map { "${it - 10_000_000_000}" } else jda.getGuildById(
+                nameGuildId ?: this.guild
+            )!!.retrieveMembersByIds(table).await().sortedBy { it.idLong.indexedBy(table) }
+                .map { it.effectiveName })
         }
+        logger.info(names.toString())
+        tc?.let { this.tcid = it.idLong }
+        for (idx in table.indices) {
+            if (fromFile || isSwitchDraft) picks.putIfAbsent(idx, mutableListOf())
+            else picks[idx] = mutableListOf()
+        }
+        val currentTimeMillis = System.currentTimeMillis()
+        if (!fromFile) {
+            order.clear()
+            order.putAll(originalorder.mapValues { it.value.toMutableList() })
+            round = 1
+            draftState = DraftState.ON
+            moved.clear()
+            draftData = ResettableLeagueData()
+            punishableSkippedTurns.clear()
+            reset()
+            sendRound()
+            if (tryQueuePick()) return
+            restartTimer()
+            announcePlayer()
+            save("StartDraft")
+        } else {
+            val timerRelated = draftData.timer
+            val delayData = if (timerRelated.cooldown > 0) DelayData(
+                timerRelated.cooldown, timerRelated.regularCooldown, currentTimeMillis
+            ) else config.timer?.calc(
+                this, currentTimeMillis
+            )
+            restartTimer(delayData)
+        }
+        logger.info("Started!")
     }
 
     fun nextUser() {
         order[round]!!.removeAt(0)
     }
 
-    suspend fun save(from: String) {
-        val l = this@League
-        logger.debug { "Saving league from $from" }
-        db.drafts.updateOne(l)
+    fun save(from: String = "") {
+        shouldSave = true
     }
 
     override fun toString() = leaguename
@@ -912,23 +906,36 @@ sealed class League {
         suspend inline fun executeOnFreshLock(
             leagueSupplier: () -> League?, onNotFound: () -> Unit = {}, block: League.() -> Unit
         ) {
-            executeOnFreshLock(leagueSupplier, League::leaguename, onNotFound, block)
+            executeOnFreshLock(leagueSupplier, { it }, onNotFound, block)
         }
 
         suspend inline fun <T> executeOnFreshLock(
-            supplier: () -> T?, leagueNameMapper: (T) -> String, onNotFound: () -> Unit = {}, block: T.() -> Unit
+            supplier: () -> T?, leagueMapper: (T) -> League, onNotFound: () -> Unit = {}, block: T.() -> Unit
         ) {
             val league = supplier() ?: return onNotFound()
-            val lock = getLock(leagueNameMapper(league))
+            val lock = getLock(leagueMapper(league).leaguename)
             val wasLocked = lock.isLocked
             lock.withLock {
-                (if (wasLocked) supplier()!! else league).apply(block)
+                (if (wasLocked) supplier()!! else league).apply {
+                    logger.info("Time in lock: " + measureTime {
+                        block()
+                        leagueMapper(this).lockCleanup()
+                    })
+                }
+
             }
         }
 
         suspend inline fun executeOnFreshLock(name: String, block: League.() -> Unit) = getLock(name).withLock {
             val league = db.getLeague(name) ?: return@withLock logger.error("ExecuteOnFreshLock failed for $name")
             league.block()
+            league.lockCleanup()
+        }
+
+        suspend fun League.lockCleanup() {
+            if (shouldSave) {
+                db.league.updateOne(this)
+            }
         }
 
         suspend fun executeTimerOnRefreshedVersion(name: String) {
@@ -943,7 +950,7 @@ sealed class League {
 
         context(InteractionData)
         suspend inline fun executePickLike(block: League.() -> Unit) {
-            executeOnFreshLock({ byCommand() }, { it.first.leaguename }, {
+            executeOnFreshLock({ byCommand() }, { it.first }, {
                 if (!replied) {
                     reply(
                         "Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true
@@ -990,7 +997,7 @@ sealed class League {
         }
 
         suspend fun onlyChannel(tc: Long) =
-            db.drafts.find(League::draftState ne DraftState.OFF, League::tcid eq tc).first()
+            db.league.find(League::draftState ne DraftState.OFF, League::tcid eq tc).first()
 
         context(InteractionData)
         suspend inline fun executeAsNotCurrent(asParticipant: Boolean, block: League.() -> Unit) {

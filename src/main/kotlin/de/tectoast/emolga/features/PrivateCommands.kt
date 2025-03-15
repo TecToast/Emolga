@@ -358,28 +358,30 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun testYTSend(args: PrivateData) {
-        val league = db.league(args[0])
-        league.executeYoutubeSend(
-            ytTC = args[1].toLong(),
-            gameday = args[2].toInt(),
-            battle = args[3].toInt(),
-            strategy = VideoProvideStrategy.Fetch,
-            overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
-        )
+        League.executeOnFreshLock(args[0]) {
+            executeYoutubeSend(
+                ytTC = args[1].toLong(),
+                gameday = args[2].toInt(),
+                battle = args[3].toInt(),
+                strategy = VideoProvideStrategy.Fetch,
+                overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
+            )
+        }
     }
 
     context(InteractionData)
     suspend fun testYTSendSub(args: PrivateData) {
-        val league = db.league(args[0])
-        val gameday = args[2].toInt()
-        val battle = args[3].toInt()
-        league.executeYoutubeSend(
-            ytTC = args[1].toLong(),
-            gameday = gameday,
-            battle = battle,
-            strategy = VideoProvideStrategy.Subscribe(league.persistentData.replayDataStore.data[gameday]!![battle]!!.ytVideoSaveData),
-            overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
-        )
+        League.executeOnFreshLock(args[0]) {
+            val gameday = args[2].toInt()
+            val battle = args[3].toInt()
+            executeYoutubeSend(
+                ytTC = args[1].toLong(),
+                gameday = gameday,
+                battle = battle,
+                strategy = VideoProvideStrategy.Subscribe(persistentData.replayDataStore.data[gameday]!![battle]!!.ytVideoSaveData),
+                overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
+            )
+        }
     }
 
     context(InteractionData)
@@ -525,7 +527,7 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun moveLeaguesToArchive(args: PrivateData) {
         val archiveLeague = db.db.getCollection<League>("oldleague")
-        val currentLeague = db.drafts
+        val currentLeague = db.league
         val archiveMR = db.db.getCollection<MatchResult>("oldmatchresults")
         val currentMR = db.db.getCollection<MatchResult>("matchresults")
         args.forEach {
@@ -537,19 +539,6 @@ object PrivateCommands {
             archiveMR.insertMany(currentMR.find(MatchResult::leaguename eq it).toList())
             currentMR.deleteMany(MatchResult::leaguename eq it)
         }
-    }
-
-    context(InteractionData)
-    suspend fun switchUser(args: PrivateData) {
-        val league = db.league(args[0])
-        val old = args[1].toLong()
-        val new = args[2].toLong()
-        db.drafts.updateOne(
-            and(League::leaguename eq league.leaguename, League::table contains old), combine(
-                set(League::table.posOp setTo new),
-                rename(League::picks.keyProjection(old), League::picks.keyProjection(new))
-            )
-        )
     }
 
     context(InteractionData)
@@ -624,7 +613,7 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun printTables(args: PrivateData) {
-        reply(db.drafts.find(League::guild eq args().toLong()).toList().joinToString("\n") {
+        reply(db.league.find(League::guild eq args().toLong()).toList().joinToString("\n") {
             it.leaguename + " " + it.table.joinToString { m -> "<@$m>" }
         })
     }
@@ -637,7 +626,9 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun resaveLeague(args: PrivateData) {
-        db.league(args()).save("resaveLeague")
+        League.executeOnFreshLock(args()) {
+            save()
+        }
     }
 
 }

@@ -450,10 +450,10 @@ data class ReplayData(
     val otherForms: Map<String, List<String>> = emptyMap(),
     val ytVideoSaveData: YTVideoSaveData = YTVideoSaveData()
 ) {
-    suspend fun checkIfBothVideosArePresent(league: League): Boolean {
+    suspend fun checkIfBothVideosArePresent(league: League) {
         val ytSave = ytVideoSaveData
         val shouldExecute = ytSave.vids.size == uindices.size
-        val sendChannel = league.config.youtube?.sendChannel ?: return false
+        val sendChannel = league.config.youtube?.sendChannel ?: return
         if (shouldExecute) {
             league.executeYoutubeSend(
                 sendChannel,
@@ -462,7 +462,6 @@ data class ReplayData(
                 VideoProvideStrategy.Subscribe(ytSave)
             )
         }
-        return shouldExecute
     }
 }
 

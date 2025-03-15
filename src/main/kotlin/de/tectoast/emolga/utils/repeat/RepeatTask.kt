@@ -103,7 +103,7 @@ class RepeatTask(
         private val allTasks = mutableMapOf<String, MutableMap<RepeatTaskType, RepeatTask>>()
         fun getTask(leaguename: String, type: RepeatTaskType) = allTasks[leaguename]?.get(type)
         suspend fun setupRepeatTasks() {
-            db.drafts.find().toFlow().collect { l ->
+            db.league.find().toFlow().collect { l ->
                 val name = l.leaguename
                 l.setupRepeatTasks()
                 l.config.tipgame?.let { tip ->
@@ -176,11 +176,10 @@ class RepeatTask(
             dataStore.data[gameday]?.get(battle)?.let {
                 if (league.config.youtube != null)
                     it.ytVideoSaveData.enabled = true
-                val shouldSave = !it.checkIfBothVideosArePresent(league)
+                it.checkIfBothVideosArePresent(league)
                 if (shouldDelay) delay(2000)
                 league.docEntry?.analyseWithoutCheck(listOf(it))
-                if (shouldSave)
-                    league.save("RepeatTaskYT")
+                league.save("RepeatTaskYT")
             }
                 ?: throw IllegalStateException("No replay found for gameday $gameday and battle $battle")
         }

@@ -226,42 +226,44 @@ class NDS(val rr: Boolean) : League() {
 
 
         suspend fun doNDSNominate(prevDay: Boolean = false, withSend: Boolean = true, vararg onlySpecifiedUsers: Int) {
-            val nds = db.nds()
-            val nom = nds.nominations
-            var cday = nom.currentDay
-            if (prevDay) cday--
-            val dayData = nom.nominated[cday]!!
-            val picks = nds.picks
-            val b = RequestBuilder(nds.sid)
-            var dbcallTime = 0L
-            for (u in onlySpecifiedUsers.takeIf { it.isNotEmpty() }?.toList() ?: nds.table.indices) {
-                val pmons = picks[u]!!.filter { !it.quit }
-                if (u !in dayData) {
-                    dayData[u] = if (cday % 5 == 1) {
-                        pmons.sortedWith(nds.tierorderingComparator)
-                            .map { it.indexedBy(pmons) }
-                    } else nom.nominated[cday - 1]!![u]!!
+            executeOnFreshLock({ db.nds() }) {
+                val nds = this as NDS
+                val nom = nds.nominations
+                var cday = nom.currentDay
+                if (prevDay) cday--
+                val dayData = nom.nominated[cday]!!
+                val picks = nds.picks
+                val b = RequestBuilder(nds.sid)
+                var dbcallTime = 0L
+                for (u in onlySpecifiedUsers.takeIf { it.isNotEmpty() }?.toList() ?: nds.table.indices) {
+                    val pmons = picks[u]!!.filter { !it.quit }
+                    if (u !in dayData) {
+                        dayData[u] = if (cday % 5 == 1) {
+                            pmons.sortedWith(nds.tierorderingComparator)
+                                .map { it.indexedBy(pmons) }
+                        } else nom.nominated[cday - 1]!![u]!!
+                    }
+                    val indices = dayData[u]!!
+                    val start = System.currentTimeMillis()
+                    val mons = indices.map { NameConventionsDB.convertOfficialToTL(pmons[it].name, nds.guild)!! }
+                    dbcallTime += System.currentTimeMillis() - start
+                    logger.info("mons = $mons")
+                    logger.info("u = $u")
+                    b.addColumn("Data!F${u.y(30, 3)}", mons)
                 }
-                val indices = dayData[u]!!
-                val start = System.currentTimeMillis()
-                val mons = indices.map { NameConventionsDB.convertOfficialToTL(pmons[it].name, nds.guild)!! }
-                dbcallTime += System.currentTimeMillis() - start
-                logger.info("mons = $mons")
-                logger.info("u = $u")
-                b.addColumn("Data!F${u.y(30, 3)}", mons)
-            }
-            b.withRunnable {
-                if (onlySpecifiedUsers.isEmpty() && withSend) {
-                    jda.getTextChannelById(837425690844201000L)!!.sendMessage(
-                        """
+                b.withRunnable {
+                    if (onlySpecifiedUsers.isEmpty() && withSend) {
+                        jda.getTextChannelById(837425690844201000L)!!.sendMessage(
+                            """
                 Guten Abend ihr Teilnehmer. Der nächste Spieltag öffnet seine Pforten...Was? Du hast vergessen zu nominieren? Dann hast du wieder mal Pech gehabt. Ab jetzt könnt ihr euch die Nominierungen im Dokument anschauen und verzweifelt feststellen, dass ihr völlig lost gewesen seid bei eurer Entscheidung hehe. Wie dem auch sei, viel Spaß beim Teambuilding. Und passt auf Maxis Mega-Gewaldro auf! Warte, er hat keins mehr? Meine ganzen Konstanten im Leben wurden durchkreuzt...egal, wir hören uns nächste Woche wieder!
 _written by Maxifcn_""".trimIndent()
-                    ).queue()
-                }
-            }.execute()
-            logger.info("dbcallTime = $dbcallTime")
-            if (!prevDay) nom.currentDay++
-            nds.save("Nominate RepeatTask")
+                        ).queue()
+                    }
+                }.execute()
+                logger.info("dbcallTime = $dbcallTime")
+                if (!prevDay) nom.currentDay++
+                nds.save("Nominate RepeatTask")
+            }
         }
     }
 }

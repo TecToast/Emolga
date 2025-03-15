@@ -516,12 +516,6 @@ open class Arguments {
         }
     }
 
-    fun league(name: String = "", help: String = "") = createArg(name, help, OptionType.STRING) {
-        validate {
-            db.getLeague(it) ?: throw InvalidArgumentException("Ungültige Liga!")
-        }
-    }
-
     fun <DiscordType, ParsedType> genericList(
         name: String, help: String, numOfArgs: Int, requiredNum: Int, type: OptionType, startAt: Int = 1
     ) = object : ReadWriteProperty<Arguments, List<ParsedType>> {

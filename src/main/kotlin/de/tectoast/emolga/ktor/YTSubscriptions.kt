@@ -45,7 +45,7 @@ private val ytClient = HttpClient(CIO) {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun setupYTSuscribtions() {
-    db.drafts.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
+    db.league.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
         .flatMapMerge { it.table.asFlow().mapNotNull { u -> db.ytchannel.get(u)?.channelId } }
         .collect { subscribeToYTChannel(it); delay(1000) }
 }
@@ -128,9 +128,8 @@ suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
                 uid
             )
         )] = videoId
-        val shouldSave = !data.checkIfBothVideosArePresent(this)
-        logger.info("ShouldSave: $shouldSave")
-        if (shouldSave) save("YTSubSave")
+        data.checkIfBothVideosArePresent(this)
+        save("YTSubSave")
     }
 }
 

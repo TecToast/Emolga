@@ -261,10 +261,12 @@ object Analysis {
                 )
             }
         }
-        if (replayDatas.isNotEmpty()) {
-            league?.docEntry?.analyse(
-                replayDatas, withSort = withSort
-            )
+        if (replayDatas.isNotEmpty() && league != null) {
+            League.executeOnFreshLock(league.leaguename) {
+                docEntry?.analyse(
+                    replayDatas, withSort = withSort
+                )
+            }
         }
     }
 

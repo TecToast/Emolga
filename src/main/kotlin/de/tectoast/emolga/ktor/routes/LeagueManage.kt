@@ -1,8 +1,8 @@
 package de.tectoast.emolga.ktor.routes
 
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.league.League
+import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.toSDName
 import de.tectoast.emolga.utils.universalLogger
@@ -15,7 +15,7 @@ import org.litote.kmongo.contains
 fun Route.leagueManage() {
     get("/myleagues") {
         val u = /*userId()*/ 694543579414134802
-        val send = db.drafts.find(League::table contains u).toList().map {
+        val send = db.league.find(League::table contains u).toList().map {
             LeagueData(
                 it.leaguename,
                 it.providePicksForGameday(1)[it(u)]!!.map { mon ->

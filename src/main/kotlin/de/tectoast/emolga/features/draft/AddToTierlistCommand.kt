@@ -7,12 +7,12 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import mu.KotlinLogging
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.litote.kmongo.eq
@@ -59,7 +59,7 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
         }
         reply("`$mon` ist nun im $tier-Tier!")
         val data = AddToTierlistData(mon, tier, tierlist, id).apply { addToTierlistAutocompletion() }
-        val leagues = db.drafts.find(League::guild eq id).toList()
+        val leagues = db.league.find(League::guild eq id).toList()
         if (leagues.isNotEmpty()) {
             leagues.forEach {
                 with(it) {

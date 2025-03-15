@@ -7,11 +7,11 @@ import de.tectoast.emolga.features.draft.during.MoveCommand
 import de.tectoast.emolga.features.draft.during.PickCommand
 import de.tectoast.emolga.features.draft.during.RandomPick
 import de.tectoast.emolga.features.redirectTestCommandLogsToChannel
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.myJSON
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.CompletableDeferred
@@ -53,7 +53,7 @@ suspend fun createTestDraft(
     guild: Long = Constants.G.ASL,
     hardcodedUserIds: Map<Int, Long> = emptyMap()
 ): suspend () -> League {
-    db.drafts.insertOne(
+    db.league.insertOne(
         myJSON.encodeToString(
             DemoLeague(
                 type = "Default",
@@ -78,7 +78,9 @@ private class DemoLeague(
 )
 
 suspend fun startTestDraft(name: String) {
-    db.league("TEST$name").startDraft(defaultChannel, fromFile = false, switchDraft = false)
+    League.executeOnFreshLock("TEST$name") {
+        startDraft(defaultChannel, fromFile = false, switchDraft = false)
+    }
 }
 
 fun enableReplyRedirect(channel: MessageChannel = defaultChannel) {

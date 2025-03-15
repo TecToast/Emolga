@@ -72,7 +72,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val config by lazy { db.getCollection<Config>("config") }
     val statistics by lazy { db.getCollection<Statistics>("statistics") }
     val signups by lazy { db.getCollection<LigaStartData>("signups") }
-    val drafts by lazy { db.getCollection<League>("league") }
+    val league by lazy { db.getCollection<League>("league") }
     val cooldowns by lazy { db.getCollection<Cooldown>("cooldowns") }
     val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
     val typeicons by lazy { db.getCollection<TypeIcon>("typeicons") }
@@ -94,17 +94,15 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     }
 
     suspend fun league(name: String) = getLeague(name)!!
-    suspend fun leagueByPrefix(prefix: String) = getLeagueByPrefix(prefix)!!
-    suspend fun getLeagueByPrefix(prefix: String) = drafts.findOne(League::leaguename regex "^$prefix")
-    suspend fun getLeague(name: String) = drafts.findOne(League::leaguename eq name)
-    suspend fun nds() = (drafts.findOne(ndsQuery) as NDS)
+    suspend fun getLeague(name: String) = league.findOne(League::leaguename eq name)
+    suspend fun nds() = (league.findOne(ndsQuery) as NDS)
 
-    suspend fun leagueByGuild(gid: Long, vararg uids: Long) = drafts.findOne(
+    suspend fun leagueByGuild(gid: Long, vararg uids: Long) = league.findOne(
         League::guild eq gid, *(if (uids.isEmpty()) emptyArray() else arrayOf(League::table all uids.toList()))
     )
 
     suspend fun leagueForAutocomplete(tc: Long, gid: Long, user: Long) =
-        drafts.find(or(League::tcid eq tc, and(League::guild eq gid, League::table contains user))).toList()
+        league.find(or(League::tcid eq tc, and(League::guild eq gid, League::table contains user))).toList()
             .maxByOrNull { it.tcid == tc }
 
     context(InteractionData)

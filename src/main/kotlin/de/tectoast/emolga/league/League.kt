@@ -374,7 +374,9 @@ sealed class League {
         if (tryQueuePick()) return
 
 
-        restartTimer()
+        if (result != TimerSkipResult.SAME) {
+            restartTimer()
+        }
         announcePlayer()
         save("NEXT PLAYER SAFE")
     }

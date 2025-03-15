@@ -635,6 +635,11 @@ object PrivateCommands {
         setupYTSuscribtions()
     }
 
+    context(InteractionData)
+    suspend fun resaveLeague(args: PrivateData) {
+        db.league(args()).save("resaveLeague")
+    }
+
 }
 
 data class PrivateData(

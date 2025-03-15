@@ -494,9 +494,9 @@ object PrivateCommands {
     suspend fun addDraftPermission(args: PrivateData) {
         League.executeOnFreshLock(args[0]) {
             DraftPermissionCommand.performPermissionAdd(
-                args[1].toLong(),
-                args[2].toLong(),
-                DraftPermissionCommand.Allow.Mention.valueOf(args[3])
+                user = args[1].toLong(),
+                toadd = args[2].toLong(),
+                withMention = DraftPermissionCommand.Allow.Mention.valueOf(args[3])
             )
             save("addDraftPermission")
         }

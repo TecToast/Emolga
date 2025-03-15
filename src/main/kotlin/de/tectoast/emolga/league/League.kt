@@ -340,16 +340,16 @@ sealed class League {
             addToMoved()
             data.sendSkipMessage()
         }
-        val result = if (draftWouldEnd) {
+        val result: TimerSkipResult = if (draftWouldEnd) {
             duringTimerSkipMode?.run {
-                val duringResult = afterPickCall(data)
+                val duringResult = afterPick(data)
                 if (duringResult == TimerSkipResult.SAME) return@run TimerSkipResult.SAME
-                afterTimerSkipMode.run {
-                    afterPickCall(data).also { save("AfterPickOfficial") }
-                }
+            }
+            afterTimerSkipMode.run {
+                afterPick(data)
             }
         } else {
-            duringTimerSkipMode?.run { afterPickCall(data) } ?: TimerSkipResult.NEXT
+            duringTimerSkipMode?.run { afterPick(data) } ?: TimerSkipResult.NEXT
         }
         val ctm = System.currentTimeMillis()
         val timerRelated = this.draftData.timer
@@ -1075,7 +1075,6 @@ class BanData(
 data class TierData(val specified: String, val official: String)
 
 sealed interface TimerSkipMode {
-    suspend fun League.afterPickCall(data: NextPlayerData): TimerSkipResult
 
     /**
      * What happens after a pick/timer skip
@@ -1094,14 +1093,9 @@ sealed interface BypassCurrentPlayerData {
     data class Yes(val user: Int) : BypassCurrentPlayerData
 }
 
-interface DuringTimerSkipMode : TimerSkipMode {
-    override suspend fun League.afterPickCall(data: NextPlayerData) = afterPick(data)
-}
+interface DuringTimerSkipMode : TimerSkipMode
 
-interface AfterTimerSkipMode : TimerSkipMode {
-    override suspend fun League.afterPickCall(data: NextPlayerData) =
-        if (draftWouldEnd) afterPick(data) else TimerSkipResult.NEXT
-}
+interface AfterTimerSkipMode : TimerSkipMode
 
 @Serializable
 data object NEXT_PICK : DuringTimerSkipMode {
@@ -1138,7 +1132,7 @@ data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
             }
         }
         order += coll
-        if (order.isNotEmpty() && draftState != DraftState.PSEUDOEND) {
+        if (coll.isNotEmpty() && draftState != DraftState.PSEUDOEND) {
             draftState = DraftState.PSEUDOEND
             tc.sendMessage("Die regulären Picks sind nun vorbei, nun werden die fehlenden Picks (in der Reihenfolge wie sie übersprungen wurden) nachgeholt.")
                 .queue()

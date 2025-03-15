@@ -9,7 +9,9 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
+import kotlinx.serialization.builtins.LongAsStringSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.User
 import org.jetbrains.exposed.sql.Column
@@ -91,6 +93,9 @@ val webJSON = Json {
     ignoreUnknownKeys = true
     isLenient = true
     encodeDefaults = false
+    serializersModule = SerializersModule {
+        contextual(Long::class, LongAsStringSerializer)
+    }
 }
 
 val httpClient = HttpClient(CIO) {

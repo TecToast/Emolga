@@ -105,6 +105,7 @@ sealed class League {
     val currentTimerSkipMode: TimerSkipMode
         get() = duringTimerSkipMode?.takeUnless { draftWouldEnd } ?: afterTimerSkipMode
 
+    @Contextual
     var tcid: Long = -1
 
 
@@ -131,7 +132,7 @@ sealed class League {
 
     var isSwitchDraft = false
 
-    val table: List<Long> = ArrayList()
+    val table: List<@Contextual Long> = ArrayList()
 
     val tierorderingComparator by lazy { compareBy<DraftPokemon>({ tierlist.order.indexOf(it.tier) }, { it.name }) }
 
@@ -998,7 +999,7 @@ sealed class League {
 }
 
 @Serializable
-data class AllowedData(val u: Long, var mention: Boolean = false, var teammate: Boolean = false)
+data class AllowedData(@Contextual val u: Long, var mention: Boolean = false, var teammate: Boolean = false)
 
 sealed class DraftData(
     open val league: League,

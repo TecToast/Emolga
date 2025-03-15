@@ -42,6 +42,11 @@ fun Route.emolgaAPI() {
             })
         }
         route("{guild}") {
+            get("channels") {
+                val gid = call.requireGuild() ?: return@get
+                val guild = jda.getGuildById(gid)!!
+                call.respond(guild.categories.associate { cat -> cat.name to cat.textChannels.associate { it.id to it.name } })
+            }
             route("/signup") {
                 route("/participants") {
                     get {

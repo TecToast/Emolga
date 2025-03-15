@@ -151,7 +151,7 @@ sealed class League {
     var draftData: ResettableLeagueData = ResettableLeagueData()
     val persistentData: PersistentLeagueData = PersistentLeagueData()
 
-    val draftWouldEnd get() = isLastRound && order[round]!!.size == 1
+    val draftWouldEnd get() = isLastRound && order[round]!!.size <= 1
 
     @Transient
     open val docEntry: DocEntry? = null
@@ -338,16 +338,20 @@ sealed class League {
             addToMoved()
             data.sendSkipMessage()
         }
-        val result: TimerSkipResult = if (draftWouldEnd) {
-            duringTimerSkipMode?.run {
-                val duringResult = afterPick(data)
-                if (duringResult == TimerSkipResult.SAME) return@run TimerSkipResult.SAME
+        val result: TimerSkipResult = run outer@{
+            if (draftWouldEnd) {
+                if (order[round]!!.size == 1 || afterTimerSkipMode == AFTER_DRAFT_ORDERED) {
+                    duringTimerSkipMode?.run {
+                        val duringResult = afterPick(data)
+                        if (duringResult == TimerSkipResult.SAME) return@outer TimerSkipResult.SAME
+                    }
             }
             afterTimerSkipMode.run {
                 afterPick(data)
             }
         } else {
             duringTimerSkipMode?.run { afterPick(data) } ?: TimerSkipResult.NEXT
+            }
         }
         val ctm = System.currentTimeMillis()
         val timerRelated = this.draftData.timer
@@ -362,10 +366,12 @@ sealed class League {
             if (endOfTurn()) return
         }
         if (result == TimerSkipResult.NOCONCRETE) {
+            nextUser()
             val randomOrder = moved.values.flatten().toSet().shuffled()
             for (idx in randomOrder) {
                 if (tryQueuePick(idx)) break
             }
+            save()
             return
         }
 
@@ -477,7 +483,7 @@ sealed class League {
     }
 
     fun nextUser() {
-        order[round]!!.removeAt(0)
+        order[round]!!.removeFirstOrNull()
     }
 
     fun save(from: String = "") {

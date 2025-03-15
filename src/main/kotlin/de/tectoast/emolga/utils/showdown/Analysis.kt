@@ -14,6 +14,7 @@ import de.tectoast.emolga.utils.records.toCoord
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -215,6 +216,10 @@ object Analysis {
                     val (kills, deaths) = game[i].totalKDCount
                     (old.first + kills) to (old.second + deaths)
                 }.let { it.first != it.second }) {
+                resultchannelParam.send(
+                    "Die Kills und Tode stimmen nicht überein."
+                            + (if (shouldSendZoro) " Dies liegt wahrscheinlich an Zoroark." else " Dies liegt sehr wahrscheinlich an einem Bug in meiner Analyse.") + " Bitte überprüfe selbst, wo der Fehler liegt. Mein Programmierer wurde benachrichtigt."
+                ).queue()
                 SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
             }
             logger.info("In Emolga Listener!")

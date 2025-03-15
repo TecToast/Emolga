@@ -884,8 +884,13 @@ sealed class League {
     }
 
     fun formatTimeFormatBasedOnDistance(cooldown: Long) = buildString {
-        if (cooldown - System.currentTimeMillis() >= 24 * 3600 * 1000) append(dayTimeFormat.format(cooldown)).append(" ")
-        append((if (config.timer?.stallSeconds == 0) leagueTimeFormat else leagueTimeFormatSecs).format(cooldown))
+        val delay = cooldown - System.currentTimeMillis()
+        if (delay >= 24 * 3600 * 1000) append(dayTimeFormat.format(cooldown)).append(" ")
+        append(
+            (if (config.timer?.stallSeconds == 0 && delay > 15 * 60 * 1000) leagueTimeFormat else leagueTimeFormatSecs).format(
+                cooldown
+            )
+        )
     }
 
     companion object : CoroutineScope {

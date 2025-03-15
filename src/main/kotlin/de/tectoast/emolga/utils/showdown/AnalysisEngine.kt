@@ -212,12 +212,11 @@ sealed class SDEffect(vararg val types: String) {
             val (usingPlayer, loc) = split[1].parsePokemonLocation()
             val pkmn = monsOnField[usingPlayer][loc]
             val hazards = (0..1).map { num ->
-                players[num].fieldConditions.filter { h -> h.key is Hazards }
+                players[num].sideConditions
                     .mapValues { if (num == usingPlayer) pkmn else it.value }
             }
             for (i in 0..1) {
-                removeConditionOfType<Hazards>(i)
-                players[i].fieldConditions.putAll(hazards[1 - i])
+                players[i].sideConditions.putAll(hazards[1 - i])
             }
         }
     }
@@ -234,7 +233,7 @@ sealed class SDEffect(vararg val types: String) {
             val healedMon = if (num == -1) sdPlayers[side].pokemon.first { it.nickname == nickname }
                 .also { it.revive() } else monsOnField[side][num]
             val healer = split.getOrNull(3)?.substringAfter(": ")?.let { move ->
-                findResponsiblePokemon<RemoteHeal>(move, side = side)
+                findResponsiblePokemonSlot<RemoteHeal>(move, side = side, slot = num)
             }
             healedMon.setNewHPAndHeal(healedTo, healer)
         }
@@ -274,7 +273,7 @@ sealed class SDEffect(vararg val types: String) {
                         }
                     }
                 }
-                findResponsiblePokemon<Hazards>(it, side = damagedMon.player)?.claimDamage(
+                findResponsiblePokemonSide(it, side = damagedMon.player)?.claimDamage(
                     damagedMon, fainted, amount
                 )
                 findGlobalResponsiblePokemon<Weather>(it)?.claimDamage(damagedMon, fainted, amount)
@@ -289,7 +288,7 @@ sealed class SDEffect(vararg val types: String) {
                 val p = sdPlayers[damagedMonLocation.first]
                 p.hittingFutureMove?.let { (idx, move) ->
                     if (damagedMonLocation.second == idx) {
-                        p.fieldConditions[move]?.claimDamage(damagedMon, fainted, amount)
+                        p.slotConditions[idx]?.get(move)?.claimDamage(damagedMon, fainted, amount)
                         return@run
                     }
                 }
@@ -437,7 +436,7 @@ sealed class SDEffect(vararg val types: String) {
         context(BattleContext)
         override fun execute(split: List<String>) {
             split[1].parsePokemon().run {
-                val tspikes = sdPlayers[player].fieldConditions[Hazards.ToxicSpikes]
+                val tspikes = sdPlayers[player].sideConditions["toxicspikes"]
                 (split.getSource() ?: tspikes)?.let {
                     addEffect(Status, it)
                 }
@@ -466,7 +465,8 @@ sealed class SDEffect(vararg val types: String) {
         override fun execute(split: List<String>) {
             if (split[0] == "-start") {
                 if (split.getOrNull(2)?.contains(moveName) == true) {
-                    sdPlayers[lastLine.value.cleanSplit()[3].parsePlayerLocation()].fieldConditions[this] =
+                    val (pl, idx) = lastLine.value.cleanSplit()[3].parsePokemonLocation()
+                    sdPlayers[pl].slotConditions.getOrPut(idx) { mutableMapOf() }[this] =
                         split[1].parsePokemon()
                 }
             } else if (split[0] == "-end") {
@@ -485,7 +485,7 @@ sealed class SDEffect(vararg val types: String) {
             val usedMove = split[2]
             if (usedMove == name) {
                 val (side, num) = split[1].parsePokemonLocation()
-                sdPlayers[side].fieldConditions[this] = monsOnField[side][num]
+                sdPlayers[side].slotConditions.getOrPut(num) { mutableMapOf() }[this] = monsOnField[side][num]
             }
         }
 
@@ -495,20 +495,13 @@ sealed class SDEffect(vararg val types: String) {
         data object RevivalBlessing : RemoteHeal("Revival Blessing")
     }
 
-    sealed class Hazards(override val name: String) : SDEffect("-sidestart") {
+    data object SideCondition : SDEffect("-sidestart") {
         context(BattleContext)
         override fun execute(split: List<String>) {
             val pokemon = lastMove.value.parsePokemon()
             val type = split[2].substringAfter(": ")
-            if (type == name) {
-                sdPlayers[split[1][1].digitToInt() - 1].fieldConditions[this] = pokemon
-            }
+            sdPlayers[split[1][1].digitToInt() - 1].sideConditions[type] = pokemon
         }
-
-        data object StealthRock : Hazards("Stealth Rock")
-        data object Spikes : Hazards("Spikes")
-        data object ToxicSpikes : Hazards("Toxic Spikes")
-        data object SteelSurge : Hazards("G-Max Steelsurge")
     }
 
     data object Teamsize : SDEffect("teamsize") {
@@ -547,13 +540,13 @@ data class BattleContext(
     var totalDmgAmount: Int = 0,
     val debugMode: Boolean
 ) {
-    inline fun <reified T : SDEffect> findResponsiblePokemon(name: String, side: Int) =
-        sdPlayers[side].fieldConditions.entries.firstOrNull { (it.key as? T)?.name == name }?.value
+    inline fun <reified T : SDEffect> findResponsiblePokemonSlot(name: String, side: Int, slot: Int) =
+        sdPlayers[side].slotConditions[slot]?.entries?.firstOrNull { (it.key as? T)?.name == name }?.value
+
+    fun findResponsiblePokemonSide(name: String, side: Int) = sdPlayers[side].sideConditions[name]
     inline fun <reified T : SDEffect> findGlobalResponsiblePokemon(name: String) =
         globalConditions.entries.firstOrNull { (it.key as? T)?.name == name }?.value
 
-    inline fun <reified T : SDEffect> removeConditionOfType(side: Int) =
-        sdPlayers[side].fieldConditions.keys.removeIf { it is T }
 
     val vgc by lazy { "VGC" in format }
 }
@@ -561,7 +554,8 @@ data class BattleContext(
 class SDPlayer(
     val nickname: String,
     val pokemon: MutableList<SDPokemon>,
-    val fieldConditions: MutableMap<SDEffect, SDPokemon> = mutableMapOf(),
+    val slotConditions: MutableMap<Int, MutableMap<SDEffect, SDPokemon>> = mutableMapOf(),
+    val sideConditions: MutableMap<String, SDPokemon> = mutableMapOf(),
     var hittingFutureMove: Pair<Int, SDEffect.FutureMoves>? = null,
     var winnerOfGame: Boolean = false,
     var teamSize: Int = 6,

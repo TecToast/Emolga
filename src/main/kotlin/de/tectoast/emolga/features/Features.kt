@@ -228,8 +228,7 @@ abstract class ButtonFeature<A : Arguments>(argsFun: () -> A, spec: ButtonSpec) 
         val argsFromEvent = e.componentId.substringAfter(";").split(";")
         for ((index, arg) in args.args.withIndex()) {
             val m = argsFromEvent.getOrNull(index)?.takeIf { it.isNotBlank() }
-            if (m != null)
-                arg.parse(data, m)
+            if (m != null) arg.parse(data, m)
         }
     }
 
@@ -342,15 +341,10 @@ abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMe
 
 abstract class MessageContextFeature(spec: MessageContextSpec) :
     Feature<MessageContextSpec, MessageContextInteractionEvent, MessageContextArgs>(
-        ::MessageContextArgs,
-        spec,
-        MessageContextInteractionEvent::class,
-        eventToName
+        ::MessageContextArgs, spec, MessageContextInteractionEvent::class, eventToName
     ) {
     override suspend fun populateArgs(
-        data: InteractionData,
-        e: MessageContextInteractionEvent,
-        args: MessageContextArgs
+        data: InteractionData, e: MessageContextInteractionEvent, args: MessageContextArgs
     ) {
         args.message = e.target
     }
@@ -455,6 +449,7 @@ open class Arguments {
         name: String = "",
         help: String = "",
         collection: Collection<String>,
+        useContainsAutoComplete: Boolean = false,
         builder: Arg<String, String>.() -> Unit = {}
     ) = createArg<String, String>(name, help) {
         validate { s ->
@@ -463,7 +458,8 @@ open class Arguments {
         }
         if (collection.size <= 25) slashCommand(collection.map { Choice(it, it) })
         else slashCommand { s, _ ->
-            collection.filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
+            (if (useContainsAutoComplete) collection.filterContainsIgnoreCase(s)
+            else collection.filterStartsWithIgnoreCase(s)).convertListToAutoCompleteReply()
         }
         builder()
     }
@@ -497,10 +493,7 @@ open class Arguments {
     }
 
     fun pokemontype(
-        name: String = "",
-        help: String = "",
-        english: Boolean,
-        builder: Arg<String, String>.() -> Unit = {}
+        name: String = "", help: String = "", english: Boolean, builder: Arg<String, String>.() -> Unit = {}
     ) = createArg(name, help, OptionType.STRING) {
         validate { str ->
             val t = if (english) Translation.getEnglNameWithType(str)
@@ -530,12 +523,7 @@ open class Arguments {
     }
 
     fun <DiscordType, ParsedType> genericList(
-        name: String,
-        help: String,
-        numOfArgs: Int,
-        requiredNum: Int,
-        type: OptionType,
-        startAt: Int = 1
+        name: String, help: String, numOfArgs: Int, requiredNum: Int, type: OptionType, startAt: Int = 1
     ) = object : ReadWriteProperty<Arguments, List<ParsedType>> {
         private val argList: List<Arg<DiscordType, out ParsedType?>> = List(numOfArgs) { i ->
             createArg<DiscordType, ParsedType>(name.embedI(i, startAt), help.embedI(i, startAt), type) {}.run {
@@ -545,8 +533,7 @@ open class Arguments {
 
         private var parsed: List<ParsedType>? = null
         override fun getValue(
-            thisRef: Arguments,
-            property: KProperty<*>
+            thisRef: Arguments, property: KProperty<*>
         ): List<ParsedType> {
             if (parsed == null) {
                 parsed = argList.mapNotNull { it.parsed }
@@ -555,9 +542,7 @@ open class Arguments {
         }
 
         override fun setValue(
-            thisRef: Arguments,
-            property: KProperty<*>,
-            value: List<ParsedType>
+            thisRef: Arguments, property: KProperty<*>, value: List<ParsedType>
         ) {
             parsed = value
         }
@@ -612,14 +597,13 @@ open class Arguments {
     @Suppress("MemberVisibilityCanBePrivate")
     fun <T> multiOption(range: IntRange, validator: suspend InteractionData.(String) -> T) =
         createArg<List<String>, List<T>>("", "", OptionType.STRING) {
-        spec = SelectMenuArgSpec(range)
-            validate { list -> list.map { validator(it) } }
-    }
-
-    fun multiOption(range: IntRange) =
-        createArg<List<String>, List<String>>("", "", OptionType.STRING) {
             spec = SelectMenuArgSpec(range)
+            validate { list -> list.map { validator(it) } }
         }
+
+    fun multiOption(range: IntRange) = createArg<List<String>, List<String>>("", "", OptionType.STRING) {
+        spec = SelectMenuArgSpec(range)
+    }
 
     inline fun <DiscordType, ParsedType> createArg(
         name: String = "",
@@ -650,8 +634,7 @@ open class Arguments {
                 val tl = league.tierlist
                 val picks = league.picks[idx] ?: return@newSuspendedTransaction null
                 picks.filter { p -> p.name != "???" && !p.quit }.sortedWith(
-                    compareBy({ mon -> tl.order.indexOf(mon.tier) },
-                        { mon -> mon.name })
+                    compareBy({ mon -> tl.order.indexOf(mon.tier) }, { mon -> mon.name })
                 ).map { mon ->
                     logger.debug(mon.name)
                     tlNameCache[mon.name] ?: NameConventionsDB.convertOfficialToTL(
@@ -820,10 +803,7 @@ class Arg<DiscordType, ParsedType>(
             copyTo(it)
             val oldSpec = it.spec as? ModalArgSpec
             it.spec = ModalArgSpec(
-                oldSpec?.short != false,
-                key,
-                (required ?: oldSpec?.required) == true,
-                oldSpec?.builder ?: {})
+                oldSpec?.short != false, key, (required ?: oldSpec?.required) == true, oldSpec?.builder ?: {})
             it.defaultValueSet = true
             args.replaceLastArg(it)
         }

@@ -113,15 +113,13 @@ fun Route.ytSubscriptions() {
 }
 
 suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
-    val uid = db.ytchannel.get(channelId)!!.user
-    League.executeOnFreshLock({ db.leagueByGuild(gid, uid)!! }) {
+    val uid = db.ytchannel.get(channelId)?.user ?: return
+    League.executeOnFreshLock({ db.leagueByGuild(gid, uid) }) {
         logger.info("League found: $leaguename")
         val idx = this(uid)
         val data = RepeatTask.getTask(leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfDay()
             ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
-            ?: return SendFeatures.sendToMe(
-                "No ReplayData found for <@$uid> ($uid) in $leaguename"
-            )
+            ?: return
         val ytSave = data.ytVideoSaveData
         ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(
             table.indexOf(

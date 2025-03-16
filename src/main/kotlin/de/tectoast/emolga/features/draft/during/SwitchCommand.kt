@@ -4,10 +4,10 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils
 import de.tectoast.emolga.utils.draft.SwitchInput
-import de.tectoast.emolga.league.League
 import mu.KotlinLogging
 
 object SwitchCommand :
@@ -21,7 +21,8 @@ object SwitchCommand :
             "Das Pokemon, was rausgeschmissen werden soll",
             autocomplete = { s, event ->
                 val league = League.onlyChannel(event.channelIdLong) ?: return@draftPokemon null
-                monOfTeam(s, league, league.current)
+                val current = league.currentOrFromID(event.user.idLong) ?: return@draftPokemon null
+                monOfTeam(s, league, current)
             }
         )
         var newmon by draftPokemon("Neues Mon", "Das Pokemon, was stattdessen reinkommen soll")

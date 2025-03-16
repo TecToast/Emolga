@@ -4,12 +4,12 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils
 import de.tectoast.emolga.utils.draft.PickInput
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
-import de.tectoast.emolga.league.League
 
 object PickCommand :
     CommandFeature<PickCommand.Args>(PickCommand::Args, CommandSpec("pick", "Pickt ein Pokemon", *draftGuilds)) {
@@ -19,8 +19,10 @@ object PickCommand :
         var pokemon by draftPokemon("pokemon", "Das Pokemon, das gepickt werden soll")
         var tier by string("tier", "Das Tier, in dem das Pokemon gepickt werden soll") {
             slashCommand { s, event ->
-                League.onlyChannel(event.channel.idLong)?.getPossibleTiers(forAutocomplete = true)
-                    ?.filter { it.value > 0 }?.map { it.key }?.filterStartsWithIgnoreCase(s)
+                val league = League.onlyChannel(event.channel.idLong) ?: return@slashCommand null
+                val current = league.currentOrFromID(event.user.idLong) ?: return@slashCommand null
+                league.getPossibleTiers(forAutocomplete = true, idx = current)
+                    .filter { it.value > 0 }.map { it.key }.filterStartsWithIgnoreCase(s)
             }
         }.nullable()
         var free by boolean("free", "Ob dieser Pick ein Freepick ist") {

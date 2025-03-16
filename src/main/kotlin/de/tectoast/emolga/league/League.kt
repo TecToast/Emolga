@@ -164,6 +164,9 @@ sealed class League {
     operator fun invoke(mem: Long) = table.indexOf(mem)
     operator fun get(index: Int) = table[index]
 
+    suspend fun currentOrFromID(id: Long) = currentOverride ?: order[round]?.get(0)
+    ?: with(afterTimerSkipMode) { bypassCurrentPlayerCheck(id) as? BypassCurrentPlayerData.Yes }?.user
+
     fun RequestBuilder.newSystemPickDoc(data: DraftData, insertionIndex: Int = data.picks.size - 1): Int {
         val y = data.idx.y(newSystemGap, insertionIndex + 3)
         addSingle("$dataSheet!B$y", data.pokemon)
@@ -345,12 +348,12 @@ sealed class League {
                         val duringResult = afterPick(data)
                         if (duringResult == TimerSkipResult.SAME) return@outer TimerSkipResult.SAME
                     }
-            }
-            afterTimerSkipMode.run {
-                afterPick(data)
-            }
-        } else {
-            duringTimerSkipMode?.run { afterPick(data) } ?: TimerSkipResult.NEXT
+                }
+                afterTimerSkipMode.run {
+                    afterPick(data)
+                }
+            } else {
+                duringTimerSkipMode?.run { afterPick(data) } ?: TimerSkipResult.NEXT
             }
         }
         val ctm = System.currentTimeMillis()

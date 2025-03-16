@@ -420,7 +420,7 @@ data class LigaStartData(
 
     fun buildModal(old: SignUpData?): Modal? {
         if (signupStructure.isEmpty()) return null
-        return Modal("signup;", "Anmeldung") {
+        return Modal("signup;".notNullAppend(old?.let { "change" }), "Anmeldung") {
             signupStructure.forEach {
                 val options = it.getModalInputOptions()
                 short(

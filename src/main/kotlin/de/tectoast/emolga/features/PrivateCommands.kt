@@ -339,7 +339,7 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun fetchYTChannelsForLeague(args: PrivateData) {
         val league = db.league(args[0])
-        db.ytchannel.insertMany(league.table.zip(args.drop(1).map {
+        val data = league.table.zip(args.drop(1).map {
             if ("@" !in it) it.substringAfter("channel/") else Google.fetchChannelId(it.substringAfter("@"))
         }).mapIndexedNotNull { index, data ->
             val (id, channelId) = data
@@ -348,7 +348,12 @@ object PrivateCommands {
                 null
             }
             YTChannel(id, cid)
-        })
+        }
+        data.forEach {
+            ignoreDuplicatesMongo {
+                db.ytchannel.insertOne(it)
+            }
+        }
     }
 
     context(InteractionData)

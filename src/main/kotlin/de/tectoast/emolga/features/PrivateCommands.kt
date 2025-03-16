@@ -340,7 +340,8 @@ object PrivateCommands {
     suspend fun fetchYTChannelsForLeague(args: PrivateData) {
         val league = db.league(args[0])
         val data = league.table.zip(args.drop(1).map {
-            if ("@" !in it) it.substringAfter("channel/") else Google.fetchChannelId(it.substringAfter("@"))
+            val base = it.substringBefore("?")
+            if ("@" !in base) base.substringAfter("channel/") else Google.fetchChannelId(base.substringAfter("@"))
         }).mapIndexedNotNull { index, data ->
             val (id, channelId) = data
             val cid = channelId ?: return@mapIndexedNotNull run {

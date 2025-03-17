@@ -38,6 +38,7 @@ import org.litote.kmongo.eq
 import org.litote.kmongo.keyProjection
 import org.litote.kmongo.set
 import org.litote.kmongo.setTo
+import org.litote.kmongo.and as mongoAnd
 
 class TierlistBuilderConfigurator(
     userId: Long,
@@ -327,6 +328,7 @@ class TierlistBuilderConfigurator(
 
     private suspend fun saveToFile(fromPrevious: Boolean = false) {
         if (!fromPrevious) {
+            db.tierlist.deleteOne(mongoAnd(Tierlist::guildid eq guildId, (Tierlist::identifier eq tlIdentifier)))
             db.tierlist.insertOne(Tierlist(guildId, tlIdentifier).apply {
                 this.prices += this@TierlistBuilderConfigurator.prices!!
                 this@TierlistBuilderConfigurator.freepicks?.let { this.freepicks += it }

@@ -92,7 +92,7 @@ fun createCoroutineContext(name: String, dispatcher: CoroutineDispatcher = Dispa
 val webJSON = Json {
     ignoreUnknownKeys = true
     isLenient = true
-    encodeDefaults = false
+    encodeDefaults = true
     serializersModule = SerializersModule {
         contextual(Long::class, LongAsStringSerializer)
     }

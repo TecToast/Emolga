@@ -362,7 +362,8 @@ sealed interface LogoSettings {
             lsData.save()
         }
 
-        private fun getMsgTitle(data: SignUpData): String = "**Logo von ${data.formatName()}:**"
+        private fun getMsgTitle(data: SignUpData): String =
+            "**Logo von ${data.formatName()}${data.data["teamname"]?.let { " ($it)" }}:**"
 
         override fun handleSignupChange(
             data: SignUpData

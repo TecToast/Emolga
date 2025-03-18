@@ -436,7 +436,7 @@ sealed class SDEffect(vararg val types: String) {
         context(BattleContext)
         override fun execute(split: List<String>) {
             split[1].parsePokemon().run {
-                val tspikes = sdPlayers[player].sideConditions["toxicspikes"]
+                val tspikes = sdPlayers[player].sideConditions["Toxic Spikes"]
                 (split.getSource() ?: tspikes)?.let {
                     addEffect(Status, it)
                 }

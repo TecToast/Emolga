@@ -11,6 +11,13 @@ import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 object QueuePicks {
+    context(InteractionData)
+    fun League.queueNotEnabled(): Boolean {
+        if (!config.queuePicks.enabled) {
+            reply("Das Queuen von Picks ist in dieser Liga deaktiviert!")
+            return true
+        } else return false
+    }
     object Command : CommandFeature<NoArgs>(
         NoArgs(), CommandSpec(
             "queuepicks", "Verwalte deine gequeueten Picks", Constants.G.ASL, Constants.G.NDS,
@@ -23,6 +30,7 @@ object QueuePicks {
             override suspend fun exec(e: NoArgs) {
                 ephemeralDefault()
                 val league = db.leagueByCommand() ?: return reply("Du bist in keiner Liga auf diesem Server!")
+                if (league.queueNotEnabled()) return
                 val currentData =
                     league.persistentData.queuePicks.queuedPicks.getOrPut(league.index(user)) { QueuePicksUserData() }
                 val currentState = currentData.queued
@@ -56,6 +64,7 @@ object QueuePicks {
                 deferReply()
                 League.executeOnFreshLock({ db.leagueByCommand() },
                     { return reply("Du bist in keiner Liga auf diesem Server!") }) {
+                    if (queueNotEnabled()) return
                     val oldmon = e.oldmon
                     val idx = this(user)
                     if (oldmon == null && !isRunning && picks.isNotEmpty() && !config.allowPickDuringSwitch.enabled) {
@@ -98,6 +107,7 @@ object QueuePicks {
         suspend fun changeActivation(enable: Boolean) {
             League.executeOnFreshLock({ db.leagueByCommand() },
                 { return reply("Du bist in keiner Liga auf diesem Server!") }) {
+                if (queueNotEnabled()) return
                 val idx = this(user)
                 val data = persistentData.queuePicks.queuedPicks.getOrPut(idx) { QueuePicksUserData() }
                 if (isIllegal(idx, data.queued)) return

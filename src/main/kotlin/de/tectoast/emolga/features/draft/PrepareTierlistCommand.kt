@@ -95,6 +95,29 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
             override suspend fun dataOf(mon: String): ExternalTierlistData {
                 return data()[mon] ?: error("No Data found for $mon")
             }
+        },
+
+        UDT {
+            val data = OneTimeCache {
+                val get = Google.batchGet(
+                    "1N0RjZY-G-3l15vJLbSN_5QOtN9_OwskOYB-5rYsuyg0",
+                    (0..<5).map { it.CoordXMod("Tierliste", 5, 7, 3, 0, 6).spreadTo(x = 2, y = 140) }, false
+                )
+                buildMap {
+                    for (row in get.flatten()) {
+                        put(
+                            row[0].toString(),
+                            ExternalTierlistData(points = row[1].let {
+                                if (it == "BANN") 1000 else it.toString().toInt()
+                            })
+                        )
+                    }
+                }
+            }
+
+            override suspend fun dataOf(mon: String): ExternalTierlistData {
+                return data()[mon] ?: error("No Data found for $mon")
+            }
         };
 
         abstract suspend fun dataOf(mon: String): ExternalTierlistData
@@ -119,18 +142,18 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                 channelId = tc,
                 guildId = PrivateCommands.guildForMyStuff?.takeUnless { isNotFlo } ?: gid,
                 mons =
-                (Google.batchGet(
-                    sid,
-                    ranges.map {
-                        if (it.contains(":")) return@map "$tierlistsheet!$it"
-                        "$tierlistsheet!$it$yStart:$it$yEnd"
-                    },
-                    false,
-                    "COLUMNS"
-                )
-                    .mapNotNull { col -> col.flatten().mapNotNull { it.toString().prepareForTL(complexSign) } }
-                    .also { tierlistcols += it }
-                    .flatten().ensureNoDuplicates() + shiftedMons?.map { it.name }.orEmpty()).distinct(),
+                    (Google.batchGet(
+                        sid,
+                        ranges.map {
+                            if (it.contains(":")) return@map "$tierlistsheet!$it"
+                            "$tierlistsheet!$it$yStart:$it$yEnd"
+                        },
+                        false,
+                        "COLUMNS"
+                    )
+                        .mapNotNull { col -> col.flatten().mapNotNull { it.toString().prepareForTL(complexSign) } }
+                        .also { tierlistcols += it }
+                        .flatten().ensureNoDuplicates() + shiftedMons?.map { it.name }.orEmpty()).distinct(),
                 tierlistcols = tierlistcols,
                 shiftedMons = shiftedMons,
                 tierMapper = e.dataMapper?.let { mapper -> { mapper.dataOf(it) } },
@@ -166,4 +189,4 @@ fun List<String>.ensureNoDuplicates(): List<String> {
 
 class DuplicatesFoundException(val duplicates: List<String>) : Exception()
 
-data class ExternalTierlistData(val tier: String?, val type: String? = null)
+data class ExternalTierlistData(val tier: String? = null, val type: String? = null, val points: Int? = null)

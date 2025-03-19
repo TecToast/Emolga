@@ -97,8 +97,8 @@ class LeagueCreator(
 
     val tierlist by lazy {
         transaction {
-            Tierlist.selectAll().where { Tierlist.guild eq guild }
-                .map { DraftPokemon(it[Tierlist.pokemon], it[Tierlist.tier]) }
+            Tierlist.selectAll().where { Tierlist.GUILD eq guild }
+                .map { DraftPokemon(it[Tierlist.POKEMON], it[Tierlist.TIER]) }
         }
     }
 

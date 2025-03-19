@@ -337,7 +337,7 @@ class TierlistBuilderConfigurator(
         }
         val shiftMap = shiftedMons?.associate { it.name to it.tier }
         newSuspendedTransaction {
-            Tierlist.deleteWhere { guild eq guildId and (identifierCol eq tlIdentifier) }
+            Tierlist.deleteWhere { GUILD eq guildId and (IDENTIFIER eq tlIdentifier) }
             Tierlist.batchInsert(
                 (tierlistcols.flatMapIndexed { index, strings ->
                     strings.map {
@@ -354,11 +354,12 @@ class TierlistBuilderConfigurator(
                     .sortedWith(compareBy({ it.tier.indexedBy(prices!!.keys.toList()) }, { it.name })),
                 shouldReturnGeneratedValues = false
             ) {
-                this[Tierlist.guild] = guildId
-                this[Tierlist.pokemon] = it.name
-                this[Tierlist.tier] = it.tier
-                this[Tierlist.type] = it.type
-                this[Tierlist.identifierCol] = tlIdentifier
+                this[Tierlist.GUILD] = guildId
+                this[Tierlist.POKEMON] = it.name
+                this[Tierlist.TIER] = it.tier
+                this[Tierlist.TYPE] = it.type
+                this[Tierlist.POINTS] = it.points
+                this[Tierlist.IDENTIFIER] = tlIdentifier
             }
         }
         checkScope.launch {
@@ -417,8 +418,11 @@ class TierlistBuilderConfigurator(
     }
 }
 
-data class ProcessedDraftPokemon(val name: String, val tier: String, val type: String?) {
+data class ProcessedDraftPokemon(val name: String, val tier: String, val type: String?, val points: Int?) {
     constructor(draftPokemon: DraftPokemon, externalTierlistData: ExternalTierlistData?) : this(
-        draftPokemon.name, externalTierlistData?.tier ?: draftPokemon.tier, externalTierlistData?.type
+        draftPokemon.name,
+        externalTierlistData?.tier ?: draftPokemon.tier,
+        externalTierlistData?.type,
+        externalTierlistData?.points
     )
 }

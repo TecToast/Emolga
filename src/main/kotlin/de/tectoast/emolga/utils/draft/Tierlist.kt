@@ -36,7 +36,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
     val order get() = prices.keys.toList()
 
     val freePicksAmount get() = freepicks["#AMOUNT#"] ?: 0
-    val basePredicate get() = guild eq guildid and (identifierCol eq identifier)
+    val basePredicate get() = GUILD eq guildid and (IDENTIFIER eq identifier)
 
     @Transient
     private val _autoComplete = OneTimeCache { getAllForAutoComplete() }
@@ -62,44 +62,44 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
 
     suspend fun addPokemon(mon: String, tier: String) = newSuspendedTransaction {
         insert {
-            it[guild] = this@Tierlist.guildid
-            it[pokemon] = mon
-            it[this.tier] = tier
-            it[this.identifierCol] = identifier
+            it[GUILD] = guildid
+            it[POKEMON] = mon
+            it[TIER] = tier
+            it[IDENTIFIER] = identifier
         }
     }
 
     suspend fun getByTier(tier: String): List<String>? {
         return newSuspendedTransaction {
-            selectAll().where { basePredicate and (Tierlist.tier eq tier) }.map { it[pokemon] }.ifEmpty { null }
+            selectAll().where { basePredicate and (TIER eq tier) }.map { it[POKEMON] }.ifEmpty { null }
         }
     }
 
     private suspend fun getAllForAutoComplete() = newSuspendedTransaction {
-        val list = selectAll().where { basePredicate }.map { it[pokemon] }
+        val list = selectAll().where { basePredicate }.map { it[POKEMON] }
         (list + NameConventionsDB.getAllOtherSpecified(list, language, guildid)).toSet()
     }
 
     suspend fun getTierOf(mon: String) =
         newSuspendedTransaction {
-            selectAll().where { basePredicate and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
+            selectAll().where { basePredicate and (POKEMON eq mon) }.map { it[TIER] }.firstOrNull()
         }
 
 
     suspend fun retrieveTierlistMap(map: Map<String, Int>) = newSuspendedTransaction {
         map.entries.flatMap { (tier, amount) ->
-            selectAll().where { basePredicate and (Tierlist.tier eq tier) }.orderBy(Random()).limit(amount)
-                .map { DraftPokemon(it[pokemon], tier) }
+            selectAll().where { basePredicate and (TIER eq tier) }.orderBy(Random()).limit(amount)
+                .map { DraftPokemon(it[POKEMON], tier) }
         }
     }
 
-    suspend fun getWithTierAndType(providedTier: String, providedType: String) = newSuspendedTransaction {
-        selectAll().where { basePredicate and (tier eq providedTier) and (type eq providedType) }
-            .map { it[pokemon] }
+    suspend fun getWithTierAndType(tier: String, type: String) = newSuspendedTransaction {
+        selectAll().where { basePredicate and (TIER eq tier) and (TYPE eq type) }
+            .map { it[POKEMON] }
     }
 
     suspend fun retrieveAll() = newSuspendedTransaction {
-        selectAll().where { basePredicate }.map { DraftPokemon(it[pokemon], it[tier]) }
+        selectAll().where { basePredicate }.map { DraftPokemon(it[POKEMON], it[TIER]) }
     }
 
     suspend fun addOrUpdateTier(mon: String, tier: String) {
@@ -108,10 +108,10 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
             if (existing != tier) {
                 newSuspendedTransaction {
                     if (tier in order)
-                        update({ basePredicate and (pokemon eq mon) }) {
-                            it[this.tier] = tier
+                        update({ basePredicate and (POKEMON eq mon) }) {
+                            it[this.TIER] = tier
                         }
-                    else deleteWhere { basePredicate and (pokemon eq mon) }
+                    else deleteWhere { basePredicate and (POKEMON eq mon) }
                 }
             }
         } else {
@@ -131,15 +131,15 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         /**
          * All tierlists
          */
-        val guild = long("guild")
-        val pokemon = varchar("pokemon", 30)
-        val tier = varchar("tier", 8)
-        val type = varchar("type", 10).nullable()
-        val identifierCol = varchar("identifier", 30).nullable()
+        val GUILD = long("guild")
+        val POKEMON = varchar("pokemon", 30)
+        val TIER = varchar("tier", 8)
+        val TYPE = varchar("type", 10).nullable()
+        val POINTS = integer("points").nullable()
+        val IDENTIFIER = varchar("identifier", 30).nullable()
         private var setupCalled = false
 
         val tierlists: MutableMap<Long, MutableMap<String, Tierlist>> = mutableMapOf()
-        private val REPLACE_NONSENSE = Regex("[^a-zA-Z\\d-:%ßäöüÄÖÜé ]")
         suspend fun setup() {
             tierlists.clear()
             setupCalled = true

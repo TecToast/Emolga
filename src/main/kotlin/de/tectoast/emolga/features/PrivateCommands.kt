@@ -482,9 +482,9 @@ object PrivateCommands {
         newSuspendedTransaction {
             val gid = args().toLong()
             Tierlist.batchInsert(Tierlist[gid]!!.retrieveAll(), shouldReturnGeneratedValues = false) {
-                this[Tierlist.guild] = Constants.G.MY
-                this[Tierlist.pokemon] = it.name
-                this[Tierlist.tier] = it.tier
+                this[Tierlist.GUILD] = Constants.G.MY
+                this[Tierlist.POKEMON] = it.name
+                this[Tierlist.TIER] = it.tier
             }
             NameConventionsDB.batchInsert(NameConventionsDB.selectAll().where { NameConventionsDB.GUILD eq gid }) {
                 this[NameConventionsDB.GUILD] = Constants.G.MY

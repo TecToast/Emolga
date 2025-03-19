@@ -23,7 +23,7 @@ class WPP : League() {
     override val docEntry = DocEntry.create(this) {
         monsOrder = { list -> list.sortedBy { it.tier.indexedBy(tierlist.order) }.map { it.name } }
         killProcessor = BasicStatProcessor {
-            plindex.CoordXMod("Kader", 2, 'P' - 'B', 5 + gdi, 19, monindex + 9)
+            plindex.CoordXMod("Kader", 2, 'Q' - 'B', 6 + gdi, 19, monindex + 9)
         }
     }
 

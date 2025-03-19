@@ -165,7 +165,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
             }
             if (resultList == null) return@measureTimedValue null
             val league = prefetchedLeague ?: league(resultList[0].leaguename)
-            LeagueResult(league, resultList.map { it.idx }, allOtherFormesGerman)
+            LeagueResult(league, resultList.map { it.idx }, allOtherFormesGerman.filter { it.value.isNotEmpty() })
         }
         logger.debug { "DURATION: ${duration.inWholeMilliseconds}" }
         return leagueResult

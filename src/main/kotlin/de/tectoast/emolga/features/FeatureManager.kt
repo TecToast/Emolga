@@ -16,6 +16,7 @@ import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
+import net.dv8tion.jda.api.interactions.InteractionContextType
 import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
@@ -182,7 +183,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         gid: Long
     ) = Commands.slash(cmd.spec.name, cmd.spec.help).apply {
         defaultPermissions = cmd.slashPermissions
-        isGuildOnly = true
+        setContexts(InteractionContextType.GUILD)
         if (cmd.children.isNotEmpty()) {
             cmd.children.forEach {
                 addSubcommands(

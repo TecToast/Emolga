@@ -2,6 +2,7 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Google
+import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -29,6 +30,9 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         var shiftMode by enumBasic<ShiftMode>("Shift-Mode", "Der Shift-Mode").nullable()
         var shiftData by string("Shift-Data", "Die Shift-Data").nullable()
         var dataMapper by enumBasic<DataMapper>("DataMapper", "Der potenzielle DataMapper").nullable()
+        var language by enumBasic<Language>("Sprache", "Die Sprache der Tierliste") {
+            default = Language.GERMAN
+        }
     }
 
     enum class ShiftMode {
@@ -130,7 +134,8 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                 tierlistcols = tierlistcols,
                 shiftedMons = shiftedMons,
                 tierMapper = e.dataMapper?.let { mapper -> { mapper.dataOf(it) } },
-                tlIdentifier = e.tlIdentifier
+                tlIdentifier = e.tlIdentifier,
+                language = e.language
             )
         } catch (ex: DuplicatesFoundException) {
             reply(

@@ -28,7 +28,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
 
     var mode: TierlistMode = TierlistMode.POINTS
     var points = 0
-    val language = Language.GERMAN
+    var language = Language.GERMAN
     val variableMegaPrice = false
     val maxMonsToPay = Int.MAX_VALUE
 

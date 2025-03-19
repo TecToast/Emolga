@@ -3,14 +3,11 @@ package de.tectoast.emolga.utils.dconfigurator.impl
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.draft.ExternalTierlistData
 import de.tectoast.emolga.features.flo.SendFeatures
-import de.tectoast.emolga.utils.condAppend
-import de.tectoast.emolga.utils.createCoroutineScope
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
-import de.tectoast.emolga.utils.embedColor
-import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.NameConventions
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -46,9 +43,10 @@ class TierlistBuilderConfigurator(
     guildId: Long,
     val mons: List<String>,
     val tierlistcols: List<List<String>>,
-    val shiftedMons: List<DraftPokemon>? = null,
-    val tlIdentifier: String? = null,
-    private val tierMapper: (suspend (String) -> ExternalTierlistData?)? = null
+    val shiftedMons: List<DraftPokemon>?,
+    val tlIdentifier: String?,
+    private val tierMapper: (suspend (String) -> ExternalTierlistData?)?,
+    val language: Language
 ) : DGuildConfigurator("tierlistbuilder", userId, channelId, guildId) {
     override val steps: List<Step<*>> = listOf(step<SlashCommandInteractionEvent> {
         val nc = db.nameconventions.findOne(NameConventions::guild eq guildId)?.data ?: run {
@@ -116,7 +114,7 @@ class TierlistBuilderConfigurator(
                 selectAll().where(GERMAN eq name).firstOrNull()
             }
         } ?: throw InvalidArgumentException("Dieser Name entspricht nicht meinen Konventionen!")
-        NameConventionsDB.addName(mons[index], name, guildId)
+        NameConventionsDB.addName(mons[index], name, guildId, language)
         deferReply().queue()
         test(this, options)
     }, step<GenericComponentInteractionCreateEvent> {
@@ -283,8 +281,8 @@ class TierlistBuilderConfigurator(
             }
             logger.debug { "Testing $mon <=> $regForm" }
             if (!NameConventionsDB.checkIfExists(
-                    regForm ?: mon, guildId
-                ) && (regForm == null || !NameConventionsDB.checkIfExists(mon, guildId))
+                    regForm ?: mon, guildId, language
+                ) && (regForm == null || !NameConventionsDB.checkIfExists(mon, guildId, language))
             ) {
                 e.hook.send("`$mon` wurde nicht gefunden, bitte gib den Namen in meinem Format über /addconvention an.".condAppend(
                     sendRegionalInfo
@@ -334,6 +332,7 @@ class TierlistBuilderConfigurator(
                 this@TierlistBuilderConfigurator.freepicks?.let { this.freepicks += it }
                 this@TierlistBuilderConfigurator.points?.let { this.points = it }
                 this.mode = this@TierlistBuilderConfigurator.tierlistMode!!
+                this.language = this@TierlistBuilderConfigurator.language
             })
         }
         val shiftMap = shiftedMons?.associate { it.name to it.tier }

@@ -82,26 +82,31 @@ object NameConventionsDB : Table("nameconventions") {
         }
     }
 
-    suspend fun checkIfExists(name: String, guildId: Long): Boolean {
+    suspend fun checkIfExists(name: String, guildId: Long, language: Language): Boolean {
         return newSuspendedTransaction {
-            selectAll().where((SPECIFIED eq name) and (GUILD eq 0 or (GUILD eq guildId))).firstOrNull() != null
+            selectAll().where((language.ncCol eq name) and (GUILD eq 0 or (GUILD eq guildId))).firstOrNull() != null
         }
     }
 
-    suspend fun addName(tlName: String, germanName: String, guildId: Long) {
+    suspend fun addName(tlName: String, germanName: String, guildId: Long, language: Language) {
         newSuspendedTransaction {
             insert {
                 it[GUILD] = guildId
                 it[GERMAN] = germanName
                 val row = selectAll().where(GERMAN eq germanName and (GUILD eq 0)).first()
                 it[ENGLISH] = row[ENGLISH]
-                it[SPECIFIED] = tlName
-                it[SPECIFIEDENGLISH] = /*run {
-                    val baseName = row[GERMAN].split("-").let { base ->
-                        if (row[HASHYPHENINNAME]) base.take(2).joinToString("-") else base[0]
+                when (language) {
+                    Language.GERMAN -> {
+                        it[SPECIFIED] = tlName
+                        it[SPECIFIEDENGLISH] = row[SPECIFIEDENGLISH]
                     }
-                    tlName.replace(baseName, row[ENGLISH].split("-").first())
-                }*/ row[SPECIFIEDENGLISH]
+
+                    Language.ENGLISH -> {
+                        it[SPECIFIED] = row[SPECIFIED]
+                        it[SPECIFIEDENGLISH] = tlName
+                    }
+                }
+
             }
         }
     }

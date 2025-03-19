@@ -5,6 +5,7 @@ import de.tectoast.emolga.database.exposed.GuildManagerDB
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.webJSON
 import dev.minn.jda.ktx.coroutines.await
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -17,12 +18,17 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import io.ktor.util.*
 import io.ktor.util.pipeline.*
+import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.serializerOrNull
 import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
 
 private val logger = KotlinLogging.logger {}
+private val defaultDataCache = SizeLimitedMap<String, String>(maxSize = 10)
 
+@OptIn(InternalSerializationApi::class)
 fun Route.emolgaAPI() {
     route("/") {
         install(apiGuard)
@@ -33,6 +39,23 @@ fun Route.emolgaAPI() {
             get(path) {
                 handler(call)
             }
+        }
+        get("/defaultdata") {
+            val path = call.request.queryParameters["path"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            if (!path.startsWith("de.tectoast")) return@get call.respond(HttpStatusCode.BadRequest)
+            defaultDataCache[path]?.let { return@get call.respondText(it, ContentType.Application.Json) }
+            val clazz =
+                runCatching { Class.forName(path) }.getOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val serializer = clazz.kotlin.serializerOrNull() as? KSerializer<Any>? ?: return@get call.respond(
+                HttpStatusCode.BadRequest
+            )
+            val value =
+                runCatching { webJSON.decodeFromString(serializer, "{}") }.getOrNull() ?: return@get call.respond(
+                    HttpStatusCode.BadRequest
+                )
+            val defaultData = webJSON.encodeToString(serializer, value)
+            defaultDataCache[path] = defaultData
+            call.respondText(defaultData, ContentType.Application.Json)
         }
         get("/guilds") {
             val guilds = GuildManagerDB.getGuildsForUser(call.userId)

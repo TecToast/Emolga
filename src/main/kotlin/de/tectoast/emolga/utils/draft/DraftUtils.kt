@@ -46,7 +46,7 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
     DraftInput {
     context(InteractionData, League)
     override suspend fun execute(type: DraftMessageType): Boolean {
-        if (isSwitchDraft && !config.allowPickDuringSwitch.enabled) {
+        if (isSwitchDraft && !config.triggers.allowPickDuringSwitch) {
             return reply("Du kannst während des Switch-Drafts nicht picken!").let { false }
         }
         val mem = current
@@ -87,7 +87,7 @@ data class PickInput(val pokemon: DraftName, val tier: String?, val free: Boolea
     suspend fun PickData.reply(type: DraftMessageType) {
         when (type) {
             REGULAR -> {
-                replyGeneral("${displayName()} ".condAppend(config.draftSend.alwaysSendTier || updrafted) { "im $tier " } + "gepickt!".condAppend(
+                replyGeneral("${displayName()} ".condAppend(config.triggers.alwaysSendTierOnPick || updrafted) { "im $tier " } + "gepickt!".condAppend(
                     updrafted
                 ) { " (Hochgedraftet)" }.condAppend(freePick) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
                 checkEmolga()

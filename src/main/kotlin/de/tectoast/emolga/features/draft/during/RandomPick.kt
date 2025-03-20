@@ -68,7 +68,7 @@ object RandomPick {
             deferReply()
             League.executePickLike {
                 val config = config.randomPick
-                if (config.disabled) return reply("RandomPick ist in dieser Liga deaktiviert!")
+                if (!config.enabled) return reply("RandomPick ist in dieser Liga deaktiviert!")
                 val hasJokers = config.hasJokers()
                 if (hasJokers && draftData.randomPick.currentMon?.disabled == false) return reply(
                     "Du hast bereits ein Mon gegambled!",

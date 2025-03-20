@@ -13,7 +13,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 object QueuePicks {
     context(InteractionData)
     fun League.queueNotEnabled(): Boolean {
-        if (!config.queuePicks.enabled) {
+        if (!config.triggers.queuePicks) {
             reply("Das Queuen von Picks ist in dieser Liga deaktiviert!")
             return true
         } else return false
@@ -67,7 +67,7 @@ object QueuePicks {
                     if (queueNotEnabled()) return
                     val oldmon = e.oldmon
                     val idx = this(user)
-                    if (oldmon == null && !isRunning && picks.isNotEmpty() && !config.allowPickDuringSwitch.enabled) {
+                    if (oldmon == null && !isRunning && picks.isNotEmpty() && !config.triggers.allowPickDuringSwitch) {
                         return reply("Im kommenden Draft können nur Switches gemacht werden, dementsprechend musst du ein altes Pokemon angeben!")
                     }
                     if (oldmon != null && picks[idx]?.any { it.name == oldmon.official } != true) {

@@ -9,15 +9,13 @@ data class LeagueConfig(
     var timer: DraftTimer? = null,
     val replayDataStore: ReplayDataStoreConfig? = null,
     val tipgame: TipGame? = null,
-    val allowPickDuringSwitch: AllowPickDuringSwitchConfig = AllowPickDuringSwitchConfig(),
     val draftBan: DraftBanConfig? = null,
-    val draftSend: DraftSendConfig = DraftSendConfig(),
-    val queuePicks: QueuePicksConfig = QueuePicksConfig(),
     val randomPick: RandomPickConfig = RandomPickConfig(),
     val randomPickRound: RandomPickRoundConfig? = null,
     val teraAndZ: TeraAndZ? = null,
     val youtube: YouTubeConfig? = null,
     val customTierlist: CustomTierlistConfig? = null,
+    val triggers: Triggers = Triggers(),
 )
 
 

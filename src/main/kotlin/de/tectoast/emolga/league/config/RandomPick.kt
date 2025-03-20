@@ -14,7 +14,7 @@ import mu.KotlinLogging
 
 @Serializable
 data class RandomPickConfig(
-    val disabled: Boolean = false,
+    val enabled: Boolean = true,
     val mode: RandomPickMode = RandomPickMode.Default(),
     val jokers: Int = 0,
     val onlyOneMega: Boolean = false,

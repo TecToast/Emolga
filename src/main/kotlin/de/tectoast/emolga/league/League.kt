@@ -906,7 +906,7 @@ sealed class League {
         val dayTimeFormat = SimpleDateFormat("dd.MM.")
         val leagueTimeFormat = SimpleDateFormat("HH:mm")
         val leagueTimeFormatSecs = SimpleDateFormat("HH:mm:ss")
-        private val allMutexes = ConcurrentHashMap<String, Mutex>()
+        val allMutexes = ConcurrentHashMap<String, Mutex>()
         val queueInteractionData = TestInteractionData(tc = 1099651412742389820)
         val timerScope = createCoroutineScope("LeagueTimer")
 
@@ -921,11 +921,12 @@ sealed class League {
         suspend inline fun <T> executeOnFreshLock(
             supplier: () -> T?, leagueMapper: (T) -> League, onNotFound: () -> Unit = {}, block: T.() -> Unit
         ) {
+            val locked = allMutexes.entries.mapNotNullTo(mutableSetOf()) { if (it.value.isLocked) it.key else null }
             val league = supplier() ?: return onNotFound()
-            val lock = getLock(leagueMapper(league).leaguename)
-            val wasLocked = lock.isLocked
+            val leaguename = leagueMapper(league).leaguename
+            val lock = getLock(leaguename)
             lock.withLock {
-                (if (wasLocked) supplier()!! else league).apply {
+                (if (leaguename in locked) supplier()!! else league).apply {
                     logger.info("Time in lock: " + measureTime {
                         block()
                         leagueMapper(this).lockCleanup()

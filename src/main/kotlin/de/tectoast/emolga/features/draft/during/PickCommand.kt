@@ -31,10 +31,6 @@ object PickCommand :
                 Tierlist[gid]?.mode?.isTiersWithFree() == true
             })
         }
-        var random by boolean("random", "RANDOMPICK (not visible)") {
-            onlyInCode = true
-            default = false
-        }
     }
 
     context(InteractionData)
@@ -42,7 +38,7 @@ object PickCommand :
         League.executePickLike {
             DraftUtils.executeWithinLock(
                 PickInput(e.pokemon, e.tier, e.free),
-                if (e.random) DraftMessageType.RANDOM else DraftMessageType.REGULAR
+                DraftMessageType.REGULAR
             )
         }
     }

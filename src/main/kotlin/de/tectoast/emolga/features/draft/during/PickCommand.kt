@@ -1,9 +1,6 @@
 package de.tectoast.emolga.features.draft.during
 
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.*
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils
@@ -21,14 +18,24 @@ object PickCommand :
             slashCommand { s, event ->
                 val league = League.onlyChannel(event.channel.idLong) ?: return@slashCommand null
                 val current = league.currentOrFromID(event.user.idLong) ?: return@slashCommand null
-                league.getPossibleTiers(forAutocomplete = true, idx = current)
-                    .filter { it.value > 0 }.map { it.key }.filterStartsWithIgnoreCase(s)
+                league.getPossibleTiers(forAutocomplete = true, idx = current).filter { it.value > 0 }.map { it.key }
+                    .filterStartsWithIgnoreCase(s)
             }
         }.nullable()
         var free by boolean("free", "Ob dieser Pick ein Freepick ist") {
             default = false
             slashCommand(guildChecker = {
-                Tierlist[gid]?.mode?.isTiersWithFree() == true
+                when (Tierlist[gid]?.mode?.isTiersWithFree()) {
+                    true -> ArgumentPresence.OPTIONAL
+                    else -> ArgumentPresence.NOT_PRESENT
+                }
+            })
+        }
+        var tera by boolean("tera", "Ob dieser Pick dein Tera-User sein soll") {
+            default = false
+            slashCommand(guildChecker = {
+                if (league()?.config?.teraPick != null) ArgumentPresence.OPTIONAL
+                else ArgumentPresence.NOT_PRESENT
             })
         }
     }
@@ -37,8 +44,7 @@ object PickCommand :
     override suspend fun exec(e: Args) {
         League.executePickLike {
             DraftUtils.executeWithinLock(
-                PickInput(e.pokemon, e.tier, e.free),
-                DraftMessageType.REGULAR
+                PickInput(e.pokemon, e.tier, e.free, e.tera), DraftMessageType.REGULAR
             )
         }
     }

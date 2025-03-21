@@ -50,14 +50,16 @@ object RandomPick {
         class Args : Arguments() {
             var tier by string("tier", "Das Tier, in dem gepickt werden soll") {
                 slashCommand(guildChecker = {
-                    val league = league() ?: return@slashCommand false
+                    val league = league() ?: return@slashCommand ArgumentPresence.OPTIONAL
                     league.config.randomPick.mode.provideCommandOptions()[RandomPickArgument.TIER]
+                        ?: ArgumentPresence.NOT_PRESENT
                 })
             }.nullable()
             var type by fromList("Typ", "Der Typ, der gewählt werden soll", germanTypeList) {
                 slashCommand(guildChecker = {
-                    val league = league() ?: return@slashCommand false
+                    val league = league() ?: return@slashCommand ArgumentPresence.OPTIONAL
                     league.config.randomPick.mode.provideCommandOptions()[RandomPickArgument.TYPE]
+                        ?: ArgumentPresence.NOT_PRESENT
                 }, choices = germanTypeList.map { Choice(it, it) })
             }.nullable()
         }

@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils.draft
 
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.TierData
 import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.SizeLimitedMap
@@ -84,6 +85,26 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         newSuspendedTransaction {
             selectAll().where { basePredicate and (POKEMON eq mon) }.map { it[TIER] }.firstOrNull()
         }
+
+    suspend fun getTierOfCommand(pokemon: String, insertedTier: String?): TierData? {
+        val (real, points) = newSuspendedTransaction {
+            selectAll().where { basePredicate and (POKEMON eq pokemon) }.map { it[TIER] to it[POINTS] }.firstOrNull()
+        } ?: return null
+        return if (insertedTier != null && mode.withTiers) {
+            TierData(order.firstOrNull {
+                insertedTier.equals(
+                    it, ignoreCase = true
+                )
+            } ?: (if (variableMegaPrice && insertedTier.equals("Mega", ignoreCase = true)) "Mega" else ""),
+                real, points)
+        } else {
+            TierData(real, real, points)
+        }
+    }
+
+    suspend fun getPointsOf(mon: String) = newSuspendedTransaction {
+        selectAll().where { basePredicate and (POKEMON eq mon) }.map { it[POINTS] }.firstOrNull()
+    }
 
 
     suspend fun retrieveTierlistMap(map: Map<String, Int>) = newSuspendedTransaction {

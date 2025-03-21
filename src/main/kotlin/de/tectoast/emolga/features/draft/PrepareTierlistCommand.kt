@@ -108,7 +108,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                         put(
                             row[0].toString(),
                             ExternalTierlistData(points = row[1].let {
-                                if (it == "BANN") 1000 else it.toString().toInt()
+                                if (it == "BANN") Int.MAX_VALUE else it.toString().toInt()
                             })
                         )
                     }

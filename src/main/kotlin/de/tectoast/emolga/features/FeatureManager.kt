@@ -208,8 +208,13 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         return feature.defaultArgs.mapNotNull { a ->
             if (a.onlyInCode) return@mapNotNull null
             val spec = a.spec as? CommandArgSpec
-            val required = if (spec?.guildChecker != null) (spec.guildChecker.invoke(CommandProviderData(gid))
-                ?: return@mapNotNull null) else !a.optional
+            val required = spec?.guildChecker?.let {
+                when (it(CommandProviderData(gid))) {
+                    ArgumentPresence.NOT_PRESENT -> return@mapNotNull null
+                    ArgumentPresence.REQUIRED -> true
+                    ArgumentPresence.OPTIONAL -> false
+                }
+            } ?: !a.optional
             OptionData(a.optionType, a.name.nameToDiscordOption(), a.help, required, spec?.autocomplete != null).apply {
                 if (spec?.choices != null) addChoices(spec.choices)
             }

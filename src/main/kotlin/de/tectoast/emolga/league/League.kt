@@ -254,17 +254,23 @@ sealed class League {
 
     context (InteractionData)
     open fun handlePoints(
-        free: Boolean, tier: String, tierOld: String? = null, mega: Boolean = false
+        free: Boolean, tier: String, tierOld: String? = null, mega: Boolean = false, extraCosts: Int? = null
     ): Boolean {
         if (!tierlist.mode.withPoints) return false
         if (tierlist.mode.isTiersWithFree() && !(tierlist.variableMegaPrice && mega) && !free) return false
+        val hasTeraPick = config.teraPick != null
+        val alreadyPaid = draftData.teraPick.alreadyPaid
+        if (hasTeraPick && extraCosts != null && current in alreadyPaid) {
+            reply("Du hast bereits einen Tera-Pick!")
+            return true
+        }
         val cpicks = picks[current]!!
-        val currentPicksHasMega = cpicks.any { it.name.isMega }
+        val currentPicksHasMega by lazy { cpicks.any { it.name.isMega } }
         if (tierlist.variableMegaPrice && currentPicksHasMega && mega) {
             reply("Du kannst nur ein Mega draften!")
             return true
         }
-        val needed = tierlist.getPointsNeeded(tier)
+        val needed = tierlist.getPointsNeeded(tier) + (extraCosts ?: 0)
         val pointsBack = tierOld?.let { tierlist.getPointsNeeded(it) } ?: 0
         if (points[current] - needed + pointsBack < 0) {
             reply("Dafür hast du nicht genug Punkte!")
@@ -276,11 +282,22 @@ sealed class League {
             if (mega) 0 else it
         }
         if (pointsBack == 0 && when (tierlist.mode) {
-                TierlistMode.POINTS -> minimumNeededPointsForTeamCompletion(cpicks.count { !it.noCost } + 1) > points[current] - needed
-                TierlistMode.TIERS_WITH_FREE -> (tierlist.freePicksAmount - (cpicks.count { it.free } + (if (free) 1 else 0))) * tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" && "Mega#" !in it.key }
-                    .minOf { it.value } > points[current] - needed - variableMegaPrice
+                TierlistMode.POINTS -> {
+                    points[current] - needed < minimumNeededPointsForTeamCompletion(cpicks.count { !it.noCost } + 1)
+                }
 
-                else -> false
+                TierlistMode.TIERS_WITH_FREE -> {
+                    val amountLeft = tierlist.freePicksAmount - (cpicks.count { it.free } + (if (free) 1 else 0))
+                    val minimumPrice = tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" && "Mega#" !in it.key }
+                        .minOf { it.value }
+                    val minimumRequired = amountLeft * minimumPrice
+                    val newPoints = points[current] - needed - variableMegaPrice - (extraCosts ?: 0)
+                    newPoints < minimumRequired
+                }
+
+                else -> {
+                    false
+                }
             }
         ) {
             reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!")
@@ -626,20 +643,6 @@ sealed class League {
                 else str
             }
 
-    suspend fun getTierOf(pokemon: String, insertedTier: String?): TierData? {
-        val real = tierlist.getTierOf(pokemon) ?: return null
-        return if (insertedTier != null && tierlist.mode.withTiers) {
-            TierData(tierlist.order.firstOrNull {
-                insertedTier.equals(
-                    it, ignoreCase = true
-                )
-            } ?: (if (tierlist.variableMegaPrice && insertedTier.equals("Mega", ignoreCase = true)) "Mega" else ""),
-                real)
-        } else {
-            TierData(real, real)
-        }
-    }
-
 
     fun DraftData.getTierInsertIndex(takePicks: Int = picks.size): Int {
         var index = 0
@@ -880,7 +883,7 @@ sealed class League {
                 if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
                     it.tier
                 ) else if (tierlist.variableMegaPrice && it.name.isMega) it.tier.substringAfter("#").toInt() else 0
-            }
+            } - (draftData.teraPick.alreadyPaid[idx] ?: 0)
         }
 
         fun add(idx: Int, points: Int) {
@@ -1096,7 +1099,7 @@ class BanData(
     override val changedOnTeamsiteIndex = -1 // not used for BanData
 }
 
-data class TierData(val specified: String, val official: String)
+data class TierData(val specified: String, val official: String, val points: Int?)
 
 sealed interface TimerSkipMode {
 

@@ -15,6 +15,7 @@ data class LeagueConfig(
     val teraAndZ: TeraAndZ? = null,
     val youtube: YouTubeConfig? = null,
     val customTierlist: CustomTierlistConfig? = null,
+    val teraPick: TeraPickConfig? = null,
     val triggers: Triggers = Triggers(),
 )
 
@@ -25,6 +26,7 @@ data class ResettableLeagueData(
     val randomPickRound: RandomPickRoundData = RandomPickRoundData(),
     val randomPick: RandomLeagueData = RandomLeagueData(),
     val timer: TimerRelated = TimerRelated(),
+    val teraPick: TeraPickData = TeraPickData(),
 )
 
 @Serializable

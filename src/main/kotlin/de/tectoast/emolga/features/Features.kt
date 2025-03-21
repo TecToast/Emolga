@@ -657,7 +657,11 @@ open class Arguments {
  * - false -> argument is present and optional
 
  */
-typealias GuildChecker = suspend CommandProviderData.() -> Boolean?
+typealias GuildChecker = suspend CommandProviderData.() -> ArgumentPresence
+
+enum class ArgumentPresence {
+    NOT_PRESENT, REQUIRED, OPTIONAL
+}
 
 class CommandProviderData(val gid: Long) {
     val league = OneTimeCache { db.leagueByGuild(gid) }

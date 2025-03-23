@@ -39,7 +39,7 @@ class WPP : League() {
         overrideEnabled: Boolean
     ) {
         val ytVideoSaveData = persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
-        if (!overrideEnabled && ytVideoSaveData?.enabled != true) return logger.info("ExecuteYTSend: Not enabled")
+        if (!overrideEnabled && ytVideoSaveData?.enabled != true) return
         ytVideoSaveData?.enabled = false
         jda.getTextChannelById(ytTC)!!.sendMessage(buildString {
             append("<@&1343723752495644703>\n")

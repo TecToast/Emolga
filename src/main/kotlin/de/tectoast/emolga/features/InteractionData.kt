@@ -29,7 +29,7 @@ import net.dv8tion.jda.api.utils.messages.MessageEditData
 
 abstract class InteractionData(
     open val user: Long,
-    open val tc: Long,
+    open var tc: Long,
     open val gid: Long,
     member: Member? = null,
     open val event: GenericInteractionCreateEvent? = null

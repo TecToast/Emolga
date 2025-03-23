@@ -20,6 +20,7 @@ import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
 import kotlinx.serialization.*
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionRow
@@ -86,6 +87,7 @@ suspend inline fun <T : StateStore> T.process(block: T.() -> Unit) {
 class ResultEntry : StateStore {
 
     var leaguename: String = ""
+    var channelToSend = -1L
 
     val data: List<MutableList<MonData>> = listOf(mutableListOf(), mutableListOf())
     private val uidxs = mutableListOf<Int>()
@@ -93,8 +95,9 @@ class ResultEntry : StateStore {
     @Transient
     val league = OneTimeCache { db.league(leaguename) }
 
-    constructor(uid: Long, league: League) : super(uid) {
+    constructor(uid: Long, league: League, tcid: Long) : super(uid) {
         this.leaguename = league.leaguename
+        this.channelToSend = tcid
     }
 
 
@@ -199,12 +202,23 @@ class ResultEntry : StateStore {
 
             EnterResult.ResultFinish.Mode.YES -> {
                 League.executeOnFreshLock(leaguename) {
-                    if (config.replayDataStore != null) reply(
-                        "Das Ergebnis des Kampfes wurde gespeichert! Du kannst nun die Eingabe-Nachricht verwerfen.",
-                        ephemeral = true
-                    )
-                    else {
-                        reply(generateFinalMessage())
+                    val channel = jda.getTextChannelById(channelToSend)!!
+                    if (config.replayDataStore != null) {
+                        reply(
+                            "Das Ergebnis des Kampfes wurde gespeichert! Du kannst nun die Eingabe-Nachricht verwerfen.",
+                            ephemeral = true
+                        )
+                        channel.send(
+                            embeds = Embed(
+                                title = "Spieltag ${gamedayData.gameday}",
+                                description = uidxs.let { if (gamedayData.u1IsSecond) it.reversed() else it }
+                                    .map { "<@${league()[it]}>" }.joinToString(" vs. ") + " ✅",
+                                color = embedColor
+                            ).into()
+                        ).queue()
+                    } else {
+                        reply(":)")
+                        channel.sendMessage(generateFinalMessage()).queue()
                     }
                     delete()
                     val game = data.mapIndexed { index, d ->

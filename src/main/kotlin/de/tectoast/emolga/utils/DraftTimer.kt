@@ -51,19 +51,19 @@ sealed class DraftTimer {
             }
             recheckTimerInfo()
             var currentDelay = currentDelay() ?: return null
-            var elapsedMinutes: Int = currentDelay
-            while (elapsedMinutes > 0) {
+            var minutesToGo: Int = currentDelay
+            while (minutesToGo > 0) {
                 val p = currentTimerInfo[cal[Calendar.DAY_OF_WEEK]]
                 val hour = cal[Calendar.HOUR_OF_DAY]
-                if (hour >= p.from && hour < p.to) elapsedMinutes-- else cal[Calendar.SECOND] = 0
+                if (hour >= p.from && hour < p.to) minutesToGo-- else cal[Calendar.SECOND] = 0
                 cal.add(Calendar.MINUTE, 1)
                 recheckTimerInfo()
                 val currentTimerInfoDelay = currentDelay() ?: return null
                 if (currentDelay != currentTimerInfoDelay) {
-                    elapsedMinutes = if (currentTimerInfoDelay < currentDelay) {
-                        elapsedMinutes.coerceAtMost(currentTimerInfoDelay)
+                    minutesToGo = if (currentTimerInfoDelay < currentDelay) {
+                        minutesToGo.coerceAtMost(currentTimerInfoDelay)
                     } else {
-                        currentTimerInfoDelay - (currentDelay - elapsedMinutes)
+                        currentTimerInfoDelay - (currentDelay - minutesToGo)
                     }
                     currentDelay = currentTimerInfoDelay
                 }

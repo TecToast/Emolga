@@ -257,11 +257,15 @@ sealed class League {
         free: Boolean, tier: String, tierOld: String? = null, mega: Boolean = false, extraCosts: Int? = null
     ): Boolean {
         if (!tierlist.mode.withPoints) return false
-        if (tierlist.mode.isTiersWithFree() && !(tierlist.variableMegaPrice && mega) && !free) return false
+        if (tierlist.mode.isTiersWithFree() && !(tierlist.variableMegaPrice && mega) && !free && extraCosts == null) return false
         val hasTeraPick = config.teraPick != null
         val alreadyPaid = draftData.teraPick.alreadyPaid
         if (hasTeraPick && extraCosts != null && current in alreadyPaid) {
             reply("Du hast bereits einen Tera-Pick!")
+            return true
+        }
+        if (hasTeraPick && isLastRound && current !in alreadyPaid && extraCosts == null) {
+            reply("Du musst noch einen Tera-Pick machen!")
             return true
         }
         val cpicks = picks[current]!!
@@ -270,40 +274,42 @@ sealed class League {
             reply("Du kannst nur ein Mega draften!")
             return true
         }
-        val needed = tierlist.getPointsNeeded(tier) + (extraCosts ?: 0)
-        val pointsBack = tierOld?.let { tierlist.getPointsNeeded(it) } ?: 0
-        if (points[current] - needed + pointsBack < 0) {
-            reply("Dafür hast du nicht genug Punkte!")
-            return true
-        }
         val variableMegaPrice = (if (tierlist.variableMegaPrice) (if (!currentPicksHasMega) tierlist.order.mapNotNull {
             it.substringAfter("#", "").takeUnless { t -> t.isEmpty() }?.toInt()
         }.minOrNull() ?: 0 else 0) else 0).let {
             if (mega) 0 else it
         }
-        if (pointsBack == 0 && when (tierlist.mode) {
+        val needed = (if (free) tierlist.getPointsNeeded(tier) else 0) + (extraCosts ?: 0) + variableMegaPrice
+        val pointsBack = tierOld?.let { tierlist.getPointsNeeded(it) } ?: 0
+        val newPoints = points[current] - needed + pointsBack
+        if (newPoints < 0) {
+            reply("Dafür hast du nicht genug Punkte! (`${points[current]} - $needed${if (pointsBack == 0) "" else "+ $pointsBack"} = $newPoints < 0`)")
+            return true
+        }
+        if (pointsBack == 0) {
+            val minimumRequired = when (tierlist.mode) {
                 TierlistMode.POINTS -> {
-                    points[current] - needed < minimumNeededPointsForTeamCompletion(cpicks.count { !it.noCost } + 1)
+                    minimumNeededPointsForTeamCompletion(cpicks.count { !it.noCost } + 1)
                 }
 
                 TierlistMode.TIERS_WITH_FREE -> {
                     val amountLeft = tierlist.freePicksAmount - (cpicks.count { it.free } + (if (free) 1 else 0))
                     val minimumPrice = tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" && "Mega#" !in it.key }
                         .minOf { it.value }
-                    val minimumRequired = amountLeft * minimumPrice
-                    val newPoints = points[current] - needed - variableMegaPrice - (extraCosts ?: 0)
-                    newPoints < minimumRequired
+
+                    amountLeft * minimumPrice
                 }
 
                 else -> {
-                    false
+                    0
                 }
             }
-        ) {
-            reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden!")
-            return true
+            if (newPoints < minimumRequired) {
+                reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden! (Du musst nach diesem Pick noch mindestens $minimumRequired Punkte haben, hättest aber nur noch $newPoints)")
+                return true
+            }
         }
-        points.add(current, pointsBack - needed)
+        points[current] = newPoints
         return false
     }
 
@@ -592,7 +598,11 @@ sealed class League {
             if (withPoints) add(
                 "${points[idx]} mögliche Punkte".condAppend(
                     isTiersWithFree(), " für Free-Picks"
-                )
+                ).condAppend(config.teraPick != null) {
+                    " und Tera-Pick".let {
+                        if (idx in draftData.teraPick.alreadyPaid) it.surroundWith("~~") else it
+                    }
+                }
             )
         }
     }.joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
@@ -690,7 +700,7 @@ sealed class League {
 
     open suspend fun onRoundSwitch() {}
 
-    suspend fun finishDraft(msg: String) {
+    fun finishDraft(msg: String) {
         tc.sendMessage(msg).queue()
         draftState = DraftState.OFF
         save("END SAVE")
@@ -886,6 +896,10 @@ sealed class League {
             } - (draftData.teraPick.alreadyPaid[idx] ?: 0)
         }
 
+        operator fun set(idx: Int, points: Int) {
+            this.points[idx] = points
+        }
+
         fun add(idx: Int, points: Int) {
             this.points[idx] = this[idx] + points
         }
@@ -1059,7 +1073,8 @@ data class PickData(
     override val idx: Int,
     override val round: Int,
     val freePick: Boolean,
-    val updrafted: Boolean
+    val updrafted: Boolean,
+    val tera: Int?
 ) : DraftData(league, pokemon, pokemonofficial, tier, idx, round) {
     override val changedOnTeamsiteIndex: Int by lazy {
         with(league) { getTierInsertIndex() }

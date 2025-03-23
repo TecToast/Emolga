@@ -61,7 +61,8 @@ data class PickInput(
         logger.info("tlName: $tlName, official: $official")
         val (specifiedTier, officialTier, points) = (tierlist.getTierOfCommand(tlName, tier)
             ?: return reply("Dieses Pokemon ist nicht in der Tierliste!").let { false })
-        config.teraPick?.let { if (points == Int.MAX_VALUE) return reply(it.messageOnIllegalPick).let { false } }
+        if (tera)
+            config.teraPick?.let { if (points == Int.MAX_VALUE) return reply(it.messageOnIllegalPick).let { false } }
         checkUpdraft(specifiedTier, officialTier)?.let { return reply(it).let { false } }
         if (isPicked(official, officialTier)) return reply("Dieses Pokemon wurde bereits gepickt!").let { false }
         val tlMode = tierlist.mode
@@ -85,7 +86,8 @@ data class PickInput(
             idx = mem,
             round = getPickRoundOfficial(),
             freePick = freepick,
-            updrafted = saveTier != officialTier
+            updrafted = saveTier != officialTier,
+            tera = points.takeIf { tera }
         )
         pickData.savePick(noCost)
         pickData.reply(type)
@@ -97,9 +99,11 @@ data class PickInput(
     suspend fun PickData.reply(type: DraftMessageType) {
         when (type) {
             REGULAR -> {
-                replyGeneral("${displayName()} ".condAppend(config.triggers.alwaysSendTierOnPick || updrafted) { "im $tier " } + "gepickt!".condAppend(
+                replyGeneral("${displayName()} ".condAppend(config.triggers.alwaysSendTierOnPick || updrafted) { "im $tier " } +
+                        (tera?.let { "als Tera-User " } ?: "") + "gepickt!".condAppend(
                     updrafted
-                ) { " (Hochgedraftet)" }.condAppend(freePick) { " (Free-Pick, neue Punktzahl: ${points[current]})" })
+                ) { " (Hochgedraftet)" }.condAppend(freePick) { " (Free-Pick)" }
+                    .condAppend(freePick || tera != null) { " [Neue Punktzahl: ${points[current]}]" })
                 checkEmolga()
             }
 

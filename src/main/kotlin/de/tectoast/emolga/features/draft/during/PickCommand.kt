@@ -2,6 +2,7 @@ package de.tectoast.emolga.features.draft.during
 
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.league.League
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils
 import de.tectoast.emolga.utils.draft.PickInput
@@ -25,16 +26,18 @@ object PickCommand :
         var free by boolean("free", "Ob dieser Pick ein Freepick ist") {
             default = false
             slashCommand(guildChecker = {
-                when (Tierlist[gid]?.mode?.isTiersWithFree()) {
-                    true -> ArgumentPresence.OPTIONAL
-                    else -> ArgumentPresence.NOT_PRESENT
-                }
+                if (gid == Constants.G.MY) ArgumentPresence.OPTIONAL
+                else
+                    when (Tierlist[gid]?.mode?.isTiersWithFree()) {
+                        true -> ArgumentPresence.OPTIONAL
+                        else -> ArgumentPresence.NOT_PRESENT
+                    }
             })
         }
         var tera by boolean("tera", "Ob dieser Pick dein Tera-User sein soll") {
             default = false
             slashCommand(guildChecker = {
-                if (league()?.config?.teraPick != null) ArgumentPresence.OPTIONAL
+                if (gid == Constants.G.MY || league()?.config?.teraPick != null) ArgumentPresence.OPTIONAL
                 else ArgumentPresence.NOT_PRESENT
             })
         }

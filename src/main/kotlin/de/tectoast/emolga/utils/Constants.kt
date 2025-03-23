@@ -33,6 +33,7 @@ object Constants {
         const val HELBIN = 1063512573175152730
         const val EPP = 699185903590965278
         const val LOEWE = 1042904158652616745
+        const val UDTA = 953578989291724830
     }
 
     object M {

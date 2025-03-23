@@ -18,7 +18,7 @@ import org.litote.kmongo.setTo
 object MemberSelect {
     object Command : CommandFeature<Command.Args>(
         ::Args,
-        CommandSpec("memberselect", "NUR FÜR PROGRAMMIERER", 1034431735481520149, 883292170533077002)
+        CommandSpec("memberselect", "NUR FÜR PROGRAMMIERER", 1034431735481520149, 883292170533077002, Constants.G.UDTA)
     ) {
         init {
             restrict(flo)

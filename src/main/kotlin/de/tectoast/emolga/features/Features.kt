@@ -131,7 +131,8 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
             Constants.G.COMMUNITY,
             Constants.G.HELBIN,
             Constants.G.EPP,
-            Constants.G.LOEWE
+            Constants.G.LOEWE,
+            Constants.G.UDTA
         )
     }
 }

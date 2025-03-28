@@ -27,6 +27,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.toSet
 import kotlinx.datetime.Instant
 import mu.KotlinLogging
 import org.jsoup.Jsoup
@@ -47,7 +48,8 @@ private val ytClient = HttpClient(CIO) {
 suspend fun setupYTSuscribtions() {
     db.league.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
         .flatMapMerge { it.table.asFlow().mapNotNull { u -> db.ytchannel.get(u)?.channelId } }
-        .collect { subscribeToYTChannel(it); delay(1000) }
+        .toSet()
+        .forEach { subscribeToYTChannel(it); delay(1000) }
 }
 
 private val mac: Mac by lazy {

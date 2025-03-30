@@ -160,7 +160,6 @@ sealed class League {
     open val dataSheet: String = "Data"
 
 
-    fun index(mem: Long) = table.indexOf(mem)
     operator fun invoke(mem: Long) = table.indexOf(mem)
     operator fun get(index: Int) = table[index]
 

@@ -32,7 +32,7 @@ object Nominate {
         override val buttonStyle = ButtonStyle.PRIMARY
 
         init {
-            registerPNListener("!nominate") { e ->
+            registerDMListener("!nominate") { e ->
                 League.executeOnFreshLock({ db.nds() }) {
                     val nds = this as NDS
                     val nom = nds.nominations
@@ -41,7 +41,7 @@ object Nominate {
                             e.author.idLong
                         )
                     if (nomUser in nom.nominated.getOrPut(nom.currentDay) { mutableMapOf() }) {
-                        return@registerPNListener e.channel.sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!")
+                        return@registerDMListener e.channel.sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!")
                             .queue()
                     }
                     val list =

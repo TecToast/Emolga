@@ -19,6 +19,9 @@ object ControlButtonSetup {
         )
     )
 
+    /**
+     * Initializes the control buttons in the control central and florix channels
+     */
     fun init() {
         CONTROLCENTRALGENERATION.takeIf { it.enabled }?.let {
             val tc = jda.getTextChannelById(it.tc)!!

@@ -192,7 +192,7 @@ object Analysis {
                 game.forEach { player ->
                     player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
                         FullStatsDB.add(
-                            it.draftname.official, it.kills, if (it.isDead) 1 else 0, player.winnerOfGame
+                            it.draftname.official, it.kills, it.isDead, player.winnerOfGame
                         )
                     }
                 }

@@ -1,6 +1,6 @@
 package de.tectoast.emolga.ktor
 
-import de.tectoast.emolga.encryption.Credentials
+import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.utils.webJSON
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*

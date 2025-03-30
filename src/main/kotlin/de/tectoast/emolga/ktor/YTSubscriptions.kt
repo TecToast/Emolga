@@ -1,6 +1,6 @@
 package de.tectoast.emolga.ktor
 
-import de.tectoast.emolga.encryption.Credentials
+import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig

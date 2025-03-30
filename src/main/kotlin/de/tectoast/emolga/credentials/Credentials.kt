@@ -1,4 +1,4 @@
-package de.tectoast.emolga.encryption
+package de.tectoast.emolga.credentials
 
 import de.tectoast.emolga.ktor.Ktor
 import de.tectoast.emolga.utils.Google

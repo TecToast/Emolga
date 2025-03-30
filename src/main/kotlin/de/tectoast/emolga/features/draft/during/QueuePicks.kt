@@ -31,7 +31,7 @@ object QueuePicks {
                 val league = db.leagueByCommand() ?: return reply("Du bist in keiner Liga auf diesem Server!")
                 if (league.queueNotEnabled()) return
                 val currentData =
-                    league.persistentData.queuePicks.queuedPicks.getOrPut(league.index(user)) { QueuePicksUserData() }
+                    league.persistentData.queuePicks.queuedPicks.getOrPut(league(user)) { QueuePicksUserData() }
                 val currentState = currentData.queued
                 if (currentState.isEmpty()) return reply(
                     "Du hast zurzeit keine Picks in der Queue! Füge welche über /queuepicks add hinzu!",

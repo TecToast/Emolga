@@ -13,6 +13,11 @@ object CalendarDB : IntIdTable("calendar") {
     val MESSAGE = varchar("message", 1000)
     val EXPIRES = timestamp("expires")
 
+    /**
+     * Schedules a calendar entry
+     * @param message the message to send
+     * @param expires the timestamp in milliseconds when the message should be sent
+     */
     suspend fun scheduleCalendarEntry(message: String, expires: Long) =
         newSuspendedTransaction {
             CalendarSystem.scheduleCalendarEntry(CalendarEntry.new {
@@ -21,6 +26,9 @@ object CalendarDB : IntIdTable("calendar") {
             })
         }
 
+    /**
+     * Retrieves all calendar entries
+     */
     suspend fun getAllEntries() = newSuspendedTransaction { CalendarEntry.all().toList() }
 }
 

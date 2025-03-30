@@ -8,6 +8,7 @@ import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
+// TODO: Remove?
 object TranslationsDB : Table("translations") {
     val ENGLISHID = varchar("englishid", 30)
     val GERMANID = varchar("germanid", 30)

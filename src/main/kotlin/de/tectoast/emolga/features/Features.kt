@@ -156,11 +156,18 @@ open class NotAllowed(val reason: String) : AllowedResult() {
  */
 abstract class ListenerProvider {
     val registeredListeners: MutableSet<Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>> = mutableSetOf()
+
+    /**
+     * Registers a Listener in a feature
+     */
     inline fun <reified T : GenericEvent> registerListener(noinline listener: suspend (T) -> Unit) {
         registeredListeners += (T::class to listener) as Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>
     }
 
-    fun registerPNListener(prefix: String = "", listener: suspend (MessageReceivedEvent) -> Unit) =
+    /**
+     * Registers a DM listener
+     */
+    fun registerDMListener(prefix: String = "", listener: suspend (MessageReceivedEvent) -> Unit) =
         registerListener<MessageReceivedEvent> {
             if (!it.author.isBot && it.channelType == ChannelType.PRIVATE && it.message.contentRaw.startsWith(prefix)) listener(
                 it

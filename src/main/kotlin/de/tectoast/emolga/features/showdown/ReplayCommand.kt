@@ -17,7 +17,7 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
     private val logger = KotlinLogging.logger {}
 
     init {
-        registerPNListener { e ->
+        registerDMListener { e ->
             val msg = e.message.contentDisplay
             if (msg.contains("https://") || msg.contains("http://")) {
                 Analysis.regex.find(msg)?.run {

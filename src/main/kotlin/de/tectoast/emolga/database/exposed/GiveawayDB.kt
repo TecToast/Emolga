@@ -34,6 +34,9 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
         private val coroutineScope =
             createCoroutineScope("Giveaway", Dispatchers.Default)
 
+        /**
+         * Initializes the giveaway system
+         */
         suspend fun init() {
             newSuspendedTransaction {
                 for (giveaway in all()) {
@@ -43,6 +46,9 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
         }
     }
 
+    /**
+     * Starts the timer of the given giveaway
+     */
     fun startTimer() {
         coroutineScope.launch {
             delay(Instant.now().until(end, ChronoUnit.MILLIS))
@@ -57,6 +63,9 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
     var end by GiveawaysDB.END
     var winners by GiveawaysDB.WINNERS
 
+    /**
+     * Finishes the giveaway
+     */
     private suspend fun finish() {
         newSuspendedTransaction {
             delete()

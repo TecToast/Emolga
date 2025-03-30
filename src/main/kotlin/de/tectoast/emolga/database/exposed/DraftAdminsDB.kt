@@ -12,6 +12,12 @@ object DraftAdminsDB : Table("draftadmins") {
     private val ROLEID = long("roleid").nullable()
     val USERID = long("userid").nullable()
 
+    /**
+     * Checks whether a user is a draft admin in a guild
+     * @param gid the guild id
+     * @param mem the member to check
+     * @return *true* if the user is a draft admin, *false* otherwise
+     */
     suspend fun isAdmin(gid: Long, mem: Member) = newSuspendedTransaction {
         selectAll().where {
             (GUILD eq gid) and ((ROLEID inList mem.roles.map { it.idLong }) or (USERID eq mem.idLong))

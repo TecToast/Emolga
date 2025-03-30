@@ -26,8 +26,6 @@ import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.interactions.components.ActionComponent
@@ -102,26 +100,6 @@ object PrivateCommands {
             .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
             .joinToString("\n", prefix = "```", postfix = "```")
         )
-    }
-
-    context(InteractionData)
-    suspend fun createConventions() {
-        db.pokedex.find().toFlow().filter { it.num > 0 }.map {
-            val translated = Translation.getGerName(it.baseSpecies ?: it.name).translation
-            it.name to translated.condAppend(it.forme != null) { "-${it.forme}" }
-        }.collect { NameConventionsDB.insertDefault(it.first, it.second) }
-    }
-
-    context(InteractionData)
-    suspend fun createConventionsCosmetic() {
-        db.pokedex.find().toFlow().filter { it.num > 0 && it.cosmeticFormes != null }.collect {
-            val translated = Translation.getGerName(it.baseSpecies ?: it.name).translation
-            it.cosmeticFormes!!.forEach { f ->
-                NameConventionsDB.insertDefaultCosmetic(
-                    it.name, translated, f, translated + "-" + f.split("-").drop(1).joinToString("-")
-                )
-            }
-        }
     }
 
     context(InteractionData)

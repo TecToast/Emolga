@@ -16,7 +16,7 @@ object SDNamesApprovalButton : ButtonFeature<SDNamesApprovalButton.Args>(::Args,
     context(InteractionData)
     override suspend fun exec(e: Args) {
         if (e.accept) {
-            SDNamesDB.replace(e.username, e.id)
+            SDNamesDB.setOwnerOfName(e.username, e.id)
             reply("Der Name `${e.username}` wurde erfolgreich für <@${e.id}> registriert!", ephemeral = true)
         } else {
             reply("Der Name wurde nicht registriert!", ephemeral = true)

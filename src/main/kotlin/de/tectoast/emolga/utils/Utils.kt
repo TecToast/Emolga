@@ -193,7 +193,11 @@ inline fun ignoreDuplicatesMongo(block: () -> Unit) =
 
 fun <T> Iterable<T>.reversedIf(condition: Boolean) = if (condition) reversed() else this.toList()
 
-enum class Language(val translationCol: Column<String>, val otherCol: Column<String>, val ncCol: Column<String>) {
+enum class Language(
+    val translationCol: Column<String>,
+    val otherCol: Column<String>,
+    val ncSpecifiedCol: Column<String>
+) {
     GERMAN(TranslationsDB.GERMANNAME, TranslationsDB.ENGLISHNAME, NameConventionsDB.SPECIFIED),
     ENGLISH(TranslationsDB.ENGLISHNAME, TranslationsDB.GERMANNAME, NameConventionsDB.SPECIFIEDENGLISH)
 }

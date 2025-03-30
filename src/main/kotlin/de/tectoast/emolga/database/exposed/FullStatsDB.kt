@@ -24,29 +24,43 @@ object FullStatsDB : Table("fullstats") {
 
     private val logger = KotlinLogging.logger {}
     private val scope = createCoroutineScope("FullStatsDB", Dispatchers.IO)
-    fun add(pkmn: String, k: Int, d: Int, w: Boolean) {
+
+    /**
+     * Adds new stats to a pokemon
+     * @param pokemon the pokemon to add stats to
+     * @param kills the kills to add
+     * @param dead true if the pokemon is dead, false otherwise
+     * @param win true if the pokemon was in the winning team, false otherwise
+     */
+    fun add(pokemon: String, kills: Int, dead: Boolean, win: Boolean) {
+        val deaths = if (dead) 1 else 0
         scope.launch {
             newSuspendedTransaction {
-                logger.debug("Adding to FSM {} {} {}", pkmn, k, d)
+                logger.debug("Adding to FSM {} {} {}", pokemon, kills, deaths)
                 upsert(onUpdate = {
-                    it[KILLS] = KILLS.plus(k)
-                    it[DEATHS] = DEATHS.plus(d)
+                    it[KILLS] = KILLS.plus(kills)
+                    it[DEATHS] = DEATHS.plus(deaths)
                     it[USES] = USES.plus(1)
-                    it[WINS] = WINS.plus(if (w) 1 else 0)
-                    it[LOOSES] = LOOSES.plus(if (!w) 1 else 0)
+                    it[WINS] = WINS.plus(if (win) 1 else 0)
+                    it[LOOSES] = LOOSES.plus(if (!win) 1 else 0)
                 }) {
-                    it[POKEMON] = pkmn
-                    it[KILLS] = k
-                    it[DEATHS] = d
+                    it[POKEMON] = pokemon
+                    it[KILLS] = kills
+                    it[DEATHS] = deaths
                     it[USES] = 1
-                    it[WINS] = if (w) 1 else 0
-                    it[LOOSES] = if (!w) 1 else 0
+                    it[WINS] = if (win) 1 else 0
+                    it[LOOSES] = if (!win) 1 else 0
                 }
             }
         }
 
     }
 
+    /**
+     * Returns the stats of a pokemon
+     * @param mon the pokemon to get the stats for
+     * @return the stats of the pokemon
+     */
     suspend fun getData(mon: String) = newSuspendedTransaction {
         val userobj = selectAll().where { POKEMON eq mon }.firstOrNull()
         if (userobj == null) {

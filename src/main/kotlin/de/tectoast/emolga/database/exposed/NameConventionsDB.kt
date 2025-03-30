@@ -1,5 +1,6 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.exposed.NameConventionsDB.convertOfficialToTLFull
 import de.tectoast.emolga.features.PrivateCommands
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Language
@@ -34,6 +35,13 @@ object NameConventionsDB : Table("nameconventions") {
 
     val allNameConventions = OneTimeCache { getAll() }
 
+    /**
+     * Gets all tl names of the mons in the other language than specified
+     * @param mons the list of tlnames to get (in language [lang])
+     * @param lang the language of the tl
+     * @param guildId the id of the guild
+     * @return a list of tl names in the other language
+     */
     suspend fun getAllOtherSpecified(mons: List<String>, lang: Language, guildId: Long): List<String> {
         val nc = emolgaDB.nameconventions.get(guildId)
         return newSuspendedTransaction {
@@ -53,41 +61,34 @@ object NameConventionsDB : Table("nameconventions") {
         }
     }
 
+    /**
+     * Gets all official names in german and english
+     * @return the list of all official names
+     */
     private suspend fun getAll() = newSuspendedTransaction {
         selectAll().flatMap { setOf(it[GERMAN], it[ENGLISH]) }.toSet()
     }
 
-    suspend fun insertDefault(english: String, name: String) {
-        newSuspendedTransaction {
-            insert {
-                it[GUILD] = 0
-                it[GERMAN] = name
-                it[this.ENGLISH] = english
-                it[SPECIFIED] = name
-            }
-        }
-    }
-
-    suspend fun insertDefaultCosmetic(
-        english: String, german: String, specifiedEnglish: String, specifiedGerman: String
-    ) {
-        newSuspendedTransaction {
-            insert {
-                it[GUILD] = 1
-                it[this.GERMAN] = german
-                it[this.ENGLISH] = english
-                it[SPECIFIED] = specifiedGerman
-                it[SPECIFIEDENGLISH] = specifiedEnglish
-            }
-        }
-    }
-
+    /**
+     * Checks if a given tlName is understandable for us (either because it is regular of a name convention exists
+     * @param name the tlName to search for
+     * @param guildId the guildId to search for
+     * @param language the language of the tierlist
+     */
     suspend fun checkIfExists(name: String, guildId: Long, language: Language): Boolean {
         return newSuspendedTransaction {
-            selectAll().where((language.ncCol eq name) and (GUILD eq 0 or (GUILD eq guildId))).firstOrNull() != null
+            selectAll().where((language.ncSpecifiedCol eq name) and (GUILD eq 0 or (GUILD eq guildId)))
+                .firstOrNull() != null
         }
     }
 
+    /**
+     * Adds a tlName to the naming conventions of the guild
+     * @param tlName the tlName to add
+     * @param germanName the corresponding official german name
+     * @param guildId the guild id
+     * @param language the language of the tierlist
+     */
     suspend fun addName(tlName: String, germanName: String, guildId: Long, language: Language) {
         newSuspendedTransaction {
             insert {
@@ -111,44 +112,80 @@ object NameConventionsDB : Table("nameconventions") {
         }
     }
 
+    /**
+     * Gets all name data for the given official name
+     * @param mon the official name
+     * @param guildId the guild id
+     * @param plusOther if the other language should be included in the result
+     * @return the [DraftName] containing the data, or null if no data could be found
+     */
     suspend fun convertOfficialToTLFull(mon: String, guildId: Long, plusOther: Boolean = false): DraftName? {
         val nc = emolgaDB.nameconventions.get(guildId)
         val spec = nc.keys.firstOrNull { mon.endsWith("-$it") }
         return getDBTranslation(mon, guildId, spec, nc, english = Tierlist[guildId].isEnglish, plusOther = plusOther)
     }
 
+    /**
+     * Gets the tlName of a mon given the official name
+     * @param mon the official name
+     * @param guildId the guild id
+     * @return the tlName of the mon or null if it was not a valid official name
+     */
     suspend fun convertOfficialToTL(mon: String, guildId: Long): String? {
         return convertOfficialToTLFull(mon, guildId)?.tlName
     }
 
-    suspend fun getDiscordTranslation(s: String, guildIdArg: Long, english: Boolean = false): DraftName? {
+    /**
+     * Gets the [DraftName] for a mon given the tlName (that is given on Discord)
+     * @param input the (potential) tlName to look for
+     * @param guildIdArg the guild id, may be overwritten by [PrivateCommands.guildForMyStuff]
+     * @param english if the tierlist is english
+     * @return the [DraftName] or null, if no data could be found
+     */
+    suspend fun getDiscordTranslation(input: String, guildIdArg: Long, english: Boolean = false): DraftName? {
         val guildId = if (guildIdArg == Constants.G.MY) PrivateCommands.guildForMyStuff ?: guildIdArg else guildIdArg
         val list = mutableListOf<Pair<String, String?>>()
         val nc = emolgaDB.nameconventions.findOne(NameConventions::guild eq guildId)?.data
         fun Map<String, String>.check() = firstNotNullOfOrNull {
-            it.value.toRegex().find(s)?.let { mr -> mr to it.key }
+            it.value.toRegex().find(input)?.let { mr -> mr to it.key }
         }
 
         val defaultNameConventions = emolgaDB.defaultNameConventions()
         (nc?.check() ?: defaultNameConventions.check())?.also { (mr, key) ->
             list += mr.groupValues[1] + "-" + key to key
         }
-        list += s to null
+        list += input to null
         list.forEach {
             getDBTranslation(
                 it.first, guildId, it.second, nc ?: defaultNameConventions, english
             )?.let { d -> return d }
         }
-        logger.warn("Could not find translation for $s in guild $guildId")
+        logger.warn("Could not find translation for $input in guild $guildId")
         return null
     }
 
     private val possibleSpecs = MappedCache(emolgaDB.defaultNameConventions) { it.keys }
 
-    suspend fun getSDTranslation(s: String, guildId: Long, english: Boolean = false) = getDBTranslation(
-        s, guildId, possibleSpecs().firstOrNull { s.endsWith("-$it") }, emolgaDB.nameconventions.get(guildId), english
+    /**
+     * Gets a DraftName given the SD/Official variant of a name
+     * TODO: Same as [convertOfficialToTLFull]?
+     * @param input the sd/official name of a pokemon
+     * @param guildId the guild id
+     * @return the corresponding [DraftName] or null if no data could be found
+     */
+    suspend fun getSDTranslation(input: String, guildId: Long, english: Boolean = false) = getDBTranslation(
+        input,
+        guildId,
+        possibleSpecs().firstOrNull { input.endsWith("-$it") },
+        emolgaDB.nameconventions.get(guildId),
+        english
     )
 
+    /**
+     * Gets all official english -> german translations given a list of official english names
+     * @param list the list of official english names
+     * @return a map of the official english names to the german names
+     */
     suspend fun getAllSDTranslationOnlyOfficialGerman(list: List<String>): Map<String, String> {
         return newSuspendedTransaction {
             selectAll().where(ENGLISH inList list).associate { it[ENGLISH] to it[GERMAN] }
@@ -156,6 +193,7 @@ object NameConventionsDB : Table("nameconventions") {
     }
 
     @Suppress("unused")
+    // TODO: Check for multi lang, may be merged with [getAllSDTranslationOnlyOfficialGerman]
     suspend fun getAllSDTranslationOnlyOfficialEnglish(list: List<String>): Map<String, String> {
         return newSuspendedTransaction {
             selectAll().where(GERMAN inList list).associate { it[GERMAN] to it[ENGLISH] }
@@ -178,6 +216,7 @@ object NameConventionsDB : Table("nameconventions") {
                     return@newSuspendedTransaction DraftName(
                         it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                             if (spec != null) {
+                                // TODO: Rework (and add docs)
                                 val pattern = nc[spec] ?: emolgaDB.defaultNameConventions()[spec]!!
                                 val len = pattern.replace("(.+)", "").length
                                 val replace = pattern.replace("(.+)", s.substringBefore("-$spec"))
@@ -206,6 +245,10 @@ object NameConventionsDB : Table("nameconventions") {
     }
 }
 
+/**
+ * A DraftName consists of a tierlist name (tlName) and the official name (in the format that is used
+ * by Pokemon Showdown.
+ */
 @Serializable
 data class DraftName(
     val tlName: String,

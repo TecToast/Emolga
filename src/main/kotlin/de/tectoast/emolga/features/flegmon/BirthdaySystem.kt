@@ -45,7 +45,7 @@ object BirthdaySystem : CoroutineScope {
             val year = e.year
             val month = e.month
             val day = e.day
-            BirthdayDB.addOrUpdateBirthday(user, year, month, day)
+            BirthdayDB.upsertBirthday(user, year, month, day)
             reply(
                 "Dein Geburtstag wurde erfolgreich auf den ${day.toString().padStart(2, '0')}.${
                     month.toString().padStart(2, '0')

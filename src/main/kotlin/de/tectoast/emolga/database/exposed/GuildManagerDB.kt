@@ -12,9 +12,9 @@ object GuildManagerDB : Table("guildmanager") {
      * Gets all guilds the user is authorized for
      * @return the list containing the guild ids
      */
-    suspend fun getGuildsForUser(user: Long): List<Long> {
+    suspend fun getGuildsForUser(user: Long): Set<Long> {
         return newSuspendedTransaction {
-            select(GUILD).where { USER eq user }.map { it[GUILD] }
+            select(GUILD).where { USER eq user }.mapTo(mutableSetOf()) { it[GUILD] }
         }
     }
 

@@ -2,6 +2,7 @@ package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.GuildManagerDB
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -18,6 +19,8 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import io.ktor.util.*
 import io.ktor.util.pipeline.*
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toSet
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -58,7 +61,7 @@ fun Route.emolgaAPI() {
             call.respondText(defaultData, ContentType.Application.Json)
         }
         get("/guilds") {
-            val guilds = GuildManagerDB.getGuildsForUser(call.userId)
+            val guilds = getGuildsForUser(call.userId)
             call.respond(guilds.mapNotNull {
                 val g = jda.getGuildById(it) ?: return@mapNotNull null
                 GuildMeta(id = g.id, name = g.name, icon = g.iconUrl ?: "")
@@ -147,10 +150,14 @@ suspend fun ApplicationCall.requireGuild(): Long? {
         respond(HttpStatusCode.BadRequest)
         return null
     }
-    if (GuildManagerDB.getGuildsForUser(userId).contains(gid)) return gid
+    if (getGuildsForUser(userId).contains(gid)) return gid
     respond(HttpStatusCode.Forbidden)
     return null
 }
+
+private suspend fun getGuildsForUser(userId: Long) =
+    if (userId == Constants.FLOID) db.league.find().toFlow().map { it.guild }
+        .toSet() + db.signups.find().toFlow().map { it.guild }.toSet() else GuildManagerDB.getGuildsForUser(userId)
 
 /**
  * Should only be used in routes that are guarded by [apiGuard]

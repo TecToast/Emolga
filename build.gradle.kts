@@ -29,7 +29,6 @@ tasks {
         manifest {
             attributes("Main-Class" to "de.tectoast.emolga.MainKt", "Class-Path" to "Emolga-all.jar")
         }
-        exclude("natives/linux-arm/libconnector.so")
     }
     withType<ShadowJar> {
         exclude("de/tectoast/emolga/**")

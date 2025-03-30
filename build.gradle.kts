@@ -39,16 +39,10 @@ tasks {
             freeCompilerArgs.add("-Xcontext-receivers")
         }
     }
-    /*withType(KotlinCompile::class.java) {
-        dependsOn("clean")
-    }*/
 }
 
 group = "de.tectoast"
 version = "3.0"
-
-val gprUser: String by project
-val gprPassword: String by project
 
 repositories {
     mavenLocal()

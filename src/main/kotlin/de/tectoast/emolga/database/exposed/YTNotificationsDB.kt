@@ -9,7 +9,7 @@ object YTNotificationsDB : Table("ytnotifications") {
     val DM = bool("dm").default(false)
 
     suspend fun getAllYTChannels() = newSuspendedTransaction {
-        select(YTCHANNEL).withDistinct(true).map { it[YTCHANNEL] }
+        select(YTCHANNEL).withDistinct(true).mapTo(mutableSetOf()) { it[YTCHANNEL] }
     }
 
     suspend fun getDCChannel(ytChannel: String) = newSuspendedTransaction {

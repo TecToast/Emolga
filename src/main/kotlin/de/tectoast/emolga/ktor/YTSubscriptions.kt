@@ -1,8 +1,8 @@
 package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.database.exposed.YTNotificationsDB
-import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
@@ -31,7 +31,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.toSet
 import kotlinx.datetime.Instant
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
@@ -51,11 +50,12 @@ private val ytClient = HttpClient(CIO) {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun setupYTSuscribtions() {
-    val fromLeague =
-        db.league.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
-            .flatMapMerge { it.table.asFlow().mapNotNull { u -> db.ytchannel.get(u)?.channelId } }.toSet()
-    val fromNotifications = YTNotificationsDB.getAllYTChannels()
-    (fromLeague.asSequence() + fromNotifications.asSequence()).forEach {
+    val allChannels = YTNotificationsDB.getAllYTChannels()
+    db.league.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
+        .flatMapMerge { it.table.asFlow().mapNotNull { u -> db.ytchannel.get(u)?.channelId } }.collect {
+            allChannels += it
+        }
+    allChannels.forEach {
         subscribeToYTChannel(it)
         delay(1000)
     }

@@ -95,11 +95,6 @@ sealed class League {
 
     val order: MutableMap<Int, MutableList<Int>> = mutableMapOf()
 
-    @EncodeDefault
-    val moved: MutableMap<Int, MutableList<Int>> = mutableMapOf()
-
-    @EncodeDefault
-    val punishableSkippedTurns: MutableMap<Int, MutableSet<Int>> = mutableMapOf()
     val names: MutableList<String> = mutableListOf()
 
 
@@ -390,7 +385,7 @@ sealed class League {
         }
         if (result == TimerSkipResult.NOCONCRETE) {
             nextUser()
-            val randomOrder = moved.values.flatten().toSet().shuffled()
+            val randomOrder = draftData.moved.values.flatten().toSet().shuffled()
             for (idx in randomOrder) {
                 if (tryQueuePick(idx)) break
             }
@@ -484,9 +479,7 @@ sealed class League {
             order.putAll(originalorder.mapValues { it.value.toMutableList() })
             round = 1
             draftState = DraftState.ON
-            moved.clear()
             draftData = ResettableLeagueData()
-            punishableSkippedTurns.clear()
             reset()
             sendRound()
             if (tryQueuePick()) return
@@ -664,17 +657,17 @@ sealed class League {
     }
 
     fun addToMoved() {
-        if (!isSwitchDraft) moved.getOrPut(current) { mutableListOf() }.let { if (round !in it) it += round }
+        if (!isSwitchDraft) draftData.moved.getOrPut(current) { mutableListOf() }.let { if (round !in it) it += round }
     }
 
     private fun addPunishableSkippedRound(data: NextPlayerData.Moved) {
         if (System.currentTimeMillis() > (config.timer?.getCurrentTimerInfo()?.startPunishSkipsTime
                 ?: 0) && (data.reason == SkipReason.REALTIMER || data.skippedBy != null)
-        ) punishableSkippedTurns.getOrPut(current) { mutableSetOf() } += round
+        ) draftData.punishableSkippedTurns.getOrPut(current) { mutableSetOf() } += round
     }
 
     fun hasMovedTurns(idx: Int = current) = movedTurns(idx).isNotEmpty()
-    fun movedTurns(idx: Int = current) = moved[idx] ?: mutableListOf()
+    fun movedTurns(idx: Int = current) = draftData.moved[idx] ?: mutableListOf()
 
     private suspend fun endOfTurn(): Boolean {
         logger.debug("End of turn")
@@ -1166,7 +1159,7 @@ data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
         val order = order[totalRounds]!!
         val coll: MutableCollection<Int> = if (duringTimerSkipMode == NEXT_PICK) mutableSetOf() else mutableListOf()
         for (i in 1..totalRounds) {
-            moved.entries.filter { i in it.value }.sortedBy { it.key.indexedBy(originalorder[i]!!) }.forEach {
+            draftData.moved.entries.filter { i in it.value }.sortedBy { it.key.indexedBy(originalorder[i]!!) }.forEach {
                 coll += it.key
             }
         }
@@ -1182,9 +1175,9 @@ data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
 @Serializable
 data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
     override suspend fun League.afterPick(data: NextPlayerData): TimerSkipResult =
-        if (moved.values.any { it.isNotEmpty() }) {
+        if (draftData.moved.values.any { it.isNotEmpty() }) {
             if (!pseudoEnd) {
-                tc.sendMessage("Der Draft wäre jetzt vorbei, aber es gibt noch Spieler, die keinen vollständigen Kader haben! Diese können nun in beliebiger Reihenfolge ihre Picks nachholen. Dies sind:\n" + moved.entries.filter { it.value.isNotEmpty() }
+                tc.sendMessage("Der Draft wäre jetzt vorbei, aber es gibt noch Spieler, die keinen vollständigen Kader haben! Diese können nun in beliebiger Reihenfolge ihre Picks nachholen. Dies sind:\n" + draftData.moved.entries.filter { it.value.isNotEmpty() }
                     .joinToString("\n") { (user, turns) ->
                         "<@${table[user]}>: ${turns.size}${
                             announceData(withTimerAnnounce = false, idx = user)

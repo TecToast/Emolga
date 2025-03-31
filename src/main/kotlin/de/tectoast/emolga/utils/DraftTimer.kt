@@ -25,7 +25,7 @@ sealed class DraftTimer {
     fun calc(league: League, now: Long = System.currentTimeMillis()) = calc(
         now = now,
         timerStart = timerStart,
-        howOftenSkipped = league.punishableSkippedTurns[league.current]?.size ?: 0,
+        howOftenSkipped = league.draftData.punishableSkippedTurns[league.current]?.size ?: 0,
         usedStallSeconds = league.draftData.timer.usedStallSeconds[league.current] ?: 0
     )
 

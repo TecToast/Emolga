@@ -443,15 +443,15 @@ object Analysis {
             var calcedTotalDmg = 0
             sdPlayers.flatMap { it.pokemon }.forEach {
                 calcedTotalDmg += it.damageDealt
-                logger.info(
+                logger.debug {
                     "Pokemon: ${it.pokemon}: HP: ${it.hp} Dmg: ${it.damageDealt} Percent: ${
                         (it.damageDealt.toDouble() / totalDmg * 100.0).roundToDigits(
                             2
                         )
                     } Healed: ${it.healed}"
-                )
+                }
             }
-            logger.info("Total Dmg: $totalDmg, Calced: $calcedTotalDmg")
+            logger.debug { "Total Dmg: $totalDmg, Calced: $calcedTotalDmg" }
             AnalysisData(sdPlayers, this)
         }
     }

@@ -48,8 +48,7 @@ class DocEntry private constructor(val league: League) {
     var sorterData: SorterData?
         get() = error("Not implemented")
         set(value) {
-            if (value != null)
-                sorterDatas["default"] = value
+            sorterDatas["default"] = value!!
         }
     private val sorterDatas = mutableMapOf<String, SorterData>()
     var setStatIfEmpty = false
@@ -304,7 +303,6 @@ class DocEntry private constructor(val league: League) {
                         )
                     val points = Google.get(sid, formulaRange.toString(), false)
                     val orig: List<List<Any>?> = ArrayList(points)
-                    league.table
                     val indexerToUse by lazy {
                         if (newMethod) {
                             val new: suspend (String) -> Int = { str: String ->

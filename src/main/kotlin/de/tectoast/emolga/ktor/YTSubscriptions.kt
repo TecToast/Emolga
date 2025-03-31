@@ -7,11 +7,9 @@ import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.league.config.YouTubeConfig
+import de.tectoast.emolga.utils.defaultScope
 import de.tectoast.emolga.utils.ignoreDuplicatesMongo
-import de.tectoast.emolga.utils.json.YTVideo
-import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.get
-import de.tectoast.emolga.utils.json.only
+import de.tectoast.emolga.utils.json.*
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import dev.minn.jda.ktx.coroutines.await
@@ -29,14 +27,16 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.flatMapMerge
-import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.toSet
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.jsoup.Jsoup
 import org.litote.kmongo.div
 import org.litote.kmongo.exists
+import org.litote.kmongo.`in`
 import org.litote.kmongo.serialization.TemporalExtendedJsonSerializer
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
@@ -49,15 +49,19 @@ private val ytClient = HttpClient(CIO) {
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-suspend fun setupYTSuscribtions() {
-    val allChannels = YTNotificationsDB.getAllYTChannels()
-    db.league.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
-        .flatMapMerge { it.table.asFlow().mapNotNull { u -> db.ytchannel.get(u)?.channelId } }.collect {
-            allChannels += it
+fun setupYTSuscribtions() {
+    defaultScope.launch {
+        val allChannels = YTNotificationsDB.getAllYTChannels()
+        val fromLeagueUsers =
+            db.league.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
+                .flatMapConcat { it.table.asFlow() }.toSet()
+        db.ytchannel.find(YTChannel::user `in` fromLeagueUsers).toFlow().collect { allChannels += it.channelId }
+        logger.info("Subscribing to ${allChannels.size} channels...")
+        allChannels.forEach {
+            subscribeToYTChannel(it)
+            delay(1000)
         }
-    allChannels.forEach {
-        subscribeToYTChannel(it)
-        delay(1000)
+        logger.info("Done subscribing to ${allChannels.size} channels!")
     }
 
 }

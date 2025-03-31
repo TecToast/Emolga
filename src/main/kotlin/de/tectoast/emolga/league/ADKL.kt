@@ -1,11 +1,9 @@
 package de.tectoast.emolga.league
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.utils.BasicStatProcessor
-import de.tectoast.emolga.utils.DocEntry
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.indexedBy
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.records.CoordXMod
+import de.tectoast.emolga.utils.records.SorterData
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -24,6 +22,15 @@ class ADKL : League() {
         killProcessor = BasicStatProcessor {
             plindex.CoordXMod("Kader", 2, 'P' - 'B', 5 + gdi, 22, monindex + 11)
         }
+        deathProcessor = CombinedStatProcessor {
+            plindex.CoordXMod("Kader", 2, 'P' - 'B', 5 + gdi, 22, 22)
+        }
+        sorterData = SorterData(
+            "Tabelle!C5:G12",
+            indexer = { it.substringAfter("C").substringBefore(":").toInt() },
+            newMethod = false,
+            cols = listOf(2, -1, 4)
+        )
     }
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {

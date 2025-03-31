@@ -1,6 +1,8 @@
 package de.tectoast.emolga.ktor
 
-import de.tectoast.emolga.credentials.Credentials
+import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.exposed.YTNotificationsDB
+import de.tectoast.emolga.encryption.Credentials
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
@@ -12,6 +14,8 @@ import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
+import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.generics.getChannel
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
@@ -30,6 +34,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toSet
 import kotlinx.datetime.Instant
 import mu.KotlinLogging
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.jsoup.Jsoup
 import org.litote.kmongo.div
 import org.litote.kmongo.exists
@@ -46,10 +51,15 @@ private val ytClient = HttpClient(CIO) {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 suspend fun setupYTSuscribtions() {
-    db.league.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
-        .flatMapMerge { it.table.asFlow().mapNotNull { u -> db.ytchannel.get(u)?.channelId } }
-        .toSet()
-        .forEach { subscribeToYTChannel(it); delay(1000) }
+    val fromLeague =
+        db.league.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
+            .flatMapMerge { it.table.asFlow().mapNotNull { u -> db.ytchannel.get(u)?.channelId } }.toSet()
+    val fromNotifications = YTNotificationsDB.getAllYTChannels()
+    (fromLeague.asSequence() + fromNotifications.asSequence()).forEach {
+        subscribeToYTChannel(it)
+        delay(1000)
+    }
+
 }
 
 private val mac: Mac by lazy {
@@ -67,6 +77,7 @@ fun Route.ytSubscriptions() {
             val challenge =
                 call.request.queryParameters["hub.challenge"] ?: return@get call.respond(HttpStatusCode.NotFound)
             call.respondText(challenge)
+            // TODO: check if we actually wanted the subscription
         }
         post {
             call.respondText(status = HttpStatusCode.Accepted) { "" }
@@ -103,6 +114,11 @@ fun Route.ytSubscriptions() {
                 if (ignoreDuplicatesMongo {
                         db.ytvideos.insertOne(YTVideo(channelId, videoId, title, Instant.parse(published)))
                     }) {
+                    YTNotificationsDB.getDCChannel(channelId)?.let { (mc, dm) ->
+                        val channel =
+                            if (dm) jda.openPrivateChannelById(mc).await() else jda.getChannel<MessageChannel>(mc)
+                        channel?.sendMessage("https://youtu.be/$videoId")?.queue()
+                    }
                     db.config.only().ytLeagues.forEach { (short, gid) ->
                         if (title.contains(short, ignoreCase = true)) {
                             handleVideo(channelId, videoId, gid)

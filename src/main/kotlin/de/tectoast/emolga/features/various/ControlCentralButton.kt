@@ -29,7 +29,7 @@ object ControlCentralButton : ButtonFeature<ControlCentralButton.Args>(::Args, B
         }
         reply("Done!")
         if (breakpoint) {
-            Unit // I have a JVM breakpoint here
+            print("") // I have a JVM breakpoint here (as it turns out, a simple Unit gets optimized away)
         }
     }
 }

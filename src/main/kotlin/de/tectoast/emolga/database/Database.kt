@@ -26,6 +26,7 @@ class Database(host: String, username: String, password: String) {
         private val logger = KotlinLogging.logger {}
         private lateinit var instance: Database
         val dbScope = createCoroutineScope("Database", Dispatchers.IO)
+        // TODO: use this scope for all database operations
 
 
         /**

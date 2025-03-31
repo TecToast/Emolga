@@ -4,6 +4,7 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.YTChannelsDB
 import de.tectoast.emolga.features.draft.SignupManager.Button
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
@@ -26,6 +27,7 @@ import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.interactions.components.ActionComponent
@@ -318,22 +320,19 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun fetchYTChannelsForLeague(args: PrivateData) {
         val league = db.league(args[0])
-        val data = league.table.zip(args.drop(1).map {
+        val finalData = ArrayList<Pair<Long, String>>()
+        league.table.asFlow().zip(args.asFlow().drop(1).map {
             val base = it.substringBefore("?")
             if ("@" !in base) base.substringAfter("channel/") else Google.fetchChannelId(base.substringAfter("@"))
-        }).mapIndexedNotNull { index, data ->
+        }, ::Pair).collectIndexed { index, data ->
             val (id, channelId) = data
-            val cid = channelId ?: return@mapIndexedNotNull run {
+            val cid = channelId ?: return@collectIndexed run {
                 logger.warn("No channel found for $id (testing ${args[index + 1]})")
                 null
             }
-            YTChannel(id, cid)
+            finalData += id to cid
         }
-        data.forEach {
-            ignoreDuplicatesMongo {
-                db.ytchannel.insertOne(it)
-            }
-        }
+        YTChannelsDB.insertAll(finalData)
     }
 
     context(InteractionData)

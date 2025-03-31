@@ -2,14 +2,15 @@ package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.credentials.Credentials
+import de.tectoast.emolga.database.exposed.YTChannelsDB
 import de.tectoast.emolga.database.exposed.YTNotificationsDB
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.league.config.YouTubeConfig
 import de.tectoast.emolga.utils.defaultScope
-import de.tectoast.emolga.utils.ignoreDuplicatesMongo
-import de.tectoast.emolga.utils.json.*
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import dev.minn.jda.ktx.coroutines.await
@@ -36,13 +37,13 @@ import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.jsoup.Jsoup
 import org.litote.kmongo.div
 import org.litote.kmongo.exists
-import org.litote.kmongo.`in`
 import org.litote.kmongo.serialization.TemporalExtendedJsonSerializer
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import kotlin.time.Duration.Companion.minutes
 
 private val logger = KotlinLogging.logger {}
+private val duplicateVideoCache = mutableSetOf<String>()
 
 private val ytClient = HttpClient(CIO) {
 
@@ -55,7 +56,7 @@ fun setupYTSuscribtions() {
         val fromLeagueUsers =
             db.league.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
                 .flatMapConcat { it.table.asFlow() }.toSet()
-        db.ytchannel.find(YTChannel::user `in` fromLeagueUsers).toFlow().collect { allChannels += it.channelId }
+        YTChannelsDB.addAllChannelIdsToSet(allChannels, fromLeagueUsers)
         logger.info("Subscribing to ${allChannels.size} channels...")
         allChannels.forEach {
             subscribeToYTChannel(it)
@@ -108,16 +109,13 @@ fun Route.ytSubscriptions() {
                 try {
                     val pub = Instant.parse(published)
                     val upd = Instant.parse(updated)
-                    if (upd - pub > 5.minutes) {
-                        logger.info("Video $link is updated, ignoring")
+                    if (upd - pub > 1.minutes) {
                         return@forEach
                     }
                 } catch (e: Exception) {
                     logger.error("Error parsing date in YT", e)
                 }
-                if (ignoreDuplicatesMongo {
-                        db.ytvideos.insertOne(YTVideo(channelId, videoId, title, Instant.parse(published)))
-                    }) {
+                if (duplicateVideoCache.add(videoId)) {
                     YTNotificationsDB.getDCChannel(channelId)?.let { (mc, dm) ->
                         val channel =
                             if (dm) jda.openPrivateChannelById(mc).await() else jda.getChannel<MessageChannel>(mc)
@@ -135,7 +133,7 @@ fun Route.ytSubscriptions() {
 }
 
 suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
-    val uid = db.ytchannel.get(channelId)?.user ?: return
+    val uid = YTChannelsDB.getUserByChannelId(channelId) ?: return
     League.executeOnFreshLock({ db.leagueByGuild(gid, uid) }) {
         logger.info("League found: $leaguename")
         val idx = this(uid)

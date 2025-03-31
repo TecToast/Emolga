@@ -84,8 +84,6 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
     val matchresults by lazy { db.getCollection<MatchResult>("matchresults") }
     val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
-    val ytchannel by lazy { db.getCollection<YTChannel>("ytchannel") }
-    val ytvideos by lazy { db.getCollection<YTVideo>("ytvideos") }
     val tipgameuserdata by lazy { db.getCollection<TipGameUserData>("tipgameuserdata") }
     val statestore by lazy { db.getCollection<StateStore>("statestore") }
     val intervaltaskdata by lazy { db.getCollection<IntervalTaskData>("intervaltaskdata") }
@@ -216,19 +214,6 @@ data class IntervalTaskData(
     val name: String,
     val nextExecution: @Serializable(with = InstantAsDateSerializer::class) Instant,
     val notAfter: @Serializable(with = InstantAsDateSerializer::class) Instant = Instant.DISTANT_FUTURE,
-)
-
-@Serializable
-data class YTVideo(
-    val channelId: String,
-    val videoId: String,
-    val title: String,
-    val publishedAt: @Serializable(with = InstantAsDateSerializer::class) Instant
-)
-
-@Serializable
-data class YTChannel(
-    val user: Long, val channelId: String
 )
 
 @Serializable
@@ -641,12 +626,6 @@ suspend fun CoroutineCollection<NameConventions>.get(guild: Long) =
 
 @JvmName("getPokedex")
 suspend fun CoroutineCollection<Pokemon>.get(id: String) = find(Pokemon::id eq id).first()
-
-@JvmName("getYTChannelByUser")
-suspend fun CoroutineCollection<YTChannel>.get(user: Long) = find(YTChannel::user eq user).first()
-
-@JvmName("getYTChannelByChannelId")
-suspend fun CoroutineCollection<YTChannel>.get(channelId: String) = find(YTChannel::channelId eq channelId).first()
 
 @JvmName("getIntervalTaskData")
 suspend fun CoroutineCollection<IntervalTaskData>.get(name: String) = find(IntervalTaskData::name eq name).first()

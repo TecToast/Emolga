@@ -21,8 +21,6 @@ import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.get
-import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.showdown.AnalysisData
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.*
@@ -1264,23 +1262,6 @@ data class GamedayData(
 
 sealed interface VideoProvideStrategy {
     suspend fun League.provideVideoId(index: Int, uindex: Int): String?
-
-    data object Fetch : VideoProvideStrategy {
-        override suspend fun League.provideVideoId(index: Int, uindex: Int): String? {
-            return Google.fetchLatestVideosFromChannel(db.ytchannel.get(table[uindex])!!.channelId).filter { lastVid ->
-                (System.currentTimeMillis() - lastVid.snippet.publishedAt.value) <= 1000 * 60 * 60 * 4
-            }.let { vids ->
-                League.logger.info(vids.map { it.snippet.title }.toString())
-                vids.singleOrNull() ?: run {
-                    val ytLeagues = db.config.only().ytLeagues.keys
-                    vids.firstOrNull {
-                        val title = it.snippet.title
-                        ytLeagues.any { league -> title.contains(league, ignoreCase = true) }
-                    }
-                }
-            }?.id?.videoId
-        }
-    }
 
     data class Subscribe(private val ytData: YTVideoSaveData) : VideoProvideStrategy {
         override suspend fun League.provideVideoId(index: Int, uindex: Int): String? {

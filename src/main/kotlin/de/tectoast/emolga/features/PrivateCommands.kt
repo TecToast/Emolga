@@ -341,19 +341,6 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun testYTSend(args: PrivateData) {
-        League.executeOnFreshLock(args[0]) {
-            executeYoutubeSend(
-                ytTC = args[1].toLong(),
-                gameday = args[2].toInt(),
-                battle = args[3].toInt(),
-                strategy = VideoProvideStrategy.Fetch,
-                overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
-            )
-        }
-    }
-
-    context(InteractionData)
     suspend fun testYTSendSub(args: PrivateData) {
         League.executeOnFreshLock(args[0]) {
             val gameday = args[2].toInt()

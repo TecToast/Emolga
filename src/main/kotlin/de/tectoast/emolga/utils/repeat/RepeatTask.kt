@@ -108,15 +108,15 @@ class RepeatTask(
                 l.setupRepeatTasks()
                 l.config.tipgame?.let { tip ->
                     val duration = tip.interval
-                    logger.info("Draft $name has tipgame with interval ${tip.interval} and duration $duration")
+                    logger.debug { "Draft $name has tipgame with interval ${tip.interval} and duration $duration" }
                     RepeatTask(
-                        name, TipGameSending, tip.lastSending, tip.amount, duration, false
+                        name, TipGameSending, tip.lastSending, tip.amount, duration
                     ) {
                         League.executeOnFreshLock(name) { executeTipGameSending(it) }
                     }
                     tip.lastLockButtons?.let { last ->
                         RepeatTask(
-                            name, TipGameLockButtons, last, tip.amount, duration, false
+                            name, TipGameLockButtons, last, tip.amount, duration
                         ) {
                             League.executeOnFreshLock(name) { executeTipGameLockButtons(it) }
                         }
@@ -131,11 +131,9 @@ class RepeatTask(
                             data.lastUploadStart + data.intervalBetweenMatches * battle,
                             data.amount,
                             data.intervalBetweenGD,
-                            false,
                         ) { gameday ->
                             League.executeOnFreshLock(name) { executeRegisterInDoc(this, gameday, battle) }
                         }
-                        logger.info("YTSendChannel ${l.leaguename} $battle")
                         l.config.youtube?.sendChannel?.let { ytTC ->
                             RepeatTask(
                                 name,
@@ -143,7 +141,6 @@ class RepeatTask(
                                 data.lastUploadStart + data.intervalBetweenMatches * battle + data.intervalBetweenUploadAndVideo,
                                 data.amount,
                                 data.intervalBetweenGD,
-                                true,
                             ) { gameday ->
                                 League.executeOnFreshLock(name) {
                                     val ytData =

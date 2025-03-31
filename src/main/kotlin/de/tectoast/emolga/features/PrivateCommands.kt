@@ -5,11 +5,11 @@ import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.YTChannelsDB
+import de.tectoast.emolga.database.exposed.YTNotificationsDB
 import de.tectoast.emolga.features.draft.SignupManager.Button
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
-import de.tectoast.emolga.ktor.setupYTSuscribtions
 import de.tectoast.emolga.ktor.subscribeToYTChannel
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
@@ -23,13 +23,19 @@ import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
+import de.tectoast.emolga.utils.repeat.IntervalTask
+import de.tectoast.emolga.utils.repeat.IntervalTaskKey
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.events.await
+import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.UserSnowflake
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.interactions.components.ActionComponent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
@@ -101,8 +107,7 @@ object PrivateCommands {
             db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
             .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }
             .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
-            .joinToString("\n", prefix = "```", postfix = "```")
-        )
+                .joinToString("\n", prefix = "```", postfix = "```"))
     }
 
     context(InteractionData)
@@ -241,8 +246,7 @@ object PrivateCommands {
     suspend fun florixcontrol(args: PrivateData) {
         (if (args[0].toBoolean()) jda.openPrivateChannelById(args[1])
             .await() else jda.getTextChannelById(args[1])!!).send(
-            ":)",
-            components = FlorixButton("Server starten", ButtonStyle.PRIMARY) {
+            ":)", components = FlorixButton("Server starten", ButtonStyle.PRIMARY) {
                 this.pc = when (args[2]) {
                     "2" -> PC.FLORIX_2
                     "4" -> PC.FLORIX_4
@@ -317,23 +321,36 @@ object PrivateCommands {
         TierlistBuilderConfigurator.checkTL(args[0].toLong(), args.getOrNull(1))
     }
 
+    private fun Flow<String>.mapIdentifierToChannelIDs() = mapNotNull {
+        val base = it.substringBefore("?")
+        val result =
+            if ("@" !in base) base.substringAfter("channel/") else Google.fetchChannelId(base.substringAfter("@"))
+        if (result == null) logger.warn("No channel found for $base")
+        result
+    }
+
     context(InteractionData)
     suspend fun fetchYTChannelsForLeague(args: PrivateData) {
         val league = db.league(args[0])
-        val finalData = ArrayList<Pair<Long, String>>()
-        league.table.asFlow().zip(args.asFlow().drop(1).map {
-            val base = it.substringBefore("?")
-            if ("@" !in base) base.substringAfter("channel/") else Google.fetchChannelId(base.substringAfter("@"))
-        }, ::Pair).collectIndexed { index, data ->
-            val (id, channelId) = data
-            val cid = channelId ?: return@collectIndexed run {
-                logger.warn("No channel found for $id (testing ${args[index + 1]})")
-                null
-            }
-            finalData += id to cid
-        }
-        YTChannelsDB.insertAll(finalData)
+        YTChannelsDB.insertAll(
+            league.table.asFlow().zip<Long, String, Pair<Long, String>>(
+                args.asFlow().drop(1).mapIdentifierToChannelIDs(), ::Pair
+            ).toList<Pair<@Contextual Long, String>>()
+        )
     }
+
+    context(InteractionData)
+    suspend fun addForNotifications(args: PrivateData) {
+        val id = args[0].toLong()
+        val dm = args[1].toBooleanStrict()
+        YTNotificationsDB.addData(
+            id,
+            dm,
+            awaitMultilineInput().split("\n").asFlow().filter { it.isNotBlank() }.mapIdentifierToChannelIDs().toList()
+        )
+    }
+
+
 
     context(InteractionData)
     fun getGuildIcon(args: PrivateData) {
@@ -423,9 +440,7 @@ object PrivateCommands {
         val league = db.league(args[0])
         league.persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
             league.docEntry!!.analyseWithoutCheck(
-                listOf(replay),
-                withSort = false,
-                realExecute = args[2].toBooleanStrict()
+                listOf(replay), withSort = false, realExecute = args[2].toBooleanStrict()
             )
         }
     }
@@ -483,13 +498,11 @@ object PrivateCommands {
         db.tipgameuserdata.find(TipGameUserData::league eq leaguename).toFlow().collect {
             val filter = and(TipGameUserData::user eq it.user, TipGameUserData::league eq leaguename)
             if (it.topkiller == topkiller) db.tipgameuserdata.updateOne(
-                filter,
-                set(TipGameUserData::correctTopkiller setTo true)
+                filter, set(TipGameUserData::correctTopkiller setTo true)
             )
             for (i in 1..3) {
                 if (it.orderGuesses[i] == top3[i - 1]) db.tipgameuserdata.updateOne(
-                    filter,
-                    addToSet(TipGameUserData::correctOrderGuesses, i)
+                    filter, addToSet(TipGameUserData::correctOrderGuesses, i)
                 )
             }
         }
@@ -561,9 +574,8 @@ object PrivateCommands {
         val maxUsers = args[2].toInt()
         val text = args.drop(3).joinToString(" ").replace("\\n", "\n")
         val messageid =
-            tc.sendMessage(
-                text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**")
-                .addActionRow(Button()).await().idLong
+            tc.sendMessage(text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**").addActionRow(Button())
+                .await().idLong
         db.signups.insertOne(
             LigaStartData(
                 guild = tc.guild.idLong,
@@ -600,7 +612,7 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun setupYouTubeSubscriptions(args: PrivateData) {
-        setupYTSuscribtions()
+        IntervalTask.restartTask(IntervalTaskKey.YTSubscriptions)
     }
 
     context(InteractionData)
@@ -616,4 +628,15 @@ data class PrivateData(
     val split: List<String>
 ) : List<String> by split {
     operator fun invoke() = split[0]
+}
+
+context(InteractionData)
+private suspend fun awaitMultilineInput(): String {
+    val id = "multiline-${System.currentTimeMillis()}"
+    replyModal(Modal(id, "Multiline Input") {
+        paragraph("input", "Input")
+    })
+    val event = jda.await<ModalInteractionEvent> { it.modalId == id }
+    event.reply("Multiline received!").setEphemeral(true).queue()
+    return event.getValue("input")!!.asString
 }

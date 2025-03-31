@@ -19,6 +19,7 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.showdown.Pokemon
+import de.tectoast.emolga.utils.repeat.IntervalTaskKey
 import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
 import dev.minn.jda.ktx.coroutines.await
@@ -211,7 +212,7 @@ data class TipGameUserData(
 
 @Serializable
 data class IntervalTaskData(
-    val name: String,
+    val name: IntervalTaskKey,
     val nextExecution: @Serializable(with = InstantAsDateSerializer::class) Instant,
     val notAfter: @Serializable(with = InstantAsDateSerializer::class) Instant = Instant.DISTANT_FUTURE,
 )
@@ -628,4 +629,5 @@ suspend fun CoroutineCollection<NameConventions>.get(guild: Long) =
 suspend fun CoroutineCollection<Pokemon>.get(id: String) = find(Pokemon::id eq id).first()
 
 @JvmName("getIntervalTaskData")
-suspend fun CoroutineCollection<IntervalTaskData>.get(name: String) = find(IntervalTaskData::name eq name).first()
+suspend fun CoroutineCollection<IntervalTaskData>.get(name: IntervalTaskKey) =
+    find(IntervalTaskData::name eq name).first()

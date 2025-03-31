@@ -6,7 +6,10 @@ import de.tectoast.emolga.utils.createCoroutineContext
 import de.tectoast.emolga.utils.json.IntervalTaskData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.repeat.IntervalTaskKey.Snips
+import de.tectoast.emolga.utils.repeat.IntervalTaskKey.YTSubscriptions
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -21,15 +24,26 @@ import kotlin.random.nextInt
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
-class IntervalTask(name: String, provideNextExecution: () -> Instant, consumer: suspend () -> Unit) {
-    constructor(name: String, delay: Duration, consumer: suspend () -> Unit) : this(
+class IntervalTask(
+    val name: IntervalTaskKey,
+    val provideNextExecution: () -> Instant,
+    val consumer: suspend () -> Unit
+) {
+    constructor(name: IntervalTaskKey, delay: Duration, consumer: suspend () -> Unit) : this(
         name,
         { Clock.System.now() + delay },
         consumer
     )
 
+    lateinit var job: Job
+
     init {
-        launch {
+        intervalTasks[name] = this
+        start()
+    }
+
+    fun start() {
+        job = launch {
             val startData = db.intervaltaskdata.get(name)
             startData?.notAfter?.let {
                 if (Clock.System.now() > it) return@launch
@@ -52,11 +66,17 @@ class IntervalTask(name: String, provideNextExecution: () -> Instant, consumer: 
     }
 
     companion object : CoroutineScope {
+        private val intervalTasks = mutableMapOf<IntervalTaskKey, IntervalTask>()
+        suspend fun restartTask(name: IntervalTaskKey) {
+            db.intervaltaskdata.deleteOne(IntervalTaskData::name eq name)
+            intervalTasks[name]?.job?.cancel()
+            intervalTasks[name]?.start()
+        }
         fun setupIntervalTasks() {
-            IntervalTask("YTSubscriptions", 4.days) {
+            IntervalTask(YTSubscriptions, 4.days) {
                 setupYTSuscribtions()
             }
-            IntervalTask("Snips", {
+            IntervalTask(Snips, {
                 val cal = Calendar.getInstance()
                 cal.add(Calendar.DAY_OF_YEAR, 1)
                 cal.set(Calendar.HOUR_OF_DAY, Random.nextInt(10..21))
@@ -87,4 +107,9 @@ class IntervalTask(name: String, provideNextExecution: () -> Instant, consumer: 
 
         override val coroutineContext = createCoroutineContext("IntervalTask")
     }
+}
+
+enum class IntervalTaskKey {
+    YTSubscriptions,
+    Snips
 }

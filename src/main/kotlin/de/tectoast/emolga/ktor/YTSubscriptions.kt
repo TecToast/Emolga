@@ -116,7 +116,7 @@ fun Route.ytSubscriptions() {
                     logger.error("Error parsing date in YT", e)
                 }
                 if (duplicateVideoCache.add(videoId)) {
-                    YTNotificationsDB.getDCChannel(channelId)?.let { (mc, dm) ->
+                    YTNotificationsDB.getDCChannels(channelId).forEach { (mc, dm) ->
                         val channel =
                             if (dm) jda.openPrivateChannelById(mc).await() else jda.getChannel<MessageChannel>(mc)
                         channel?.sendMessage("https://youtu.be/$videoId")?.queue()

@@ -95,7 +95,8 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun printTipGame(args: PrivateData) {
-        reply(db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
+        reply(
+            db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
             .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }
             .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
             .joinToString("\n", prefix = "```", postfix = "```")
@@ -524,7 +525,15 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun enableMaintenance(args: PrivateData) {
-        val reason = args()
+        enableMaintenanceWithReason(args())
+    }
+
+    context(InteractionData)
+    suspend fun enableMaintenanceRoutine(args: PrivateData) {
+        enableMaintenanceWithReason("Es werden routinemäßige Wartungsarbeiten durchgeführt, ich sollte in wenigen Minuten wieder erreichbar sein.")
+    }
+
+    suspend fun enableMaintenanceWithReason(reason: String) {
         db.config.updateOnly(set(de.tectoast.emolga.utils.json.Config::maintenance setTo reason))
         EmolgaMain.maintenance = reason
         EmolgaMain.updatePresence()

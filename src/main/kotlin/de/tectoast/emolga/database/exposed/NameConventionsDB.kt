@@ -139,7 +139,7 @@ object NameConventionsDB : Table("nameconventions") {
      * Gets the [DraftName] for a mon given the tlName (that is given on Discord)
      * @param input the (potential) tlName to look for
      * @param guildIdArg the guild id, may be overwritten by [PrivateCommands.guildForMyStuff]
-     * @param english if the tierlist is english
+     * @param english if the result should be in english
      * @return the [DraftName] or null, if no data could be found
      */
     suspend fun getDiscordTranslation(input: String, guildIdArg: Long, english: Boolean = false): DraftName? {

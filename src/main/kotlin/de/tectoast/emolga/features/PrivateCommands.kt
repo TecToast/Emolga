@@ -154,23 +154,7 @@ object PrivateCommands {
     suspend fun unsignupUser(args: PrivateData) {
         val (guild, user) = args.map { it.toLong() }
         val signup = db.signups.get(guild)!!
-        val data = signup.getDataByUser(user) ?: return
-        jda.getTextChannelById(signup.signupChannel)!!.deleteMessageById(data.signupmid!!).queue()
-        (signup.logoSettings as? LogoSettings.Channel)?.let { settings ->
-            data.logomid?.let {
-                jda.getTextChannelById(settings.channelId)!!.deleteMessageById(it).queue(null, null)
-            }
-        }
-        val wasFull = signup.full
-        signup.users.removeIf { user in it.users }
-        if (wasFull) {
-            val channel = jda.getTextChannelById(signup.announceChannel)!!
-            channel.editMessageComponentsById(
-                signup.announceMessageId, Button().into()
-            ).queue()
-        }
-        signup.updateSignupMessage()
-        signup.save()
+        signup.deleteUser(user)
     }
 
     var guildForMyStuff: Long? = null

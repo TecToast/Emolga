@@ -44,10 +44,10 @@ import kotlin.time.Duration.Companion.minutes
 
 private val logger = KotlinLogging.logger {}
 private val duplicateVideoCache = mutableSetOf<String>()
+private val recentlySubscribed = mutableSetOf<String>()
+private val validTopicRegex = Regex("https://www.youtube.com/xml/feeds/videos.xml?channel_id=([a-zA-Z0-9_-]+)")
+private val ytClient = HttpClient(CIO)
 
-private val ytClient = HttpClient(CIO) {
-
-}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 fun setupYTSuscribtions() {
@@ -79,10 +79,13 @@ private val mac: Mac by lazy {
 fun Route.ytSubscriptions() {
     route("/youtube") {
         get {
+            call.request.queryParameters["hub.mode"]?.takeIf { it == "subscribe" }
+                ?: return@get call.respond(HttpStatusCode.BadRequest)
+            call.request.queryParameters["hub.topic"]?.takeIf { it in recentlySubscribed }
+                ?: return@get call.respond(HttpStatusCode.BadRequest)
             val challenge =
-                call.request.queryParameters["hub.challenge"] ?: return@get call.respond(HttpStatusCode.NotFound)
+                call.request.queryParameters["hub.challenge"] ?: return@get call.respond(HttpStatusCode.BadRequest)
             call.respondText(challenge)
-            // TODO: check if we actually wanted the subscription
         }
         post {
             call.respondText(status = HttpStatusCode.Accepted) { "" }
@@ -164,11 +167,13 @@ object InstantAsDateSerializer : TemporalExtendedJsonSerializer<Instant>() {
 
 suspend fun subscribeToYTChannel(channelID: String) {
     val config = Credentials.tokens.subscriber
+    val topic = "https://www.youtube.com/xml/feeds/videos.xml?channel_id=$channelID"
+    recentlySubscribed += topic
     ytClient.post("https://pubsubhubbub.appspot.com/subscribe") {
         setBody(FormDataContent(Parameters.build {
             append("hub.callback", config.callback)
             append("hub.mode", "subscribe")
-            append("hub.topic", "https://www.youtube.com/xml/feeds/videos.xml?channel_id=$channelID")
+            append("hub.topic", topic)
             append("hub.verify", "async")
             append("hub.secret", config.secret)
         }))

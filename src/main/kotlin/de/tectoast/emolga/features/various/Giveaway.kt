@@ -1,6 +1,7 @@
 package de.tectoast.emolga.features.various
 
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.Giveaway
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
@@ -9,7 +10,6 @@ import de.tectoast.emolga.utils.embedColor
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.entities.emoji.Emoji
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 
 object Giveaway {
@@ -75,7 +75,7 @@ object Giveaway {
                 description =
                     "Reagiere mit ${Constants.GIVEAWAY_EMOTE_MENTION} um teilzunehmen!\nGehostet von: <@$user>"
             }).await()
-            newSuspendedTransaction {
+            dbTransaction {
                 val g = Giveaway.new {
                     this.end = end
                     this.prize = prize

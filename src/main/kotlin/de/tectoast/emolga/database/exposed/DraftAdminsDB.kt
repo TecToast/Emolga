@@ -1,11 +1,11 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.dbTransaction
 import net.dv8tion.jda.api.entities.Member
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 object DraftAdminsDB : Table("draftadmins") {
     val GUILD = long("guildid")
@@ -18,7 +18,7 @@ object DraftAdminsDB : Table("draftadmins") {
      * @param mem the member to check
      * @return *true* if the user is a draft admin, *false* otherwise
      */
-    suspend fun isAdmin(gid: Long, mem: Member) = newSuspendedTransaction {
+    suspend fun isAdmin(gid: Long, mem: Member) = dbTransaction {
         selectAll().where {
             (GUILD eq gid) and ((ROLEID inList mem.roles.map { it.idLong }) or (USERID eq mem.idLong))
         }.count() > 0

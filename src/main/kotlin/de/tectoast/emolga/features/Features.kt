@@ -2,6 +2,7 @@
 
 package de.tectoast.emolga.features
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.league.League
@@ -39,7 +40,6 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.interactions.components.text.TextInput
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
@@ -632,9 +632,9 @@ open class Arguments {
 
         // Helpers
         suspend fun monOfTeam(s: String, league: League, idx: Int): List<String>? {
-            return newSuspendedTransaction {
+            return dbTransaction {
                 val tl = league.tierlist
-                val picks = league.picks[idx] ?: return@newSuspendedTransaction null
+                val picks = league.picks[idx] ?: return@dbTransaction null
                 picks.filter { p -> p.name != "???" && !p.quit }.sortedWith(
                     compareBy({ mon -> tl.order.indexOf(mon.tier) }, { mon -> mon.name })
                 ).map { mon ->

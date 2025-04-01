@@ -3,6 +3,7 @@ package de.tectoast.emolga.features
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.YTChannelsDB
 import de.tectoast.emolga.database.exposed.YTNotificationsDB
@@ -45,7 +46,6 @@ import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
@@ -362,7 +362,7 @@ object PrivateCommands {
         val test = "Emolga"
         val guildId = 0L
         logger.info(measureTime {
-            newSuspendedTransaction {
+            dbTransaction {
                 val query1 =
                     ((NameConventionsDB.GERMAN eq test) or (NameConventionsDB.ENGLISH eq test) or (NameConventionsDB.SPECIFIED eq test) or (NameConventionsDB.SPECIFIEDENGLISH eq test)) and (NameConventionsDB.GUILD eq 0 or (NameConventionsDB.GUILD eq guildId))
                 NameConventionsDB.selectAll().where {
@@ -443,7 +443,7 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun copyTLToMyServer(args: PrivateData) {
-        newSuspendedTransaction {
+        dbTransaction {
             val gid = args().toLong()
             Tierlist.batchInsert(Tierlist[gid]!!.retrieveAll(), shouldReturnGeneratedValues = false) {
                 this[Tierlist.GUILD] = Constants.G.MY

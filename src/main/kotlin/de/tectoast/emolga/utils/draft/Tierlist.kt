@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.draft
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.TierData
@@ -12,7 +13,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.eq
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -61,7 +61,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         }
     }
 
-    suspend fun addPokemon(mon: String, tier: String) = newSuspendedTransaction {
+    suspend fun addPokemon(mon: String, tier: String) = dbTransaction {
         insert {
             it[GUILD] = guildid
             it[POKEMON] = mon
@@ -71,23 +71,23 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
     }
 
     suspend fun getByTier(tier: String): List<String>? {
-        return newSuspendedTransaction {
+        return dbTransaction {
             selectAll().where { basePredicate and (TIER eq tier) }.map { it[POKEMON] }.ifEmpty { null }
         }
     }
 
-    private suspend fun getAllForAutoComplete() = newSuspendedTransaction {
+    private suspend fun getAllForAutoComplete() = dbTransaction {
         val list = selectAll().where { basePredicate }.map { it[POKEMON] }
         (list + NameConventionsDB.getAllOtherSpecified(list, language, guildid)).toSet()
     }
 
     suspend fun getTierOf(mon: String) =
-        newSuspendedTransaction {
+        dbTransaction {
             selectAll().where { basePredicate and (POKEMON eq mon) }.map { it[TIER] }.firstOrNull()
         }
 
     suspend fun getTierOfCommand(pokemon: String, insertedTier: String?): TierData? {
-        val (real, points) = newSuspendedTransaction {
+        val (real, points) = dbTransaction {
             selectAll().where { basePredicate and (POKEMON eq pokemon) }.map { it[TIER] to it[POINTS] }.firstOrNull()
         } ?: return null
         return if (insertedTier != null && mode.withTiers) {
@@ -102,24 +102,24 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         }
     }
 
-    suspend fun getPointsOf(mon: String) = newSuspendedTransaction {
+    suspend fun getPointsOf(mon: String) = dbTransaction {
         selectAll().where { basePredicate and (POKEMON eq mon) }.map { it[POINTS] }.firstOrNull()
     }
 
 
-    suspend fun retrieveTierlistMap(map: Map<String, Int>) = newSuspendedTransaction {
+    suspend fun retrieveTierlistMap(map: Map<String, Int>) = dbTransaction {
         map.entries.flatMap { (tier, amount) ->
             selectAll().where { basePredicate and (TIER eq tier) }.orderBy(Random()).limit(amount)
                 .map { DraftPokemon(it[POKEMON], tier) }
         }
     }
 
-    suspend fun getWithTierAndType(tier: String, type: String) = newSuspendedTransaction {
+    suspend fun getWithTierAndType(tier: String, type: String) = dbTransaction {
         selectAll().where { basePredicate and (TIER eq tier) and (TYPE eq type) }
             .map { it[POKEMON] }
     }
 
-    suspend fun retrieveAll() = newSuspendedTransaction {
+    suspend fun retrieveAll() = dbTransaction {
         selectAll().where { basePredicate }.map { DraftPokemon(it[POKEMON], it[TIER]) }
     }
 
@@ -127,7 +127,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         val existing = getTierOf(mon)
         if (existing != null) {
             if (existing != tier) {
-                newSuspendedTransaction {
+                dbTransaction {
                     if (tier in order)
                         update({ basePredicate and (POKEMON eq mon) }) {
                             it[this.TIER] = tier
@@ -140,11 +140,11 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         }
     }
 
-    suspend fun deleteAllMons() = newSuspendedTransaction {
+    suspend fun deleteAllMons() = dbTransaction {
         deleteWhere { basePredicate }
     }
 
-    suspend fun getMonCount() = newSuspendedTransaction {
+    suspend fun getMonCount() = dbTransaction {
         selectAll().where { basePredicate }.count().toInt()
     }
 

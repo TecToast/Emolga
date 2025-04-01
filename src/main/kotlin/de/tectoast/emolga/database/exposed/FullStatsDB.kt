@@ -1,6 +1,7 @@
 package de.tectoast.emolga.database.exposed
 
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.records.UsageData
 import kotlinx.coroutines.Dispatchers
@@ -9,7 +10,6 @@ import mu.KotlinLogging
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.upsert
 
 object FullStatsDB : Table("fullstats") {
@@ -35,7 +35,7 @@ object FullStatsDB : Table("fullstats") {
     fun add(pokemon: String, kills: Int, dead: Boolean, win: Boolean) {
         val deaths = if (dead) 1 else 0
         scope.launch {
-            newSuspendedTransaction {
+            dbTransaction {
                 logger.debug("Adding to FSM {} {} {}", pokemon, kills, deaths)
                 upsert(onUpdate = {
                     it[KILLS] = KILLS.plus(kills)
@@ -61,7 +61,7 @@ object FullStatsDB : Table("fullstats") {
      * @param mon the pokemon to get the stats for
      * @return the stats of the pokemon
      */
-    suspend fun getData(mon: String) = newSuspendedTransaction {
+    suspend fun getData(mon: String) = dbTransaction {
         val userobj = selectAll().where { POKEMON eq mon }.firstOrNull()
         if (userobj == null) {
             UsageData(0, 0, 0, 0, 0)

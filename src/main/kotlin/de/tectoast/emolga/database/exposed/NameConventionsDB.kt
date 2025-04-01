@@ -1,5 +1,6 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB.convertOfficialToTLFull
 import de.tectoast.emolga.features.PrivateCommands
 import de.tectoast.emolga.utils.Constants
@@ -17,7 +18,6 @@ import mu.KotlinLogging
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.eq
 import de.tectoast.emolga.utils.json.db as emolgaDB
 
@@ -44,7 +44,7 @@ object NameConventionsDB : Table("nameconventions") {
      */
     suspend fun getAllOtherSpecified(mons: List<String>, lang: Language, guildId: Long): List<String> {
         val nc = emolgaDB.nameconventions.get(guildId)
-        return newSuspendedTransaction {
+        return dbTransaction {
             val checkLang = if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH
             val resultLang = if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED
             selectAll().where((GUILD eq 0 or (GUILD eq guildId)) and (checkLang inList mons))
@@ -65,7 +65,7 @@ object NameConventionsDB : Table("nameconventions") {
      * Gets all official names in german and english
      * @return the list of all official names
      */
-    private suspend fun getAll() = newSuspendedTransaction {
+    private suspend fun getAll() = dbTransaction {
         selectAll().flatMap { setOf(it[GERMAN], it[ENGLISH]) }.toSet()
     }
 
@@ -76,7 +76,7 @@ object NameConventionsDB : Table("nameconventions") {
      * @param language the language of the tierlist
      */
     suspend fun checkIfExists(name: String, guildId: Long, language: Language): Boolean {
-        return newSuspendedTransaction {
+        return dbTransaction {
             selectAll().where((language.ncSpecifiedCol eq name) and (GUILD eq 0 or (GUILD eq guildId)))
                 .firstOrNull() != null
         }
@@ -90,7 +90,7 @@ object NameConventionsDB : Table("nameconventions") {
      * @param language the language of the tierlist
      */
     suspend fun addName(tlName: String, germanName: String, guildId: Long, language: Language) {
-        newSuspendedTransaction {
+        dbTransaction {
             insert {
                 it[GUILD] = guildId
                 it[GERMAN] = germanName
@@ -187,7 +187,7 @@ object NameConventionsDB : Table("nameconventions") {
      * @return a map of the official english names to the german names
      */
     suspend fun getAllSDTranslationOnlyOfficialGerman(list: List<String>): Map<String, String> {
-        return newSuspendedTransaction {
+        return dbTransaction {
             selectAll().where(ENGLISH inList list).associate { it[ENGLISH] to it[GERMAN] }
         }
     }
@@ -195,7 +195,7 @@ object NameConventionsDB : Table("nameconventions") {
     @Suppress("unused")
     // TODO: Check for multi lang, may be merged with [getAllSDTranslationOnlyOfficialGerman]
     suspend fun getAllSDTranslationOnlyOfficialEnglish(list: List<String>): Map<String, String> {
-        return newSuspendedTransaction {
+        return dbTransaction {
             selectAll().where(GERMAN inList list).associate { it[GERMAN] to it[ENGLISH] }
         }
     }
@@ -208,12 +208,12 @@ object NameConventionsDB : Table("nameconventions") {
         english: Boolean = false,
         plusOther: Boolean = false
     ): DraftName? {
-        return newSuspendedTransaction {
+        return dbTransaction {
             selectAll().where(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId)))
                 .orderBy(
                     GUILD to SortOrder.DESC
                 ).firstOrNull()?.let {
-                    return@newSuspendedTransaction DraftName(
+                    return@dbTransaction DraftName(
                         it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                             if (spec != null) {
                                 // TODO: Rework (and add docs)

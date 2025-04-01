@@ -14,6 +14,8 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import mu.KotlinLogging
+import org.jetbrains.exposed.sql.Transaction
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 class Database(host: String, username: String, password: String) {
     val dataSource = HikariDataSource(HikariConfig().apply {
@@ -61,3 +63,6 @@ class Database(host: String, username: String, password: String) {
 fun <T> dbAsync(block: suspend CoroutineScope.() -> T) = Database.dbScope.async(start = CoroutineStart.LAZY) {
     block()
 }
+
+suspend fun <T> dbTransaction(statement: suspend Transaction.() -> T) =
+    newSuspendedTransaction(Database.dbScope.coroutineContext, statement = statement)

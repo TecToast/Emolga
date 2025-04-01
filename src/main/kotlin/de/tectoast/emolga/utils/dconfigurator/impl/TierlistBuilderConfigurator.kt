@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.dconfigurator.impl
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.draft.ExternalTierlistData
 import de.tectoast.emolga.features.flo.SendFeatures
@@ -30,7 +31,6 @@ import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.eq
 import org.litote.kmongo.keyProjection
 import org.litote.kmongo.set
@@ -109,7 +109,7 @@ class TierlistBuilderConfigurator(
         if (test(this, options)) options.skipNextSteps = 1
     }), step<SlashCommandInteractionEvent> { options ->
         val name = getOption<String>("name")!!
-        newSuspendedTransaction {
+        dbTransaction {
             NameConventionsDB.run {
                 selectAll().where(GERMAN eq name).firstOrNull()
             }
@@ -336,7 +336,7 @@ class TierlistBuilderConfigurator(
             })
         }
         val shiftMap = shiftedMons?.associate { it.name to it.tier }
-        newSuspendedTransaction {
+        dbTransaction {
             Tierlist.deleteWhere { GUILD eq guildId and (IDENTIFIER eq tlIdentifier) }
             Tierlist.batchInsert(
                 (tierlistcols.flatMapIndexed { index, strings ->

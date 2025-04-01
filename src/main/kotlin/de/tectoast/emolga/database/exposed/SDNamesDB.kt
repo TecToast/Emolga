@@ -2,6 +2,7 @@ package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.Database
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.flo.SDNamesApprovalButton
 import de.tectoast.emolga.utils.toUsername
 import dev.minn.jda.ktx.coroutines.await
@@ -15,7 +16,6 @@ import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 object SDNamesDB : Table("sdnames") {
     val NAME = varchar("name", 18)
@@ -27,7 +27,7 @@ object SDNamesDB : Table("sdnames") {
      * @return the corresponding user id, or -1 if no user could be found
      */
     suspend fun getIDByName(name: String) =
-        newSuspendedTransaction { selectAll().where { NAME eq name.toUsername() }.firstOrNull()?.get(ID) } ?: -1
+        dbTransaction { selectAll().where { NAME eq name.toUsername() }.firstOrNull()?.get(ID) } ?: -1
 
     /**
      * Adds a showdown name/id combination to the database (if the name is not already used)
@@ -37,7 +37,7 @@ object SDNamesDB : Table("sdnames") {
      */
     fun addIfAbsent(name: String, id: Long): Deferred<SDInsertStatus> {
         return Database.dbScope.async {
-            newSuspendedTransaction {
+            dbTransaction {
                 val username = name.toUsername()
                 val existing = selectAll().where { NAME eq username }.firstOrNull()
                 if (existing == null) {
@@ -45,7 +45,7 @@ object SDNamesDB : Table("sdnames") {
                         it[NAME] = username
                         it[ID] = id
                     }
-                    return@newSuspendedTransaction SDInsertStatus.SUCCESS
+                    return@dbTransaction SDInsertStatus.SUCCESS
                 }
                 val currentOwner = existing[ID]
                 if (currentOwner == id) {
@@ -77,7 +77,7 @@ object SDNamesDB : Table("sdnames") {
      * @param id the discord user id
      */
     suspend fun setOwnerOfName(username: String, id: Long) {
-        newSuspendedTransaction {
+        dbTransaction {
             deleteWhere { NAME eq username }
             insert {
                 it[NAME] = username

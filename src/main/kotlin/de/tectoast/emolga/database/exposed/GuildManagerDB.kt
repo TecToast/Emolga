@@ -1,7 +1,7 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.dbTransaction
 import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 object GuildManagerDB : Table("guildmanager") {
     val GUILD = long("guild")
@@ -13,7 +13,7 @@ object GuildManagerDB : Table("guildmanager") {
      * @return the list containing the guild ids
      */
     suspend fun getGuildsForUser(user: Long): Set<Long> {
-        return newSuspendedTransaction {
+        return dbTransaction {
             select(GUILD).where { USER eq user }.mapTo(mutableSetOf()) { it[GUILD] }
         }
     }
@@ -24,7 +24,7 @@ object GuildManagerDB : Table("guildmanager") {
      * @return *true* if the user is authorized for any guild, *false* otherwise
      */
     suspend fun isUserAuthorized(user: Long): Boolean {
-        return newSuspendedTransaction {
+        return dbTransaction {
             select(USER).where { USER eq user }.count() > 0
         }
     }

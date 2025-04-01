@@ -1,12 +1,12 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.various.CalendarSystem
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.javatime.timestamp
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 
 object CalendarDB : IntIdTable("calendar") {
@@ -19,7 +19,7 @@ object CalendarDB : IntIdTable("calendar") {
      * @param expires the timestamp in milliseconds when the message should be sent
      */
     suspend fun scheduleCalendarEntry(message: String, expires: Long) =
-        newSuspendedTransaction {
+        dbTransaction {
             CalendarSystem.scheduleCalendarEntry(CalendarEntry.new {
                 this.message = message
                 this.expires = Instant.ofEpochMilli(expires / 1000 * 1000)
@@ -29,7 +29,7 @@ object CalendarDB : IntIdTable("calendar") {
     /**
      * Retrieves all calendar entries
      */
-    suspend fun getAllEntries() = newSuspendedTransaction { CalendarEntry.all().toList() }
+    suspend fun getAllEntries() = dbTransaction { CalendarEntry.all().toList() }
 }
 
 class CalendarEntry(id: EntityID<Int>) : IntEntity(id) {

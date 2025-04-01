@@ -1,11 +1,11 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.Constants
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.upsert
 import java.util.*
 
@@ -24,7 +24,7 @@ object BirthdayDB : Table("birthdays") {
      * @param day the day of birth
      */
     suspend fun upsertBirthday(userid: Long, year: Int, month: Int, day: Int) {
-        newSuspendedTransaction {
+        dbTransaction {
             upsert {
                 it[USERID] = userid
                 it[YEAR] = year
@@ -40,7 +40,7 @@ object BirthdayDB : Table("birthdays") {
      * @param tc the channel to send the message to
      */
     suspend fun checkBirthdays(cal: Calendar, tc: MessageChannel) {
-        newSuspendedTransaction {
+        dbTransaction {
             selectAll().where {
                 MONTH eq (cal[Calendar.MONTH] + 1) and (DAY eq cal[Calendar.DAY_OF_MONTH])
             }.forEach {

@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils.showdown
 
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.Database
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
@@ -25,7 +26,6 @@ import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.io.File
 import kotlin.math.absoluteValue
 import kotlin.time.Duration.Companion.seconds
@@ -224,14 +224,14 @@ object Analysis {
             }
             logger.info("In Emolga Listener!")
             Database.dbScope.launch {
-                newSuspendedTransaction {
+                dbTransaction {
                     val replayChannelId =
-                        fromReplayCommand?.tc ?: replayChannel?.idLong ?: return@newSuspendedTransaction
+                        fromReplayCommand?.tc ?: replayChannel?.idLong ?: return@dbTransaction
                     val endlessId =
                         EndlessLeagueChannelsDB.selectAll().where { EndlessLeagueChannelsDB.CHANNEL eq replayChannelId }
                             .firstOrNull()?.get(
                                 EndlessLeagueChannelsDB.ID
-                            ) ?: return@newSuspendedTransaction
+                            ) ?: return@dbTransaction
                     if (EndlessLeagueDataDB.insertIgnore {
                             it[ID] = endlessId
                             it[URL] = url

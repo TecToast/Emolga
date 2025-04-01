@@ -1,8 +1,8 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.dbTransaction
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.upsert
 
 object TipGameMessagesDB : Table("tipgamemessages") {
@@ -18,7 +18,7 @@ object TipGameMessagesDB : Table("tipgamemessages") {
      * @param battle the battle index (if the messages are split)
      * @return a list containing all message ids corresponding to the specified criteria
      */
-    suspend fun get(leagueName: String, gameday: Int, battle: Int? = null) = newSuspendedTransaction {
+    suspend fun get(leagueName: String, gameday: Int, battle: Int? = null) = dbTransaction {
         select(MESSAGEID).where {
             val op = (LEAGUENAME eq leagueName) and (GAMEDAY eq gameday)
             if (battle == null) op
@@ -32,7 +32,7 @@ object TipGameMessagesDB : Table("tipgamemessages") {
      * @param gameday the gameday
      * @param battle the battle index
      */
-    suspend fun set(leagueName: String, gameday: Int, battle: Int, messageId: Long) = newSuspendedTransaction {
+    suspend fun set(leagueName: String, gameday: Int, battle: Int, messageId: Long) = dbTransaction {
         upsert {
             it[LEAGUENAME] = leagueName
             it[GAMEDAY] = gameday

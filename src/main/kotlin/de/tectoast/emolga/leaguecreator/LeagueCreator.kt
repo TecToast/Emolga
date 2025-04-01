@@ -5,6 +5,7 @@ package de.tectoast.emolga.leaguecreator
 import com.google.api.services.sheets.v4.model.CellFormat
 import com.google.api.services.sheets.v4.model.Color
 import com.google.api.services.sheets.v4.model.TextFormat
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.league.AllowedData
 import de.tectoast.emolga.league.DefaultLeague
@@ -34,7 +35,6 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import org.bson.BsonObjectId
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.litote.kmongo.contains
 import org.litote.kmongo.eq
@@ -655,7 +655,7 @@ class Addons {
         override suspend fun LeagueCreator.execute(b: RequestBuilder) {
             this@PokemonData.b = b
             leagueCreator = this
-            newSuspendedTransaction {
+            dbTransaction {
                 val send = mutableListOf<List<Any>>()
                 if (/*!dataProviders.keys.containsAll(teamsiteDataUses?.values.orEmpty()) && */!disabled) {
                     val pokedex = de.tectoast.emolga.utils.json.db.pokedex.find().toList().associateBy { it.id }

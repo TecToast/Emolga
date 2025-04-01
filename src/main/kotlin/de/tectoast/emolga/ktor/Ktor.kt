@@ -1,6 +1,5 @@
 package de.tectoast.emolga.ktor
 
-import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.utils.webJSON
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -30,9 +29,8 @@ object Ktor {
         if (withYT) {
             embeddedServer(
                 CIO,
-                port = Credentials.tokens.subscriber.callback.let {
-                    if (":" in it) it.substringAfter("//").substringAfter(":").substringBefore("/").toInt() else 443
-                }) {
+                port = 58701
+            ) {
                 routing {
                     ytSubscriptions()
                 }

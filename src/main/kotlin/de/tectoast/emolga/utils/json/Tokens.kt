@@ -10,6 +10,7 @@ data class Tokens(
     val discordraikou: String = "",
     val subscriber: Subscriber,
     val database: Database,
+    val mongoDB: String,
     val oauth2: Oauth2
 ) {
     @Serializable
@@ -28,7 +29,8 @@ data class Tokens(
     @Serializable
     data class Database(
         val username: String,
-        val password: String
+        val password: String,
+        val host: String
     )
 
     @Serializable

@@ -1,3 +1,4 @@
+
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -8,9 +9,36 @@ plugins {
     kotlin("plugin.serialization") version kVersion
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("maven-publish")
+    id("com.google.cloud.tools.jib") version "3.4.5"
     application
 }
 
+jib {
+    System.setProperty("jib.console", "plain")
+    from {
+        platforms {
+            platform {
+                os = "linux"
+                architecture = "arm64"
+            }
+        }
+    }
+    to {
+        image = "tectoast/emolga"
+        credHelper {
+            helper = "secretservice"
+        }
+    }
+    container {
+        mainClass = "de.tectoast.emolga.MainKt"
+        jvmFlags = listOf(
+            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005",
+            "-Dlogback.configurationFile=logback.xml"
+        )
+        ports = listOf("58700", "58701", "5005")
+        volumes = listOf("/logs", "/logback.xml")
+    }
+}
 
 application {
     mainClass.set("de.tectoast.emolga.MainKt")

@@ -3,6 +3,7 @@
 package de.tectoast.emolga.utils.json
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.InteractionData
@@ -50,13 +51,12 @@ import org.litote.kmongo.serialization.configuration as mongoConfiguration
 
 val db: MongoEmolga get() = delegateDb ?: error("MongoDB not initialized!")
 
-private const val DEFAULT_DB_URL = "mongodb://florirp5.fritz.box:27017/"
 private const val DEFAULT_DB_NAME = "emolga"
 private var delegateDb: MongoEmolga? = null
 
 private val logger = KotlinLogging.logger {}
 
-fun initMongo(dbUrl: String = DEFAULT_DB_URL, dbName: String = DEFAULT_DB_NAME) {
+fun initMongo(dbUrl: String = Credentials.tokens.mongoDB, dbName: String = DEFAULT_DB_NAME) {
     delegateDb?.let { error("MongoDB already initialized!") }
     delegateDb = MongoEmolga(dbUrl, dbName)
 }

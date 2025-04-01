@@ -24,7 +24,7 @@ object KotestProjectConfig : AbstractProjectConfig() {
         val username = env("DBUSER")!!
         val password = env("DBPASSWORD")!!
         val host = env("DBHOST")!!
-        Database.init(Tokens.Database(username, password), host, withStartUp = false)
+        Database.init(Tokens.Database(username, password, host), withStartUp = false)
     }
 
     override suspend fun afterProject() {

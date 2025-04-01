@@ -30,7 +30,7 @@ suspend fun main() {
         IntervalTask.setupIntervalTasks()
     }
     logger.info("Starting DB...")
-    Database.init(Credentials.tokens.database, "localhost")
+    Database.init(Credentials.tokens.database)
     logger.info("Starting KTor...")
     Ktor.start()
     logger.info("Starting LogConfigReload...")

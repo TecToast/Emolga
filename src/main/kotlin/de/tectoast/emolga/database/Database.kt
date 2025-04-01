@@ -34,9 +34,9 @@ class Database(host: String, username: String, password: String) {
         /**
          * Initializes the database connection
          */
-        suspend fun init(cred: Tokens.Database, host: String, withStartUp: Boolean = true): Database {
+        suspend fun init(cred: Tokens.Database, withStartUp: Boolean = true): Database {
             logger.info("Creating DataSource...")
-            instance = Database(host, cred.username, cred.password)
+            instance = Database(cred.host, cred.username, cred.password)
             org.jetbrains.exposed.sql.Database.connect(instance.dataSource)
             if (withStartUp) onStartUp()
             return instance

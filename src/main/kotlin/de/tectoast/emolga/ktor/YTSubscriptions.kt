@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.toSet
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.datetime.Instant
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
@@ -127,14 +128,22 @@ fun Route.ytSubscriptions() {
                     logger.error("Error parsing date in YT", e)
                 }
                 if (duplicateVideoCache.add(videoId)) {
-                    YTNotificationsDB.getDCChannels(channelId).forEach { (mc, dm) ->
-                        val channel =
-                            if (dm) jda.openPrivateChannelById(mc).await() else jda.getChannel<MessageChannel>(mc)
-                        channel?.sendMessage("https://youtu.be/$videoId")?.queue()
-                    }
-                    db.config.only().ytLeagues.forEach { (short, gid) ->
-                        if (title.contains(short, ignoreCase = true)) {
-                            handleVideo(channelId, videoId, gid)
+                    supervisorScope {
+                        launch {
+                            YTNotificationsDB.getDCChannels(channelId).forEach { (mc, dm) ->
+                                val channel =
+                                    if (dm) jda.openPrivateChannelById(mc).await() else jda.getChannel<MessageChannel>(
+                                        mc
+                                    )
+                                channel?.sendMessage("https://youtu.be/$videoId")?.queue()
+                            }
+                        }
+                        launch {
+                            db.config.only().ytLeagues.forEach { (short, gid) ->
+                                if (title.contains(short, ignoreCase = true)) {
+                                    handleVideo(channelId, videoId, gid)
+                                }
+                            }
                         }
                     }
                 }

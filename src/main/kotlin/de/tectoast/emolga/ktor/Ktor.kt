@@ -6,7 +6,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.server.plugins.callloging.*
+import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.routing.*
@@ -20,7 +20,7 @@ object Ktor {
     var devMode = false
     val injectedRouteHandlers: MutableMap<String, suspend ApplicationCall.() -> Unit> = mutableMapOf()
     var oauth2Secret: String? = null
-    var server: ApplicationEngine? = null
+    var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
 
     fun start(withYT: Boolean = true) {
         embeddedServer(CIO, port = 58700) {

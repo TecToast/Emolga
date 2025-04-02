@@ -516,7 +516,7 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun subscribeToYT(args: PrivateData) {
-        subscribeToYTChannel(args())
+        subscribeToYTChannel(flowOf(args()).mapIdentifierToChannelIDs().first())
     }
 
     context(InteractionData)

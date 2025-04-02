@@ -23,9 +23,6 @@ jib {
     }
     to {
         image = "tectoast/emolga"
-        credHelper {
-            helper = "secretservice"
-        }
     }
     container {
         mainClass = "de.tectoast.emolga.MainKt"
@@ -91,7 +88,7 @@ dependencies {
     // Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
 
     // Logging
@@ -105,7 +102,7 @@ dependencies {
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250106-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20241206-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20250220-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20250128-2.0.0")
 
     // Database

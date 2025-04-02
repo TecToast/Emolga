@@ -69,8 +69,6 @@ sealed class League {
     val allowed: MutableMap<Int, MutableSet<AllowedData>> = mutableMapOf()
     val guild = -1L
 
-    @EncodeDefault
-    var round = 1
     val current get() = currentOverride ?: order[round]!![0]
 
     @Transient
@@ -143,6 +141,12 @@ sealed class League {
     @EncodeDefault
     var draftData: ResettableLeagueData = ResettableLeagueData()
     val persistentData: PersistentLeagueData = PersistentLeagueData()
+
+    var round: Int
+        get() = draftData.round
+        set(value) {
+            draftData.round = value
+        }
 
     val draftWouldEnd get() = isLastRound && order[round]!!.size <= 1
 

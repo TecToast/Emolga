@@ -132,9 +132,8 @@ fun Route.ytSubscriptions() {
                         launch {
                             YTNotificationsDB.getDCChannels(channelId).forEach { (mc, dm) ->
                                 val channel =
-                                    if (dm) jda.openPrivateChannelById(mc).await() else jda.getChannel<MessageChannel>(
-                                        mc
-                                    )
+                                    if (dm) jda.openPrivateChannelById(mc).await()
+                                    else jda.getChannel<MessageChannel>(mc)
                                 channel?.sendMessage("https://youtu.be/$videoId")?.queue()
                             }
                         }

@@ -502,7 +502,7 @@ open class Arguments {
 
     fun pokemontype(
         name: String = "", help: String = "", english: Boolean, builder: Arg<String, String>.() -> Unit = {}
-    ) = createArg(name, help, OptionType.STRING) {
+    ) = fromList(name, help, typeList, useContainsAutoComplete = true) {
         validate { str ->
             val t = if (english) Translation.getEnglNameWithType(str)
             else Translation.getGerName(str)
@@ -656,15 +656,47 @@ open class Arguments {
             }
         }
 
+        private val typeList = listOf(
+            "Normal",
+            "Feuer",
+            "Wasser",
+            "Pflanze",
+            "Gestein",
+            "Boden",
+            "Geist",
+            "Unlicht",
+            "Drache",
+            "Fee",
+            "Eis",
+            "Kampf",
+            "Elektro",
+            "Flug",
+            "Gift",
+            "Psycho",
+            "Stahl",
+            "Käfer",
+            "Fire",
+            "Water",
+            "Grass",
+            "Rock",
+            "Ground",
+            "Ghost",
+            "Dark",
+            "Dragon",
+            "Fairy",
+            "Ice",
+            "Fighting",
+            "Electric",
+            "Flying",
+            "Poison",
+            "Psychic",
+            "Steel",
+            "Bug"
+        )
+
     }
 }
-/**
- * Result:
- * - null -> argument should not be present
- * - true -> argument is present and required
- * - false -> argument is present and optional
 
- */
 typealias GuildChecker = suspend CommandProviderData.() -> ArgumentPresence
 
 enum class ArgumentPresence {
@@ -722,7 +754,13 @@ class Arg<DiscordType, ParsedType>(
         guildChecker: GuildChecker? = null,
         autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
     ) {
-        spec = CommandArgSpec(autocomplete, choices, guildChecker)
+        spec = (spec as? CommandArgSpec)?.let { oldSpec ->
+            oldSpec.copy(
+                choices = choices ?: oldSpec.choices,
+                guildChecker = guildChecker ?: oldSpec.guildChecker,
+                autocomplete = autocomplete ?: oldSpec.autocomplete
+            )
+        } ?: CommandArgSpec(autocomplete, choices, guildChecker)
     }
 
     fun modal(
@@ -731,7 +769,14 @@ class Arg<DiscordType, ParsedType>(
         required: Boolean = false,
         builder: TextInput.Builder.() -> Unit = {}
     ) {
-        spec = ModalArgSpec(short, modalKey, required, builder)
+        spec = (spec as? ModalArgSpec)?.let { oldSpec ->
+            oldSpec.copy(
+                short = short,
+                modalEnableKey = modalKey ?: oldSpec.modalEnableKey,
+                required = required || oldSpec.required,
+                builder = builder
+            )
+        } ?: ModalArgSpec(short, modalKey, required, builder)
     }
 
     override fun getValue(thisRef: Arguments, property: KProperty<*>): ParsedType {

@@ -14,31 +14,11 @@ import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.draft.PickInput
 import dev.minn.jda.ktx.messages.into
 import mu.KotlinLogging
-import net.dv8tion.jda.api.interactions.commands.Command.Choice
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 
 object RandomPick {
-    val germanTypeList = setOf(
-        "Normal",
-        "Feuer",
-        "Wasser",
-        "Pflanze",
-        "Gestein",
-        "Boden",
-        "Geist",
-        "Unlicht",
-        "Drache",
-        "Fee",
-        "Eis",
-        "Kampf",
-        "Elektro",
-        "Flug",
-        "Gift",
-        "Psycho",
-        "Stahl",
-        "Käfer"
-    )
+
     private val logger = KotlinLogging.logger {}
 
     enum class RandomPickAction {
@@ -55,12 +35,12 @@ object RandomPick {
                         ?: ArgumentPresence.NOT_PRESENT
                 })
             }.nullable()
-            var type by fromList("Typ", "Der Typ, der gewählt werden soll", germanTypeList) {
+            var type by pokemontype("Typ", "Der Typ, den du haben willst", english = true) {
                 slashCommand(guildChecker = {
                     val league = league() ?: return@slashCommand ArgumentPresence.OPTIONAL
                     league.config.randomPick.mode.provideCommandOptions()[RandomPickArgument.TYPE]
                         ?: ArgumentPresence.NOT_PRESENT
-                }, choices = germanTypeList.map { Choice(it, it) })
+                })
             }.nullable()
         }
 

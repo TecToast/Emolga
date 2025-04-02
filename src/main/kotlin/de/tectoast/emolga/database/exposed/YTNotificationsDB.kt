@@ -22,6 +22,6 @@ object YTNotificationsDB : Table("ytnotifications") {
     }
 
     suspend fun getDCChannels(ytChannel: String) = dbTransaction {
-        select(DCCHANNEL).where { YTCHANNEL eq ytChannel }.map { it[DCCHANNEL] to it[DM] }
+        select(DCCHANNEL, DM).where { YTCHANNEL eq ytChannel }.map { it[DCCHANNEL] to it[DM] }
     }
 }

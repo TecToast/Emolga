@@ -34,7 +34,7 @@ abstract class RefreshableCache<T> : Cache<T>() {
             val now = Clock.System.now()
             if (cached == null || shouldUpdate(now)) {
                 lastUpdate = now
-                cached = update()
+                updateCachedValue()
             }
         }
         return cached as T

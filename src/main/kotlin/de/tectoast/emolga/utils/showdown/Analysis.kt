@@ -376,7 +376,7 @@ object Analysis {
             if (line.startsWith("|player|")) {
                 val i = split[1][1].digitToInt() - 1
                 //if (i !in nicknames)
-                if (split.size > 2) nicknames[i] = split[2].also { logger.info("Setting nickname of $i to $it") }
+                if (split.size > 2) nicknames[i] = split[2].also { logger.debug { "Setting nickname of $i to $it" } }
             }
             if (line.startsWith("|switch") || line.startsWith("|drag")) {
                 val (player, _) = split[1].parsePokemonLocation()
@@ -438,7 +438,7 @@ object Analysis {
                 lastLine = IndexedValue(currentLineIndex - 1, game.getOrNull(currentLineIndex - 1) ?: "")
                 SDEffect.effects[operation]?.let { it.forEach { e -> e.execute(split) } }
             }
-            logger.info("Finished analyse!")
+            logger.debug("Finished analyse!")
             val totalDmg = totalDmgAmount.toDouble()
             var calcedTotalDmg = 0
             sdPlayers.flatMap { it.pokemon }.forEach {

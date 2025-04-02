@@ -21,7 +21,6 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -76,15 +75,24 @@ private val mac: Mac by lazy {
     }
 }
 
+private suspend inline fun RoutingCall.verifyYT(param: String, check: (String) -> Boolean = { true }): String? {
+    val value = request.queryParameters[param]
+    if (value == null || !check(value)) {
+        logger.warn("Invalid YT verify $param: $value")
+        respond(HttpStatusCode.BadRequest)
+        return null
+    }
+    return value
+}
+
 fun Route.ytSubscriptions() {
     route("/youtube") {
         get {
-            call.request.queryParameters["hub.mode"]?.takeIf { it == "subscribe" }
+            call.verifyYT("hub.mode") { it == "subscribe" } ?: return@get
+            val topic = call.verifyYT("hub.topic") { it in recentlySubscribed }
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
-            call.request.queryParameters["hub.topic"]?.takeIf { it in recentlySubscribed }
-                ?: return@get call.respond(HttpStatusCode.BadRequest)
-            val challenge =
-                call.request.queryParameters["hub.challenge"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val challenge = call.verifyYT("hub.challenge") ?: return@get
+            logger.debug { "Verified topic: $topic" }
             call.respondText(challenge)
         }
         post {

@@ -1,6 +1,7 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.embedColor
@@ -15,7 +16,6 @@ import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.javatime.timestamp
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -34,8 +34,11 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
         private val coroutineScope =
             createCoroutineScope("Giveaway", Dispatchers.Default)
 
+        /**
+         * Initializes the giveaway system
+         */
         suspend fun init() {
-            newSuspendedTransaction {
+            dbTransaction {
                 for (giveaway in all()) {
                     giveaway.startTimer()
                 }
@@ -43,6 +46,9 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
         }
     }
 
+    /**
+     * Starts the timer of the given giveaway
+     */
     fun startTimer() {
         coroutineScope.launch {
             delay(Instant.now().until(end, ChronoUnit.MILLIS))
@@ -57,8 +63,11 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
     var end by GiveawaysDB.END
     var winners by GiveawaysDB.WINNERS
 
+    /**
+     * Finishes the giveaway
+     */
     private suspend fun finish() {
-        newSuspendedTransaction {
+        dbTransaction {
             delete()
         }
         val tc = jda.getTextChannelById(channelid) ?: return

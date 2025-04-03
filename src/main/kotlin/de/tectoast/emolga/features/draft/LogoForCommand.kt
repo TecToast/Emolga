@@ -9,7 +9,10 @@ import de.tectoast.emolga.utils.Constants
 object LogoForCommand :
     CommandFeature<LogoForCommand.Args>(
         ::Args,
-        CommandSpec("logofor", "Reicht ein Logo für jemanden ein", Constants.G.ASL, Constants.G.FLP, Constants.G.VIP)
+        CommandSpec(
+            "logofor", "Reicht ein Logo für jemanden ein", Constants.G.ASL, Constants.G.FLP, Constants.G.VIP,
+            Constants.G.LOEWE
+        )
     ) {
 
     init {

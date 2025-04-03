@@ -12,9 +12,12 @@ import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.File
 import com.google.api.services.drive.model.Permission
 import com.google.api.services.sheets.v4.Sheets
-import com.google.api.services.sheets.v4.model.*
+import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest
+import com.google.api.services.sheets.v4.model.BatchUpdateValuesRequest
+import com.google.api.services.sheets.v4.model.Request
+import com.google.api.services.sheets.v4.model.ValueRange
 import com.google.api.services.youtube.YouTube
-import com.google.api.services.youtube.model.SearchResult
+import de.tectoast.emolga.utils.Google.setCredentials
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.minutes
@@ -146,14 +149,6 @@ object Google {
             driveService().permissions().create(fileId, Permission().setType("anyone").setRole("reader")).execute()
             fileId
         }
-
-    suspend fun fetchLatestVideosFromChannel(channelId: String): List<SearchResult> = withContext(googleContext) {
-        youtubeService().search().list("snippet".l).apply {
-            this.channelId = channelId
-            order = "date"
-            type = listOf("video")
-        }.execute().items
-    }
 
     suspend fun fetchChannelId(channelHandle: String) = withContext(googleContext) {
         youtubeService().channels().list("snippet".l).apply {

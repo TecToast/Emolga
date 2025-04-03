@@ -25,7 +25,7 @@ sealed class DraftTimer {
     fun calc(league: League, now: Long = System.currentTimeMillis()) = calc(
         now = now,
         timerStart = timerStart,
-        howOftenSkipped = league.punishableSkippedTurns[league.current]?.size ?: 0,
+        howOftenSkipped = league.draftData.punishableSkippedTurns[league.current]?.size ?: 0,
         usedStallSeconds = league.draftData.timer.usedStallSeconds[league.current] ?: 0
     )
 
@@ -51,19 +51,19 @@ sealed class DraftTimer {
             }
             recheckTimerInfo()
             var currentDelay = currentDelay() ?: return null
-            var elapsedMinutes: Int = currentDelay
-            while (elapsedMinutes > 0) {
+            var minutesToGo: Int = currentDelay
+            while (minutesToGo > 0) {
                 val p = currentTimerInfo[cal[Calendar.DAY_OF_WEEK]]
                 val hour = cal[Calendar.HOUR_OF_DAY]
-                if (hour >= p.from && hour < p.to) elapsedMinutes-- else cal[Calendar.SECOND] = 0
+                if (hour >= p.from && hour < p.to) minutesToGo-- else cal[Calendar.SECOND] = 0
                 cal.add(Calendar.MINUTE, 1)
                 recheckTimerInfo()
                 val currentTimerInfoDelay = currentDelay() ?: return null
                 if (currentDelay != currentTimerInfoDelay) {
-                    elapsedMinutes = if (currentTimerInfoDelay < currentDelay) {
-                        elapsedMinutes.coerceAtMost(currentTimerInfoDelay)
+                    minutesToGo = if (currentTimerInfoDelay < currentDelay) {
+                        minutesToGo.coerceAtMost(currentTimerInfoDelay)
                     } else {
-                        currentTimerInfoDelay - (currentDelay - elapsedMinutes)
+                        currentTimerInfoDelay - (currentDelay - minutesToGo)
                     }
                     currentDelay = currentTimerInfoDelay
                 }
@@ -124,7 +124,7 @@ class SwitchTimer(val timerInfos: Map<String, TimerInfo>, var currentTimer: Stri
         color = embedColor
     }.into() to timerInfos.keys.map { name ->
         SwitchTimer.Button(label = name) {
-            this.league = league
+            this.league = league.leaguename
             this.switchTo = name
         }
     }.into()

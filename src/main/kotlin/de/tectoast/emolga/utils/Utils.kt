@@ -2,6 +2,7 @@ package de.tectoast.emolga.utils
 
 import com.google.api.services.sheets.v4.model.Color
 import com.mongodb.MongoWriteException
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.TranslationsDB
 import de.tectoast.emolga.utils.Constants.FLOID
 import io.ktor.client.*
@@ -9,7 +10,9 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
+import kotlinx.serialization.builtins.LongAsStringSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.User
 import org.jetbrains.exposed.sql.Column
@@ -81,6 +84,7 @@ private val basicCoroutineContext = SupervisorJob() + CoroutineExceptionHandler 
     val name = ctx[CoroutineName]?.name ?: "Unknown"
     universalLogger.error(t) { "Error in $name" }
 }
+
 fun createCoroutineScope(name: String, dispatcher: CoroutineDispatcher = Dispatchers.Default) =
     CoroutineScope(createCoroutineContext(name, dispatcher))
 
@@ -90,7 +94,10 @@ fun createCoroutineContext(name: String, dispatcher: CoroutineDispatcher = Dispa
 val webJSON = Json {
     ignoreUnknownKeys = true
     isLenient = true
-    encodeDefaults = false
+    encodeDefaults = true
+    serializersModule = SerializersModule {
+        contextual(Long::class, LongAsStringSerializer)
+    }
 }
 
 val httpClient = HttpClient(CIO) {
@@ -124,6 +131,7 @@ inline fun <T> String.notNullAppend(value: T?, mapper: (T) -> String) =
 
 inline fun <T> String.notNullPrepend(value: T?, mapper: (T) -> String) =
     if (value != null) mapper(value) + this else this
+
 val <T> T.l get() = listOf(this)
 
 inline val User.isNotFlo: Boolean get() = this.idLong != FLOID
@@ -185,10 +193,13 @@ inline fun ignoreDuplicatesMongo(block: () -> Unit) =
 
 fun <T> Iterable<T>.reversedIf(condition: Boolean) = if (condition) reversed() else this.toList()
 
-enum class Language(val translationCol: Column<String>, val otherCol: Column<String>) {
-    GERMAN(TranslationsDB.GERMANNAME, TranslationsDB.ENGLISHNAME), ENGLISH(
-        TranslationsDB.ENGLISHNAME, TranslationsDB.GERMANNAME
-    )
+enum class Language(
+    val translationCol: Column<String>,
+    val otherCol: Column<String>,
+    val ncSpecifiedCol: Column<String>
+) {
+    GERMAN(TranslationsDB.GERMANNAME, TranslationsDB.ENGLISHNAME, NameConventionsDB.SPECIFIED),
+    ENGLISH(TranslationsDB.ENGLISHNAME, TranslationsDB.GERMANNAME, NameConventionsDB.SPECIFIEDENGLISH)
 }
 
 data class Translation(

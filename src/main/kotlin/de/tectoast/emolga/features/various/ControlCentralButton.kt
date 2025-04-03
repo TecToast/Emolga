@@ -5,6 +5,7 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.logging.LogConfigReload
 import de.tectoast.emolga.utils.draft.Tierlist
 
 object ControlCentralButton : ButtonFeature<ControlCentralButton.Args>(::Args, ButtonSpec("controlcentral")) {
@@ -15,7 +16,8 @@ object ControlCentralButton : ButtonFeature<ControlCentralButton.Args>(::Args, B
     enum class Mode {
         UPDATE_SLASH,
         UPDATE_TIERLIST,
-        BREAKPOINT
+        BREAKPOINT,
+        RELOAD_LOG_CONFIG
     }
 
     context(InteractionData)
@@ -26,10 +28,11 @@ object ControlCentralButton : ButtonFeature<ControlCentralButton.Args>(::Args, B
             Mode.UPDATE_SLASH -> EmolgaMain.featureManager().updateFeatures(jda)
             Mode.UPDATE_TIERLIST -> Tierlist.setup()
             Mode.BREAKPOINT -> breakpoint = true
+            Mode.RELOAD_LOG_CONFIG -> LogConfigReload.reloadConfiguration()
         }
         reply("Done!")
         if (breakpoint) {
-            print("") // I have a JVM breakpoint here
+            print("") // I have a JVM breakpoint here (as it turns out, a simple Unit gets optimized away)
         }
     }
 }

@@ -1,13 +1,14 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.Translation
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
+// TODO: Remove?
 object TranslationsDB : Table("translations") {
     val ENGLISHID = varchar("englishid", 30)
     val GERMANID = varchar("germanid", 30)
@@ -27,7 +28,7 @@ object TranslationsDB : Table("translations") {
         withCap: Boolean = false,
         modification: String = "default"
     ) =
-        newSuspendedTransaction {
+        dbTransaction {
             selectAll().where { (ENGLISHID eq id).let { if (checkOnlyEnglish) it else it or (GERMANID eq id) } and (CAP eq withCap) and (MODIFICATION eq modification) }
                 .firstOrNull()
                 ?.let {

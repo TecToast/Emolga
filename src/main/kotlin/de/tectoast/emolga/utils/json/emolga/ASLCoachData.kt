@@ -4,22 +4,11 @@ package de.tectoast.emolga.utils.json.emolga
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.flo.SendFeatures
-import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.MappedCache
-import de.tectoast.emolga.utils.OneTimeCache
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.convertColor
-import de.tectoast.emolga.utils.coordXMod
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
-import de.tectoast.emolga.utils.xmod
-import de.tectoast.emolga.utils.ydiv
 import kotlinx.coroutines.CancellationException
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.EncodeDefault
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Member
 import org.litote.kmongo.Id
@@ -27,6 +16,7 @@ import org.litote.kmongo.coroutine.updateOne
 import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
+
 @Serializable
 class ASLCoachData(
     @SerialName("_id") @Contextual val id: Id<ASLCoachData>,
@@ -114,7 +104,8 @@ class ASLCoachData(
         val groupBy = groupedParticipants()
         val entries = groupBy[level.toString()]!!
         val siteCoord =
-            level.minus(1).coordXMod("Menschenhandel", 2, 2, 20, 14, 7 + entries.indexOfFirst { it.key == user.idLong })
+            level.minus(1)
+                .coordXMod("Menschenhandel", 2, 2, 20, 14, 7 + entries.indexOfFirst { user.idLong in it.users })
                 .substringAfter("!")
         table.indexOf(teamnameByCoach(coach)).let {
             RequestBuilder(sid).addRow(
@@ -128,7 +119,7 @@ class ASLCoachData(
 
         val groupedParticipants = OneTimeCache {
             val data = db.signups.get(Constants.G.ASL)!!
-            data.users.entries.groupBy { it.value.conference!! }
+            data.users.groupBy { it.conference!! }
         }
 
         val participants = MappedCache(groupedParticipants) { groupBy ->
@@ -137,7 +128,7 @@ class ASLCoachData(
                 for ((index, conference) in data.conferences.withIndex()) {
                     val confnum = conference.toIntOrNull() ?: continue
                     if (confnum == 0) continue
-                    putAll(groupBy[conference]!!.map { it.key }.associateWith { confnum })
+                    putAll(groupBy[conference]!!.map { it.users.first() }.associateWith { confnum })
                 }
             }
         }

@@ -20,15 +20,12 @@ object AddTeammateCommand : CommandFeature<AddTeammateCommand.Args>(
 
     context(InteractionData)
     override suspend fun exec(e: Args) {
-        val lsData = db.signups.get(gid)
-        val uid = user
-        val data = lsData?.users?.get(uid) ?: return reply("Du bist nicht angemeldet!")
+        val lsData =
+            db.signups.get(gid) ?: return reply("Es läuft derzeit keine Anmeldung auf diesem Server!", ephemeral = true)
+        val data = lsData.getDataByUser(user) ?: return reply("Du bist nicht angemeldet!")
         val member = e.user
-        data.teammates += member.idLong
+        if (lsData.getDataByUser(member.idLong) != null) return reply("${member.asMention} ist bereits angemeldet!")
+        lsData.handleNewUserInTeam(member, data)
         reply("Du hast ${member.asMention} zu deinem Team hinzugefügt!", ephemeral = true)
-        lsData.giveParticipantRole(member)
-        jda.getTextChannelById(lsData.signupChannel)!!.editMessageById(data.signupmid!!, data.toMessage(uid, lsData))
-            .queue()
-        lsData.save()
     }
 }

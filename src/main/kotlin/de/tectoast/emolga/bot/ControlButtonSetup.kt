@@ -19,6 +19,9 @@ object ControlButtonSetup {
         )
     )
 
+    /**
+     * Initializes the control buttons in the control central and florix channels
+     */
     fun init() {
         CONTROLCENTRALGENERATION.takeIf { it.enabled }?.let {
             val tc = jda.getTextChannelById(it.tc)!!
@@ -31,6 +34,9 @@ object ControlButtonSetup {
                     mode = ControlCentralButton.Mode.UPDATE_TIERLIST
                 },
                 ControlCentralButton("Breakpoint", ButtonStyle.SUCCESS) { mode = ControlCentralButton.Mode.BREAKPOINT },
+                ControlCentralButton("Log-Config reloaden", ButtonStyle.PRIMARY) {
+                    mode = ControlCentralButton.Mode.RELOAD_LOG_CONFIG
+                },
             ).into()
             it.mid?.let { mid ->
                 tc.editMessage(

@@ -4,7 +4,6 @@ package de.tectoast.emolga.features
 
 import com.google.common.reflect.ClassPath
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
@@ -17,6 +16,7 @@ import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
+import net.dv8tion.jda.api.interactions.InteractionContextType
 import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
@@ -111,9 +111,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                 }
             } catch (ex: Exception) {
                 reply(
-                    "Es ist ein Fehler beim Ausführen der Interaktion aufgetreten!\nWenn du denkst, dass dies ein interner Fehler beim Bot ist, melde dich bitte bei Flo (${Constants.MYTAG}).".condAppend(
-                        data.user == Constants.FLOID, "\nJa Flo, du sollst dich auch bei ihm melden :^)"
-                    ),
+                    "Es ist ein Fehler beim Ausführen der Interaktion aufgetreten!\nDieser wurde bereits gemeldet und sollte zeitnah behoben werden.",
                     ephemeral = true
                 )
                 logger.error(
@@ -185,7 +183,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         gid: Long
     ) = Commands.slash(cmd.spec.name, cmd.spec.help).apply {
         defaultPermissions = cmd.slashPermissions
-        isGuildOnly = true
+        setContexts(InteractionContextType.GUILD)
         if (cmd.children.isNotEmpty()) {
             cmd.children.forEach {
                 addSubcommands(
@@ -210,8 +208,13 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         return feature.defaultArgs.mapNotNull { a ->
             if (a.onlyInCode) return@mapNotNull null
             val spec = a.spec as? CommandArgSpec
-            val required = if (spec?.guildChecker != null) (spec.guildChecker.invoke(CommandProviderData(gid))
-                ?: return@mapNotNull null) else !a.optional
+            val required = spec?.guildChecker?.let {
+                when (it(CommandProviderData(gid))) {
+                    ArgumentPresence.NOT_PRESENT -> return@mapNotNull null
+                    ArgumentPresence.REQUIRED -> true
+                    ArgumentPresence.OPTIONAL -> false
+                }
+            } ?: !a.optional
             OptionData(a.optionType, a.name.nameToDiscordOption(), a.help, required, spec?.autocomplete != null).apply {
                 if (spec?.choices != null) addChoices(spec.choices)
             }

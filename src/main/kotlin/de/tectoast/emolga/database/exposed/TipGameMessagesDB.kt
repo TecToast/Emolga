@@ -1,8 +1,8 @@
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.dbTransaction
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.upsert
 
 object TipGameMessagesDB : Table("tipgamemessages") {
@@ -11,18 +11,31 @@ object TipGameMessagesDB : Table("tipgamemessages") {
     val BATTLE = integer("battle")
     val MESSAGEID = long("messageid")
 
-    suspend fun get(leagueName: String, gameDay: Int, battle: Int? = null) = newSuspendedTransaction {
+    /**
+     * Gets the message id of the tipgame message of the league/gameday/battle
+     * @param leagueName the league name
+     * @param gameday the gameday
+     * @param battle the battle index (if the messages are split)
+     * @return a list containing all message ids corresponding to the specified criteria
+     */
+    suspend fun get(leagueName: String, gameday: Int, battle: Int? = null) = dbTransaction {
         select(MESSAGEID).where {
-            val op = (LEAGUENAME eq leagueName) and (GAMEDAY eq gameDay)
+            val op = (LEAGUENAME eq leagueName) and (GAMEDAY eq gameday)
             if (battle == null) op
             else op and (BATTLE eq battle)
         }.map { it[MESSAGEID] }
     }
 
-    suspend fun set(leagueName: String, gameDay: Int, battle: Int, messageId: Long) = newSuspendedTransaction {
+    /**
+     * Sets the message id of a tipgame messsage given the league/gameday/battle
+     * @param leagueName the league name
+     * @param gameday the gameday
+     * @param battle the battle index
+     */
+    suspend fun set(leagueName: String, gameday: Int, battle: Int, messageId: Long) = dbTransaction {
         upsert {
             it[LEAGUENAME] = leagueName
-            it[GAMEDAY] = gameDay
+            it[GAMEDAY] = gameday
             it[BATTLE] = battle
             it[MESSAGEID] = messageId
         }

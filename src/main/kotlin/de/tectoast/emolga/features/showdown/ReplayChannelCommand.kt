@@ -2,6 +2,7 @@ package de.tectoast.emolga.features.showdown
 
 import de.tectoast.emolga.database.exposed.AnalysisDB
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.l
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 
 object ReplayChannelCommand :
@@ -19,13 +20,20 @@ object ReplayChannelCommand :
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            val res = e.channel?.idLong ?: tc
-            val l = AnalysisDB.insertChannel(tc, res, gid)
-            if (l == -1L) {
-                reply(if (tc == res) "Dieser Channel ist nun ein Replaychannel, somit werden alle Replay-Ergebnisse automatisch hier reingeschickt!" else "Alle Ergebnisse der Replays aus <#${tc}> werden von nun an in den Channel <#${res}> geschickt!")
-            } else {
-                reply("Die Replays aus diesem Channel werden ${if (l == res) "bereits" else "zurzeit"} in den Channel <#$l> geschickt! Mit /replaychannel remove kannst du dies ändern.")
-            }
+            val resultChannel = e.channel?.idLong ?: tc
+            val result = AnalysisDB.insertChannel(tc, resultChannel, gid)
+            reply(
+                when (result) {
+                    AnalysisDB.AnalysisResult.CREATED -> {
+                        if (tc == resultChannel) "Dieser Channel ist nun ein Replaychannel, somit werden alle Replay-Ergebnisse automatisch hier reingeschickt!"
+                        else "Alle Ergebnisse der Replays aus <#${tc}> werden von nun an in den Channel <#${resultChannel}> geschickt!"
+                    }
+
+                    is AnalysisDB.AnalysisResult.Existed -> {
+                        "Die Replays aus diesem Channel werden ${if (result.channel == resultChannel) "bereits" else "zurzeit"} in den Channel <#$l> geschickt! Mit /replaychannel remove kannst du dies ändern."
+                    }
+                }
+            )
         }
     }
 

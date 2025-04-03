@@ -1,8 +1,9 @@
 package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
-import de.tectoast.emolga.encryption.Credentials
+import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.features.FeatureManager
+import de.tectoast.emolga.league.DraftState
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
@@ -25,10 +26,8 @@ import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import net.dv8tion.jda.api.utils.cache.CacheFlag.*
-import org.litote.kmongo.eq
+import org.litote.kmongo.ne
 import org.slf4j.LoggerFactory
-import java.text.SimpleDateFormat
-import java.util.*
 
 var injectedJDA: JDA? = null
     get() {
@@ -55,6 +54,9 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
     val featureManager = OneTimeCache { FeatureManager("de.tectoast.emolga.features") }
     var maintenance: String? = null
 
+    /**
+     * Starts the discord bots
+     */
     fun launchBots() {
         Message.suppressContentIntentWarning()
         emolgajda = default(Credentials.tokens.discord) {
@@ -64,9 +66,11 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         }
         emolgajda.listener<ReadyEvent> {
             logger.info("important".marker, "Emolga is now online!")
-            db.drafts.find(League::isRunning eq true).toFlow().collect {
+            db.league.find(League::draftState ne DraftState.OFF).toFlow().collect {
                 logger.info("important".marker, "Starting draft ${it.leaguename}...")
-                it.startDraft(null, true, null)
+                League.executeOnFreshLock({ it }) {
+                    startDraft(null, true, null)
+                }
             }
         }
         flegmonjda = default(Credentials.tokens.discordflegmon) {
@@ -84,7 +88,9 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         }
     }
 
-    @Throws(Exception::class)
+    /**
+     * Starts the listeners for the discord bots
+     */
     suspend fun startListeners() {
         launch {
             featureManager.updateCachedValue()
@@ -111,16 +117,15 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
     }
 
+    /**
+     * Updates the presence of Emolga to the current amount of replays (or maintencance mode message)
+     */
     suspend fun updatePresence() {
         if (maintenance != null) {
             emolgajda.presence.setPresence(OnlineStatus.DO_NOT_DISTURB, Activity.customStatus("Wartungsarbeiten"))
             return
         }
         val count = db.statistics.getCount("analysis")
-        if (count % 100 == 0) {
-            emolgajda.getTextChannelById(904481960527794217L)!!
-                .sendMessage(SimpleDateFormat("dd.MM.yyyy").format(Date()) + ": " + count).queue()
-        }
         emolgajda.presence.setPresence(OnlineStatus.ONLINE, Activity.watching("auf $count analysierte Replays"))
     }
 

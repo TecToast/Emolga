@@ -2,18 +2,20 @@ package de.tectoast.emolga.utils.showdown
 
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.Database
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.emolga.increment
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.toCoord
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -24,7 +26,6 @@ import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.io.File
 import kotlin.math.absoluteValue
 import kotlin.time.Duration.Companion.seconds
@@ -191,7 +192,7 @@ object Analysis {
                 game.forEach { player ->
                     player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
                         FullStatsDB.add(
-                            it.draftname.official, it.kills, if (it.isDead) 1 else 0, player.winnerOfGame
+                            it.draftname.official, it.kills, it.isDead, player.winnerOfGame
                         )
                     }
                 }
@@ -215,18 +216,22 @@ object Analysis {
                     val (kills, deaths) = game[i].totalKDCount
                     (old.first + kills) to (old.second + deaths)
                 }.let { it.first != it.second }) {
+                resultchannelParam.send(
+                    "Die Kills und Tode stimmen nicht überein."
+                            + (if (shouldSendZoro) " Dies liegt wahrscheinlich an Zoroark." else " Dies liegt sehr wahrscheinlich an einem Bug in meiner Analyse.") + " Bitte überprüfe selbst, wo der Fehler liegt. Mein Programmierer wurde benachrichtigt."
+                ).queue()
                 SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
             }
             logger.info("In Emolga Listener!")
             Database.dbScope.launch {
-                newSuspendedTransaction {
+                dbTransaction {
                     val replayChannelId =
-                        fromReplayCommand?.tc ?: replayChannel?.idLong ?: return@newSuspendedTransaction
+                        fromReplayCommand?.tc ?: replayChannel?.idLong ?: return@dbTransaction
                     val endlessId =
                         EndlessLeagueChannelsDB.selectAll().where { EndlessLeagueChannelsDB.CHANNEL eq replayChannelId }
                             .firstOrNull()?.get(
                                 EndlessLeagueChannelsDB.ID
-                            ) ?: return@newSuspendedTransaction
+                            ) ?: return@dbTransaction
                     if (EndlessLeagueDataDB.insertIgnore {
                             it[ID] = endlessId
                             it[URL] = url
@@ -261,10 +266,12 @@ object Analysis {
                 )
             }
         }
-        if (replayDatas.isNotEmpty()) {
-            league?.docEntry?.analyse(
-                replayDatas, withSort = withSort
-            )
+        if (replayDatas.isNotEmpty() && league != null) {
+            League.executeOnFreshLock(league.leaguename) {
+                docEntry?.analyse(
+                    replayDatas, withSort = withSort
+                )
+            }
         }
     }
 
@@ -369,7 +376,7 @@ object Analysis {
             if (line.startsWith("|player|")) {
                 val i = split[1][1].digitToInt() - 1
                 //if (i !in nicknames)
-                if (split.size > 2) nicknames[i] = split[2].also { logger.info("Setting nickname of $i to $it") }
+                if (split.size > 2) nicknames[i] = split[2].also { logger.debug { "Setting nickname of $i to $it" } }
             }
             if (line.startsWith("|switch") || line.startsWith("|drag")) {
                 val (player, _) = split[1].parsePokemonLocation()
@@ -381,7 +388,7 @@ object Analysis {
                     }
                 }
             }
-            if (line.startsWith("|detailschange|")) {
+            if (line.startsWith("|detailschange|") || line.startsWith("|-formechange|")) {
                 val (player, _) = split[1].parsePokemonLocation()
                 val oldMonName = split[1].substringAfter(" ")
                 allMons[player]?.firstOrNull { it.hasName(oldMonName) || it.pokemon.startsWith(oldMonName) }?.otherNames?.add(
@@ -431,20 +438,20 @@ object Analysis {
                 lastLine = IndexedValue(currentLineIndex - 1, game.getOrNull(currentLineIndex - 1) ?: "")
                 SDEffect.effects[operation]?.let { it.forEach { e -> e.execute(split) } }
             }
-            logger.info("Finished analyse!")
+            logger.debug("Finished analyse!")
             val totalDmg = totalDmgAmount.toDouble()
             var calcedTotalDmg = 0
             sdPlayers.flatMap { it.pokemon }.forEach {
                 calcedTotalDmg += it.damageDealt
-                logger.info(
+                logger.debug {
                     "Pokemon: ${it.pokemon}: HP: ${it.hp} Dmg: ${it.damageDealt} Percent: ${
                         (it.damageDealt.toDouble() / totalDmg * 100.0).roundToDigits(
                             2
                         )
                     } Healed: ${it.healed}"
-                )
+                }
             }
-            logger.info("Total Dmg: $totalDmg, Calced: $calcedTotalDmg")
+            logger.debug { "Total Dmg: $totalDmg, Calced: $calcedTotalDmg" }
             AnalysisData(sdPlayers, this)
         }
     }

@@ -12,10 +12,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
 import mu.KotlinLogging
 import java.util.*
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
 
 class RepeatTask(
     val leaguename: String,
@@ -82,8 +83,19 @@ class RepeatTask(
         scope.cancel("Clear called")
     }
 
-    fun findNearestTimestamp(now: Instant = Clock.System.now()): Int? {
-        return taskTimestamps.ceilingEntry(now - 5.hours)?.value
+    fun findGamedayOfDay(): Int? {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        val now = Instant.fromEpochMilliseconds(cal.timeInMillis)
+        val entry = taskTimestamps.ceilingEntry(now)
+        return entry?.value?.takeIf { entry.key.daysUntil(now, TimeZone.UTC) == 0 }
+    }
+
+    fun findGamedayOfWeek(): Int? {
+        return taskTimestamps.ceilingEntry(Clock.System.now())?.value
     }
 
     companion object {
@@ -91,20 +103,23 @@ class RepeatTask(
         private val allTasks = mutableMapOf<String, MutableMap<RepeatTaskType, RepeatTask>>()
         fun getTask(leaguename: String, type: RepeatTaskType) = allTasks[leaguename]?.get(type)
         suspend fun setupRepeatTasks() {
-            db.drafts.find().toFlow().collect { l ->
+            db.league.find().toFlow().collect { l ->
                 val name = l.leaguename
-                suspend fun refresh() = db.league(name)
                 l.setupRepeatTasks()
                 l.config.tipgame?.let { tip ->
                     val duration = tip.interval
-                    logger.info("Draft $name has tipgame with interval ${tip.interval} and duration $duration")
+                    logger.debug { "Draft $name has tipgame with interval ${tip.interval} and duration $duration" }
                     RepeatTask(
-                        name, TipGameSending, tip.lastSending, tip.amount, duration, false
-                    ) { refresh().executeTipGameSending(it) }
+                        name, TipGameSending, tip.lastSending, tip.amount, duration
+                    ) {
+                        League.executeOnFreshLock(name) { executeTipGameSending(it) }
+                    }
                     tip.lastLockButtons?.let { last ->
                         RepeatTask(
-                            name, TipGameLockButtons, last, tip.amount, duration, false
-                        ) { refresh().executeTipGameLockButtons(it) }
+                            name, TipGameLockButtons, last, tip.amount, duration
+                        ) {
+                            League.executeOnFreshLock(name) { executeTipGameLockButtons(it) }
+                        }
                     }
                 }
                 l.config.replayDataStore?.let { data ->
@@ -112,41 +127,43 @@ class RepeatTask(
                     repeat(size) { battle ->
                         RepeatTask(
                             name,
-                            BattleRegister,
+                            RegisterInDoc,
                             data.lastUploadStart + data.intervalBetweenMatches * battle,
                             data.amount,
                             data.intervalBetweenGD,
-                            false,
                         ) { gameday ->
-                            executeBattleRegister(refresh(), gameday, battle)
+                            League.executeOnFreshLock(name) { executeRegisterInDoc(this, gameday, battle) }
                         }
-                        logger.info("YTSendChannel ${l.leaguename} $battle")
                         l.config.youtube?.sendChannel?.let { ytTC ->
                             RepeatTask(
                                 name,
-                                YTSend,
+                                YTSendManual,
                                 data.lastUploadStart + data.intervalBetweenMatches * battle + data.intervalBetweenUploadAndVideo,
                                 data.amount,
                                 data.intervalBetweenGD,
-                                true,
                             ) { gameday ->
-                                League.executeOnFreshLock({ refresh() }) {
-                                    executeYoutubeSend(ytTC, gameday, battle, VideoProvideStrategy.Fetch)
+                                League.executeOnFreshLock(name) {
+                                    val ytData =
+                                        persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
+                                            ?: return@executeOnFreshLock
+                                    executeYoutubeSend(ytTC, gameday, battle, VideoProvideStrategy.Subscribe(ytData))
                                 }
                             }
                         }
                     }
                     data.lastGamesMadeReminder?.let { last ->
                         RepeatTask(name, LastReminder, last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
-                            jda.getTextChannelById(last.channel)!!
-                                .sendMessage(refresh().buildStoreStatus(gameday)).queue()
+                            League.executeOnFreshLock(name) {
+                                jda.getTextChannelById(last.channel)!!
+                                    .sendMessage(buildStoreStatus(gameday)).queue()
+                            }
                         }
                     }
                 }
             }
         }
 
-        suspend fun executeBattleRegister(league: League, gameday: Int, battle: Int) {
+        suspend fun executeRegisterInDoc(league: League, gameday: Int, battle: Int) {
             var shouldDelay = false
             league.config.tipgame?.let { _ ->
                 league.executeTipGameLockButtonsIndividual(gameday, battle)
@@ -154,12 +171,12 @@ class RepeatTask(
             }
             val dataStore = league.persistentData.replayDataStore
             dataStore.data[gameday]?.get(battle)?.let {
-                it.ytVideoSaveData.enabled = true
-                val shouldSave = !it.checkIfBothVideosArePresent(league)
+                if (league.config.youtube != null)
+                    it.ytVideoSaveData.enabled = true
+                it.checkIfBothVideosArePresent(league)
                 if (shouldDelay) delay(2000)
                 league.docEntry?.analyseWithoutCheck(listOf(it))
-                if (shouldSave)
-                    league.save("RepeatTaskYT")
+                league.save("RepeatTaskYT")
             }
                 ?: throw IllegalStateException("No replay found for gameday $gameday and battle $battle")
         }
@@ -169,8 +186,8 @@ class RepeatTask(
 sealed interface RepeatTaskType {
     data object TipGameSending : RepeatTaskType
     data object TipGameLockButtons : RepeatTaskType
-    data object BattleRegister : RepeatTaskType
-    data object YTSend : RepeatTaskType
+    data object RegisterInDoc : RepeatTaskType
+    data object YTSendManual : RepeatTaskType
     data object LastReminder : RepeatTaskType
     data class Other(val descriptor: String) : RepeatTaskType
 }

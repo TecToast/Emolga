@@ -3,12 +3,14 @@ package de.tectoast.emolga.features
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.features.draft.SignupManager
+import de.tectoast.emolga.database.exposed.YTChannelsDB
+import de.tectoast.emolga.database.exposed.YTNotificationsDB
+import de.tectoast.emolga.features.draft.SignupManager.Button
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
-import de.tectoast.emolga.features.various.ShiftUser
 import de.tectoast.emolga.ktor.subscribeToYTChannel
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
@@ -22,18 +24,19 @@ import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
 import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
-import de.tectoast.emolga.utils.repeat.RepeatTask
+import de.tectoast.emolga.utils.repeat.IntervalTask
+import de.tectoast.emolga.utils.repeat.IntervalTaskKey
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.messages.Embed
-import dev.minn.jda.ktx.messages.editMessage
+import dev.minn.jda.ktx.events.await
+import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.*
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.interactions.components.ActionComponent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
@@ -43,7 +46,6 @@ import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
@@ -101,49 +103,11 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun printTipGame(args: PrivateData) {
-        reply(db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
+        reply(
+            db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
             .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }
             .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
-            .joinToString("\n", prefix = "```", postfix = "```")
-        )
-    }
-
-    context(InteractionData)
-    suspend fun createConventions() {
-        db.pokedex.find().toFlow().filter { it.num > 0 }.map {
-            val translated = Translation.getGerName(it.baseSpecies ?: it.name).translation
-            it.name to translated.condAppend(it.forme != null) { "-${it.forme}" }
-        }.collect { NameConventionsDB.insertDefault(it.first, it.second) }
-    }
-
-    context(InteractionData)
-    suspend fun createConventionsCosmetic() {
-        db.pokedex.find().toFlow().filter { it.num > 0 && it.cosmeticFormes != null }.collect {
-            val translated = Translation.getGerName(it.baseSpecies ?: it.name).translation
-            it.cosmeticFormes!!.forEach { f ->
-                NameConventionsDB.insertDefaultCosmetic(
-                    it.name, translated, f, translated + "-" + f.split("-").drop(1).joinToString("-")
-                )
-            }
-        }
-    }
-
-    // Order:
-    // Announcechannel mit Button
-    // Channel in dem die Anmeldungen reinkommen
-    // Channel in den die Logos kommen
-    // AnzahlTeilnehmer
-    // RollenID(oder -1)
-    // experiences
-    // Message
-    context(InteractionData)
-    suspend fun createSignup(args: PrivateData) {
-        val tc = jda.getTextChannelById(args[0])!!
-        val maxUsers = args[3].toInt()
-        val roleId = args[4].toLong().takeIf { it > 0 }
-        val experiences = args[5].toBooleanStrict()
-        val text = args.drop(6).joinToString(" ").replace("\\n", "\n")
-        SignupManager.createSignup(tc.idLong, args[1].toLong(), args[2].toLong(), maxUsers, roleId, experiences, text)
+                .joinToString("\n", prefix = "```", postfix = "```"))
     }
 
     context(InteractionData)
@@ -156,64 +120,6 @@ object PrivateCommands {
         db.signups.get(args[0].toLong())!!.reopenSignup(args[1].toInt())
     }
 
-    // Channel, extended, conferences
-    context(InteractionData)
-    suspend fun startOrderingUsers(args: PrivateData) {
-        val tc = jda.getTextChannelById(args[0])!!
-        val extended = args[1].toBoolean()
-        val data = db.signups.get(guildForMyStuff ?: tc.guild.idLong)!!
-        val conferencesRaw = args.drop(2)
-        val conferences = mutableListOf<String>()
-        val confMap = conferencesRaw.mapNotNull {
-            val split = it.split(":")
-            conferences += split[0]
-            split.getOrNull(1)?.toLong()?.let { id -> split[0] to id }
-        }.toMap()
-        data.shiftChannel = tc.idLong
-        data.conferences = conferences
-        data.conferenceRoleIds = confMap
-        data.extended = extended
-        data.shiftMessageIds = listOf()
-        data.users.values.forEach { it.conference = null }
-        if (extended) {
-            val uid = data.users.keys.first()
-            tc.sendMessageEmbeds(Embed(title = "Einteilung", description = "<@$uid>"))
-                .addActionRow(data.conferenceSelectMenus(uid, true)).queue()
-        } else {
-            data.users.values.forEachIndexed { index, value ->
-                value.conference = conferences[index % conferences.size]
-            }
-            data.shiftMessageIds = generateOrderingMessages(data).values.map {
-                tc.send(embeds = it.first.into(), components = it.second).await().idLong
-            }
-        }
-        data.save()
-    }
-
-    private val nameCache = mutableMapOf<Long, String>()
-    suspend fun generateOrderingMessages(
-        data: LigaStartData, vararg conferenceIndexes: Int
-    ): Map<Int, Pair<MessageEmbed, List<ActionRow>>> {
-        if (nameCache.isEmpty()) jda.getTextChannelById(data.signupChannel)!!.guild.retrieveMembersByIds(
-            data.users.keys
-        ).await().forEach { nameCache[it.idLong] = it.effectiveName }
-        data.save()
-        return data.users.entries.groupBy { it.value.conference }.entries.filter {
-            conferenceIndexes.isEmpty() || data.conferences.indexOf(
-                it.key
-            ) in conferenceIndexes
-        }.sortedBy { data.conferences.indexOf(it.key) }.associate { (conference, users) ->
-            conference.indexedBy(data.conferences) to (Embed(
-                title = "Conference: $conference (${users.size}/${data.maxUsersAsString})",
-                description = users.joinToString("\n") { "<@${it.key}>" },
-                color = embedColor
-            ) to users.map { (id, _) ->
-                ShiftUser.Button(nameCache[id]!!, ButtonStyle.PRIMARY) { this.uid = id }
-            }.chunked(5).map { ActionRow.of(it) })
-        }
-
-    }
-
     context(InteractionData)
     suspend fun finishOrdering(args: PrivateData) {
         done()
@@ -221,9 +127,9 @@ object PrivateCommands {
         val guild = jda.getGuildById(gid)!!
         val data = db.signups.get(gid)!!
         val roleMap = data.conferenceRoleIds.mapValues { guild.getRoleById(it.value) }
-        data.users.entries.forEach {
-            val role = roleMap[it.value.conference] ?: return@forEach
-            (listOf(it.key) + it.value.teammates).forEach { uid ->
+        data.users.forEach {
+            val role = roleMap[it.conference] ?: return@forEach
+            it.users.forEach { uid ->
                 guild.addRoleToMember(UserSnowflake.fromId(uid), role).queue()
                 delay(2000)
             }
@@ -231,27 +137,12 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun shuffleSignupConferences(args: PrivateData) {
-        val data = db.signups.get(args().toLong())!!
-        val tc = jda.getTextChannelById(data.shiftChannel!!)!!
-        val conferences = data.conferences
-        data.users.values.shuffled().shuffled().forEachIndexed { index, value ->
-            value.conference = conferences[index % conferences.size]
-        }
-        generateOrderingMessages(data).forEach { (index, pair) ->
-            tc.editMessage(data.shiftMessageIds[index].toString(), embeds = pair.first.into(), components = pair.second)
-                .queue()
-        }
-        data.save()
-    }
-
-    context(InteractionData)
     suspend fun signupUpdate(args: PrivateData) {
         val (guild, user) = args.map { it.toLong() }
         val ligaStartData = db.signups.get(guild)!!
-        val data = ligaStartData.users[user]!!
+        val data = ligaStartData.getDataByUser(user)!!
         jda.getTextChannelById(ligaStartData.signupChannel)!!
-            .editMessageById(data.signupmid!!, data.toMessage(user, ligaStartData)).queue()
+            .editMessageById(data.signupmid!!, data.toMessage(ligaStartData)).queue()
     }
 
     context(InteractionData)
@@ -263,21 +154,7 @@ object PrivateCommands {
     suspend fun unsignupUser(args: PrivateData) {
         val (guild, user) = args.map { it.toLong() }
         val signup = db.signups.get(guild)!!
-        val data = signup.users[user]!!
-        jda.getTextChannelById(signup.signupChannel)!!.deleteMessageById(data.signupmid!!).queue()
-        data.logomid?.let {
-            jda.getTextChannelById(signup.logoChannel)!!.deleteMessageById(it).queue()
-        }
-        val wasFull = signup.full
-        signup.users.remove(user)
-        if (wasFull) {
-            val channel = jda.getTextChannelById(signup.announceChannel)!!
-            channel.editMessageComponentsById(
-                signup.announceMessageId, SignupManager.Button().into()
-            ).queue()
-        }
-        signup.updateSignupMessage()
-        signup.save()
+        signup.deleteUser(user)
     }
 
     var guildForMyStuff: Long? = null
@@ -353,8 +230,7 @@ object PrivateCommands {
     suspend fun florixcontrol(args: PrivateData) {
         (if (args[0].toBoolean()) jda.openPrivateChannelById(args[1])
             .await() else jda.getTextChannelById(args[1])!!).send(
-            ":)",
-            components = FlorixButton("Server starten", ButtonStyle.PRIMARY) {
+            ":)", components = FlorixButton("Server starten", ButtonStyle.PRIMARY) {
                 this.pc = when (args[2]) {
                     "2" -> PC.FLORIX_2
                     "4" -> PC.FLORIX_4
@@ -426,23 +302,39 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun checkTL(args: PrivateData) {
-        TierlistBuilderConfigurator.checkTL(args().toLong())
+        TierlistBuilderConfigurator.checkTL(args[0].toLong(), args.getOrNull(1))
+    }
+
+    private fun Flow<String>.mapIdentifierToChannelIDs() = mapNotNull {
+        val base = it.substringBefore("?")
+        val result =
+            if ("@" !in base) base.substringAfter("channel/") else Google.fetchChannelId(base.substringAfter("@"))
+        if (result == null) logger.warn("No channel found for $base")
+        result
     }
 
     context(InteractionData)
     suspend fun fetchYTChannelsForLeague(args: PrivateData) {
         val league = db.league(args[0])
-        db.ytchannel.insertMany(league.table.zip(args.drop(1).map {
-            if ("@" !in it) it.substringAfter("channel/") else Google.fetchChannelId(it.substringAfter("@"))
-        }).mapIndexedNotNull { index, data ->
-            val (id, channelId) = data
-            val cid = channelId ?: return@mapIndexedNotNull run {
-                logger.warn("No channel found for $id (testing ${args[index + 1]})")
-                null
-            }
-            YTChannel(id, cid)
-        })
+        YTChannelsDB.insertAll(
+            league.table.asFlow().zip<Long, String, Pair<Long, String>>(
+                args.asFlow().drop(1).mapIdentifierToChannelIDs(), ::Pair
+            ).toList<Pair<@Contextual Long, String>>()
+        )
     }
+
+    context(InteractionData)
+    suspend fun addForNotifications(args: PrivateData) {
+        val id = args[0].toLong()
+        val dm = args[1].toBooleanStrict()
+        YTNotificationsDB.addData(
+            id,
+            dm,
+            awaitMultilineInput().split("\n").asFlow().filter { it.isNotBlank() }.mapIdentifierToChannelIDs().toList()
+        )
+    }
+
+
 
     context(InteractionData)
     fun getGuildIcon(args: PrivateData) {
@@ -450,29 +342,18 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun testYTSend(args: PrivateData) {
-        val league = db.league(args[0])
-        league.executeYoutubeSend(
-            ytTC = args[1].toLong(),
-            gameday = args[2].toInt(),
-            battle = args[3].toInt(),
-            strategy = VideoProvideStrategy.Fetch,
-            overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
-        )
-    }
-
-    context(InteractionData)
     suspend fun testYTSendSub(args: PrivateData) {
-        val league = db.league(args[0])
-        val gameday = args[2].toInt()
-        val battle = args[3].toInt()
-        league.executeYoutubeSend(
-            ytTC = args[1].toLong(),
-            gameday = gameday,
-            battle = battle,
-            strategy = VideoProvideStrategy.Subscribe(league.persistentData.replayDataStore.data[gameday]!![battle]!!.ytVideoSaveData),
-            overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
-        )
+        League.executeOnFreshLock(args[0]) {
+            val gameday = args[2].toInt()
+            val battle = args[3].toInt()
+            executeYoutubeSend(
+                ytTC = args[1].toLong(),
+                gameday = gameday,
+                battle = battle,
+                strategy = VideoProvideStrategy.Subscribe(persistentData.replayDataStore.data[gameday]!![battle]!!.ytVideoSaveData),
+                overrideEnabled = args.getOrNull(4)?.toBooleanStrict() == true
+            )
+        }
     }
 
     context(InteractionData)
@@ -481,7 +362,7 @@ object PrivateCommands {
         val test = "Emolga"
         val guildId = 0L
         logger.info(measureTime {
-            newSuspendedTransaction {
+            dbTransaction {
                 val query1 =
                     ((NameConventionsDB.GERMAN eq test) or (NameConventionsDB.ENGLISH eq test) or (NameConventionsDB.SPECIFIED eq test) or (NameConventionsDB.SPECIFIEDENGLISH eq test)) and (NameConventionsDB.GUILD eq 0 or (NameConventionsDB.GUILD eq guildId))
                 NameConventionsDB.selectAll().where {
@@ -543,16 +424,14 @@ object PrivateCommands {
         val league = db.league(args[0])
         league.persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
             league.docEntry!!.analyseWithoutCheck(
-                listOf(replay),
-                withSort = false,
-                realExecute = args[2].toBooleanStrict()
+                listOf(replay), withSort = false, realExecute = args[2].toBooleanStrict()
             )
         }
     }
 
     context(InteractionData)
     suspend fun executeTipGameSending(args: PrivateData) {
-        db.league(args[0]).executeTipGameSending(args[1].toInt())
+        db.league(args[0]).executeTipGameSending(args[1].toInt(), args.getOrNull(2)?.toLong())
     }
 
     context(InteractionData)
@@ -564,12 +443,12 @@ object PrivateCommands {
 
     context(InteractionData)
     suspend fun copyTLToMyServer(args: PrivateData) {
-        newSuspendedTransaction {
+        dbTransaction {
             val gid = args().toLong()
             Tierlist.batchInsert(Tierlist[gid]!!.retrieveAll(), shouldReturnGeneratedValues = false) {
-                this[Tierlist.guild] = Constants.G.MY
-                this[Tierlist.pokemon] = it.name
-                this[Tierlist.tier] = it.tier
+                this[Tierlist.GUILD] = Constants.G.MY
+                this[Tierlist.POKEMON] = it.name
+                this[Tierlist.TIER] = it.tier
             }
             NameConventionsDB.batchInsert(NameConventionsDB.selectAll().where { NameConventionsDB.GUILD eq gid }) {
                 this[NameConventionsDB.GUILD] = Constants.G.MY
@@ -587,9 +466,9 @@ object PrivateCommands {
     suspend fun addDraftPermission(args: PrivateData) {
         League.executeOnFreshLock(args[0]) {
             DraftPermissionCommand.performPermissionAdd(
-                args[1].toLong(),
-                args[2].toLong(),
-                DraftPermissionCommand.Allow.Mention.valueOf(args[3])
+                user = args[1].toLong(),
+                toadd = args[2].toLong(),
+                withMention = DraftPermissionCommand.Allow.Mention.valueOf(args[3])
             )
             save("addDraftPermission")
         }
@@ -603,13 +482,11 @@ object PrivateCommands {
         db.tipgameuserdata.find(TipGameUserData::league eq leaguename).toFlow().collect {
             val filter = and(TipGameUserData::user eq it.user, TipGameUserData::league eq leaguename)
             if (it.topkiller == topkiller) db.tipgameuserdata.updateOne(
-                filter,
-                set(TipGameUserData::correctTopkiller setTo true)
+                filter, set(TipGameUserData::correctTopkiller setTo true)
             )
             for (i in 1..3) {
                 if (it.orderGuesses[i] == top3[i - 1]) db.tipgameuserdata.updateOne(
-                    filter,
-                    addToSet(TipGameUserData::correctOrderGuesses, i)
+                    filter, addToSet(TipGameUserData::correctOrderGuesses, i)
                 )
             }
         }
@@ -618,7 +495,7 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun moveLeaguesToArchive(args: PrivateData) {
         val archiveLeague = db.db.getCollection<League>("oldleague")
-        val currentLeague = db.drafts
+        val currentLeague = db.league
         val archiveMR = db.db.getCollection<MatchResult>("oldmatchresults")
         val currentMR = db.db.getCollection<MatchResult>("matchresults")
         args.forEach {
@@ -633,31 +510,26 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun switchUser(args: PrivateData) {
-        val league = db.league(args[0])
-        val old = args[1].toLong()
-        val new = args[2].toLong()
-        db.drafts.updateOne(
-            and(League::leaguename eq league.leaguename, League::table contains old), combine(
-                set(League::table.posOp setTo new),
-                rename(League::picks.keyProjection(old), League::picks.keyProjection(new))
-            )
-        )
-    }
-
-    context(InteractionData)
     suspend fun startGroupedPoints() {
         db.shinyEventConfig.only().updateDiscord(jda)
     }
 
     context(InteractionData)
     suspend fun subscribeToYT(args: PrivateData) {
-        subscribeToYTChannel(args())
+        subscribeToYTChannel(flowOf(args()).mapIdentifierToChannelIDs().first())
     }
 
     context(InteractionData)
     suspend fun enableMaintenance(args: PrivateData) {
-        val reason = args()
+        enableMaintenanceWithReason(args())
+    }
+
+    context(InteractionData)
+    suspend fun enableMaintenanceRoutine(args: PrivateData) {
+        enableMaintenanceWithReason("Es werden routinemäßige Wartungsarbeiten durchgeführt, ich sollte in wenigen Minuten wieder erreichbar sein.")
+    }
+
+    suspend fun enableMaintenanceWithReason(reason: String) {
         db.config.updateOnly(set(de.tectoast.emolga.utils.json.Config::maintenance setTo reason))
         EmolgaMain.maintenance = reason
         EmolgaMain.updatePresence()
@@ -671,8 +543,67 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun executeBattleRegister(args: PrivateData) {
-        RepeatTask.executeBattleRegister(db.league(args[0]), args[1].toInt(), args[2].toInt())
+    suspend fun updateFlegmonSlash() {
+        EmolgaMain.featureManager().updateFeatures(flegmonjda)
+    }
+
+    // Order:
+    // Announcechannel mit Button
+    // Channel in dem die Anmeldungen reinkommen
+    // AnzahlTeilnehmer
+    // Message
+    context(InteractionData)
+    suspend fun createSignup(args: PrivateData) {
+        val tc = jda.getTextChannelById(args[0])!!
+        val maxUsers = args[2].toInt()
+        val text = args.drop(3).joinToString(" ").replace("\\n", "\n")
+        val messageid =
+            tc.sendMessage(text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**").addActionRow(Button())
+                .await().idLong
+        db.signups.insertOne(
+            LigaStartData(
+                guild = tc.guild.idLong,
+                signupChannel = args[1].toLong(),
+                signupMessage = text,
+                announceChannel = tc.idLong,
+                announceMessageId = messageid,
+                maxUsers = maxUsers,
+            )
+        )
+    }
+
+    context(InteractionData)
+    suspend fun fixLogos() {
+        val lsData = db.signups.only()
+        val tc = jda.getTextChannelById(lsData.signupChannel)!!
+        val messages = tc.iterableHistory.takeWhileAsync { it.author.idLong == jda.selfUser.idLong }.await()
+        for (m in messages) {
+            if (m.attachments.isEmpty()) continue
+            val hash = m.attachments.first().url.substringBefore("?").substringAfterLast("/").substringBefore(".")
+            val uid = m.mentions.users.first().idLong
+            lsData.users.first { it.users.contains(uid) }.logoChecksum = hash
+        }
+        lsData.save()
+    }
+
+    context(InteractionData)
+    suspend fun printTables(args: PrivateData) {
+        reply(db.league.find(League::guild eq args().toLong()).toList().joinToString("\n") {
+            it.leaguename + " " + it.table.joinToString { m -> "<@$m>" }
+        })
+    }
+
+
+    context(InteractionData)
+    suspend fun setupYouTubeSubscriptions(args: PrivateData) {
+        IntervalTask.restartTask(IntervalTaskKey.YTSubscriptions)
+    }
+
+    context(InteractionData)
+    suspend fun resaveLeague(args: PrivateData) {
+        League.executeOnFreshLock(args()) {
+            save()
+        }
     }
 
 }
@@ -681,4 +612,15 @@ data class PrivateData(
     val split: List<String>
 ) : List<String> by split {
     operator fun invoke() = split[0]
+}
+
+context(InteractionData)
+private suspend fun awaitMultilineInput(): String {
+    val id = "multiline-${System.currentTimeMillis()}"
+    replyModal(Modal(id, "Multiline Input") {
+        paragraph("input", "Input")
+    })
+    val event = jda.await<ModalInteractionEvent> { it.modalId == id }
+    event.reply("Multiline received!").setEphemeral(true).queue()
+    return event.getValue("input")!!.asString
 }

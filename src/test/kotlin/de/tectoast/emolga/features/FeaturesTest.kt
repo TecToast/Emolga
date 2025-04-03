@@ -25,7 +25,7 @@ class FeaturesTest : FunSpec({
         val league = createTestDraft("SwitchTimer", 2, 2)()
         xtestCommand {
             SwitchTimer.Create.exec {
-                this.league = league
+                this.league = league.leaguename
                 this.settings = listOf("0s", "3m", "6m")
             }
         }

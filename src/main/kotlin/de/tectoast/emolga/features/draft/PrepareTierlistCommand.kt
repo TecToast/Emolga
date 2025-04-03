@@ -2,6 +2,7 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Google
+import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -25,9 +26,13 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         var tierlistsheet by string("Tierlist-Sheet", "Der Name des Tierlist-Sheets")
         var ranges by list("Bereich %s", "Der %s. Bereich", 10, 1)
         var complexSign by string("Komplexsymbol", "Das Symbol für Komplexbanns").nullable()
+        var tlIdentifier by string("TL-Identifier", "Der Identifier für die Tierlist").nullable()
         var shiftMode by enumBasic<ShiftMode>("Shift-Mode", "Der Shift-Mode").nullable()
         var shiftData by string("Shift-Data", "Die Shift-Data").nullable()
         var dataMapper by enumBasic<DataMapper>("DataMapper", "Der potenzielle DataMapper").nullable()
+        var language by enumBasic<Language>("Sprache", "Die Sprache der Tierliste") {
+            default = Language.GERMAN
+        }
     }
 
     enum class ShiftMode {
@@ -90,6 +95,29 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
             override suspend fun dataOf(mon: String): ExternalTierlistData {
                 return data()[mon] ?: error("No Data found for $mon")
             }
+        },
+
+        UDT {
+            val data = OneTimeCache {
+                val get = Google.batchGet(
+                    "1N0RjZY-G-3l15vJLbSN_5QOtN9_OwskOYB-5rYsuyg0",
+                    (0..<5).map { it.CoordXMod("Tierliste", 5, 7, 3, 0, 6).spreadTo(x = 2, y = 140) }, false
+                )
+                buildMap {
+                    for (row in get.flatten()) {
+                        put(
+                            row[0].toString(),
+                            ExternalTierlistData(points = row[1].let {
+                                if (it == "BANN") Int.MAX_VALUE else it.toString().toInt()
+                            })
+                        )
+                    }
+                }
+            }
+
+            override suspend fun dataOf(mon: String): ExternalTierlistData {
+                return data()[mon] ?: error("No Data found for $mon")
+            }
         };
 
         abstract suspend fun dataOf(mon: String): ExternalTierlistData
@@ -114,21 +142,23 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                 channelId = tc,
                 guildId = PrivateCommands.guildForMyStuff?.takeUnless { isNotFlo } ?: gid,
                 mons =
-                (Google.batchGet(
-                    sid,
-                    ranges.map {
-                        if (it.contains(":")) return@map "$tierlistsheet!$it"
-                        "$tierlistsheet!$it$yStart:$it$yEnd"
-                    },
-                    false,
-                    "COLUMNS"
-                )
-                    .mapNotNull { col -> col.flatten().mapNotNull { it.toString().prepareForTL(complexSign) } }
-                    .also { tierlistcols += it }
-                    .flatten().ensureNoDuplicates() + shiftedMons?.map { it.name }.orEmpty()).distinct(),
+                    (Google.batchGet(
+                        sid,
+                        ranges.map {
+                            if (it.contains(":")) return@map "$tierlistsheet!$it"
+                            "$tierlistsheet!$it$yStart:$it$yEnd"
+                        },
+                        false,
+                        "COLUMNS"
+                    )
+                        .mapNotNull { col -> col.flatten().mapNotNull { it.toString().prepareForTL(complexSign) } }
+                        .also { tierlistcols += it }
+                        .flatten().ensureNoDuplicates() + shiftedMons?.map { it.name }.orEmpty()).distinct(),
                 tierlistcols = tierlistcols,
                 shiftedMons = shiftedMons,
-                tierMapper = e.dataMapper?.let { mapper -> { mapper.dataOf(it) } }
+                tierMapper = e.dataMapper?.let { mapper -> { mapper.dataOf(it) } },
+                tlIdentifier = e.tlIdentifier,
+                language = e.language
             )
         } catch (ex: DuplicatesFoundException) {
             reply(
@@ -159,4 +189,4 @@ fun List<String>.ensureNoDuplicates(): List<String> {
 
 class DuplicatesFoundException(val duplicates: List<String>) : Exception()
 
-data class ExternalTierlistData(val tier: String?, val type: String? = null)
+data class ExternalTierlistData(val tier: String? = null, val type: String? = null, val points: Int? = null)

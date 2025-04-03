@@ -14,31 +14,11 @@ import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.draft.PickInput
 import dev.minn.jda.ktx.messages.into
 import mu.KotlinLogging
-import net.dv8tion.jda.api.interactions.commands.Command.Choice
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 
 object RandomPick {
-    val germanTypeList = setOf(
-        "Normal",
-        "Feuer",
-        "Wasser",
-        "Pflanze",
-        "Gestein",
-        "Boden",
-        "Geist",
-        "Unlicht",
-        "Drache",
-        "Fee",
-        "Eis",
-        "Kampf",
-        "Elektro",
-        "Flug",
-        "Gift",
-        "Psycho",
-        "Stahl",
-        "Käfer"
-    )
+
     private val logger = KotlinLogging.logger {}
 
     enum class RandomPickAction {
@@ -50,15 +30,17 @@ object RandomPick {
         class Args : Arguments() {
             var tier by string("tier", "Das Tier, in dem gepickt werden soll") {
                 slashCommand(guildChecker = {
-                    val league = league() ?: return@slashCommand false
+                    val league = league() ?: return@slashCommand ArgumentPresence.OPTIONAL
                     league.config.randomPick.mode.provideCommandOptions()[RandomPickArgument.TIER]
+                        ?: ArgumentPresence.NOT_PRESENT
                 })
             }.nullable()
-            var type by fromList("Typ", "Der Typ, der gewählt werden soll", germanTypeList) {
+            var type by pokemontype("Typ", "Der Typ, den du haben willst", english = true) {
                 slashCommand(guildChecker = {
-                    val league = league() ?: return@slashCommand false
+                    val league = league() ?: return@slashCommand ArgumentPresence.OPTIONAL
                     league.config.randomPick.mode.provideCommandOptions()[RandomPickArgument.TYPE]
-                }, choices = germanTypeList.map { Choice(it, it) })
+                        ?: ArgumentPresence.NOT_PRESENT
+                })
             }.nullable()
         }
 
@@ -68,7 +50,7 @@ object RandomPick {
             deferReply()
             League.executePickLike {
                 val config = config.randomPick
-                if (config.disabled) return reply("RandomPick ist in dieser Liga deaktiviert!")
+                if (!config.enabled) return reply("RandomPick ist in dieser Liga deaktiviert!")
                 val hasJokers = config.hasJokers()
                 if (hasJokers && draftData.randomPick.currentMon?.disabled == false) return reply(
                     "Du hast bereits ein Mon gegambled!",

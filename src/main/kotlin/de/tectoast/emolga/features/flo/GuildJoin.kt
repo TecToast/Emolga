@@ -61,5 +61,7 @@ object GuildJoin : ButtonFeature<GuildJoin.Args>(::Args, ButtonSpec("guildinvite
             Falls die Ergebnisse in ||Spoilertags|| geschickt werden sollen, schick irgendwo auf dem Server den Command `/spoilertags` rein. Dies gilt dann serverweit.
 
             Falls du weitere Fragen oder Probleme hast, schreibe ${Constants.MYTAG} eine PN oder komme auf den Support-Server, dessen Link in meinem Profil steht :)
+            
+            _This message is written in German, because that is the only language I support at the moment. In the future, Emolga may be expanded to other languages._
         """.trimIndent()
 }

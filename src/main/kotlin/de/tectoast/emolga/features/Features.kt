@@ -2,13 +2,14 @@
 
 package de.tectoast.emolga.features
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.StringSelectMenu
 import dev.minn.jda.ktx.interactions.components.button
@@ -39,7 +40,6 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.interactions.components.text.TextInput
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
@@ -130,7 +130,9 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
             Constants.G.ADK,
             Constants.G.COMMUNITY,
             Constants.G.HELBIN,
-            Constants.G.EPP
+            Constants.G.EPP,
+            Constants.G.LOEWE,
+            Constants.G.UDTA
         )
     }
 }
@@ -154,11 +156,18 @@ open class NotAllowed(val reason: String) : AllowedResult() {
  */
 abstract class ListenerProvider {
     val registeredListeners: MutableSet<Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>> = mutableSetOf()
-    inline fun <reified T : GenericEvent> ListenerProvider.registerListener(noinline listener: suspend (T) -> Unit) {
+
+    /**
+     * Registers a Listener in a feature
+     */
+    inline fun <reified T : GenericEvent> registerListener(noinline listener: suspend (T) -> Unit) {
         registeredListeners += (T::class to listener) as Pair<KClass<out GenericEvent>, suspend (GenericEvent) -> Unit>
     }
 
-    fun registerPNListener(prefix: String = "", listener: suspend (MessageReceivedEvent) -> Unit) =
+    /**
+     * Registers a DM listener
+     */
+    fun registerDMListener(prefix: String = "", listener: suspend (MessageReceivedEvent) -> Unit) =
         registerListener<MessageReceivedEvent> {
             if (!it.author.isBot && it.channelType == ChannelType.PRIVATE && it.message.contentRaw.startsWith(prefix)) listener(
                 it
@@ -227,8 +236,7 @@ abstract class ButtonFeature<A : Arguments>(argsFun: () -> A, spec: ButtonSpec) 
         val argsFromEvent = e.componentId.substringAfter(";").split(";")
         for ((index, arg) in args.args.withIndex()) {
             val m = argsFromEvent.getOrNull(index)?.takeIf { it.isNotBlank() }
-            if (m != null)
-                arg.parse(data, m)
+            if (m != null) arg.parse(data, m)
         }
     }
 
@@ -341,15 +349,10 @@ abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMe
 
 abstract class MessageContextFeature(spec: MessageContextSpec) :
     Feature<MessageContextSpec, MessageContextInteractionEvent, MessageContextArgs>(
-        ::MessageContextArgs,
-        spec,
-        MessageContextInteractionEvent::class,
-        eventToName
+        ::MessageContextArgs, spec, MessageContextInteractionEvent::class, eventToName
     ) {
     override suspend fun populateArgs(
-        data: InteractionData,
-        e: MessageContextInteractionEvent,
-        args: MessageContextArgs
+        data: InteractionData, e: MessageContextInteractionEvent, args: MessageContextArgs
     ) {
         args.message = e.target
     }
@@ -411,7 +414,7 @@ open class Arguments {
         slashCommand(autocomplete = autocomplete ?: lambda@{ s, event ->
             val gid = event.guild!!.idLong
             val league = db.leagueForAutocomplete(event.channel.idLong, gid, event.user.idLong)
-            val tierlist = Tierlist[league?.guild ?: gid]
+            val tierlist = league?.tierlist ?: Tierlist[gid]
             val strings =
                 (tierlist?.autoComplete() ?: NameConventionsDB.allNameConventions()).filterContainsIgnoreCase(s)
             if (strings.size > 25) return@lambda listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
@@ -454,6 +457,7 @@ open class Arguments {
         name: String = "",
         help: String = "",
         collection: Collection<String>,
+        useContainsAutoComplete: Boolean = false,
         builder: Arg<String, String>.() -> Unit = {}
     ) = createArg<String, String>(name, help) {
         validate { s ->
@@ -462,7 +466,8 @@ open class Arguments {
         }
         if (collection.size <= 25) slashCommand(collection.map { Choice(it, it) })
         else slashCommand { s, _ ->
-            collection.filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
+            (if (useContainsAutoComplete) collection.filterContainsIgnoreCase(s)
+            else collection.filterStartsWithIgnoreCase(s)).convertListToAutoCompleteReply()
         }
         builder()
     }
@@ -496,11 +501,8 @@ open class Arguments {
     }
 
     fun pokemontype(
-        name: String = "",
-        help: String = "",
-        english: Boolean,
-        builder: Arg<String, String>.() -> Unit = {}
-    ) = createArg(name, help, OptionType.STRING) {
+        name: String = "", help: String = "", english: Boolean, builder: Arg<String, String>.() -> Unit = {}
+    ) = fromList(name, help, typeList, useContainsAutoComplete = true) {
         validate { str ->
             val t = if (english) Translation.getEnglNameWithType(str)
             else Translation.getGerName(str)
@@ -522,19 +524,8 @@ open class Arguments {
         }
     }
 
-    fun league(name: String = "", help: String = "") = createArg(name, help, OptionType.STRING) {
-        validate {
-            db.getLeague(it) ?: throw InvalidArgumentException("Ungültige Liga!")
-        }
-    }
-
     fun <DiscordType, ParsedType> genericList(
-        name: String,
-        help: String,
-        numOfArgs: Int,
-        requiredNum: Int,
-        type: OptionType,
-        startAt: Int = 1
+        name: String, help: String, numOfArgs: Int, requiredNum: Int, type: OptionType, startAt: Int = 1
     ) = object : ReadWriteProperty<Arguments, List<ParsedType>> {
         private val argList: List<Arg<DiscordType, out ParsedType?>> = List(numOfArgs) { i ->
             createArg<DiscordType, ParsedType>(name.embedI(i, startAt), help.embedI(i, startAt), type) {}.run {
@@ -544,8 +535,7 @@ open class Arguments {
 
         private var parsed: List<ParsedType>? = null
         override fun getValue(
-            thisRef: Arguments,
-            property: KProperty<*>
+            thisRef: Arguments, property: KProperty<*>
         ): List<ParsedType> {
             if (parsed == null) {
                 parsed = argList.mapNotNull { it.parsed }
@@ -554,9 +544,7 @@ open class Arguments {
         }
 
         override fun setValue(
-            thisRef: Arguments,
-            property: KProperty<*>,
-            value: List<ParsedType>
+            thisRef: Arguments, property: KProperty<*>, value: List<ParsedType>
         ) {
             parsed = value
         }
@@ -611,14 +599,13 @@ open class Arguments {
     @Suppress("MemberVisibilityCanBePrivate")
     fun <T> multiOption(range: IntRange, validator: suspend InteractionData.(String) -> T) =
         createArg<List<String>, List<T>>("", "", OptionType.STRING) {
-        spec = SelectMenuArgSpec(range)
-            validate { list -> list.map { validator(it) } }
-    }
-
-    fun multiOption(range: IntRange) =
-        createArg<List<String>, List<String>>("", "", OptionType.STRING) {
             spec = SelectMenuArgSpec(range)
+            validate { list -> list.map { validator(it) } }
         }
+
+    fun multiOption(range: IntRange) = createArg<List<String>, List<String>>("", "", OptionType.STRING) {
+        spec = SelectMenuArgSpec(range)
+    }
 
     inline fun <DiscordType, ParsedType> createArg(
         name: String = "",
@@ -645,12 +632,11 @@ open class Arguments {
 
         // Helpers
         suspend fun monOfTeam(s: String, league: League, idx: Int): List<String>? {
-            return newSuspendedTransaction {
+            return dbTransaction {
                 val tl = league.tierlist
-                val picks = league.picks[idx] ?: return@newSuspendedTransaction null
+                val picks = league.picks[idx] ?: return@dbTransaction null
                 picks.filter { p -> p.name != "???" && !p.quit }.sortedWith(
-                    compareBy({ mon -> tl.order.indexOf(mon.tier) },
-                        { mon -> mon.name })
+                    compareBy({ mon -> tl.order.indexOf(mon.tier) }, { mon -> mon.name })
                 ).map { mon ->
                     logger.debug(mon.name)
                     tlNameCache[mon.name] ?: NameConventionsDB.convertOfficialToTL(
@@ -670,16 +656,52 @@ open class Arguments {
             }
         }
 
+        private val typeList = listOf(
+            "Normal",
+            "Feuer",
+            "Wasser",
+            "Pflanze",
+            "Gestein",
+            "Boden",
+            "Geist",
+            "Unlicht",
+            "Drache",
+            "Fee",
+            "Eis",
+            "Kampf",
+            "Elektro",
+            "Flug",
+            "Gift",
+            "Psycho",
+            "Stahl",
+            "Käfer",
+            "Fire",
+            "Water",
+            "Grass",
+            "Rock",
+            "Ground",
+            "Ghost",
+            "Dark",
+            "Dragon",
+            "Fairy",
+            "Ice",
+            "Fighting",
+            "Electric",
+            "Flying",
+            "Poison",
+            "Psychic",
+            "Steel",
+            "Bug"
+        )
+
     }
 }
-/**
- * Result:
- * - null -> argument should not be present
- * - true -> argument is present and required
- * - false -> argument is present and optional
 
- */
-typealias GuildChecker = suspend CommandProviderData.() -> Boolean?
+typealias GuildChecker = suspend CommandProviderData.() -> ArgumentPresence
+
+enum class ArgumentPresence {
+    NOT_PRESENT, REQUIRED, OPTIONAL
+}
 
 class CommandProviderData(val gid: Long) {
     val league = OneTimeCache { db.leagueByGuild(gid) }
@@ -732,7 +754,13 @@ class Arg<DiscordType, ParsedType>(
         guildChecker: GuildChecker? = null,
         autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
     ) {
-        spec = CommandArgSpec(autocomplete, choices, guildChecker)
+        spec = (spec as? CommandArgSpec)?.let { oldSpec ->
+            oldSpec.copy(
+                choices = choices ?: oldSpec.choices,
+                guildChecker = guildChecker ?: oldSpec.guildChecker,
+                autocomplete = autocomplete ?: oldSpec.autocomplete
+            )
+        } ?: CommandArgSpec(autocomplete, choices, guildChecker)
     }
 
     fun modal(
@@ -741,7 +769,14 @@ class Arg<DiscordType, ParsedType>(
         required: Boolean = false,
         builder: TextInput.Builder.() -> Unit = {}
     ) {
-        spec = ModalArgSpec(short, modalKey, required, builder)
+        spec = (spec as? ModalArgSpec)?.let { oldSpec ->
+            oldSpec.copy(
+                short = short,
+                modalEnableKey = modalKey ?: oldSpec.modalEnableKey,
+                required = required || oldSpec.required,
+                builder = builder
+            )
+        } ?: ModalArgSpec(short, modalKey, required, builder)
     }
 
     override fun getValue(thisRef: Arguments, property: KProperty<*>): ParsedType {
@@ -819,10 +854,7 @@ class Arg<DiscordType, ParsedType>(
             copyTo(it)
             val oldSpec = it.spec as? ModalArgSpec
             it.spec = ModalArgSpec(
-                oldSpec?.short != false,
-                key,
-                (required ?: oldSpec?.required) == true,
-                oldSpec?.builder ?: {})
+                oldSpec?.short != false, key, (required ?: oldSpec?.required) == true, oldSpec?.builder ?: {})
             it.defaultValueSet = true
             args.replaceLastArg(it)
         }

@@ -101,6 +101,14 @@ sealed interface TipGameColorConfig {
         }
     }
 
+    @Serializable
+    @SerialName("RGB")
+    data class RGB(val rgb: String) : TipGameColorConfig {
+        override suspend fun provideEmbedColor(league: League): Int {
+            return rgb.replace("#", "").toInt(16)
+        }
+    }
+
 
 }
 

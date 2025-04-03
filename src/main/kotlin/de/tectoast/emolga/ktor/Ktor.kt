@@ -1,16 +1,12 @@
 package de.tectoast.emolga.ktor
 
-import de.tectoast.emolga.database.exposed.DiscordAuthDB
-import de.tectoast.emolga.encryption.Credentials
-import de.tectoast.emolga.utils.httpClient
 import de.tectoast.emolga.utils.webJSON
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.server.plugins.callloging.*
+import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.routing.*
@@ -22,64 +18,36 @@ import org.slf4j.event.Level
 
 object Ktor {
     var devMode = false
+    val injectedRouteHandlers: MutableMap<String, suspend ApplicationCall.() -> Unit> = mutableMapOf()
     var oauth2Secret: String? = null
-    var server: ApplicationEngine? = null
+    var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
 
-    fun start() {
+    fun start(withYT: Boolean = true) {
         embeddedServer(CIO, port = 58700) {
             module()
         }.also { server = it }.start()
-        embeddedServer(
-            CIO,
-            port = Credentials.tokens.subscriber.callback.let {
-                if (":" in it) it.substringAfter("//").substringAfter(":").substringBefore("/").toInt() else 443
-            }) {
-            routing {
-                ytSubscriptions()
-            }
-        }.start()
+        if (withYT) {
+            embeddedServer(
+                CIO,
+                port = 58701
+            ) {
+                routing {
+                    ytSubscriptions()
+                }
+            }.start()
+        }
     }
 
     private fun Application.module() {
         installPlugins()
-        installAuth()
         routing {
-            route("/api") {
+            route("/api/emolga") {
                 emolgaAPI()
             }
         }
     }
 
-
-    private fun Application.installAuth() {
-        authentication {
-            oauth("auth-oauth-discord") {
-                urlProvider =
-                    { if (devMode) "http://localhost:3000/api/discordauth" else "https://emolga.tectoast.de/api/discordauth" }
-                providerLookup = {
-                    OAuthServerSettings.OAuth2ServerSettings(
-                        name = "discord",
-                        authorizeUrl = "https://discord.com/oauth2/authorize",
-                        accessTokenUrl = "https://discord.com/api/oauth2/token",
-                        requestMethod = HttpMethod.Post,
-                        clientId = "723829878755164202",
-                        clientSecret = oauth2Secret ?: Credentials.tokens.oauth2.clientsecret,
-                        defaultScopes = listOf("identify", "guilds"),
-                        extraAuthParameters = listOf("grant_type" to "authorization_code")
-                    )
-                }
-                client = httpClient
-            }
-        }
-    }
-
     private fun Application.installPlugins() {
-        install(Sessions) {
-            cookie<UserSession>("user_session", DiscordAuthDB) {
-                cookie.extensions["SameSite"] = "Lax"
-                cookie.httpOnly = true
-            }
-        }
         install(ContentNegotiation) {
             json(webJSON)
         }

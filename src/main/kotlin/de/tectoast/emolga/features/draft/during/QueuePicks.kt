@@ -11,10 +11,16 @@ import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 object QueuePicks {
+    context(InteractionData)
+    fun League.queueNotEnabled(): Boolean {
+        if (!config.triggers.queuePicks) {
+            reply("Das Queuen von Picks ist in dieser Liga deaktiviert!")
+            return true
+        } else return false
+    }
     object Command : CommandFeature<NoArgs>(
         NoArgs(), CommandSpec(
-            "queuepicks", "Verwalte deine gequeueten Picks", Constants.G.ASL, Constants.G.NDS,
-            Constants.G.EPP
+            "queuepicks", "Verwalte deine gequeueten Picks", *draftGuilds
         )
     ) {
 
@@ -23,8 +29,9 @@ object QueuePicks {
             override suspend fun exec(e: NoArgs) {
                 ephemeralDefault()
                 val league = db.leagueByCommand() ?: return reply("Du bist in keiner Liga auf diesem Server!")
+                if (league.queueNotEnabled()) return
                 val currentData =
-                    league.persistentData.queuePicks.queuedPicks.getOrPut(league.index(user)) { QueuePicksUserData() }
+                    league.persistentData.queuePicks.queuedPicks.getOrPut(league(user)) { QueuePicksUserData() }
                 val currentState = currentData.queued
                 if (currentState.isEmpty()) return reply(
                     "Du hast zurzeit keine Picks in der Queue! Füge welche über /queuepicks add hinzu!",
@@ -56,9 +63,10 @@ object QueuePicks {
                 deferReply()
                 League.executeOnFreshLock({ db.leagueByCommand() },
                     { return reply("Du bist in keiner Liga auf diesem Server!") }) {
+                    if (queueNotEnabled()) return
                     val oldmon = e.oldmon
                     val idx = this(user)
-                    if (oldmon == null && !isRunning && picks.isNotEmpty() && !config.allowPickDuringSwitch.enabled) {
+                    if (oldmon == null && !isRunning && picks.isNotEmpty() && !config.triggers.allowPickDuringSwitch) {
                         return reply("Im kommenden Draft können nur Switches gemacht werden, dementsprechend musst du ein altes Pokemon angeben!")
                     }
                     if (oldmon != null && picks[idx]?.any { it.name == oldmon.official } != true) {
@@ -98,6 +106,7 @@ object QueuePicks {
         suspend fun changeActivation(enable: Boolean) {
             League.executeOnFreshLock({ db.leagueByCommand() },
                 { return reply("Du bist in keiner Liga auf diesem Server!") }) {
+                if (queueNotEnabled()) return
                 val idx = this(user)
                 val data = persistentData.queuePicks.queuedPicks.getOrPut(idx) { QueuePicksUserData() }
                 if (isIllegal(idx, data.queued)) return

@@ -11,7 +11,7 @@ object Constants {
     const val TEST_CATID = 1171541834397401149
     const val MYTAG = "@tectoast"
 
-    val DRAFTADMINS = setOf(FLOID, M.HENNY, M.INK, M.OJI, M.TARI)
+    val DRAFTADMINS = setOf(FLOID, M.HENNY, 689440028505538574)
 
     object G {
         const val ADK = 883292170533077002
@@ -32,6 +32,8 @@ object Constants {
         const val COMMUNITY = 1036657324909146153
         const val HELBIN = 1063512573175152730
         const val EPP = 699185903590965278
+        const val LOEWE = 1042904158652616745
+        const val UDTA = 953578989291724830
     }
 
     object M {

@@ -1,24 +1,25 @@
 package de.tectoast.emolga.utils.draft
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.TierData
 import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.eq
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 @Suppress("unused")
 @Serializable
-class Tierlist(val guildid: Long) {
+class Tierlist(val guildid: Long, val identifier: String? = null) {
 
     /**
      * The price for each tier
@@ -28,7 +29,7 @@ class Tierlist(val guildid: Long) {
 
     var mode: TierlistMode = TierlistMode.POINTS
     var points = 0
-    val language = Language.GERMAN
+    var language = Language.GERMAN
     val variableMegaPrice = false
     val maxMonsToPay = Int.MAX_VALUE
 
@@ -36,6 +37,7 @@ class Tierlist(val guildid: Long) {
     val order get() = prices.keys.toList()
 
     val freePicksAmount get() = freepicks["#AMOUNT#"] ?: 0
+    val basePredicate get() = GUILD eq guildid and (IDENTIFIER eq identifier)
 
     @Transient
     private val _autoComplete = OneTimeCache { getAllForAutoComplete() }
@@ -46,7 +48,7 @@ class Tierlist(val guildid: Long) {
     val tlToOfficialCache = SizeLimitedMap<String, String>(1000)
 
     fun setup() {
-        tierlists[this.guildid] = this
+        tierlists.getOrPut(guildid) { mutableMapOf() }[identifier ?: ""] = this
     }
 
 
@@ -59,57 +61,78 @@ class Tierlist(val guildid: Long) {
         }
     }
 
-    suspend fun addPokemon(mon: String, tier: String) = newSuspendedTransaction {
+    suspend fun addPokemon(mon: String, tier: String) = dbTransaction {
         insert {
-            it[guild] = this@Tierlist.guildid
-            it[pokemon] = mon
-            it[this.tier] = tier
+            it[GUILD] = guildid
+            it[POKEMON] = mon
+            it[TIER] = tier
+            it[IDENTIFIER] = identifier
         }
     }
 
     suspend fun getByTier(tier: String): List<String>? {
-        return newSuspendedTransaction {
-            selectAll().where { guild eq guildid and (Tierlist.tier eq tier) }.map { it[pokemon] }.ifEmpty { null }
+        return dbTransaction {
+            selectAll().where { basePredicate and (TIER eq tier) }.map { it[POKEMON] }.ifEmpty { null }
         }
     }
 
-    private suspend fun getAllForAutoComplete() = newSuspendedTransaction {
-        val list = selectAll().where { guild eq guildid }.map { it[pokemon] }
+    private suspend fun getAllForAutoComplete() = dbTransaction {
+        val list = selectAll().where { basePredicate }.map { it[POKEMON] }
         (list + NameConventionsDB.getAllOtherSpecified(list, language, guildid)).toSet()
     }
 
     suspend fun getTierOf(mon: String) =
-        newSuspendedTransaction {
-            selectAll().where { guild eq guildid and (pokemon eq mon) }.map { it[tier] }.firstOrNull()
+        dbTransaction {
+            selectAll().where { basePredicate and (POKEMON eq mon) }.map { it[TIER] }.firstOrNull()
         }
 
+    suspend fun getTierOfCommand(pokemon: String, insertedTier: String?): TierData? {
+        val (real, points) = dbTransaction {
+            selectAll().where { basePredicate and (POKEMON eq pokemon) }.map { it[TIER] to it[POINTS] }.firstOrNull()
+        } ?: return null
+        return if (insertedTier != null && mode.withTiers) {
+            TierData(order.firstOrNull {
+                insertedTier.equals(
+                    it, ignoreCase = true
+                )
+            } ?: (if (variableMegaPrice && insertedTier.equals("Mega", ignoreCase = true)) "Mega" else ""),
+                real, points)
+        } else {
+            TierData(real, real, points)
+        }
+    }
 
-    suspend fun retrieveTierlistMap(map: Map<String, Int>) = newSuspendedTransaction {
+    suspend fun getPointsOf(mon: String) = dbTransaction {
+        selectAll().where { basePredicate and (POKEMON eq mon) }.map { it[POINTS] }.firstOrNull()
+    }
+
+
+    suspend fun retrieveTierlistMap(map: Map<String, Int>) = dbTransaction {
         map.entries.flatMap { (tier, amount) ->
-            selectAll().where { guild eq guildid and (Tierlist.tier eq tier) }.orderBy(Random()).limit(amount)
-                .map { DraftPokemon(it[pokemon], tier) }
+            selectAll().where { basePredicate and (TIER eq tier) }.orderBy(Random()).limit(amount)
+                .map { DraftPokemon(it[POKEMON], tier) }
         }
     }
 
-    suspend fun getWithTierAndType(providedTier: String, providedType: String) = newSuspendedTransaction {
-        selectAll().where { (guild eq guildid) and (tier eq providedTier) and (type eq providedType) }
-            .map { it[pokemon] }
+    suspend fun getWithTierAndType(tier: String, type: String) = dbTransaction {
+        selectAll().where { basePredicate and (TIER eq tier) and (TYPE eq type) }
+            .map { it[POKEMON] }
     }
 
-    suspend fun retrieveAll() = newSuspendedTransaction {
-        selectAll().where { guild eq guildid }.map { DraftPokemon(it[pokemon], it[tier]) }
+    suspend fun retrieveAll() = dbTransaction {
+        selectAll().where { basePredicate }.map { DraftPokemon(it[POKEMON], it[TIER]) }
     }
 
     suspend fun addOrUpdateTier(mon: String, tier: String) {
         val existing = getTierOf(mon)
         if (existing != null) {
             if (existing != tier) {
-                newSuspendedTransaction {
+                dbTransaction {
                     if (tier in order)
-                        update({ guild eq guildid and (pokemon eq mon) }) {
-                            it[this.tier] = tier
+                        update({ basePredicate and (POKEMON eq mon) }) {
+                            it[this.TIER] = tier
                         }
-                    else deleteWhere { guild eq guildid and (pokemon eq mon) }
+                    else deleteWhere { basePredicate and (POKEMON eq mon) }
                 }
             }
         } else {
@@ -117,26 +140,27 @@ class Tierlist(val guildid: Long) {
         }
     }
 
-    suspend fun deleteAllMons() = newSuspendedTransaction {
-        deleteWhere { guild eq guildid }
+    suspend fun deleteAllMons() = dbTransaction {
+        deleteWhere { basePredicate }
     }
 
-    suspend fun getMonCount() = newSuspendedTransaction {
-        selectAll().where { guild eq guildid }.count().toInt()
+    suspend fun getMonCount() = dbTransaction {
+        selectAll().where { basePredicate }.count().toInt()
     }
 
     companion object : ReadOnlyProperty<League, Tierlist>, Table("tierlists") {
         /**
          * All tierlists
          */
-        val guild = long("guild")
-        val pokemon = varchar("pokemon", 30)
-        val tier = varchar("tier", 8)
-        val type = varchar("type", 10).nullable()
+        val GUILD = long("guild")
+        val POKEMON = varchar("pokemon", 30)
+        val TIER = varchar("tier", 8)
+        val TYPE = varchar("type", 10).nullable()
+        val POINTS = integer("points").nullable()
+        val IDENTIFIER = varchar("identifier", 30).nullable()
         private var setupCalled = false
 
-        val tierlists: MutableMap<Long, Tierlist> = mutableMapOf()
-        private val REPLACE_NONSENSE = Regex("[^a-zA-Z\\d-:%ßäöüÄÖÜé ]")
+        val tierlists: MutableMap<Long, MutableMap<String, Tierlist>> = mutableMapOf()
         suspend fun setup() {
             tierlists.clear()
             setupCalled = true
@@ -144,14 +168,14 @@ class Tierlist(val guildid: Long) {
         }
 
         override fun getValue(thisRef: League, property: KProperty<*>): Tierlist {
-            return get(thisRef.guild)!!
+            return get(thisRef.guild, thisRef.config.customTierlist?.identifier)!!
         }
 
         /**
          * Gets the tierlist for the given guild (or fetches it in case it's not in the cache, which is only possible in test env)
          */
-        operator fun get(guild: Long): Tierlist? {
-            return tierlists[guild]
+        operator fun get(guild: Long, identifier: String? = null): Tierlist? {
+            return tierlists[guild]?.get(identifier ?: "")
                 ?: if (setupCalled) null
                 else runBlocking { db.tierlist.findOne(Tierlist::guildid eq guild) }?.apply { setup() }
         }

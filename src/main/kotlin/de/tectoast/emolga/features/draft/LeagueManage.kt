@@ -1,10 +1,10 @@
 package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import org.litote.kmongo.eq
@@ -23,7 +23,7 @@ object LeagueManage {
         fun Arguments.leagueName() = fromList(
             "Liganame",
             "Der Name der Liga, die du überprüfen willst.",
-            { event -> db.drafts.find(League::guild eq event.guild?.idLong).toList().map { it.leaguename } }) {
+            { event -> db.league.find(League::guild eq event.guild?.idLong).toList().map { it.leaguename } }) {
         }
 
         object ResultCheckCommand : CommandFeature<ResultCheckCommand.Args>(
@@ -40,8 +40,11 @@ object LeagueManage {
 
             context(InteractionData)
             override suspend fun exec(e: Args) {
-                val league = db.getLeague(e.league) ?: return reply("Liga nicht gefunden!", ephemeral = true)
-                reply(league.buildStoreStatus(e.gameday), ephemeral = !e.public)
+                League.executeOnFreshLock(
+                    { db.getLeague(e.league) },
+                    { reply("Liga nicht gefunden!", ephemeral = true) }) {
+                    reply(buildStoreStatus(e.gameday), ephemeral = !e.public)
+                }
             }
 
         }
@@ -49,14 +52,18 @@ object LeagueManage {
         context(InteractionData)
         private suspend fun executeTipGameState() {
             deferReply(true)
-            val dataList = db.tipgameuserdata.find(TipGameUserData::league `in` db.drafts.find(League::guild eq gid).toFlow().map { it.leaguename }.toList()).toList()
+            val dataList = db.tipgameuserdata.find(
+                TipGameUserData::league `in` db.league.find(League::guild eq gid).toFlow().map { it.leaguename }
+                    .toList()
+            ).toList()
             val points =
                 dataList.groupBy { it.user }
                     .mapValues { it.value.sumOf { d -> d.correctGuesses.values.sumOf { l -> l.size } + (if (d.correctTopkiller) 3 else 0) + d.correctOrderGuesses.sumOf { co -> 4 - co } } }
             reply(
                 buildString {
                     append("Teilnehmeranzahl: ${points.size}\n\n")
-                    append(points.entries.sortedByDescending { it.value }.take(10)
+                    append(
+                        points.entries.sortedByDescending { it.value }.take(10)
                         .mapIndexed { index, entry -> "${index + 1}. <@${entry.key}>: ${entry.value}" }
                         .joinToString("\n").ifEmpty { "_Keine Punkte bisher vergeben_" })
                 }, ephemeral = true

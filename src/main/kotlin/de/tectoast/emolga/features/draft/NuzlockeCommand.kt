@@ -88,7 +88,8 @@ object NuzlockeCommand :
                 idx,
                 index - 1,
                 freePick = false,
-                updrafted = false
+                updrafted = false,
+                tera = null
             )
             b.newSystemPickDoc(
                 data,

@@ -115,6 +115,7 @@ class LeagueTest : FunSpec({
     }
     xcontext("Automation Checks") {
         test("Test") {
+            // NOT WORKING WITH NEW SAVE SYSTEM
             enableReplyRedirect()
             DefaultLeagueSettings {
                 duringTimerSkipMode = NEXT_PICK

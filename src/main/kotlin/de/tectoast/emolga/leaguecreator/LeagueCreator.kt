@@ -5,7 +5,11 @@ package de.tectoast.emolga.leaguecreator
 import com.google.api.services.sheets.v4.model.CellFormat
 import com.google.api.services.sheets.v4.model.Color
 import com.google.api.services.sheets.v4.model.TextFormat
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.league.AllowedData
+import de.tectoast.emolga.league.DefaultLeague
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.leaguecreator.Cols.*
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
@@ -13,15 +17,15 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.SignUpData
 import de.tectoast.emolga.utils.json.TypeIcon
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.AllowedData
-import de.tectoast.emolga.league.DefaultLeague
-import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.TableCoord
 import dev.minn.jda.ktx.coroutines.await
-import kotlinx.serialization.*
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
@@ -31,14 +35,10 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import org.bson.BsonObjectId
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.litote.kmongo.contains
 import org.litote.kmongo.eq
 import java.security.SecureRandom
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.set
 import kotlin.reflect.KClass
 import de.tectoast.emolga.leaguecreator.Templater.ShowdownScriptTemplate.Format as ScriptFormat
 
@@ -97,8 +97,8 @@ class LeagueCreator(
 
     val tierlist by lazy {
         transaction {
-            Tierlist.selectAll().where { Tierlist.guild eq guild }
-                .map { DraftPokemon(it[Tierlist.pokemon], it[Tierlist.tier]) }
+            Tierlist.selectAll().where { Tierlist.GUILD eq guild }
+                .map { DraftPokemon(it[Tierlist.POKEMON], it[Tierlist.TIER]) }
         }
     }
 
@@ -118,17 +118,18 @@ class LeagueCreator(
 
     suspend fun execute(execute: Boolean = true) {
         var names: Map<Long, String>? = null
-        var usersByConf: List<List<MutableMap.MutableEntry<Long, SignUpData>>>? = null
+        var usersByConf: List<List<SignUpData>>? = null
         var randomize: Boolean? = null
         jda?.let { j ->
             val jd = j.first
             randomize = j.second
             val signData = db.signups.get(guild)!!
             usersByConf =
-                if (signData.conferences.isEmpty()) signData.users.entries.toList().l else signData.users.entries.groupBy { it.value.conference!! }.entries.toList()
+                if (signData.conferences.isEmpty()) signData.users.toList().l else signData.users.groupBy { it.conference!! }.entries.toList()
                     .sortedBy { signData.conferences.indexOf(it.key) }.map { it.value }
-            names = jd.getGuildById(guild)!!.retrieveMembersByIds(usersByConf!!.flatten()
-                .map { it.key } + signData.users.values.flatMap { it.teammates }).await()
+            names = jd.getGuildById(guild)!!.retrieveMembersByIds(
+                usersByConf.flatten()
+                    .flatMap { it.users }).await()
                 .associate { it.idLong to it.effectiveName }
 
         }
@@ -141,7 +142,7 @@ class LeagueCreator(
                 (collection.insertOne(DefaultLeague()).insertedId!! as BsonObjectId).value.toString()
             }
             if (copyonly) {
-                val realCollection = db.drafts
+                val realCollection = db.league
                 realCollection.insertOne(collection.findOne("{_id: ObjectId('$saveJSON')}")!!)
                 return@forEachIndexed
             }
@@ -149,26 +150,31 @@ class LeagueCreator(
             names?.let { n ->
                 val users =
                     usersByConf!![leagueindex].let { if (randomize!!) it.shuffled(SecureRandom()) else it }
-                saveJSON.put("table", users.map { it.key })
+                saveJSON.put("table", users.map { it.users.first() })
                 val allowed: MutableMap<Long, MutableSet<AllowedData>> = mutableMapOf()
                 for (i in 0..<playerCount) {
-                    val uid = users[i].key
-                    val data = users[i].value
-                    if (data.teammates.isNotEmpty()) {
+                    val uid = users[i].users.first()
+                    val data = users[i]
+                    if (data.users.size > 1) {
                         allowed[uid] = mutableSetOf(
-                            AllowedData(uid, true), *data.teammates.map { AllowedData(it, true) }.toTypedArray()
+                            AllowedData(uid, true), *data.users.drop(1).map { AllowedData(it, true) }.toTypedArray()
                         )
                     }
-                    b.addSingle(playerNameIndexer(i),
-                        listOf(uid, *data.teammates.toTypedArray()).joinToString(" & ") { n[it]!! })
+                    b.addSingle(
+                        playerNameIndexer(i),
+                        data.users.joinToString(" & ") { n[it]!! })
                     playerTeamIndexer?.let {
-                        b.addSingle(it(i), data.teamname!!)
+                        data.data["teamname"]?.let { teamname ->
+                            b.addSingle(it(i), teamname)
+                        }
                     }
                     logoIndexer?.let {
-                        b.addSingle(it(i), "=IMAGE(\"${data.logoUrl}\";1)")
+                        b.addSingle(it(i), "=IMAGE(\"${data.logoChecksum}\";1)")
                     }
                     sdnameIndexer?.let {
-                        b.addSingle(it(i), data.sdname)
+                        data.data["sdname"]?.let { sdname ->
+                            b.addSingle(it(i), sdname)
+                        }
                     }
                 }
                 saveJSON.put("allowed", allowed)
@@ -199,11 +205,14 @@ class LeagueCreator(
                 val killCoord = getAsXCoord(gamedays + 3)
                 val deathCoord = getAsXCoord(gamedays * 2 + 5)
                 val usesCoord = getAsXCoord(gamedays * 2 + 6)
-                b.addColumn("$dataSheet!$killCoord$y",
+                b.addColumn(
+                    "$dataSheet!$killCoord$y",
                     List(dataMonCount) { "=SUMME(C${y + it}:${getAsXCoord(gamedays + 2)}${y + it})" })
-                b.addColumn("$dataSheet!$deathCoord$y",
+                b.addColumn(
+                    "$dataSheet!$deathCoord$y",
                     List(dataMonCount) { "=SUMME(${getAsXCoord(gamedays + 5)}${y + it}:${getAsXCoord(gamedays * 2 + 4)}${y + it})" })
-                b.addColumn("$dataSheet!$usesCoord$y",
+                b.addColumn(
+                    "$dataSheet!$usesCoord$y",
                     List(dataMonCount) { "=ZÄHLENWENN(${getAsXCoord(gamedays + 5)}${y + it}:${getAsXCoord(gamedays * 2 + 4)}${y + it}; \">-1\")" })
                 val gendata =
                     TableGenData(user, killCoord, y, endY, deathCoord, usesCoord, tableY, winLooseY, tablecols, this)
@@ -404,7 +413,8 @@ class Addons {
             val vLookUpWholeRange = mutableMapOf<Cols, Int>()
             for (user in 0..<playerCount) {
                 val y = user.y(gap, 3)
-                val userMappings = mapOf(PLAYER to lazy { playerNameIndexer(user).formula },
+                val userMappings = mapOf(
+                    PLAYER to lazy { playerNameIndexer(user).formula },
                     TEAMNAME to lazy { playerTeamIndexer!!(user).formula },
                     LOGO to lazy { logoIndexer!!(user).formula })
                 val end = y + dataMonCount - 1
@@ -417,16 +427,18 @@ class Addons {
 
                         in vLookupWholeRangeCols -> vLookUpWholeRange[col] = index
                         else -> {
-                            b.addSingle(range, when (col) {
-                                POKEMON, KILLS, DEATHS, USES, KILLSSPREAD -> col.forRange(y, end, gamedays).toString()
+                            b.addSingle(
+                                range, when (col) {
+                                    POKEMON, KILLS, DEATHS, USES, KILLSSPREAD -> col.forRange(y, end, gamedays)
+                                        .toString()
 
-                                KILLSPERUSE -> KILLS.forRange(y, end, gamedays) / USES
-                                DIFF -> KILLS.forRange(y, end, gamedays) - DEATHS
+                                    KILLSPERUSE -> KILLS.forRange(y, end, gamedays) / USES
+                                    DIFF -> KILLS.forRange(y, end, gamedays) - DEATHS
 
-                                else -> {
-                                    error("Invalid column at killlist $col")
-                                }
-                            }.also { logger.info(col.name + " " + it) })
+                                    else -> {
+                                        error("Invalid column at killlist $col")
+                                    }
+                                }.also { logger.info(col.name + " " + it) })
                         }
                     }
                 }
@@ -453,7 +465,8 @@ class Addons {
             killlistLocation?.let { kloc ->
                 val y = dataMonCount * playerCount
 
-                b.addSingle(kloc,
+                b.addSingle(
+                    kloc,
                     "=WENNFEHLER(SORT(FILTER(${
                         locbase.spreadTo(
                             killlistcols.size,
@@ -642,7 +655,7 @@ class Addons {
         override suspend fun LeagueCreator.execute(b: RequestBuilder) {
             this@PokemonData.b = b
             leagueCreator = this
-            newSuspendedTransaction {
+            dbTransaction {
                 val send = mutableListOf<List<Any>>()
                 if (/*!dataProviders.keys.containsAll(teamsiteDataUses?.values.orEmpty()) && */!disabled) {
                     val pokedex = de.tectoast.emolga.utils.json.db.pokedex.find().toList().associateBy { it.id }
@@ -813,11 +826,11 @@ class Addons {
             finalOrder: MutableMap<Int, List<Int>>, round: Int, orderForRound: List<Int>, b: RequestBuilder
         ) {
             finalOrder[round] = orderForRound
-                val x = round - 1
-                b.addColumn(draftTableWrapper(x), orderForRound.map {
-                    "=" + playerNameIndexer(it)
-                }.toList())
-            }
+            val x = round - 1
+            b.addColumn(draftTableWrapper(x), orderForRound.map {
+                "=" + playerNameIndexer(it)
+            }.toList())
+        }
 
     }
 
@@ -845,7 +858,8 @@ class Addons {
                 (gameplanIndexes?.keys?.sorted()?.map { it - 1 } ?: (0 until gamedays)).forEach { gdi ->
                     if (headercols != null) {
                         logger.info("HEADERCOLS NOT NULL")
-                        b.addRow(beginHeader(i).run { "$sheet!${gdi.x(datacols.size + gapBetweenGamedays, x)}$y" },
+                        b.addRow(
+                            beginHeader(i).run { "$sheet!${gdi.x(datacols.size + gapBetweenGamedays, x)}$y" },
                             headercols!!.map { (key, value) ->
                                 when (key) {
                                     HeaderCol.GAMEDAY -> value.format(gdi + 1)
@@ -911,13 +925,14 @@ class Addons {
                 tierset = Json.encodeToString(
                     tierlist.groupBy { it.tier.substringBefore("#") }.toList()
                         .sortedBy { Tierlist[guild]!!.order.indexOf(it.first) }.flatMap { (tier, list) ->
-                            listOf(listOf("header", "$tier-Tier"), *list.map {
-                                listOf(
-                                    "pokemon", NameConventionsDB.getDiscordTranslation(
-                                        it.name, guild, english = true
-                                    )!!.official.toSDName()
-                                )
-                            }.sortedBy { it[1] }.toTypedArray<List<String>>()
+                            listOf(
+                                listOf("header", "$tier-Tier"), *list.map {
+                                    listOf(
+                                        "pokemon", NameConventionsDB.getDiscordTranslation(
+                                            it.name, guild, english = true
+                                        )!!.official.toSDName()
+                                    )
+                                }.sortedBy { it[1] }.toTypedArray<List<String>>()
                             )
                         })
             }

@@ -2,11 +2,11 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.ResultEntry
 import de.tectoast.emolga.utils.StateStore
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.emolga.reverseGet
 import de.tectoast.emolga.utils.process
 import dev.minn.jda.ktx.coroutines.await
@@ -16,7 +16,7 @@ object EnterResult {
     object ResultCommand : CommandFeature<ResultCommand.Args>(
         ::Args, CommandSpec(
             "result", "Startet die interaktive Ergebniseingabe", Constants.G.VIP, Constants.G.COMMUNITY,
-            Constants.G.EPP
+            Constants.G.EPP, Constants.G.LOEWE, Constants.G.ADK
         )
     ) {
         private val nameCache = mutableMapOf<String, Map<Long, String>>() // guild -> uid -> name
@@ -54,11 +54,12 @@ object EnterResult {
             var guild by long("guild", "guild")
             var user by long("user", "user")
             var opponent by long("opponent", "opponent")
+            var tc by long("tc", "tc").nullable()
         }
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
-            handleStart(e.opponent, e.user, e.guild)
+            handleStart(e.opponent, e.user, e.guild, e.tc)
         }
     }
 
@@ -135,14 +136,15 @@ object EnterResult {
     object Remove : ModalKey
 
     context(InteractionData)
-    suspend fun handleStart(opponent: Long, userArg: Long? = null, guild: Long? = null) {
+    suspend fun handleStart(opponent: Long, userArg: Long? = null, guild: Long? = null, customTc: Long? = null) {
         val u = userArg ?: user
         val g = guild ?: gid
+        val t = customTc ?: tc
         val league = db.leagueByGuild(g, u, opponent) ?: return reply(
             "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
             ephemeral = true
         )
-        ResultEntry(user, league).process {
+        ResultEntry(user, league, t).process {
             init(opponent, u)
         }
     }

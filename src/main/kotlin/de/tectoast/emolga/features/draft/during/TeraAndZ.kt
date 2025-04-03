@@ -61,7 +61,7 @@ object TeraAndZ {
         override suspend fun exec(e: Args) {
             val league =
                 db.leagueByCommand() ?: return reply("Dieser Command ist hier nicht verfügbar!", ephemeral = true)
-            val idx = league.index(user)
+            val idx = league(user)
             val picks = league.picks[idx]!!
             val config =
                 league.config.teraAndZ ?: return reply("Dieser Command ist hier nicht verfügbar!", ephemeral = true)

@@ -9,14 +9,14 @@ data class LeagueConfig(
     var timer: DraftTimer? = null,
     val replayDataStore: ReplayDataStoreConfig? = null,
     val tipgame: TipGame? = null,
-    val allowPickDuringSwitch: AllowPickDuringSwitchConfig = AllowPickDuringSwitchConfig(),
     val draftBan: DraftBanConfig? = null,
-    val draftSend: DraftSendConfig = DraftSendConfig(),
-    val queuePicks: QueuePicksConfig = QueuePicksConfig(),
     val randomPick: RandomPickConfig = RandomPickConfig(),
     val randomPickRound: RandomPickRoundConfig? = null,
     val teraAndZ: TeraAndZ? = null,
     val youtube: YouTubeConfig? = null,
+    val customTierlist: CustomTierlistConfig? = null,
+    val teraPick: TeraPickConfig? = null,
+    val triggers: Triggers = Triggers(),
 )
 
 
@@ -26,6 +26,10 @@ data class ResettableLeagueData(
     val randomPickRound: RandomPickRoundData = RandomPickRoundData(),
     val randomPick: RandomLeagueData = RandomLeagueData(),
     val timer: TimerRelated = TimerRelated(),
+    val teraPick: TeraPickData = TeraPickData(),
+    val moved: MutableMap<Int, MutableList<Int>> = mutableMapOf(),
+    val punishableSkippedTurns: MutableMap<Int, MutableSet<Int>> = mutableMapOf(),
+    var round: Int = 1
 )
 
 @Serializable

@@ -12,6 +12,8 @@ import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.SorterData
+import de.tectoast.emolga.utils.repeat.RepeatTask
+import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -46,8 +48,7 @@ class DocEntry private constructor(val league: League) {
     var sorterData: SorterData?
         get() = error("Not implemented")
         set(value) {
-            if (value != null)
-                sorterDatas["default"] = value
+            sorterDatas["default"] = value!!
         }
     private val sorterDatas = mutableMapOf<String, SorterData>()
     var setStatIfEmpty = false
@@ -85,11 +86,16 @@ class DocEntry private constructor(val league: League) {
 
 
     suspend fun analyse(replayData: List<ReplayData>, withSort: Boolean = true) {
-        if (league.config.replayDataStore != null) {
+        val store = league.config.replayDataStore
+        if (store != null) {
             replayData.forEach(league::storeMatch)
             league.save("DocEntry#Analyse")
             spoilerDocSid?.let { analyseWithoutCheck(replayData, withSort, overrideSid = it) }
-            return
+            val gameday = replayData.first().gamedayData.gameday
+            val currentDay = RepeatTask.getTask(league.leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfWeek()
+                ?: Int.MAX_VALUE
+            if (currentDay <= gameday)
+                return
         }
         analyseWithoutCheck(replayData, withSort)
     }
@@ -297,7 +303,6 @@ class DocEntry private constructor(val league: League) {
                         )
                     val points = Google.get(sid, formulaRange.toString(), false)
                     val orig: List<List<Any>?> = ArrayList(points)
-                    league.table
                     val indexerToUse by lazy {
                         if (newMethod) {
                             val new: suspend (String) -> Int = { str: String ->
@@ -443,10 +448,10 @@ data class ReplayData(
     val otherForms: Map<String, List<String>> = emptyMap(),
     val ytVideoSaveData: YTVideoSaveData = YTVideoSaveData()
 ) {
-    suspend fun checkIfBothVideosArePresent(league: League): Boolean {
+    suspend fun checkIfBothVideosArePresent(league: League) {
         val ytSave = ytVideoSaveData
         val shouldExecute = ytSave.vids.size == uindices.size
-        val sendChannel = league.config.youtube?.sendChannel ?: return false
+        val sendChannel = league.config.youtube?.sendChannel ?: return
         if (shouldExecute) {
             league.executeYoutubeSend(
                 sendChannel,
@@ -455,7 +460,6 @@ data class ReplayData(
                 VideoProvideStrategy.Subscribe(ytSave)
             )
         }
-        return shouldExecute
     }
 }
 

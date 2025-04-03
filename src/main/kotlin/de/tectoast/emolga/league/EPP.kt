@@ -53,9 +53,8 @@ class EPP(val spoilerSid: String) : League() {
         strategy: VideoProvideStrategy,
         overrideEnabled: Boolean
     ) {
-        val b = builder()
         val ytVideoSaveData = persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
-        if (!overrideEnabled && ytVideoSaveData?.enabled != true) return logger.info("ExecuteYTSend: Not enabled")
+        if (!overrideEnabled && ytVideoSaveData?.enabled != true) return
         ytVideoSaveData?.enabled = false
         jda.getTextChannelById(ytTC)!!.sendMessage(buildString {
             append("<@&818198125755498598>\n")
@@ -75,7 +74,6 @@ class EPP(val spoilerSid: String) : League() {
                 append("\n")
             }
         }).queue()
-        b.execute()
         save("YTSubSave")
     }
 

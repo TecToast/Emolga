@@ -1,16 +1,14 @@
 package de.tectoast.emolga.utils.dconfigurator.impl
 
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.draft.ExternalTierlistData
 import de.tectoast.emolga.features.flo.SendFeatures
-import de.tectoast.emolga.utils.condAppend
-import de.tectoast.emolga.utils.createCoroutineScope
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
-import de.tectoast.emolga.utils.embedColor
-import de.tectoast.emolga.utils.indexedBy
 import de.tectoast.emolga.utils.json.NameConventions
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -29,14 +27,15 @@ import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionE
 import net.dv8tion.jda.api.interactions.callbacks.IDeferrableCallback
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.eq
 import org.litote.kmongo.keyProjection
 import org.litote.kmongo.set
 import org.litote.kmongo.setTo
+import org.litote.kmongo.and as mongoAnd
 
 class TierlistBuilderConfigurator(
     userId: Long,
@@ -44,8 +43,10 @@ class TierlistBuilderConfigurator(
     guildId: Long,
     val mons: List<String>,
     val tierlistcols: List<List<String>>,
-    val shiftedMons: List<DraftPokemon>? = null,
-    private val tierMapper: (suspend (String) -> ExternalTierlistData?)? = null
+    val shiftedMons: List<DraftPokemon>?,
+    val tlIdentifier: String?,
+    private val tierMapper: (suspend (String) -> ExternalTierlistData?)?,
+    val language: Language
 ) : DGuildConfigurator("tierlistbuilder", userId, channelId, guildId) {
     override val steps: List<Step<*>> = listOf(step<SlashCommandInteractionEvent> {
         val nc = db.nameconventions.findOne(NameConventions::guild eq guildId)?.data ?: run {
@@ -108,12 +109,12 @@ class TierlistBuilderConfigurator(
         if (test(this, options)) options.skipNextSteps = 1
     }), step<SlashCommandInteractionEvent> { options ->
         val name = getOption<String>("name")!!
-        newSuspendedTransaction {
+        dbTransaction {
             NameConventionsDB.run {
                 selectAll().where(GERMAN eq name).firstOrNull()
             }
         } ?: throw InvalidArgumentException("Dieser Name entspricht nicht meinen Konventionen!")
-        NameConventionsDB.addName(mons[index], name, guildId)
+        NameConventionsDB.addName(mons[index], name, guildId, language)
         deferReply().queue()
         test(this, options)
     }, step<GenericComponentInteractionCreateEvent> {
@@ -133,7 +134,7 @@ class TierlistBuilderConfigurator(
                 )
             ).queue()
         } else if (this is ButtonInteractionEvent) {
-            val oldTL = Tierlist[guildId]!!
+            val oldTL = Tierlist[guildId, tlIdentifier]!!
             tierlistMode = oldTL.mode
             prices = oldTL.prices
             freepicks = oldTL.freepicks
@@ -280,8 +281,8 @@ class TierlistBuilderConfigurator(
             }
             logger.debug { "Testing $mon <=> $regForm" }
             if (!NameConventionsDB.checkIfExists(
-                    regForm ?: mon, guildId
-                ) && (regForm == null || !NameConventionsDB.checkIfExists(mon, guildId))
+                    regForm ?: mon, guildId, language
+                ) && (regForm == null || !NameConventionsDB.checkIfExists(mon, guildId, language))
             ) {
                 e.hook.send("`$mon` wurde nicht gefunden, bitte gib den Namen in meinem Format über /addconvention an.".condAppend(
                     sendRegionalInfo
@@ -325,16 +326,18 @@ class TierlistBuilderConfigurator(
 
     private suspend fun saveToFile(fromPrevious: Boolean = false) {
         if (!fromPrevious) {
-            db.tierlist.insertOne(Tierlist(guildId).apply {
+            db.tierlist.deleteOne(mongoAnd(Tierlist::guildid eq guildId, (Tierlist::identifier eq tlIdentifier)))
+            db.tierlist.insertOne(Tierlist(guildId, tlIdentifier).apply {
                 this.prices += this@TierlistBuilderConfigurator.prices!!
                 this@TierlistBuilderConfigurator.freepicks?.let { this.freepicks += it }
                 this@TierlistBuilderConfigurator.points?.let { this.points = it }
                 this.mode = this@TierlistBuilderConfigurator.tierlistMode!!
+                this.language = this@TierlistBuilderConfigurator.language
             })
         }
         val shiftMap = shiftedMons?.associate { it.name to it.tier }
-        newSuspendedTransaction {
-            Tierlist.deleteWhere { guild eq guildId }
+        dbTransaction {
+            Tierlist.deleteWhere { GUILD eq guildId and (IDENTIFIER eq tlIdentifier) }
             Tierlist.batchInsert(
                 (tierlistcols.flatMapIndexed { index, strings ->
                     strings.map {
@@ -351,15 +354,17 @@ class TierlistBuilderConfigurator(
                     .sortedWith(compareBy({ it.tier.indexedBy(prices!!.keys.toList()) }, { it.name })),
                 shouldReturnGeneratedValues = false
             ) {
-                this[Tierlist.guild] = guildId
-                this[Tierlist.pokemon] = it.name
-                this[Tierlist.tier] = it.tier
-                this[Tierlist.type] = it.type
+                this[Tierlist.GUILD] = guildId
+                this[Tierlist.POKEMON] = it.name
+                this[Tierlist.TIER] = it.tier
+                this[Tierlist.TYPE] = it.type
+                this[Tierlist.POINTS] = it.points
+                this[Tierlist.IDENTIFIER] = tlIdentifier
             }
         }
         checkScope.launch {
             Tierlist.setup()
-            checkTL(guildId)
+            checkTL(guildId, tlIdentifier)
         }
     }
 
@@ -379,17 +384,22 @@ class TierlistBuilderConfigurator(
         val checkScope = createCoroutineScope("TierlistBuilder", Dispatchers.IO)
 
         fun defaultSendHandler(s: String) = SendFeatures.sendToMe(s.take(2000))
-        suspend inline fun checkTL(gid: Long, crossinline handle: (String) -> Unit = ::defaultSendHandler) {
-            checkTL(Tierlist[gid]!!.autoComplete(), gid, handle)
+        suspend inline fun checkTL(
+            gid: Long,
+            identifier: String? = null,
+            crossinline handle: (String) -> Unit = ::defaultSendHandler
+        ) {
+            checkTL(Tierlist[gid, identifier]!!.autoComplete(), gid, identifier, handle)
         }
 
         inline fun checkTL(
             coll: Collection<String>,
             gid: Long,
+            identifier: String? = null,
             crossinline handle: (String) -> Unit = ::defaultSendHandler
         ) {
             checkScope.launch {
-                val tl = Tierlist[gid]!!
+                val tl = Tierlist[gid, identifier]!!
                 handle(coll.map {
                     async {
                         val discordTranslation = NameConventionsDB.getDiscordTranslation(it, gid)
@@ -408,8 +418,11 @@ class TierlistBuilderConfigurator(
     }
 }
 
-data class ProcessedDraftPokemon(val name: String, val tier: String, val type: String?) {
+data class ProcessedDraftPokemon(val name: String, val tier: String, val type: String?, val points: Int?) {
     constructor(draftPokemon: DraftPokemon, externalTierlistData: ExternalTierlistData?) : this(
-        draftPokemon.name, externalTierlistData?.tier ?: draftPokemon.tier, externalTierlistData?.type
+        draftPokemon.name,
+        externalTierlistData?.tier ?: draftPokemon.tier,
+        externalTierlistData?.type,
+        externalTierlistData?.points
     )
 }

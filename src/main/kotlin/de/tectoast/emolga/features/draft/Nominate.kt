@@ -2,6 +2,8 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
@@ -30,42 +32,47 @@ object Nominate {
         override val buttonStyle = ButtonStyle.PRIMARY
 
         init {
-            registerPNListener("!nominate") { e ->
-                val nds = db.nds()
-                val nom = nds.nominations
-                val nomUser =
-                    if (e.author.idLong == Constants.FLOID) WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toInt() else nds(
-                        e.author.idLong
-                    )
-                if (nomUser in nom.nominated.getOrPut(nom.currentDay) { mutableMapOf() }) {
-                    return@registerPNListener e.channel.sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!")
-                        .queue()
-                }
-                val list =
-                    nds.picks[nomUser]!!.filter { !it.quit }.map {
-                        DraftPokemon(
-                            NameConventionsDB.convertOfficialToTL(it.name, nds.guild)!!, it.tier, it.free
+            registerDMListener("!nominate") { e ->
+                League.executeOnFreshLock({ db.nds() }) {
+                    val nds = this as NDS
+                    val nom = nds.nominations
+                    val nomUser =
+                        if (e.author.idLong == Constants.FLOID) WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toInt() else nds(
+                            e.author.idLong
                         )
+                    if (nomUser in nom.nominated.getOrPut(nom.currentDay) { mutableMapOf() }) {
+                        return@registerDMListener e.channel.sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!")
+                            .queue()
                     }
-                val sortedList = list.sortedWith(tiercomparator)
-                NominateState(e.author.idLong, nomUser, list, sortedList).process {
-                    e.channel.sendMessage(MessageCreate(embeds = Embed(
-                        title = "Nominierungen", color = embedColor, description = generateDescription()
-                    ).into(), components = sortedList.map {
-                        NominateButton(
-                            label = it.name, buttonStyle = ButtonStyle.PRIMARY
-                        ) { data = it.name; mode = Mode.UNNOMINATE }
-                    }.intoMultipleRows().toMutableList().apply {
-                        add(
-                            ActionRow.of(NominateButton(
-                                buttonStyle = ButtonStyle.SUCCESS,
-                                emoji = Emoji.fromUnicode("✅"),
-                                disabled = true
-                            ) { mode = Mode.FINISH;data = "NOTNOW" })
-                        )
-                    })
-                    ).queue()
-                    nds.save("Nominate")
+                    val list =
+                        nds.picks[nomUser]!!.filter { !it.quit }.map {
+                            DraftPokemon(
+                                NameConventionsDB.convertOfficialToTL(it.name, nds.guild)!!, it.tier, it.free
+                            )
+                        }
+                    val sortedList = list.sortedWith(tiercomparator)
+                    NominateState(e.author.idLong, nomUser, list, sortedList).process {
+                        e.channel.sendMessage(
+                            MessageCreate(
+                                embeds = Embed(
+                                    title = "Nominierungen", color = embedColor, description = generateDescription()
+                                ).into(), components = sortedList.map {
+                                    NominateButton(
+                                        label = it.name, buttonStyle = ButtonStyle.PRIMARY
+                                    ) { data = it.name; mode = Mode.UNNOMINATE }
+                                }.intoMultipleRows().toMutableList().apply {
+                                    add(
+                                        ActionRow.of(
+                                            NominateButton(
+                                                buttonStyle = ButtonStyle.SUCCESS,
+                                                emoji = Emoji.fromUnicode("✅"),
+                                                disabled = true
+                                            ) { mode = Mode.FINISH;data = "NOTNOW" })
+                                    )
+                                })
+                        ).queue()
+                        nds.save("Nominate")
+                    }
                 }
             }
         }

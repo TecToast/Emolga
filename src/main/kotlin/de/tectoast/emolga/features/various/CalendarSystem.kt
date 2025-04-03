@@ -1,6 +1,7 @@
 package de.tectoast.emolga.features.various
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.database.exposed.CalendarEntry
 import de.tectoast.emolga.features.*
@@ -12,7 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.text.SimpleDateFormat
 
 object CalendarSystem : CoroutineScope {
@@ -25,11 +25,11 @@ object CalendarSystem : CoroutineScope {
         launch {
             delay(ce.expires.toEpochMilli() - System.currentTimeMillis())
             try {
-                newSuspendedTransaction {
+                dbTransaction {
                     if (runCatching { ce.refresh() }.let {
                             it.exceptionOrNull()?.let { ex -> logger.error("Failed to refresh calendar entry", ex) }
                             it.isFailure
-                        }) return@newSuspendedTransaction null
+                        }) return@dbTransaction null
                     ce.delete()
                 } ?: return@launch
 

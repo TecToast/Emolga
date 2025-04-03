@@ -1,6 +1,7 @@
 package de.tectoast.emolga.league.config
 
 import de.tectoast.emolga.database.exposed.DraftName
+import de.tectoast.emolga.features.ArgumentPresence
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
@@ -14,7 +15,7 @@ import mu.KotlinLogging
 
 @Serializable
 data class RandomPickConfig(
-    val disabled: Boolean = false,
+    val enabled: Boolean = true,
     val mode: RandomPickMode = RandomPickMode.Default(),
     val jokers: Int = 0,
     val onlyOneMega: Boolean = false,
@@ -38,15 +39,15 @@ sealed interface RandomPickMode {
     /**
      * @return a map of the possible command options for the randompick command [true = required, false = optional, null = not available]
      */
-    fun provideCommandOptions(): Map<RandomPickArgument, Boolean>
+    fun provideCommandOptions(): Map<RandomPickArgument, ArgumentPresence>
 
     @Serializable
     @SerialName("Default")
     data class Default(val tierRequired: Boolean = false, val typeAllowed: Boolean = true) : RandomPickMode {
-        override fun provideCommandOptions(): Map<RandomPickArgument, Boolean> {
+        override fun provideCommandOptions(): Map<RandomPickArgument, ArgumentPresence> {
             return buildMap {
-                put(RandomPickArgument.TIER, tierRequired)
-                if (typeAllowed) put(RandomPickArgument.TYPE, false)
+                put(RandomPickArgument.TIER, if (tierRequired) ArgumentPresence.REQUIRED else ArgumentPresence.OPTIONAL)
+                if (typeAllowed) put(RandomPickArgument.TYPE, ArgumentPresence.OPTIONAL)
             }
         }
 
@@ -70,8 +71,8 @@ sealed interface RandomPickMode {
     @SerialName("TypeTierlist")
     data object TypeTierlist : RandomPickMode {
         private val logger = KotlinLogging.logger {}
-        override fun provideCommandOptions(): Map<RandomPickArgument, Boolean> {
-            return mapOf(RandomPickArgument.TYPE to true)
+        override fun provideCommandOptions(): Map<RandomPickArgument, ArgumentPresence> {
+            return mapOf(RandomPickArgument.TYPE to ArgumentPresence.REQUIRED)
         }
 
         context(InteractionData) override suspend fun League.getRandomPick(

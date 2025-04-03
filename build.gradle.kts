@@ -92,12 +92,12 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
 
     // Logging
-    implementation("org.slf4j:slf4j-api:2.0.16")
+    implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("ch.qos.logback:logback-classic:1.5.18")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:5.3.0")
+    implementation("net.dv8tion:JDA:5.3.1")
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google
@@ -108,7 +108,7 @@ dependencies {
     // Database
     // MySQL
     implementation("org.mariadb.jdbc:mariadb-java-client:3.5.1")
-    implementation("com.zaxxer:HikariCP:6.2.1")
+    implementation("com.zaxxer:HikariCP:6.3.0")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
@@ -121,7 +121,7 @@ dependencies {
     ktor()
 
     // Utils
-    implementation("org.jsoup:jsoup:1.18.3")
+    implementation("org.jsoup:jsoup:1.19.1")
 
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M3")

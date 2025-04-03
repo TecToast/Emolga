@@ -87,13 +87,13 @@ val ktorDependencies = listOf(
 dependencies {
     // Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.16")
-    implementation("ch.qos.logback:logback-classic:1.5.16")
+    implementation("ch.qos.logback:logback-classic:1.5.18")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
@@ -101,9 +101,9 @@ dependencies {
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google
-    implementation("com.google.apis:google-api-services-sheets:v4-rev20250106-2.0.0")
+    implementation("com.google.apis:google-api-services-sheets:v4-rev20250211-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20250220-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20250128-2.0.0")
+    implementation("com.google.apis:google-api-services-youtube:v3-rev20250224-2.0.0")
 
     // Database
     // MySQL

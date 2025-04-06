@@ -11,7 +11,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.TestInteractionData
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.features.draft.TipGameManager
-import de.tectoast.emolga.features.draft.during.TeraSelect
+import de.tectoast.emolga.features.draft.during.TeraZSelect
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.league.config.PersistentLeagueData
@@ -704,10 +704,12 @@ sealed class League {
 
     suspend fun sendTeraSelectMessage() {
         config.teraSelect?.let {
-            tc.sendMessage("Bitte wähle dein Tera-Pokemon aus den folgenden Tiers aus: ${it.tiers.joinToString { "**$it**" }}")
+            tc.sendMessage("Bitte wähle deinen ${it.type}-User aus den folgenden Tiers aus: ${it.tiers.joinToString { "**$it**" }}")
                 .queue()
             persistentData.teraSelect.mid =
-                tc.send(content = generateCompletedText(emptySet()), components = TeraSelect.Begin {
+                tc.send(
+                    content = generateCompletedText(emptySet()),
+                    components = TeraZSelect.Begin(label = "${it.type}-User auswählen") {
                     this.league = leaguename
                 }.into()).await().id
             save()

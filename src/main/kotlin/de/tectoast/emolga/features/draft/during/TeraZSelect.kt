@@ -8,9 +8,8 @@ import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 
-object TeraSelect {
+object TeraZSelect {
     object Begin : ButtonFeature<Begin.Args>(::Args, ButtonSpec("teraselect")) {
-        override val label = "Tera-User auswählen"
 
         class Args : Arguments() {
             var league by string()
@@ -30,7 +29,7 @@ object TeraSelect {
                 )
                 val options = picks[idx]!!.filter { it.tier in config.tiers }.sortedWith(tierorderingComparator)
                     .map { SelectOption("${it.tier}: ${NameConventionsDB.convertOfficialToTL(it.name, gid)}", it.name) }
-                reply("Bitte wähle deinen Tera-Pick aus!", components = Menu(options = options) {
+                reply("Bitte wähle deinen ${config.type}-User aus!", components = Menu(options = options) {
                     this.league = e.league
                     this.idx = idx
                 }.into(), ephemeral = true)

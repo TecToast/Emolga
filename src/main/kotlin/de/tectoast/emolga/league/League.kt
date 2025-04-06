@@ -11,6 +11,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.TestInteractionData
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.features.draft.TipGameManager
+import de.tectoast.emolga.features.draft.during.TeraSelect
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.league.config.PersistentLeagueData
@@ -694,10 +695,23 @@ sealed class League {
 
     open suspend fun onRoundSwitch() {}
 
-    fun finishDraft(msg: String) {
+    suspend fun finishDraft(msg: String) {
         tc.sendMessage(msg).queue()
         draftState = DraftState.OFF
+        sendTeraSelectMessage()
         save("END SAVE")
+    }
+
+    suspend fun sendTeraSelectMessage() {
+        config.teraSelect?.let {
+            tc.sendMessage("Bitte wähle dein Tera-Pokemon aus den folgenden Tiers aus: ${it.tiers.joinToString { "**$it**" }}")
+                .queue()
+            persistentData.teraSelect.mid =
+                tc.send(content = generateCompletedText(emptySet()), components = TeraSelect.Begin {
+                    this.league = leaguename
+                }.into()).await().id
+            save()
+        }
     }
 
     internal open suspend fun getCurrentMention(): String {
@@ -707,6 +721,12 @@ sealed class League {
         val (teammates, other) = data.filter { it.mention && it.u != currentId }.partition { it.teammate }
         return (if (currentData.mention) "<@$currentId>" else "**${getCurrentName()}**") + teammates.joinToString { "<@${it.u}>" }
             .ifNotEmpty { ", $it" } + other.joinToString { "<@${it.u}>" }.ifNotEmpty { ", ||$it||" }
+    }
+
+    fun getTeamUserIds(idx: Int): List<Long> {
+        val idOfOwner = table[idx]
+        val data = allowed[idx] ?: return listOf(idOfOwner)
+        return listOf(idOfOwner, *data.filter { it.teammate }.map { it.u }.toTypedArray())
     }
 
     fun getCurrentName(idx: Int = current) = names[idx]
@@ -864,6 +884,20 @@ sealed class League {
             .queue()
     }
 
+    /**
+     * Gets the index of the user by their ID or a allowed player that only has permission for one user.
+     */
+    fun getIdxByUserId(userId: Long): IdxByUserIdResult {
+        val idx = table.indexOf(userId)
+        if (idx != -1) return IdxByUserIdResult.Success(idx)
+        val allowedFor = allowed.entries.filter { it.value.any { data -> data.u == userId } }
+        return when (allowedFor.size) {
+            0 -> IdxByUserIdResult.NotFound
+            1 -> IdxByUserIdResult.Success(allowedFor.first().key)
+            else -> IdxByUserIdResult.Ambiguous
+        }
+    }
+
     open suspend fun executeYoutubeSend(
         ytTC: Long, gameday: Int, battle: Int, strategy: VideoProvideStrategy, overrideEnabled: Boolean = false
     ) {
@@ -907,6 +941,15 @@ sealed class League {
                 cooldown
             )
         )
+    }
+
+    fun generateCompletedText(completed: Set<Int>): String {
+        return table.indices.joinToString("\n") {
+            getTeamUserIds(it).joinToString(
+                separator = " & ",
+                postfix = ": ${if (it in completed) "✅" else "❌"}"
+            ) { "<@${it}>" }
+        }
     }
 
     companion object : CoroutineScope {
@@ -1127,6 +1170,12 @@ sealed interface TimerSkipMode {
 sealed interface BypassCurrentPlayerData {
     data object No : BypassCurrentPlayerData
     data class Yes(val user: Int) : BypassCurrentPlayerData
+}
+
+sealed interface IdxByUserIdResult {
+    data class Success(val idx: Int) : IdxByUserIdResult
+    data object NotFound : IdxByUserIdResult
+    data object Ambiguous : IdxByUserIdResult
 }
 
 interface DuringTimerSkipMode : TimerSkipMode

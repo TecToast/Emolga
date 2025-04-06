@@ -17,6 +17,7 @@ data class LeagueConfig(
     val customTierlist: CustomTierlistConfig? = null,
     val teraPick: TeraPickConfig? = null,
     val triggers: Triggers = Triggers(),
+    val teraSelect: TeraSelectConfig? = null,
 )
 
 
@@ -29,11 +30,12 @@ data class ResettableLeagueData(
     val teraPick: TeraPickData = TeraPickData(),
     val moved: MutableMap<Int, MutableList<Int>> = mutableMapOf(),
     val punishableSkippedTurns: MutableMap<Int, MutableSet<Int>> = mutableMapOf(),
-    var round: Int = 1
+    var round: Int = 1,
 )
 
 @Serializable
 data class PersistentLeagueData(
     val replayDataStore: ReplayDataStoreData = ReplayDataStoreData(),
     val queuePicks: QueuePicksData = QueuePicksData(),
+    val teraSelect: TeraSelectData = TeraSelectData(),
 )

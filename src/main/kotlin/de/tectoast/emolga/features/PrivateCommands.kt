@@ -606,6 +606,11 @@ object PrivateCommands {
         }
     }
 
+    context(InteractionData)
+    suspend fun sendTeraSelectMessage(args: PrivateData) {
+        League.executeOnFreshLock(args()) { sendTeraSelectMessage() }
+    }
+
 }
 
 data class PrivateData(

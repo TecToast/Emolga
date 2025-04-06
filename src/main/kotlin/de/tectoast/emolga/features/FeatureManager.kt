@@ -131,9 +131,9 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         data: RealInteractionData,
         ex: Exception
     ) =
-        ("Error in feature ${feature.spec.name}:\n" + "Event: ${e::class.simpleName}\n" + "User: `${data.user}`\n" + (if (data.gid != -1L) {
-            "Guild: `${data.gid}` [${data.textChannel.guild.name}]\n" + "Channel: `${data.tc}` [${data.textChannel.asMention}]\n"
-        } else "" + "Input: ```${e.stringify()}```\n```") + ex.stackTraceToString()).take(1997) + "```"
+        ("Error in feature ${feature.spec.name}:\n" + "Event: ${e::class.simpleName}\n" + "User: ${data.user}\n" + (if (data.gid != -1L) {
+            "Guild: ${data.gid} [${data.textChannel.guild.name}]\n" + "Channel: ${data.tc} [${data.textChannel.name}]\n"
+        } else "" + "Input: ${e.stringify()}\n") + ex.stackTraceToString())
 
     private fun GenericInteractionCreateEvent.stringify() = when (this) {
         is SlashCommandInteractionEvent -> this.commandString

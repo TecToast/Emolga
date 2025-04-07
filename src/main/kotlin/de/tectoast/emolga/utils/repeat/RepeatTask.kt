@@ -25,7 +25,7 @@ class RepeatTask(
     amount: Int,
     difference: Duration,
     printTimestamps: Boolean = false,
-    consumer: suspend (Int) -> Unit,
+    val consumer: suspend (Int) -> Unit,
 ) {
     private val scope = createCoroutineScope("RepeatTask")
     val taskTimestamps = TreeMap<Instant, Int>()

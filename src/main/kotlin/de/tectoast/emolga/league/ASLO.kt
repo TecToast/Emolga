@@ -6,10 +6,13 @@ import de.tectoast.emolga.utils.DocEntry
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.coordXMod
 import de.tectoast.emolga.utils.records.SorterData
+import de.tectoast.emolga.utils.repeat.RepeatTask
+import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
+import kotlin.time.Duration.Companion.days
 
 @Serializable
 @SerialName("ASLO")
@@ -32,7 +35,7 @@ class ASLO(
                 formulaRange = listOf(
                     "Tabelle!C4:J19",
                 ), newMethod = true, cols = listOf(7, 6, 4)
-            ), resultCreator = {
+            ), memberMod = 8, resultCreator = {
                 b.addSingle(
                     if (gdi in 0..1) gdi.coordXMod("Spielplan", 2, 4, 5, 0, 4 + index)
                     else "Spielplan!" + gdi.minus(2).coordXMod("Spielplan", 3, 4, 3, 10, 14 + index),
@@ -67,17 +70,17 @@ class ASLO(
             listOf(data.oldmon.tlName, data.pokemon)
         )
 
-
+*/
 
     override fun setupRepeatTasks() {
         if (confidx == 0) {
             RepeatTask(
-                "ASL", RepeatTaskType.Other("Announce"), "27.05.2024 00:00", 7, 7.days
+                "ASL", RepeatTaskType.Other("Announce"), "26.05.2025 00:00", 8, 7.days
             ) {
                 executeGamedaySending(it)
             }
         }
-    }*/
+    }
 
     fun executeGamedaySending(gameday: Int) {
         val msg = "**------------- Spieltag $gameday -------------**"

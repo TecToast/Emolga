@@ -57,27 +57,28 @@ class DocEntry private constructor(val league: League) {
     var rowNumToIndex: (Int) -> Int = { it.minus(league.newSystemGap + 1).div(league.newSystemGap) }
     private val gamedays get() = league.gamedays
 
-    fun newSystem(sorterData: SorterData?, resultCreator: (suspend AdvancedResult.() -> Unit)) {
+    fun newSystem(sorterData: SorterData?, memberMod: Int? = null, resultCreator: (suspend AdvancedResult.() -> Unit)) {
         val dataSheet = league.dataSheet
         val gap = league.newSystemGap
+        fun Int.mod() = memberMod?.let { this % it } ?: this
         killProcessor = BasicStatProcessor {
             Coord(
-                sheet = dataSheet, gameday + 2, plindex.y(gap, monindex + 3)
+                sheet = dataSheet, gameday + 2, plindex.mod().y(gap, monindex + 3)
             )
         }
         deathProcessor = BasicStatProcessor {
             Coord(
-                sheet = dataSheet, gameday + 4 + gamedays, plindex.y(gap, monindex + 3)
+                sheet = dataSheet, gameday + 4 + gamedays, plindex.mod().y(gap, monindex + 3)
             )
         }
         winProcessor = ResultStatProcessor {
             Coord(
-                sheet = dataSheet, gameday + 2, plindex.y(gap, gap)
+                sheet = dataSheet, gameday + 2, plindex.mod().y(gap, gap)
             )
         }
         looseProcessor = ResultStatProcessor {
             Coord(
-                sheet = dataSheet, gameday + 4 + gamedays, plindex.y(gap, gap)
+                sheet = dataSheet, gameday + 4 + gamedays, plindex.mod().y(gap, gap)
             )
         }
         this.resultCreator = resultCreator

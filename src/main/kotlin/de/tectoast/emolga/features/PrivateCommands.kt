@@ -106,8 +106,8 @@ object PrivateCommands {
     suspend fun printTipGame(args: PrivateData) {
         reply(
             db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
-            .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }
-            .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
+                .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }
+                .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
                 .joinToString("\n", prefix = "```", postfix = "```"))
     }
 
@@ -336,7 +336,6 @@ object PrivateCommands {
     }
 
 
-
     context(InteractionData)
     fun getGuildIcon(args: PrivateData) {
         reply(jda.getGuildById(args().toLong())!!.iconUrl.toString())
@@ -505,8 +504,11 @@ object PrivateCommands {
                 archiveLeague.insertOne(league)
                 currentLeague.deleteOne(League::leaguename eq it)
             }
-            archiveMR.insertMany(currentMR.find(MatchResult::leaguename eq it).toList())
-            currentMR.deleteMany(MatchResult::leaguename eq it)
+            val matchResults = currentMR.find(MatchResult::leaguename eq it).toList()
+            if (matchResults.isNotEmpty()) {
+                archiveMR.insertMany(matchResults)
+                currentMR.deleteMany(MatchResult::leaguename eq it)
+            }
         }
     }
 

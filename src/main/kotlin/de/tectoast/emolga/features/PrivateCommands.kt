@@ -26,6 +26,7 @@ import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
 import de.tectoast.emolga.utils.repeat.IntervalTask
 import de.tectoast.emolga.utils.repeat.IntervalTaskKey
+import de.tectoast.emolga.utils.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.interactions.components.Modal
@@ -609,6 +610,15 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun sendTeraSelectMessage(args: PrivateData) {
         League.executeOnFreshLock(args()) { sendTeraSelectMessage() }
+    }
+
+    context(InteractionData)
+    suspend fun registerInDoc(args: PrivateData) {
+        League.executeOnFreshLock(args[0]) {
+            val gameday = args[1].toInt()
+            val battle = args[2].toInt()
+            RepeatTask.executeRegisterInDoc(this, gameday, battle)
+        }
     }
 
 }

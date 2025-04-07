@@ -113,13 +113,16 @@ sealed interface TipGameColorConfig {
 }
 
 object InstantToStringSerializer : KSerializer<Instant> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Instant", PrimitiveKind.STRING)
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("InstantToString", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: Instant) {
         encoder.encodeString(defaultTimeFormat.format(value.toEpochMilliseconds()))
     }
 
     override fun deserialize(decoder: Decoder): Instant {
-        return Instant.fromEpochMilliseconds(defaultTimeFormat.parse(decoder.decodeString()).time)
+        val decodedString = decoder.decodeString()
+        return runCatching { Instant.fromEpochMilliseconds(defaultTimeFormat.parse(decodedString).time) }.onFailure {
+            universalLogger.error("Failed to parse Instant from string: $decodedString", it)
+        }.getOrThrow()
     }
 }

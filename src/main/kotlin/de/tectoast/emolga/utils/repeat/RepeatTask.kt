@@ -124,29 +124,45 @@ class RepeatTask(
                 }
                 l.config.replayDataStore?.let { data ->
                     val size = l.battleorder[1]?.size ?: return@let
-                    repeat(size) { battle ->
+                    if (data.intervalBetweenMatches == Duration.ZERO) {
                         RepeatTask(
-                            name,
-                            RegisterInDoc,
-                            data.lastUploadStart + data.intervalBetweenMatches * battle,
-                            data.amount,
-                            data.intervalBetweenGD,
+                            name, RegisterInDoc, data.lastUploadStart, data.amount, data.intervalBetweenGD
                         ) { gameday ->
-                            League.executeOnFreshLock(name) { executeRegisterInDoc(this, gameday, battle) }
+                            League.executeOnFreshLock(name) {
+                                repeat(size) { battle ->
+                                    logger.info("RegisterInDocSingle $name $gameday $battle")
+                                    executeRegisterInDoc(this, gameday, battle)
+                                }
+                            }
                         }
-                        l.config.youtube?.sendChannel?.let { ytTC ->
+                    } else {
+                        repeat(size) { battle ->
                             RepeatTask(
                                 name,
-                                YTSendManual,
-                                data.lastUploadStart + data.intervalBetweenMatches * battle + data.intervalBetweenUploadAndVideo,
+                                RegisterInDoc,
+                                data.lastUploadStart + data.intervalBetweenMatches * battle,
                                 data.amount,
                                 data.intervalBetweenGD,
                             ) { gameday ->
-                                League.executeOnFreshLock(name) {
-                                    val ytData =
-                                        persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
-                                            ?: return@executeOnFreshLock
-                                    executeYoutubeSend(ytTC, gameday, battle, VideoProvideStrategy.Subscribe(ytData))
+                                logger.info("RegisterInDoc $name $gameday $battle")
+                                League.executeOnFreshLock(name) { executeRegisterInDoc(this, gameday, battle) }
+                            }
+                            l.config.youtube?.sendChannel?.let { ytTC ->
+                                RepeatTask(
+                                    name,
+                                    YTSendManual,
+                                    data.lastUploadStart + data.intervalBetweenMatches * battle + data.intervalBetweenUploadAndVideo,
+                                    data.amount,
+                                    data.intervalBetweenGD,
+                                ) { gameday ->
+                                    League.executeOnFreshLock(name) {
+                                        val ytData =
+                                            persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
+                                                ?: return@executeOnFreshLock
+                                        executeYoutubeSend(
+                                            ytTC, gameday, battle, VideoProvideStrategy.Subscribe(ytData)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -154,8 +170,7 @@ class RepeatTask(
                     data.lastGamesMadeReminder?.let { last ->
                         RepeatTask(name, LastReminder, last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
                             League.executeOnFreshLock(name) {
-                                jda.getTextChannelById(last.channel)!!
-                                    .sendMessage(buildStoreStatus(gameday)).queue()
+                                jda.getTextChannelById(last.channel)!!.sendMessage(buildStoreStatus(gameday)).queue()
                             }
                         }
                     }
@@ -171,14 +186,11 @@ class RepeatTask(
             }
             val dataStore = league.persistentData.replayDataStore
             dataStore.data[gameday]?.get(battle)?.let {
-                if (league.config.youtube != null)
-                    it.ytVideoSaveData.enabled = true
-                it.checkIfBothVideosArePresent(league)
+                if (league.config.youtube != null) it.ytVideoSaveData.enabled = true
                 if (shouldDelay) delay(2000)
                 league.docEntry?.analyseWithoutCheck(listOf(it))
                 league.save("RepeatTaskYT")
-            }
-                ?: throw IllegalStateException("No replay found for gameday $gameday and battle $battle")
+            } ?: logger.warn("No replay found for gameday $gameday and battle $battle")
         }
     }
 }

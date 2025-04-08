@@ -9,8 +9,9 @@ import de.tectoast.emolga.utils.TimeUtils
 import de.tectoast.emolga.utils.embedColor
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
+import kotlinx.datetime.Instant
+import kotlinx.datetime.toJavaInstant
 import net.dv8tion.jda.api.entities.emoji.Emoji
-import java.time.Instant
 
 object Giveaway {
     object GCreateCommand : CommandFeature<NoArgs>(
@@ -65,13 +66,13 @@ object Giveaway {
         context(InteractionData)
         override suspend fun exec(e: Args) {
             reply("Giveaway erstellt!", ephemeral = true)
-            val end = Instant.ofEpochMilli(System.currentTimeMillis() + e.time * 1000)
+            val end = Instant.fromEpochMilliseconds(System.currentTimeMillis() + e.time * 1000)
             val winners = e.winners
             val message = textChannel.sendMessageEmbeds(Embed {
                 color = embedColor
                 title = "Giveaway: ${e.prize}"
                 footer("${if (winners == 1) "" else "$winners Gewinner | "}Endet")
-                timestamp = end
+                timestamp = end.toJavaInstant()
                 description =
                     "Reagiere mit ${Constants.GIVEAWAY_EMOTE_MENTION} um teilzunehmen!\nGehostet von: <@$user>"
             }).await()

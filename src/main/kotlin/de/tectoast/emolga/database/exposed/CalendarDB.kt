@@ -2,12 +2,12 @@ package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.various.CalendarSystem
+import kotlinx.datetime.Instant
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.javatime.timestamp
-import java.time.Instant
+import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 object CalendarDB : IntIdTable("calendar") {
     val MESSAGE = varchar("message", 1000)
@@ -22,7 +22,7 @@ object CalendarDB : IntIdTable("calendar") {
         dbTransaction {
             CalendarSystem.scheduleCalendarEntry(CalendarEntry.new {
                 this.message = message
-                this.expires = Instant.ofEpochMilli(expires / 1000 * 1000)
+                this.expires = Instant.fromEpochMilliseconds(expires / 1000 * 1000)
             })
         }
 

@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import mu.KotlinLogging
 import java.text.SimpleDateFormat
 
@@ -23,7 +24,7 @@ object CalendarSystem : CoroutineScope {
 
     fun scheduleCalendarEntry(ce: CalendarEntry) {
         launch {
-            delay(ce.expires.toEpochMilli() - System.currentTimeMillis())
+            delay(ce.expires - Clock.System.now())
             try {
                 dbTransaction {
                     if (runCatching { ce.refresh() }.let {
@@ -45,7 +46,7 @@ object CalendarSystem : CoroutineScope {
 
     private suspend fun buildCalendar(): String {
         return CalendarDB.getAllEntries().sortedBy { it.expires }
-            .joinToString("\n") { "**${calendarFormat.format(it.expires.toEpochMilli())}:** ${it.message}" }
+            .joinToString("\n") { "**${calendarFormat.format(it.expires.toEpochMilliseconds())}:** ${it.message}" }
             .ifEmpty { "_leer_" }
     }
 

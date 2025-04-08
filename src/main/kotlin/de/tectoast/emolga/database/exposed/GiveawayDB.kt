@@ -11,13 +11,12 @@ import dev.minn.jda.ktx.util.SLF4J
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.javatime.timestamp
-import java.time.Instant
-import java.time.temporal.ChronoUnit
+import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 object GiveawaysDB : IntIdTable("giveaways") {
     val MESSAGEID = long("messageid")
@@ -51,7 +50,7 @@ class Giveaway(id: EntityID<Int>) : IntEntity(id) {
      */
     fun startTimer() {
         coroutineScope.launch {
-            delay(Instant.now().until(end, ChronoUnit.MILLIS))
+            delay(end - Clock.System.now())
             finish()
         }
     }

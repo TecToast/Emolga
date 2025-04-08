@@ -18,7 +18,6 @@ import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
-import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.repeat.IntervalTaskKey
 import de.tectoast.emolga.utils.showdown.BattleContext
@@ -71,7 +70,6 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val ndsQuery by lazy { League::leaguename regex "^NDS" }
 
     val config by lazy { db.getCollection<Config>("config") }
-    val statistics by lazy { db.getCollection<Statistics>("statistics") }
     val signups by lazy { db.getCollection<LigaStartData>("signups") }
     val league by lazy { db.getCollection<League>("league") }
     val cooldowns by lazy { db.getCollection<Cooldown>("cooldowns") }
@@ -342,7 +340,7 @@ sealed interface LogoSettings {
         ) {
             val tc = jda.getTextChannelById(channelId)
                 ?: return logger.warn { "Channel $channelId for LogoSettings not found" }
-            data.logomid?.let { mid -> tc.deleteMessageById(mid).queue(/* success = */ null, /* failure = */ null) }
+            data.logomid?.let { mid -> tc.deleteMessageById(mid).queue(null, null) }
             val logoMid = tc.sendMessage(getMsgTitle(data)).addFiles(logoData.toFileUpload()).await().idLong
             data.logomid = logoMid
             lsData.save()

@@ -5,6 +5,7 @@ import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.StatisticsDB
 import de.tectoast.emolga.database.exposed.YTChannelsDB
 import de.tectoast.emolga.database.exposed.YTNotificationsDB
 import de.tectoast.emolga.features.draft.SignupManager.Button
@@ -22,7 +23,6 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.*
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.emolga.Config
-import de.tectoast.emolga.utils.json.emolga.Statistics
 import de.tectoast.emolga.utils.json.emolga.TeamData
 import de.tectoast.emolga.utils.repeat.IntervalTask
 import de.tectoast.emolga.utils.repeat.IntervalTaskKey
@@ -246,8 +246,12 @@ object PrivateCommands {
     suspend fun updateGoogleStatistics() {
         RequestBuilder("1_8eutglTucjqgo-sPsdNrlFf-vjKADXrdPDj389wwbY").suppressMessages().addAll(
             "Data!A2",
-            db.statistics.find(Statistics::meta eq "analysis").toList()
-                .map { listOf(defaultTimeFormat.format(it.timestamp.toEpochMilli()), it.count) }).execute()
+            StatisticsDB.getAllAnalysis {
+                listOf(
+                    defaultTimeFormat.format(it[TIMESTAMP].toEpochMilliseconds()),
+                    it[VALUE]
+                )
+            }).execute()
     }
 
     private data class CoachData(val coachId: Long, val roleId: Long, val prefix: String)

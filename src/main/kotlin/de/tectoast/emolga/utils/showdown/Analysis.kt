@@ -9,7 +9,6 @@ import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.increment
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.toCoord
 import dev.minn.jda.ktx.messages.Embed
@@ -188,7 +187,7 @@ object Analysis {
                 fromReplayCommand?.reply(msgCreateData = tosend)
             }
             if (resultchannelParam.guild.idLong != Constants.G.MY) {
-                db.statistics.increment("analysis")
+                StatisticsDB.increment(StatisticsMeta.ANALYSIS)
                 game.forEach { player ->
                     player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
                         FullStatsDB.add(

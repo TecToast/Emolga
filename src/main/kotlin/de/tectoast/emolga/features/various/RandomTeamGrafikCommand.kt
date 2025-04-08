@@ -8,9 +8,6 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.TeamGraphics
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.emolga.getCount
-import de.tectoast.emolga.utils.json.emolga.increment
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -39,8 +36,7 @@ object RandomTeamGrafikCommand : CommandFeature<NoArgs>(
                     if (it > 0) reply("**Du hast einfach ${if (it == 1) "ein Shiny" else "$it Shinies"} bekommen :o**")
                 }
                 if (hasDrampa) {
-                    db.statistics.increment("drampacounter")
-                    reply("**DRAMPA** (Nr. ${db.statistics.getCount("drampacounter")})")
+                    reply("**DRAMPA**")
                     reply("<@446274734389198848>")
                 }
             }

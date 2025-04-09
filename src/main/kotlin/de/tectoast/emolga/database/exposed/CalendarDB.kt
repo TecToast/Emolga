@@ -13,6 +13,7 @@ object CalendarDB : IntIdTable("calendar") {
     val MESSAGE = varchar("message", 1000)
     val EXPIRES = timestamp("expires")
 
+
     /**
      * Schedules a calendar entry
      * @param message the message to send

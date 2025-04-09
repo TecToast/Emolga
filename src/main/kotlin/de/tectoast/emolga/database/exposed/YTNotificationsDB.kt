@@ -9,6 +9,8 @@ object YTNotificationsDB : Table("ytnotifications") {
     val YTCHANNEL = varchar("ytchannel", 31)
     val DM = bool("dm").default(false)
 
+    override val primaryKey = PrimaryKey(DCCHANNEL, YTCHANNEL)
+
     suspend fun addData(id: Long, dm: Boolean, data: Iterable<String>) = dbTransaction {
         batchInsert(data, ignore = true, shouldReturnGeneratedValues = false) {
             this[YTCHANNEL] = it

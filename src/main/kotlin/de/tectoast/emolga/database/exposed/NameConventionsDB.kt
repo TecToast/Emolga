@@ -31,6 +31,10 @@ object NameConventionsDB : Table("nameconventions") {
 
     val COMMON = bool("common")
 
+    init {
+        index("all", isUnique = false, GERMAN, ENGLISH, SPECIFIED, SPECIFIEDENGLISH, GUILD)
+    }
+
     private val logger = KotlinLogging.logger {}
 
     val allNameConventions = OneTimeCache { getAll() }

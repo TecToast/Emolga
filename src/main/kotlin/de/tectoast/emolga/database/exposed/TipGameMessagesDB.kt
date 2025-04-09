@@ -11,6 +11,8 @@ object TipGameMessagesDB : Table("tipgamemessages") {
     val BATTLE = integer("battle")
     val MESSAGEID = long("messageid")
 
+    override val primaryKey = PrimaryKey(LEAGUENAME, GAMEDAY, BATTLE)
+
     /**
      * Gets the message id of the tipgame message of the league/gameday/battle
      * @param leagueName the league name

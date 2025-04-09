@@ -158,6 +158,11 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         val TYPE = varchar("type", 10).nullable()
         val POINTS = integer("points").nullable()
         val IDENTIFIER = varchar("identifier", 30).nullable()
+
+        init {
+            index(isUnique = false, GUILD, IDENTIFIER, POKEMON)
+        }
+
         private var setupCalled = false
 
         val tierlists: MutableMap<Long, MutableMap<String, Tierlist>> = mutableMapOf()

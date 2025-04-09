@@ -113,6 +113,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-migration:$exposedVersion")
     // MongoDB
     implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.2.1")
     implementation("org.litote.kmongo:kmongo-id-serialization:5.2.1")

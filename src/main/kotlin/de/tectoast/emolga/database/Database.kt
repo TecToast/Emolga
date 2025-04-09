@@ -4,7 +4,6 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.exposed.CalendarDB
-import de.tectoast.emolga.database.exposed.Giveaway
 import de.tectoast.emolga.features.flegmon.BirthdaySystem
 import de.tectoast.emolga.features.various.CalendarSystem
 import de.tectoast.emolga.utils.createCoroutineScope
@@ -28,7 +27,6 @@ class Database(host: String, username: String, password: String) {
         private val logger = KotlinLogging.logger {}
         private lateinit var instance: Database
         val dbScope = createCoroutineScope("Database", Dispatchers.IO)
-        // TODO: use this scope for all database operations
 
 
         /**
@@ -48,7 +46,6 @@ class Database(host: String, username: String, password: String) {
         private suspend fun onStartUp() {
             logger.info("Retrieving all startup information...")
             CalendarDB.getAllEntries().forEach { CalendarSystem.scheduleCalendarEntry(it) }
-            Giveaway.init()
             EmolgaMain.updatePresence()
             BirthdaySystem.startSystem()
         }

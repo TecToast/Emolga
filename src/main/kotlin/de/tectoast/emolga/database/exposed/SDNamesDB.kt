@@ -21,6 +21,8 @@ object SDNamesDB : Table("sdnames") {
     val NAME = varchar("name", 18)
     val ID = long("id")
 
+    override val primaryKey = PrimaryKey(NAME)
+
     /**
      * Get a discord user id by the showdown name
      * @param name the showdown name to look for

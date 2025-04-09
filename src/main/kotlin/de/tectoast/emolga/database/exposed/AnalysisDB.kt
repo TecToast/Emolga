@@ -14,6 +14,8 @@ object AnalysisDB : Table("analysis") {
     val RESULT = long("result")
     val GUILD = long("guild")
 
+    override val primaryKey = PrimaryKey(REPLAY)
+
     /**
      * Inserts a new channel replay/result combination into the database, if there is no result channel associated with the replay channel
      * @param replayChannel The replayChannel of the combination

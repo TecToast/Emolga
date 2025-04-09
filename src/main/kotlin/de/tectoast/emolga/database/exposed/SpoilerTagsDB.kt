@@ -8,6 +8,8 @@ import org.jetbrains.exposed.sql.insert
 
 object SpoilerTagsDB : Table("spoilertags") {
     val GUILDID = long("guildid")
+
+    override val primaryKey = PrimaryKey(GUILDID)
     /**
      * Checks if the guild has spoiler tags enabled
      * @param guildid the guild id

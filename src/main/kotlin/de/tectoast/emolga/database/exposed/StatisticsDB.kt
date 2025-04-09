@@ -13,6 +13,10 @@ object StatisticsDB : Table("statistics") {
     val META = enumeration<StatisticsMeta>("meta")
     val VALUE = integer("value")
 
+    init {
+        index(isUnique = false, META, VALUE)
+    }
+
     suspend inline fun <T> getAllAnalysis(crossinline mapper: StatisticsDB.(ResultRow) -> T): List<T> = dbTransaction {
         select(TIMESTAMP, VALUE).where { META eq StatisticsMeta.ANALYSIS }.map { mapper(it) }
     }

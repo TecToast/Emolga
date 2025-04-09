@@ -8,6 +8,8 @@ object YTChannelsDB : Table("ytchannels") {
     val USER = long("user")
     val CHANNELID = varchar("channelid", 31)
 
+    override val primaryKey = PrimaryKey(USER, CHANNELID)
+
     suspend fun getUserByChannelId(channelId: String) = dbTransaction {
         select(USER).where { CHANNELID eq channelId }.firstOrNull()?.let { it[USER] }
     }

@@ -63,7 +63,7 @@ repositories {
     mavenCentral()
 }
 
-val exposedVersion = "0.60.0"
+val exposedVersion = "0.61.0"
 val ktorVersion = "3.1.2"
 val ktorDependencies = listOf(
     // Client
@@ -86,7 +86,7 @@ val ktorDependencies = listOf(
 
 dependencies {
     // Kotlin
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
@@ -126,7 +126,7 @@ dependencies {
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M3")
     testImplementation("io.kotest:kotest-assertions-core:6.0.0.M3")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
 }
 

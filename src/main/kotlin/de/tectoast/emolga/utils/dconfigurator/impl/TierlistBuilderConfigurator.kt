@@ -414,7 +414,7 @@ class TierlistBuilderConfigurator(
         }
 
 
-        val enabledGuilds = setOf(1054161634895069215, 651152835425075218, 736555250118295622)
+        val enabledGuilds = setOf<Long>()
     }
 }
 

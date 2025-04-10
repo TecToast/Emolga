@@ -14,7 +14,6 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
     CommandSpec(
         "preparetierlist",
         "Richtet die Tierliste ein",
-        *TierlistBuilderConfigurator.enabledGuilds.toLongArray()
     )
 ) {
     init {
@@ -22,6 +21,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
     }
 
     class Args : Arguments() {
+        var gid by long("Guild-ID", "Die ID der Guild")
         var docurl by string("Doc-URL", "Die URL des Dokuments, in dem die Namen stehen")
         var tierlistsheet by string("Tierlist-Sheet", "Der Name des Tierlist-Sheets")
         var ranges by list("Bereich %s", "Der %s. Bereich", 10, 1)
@@ -140,7 +140,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
             TierlistBuilderConfigurator(
                 userId = user,
                 channelId = tc,
-                guildId = PrivateCommands.guildForMyStuff?.takeUnless { isNotFlo } ?: gid,
+                guildId = e.gid,
                 mons =
                     (Google.batchGet(
                         sid,

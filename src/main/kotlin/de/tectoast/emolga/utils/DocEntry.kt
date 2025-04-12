@@ -57,28 +57,33 @@ class DocEntry private constructor(val league: League) {
     var rowNumToIndex: (Int) -> Int = { it.minus(league.newSystemGap + 1).div(league.newSystemGap) }
     private val gamedays get() = league.gamedays
 
-    fun newSystem(sorterData: SorterData?, memberMod: Int? = null, resultCreator: (suspend AdvancedResult.() -> Unit)) {
-        val dataSheet = league.dataSheet
+    fun newSystem(
+        sorterData: SorterData?,
+        memberMod: Int? = null,
+        dataSheetProvider: ((memidx: Int) -> String)? = null,
+        resultCreator: (suspend AdvancedResult.() -> Unit)
+    ) {
+        fun dataSheet(memidx: Int) = dataSheetProvider?.invoke(memidx) ?: league.dataSheet
         val gap = league.newSystemGap
         fun Int.mod() = memberMod?.let { this % it } ?: this
         killProcessor = BasicStatProcessor {
             Coord(
-                sheet = dataSheet, gameday + 2, plindex.mod().y(gap, monindex + 3)
+                sheet = dataSheet(plindex), gameday + 2, plindex.mod().y(gap, monindex + 3)
             )
         }
         deathProcessor = BasicStatProcessor {
             Coord(
-                sheet = dataSheet, gameday + 4 + gamedays, plindex.mod().y(gap, monindex + 3)
+                sheet = dataSheet(plindex), gameday + 4 + gamedays, plindex.mod().y(gap, monindex + 3)
             )
         }
         winProcessor = ResultStatProcessor {
             Coord(
-                sheet = dataSheet, gameday + 2, plindex.mod().y(gap, gap)
+                sheet = dataSheet(plindex), gameday + 2, plindex.mod().y(gap, gap)
             )
         }
         looseProcessor = ResultStatProcessor {
             Coord(
-                sheet = dataSheet, gameday + 4 + gamedays, plindex.mod().y(gap, gap)
+                sheet = dataSheet(plindex), gameday + 4 + gamedays, plindex.mod().y(gap, gap)
             )
         }
         this.resultCreator = resultCreator

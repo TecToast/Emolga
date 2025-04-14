@@ -190,7 +190,7 @@ class RepeatTask(
                 if (shouldDelay) delay(2000)
                 league.docEntry?.analyseWithoutCheck(listOf(it))
                 league.save("RepeatTaskYT")
-            } ?: logger.warn("No replay found for gameday $gameday and battle $battle")
+            } ?: logger.warn("No replay found for gameday $gameday and battle $battle in ${league.leaguename}")
         }
     }
 }

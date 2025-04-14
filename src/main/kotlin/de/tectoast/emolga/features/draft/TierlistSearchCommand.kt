@@ -31,13 +31,13 @@ object TierlistSearchCommand : CommandFeature<TierlistSearchCommand.Args>(
         }
         deferReply(ephemeral = true)
         val searchType = e.type
-        val searchTypeEnglish = searchType.second
+        val searchTypeEnglish = searchType.english
         val filteredList = mons.filter {
             searchTypeEnglish in dataCache.getOrPut(gid) { mutableMapOf() }
                 .getOrPut(it) { db.getDataObject(it, gid).types }
         }
         reply(
-            "All diese Mons aus dem ${tier}-Tier besitzen den Typen ${searchType.first}:\n${
+            "All diese Mons aus dem ${tier}-Tier besitzen den Typen ${searchType.german}:\n${
                 filteredList.joinToString(
                     "\n"
                 )

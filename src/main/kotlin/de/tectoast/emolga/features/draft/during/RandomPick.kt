@@ -8,6 +8,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.RandomLeaguePick
 import de.tectoast.emolga.league.config.RandomPickArgument
 import de.tectoast.emolga.league.config.RandomPickUserInput
+import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.add
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
@@ -35,7 +36,7 @@ object RandomPick {
                         ?: ArgumentPresence.NOT_PRESENT
                 })
             }.nullable()
-            var type by pokemontype("Typ", "Der Typ, den du haben willst", english = true) {
+            var type by pokemontype("Typ", "Der Typ, den du haben willst", Language.ENGLISH) {
                 slashCommand(guildChecker = {
                     val league = league() ?: return@slashCommand ArgumentPresence.OPTIONAL
                     league.config.randomPick.mode.provideCommandOptions()[RandomPickArgument.TYPE]

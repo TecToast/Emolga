@@ -3,7 +3,7 @@ package de.tectoast.emolga.utils
 import com.google.api.services.sheets.v4.model.Color
 import com.mongodb.MongoWriteException
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.TranslationsDB
+import de.tectoast.emolga.database.exposed.TypesDB
 import de.tectoast.emolga.utils.Constants.FLOID
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -198,80 +198,8 @@ enum class Language(
     val otherCol: Column<String>,
     val ncSpecifiedCol: Column<String>
 ) {
-    GERMAN(TranslationsDB.GERMANNAME, TranslationsDB.ENGLISHNAME, NameConventionsDB.SPECIFIED),
-    ENGLISH(TranslationsDB.ENGLISHNAME, TranslationsDB.GERMANNAME, NameConventionsDB.SPECIFIEDENGLISH)
-}
-
-data class Translation(
-    val translation: String,
-    val type: Type,
-    val language: Language,
-    val otherLang: String = "",
-    val forme: String? = null
-) {
-    val isEmpty: Boolean
-
-    companion object {
-        private val emptyTranslation: Translation = Translation("", Type.UNKNOWN, Language.GERMAN)
-
-        /**
-         * Cache for german translations
-         */
-        val translationsCacheGerman = SizeLimitedMap<String, Translation>(200)
-
-        /**
-         * Cache for english translations
-         */
-        val translationsCacheEnglish = SizeLimitedMap<String, Translation>(200)
-
-        private fun empty(): Translation {
-            return emptyTranslation
-        }
-
-        suspend fun getGerName(s: String): Translation {
-            val id = s.toSDName()
-            if (translationsCacheGerman.containsKey(id)) return translationsCacheGerman.getValue(id)
-            return TranslationsDB.getTranslation(id, false, Language.GERMAN)?.also {
-                addToCache(true, id, it)
-            } ?: empty()
-        }
-
-        suspend fun getEnglNameWithType(s: String): Translation {
-            val id = s.toSDName()
-            if (translationsCacheEnglish.containsKey(id)) return translationsCacheEnglish.getValue(id)
-            return TranslationsDB.getTranslation(id, false, Language.ENGLISH)?.also {
-                addToCache(false, id, it)
-            } ?: empty()
-        }
-
-        private fun addToCache(german: Boolean, sd: String, t: Translation) {
-            if (german) {
-                translationsCacheGerman[sd] = t
-            } else {
-                translationsCacheEnglish[sd] = t
-            }
-        }
-    }
-
-    enum class Type(val id: String, private val typeName: String, private val female: Boolean) {
-        ABILITY("abi", "Fähigkeit", true), EGGGROUP("egg", "Eigruppe", true), ITEM(
-            "item", "Item", false
-        ),
-        MOVE("atk", "Attacke", true), NATURE("nat", "Wesen", false), POKEMON("pkmn", "Pokémon", false), TYPE(
-            "type", "Typ", false
-        ),
-        TRAINER("trainer", "Trainer", false), UNKNOWN("unknown", "Undefiniert", false);
-
-        companion object {
-            fun fromId(id: String): Type {
-                return entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: UNKNOWN
-            }
-        }
-    }
-
-    init {
-        this.isEmpty = type == Type.UNKNOWN
-    }
+    GERMAN(TypesDB.GERMANNAME, TypesDB.ENGLISHNAME, NameConventionsDB.SPECIFIED),
+    ENGLISH(TypesDB.ENGLISHNAME, TypesDB.GERMANNAME, NameConventionsDB.SPECIFIEDENGLISH)
 }
 
 val String.isMega get() = "-Mega" in this

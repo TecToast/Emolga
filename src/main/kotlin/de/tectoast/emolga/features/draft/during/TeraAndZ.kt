@@ -3,6 +3,7 @@ package de.tectoast.emolga.features.draft.during
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.json.db
 
 object TeraAndZ {
@@ -44,7 +45,7 @@ object TeraAndZ {
                     placeholder = "Tera-User oder sonst leer lassen"
                 }
             }.nullable()
-            var type by pokemontype("type", "Dein Tera-Typ", english = true) {
+            var type by pokemontype("type", "Dein Tera-Typ", Language.ENGLISH) {
                 modal(modalKey = Tera) {
                     placeholder = "Tera-Typ oder leer lassen"
                 }

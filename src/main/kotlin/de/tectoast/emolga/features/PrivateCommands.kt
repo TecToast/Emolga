@@ -1,5 +1,7 @@
 package de.tectoast.emolga.features
 
+import MigrationUtils
+import com.google.common.reflect.ClassPath
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
@@ -42,11 +44,9 @@ import net.dv8tion.jda.api.interactions.components.ActionComponent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.batchInsert
-import org.jetbrains.exposed.sql.or
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
@@ -59,29 +59,6 @@ import kotlin.time.measureTime
 object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
-
-    context(InteractionData)
-    fun printCache() {
-        Translation.translationsCacheGerman.forEach { (str, t) ->
-            logger.info(str)
-            logger.info(t.toString())
-            logger.info("=====>")
-        }
-        logger.info(">>>>>>>>>>>>>>>>>>>>>>>>>>")
-        Translation.translationsCacheEnglish.forEach { (str, t) ->
-            logger.info(str)
-            logger.info(t.toString())
-            logger.info("<=====")
-        }
-        done()
-    }
-
-    context(InteractionData)
-    fun clearCache() {
-        Translation.translationsCacheGerman.clear()
-        Translation.translationsCacheEnglish.clear()
-        done()
-    }
 
     context(InteractionData)
     suspend fun ndsNominate(args: PrivateData) {
@@ -625,6 +602,19 @@ object PrivateCommands {
             val battle = args[2].toInt()
             RepeatTask.executeRegisterInDoc(this, gameday, battle)
         }
+    }
+
+    context(InteractionData)
+    suspend fun migrationStatements() {
+        deferReply()
+        reply(newSuspendedTransaction {
+            MigrationUtils.statementsRequiredForDatabaseMigration(
+                *ClassPath.from(Thread.currentThread().contextClassLoader)
+                    .getTopLevelClassesRecursive("de.tectoast.emolga")
+                    .filter { it.simpleName.endsWith("DB") }.map { it.load().kotlin.objectInstance!! as Table }
+                    .toTypedArray(), withLogs = false
+            ).joinToString(separator = "\n", prefix = "```sql\n", postfix = "```")
+        })
     }
 
 }

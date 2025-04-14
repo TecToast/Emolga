@@ -5,6 +5,7 @@ package de.tectoast.emolga.features
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.TypesDB
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -501,26 +502,23 @@ open class Arguments {
     }
 
     fun pokemontype(
-        name: String = "", help: String = "", english: Boolean, builder: Arg<String, String>.() -> Unit = {}
-    ) = fromList(name, help, typeList, useContainsAutoComplete = true) {
-        validate { str ->
-            val t = if (english) Translation.getEnglNameWithType(str)
-            else Translation.getGerName(str)
-            if (t.isEmpty || t.type != Translation.Type.TYPE) throw InvalidArgumentException("Ungültiger Typ!")
-            if (t.translation == "Psychic" || t.otherLang == "Psychic") {
-                if (english) "Psychic" else "Psycho"
-            } else t.translation
+        name: String = "", help: String = "", language: Language, builder: Arg<String, String>.() -> Unit = {}
+    ) = createArg(name, help) {
+        validate {
+            TypesDB.getType(it, language)
+        }
+        slashCommand { s, event ->
+            TypesDB.getOptions(s)
         }
         builder()
     }
 
     fun pokemontype(name: String = "", help: String = "") = createArg(name, help, OptionType.STRING) {
         validate { str ->
-            val t = Translation.getGerName(str)
-            if (t.isEmpty || t.type != Translation.Type.TYPE) throw InvalidArgumentException("Ungültiger Typ!")
-            if (t.translation == "Psychic" || t.otherLang == "Psychic") {
-                "Psycho" to "Psychic"
-            } else t.translation to t.otherLang
+            TypesDB.getTypeInBothLanguages(str)
+        }
+        slashCommand { s, event ->
+            TypesDB.getOptions(s)
         }
     }
 

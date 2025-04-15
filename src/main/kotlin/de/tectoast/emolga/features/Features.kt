@@ -654,44 +654,6 @@ open class Arguments {
             }
         }
 
-        private val typeList = listOf(
-            "Normal",
-            "Feuer",
-            "Wasser",
-            "Pflanze",
-            "Gestein",
-            "Boden",
-            "Geist",
-            "Unlicht",
-            "Drache",
-            "Fee",
-            "Eis",
-            "Kampf",
-            "Elektro",
-            "Flug",
-            "Gift",
-            "Psycho",
-            "Stahl",
-            "Käfer",
-            "Fire",
-            "Water",
-            "Grass",
-            "Rock",
-            "Ground",
-            "Ghost",
-            "Dark",
-            "Dragon",
-            "Fairy",
-            "Ice",
-            "Fighting",
-            "Electric",
-            "Flying",
-            "Poison",
-            "Psychic",
-            "Steel",
-            "Bug"
-        )
-
     }
 }
 

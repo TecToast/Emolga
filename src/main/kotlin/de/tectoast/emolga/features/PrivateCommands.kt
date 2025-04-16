@@ -437,7 +437,6 @@ object PrivateCommands {
                 this[NameConventionsDB.ENGLISH] = it[NameConventionsDB.ENGLISH]
                 this[NameConventionsDB.SPECIFIED] = it[NameConventionsDB.SPECIFIED]
                 this[NameConventionsDB.SPECIFIEDENGLISH] = it[NameConventionsDB.SPECIFIEDENGLISH]
-                this[NameConventionsDB.HASHYPHENINNAME] = it[NameConventionsDB.HASHYPHENINNAME]
                 this[NameConventionsDB.COMMON] = it[NameConventionsDB.COMMON]
             }
         }

@@ -27,7 +27,6 @@ object NameConventionsDB : Table("nameconventions") {
     val ENGLISH = varchar("english", 50)
     val SPECIFIED = varchar("specified", 50)
     val SPECIFIEDENGLISH = varchar("specifiedenglish", 50)
-    val HASHYPHENINNAME = bool("hashypheninname")
 
     val COMMON = bool("common")
 
@@ -51,10 +50,11 @@ object NameConventionsDB : Table("nameconventions") {
         return dbTransaction {
             val checkLang = if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH
             val resultLang = if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED
-            selectAll().where((GUILD eq 0 or (GUILD eq guildId)) and (checkLang inList mons))
-                .map { it[if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED] } + mons.mapNotNull { mon ->
+            select(resultLang).where((GUILD eq 0 or (GUILD eq guildId)) and (checkLang inList mons))
+                .map { it[resultLang] } + mons.mapNotNull { mon ->
                 nc.values.firstNotNullOfOrNull { it.toRegex().find(mon) }?.run {
-                    selectAll().where { checkLang eq groupValues[1] }.firstOrNull()?.get(resultLang)?.let { repl ->
+                    select(resultLang).where { checkLang eq groupValues[1] }.firstOrNull()?.get(resultLang)
+                        ?.let { repl ->
                         if (mon != value) return@let null
                         value.replace(
                             groupValues[1], repl
@@ -70,7 +70,7 @@ object NameConventionsDB : Table("nameconventions") {
      * @return the list of all official names
      */
     private suspend fun getAll() = dbTransaction {
-        selectAll().flatMap { setOf(it[GERMAN], it[ENGLISH]) }.toSet()
+        select(GERMAN, ENGLISH).flatMap { setOf(it[GERMAN], it[ENGLISH]) }.toSet()
     }
 
     /**
@@ -81,8 +81,7 @@ object NameConventionsDB : Table("nameconventions") {
      */
     suspend fun checkIfExists(name: String, guildId: Long, language: Language): Boolean {
         return dbTransaction {
-            selectAll().where((language.ncSpecifiedCol eq name) and (GUILD eq 0 or (GUILD eq guildId)))
-                .firstOrNull() != null
+            selectAll().where((language.ncSpecifiedCol eq name) and (GUILD eq 0 or (GUILD eq guildId))).count() > 0
         }
     }
 
@@ -192,7 +191,7 @@ object NameConventionsDB : Table("nameconventions") {
      */
     suspend fun getAllSDTranslationOnlyOfficialGerman(list: List<String>): Map<String, String> {
         return dbTransaction {
-            selectAll().where(ENGLISH inList list).associate { it[ENGLISH] to it[GERMAN] }
+            select(ENGLISH, GERMAN).where(ENGLISH inList list).associate { it[ENGLISH] to it[GERMAN] }
         }
     }
 
@@ -200,7 +199,7 @@ object NameConventionsDB : Table("nameconventions") {
     // TODO: Check for multi lang, may be merged with [getAllSDTranslationOnlyOfficialGerman]
     suspend fun getAllSDTranslationOnlyOfficialEnglish(list: List<String>): Map<String, String> {
         return dbTransaction {
-            selectAll().where(GERMAN inList list).associate { it[GERMAN] to it[ENGLISH] }
+            select(ENGLISH, GERMAN).where(GERMAN inList list).associate { it[GERMAN] to it[ENGLISH] }
         }
     }
 

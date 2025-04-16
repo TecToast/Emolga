@@ -3,6 +3,8 @@ package de.tectoast.emolga.utils
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.awt.*
 import java.awt.image.BufferedImage
 import java.util.concurrent.atomic.AtomicInteger
@@ -99,13 +101,12 @@ class TeamGraphic {
     }
 
 
-
-    private fun execute(): BufferedImage {
+    private suspend fun execute(): BufferedImage {
         val normal = 220
         var lastNum = normal
         var minOffset = normal
         var maxOffset = normal
-        val toexecute = mutableListOf<(Graphics2D, Int) -> Unit>()
+        val toexecute = mutableListOf<suspend (Graphics2D, Int) -> Unit>()
         val indexToStartX: MutableMap<Int, Int> = mutableMapOf()
         for ((index, row) in mons.withIndex()) {
             val startX = if (index == 0) normal else {
@@ -118,7 +119,12 @@ class TeamGraphic {
             lastNum = startX
             minOffset = min(minOffset, startX)
             maxOffset = maxOf(maxOffset, startX + row.size * 397)
-            row.forEach { toexecute.add { g, i -> executeSlot(g, it, index, startX + i) } }
+            for (mon in row) {
+                val suspendLambda: suspend (Graphics2D, Int) -> Unit = { g, i ->
+                    executeSlot(g, mon, index, startX + i)
+                }
+                toexecute.add(suspendLambda)
+            }
             indexToStartX[index] = startX
         }
         //logger.info("ja lol ey: $indexToStartX")
@@ -132,7 +138,9 @@ class TeamGraphic {
         )
         //val img = BufferedImage(5000, 5000, BufferedImage.TYPE_INT_ARGB )
         val g = img.createGraphics()
-        toexecute.forEach { it(g, normal - minOffset) }
+        for (exec in toexecute) {
+            exec(g, normal - minOffset)
+        }
         g.dispose()
         return img
     }
@@ -145,7 +153,7 @@ class TeamGraphic {
         }
     }
 
-    private fun executeSlot(g: Graphics2D, mon: DraftPokemon, rownum: Int, startX: Int) {
+    private suspend fun executeSlot(g: Graphics2D, mon: DraftPokemon, rownum: Int, startX: Int) {
         val (pokemon, tier, _, _) = mon
         g.stroke = BasicStroke(13.5f)
         //g.color = Color(0x00CCCC)
@@ -153,7 +161,9 @@ class TeamGraphic {
         currentNumber[rownum] = currentNumber[rownum]!! + 1
         val xcoord = x.y(20 + 377, startX)
         val ycoord = rownum.y(360, 220)
-        val ora = ImageIO.read(pokemon.file()/*.also { logger.info("Mon: ${it.absolutePath}") }*/)
+        val ora = withContext(Dispatchers.IO) {
+            ImageIO.read(pokemon.file()/*.also { logger.info("Mon: ${it.absolutePath}") }*/)
+        }
         val factor = 330f / 96f
         val width = (ora.width.toFloat() * factor).toInt()
         val height = (ora.height.toFloat() * factor).toInt()

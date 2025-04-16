@@ -1,6 +1,8 @@
 package de.tectoast.emolga.leaguecreator
 
 import de.tectoast.emolga.utils.file
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 
 sealed class Templater(private val leagueCreator: LeagueCreator, val templatePath: String) {
@@ -11,13 +13,17 @@ sealed class Templater(private val leagueCreator: LeagueCreator, val templatePat
         )
     }
 
-    fun save() {
+    suspend fun save() {
         // Creating template
-        var template = "templates/$templatePath".file().readText()
+        var template = withContext(Dispatchers.IO) {
+            "templates/$templatePath".file().readText()
+        }
         template = beforeReplace(template)
         templateValues.forEach { (key, value) -> template = template.replace("###$key###", value) }
         template = afterReplace(template)
-        "templatesfinished/$filename".file().writeText(template)
+        withContext(Dispatchers.IO) {
+            "templatesfinished/$filename".file().writeText(template)
+        }
     }
 
     class ShowdownScriptTemplate(leagueCreator: LeagueCreator) :
@@ -27,7 +33,7 @@ sealed class Templater(private val leagueCreator: LeagueCreator, val templatePat
         lateinit var format: Format
 
 
-        inline fun build(builder: ShowdownScriptTemplate.() -> Unit) {
+        suspend inline fun build(builder: ShowdownScriptTemplate.() -> Unit) {
             apply(builder)
             templateValues["namespace"] = name.replace(" ", "").lowercase()
             templateValues["url"] =

@@ -25,7 +25,6 @@ import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
-import java.io.File
 import kotlin.math.absoluteValue
 import kotlin.time.Duration.Companion.seconds
 
@@ -415,8 +414,6 @@ object Analysis {
                 sdPlayers = (0 until playerCount).map {
                     SDPlayer(
                         nicknames[it] ?: run {
-                            File("replayerrors/$url${System.currentTimeMillis()}.txt").also { f -> f.createNewFile() }
-                                .writeText(game.joinToString("\n"))
                             throw ShowdownParseException()
                         }, allMons[it].orEmpty().toMutableList()
                     )

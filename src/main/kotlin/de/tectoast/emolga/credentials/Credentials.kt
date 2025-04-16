@@ -4,12 +4,16 @@ import de.tectoast.emolga.ktor.Ktor
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.json.Tokens
 import de.tectoast.emolga.utils.myJSON
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 
 object Credentials {
     lateinit var tokens: Tokens
-    fun load() {
-        this.tokens = myJSON.decodeFromString(File(System.getenv("CONFIG_FILE") ?: "config.json").readText())
+    suspend fun load() {
+        this.tokens = myJSON.decodeFromString(withContext(Dispatchers.IO) {
+            File(System.getenv("CONFIG_FILE") ?: "config.json").readText()
+        })
         injectTokens()
     }
 

@@ -94,8 +94,8 @@ object PrivateCommands {
     }
 
     context(InteractionData)
-    suspend fun reopenSignup(args: PrivateData) {
-        db.signups.get(args[0].toLong())!!.reopenSignup(args[1].toInt())
+    suspend fun setNewMaxUsers(args: PrivateData) {
+        db.signups.get(args[0].toLong())!!.setNewMaxUsers(args[1].toInt())
     }
 
     context(InteractionData)

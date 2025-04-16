@@ -477,12 +477,14 @@ data class LigaStartData(
         if (forced) updateSignupMessage(true)
     }
 
-    suspend fun reopenSignup(newMaxUsers: Int) {
+    suspend fun setNewMaxUsers(newMaxUsers: Int) {
+        val wasClosed = full
         maxUsers = newMaxUsers
-        val channel = jda.getTextChannelById(announceChannel)!!
-        channel.editMessageComponentsById(
-            announceMessageId, SignupManager.Button().into()
-        ).queue()
+        if (wasClosed) {
+            jda.getTextChannelById(announceChannel)!!.editMessageComponentsById(
+                announceMessageId, SignupManager.Button().into()
+            ).queue()
+        }
         updateSignupMessage()
         save()
     }

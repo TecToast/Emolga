@@ -133,7 +133,8 @@ class LeagueCreator(
                 .associate { it.idLong to it.effectiveName }
 
         }
-        val saveJSONList = collection.find("{}").toList().map { it.id!!.toString() }.toMutableList()
+        val saveJSONList = collection.find("{}").toList().map { it.leaguename }.toMutableList()
+        // TODO: Was ID before
 
         sids/*.take(1)*/.forEachIndexed { leagueindex, sid ->
             if (leagueindex in disabledLeagueIndexes) return@forEachIndexed

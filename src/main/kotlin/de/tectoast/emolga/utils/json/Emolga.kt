@@ -30,11 +30,13 @@ import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.reply_
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.datetime.Instant
 import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.interactions.modals.Modal
 import org.bson.BsonDocument
@@ -42,7 +44,6 @@ import org.bson.conversions.Bson
 import org.litote.kmongo.*
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
-import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.reactivestreams.KMongo
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.measureTimedValue
@@ -69,7 +70,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     val ndsQuery by lazy { League::leaguename regex "^NDS" }
 
-    val config by lazy { db.getCollection<Config>("config") }
+    val config by lazy { db.getCollection<GeneralConfig>("config") }
     val signups by lazy { db.getCollection<LigaStartData>("signups") }
     val league by lazy { db.getCollection<League>("league") }
     val cooldowns by lazy { db.getCollection<Cooldown>("cooldowns") }
@@ -102,8 +103,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         league.find(or(League::tcid eq tc, and(League::guild eq gid, League::table contains user))).toList()
             .maxByOrNull { it.tcid == tc }
 
-    context(InteractionData)
-    suspend fun leagueByCommand() = leagueByGuild(gid, user)
+    context(InteractionData) suspend fun leagueByCommand() = leagueByGuild(gid, user)
 
     suspend fun getDataObject(mon: String, guild: Long = 0): Pokemon {
         return pokedex.get(NameConventionsDB.getDiscordTranslation(mon, guild, true)!!.official.toSDName())!!
@@ -234,7 +234,7 @@ data class TypeIcon(
 )
 
 @Serializable
-data class Config(
+data class GeneralConfig(
     val teamgraphicShinyOdds: Int,
     val guildsToUpdate: List<Long> = listOf(),
     val raikou: Boolean = false,
@@ -276,11 +276,13 @@ sealed interface SignUpValidateResult {
 }
 
 @Serializable
+@Config("Anmeldungseingabe", "Eine Option, die bei der Anmeldung angegeben werden muss")
 sealed class SignUpInput() {
     abstract val id: String
 
     @Serializable
     @SerialName("SDName")
+    @Config("Showdown-Name", "Selbsterklärend", prio = 2)
     data object SDName : SignUpInput() {
         override val id = "sdname"
 
@@ -297,6 +299,7 @@ sealed class SignUpInput() {
 
     @Serializable
     @SerialName("TeamName")
+    @Config("Team-Name", "Selbsterklärend", prio = 1)
     data object TeamName : SignUpInput() {
         override val id = "teamname"
 
@@ -309,7 +312,18 @@ sealed class SignUpInput() {
 
     @Serializable
     @SerialName("OfList")
-    data class OfList(val name: String, val list: List<String>, val visibleForAll: Boolean) : SignUpInput() {
+    @Config(
+        "Aus einer Liste",
+        "Für den Fall, dass die Teilnehmenden aus einer Menge an Optionen auswählen sollen (zum Beispiel Ligapräferenzen)"
+    )
+    data class OfList(
+        @Config("Name", "Der Name dieser Option, z.B. Liga") val name: String = "Liga",
+        @Config("Liste", "Die Liste, aus der man auswählen soll") val list: List<String> = listOf(),
+        @Config(
+            "Sichtbar für alle",
+            "Ob die Auswahl in der Anmeldungsnachricht des Teilnehmenden erscheinen soll"
+        ) val visibleForAll: Boolean = true
+    ) : SignUpInput() {
         override val id = "oflist_$name"
 
         override fun getModalInputOptions(): ModalInputOptions {
@@ -331,10 +345,14 @@ sealed class SignUpInput() {
 }
 
 @Serializable
+@Config("Logo-Einstellungen", "Wie/wo sollen die Logos landen?")
 sealed interface LogoSettings {
     @Serializable
     @SerialName("Channel")
-    data class Channel(val channelId: Long) : LogoSettings {
+    @Config("Logo-Channel", "Die Logos landen in einem bestimmten Channel.")
+    data class Channel(
+        @Config("Channel", "Der Channel, in dem die Logos landen sollen", LongType.CHANNEL) val channelId: Long = 0
+    ) : LogoSettings {
         override suspend fun handleLogo(
             lsData: LigaStartData, data: SignUpData, logoData: LogoCommand.LogoInputData
         ) {
@@ -368,6 +386,7 @@ sealed interface LogoSettings {
 
     @Serializable
     @SerialName("WithSignupMessage")
+    @Config("An der Anmeldung", "Die Logos werden an die Anmeldenachricht selbst drangehängt.")
     data object WithSignupMessage : LogoSettings {
         override suspend fun handleLogo(
             lsData: LigaStartData, data: SignUpData, logoData: LogoCommand.LogoInputData
@@ -384,20 +403,41 @@ sealed interface LogoSettings {
 }
 
 @Serializable
+@Config(name = "Anmeldungskonfiguration", "Hier kannst du die Anmeldung konfigurieren.")
 data class LigaStartData(
-    @SerialName("_id") @Contextual val id: Id<LigaStartData> = newId(),
-    val guild: Long,
-    val signupChannel: Long,
-    val signupMessage: String,
-    val announceChannel: Long,
+    @Contextual val guild: Long,
+    @Config(
+        name = "Anmeldungschannel",
+        "In welchem Channel sollen die Anmeldungen von Emolga gesendet werden?",
+        longType = LongType.CHANNEL
+    ) val signupChannel: Long,
+    @Config(
+        name = "Anmeldungsnachricht",
+        "Was soll in der Anmeldungsnachricht von Emolga stehen?"
+    ) val signupMessage: String,
+    @Config(
+        name = "Anmeldungschannel",
+        "In welchem Channel soll die Anmeldungsnachricht stehen?",
+        longType = LongType.CHANNEL
+    ) val announceChannel: Long,
     val announceMessageId: Long,
-    val logoSettings: LogoSettings? = null,
-    var maxUsers: Int,
-    val participantRole: Long? = null,
-    @EncodeDefault
-    var conferences: List<String> = listOf(),
+    @Config(
+        "Logo-Einstellungen",
+        "Hier kannst du einstellen, ob/wie Logos eingesendet werden."
+    ) val logoSettings: LogoSettings? = null,
+    @Config(
+        "Maximale Anzahl",
+        "Hier kannst du einstellen, bei wie vielen Teilnehmenden die Anmeldung geschlossen werden soll. Bei 0 gibt es keine Begrenzung."
+    ) var maxUsers: Int,
+    @Config(
+        "Teilnehmerrolle",
+        "Hier kannst du eine Rolle einstellen, die die Teilnehmer automatisch bekommen sollen."
+    ) val participantRole: Long? = null,
+    @EncodeDefault var conferences: List<String> = listOf(),
     var conferenceRoleIds: Map<String, Long> = mapOf(),
-    val signupStructure: List<SignUpInput> = listOf(),
+    @Config(
+        "Anmeldungsstruktur", "Hier kannst du einstellen, was die Teilnehmer alles bei der Anmeldung angeben sollen."
+    ) val signupStructure: List<SignUpInput> = listOf(),
     val users: MutableList<SignUpData> = mutableListOf(),
 ) {
     val maxUsersAsString
@@ -448,11 +488,20 @@ data class LigaStartData(
 
     fun getDataByUser(uid: Long) = users.firstOrNull { it.users.contains(uid) }
 
-    suspend fun save() = db.signups.updateOne(this)
+    suspend fun save() = db.signups.updateOne(LigaStartData::guild eq guild, this)
     inline fun giveParticipantRole(memberfun: () -> Member) {
         participantRole?.let {
             val member = memberfun()
             member.guild.addRoleToMember(member, member.guild.getRoleById(it)!!).queue()
+        }
+    }
+
+    suspend fun giveParticipantRoleToAll() {
+        val g = jda.getGuildById(guild)!!
+        val r = g.getRoleById(participantRole!!)!!
+        users.flatMap { it.users }.forEach {
+            g.addRoleToMember(UserSnowflake.fromId(it), r).await()
+            delay(2000)
         }
     }
 

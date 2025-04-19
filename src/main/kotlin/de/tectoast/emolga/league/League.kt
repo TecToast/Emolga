@@ -36,8 +36,6 @@ import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.LayoutComponent
-import org.bson.types.ObjectId
-import org.litote.kmongo.coroutine.updateOne
 import org.litote.kmongo.eq
 import org.litote.kmongo.ne
 import java.text.SimpleDateFormat
@@ -55,9 +53,6 @@ enum class DraftState {
 @Suppress("MemberVisibilityCanBePrivate")
 @Serializable
 sealed class League {
-    @SerialName("_id")
-    @Contextual
-    val id: ObjectId? = null
     val sid: String = "yay"
     val leaguename: String = "ERROR"
 
@@ -1000,7 +995,7 @@ sealed class League {
 
         suspend fun League.lockCleanup() {
             if (shouldSave) {
-                db.league.updateOne(this)
+                db.league.updateOne(League::leaguename eq leaguename, this)
             }
         }
 

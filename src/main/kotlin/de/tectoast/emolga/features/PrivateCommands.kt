@@ -513,14 +513,14 @@ object PrivateCommands {
     }
 
     suspend fun enableMaintenanceWithReason(reason: String) {
-        db.config.updateOnly(set(de.tectoast.emolga.utils.json.Config::maintenance setTo reason))
+        db.config.updateOnly(set(GeneralConfig::maintenance setTo reason))
         EmolgaMain.maintenance = reason
         EmolgaMain.updatePresence()
     }
 
     context(InteractionData)
     suspend fun disableMaintenance() {
-        db.config.updateOnly(set(de.tectoast.emolga.utils.json.Config::maintenance setTo null))
+        db.config.updateOnly(set(GeneralConfig::maintenance setTo null))
         EmolgaMain.maintenance = null
         EmolgaMain.updatePresence()
     }

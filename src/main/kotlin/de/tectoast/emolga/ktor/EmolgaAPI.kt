@@ -4,6 +4,9 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.GuildManagerDB
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.SizeLimitedMap
+import de.tectoast.emolga.utils.json.EmolgaConfigHelper
+import de.tectoast.emolga.utils.json.EmolgaConfigHelper.findConfig
+import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.webJSON
@@ -24,6 +27,7 @@ import kotlinx.coroutines.flow.toSet
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.serializerOrNull
 import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
@@ -44,19 +48,25 @@ fun Route.emolgaAPI() {
             }
         }
         get("/defaultdata") {
-            val path = call.request.queryParameters["path"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val path = call.request.queryParameters["path"]?.replace("?", "")
+                ?: return@get call.respond(HttpStatusCode.BadRequest)
             if (!path.startsWith("de.tectoast")) return@get call.respond(HttpStatusCode.BadRequest)
             defaultDataCache[path]?.let { return@get call.respondText(it, ContentType.Application.Json) }
-            val clazz =
-                runCatching { Class.forName(path) }.getOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
-            val serializer = clazz.kotlin.serializerOrNull() as? KSerializer<Any>? ?: return@get call.respond(
-                HttpStatusCode.BadRequest
-            )
+            val split = path.split("#")
+            var parentSerializer: KSerializer<Any>? = null
+            val serializer = runCatching {
+                if (split.size == 2) Class.forName(split[0]).kotlin.also {
+                    parentSerializer =
+                        it.serializerOrNull() as KSerializer<Any>?
+                }.sealedSubclasses.mapNotNull { it.serializerOrNull() }
+                    .sortedBy { it.descriptor.annotations.findConfig()?.prio ?: Int.MAX_VALUE }
+                    .first { split[1] == "" || it.descriptor.serialName == split[1] } else Class.forName(path).kotlin.serializerOrNull()
+            }.getOrNull() as? KSerializer<Any>? ?: return@get call.respond(HttpStatusCode.BadRequest)
             val value =
                 runCatching { webJSON.decodeFromString(serializer, "{}") }.getOrNull() ?: return@get call.respond(
                     HttpStatusCode.BadRequest
                 )
-            val defaultData = webJSON.encodeToString(serializer, value)
+            val defaultData = webJSON.encodeToString(parentSerializer ?: serializer, value)
             defaultDataCache[path] = defaultData
             call.respondText(defaultData, ContentType.Application.Json)
         }
@@ -108,7 +118,35 @@ fun Route.emolgaAPI() {
                         call.respond(HttpStatusCode.OK)
                     }
                 }
+                configOption("/config", LigaStartData.serializer().descriptor) {
+                    db.signups.get(gid) ?: LigaStartData(
+                        guild = gid,
+                        signupChannel = 0,
+                        announceChannel = 0,
+                        signupMessage = "Hier könnt ihr euch anmelden :)",
+                        announceMessageId = -1,
+                        maxUsers = 0
+                    )
+                }
             }
+        }
+    }
+}
+
+data class RouteDataProvider(val user: Long, val gid: Long)
+
+inline fun <reified T : Any> Route.configOption(
+    path: String,
+    descriptor: SerialDescriptor,
+    crossinline dataProvider: suspend RouteDataProvider.() -> T
+) {
+    route(path) {
+        get("/struct") {
+            call.respond(EmolgaConfigHelper.buildFromDescriptor(descriptor))
+        }
+        get("/content") {
+            val gid = call.requireGuild() ?: return@get
+            call.respond(dataProvider(RouteDataProvider(call.userId, gid)))
         }
     }
 }

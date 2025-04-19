@@ -22,6 +22,7 @@ import kotlinx.coroutines.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
@@ -41,8 +42,15 @@ object Analysis {
         analysisData: AnalysisData? = null,
         useReplayResultChannelAnyways: Boolean = false
     ) = analyseReplay(
-        listOf(urlProvided), customReplayChannel, resultchannelParam, message, fromReplayCommand, customGuild, withSort,
-        analysisData, useReplayResultChannelAnyways
+        listOf(urlProvided),
+        customReplayChannel,
+        resultchannelParam,
+        message,
+        fromReplayCommand,
+        customGuild,
+        withSort,
+        analysisData,
+        useReplayResultChannelAnyways
     )
 
     suspend fun analyseReplay(
@@ -61,9 +69,13 @@ object Analysis {
         fun send(msg: String) {
             fromReplayCommand?.reply(msg) ?: resultchannelParam.sendMessage(msg).queue()
         }
-        if (fromReplayCommand != null && !resultchannelParam.guild.selfMember.hasPermission(
+
+        val selfMember = resultchannelParam.guild.selfMember
+        if (fromReplayCommand != null && (resultchannelParam.type == ChannelType.TEXT && !selfMember.hasPermission(
                 resultchannelParam, Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND
-            )
+            ) || ((resultchannelParam.type == ChannelType.GUILD_PUBLIC_THREAD || resultchannelParam.type == ChannelType.GUILD_PRIVATE_THREAD) && !selfMember.hasPermission(
+                resultchannelParam, Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND_IN_THREADS
+            )))
         ) {
             send("Ich habe keine Berechtigung, im konfigurierten Channel ${resultchannelParam.asMention} zu schreiben!")
             return
@@ -215,16 +227,14 @@ object Analysis {
                     (old.first + kills) to (old.second + deaths)
                 }.let { it.first != it.second }) {
                 resultchannelParam.send(
-                    "Die Kills und Tode stimmen nicht überein."
-                            + (if (shouldSendZoro) " Dies liegt wahrscheinlich an Zoroark." else " Dies liegt sehr wahrscheinlich an einem Bug in meiner Analyse.") + " Bitte überprüfe selbst, wo der Fehler liegt. Mein Programmierer wurde benachrichtigt."
+                    "Die Kills und Tode stimmen nicht überein." + (if (shouldSendZoro) " Dies liegt wahrscheinlich an Zoroark." else " Dies liegt sehr wahrscheinlich an einem Bug in meiner Analyse.") + " Bitte überprüfe selbst, wo der Fehler liegt. Mein Programmierer wurde benachrichtigt."
                 ).queue()
                 SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
             }
             logger.info("In Emolga Listener!")
             Database.dbScope.launch {
                 dbTransaction {
-                    val replayChannelId =
-                        fromReplayCommand?.tc ?: replayChannel?.idLong ?: return@dbTransaction
+                    val replayChannelId = fromReplayCommand?.tc ?: replayChannel?.idLong ?: return@dbTransaction
                     val endlessId =
                         EndlessLeagueChannelsDB.selectAll().where { EndlessLeagueChannelsDB.CHANNEL eq replayChannelId }
                             .firstOrNull()?.get(
@@ -234,10 +244,8 @@ object Analysis {
                             it[ID] = endlessId
                             it[URL] = url
                         }.insertedCount > 0) {
-                        val newSize =
-                            EndlessLeagueDataDB.select(EndlessLeagueDataDB.ID)
-                                .where { EndlessLeagueDataDB.ID eq endlessId }
-                                .count()
+                        val newSize = EndlessLeagueDataDB.select(EndlessLeagueDataDB.ID)
+                            .where { EndlessLeagueDataDB.ID eq endlessId }.count()
                         // new replay for this id
                         val info = EndlessLeagueInfoDB.selectAll().where { EndlessLeagueInfoDB.ID eq endlessId }.first()
                         RequestBuilder(info[EndlessLeagueInfoDB.SID]).addRow(

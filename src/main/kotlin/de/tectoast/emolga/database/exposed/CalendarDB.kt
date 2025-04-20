@@ -7,11 +7,12 @@ import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
+import org.jetbrains.exposed.sql.kotlin.datetime.CurrentTimestamp
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 object CalendarDB : IntIdTable("calendar") {
-    val MESSAGE = varchar("message", 1000)
-    val EXPIRES = timestamp("expires")
+    val MESSAGE = text("message")
+    val EXPIRES = timestamp("expires").defaultExpression(CurrentTimestamp)
 
 
     /**

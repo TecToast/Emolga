@@ -444,10 +444,20 @@ sealed class League {
                         table[mem], embeds = Embed(
                             title = "Queue-Pick-Warnung",
                             color = 0xff0000,
-                            description = "`${newMon.tlName}` aus deiner Queue wurde gepickt.\n${if (data.disableIfSniped) "Das System wurde für dich deaktiviert, damit du umplanen kannst." else "Das System läuft jedoch für dich weiter."}"
+                            description = "`${newMon.tlName}` aus deiner Queue wurde von ${getCurrentName()} gepickt.\n${if (data.disableIfSniped) "Das System wurde für dich deaktiviert, damit du umplanen kannst." else "Das System läuft jedoch für dich weiter."}"
                         ).into()
                     )
                     data.enabled = data.enabled && !data.disableIfSniped
+                } else if (data.enabled) {
+                    data.pickNotifications?.let { notification ->
+                        val whenToManualPick = data.queued.size + 1
+                        if (notification.wantsNotification(whenToManualPick)) {
+                            SendFeatures.sendToUser(
+                                table[mem],
+                                "Du hast `${newMon.tlName}` gepickt.\nRunden, bis wieder manuell gepickt werden muss: **$whenToManualPick**"
+                            )
+                        }
+                    }
                 }
             }
         lastPickedMon = null

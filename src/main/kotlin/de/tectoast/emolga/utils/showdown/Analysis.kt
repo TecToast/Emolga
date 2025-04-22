@@ -1,6 +1,5 @@
 package de.tectoast.emolga.utils.showdown
 
-import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
@@ -198,17 +197,8 @@ object Analysis {
                 fromReplayCommand?.reply(msgCreateData = tosend)
             }
             if (resultchannelParam.guild.idLong != Constants.G.MY) {
-                StatisticsDB.increment(StatisticsMeta.ANALYSIS)
-                game.forEach { player ->
-                    player.pokemon.filterNot { "unbekannt" in it.pokemon }.forEach {
-                        FullStatsDB.add(
-                            it.draftname.official, it.kills, it.isDead, player.winnerOfGame
-                        )
-                    }
-                }
-                defaultScope.launch {
-                    EmolgaMain.updatePresence()
-                }
+                StatisticsMigrationLinks.add(url)
+//                addToStatistics(game)
             }
             var shouldSendZoro = false
             for (ga in game) {

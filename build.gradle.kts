@@ -97,12 +97,12 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:5.3.2")
+    implementation("net.dv8tion:JDA:5.4.0")
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250211-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20250220-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20250329-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20250224-2.0.0")
 
     // Database

@@ -6,8 +6,8 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
+import de.tectoast.emolga.database.exposed.AnalysisStatistics
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.StatisticsDB
 import de.tectoast.emolga.database.exposed.YTChannelsDB
 import de.tectoast.emolga.database.exposed.YTNotificationsDB
 import de.tectoast.emolga.features.draft.SignupManager.Button
@@ -53,6 +53,7 @@ import java.io.ByteArrayOutputStream
 import java.security.SecureRandom
 import java.util.regex.Pattern
 import javax.imageio.ImageIO
+import kotlin.reflect.full.isSubclassOf
 import kotlin.time.measureTime
 
 @Suppress("unused")
@@ -217,18 +218,6 @@ object PrivateCommands {
                 this.action = FlorixButton.Action.START
             }.into()
         ).queue()
-    }
-
-    context(InteractionData)
-    suspend fun updateGoogleStatistics() {
-        RequestBuilder("1_8eutglTucjqgo-sPsdNrlFf-vjKADXrdPDj389wwbY").suppressMessages().addAll(
-            "Data!A2",
-            StatisticsDB.getAllAnalysis {
-                listOf(
-                    defaultTimeFormat.format(it[TIMESTAMP].toEpochMilliseconds()),
-                    it[VALUE]
-                )
-            }).execute()
     }
 
     private data class CoachData(val coachId: Long, val roleId: Long, val prefix: String)
@@ -610,10 +599,16 @@ object PrivateCommands {
             MigrationUtils.statementsRequiredForDatabaseMigration(
                 *ClassPath.from(Thread.currentThread().contextClassLoader)
                     .getTopLevelClassesRecursive("de.tectoast.emolga")
-                    .filter { it.simpleName.endsWith("DB") }.map { it.load().kotlin.objectInstance!! as Table }
+                    .map { it.load().kotlin }
+                    .filter { it.isSubclassOf(Table::class) }.mapNotNull { it.objectInstance as? Table? }
                     .toTypedArray(), withLogs = false
-            ).joinToString(separator = "\n", prefix = "```sql\n", postfix = "```")
+            ).joinToString(separator = "\n", prefix = "```sql\n", postfix = "```") { "$it;" }
         })
+    }
+
+    context(InteractionData)
+    suspend fun urlIntoStatistics(args: PrivateData) {
+        AnalysisStatistics.addDirectlyFromURL(args())
     }
 
 }

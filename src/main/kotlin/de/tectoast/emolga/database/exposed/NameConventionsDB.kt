@@ -28,7 +28,7 @@ object NameConventionsDB : Table("nameconventions") {
     val SPECIFIED = varchar("specified", 50)
     val SPECIFIEDENGLISH = varchar("specifiedenglish", 50)
 
-    val COMMON = bool("common")
+    val COMMON = bool("common").default(false)
 
     init {
         index("all", isUnique = false, GERMAN, ENGLISH, SPECIFIED, SPECIFIEDENGLISH, GUILD)
@@ -239,8 +239,8 @@ object NameConventionsDB : Table("nameconventions") {
                         },
                         it[if (english) ENGLISH else GERMAN],
                         it[GUILD] != 0L || spec != null,
-                        if (plusOther) if (english) it[SPECIFIED] else it[SPECIFIEDENGLISH] else null,
-                        if (plusOther) if (english) it[GERMAN] else it[ENGLISH] else null
+                        if (english) it[SPECIFIED] else it[SPECIFIEDENGLISH],
+                        if (english) it[GERMAN] else it[ENGLISH]
                     )
                 }
             null

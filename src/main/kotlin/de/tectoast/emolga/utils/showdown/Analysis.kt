@@ -1,5 +1,6 @@
 package de.tectoast.emolga.utils.showdown
 
+import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
@@ -197,8 +198,10 @@ object Analysis {
                 fromReplayCommand?.reply(msgCreateData = tosend)
             }
             if (resultchannelParam.guild.idLong != Constants.G.MY) {
-                StatisticsMigrationLinks.add(url)
-//                addToStatistics(game)
+                Database.dbScope.launch {
+                    AnalysisStatistics.addToStatistics(game, ctx)
+                    EmolgaMain.updatePresence()
+                }
             }
             var shouldSendZoro = false
             for (ga in game) {
@@ -284,7 +287,7 @@ object Analysis {
                     it.toSDName()
                 )
             } ?: s, guildId) ?: DraftName(
-                s, s
+                s, s, otherTl = s, otherOfficial = s
             )).apply { data = pkdata }
         }
         //}
@@ -426,7 +429,10 @@ object Analysis {
                 val split = line.cleanSplit()
                 if (split.isEmpty()) continue
                 val operation = split[0]
-                if (operation == "move") lastMove = IndexedValue(currentLineIndex, split[1])
+                if (operation == "move") {
+                    lastMoveUser = IndexedValue(currentLineIndex, split[1])
+                    lastMoveUsed = IndexedValue(currentLineIndex, split[2])
+                }
                 logger.debug(line)
                 nextLine = IndexedValue(currentLineIndex + 1, game.getOrNull(currentLineIndex + 1) ?: "")
                 lastLine = IndexedValue(currentLineIndex - 1, game.getOrNull(currentLineIndex - 1) ?: "")

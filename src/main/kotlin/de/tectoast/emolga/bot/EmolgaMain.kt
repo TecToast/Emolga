@@ -2,8 +2,7 @@ package de.tectoast.emolga.bot
 
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.credentials.Credentials
-import de.tectoast.emolga.database.exposed.StatisticsDB
-import de.tectoast.emolga.database.exposed.StatisticsMeta
+import de.tectoast.emolga.database.exposed.AnalysisStatistics
 import de.tectoast.emolga.features.FeatureManager
 import de.tectoast.emolga.league.DraftState
 import de.tectoast.emolga.league.League
@@ -126,7 +125,8 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
             emolgajda.presence.setPresence(OnlineStatus.DO_NOT_DISTURB, Activity.customStatus("Wartungsarbeiten"))
             return
         }
-        val count = StatisticsDB.getCurrentState(StatisticsMeta.ANALYSIS)
+        val amountInLastSystem = 47332
+        val count = AnalysisStatistics.getCurrentAmountOfReplays() + amountInLastSystem
         emolgajda.presence.setPresence(OnlineStatus.ONLINE, Activity.watching("auf $count analysierte Replays"))
     }
 

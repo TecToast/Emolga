@@ -103,7 +103,7 @@ dependencies {
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250211-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20250329-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20250224-2.0.0")
+    implementation("com.google.apis:google-api-services-youtube:v3-rev20250422-2.0.0")
 
     // Database
     // MySQL

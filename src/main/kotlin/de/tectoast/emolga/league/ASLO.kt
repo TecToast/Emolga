@@ -38,7 +38,7 @@ class ASLO(
             ), memberMod = 8, dataSheetProvider = { "Data${it / 8}" }, resultCreator = {
                 b.addSingle(
                     if (gdi in 0..1) gdi.coordXMod("Spielplan", 2, 4, 5, 0, 4 + index)
-                    else "Spielplan!" + gdi.minus(2).coordXMod("Spielplan", 3, 4, 3, 10, 14 + index),
+                    else gdi.minus(2).coordXMod("Spielplan", 3, 4, 3, 10, 14 + index),
                     defaultGameplanString
                 )
             })

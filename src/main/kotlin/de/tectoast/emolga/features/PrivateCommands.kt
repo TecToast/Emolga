@@ -137,6 +137,7 @@ object PrivateCommands {
     }
 
     var guildForMyStuff: Long? = null
+
     context(InteractionData)
     fun setGuildForMyStuff(args: PrivateData) {
         guildForMyStuff = args().toLong()
@@ -144,6 +145,7 @@ object PrivateCommands {
 
     var guildForUserIDGrabbing: Long? = Constants.G.WARRIOR
     val grabbedIDs = mutableListOf<Long>()
+
     context(InteractionData)
     fun grabUserIDs(args: PrivateData) {
         guildForUserIDGrabbing = args().toLong()
@@ -162,6 +164,7 @@ object PrivateCommands {
     }
 
     var userIdForSignupChange: Long? = null
+
     context(InteractionData)
     fun setUserIdForSignupChange(args: PrivateData) {
         userIdForSignupChange = args().toLong()
@@ -174,6 +177,7 @@ object PrivateCommands {
     }
 
     private val teamGraphicScope = createCoroutineScope("TeamGraphics", Dispatchers.IO)
+
     context(InteractionData)
     fun teamgraphics(args: PrivateData) {
         suspend fun List<DraftPokemon>.toTeamGraphics() = FileUpload.fromData(ByteArrayOutputStream().also {
@@ -609,6 +613,11 @@ object PrivateCommands {
     context(InteractionData)
     suspend fun urlIntoStatistics(args: PrivateData) {
         AnalysisStatistics.addDirectlyFromURL(args())
+    }
+
+    context(InteractionData)
+    fun cancelTimer(args: PrivateData) {
+        League.allTimers(args()).cancel()
     }
 
 }

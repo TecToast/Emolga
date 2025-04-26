@@ -1,10 +1,10 @@
 package de.tectoast.emolga.features.draft.during
 
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.embedColor
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.league.AllowedData
 import de.tectoast.emolga.league.League
+import de.tectoast.emolga.utils.embedColor
+import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 
@@ -46,7 +46,12 @@ object DraftPermissionCommand :
     }
 
     context(League)
-    fun performPermissionAdd(user: Long, toadd: Long, withMention: Allow.Mention): Set<AllowedData> {
+    fun performPermissionAdd(
+        user: Long,
+        toadd: Long,
+        withMention: Allow.Mention,
+        teammate: Boolean = false
+    ): Set<AllowedData> {
         val set = allowed.getOrPut(this@League(user)) { mutableSetOf() }
         val selfmention = withMention.selfmention
         val othermention = withMention.othermention
@@ -54,7 +59,8 @@ object DraftPermissionCommand :
             (set.firstOrNull { it.u == userid }?.let { d -> d.mention = mention } ?: set.add(
                 AllowedData(
                     userid,
-                    mention
+                    mention,
+                    teammate
                 )
             ))
         }

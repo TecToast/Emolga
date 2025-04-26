@@ -35,7 +35,7 @@ class TimerInfo {
     }
 
     operator fun get(day: Int): TimerData {
-        return dayToData[day] ?: globalTimerData ?: throw IllegalStateException("TimerInfo Incomplete ($day)")
+        return dayToData[day] ?: globalTimerData ?: TimerData(0, 24)
     }
 }
 

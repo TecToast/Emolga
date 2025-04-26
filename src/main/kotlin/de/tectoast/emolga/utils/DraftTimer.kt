@@ -12,13 +12,13 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import mu.KotlinLogging
 import java.util.*
-import kotlin.time.measureTimedValue
 
 @Serializable
 sealed class DraftTimer {
     private val isNoMultiTimer = this !is ClockDependentTimer
     abstract fun getCurrentTimerInfo(millis: Long = System.currentTimeMillis()): TimerInfo
-    val timerStart: Long? = null
+    var timerStart: Long? = null
+    fun timerStart(timerStart: Long) = apply { this.timerStart = timerStart }
 
     var stallSeconds = 0
     fun stallSeconds(stallSeconds: Int) = apply { this.stallSeconds = stallSeconds }
@@ -35,44 +35,45 @@ sealed class DraftTimer {
         howOftenSkipped: Int = 0,
         usedStallSeconds: Int = 0
     ): DelayData? {
-        val (regularTimestamp, duration) = measureTimedValue {
-            lateinit var currentTimerInfo: TimerInfo
-            fun currentDelay(): Int? {
-                val calced = currentTimerInfo.getDelayAfterSkips(howOftenSkipped)
-                return if (calced == 0 && isNoMultiTimer) null else calced
-            }
-
-            val cal = Calendar.getInstance().apply {
-                timeInMillis = timerStart?.let(now::coerceAtLeast) ?: now
-            }
-
-            fun recheckTimerInfo() {
-                currentTimerInfo = getCurrentTimerInfo(cal.timeInMillis)
-            }
-            recheckTimerInfo()
-            var currentDelay = currentDelay() ?: return null
-            var minutesToGo: Int = currentDelay
-            while (minutesToGo > 0) {
-                val p = currentTimerInfo[cal[Calendar.DAY_OF_WEEK]]
-                val hour = cal[Calendar.HOUR_OF_DAY]
-                if (hour >= p.from && hour < p.to) minutesToGo-- else cal[Calendar.SECOND] = 0
-                cal.add(Calendar.MINUTE, 1)
-                recheckTimerInfo()
-                val currentTimerInfoDelay = currentDelay() ?: return null
-                if (currentDelay != currentTimerInfoDelay) {
-                    minutesToGo = if (currentTimerInfoDelay < currentDelay) {
-                        minutesToGo.coerceAtMost(currentTimerInfoDelay)
-                    } else {
-                        currentTimerInfoDelay - (currentDelay - minutesToGo)
-                    }
-                    currentDelay = currentTimerInfoDelay
-                }
-            }
-            cal.timeInMillis
-//        cal.add(Calendar.MINUTE, elapsedMinutes)
+        lateinit var currentTimerInfo: TimerInfo
+        fun currentDelay(): Int? {
+            val calced = currentTimerInfo.getDelayAfterSkips(howOftenSkipped)
+            return if (calced == 0 && isNoMultiTimer) null else calced
         }
-        logger.debug { "DURATION FOR TIMER CALC: ${duration.inWholeMilliseconds}ms" }
-        return DelayData(regularTimestamp + (stallSeconds - usedStallSeconds) * 1000, regularTimestamp, now)
+
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = timerStart?.let(now::coerceAtLeast) ?: now
+        }
+
+        fun recheckTimerInfo() {
+            currentTimerInfo = getCurrentTimerInfo(cal.timeInMillis)
+        }
+        recheckTimerInfo()
+        var currentDelay = currentDelay() ?: return null
+        var minutesToGo: Int = currentDelay
+        while (minutesToGo > 0) {
+            val p = currentTimerInfo[cal[Calendar.DAY_OF_WEEK]]
+            val hour = cal[Calendar.HOUR_OF_DAY]
+            // TODO: optimize
+            if (hour >= p.from && hour < p.to) minutesToGo-- else cal[Calendar.SECOND] = 0
+            cal.add(Calendar.MINUTE, 1)
+            recheckTimerInfo()
+            val currentTimerInfoDelay = currentDelay() ?: return null
+            if (currentDelay != currentTimerInfoDelay) {
+                minutesToGo = if (currentTimerInfoDelay < currentDelay) {
+                    minutesToGo.coerceAtMost(currentTimerInfoDelay)
+                } else {
+                    currentTimerInfoDelay - (currentDelay - minutesToGo)
+                }
+                currentDelay = currentTimerInfoDelay
+            }
+        }
+        val regularTimestamp = cal.timeInMillis
+        return DelayData(
+            regularTimestamp + (stallSeconds - usedStallSeconds).coerceAtLeast(0) * 1000,
+            regularTimestamp,
+            now
+        )
     }
 
     companion object {

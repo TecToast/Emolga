@@ -320,8 +320,7 @@ sealed class SignUpInput() {
         @Config("Name", "Der Name dieser Option, z.B. Liga") val name: String = "Liga",
         @Config("Liste", "Die Liste, aus der man auswählen soll") val list: List<String> = listOf(),
         @Config(
-            "Sichtbar für alle",
-            "Ob die Auswahl in der Anmeldungsnachricht des Teilnehmenden erscheinen soll"
+            "Sichtbar für alle", "Ob die Auswahl in der Anmeldungsnachricht des Teilnehmenden erscheinen soll"
         ) val visibleForAll: Boolean = true
     ) : SignUpInput() {
         override val id = "oflist_$name"
@@ -351,7 +350,9 @@ sealed interface LogoSettings {
     @SerialName("Channel")
     @Config("Logo-Channel", "Die Logos landen in einem bestimmten Channel.")
     data class Channel(
-        @Config("Channel", "Der Channel, in dem die Logos landen sollen", LongType.CHANNEL) val channelId: Long = 0
+        @Config("Channel", "Der Channel, in dem die Logos landen sollen", LongType.CHANNEL)
+        @Contextual
+        val channelId: Long = 0
     ) : LogoSettings {
         override suspend fun handleLogo(
             lsData: LigaStartData, data: SignUpData, logoData: LogoCommand.LogoInputData
@@ -405,36 +406,42 @@ sealed interface LogoSettings {
 @Serializable
 @Config(name = "Anmeldungskonfiguration", "Hier kannst du die Anmeldung konfigurieren.")
 data class LigaStartData(
-    @Contextual val guild: Long,
+    @Contextual
+    val guild: Long,
     @Config(
         name = "Anmeldungschannel",
         "In welchem Channel sollen die Anmeldungen von Emolga gesendet werden?",
         longType = LongType.CHANNEL
-    ) val signupChannel: Long,
+    ) @Contextual
+    val signupChannel: Long,
     @Config(
-        name = "Anmeldungsnachricht",
-        "Was soll in der Anmeldungsnachricht von Emolga stehen?"
-    ) val signupMessage: String,
+        name = "Anmeldungsnachricht", "Was soll in der Anmeldungsnachricht von Emolga stehen?"
+    )
+    val signupMessage: String,
     @Config(
         name = "Anmeldungschannel",
         "In welchem Channel soll die Anmeldungsnachricht stehen?",
         longType = LongType.CHANNEL
-    ) val announceChannel: Long,
+    ) @Contextual
+    val announceChannel: Long,
     val announceMessageId: Long,
     @Config(
-        "Logo-Einstellungen",
-        "Hier kannst du einstellen, ob/wie Logos eingesendet werden."
-    ) val logoSettings: LogoSettings? = null,
+        "Logo-Einstellungen", "Hier kannst du einstellen, ob/wie Logos eingesendet werden."
+    )
+    val logoSettings: LogoSettings? = null,
     @Config(
         "Maximale Anzahl",
         "Hier kannst du einstellen, bei wie vielen Teilnehmenden die Anmeldung geschlossen werden soll. Bei 0 gibt es keine Begrenzung."
-    ) var maxUsers: Int,
+    )
+    var maxUsers: Int,
     @Config(
-        "Teilnehmerrolle",
-        "Hier kannst du eine Rolle einstellen, die die Teilnehmer automatisch bekommen sollen."
-    ) val participantRole: Long? = null,
-    @EncodeDefault var conferences: List<String> = listOf(),
-    var conferenceRoleIds: Map<String, Long> = mapOf(),
+        "Teilnehmerrolle", "Hier kannst du eine Rolle einstellen, die die Teilnehmer automatisch bekommen sollen.",
+        LongType.ROLE
+    ) @Contextual
+    val participantRole: Long? = null,
+    @EncodeDefault
+    var conferences: List<String> = listOf(),
+    var conferenceRoleIds: Map<String, @Contextual Long> = mapOf(),
     @Config(
         "Anmeldungsstruktur", "Hier kannst du einstellen, was die Teilnehmer alles bei der Anmeldung angeben sollen."
     ) val signupStructure: List<SignUpInput> = listOf(),

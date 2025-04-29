@@ -217,8 +217,8 @@ class ResultEntry : StateStore {
                             ).into()
                         ).queue()
                     } else {
-                        reply(":)")
-                        channel.sendMessage(generateFinalMessage()).queue()
+                        reply(":)", ephemeral = true)
+                        channel.send(embeds = Embed(generateFinalMessage()).into()).queue()
                     }
                     delete()
                     val game = data.mapIndexed { index, d ->
@@ -264,10 +264,11 @@ class ResultEntry : StateStore {
     }
 
     private suspend fun generateFinalMessage(): String {
-        val spoiler = SpoilerTagsDB.contains(league().guild)
+        val l = league()
+        val spoiler = SpoilerTagsDB.contains(l.guild)
         return "${
             data.mapIndexed { index, sdPlayer ->
-                mutableListOf<Any>("<@${uidxs[index]}>", sdPlayer.count { !it.dead }).apply {
+                mutableListOf<Any>("<@${l[uidxs[index]]}>", sdPlayer.count { !it.dead }).apply {
                     if (spoiler) add(
                         1, "||"
                     )
@@ -275,7 +276,7 @@ class ResultEntry : StateStore {
             }.joinToString(":") { it.joinToString(" ") }
         }\n\n${
             data.mapIndexed { index, monData ->
-                "<@${uidxs[index]}>:\n${monData.joinToString("\n").surroundWith(if (spoiler) "||" else "")}"
+                "<@${l[uidxs[index]]}>:\n${monData.joinToString("\n").surroundWith(if (spoiler) "||" else "")}"
             }.joinToString("\n\n")
         }"
     }

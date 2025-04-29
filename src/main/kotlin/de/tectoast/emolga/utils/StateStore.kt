@@ -218,7 +218,12 @@ class ResultEntry : StateStore {
                         ).queue()
                     } else {
                         reply(":)", ephemeral = true)
-                        channel.send(embeds = Embed(generateFinalMessage()).into()).queue()
+                        channel.send(
+                            embeds = Embed(
+                                title = "Spieltag ${gamedayData.gameday}",
+                                description = generateFinalMessage()
+                            ).into()
+                        ).queue()
                     }
                     delete()
                     val game = data.mapIndexed { index, d ->

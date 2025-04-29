@@ -27,7 +27,10 @@ import kotlinx.coroutines.flow.toSet
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.LongAsStringSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializerOrNull
 import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
@@ -83,6 +86,13 @@ fun Route.emolgaAPI() {
                 val guild = jda.getGuildById(gid)!!
                 call.respond(guild.categories.associate { cat -> cat.name to cat.textChannels.associate { it.id to it.name } })
             }
+            get("roles") {
+                val gid = call.requireGuild() ?: return@get
+                val guild = jda.getGuildById(gid)!!
+                val self = guild.selfMember
+                call.respond(guild.roles.filter { !it.isPublicRole }
+                    .associate { it.idLong * (if (self.canInteract(it)) 1 else -1) to it.name })
+            }
             route("/signup") {
                 route("/participants") {
                     get {
@@ -118,7 +128,7 @@ fun Route.emolgaAPI() {
                         call.respond(HttpStatusCode.OK)
                     }
                 }
-                configOption("/config", LigaStartData.serializer().descriptor) {
+                configOption("/config", LigaStartData.serializer().descriptor, dataProvider = {
                     db.signups.get(gid) ?: LigaStartData(
                         guild = gid,
                         signupChannel = 0,
@@ -127,18 +137,31 @@ fun Route.emolgaAPI() {
                         announceMessageId = -1,
                         maxUsers = 0
                     )
-                }
+                }, dataHandler = { text, _ ->
+                    println(text)
+                })
             }
         }
     }
 }
+
+val secureWebJSON = Json {
+    ignoreUnknownKeys = false
+    isLenient = false
+    serializersModule = SerializersModule {
+        contextual(Long::class, LongAsStringSerializer)
+    }
+}
+
+
 
 data class RouteDataProvider(val user: Long, val gid: Long)
 
 inline fun <reified T : Any> Route.configOption(
     path: String,
     descriptor: SerialDescriptor,
-    crossinline dataProvider: suspend RouteDataProvider.() -> T
+    crossinline dataProvider: suspend RouteDataProvider.() -> T,
+    crossinline dataHandler: suspend (String, T) -> Unit
 ) {
     route(path) {
         get("/struct") {
@@ -147,6 +170,16 @@ inline fun <reified T : Any> Route.configOption(
         get("/content") {
             val gid = call.requireGuild() ?: return@get
             call.respond(dataProvider(RouteDataProvider(call.userId, gid)))
+        }
+        post("/save") {
+            val asText = call.receiveText()
+            val result =
+                runCatching { secureWebJSON.decodeFromString<T>(asText) }.onFailure { it.printStackTrace() }.getOrNull()
+                    ?: return@post call.respond(
+                        HttpStatusCode.BadRequest
+                    )
+            dataHandler(asText, result)
+            call.respond(HttpStatusCode.Accepted)
         }
     }
 }

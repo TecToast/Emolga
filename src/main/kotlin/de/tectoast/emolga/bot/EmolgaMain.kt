@@ -97,7 +97,6 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         }
         db.config.only().maintenance?.let {
             maintenance = it
-            updatePresence()
         }
         for (jda in listOf(emolgajda, flegmonjda)) {
             jda.listener<GenericEvent> {
@@ -112,6 +111,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
             DConfiguratorManager.registerEvent(jda)
             jda.awaitReady()
         }
+        updatePresence()
         logger.info("Discord Bots loaded!")
         ControlButtonSetup.init()
         flegmonjda.presence.activity = Activity.playing("mit seiner Rute")

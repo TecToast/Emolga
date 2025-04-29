@@ -2,7 +2,6 @@ package de.tectoast.emolga.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.features.flegmon.BirthdaySystem
 import de.tectoast.emolga.features.various.CalendarSystem
@@ -46,7 +45,6 @@ class Database(host: String, username: String, password: String) {
         private suspend fun onStartUp() {
             logger.info("Retrieving all startup information...")
             CalendarDB.getAllEntries().forEach { CalendarSystem.scheduleCalendarEntry(it) }
-            EmolgaMain.updatePresence()
             BirthdaySystem.startSystem()
         }
     }

@@ -617,7 +617,7 @@ object PrivateCommands {
 
     context(InteractionData)
     fun cancelTimer(args: PrivateData) {
-        League.allTimers(args()).cancel()
+        League.cancelTimer(args(), "PrivCommand")
     }
 
 }

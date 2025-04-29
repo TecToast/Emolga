@@ -111,10 +111,6 @@ sealed class League {
     @Transient
     var newTimerForAnnounce = false
 
-
-    val cooldownJob: Job? get() = allTimers[leaguename]
-    val stallSecondJob: Job? get() = allStallSecondTimers[leaguename]
-
     @Transient
     var lastPickedMon: DraftName? = null
 
@@ -373,13 +369,21 @@ sealed class League {
         }
         val ctm = System.currentTimeMillis()
         val timerRelated = this.draftData.timer
-        timerRelated.lastPick = ctm
-        timerRelated.lastStallSecondUsedMid = 0
         if (result != TimerSkipResult.SAME) {
             timerRelated.handleStallSecondPunishment(ctm)
             this@League.cancelCurrentTimer()
         }
         if (result == TimerSkipResult.NEXT) {
+            draftData.timer.lastStallSecondUsedMid?.takeIf { it > 0 }?.let {
+                tc.editMessageById(
+                    it, "${getCurrentMention()} Dein Timer-Zuschlag ${
+                        if (data.isNormalPick()) "beträgt noch ${
+                            TimeUtils.secondsToTimePretty((draftData.timer.cooldown - System.currentTimeMillis()) / 1000)
+                        }!"
+                        else "wurde vollständig aufgebraucht!"
+                    }"
+                ).queue()
+            }
             nextUser()
             if (endOfTurn()) return
         }
@@ -528,6 +532,8 @@ sealed class League {
                 regularCooldown = 0
                 return
             }
+            lastPick = System.currentTimeMillis()
+            lastStallSecondUsedMid = 0
             afterTimerSkipMode.run {
                 if (disableTimer()) {
                     cancelCurrentTimer()
@@ -553,15 +559,21 @@ sealed class League {
                     val regularDelay = delayData.regularDelay
                     if (delayData.hasStallSeconds && regularDelay >= 0) {
                         delay(regularDelay)
-                        lastStallSecondUsedMid = handleStallSecondUsed()
-                        save("StallSecondAnnounce")
+                        executeOnFreshLock(leaguename) {
+                            draftData.timer.lastStallSecondUsedMid = handleStallSecondUsed()
+                            save("StallSecondAnnounce")
+                        }
                     }
                 }
             }
         }
     }
 
-    open suspend fun handleStallSecondUsed(): Long? = null
+    open suspend fun handleStallSecondUsed(): Long? {
+        return tc.sendMessage(
+            "${getCurrentMention()} Dein Timer-Zuschlag läuft! Du wirst <t:${draftData.timer.cooldown / 1000}:R> geskippt!"
+        ).await().idLong
+    }
 
     protected open fun sendRound() {
         tc.sendMessage("## === Runde $round ===").queue()
@@ -609,7 +621,13 @@ sealed class League {
         .condAppend(withTimerAnnounce && newTimerForAnnounce) {
             " — Zeit bis: **${
                 formatTimeFormatBasedOnDistance(draftData.timer.regularCooldown)
-            }**"
+            }**".condAppend(draftData.timer.regularCooldown != draftData.timer.cooldown) {
+                " (mit ausgereiztem Timer-Zuschlag bis ${
+                    formatTimeFormatBasedOnDistance(
+                        draftData.timer.cooldown
+                    )
+                })"
+            }
         }.also { newTimerForAnnounce = false }
 
     open fun checkLegalDraftInput(input: DraftInput, type: DraftMessageType): String? {
@@ -715,8 +733,9 @@ sealed class League {
                 tc.send(
                     content = generateCompletedText(emptySet()),
                     components = TeraZSelect.Begin(label = "${it.type}-User auswählen") {
-                    this.league = leaguename
-                }.into()).await().id
+                        this.league = leaguename
+                    }.into()
+                ).await().id
             save()
         }
     }
@@ -741,8 +760,7 @@ sealed class League {
     fun indexInRound(round: Int): Int = originalorder[round]!!.indexOf(current)
 
     fun cancelCurrentTimer(reason: String = "Next player") {
-        cooldownJob?.cancel(reason)
-        stallSecondJob?.cancel(reason)
+        cancelTimer(leaguename, reason)
     }
 
 
@@ -972,6 +990,11 @@ sealed class League {
         val timerScope = createCoroutineScope("LeagueTimer")
 
         fun getLock(leaguename: String): Mutex = allMutexes.getOrPut(leaguename) { Mutex() }
+
+        fun cancelTimer(leaguename: String, reason: String) {
+            allTimers[leaguename]?.cancel(reason)
+            allStallSecondTimers[leaguename]?.cancel(reason)
+        }
 
         suspend inline fun executeOnFreshLock(
             leagueSupplier: () -> League?, onNotFound: () -> Unit = {}, block: League.() -> Unit

@@ -66,16 +66,13 @@ object TimeUtils {
         return map
     }
 
-    fun secondsToTimePretty(timesec: Long): String {
-        val base = secondsToTimeBase(timesec)
-        val builder = StringBuilder()
-        base.forEach { (k, v) ->
-            val (singular, plural) = shortToPretty[k]!!
-            builder.append("**").append(v).append("** ").append(pluralise(v.toLong(), singular, plural)).append(", ")
-        }
-        if (builder.endsWith(", ")) builder.substring(0, builder.length - 2)
-        return if (builder.isEmpty()) "**0** Sekunden" else builder.toString()
-    }
+    fun secondsToTimePretty(timesec: Long) = secondsToTimeBase(timesec).entries.joinToString { (k, v) ->
+        "**$v** ${
+            pluralise(
+                v.toLong(), shortToPretty[k]!!
+            )
+        }"
+    }.ifEmpty { "**0** Sekunden" }
 
     fun secondsToTimeShort(timesec: Long): String {
         val base = secondsToTimeBase(timesec)
@@ -126,9 +123,8 @@ object TimeUtils {
         }
     }
 
-    private fun pluralise(x: Long, singular: String, plural: String): String {
-        return if (x == 1L) singular else plural
-    }
+    private fun pluralise(x: Long, singular: String, plural: String) = if (x == 1L) singular else plural
+    private fun pluralise(x: Long, pair: Pair<String, String>) = pluralise(x, pair.first, pair.second)
 }
 
 

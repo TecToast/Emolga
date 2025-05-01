@@ -28,7 +28,7 @@ object EmolgaConfigHelper {
         }
     }
 
-    fun build(builder: JsonObjectBuilder, descriptor: SerialDescriptor, childOfSealed: Boolean = false) {
+    fun build(builder: JsonObjectBuilder, descriptor: SerialDescriptor) {
         if (descriptor.elementsCount == 0) {
             builder.put("type", descriptor.kind.toString())
             builder.put("single", true)
@@ -63,7 +63,7 @@ object EmolgaConfigHelper {
                 if (desc.elementsCount > 0)
                     put("value", buildJsonObject {
                         if (desc.kind == PolymorphicKind.SEALED) {
-                            build(this, desc.getElementDescriptor(1), childOfSealed = true)
+                            build(this, desc.getElementDescriptor(1))
                         } else {
                             build(this, desc)
                         }

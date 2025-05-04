@@ -53,14 +53,18 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
                     this[Move.REPLAYID] = replayId
                     this[Move.ROW] = it.row
                     this[Move.SOURCE] = it.source.draftname.otherOfficial!!
+                    this[Move.SOURCEPLAYER] = it.source.player
                     this[Move.TARGET] = it.target?.let { m -> m.draftname.otherOfficial!! }
+                    this[Move.TARGETPLAYER] = it.target?.player
                     this[Move.MOVE] = it.move
                 }
                 Damage.batchInsert(events.damage, ignore = true, shouldReturnGeneratedValues = false) {
                     this[Damage.REPLAYID] = replayId
                     this[Damage.ROW] = it.row
                     this[Damage.SOURCE] = it.source.draftname.otherOfficial!!
+                    this[Damage.SOURCEPLAYER] = it.source.player
                     this[Damage.TARGET] = it.target.draftname.otherOfficial!!
+                    this[Damage.TARGETPLAYER] = it.target.player
                     this[Damage.BY] = it.by
                     this[Damage.PERCENT] = it.percent.toByte()
                     this[Damage.FAINT] = it.faint
@@ -69,7 +73,9 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
                     this[Heal.REPLAYID] = replayId
                     this[Heal.ROW] = it.row
                     this[Heal.SOURCE] = it.source.draftname.otherOfficial!!
+                    this[Heal.SOURCEPLAYER] = it.source.player
                     this[Heal.TARGET] = it.target.draftname.otherOfficial!!
+                    this[Heal.TARGETPLAYER] = it.target.player
                     this[Heal.BY] = it.by
                     this[Heal.PERCENT] = it.percent.toByte()
                 }
@@ -77,13 +83,16 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
                     this[Switch.REPLAYID] = replayId
                     this[Switch.ROW] = it.row
                     this[Switch.POKEMON] = it.pokemon.draftname.otherOfficial!!
+                    this[Switch.PLAYER] = it.pokemon.player
                     this[Switch.TYPE] = it.type
                 }
                 Status.batchInsert(events.status, ignore = true, shouldReturnGeneratedValues = false) {
                     this[Status.REPLAYID] = replayId
                     this[Status.ROW] = it.row
                     this[Status.SOURCE] = it.source.draftname.otherOfficial!!
+                    this[Status.SOURCEPLAYER] = it.source.player
                     this[Status.TARGET] = it.target.draftname.otherOfficial!!
+                    this[Status.TARGETPLAYER] = it.target.player
                     this[Status.STATUS] = it.status
                 }
                 Win.batchInsert(game.flatMap { p ->
@@ -92,6 +101,7 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
                 }, ignore = true, shouldReturnGeneratedValues = false) {
                     this[Win.REPLAYID] = replayId
                     this[Win.POKEMON] = it.first.draftname.otherOfficial!!
+                    this[Win.PLAYER] = it.first.player
                     this[Win.WON] = it.second
                 }
             }
@@ -106,13 +116,17 @@ object Start : Table("st_start") {
 
 object Move : AnalysisStatistics("move") {
     val SOURCE = varchar("source", 64)
+    val SOURCEPLAYER = integer("sourceplayer")
     val TARGET = varchar("target", 64).nullable()
+    val TARGETPLAYER = integer("targetplayer").nullable()
     val MOVE = varchar("move", 64)
 }
 
 object Damage : AnalysisStatistics("damage") {
     val SOURCE = varchar("source", 64)
+    val SOURCEPLAYER = integer("sourceplayer")
     val TARGET = varchar("target", 64)
+    val TARGETPLAYER = integer("targetplayer")
     val BY = varchar("by", 64)
     val PERCENT = byte("percent")
     val FAINT = bool("faint")
@@ -120,25 +134,31 @@ object Damage : AnalysisStatistics("damage") {
 
 object Heal : AnalysisStatistics("heal") {
     val SOURCE = varchar("source", 64)
+    val SOURCEPLAYER = integer("sourceplayer")
     val TARGET = varchar("target", 64)
+    val TARGETPLAYER = integer("targetplayer")
     val BY = varchar("by", 64)
     val PERCENT = byte("percent")
 }
 
 object Switch : AnalysisStatistics("switch") {
     val POKEMON = varchar("pokemon", 64)
+    val PLAYER = integer("player")
     val TYPE = enumeration<SwitchType>("type")
 }
 
 object Status : AnalysisStatistics("status") {
     val SOURCE = varchar("source", 64)
+    val SOURCEPLAYER = integer("sourceplayer")
     val TARGET = varchar("target", 64)
+    val TARGETPLAYER = integer("targetplayer")
     val STATUS = varchar("status", 16)
 }
 
 object Win : Table("st_wins") {
     val REPLAYID = varchar("replayid", 128)
     val POKEMON = varchar("pokemon", 64)
+    val PLAYER = integer("player")
     val WON = bool("won")
 
     override val primaryKey = PrimaryKey(REPLAYID, POKEMON)

@@ -530,7 +530,7 @@ sealed class SDEffect(vararg val types: String) {
             val target = if (split[3].isEmpty()) {
                 game.getOrNull(currentLineIndex + 2)?.cleanSplit()?.takeIf { it[0] == "-anim" }?.getOrNull(3)
                     ?.parsePokemon()
-            } else if (split[1] == split[3]) null else if (split.getOrNull(4) == "[notarget]") null else split[3].parsePokemon()
+            } else if (split[1] == split[3]) null else if (split.getOrNull(4) == "[notarget]") null else runCatching { split[3].parsePokemon() }.getOrNull()
             events.move += AnalysisMove(
                 currentLineIndex, split[1].parsePokemon(), target, split[2]
             )

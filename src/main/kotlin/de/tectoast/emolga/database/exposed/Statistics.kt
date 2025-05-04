@@ -7,20 +7,21 @@ import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
 import kotlinx.datetime.Instant
 import mu.KotlinLogging
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.batchInsert
-import org.jetbrains.exposed.sql.insertIgnore
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
-import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 private val logger = KotlinLogging.logger {}
 
 abstract class AnalysisStatistics(type: String) : Table("st_$type") {
-    val REPLAYID = varchar("replayid", 64)
+    val REPLAYID = varchar("replayid", 128)
     val ROW = integer("row")
 
     override val primaryKey = PrimaryKey(REPLAYID, ROW)
+
+    init {
+        foreignKey(REPLAYID to Start.REPLAYID, onDelete = ReferenceOption.CASCADE, onUpdate = ReferenceOption.RESTRICT)
+    }
 
     companion object {
 
@@ -41,10 +42,7 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
         suspend fun addToStatistics(game: List<SDPlayer>, ctx: BattleContext) {
             dbTransaction {
                 val events = ctx.events
-                val replayId = ctx.url.substringAfterLast("/").let { withPw ->
-                    val split = withPw.split("-")
-                    if (split.size == 2) withPw else split.dropLast(1).joinToString("-")
-                }
+                val replayId = ctx.url.substringAfterLast("/")
                 val start = events.start.firstOrNull()
                     ?: run { logger.warn("START not found in ${ctx.url}"); return@dbTransaction }
                 Start.insertIgnore {
@@ -102,7 +100,7 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
 }
 
 object Start : Table("st_start") {
-    val REPLAYID = varchar("replayid", 64)
+    val REPLAYID = varchar("replayid", 128)
     val TIMESTAMP = timestamp("timestamp")
 }
 
@@ -139,11 +137,15 @@ object Status : AnalysisStatistics("status") {
 }
 
 object Win : Table("st_wins") {
-    val REPLAYID = varchar("replayid", 64)
+    val REPLAYID = varchar("replayid", 128)
     val POKEMON = varchar("pokemon", 64)
     val WON = bool("won")
 
     override val primaryKey = PrimaryKey(REPLAYID, POKEMON)
+
+    init {
+        foreignKey(REPLAYID to Start.REPLAYID, onDelete = ReferenceOption.CASCADE, onUpdate = ReferenceOption.RESTRICT)
+    }
 }
 
 enum class SwitchType {

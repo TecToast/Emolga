@@ -197,11 +197,9 @@ object Analysis {
                 replayChannel?.sendMessage(tosend)?.queue()
                 fromReplayCommand?.reply(msgCreateData = tosend)
             }
-            if (resultchannelParam.guild.idLong != Constants.G.MY) {
-                Database.dbScope.launch {
-                    AnalysisStatistics.addToStatistics(game, ctx)
-                    EmolgaMain.updatePresence()
-                }
+            Database.dbScope.launch {
+                AnalysisStatistics.addToStatistics(game, ctx)
+                EmolgaMain.updatePresence()
             }
             var shouldSendZoro = false
             for (ga in game) {

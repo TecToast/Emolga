@@ -125,7 +125,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
             emolgajda.presence.setPresence(OnlineStatus.DO_NOT_DISTURB, Activity.customStatus("Wartungsarbeiten"))
             return
         }
-        val amountInLastSystem = 47332
+        val amountInLastSystem = 47474
         val count = AnalysisStatistics.getCurrentAmountOfReplays() + amountInLastSystem
         emolgajda.presence.setPresence(OnlineStatus.ONLINE, Activity.watching("auf $count analysierte Replays"))
     }

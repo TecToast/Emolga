@@ -66,10 +66,9 @@ data class SDPokemon(
         if (fainted) {
             val idx = monsOnField[damagedMon.player].indexOf(damagedMon)
             val killGetter = if (damagedMon.player == claimer.player) {
-                (damagedMon[LAST_DAMAGE_BY]
-                    ?: monsOnField.getOrNull(1 - damagedMon.player)?.let { field ->
-                        field.getOrElse(1 - idx) { field[idx] }
-                    })
+                (damagedMon[LAST_DAMAGE_BY] ?: monsOnField.getOrNull(1 - damagedMon.player)?.let { field ->
+                    field.getOrElse(1 - idx) { field[idx] }
+                })
             } else claimer
             killGetter?.addKill(activeKill)
         }
@@ -112,6 +111,10 @@ data class SDPokemon(
     operator fun get(key: PokemonSaveKey) = pokemonSaves[key]
     operator fun set(key: PokemonSaveKey, value: SDPokemon) {
         pokemonSaves[key] = value
+    }
+
+    override fun toString(): String {
+        return "SDPokemon(pokemon='$pokemon', player=$player, hp=$hp)"
     }
 }
 
@@ -209,9 +212,7 @@ sealed class SDEffect(vararg val types: String) {
             monsOnField[pl][idx] = switchIn
             events.switch += AnalysisSwitch(currentLineIndex, switchIn, SwitchType.IN)
             switchIn.setNewHPAndHeal(
-                newhp = split[3].substringBefore("/").replace(otherThanNumbers, "").toInt(),
-                by = "Switch",
-                healer = null
+                newhp = split[3].parseHPPercentage(), by = "Switch", healer = null
             )
         }
     }
@@ -233,7 +234,7 @@ sealed class SDEffect(vararg val types: String) {
 
     data object Heal : SDEffect("-heal") {
         context(BattleContext) override fun execute(split: List<String>) {
-            val healedTo = split[2].substringBefore("/").replace(otherThanNumbers, "").toInt()
+            val healedTo = split[2].parseHPPercentage()
             val (side, num) = split[1].substringAfter('p').substringBefore(':').let {
                 val p = it[0].digitToInt() - 1
                 p to if (it.length == 1) -1 else if (p > 1) 0 else it[1].cToI()
@@ -254,7 +255,7 @@ sealed class SDEffect(vararg val types: String) {
             val damagedMonLocation = split[1].parsePokemonLocation()
             val damagedMon = monsOnField[damagedMonLocation.first][damagedMonLocation.second]
             val fainted = "fnt" in split[2]
-            val amount = damagedMon.hp - split[2].substringBefore("/").replace(otherThanNumbers, "").toInt()
+            val amount = damagedMon.hp - split[2].parseHPPercentage()
             if (split.size > 4 && "[of]" in split[4] && split[3].substringAfter("[from] ") !in damagedMon.volatileEffects) {
                 split[4].parsePokemon()
                     .claimDamage(damagedMon, fainted, amount, by = split[3].substringAfter("[from] "))
@@ -513,6 +514,25 @@ sealed class SDEffect(vararg val types: String) {
 
     }
 
+    data object SetHP : SDEffect("-sethp") {
+        context(BattleContext) override fun execute(split: List<String>) {
+            val (side, num) = split[1].parsePokemonLocation()
+            val hp = split[2].parseHPPercentage()
+            val isPainSplit = split.getOrNull(3)?.contains("Pain Split") == true
+            val target = monsOnField[side][num]
+            val lastMoveUser = lastMoveUser.value.parsePokemon()
+            val source = if (isPainSplit) {
+                lastMoveUser
+            } else target.also { logger.warn("SetHP called without Pain Split: $split") }
+            val by = if (isPainSplit) "Pain Split" else "SetHP"
+            if (hp < target.hp) {
+                lastMoveUser.claimDamage(target, fainted = false, amount = target.hp - hp, by = by)
+            } else {
+                target.setNewHPAndHeal(hp, by = by, healer = source)
+            }
+        }
+    }
+
     data object Win : SDEffect("win") {
         context(BattleContext) override fun execute(split: List<String>) {
             sdPlayers.first { it.nickname.toUsername() == split[1].toUsername() }.winnerOfGame = true
@@ -650,6 +670,11 @@ fun String.parsePokemonLocation() = substringAfter('p').substringBefore(':').let
 }
 
 fun String.parsePlayerLocation() = substringAfter('p').substringBefore(':')[0].digitToInt() - 1
+fun String.parseHPPercentage() = split("/").let {
+    val current = it[0].replace(otherThanNumbers, "").toInt()
+    val max = it.getOrNull(1)?.replace(otherThanNumbers, "")?.toInt() ?: return@let 0
+    current * 100 / max
+}
 
 private fun Char.cToI(): Int {
     return this.code - 97 //ich mag ganz viele leckere Kekse nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom nom Bounjour!

@@ -12,7 +12,7 @@ object SwitchTimer {
         CommandSpec(
             "switchtimercreate",
             "Konfiguriert den Switch-Timer für eine Liga und erstellt ein Control-Panel",
-            Constants.G.VIP, 893614364580524043
+            Constants.G.VIP, Constants.G.NPL
         )
     ) {
         class Args : Arguments() {

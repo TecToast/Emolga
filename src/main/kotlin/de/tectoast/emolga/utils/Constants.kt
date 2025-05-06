@@ -34,6 +34,7 @@ object Constants {
         const val EPP = 699185903590965278
         const val LOEWE = 1042904158652616745
         const val UDTA = 953578989291724830
+        const val NPL = 893614364580524043
     }
 
     object M {

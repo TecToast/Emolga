@@ -96,8 +96,9 @@ fun Route.emolgaAPI() {
                                 it.users.map { u ->
                                     UserData(
                                         u.toString(),
-                                        members[u]!!.user.effectiveName,
-                                        members[u]!!.effectiveAvatarUrl.replace(".gif", ".png")
+                                        members[u]?.user?.effectiveName ?: "UNKNOWN",
+                                        members[u]?.effectiveAvatarUrl?.replace(".gif", ".png")
+                                            ?: "https://cdn.discordapp.com/embed/avatars/0.png"
                                     )
                                 },
                                 it.data,

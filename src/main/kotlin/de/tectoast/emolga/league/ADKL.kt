@@ -26,10 +26,10 @@ class ADKL : League() {
             plindex.CoordXMod("Kader", 2, 'P' - 'B', 5 + gdi, 22, 22)
         }
         sorterData = SorterData(
-            "Tabelle!C5:G12",
+            "Tabelle!C5:H12",
             indexer = { it.substringAfter("C").substringBefore(":").toInt() },
             newMethod = false,
-            cols = listOf(2, -1, 4)
+            cols = listOf(5, -1, 4)
         )
     }
 

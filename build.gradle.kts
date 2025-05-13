@@ -102,7 +102,7 @@ dependencies {
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250415-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20250427-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20250506-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20250422-2.0.0")
 
     // Database
@@ -126,7 +126,7 @@ dependencies {
 
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M3")
-    testImplementation("io.kotest:kotest-assertions-core:6.0.0.M3")
+    testImplementation("io.kotest:kotest-assertions-core:6.0.0.M4")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
 }

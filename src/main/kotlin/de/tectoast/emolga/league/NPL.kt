@@ -23,7 +23,7 @@ class NPL : League() {
     override val docEntry = DocEntry.create(this) {
         monsOrder = { list -> list.sortedBy { it.tier.indexedBy(tierlist.order) }.map { it.name } }
         killProcessor = BasicStatProcessor {
-            plindex.CoordXMod("Kader", 2, 27, 6 + gdi + if (isDoubles) 10 else 0, 19, monindex + 11)
+            plindex.CoordXMod("Kader", 2, 27, 5 + gdi + if (isDoubles) 10 else 0, 22, monindex + 11)
         }
     }
 

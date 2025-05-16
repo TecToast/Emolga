@@ -45,7 +45,6 @@ import kotlin.time.Duration.Companion.minutes
 private val logger = KotlinLogging.logger {}
 private val duplicateVideoCache = mutableSetOf<String>()
 private val recentlySubscribed = mutableSetOf<String>()
-private val validTopicRegex = Regex("https://www.youtube.com/xml/feeds/videos.xml?channel_id=([a-zA-Z0-9_-]+)")
 private val ytClient = HttpClient(CIO)
 
 

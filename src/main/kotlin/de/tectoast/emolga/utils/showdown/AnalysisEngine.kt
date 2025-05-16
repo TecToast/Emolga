@@ -361,7 +361,7 @@ sealed class SDEffect(vararg val types: String) {
 
     data object DetailsChanged : SDEffect("detailschange") {
         context(BattleContext) override fun execute(split: List<String>) {
-            val mon = split[1].parsePokemon()
+            val mon = runCatching { split[1].parsePokemon() }.getOrNull() ?: return
             mon.otherNames += mon.pokemon
             mon.pokemon = split[2].substringBefore(",")
         }
@@ -667,6 +667,9 @@ context(BattleContext) fun String.parsePokemon() = parsePokemonLocation().let { 
 fun String.parsePokemonLocation() = substringAfter('p').substringBefore(':').let {
     val p = it[0].digitToInt() - 1
     p to if (p > 1) 0 else it[1].cToI()
+}
+fun String.parsePlayer() = substringAfter('p').substringBefore(':').let {
+    it[0].digitToInt() - 1
 }
 
 fun String.parsePlayerLocation() = substringAfter('p').substringBefore(':')[0].digitToInt() - 1

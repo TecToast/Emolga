@@ -376,7 +376,7 @@ object Analysis {
                 if (split.size > 2) nicknames[i] = split[2].also { logger.debug { "Setting nickname of $i to $it" } }
             }
             if (line.startsWith("|switch") || line.startsWith("|drag")) {
-                val (player, _) = split[1].parsePokemonLocation()
+                val player = split[1].parsePlayer()
                 val monName = split[2].substringBefore(",")
                 if (player !in allMons && !randomBattle) randomBattle = true
                 if (randomBattle) {
@@ -386,14 +386,14 @@ object Analysis {
                 }
             }
             if (line.startsWith("|detailschange|") || line.startsWith("|-formechange|")) {
-                val (player, _) = split[1].parsePokemonLocation()
+                val player = split[1].parsePlayer()
                 val oldMonName = split[1].substringAfter(" ")
                 allMons[player]?.firstOrNull { it.hasName(oldMonName) || it.pokemon.startsWith(oldMonName) }?.otherNames?.add(
                     split[2].substringBefore(",")
                 )
             }
             if (line.startsWith("|replace|")) {
-                val (player, _) = split[1].parsePokemonLocation()
+                val player = split[1].parsePlayer()
                 val monloc = split[1].substringBefore(":")
                 val monname = split[2].substringBefore(",")
                 val mon = allMons[player]!!.firstOrNull { it.hasName(monname) } ?: SDPokemon(

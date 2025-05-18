@@ -134,6 +134,7 @@ inline fun <T> String.notNullPrepend(value: T?, mapper: (T) -> String) =
 
 val <T> T.l get() = listOf(this)
 
+inline val User.isFlo: Boolean get() = this.idLong == FLOID
 inline val User.isNotFlo: Boolean get() = this.idLong != FLOID
 inline fun String.ifNotEmpty(block: (String) -> String): String {
     return if (this.isNotEmpty()) block(this) else this

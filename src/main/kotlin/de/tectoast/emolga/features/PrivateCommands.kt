@@ -34,8 +34,6 @@ import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.Contextual
@@ -625,21 +623,6 @@ object PrivateCommands {
     context(InteractionData)
     fun cancelTimer(args: PrivateData) {
         League.cancelTimer(args(), "PrivCommand")
-    }
-
-    context(InteractionData)
-    suspend fun checkSDLine(args: PrivateData) {
-        val (replayId, lineIndexStr) = args().split(",")
-        val lineIndex = lineIndexStr.toInt()
-        val lines = httpClient.get("https://replay.pokemonshowdown.com/${replayId}.log").bodyAsText().split("\n")
-        reply(buildString {
-            for (i in lineIndex - 5..lineIndex + 5) {
-                if (i == lineIndex) append(">>> ")
-                append(lines[i])
-                if (i == lineIndex) append(" <<<")
-                append("\n")
-            }
-        }.surroundWith("```"))
     }
 
 }

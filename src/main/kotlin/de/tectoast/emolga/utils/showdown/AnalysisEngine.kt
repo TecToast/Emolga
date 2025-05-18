@@ -240,10 +240,19 @@ sealed class SDEffect(vararg val types: String) {
             val healedMon = if (num == -1) sdPlayers[side].pokemon.first { it.nickname == nickname }
                 .also { it.revive() } else monsOnField[side][num]
             val source = split.getOrNull(3)?.substringAfter(": ")
-            val healer = source?.let { move ->
+            var healer = source?.let { move ->
                 findResponsiblePokemonSlot<RemoteHeal>(move, side = side, slot = num)
             }
-            healedMon.setNewHPAndHeal(healedTo, by = source ?: lastMoveUsed.value, healer)
+            val actualSource = if (source == "[silent]") {
+                val cleanSplitLast = lastLine.value.cleanSplit()
+                if (cleanSplitLast.getOrNull(0) == "-damage" && cleanSplitLast.getOrNull(3) == "[from] Leech Seed") {
+                    healer = cleanSplitLast[1].parsePokemon().withZoroCheck().volatileEffects["Leech Seed"]
+                    "Leech Seed"
+                } else if (lastMoveUsed.value == "Rest") {
+                    "Rest"
+                } else source
+            } else source
+            healedMon.setNewHPAndHeal(healedTo, by = actualSource ?: lastMoveUsed.value, healer)
         }
     }
 

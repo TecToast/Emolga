@@ -47,6 +47,28 @@ object EnterResult {
         }
     }
 
+    object ResultFor : CommandFeature<ResultFor.Args>(
+        ::Args, CommandSpec(
+            "resultfor", "Startet die interaktive Ergebniseingabe für jemand anderen",
+            Constants.G.NPL
+        )
+    ) {
+        init {
+            restrict(admin)
+        }
+
+        class Args : Arguments() {
+            var user by member("Spieler 1", "Spieler 1")
+            var opponent by member("Spieler 2", "Spieler 2")
+        }
+
+        context(InteractionData)
+        override suspend fun exec(e: Args) {
+            deferReply(true)
+            handleStart(e.opponent.idLong, userArg = e.user.idLong)
+        }
+    }
+
     object ResWithGuild : CommandFeature<ResWithGuild.Args>(
         ::Args, CommandSpec("reswithguild", "Startet die interaktive Ergebniseingabe")
     ) {

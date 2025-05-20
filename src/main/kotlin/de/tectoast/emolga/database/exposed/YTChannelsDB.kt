@@ -10,8 +10,8 @@ object YTChannelsDB : Table("ytchannels") {
 
     override val primaryKey = PrimaryKey(USER, CHANNELID)
 
-    suspend fun getUserByChannelId(channelId: String) = dbTransaction {
-        select(USER).where { CHANNELID eq channelId }.firstOrNull()?.let { it[USER] }
+    suspend fun getUsersByChannelId(channelId: String) = dbTransaction {
+        select(USER).where { CHANNELID eq channelId }.map { it[USER] }
     }
 
     suspend fun addAllChannelIdsToSet(set: MutableSet<String>, users: Iterable<Long>) = dbTransaction {

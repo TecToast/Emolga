@@ -97,7 +97,10 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
                 }
                 Win.batchInsert(game.flatMap { p ->
                     val isWinner = p.winnerOfGame
-                    p.pokemon.map { mon -> mon to isWinner }
+                    p.pokemon.mapNotNull { mon ->
+                        if (mon.draftname.otherOfficial == null) return@mapNotNull null
+                        mon to isWinner
+                    }
                 }, ignore = true, shouldReturnGeneratedValues = false) {
                     this[Win.REPLAYID] = replayId
                     this[Win.POKEMON] = it.first.draftname.otherOfficial!!

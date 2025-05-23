@@ -376,18 +376,16 @@ class DocEntry private constructor(val league: League) {
                     useridxs.forEachIndexed { index, l ->
                         data[l] = DirectCompareData(0, 0, 0, index)
                     }
-                    allRelevantMatches.forEach {
-                        val uids = it.indices
-                        val winnerIndex = it.winnerIndex
-                        val winnerData = data[uids[winnerIndex]]!!
-                        val looserData = data[uids[1 - winnerIndex]]!!
-                        val killsForWinner = it.data[winnerIndex]
-                        val deathsForWinner = it.data[1 - winnerIndex]
-                        winnerData.points++
-                        winnerData.kills += killsForWinner
-                        winnerData.deaths += deathsForWinner
-                        looserData.kills += deathsForWinner
-                        looserData.deaths += killsForWinner
+                    allRelevantMatches.forEach { match ->
+                        val idxes = match.indices
+                        for ((i, idx) in idxes.withIndex()) {
+                            data[idx]!!.let {
+                                val (k, d) = if (match.data.all { d -> d == -1 }) 0 to 6 else match.data[i] to match.data[1 - i]
+                                it.kills += k
+                                it.deaths += d
+                                it.points += if (k > d) 1 else 0
+                            }
+                        }
                     }
                     data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Int, DirectCompareData>> { o1, o2 ->
                         val compare = o1.value.points.compareTo(o2.value.points)

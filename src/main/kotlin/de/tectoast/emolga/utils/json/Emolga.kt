@@ -83,6 +83,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val shinyEventResults by lazy { db.getCollection<ShinyEventResult>("shinyeventresults") }
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
     val matchresults by lazy { db.getCollection<MatchResult>("matchresults") }
+    val sanctions by lazy { db.getCollection<Sanction>("sanctions") }
     val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
     val tipgameuserdata by lazy { db.getCollection<TipGameUserData>("tipgameuserdata") }
     val statestore by lazy { db.getCollection<StateStore>("statestore") }
@@ -665,6 +666,54 @@ data class LogoChecksum(
     val checksum: String, val fileId: String
 ) {
     val url get() = "https://drive.google.com/uc?export=download&id=${fileId}"
+}
+
+@Serializable
+sealed class Sanction {
+    abstract val leaguename: String
+    abstract val reason: String
+    abstract val issuer: Long
+    abstract val timestamp: Instant
+    abstract val indices: List<Int>
+
+    abstract fun manipulate(map: MutableMap<Int, DirectCompareData>)
+
+    @Serializable
+    @SerialName("Zeroed")
+    class ZeroedGame(
+        override val indices: List<Int>,
+        override val leaguename: String,
+        override val reason: String,
+        override val issuer: Long,
+        override val timestamp: Instant
+    ) : Sanction() {
+        override fun manipulate(map: MutableMap<Int, DirectCompareData>) {
+            indices.forEach { idx ->
+                map[idx]?.let { data ->
+                    data.deaths += 6
+                }
+            }
+        }
+    }
+
+    @Serializable
+    @SerialName("PointPenalty")
+    data class PointPenalty(
+        val amount: Int,
+        override val indices: List<Int>,
+        override val leaguename: String,
+        override val reason: String,
+        override val issuer: Long,
+        override val timestamp: Instant
+    ) : Sanction() {
+        override fun manipulate(map: MutableMap<Int, DirectCompareData>) {
+            indices.forEach { idx ->
+                map[idx]?.let { data ->
+                    data.points -= amount
+                }
+            }
+        }
+    }
 }
 
 suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!

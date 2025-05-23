@@ -372,6 +372,15 @@ class DocEntry private constructor(val league: League) {
                             )
                         )
                     ).toList()
+                    val allRelevantSanctions = db.sanctions.find(
+                        leagueCheckToUse, Document(
+                            "\$expr", Document(
+                                "\$setIsSubset", listOf(
+                                    "\$indices", useridxs
+                                )
+                            )
+                        )
+                    ).toList()
                     val data = mutableMapOf<Int, DirectCompareData>()
                     useridxs.forEachIndexed { index, l ->
                         data[l] = DirectCompareData(0, 0, 0, index)
@@ -380,12 +389,16 @@ class DocEntry private constructor(val league: League) {
                         val idxes = match.indices
                         for ((i, idx) in idxes.withIndex()) {
                             data[idx]!!.let {
-                                val (k, d) = if (match.data.all { d -> d == -1 }) 0 to 6 else match.data[i] to match.data[1 - i]
+                                val k = match.data[i]
+                                val d = match.data[1 - i]
                                 it.kills += k
                                 it.deaths += d
                                 it.points += if (k > d) 1 else 0
                             }
                         }
+                    }
+                    allRelevantSanctions.forEach { sanction ->
+                        sanction.manipulate(data)
                     }
                     data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Int, DirectCompareData>> { o1, o2 ->
                         val compare = o1.value.points.compareTo(o2.value.points)

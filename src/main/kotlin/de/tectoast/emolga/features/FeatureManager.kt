@@ -46,7 +46,12 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
             it.eventClass to (it.eventToName as (GenericInteractionCreateEvent) -> String)
         }
         features = featuresSet.groupBy { it.eventClass }
-            .mapValues { it.value.associate { k -> k.spec.name to k as Feature<*, GenericInteractionCreateEvent, Arguments> } }
+            .mapValues {
+                it.value.groupingBy { v -> v.spec.name }.eachCount().filter { v -> v.value > 1 }.forEach { (k, v) ->
+                    logger.warn { "Feature $k is registered $v times! This may cause issues!" }
+                }
+                it.value.associate { k -> k.spec.name to k as Feature<*, GenericInteractionCreateEvent, Arguments> }
+            }
         listeners = loadListeners.flatMap { it.registeredListeners }.groupBy { it.first }.mapValues {
             it.value.map { v -> v.second }
         }

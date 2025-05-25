@@ -7,6 +7,7 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.condAppend
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.SelectOption
+import dev.minn.jda.ktx.messages.MessageEdit
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.send
 import dev.minn.jda.ktx.util.ref
@@ -126,7 +127,7 @@ class SimpleLifeBarEvent(
 
     suspend fun updateAdminStatusMessage() {
         adminChannel.editMessageById(
-            adminStatusID, generateAdminStatusMessage()
+            adminStatusID, MessageEdit(content = generateAdminStatusMessage(), components = adminStatusComponents)
         ).await()
     }
 
@@ -162,8 +163,8 @@ class SimpleLifeBarEvent(
     context(InteractionData)
     suspend fun addVote(from: Long, to: Long) {
         if (!hasVote) return reply("Es gibt keine Votes!", ephemeral = true)
-        if (from !in members) return reply("Du spielst nicht mit!", ephemeral = true)
-        if (from == to) return reply("Du kannst nicht für dich selbst voten!")
+        if (from !in members) return reply("Du warst zu dumm!", ephemeral = true)
+        if (from == to) return reply("Nein, du kannst nicht für dich selbst voten!", ephemeral = true)
         reply("Vote gesetzt!", ephemeral = true)
         votes[from] = to
         updateGameStatusMessage()
@@ -238,18 +239,16 @@ object SimpleLifeBarEventManager {
                 "hasVote", "Ob die Teilmehmer abstimmen können sollen, wer ein Leben verliert (Der Dümmste fliegt)"
             )
             var hasInput by boolean(
-                "hasInput", "Ob die Teilnehmer eine Eingabe machen können sollen, die der Moderator sehen kann"
+                "hasInput", "Ob die Teilnehmer eine Text-Eingabe machen können sollen, die der Moderator sehen kann"
             )
+            var startLifes by int("Startleben", "Wie viele Leben die Teilnehmer zu Beginn haben sollen")
             var users by genericList<Member, Member>("user", "Teilnehmer", 10, 1, OptionType.USER)
-            var maxlifes by int("maxlifes", "maxlifes") {
-                default = 3
-            }
         }
 
         context(InteractionData)
         override suspend fun exec(e: Args) {
             events[user] = SimpleLifeBarEvent(
-                maxLifes = e.maxlifes,
+                maxLifes = e.startLifes,
                 hasVote = e.hasVote,
                 hasAnswer = e.hasInput,
                 jda = jda,
@@ -263,7 +262,7 @@ object SimpleLifeBarEventManager {
 
     }
 
-    object VoteMenu : SelectMenuFeature<VoteMenu.Args>(::Args, SelectMenuSpec("simplelifebar")) {
+    object VoteMenu : SelectMenuFeature<VoteMenu.Args>(::Args, SelectMenuSpec("simplelifebarvote")) {
         class Args : Arguments() {
             var host by long().compIdOnly()
             var user by singleOption { it.toLong() }
@@ -276,7 +275,7 @@ object SimpleLifeBarEventManager {
         }
     }
 
-    object AnswerButton : ButtonFeature<AnswerButton.Args>(::Args, ButtonSpec("simplelifebar")) {
+    object AnswerButton : ButtonFeature<AnswerButton.Args>(::Args, ButtonSpec("simplelifebaranswer")) {
         override val label = "Antwort abgeben"
 
         class Args : Arguments() {
@@ -290,7 +289,7 @@ object SimpleLifeBarEventManager {
         }
     }
 
-    object AnswerModal : ModalFeature<AnswerModal.Args>(::Args, ModalSpec("simplelifebar")) {
+    object AnswerModal : ModalFeature<AnswerModal.Args>(::Args, ModalSpec("simplelifebarmodal")) {
         override val title = "Antwort eingeben"
 
         class Args : Arguments() {
@@ -305,7 +304,8 @@ object SimpleLifeBarEventManager {
         }
     }
 
-    object LifeDecreaseMenu : SelectMenuFeature<LifeDecreaseMenu.Args>(::Args, SelectMenuSpec("simplelifebar")) {
+    object LifeDecreaseMenu :
+        SelectMenuFeature<LifeDecreaseMenu.Args>(::Args, SelectMenuSpec("simplelifebardecrease")) {
 
         class Args : Arguments() {
             var host by long().compIdOnly()

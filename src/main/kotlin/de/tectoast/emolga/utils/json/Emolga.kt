@@ -1,4 +1,5 @@
 @file:OptIn(ExperimentalSerializationApi::class)
+@file:UseSerializers(InstantAsDateSerializer::class)
 
 package de.tectoast.emolga.utils.json
 
@@ -212,8 +213,8 @@ data class TipGameUserData(
 @Serializable
 data class IntervalTaskData(
     val name: IntervalTaskKey,
-    val nextExecution: @Serializable(with = InstantAsDateSerializer::class) Instant,
-    val notAfter: @Serializable(with = InstantAsDateSerializer::class) Instant = Instant.DISTANT_FUTURE,
+    val nextExecution: Instant,
+    val notAfter: Instant = Instant.DISTANT_FUTURE,
 )
 
 @Serializable
@@ -606,7 +607,7 @@ data class ShinyEventResult(
     data class ShinyData(
         val game: String,
         val method: String,
-        @Serializable(with = InstantAsDateSerializer::class) val timestamp: Instant
+        val timestamp: Instant
     )
 }
 
@@ -671,6 +672,7 @@ data class LogoChecksum(
 @Serializable
 sealed class Sanction {
     abstract val leaguename: String
+    abstract val gameday: Int
     abstract val reason: String
     abstract val issuer: Long
     abstract val timestamp: Instant
@@ -683,6 +685,7 @@ sealed class Sanction {
     class ZeroedGame(
         override val indices: List<Int>,
         override val leaguename: String,
+        override val gameday: Int,
         override val reason: String,
         override val issuer: Long,
         override val timestamp: Instant
@@ -702,6 +705,7 @@ sealed class Sanction {
         val amount: Int,
         override val indices: List<Int>,
         override val leaguename: String,
+        override val gameday: Int,
         override val reason: String,
         override val issuer: Long,
         override val timestamp: Instant

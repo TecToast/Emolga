@@ -393,7 +393,7 @@ class DocEntry private constructor(val league: League) {
                                 val d = match.data[1 - i]
                                 it.kills += k
                                 it.deaths += d
-                                it.points += if (k > d) 1 else 0
+                                it.points += if (k > d) 3 else 0
                             }
                         }
                     }

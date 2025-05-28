@@ -158,7 +158,7 @@ suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
             val idx = this(uid)
             val data = RepeatTask.getTask(leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfDay()
                 ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
-                ?: return
+                ?: return@executeOnFreshLock
             val ytSave = data.ytVideoSaveData
             if (uids.size > 1 && !ytSave.enabled) return@executeOnFreshLock
             ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(

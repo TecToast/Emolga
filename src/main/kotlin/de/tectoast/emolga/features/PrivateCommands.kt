@@ -496,6 +496,11 @@ object PrivateCommands {
     }
 
     context(InteractionData)
+    suspend fun getChannelIdFromUrl(args: PrivateData) {
+        reply(args.asFlow().mapIdentifierToChannelIDs().toList().joinToString())
+    }
+
+    context(InteractionData)
     suspend fun enableMaintenance(args: PrivateData) {
         enableMaintenanceWithReason(args())
     }

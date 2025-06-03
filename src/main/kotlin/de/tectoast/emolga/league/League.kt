@@ -842,10 +842,10 @@ sealed class League {
 
     fun getMatchupsIndices(gameday: Int) = battleorder[gameday]!!
 
-    open fun executeTipGameSending(num: Int, channelId: Long? = config.tipgame?.channel) {
+    open fun executeTipGameSending(num: Int, channelId: Long? = null) {
         launch {
             val tip = config.tipgame ?: return@launch
-            val channel = jda.getTextChannelById(channelId!!)!!
+            val channel = jda.getTextChannelById(channelId ?: tip.channel)!!
             val matchups = getMatchupsIndices(num)
             val names =
                 jda.getGuildById(guild)!!.retrieveMembersByIds(table).await().sortedBy { it.idLong.indexedBy(table) }

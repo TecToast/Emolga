@@ -45,7 +45,6 @@ import kotlin.time.Duration.Companion.minutes
 private val logger = KotlinLogging.logger {}
 private val duplicateVideoCache = mutableSetOf<String>()
 private val recentlySubscribed = mutableSetOf<String>()
-private val validTopicRegex = Regex("https://www.youtube.com/xml/feeds/videos.xml?channel_id=([a-zA-Z0-9_-]+)")
 private val ytClient = HttpClient(CIO)
 
 
@@ -152,21 +151,24 @@ fun Route.ytSubscriptions() {
 }
 
 suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
-    val uid = YTChannelsDB.getUserByChannelId(channelId) ?: return
-    League.executeOnFreshLock({ db.leagueByGuild(gid, uid) }) {
-        logger.info("League found: $leaguename")
-        val idx = this(uid)
-        val data = RepeatTask.getTask(leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfDay()
-            ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
-            ?: return
-        val ytSave = data.ytVideoSaveData
-        ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(
-            table.indexOf(
-                uid
-            )
-        )] = videoId
-        data.checkIfBothVideosArePresent(this)
-        save("YTSubSave")
+    val uids = YTChannelsDB.getUsersByChannelId(channelId)
+    for (uid in uids) {
+        League.executeOnFreshLock({ db.leagueByGuild(gid, uid) }) {
+            logger.info("League found: $leaguename")
+            val idx = this(uid)
+            val data = RepeatTask.getTask(leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfDay()
+                ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
+                ?: return
+            val ytSave = data.ytVideoSaveData
+            if (uids.size > 1 && !ytSave.enabled) return@executeOnFreshLock
+            ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(
+                table.indexOf(
+                    uid
+                )
+            )] = videoId
+            data.checkIfBothVideosArePresent(this)
+            save("YTSubSave")
+        }
     }
 }
 

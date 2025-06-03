@@ -12,7 +12,8 @@ import kotlin.reflect.KClass
 
 private val otherThanNumbers = Regex("[^0-9]")
 private val logger = KotlinLogging.logger {}
-
+context(BattleContext) fun SDPokemon.withZoroCheck(): SDPokemon =
+    this.zoroLines.toList().firstOrNull { currentLineIndex in it.first }?.second ?: this
 data class SDPokemon(
     var pokemon: String, val player: Int, val pokemonSaves: MutableMap<PokemonSaveKey, SDPokemon> = mutableMapOf()
 ) {
@@ -37,11 +38,6 @@ data class SDPokemon(
     val passiveKills get() = kills - activeKills
     val deadCount get() = revivedAmount + (if (isDead) 1 else 0)
 
-    companion object {
-        context(BattleContext) private fun SDPokemon.withZoroCheck(): SDPokemon =
-            this.zoroLines.toList().firstOrNull { currentLineIndex in it.first }?.second ?: this
-    }
-
     context(BattleContext) fun addEffect(type: SDEffect, pokemon: SDPokemon) {
         effects[type] = pokemon.withZoroCheck()
     }
@@ -60,9 +56,10 @@ data class SDPokemon(
     }
 
     context(BattleContext) fun claimDamage(
-        damagedMon: SDPokemon, fainted: Boolean, amount: Int, by: String, activeKill: Boolean = false
+        damagedMonArg: SDPokemon, fainted: Boolean, amount: Int, by: String, activeKill: Boolean = false
     ) {
         val claimer = this.withZoroCheck()
+        val damagedMon = damagedMonArg.withZoroCheck()
         if (fainted) {
             val idx = monsOnField[damagedMon.player].indexOf(damagedMon)
             val killGetter = if (damagedMon.player == claimer.player) {
@@ -92,9 +89,9 @@ data class SDPokemon(
         mon.hp = newhp
         if (newhp > currentHp) {
             val healed = newhp - currentHp
-            val realHealer = healer ?: mon
+            val realHealer = (healer ?: mon).withZoroCheck()
             realHealer.healed += healed
-            events.heal += AnalysisHeal(currentLineIndex, healer ?: mon, mon, percent = healed, by = by)
+            events.heal += AnalysisHeal(currentLineIndex, realHealer, mon, percent = healed, by = by)
         }
     }
 
@@ -207,10 +204,10 @@ sealed class SDEffect(vararg val types: String) {
                 switchIn.volatileEffects.putAll(switchOut.volatileEffects)
             }
             if (switchOut.pokemon != "dummy") {
-                events.switch += AnalysisSwitch(currentLineIndex, switchOut, SwitchType.OUT)
+                events.switch += AnalysisSwitch(currentLineIndex, switchOut.withZoroCheck(), SwitchType.OUT)
             }
             monsOnField[pl][idx] = switchIn
-            events.switch += AnalysisSwitch(currentLineIndex, switchIn, SwitchType.IN)
+            events.switch += AnalysisSwitch(currentLineIndex, switchIn.withZoroCheck(), SwitchType.IN)
             switchIn.setNewHPAndHeal(
                 newhp = split[3].parseHPPercentage(), by = "Switch", healer = null
             )
@@ -243,10 +240,19 @@ sealed class SDEffect(vararg val types: String) {
             val healedMon = if (num == -1) sdPlayers[side].pokemon.first { it.nickname == nickname }
                 .also { it.revive() } else monsOnField[side][num]
             val source = split.getOrNull(3)?.substringAfter(": ")
-            val healer = source?.let { move ->
+            var healer = source?.let { move ->
                 findResponsiblePokemonSlot<RemoteHeal>(move, side = side, slot = num)
             }
-            healedMon.setNewHPAndHeal(healedTo, by = source ?: lastMoveUsed.value, healer)
+            val actualSource = if (source == "[silent]") {
+                val cleanSplitLast = lastLine.value.cleanSplit()
+                if (cleanSplitLast.getOrNull(0) == "-damage" && cleanSplitLast.getOrNull(3) == "[from] Leech Seed") {
+                    healer = cleanSplitLast[1].parsePokemon().withZoroCheck().volatileEffects["Leech Seed"]
+                    "Leech Seed"
+                } else if (lastMoveUsed.value == "Rest") {
+                    "Rest"
+                } else source
+            } else source
+            healedMon.setNewHPAndHeal(healedTo, by = actualSource ?: lastMoveUsed.value, healer)
         }
     }
 
@@ -255,7 +261,7 @@ sealed class SDEffect(vararg val types: String) {
             val damagedMonLocation = split[1].parsePokemonLocation()
             val damagedMon = monsOnField[damagedMonLocation.first][damagedMonLocation.second]
             val fainted = "fnt" in split[2]
-            val amount = damagedMon.hp - split[2].parseHPPercentage()
+            val amount = damagedMon.withZoroCheck().hp - split[2].parseHPPercentage()
             if (split.size > 4 && "[of]" in split[4] && split[3].substringAfter("[from] ") !in damagedMon.volatileEffects) {
                 split[4].parsePokemon()
                     .claimDamage(damagedMon, fainted, amount, by = split[3].substringAfter("[from] "))
@@ -361,7 +367,7 @@ sealed class SDEffect(vararg val types: String) {
 
     data object DetailsChanged : SDEffect("detailschange") {
         context(BattleContext) override fun execute(split: List<String>) {
-            val mon = split[1].parsePokemon()
+            val mon = runCatching { split[1].parsePokemon() }.getOrNull() ?: return
             mon.otherNames += mon.pokemon
             mon.pokemon = split[2].substringBefore(",")
         }
@@ -446,7 +452,12 @@ sealed class SDEffect(vararg val types: String) {
                 val tspikes = sdPlayers[player].sideConditions["Toxic Spikes"]
                 (split.getSource() ?: tspikes)?.let {
                     addEffect(Status, it)
-                    events.status += AnalysisStatus(currentLineIndex, it, this, split[2])
+                    events.status += AnalysisStatus(
+                        currentLineIndex,
+                        it.withZoroCheck(),
+                        this.withZoroCheck(),
+                        split[2]
+                    )
                 }
             }
         }
@@ -552,7 +563,7 @@ sealed class SDEffect(vararg val types: String) {
                     ?.parsePokemon()
             } else if (split[1] == split[3]) null else if (split.getOrNull(4) == "[notarget]") null else runCatching { split[3].parsePokemon() }.getOrNull()
             events.move += AnalysisMove(
-                currentLineIndex, split[1].parsePokemon(), target, split[2]
+                currentLineIndex, split[1].parsePokemon().withZoroCheck(), target?.withZoroCheck(), split[2]
             )
         }
     }
@@ -667,6 +678,9 @@ context(BattleContext) fun String.parsePokemon() = parsePokemonLocation().let { 
 fun String.parsePokemonLocation() = substringAfter('p').substringBefore(':').let {
     val p = it[0].digitToInt() - 1
     p to if (p > 1) 0 else it[1].cToI()
+}
+fun String.parsePlayer() = substringAfter('p').substringBefore(':').let {
+    it[0].digitToInt() - 1
 }
 
 fun String.parsePlayerLocation() = substringAfter('p').substringBefore(':')[0].digitToInt() - 1

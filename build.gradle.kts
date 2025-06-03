@@ -1,7 +1,7 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "2.1.20"
+val kVersion = "2.1.21"
 plugins {
     val kVersion = "2.1.20"
     kotlin("jvm") version kVersion
@@ -101,7 +101,7 @@ dependencies {
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google
-    implementation("com.google.apis:google-api-services-sheets:v4-rev20250415-2.0.0")
+    implementation("com.google.apis:google-api-services-sheets:v4-rev20250513-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20250506-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20250422-2.0.0")
 
@@ -125,7 +125,7 @@ dependencies {
     implementation("org.jsoup:jsoup:1.20.1")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M3")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M4")
     testImplementation("io.kotest:kotest-assertions-core:6.0.0.M4")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 

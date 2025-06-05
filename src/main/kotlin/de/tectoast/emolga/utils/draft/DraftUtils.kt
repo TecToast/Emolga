@@ -141,7 +141,7 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
         if (isPicked(newmon.official, newtier.official)) {
             return reply("${newmon.tlName} wurde bereits gepickt!").let { false }
         }
-        if (handleTiers(newtier.specified, newtier.official, fromSwitch = true)) return false
+        if (handleTiers(oldtier, newtier.official, fromSwitch = true)) return false
         if (handlePoints(
                 free = false, tier = newtier.official, tierOld = oldtier
             )

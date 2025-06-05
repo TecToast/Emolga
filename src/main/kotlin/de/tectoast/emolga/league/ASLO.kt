@@ -23,7 +23,7 @@ class ASLO(
     override val dataSheet = "Data$confidx"
     override val pickBuffer = 18
     override val teamsize = 12
-    override val gamedays = 10
+    override val gamedays = 11
 
     /*@Transient
     override val docEntry = DocEntry.create(this) {
@@ -63,7 +63,7 @@ class ASLO(
         newSystemSwitchDoc(data)
         addRow(
             data.roundIndex.coordXMod("PlayOffs-Draft $conf", 3, 4, 3, 5, data.indexInRound + 4),
-            listOf(data.oldmon.tlName, data.pokemon)
+            listOf(data.pokemon, data.oldmon.tlName)
         )
     }
 

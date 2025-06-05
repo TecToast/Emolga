@@ -267,11 +267,11 @@ sealed class League {
         }.minOrNull() ?: 0 else 0) else 0).let {
             if (mega) 0 else it
         }
-        val needed = (if (free) tierlist.getPointsNeeded(tier) else 0) + (extraCosts ?: 0) + variableMegaPrice
+        val needed = tierlist.getPointsNeeded(tier) + (extraCosts ?: 0) + variableMegaPrice
         val pointsBack = tierOld?.let { tierlist.getPointsNeeded(it) } ?: 0
         val newPoints = points[current] - needed + pointsBack
         if (newPoints < 0) {
-            reply("Dafür hast du nicht genug Punkte! (`${points[current]} - $needed${if (pointsBack == 0) "" else "+ $pointsBack"} = $newPoints < 0`)")
+            reply("Dafür hast du nicht genug Punkte! (`${points[current]} - $needed${if (pointsBack == 0) "" else " + $pointsBack"} = $newPoints < 0`)")
             return true
         }
         if (pointsBack == 0) {
@@ -476,10 +476,10 @@ sealed class League {
         logger.info(tcid.toString())
         if (!fromFile) {
             names.clear()
-            names.addAll(if (table.any { it < 11_000_000_000 }) table.map { "${it - 10_000_000_000}" } else jda.getGuildById(
+            val fetchedNames = jda.getGuildById(
                 nameGuildId ?: this.guild
-            )!!.retrieveMembersByIds(table).await().sortedBy { it.idLong.indexedBy(table) }
-                .map { it.effectiveName })
+            )!!.retrieveMembersByIds(table.filter { it > 0 }).await().associateBy { it.idLong }
+            names.addAll(table.map { fetchedNames[it]?.effectiveName ?: "" })
         }
         logger.info(names.toString())
         tc?.let { this.tcid = it.idLong }

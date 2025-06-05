@@ -299,6 +299,11 @@ object PrivateCommands {
     }
 
     context(InteractionData)
+    suspend fun addSingleYTChannel(args: PrivateData) {
+        YTChannelsDB.insertAll(listOf(args[0].toLong() to flowOf(args[1]).mapIdentifierToChannelIDs().single()))
+    }
+
+    context(InteractionData)
     suspend fun addForNotifications(args: PrivateData) {
         val id = args[0].toLong()
         val dm = args[1].toBooleanStrict()

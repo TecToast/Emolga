@@ -2,15 +2,12 @@ package de.tectoast.emolga.league
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.draft.AddToTierlistData
-import de.tectoast.emolga.utils.DocEntry
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.coordXMod
-import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
 import kotlin.time.Duration.Companion.days
 
@@ -28,7 +25,7 @@ class ASLO(
     override val teamsize = 12
     override val gamedays = 10
 
-    @Transient
+    /*@Transient
     override val docEntry = DocEntry.create(this) {
         newSystem(
             SorterData(
@@ -42,7 +39,7 @@ class ASLO(
                     defaultGameplanString
                 )
             })
-    }
+    }*/
 
     override fun provideReplayChannel(jda: JDA) = jda.getTextChannelById(replayChannel)
     override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(resultChannel)
@@ -62,15 +59,13 @@ class ASLO(
             data.roundIndex.coordXMod("Draft $conf", 6, 4, 3, 10, 4 + data.indexInRound), data.pokemon
         )
     }
-
-    /*override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
+    override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
         newSystemSwitchDoc(data)
         addRow(
-            "Zwischendraft!${data.roundIndex.x(4, 3)}${data.indexInRound + 4}",
+            data.roundIndex.coordXMod("PlayOffs-Draft $conf", 3, 4, 3, 5, data.indexInRound + 4),
             listOf(data.oldmon.tlName, data.pokemon)
         )
-
-*/
+    }
 
     override fun setupRepeatTasks() {
         if (confidx == 0) {

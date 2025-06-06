@@ -10,6 +10,7 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.reverseGet
 import de.tectoast.emolga.utils.process
 import dev.minn.jda.ktx.coroutines.await
+import net.dv8tion.jda.api.Permission
 
 object EnterResult {
 
@@ -54,7 +55,9 @@ object EnterResult {
         )
     ) {
         init {
-            restrict(admin)
+            restrict {
+                member().hasPermission(Permission.ADMINISTRATOR) || member().unsortedRoles.any { it.idLong == 796787738559905842 }
+            }
         }
 
         class Args : Arguments() {

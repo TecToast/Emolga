@@ -50,7 +50,7 @@ object EnterResult {
     object ResultFor : CommandFeature<ResultFor.Args>(
         ::Args, CommandSpec(
             "resultfor", "Startet die interaktive Ergebniseingabe für jemand anderen",
-            Constants.G.NPL
+            Constants.G.NPL, Constants.G.VIP
         )
     ) {
         init {

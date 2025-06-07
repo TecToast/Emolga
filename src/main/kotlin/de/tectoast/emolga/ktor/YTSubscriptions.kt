@@ -116,7 +116,6 @@ fun Route.ytSubscriptions() {
                 logger.info("New video by $channelId: $title")
                 logger.info("Link: $link")
                 logger.info("Published: $published")
-                logger.info("Updated: $updated")
                 try {
                     val pub = Instant.parse(published)
                     val upd = Instant.parse(updated)
@@ -159,11 +158,9 @@ suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
             League.executeOnFreshLock(league) {
                 logger.info("League found: $leaguename")
                 val idx = this(uid)
-                logger.info("User index: $idx")
                 val data = RepeatTask.getTask(leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfDay()
                     ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
                     ?: return@executeOnFreshLock
-                logger.info("Data found: $data")
                 val ytSave = data.ytVideoSaveData
                 if (uids.size > 1 && !ytSave.enabled) return@executeOnFreshLock
                 ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(
@@ -171,9 +168,7 @@ suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
                         uid
                     )
                 )] = videoId
-                logger.info("Video ID saved: $videoId")
                 data.checkIfBothVideosArePresent(this)
-                logger.info("Saving...")
                 save("YTSubSave")
                 successful = true
             }

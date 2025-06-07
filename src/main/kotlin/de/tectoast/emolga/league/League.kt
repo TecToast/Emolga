@@ -149,7 +149,7 @@ sealed class League {
     open val dataSheet: String = "Data"
 
 
-    operator fun invoke(mem: Long) = table.indexOf(mem)
+    operator fun invoke(mem: Long) = table.indexOf(mem).takeIf { it >= 0 }!!
     operator fun get(index: Int) = table[index]
 
     suspend fun currentOrFromID(id: Long) = currentOverride ?: order[round]?.get(0)

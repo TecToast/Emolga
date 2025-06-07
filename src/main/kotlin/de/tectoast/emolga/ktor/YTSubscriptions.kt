@@ -152,22 +152,32 @@ fun Route.ytSubscriptions() {
 
 suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
     val uids = YTChannelsDB.getUsersByChannelId(channelId)
+    var successful = false
     for (uid in uids) {
-        League.executeOnFreshLock({ db.leagueByGuild(gid, uid) }) {
-            logger.info("League found: $leaguename")
-            val idx = this(uid)
-            val data = RepeatTask.getTask(leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfDay()
-                ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
-                ?: return@executeOnFreshLock
-            val ytSave = data.ytVideoSaveData
-            if (uids.size > 1 && !ytSave.enabled) return@executeOnFreshLock
-            ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(
-                table.indexOf(
-                    uid
-                )
-            )] = videoId
-            data.checkIfBothVideosArePresent(this)
-            save("YTSubSave")
+        val leagues = db.leaguesByGuild(gid, uid)
+        for (league in leagues.map { it.leaguename }) {
+            League.executeOnFreshLock(league) {
+                logger.info("League found: $leaguename")
+                val idx = this(uid)
+                logger.info("User index: $idx")
+                val data = RepeatTask.getTask(leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfDay()
+                    ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
+                    ?: return@executeOnFreshLock
+                logger.info("Data found: $data")
+                val ytSave = data.ytVideoSaveData
+                if (uids.size > 1 && !ytSave.enabled) return@executeOnFreshLock
+                ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(
+                    table.indexOf(
+                        uid
+                    )
+                )] = videoId
+                logger.info("Video ID saved: $videoId")
+                data.checkIfBothVideosArePresent(this)
+                logger.info("Saving...")
+                save("YTSubSave")
+                successful = true
+            }
+            if (successful) return
         }
     }
 }

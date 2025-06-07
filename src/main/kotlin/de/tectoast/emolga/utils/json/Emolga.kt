@@ -83,8 +83,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val shinyEventConfig by lazy { db.getCollection<ShinyEventConfig>("shinyeventconfig") }
     val shinyEventResults by lazy { db.getCollection<ShinyEventResult>("shinyeventresults") }
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
-    val matchresults by lazy { db.getCollection<MatchResult>("matchresults") }
-    val sanctions by lazy { db.getCollection<Sanction>("sanctions") }
+    val matchresults by lazy { db.getCollection<LeagueEvent>("matchresults") }
     val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
     val tipgameuserdata by lazy { db.getCollection<TipGameUserData>("tipgameuserdata") }
     val statestore by lazy { db.getCollection<StateStore>("statestore") }
@@ -100,6 +99,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     suspend fun leagueByGuild(gid: Long, vararg uids: Long) = league.findOne(
         League::guild eq gid, *(if (uids.isEmpty()) emptyArray() else arrayOf(League::table all uids.toList()))
     )
+
     suspend fun leaguesByGuild(gid: Long, vararg uids: Long): List<League> {
         return league.find(
             League::guild eq gid, *(if (uids.isEmpty()) emptyArray() else arrayOf(League::table all uids.toList()))
@@ -221,13 +221,6 @@ data class IntervalTaskData(
     val nextExecution: Instant,
     val notAfter: Instant = Instant.DISTANT_FUTURE,
 )
-
-@Serializable
-data class MatchResult(
-    val data: List<Int>, val indices: List<Int>, val leaguename: String, val gameday: Int, val matchNum: Int = 0
-) {
-    val winnerIndex get() = if (data[0] > data[1]) 0 else 1
-}
 
 @Serializable
 data class PickedMonsData(val leaguename: String, val guild: Long, val idx: Int, val mons: List<String>)
@@ -675,13 +668,40 @@ data class LogoChecksum(
 }
 
 @Serializable
-sealed class Sanction {
+sealed class LeagueEvent {
     abstract val leaguename: String
     abstract val gameday: Int
-    abstract val reason: String
-    abstract val issuer: Long
     abstract val timestamp: Instant
     abstract val indices: List<Int>
+
+    sealed class Sanction : LeagueEvent() {
+        abstract val reason: String
+        abstract val issuer: Long
+    }
+
+    @Serializable
+    @SerialName("MatchResult")
+    data class MatchResult(
+        override val indices: List<Int>,
+        override val leaguename: String,
+        override val gameday: Int,
+        override val timestamp: Instant,
+        val matchNum: Int = 0,
+        val data: List<Int>
+    ) : LeagueEvent() {
+        val winnerIndex get() = if (data[0] > data[1]) 0 else 1
+        override fun manipulate(map: MutableMap<Int, DirectCompareData>) {
+            for ((i, idx) in indices.withIndex()) {
+                map[idx]!!.let {
+                    val k = data[i]
+                    val d = data[1 - i]
+                    it.kills += k
+                    it.deaths += d
+                    it.points += if (k > d) 3 else 0
+                }
+            }
+        }
+    }
 
     abstract fun manipulate(map: MutableMap<Int, DirectCompareData>)
 

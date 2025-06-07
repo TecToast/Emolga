@@ -474,18 +474,18 @@ object PrivateCommands {
     suspend fun moveLeaguesToArchive(args: PrivateData) {
         val archiveLeague = db.db.getCollection<League>("oldleague")
         val currentLeague = db.league
-        val archiveMR = db.db.getCollection<MatchResult>("oldmatchresults")
-        val currentMR = db.db.getCollection<MatchResult>("matchresults")
+        val archiveMR = db.db.getCollection<LeagueEvent>("oldmatchresults")
+        val currentMR = db.db.getCollection<LeagueEvent>("matchresults")
         args.forEach {
             if (!it.matches(Regex("^NDSS\\d+$"))) {
                 val league = db.league(it)
                 archiveLeague.insertOne(league)
                 currentLeague.deleteOne(League::leaguename eq it)
             }
-            val matchResults = currentMR.find(MatchResult::leaguename eq it).toList()
+            val matchResults = currentMR.find(LeagueEvent::leaguename eq it).toList()
             if (matchResults.isNotEmpty()) {
                 archiveMR.insertMany(matchResults)
-                currentMR.deleteMany(MatchResult::leaguename eq it)
+                currentMR.deleteMany(LeagueEvent::leaguename eq it)
             }
         }
     }

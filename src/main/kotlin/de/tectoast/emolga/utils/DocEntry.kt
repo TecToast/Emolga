@@ -7,7 +7,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.json.MatchResult
+import de.tectoast.emolga.utils.json.LeagueEvent.MatchResult
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.Coord
@@ -17,6 +17,7 @@ import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
 import org.bson.Document
 import org.litote.kmongo.eq
@@ -142,7 +143,8 @@ class DocEntry private constructor(val league: League) {
                             indices = sorted,
                             leaguename = league.leaguename,
                             gameday = gameday,
-                            matchNum = index
+                            matchNum = index,
+                            timestamp = Clock.System.now()
                         )
                     )
                 }
@@ -363,16 +365,7 @@ class DocEntry private constructor(val league: League) {
                 if (toCompare.size == 1) toCompare else {
                     val useridxs =
                         toCompare.map { u -> indexerToUse(formula[orig.indexOf(u)][0].toString()) }
-                    val allRelevantMatches = db.matchresults.find(
-                        leagueCheckToUse, Document(
-                            "\$expr", Document(
-                                "\$setIsSubset", listOf(
-                                    "\$indices", useridxs
-                                )
-                            )
-                        )
-                    ).toList()
-                    val allRelevantSanctions = db.sanctions.find(
+                    val allRelevantEvents = db.matchresults.find(
                         leagueCheckToUse, Document(
                             "\$expr", Document(
                                 "\$setIsSubset", listOf(
@@ -385,20 +378,8 @@ class DocEntry private constructor(val league: League) {
                     useridxs.forEachIndexed { index, l ->
                         data[l] = DirectCompareData(0, 0, 0, index)
                     }
-                    allRelevantMatches.forEach { match ->
-                        val idxes = match.indices
-                        for ((i, idx) in idxes.withIndex()) {
-                            data[idx]!!.let {
-                                val k = match.data[i]
-                                val d = match.data[1 - i]
-                                it.kills += k
-                                it.deaths += d
-                                it.points += if (k > d) 3 else 0
-                            }
-                        }
-                    }
-                    allRelevantSanctions.forEach { sanction ->
-                        sanction.manipulate(data)
+                    allRelevantEvents.forEach {
+                        it.manipulate(data)
                     }
                     data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Int, DirectCompareData>> { o1, o2 ->
                         val compare = o1.value.points.compareTo(o2.value.points)

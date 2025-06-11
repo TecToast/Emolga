@@ -923,9 +923,20 @@ sealed class League {
         }
     }
 
-    open suspend fun executeYoutubeSend(
-        ytTC: Long, gameday: Int, battle: Int, strategy: VideoProvideStrategy, overrideEnabled: Boolean = false
+    suspend fun executeYoutubeSend(
+        ytTC: Long,
+        gameday: Int,
+        battle: Int,
+        strategy: VideoProvideStrategy,
+        overrideEnabled: Boolean = false
     ) {
+        val ytConfig = config.youtube ?: return
+        val ytVideoSaveData = persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
+        if (!overrideEnabled && ytVideoSaveData?.enabled != true) return
+        ytVideoSaveData?.enabled = false
+        jda.getTextChannelById(ytTC)!!.sendMessage(ytConfig.messageConfig.formatMessage(gameday, battle, strategy))
+            .queue()
+        save("YTSubSave")
     }
 
     fun buildStoreStatus(gameday: Int): String {

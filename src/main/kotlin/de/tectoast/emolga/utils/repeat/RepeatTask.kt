@@ -3,10 +3,16 @@ package de.tectoast.emolga.utils.repeat
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
+import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
+import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.repeat.RepeatTaskType.*
+import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.Embed
+import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -147,6 +153,31 @@ class RepeatTask(
                                 logger.info("RegisterInDoc $name $gameday $battle")
                                 League.executeOnFreshLock(name) { executeRegisterInDoc(this, gameday, battle) }
                             }
+                            RepeatTask(
+                                name,
+                                SendReminderToParticipants,
+                                data.lastUploadStart + data.intervalBetweenMatches * battle,
+                                data.amount,
+                                data.intervalBetweenGD,
+                            ) { gameday ->
+                                logger.info("SendReminderToParticipants $name $gameday $battle")
+                                League.executeOnFreshLock(name) {
+                                    if (persistentData.replayDataStore.data[gameday]?.get(battle) != null) return@executeOnFreshLock
+                                    val toRemind = battleorder[gameday]?.get(battle) ?: return@executeOnFreshLock
+                                    for ((index, idx) in toRemind.withIndex()) {
+                                        val opponent = toRemind[1 - index]
+                                        jda.openPrivateChannelById(table[idx]).await().send(
+                                            embeds = Embed(
+                                                title = "Reminder",
+                                                description = "Dein Kampf an Spieltag $gameday gegen <@${table[opponent]}> ist noch nicht eingetragen.\n" +
+                                                        "Falls das vergessen wurde, kläre bitte ab, wer den Kampf noch eintragen wird.\n\n" +
+                                                        "Falls der Kampf eigentlich schon eingetragen wurde, funktioniert dieses System nicht, bitte gib dann ${Constants.MYTAG} Bescheid :)",
+                                                color = embedColor
+                                            ).into()
+                                        ).queue()
+                                    }
+                                }
+                            }
                             l.config.youtube?.sendChannel?.let { ytTC ->
                                 RepeatTask(
                                     name,
@@ -200,6 +231,7 @@ sealed interface RepeatTaskType {
     data object TipGameLockButtons : RepeatTaskType
     data object RegisterInDoc : RepeatTaskType
     data object YTSendManual : RepeatTaskType
+    data object SendReminderToParticipants : RepeatTaskType
     data object LastReminder : RepeatTaskType
     data class Other(val descriptor: String) : RepeatTaskType
 }

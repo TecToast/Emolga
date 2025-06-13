@@ -23,6 +23,7 @@ data class Pokemon(
     val gender: String? = null,
     val heightm: Double = -1.0,
     val weightkg: Double = -1.0,
+    val color: String = "ERROR",
 
     val requiredAbility: String? = null,
     val requiredItem: String? = null,

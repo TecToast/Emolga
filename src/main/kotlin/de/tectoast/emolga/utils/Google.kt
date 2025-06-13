@@ -12,10 +12,7 @@ import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.File
 import com.google.api.services.drive.model.Permission
 import com.google.api.services.sheets.v4.Sheets
-import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest
-import com.google.api.services.sheets.v4.model.BatchUpdateValuesRequest
-import com.google.api.services.sheets.v4.model.Request
-import com.google.api.services.sheets.v4.model.ValueRange
+import com.google.api.services.sheets.v4.model.*
 import com.google.api.services.youtube.YouTube
 import de.tectoast.emolga.utils.Google.setCredentials
 import kotlinx.coroutines.Dispatchers
@@ -104,6 +101,31 @@ object Google {
                 .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
                 .execute().valueRanges.map { it.getValues() }
         }
+
+    /**
+     * Gets the specified ranges of data from the specified spreadsheet
+     * @param sid The ID of the spreadsheet
+     * @param ranges The ranges of the data
+     * @param formula Whether to get the formula or the formatted value
+     * @param majorDimension The major dimension of the data (default: "ROWS")
+     * @return The data, as a list of ranges, each list being a list of rows, each row being a list of cells
+     */
+    suspend fun batchGetStrings(
+        sid: String,
+        ranges: List<String>,
+        formula: Boolean,
+        majorDimension: String = "ROWS"
+    ): List<List<List<String>>> =
+        withContext(googleContext) {
+            sheetsService().spreadsheets().values().batchGet(sid).setRanges(ranges).setMajorDimension(majorDimension)
+                .setValueRenderOption(if (formula) "FORMULA" else "FORMATTED_VALUE")
+                .execute().valueRanges.map { it.getValues().map { row -> row.map { o -> o.toString() } } }
+        }
+
+
+    suspend fun getSheetData(spreadsheetId: String?, vararg range: String): Spreadsheet = withContext(googleContext) {
+        sheetsService().spreadsheets()[spreadsheetId].setIncludeGridData(true).setRanges(range.toList()).execute()
+    }
 
     /**
      * Batch updates the specified data in the specified spreadsheet

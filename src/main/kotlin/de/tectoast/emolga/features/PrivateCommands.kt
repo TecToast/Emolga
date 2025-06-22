@@ -554,6 +554,7 @@ object PrivateCommands {
                 announceChannel = tc.idLong,
                 announceMessageId = messageid,
                 maxUsers = maxUsers,
+                signupStructure = listOf(SignUpInput.SDName)
             )
         )
     }

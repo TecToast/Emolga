@@ -40,6 +40,25 @@ class RIPL : League() {
         addSingle(coord.toString(), data.pokemon)
     }
 
+    override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
+        newSystemSwitchDoc(data)
+        addStrikethroughChange(
+            770133001,
+            data.roundIndex + 2,
+            cid.y(19 - 7, 7 + data.indexInRound),
+            strikethrough = true
+        )
+        val coord = data.idx.CoordXMod(
+            "Kader $conf",
+            4,
+            2,
+            3,
+            19,
+            data.changedOnTeamsiteIndex + 7
+        )
+        addSingle(coord.toString(), data.pokemon)
+    }
+
     @Transient
     override val docEntry = DocEntry.create(this) {
         newSystem(

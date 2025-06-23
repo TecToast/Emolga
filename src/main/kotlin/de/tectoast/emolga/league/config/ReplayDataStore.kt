@@ -16,6 +16,7 @@ data class ReplayDataStoreConfig(
     @Serializable(with = DurationSerializer::class) val intervalBetweenGD: Duration,
     @Serializable(with = DurationSerializer::class) val intervalBetweenMatches: Duration,
     val amount: Int,
+    val onlyInsertManually: Boolean = false,
 )
 
 @Serializable

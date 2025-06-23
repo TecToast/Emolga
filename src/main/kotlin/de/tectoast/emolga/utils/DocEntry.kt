@@ -102,7 +102,7 @@ class DocEntry private constructor(val league: League) {
             val gameday = replayData.first().gamedayData.gameday
             val currentDay = RepeatTask.getTask(league.leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfWeek()
                 ?: Int.MAX_VALUE
-            if (currentDay <= gameday)
+            if (store.onlyInsertManually || currentDay <= gameday)
                 return
         }
         analyseWithoutCheck(replayData, withSort)

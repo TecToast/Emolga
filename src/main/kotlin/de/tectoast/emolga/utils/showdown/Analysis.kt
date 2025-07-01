@@ -128,7 +128,12 @@ object Analysis {
             logger.info("Analysed!")
             val spoiler = SpoilerTagsDB.contains(gid)
             game.forEach {
-                it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
+                it.pokemon.addAll(List((it.teamSize - it.pokemon.size).coerceAtLeast(0)) {
+                    SDPokemon(
+                        "_unbekannt_",
+                        -1
+                    )
+                })
             }
             val activePassive = ActivePassiveKillsDB.hasEnabled(gid)
             val monStrings = game.map { player ->
@@ -156,10 +161,10 @@ object Analysis {
             val description = game.mapIndexed { index, sdPlayer ->
                 mutableListOf<Any>(
                     leaguedata?.mentions[index] ?: sdPlayer.nickname,
-                    sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
+                    sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.is4v4) 2 else 0)
                 ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
             }.joinToString(":") { it.joinToString(" ") }
-                .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.mapIndexed { index, player ->
+                .condAppend(ctx.is4v4, "\n(4v4)") + "\n\n" + game.mapIndexed { index, player ->
                 "${leaguedata?.mentions[index] ?: player.nickname}:".condAppend(
                     player.allMonsDead && !spoiler, " (alle tot)"
                 ) + "\n".condAppend(spoiler, "||") + monStrings[index].condAppend(spoiler, "||")

@@ -176,7 +176,7 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    data object VGC : SDEffect("tier") {
+    data object Format : SDEffect("tier") {
         context(BattleContext) override fun execute(split: List<String>) {
             format = split[1]
         }
@@ -599,7 +599,7 @@ data class BattleContext(
         globalConditions.entries.firstOrNull { (it.key as? T)?.name == name }?.value
 
 
-    val vgc by lazy { "VGC" in format }
+    val is4v4 by lazy { "VGC" in format || "4v4" in format }
 }
 
 data class AnalysisEvents(

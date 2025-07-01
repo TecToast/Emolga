@@ -8,11 +8,9 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.toCoord
-import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
@@ -132,6 +130,20 @@ object Analysis {
             game.forEach {
                 it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
             }
+            val activePassive = ActivePassiveKillsDB.hasEnabled(gid)
+            val monStrings = game.map { player ->
+                player.pokemon.map { mon ->
+                    getMonName(mon.pokemon, gid).also {
+                        mon.draftname = it
+                    }.displayName.let {
+                        if (activePassive) {
+                            "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
+                        } else {
+                            it.condAppend(mon.kills > 0, " ${mon.kills}")
+                        }
+                    }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
+                }.joinToString("\n")
+            }
             val leaguedata = db.leagueByGuildAdvanced(
                 gid, game, ctx, null, uid1db, uid2db
             )
@@ -141,6 +153,26 @@ object Analysis {
             val gamedayData = defaultScope.async {
                 league?.getGamedayData(uindices!![0], uindices[1], draftPlayerList)
             }
+            val description = game.mapIndexed { index, sdPlayer ->
+                mutableListOf<Any>(
+                    leaguedata?.mentions[index] ?: sdPlayer.nickname,
+                    sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
+                ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
+            }.joinToString(":") { it.joinToString(" ") }
+                .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.mapIndexed { index, player ->
+                "${leaguedata?.mentions[index] ?: player.nickname}:".condAppend(
+                    player.allMonsDead && !spoiler, " (alle tot)"
+                ) + "\n".condAppend(spoiler, "||") + monStrings[index].condAppend(spoiler, "||")
+            }.joinToString("\n\n")
+            val embed = Embed(description = description)
+
+//            if (league is ASL) {
+//                val gdData = gamedayData.await()
+//                if (gdData?.gameday == 10) {
+//                    message?.channel?.sendMessage("Replay ist angekommen, wird aber erst später ausgewertet!")?.queue()
+//                    return
+//                }
+//            }
             val jda = resultchannelParam.jda
             val replayChannel =
                 league?.provideReplayChannel(jda).takeIf { useReplayResultChannelAnyways || customGuild == null }
@@ -151,30 +183,19 @@ object Analysis {
             logger.info("uids = $uindices")
             logger.info("u1 = $u1")
             logger.info("u2 = $u2")
-            val dontPostReplay = league?.config?.replayDataStore?.onlyInsertManually == true
-            val gdData = gamedayData.await()
-            if (dontPostReplay) {
-                val embeds = Embed(
-                    title = "Spieltag ${gdData!!.gameday}",
-                    description = leaguedata.uindices.let { if (gdData.u1IsSecond) it.reversed() else it }
-                        .joinToString(" vs. ") { "<@${league!![it]}>" } + " ✅",
-                    color = embedColor
-                ).into()
-                fromReplayCommand?.reply(embeds = embeds)
-                replayChannel?.sendMessageEmbeds(embeds)?.queue()
+            if (league != null) {
+                resultChannel.sendMessageEmbeds(embed).queue()
             } else {
+                resultChannel.sendMessage(description).queue()
+            }
+            defaultScope.launch {
+                val gdData = gamedayData.await()
                 val tosend = MessageCreate(
                     content = url,
-                    embeds = league?.appendedEmbed(data, leaguedata, gdData!!)?.build()?.into().orEmpty()
+                    embeds = league?.appendedEmbed(data, leaguedata!!, gdData!!)?.build()?.into().orEmpty()
                 )
                 replayChannel?.sendMessage(tosend)?.queue()
                 fromReplayCommand?.reply(msgCreateData = tosend)
-                val description = generateDescription(game, gid, spoiler, leaguedata, ctx)
-                if (league != null) {
-                    resultChannel.sendMessageEmbeds(Embed(description = description)).queue()
-                } else {
-                    resultChannel.sendMessage(description).queue()
-                }
             }
             Database.dbScope.launch {
                 AnalysisStatistics.addToStatistics(game, ctx)
@@ -183,13 +204,9 @@ object Analysis {
             var shouldSendZoro = false
             for (ga in game) {
                 if (ga.containsZoro()) {
-                    val text =
-                        "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!".condAppend(
-                            dontPostReplay,
-                            " $url"
-                        )
-                    (if (dontPostReplay) jda.openPrivateChannelById(Constants.FLOID).await() else resultchannelParam)
-                        .sendMessage(text).queue()
+                    resultchannelParam.sendMessage(
+                        "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
+                    ).queue()
                     shouldSendZoro = true
                 }
             }
@@ -253,35 +270,6 @@ object Analysis {
                 )
             }
         }
-    }
-
-    private suspend fun generateDescription(
-        game: List<SDPlayer>,
-        gid: Long,
-        spoiler: Boolean,
-        leaguedata: LeagueResult?,
-        ctx: BattleContext
-    ): String {
-        val monStrings = game.map { player ->
-            player.pokemon.map { mon ->
-                getMonName(mon.pokemon, gid).also {
-                    mon.draftname = it
-                }.displayName.condAppend(mon.kills > 0, " ${mon.kills}")
-                    .condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
-            }.joinToString("\n")
-        }
-        val description = game.mapIndexed { index, sdPlayer ->
-            mutableListOf<Any>(
-                leaguedata?.mentions[index] ?: sdPlayer.nickname,
-                sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
-            ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
-        }.joinToString(":") { it.joinToString(" ") }
-            .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.mapIndexed { index, player ->
-            "${leaguedata?.mentions[index] ?: player.nickname}:".condAppend(
-                player.allMonsDead && !spoiler, " (alle tot)"
-            ) + "\n".condAppend(spoiler, "||") + monStrings[index].condAppend(spoiler, "||")
-        }.joinToString("\n\n")
-        return description
     }
 
     suspend fun getMonName(s: String, guildId: Long, withDebug: Boolean = false): DraftName {

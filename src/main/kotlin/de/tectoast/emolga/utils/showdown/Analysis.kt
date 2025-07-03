@@ -19,7 +19,10 @@ import dev.minn.jda.ktx.messages.send
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
@@ -141,9 +144,6 @@ object Analysis {
             league = leaguedata?.league
             val uindices = leaguedata?.uindices
             val draftPlayerList = game.map(SDPlayer::toDraftPlayer)
-            val gamedayData = defaultScope.async {
-                league?.getGamedayData(uindices!![0], uindices[1], draftPlayerList)
-            }
             val jda = resultchannelParam.jda
             val replayChannel =
                 league?.provideReplayChannel(jda).takeIf { useReplayResultChannelAnyways || customGuild == null }
@@ -155,21 +155,20 @@ object Analysis {
             logger.info("u1 = $u1")
             logger.info("u2 = $u2")
             // TODO: Refactor this
-            defaultScope.launch {
-                val gdData = gamedayData.await()
-                val tosend = MessageCreate(
-                    content = url,
-                    embeds = league?.appendedEmbed(data, leaguedata!!, gdData!!)?.build()?.into().orEmpty()
-                )
-                replayChannel?.sendMessage(tosend)?.queue()
-                fromReplayCommand?.reply(msgCreateData = tosend)
-                val description = generateDescription(game, spoiler, leaguedata, ctx)
-                if (league != null) {
-                    resultChannel.sendMessageEmbeds(Embed(description = description)).queue()
-                } else {
-                    resultChannel.sendMessage(description).queue()
-                }
+            val gamedayData = league?.getGamedayData(uindices!![0], uindices[1], draftPlayerList)
+            val tosend = MessageCreate(
+                content = url,
+                embeds = league?.appendedEmbed(data, leaguedata, gamedayData!!)?.build()?.into().orEmpty()
+            )
+            replayChannel?.sendMessage(tosend)?.queue()
+            fromReplayCommand?.reply(msgCreateData = tosend)
+            val description = generateDescription(game, spoiler, leaguedata, ctx)
+            if (league != null) {
+                resultChannel.sendMessageEmbeds(Embed(description = description)).queue()
+            } else {
+                resultChannel.sendMessage(description).queue()
             }
+
             Database.dbScope.launch {
                 AnalysisStatistics.addToStatistics(game, ctx)
                 EmolgaMain.updatePresence()
@@ -231,7 +230,7 @@ object Analysis {
                     kd = kd,
                     mons = game.map { it.pokemon.map { mon -> mon.draftname.official } },
                     url = url,
-                    gamedayData = gamedayData.await()!!,
+                    gamedayData = gamedayData!!,
                     otherForms = leaguedata.otherForms,
                 )
             }

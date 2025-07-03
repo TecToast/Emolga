@@ -35,8 +35,8 @@ data class SDPokemon(
 
     fun hasName(name: String) = pokemon == name || otherNames.contains(name)
 
-    val passiveKills get() = kills - activeKills
     val deadCount get() = revivedAmount + (if (isDead) 1 else 0)
+    val isDummy get() = player == -1
 
     context(BattleContext) fun addEffect(type: SDEffect, pokemon: SDPokemon) {
         effects[type] = pokemon.withZoroCheck()
@@ -203,11 +203,20 @@ sealed class SDEffect(vararg val types: String) {
                 switchIn.volatileEffects.clear()
                 switchIn.volatileEffects.putAll(switchOut.volatileEffects)
             }
-            if (switchOut.pokemon != "dummy") {
-                events.switch += AnalysisSwitch(currentLineIndex, switchOut.withZoroCheck(), SwitchType.OUT)
+            val from = if (split[0] == "switch") {
+                split.getOrNull(4)?.substringAfter("[from] ")?.trim() ?: getLastContentSplit()?.let {
+                    if (it.getOrNull(0) == "-activate" || it.getOrNull(0) == "-enditem") it.getOrNull(2)
+                        ?.substringAfter(":")?.trim()
+                    else null
+                } ?: "Switch"
+            } else if (split[0] == "drag") {
+                lastLine.value.cleanSplit().getOrNull(2) ?: "Switch"
+            } else error("Unknown switch type: ${split[0]}")
+            if (!switchOut.isDummy && !switchOut.isDead) {
+                events.switch += AnalysisSwitch(currentLineIndex, switchOut.withZoroCheck(), SwitchType.OUT, from)
             }
             monsOnField[pl][idx] = switchIn
-            events.switch += AnalysisSwitch(currentLineIndex, switchIn.withZoroCheck(), SwitchType.IN)
+            events.switch += AnalysisSwitch(currentLineIndex, switchIn.withZoroCheck(), SwitchType.IN, from)
             switchIn.setNewHPAndHeal(
                 newhp = split[3].parseHPPercentage(), by = "Switch", healer = null
             )
@@ -600,6 +609,16 @@ data class BattleContext(
 
 
     val is4v4 by lazy { "VGC" in format || "4v4" in format }
+
+    fun getLastContentSplit(): List<String>? {
+        for (i in currentLineIndex - 1 downTo 0) {
+            val line = game[i].cleanSplit()
+            if (line.getOrNull(0).isNullOrBlank()) continue
+            if (line.getOrNull(0) == "t:") continue
+            return line
+        }
+        return null
+    }
 }
 
 data class AnalysisEvents(
@@ -640,7 +659,8 @@ data class AnalysisStatus(
     override val row: Int, val source: SDPokemon, val target: SDPokemon, val status: String
 ) : AnalysisStatistic
 
-data class AnalysisSwitch(override val row: Int, val pokemon: SDPokemon, val type: SwitchType) : AnalysisStatistic
+data class AnalysisSwitch(override val row: Int, val pokemon: SDPokemon, val type: SwitchType, val from: String) :
+    AnalysisStatistic
 
 class SDPlayer(
     val nickname: String,

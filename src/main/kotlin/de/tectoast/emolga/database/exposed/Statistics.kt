@@ -82,9 +82,10 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
                 Switch.batchInsert(events.switch, ignore = true, shouldReturnGeneratedValues = false) {
                     this[Switch.REPLAYID] = replayId
                     this[Switch.ROW] = it.row
+                    this[Switch.TYPE] = it.type
                     this[Switch.POKEMON] = it.pokemon.draftname.otherOfficial!!
                     this[Switch.PLAYER] = it.pokemon.player
-                    this[Switch.TYPE] = it.type
+                    this[Switch.FROM] = it.from
                 }
                 Status.batchInsert(events.status, ignore = true, shouldReturnGeneratedValues = false) {
                     this[Status.REPLAYID] = replayId
@@ -145,9 +146,12 @@ object Heal : AnalysisStatistics("heal") {
 }
 
 object Switch : AnalysisStatistics("switch") {
+    val TYPE = enumeration<SwitchType>("type")
     val POKEMON = varchar("pokemon", 64)
     val PLAYER = integer("player")
-    val TYPE = enumeration<SwitchType>("type")
+    val FROM = varchar("from", 64)
+
+    override val primaryKey = PrimaryKey(REPLAYID, ROW, TYPE)
 }
 
 object Status : AnalysisStatistics("status") {

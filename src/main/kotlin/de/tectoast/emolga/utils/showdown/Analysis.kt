@@ -132,7 +132,12 @@ object Analysis {
             logger.info("Analysed!")
             val spoiler = SpoilerTagsDB.contains(gid)
             game.forEach { player ->
-                player.pokemon.addAll(List(player.teamSize - player.pokemon.size) { SDPokemon("_unbekannt_", -1) })
+                player.pokemon.addAll(List((player.teamSize - player.pokemon.size).coerceAtLeast(0)) {
+                    SDPokemon(
+                        "_unbekannt_",
+                        -1
+                    )
+                })
                 // TODO: Refactor this
                 player.pokemon.forEach { mon ->
                     mon.draftname = getMonName(mon.pokemon, gid)

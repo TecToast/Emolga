@@ -3,7 +3,7 @@ package de.tectoast.emolga.league.config
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class TeraPickConfig(val messageOnIllegalPick: String = "Dieses Pokemon kann man nicht als TeraPick wählen!")
+data class TeraPickConfig(val tlIdentifier: String? = "TERA")
 
 @Serializable
-data class TeraPickData(val alreadyPaid: MutableMap<Int, Int> = mutableMapOf())
+data class TeraPickData(val alreadyHasTeraUser: MutableSet<Int> = mutableSetOf())

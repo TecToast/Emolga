@@ -15,6 +15,7 @@ import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
 import de.tectoast.emolga.ktor.subscribeToYTChannel
+import de.tectoast.emolga.league.DefaultLeague
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.league.VideoProvideStrategy
@@ -629,6 +630,11 @@ object PrivateCommands {
     context(InteractionData)
     fun cancelTimer(args: PrivateData) {
         League.cancelTimer(args(), "PrivCommand")
+    }
+
+    context(InteractionData)
+    suspend fun createDefaultLeague() {
+        db.league.insertOne(DefaultLeague())
     }
 
 }

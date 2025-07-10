@@ -55,39 +55,41 @@ data class PickInput(
         if (isSwitchDraft && !config.triggers.allowPickDuringSwitch) {
             return reply("Du kannst während des Switch-Drafts nicht picken!").let { false }
         }
-        val mem = current
-        val tierlist = tierlist
+        val idx = current
+        val teraConfig = config.teraPick
+        if (tera && draftData.teraPick.alreadyHasTeraUser.contains(idx)) {
+            return reply("Du hast bereits einen Tera-User gepickt!").let { false }
+        }
+        val tl = if (teraConfig != null && tera) (Tierlist[this@League.guild, teraConfig.tlIdentifier]
+            ?: error("No TERA tierlist found for guild ${this@League.guild}")) else tierlist
         val (tlName, official, _) = pokemon
         logger.info("tlName: $tlName, official: $official")
-        val (specifiedTier, officialTier, points) = (tierlist.getTierOfCommand(tlName, tier)
+        val (specifiedTier, officialTier, points) = (tl.getTierOfCommand(tlName, tier)
             ?: return reply("Dieses Pokemon ist nicht in der Tierliste!").let { false })
-        if (tera)
-            config.teraPick?.let { if (points == Int.MAX_VALUE) return reply(it.messageOnIllegalPick).let { false } }
         checkUpdraft(specifiedTier, officialTier)?.let { return reply(it).let { false } }
         if (isPicked(official, officialTier)) return reply("Dieses Pokemon wurde bereits gepickt!").let { false }
-        val tlMode = tierlist.mode
+        val tlMode = tl.mode
         val freepick =
-            free.takeIf { tlMode.isTiersWithFree() && !(tierlist.variableMegaPrice && official.isMega) } == true
+            free.takeIf { tlMode.isTiersWithFree() && !(tl.variableMegaPrice && official.isMega) } == true
         if (!freepick && handleTiers(specifiedTier, officialTier)) return false
         if (!noCost && handlePoints(
                 free = freepick, tier = officialTier, mega = official.isMega, extraCosts = points.takeIf { tera }
             )
         ) return false
-        if (tera) {
-            draftData.teraPick.alreadyPaid[current] = points!!
-        }
         val saveTier = if (freepick) officialTier else specifiedTier
+        if (tera)
+            draftData.teraPick.alreadyHasTeraUser.add(idx)
         lastPickedMon = pokemon
         val pickData = PickData(
             league = this@League,
             pokemon = tlName,
             pokemonofficial = official,
             tier = saveTier,
-            idx = mem,
+            idx = idx,
             round = getPickRoundOfficial(),
             freePick = freepick,
             updrafted = saveTier != officialTier,
-            tera = points.takeIf { tera }
+            tera = tera
         )
         pickData.savePick(noCost)
         pickData.reply(type)
@@ -100,10 +102,10 @@ data class PickInput(
         when (type) {
             REGULAR -> {
                 replyGeneral("${displayName()} ".condAppend(config.triggers.alwaysSendTierOnPick || updrafted) { "im $tier " } +
-                        (tera?.let { "als Tera-User " } ?: "") + "gepickt!".condAppend(
+                        (if (tera) "als Tera-User " else "") + "gepickt!".condAppend(
                     updrafted
                 ) { " (Hochgedraftet)" }.condAppend(freePick) { " (Free-Pick)" }
-                    .condAppend(freePick || tera != null) { " [Neue Punktzahl: ${points[current]}]" })
+                    .condAppend(freePick) { " [Neue Punktzahl: ${points[current]}]" })
                 checkEmolga()
             }
 

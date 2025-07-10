@@ -246,16 +246,6 @@ sealed class League {
     ): Boolean {
         if (!tierlist.mode.withPoints) return false
         if (tierlist.mode.isTiersWithFree() && !(tierlist.variableMegaPrice && mega) && !free && extraCosts == null) return false
-        val hasTeraPick = config.teraPick != null
-        val alreadyPaid = draftData.teraPick.alreadyPaid
-        if (hasTeraPick && extraCosts != null && current in alreadyPaid) {
-            reply("Du hast bereits einen Tera-Pick!")
-            return true
-        }
-        if (hasTeraPick && isLastRound && current !in alreadyPaid && extraCosts == null) {
-            reply("Du musst noch einen Tera-Pick machen!")
-            return true
-        }
         val cpicks = picks[current]!!
         val currentPicksHasMega by lazy { cpicks.any { it.name.isMega } }
         if (tierlist.variableMegaPrice && currentPicksHasMega && mega) {
@@ -610,11 +600,7 @@ sealed class League {
             if (withPoints) add(
                 "${points[idx]} mögliche Punkte".condAppend(
                     isTiersWithFree(), " für Free-Picks"
-                ).condAppend(config.teraPick != null) {
-                    " und Tera-Pick".let {
-                        if (idx in draftData.teraPick.alreadyPaid) it.surroundWith("~~") else it
-                    }
-                }
+                )
             )
         }
     }.joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
@@ -957,7 +943,7 @@ sealed class League {
                 if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
                     it.tier
                 ) else if (tierlist.variableMegaPrice && it.name.isMega) it.tier.substringAfter("#").toInt() else 0
-            } - (draftData.teraPick.alreadyPaid[idx] ?: 0)
+            }
         }
 
         operator fun set(idx: Int, points: Int) {
@@ -1152,7 +1138,7 @@ data class PickData(
     override val round: Int,
     val freePick: Boolean,
     val updrafted: Boolean,
-    val tera: Int?
+    val tera: Boolean
 ) : DraftData(league, pokemon, pokemonofficial, tier, idx, round) {
     override val changedOnTeamsiteIndex: Int by lazy {
         with(league) { getTierInsertIndex() }

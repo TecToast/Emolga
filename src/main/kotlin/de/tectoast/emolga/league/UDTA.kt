@@ -20,9 +20,9 @@ class UDTA : League() {
         } else {
             addSingle("Kader!$x${data.changedOnTeamsiteIndex + 6}", data.pokemon)
         }
-        data.tera?.let {
+        /*data.tera?.let {
             addRow("Kader!${x}5", listOf(data.pokemon, it))
-        }
+        }*/
         addStrikethroughChange(
             1901315365,
             (data.roundIndex / 2) * 3 + 2 + (data.roundIndex % 2),

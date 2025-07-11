@@ -311,14 +311,15 @@ object Analysis {
         open fun mapURL(url: String) = url
     }
 
-    val regex =
-        Regex("https://(replays?\\.(?:tectoast\\.de|pokemonshowdown\\.com)|battling.p-insurgence.com/replays)/(?:[a-z]+-)?[^-]+-\\d+[-a-z0-9]*")
-
     val modeByServer = mapOf<String, ReplayServerMode>(
         "replay.pokemonshowdown.com" to ReplayServerMode.LOG,
         "replays.tectoast.de" to ReplayServerMode.LOG,
+        "replay.reshowdown.top" to ReplayServerMode.LOG,
         "battling.p-insurgence.com/replays" to ReplayServerMode.SCRAPE
     )
+    val regex =
+        Regex("https://(${modeByServer.keys.joinToString("|")})/(?:[a-z]+-)?[^-]+-\\d+[-a-z0-9]*")
+
 
     suspend fun analyse(
         urlProvided: String, answer: ((String) -> Unit)? = null, debugMode: Boolean = false

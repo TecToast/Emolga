@@ -8,6 +8,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.records.toCoord
@@ -18,7 +19,10 @@ import dev.minn.jda.ktx.messages.send
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
@@ -127,22 +131,17 @@ object Analysis {
             val uid2db = SDNamesDB.getIDByName(u2)
             logger.info("Analysed!")
             val spoiler = SpoilerTagsDB.contains(gid)
-            game.forEach {
-                it.pokemon.addAll(List(it.teamSize - it.pokemon.size) { SDPokemon("_unbekannt_", -1) })
-            }
-            val activePassive = ActivePassiveKillsDB.hasEnabled(gid)
-            val monStrings = game.map { player ->
-                player.pokemon.map { mon ->
-                    getMonName(mon.pokemon, gid).also {
-                        mon.draftname = it
-                    }.displayName.let {
-                        if (activePassive) {
-                            "$it (${mon.activeKills} aktive Kills, ${mon.passiveKills} passive Kills)"
-                        } else {
-                            it.condAppend(mon.kills > 0, " ${mon.kills}")
-                        }
-                    }.condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
-                }.joinToString("\n")
+            game.forEach { player ->
+                player.pokemon.addAll(List((player.teamSize - player.pokemon.size).coerceAtLeast(0)) {
+                    SDPokemon(
+                        "_unbekannt_",
+                        -1
+                    )
+                })
+                // TODO: Refactor this
+                player.pokemon.forEach { mon ->
+                    mon.draftname = getMonName(mon.pokemon, gid)
+                }
             }
             val leaguedata = db.leagueByGuildAdvanced(
                 gid, game, ctx, null, uid1db, uid2db
@@ -150,29 +149,6 @@ object Analysis {
             league = leaguedata?.league
             val uindices = leaguedata?.uindices
             val draftPlayerList = game.map(SDPlayer::toDraftPlayer)
-            val gamedayData = defaultScope.async {
-                league?.getGamedayData(uindices!![0], uindices[1], draftPlayerList)
-            }
-            val description = game.mapIndexed { index, sdPlayer ->
-                mutableListOf<Any>(
-                    leaguedata?.mentions[index] ?: sdPlayer.nickname,
-                    sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.vgc) 2 else 0)
-                ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
-            }.joinToString(":") { it.joinToString(" ") }
-                .condAppend(ctx.vgc, "\n(VGC)") + "\n\n" + game.mapIndexed { index, player ->
-                "${leaguedata?.mentions[index] ?: player.nickname}:".condAppend(
-                    player.allMonsDead && !spoiler, " (alle tot)"
-                ) + "\n".condAppend(spoiler, "||") + monStrings[index].condAppend(spoiler, "||")
-            }.joinToString("\n\n")
-            val embed = Embed(description = description)
-
-//            if (league is ASL) {
-//                val gdData = gamedayData.await()
-//                if (gdData?.gameday == 10) {
-//                    message?.channel?.sendMessage("Replay ist angekommen, wird aber erst später ausgewertet!")?.queue()
-//                    return
-//                }
-//            }
             val jda = resultchannelParam.jda
             val replayChannel =
                 league?.provideReplayChannel(jda).takeIf { useReplayResultChannelAnyways || customGuild == null }
@@ -183,20 +159,21 @@ object Analysis {
             logger.info("uids = $uindices")
             logger.info("u1 = $u1")
             logger.info("u2 = $u2")
+            // TODO: Refactor this
+            val gamedayData = league?.getGamedayData(uindices!![0], uindices[1], draftPlayerList)
+            val tosend = MessageCreate(
+                content = url,
+                embeds = league?.appendedEmbed(data, leaguedata, gamedayData!!)?.build()?.into().orEmpty()
+            )
+            replayChannel?.sendMessage(tosend)?.queue()
+            fromReplayCommand?.reply(msgCreateData = tosend)
+            val description = generateDescription(game, spoiler, leaguedata, ctx)
             if (league != null) {
-                resultChannel.sendMessageEmbeds(embed).queue()
+                resultChannel.sendMessageEmbeds(Embed(description = description)).queue()
             } else {
                 resultChannel.sendMessage(description).queue()
             }
-            defaultScope.launch {
-                val gdData = gamedayData.await()
-                val tosend = MessageCreate(
-                    content = url,
-                    embeds = league?.appendedEmbed(data, leaguedata!!, gdData!!)?.build()?.into().orEmpty()
-                )
-                replayChannel?.sendMessage(tosend)?.queue()
-                fromReplayCommand?.reply(msgCreateData = tosend)
-            }
+
             Database.dbScope.launch {
                 AnalysisStatistics.addToStatistics(game, ctx)
                 EmolgaMain.updatePresence()
@@ -258,7 +235,7 @@ object Analysis {
                     kd = kd,
                     mons = game.map { it.pokemon.map { mon -> mon.draftname.official } },
                     url = url,
-                    gamedayData = gamedayData.await()!!,
+                    gamedayData = gamedayData!!,
                     otherForms = leaguedata.otherForms,
                 )
             }
@@ -270,6 +247,32 @@ object Analysis {
                 )
             }
         }
+    }
+
+    private fun generateDescription(
+        game: List<SDPlayer>,
+        spoiler: Boolean,
+        leaguedata: LeagueResult?,
+        ctx: BattleContext
+    ): String {
+        val monStrings = game.map { player ->
+            player.pokemon.joinToString("\n") { mon ->
+                mon.draftname.displayName.condAppend(mon.kills > 0, " ${mon.kills}")
+                    .condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
+            }
+        }
+        val description = game.mapIndexed { index, sdPlayer ->
+            mutableListOf<Any>(
+                leaguedata?.mentions[index] ?: sdPlayer.nickname,
+                sdPlayer.pokemon.count { !it.isDead }.minus(if (ctx.is4v4) 2 else 0)
+            ).apply { if (spoiler) add(1, "||") }.let { if (index % 2 > 0) it.asReversed() else it }
+        }.joinToString(":") { it.joinToString(" ") }
+            .condAppend(ctx.is4v4, "\n(4v4)") + "\n\n" + game.mapIndexed { index, player ->
+            "${leaguedata?.mentions[index] ?: player.nickname}:".condAppend(
+                player.allMonsDead && !spoiler, " (alle tot)"
+            ) + "\n".condAppend(spoiler, "||") + monStrings[index].condAppend(spoiler, "||")
+        }.joinToString("\n\n")
+        return description
     }
 
     suspend fun getMonName(s: String, guildId: Long, withDebug: Boolean = false): DraftName {
@@ -455,7 +458,7 @@ object Analysis {
     }
 
     private val logger = KotlinLogging.logger {}
-    private val dummyPokemon = SDPokemon("dummy", 0)
+    private val dummyPokemon = SDPokemon("dummy", -1)
 
     private fun buildDummys(amount: Int) = MutableList(amount) { dummyPokemon }
 

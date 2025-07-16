@@ -1,7 +1,7 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "2.1.21"
+val kVersion = "2.2.0"
 plugins {
     val kVersion = "2.1.20"
     kotlin("jvm") version kVersion
@@ -88,7 +88,7 @@ dependencies {
     // Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kVersion")
 
     // Logging
@@ -107,7 +107,7 @@ dependencies {
 
     // Database
     // MySQL
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.3")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.4")
     implementation("com.zaxxer:HikariCP:6.3.0")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
@@ -122,7 +122,7 @@ dependencies {
     ktor()
 
     // Utils
-    implementation("org.jsoup:jsoup:1.20.1")
+    implementation("org.jsoup:jsoup:1.21.1")
 
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M4")

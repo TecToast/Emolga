@@ -55,11 +55,11 @@ object NameConventionsDB : Table("nameconventions") {
                 nc.values.firstNotNullOfOrNull { it.toRegex().find(mon) }?.run {
                     select(resultLang).where { checkLang eq groupValues[1] }.firstOrNull()?.get(resultLang)
                         ?.let { repl ->
-                        if (mon != value) return@let null
-                        value.replace(
-                            groupValues[1], repl
-                        )
-                    }
+                            if (mon != value) return@let null
+                            value.replace(
+                                groupValues[1], repl
+                            )
+                        }
                 }
             }
         }
@@ -122,10 +122,10 @@ object NameConventionsDB : Table("nameconventions") {
      * @param plusOther if the other language should be included in the result
      * @return the [DraftName] containing the data, or null if no data could be found
      */
-    suspend fun convertOfficialToTLFull(mon: String, guildId: Long, plusOther: Boolean = false): DraftName? {
+    suspend fun convertOfficialToTLFull(mon: String, guildId: Long): DraftName? {
         val nc = emolgaDB.nameconventions.get(guildId)
         val spec = nc.keys.firstOrNull { mon.endsWith("-$it") }
-        return getDBTranslation(mon, guildId, spec, nc, english = Tierlist[guildId].isEnglish, plusOther = plusOther)
+        return getDBTranslation(mon, guildId, spec, nc, english = Tierlist[guildId].isEnglish)
     }
 
     /**
@@ -203,13 +203,28 @@ object NameConventionsDB : Table("nameconventions") {
         }
     }
 
+    suspend fun getAllData(list: List<String>, checkCol: Column<String>, gid: Long): List<DraftName> {
+        return dbTransaction {
+            select(
+                ENGLISH,
+                GERMAN,
+                SPECIFIEDENGLISH,
+                SPECIFIED,
+                GUILD
+            ).where((checkCol inList list) and (GUILD eq 0 or (GUILD eq gid))).map {
+                DraftName(
+                    it[SPECIFIED], it[GERMAN], it[GUILD] != 0L, it[SPECIFIEDENGLISH], it[ENGLISH]
+                )
+            }
+        }
+    }
+
     private suspend fun getDBTranslation(
         test: String,
         guildId: Long,
         spec: String? = null,
         nc: Map<String, String>,
-        english: Boolean = false,
-        plusOther: Boolean = false
+        english: Boolean = false
     ): DraftName? {
         return dbTransaction {
             selectAll().where(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId)))

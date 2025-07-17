@@ -22,6 +22,7 @@ import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.serialization.*
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
@@ -62,17 +63,17 @@ sealed class StateStore {
     private fun createFilter() = and(Filters.eq("type", this::class.simpleName!!), StateStore::uid eq uid)
 
     companion object {
-        context(InteractionData)
-        suspend inline fun <reified T : StateStore> process(block: T.() -> Unit) {
+        context(InteractionData) suspend inline fun <reified T : StateStore> process(block: T.() -> Unit) {
             processIgnoreMissing<T>(block) ?: reply(
                 "Diese Interaktion ist nicht mehr gültig! Starte sie wenn nötig erneut!", ephemeral = true
             )
         }
 
-        context(InteractionData)
-        suspend inline fun <reified T : StateStore> processIgnoreMissing(block: T.() -> Unit) =
-            (db.statestore.findOne(StateStore::uid eq user, Filters.eq<String?>("type", T::class.simpleName)) as T?)
-                ?.process(block)
+        context(InteractionData) suspend inline fun <reified T : StateStore> processIgnoreMissing(block: T.() -> Unit) =
+            (db.statestore.findOne(
+                StateStore::uid eq user,
+                Filters.eq<String?>("type", T::class.simpleName)
+            ) as T?)?.process(block)
 
     }
 }
@@ -128,8 +129,7 @@ class ResultEntry : StateStore {
         }))
     }
 
-    context(InteractionData)
-    suspend fun init(opponent: Long, user: Long) {
+    context(InteractionData) suspend fun init(opponent: Long, user: Long) {
         val l = league()
         uidxs += l(user)
         uidxs += l(opponent)
@@ -154,8 +154,7 @@ class ResultEntry : StateStore {
         }
     }.into()
 
-    context(InteractionData)
-    fun handleSelect(e: EnterResult.ResultMenu.Args) {
+    context(InteractionData) fun handleSelect(e: EnterResult.ResultMenu.Args) {
         val selected = e.selected
         val userindex = e.userindex
         replyModal(
@@ -168,8 +167,7 @@ class ResultEntry : StateStore {
             })
     }
 
-    context(InteractionData)
-    fun handleModal(e: EnterResult.ResultModal.Args) {
+    context(InteractionData) fun handleModal(e: EnterResult.ResultModal.Args) {
         val userindex = e.userindex
         val (official, tl) = e.selected.split("#")
         val list = data[userindex]
@@ -185,8 +183,7 @@ class ResultEntry : StateStore {
         edit(embeds = buildEmbed())
     }
 
-    context(InteractionData)
-    suspend fun handleFinish(e: EnterResult.ResultFinish.Args) {
+    context(InteractionData) suspend fun handleFinish(e: EnterResult.ResultFinish.Args) {
         if (invalidConditionsForFinish()) return
         when (e.mode) {
             EnterResult.ResultFinish.Mode.CHECK -> {
@@ -202,30 +199,24 @@ class ResultEntry : StateStore {
 
             EnterResult.ResultFinish.Mode.YES -> {
                 League.executeOnFreshLock(leaguename) {
+                    delete()
                     val channel = jda.getTextChannelById(channelToSend)!!
                     if (config.replayDataStore != null) {
                         reply(
                             "Das Ergebnis des Kampfes wurde gespeichert! Du kannst nun die Eingabe-Nachricht verwerfen.",
                             ephemeral = true
                         )
-                        channel.send(
-                            embeds = Embed(
-                                title = "Spieltag ${gamedayData.gameday}",
-                                description = uidxs.let { if (gamedayData.u1IsSecond) it.reversed() else it }
-                                    .map { "<@${league()[it]}>" }.joinToString(" vs. ") + " ✅",
-                                color = embedColor
-                            ).into()
-                        ).queue()
+                        channel.sendResultEntryMessage(
+                            gamedayData.gameday,
+                            ResultEntryDescription.FromUids(uidxs.let { if (gamedayData.u1IsSecond) it.reversed() else it }
+                                .map { league()[it] })
+                        )
                     } else {
                         reply(":)", ephemeral = true)
-                        channel.send(
-                            embeds = Embed(
-                                title = "Spieltag ${gamedayData.gameday}",
-                                description = generateFinalMessage()
-                            ).into()
-                        ).queue()
+                        channel.sendResultEntryMessage(
+                            gamedayData.gameday, ResultEntryDescription.Direct(generateFinalMessage())
+                        )
                     }
-                    delete()
                     val game = data.mapIndexed { index, d ->
                         wifiPlayers[index].apply {
                             alivePokemon = d.size - d.dead
@@ -253,8 +244,7 @@ class ResultEntry : StateStore {
         }
     }
 
-    context(InteractionData)
-    private fun invalidConditionsForFinish(): Boolean {
+    context(InteractionData) private fun invalidConditionsForFinish(): Boolean {
         if (data[0].isEmpty() || data[1].isEmpty()) return reply(
             "Du hast noch keine Daten eingeben!", ephemeral = true
         ).let { true }
@@ -262,8 +252,7 @@ class ResultEntry : StateStore {
             "Die Kills und Tode müssen übereinstimmen!", ephemeral = true
         ).let { true }
         if (data[0].size != data[1].size) return reply(
-            "Die Anzahl der Pokemon muss übereinstimmen!",
-            ephemeral = true
+            "Die Anzahl der Pokemon muss übereinstimmen!", ephemeral = true
         ).let { true }
         return false
     }
@@ -296,6 +285,25 @@ class ResultEntry : StateStore {
         }
     }
 
+}
+
+fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEntryDescription) {
+    send(
+        embeds = Embed(
+            title = "Spieltag $gameday", description = input.provideDescription(), color = embedColor
+        ).into()
+    ).queue()
+}
+
+sealed interface ResultEntryDescription {
+    fun provideDescription(): String
+    data class Direct(val description: String) : ResultEntryDescription {
+        override fun provideDescription() = description
+    }
+
+    data class FromUids(val uids: List<Long>) : ResultEntryDescription {
+        override fun provideDescription() = uids.joinToString(" vs. ") { "<@${it}>" } + " ✅"
+    }
 }
 
 @Serializable
@@ -354,8 +362,7 @@ class NominateState : StateStore {
         }
     }
 
-    context(InteractionData)
-    fun render() {
+    context(InteractionData) fun render() {
         edit(
             embeds = Embed(
                 title = "Nominierungen", color = embedColor, description = generateDescription()
@@ -382,8 +389,7 @@ class NominateState : StateStore {
         return nominated.toJSON() + notNominated.toJSON()
     }
 
-    context(InteractionData)
-    suspend fun finish(now: Boolean) {
+    context(InteractionData) suspend fun finish(now: Boolean) {
         if (now) {
             League.executeOnFreshLock({ db.nds() }) {
                 val nom = (this as NDS).nominations
@@ -442,16 +448,12 @@ class QueuePicks : StateStore {
         color = embedColor
         title = "Deine gequeueten Picks"
         description =
-            "Hier kannst du die Pokemon verschieben oder entfernen.\n" +
-                    "Allgemein ist die hier aufgezeigte Liste eine Kopie deiner echten Liste, die erst nach dem Klick auf `Speichern` oder `Speichern und aktivieren` aktualisiert wird.\n" +
-                    "Da über den `/queuepicks add` Befehl das Pokemon direkt in die echte Liste hinzugefügt wird, muss man danach hier `Neue Pokemon laden` klicken, um die Liste zu aktualisieren.\n" +
-                    "Alternativ kann man auch ein neues Verwaltungsfenster über `/queuepicks manage` öffnen."
+            "Hier kannst du die Pokemon verschieben oder entfernen.\n" + "Allgemein ist die hier aufgezeigte Liste eine Kopie deiner echten Liste, die erst nach dem Klick auf `Speichern` oder `Speichern und aktivieren` aktualisiert wird.\n" + "Da über den `/queuepicks add` Befehl das Pokemon direkt in die echte Liste hinzugefügt wird, muss man danach hier `Neue Pokemon laden` klicken, um die Liste zu aktualisieren.\n" + "Alternativ kann man auch ein neues Verwaltungsfenster über `/queuepicks manage` öffnen."
         field(
             "Aktuelle Reihenfolge",
             currentState.mapIndexed { index, draftName -> "${index + 1}. ".notNullAppend(draftName.y) { it.tlName + " -> " } + draftName.g.tlName }
                 .joinToString("\n"),
-            false
-        )
+            false)
         field("Status", if (currentlyEnabled) "Aktiv" else "Inaktiv", false)
         currentMon?.let {
             field("Aktuelles Pokemon", it, false)
@@ -477,18 +479,13 @@ class QueuePicks : StateStore {
                     "Hoch", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬆"), disabled = first
                 ) {
                     mon = tlName; controlMode = UP
-                },
-                QueuePicks.ControlButton("Runter", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬇"), disabled = last) {
+                }, QueuePicks.ControlButton("Runter", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬇"), disabled = last) {
                     mon = tlName; controlMode = DOWN
-                },
-                QueuePicks.ControlButton(
-                    "Neuen Platz auswählen",
-                    ButtonStyle.SECONDARY,
-                    Emoji.fromUnicode("1\uFE0F⃣")
+                }, QueuePicks.ControlButton(
+                    "Neuen Platz auswählen", ButtonStyle.SECONDARY, Emoji.fromUnicode("1\uFE0F⃣")
                 ) {
                     mon = tlName; controlMode = MODAL
-                },
-                QueuePicks.ControlButton("Entfernen", ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
+                }, QueuePicks.ControlButton("Entfernen", ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
                     mon = tlName; controlMode = REMOVE
                 }), ActionRow.of(QueuePicks.ControlButton("Bestätigen", ButtonStyle.SUCCESS) {
                 controlMode = CANCEL
@@ -496,18 +493,15 @@ class QueuePicks : StateStore {
         )
     }
 
-    context(InteractionData)
-    fun init() {
+    context(InteractionData) fun init() {
         reply(embeds = buildStateEmbed(null), components = buildSelectMenu(), ephemeral = true)
     }
 
-    context(InteractionData)
-    fun handleSelect(tlName: String) {
+    context(InteractionData) fun handleSelect(tlName: String) {
         edit(embeds = buildStateEmbed(tlName), components = buildButtons(tlName))
     }
 
-    context(InteractionData)
-    fun handleButton(e: QueuePicks.ControlButton.Args) {
+    context(InteractionData) fun handleButton(e: QueuePicks.ControlButton.Args) {
         val index by lazy { currentState.indexOfFirst { it.g.tlName == e.mon } }
         val currentMon = when (e.controlMode) {
             UP -> {
@@ -544,8 +538,7 @@ class QueuePicks : StateStore {
             components = currentMon?.let { buildButtons(it) } ?: buildSelectMenu())
     }
 
-    context(InteractionData)
-    fun setLocation(tlName: String, location: Int) {
+    context(InteractionData) fun setLocation(tlName: String, location: Int) {
         val index = currentState.indexOfFirst { it.g.tlName == tlName }
         val range = currentState.indices
         val mon = currentState.removeAt(index)
@@ -555,8 +548,7 @@ class QueuePicks : StateStore {
         )
     }
 
-    context(InteractionData)
-    suspend fun finish(enable: Boolean) {
+    context(InteractionData) suspend fun finish(enable: Boolean) {
         ephemeralDefault()
         deferEdit()
         League.executeOnFreshLock(leaguename) {
@@ -572,8 +564,7 @@ class QueuePicks : StateStore {
         }
     }
 
-    context(InteractionData)
-    fun reload() {
+    context(InteractionData) fun reload() {
         currentState += addedMeanwhile
         addedMeanwhile.clear()
         edit(embeds = buildStateEmbed(null), components = buildSelectMenu())
@@ -581,19 +572,16 @@ class QueuePicks : StateStore {
 
 
     companion object {
-        val controlButtons =
-            listOf(
-                ActionRow.of(QueuePicks.ReloadButton()),
-                ActionRow.of(
-                    QueuePicks.FinishButton(
-                        "Speichern und deaktivieren",
-                        buttonStyle = ButtonStyle.SECONDARY
-                    ) {
-                        enable = false
-                    }, QueuePicks.FinishButton("Speichern und aktivieren", buttonStyle = ButtonStyle.SUCCESS) {
-                        enable = true
-                    })
-            )
+        val controlButtons = listOf(
+            ActionRow.of(QueuePicks.ReloadButton()), ActionRow.of(
+                QueuePicks.FinishButton(
+                    "Speichern und deaktivieren", buttonStyle = ButtonStyle.SECONDARY
+                ) {
+                    enable = false
+                }, QueuePicks.FinishButton("Speichern und aktivieren", buttonStyle = ButtonStyle.SUCCESS) {
+                    enable = true
+                })
+        )
     }
 }
 

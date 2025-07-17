@@ -1,14 +1,15 @@
 package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.exposed.ResultCodesDB
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.ResultEntry
 import de.tectoast.emolga.utils.StateStore
+import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.reverseGet
-import de.tectoast.emolga.utils.process
 import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.Permission
 
@@ -17,7 +18,7 @@ object EnterResult {
     object ResultCommand : CommandFeature<ResultCommand.Args>(
         ::Args, CommandSpec(
             "result", "Startet die interaktive Ergebniseingabe", Constants.G.VIP, Constants.G.COMMUNITY,
-            Constants.G.EPP, Constants.G.LOEWE, Constants.G.ADK, Constants.G.NPL
+            Constants.G.EPP, Constants.G.LOEWE, Constants.G.ADK, Constants.G.NPL, Constants.G.GPC
         )
     ) {
         private val nameCache = mutableMapOf<String, Map<Long, String>>() // guild -> uid -> name
@@ -164,14 +165,22 @@ object EnterResult {
     suspend fun handleStart(opponent: Long, userArg: Long? = null, guild: Long? = null, customTc: Long? = null) {
         val u = userArg ?: user
         val g = guild ?: gid
-        val t = customTc ?: tc
+//        val t = customTc ?: tc
         val league = db.leagueByGuild(g, u, opponent) ?: return reply(
             "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
             ephemeral = true
         )
-        ResultEntry(user, league, t).process {
+        val idx1 = league(u)
+        val idx2 = league(opponent)
+        val gameday = league.getGamedayData(idx1, idx2, List(2) { DraftPlayer(0, false) }).gameday
+        val uuid = ResultCodesDB.add(league.leaguename, gameday, idx1, idx2)
+        reply(
+            "Die Ergebniseingabe wurde umgebaut und findet nun für eine effizientere Nutzung auf meiner Website statt!\nhttps://emolga.tectoast.de/result/${uuid}",
+            ephemeral = true
+        )
+        /*ResultEntry(user, league, t).process {
             init(opponent, u)
-        }
+        }*/
     }
 
 

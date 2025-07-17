@@ -15,7 +15,7 @@ import kotlin.time.Duration.Companion.days
 @Serializable
 @SerialName("ASL")
 class ASL(
-    val replayChannel: Long, val resultChannel: Long
+    val replayChannel: Long
 ) : League() {
     override val dataSheet = "Data"
     override val pickBuffer = 18
@@ -40,7 +40,7 @@ class ASL(
     }
 
     override fun provideReplayChannel(jda: JDA) = jda.getTextChannelById(replayChannel)
-    override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(resultChannel)
+    override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(resultChannel!!)
 
     override suspend fun AddToTierlistData.addMonToTierlist() {
         val poke = pkmn.await()
@@ -78,7 +78,7 @@ class ASL(
     fun executeGamedaySending(gameday: Int) {
         val msg = "**------------- Spieltag $gameday -------------**"
         jda.getTextChannelById(replayChannel)!!.sendMessage(msg).queue()
-        jda.getTextChannelById(resultChannel)!!.sendMessage(msg).queue()
+        jda.getTextChannelById(resultChannel!!)!!.sendMessage(msg).queue()
     }
 
 

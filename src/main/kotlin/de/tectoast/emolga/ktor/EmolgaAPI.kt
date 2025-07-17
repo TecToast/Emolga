@@ -2,14 +2,17 @@ package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.GuildManagerDB
-import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.SizeLimitedMap
+import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.ResultCodesDB
+import de.tectoast.emolga.database.exposed.SpoilerTagsDB
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.json.EmolgaConfigHelper
 import de.tectoast.emolga.utils.json.EmolgaConfigHelper.findConfig
 import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
-import de.tectoast.emolga.utils.webJSON
 import dev.minn.jda.ktx.coroutines.await
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -132,7 +135,100 @@ fun Route.emolgaAPI() {
             }
         }
     }
+    route("/result/{resultid}") {
+        get {
+            val resultId = call.parameters["resultid"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            ResultCodesDB.getResultDataForUser(resultId)?.let { resultData ->
+                call.respond(resultData)
+            } ?: call.respond(HttpStatusCode.NotFound)
+        }
+        post {
+            val resultId = call.parameters["resultid"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+            val resData = ResultCodesDB.getEntryByCode(resultId) ?: return@post call.respond(HttpStatusCode.NotFound)
+            val body = call.receive<List<Map<String, KD>>>()
+            if (body.size != 2) return@post call.respond(HttpStatusCode.BadRequest)
+            // TODO: Maybe combine with ResultEntry? and clean up
+            val idx1 = resData[ResultCodesDB.P1]
+            val idx2 = resData[ResultCodesDB.P2]
+            val idxs = listOf(idx1, idx2)
+            League.executeOnFreshLock(resData[ResultCodesDB.LEAGUENAME]) {
+                val channel = jda.getTextChannelById(resultChannel!!)!!
+                val wifiPlayers = (0..1).map { DraftPlayer(0, false) }
+                val gamedayData = getGamedayData(idx1, idx2, wifiPlayers)
+                if (config.replayDataStore != null) {
+                    channel.sendResultEntryMessage(
+                        resData[ResultCodesDB.GAMEDAY],
+                        ResultEntryDescription.FromUids(idxs.map { table[it] }
+                            .let { if (gamedayData.u1IsSecond) it.reversed() else it })
+                    )
+                } else {
+                    channel.sendResultEntryMessage(
+                        gamedayData.gameday, ResultEntryDescription.Direct(generateFinalMessage(this, idxs, body))
+                    )
+                }
+                val game = body.mapIndexed { index, d ->
+                    wifiPlayers[index].apply {
+                        val dead = d.count { it.value.d }
+                        alivePokemon = d.size - dead
+                        winner = d.size != dead
+                    }
+                }
+                val officialNameCache = mutableMapOf<String, String>()
+                docEntry?.analyse(
+                    listOf(
+                        ReplayData(
+                            game = game,
+                            uindices = idxs,
+                            kd = body.map { p ->
+                                p.map {
+                                    NameConventionsDB.getDiscordTranslation(
+                                        it.key,
+                                        guild
+                                    )!!.official.also { official ->
+                                        officialNameCache[it.key] = official
+                                    } to (it.value.k to if (it.value.d) 1 else 0)
+                                }.toMap()
+                            },
+                            mons = body.map { l -> l.map { officialNameCache[it.key]!! } },
+                            url = "WIFI",
+                            gamedayData = gamedayData.apply {
+                                numbers = game.map { it.alivePokemon }
+                                    .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
+                            })
+                    )
+                )
+            }
+            call.respond(HttpStatusCode.NoContent)
+        }
+    }
 }
+
+private suspend fun generateFinalMessage(league: League, idxs: List<Int>, data: List<Map<String, KD>>): String {
+    val spoiler = SpoilerTagsDB.contains(league.guild)
+    return "${
+        data.mapIndexed { index, sdPlayer ->
+            mutableListOf<Any>("<@${league[idxs[index]]}>", sdPlayer.count { !it.value.d }).apply {
+                if (spoiler) add(
+                    1, "||"
+                )
+            }.let { if (index % 2 > 0) it.asReversed() else it }
+        }.joinToString(":") { it.joinToString(" ") }
+    }\n\n${
+        data.mapIndexed { index, monData ->
+            "<@${league[idxs[index]]}>:\n${
+                monData.entries.joinToString("\n") {
+                    "${it.key} ${it.value.k}".condAppend(
+                        it.value.d,
+                        " X"
+                    )
+                }.surroundWith(if (spoiler) "||" else "")
+            }"
+        }.joinToString("\n\n")
+    }"
+}
+
+@Serializable
+data class KD(val k: Int, val d: Boolean)
 
 data class RouteDataProvider(val user: Long, val gid: Long)
 

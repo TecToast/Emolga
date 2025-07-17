@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val kVersion = "2.2.0"
 plugins {
-    val kVersion = "2.1.20"
+    val kVersion = "2.2.0"
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("maven-publish")

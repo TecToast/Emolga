@@ -148,6 +148,8 @@ sealed class League {
     @Transient
     open val dataSheet: String = "Data"
 
+    val resultChannel: Long? = null
+
 
     operator fun invoke(mem: Long) = table.indexOf(mem).takeIf { it >= 0 }!!
     operator fun get(index: Int) = table[index]

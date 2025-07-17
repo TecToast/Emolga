@@ -14,7 +14,7 @@ import kotlin.time.Duration.Companion.days
 @Serializable
 @SerialName("ASLO")
 class ASLO(
-    val replayChannel: Long, val resultChannel: Long
+    val replayChannel: Long
 ) : League() {
 
     val conf = leaguename.last()
@@ -42,7 +42,7 @@ class ASLO(
     }*/
 
     override fun provideReplayChannel(jda: JDA) = jda.getTextChannelById(replayChannel)
-    override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(resultChannel)
+    override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(resultChannel!!)
 
     override suspend fun AddToTierlistData.addMonToTierlist() {
         val poke = pkmn.await()
@@ -80,7 +80,7 @@ class ASLO(
     fun executeGamedaySending(gameday: Int) {
         val msg = "**------------- Spieltag $gameday -------------**"
         jda.getTextChannelById(replayChannel)!!.sendMessage(msg).queue()
-        jda.getTextChannelById(resultChannel)!!.sendMessage(msg).queue()
+        jda.getTextChannelById(resultChannel!!)!!.sendMessage(msg).queue()
     }
 
 

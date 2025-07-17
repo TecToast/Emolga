@@ -6,6 +6,8 @@ import de.tectoast.emolga.utils.ReplayData
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 
 
 @Serializable
@@ -13,8 +15,8 @@ data class ReplayDataStoreConfig(
     @Serializable(with = InstantToStringSerializer::class) val lastUploadStart: Instant,
     val lastGamesMadeReminder: GamesMadeReminder? = null,
     @Serializable(with = DurationSerializer::class) val intervalBetweenUploadAndVideo: Duration = Duration.ZERO,
-    @Serializable(with = DurationSerializer::class) val intervalBetweenGD: Duration,
-    @Serializable(with = DurationSerializer::class) val intervalBetweenMatches: Duration,
+    @Serializable(with = DurationSerializer::class) val intervalBetweenGD: Duration = 7.days,
+    @Serializable(with = DurationSerializer::class) val intervalBetweenMatches: Duration = 1.hours,
     val amount: Int,
 )
 

@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.database.Database
+import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
@@ -42,8 +43,12 @@ class DocEntry private constructor(val league: League) {
     var deathProcessor: StatProcessor
         get() = error("Not implemented")
         set(value) = deathProcessors.add(value).let {}
+    var monNameProcessor: StatProcessor
+        get() = error("Not implemented")
+        set(value) = monNameProcessors.add(value).let {}
     private val killProcessors: MutableSet<StatProcessor> = mutableSetOf()
     private val deathProcessors: MutableSet<StatProcessor> = mutableSetOf()
+    private val monNameProcessors: MutableSet<StatProcessor> = mutableSetOf()
     var winProcessor: ResultStatProcessor? = null
     var looseProcessor: ResultStatProcessor? = null
     var resultCreator: (suspend AdvancedResult.() -> Unit)? = null
@@ -175,9 +180,10 @@ class DocEntry private constructor(val league: League) {
                         }
                     }
                 }
-                if (idx in picks && !killProcessors.all { it is CombinedStatProcessor } || !deathProcessors.all { it is CombinedStatProcessor }) {
+                if (idx in picks && (!killProcessors.all { it is CombinedStatProcessor } || !deathProcessors.all { it is CombinedStatProcessor } || monNameProcessors.isNotEmpty())) {
                     val monsInOrder = monsOrder(picks[idx]!!)
-                    for ((mon, data) in kd[i]) {
+                    for ((iterationIndex, tuple) in kd[i].entries.withIndex()) {
+                        val (mon, data) = tuple
                         val monIndex = monsInOrder.indexOfFirst {
                             it == mon || otherForms[mon]?.contains(it) == true
                         }
@@ -187,8 +193,8 @@ class DocEntry private constructor(val league: League) {
                             continue
                         }
                         val (kills, deaths) = data
-                        val statProcessorData = generalStatProcessorData.withMonIndex(monIndex)
-                        fun Set<StatProcessor>.check(data: Int) {
+                        val statProcessorData = generalStatProcessorData.withMonIndex(monIndex, iterationIndex)
+                        fun Set<StatProcessor>.check(data: Any) {
                             forEach { p ->
                                 if (p is BasicStatProcessor) {
                                     with(p) {
@@ -202,6 +208,11 @@ class DocEntry private constructor(val league: League) {
                         }
                         killProcessors.check(kills)
                         deathProcessors.check(deaths)
+                        if (monNameProcessors.isNotEmpty()) {
+                            val tlName = NameConventionsDB.convertOfficialToTL(mon, league.guild)
+                                ?: error("No TL name found for $mon in ${league.leaguename} (${league.guild})")
+                            monNameProcessors.check(tlName)
+                        }
                     }
                 }
                 val currentPlayerIsFirst = (lookUpIndex == 0) xor (i == 1)
@@ -421,9 +432,13 @@ data class StatProcessorData(
     var monindex: Int = -1
         get() = if (field == -1) error("monindex not set (must be BasicStatProcessor to be usable)") else field
 
+    var monIterationIndex: Int = -1
+        get() = if (field == -1) error("monIterationIndex not set (must be BasicStatProcessor to be usable)") else field
+
     val gdi by lazy { gameday - 1 }
 
-    fun withMonIndex(monindex: Int) = copy().apply { this.monindex = monindex }
+    fun withMonIndex(monindex: Int, iterationIndex: Int) =
+        copy().apply { this.monindex = monindex; this.monIterationIndex = iterationIndex }
 }
 
 interface StatProcessor

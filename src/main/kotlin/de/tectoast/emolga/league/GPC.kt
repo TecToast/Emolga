@@ -1,15 +1,32 @@
 package de.tectoast.emolga.league
 
+import de.tectoast.emolga.utils.BasicStatProcessor
+import de.tectoast.emolga.utils.DocEntry
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.records.Coord
+import de.tectoast.emolga.utils.records.CoordXMod
 import de.tectoast.emolga.utils.x
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
 @SerialName("GPC")
-class GPC : League() {
+class GPC(val teams: List<String>) : League() {
     override val teamsize = 11
+
+    @Transient
+    override val docEntry = DocEntry.create(this) {
+        monNameProcessor = BasicStatProcessor {
+            gdi.CoordXMod(teams[plindex], 3, 4, 17, 9, 4 + monIterationIndex)
+        }
+        killProcessor = BasicStatProcessor {
+            gdi.CoordXMod(teams[plindex], 3, 4, 18, 9, 4 + monIterationIndex)
+        }
+        deathProcessor = BasicStatProcessor {
+            gdi.CoordXMod(teams[plindex], 3, 4, 19, 9, 4 + monIterationIndex)
+        }
+    }
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         val range = Coord("Kader", data.idx.x(3, 4), data.getTierInsertIndex() + 4)

@@ -1,25 +1,19 @@
 package de.tectoast.emolga.database
 
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
 import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.features.flegmon.BirthdaySystem
-import de.tectoast.emolga.features.various.CalendarSystem
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.Tokens
+import io.r2dbc.spi.ConnectionFactoryOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import mu.KotlinLogging
-import org.jetbrains.exposed.sql.Transaction
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.core.Transaction
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 
-class Database(host: String, username: String, password: String) {
-    val dataSource = HikariDataSource(HikariConfig().apply {
-        jdbcUrl =
-            "jdbc:mariadb://$host/emolga?user=$username&password=$password&minPoolSize=1&rewriteBatchedStatements=true"
-    })
+class Database(private val host: String, private val username: String, private val password: String) {
 
 
     companion object {
@@ -34,7 +28,12 @@ class Database(host: String, username: String, password: String) {
         suspend fun init(cred: Tokens.Database, withStartUp: Boolean = true): Database {
             logger.info("Creating DataSource...")
             instance = Database(cred.host, cred.username, cred.password)
-            org.jetbrains.exposed.sql.Database.connect(instance.dataSource)
+            org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase.connect("r2dbc:mariadb://${cred.host}/emolga") {
+                connectionFactoryOptions {
+                    option(ConnectionFactoryOptions.USER, cred.username)
+                    option(ConnectionFactoryOptions.PASSWORD, cred.password)
+                }
+            }
             if (withStartUp) onStartUp()
             return instance
         }
@@ -44,7 +43,7 @@ class Database(host: String, username: String, password: String) {
          */
         private suspend fun onStartUp() {
             logger.info("Retrieving all startup information...")
-            CalendarDB.getAllEntries().forEach { CalendarSystem.scheduleCalendarEntry(it) }
+            CalendarDB.init()
             BirthdaySystem.startSystem()
         }
     }
@@ -60,4 +59,4 @@ fun <T> dbAsync(block: suspend CoroutineScope.() -> T) = Database.dbScope.async(
 }
 
 suspend fun <T> dbTransaction(statement: suspend Transaction.() -> T) =
-    newSuspendedTransaction(Database.dbScope.coroutineContext, statement = statement)
+    suspendTransaction(Database.dbScope.coroutineContext, statement = statement)

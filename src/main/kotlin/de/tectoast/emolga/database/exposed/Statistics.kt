@@ -7,9 +7,13 @@ import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
 import kotlinx.datetime.Instant
 import mu.KotlinLogging
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.datetime.timestamp
+import org.jetbrains.exposed.v1.r2dbc.batchInsert
+import org.jetbrains.exposed.v1.r2dbc.insertIgnore
+import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 
 private val logger = KotlinLogging.logger {}
 
@@ -25,7 +29,7 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
 
     companion object {
 
-        suspend fun getCurrentAmountOfReplays() = newSuspendedTransaction {
+        suspend fun getCurrentAmountOfReplays() = suspendTransaction {
             Start.selectAll().count()
         }
 

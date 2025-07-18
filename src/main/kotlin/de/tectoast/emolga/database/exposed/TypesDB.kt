@@ -2,9 +2,13 @@ package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.Language
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.or
-import org.jetbrains.exposed.sql.union
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.union
 
 
 object TypesDB : Table("types") {
@@ -35,7 +39,7 @@ object TypesDB : Table("types") {
     suspend fun getOptions(input: String) = dbTransaction {
         val search = "%${input.lowercase()}%"
         select(ENGLISHNAME).where { (ENGLISHID like search) }.union(select(GERMANNAME).where { (GERMANID like search) })
-            .map { it[ENGLISHNAME] }
+            .map { it[ENGLISHNAME] }.toList()
     }
 
 }

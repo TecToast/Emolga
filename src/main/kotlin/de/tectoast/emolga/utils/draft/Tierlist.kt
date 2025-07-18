@@ -8,11 +8,21 @@ import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.json.db
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.toSet
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.v1.core.Random
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
+import org.jetbrains.exposed.v1.r2dbc.insert
+import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.update
 import org.litote.kmongo.eq
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -72,12 +82,12 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
 
     suspend fun getByTier(tier: String): List<String>? {
         return dbTransaction {
-            selectAll().where { basePredicate and (TIER eq tier) }.map { it[POKEMON] }.ifEmpty { null }
+            selectAll().where { basePredicate and (TIER eq tier) }.map { it[POKEMON] }.toList().ifEmpty { null }
         }
     }
 
     private suspend fun getAllForAutoComplete() = dbTransaction {
-        val list = selectAll().where { basePredicate }.map { it[POKEMON] }
+        val list = selectAll().where { basePredicate }.map { it[POKEMON] }.toSet()
         (list + NameConventionsDB.getAllOtherSpecified(list, language, guildid)).toSet()
     }
 
@@ -110,17 +120,17 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
     suspend fun retrieveTierlistMap(map: Map<String, Int>) = dbTransaction {
         map.entries.flatMap { (tier, amount) ->
             selectAll().where { basePredicate and (TIER eq tier) }.orderBy(Random()).limit(amount)
-                .map { DraftPokemon(it[POKEMON], tier) }
+                .map { DraftPokemon(it[POKEMON], tier) }.toList()
         }
     }
 
     suspend fun getWithTierAndType(tier: String, type: String) = dbTransaction {
         selectAll().where { basePredicate and (TIER eq tier) and (TYPE eq type) }
-            .map { it[POKEMON] }
+            .map { it[POKEMON] }.toList()
     }
 
     suspend fun retrieveAll() = dbTransaction {
-        selectAll().where { basePredicate }.map { DraftPokemon(it[POKEMON], it[TIER]) }
+        selectAll().where { basePredicate }.map { DraftPokemon(it[POKEMON], it[TIER]) }.toList()
     }
 
     suspend fun addOrUpdateTier(mon: String, tier: String) {

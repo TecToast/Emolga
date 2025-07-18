@@ -1,9 +1,12 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.upsert
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.upsert
 
 object TipGameMessagesDB : Table("tipgamemessages") {
     val LEAGUENAME = varchar("leaguename", 31)
@@ -25,7 +28,7 @@ object TipGameMessagesDB : Table("tipgamemessages") {
             val op = (LEAGUENAME eq leagueName) and (GAMEDAY eq gameday)
             if (battle == null) op
             else op and (BATTLE eq battle)
-        }.map { it[MESSAGEID] }
+        }.map { it[MESSAGEID] }.toList()
     }
 
     /**

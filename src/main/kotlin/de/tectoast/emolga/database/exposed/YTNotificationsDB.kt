@@ -1,8 +1,12 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.batchInsert
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toCollection
+import kotlinx.coroutines.flow.toList
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.r2dbc.batchInsert
+import org.jetbrains.exposed.v1.r2dbc.select
 
 object YTNotificationsDB : Table("ytnotifications") {
     val DCCHANNEL = long("dcchannel")
@@ -20,10 +24,10 @@ object YTNotificationsDB : Table("ytnotifications") {
     }
 
     suspend fun getAllYTChannels() = dbTransaction {
-        select(YTCHANNEL).withDistinct(true).mapTo(mutableSetOf()) { it[YTCHANNEL] }
+        select(YTCHANNEL).withDistinct(true).map { it[YTCHANNEL] }.toCollection(mutableSetOf())
     }
 
     suspend fun getDCChannels(ytChannel: String) = dbTransaction {
-        select(DCCHANNEL, DM).where { YTCHANNEL eq ytChannel }.map { it[DCCHANNEL] to it[DM] }
+        select(DCCHANNEL, DM).where { YTCHANNEL eq ytChannel }.map { it[DCCHANNEL] to it[DM] }.toList()
     }
 }

@@ -12,12 +12,17 @@ import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.NameConventions
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.showdown.Pokemon
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import mu.KotlinLogging
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.v1.r2dbc.insert
+import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.selectAll
 import org.litote.kmongo.eq
 import de.tectoast.emolga.utils.json.db as emolgaDB
 
@@ -45,13 +50,13 @@ object NameConventionsDB : Table("nameconventions") {
      * @param guildId the id of the guild
      * @return a list of tl names in the other language
      */
-    suspend fun getAllOtherSpecified(mons: List<String>, lang: Language, guildId: Long): List<String> {
+    suspend fun getAllOtherSpecified(mons: Iterable<String>, lang: Language, guildId: Long): List<String> {
         val nc = emolgaDB.nameconventions.get(guildId)
         return dbTransaction {
             val checkLang = if (lang == Language.GERMAN) SPECIFIED else SPECIFIEDENGLISH
             val resultLang = if (lang == Language.GERMAN) SPECIFIEDENGLISH else SPECIFIED
             select(resultLang).where((GUILD eq 0 or (GUILD eq guildId)) and (checkLang inList mons))
-                .map { it[resultLang] } + mons.mapNotNull { mon ->
+                .map { it[resultLang] }.toList() + mons.mapNotNull { mon ->
                 nc.values.firstNotNullOfOrNull { it.toRegex().find(mon) }?.run {
                     select(resultLang).where { checkLang eq groupValues[1] }.firstOrNull()?.get(resultLang)
                         ?.let { repl ->
@@ -69,8 +74,9 @@ object NameConventionsDB : Table("nameconventions") {
      * Gets all official names in german and english
      * @return the list of all official names
      */
+    @OptIn(ExperimentalCoroutinesApi::class)
     private suspend fun getAll() = dbTransaction {
-        select(GERMAN, ENGLISH).flatMap { setOf(it[GERMAN], it[ENGLISH]) }.toSet()
+        select(GERMAN, ENGLISH).flatMapConcat { flowOf(it[GERMAN], it[ENGLISH]) }.toSet()
     }
 
     /**
@@ -94,10 +100,10 @@ object NameConventionsDB : Table("nameconventions") {
      */
     suspend fun addName(tlName: String, germanName: String, guildId: Long, language: Language) {
         dbTransaction {
+            val row = selectAll().where(GERMAN eq germanName and (GUILD eq 0)).first()
             insert {
                 it[GUILD] = guildId
                 it[GERMAN] = germanName
-                val row = selectAll().where(GERMAN eq germanName and (GUILD eq 0)).first()
                 it[ENGLISH] = row[ENGLISH]
                 when (language) {
                     Language.GERMAN -> {
@@ -191,7 +197,7 @@ object NameConventionsDB : Table("nameconventions") {
      */
     suspend fun getAllSDTranslationOnlyOfficialGerman(list: List<String>): Map<String, String> {
         return dbTransaction {
-            select(ENGLISH, GERMAN).where(ENGLISH inList list).associate { it[ENGLISH] to it[GERMAN] }
+            select(ENGLISH, GERMAN).where(ENGLISH inList list).map { it[ENGLISH] to it[GERMAN] }.toMap()
         }
     }
 
@@ -199,7 +205,7 @@ object NameConventionsDB : Table("nameconventions") {
     // TODO: Check for multi lang, may be merged with [getAllSDTranslationOnlyOfficialGerman]
     suspend fun getAllSDTranslationOnlyOfficialEnglish(list: List<String>): Map<String, String> {
         return dbTransaction {
-            select(ENGLISH, GERMAN).where(GERMAN inList list).associate { it[GERMAN] to it[ENGLISH] }
+            select(ENGLISH, GERMAN).where(GERMAN inList list).map { it[GERMAN] to it[ENGLISH] }.toMap()
         }
     }
 
@@ -215,7 +221,7 @@ object NameConventionsDB : Table("nameconventions") {
                 DraftName(
                     it[SPECIFIED], it[GERMAN], it[GUILD] != 0L, it[SPECIFIEDENGLISH], it[ENGLISH]
                 )
-            }
+            }.toList()
         }
     }
 
@@ -285,4 +291,12 @@ data class DraftName(
     override fun hashCode(): Int {
         return official.hashCode()
     }
+}
+
+suspend fun <A, B> Flow<Pair<A, B>>.toMap(): Map<A, B> {
+    val destination = mutableMapOf<A, B>()
+    collect { value ->
+        destination[value.first] = value.second
+    }
+    return destination
 }

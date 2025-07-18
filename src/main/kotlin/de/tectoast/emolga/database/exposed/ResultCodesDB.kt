@@ -3,13 +3,14 @@ package de.tectoast.emolga.database.exposed
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.utils.invoke
 import dev.minn.jda.ktx.coroutines.await
+import kotlinx.coroutines.flow.singleOrNull
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
+import org.jetbrains.exposed.v1.r2dbc.insert
+import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import java.util.*
 
 object ResultCodesDB : Table("resultcodes") {
@@ -21,18 +22,18 @@ object ResultCodesDB : Table("resultcodes") {
 
     override val primaryKey = PrimaryKey(CODE)
 
-    suspend fun getEntryByCode(resultid: String) = newSuspendedTransaction {
-        val uuid = runCatching { UUID.fromString(resultid) }.getOrNull() ?: return@newSuspendedTransaction null
+    suspend fun getEntryByCode(resultid: String) = suspendTransaction {
+        val uuid = runCatching { UUID.fromString(resultid) }.getOrNull() ?: return@suspendTransaction null
         selectAll().where { CODE eq uuid }.singleOrNull()
     }
 
-    suspend fun getResultDataForUser(resultid: String) = newSuspendedTransaction {
-        val uuid = runCatching { UUID.fromString(resultid) }.getOrNull() ?: return@newSuspendedTransaction null
-        val entry = selectAll().where { CODE eq uuid }.singleOrNull() ?: return@newSuspendedTransaction null
+    suspend fun getResultDataForUser(resultid: String) = suspendTransaction {
+        val uuid = runCatching { UUID.fromString(resultid) }.getOrNull() ?: return@suspendTransaction null
+        val entry = selectAll().where { CODE eq uuid }.singleOrNull() ?: return@suspendTransaction null
         val league = de.tectoast.emolga.utils.json.db.league(entry[LEAGUENAME])
         val allPicks = league.picks
         val gid = league.guild
-        val guild = jda.getGuildById(gid) ?: return@newSuspendedTransaction null
+        val guild = jda.getGuildById(gid) ?: return@suspendTransaction null
         val idxes = listOf(entry[P1], entry[P2])
         val memberData = guild.retrieveMembersByIds(idxes.map { league.table[it] }).await().associateBy { it.idLong }
         val allMonsTranslations = NameConventionsDB.getAllData(
@@ -64,7 +65,7 @@ object ResultCodesDB : Table("resultcodes") {
         var code: UUID
         while (true) {
             code = UUID.randomUUID()
-            newSuspendedTransaction {
+            suspendTransaction {
                 insert {
                     it[CODE] = code
                     it[LEAGUENAME] = leaguename
@@ -79,7 +80,7 @@ object ResultCodesDB : Table("resultcodes") {
     }
 
     suspend fun delete(code: UUID) {
-        newSuspendedTransaction {
+        suspendTransaction {
             deleteWhere { CODE eq code }
         }
     }

@@ -1,9 +1,7 @@
 package de.tectoast.emolga.features.various
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.CalendarDB
-import de.tectoast.emolga.database.exposed.CalendarEntry
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.TimeUtils
@@ -13,41 +11,33 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import mu.KotlinLogging
-import java.text.SimpleDateFormat
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 
 object CalendarSystem : CoroutineScope {
     override val coroutineContext = createCoroutineContext("CalendarSystem", Dispatchers.IO)
-    private val calendarFormat = SimpleDateFormat("dd.MM. HH:mm")
 
     private val logger = KotlinLogging.logger {}
 
-    fun scheduleCalendarEntry(ce: CalendarEntry) {
+    fun scheduleCalendarEntry(id: Int, message: String, expires: Instant) {
         launch {
-            delay(ce.expires - Clock.System.now())
+            delay(expires - Clock.System.now())
             try {
-                dbTransaction {
-                    if (runCatching { ce.refresh() }.let {
-                            it.exceptionOrNull()?.let { ex -> logger.error("Failed to refresh calendar entry", ex) }
-                            it.isFailure
-                        }) return@dbTransaction null
-                    ce.delete()
-                } ?: return@launch
-
+                if (CalendarDB.doesntExist(id)) {
+                    return@launch
+                }
                 val calendarTc = jda.getTextChannelById(Constants.CALENDAR_TCID)!!
-                calendarTc.sendMessage("(<@${Constants.FLOID}>) ${ce.message}").setActionRow(RemindButton()).queue()
-                calendarTc.editMessageById(Constants.CALENDAR_MSGID, buildCalendar()).queue()
+                calendarTc.sendMessage("(<@${Constants.FLOID}>) $message").setActionRow(RemindButton()).queue()
+                calendarTc.updateCalendar()
             } catch (ex: Exception) {
                 logger.error(ex) { "Failed to send calendar entry" }
             }
         }
     }
 
-
-    private suspend fun buildCalendar(): String {
-        return CalendarDB.getAllEntries().sortedBy { it.expires }
-            .joinToString("\n") { "**${calendarFormat.format(it.expires.toEpochMilliseconds())}:** ${it.message}" }
-            .ifEmpty { "_leer_" }
+    private suspend fun MessageChannel.updateCalendar() {
+        editMessageById(Constants.CALENDAR_MSGID, CalendarDB.buildCalendar()).queue()
     }
 
 
@@ -61,10 +51,9 @@ object CalendarSystem : CoroutineScope {
         override suspend fun exec(e: Args) {
             val expires = TimeUtils.parseCalendarTime(e.date)
             val message = e.text
-            CalendarDB.scheduleCalendarEntry(message, expires)
+            CalendarDB.createNewCalendarEntry(message, expires)
             iData.reply("Reminder gesetzt!", ephemeral = true)
-            jda.getTextChannelById(Constants.CALENDAR_TCID)!!.editMessageById(Constants.CALENDAR_MSGID, buildCalendar())
-                .queue()
+            jda.getTextChannelById(Constants.CALENDAR_TCID)!!.updateCalendar()
         }
     }
 

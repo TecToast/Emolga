@@ -63,8 +63,8 @@ repositories {
     mavenCentral()
 }
 
-val exposedVersion = "0.61.0"
-val ktorVersion = "3.1.2"
+val exposedVersion = "1.0.0-beta-4"
+val ktorVersion = "3.2.2"
 val ktorDependencies = listOf(
     // Client
     "ktor-client-core",
@@ -107,11 +107,10 @@ dependencies {
 
     // Database
     // MySQL
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.4")
-    implementation("com.zaxxer:HikariCP:6.3.0")
+    implementation("org.mariadb:r2dbc-mariadb:1.3.0")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-r2dbc:$exposedVersion")
+    runtimeOnly("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-migration:$exposedVersion")
     // MongoDB

@@ -7,8 +7,9 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.selectAll
+import kotlinx.coroutines.flow.toList
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.r2dbc.selectAll
 
 object AddConventionCommand : CommandFeature<AddConventionCommand.Args>(
     ::Args,

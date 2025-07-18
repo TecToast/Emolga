@@ -1,8 +1,11 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.batchInsert
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.r2dbc.batchInsert
+import org.jetbrains.exposed.v1.r2dbc.select
 
 object YTChannelsDB : Table("ytchannels") {
     val USER = long("user")
@@ -11,11 +14,11 @@ object YTChannelsDB : Table("ytchannels") {
     override val primaryKey = PrimaryKey(USER, CHANNELID)
 
     suspend fun getUsersByChannelId(channelId: String) = dbTransaction {
-        select(USER).where { CHANNELID eq channelId }.map { it[USER] }
+        select(USER).where { CHANNELID eq channelId }.map { it[USER] }.toList()
     }
 
     suspend fun addAllChannelIdsToSet(set: MutableSet<String>, users: Iterable<Long>) = dbTransaction {
-        select(CHANNELID).where { USER inList users }.forEach { set += it[CHANNELID] }
+        select(CHANNELID).where { USER inList users }.collect { set += it[CHANNELID] }
     }
 
     suspend fun insertAll(data: List<Pair<Long, String>>) = dbTransaction {

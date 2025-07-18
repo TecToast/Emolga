@@ -1,7 +1,10 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
-import org.jetbrains.exposed.sql.Table
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toSet
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.r2dbc.select
 
 object GuildManagerDB : Table("guildmanager") {
     val GUILD = long("guild")
@@ -14,7 +17,7 @@ object GuildManagerDB : Table("guildmanager") {
      */
     suspend fun getGuildsForUser(user: Long): Set<Long> {
         return dbTransaction {
-            select(GUILD).where { USER eq user }.mapTo(mutableSetOf()) { it[GUILD] }
+            select(GUILD).where { USER eq user }.map { it[GUILD] }.toSet()
         }
     }
 

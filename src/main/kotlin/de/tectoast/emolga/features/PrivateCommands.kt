@@ -1,6 +1,5 @@
 package de.tectoast.emolga.features
 
-import MigrationUtils
 import com.google.common.reflect.ClassPath
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
@@ -45,9 +44,14 @@ import net.dv8tion.jda.api.interactions.components.ActionComponent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.migration.MigrationUtils
+import org.jetbrains.exposed.v1.r2dbc.batchInsert
+import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
@@ -294,7 +298,7 @@ object PrivateCommands {
     suspend fun fetchYTChannelsForLeague(args: PrivateData) {
         val league = db.league(args[0])
         YTChannelsDB.insertAll(
-            league.table.asFlow().zip<Long, String, Pair<Long, String>>(
+            league.table.asFlow().zip(
                 args.asFlow().drop(1).mapIdentifierToChannelIDs(), ::Pair
             ).toList<Pair<@Contextual Long, String>>()
         )
@@ -438,7 +442,8 @@ object PrivateCommands {
                 this[Tierlist.POKEMON] = it.name
                 this[Tierlist.TIER] = it.tier
             }
-            NameConventionsDB.batchInsert(NameConventionsDB.selectAll().where { NameConventionsDB.GUILD eq gid }) {
+            NameConventionsDB.batchInsert(NameConventionsDB.selectAll().where { NameConventionsDB.GUILD eq gid }
+                .toList()) {
                 this[NameConventionsDB.GUILD] = Constants.G.MY
                 this[NameConventionsDB.GERMAN] = it[NameConventionsDB.GERMAN]
                 this[NameConventionsDB.ENGLISH] = it[NameConventionsDB.ENGLISH]
@@ -619,7 +624,7 @@ object PrivateCommands {
     context(iData: InteractionData)
     suspend fun migrationStatements() {
         iData.deferReply()
-        iData.reply(newSuspendedTransaction {
+        iData.reply(suspendTransaction {
             MigrationUtils.statementsRequiredForDatabaseMigration(
                 *ClassPath.from(Thread.currentThread().contextClassLoader)
                     .getTopLevelClassesRecursive("de.tectoast.emolga")

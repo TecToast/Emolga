@@ -180,7 +180,7 @@ sealed class League {
 
     open fun isFinishedForbidden() = !isSwitchDraft
 
-    open fun checkFinishedForbidden(mem: Int): String? = null
+    open fun checkFinishedForbidden(idx: Int): String? = null
 
     open fun PickData.savePick(noCost: Boolean = false) {
         picks.add(DraftPokemon(pokemonofficial, tier, freePick, noCost = noCost))

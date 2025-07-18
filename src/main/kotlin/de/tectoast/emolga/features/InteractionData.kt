@@ -39,8 +39,6 @@ abstract class InteractionData(
     val responseDeferred: CompletableDeferred<CommandResponse> = CompletableDeferred()
     var deferred = false
 
-    val self get() = this
-
     val replied get() = responseDeferred.isCompleted
     val textChannel by lazy { jda.getChannel<GuildMessageChannel>(tc)!! }
     val member = OneTimeCache(member) { guild().retrieveMemberById(user).await() }

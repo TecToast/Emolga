@@ -777,7 +777,7 @@ sealed class League {
         content: String,
         components: Collection<LayoutComponent> = SendDefaults.components,
         ifTestUseTc: MessageChannel? = null
-    ) = ifTestUseTc?.takeIf { iData.self is TestInteractionData }?.send(content, components = components)?.await()
+    ) = ifTestUseTc?.takeIf { iData is TestInteractionData }?.send(content, components = components)?.await()
         ?: iData.replyAwait(
             content, components = components
         )

@@ -97,13 +97,13 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:5.6.1")
+    implementation("net.dv8tion:JDA:6.0.0-preview")
     implementation("club.minnced:jda-ktx:0.12.0")
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250616-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20250511-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20250422-2.0.0")
+    implementation("com.google.apis:google-api-services-youtube:v3-rev20250714-2.0.0")
 
     // Database
     // MySQL
@@ -124,8 +124,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.21.1")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M4")
-    testImplementation("io.kotest:kotest-assertions-core:6.0.0.M4")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M5")
+    testImplementation("io.kotest:kotest-assertions-core:6.0.0.M5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
 }

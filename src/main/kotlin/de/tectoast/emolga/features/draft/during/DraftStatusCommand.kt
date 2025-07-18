@@ -18,27 +18,27 @@ object DraftStatusCommand : CommandFeature<DraftStatusCommand.Args>(
         var user by member("User", "Der User, dessen Status angezeigt werden soll").nullable()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         var externalName: String? = null
         val mem =
-            e.user?.also { externalName = it.effectiveName }?.idLong ?: user
-        val external = mem != user
-        val d = db.leagueByGuild(gid, mem) ?: return reply(
+            e.user?.also { externalName = it.effectiveName }?.idLong ?: iData.user
+        val external = mem != iData.user
+        val d = db.leagueByGuild(iData.gid, mem) ?: return iData.reply(
             if (external) "<@$mem> nimmt nicht an einer Liga auf diesem Server teil!" else "Du nimmst nicht an einer Liga auf diesem Server teil!",
             ephemeral = true
         )
-        if (!d.isRunning) return reply("Der Draft läuft zurzeit nicht!", ephemeral = true)
+        if (!d.isRunning) return iData.reply("Der Draft läuft zurzeit nicht!", ephemeral = true)
         with(d) {
             val tl = tierlist
             val order = tl.order
             val mode = tl.mode
-            if (mem !in table) return reply(
+            if (mem !in table) return iData.reply(
                 if (external) "<@$mem> nimmt nicht an der Liga teil!" else "Du nimmst nicht an der Liga teil!",
                 ephemeral = true
             )
             val idx = this(mem)
-            reply(
+            iData.reply(
                 embeds = Embed(
                     title = if (external) "Draft-Status von $externalName" else "Dein Draft-Status", color = embedColor
                 ) {

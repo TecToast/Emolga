@@ -13,15 +13,15 @@ object RoleManagement {
         override val buttonStyle = ButtonStyle.PRIMARY
         override val emoji = Emoji.fromUnicode("✅")
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            val g = guild()
-            if (member().roles.any { it.idLong == ACCEPTED_RULES_ROLE }) return reply(
+            val g = iData.guild()
+            if (iData.member().roles.any { it.idLong == ACCEPTED_RULES_ROLE }) return iData.reply(
                 "Du hast die Regeln bereits akzeptiert!",
                 ephemeral = true
             )
-            g.addRoleToMember(userObj(), g.getRoleById(ACCEPTED_RULES_ROLE)!!).queue()
-            reply(
+            g.addRoleToMember(iData.userObj(), g.getRoleById(ACCEPTED_RULES_ROLE)!!).queue()
+            iData.reply(
                 "Du hast die Regeln akzeptiert und hast jetzt Zugriff auf den Server!\nWeitere optionale Rollen kannst du dir in <#1243646697242890373> abholen.",
                 ephemeral = true
             )
@@ -37,12 +37,12 @@ object RoleManagement {
             var selection by multiOption(0..roles.size)
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             val (add, remove) = roles.partition { it.compId in e.selection }.toList()
-                .map { it.map { r -> guild().getRoleById(r.roleId)!! } }
-            guild().modifyMemberRoles(member(), add, remove).queue()
-            reply("Deine Rollen wurden angepasst!", ephemeral = true)
+                .map { it.map { r -> iData.guild().getRoleById(r.roleId)!! } }
+            iData.guild().modifyMemberRoles(iData.member(), add, remove).queue()
+            iData.reply("Deine Rollen wurden angepasst!", ephemeral = true)
         }
     }
 

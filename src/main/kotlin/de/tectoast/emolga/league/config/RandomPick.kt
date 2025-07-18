@@ -33,7 +33,7 @@ data class RandomPickUserInput(
 
 @Serializable
 sealed interface RandomPickMode {
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun League.getRandomPick(input: RandomPickUserInput, config: RandomPickConfig): Pair<DraftName, String>?
 
     /**
@@ -51,10 +51,10 @@ sealed interface RandomPickMode {
             }
         }
 
-        context(InteractionData) override suspend fun League.getRandomPick(
+        context(iData: InteractionData) override suspend fun League.getRandomPick(
             input: RandomPickUserInput, config: RandomPickConfig
         ): Pair<DraftName, String>? {
-            if (tierRequired && input.tier == null) return replyNull("Du musst ein Tier angeben!")
+            if (tierRequired && input.tier == null) return iData.replyNull("Du musst ein Tier angeben!")
             val tier = if (input.ignoreRestrictions) input.tier!! else parseTier(input.tier, config) ?: return null
             val list = tierlist.getByTier(tier)!!.shuffled()
             val skipMega = config.onlyOneMega && picks[current]!!.any { it.name.isMega }
@@ -62,7 +62,7 @@ sealed interface RandomPickMode {
                 if (german in input.skipMons || (skipMega && english.isMega)) return@firstAvailableMon false
                 if (input.type != null) input.type in db.pokedex.get(english.toSDName())!!.types else true
             }?.let { it to tier }
-                ?: return replyNull("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")
+                ?: return iData.replyNull("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")
         }
     }
 
@@ -75,10 +75,10 @@ sealed interface RandomPickMode {
             return mapOf(RandomPickArgument.TYPE to ArgumentPresence.REQUIRED)
         }
 
-        context(InteractionData) override suspend fun League.getRandomPick(
+        context(iData: InteractionData) override suspend fun League.getRandomPick(
             input: RandomPickUserInput, config: RandomPickConfig
         ): Pair<DraftName, String>? {
-            val type = input.type ?: return replyNull("Du musst einen Typen angeben!")
+            val type = input.type ?: return iData.replyNull("Du musst einen Typen angeben!")
             val picks = picks[current]!!
             var mon: DraftName? = null
             var tier: String? = null
@@ -89,7 +89,7 @@ sealed interface RandomPickMode {
                 repeat(prices.size) {
                     val temptier =
                         prices.filter { (tier, amount) -> tier !in usedTiers && picks.count { mon -> mon.tier == tier } < amount }.keys.randomOrNull()
-                            ?: return replyNull("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
+                            ?: return iData.replyNull("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
                     val tempmon = firstAvailableMon(
                         tierlist.getWithTierAndType(temptier, type).shuffled()
                     ) { german, _ -> german in input.skipMons && !(german.isMega && skipMega) }
@@ -103,24 +103,25 @@ sealed interface RandomPickMode {
             }
             if (mon == null) {
                 logger.error("No pokemon found without error message: $current $type")
-                return replyNull("Es ist konnte kein passendes Pokemon gefunden werden! (<@${Constants.FLOID}>)")
+                return iData.replyNull("Es ist konnte kein passendes Pokemon gefunden werden! (<@${Constants.FLOID}>)")
             }
             return mon to tier!!
         }
     }
 
-    context(League, InteractionData)
+    context(league: League, iData: InteractionData)
     fun parseTier(tier: String?, config: RandomPickConfig): String? {
-        if (tier == null) return if (tierlist.mode.withTiers) getPossibleTiers().filter { it.value > 0 }.keys.random() else tierlist.order.last()
-        val parsedTier = tierlist.order.firstOrNull { it.equals(tier, ignoreCase = true) }
+        if (tier == null) return if (league.tierlist.mode.withTiers) league.getPossibleTiers()
+            .filter { it.value > 0 }.keys.random() else league.tierlist.order.last()
+        val parsedTier = league.tierlist.order.firstOrNull { it.equals(tier, ignoreCase = true) }
         if (parsedTier == null) {
-            return replyNull("Das Tier `$tier` existiert nicht!")
+            return iData.replyNull("Das Tier `$tier` existiert nicht!")
         }
         if (config.tierRestrictions.isNotEmpty() && parsedTier !in config.tierRestrictions) {
-            return replyNull("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: ${config.tierRestrictions.joinToString()}")
+            return iData.replyNull("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: ${config.tierRestrictions.joinToString()}")
         }
-        if (handleTiers(parsedTier, parsedTier)) return null
-        if (handlePoints(false, parsedTier)) return null
+        if (league.handleTiers(parsedTier, parsedTier)) return null
+        if (league.handlePoints(false, parsedTier)) return null
         return parsedTier
     }
 }

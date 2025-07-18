@@ -24,19 +24,19 @@ object DraftPermissionCommand :
             BOTH("Beide", selfmention = true, othermention = true)
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock({ db.leagueByCommand() },
-                { reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) {
+                { iData.reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) {
                 val mem = e.user
-                if (mem.user.isBot) return reply("Du kannst keine Bots als Ersatzdrafter hinzufügen!")
+                if (mem.user.isBot) return iData.reply("Du kannst keine Bots als Ersatzdrafter hinzufügen!")
                 val withMention = e.withmention
                 val id = mem.idLong
-                val set = performPermissionAdd(user, id, withMention)
-                reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {
+                val set = performPermissionAdd(iData.user, id, withMention)
+                iData.reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {
                     description = set.sortedWith { o1, o2 ->
-                        if (o1.u == user) -1
-                        else if (o2.u == user) 1
+                        if (o1.u == iData.user) -1
+                        else if (o2.u == iData.user) 1
                         else 0
                     }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
                 }.into())
@@ -45,14 +45,14 @@ object DraftPermissionCommand :
         }
     }
 
-    context(League)
+    context(league: League)
     fun performPermissionAdd(
         user: Long,
         toadd: Long,
         withMention: Allow.Mention,
         teammate: Boolean = false
     ): Set<AllowedData> {
-        val set = allowed.getOrPut(this@League(user)) { mutableSetOf() }
+        val set = league.allowed.getOrPut(league(user)) { mutableSetOf() }
         val selfmention = withMention.selfmention
         val othermention = withMention.othermention
         for ((userid, mention) in setOf(Pair(user, selfmention), Pair(toadd, othermention))) {
@@ -72,19 +72,19 @@ object DraftPermissionCommand :
             var user by member("User", "Der User, der für dich picken darf")
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock(
                 { db.leagueByCommand() },
-                { reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) {
+                { iData.reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) {
                 val mem = e.user
-                if (mem.idLong == user) return reply("Du darfst tatsächlich immer picken :)")
-                val set = allowed.getOrPut(this(user)) { mutableSetOf() }
+                if (mem.idLong == iData.user) return iData.reply("Du darfst tatsächlich immer picken :)")
+                val set = allowed.getOrPut(this(iData.user)) { mutableSetOf() }
                 set.removeIf { it.u == mem.idLong }
-                reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {
+                iData.reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {
                     description = set.sortedWith { o1, o2 ->
-                        if (o1.u == user) -1
-                        else if (o2.u == user) 1
+                        if (o1.u == iData.user) -1
+                        else if (o2.u == iData.user) 1
                         else 0
                     }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
                 }.into())
@@ -93,7 +93,7 @@ object DraftPermissionCommand :
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
     }
 }

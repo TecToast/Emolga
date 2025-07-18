@@ -23,11 +23,11 @@ object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
         restrict(members(Constants.M.HENNY, Constants.M.INK, 265917650490753025))
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         League.executeOnFreshLock(e.name) {
-            startDraft(textChannel, fromFile = false, switchDraft = e.switchdraft, nameGuildId = e.nameguild)
-            reply("+1", ephemeral = true)
+            startDraft(iData.textChannel, fromFile = false, switchDraft = e.switchdraft, nameGuildId = e.nameguild)
+            iData.reply("+1", ephemeral = true)
         }
     }
 }

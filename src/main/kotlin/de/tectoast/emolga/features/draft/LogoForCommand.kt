@@ -24,7 +24,7 @@ object LogoForCommand :
         var logo by attachment("Logo", "Das Logo")
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         LogoCommand.insertLogo(e.logo, e.user.idLong)
     }

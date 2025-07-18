@@ -33,19 +33,19 @@ object SwitchTimer {
             restrict(admin)
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock(e.league) {
                 val settings = e.settings
                 val timer = SwitchTimer(settings.associateWith {
                     TimerInfo((TimeUtils.parseShortTime(it).toInt().takeIf { n -> n >= 0 }
-                        ?: return reply("`$it` ist keine valide Zeitangabe!")) / 60).set(e.from, e.to)
+                        ?: return iData.reply("`$it` ist keine valide Zeitangabe!")) / 60).set(e.from, e.to)
                 })
                 timer.stallSeconds = e.stallSeconds
                 config.timer = timer
                 save("SwitchTimer")
                 val controlPanel = timer.createControlPanel(this)
-                reply(ephemeral = false, embeds = controlPanel.first, components = controlPanel.second)
+                iData.reply(ephemeral = false, embeds = controlPanel.first, components = controlPanel.second)
             }
         }
     }
@@ -58,17 +58,17 @@ object SwitchTimer {
             var switchTo by string()
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock(e.league) {
                 (config.timer as? SwitchTimer)?.let {
                     it.switchTo(e.switchTo)
                     save("SwitchTimer")
-                    deferEdit()
+                    iData.deferEdit()
                     val (messageEmbeds, actionRows) = it.createControlPanel(this)
-                    edit(embeds = messageEmbeds, components = actionRows)
-                    reply("Timer auf `${e.switchTo}` umgestellt!", ephemeral = true)
-                } ?: reply("Der Timer von `$l` ist kein Switch-Timer!", ephemeral = true)
+                    iData.edit(embeds = messageEmbeds, components = actionRows)
+                    iData.reply("Timer auf `${e.switchTo}` umgestellt!", ephemeral = true)
+                } ?: iData.reply("Der Timer von `$l` ist kein Switch-Timer!", ephemeral = true)
             }
         }
     }

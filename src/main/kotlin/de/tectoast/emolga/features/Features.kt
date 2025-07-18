@@ -110,10 +110,10 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
     val flo: BooleanCheck = { false } // flo may use any feature regardless of this configuration
     val henny = user(Constants.M.HENNY)
 
-    context (InteractionData)
+    context (data: InteractionData)
     abstract suspend fun exec(e: A)
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun exec(argsBuilder: ArgBuilder<@UnsafeVariance A> = {}) = exec(buildArgs(argsBuilder))
 
     companion object {

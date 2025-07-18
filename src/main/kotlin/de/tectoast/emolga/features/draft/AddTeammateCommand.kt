@@ -18,14 +18,17 @@ object AddTeammateCommand : CommandFeature<AddTeammateCommand.Args>(
         var user by member("User", "Der Spieler, den du hinzufügen möchtest")
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val lsData =
-            db.signups.get(gid) ?: return reply("Es läuft derzeit keine Anmeldung auf diesem Server!", ephemeral = true)
-        val data = lsData.getDataByUser(user) ?: return reply("Du bist nicht angemeldet!")
+            db.signups.get(iData.gid) ?: return iData.reply(
+                "Es läuft derzeit keine Anmeldung auf diesem Server!",
+                ephemeral = true
+            )
+        val data = lsData.getDataByUser(iData.user) ?: return iData.reply("Du bist nicht angemeldet!")
         val member = e.user
-        if (lsData.getDataByUser(member.idLong) != null) return reply("${member.asMention} ist bereits angemeldet!")
+        if (lsData.getDataByUser(member.idLong) != null) return iData.reply("${member.asMention} ist bereits angemeldet!")
         lsData.handleNewUserInTeam(member, data)
-        reply("Du hast ${member.asMention} zu deinem Team hinzugefügt!", ephemeral = true)
+        iData.reply("Du hast ${member.asMention} zu deinem Team hinzugefügt!", ephemeral = true)
     }
 }

@@ -33,9 +33,9 @@ object AddConventionCommand : CommandFeature<AddConventionCommand.Args>(
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         // handled in de/tectoast/emolga/utils/dconfigurator/impl/TierlistBuilderConfigurator.kt
-        acknowledged.complete(Unit)
+        iData.acknowledged.complete(Unit)
     }
 }

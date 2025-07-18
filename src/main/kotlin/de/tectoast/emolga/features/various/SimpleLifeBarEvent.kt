@@ -160,12 +160,12 @@ class SimpleLifeBarEvent(
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun addVote(from: Long, to: Long) {
-        if (!hasVote) return reply("Es gibt keine Votes!", ephemeral = true)
-        if (from !in members) return reply("Du warst zu dumm!", ephemeral = true)
-        if (from == to) return reply("Nein, du kannst nicht für dich selbst voten!", ephemeral = true)
-        reply("Vote gesetzt!", ephemeral = true)
+        if (!hasVote) return iData.reply("Es gibt keine Votes!", ephemeral = true)
+        if (from !in members) return iData.reply("Du warst zu dumm!", ephemeral = true)
+        if (from == to) return iData.reply("Nein, du kannst nicht für dich selbst voten!", ephemeral = true)
+        iData.reply("Vote gesetzt!", ephemeral = true)
         votes[from] = to
         updateGameStatusMessage()
         updateAdminStatusMessage()
@@ -174,11 +174,11 @@ class SimpleLifeBarEvent(
         ).queue()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun addAnswer(from: Long, input: String) {
-        if (!hasAnswer) return reply("Es gibt keine Inputs!", ephemeral = true)
-        if (from !in members) return reply("Du spielst nicht mit!", ephemeral = true)
-        reply("Antwort gesetzt!", ephemeral = true)
+        if (!hasAnswer) return iData.reply("Es gibt keine Inputs!", ephemeral = true)
+        if (from !in members) return iData.reply("Du spielst nicht mit!", ephemeral = true)
+        iData.reply("Antwort gesetzt!", ephemeral = true)
         answers[from] = input
         updateGameStatusMessage()
         updateAdminStatusMessage()
@@ -194,29 +194,29 @@ class SimpleLifeBarEvent(
         updateAdminStatusMessage()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     fun replyWithAnswerModal() {
-        replyModal(SimpleLifeBarEventManager.AnswerModal {
+        iData.replyModal(SimpleLifeBarEventManager.AnswerModal {
             this.host = gameHost
         })
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun acceptVotes() {
-        if (!allVoted()) return reply("Es haben noch nicht alle gevotet!", ephemeral = true)
+        if (!allVoted()) return iData.reply("Es haben noch nicht alle gevotet!", ephemeral = true)
         val highestVote = votedSet.maxOf { it.value }
         val members = votedSet.filter { it.value == highestVote }.map { it.key }
         if (members.size > 1) {
-            return reply(
+            return iData.reply(
                 "Es gibt einen Gleichstand zwischen: ${
                     members.joinToString("") { "<@${it}>" }
                 }", ephemeral = true)
         }
         removeLifes(members.take(1))
-        reply("Leben entfernt!", ephemeral = true)
+        iData.reply("Leben entfernt!", ephemeral = true)
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun reset(type: ResetType) {
         when (type) {
             ResetType.VOTES -> votes.clear()
@@ -224,7 +224,7 @@ class SimpleLifeBarEvent(
         }
         updateAdminStatusMessage()
         updateGameStatusMessage()
-        deferEdit()
+        iData.deferEdit()
     }
 }
 
@@ -245,18 +245,18 @@ object SimpleLifeBarEventManager {
             var users by genericList<Member, Member>("user", "Teilnehmer", 10, 1, OptionType.USER)
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            events[user] = SimpleLifeBarEvent(
+            events[iData.user] = SimpleLifeBarEvent(
                 maxLifes = e.startLifes,
                 hasVote = e.hasVote,
                 hasAnswer = e.hasInput,
                 jda = jda,
-                gameHost = user,
-                gameChannelId = tc,
+                gameHost = iData.user,
+                gameChannelId = iData.tc,
                 users = e.users
             )
-            done(true)
+            iData.done(true)
         }
 
 
@@ -268,10 +268,10 @@ object SimpleLifeBarEventManager {
             var user by singleOption { it.toLong() }
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val event = events[e.host] ?: return reply("Das Event läuft derzeit nicht!", ephemeral = true)
-            event.addVote(user, e.user)
+            val event = events[e.host] ?: return iData.reply("Das Event läuft derzeit nicht!", ephemeral = true)
+            event.addVote(iData.user, e.user)
         }
     }
 
@@ -282,9 +282,9 @@ object SimpleLifeBarEventManager {
             var host by long().compIdOnly()
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val event = events[e.host] ?: return reply("Das Event läuft derzeit nicht!", ephemeral = true)
+            val event = events[e.host] ?: return iData.reply("Das Event läuft derzeit nicht!", ephemeral = true)
             event.replyWithAnswerModal()
         }
     }
@@ -297,10 +297,10 @@ object SimpleLifeBarEventManager {
             var answer by string("Antwort", "Deine Antwort")
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val event = events[e.host] ?: return reply("Das Event läuft derzeit nicht!", ephemeral = true)
-            event.addAnswer(user, e.answer)
+            val event = events[e.host] ?: return iData.reply("Das Event läuft derzeit nicht!", ephemeral = true)
+            event.addAnswer(iData.user, e.answer)
         }
     }
 
@@ -312,11 +312,11 @@ object SimpleLifeBarEventManager {
             var users by multiOption(IntRange.EMPTY) { it.toLong() }
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val event = events[e.host] ?: return reply("Das Event läuft derzeit nicht!", ephemeral = true)
+            val event = events[e.host] ?: return iData.reply("Das Event läuft derzeit nicht!", ephemeral = true)
             event.removeLifes(e.users)
-            done(true)
+            iData.done(true)
         }
     }
 
@@ -327,9 +327,9 @@ object SimpleLifeBarEventManager {
             var host by long().compIdOnly()
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val event = events[e.host] ?: return reply("Das Event läuft derzeit nicht!", ephemeral = true)
+            val event = events[e.host] ?: return iData.reply("Das Event läuft derzeit nicht!", ephemeral = true)
             event.acceptVotes()
         }
     }
@@ -344,9 +344,9 @@ object SimpleLifeBarEventManager {
             var type by enumBasic<ResetType>()
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val event = events[e.host] ?: return reply("Das Event läuft derzeit nicht!", ephemeral = true)
+            val event = events[e.host] ?: return iData.reply("Das Event läuft derzeit nicht!", ephemeral = true)
             event.reset(e.type)
         }
     }

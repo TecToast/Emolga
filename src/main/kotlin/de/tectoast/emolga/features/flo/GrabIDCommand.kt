@@ -24,13 +24,13 @@ object GrabIDCommand : CommandFeature<GrabIDCommand.Args>(::Args, CommandSpec("g
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val x = e.name
         val id = x.toLongOrNull()
         PrivateCommands.grabbedIDs += cachedMembers.first { mem ->
             (id?.let { mem.idLong == it }) ?: (mem.effectiveName == x)
         }.idLong
-        done(true)
+        iData.done(true)
     }
 }

@@ -14,12 +14,12 @@ object SpoilerTagsCommand : CommandFeature<NoArgs>(
         -1
     )
 ) {
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
-        if (SpoilerTagsDB.delete(gid)) {
-            return reply("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!")
+        if (SpoilerTagsDB.delete(iData.gid)) {
+            return iData.reply("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!")
         }
-        SpoilerTagsDB.insert(gid)
-        reply("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **aktiviert**!")
+        SpoilerTagsDB.insert(iData.gid)
+        iData.reply("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **aktiviert**!")
     }
 }

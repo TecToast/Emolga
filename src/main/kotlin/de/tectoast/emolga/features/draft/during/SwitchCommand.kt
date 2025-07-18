@@ -28,7 +28,7 @@ object SwitchCommand :
         var newmon by draftPokemon("Neues Mon", "Das Pokemon, was stattdessen reinkommen soll")
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         League.executePickLike {
             DraftUtils.executeWithinLock(SwitchInput(e.oldmon, e.newmon), DraftMessageType.REGULAR)

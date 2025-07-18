@@ -5,10 +5,10 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.NoArgs
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NextPlayerData
 import de.tectoast.emolga.league.SkipReason
+import de.tectoast.emolga.utils.Constants
 import net.dv8tion.jda.api.Permission
 
 object SkipPickCommand :
@@ -24,11 +24,11 @@ object SkipPickCommand :
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
         League.executeAsNotCurrent(asParticipant = false) {
-            afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP, skippedUser = current, skippedBy = user))
-            reply("+1", ephemeral = true)
+            afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP, skippedUser = current, skippedBy = iData.user))
+            iData.reply("+1", ephemeral = true)
         }
     }
 }

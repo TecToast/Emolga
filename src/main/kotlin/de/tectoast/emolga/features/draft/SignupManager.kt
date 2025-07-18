@@ -31,19 +31,19 @@ object SignupManager {
         override val label = "Anmelden"
         override val emoji = Emoji.fromUnicode("✅")
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            val lsData = db.signups.get(gid)
-                ?: return reply("Diese Anmeldung ist bereits geschlossen!", ephemeral = true)
-            if (lsData.getDataByUser(user) != null) {
-                return reply("Du bist bereits angemeldet!", ephemeral = true)
+            val lsData = db.signups.get(iData.gid)
+                ?: return iData.reply("Diese Anmeldung ist bereits geschlossen!", ephemeral = true)
+            if (lsData.getDataByUser(iData.user) != null) {
+                return iData.reply("Du bist bereits angemeldet!", ephemeral = true)
             }
             val modal = lsData.buildModal(old = null)
             if (modal == null) {
-                signupUser(gid, user, emptyMap(), e = self)
+                signupUser(iData.gid, iData.user, emptyMap(), e = iData)
                 return
             }
-            replyModal(modal)
+            iData.replyModal(modal)
         }
     }
 
@@ -54,18 +54,18 @@ object SignupManager {
             *draftGuilds
         )
     ) {
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            val ligaStartData = db.signups.get(gid) ?: return reply(
+            val ligaStartData = db.signups.get(iData.gid) ?: return iData.reply(
                 "Es läuft derzeit keine Anmeldung auf diesem Server!", ephemeral = true
             )
-            val signUpData = ligaStartData.getDataByUser(user) ?: return reply(
+            val signUpData = ligaStartData.getDataByUser(iData.user) ?: return iData.reply(
                 "Du bist derzeit nicht angemeldet!",
                 ephemeral = true
             )
             val modal = ligaStartData.buildModal(signUpData)
-            if (modal == null) return reply("Es gibt keine Daten, die du ändern kannst!", ephemeral = true)
-            replyModal(modal)
+            if (modal == null) return iData.reply("Es gibt keine Daten, die du ändern kannst!", ephemeral = true)
+            iData.replyModal(modal)
         }
     }
 

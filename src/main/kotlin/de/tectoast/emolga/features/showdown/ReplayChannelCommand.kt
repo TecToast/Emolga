@@ -18,15 +18,15 @@ object ReplayChannelCommand :
             }.nullable()
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val resultChannel = e.channel?.idLong ?: tc
-            val result = AnalysisDB.insertChannel(tc, resultChannel, gid)
-            reply(
+            val resultChannel = e.channel?.idLong ?: iData.tc
+            val result = AnalysisDB.insertChannel(iData.tc, resultChannel, iData.gid)
+            iData.reply(
                 when (result) {
                     AnalysisDB.AnalysisResult.CREATED -> {
-                        if (tc == resultChannel) "Dieser Channel ist nun ein Replaychannel, somit werden alle Replay-Ergebnisse automatisch hier reingeschickt!"
-                        else "Alle Ergebnisse der Replays aus <#${tc}> werden von nun an in den Channel <#${resultChannel}> geschickt!"
+                        if (iData.tc == resultChannel) "Dieser Channel ist nun ein Replaychannel, somit werden alle Replay-Ergebnisse automatisch hier reingeschickt!"
+                        else "Alle Ergebnisse der Replays aus <#${iData.tc}> werden von nun an in den Channel <#${resultChannel}> geschickt!"
                     }
 
                     is AnalysisDB.AnalysisResult.Existed -> {
@@ -38,17 +38,17 @@ object ReplayChannelCommand :
     }
 
     object Remove : CommandFeature<NoArgs>(NoArgs(), CommandSpec("remove", "Entfernt einen Replaychannel")) {
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            if (AnalysisDB.deleteChannel(tc)) {
-                reply("Dieser Channel ist kein Replaychannel mehr!")
+            if (AnalysisDB.deleteChannel(iData.tc)) {
+                iData.reply("Dieser Channel ist kein Replaychannel mehr!")
             } else {
-                reply("Dieser Channel ist zurzeit kein Replaychannel!")
+                iData.reply("Dieser Channel ist zurzeit kein Replaychannel!")
             }
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
 
     }

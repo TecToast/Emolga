@@ -38,34 +38,34 @@ object LeagueManage {
                 }
             }
 
-            context(InteractionData)
+            context(iData: InteractionData)
             override suspend fun exec(e: Args) {
                 League.executeOnFreshLock(
                     { db.getLeague(e.league) },
-                    { reply("Liga nicht gefunden!", ephemeral = true) }) {
-                    reply(buildStoreStatus(e.gameday), ephemeral = !e.public)
+                    { iData.reply("Liga nicht gefunden!", ephemeral = true) }) {
+                    iData.reply(buildStoreStatus(e.gameday), ephemeral = !e.public)
                 }
             }
 
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         private suspend fun executeTipGameState() {
-            deferReply(true)
+            iData.deferReply(true)
             val dataList = db.tipgameuserdata.find(
-                TipGameUserData::league `in` db.league.find(League::guild eq gid).toFlow().map { it.leaguename }
+                TipGameUserData::league `in` db.league.find(League::guild eq iData.gid).toFlow().map { it.leaguename }
                     .toList()
             ).toList()
             val points =
                 dataList.groupBy { it.user }
                     .mapValues { it.value.sumOf { d -> d.correctGuesses.values.sumOf { l -> l.size } + (if (d.correctTopkiller) 3 else 0) + d.correctOrderGuesses.sumOf { co -> 4 - co } } }
-            reply(
+            iData.reply(
                 buildString {
                     append("Teilnehmeranzahl: ${points.size}\n\n")
                     append(
                         points.entries.sortedByDescending { it.value }.take(10)
-                        .mapIndexed { index, entry -> "${index + 1}. <@${entry.key}>: ${entry.value}" }
-                        .joinToString("\n").ifEmpty { "_Keine Punkte bisher vergeben_" })
+                            .mapIndexed { index, entry -> "${index + 1}. <@${entry.key}>: ${entry.value}" }
+                            .joinToString("\n").ifEmpty { "_Keine Punkte bisher vergeben_" })
                 }, ephemeral = true
             )
         }
@@ -74,14 +74,14 @@ object LeagueManage {
             NoArgs(),
             CommandSpec("tipgamestats", "Zeigt den aktuellen Stand des Tippspiels an.")
         ) {
-            context(InteractionData)
+            context(iData: InteractionData)
             override suspend fun exec(e: NoArgs) {
                 executeTipGameState()
             }
         }
 
 
-        context(InteractionData) override suspend fun exec(e: NoArgs) {
+        context(iData: InteractionData) override suspend fun exec(e: NoArgs) {
             // do nothing
         }
     }

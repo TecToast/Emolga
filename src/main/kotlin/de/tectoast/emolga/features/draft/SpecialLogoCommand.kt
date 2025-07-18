@@ -28,12 +28,12 @@ object SpecialLogoCommand :
         )
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         for (logoData in e.logos) {
             val logo = LogoCommand.LogoInputData.fromAttachment(logoData, ignoreRequirements = true) ?: return
             LogoCommand.uploadToCloud(logo) {
-                jda.getTextChannelById(447357526997073932)!!.sendMessage(it.url).queue()
+                iData.jda.getTextChannelById(447357526997073932)!!.sendMessage(it.url).queue()
             }
             delay(3000)
         }

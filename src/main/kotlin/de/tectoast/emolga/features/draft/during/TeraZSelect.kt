@@ -15,21 +15,26 @@ object TeraZSelect {
             var league by string()
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            ephemeralDefault()
+            iData.ephemeralDefault()
             League.executeOnFreshLock(e.league) {
-                val idx = when (val res = getIdxByUserId(user)) {
-                    is IdxByUserIdResult.NotFound -> return@executeOnFreshLock reply("Du nimmst nicht an dieser Liga teil!")
-                    is IdxByUserIdResult.Ambiguous -> return@executeOnFreshLock reply("Es ist uneindeutig, für wen du pickst!")
+                val idx = when (val res = getIdxByUserId(iData.user)) {
+                    is IdxByUserIdResult.NotFound -> return@executeOnFreshLock iData.reply("Du nimmst nicht an dieser Liga teil!")
+                    is IdxByUserIdResult.Ambiguous -> return@executeOnFreshLock iData.reply("Es ist uneindeutig, für wen du pickst!")
                     is IdxByUserIdResult.Success -> res.idx
                 }
-                val config = config.teraSelect ?: return@executeOnFreshLock reply(
+                val config = config.teraSelect ?: return@executeOnFreshLock iData.reply(
                     "Dieser Command ist hier nicht verfügbar!"
                 )
                 val options = picks[idx]!!.filter { it.tier in config.tiers }.sortedWith(tierorderingComparator)
-                    .map { SelectOption("${it.tier}: ${NameConventionsDB.convertOfficialToTL(it.name, gid)}", it.name) }
-                reply("Bitte wähle deinen ${config.type}-User aus!", components = Menu(options = options) {
+                    .map {
+                        SelectOption(
+                            "${it.tier}: ${NameConventionsDB.convertOfficialToTL(it.name, iData.gid)}",
+                            it.name
+                        )
+                    }
+                iData.reply("Bitte wähle deinen ${config.type}-User aus!", components = Menu(options = options) {
                     this.league = e.league
                     this.idx = idx
                 }.into(), ephemeral = true)
@@ -44,7 +49,7 @@ object TeraZSelect {
             var mon by singleOption()
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock(e.league) {
                 val mon = e.mon
@@ -52,7 +57,7 @@ object TeraZSelect {
                 val data = persistentData.teraSelect
                 data.selected[idx] = mutableSetOf(mon)
                 save()
-                reply("✅", ephemeral = true)
+                iData.reply("✅", ephemeral = true)
                 data.mid?.let { tc.editMessage(it, content = generateCompletedText(data.selected.keys)).queue() }
             }
         }

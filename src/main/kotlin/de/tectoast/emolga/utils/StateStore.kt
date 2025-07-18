@@ -63,15 +63,15 @@ sealed class StateStore {
     private fun createFilter() = and(Filters.eq("type", this::class.simpleName!!), StateStore::uid eq uid)
 
     companion object {
-        context(InteractionData) suspend inline fun <reified T : StateStore> process(block: T.() -> Unit) {
-            processIgnoreMissing<T>(block) ?: reply(
+        context(iData: InteractionData) suspend inline fun <reified T : StateStore> process(block: T.() -> Unit) {
+            processIgnoreMissing<T>(block) ?: iData.reply(
                 "Diese Interaktion ist nicht mehr gültig! Starte sie wenn nötig erneut!", ephemeral = true
             )
         }
 
-        context(InteractionData) suspend inline fun <reified T : StateStore> processIgnoreMissing(block: T.() -> Unit) =
+        context(iData: InteractionData) suspend inline fun <reified T : StateStore> processIgnoreMissing(block: T.() -> Unit) =
             (db.statestore.findOne(
-                StateStore::uid eq user,
+                StateStore::uid eq iData.user,
                 Filters.eq<String?>("type", T::class.simpleName)
             ) as T?)?.process(block)
 
@@ -129,17 +129,20 @@ class ResultEntry : StateStore {
         }))
     }
 
-    context(InteractionData) suspend fun init(opponent: Long, user: Long) {
+    context(iData: InteractionData) suspend fun init(opponent: Long, user: Long) {
         val l = league()
         uidxs += l(user)
         uidxs += l(opponent)
         gamedayData = l.getGamedayData(uidxs[0], uidxs[1], wifiPlayers)
         if (gamedayData.gameday == -1) {
-            reply("Im Spielplan ist kein Kampf zwischen dir und <@$opponent> geplant!", ephemeral = true)
+            iData.reply(
+                "Im Spielplan ist kein Kampf zwischen dir und <@$opponent> geplant!",
+                ephemeral = true
+            )
             delete()
             return
         }
-        reply(embeds = buildEmbed(), components = defaultComponents(), ephemeral = true)
+        iData.reply(embeds = buildEmbed(), components = defaultComponents(), ephemeral = true)
     }
 
     private fun buildEmbed() = Embed {
@@ -154,10 +157,10 @@ class ResultEntry : StateStore {
         }
     }.into()
 
-    context(InteractionData) fun handleSelect(e: EnterResult.ResultMenu.Args) {
+    context(iData: InteractionData) fun handleSelect(e: EnterResult.ResultMenu.Args) {
         val selected = e.selected
         val userindex = e.userindex
-        replyModal(
+        iData.replyModal(
             EnterResult.ResultModal(
                 "Ergebnis für ${selected.substringAfterLast("#")}",
                 mapOf(EnterResult.Remove to data[userindex].any { it.official == selected.substringBefore("#") })
@@ -167,7 +170,7 @@ class ResultEntry : StateStore {
             })
     }
 
-    context(InteractionData) fun handleModal(e: EnterResult.ResultModal.Args) {
+    context(iData: InteractionData) fun handleModal(e: EnterResult.ResultModal.Args) {
         val userindex = e.userindex
         val (official, tl) = e.selected.split("#")
         val list = data[userindex]
@@ -180,10 +183,10 @@ class ResultEntry : StateStore {
             if (it == -1) list.add(monData)
             else list[it] = monData
         }
-        edit(embeds = buildEmbed())
+        iData.edit(embeds = buildEmbed())
     }
 
-    context(InteractionData) suspend fun handleFinish(e: EnterResult.ResultFinish.Args) {
+    context(iData: InteractionData) suspend fun handleFinish(e: EnterResult.ResultFinish.Args) {
         if (invalidConditionsForFinish()) return
         when (e.mode) {
             EnterResult.ResultFinish.Mode.CHECK -> {
@@ -194,15 +197,15 @@ class ResultEntry : StateStore {
                     mode = EnterResult.ResultFinish.Mode.NO
                 })
                 val newComponents = originalComponents + listOf(buttons)
-                edit(components = newComponents)
+                iData.edit(components = newComponents)
             }
 
             EnterResult.ResultFinish.Mode.YES -> {
                 League.executeOnFreshLock(leaguename) {
                     delete()
-                    val channel = jda.getTextChannelById(channelToSend)!!
+                    val channel = iData.jda.getTextChannelById(channelToSend)!!
                     if (config.replayDataStore != null) {
-                        reply(
+                        iData.reply(
                             "Das Ergebnis des Kampfes wurde gespeichert! Du kannst nun die Eingabe-Nachricht verwerfen.",
                             ephemeral = true
                         )
@@ -212,7 +215,7 @@ class ResultEntry : StateStore {
                                 .map { league()[it] })
                         )
                     } else {
-                        reply(":)", ephemeral = true)
+                        iData.reply(":)", ephemeral = true)
                         channel.sendResultEntryMessage(
                             gamedayData.gameday, ResultEntryDescription.Direct(generateFinalMessage())
                         )
@@ -240,18 +243,18 @@ class ResultEntry : StateStore {
                 }
             }
 
-            EnterResult.ResultFinish.Mode.NO -> edit(components = defaultComponents())
+            EnterResult.ResultFinish.Mode.NO -> iData.edit(components = defaultComponents())
         }
     }
 
-    context(InteractionData) private fun invalidConditionsForFinish(): Boolean {
-        if (data[0].isEmpty() || data[1].isEmpty()) return reply(
+    context(iData: InteractionData) private fun invalidConditionsForFinish(): Boolean {
+        if (data[0].isEmpty() || data[1].isEmpty()) return iData.reply(
             "Du hast noch keine Daten eingeben!", ephemeral = true
         ).let { true }
-        if ((0..1).any { data[it].kills != data[1 - it].dead }) return reply(
+        if ((0..1).any { data[it].kills != data[1 - it].dead }) return iData.reply(
             "Die Kills und Tode müssen übereinstimmen!", ephemeral = true
         ).let { true }
-        if (data[0].size != data[1].size) return reply(
+        if (data[0].size != data[1].size) return iData.reply(
             "Die Anzahl der Pokemon muss übereinstimmen!", ephemeral = true
         ).let { true }
         return false
@@ -362,8 +365,8 @@ class NominateState : StateStore {
         }
     }
 
-    context(InteractionData) fun render() {
-        edit(
+    context(iData: InteractionData) fun render() {
+        iData.edit(
             embeds = Embed(
                 title = "Nominierungen", color = embedColor, description = generateDescription()
             ).into(), components = mons.map {
@@ -389,22 +392,22 @@ class NominateState : StateStore {
         return nominated.toJSON() + notNominated.toJSON()
     }
 
-    context(InteractionData) suspend fun finish(now: Boolean) {
+    context(iData: InteractionData) suspend fun finish(now: Boolean) {
         if (now) {
             League.executeOnFreshLock({ db.nds() }) {
                 val nom = (this as NDS).nominations
                 val day = nom.current()
-                if (nomUser in day) return reply("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!")
+                if (nomUser in day) return iData.reply("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!")
                 day[nomUser] = buildJSONList()
                 save()
                 delete()
-                return reply("Deine Nominierung wurde gespeichert!")
+                return iData.reply("Deine Nominierung wurde gespeichert!")
             }
         }
         if (nominated.size != 11) {
-            reply(content = "Du musst exakt 11 Pokemon nominieren!", ephemeral = true)
+            iData.reply(content = "Du musst exakt 11 Pokemon nominieren!", ephemeral = true)
         } else {
-            edit(
+            iData.edit(
                 embeds = Embed(
                     title = "Bist du dir wirklich sicher? Die Nominierung kann nicht rückgängig gemacht werden!",
                     color = embedColor,
@@ -493,26 +496,26 @@ class QueuePicks : StateStore {
         )
     }
 
-    context(InteractionData) fun init() {
-        reply(embeds = buildStateEmbed(null), components = buildSelectMenu(), ephemeral = true)
+    context(iData: InteractionData) fun init() {
+        iData.reply(embeds = buildStateEmbed(null), components = buildSelectMenu(), ephemeral = true)
     }
 
-    context(InteractionData) fun handleSelect(tlName: String) {
-        edit(embeds = buildStateEmbed(tlName), components = buildButtons(tlName))
+    context(iData: InteractionData) fun handleSelect(tlName: String) {
+        iData.edit(embeds = buildStateEmbed(tlName), components = buildButtons(tlName))
     }
 
-    context(InteractionData) fun handleButton(e: QueuePicks.ControlButton.Args) {
+    context(iData: InteractionData) fun handleButton(e: QueuePicks.ControlButton.Args) {
         val index by lazy { currentState.indexOfFirst { it.g.tlName == e.mon } }
         val currentMon = when (e.controlMode) {
             UP -> {
-                if (index == 0) return reply("Das Pokemon ist bereits an erster Stelle!", ephemeral = true)
+                if (index == 0) return iData.reply("Das Pokemon ist bereits an erster Stelle!", ephemeral = true)
                 val mon = currentState.removeAt(index)
                 currentState.add(index - 1, mon)
                 mon.g.tlName
             }
 
             DOWN -> {
-                if (index == currentState.lastIndex) return reply(
+                if (index == currentState.lastIndex) return iData.reply(
                     "Das Pokemon ist bereits an letzter Stelle!", ephemeral = true
                 )
                 val mon = currentState.removeAt(index)
@@ -529,45 +532,45 @@ class QueuePicks : StateStore {
                 null
             }
 
-            MODAL -> return replyModal(QueuePicks.SetLocationModal {
+            MODAL -> return iData.replyModal(QueuePicks.SetLocationModal {
                 this.mon = e.mon
             })
         }
-        edit(
+        iData.edit(
             embeds = buildStateEmbed(currentMon),
             components = currentMon?.let { buildButtons(it) } ?: buildSelectMenu())
     }
 
-    context(InteractionData) fun setLocation(tlName: String, location: Int) {
+    context(iData: InteractionData) fun setLocation(tlName: String, location: Int) {
         val index = currentState.indexOfFirst { it.g.tlName == tlName }
         val range = currentState.indices
         val mon = currentState.removeAt(index)
         currentState.add(location.minus(1).coerceIn(range), mon)
-        edit(
+        iData.edit(
             embeds = buildStateEmbed(tlName), components = buildButtons(tlName)
         )
     }
 
-    context(InteractionData) suspend fun finish(enable: Boolean) {
-        ephemeralDefault()
-        deferEdit()
+    context(iData: InteractionData) suspend fun finish(enable: Boolean) {
+        iData.ephemeralDefault()
+        iData.deferEdit()
         League.executeOnFreshLock(leaguename) {
             if (isIllegal(this(uid), currentState)) return
-            val data = persistentData.queuePicks.queuedPicks.getOrPut(this(user)) { QueuePicksUserData() }
+            val data = persistentData.queuePicks.queuedPicks.getOrPut(this(iData.user)) { QueuePicksUserData() }
             data.queued = currentState.toMutableList()
             data.enabled = enable
             currentlyEnabled = enable
-            edit(embeds = buildStateEmbed(null), components = emptyList())
+            iData.edit(embeds = buildStateEmbed(null), components = emptyList())
             save("QueuePicksManage")
             delete()
-            reply("Deine neue Queue-Pick-Reihenfolge wurde gespeichert!\nDas System ist für dich zurzeit **${if (enable) "" else "de"}aktiviert**.")
+            iData.reply("Deine neue Queue-Pick-Reihenfolge wurde gespeichert!\nDas System ist für dich zurzeit **${if (enable) "" else "de"}aktiviert**.")
         }
     }
 
-    context(InteractionData) fun reload() {
+    context(iData: InteractionData) fun reload() {
         currentState += addedMeanwhile
         addedMeanwhile.clear()
-        edit(embeds = buildStateEmbed(null), components = buildSelectMenu())
+        iData.edit(embeds = buildStateEmbed(null), components = buildSelectMenu())
     }
 
 

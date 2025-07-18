@@ -37,18 +37,18 @@ object TipGameManager : CoroutineScope {
             var userindex by int()
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            ephemeralDefault()
-            deferReply()
+            iData.ephemeralDefault()
+            iData.deferReply()
             val league = db.getLeague(e.leaguename) ?: return reportMissing()
             val tipgame = league.config.tipgame ?: return reportMissing()
-            TipGameUserData.addVote(user, e.leaguename, e.gameday, e.index, e.userindex)
-            reply("Dein Tipp wurde gespeichert!")
+            TipGameUserData.addVote(iData.user, e.leaguename, e.gameday, e.index, e.userindex)
+            iData.reply("Dein Tipp wurde gespeichert!")
             if (tipgame.withCurrentState) {
-                message.editMessageEmbeds(
+                iData.message.editMessageEmbeds(
                     Embed(
-                        title = message.embeds[0].title,
+                        title = iData.message.embeds[0].title,
                         description = "Bisherige Votes: " + league.battleorder(e.gameday)[e.index].map {
                             db.tipgameuserdata.countDocuments(
                                 and(
@@ -63,9 +63,9 @@ object TipGameManager : CoroutineScope {
             }
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         private fun reportMissing() {
-            reply("Dieses Tippspiel existiert nicht mehr!")
+            iData.reply("Dieses Tippspiel existiert nicht mehr!")
         }
     }
 }

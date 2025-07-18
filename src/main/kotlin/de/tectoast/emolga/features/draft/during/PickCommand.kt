@@ -43,7 +43,7 @@ object PickCommand :
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         League.executePickLike {
             DraftUtils.executeWithinLock(

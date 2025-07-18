@@ -31,9 +31,9 @@ object ASLInviteControl : CommandFeature<NoArgs>(
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
-        guild().defaultChannel?.createInvite()?.setMaxUses(1)?.map { reply(it.url, ephemeral = true) }
-            ?.queue() ?: reply("Kein Default Channel gefunden! Sollte nicht passieren, melde dich bei Flo")
+        iData.guild().defaultChannel?.createInvite()?.setMaxUses(1)?.map { iData.reply(it.url, ephemeral = true) }
+            ?.queue() ?: iData.reply("Kein Default Channel gefunden! Sollte nicht passieren, melde dich bei Flo")
     }
 }

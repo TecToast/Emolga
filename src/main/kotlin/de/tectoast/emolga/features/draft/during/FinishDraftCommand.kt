@@ -8,15 +8,15 @@ import de.tectoast.emolga.league.League
 
 object FinishDraftCommand :
     CommandFeature<NoArgs>(NoArgs(), CommandSpec("finishdraft", "Beendet für dich den Draft", *draftGuilds)) {
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
         League.executeAsNotCurrent(asParticipant = true) {
-            if (isFinishedForbidden()) return reply("Dieser Draft unterstützt /finishdraft nicht!")
-            val idx = this(user)
+            if (isFinishedForbidden()) return iData.reply("Dieser Draft unterstützt /finishdraft nicht!")
+            val idx = this(iData.user)
             checkFinishedForbidden(idx)?.let {
-                return reply(it)
+                return iData.reply(it)
             }
-            replyAwait("<@${user}> hat den Draft für sich beendet!")
+            iData.replyAwait("<@${iData.user}> hat den Draft für sich beendet!")
             addFinished(idx)
             if (current == idx)
                 afterPickOfficial()

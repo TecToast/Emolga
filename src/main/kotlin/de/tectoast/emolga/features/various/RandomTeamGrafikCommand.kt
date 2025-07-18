@@ -21,23 +21,24 @@ object RandomTeamGrafikCommand : CommandFeature<NoArgs>(
     NoArgs(), CommandSpec("randomteamgrafik", "Du bekommst sensationelle und fancyge Teamgrafiken", Constants.G.FPL)
 ) {
     private val logger = KotlinLogging.logger {}
-    context(InteractionData)
+
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
-        deferReply()
+        iData.deferReply()
         val timeMark = TimeSource.Monotonic.markNow()
         val (img, randomTeamData) = TeamGraphics.fromDraftPokemon(generateTeam())
         logger.info("TeamGraphic took ${timeMark.elapsedNow().inWholeMilliseconds}ms")
         val os = ByteArrayOutputStream()
         withContext(Dispatchers.IO) {
             ImageIO.write(img, "png", os)
-            replyAwait(files = FileUpload.fromData(os.toByteArray(), "epischerrandomkader.png").into())
+            iData.replyAwait(files = FileUpload.fromData(os.toByteArray(), "epischerrandomkader.png").into())
             randomTeamData.run {
                 shinyCount.get().let {
-                    if (it > 0) reply("**Du hast einfach ${if (it == 1) "ein Shiny" else "$it Shinies"} bekommen :o**")
+                    if (it > 0) iData.reply("**Du hast einfach ${if (it == 1) "ein Shiny" else "$it Shinies"} bekommen :o**")
                 }
                 if (hasDrampa) {
-                    reply("**DRAMPA**")
-                    reply("<@446274734389198848>")
+                    iData.reply("**DRAMPA**")
+                    iData.reply("<@446274734389198848>")
                 }
             }
 

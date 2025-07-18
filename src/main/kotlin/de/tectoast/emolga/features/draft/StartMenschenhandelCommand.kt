@@ -20,13 +20,13 @@ object StartMenschenhandel : CommandFeature<StartMenschenhandel.Args>(
         restrict { member().isOwner }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val tcid = e.channel
-        done(true)
+        iData.done(true)
         db.aslcoach.only().apply {
             textChannel = tcid
-            jda.getTextChannelById(tcid)!!.sendMessage("Möge der Menschenhandel beginnen!").queue()
+            iData.jda.getTextChannelById(tcid)!!.sendMessage("Möge der Menschenhandel beginnen!").queue()
             nextCoach()
             save()
         }

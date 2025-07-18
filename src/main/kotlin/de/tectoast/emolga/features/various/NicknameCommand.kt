@@ -21,30 +21,30 @@ object NicknameCommand : CommandFeature<NicknameCommand.Args>(
         var nickname by string("Nickname", "Der neue Nickname")
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        val member = member()
+        val member = iData.member()
         val nickname = e.nickname
-        val g = guild()
+        val g = iData.guild()
         if (!g.selfMember.canInteract(member)) {
-            return reply("Ich kann deinen Nickname nicht modifizieren!")
+            return iData.reply("Ich kann deinen Nickname nicht modifizieren!")
         }
         if (nickname.length > 32) {
-            return reply("Dieser Nickname ist zu lang! (Er darf maximal 32 Zeichen enthalten)")
+            return iData.reply("Dieser Nickname ist zu lang! (Er darf maximal 32 Zeichen enthalten)")
         }
         val gid = g.idLong
         val uid = member.idLong
         db.cooldowns.findOne(Cooldown::guild eq gid, Cooldown::user eq uid)?.run {
             val expiresIn = this.timestamp - System.currentTimeMillis()
             if (expiresIn <= 0) return@run
-            return reply(
+            return iData.reply(
                 "${member.asMention} Du kannst deinen Namen noch nicht wieder ändern!\nCooldown: ${
                     TimeUtils.secondsToTimePretty(expiresIn / 1000)
                 }"
             )
         }
         member.modifyNickname(nickname).await()
-        reply(member.asMention + " Dein Nickname wurde erfolgreich geändert!")
+        iData.reply(member.asMention + " Dein Nickname wurde erfolgreich geändert!")
         db.cooldowns.updateOne(
             and(Cooldown::guild eq gid, Cooldown::user eq uid),
             Cooldown(gid, uid, System.currentTimeMillis() + 604800000),

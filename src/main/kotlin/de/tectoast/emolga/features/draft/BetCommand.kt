@@ -12,13 +12,7 @@ import de.tectoast.emolga.utils.ifTrue
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
 import dev.minn.jda.ktx.events.await
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import java.util.concurrent.atomic.AtomicInteger
@@ -36,49 +30,50 @@ object BetCommand :
     private val logger = KotlinLogging.logger {}
 
     val scope = createCoroutineScope("ASLCoach")
-    context(InteractionData)
+
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val coachdata = db.aslcoach.only()
         coachdata.textChannel.let {
-            if (tc != it) {
-                return reply("Dieser Command funktioniert nur im Channel <#$it>!", ephemeral = true)
+            if (iData.tc != it) {
+                return iData.reply("Dieser Command funktioniert nur im Channel <#$it>!", ephemeral = true)
             }
         }
         val startbet = e.startBet
         if (!startbet.validBet()) {
-            return reply("Das ist kein gültiges Startgebot!", ephemeral = true)
+            return iData.reply("Das ist kein gültiges Startgebot!", ephemeral = true)
         }
         val bettingCoach = when {
-            user == Constants.FLOID -> coachdata.currentCoach
-            else -> user
+            iData.user == Constants.FLOID -> coachdata.currentCoach
+            else -> iData.user
         }
         val steamdata = (coachdata.teamByCoach(bettingCoach) ?: run {
-            return reply("Du bist tatsächlich kein Coach c:", ephemeral = true)
+            return iData.reply("Du bist tatsächlich kein Coach c:", ephemeral = true)
         })
         if (bettingCoach != coachdata.currentCoach) {
-            return reply("Du bist nicht dran!", ephemeral = true)
+            return iData.reply("Du bist nicht dran!", ephemeral = true)
         }
         steamdata.pointsToSpend(coachdata).let {
             if (startbet > it) {
-                return reply("Du kannst maximal mit $it Punkten bieten!", ephemeral = true)
+                return iData.reply("Du kannst maximal mit $it Punkten bieten!", ephemeral = true)
             }
         }
         val togain = e.player
         if (!coachdata.isPlayer(togain)) {
-            return reply(
+            return iData.reply(
                 "Dieser Trainer ist nicht zur Auktion freigegeben!", ephemeral = true
             )
         }
         if (coachdata.isTaken(togain.idLong)) {
-            return reply("Dieser Trainer ist bereits verkauft!", ephemeral = true)
+            return iData.reply("Dieser Trainer ist bereits verkauft!", ephemeral = true)
         }
         val level = coachdata.getLevelByMember(togain).also {
             if (it in steamdata.members) {
-                return reply("Du hast bereits jemanden in Stufe $it!", ephemeral = true)
+                return iData.reply("Du hast bereits jemanden in Stufe $it!", ephemeral = true)
             }
         }
-        reply(
-            "<@${user}> hat ${togain.asMention} (**Stufe $level**) für **$startbet Punkte** in den Ring geworfen!\n" + "Lasset das Versteigern beginnen!"
+        iData.reply(
+            "<@${iData.user}> hat ${togain.asMention} (**Stufe $level**) für **$startbet Punkte** in den Ring geworfen!\n" + "Lasset das Versteigern beginnen!"
         )
         var maxBet: Pair<Long, Int> = bettingCoach to startbet
         val countdown = AtomicInteger(coachdata.config.countdownSeconds)
@@ -89,7 +84,7 @@ object BetCommand :
             val res = withTimeoutOrNull(coachdata.config.waitFor) {
                 var newbet: Int = -1
                 val me = EmolgaMain.raikoujda!!.await<MessageReceivedEvent> { event ->
-                    if (event.author.isBot || event.channel.idLong != tc) return@await false
+                    if (event.author.isBot || event.channel.idLong != iData.tc) return@await false
                     val t = coachdata.teamByCoach(event.author.idLong)
                     val nbet = event.message.contentDisplay.toIntOrNull() ?: -1
                     val pointsToSpend = t?.pointsToSpend(coachdata)
@@ -132,7 +127,7 @@ object BetCommand :
                 countdownJob = scope.launch {
                     while (countdown.get() > 0) {
                         val get = countdown.getAndDecrement()
-                        if (get in coachdata.config.sendOn) textChannel.sendMessage("$get Sekunde${if (get != 1) "n" else ""}...")
+                        if (get in coachdata.config.sendOn) iData.textChannel.sendMessage("$get Sekunde${if (get != 1) "n" else ""}...")
                             .queue()
                         delay(1000)
                     }
@@ -140,7 +135,7 @@ object BetCommand :
                         finished = true
                         val buyer = maxBet.first
                         val points = maxBet.second
-                        textChannel.sendMessage(
+                        iData.textChannel.sendMessage(
                             "${togain.asMention} wurde für **$points Punkte** an <@$buyer> [${
                                 coachdata.teamnameByCoach(
                                     buyer

@@ -38,11 +38,11 @@ object GuildJoin : ButtonFeature<GuildJoin.Args>(::Args, ButtonSpec("guildinvite
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        jda.getGuildById(e.gid)?.let { g ->
-            reply(g.defaultChannel!!.createInvite().setMaxUses(1).await().url)
-        } ?: reply("Invite failed, server not found")
+        iData.jda.getGuildById(e.gid)?.let { g ->
+            iData.reply(g.defaultChannel!!.createInvite().setMaxUses(1).await().url)
+        } ?: iData.reply("Invite failed, server not found")
     }
 
     private val WELCOMEMESSAGE: String = """

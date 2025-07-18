@@ -17,7 +17,6 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
 import org.litote.kmongo.*
 import java.net.URI
-import kotlin.collections.get
 
 object ShinyEvent {
 
@@ -41,31 +40,32 @@ object ShinyEvent {
             var image by attachment("bild", "Das Bild des Shinys")
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val config = guildToEvent()[gid] ?: return reply("Derzeit kein Event aktiv!", ephemeral = true)
-            val configuration = config.getConfigurationByNameAndGame(e.game, e.method) ?: return reply(
+            val config = guildToEvent()[iData.gid] ?: return iData.reply("Derzeit kein Event aktiv!", ephemeral = true)
+            val configuration = config.getConfigurationByNameAndGame(e.game, e.method) ?: return iData.reply(
                 "`${e.method}` ist keine valide Methode für `${e.game}`! Nutze bitte die Autovervollständigung!",
                 ephemeral = true
             )
-            reply(
+            iData.reply(
                 "Dein Shiny wurde erfolgreich eingereicht! Sobald es approved wurde, wird es in <#${config.finalChannel}> erscheinen.",
                 ephemeral = true
             )
-            jda.getTextChannelById(config.checkChannel)!!
-                .send("<@${user}> (${member().effectiveName}) hat ein Shiny für das Event eingereicht!\n" + "Spiel: ${e.game}\n" + "Methode: ${e.method}\n" + "(Punkte: ${configuration.points})\n" + "Bild: ${e.image.url}",
+            iData.jda.getTextChannelById(config.checkChannel)!!
+                .send(
+                    "<@${iData.user}> (${iData.member().effectiveName}) hat ein Shiny für das Event eingereicht!\n" + "Spiel: ${e.game}\n" + "Methode: ${e.method}\n" + "(Punkte: ${configuration.points})\n" + "Bild: ${e.image.url}",
                     components = listOf(ShinyAdminButton(
                         "Bestätigen", ButtonStyle.SUCCESS, emoji = Emoji.fromUnicode("✅")
                     ) {
                         this.eventName = config.name
                         this.mode = ShinyAdminButton.Mode.APPROVE
-                        this.user = self.user
+                        this.user = iData.user
                         game = e.game
                         method = e.method
                         points = configuration.points
                     }, ShinyAdminButton("Ablehnen", ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
                         this.mode = ShinyAdminButton.Mode.REJECT
-                        this.user = self.user
+                        this.user = iData.user
                     }).into()
                 ).queue()
         }
@@ -85,20 +85,20 @@ object ShinyEvent {
             APPROVE, REJECT
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             val uid = e.user
-            val config = guildToEvent()[gid] ?: return reply("Derzeit kein Event aktiv!", ephemeral = true)
+            val config = guildToEvent()[iData.gid] ?: return iData.reply("Derzeit kein Event aktiv!", ephemeral = true)
             when (e.mode) {
                 Mode.APPROVE -> {
-                    reply("Shiny wurde approved!", ephemeral = true)
+                    iData.reply("Shiny wurde approved!", ephemeral = true)
                     val game = e.game
                     val method = e.method
                     val points = e.points
-                    jda.getTextChannelById(config.finalChannel)!!.send(
+                    iData.jda.getTextChannelById(config.finalChannel)!!.send(
                         "Neues Shiny von <@$uid>!\nSpiel: $game\nMethode: $method\nPunkte: $points"
                     ).addFiles(FileUpload.fromData(withContext(Dispatchers.IO) {
-                        URI(message.contentRaw.substringAfterLast(": ")).toURL().openStream()
+                        URI(iData.message.contentRaw.substringAfterLast(": ")).toURL().openStream()
                     }, "shiny.png")).queue()
                     db.shinyEventResults.updateOne(
                         filter = and(ShinyEventResult::eventName eq e.eventName, ShinyEventResult::user eq uid),
@@ -111,12 +111,12 @@ object ShinyEvent {
                         ),
                         options = upsert()
                     )
-                    message.delete().queue()
-                    config.updateDiscord(jda)
+                    iData.message.delete().queue()
+                    config.updateDiscord(iData.jda)
                 }
 
                 Mode.REJECT -> {
-                    replyModal(RejectModal {
+                    iData.replyModal(RejectModal {
                         user = uid
                     })
                 }
@@ -136,18 +136,18 @@ object ShinyEvent {
 
         override val title = "Grund eingeben"
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             val uid = e.user
             val reason = e.reason
-            val url = message.contentRaw.substringAfterLast(": ")
-            reply("Deine Begründung wurde an den User gesendet!", ephemeral = true)
-            jda.openPrivateChannelById(uid).flatMap {
+            val url = iData.message.contentRaw.substringAfterLast(": ")
+            iData.reply("Deine Begründung wurde an den User gesendet!", ephemeral = true)
+            iData.jda.openPrivateChannelById(uid).flatMap {
                 it.sendMessage(
                     "Vielen Dank, dass du das Shiny eingereicht hast. Leider können wir das Shiny unter folgendem Grund nicht berücksichtigen: **$reason**\n\nBild-URL: $url"
                 )
             }.queue()
-            message.delete().queue()
+            iData.message.delete().queue()
         }
     }
 

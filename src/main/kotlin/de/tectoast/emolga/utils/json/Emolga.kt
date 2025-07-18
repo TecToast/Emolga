@@ -110,7 +110,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         league.find(or(League::tcid eq tc, and(League::guild eq gid, League::table contains user))).toList()
             .maxByOrNull { it.tcid == tc }
 
-    context(InteractionData) suspend fun leagueByCommand() = leagueByGuild(gid, user)
+    context(iData: InteractionData) suspend fun leagueByCommand() = leagueByGuild(iData.gid, iData.user)
 
     suspend fun getDataObject(mon: String, guild: Long = 0): Pokemon {
         return pokedex.get(NameConventionsDB.getDiscordTranslation(mon, guild, true)!!.official.toSDName())!!

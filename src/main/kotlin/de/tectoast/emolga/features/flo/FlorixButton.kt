@@ -23,26 +23,26 @@ object FlorixButton : ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("flori
         START, STOP, POWEROFF, STATUS, STOPREAL, POWEROFFREAL, NO
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val gpio = GPIOManager()
         val pc = e.pc
         val on = gpio.isOn(pc)
-        ephemeralDefault()
+        iData.ephemeralDefault()
         fun components(act: Action) =
             listOf(FlorixButton("Ja", DANGER) { this.pc = pc; action = act },
                 FlorixButton("Nein", SUCCESS) { this.pc = pc; action = NO }).into()
 
         when (e.action) {
             START -> {
-                if (on) return reply("Der Server ist bereits an!")
+                if (on) return iData.reply("Der Server ist bereits an!")
                 gpio.startServer(pc)
-                reply("Der Server wurde gestartet!")
+                iData.reply("Der Server wurde gestartet!")
             }
 
             STOP -> {
-                if (!on) return reply("Der Server ist bereits aus!")
-                reply(
+                if (!on) return iData.reply("Der Server ist bereits aus!")
+                iData.reply(
                     embeds = Embed(
                         title = "Bist du dir sicher, dass du den Server herunterfahren möchtest?", color = Color.RED.rgb
                     ).into(), components = components(STOPREAL)
@@ -50,32 +50,32 @@ object FlorixButton : ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("flori
             }
 
             POWEROFF -> {
-                if (!on) return reply("Der Server ist bereits aus!")
-                reply(
+                if (!on) return iData.reply("Der Server ist bereits aus!")
+                iData.reply(
                     embeds = Embed(
                         title = "Bist du dir sicher, dass POWEROFF aktiviert werden soll?", color = Color.RED.rgb
                     ).into(), components = components(POWEROFFREAL)
                 )
             }
 
-            STATUS -> reply("Der Server ist ${if (on) "an" else "aus"}!")
+            STATUS -> iData.reply("Der Server ist ${if (on) "an" else "aus"}!")
             STOPREAL -> {
-                if (!on) return reply("Der Server ist bereits aus!")
+                if (!on) return iData.reply("Der Server ist bereits aus!")
                 gpio.stopServer(pc)
-                replyAwait("Der Server wurde heruntergefahren!")
-                textChannel.deleteMessageById(message.id).queue()
+                iData.replyAwait("Der Server wurde heruntergefahren!")
+                iData.textChannel.deleteMessageById(iData.message.id).queue()
             }
 
             POWEROFFREAL -> {
-                if (!on) return reply("Der Server ist bereits aus!")
+                if (!on) return iData.reply("Der Server ist bereits aus!")
                 gpio.powerOff(pc)
-                replyAwait("POWEROFF wurde aktiviert!")
-                textChannel.deleteMessageById(message.id).queue()
+                iData.replyAwait("POWEROFF wurde aktiviert!")
+                iData.textChannel.deleteMessageById(iData.message.id).queue()
             }
 
             NO -> {
-                reply("Aktion abgebrochen!")
-                textChannel.deleteMessageById(message.id).queue()
+                iData.reply("Aktion abgebrochen!")
+                iData.textChannel.deleteMessageById(iData.message.id).queue()
             }
         }
     }

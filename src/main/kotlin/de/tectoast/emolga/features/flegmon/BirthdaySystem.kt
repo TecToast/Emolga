@@ -40,13 +40,13 @@ object BirthdaySystem : CoroutineScope {
             var year by int("year", "Das Jahr des Geburtstags")
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             val year = e.year
             val month = e.month
             val day = e.day
-            BirthdayDB.upsertBirthday(user, year, month, day)
-            reply(
+            BirthdayDB.upsertBirthday(iData.user, year, month, day)
+            iData.reply(
                 "Dein Geburtstag wurde erfolgreich auf den ${day.toString().padStart(2, '0')}.${
                     month.toString().padStart(2, '0')
                 }.$year gesetzt!"

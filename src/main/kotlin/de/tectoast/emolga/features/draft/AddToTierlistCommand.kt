@@ -38,26 +38,26 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
         restrict { roles(702233714360582154)() || admin(this) }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        val id = League.onlyChannel(tc)?.guild ?: gid
-        val tierlist = Tierlist[id] ?: return reply("Es gibt keine Tierlist für diesen Server!")
+        val id = League.onlyChannel(iData.tc)?.guild ?: iData.gid
+        val tierlist = Tierlist[id] ?: return iData.reply("Es gibt keine Tierlist für diesen Server!")
         val mon = e.mon.tlName
         val tier = e.tier ?: tierlist.prices.keys.last()
         if (tier !in tierlist.prices) {
-            return reply("Das Tier `$tier` existiert nicht!")
+            return iData.reply("Das Tier `$tier` existiert nicht!")
         }
         try {
             tierlist.addPokemon(mon, tier)
         } catch (ex: ExposedSQLException) {
             if (ex.cause is SQLIntegrityConstraintViolationException) {
-                return reply("Das Pokemon `$mon` existiert bereits!")
+                return iData.reply("Das Pokemon `$mon` existiert bereits!")
             }
-            reply("Es ist ein unbekannter Fehler aufgetreten!")
+            iData.reply("Es ist ein unbekannter Fehler aufgetreten!")
             logger.error("Error in AddToTierlistCommand", ex)
             return
         }
-        reply("`$mon` ist nun im $tier-Tier!")
+        iData.reply("`$mon` ist nun im $tier-Tier!")
         val data = AddToTierlistData(mon, tier, tierlist, id).apply { addToTierlistAutocompletion() }
         val leagues = db.league.find(League::guild eq id).toList()
         if (leagues.isNotEmpty()) {

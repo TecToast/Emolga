@@ -31,22 +31,22 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
         var logo by attachment("Logo", "Das Logo")
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        insertLogo(e.logo, user)
+        insertLogo(e.logo, iData.user)
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun insertLogo(logo: Message.Attachment, uid: Long) {
-        deferReply(ephemeral = true)
-        val lsData = db.signups.get(gid)!!
+        iData.deferReply(ephemeral = true)
+        val lsData = db.signups.get(iData.gid)!!
         if (lsData.logoSettings == null) {
-            return reply("In dieser Liga gibt es keine eigenen Logos!", ephemeral = true)
+            return iData.reply("In dieser Liga gibt es keine eigenen Logos!", ephemeral = true)
         }
-        val signUpData = lsData.getDataByUser(uid) ?: return reply("Du bist nicht angemeldet!", ephemeral = true)
+        val signUpData = lsData.getDataByUser(uid) ?: return iData.reply("Du bist nicht angemeldet!", ephemeral = true)
         val logoData = LogoInputData.fromAttachment(logo) ?: return
         lsData.logoSettings.handleLogo(lsData, signUpData, logoData)
-        reply("Das Logo wurde erfolgreich hochgeladen!", ephemeral = true)
+        iData.reply("Das Logo wurde erfolgreich hochgeladen!", ephemeral = true)
         val checksum = uploadToCloud(logoData)
         signUpData.logoChecksum = checksum
         lsData.save()
@@ -75,24 +75,24 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
         fun toFileUpload() = FileUpload.fromData(bytes, fileName)
 
         companion object {
-            context(InteractionData)
+            context(iData: InteractionData)
             suspend fun fromAttachment(
                 attachment: Message.Attachment,
                 ignoreRequirements: Boolean = false
             ): LogoInputData? {
                 val fileExtension =
                     attachment.fileExtension?.lowercase()?.takeIf { ignoreRequirements || it in allowedFileFormats }
-                        ?: return reply("Das Logo muss eine Bilddatei sein!", ephemeral = true).let { null }
+                        ?: return iData.reply("Das Logo muss eine Bilddatei sein!", ephemeral = true).let { null }
                 val bytes = withContext(Dispatchers.IO) {
                     val bytes = try {
                         attachment.proxy.download().await().readAllBytes()
                     } catch (ex: Exception) {
                         logger.error("Couldnt download logo", ex)
-                        reply("Das Logo konnte nicht heruntergeladen werden!", ephemeral = true)
+                        iData.reply("Das Logo konnte nicht heruntergeladen werden!", ephemeral = true)
                         return@withContext null
                     }
                     if (!ignoreRequirements && bytes.size > 1024 * 1024 * 10) {
-                        reply("Das Logo darf nicht größer als 10MB sein!", ephemeral = true)
+                        iData.reply("Das Logo darf nicht größer als 10MB sein!", ephemeral = true)
                         return@withContext null
                     }
                     bytes

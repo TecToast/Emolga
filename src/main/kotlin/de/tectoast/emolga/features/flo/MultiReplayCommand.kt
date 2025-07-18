@@ -13,9 +13,9 @@ object MultiReplay {
             var result by long("Resultchannel", "Resultchannel")
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            replyModal(Modal {
+            iData.replyModal(Modal {
                 replay = e.replay
                 result = e.result
             })
@@ -33,13 +33,13 @@ object MultiReplay {
             }
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val replayChannel = jda.getTextChannelById(e.replay)!!
-            val resultChannel = jda.getTextChannelById(e.result)!!
+            val replayChannel = iData.jda.getTextChannelById(e.replay)!!
+            val resultChannel = iData.jda.getTextChannelById(e.result)!!
             val allReplays = e.replayLinks.split("\n")
             val lastIndex = allReplays.lastIndex
-            reply("Replays werden analysiert!", ephemeral = true)
+            iData.reply("Replays werden analysiert!", ephemeral = true)
             allReplays.forEachIndexed { index, url ->
                 Analysis.analyseReplay(
                     urlProvided = url,

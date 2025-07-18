@@ -14,9 +14,9 @@ object IPChecker : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("ipchecker")) {
         restrict(flo)
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
-        deferReply(true)
-        reply(httpClient.get("https://api.ipify.org").bodyAsText(), ephemeral = true)
+        iData.deferReply(true)
+        iData.reply(httpClient.get("https://api.ipify.org").bodyAsText(), ephemeral = true)
     }
 }

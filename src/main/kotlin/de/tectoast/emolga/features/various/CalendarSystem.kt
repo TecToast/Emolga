@@ -57,12 +57,12 @@ object CalendarSystem : CoroutineScope {
             var text by string("Text", "Der Text")
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             val expires = TimeUtils.parseCalendarTime(e.date)
             val message = e.text
             CalendarDB.scheduleCalendarEntry(message, expires)
-            reply("Reminder gesetzt!", ephemeral = true)
+            iData.reply("Reminder gesetzt!", ephemeral = true)
             jda.getTextChannelById(Constants.CALENDAR_TCID)!!.editMessageById(Constants.CALENDAR_MSGID, buildCalendar())
                 .queue()
         }
@@ -70,10 +70,11 @@ object CalendarSystem : CoroutineScope {
 
     object RemindButton : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("remind")) {
         override val label = "Löschen"
-        context(InteractionData)
+
+        context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            reply(":D", ephemeral = true)
-            hook.deleteMessageById(message.idLong).queue()
+            iData.reply(":D", ephemeral = true)
+            iData.hook.deleteMessageById(iData.message.idLong).queue()
         }
     }
 }

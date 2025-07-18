@@ -38,17 +38,16 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
     }
 
 
-
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        deferReply()
-        val channel = AnalysisDB.getResultChannel(tc)
-            ?: return reply("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
-        val tc = jda.getChannel<GuildMessageChannel>(channel)
+        iData.deferReply()
+        val channel = AnalysisDB.getResultChannel(iData.tc)
+            ?: return iData.reply("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
+        val tc = iData.jda.getChannel<GuildMessageChannel>(channel)
         if (tc == null) {
-            reply("Ich habe keinen Zugriff auf den Ergebnischannel!")
+            iData.reply("Ich habe keinen Zugriff auf den Ergebnischannel!")
             return
         }
-        Analysis.analyseReplay(urlProvided = e.url, resultchannelParam = tc, fromReplayCommand = self)
+        Analysis.analyseReplay(urlProvided = e.url, resultchannelParam = tc, fromReplayCommand = iData)
     }
 }

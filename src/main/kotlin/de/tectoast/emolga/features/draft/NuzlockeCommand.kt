@@ -39,19 +39,20 @@ object NuzlockeCommand :
         ).nullable()
     }
 
-    context(InteractionData) override suspend fun exec(e: Args) {
-        deferReply()
+    context(iData: InteractionData) override suspend fun exec(e: Args) {
+        iData.deferReply()
         executeMonSwitch(e.user.idLong, e.mon, e.newMon)
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun executeMonSwitch(target: Long, mon: DraftName, newMon: DraftName? = null) {
         val mention = "<@$target>"
-        League.executeOnFreshLock({ db.leagueByGuild(gid, target) },
+        League.executeOnFreshLock(
+            { db.leagueByGuild(iData.gid, target) },
             {
-                reply(
+                iData.reply(
                     "Es wurde keine Liga von `${
-                        guild().retrieveMemberById(target).await().effectiveName
+                        iData.guild().retrieveMemberById(target).await().effectiveName
                     }` gefunden!"
                 )
             }) {
@@ -60,7 +61,7 @@ object NuzlockeCommand :
             val index = picks.indexOfFirst { it.name == mon.official }
                 .let { if (it == -1) picks.indexOfFirst { it.name in mon.official } else it }
             if (index < 0) {
-                return reply("Das Pokemon `${mon.tlName}` befindet sich nicht im Kader von $mention!")
+                return iData.reply("Das Pokemon `${mon.tlName}` befindet sich nicht im Kader von $mention!")
             }
             val oldMon = picks[index]
             val (draftname, tier) = newMon?.let {
@@ -106,11 +107,11 @@ object NuzlockeCommand :
                 ), data.pokemon
             )
             b.execute(true)
-            reply(
+            iData.reply(
                 "Das Pokemon `${mon.tlName}` von $mention wurde zu `${draftname.tlName}/${
                     NameConventionsDB.getSDTranslation(
                         draftname.official,
-                        gid,
+                        iData.gid,
                         english = true
                     )?.tlName
                 }` rerollt!"

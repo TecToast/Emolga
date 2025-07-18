@@ -56,9 +56,9 @@ object MemberSelect {
             var league by string("League", "League")
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            reply(
+            iData.reply(
                 components = EntitySelectMenu.SelectTarget.USER.menu("memberselect;${e.league}", valueRange = 1..25)
                     .into(), ephemeral = true
             )

@@ -62,7 +62,7 @@ object PrivateCommands {
     private val logger = LoggerFactory.getLogger(PrivateCommands::class.java)
     private val DOUBLE_BACKSLASH = Pattern.compile("\\\\")
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun ndsNominate(args: PrivateData) {
         NDS.doNDSNominate(
             prevDay = args[0].toBooleanStrict(),
@@ -71,38 +71,38 @@ object PrivateCommands {
         )
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun matchUps(args: PrivateData) {
         NDS.doMatchUps(args[0].toInt(), args[1].toBooleanStrict())
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun tipGameLockButtons(args: PrivateData) {
         db.league(args[0]).executeTipGameLockButtons(args[1].toInt())
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun printTipGame(args: PrivateData) {
-        reply(
+        iData.reply(
             db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
                 .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }
                 .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
                 .joinToString("\n", prefix = "```", postfix = "```"))
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun closeSignup(args: PrivateData) {
         db.signups.get(args().toLong())!!.closeSignup(forced = true)
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun setNewMaxUsers(args: PrivateData) {
         db.signups.get(args[0].toLong())!!.setNewMaxUsers(args[1].toInt())
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun finishOrdering(args: PrivateData) {
-        done()
+        iData.done()
         val gid = args().toLong()
         val guild = jda.getGuildById(gid)!!
         val data = db.signups.get(gid)!!
@@ -116,7 +116,7 @@ object PrivateCommands {
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun signupUpdate(args: PrivateData) {
         val (guild, user) = args.map { it.toLong() }
         val ligaStartData = db.signups.get(guild)!!
@@ -125,12 +125,12 @@ object PrivateCommands {
             .editMessageById(data.signupmid!!, data.toMessage(ligaStartData)).queue()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun sort(args: PrivateData) {
         db.league(args()).docEntry!!.sort()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun unsignupUser(args: PrivateData) {
         val (guild, user) = args.map { it.toLong() }
         val signup = db.signups.get(guild)!!
@@ -139,7 +139,7 @@ object PrivateCommands {
 
     var guildForMyStuff: Long? = null
 
-    context(InteractionData)
+    context(iData: InteractionData)
     fun setGuildForMyStuff(args: PrivateData) {
         guildForMyStuff = args().toLong()
     }
@@ -147,50 +147,51 @@ object PrivateCommands {
     var guildForUserIDGrabbing: Long? = Constants.G.WARRIOR
     val grabbedIDs = mutableListOf<Long>()
 
-    context(InteractionData)
+    context(iData: InteractionData)
     fun grabUserIDs(args: PrivateData) {
         guildForUserIDGrabbing = args().toLong()
         grabbedIDs.clear()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun setTableFromGrabUserIDS(args: PrivateData) {
         db.db.getCollection<League>(args[0])
             .updateOne(League::leaguename eq args[1], set(League::table setTo grabbedIDs))
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     fun printGrabbedIDs() {
-        reply(grabbedIDs.joinToString(prefix = "```", postfix = "```"))
+        iData.reply(grabbedIDs.joinToString(prefix = "```", postfix = "```"))
     }
 
     var userIdForSignupChange: Long? = null
 
-    context(InteractionData)
+    context(iData: InteractionData)
     fun setUserIdForSignupChange(args: PrivateData) {
         userIdForSignupChange = args().toLong()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun ndsPrintMissingNominations() {
         val nds = db.nds()
-        reply("```" + nds.run { table.indices - nominations.current().keys }.joinToString { "<@${nds[it]}>" } + "```")
+        iData.reply("```" + nds.run { table.indices - nominations.current().keys }
+            .joinToString { "<@${nds[it]}>" } + "```")
     }
 
     private val teamGraphicScope = createCoroutineScope("TeamGraphics", Dispatchers.IO)
 
-    context(InteractionData)
+    context(iData: InteractionData)
     fun teamgraphics(args: PrivateData) {
         suspend fun List<DraftPokemon>.toTeamGraphics() = FileUpload.fromData(ByteArrayOutputStream().also {
             ImageIO.write(
                 TeamGraphics.fromDraftPokemon(this).first, "png", it
             )
         }.toByteArray(), "yay.png")
-        done(true)
+        iData.done(true)
         teamGraphicScope.launch {
             val league = db.league(args[0])
             val user = args[1].toLong()
-            val tc = args.getOrNull(2)?.let { jda.getTextChannelById(it)!! } ?: textChannel
+            val tc = args.getOrNull(2)?.let { jda.getTextChannelById(it)!! } ?: iData.textChannel
             if (user > -1) {
                 tc.sendMessage("Kader von <@${user}>:").addFiles(league.picks[league(user)]!!.toTeamGraphics()).queue()
                 return@launch
@@ -210,7 +211,7 @@ object PrivateCommands {
 
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun florixcontrol(args: PrivateData) {
         (if (args[0].toBoolean()) jda.openPrivateChannelById(args[1])
             .await() else jda.getTextChannelById(args[1])!!).send(
@@ -227,7 +228,7 @@ object PrivateCommands {
 
     private data class CoachData(val coachId: Long, val roleId: Long, val prefix: String)
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun initializeCoachSeason() {
         val teams = mapOf(
             "BINDING OF ISSOO" to CoachData(324265924905402370, 1272878415342469131, "BOI"),
@@ -259,24 +260,24 @@ object PrivateCommands {
         db.aslcoach.insertOne(aslCoachData)
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     fun flegmonSendRules(args: PrivateData) {
         flegmonjda.getTextChannelById(args().toLong())!!.send(components = RoleManagement.RuleAcceptButton().into())
             .queue()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     fun flegmonSendRoles(args: PrivateData) {
         flegmonjda.getTextChannelById(args().toLong())!!
             .send(components = RoleManagement.RoleGetMenu(placeholder = "Rollen auswählen").into()).queue()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun deleteTierlist(args: PrivateData) {
-        reply(Tierlist(args().toLong()).deleteAllMons().toString())
+        iData.reply(Tierlist(args().toLong()).deleteAllMons().toString())
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun checkTL(args: PrivateData) {
         TierlistBuilderConfigurator.checkTL(args[0].toLong(), args.getOrNull(1))
     }
@@ -289,7 +290,7 @@ object PrivateCommands {
         result
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun fetchYTChannelsForLeague(args: PrivateData) {
         val league = db.league(args[0])
         YTChannelsDB.insertAll(
@@ -299,12 +300,12 @@ object PrivateCommands {
         )
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun addSingleYTChannel(args: PrivateData) {
         YTChannelsDB.insertAll(listOf(args[0].toLong() to flowOf(args[1]).mapIdentifierToChannelIDs().single()))
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun addForNotifications(args: PrivateData) {
         val id = args[0].toLong()
         val dm = args[1].toBooleanStrict()
@@ -316,12 +317,12 @@ object PrivateCommands {
     }
 
 
-    context(InteractionData)
+    context(iData: InteractionData)
     fun getGuildIcon(args: PrivateData) {
-        reply(jda.getGuildById(args().toLong())!!.iconUrl.toString())
+        iData.reply(jda.getGuildById(args().toLong())!!.iconUrl.toString())
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun testYTSendSub(args: PrivateData) {
         League.executeOnFreshLock(args[0]) {
             val gameday = args[2].toInt()
@@ -336,7 +337,7 @@ object PrivateCommands {
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun dbSpeedLetsGo() {
         val col = db.db.getCollection<NameCon>("customnamecon")
         val test = "Emolga"
@@ -375,7 +376,7 @@ object PrivateCommands {
         val common: Boolean
     )
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun disableIt(args: PrivateData) {
         for (mid in args.drop(1)) {
             val m = jda.getTextChannelById(args[0])!!.retrieveMessageById(mid).await()
@@ -387,7 +388,7 @@ object PrivateCommands {
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun enableIt(args: PrivateData) {
         for (mid in args.drop(1)) {
             val m = jda.getTextChannelById(args[0])!!.retrieveMessageById(mid).await()
@@ -399,7 +400,7 @@ object PrivateCommands {
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun analyseMatchresults(args: PrivateData) {
         val league = db.league(args[0])
         league.persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
@@ -409,19 +410,26 @@ object PrivateCommands {
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun executeTipGameSending(args: PrivateData) {
         db.league(args[0]).executeTipGameSending(args[1].toInt(), args.getOrNull(2)?.toLong())
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun speedLeague() {
-        reply((0..<10).map { measureTime { db.league("IPLS4L1") }.inWholeMilliseconds }.average().toString())
-        reply((0..<10).map { measureTime { db.leagueByGuild(Constants.G.VIP, 297010892678234114) }.inWholeMilliseconds }
+        iData.reply((0..<10).map { measureTime { db.league("IPLS4L1") }.inWholeMilliseconds }.average().toString())
+        iData.reply((0..<10).map {
+            measureTime {
+                db.leagueByGuild(
+                    Constants.G.VIP,
+                    297010892678234114
+                )
+            }.inWholeMilliseconds
+        }
             .average().toString())
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun copyTLToMyServer(args: PrivateData) {
         dbTransaction {
             val gid = args().toLong()
@@ -441,7 +449,7 @@ object PrivateCommands {
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun addDraftPermission(args: PrivateData) {
         League.executeOnFreshLock(args[0]) {
             DraftPermissionCommand.performPermissionAdd(
@@ -453,7 +461,7 @@ object PrivateCommands {
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun tipgameAdditionals(args: PrivateData) {
         val leaguename = args[0]
         val topkiller = args[1]
@@ -471,7 +479,7 @@ object PrivateCommands {
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun moveLeaguesToArchive(args: PrivateData) {
         val archiveLeague = db.db.getCollection<League>("oldleague")
         val currentLeague = db.league
@@ -491,27 +499,27 @@ object PrivateCommands {
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun startGroupedPoints() {
         db.shinyEventConfig.only().updateDiscord(jda)
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun subscribeToYT(args: PrivateData) {
         subscribeToYTChannel(flowOf(args()).mapIdentifierToChannelIDs().first())
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun getChannelIdFromUrl(args: PrivateData) {
-        reply(args.asFlow().mapIdentifierToChannelIDs().toList().joinToString())
+        iData.reply(args.asFlow().mapIdentifierToChannelIDs().toList().joinToString())
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun enableMaintenance(args: PrivateData) {
         enableMaintenanceWithReason(args())
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun enableMaintenanceRoutine(args: PrivateData) {
         enableMaintenanceWithReason("Es werden routinemäßige Wartungsarbeiten durchgeführt, ich sollte in wenigen Minuten wieder erreichbar sein.")
     }
@@ -522,14 +530,14 @@ object PrivateCommands {
         EmolgaMain.updatePresence()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun disableMaintenance() {
         db.config.updateOnly(set(GeneralConfig::maintenance setTo null))
         EmolgaMain.maintenance = null
         EmolgaMain.updatePresence()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun updateFlegmonSlash() {
         EmolgaMain.featureManager().updateFeatures(flegmonjda)
     }
@@ -539,7 +547,7 @@ object PrivateCommands {
     // Channel in dem die Anmeldungen reinkommen
     // AnzahlTeilnehmer
     // Message
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun createSignup(args: PrivateData) {
         val tc = jda.getTextChannelById(args[0])!!
         val maxUsers = args[2].toInt()
@@ -560,7 +568,7 @@ object PrivateCommands {
         )
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun fixLogos() {
         val lsData = db.signups.only()
         val tc = jda.getTextChannelById(lsData.signupChannel)!!
@@ -574,32 +582,32 @@ object PrivateCommands {
         lsData.save()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun printTables(args: PrivateData) {
-        reply(db.league.find(League::guild eq args().toLong()).toList().joinToString("\n") {
+        iData.reply(db.league.find(League::guild eq args().toLong()).toList().joinToString("\n") {
             it.leaguename + " " + it.table.joinToString { m -> "<@$m>" }
         })
     }
 
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun setupYouTubeSubscriptions(args: PrivateData) {
         IntervalTask.restartTask(IntervalTaskKey.YTSubscriptions)
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun resaveLeague(args: PrivateData) {
         League.executeOnFreshLock(args()) {
             save()
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun sendTeraSelectMessage(args: PrivateData) {
         League.executeOnFreshLock(args()) { sendTeraSelectMessage() }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun registerInDoc(args: PrivateData) {
         League.executeOnFreshLock(args[0]) {
             val gameday = args[1].toInt()
@@ -608,10 +616,10 @@ object PrivateCommands {
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun migrationStatements() {
-        deferReply()
-        reply(newSuspendedTransaction {
+        iData.deferReply()
+        iData.reply(newSuspendedTransaction {
             MigrationUtils.statementsRequiredForDatabaseMigration(
                 *ClassPath.from(Thread.currentThread().contextClassLoader)
                     .getTopLevelClassesRecursive("de.tectoast.emolga")
@@ -622,17 +630,17 @@ object PrivateCommands {
         })
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun urlIntoStatistics(args: PrivateData) {
         AnalysisStatistics.addDirectlyFromURL(args())
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     fun cancelTimer(args: PrivateData) {
         League.cancelTimer(args(), "PrivCommand")
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun createDefaultLeague() {
         db.league.insertOne(DefaultLeague())
     }
@@ -645,10 +653,10 @@ data class PrivateData(
     operator fun invoke() = split[0]
 }
 
-context(InteractionData)
+context(iData: InteractionData)
 private suspend fun awaitMultilineInput(): String {
     val id = "multiline-${System.currentTimeMillis()}"
-    replyModal(Modal(id, "Multiline Input") {
+    iData.replyModal(Modal(id, "Multiline Input") {
         paragraph("input", "Input")
     })
     val event = jda.await<ModalInteractionEvent> { it.modalId == id }

@@ -39,12 +39,12 @@ object EnterResult {
             }.values
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val oppo = nameCache[leagueCache[user]]?.reverseGet(e.opponent) ?: return reply(
+            val oppo = nameCache[leagueCache[iData.user]]?.reverseGet(e.opponent) ?: return iData.reply(
                 "Gegner wurde nicht gefunden, hast du dich an die Autovervollständigung gehalten?", ephemeral = true
             )
-            deferReply(true)
+            iData.deferReply(true)
             handleStart(oppo)
         }
     }
@@ -66,9 +66,9 @@ object EnterResult {
             var opponent by member("Spieler 2", "Spieler 2")
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            deferReply(true)
+            iData.deferReply(true)
             handleStart(e.opponent.idLong, userArg = e.user.idLong)
         }
     }
@@ -83,7 +83,7 @@ object EnterResult {
             var tc by long("tc", "tc").nullable()
         }
 
-        context(InteractionData)
+        context(_: InteractionData)
         override suspend fun exec(e: Args) {
             handleStart(e.opponent, e.user, e.guild, e.tc)
         }
@@ -95,7 +95,7 @@ object EnterResult {
             var selected by singleOption()
         }
 
-        context(InteractionData)
+        context(_: InteractionData)
         override suspend fun exec(e: Args) {
             StateStore.process<ResultEntry> {
                 handleSelect(e)
@@ -112,7 +112,7 @@ object EnterResult {
             CHECK, YES, NO
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             StateStore.process<ResultEntry> {
                 handleFinish(e)
@@ -151,7 +151,7 @@ object EnterResult {
             }
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             StateStore.process<ResultEntry> {
                 handleModal(e)
@@ -161,12 +161,12 @@ object EnterResult {
 
     object Remove : ModalKey
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun handleStart(opponent: Long, userArg: Long? = null, guild: Long? = null, customTc: Long? = null) {
-        val u = userArg ?: user
-        val g = guild ?: gid
+        val u = userArg ?: iData.user
+        val g = guild ?: iData.gid
 //        val t = customTc ?: tc
-        val league = db.leagueByGuild(g, u, opponent) ?: return reply(
+        val league = db.leagueByGuild(g, u, opponent) ?: return iData.reply(
             "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
             ephemeral = true
         )
@@ -174,7 +174,7 @@ object EnterResult {
         val idx2 = league(opponent)
         val gameday = league.getGamedayData(idx1, idx2, List(2) { DraftPlayer(0, false) }).gameday
         val uuid = ResultCodesDB.add(league.leaguename, gameday, idx1, idx2)
-        reply(
+        iData.reply(
             "Die Ergebniseingabe wurde umgebaut und findet nun für eine effizientere Nutzung auf meiner Website statt!\nhttps://emolga.tectoast.de/result/${uuid}",
             ephemeral = true
         )

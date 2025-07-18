@@ -20,14 +20,14 @@ object PrivCommand : CommandFeature<PrivCommand.Args>(::Args, CommandSpec("priv"
             .associateBy { it.name }
     }
 
-    context(InteractionData) override suspend fun exec(e: Args) {
+    context(iData: InteractionData) override suspend fun exec(e: Args) {
         privCommands[e.cmd]?.let { method ->
-            if (method.parameters.run { isEmpty() || size == 1 }) method.callSuspend(PrivateCommands, self)
+            if (method.parameters.run { isEmpty() || size == 1 }) method.callSuspend(PrivateCommands, iData)
             else method.callSuspend(
-                PrivateCommands, self, PrivateData(e.arguments)
+                PrivateCommands, iData, PrivateData(e.arguments)
             )
-            if (!replied)
-                reply("Command ausgeführt!", ephemeral = true)
-        } ?: reply("Command nicht gefunden!", ephemeral = true)
+            if (!iData.replied)
+                iData.reply("Command ausgeführt!", ephemeral = true)
+        } ?: iData.reply("Command nicht gefunden!", ephemeral = true)
     }
 }

@@ -86,7 +86,7 @@ object Nominate {
             var data by string("data", "data")
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             StateStore.process<NominateState> {
                 when (e.mode) {

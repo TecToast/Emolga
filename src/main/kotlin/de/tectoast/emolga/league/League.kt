@@ -242,7 +242,7 @@ sealed class League {
         }
     }
 
-    context (InteractionData)
+    context(iData: InteractionData)
     open fun handlePoints(
         free: Boolean, tier: String, tierOld: String? = null, mega: Boolean = false, extraCosts: Int? = null
     ): Boolean {
@@ -251,7 +251,7 @@ sealed class League {
         val cpicks = picks[current]!!
         val currentPicksHasMega by lazy { cpicks.any { it.name.isMega } }
         if (tierlist.variableMegaPrice && currentPicksHasMega && mega) {
-            reply("Du kannst nur ein Mega draften!")
+            iData.reply("Du kannst nur ein Mega draften!")
             return true
         }
         val variableMegaPrice = (if (tierlist.variableMegaPrice) (if (!currentPicksHasMega) tierlist.order.mapNotNull {
@@ -263,7 +263,7 @@ sealed class League {
         val pointsBack = tierOld?.let { tierlist.getPointsNeeded(it) } ?: 0
         val newPoints = points[current] - needed + pointsBack
         if (newPoints < 0) {
-            reply("Dafür hast du nicht genug Punkte! (`${points[current]} - $needed${if (pointsBack == 0) "" else " + $pointsBack"} = $newPoints < 0`)")
+            iData.reply("Dafür hast du nicht genug Punkte! (`${points[current]} - $needed${if (pointsBack == 0) "" else " + $pointsBack"} = $newPoints < 0`)")
             return true
         }
         if (pointsBack == 0) {
@@ -285,7 +285,7 @@ sealed class League {
                 }
             }
             if (newPoints < minimumRequired) {
-                reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden! (Du musst nach diesem Pick noch mindestens $minimumRequired Punkte haben, hättest aber nur noch $newPoints)")
+                iData.reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden! (Du musst nach diesem Pick noch mindestens $minimumRequired Punkte haben, hättest aber nur noch $newPoints)")
                 return true
             }
         }
@@ -296,27 +296,27 @@ sealed class League {
     fun minimumNeededPointsForTeamCompletion(picksSizeAfterAdd: Int) =
         (min(totalRounds, tierlist.maxMonsToPay) - picksSizeAfterAdd) * tierlist.prices.values.min()
 
-    context (InteractionData)
+    context(iData: InteractionData)
     open fun handleTiers(
         specifiedTier: String, officialTier: String, fromSwitch: Boolean = false
     ): Boolean {
         if (!tierlist.mode.withTiers || (tierlist.variableMegaPrice && "#" in officialTier)) return false
         val map = getPossibleTiers()
         if (!map.containsKey(specifiedTier)) {
-            reply("Das Tier `$specifiedTier` existiert nicht!")
+            iData.reply("Das Tier `$specifiedTier` existiert nicht!")
             return true
         }
         if (tierlist.order.indexOf(officialTier) < tierlist.order.indexOf(specifiedTier) && (!fromSwitch || map[specifiedTier]!! <= 0)) {
-            reply("Du kannst ein $officialTier-Mon nicht ins $specifiedTier hochdraften!")
+            iData.reply("Du kannst ein $officialTier-Mon nicht ins $specifiedTier hochdraften!")
             return true
         }
         if (map[specifiedTier]!! <= 0) {
             if (tierlist.prices[specifiedTier] == 0) {
-                reply("Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!")
+                iData.reply("Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!")
                 return true
             }
             if (fromSwitch) return false
-            reply("Du kannst dir kein $specifiedTier-Pokemon mehr picken!")
+            iData.reply("Du kannst dir kein $specifiedTier-Pokemon mehr picken!")
             return true
         }
         return false
@@ -760,29 +760,29 @@ sealed class League {
 
     fun builder() = RequestBuilder(sid)
 
-    context (InteractionData)
+    context(iData: InteractionData)
     suspend fun replyGeneral(
         msg: String,
         components: Collection<LayoutComponent> = SendDefaults.components,
         ifTestUseTc: MessageChannel? = null
     ) = replyWithTestInteractionCheck(
-        "<@${user}> hat${
-            if (user != this[current]) " für **${getCurrentName()}**" else ""
+        "<@${iData.user}> hat${
+            if (iData.user != this[current]) " für **${getCurrentName()}**" else ""
         } $msg", components, ifTestUseTc
     )
 
 
-    context(InteractionData)
+    context(iData: InteractionData)
     suspend fun replyWithTestInteractionCheck(
         content: String,
         components: Collection<LayoutComponent> = SendDefaults.components,
         ifTestUseTc: MessageChannel? = null
-    ) = ifTestUseTc?.takeIf { self is TestInteractionData }?.send(content, components = components)?.await()
-        ?: replyAwait(
+    ) = ifTestUseTc?.takeIf { iData.self is TestInteractionData }?.send(content, components = components)?.await()
+        ?: iData.replyAwait(
             content, components = components
         )
 
-    context (InteractionData)
+    context (data: InteractionData)
     suspend fun replySkip() {
         replyGeneral("den Pick übersprungen!")
     }
@@ -1041,11 +1041,11 @@ sealed class League {
             }
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         suspend inline fun executePickLike(block: League.() -> Unit) {
             executeOnFreshLock({ byCommand() }, { it.first }, {
-                if (!replied) {
-                    reply(
+                if (!iData.replied) {
+                    iData.reply(
                         "Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true
                     )
                 }
@@ -1055,19 +1055,19 @@ sealed class League {
                     // BypassCurrentPlayerData can only be Yes here
                     first.currentOverride = (second as BypassCurrentPlayerData.Yes).user
                 }
-                if (!first.isCurrentCheck(user)) {
-                    return@executeOnFreshLock reply("Du warst etwas zu langsam!", ephemeral = true)
+                if (!first.isCurrentCheck(iData.user)) {
+                    return@executeOnFreshLock iData.reply("Du warst etwas zu langsam!", ephemeral = true)
                 }
                 first.block()
             }
         }
 
-        context (InteractionData)
+        context (iData: InteractionData)
         suspend fun byCommand(): Pair<League, BypassCurrentPlayerData>? {
-            val onlyChannel = onlyChannel(tc)
+            val onlyChannel = onlyChannel(iData.tc)
             logger.info("leaguename {}", onlyChannel?.leaguename)
             return onlyChannel?.run {
-                val uid = user
+                val uid = iData.user
                 if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
                     val data = afterTimerSkipMode.run { bypassCurrentPlayerCheck(uid) }
                     when (data) {
@@ -1076,13 +1076,13 @@ sealed class League {
                         }
 
                         BypassCurrentPlayerData.No -> {
-                            reply("Du hast keine offenen Picks mehr!")
+                            iData.reply("Du hast keine offenen Picks mehr!")
                             return null
                         }
                     }
                 }
                 if (!isCurrentCheck(uid)) {
-                    reply("Du bist nicht dran!", ephemeral = true)
+                    iData.reply("Du bist nicht dran!", ephemeral = true)
                     return null
                 }
                 this to BypassCurrentPlayerData.No
@@ -1092,10 +1092,10 @@ sealed class League {
         suspend fun onlyChannel(tc: Long) =
             db.league.find(League::draftState ne DraftState.OFF, League::tcid eq tc).first()
 
-        context(InteractionData)
+        context(iData: InteractionData)
         suspend inline fun executeAsNotCurrent(asParticipant: Boolean, block: League.() -> Unit) {
-            executeOnFreshLock({ onlyChannel(tc)?.takeIf { !asParticipant || user in it.table } }, {
-                reply(
+            executeOnFreshLock({ onlyChannel(iData.tc)?.takeIf { !asParticipant || iData.user in it.table } }, {
+                iData.reply(
                     if (asParticipant) "In diesem Channel läuft kein Draft, an welchem du teilnimmst!" else "Es läuft zurzeit kein Draft in diesem Channel!",
                     ephemeral = true
                 )

@@ -15,17 +15,17 @@ object RWithGuild {
             var url by string("url", "url")
         }
 
-        context(InteractionData) override suspend fun exec(e: Args) {
+        context(iData: InteractionData) override suspend fun exec(e: Args) {
             val url = e.url
             if (url == "-") {
-                return replyModal(Modal())
+                return iData.replyModal(Modal())
             }
-            deferReply()
+            iData.deferReply()
             Analysis.analyseReplay(
                 url,
-                resultchannelParam = textChannel,
+                resultchannelParam = iData.textChannel,
                 customGuild = e.guild,
-                fromReplayCommand = self
+                fromReplayCommand = iData
             )
         }
     }
@@ -40,17 +40,17 @@ object RWithGuild {
             }
         }
 
-        context(InteractionData) override suspend fun exec(e: Args) {
+        context(iData: InteractionData) override suspend fun exec(e: Args) {
             val id = e.id
             val urls = e.urls
             urls.split("\n").forEach {
                 Analysis.analyseReplay(
                     it,
-                    resultchannelParam = textChannel,
+                    resultchannelParam = iData.textChannel,
                     customGuild = id
                 )
             }
-            reply("Replays wurden analysiert!", ephemeral = true)
+            iData.reply("Replays wurden analysiert!", ephemeral = true)
         }
     }
 }

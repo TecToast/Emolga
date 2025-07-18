@@ -13,14 +13,14 @@ object SDNamesApprovalButton : ButtonFeature<SDNamesApprovalButton.Args>(::Args,
         var username by string()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         if (e.accept) {
             SDNamesDB.setOwnerOfName(e.username, e.id)
-            reply("Der Name `${e.username}` wurde erfolgreich für <@${e.id}> registriert!", ephemeral = true)
+            iData.reply("Der Name `${e.username}` wurde erfolgreich für <@${e.id}> registriert!", ephemeral = true)
         } else {
-            reply("Der Name wurde nicht registriert!", ephemeral = true)
-            textChannel.deleteMessageById(message.idLong).queue()
+            iData.reply("Der Name wurde nicht registriert!", ephemeral = true)
+            iData.textChannel.deleteMessageById(iData.message.idLong).queue()
         }
     }
 }

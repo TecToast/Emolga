@@ -8,9 +8,9 @@ object Resend {
     val messageCache = mutableMapOf<Long, Message>()
 
     object MessageContext : MessageContextFeature(MessageContextSpec("Resend")) {
-        context(InteractionData) override suspend fun exec(e: MessageContextArgs) {
-            messageCache[user] = e.message
-            replyModal(Modal())
+        context(iData: InteractionData) override suspend fun exec(e: MessageContextArgs) {
+            messageCache[iData.user] = e.message
+            iData.replyModal(Modal())
         }
     }
 
@@ -22,11 +22,11 @@ object Resend {
         }
 
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            jda.getTextChannelById(e.tc)!!
-                .sendMessage(MessageCreateBuilder().applyMessage(messageCache[user]!!).build()).queue()
-            done(true)
+            iData.jda.getTextChannelById(e.tc)!!
+                .sendMessage(MessageCreateBuilder().applyMessage(messageCache[iData.user]!!).build()).queue()
+            iData.done(true)
         }
     }
 }

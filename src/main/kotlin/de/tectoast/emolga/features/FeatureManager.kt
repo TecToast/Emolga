@@ -147,9 +147,9 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         else -> this.toString()
     }
 
-    context(MutableMap<Long, MutableSet<CommandData>>)
+    context(map: MutableMap<Long, MutableSet<CommandData>>)
     private inline fun LongArray.addToFeatures(func: (Long) -> CommandData) = forEach {
-        getOrPut(it) { mutableSetOf() }.add(func(it))
+        map.getOrPut(it) { mutableSetOf() }.add(func(it))
     }
 
     suspend fun updateFeatures(jda: JDA, updateGuilds: List<Long>? = null) {

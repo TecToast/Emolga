@@ -1,6 +1,9 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.features.*
+import de.tectoast.emolga.features.Arguments
+import de.tectoast.emolga.features.CommandFeature
+import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.OneTimeCache
@@ -124,11 +127,11 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
     }
 
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val sid = e.docurl.substringAfter("d/").substringBefore("/")
         val tierlistsheet = e.tierlistsheet
-        deferReply()
+        iData.deferReply()
         val tierlistcols = mutableListOf<List<String>>()
         val shiftedMons = e.shiftData?.let {
             e.shiftMode!!.parseMons(it)
@@ -138,8 +141,8 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         try {
             val (_, _, yStart, _, yEnd) = DocRange[ranges.first()]
             TierlistBuilderConfigurator(
-                userId = user,
-                channelId = tc,
+                userId = iData.user,
+                channelId = iData.tc,
                 guildId = e.gid,
                 mons =
                     (Google.batchGet(
@@ -161,7 +164,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                 language = e.language
             )
         } catch (ex: DuplicatesFoundException) {
-            reply(
+            iData.reply(
                 "Es wurden Pokemon doppelt in der Tierliste gefunden! Bitte überprüfe die folgenden Pokemon: ${
                     ex.duplicates.joinToString(
                         ", "

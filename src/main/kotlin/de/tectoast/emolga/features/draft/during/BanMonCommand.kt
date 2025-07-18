@@ -4,11 +4,11 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.BanInput
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils
-import de.tectoast.emolga.league.League
 
 object BanMonCommand : CommandFeature<BanMonCommand.Args>(
     ::Args,
@@ -18,7 +18,7 @@ object BanMonCommand : CommandFeature<BanMonCommand.Args>(
         var pokemon by draftPokemon("Pokemon", "Das Pokemon, welches du bannen möchtest")
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         League.executePickLike {
             DraftUtils.executeWithinLock(

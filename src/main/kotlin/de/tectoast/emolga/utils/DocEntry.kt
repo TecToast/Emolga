@@ -378,9 +378,9 @@ class DocEntry private constructor(val league: League) {
                         toCompare.map { u -> indexerToUse(formula[orig.indexOf(u)][0].toString()) }
                     val allRelevantEvents = db.matchresults.find(
                         leagueCheckToUse, Document(
-                            "\$expr", Document(
-                                "\$setIsSubset", listOf(
-                                    "\$indices", useridxs
+                            $$"$expr", Document(
+                                $$"$setIsSubset", listOf(
+                                    $$"$indices", useridxs
                                 )
                             )
                         )

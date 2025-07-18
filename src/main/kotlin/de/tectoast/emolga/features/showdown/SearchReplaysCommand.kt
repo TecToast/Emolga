@@ -25,25 +25,25 @@ object SearchReplaysCommand : CommandFeature<SearchReplaysCommand.Args>(
         var user2 by string("User 2", "Der Showdown-Username eines potenziellen zweiten Users").nullable()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val u1 = e.user1
         val u2 = e.user2
-        deferReply()
+        iData.deferReply()
         val body = getBody(u1, u2)
         logger.info(body)
         val jsonstring = if (body.length < 30) {
-            reply("Verbindung mit dem Showdown-Server fehlgeschlagen, ich versuche es in 10 Sekunden erneut...")
+            iData.reply("Verbindung mit dem Showdown-Server fehlgeschlagen, ich versuche es in 10 Sekunden erneut...")
             delay(10000)
             getBody(u1, u2)
         } else body
         try {
-            reply(
+            iData.reply(
                 otherJSON.decodeFromString<List<Replay>>(jsonstring).take(15)
                     .joinToString("\n") { "${it.players.joinToString(" vs ")}: https://replay.pokemonshowdown.com/${it.id}" }
                     .ifEmpty { "Es wurde kein Kampf ${u2?.let { "zwischen $u1 und $it" } ?: "von $u1"} hochgeladen!" })
         } catch (ex: Exception) {
-            reply("Es konnte keine Verbindung zum Showdown-Server hergestellt werden!")
+            iData.reply("Es konnte keine Verbindung zum Showdown-Server hergestellt werden!")
         }
     }
 

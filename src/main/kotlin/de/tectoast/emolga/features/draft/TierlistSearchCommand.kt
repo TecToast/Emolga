@@ -19,24 +19,24 @@ object TierlistSearchCommand : CommandFeature<TierlistSearchCommand.Args>(
 
     private val dataCache = mutableMapOf<Long, MutableMap<String, List<String>>>()
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        val tierlist = Tierlist[gid] ?: run {
-            return reply("Es wurde keine Tierliste für diesen Server hinterlegt!")
+        val tierlist = Tierlist[iData.gid] ?: run {
+            return iData.reply("Es wurde keine Tierliste für diesen Server hinterlegt!")
         }
         val tier = e.tier
         val mons = tierlist.getByTier(tier) ?: run {
-            reply("Das Tier existiert auf diesem Server nicht!")
+            iData.reply("Das Tier existiert auf diesem Server nicht!")
             return
         }
-        deferReply(ephemeral = true)
+        iData.deferReply(ephemeral = true)
         val searchType = e.type
         val searchTypeEnglish = searchType.english
         val filteredList = mons.filter {
-            searchTypeEnglish in dataCache.getOrPut(gid) { mutableMapOf() }
-                .getOrPut(it) { db.getDataObject(it, gid).types }
+            searchTypeEnglish in dataCache.getOrPut(iData.gid) { mutableMapOf() }
+                .getOrPut(it) { db.getDataObject(it, iData.gid).types }
         }
-        reply(
+        iData.reply(
             "All diese Mons aus dem ${tier}-Tier besitzen den Typen ${searchType.german}:\n${
                 filteredList.joinToString(
                     "\n"

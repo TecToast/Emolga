@@ -18,20 +18,20 @@ object RVLCommand :
         var replay3 by string("Replay 3", "Das dritte Replay, falls es existiert").nullable()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        deferReply()
-        val channel = AnalysisDB.getResultChannel(tc)
-            ?: return reply("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
-        val tc = jda.getChannel<GuildMessageChannel>(channel)
+        iData.deferReply()
+        val channel = AnalysisDB.getResultChannel(iData.tc)
+            ?: return iData.reply("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
+        val tc = iData.jda.getChannel<GuildMessageChannel>(channel)
         if (tc == null) {
-            reply("Ich habe keinen Zugriff auf den Ergebnischannel!")
+            iData.reply("Ich habe keinen Zugriff auf den Ergebnischannel!")
             return
         }
         Analysis.analyseReplay(
             urlsProvided = listOfNotNull(e.replay1, e.replay2, e.replay3),
             resultchannelParam = tc,
-            fromReplayCommand = self,
+            fromReplayCommand = iData,
             customGuild = Constants.G.VIP
         )
     }

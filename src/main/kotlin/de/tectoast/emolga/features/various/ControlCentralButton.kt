@@ -20,17 +20,17 @@ object ControlCentralButton : ButtonFeature<ControlCentralButton.Args>(::Args, B
         RELOAD_LOG_CONFIG
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         var breakpoint = false
-        deferReply(true)
+        iData.deferReply(true)
         when (e.mode) {
-            Mode.UPDATE_SLASH -> EmolgaMain.featureManager().updateFeatures(jda)
+            Mode.UPDATE_SLASH -> EmolgaMain.featureManager().updateFeatures(iData.jda)
             Mode.UPDATE_TIERLIST -> Tierlist.setup()
             Mode.BREAKPOINT -> breakpoint = true
             Mode.RELOAD_LOG_CONFIG -> LogConfigReload.reloadConfiguration()
         }
-        reply("Done!")
+        iData.reply("Done!")
         if (breakpoint) {
             print("") // I have a JVM breakpoint here (as it turns out, a simple Unit gets optimized away)
         }

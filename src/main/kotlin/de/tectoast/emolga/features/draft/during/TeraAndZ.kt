@@ -15,17 +15,17 @@ object TeraAndZ {
         NoArgs(),
         CommandSpec("teraandz", "Stellt deinen Tera- und Z-User ein", Constants.G.NDS)
     ) {
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            val league = db.leagueByCommand() ?: return reply(
+            val league = db.leagueByCommand() ?: return iData.reply(
                 "Du nimmst nicht an einer Liga auf diesem Server teil!",
                 ephemeral = true
             )
-            val config = league.config.teraAndZ ?: return reply(
+            val config = league.config.teraAndZ ?: return iData.reply(
                 "Dieser Command ist hier nicht verfügbar!",
                 ephemeral = true
             )
-            replyModal(
+            iData.replyModal(
                 Modal(
                     title = "Änderungswünsche für Tera- und Z-User",
                     specificallyEnabledArgs = mapOf(
@@ -58,25 +58,28 @@ object TeraAndZ {
             }.nullable()
         }
 
-        context(InteractionData)
+        context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             val league =
-                db.leagueByCommand() ?: return reply("Dieser Command ist hier nicht verfügbar!", ephemeral = true)
-            val idx = league(user)
+                db.leagueByCommand() ?: return iData.reply("Dieser Command ist hier nicht verfügbar!", ephemeral = true)
+            val idx = league(iData.user)
             val picks = league.picks[idx]!!
             val config =
-                league.config.teraAndZ ?: return reply("Dieser Command ist hier nicht verfügbar!", ephemeral = true)
+                league.config.teraAndZ ?: return iData.reply(
+                    "Dieser Command ist hier nicht verfügbar!",
+                    ephemeral = true
+                )
             val b = league.builder()
             val str = StringBuilder()
             config.z?.let { zconf ->
                 e.z?.let {
-                    val selected = picks.firstOrNull { p -> p.name == it.official } ?: return reply(
+                    val selected = picks.firstOrNull { p -> p.name == it.official } ?: return iData.reply(
                         "Das Pokemon `${it.tlName}` befindet sich nicht in deinem Kader!",
                         ephemeral = true
                     )
                     zconf.firstTierAllowed?.let { tier ->
                         val order = league.tierlist.order
-                        if (order.indexOf(selected.tier) < order.indexOf(tier)) return reply(
+                        if (order.indexOf(selected.tier) < order.indexOf(tier)) return iData.reply(
                             "Z-User dürfen maximal im ${tier}-Tier sein, `${it.tlName}` befindet sich im ${selected.tier}-Tier!",
                             ephemeral = true
                         )
@@ -90,13 +93,13 @@ object TeraAndZ {
             }
             config.tera?.let { tconf ->
                 e.tera?.let {
-                    val selected = picks.firstOrNull { p -> p.name == it.official } ?: return reply(
+                    val selected = picks.firstOrNull { p -> p.name == it.official } ?: return iData.reply(
                         "Das Pokemon `${it.tlName}` befindet sich nicht in deinem Kader!",
                         ephemeral = true
                     )
                     tconf.mon.firstTierAllowed?.let { tier ->
                         val order = league.tierlist.order
-                        if (order.indexOf(selected.tier) < order.indexOf(tier)) return reply(
+                        if (order.indexOf(selected.tier) < order.indexOf(tier)) return iData.reply(
                             "Tera-User dürfen maximal im ${tier}-Tier sein, `${it.tlName}` befindet sich im ${selected.tier}-Tier!",
                             ephemeral = true
                         )
@@ -119,7 +122,7 @@ object TeraAndZ {
             }
             b.execute()
             if (str.isEmpty()) str.append("_Keine Änderung vorgenommen_")
-            reply("Änderungen von <@${user}>:\n" + str.toString())
+            iData.reply("Änderungen von <@${iData.user}>:\n" + str.toString())
         }
     }
 }

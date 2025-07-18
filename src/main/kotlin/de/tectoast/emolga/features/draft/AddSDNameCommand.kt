@@ -17,31 +17,31 @@ object AddSDNameCommand : CommandFeature<AddSDNameCommand.Args>(
         var id by long("Die ID (nur Flo)", "Nur für Flo").nullable()
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val idArg = e.id
         val idSpecified = idArg != null
-        if (idSpecified && isNotFlo) {
-            return reply("Nur Flo darf den Command mit einer ID verwenden!")
+        if (idSpecified && iData.isNotFlo) {
+            return iData.reply("Nur Flo darf den Command mit einer ID verwenden!")
         }
         val name = e.name
-        val id = if (idSpecified) idArg!! else user
-        val specifiedName = if (idSpecified) jda.retrieveUserById(id).await().name else userObj().name
+        val id = if (idSpecified) idArg else iData.user
+        val specifiedName = if (idSpecified) iData.jda.retrieveUserById(id).await().name else iData.userObj().name
         when (SDNamesDB.addIfAbsent(name, id).await()) {
             SDInsertStatus.SUCCESS -> {
                 if (idSpecified) {
-                    reply("Der Name `$name` wurde für $specifiedName registriert!")
+                    iData.reply("Der Name `$name` wurde für $specifiedName registriert!")
                 } else {
-                    reply("Der Name `$name` wurde für dich registriert!")
+                    iData.reply("Der Name `$name` wurde für dich registriert!")
                 }
             }
 
             SDInsertStatus.ALREADY_OWNED_BY_YOU -> {
-                reply("Der Name `$name` gehört bereits ${if (idSpecified) specifiedName else "dir"}!")
+                iData.reply("Der Name `$name` gehört bereits ${if (idSpecified) specifiedName else "dir"}!")
             }
 
             SDInsertStatus.ALREADY_OWNED_BY_OTHER -> {
-                reply("Der Name ist bereits von jemand anderem belegt! Es wird geprüft, ob dieser Name freigegeben werden kann.")
+                iData.reply("Der Name ist bereits von jemand anderem belegt! Es wird geprüft, ob dieser Name freigegeben werden kann.")
             }
         }
     }

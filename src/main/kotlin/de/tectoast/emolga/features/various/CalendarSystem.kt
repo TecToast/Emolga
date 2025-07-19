@@ -29,6 +29,7 @@ object CalendarSystem : CoroutineScope {
                 }
                 val calendarTc = jda.getTextChannelById(Constants.CALENDAR_TCID)!!
                 calendarTc.sendMessage("(<@${Constants.FLOID}>) $message").setActionRow(RemindButton()).queue()
+                CalendarDB.removeEntry(id)
                 calendarTc.updateCalendar()
             } catch (ex: Exception) {
                 logger.error(ex) { "Failed to send calendar entry" }

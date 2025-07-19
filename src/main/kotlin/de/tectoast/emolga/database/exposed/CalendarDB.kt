@@ -4,9 +4,11 @@ import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.various.CalendarSystem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.Instant
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
 import org.jetbrains.exposed.v1.datetime.timestamp
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
 import org.jetbrains.exposed.v1.r2dbc.insertAndGetId
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.selectAll
@@ -49,6 +51,10 @@ object CalendarDB : IntIdTable("calendar") {
 
     suspend fun doesntExist(id: Int): Boolean = dbTransaction {
         select(super.id).where { super.id eq id }.count() == 0L
+    }
+
+    suspend fun removeEntry(id: Int) = dbTransaction {
+        deleteWhere { super.id eq id }
     }
 }
 

@@ -1,11 +1,8 @@
 package de.tectoast.emolga.league
 
-import de.tectoast.emolga.utils.BasicStatProcessor
-import de.tectoast.emolga.utils.DocEntry
-import de.tectoast.emolga.utils.RequestBuilder
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
-import de.tectoast.emolga.utils.x
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -25,6 +22,16 @@ class GPC(val teams: List<String>) : League() {
         }
         deathProcessor = BasicStatProcessor {
             gdi.CoordXMod(teams[plindex], 3, 4, 19, 9, 4 + monIterationIndex)
+        }
+        resultCreator = {
+            b.addSingle(gdi.coordXMod("Gruppen-Spielplan", 3, 5, 3, 9, 4 + index), defaultGameplanStringWithoutUrl)
+            idxs.forEachIndexed { index, idx ->
+                val baseString = "$higherNumber:$lowerNumber"
+                b.addSingle(
+                    gdi.CoordXMod(teams[idx], 3, 4, 19, 9, 2),
+                    if (index == winnerIndex) baseString else baseString.reversed()
+                )
+            }
         }
     }
 

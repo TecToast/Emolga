@@ -460,6 +460,7 @@ data class ReplayData(
     val game: List<DraftPlayer>,
     val uindices: List<Int>,
     val kd: List<Map<String, Pair<Int, Int>>>,
+    // TODO: is mons obsolete? because all mons are already in kd (rework the whole thing)
     val mons: List<List<String>>,
     val url: String,
     val gamedayData: GamedayData,
@@ -499,7 +500,7 @@ data class AdvancedResult(
     val replayData: ReplayData,
     val league: League
 ) {
-    val tableIndexes by lazy {
+    val idxs by lazy {
         replayData.uindices
     }
     val deaths by lazy {
@@ -512,6 +513,7 @@ data class AdvancedResult(
     }
     val winnerIndex by lazy { replayData.game.indexOfFirst { it.winner } }
     val higherNumber by lazy { if (numberOne > numberTwo) numberOne else numberTwo }
+    val lowerNumber by lazy { if (numberOne < numberTwo) numberOne else numberTwo }
     fun Int.swap() = if (swappedNumbers) 1 - this else this
     val defaultGameplanString get() = """=HYPERLINK("$url"; "$numberOne:$numberTwo")"""
     val defaultGameplanStringWithoutUrl get() = "$numberOne:$numberTwo"

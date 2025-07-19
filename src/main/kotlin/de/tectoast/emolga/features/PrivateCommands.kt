@@ -51,7 +51,6 @@ import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.migration.MigrationUtils
 import org.jetbrains.exposed.v1.r2dbc.batchInsert
 import org.jetbrains.exposed.v1.r2dbc.selectAll
-import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
@@ -624,7 +623,7 @@ object PrivateCommands {
     context(iData: InteractionData)
     suspend fun migrationStatements() {
         iData.deferReply()
-        iData.reply(suspendTransaction {
+        iData.reply(dbTransaction {
             MigrationUtils.statementsRequiredForDatabaseMigration(
                 *ClassPath.from(Thread.currentThread().contextClassLoader)
                     .getTopLevelClassesRecursive("de.tectoast.emolga")

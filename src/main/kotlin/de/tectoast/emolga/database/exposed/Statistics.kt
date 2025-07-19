@@ -13,7 +13,6 @@ import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.r2dbc.batchInsert
 import org.jetbrains.exposed.v1.r2dbc.insertIgnore
 import org.jetbrains.exposed.v1.r2dbc.selectAll
-import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 
 private val logger = KotlinLogging.logger {}
 
@@ -29,7 +28,7 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
 
     companion object {
 
-        suspend fun getCurrentAmountOfReplays() = suspendTransaction {
+        suspend fun getCurrentAmountOfReplays() = dbTransaction {
             Start.selectAll().count()
         }
 

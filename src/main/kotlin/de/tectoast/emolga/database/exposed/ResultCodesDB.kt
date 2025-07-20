@@ -36,15 +36,12 @@ object ResultCodesDB : Table("resultcodes") {
         val guild = jda.getGuildById(gid) ?: return@dbTransaction null
         val idxes = listOf(entry[P1], entry[P2])
         val memberData = guild.retrieveMembersByIds(idxes.map { league.table[it] }).await().associateBy { it.idLong }
-        val allMonsTranslations = NameConventionsDB.getAllData(
-            idxes.flatMap { allPicks(it) }.map { it.name },
-            NameConventionsDB.GERMAN, gid
-        ).associateBy { it.official }
+        val allMonsTranslations =
+            NameConventionsDB.getAllData(
+                idxes.flatMap { allPicks(it) }.map { it.name }, NameConventionsDB.GERMAN, gid
+            ).associateBy { it.official }
         ResultCodeResponse(
-            guildName = guild.name,
-            logoUrl = guild.iconUrl,
-            gameday = entry[GAMEDAY],
-            data = idxes.map { idx ->
+            guildName = guild.name, logoUrl = guild.iconUrl, gameday = entry[GAMEDAY], data = idxes.map { idx ->
                 val picks = allPicks(idx)
                 val uid = league.table[idx]
                 val member = memberData[uid]!!
@@ -55,10 +52,8 @@ object ResultCodesDB : Table("resultcodes") {
                     picks = picks.sortedWith(league.tierorderingComparator).map {
                         val nameData = allMonsTranslations[it.name]!!
                         ResultCodePokemon(nameData.tlName, nameData.otherOfficial!!)
-                    }
-                )
-            }
-        )
+                    })
+            })
     }
 
     suspend fun add(leaguename: String, gameday: Int, p1: Int, p2: Int): UUID {
@@ -79,19 +74,15 @@ object ResultCodesDB : Table("resultcodes") {
         return code
     }
 
-    suspend fun delete(code: UUID) {
-        dbTransaction {
-            deleteWhere { CODE eq code }
-        }
+    suspend fun delete(code: UUID) = dbTransaction {
+        deleteWhere { CODE eq code }
     }
+
 }
 
 @Serializable
 data class ResultCodeResponse(
-    val guildName: String,
-    val logoUrl: String?,
-    val gameday: Int,
-    val data: List<ResultUserData>
+    val guildName: String, val logoUrl: String?, val gameday: Int, val data: List<ResultUserData>
 )
 
 @Serializable

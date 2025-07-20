@@ -151,6 +151,7 @@ fun Route.emolgaAPI() {
             val idx1 = resData[ResultCodesDB.P1]
             val idx2 = resData[ResultCodesDB.P2]
             val idxs = listOf(idx1, idx2)
+            ResultCodesDB.delete(resData[ResultCodesDB.CODE])
             League.executeOnFreshLock(resData[ResultCodesDB.LEAGUENAME]) {
                 val channel = jda.getTextChannelById(resultChannel!!)!!
                 val wifiPlayers = (0..1).map { DraftPlayer(0, false) }

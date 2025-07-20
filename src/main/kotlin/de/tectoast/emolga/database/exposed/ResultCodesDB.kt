@@ -52,7 +52,7 @@ object ResultCodesDB : Table("resultcodes") {
                 ResultUserData(
                     name = member.user.effectiveName,
                     avatarUrl = avatarUrl,
-                    picks = picks.map {
+                    picks = picks.sortedWith(league.tierorderingComparator).map {
                         val nameData = allMonsTranslations[it.name]!!
                         ResultCodePokemon(nameData.tlName, nameData.otherOfficial!!)
                     }

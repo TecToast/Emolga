@@ -17,6 +17,10 @@ object YTChannelsDB : Table("ytchannels") {
         select(USER).where { CHANNELID eq channelId }.map { it[USER] }.toList()
     }
 
+    suspend fun getChannelsOfUser(userId: Long) = dbTransaction {
+        select(CHANNELID).where { USER eq userId }.map { it[CHANNELID] }.toList()
+    }
+
     suspend fun addAllChannelIdsToSet(set: MutableSet<String>, users: Iterable<Long>) = dbTransaction {
         select(CHANNELID).where { USER inList users }.collect { set += it[CHANNELID] }
     }

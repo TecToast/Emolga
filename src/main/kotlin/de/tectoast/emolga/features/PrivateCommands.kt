@@ -304,6 +304,14 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
+    suspend fun printYTChannelsOfLeague(args: PrivateData) {
+        iData.reply(db.league(args()).table.map { it to YTChannelsDB.getChannelsOfUser(it) }
+            .joinToString("\n") { (uid, it) ->
+                "<@${uid}>: " + if (it.isEmpty()) "Keine" else it.joinToString(prefix = "[", postfix = "]")
+            })
+    }
+
+    context(iData: InteractionData)
     suspend fun addSingleYTChannel(args: PrivateData) {
         YTChannelsDB.insertAll(listOf(args[0].toLong() to flowOf(args[1]).mapIdentifierToChannelIDs().single()))
     }

@@ -153,7 +153,7 @@ object NameConventionsDB : Table("nameconventions") {
         val list = mutableListOf<Pair<String, String?>>()
         val nc = emolgaDB.nameconventions.findOne(NameConventions::guild eq guildId)?.data
         fun Map<String, String>.check() = firstNotNullOfOrNull {
-            it.value.toRegex().find(input)?.let { mr -> mr to it.key }
+            it.value.toRegex(RegexOption.IGNORE_CASE).find(input)?.let { mr -> mr to it.key }
         }
 
         val defaultNameConventions = emolgaDB.defaultNameConventions()
@@ -209,11 +209,7 @@ object NameConventionsDB : Table("nameconventions") {
     suspend fun getAllData(list: List<String>, checkCol: Column<String>, gid: Long): List<DraftName> {
         return dbTransaction {
             select(
-                ENGLISH,
-                GERMAN,
-                SPECIFIEDENGLISH,
-                SPECIFIED,
-                GUILD
+                ENGLISH, GERMAN, SPECIFIEDENGLISH, SPECIFIED, GUILD
             ).where((checkCol inList list) and (GUILD eq 0 or (GUILD eq gid))).map {
                 DraftName(
                     it[SPECIFIED], it[GERMAN], it[GUILD] != 0L, it[SPECIFIEDENGLISH], it[ENGLISH]
@@ -223,11 +219,7 @@ object NameConventionsDB : Table("nameconventions") {
     }
 
     private suspend fun getDBTranslation(
-        test: String,
-        guildId: Long,
-        spec: String? = null,
-        nc: Map<String, String>,
-        english: Boolean = false
+        test: String, guildId: Long, spec: String? = null, nc: Map<String, String>, english: Boolean = false
     ): DraftName? {
         return dbTransaction {
             selectAll().where(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId)))
@@ -237,22 +229,10 @@ object NameConventionsDB : Table("nameconventions") {
                     return@dbTransaction DraftName(
                         it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                             if (spec != null) {
-                                // TODO: Rework (and add docs)
-                                val pattern = nc[spec] ?: emolgaDB.defaultNameConventions()[spec]!!
-                                val len = pattern.replace("(.+)", "").length
-                                val replace = pattern.replace("(.+)", s.substringBefore("-$spec"))
-                                //logger.warn("s: {}, raw: {}, len: {}, replace: {}", s, raw, len, replace)
-                                val replLen = replace.length
-                                val coercedLen = len.coerceAtMost(replLen)
-                                if (replace.substring(0, coercedLen) == replace.substring(
-                                        coercedLen, (2 * len).coerceAtMost(replLen)
-                                    )
-                                ) replace.substring(coercedLen) else if (replace.substring(replLen - len) == replace.substring(
-                                        (replLen - 2 * len).coerceAtLeast(0), replLen - len
-                                    )
-                                ) replace.substring(
-                                    0, replLen - len
-                                ) else replace
+                                (nc[spec] ?: emolgaDB.defaultNameConventions()[spec]!!).replace(
+                                    "(.+)",
+                                    s.substringBefore("-$spec")
+                                )
                             } else s
                         },
                         it[if (english) ENGLISH else GERMAN],

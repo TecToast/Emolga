@@ -16,8 +16,6 @@ import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
@@ -401,16 +399,14 @@ class TierlistBuilderConfigurator(
         ) {
             checkScope.launch {
                 val tl = Tierlist[gid, identifier]!!
-                handle(coll.map {
-                    async {
-                        val discordTranslation = NameConventionsDB.getDiscordTranslation(it, gid)
-                        logger.debug { "Checking $it -> $discordTranslation" }
-                        if (discordTranslation == null || tl.getTierOf(discordTranslation.tlName) == null) {
-                            it
-                        } else
-                            null
-                    }
-                }.awaitAll().filterNotNull().joinToString("\n"))
+                handle(coll.mapNotNull {
+                    val discordTranslation = NameConventionsDB.getDiscordTranslation(it, gid)
+                    logger.debug { "Checking $it -> $discordTranslation" }
+                    if (discordTranslation == null || tl.getTierOf(discordTranslation.tlName) == null) {
+                        it
+                    } else
+                        null
+                }.joinToString("\n"))
             }
         }
 

@@ -108,9 +108,10 @@ dependencies {
     // Database
     // MySQL
     implementation("org.mariadb:r2dbc-mariadb:1.3.0")
+//    implementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-r2dbc:$exposedVersion")
-    runtimeOnly("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+//    runtimeOnly("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-migration:$exposedVersion")
     // MongoDB

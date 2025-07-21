@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.Transaction
+import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
 import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 
 class Database(private val host: String, private val username: String, private val password: String) {
@@ -28,10 +29,19 @@ class Database(private val host: String, private val username: String, private v
         suspend fun init(cred: Tokens.Database, withStartUp: Boolean = true): Database {
             logger.info("Creating DataSource...")
             instance = Database(cred.host, cred.username, cred.password)
-            org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase.connect("r2dbc:mariadb://${cred.host}/emolga") {
+            R2dbcDatabase.connect {
                 connectionFactoryOptions {
+                    // TODO: Use pooling as soon as it is supported
+//                    option(ConnectionFactoryOptions.DRIVER, "pool")
+//                    option(ConnectionFactoryOptions.PROTOCOL, "mariadb")
+                    option(ConnectionFactoryOptions.DRIVER, "mariadb")
+                    option(ConnectionFactoryOptions.HOST, cred.host)
+                    option(ConnectionFactoryOptions.DATABASE, "emolga")
                     option(ConnectionFactoryOptions.USER, cred.username)
                     option(ConnectionFactoryOptions.PASSWORD, cred.password)
+
+//                    option(PoolingConnectionFactoryProvider.MAX_SIZE, 1)
+//                    option(PoolingConnectionFactoryProvider.INITIAL_SIZE, 1)
                 }
             }
             if (withStartUp) onStartUp()

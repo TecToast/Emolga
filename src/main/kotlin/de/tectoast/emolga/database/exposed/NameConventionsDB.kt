@@ -12,7 +12,6 @@ import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.NameConventions
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.showdown.Pokemon
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -70,13 +69,12 @@ object NameConventionsDB : Table("nameconventions") {
         }
     }
 
-    /**
-     * Gets all official names in german and english
-     * @return the list of all official names
-     */
-    @OptIn(ExperimentalCoroutinesApi::class)
+
     private suspend fun getAll() = dbTransaction {
-        select(GERMAN, ENGLISH).flatMapConcat { flowOf(it[GERMAN], it[ENGLISH]) }.toSet()
+        select(GERMAN, ENGLISH).transform {
+            emit(it[GERMAN])
+            emit(it[ENGLISH])
+        }.toSet()
     }
 
     /**
@@ -125,7 +123,6 @@ object NameConventionsDB : Table("nameconventions") {
      * Gets all name data for the given official name
      * @param mon the official name
      * @param guildId the guild id
-     * @param plusOther if the other language should be included in the result
      * @return the [DraftName] containing the data, or null if no data could be found
      */
     suspend fun convertOfficialToTLFull(mon: String, guildId: Long): DraftName? {
@@ -271,7 +268,7 @@ object NameConventionsDB : Table("nameconventions") {
 
 /**
  * A DraftName consists of a tierlist name (tlName) and the official name (in the format that is used
- * by Pokemon Showdown.
+ * by Pokemon Showdown).
  */
 @Serializable
 data class DraftName(

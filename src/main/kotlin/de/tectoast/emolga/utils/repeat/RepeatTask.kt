@@ -80,6 +80,7 @@ class RepeatTask(
                 last.add(Calendar.SECOND, seconds)
             }
             allTasks.getOrPut(leaguename) { mutableMapOf() }[type] = this
+            // TODO: currently, only the last entry of a day is saved here, which is not ideal
         } else {
             logger.info("LastExecution is in the past, RepeatTask will be terminated {} {}", leaguename, type)
         }

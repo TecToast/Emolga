@@ -108,7 +108,7 @@ class DocEntry private constructor(val league: League) {
             val currentDay = RepeatTask.getTask(league.leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfWeek()
                 ?: Int.MAX_VALUE
             if (currentDay <= gameday)
-                return // TODO: When on same day but after the time, also do directly analyse
+                return
         }
         analyseWithoutCheck(replayData, withSort)
     }

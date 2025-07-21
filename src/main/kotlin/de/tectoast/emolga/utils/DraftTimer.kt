@@ -54,7 +54,6 @@ sealed class DraftTimer {
         while (minutesToGo > 0) {
             val p = currentTimerInfo[cal[Calendar.DAY_OF_WEEK]]
             val hour = cal[Calendar.HOUR_OF_DAY]
-            // TODO: optimize
             if (hour >= p.from && hour < p.to) minutesToGo-- else cal[Calendar.SECOND] = 0
             cal.add(Calendar.MINUTE, 1)
             recheckTimerInfo()

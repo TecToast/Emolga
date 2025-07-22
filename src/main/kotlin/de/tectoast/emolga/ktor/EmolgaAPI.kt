@@ -26,6 +26,7 @@ import io.ktor.server.sessions.*
 import io.ktor.util.*
 import io.ktor.util.pipeline.*
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.toSet
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
@@ -34,6 +35,8 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.serializerOrNull
 import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
+import org.litote.kmongo.eq
+import java.util.concurrent.atomic.AtomicInteger
 
 private val logger = KotlinLogging.logger {}
 private val defaultDataCache = SizeLimitedMap<String, String>(maxSize = 10)
@@ -202,7 +205,49 @@ fun Route.emolgaAPI() {
             call.respond(HttpStatusCode.NoContent)
         }
     }
+    get("/usage/{league}/{gameday}") {
+        val league = call.parameters["league"]?.let { db.getLeague(it) } ?: return@get call.respond(
+            HttpStatusCode.BadRequest
+        )
+        val gameday = call.parameters["gameday"]?.toIntOrNull() ?: return@get call.respond(
+            HttpStatusCode.BadRequest
+        )
+        val allLeagues = db.league.find(League::guild eq league.guild).toFlow().map { it.leaguename }.toList()
+        val totalCount = AtomicInteger(0)
+        val entries = league.persistentData.replayDataStore.data.entries
+        val maxGameday: Int = entries.maxOfOrNull { it.key } ?: 1
+        val data = entries
+            .asSequence()
+            .filter { it.key <= gameday }
+            .flatMap { it.value.values }
+            .onEach { totalCount.incrementAndGet() }
+            .flatMap { it.mons.flatten() }
+            .groupingBy { it }
+            .eachCount()
+            .entries
+            .map { (mon, count) ->
+                UsageData(
+                    mon = NameConventionsDB.getDiscordTranslation(mon, league.guild)?.tlName ?: mon,
+                    count = count
+                )
+            }
+            .sortedWith(compareByDescending<UsageData> { it.count }.thenBy { it.mon })
+        call.respond(
+            UsageDataTotal(
+                total = totalCount.get(),
+                maxGameday = maxGameday,
+                allLeagues = allLeagues,
+                data = data
+            )
+        )
+    }
 }
+
+@Serializable
+data class UsageDataTotal(val total: Int, val maxGameday: Int, val allLeagues: List<String>, val data: List<UsageData>)
+
+@Serializable
+data class UsageData(val mon: String, val count: Int)
 
 private suspend fun generateFinalMessage(league: League, idxs: List<Int>, data: List<Map<String, KD>>): String {
     val spoiler = SpoilerTagsDB.contains(league.guild)

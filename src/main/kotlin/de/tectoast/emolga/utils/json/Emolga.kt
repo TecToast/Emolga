@@ -123,8 +123,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         gid: Long, game: List<SDPlayer>, ctx: BattleContext, prefetchedLeague: League? = null, vararg uids: Long
     ): LeagueResult? {
         if (ctx.randomBattle) {
-            val league = leagueByGuild(gid, *uids) ?: return null
-            return LeagueResult(league, uids.map { league.table.indexOf(it) }, emptyMap())
+            return getLeagueResultWithoutPicks(gid, uids)
         }
         val matchMons = game.map { it.pokemon.map { mon -> mon.draftname } }
         val (leagueResult, duration) = measureTimedValue {
@@ -172,7 +171,12 @@ class MongoEmolga(dbUrl: String, dbName: String) {
             LeagueResult(league, resultList.map { it.idx }, allOtherFormesGerman.filter { it.value.isNotEmpty() })
         }
         logger.debug { "DURATION: ${duration.inWholeMilliseconds}" }
-        return leagueResult
+        return leagueResult ?: getLeagueResultWithoutPicks(gid, uids)
+    }
+
+    private suspend fun getLeagueResultWithoutPicks(gid: Long, uids: LongArray): LeagueResult? {
+        val league = leagueByGuild(gid, *uids) ?: return null
+        return LeagueResult(league, uids.map { league.table.indexOf(it) }, emptyMap())
     }
 }
 

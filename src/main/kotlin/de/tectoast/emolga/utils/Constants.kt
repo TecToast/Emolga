@@ -36,6 +36,7 @@ object Constants {
         const val UDTA = 953578989291724830
         const val NPL = 893614364580524043
         const val GPC = 1138451578483921046
+        const val PC = 1383791205292183602
     }
 
     object M {

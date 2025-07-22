@@ -558,12 +558,15 @@ object PrivateCommands {
     // Announcechannel mit Button
     // Channel in dem die Anmeldungen reinkommen
     // AnzahlTeilnehmer
+    // Boolean: Mit SD-Name
+    // Boolean: mit Team-Name
+    // Boolean: mit Logo
     // Message
     context(iData: InteractionData)
     suspend fun createSignup(args: PrivateData) {
         val tc = jda.getTextChannelById(args[0])!!
         val maxUsers = args[2].toInt()
-        val text = args.drop(3).joinToString(" ").replace("\\n", "\n")
+        val text = args.drop(6).joinToString(" ").replace("\\n", "\n")
         val messageid =
             tc.sendMessage(text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**").addActionRow(Button())
                 .await().idLong
@@ -575,7 +578,11 @@ object PrivateCommands {
                 announceChannel = tc.idLong,
                 announceMessageId = messageid,
                 maxUsers = maxUsers,
-                signupStructure = listOf(SignUpInput.SDName)
+                signupStructure = buildList {
+                    if (args[3].toBooleanStrict()) add(SignUpInput.SDName)
+                    if (args[4].toBooleanStrict()) add(SignUpInput.TeamName)
+                },
+                logoSettings = if (args[5].toBooleanStrict()) LogoSettings.WithSignupMessage else null,
             )
         )
     }

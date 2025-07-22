@@ -99,7 +99,8 @@ class DocEntry private constructor(val league: League) {
 
 
     suspend fun analyse(replayData: List<ReplayData>, withSort: Boolean = true) {
-        val store = league.config.replayDataStore
+        val config = league.config
+        val store = config.replayDataStore
         if (store != null) {
             replayData.forEach(league::storeMatch)
             league.save("DocEntry#Analyse")
@@ -109,6 +110,8 @@ class DocEntry private constructor(val league: League) {
                 ?: Int.MAX_VALUE
             if (currentDay <= gameday)
                 return
+        } else if (config.triggers.saveReplayData) {
+            replayData.forEach(league::storeMatch)
         }
         analyseWithoutCheck(replayData, withSort)
     }

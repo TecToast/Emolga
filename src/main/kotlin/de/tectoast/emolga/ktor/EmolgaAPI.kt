@@ -205,17 +205,15 @@ fun Route.emolgaAPI() {
             call.respond(HttpStatusCode.NoContent)
         }
     }
-    get("/usage/{league}/{gameday}") {
+    get("/usage/{league}") {
         val league = call.parameters["league"]?.let { db.getLeague(it) } ?: return@get call.respond(
-            HttpStatusCode.BadRequest
-        )
-        val gameday = call.parameters["gameday"]?.toIntOrNull() ?: return@get call.respond(
             HttpStatusCode.BadRequest
         )
         val allLeagues = db.league.find(League::guild eq league.guild).toFlow().map { it.leaguename }.toList()
         val totalCount = AtomicInteger(0)
         val entries = league.persistentData.replayDataStore.data.entries
         val maxGameday: Int = entries.maxOfOrNull { it.key } ?: 1
+        val gameday = call.queryParameters["gameday"]?.toIntOrNull() ?: maxGameday
         val data = entries
             .asSequence()
             .filter { it.key <= gameday }

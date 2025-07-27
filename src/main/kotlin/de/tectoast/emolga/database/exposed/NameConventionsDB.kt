@@ -259,7 +259,7 @@ data class DraftName(
     @Transient val otherOfficial: String? = null
 ) {
     var data: Pokemon? = null
-    val displayName get() = if (guildspecific) tlName else official
+    val displayName get() = if (official == "UNKNOWN") tlName else if (guildspecific) tlName else official
     override fun equals(other: Any?): Boolean {
         if (other !is DraftName) return false
         return official == other.official

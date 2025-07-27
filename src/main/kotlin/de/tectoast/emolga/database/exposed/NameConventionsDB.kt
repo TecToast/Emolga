@@ -194,7 +194,7 @@ object NameConventionsDB : Table("nameconventions") {
      */
     suspend fun getAllSDTranslationOnlyOfficialGerman(list: List<String>): Map<String, String> {
         return dbTransaction {
-            select(ENGLISH, GERMAN).where(ENGLISH inList list).map { it[ENGLISH] to it[GERMAN] }.toMap()
+            select(ENGLISH, GERMAN).where(ENGLISH inList list).toMap { it[ENGLISH] to it[GERMAN] }
         }
     }
 
@@ -202,7 +202,7 @@ object NameConventionsDB : Table("nameconventions") {
     // TODO: Check for multi lang, may be merged with [getAllSDTranslationOnlyOfficialGerman]
     suspend fun getAllSDTranslationOnlyOfficialEnglish(list: List<String>): Map<String, String> {
         return dbTransaction {
-            select(ENGLISH, GERMAN).where(GERMAN inList list).map { it[GERMAN] to it[ENGLISH] }.toMap()
+            select(ENGLISH, GERMAN).where(GERMAN inList list).toMap { it[GERMAN] to it[ENGLISH] }
         }
     }
 
@@ -270,10 +270,23 @@ data class DraftName(
     }
 }
 
-suspend fun <A, B> Flow<Pair<A, B>>.toMap(): Map<A, B> {
+/**
+ * Converts a Flow of type T to a Map using the provided function fn.
+ * The function fn should return a Pair where the first element is the key and the second element
+ * is the value to be stored in the Map.
+ * The resulting Map will contain all key-value pairs collected from the Flow.
+ *
+ * @param T the type of elements in the Flow
+ * @param A the type of keys in the Map
+ * @param B the type of values in the Map
+ * @param fn a function that takes an element of type T and returns a Pair<A, B>
+ * @return a Map containing the key-value pairs collected from the Flow
+ */
+suspend fun <T, A, B> Flow<T>.toMap(fn: (T) -> Pair<A, B>): Map<A, B> {
     val destination = mutableMapOf<A, B>()
     collect { value ->
-        destination[value.first] = value.second
+        val result = fn(value)
+        destination[result.first] = result.second
     }
     return destination
 }

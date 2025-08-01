@@ -63,7 +63,7 @@ repositories {
     mavenCentral()
 }
 
-val exposedVersion = "1.0.0-beta-4"
+val exposedVersion = "1.0.0-beta-5"
 val ktorVersion = "3.2.2"
 val ktorDependencies = listOf(
     // Client

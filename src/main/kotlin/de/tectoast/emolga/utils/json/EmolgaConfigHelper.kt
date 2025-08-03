@@ -17,12 +17,15 @@ object EmolgaConfigHelper {
         return this.find { a -> a is Config } as Config?
     }
 
-    fun buildFromDescriptor(descriptor: SerialDescriptor): JsonObject {
+    fun buildFromDescriptor(descriptor: SerialDescriptor, saveTotal: Boolean): JsonObject {
         val config = descriptor.annotations.findConfig()
         return buildJsonObject {
             put("name", config?.name ?: descriptor.serialName)
             put("desc", config?.desc ?: "Keine Beschreibung verfügbar")
             put("type", descriptor.kind.toString())
+            if (saveTotal) {
+                put("saveTotal", true)
+            }
             if (descriptor.elementsCount > 0)
                 put("value", buildJsonObject { build(this, descriptor) })
         }

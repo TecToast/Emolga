@@ -225,10 +225,7 @@ object NameConventionsDB : Table("nameconventions") {
             selectAll().where(((GERMAN eq test) or (ENGLISH eq test) or (SPECIFIED eq test) or (SPECIFIEDENGLISH eq test)) and (GUILD eq 0 or (GUILD eq guildId)))
                 .orderBy(
                     GUILD to SortOrder.DESC
-                ).toList().let {
-                    it.firstOrNull { row -> row[SPECIFIED] == test || row[SPECIFIEDENGLISH] == test }
-                        ?: it.firstOrNull()
-                }?.let {
+                ).firstOrNull()?.let {
                     return@dbTransaction DraftName(
                         it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                             if (spec != null) {

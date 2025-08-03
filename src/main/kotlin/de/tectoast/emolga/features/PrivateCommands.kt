@@ -664,6 +664,11 @@ object PrivateCommands {
         db.league.insertOne(DefaultLeague())
     }
 
+    context(iData: InteractionData)
+    suspend fun convertOfficialToTL(args: PrivateData) {
+        iData.reply(NameConventionsDB.convertOfficialToTL(args[0], args[1].toLong()) ?: "NULL")
+    }
+
 }
 
 data class PrivateData(

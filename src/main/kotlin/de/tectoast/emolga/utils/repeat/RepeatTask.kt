@@ -3,6 +3,7 @@ package de.tectoast.emolga.utils.repeat
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
+import de.tectoast.emolga.league.config.YTEnableConfig
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
@@ -129,8 +130,26 @@ class RepeatTask(
                         }
                     }
                 }
+                // TODO: restructure this
                 l.config.replayDataStore?.let { data ->
                     val size = l.battleorder[1]?.size ?: return@let
+                    val ytConfig = data.ytEnableConfig
+                    if (ytConfig is YTEnableConfig.Custom) {
+                        repeat(size) { battle ->
+                            RepeatTask(
+                                name,
+                                YTEnable,
+                                ytConfig.lastUploadStart + ytConfig.intervalBetweenMatches * battle,
+                                data.amount,
+                                data.intervalBetweenGD
+                            ) { gameday ->
+                                League.executeOnFreshLock(name) {
+                                    enableYTForGame(this, gameday, battle)
+                                    save()
+                                }
+                            }
+                        }
+                    }
                     if (data.intervalBetweenMatches == Duration.ZERO) {
                         RepeatTask(
                             name, RegisterInDoc, data.lastUploadStart, data.amount, data.intervalBetweenGD
@@ -138,6 +157,9 @@ class RepeatTask(
                             League.executeOnFreshLock(name) {
                                 repeat(size) { battle ->
                                     logger.info("RegisterInDocSingle $name $gameday $battle")
+                                    if (ytConfig is YTEnableConfig.WithDocEntry) {
+                                        enableYTForGame(this, gameday, battle)
+                                    }
                                     executeRegisterInDoc(this, gameday, battle)
                                 }
                             }
@@ -151,8 +173,13 @@ class RepeatTask(
                                 data.amount,
                                 data.intervalBetweenGD,
                             ) { gameday ->
-                                logger.info("RegisterInDoc $name $gameday $battle")
-                                League.executeOnFreshLock(name) { executeRegisterInDoc(this, gameday, battle) }
+                                League.executeOnFreshLock(name) {
+                                    logger.info("RegisterInDoc $name $gameday $battle")
+                                    if (ytConfig is YTEnableConfig.WithDocEntry) {
+                                        enableYTForGame(this, gameday, battle)
+                                    }
+                                    executeRegisterInDoc(this, gameday, battle)
+                                }
                             }
                             RepeatTask(
                                 name,
@@ -183,7 +210,7 @@ class RepeatTask(
                                 RepeatTask(
                                     name,
                                     YTSendManual,
-                                    data.lastUploadStart + data.intervalBetweenMatches * battle + data.intervalBetweenUploadAndVideo,
+                                    data.lastUploadStart + data.intervalBetweenMatches * battle + data.gracePeriodForYT,
                                     data.amount,
                                     data.intervalBetweenGD,
                                 ) { gameday ->
@@ -210,6 +237,14 @@ class RepeatTask(
             }
         }
 
+
+        fun enableYTForGame(league: League, gameday: Int, battle: Int) {
+            val dataStore = league.persistentData.replayDataStore
+            dataStore.data[gameday]?.get(battle)?.let {
+                if (league.config.youtube != null) it.ytVideoSaveData.enabled = true
+            } ?: logger.warn("YT: No replay found for gameday $gameday and battle $battle in ${league.leaguename}")
+        }
+
         suspend fun executeRegisterInDoc(league: League, gameday: Int, battle: Int) {
             var shouldDelay = false
             league.config.tipgame?.let { _ ->
@@ -218,11 +253,11 @@ class RepeatTask(
             }
             val dataStore = league.persistentData.replayDataStore
             dataStore.data[gameday]?.get(battle)?.let {
-                if (league.config.youtube != null) it.ytVideoSaveData.enabled = true
                 if (shouldDelay) delay(2000)
                 league.docEntry?.analyseWithoutCheck(listOf(it))
                 league.save("RepeatTaskYT")
-            } ?: logger.warn("No replay found for gameday $gameday and battle $battle in ${league.leaguename}")
+            }
+                ?: logger.warn("Register: No replay found for gameday $gameday and battle $battle in ${league.leaguename}")
         }
     }
 }
@@ -232,6 +267,7 @@ sealed interface RepeatTaskType {
     data object TipGameLockButtons : RepeatTaskType
     data object RegisterInDoc : RepeatTaskType
     data object YTSendManual : RepeatTaskType
+    data object YTEnable : RepeatTaskType
     data object SendReminderToParticipants : RepeatTaskType
     data object LastReminder : RepeatTaskType
     data class Other(val descriptor: String) : RepeatTaskType

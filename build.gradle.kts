@@ -63,7 +63,7 @@ repositories {
     mavenCentral()
 }
 
-val exposedVersion = "1.0.0-beta-4"
+val exposedVersion = "1.0.0-beta-5"
 val ktorVersion = "3.2.2"
 val ktorDependencies = listOf(
     // Client
@@ -102,7 +102,7 @@ dependencies {
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250616-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20250511-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20250723-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20250714-2.0.0")
 
     // Database
@@ -125,8 +125,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.21.1")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M5")
-    testImplementation("io.kotest:kotest-assertions-core:6.0.0.M5")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M10")
+    testImplementation("io.kotest:kotest-assertions-core:6.0.0.M10")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
 }

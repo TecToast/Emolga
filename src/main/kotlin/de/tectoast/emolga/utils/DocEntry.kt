@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.database.Database
@@ -17,13 +19,15 @@ import de.tectoast.emolga.utils.records.SorterData
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
 import org.bson.Document
 import org.litote.kmongo.eq
 import org.litote.kmongo.regex
 import org.slf4j.LoggerFactory
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 
 class DocEntry private constructor(val league: League) {
@@ -291,7 +295,7 @@ class DocEntry private constructor(val league: League) {
         customB?.execute(realExecute)
         b.withRunnable(3000) {
             if (withSort) {
-                matchResultJobs.forEach { it.join() }
+                matchResultJobs.joinAll()
                 sort()
             }
         }.execute(realExecute)

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package de.tectoast.emolga.features.various
 
 import de.tectoast.emolga.bot.jda
@@ -10,10 +12,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 object CalendarSystem : CoroutineScope {
     override val coroutineContext = createCoroutineContext("CalendarSystem", Dispatchers.IO)

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.features.Arguments
@@ -11,7 +13,6 @@ import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.messages.Embed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.datetime.Instant
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -25,6 +26,8 @@ import org.litote.kmongo.eq
 import org.litote.kmongo.keyProjection
 import java.awt.Color
 import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 object TipGameManager : CoroutineScope {
     override val coroutineContext = createCoroutineContext("TipGameManager", Dispatchers.IO)

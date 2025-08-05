@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package de.tectoast.emolga.utils.repeat
 
 import de.tectoast.emolga.bot.jda
@@ -17,13 +19,13 @@ import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import mu.KotlinLogging
 import java.util.*
+import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 class RepeatTask(
     val leaguename: String,
@@ -99,7 +101,10 @@ class RepeatTask(
         cal.set(Calendar.MILLISECOND, 0)
         val now = Instant.fromEpochMilliseconds(cal.timeInMillis)
         val entry = taskTimestamps.ceilingEntry(now)
-        return entry?.value?.takeIf { entry.key.daysUntil(now, TimeZone.UTC) == 0 }
+
+        return entry?.value?.takeIf {
+            entry.key.daysUntil(now, kotlinx.datetime.TimeZone.UTC) == 0
+        }
     }
 
     fun findGamedayOfWeek(): Int? {

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package de.tectoast.emolga.features.various
 
 import de.tectoast.emolga.features.*
@@ -11,12 +13,13 @@ import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
 import org.litote.kmongo.*
 import java.net.URI
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 object ShinyEvent {
 

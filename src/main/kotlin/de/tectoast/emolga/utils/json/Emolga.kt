@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalSerializationApi::class)
+@file:OptIn(ExperimentalSerializationApi::class, ExperimentalTime::class)
 @file:UseSerializers(InstantAsDateSerializer::class)
 
 package de.tectoast.emolga.utils.json
@@ -32,7 +32,6 @@ import dev.minn.jda.ktx.messages.reply_
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
-import kotlinx.datetime.Instant
 import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
@@ -47,6 +46,8 @@ import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.reactivestreams.KMongo
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import kotlin.time.measureTimedValue
 import org.litote.kmongo.serialization.configuration as mongoConfiguration
 
@@ -475,8 +476,7 @@ data class LigaStartData(
         val errors = mutableListOf<String>()
         val data = e.values.associate {
             val config = getInputConfig(it.id) ?: error("Modal key ${it.id} not found")
-            val result = config.validate(it.asString)
-            when (result) {
+            when (val result = config.validate(it.asString)) {
                 is SignUpValidateResult.Error -> {
                     errors += "Fehler bei **${config.getModalInputOptions().label}**:\n${result.message}"
                     "" to ""

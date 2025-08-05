@@ -1,14 +1,17 @@
+@file:OptIn(ExperimentalTime::class)
+
 package de.tectoast.emolga.league.config
 
 import de.tectoast.emolga.features.draft.InstantToStringSerializer
 import de.tectoast.emolga.utils.DurationSerializer
 import de.tectoast.emolga.utils.ReplayData
-import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 
 @Serializable

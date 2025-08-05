@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
@@ -5,7 +7,6 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.showdown.Analysis
 import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
-import kotlinx.datetime.Instant
 import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
@@ -13,6 +14,8 @@ import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.r2dbc.batchInsert
 import org.jetbrains.exposed.v1.r2dbc.insertIgnore
 import org.jetbrains.exposed.v1.r2dbc.selectAll
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 private val logger = KotlinLogging.logger {}
 

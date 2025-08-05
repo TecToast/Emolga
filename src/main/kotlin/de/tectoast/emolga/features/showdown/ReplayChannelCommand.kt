@@ -2,7 +2,6 @@ package de.tectoast.emolga.features.showdown
 
 import de.tectoast.emolga.database.exposed.AnalysisDB
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.l
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 
 object ReplayChannelCommand :
@@ -30,7 +29,7 @@ object ReplayChannelCommand :
                     }
 
                     is AnalysisDB.AnalysisResult.Existed -> {
-                        "Die Replays aus diesem Channel werden ${if (result.channel == resultChannel) "bereits" else "zurzeit"} in den Channel <#$l> geschickt! Mit /replaychannel remove kannst du dies ändern."
+                        "Die Replays aus diesem Channel werden ${if (result.channel == resultChannel) "bereits" else "zurzeit"} in den Channel <#${result.channel}> geschickt! Mit /replaychannel remove kannst du dies ändern."
                     }
                 }
             )

@@ -37,6 +37,7 @@ data class Pokemon(
     val evos: List<String>? = null,
 
     val isNonstandard: String? = null,
+    val changesFrom: String? = null
 
     ) {
 

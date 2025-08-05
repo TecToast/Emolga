@@ -29,7 +29,7 @@ class GPC(val teams: List<String>) : League() {
                 val baseString = "$higherNumber:$lowerNumber"
                 b.addSingle(
                     gdi.CoordXMod(teams[idx], 3, 4, 19, 9, 2),
-                    if (index == winnerIndex) baseString else baseString.reversed()
+                    if (index == winnerIndex) "S" else "N"
                 )
             }
         }

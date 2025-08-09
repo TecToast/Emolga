@@ -72,10 +72,10 @@ class FeaturesTest : FunSpec({
 
 object SurveillanceSystemTestCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("surveillance", "surveillance")) {
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
         delay(4000)
-        reply("GuMo")
+        iData.reply("GuMo")
     }
 }
 
@@ -94,11 +94,11 @@ private suspend fun enableDefaultFeatureSystem(syncFeatures: Boolean = true) {
 object TestDefer : ButtonFeature<TestDefer.Args>(::Args, ButtonSpec("testdefer")) {
     class Args : Arguments()
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        deferEdit()
-        edit("testedit")
-        reply("testreply")
+        iData.deferEdit()
+        iData.edit("testedit")
+        iData.reply("testreply")
     }
 }
 
@@ -122,9 +122,9 @@ object TestFeature : CommandFeature<TestFeature.Args>(::Args, CommandSpec("testa
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        reply("test1: ${e.test1}, test2: ${e.test2}")
+        iData.reply("test1: ${e.test1}, test2: ${e.test2}")
         if (e.test3) logger.info(":DDDDDDDDDDDDDDDDD")
         logger.info("GuMo ${timer!!.elapsedNow()}")
     }
@@ -146,8 +146,8 @@ object NestedCommand : CommandFeature<Arguments>(::Arguments, CommandSpec("neste
             }
         }
 
-        context(InteractionData) override suspend fun exec(e: Args) {
-            reply("FIRST test1: ${e.test1}, test2: ${e.test2}")
+        context(iData: InteractionData) override suspend fun exec(e: Args) {
+            iData.reply("FIRST test1: ${e.test1}, test2: ${e.test2}")
             logger.info("GuMo ${timer!!.elapsedNow()}")
         }
     }
@@ -160,13 +160,13 @@ object NestedCommand : CommandFeature<Arguments>(::Arguments, CommandSpec("neste
             }
         }
 
-        context(InteractionData) override suspend fun exec(e: Args) {
-            reply("SECOND test1: ${e.test1}, test2: ${e.test2}")
+        context(iData: InteractionData) override suspend fun exec(e: Args) {
+            iData.reply("SECOND test1: ${e.test1}, test2: ${e.test2}")
             logger.info("GuMo ${timer!!.elapsedNow()}")
         }
     }
 
-    context(InteractionData)
+    context(iData: InteractionData)
     override suspend fun exec(e: Arguments) {
 
     }
@@ -180,8 +180,8 @@ object TestButton : ButtonFeature<TestButton.Args>(::Args, ButtonSpec("test")) {
         }
     }
 
-    context(InteractionData) override suspend fun exec(e: Args) {
-        replyModal(TestModal())
+    context(iData: InteractionData) override suspend fun exec(e: Args) {
+        iData.replyModal(TestModal())
         logger.info("GuMo ${timer!!.elapsedNow()}")
     }
 }
@@ -200,8 +200,8 @@ object TestModal : ModalFeature<TestModal.Args>(::Args, ModalSpec("test")) {
         }
     }
 
-    context(InteractionData) override suspend fun exec(e: Args) {
-        reply("test1: ${e.test1}, test2: ${e.test2}")
+    context(iData: InteractionData) override suspend fun exec(e: Args) {
+        iData.reply("test1: ${e.test1}, test2: ${e.test2}")
 
         logger.info("GuMo ${timer!!.elapsedNow()}")
     }
@@ -217,8 +217,8 @@ object TestMenu : SelectMenuFeature<TestMenu.Args>(::Args, SelectMenuSpec("test"
         var option by singleOption()
     }
 
-    context(InteractionData) override suspend fun exec(e: Args) {
-        reply("test1: ${e.test1}, test2: ${e.test2}, option: ${e.option}")
+    context(iData: InteractionData) override suspend fun exec(e: Args) {
+        iData.reply("test1: ${e.test1}, test2: ${e.test2}, option: ${e.option}")
         logger.info("GuMo ${timer!!.elapsedNow()}")
     }
 

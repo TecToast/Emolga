@@ -5,7 +5,9 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
+import kotlinx.coroutines.flow.map
+import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.v1.r2dbc.select
 import org.litote.kmongo.gt
 
 class NameConventionsDBTest : FunSpec({

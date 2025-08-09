@@ -6,8 +6,8 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.Tokens
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.initMongo
+import io.kotest.common.env
 import io.kotest.core.config.AbstractProjectConfig
-import io.kotest.mpp.env
 import kotlinx.coroutines.delay
 import mu.KotlinLogging
 import org.litote.kmongo.regex

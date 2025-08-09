@@ -3,9 +3,12 @@ package de.tectoast.emolga.utils.repeat
 import io.kotest.core.spec.style.FunSpec
 import mu.KotlinLogging
 import kotlin.time.Duration.Companion.days
+import kotlin.time.ExperimentalTime
 import kotlin.time.measureTimedValue
 
 private val logger = KotlinLogging.logger {}
+
+@OptIn(ExperimentalTime::class)
 class RepeatTaskTest : FunSpec({
     xtest("RepeatTask") {
         val (value, duration) = measureTimedValue {

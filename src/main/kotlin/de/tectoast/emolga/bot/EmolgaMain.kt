@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory
 var injectedJDA: JDA? = null
     get() {
         if (field == null) {
-            System.getenv("DISCORDTOKEN")?.let {
+            System.getenv("EMOLGATOKEN")?.let {
                 usedJDA = true
                 field = default(it, intents = listOf()) {
                     cache -= listOf(VOICE_STATE, EMOJI, STICKER, SCHEDULED_EVENTS)

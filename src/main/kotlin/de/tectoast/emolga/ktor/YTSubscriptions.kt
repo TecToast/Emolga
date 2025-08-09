@@ -165,12 +165,16 @@ suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
                     ?.let { persistentData.replayDataStore.data[it]?.values?.firstOrNull { data -> idx in data.uindices } }
                     ?: return@executeOnFreshLock
                 val ytSave = data.ytVideoSaveData
-                if (!ytSave.enabled) return@executeOnFreshLock
+                if (!ytSave.enabled) {
+                    logger.info("YT Save not enabled for $uid in $leaguename")
+                    return@executeOnFreshLock
+                }
                 ytSave.vids[battleorder[data.gamedayData.gameday]!![data.gamedayData.battleindex].indexOf(
                     table.indexOf(
                         uid
                     )
                 )] = videoId
+                logger.info("Saving video $videoId for $uid in $leaguename")
                 data.checkIfBothVideosArePresent(this)
                 save("YTSubSave")
                 successful = true

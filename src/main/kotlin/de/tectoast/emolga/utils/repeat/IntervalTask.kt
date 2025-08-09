@@ -15,8 +15,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.litote.kmongo.eq
-import org.litote.kmongo.set
-import org.litote.kmongo.setTo
 import org.litote.kmongo.upsert
 import java.util.*
 import kotlin.random.Random
@@ -56,9 +54,13 @@ class IntervalTask(
             consumer()
             while (true) {
                 val nextLastExecution = provideNextExecution()
+                val newIntervalTaskData = IntervalTaskData(
+                    name = name,
+                    nextExecution = nextLastExecution,
+                )
                 db.intervaltaskdata.updateOne(
                     IntervalTaskData::name eq name,
-                    set(IntervalTaskData::nextExecution setTo nextLastExecution),
+                    newIntervalTaskData,
                     upsert()
                 )
                 if (nextLastExecution > db.intervaltaskdata.get(name)!!.notAfter) break

@@ -368,7 +368,8 @@ suspend fun ApplicationCall.requireGuild(): Long? {
 
 private suspend fun getGuildsForUser(userId: Long) =
     if (userId == Constants.FLOID) db.league.find().toFlow().map { it.guild }
-        .toSet() + db.signups.find().toFlow().map { it.guild }.toSet() else GuildManagerDB.getGuildsForUser(userId)
+        .toSet() + db.signups.find().toFlow().map { it.guild }
+        .toSet() + Constants.G.MY else GuildManagerDB.getGuildsForUser(userId)
 
 /**
  * Should only be used in routes that are guarded by [apiGuard]

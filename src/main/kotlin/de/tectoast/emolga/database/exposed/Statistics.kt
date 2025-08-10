@@ -4,9 +4,14 @@ package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.httpClient
 import de.tectoast.emolga.utils.showdown.Analysis
 import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
@@ -49,10 +54,18 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
             dbTransaction {
                 val events = ctx.events
                 val replayId = ctx.url.substringAfterLast("/")
-                val start = events.start.firstOrNull()
-                    ?: run { logger.warn("START not found in ${ctx.url}"); return@dbTransaction }
+                val start = events.start.firstOrNull()?.timestamp
+                    ?: run {
+                        try {
+                            httpClient.get(ctx.url + ".json").body<DetailedSDReplayData>().uploadtime * 1000L
+                        } catch (ex: Exception) {
+                            if (ex is CancellationException) throw ex
+                            logger.error(ex) { "Failed to fetch replay data from ${ctx.url}" }
+                            return@dbTransaction
+                        }
+                    }
                 Start.insertIgnore {
-                    it[TIMESTAMP] = Instant.fromEpochMilliseconds(start.timestamp)
+                    it[TIMESTAMP] = Instant.fromEpochMilliseconds(start)
                     it[REPLAYID] = replayId
                 }
                 Move.batchInsert(events.move, ignore = true, shouldReturnGeneratedValues = false) {
@@ -184,3 +197,8 @@ object Win : Table("st_wins") {
 enum class SwitchType {
     IN, OUT
 }
+
+@Serializable
+data class DetailedSDReplayData(
+    val uploadtime: Long,
+)

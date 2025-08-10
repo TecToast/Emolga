@@ -671,6 +671,7 @@ object PrivateCommands {
 
 }
 
+@Suppress("JavaDefaultMethodsNotOverriddenByDelegation")
 data class PrivateData(
     val split: List<String>
 ) : List<String> by split {

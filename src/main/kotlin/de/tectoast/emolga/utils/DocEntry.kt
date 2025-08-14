@@ -116,6 +116,7 @@ class DocEntry private constructor(val league: League) {
                 return
         } else if (config.triggers.saveReplayData) {
             replayData.forEach(league::storeMatch)
+            league.save("DocEntry#Analyse")
         }
         analyseWithoutCheck(replayData, withSort)
     }

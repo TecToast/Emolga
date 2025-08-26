@@ -10,6 +10,7 @@ import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.league.config.YouTubeConfig
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultScope
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
@@ -32,7 +33,6 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.toSet
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.jsoup.Jsoup
@@ -49,6 +49,7 @@ private val logger = KotlinLogging.logger {}
 private val duplicateVideoCache = mutableSetOf<String>()
 private val recentlySubscribed = mutableSetOf<String>()
 private val ytClient = HttpClient(CIO)
+private val ytScope = createCoroutineScope("YouTubeSubscriptions")
 
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -129,20 +130,18 @@ fun Route.ytSubscriptions() {
                     logger.error("Error parsing date in YT", e)
                 }
                 if (duplicateVideoCache.add(videoId)) {
-                    supervisorScope {
-                        launch {
-                            YTNotificationsDB.getDCChannels(channelId).forEach { (mc, dm) ->
-                                val channel =
-                                    if (dm) jda.openPrivateChannelById(mc).await()
-                                    else jda.getChannel<MessageChannel>(mc)
-                                channel?.sendMessage("https://youtu.be/$videoId")?.queue()
-                            }
+                    ytScope.launch {
+                        YTNotificationsDB.getDCChannels(channelId).forEach { (mc, dm) ->
+                            val channel =
+                                if (dm) jda.openPrivateChannelById(mc).await()
+                                else jda.getChannel<MessageChannel>(mc)
+                            channel?.sendMessage("https://youtu.be/$videoId")?.queue()
                         }
-                        launch {
-                            db.config.only().ytLeagues.forEach { (short, gid) ->
-                                if (title.contains(short, ignoreCase = true)) {
-                                    handleVideo(channelId, videoId, gid)
-                                }
+                    }
+                    ytScope.launch {
+                        db.config.only().ytLeagues.forEach { (short, gid) ->
+                            if (title.contains(short, ignoreCase = true)) {
+                                handleVideo(channelId, videoId, gid)
                             }
                         }
                     }
@@ -153,11 +152,14 @@ fun Route.ytSubscriptions() {
 }
 
 suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
+    logger.info("Handling video $videoId for channel $channelId in guild $gid")
     val uids = YTChannelsDB.getUsersByChannelId(channelId)
     var successful = false
     for (uid in uids) {
+        logger.info("Uid found: $uid")
         val leagues = db.leaguesByGuild(gid, uid)
         for (league in leagues.map { it.leaguename }) {
+            logger.info("Checking league: $league")
             League.executeOnFreshLock(league) {
                 logger.info("League found: $leaguename")
                 val idx = this(uid)

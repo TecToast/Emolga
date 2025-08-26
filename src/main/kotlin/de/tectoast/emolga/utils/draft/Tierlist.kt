@@ -163,7 +163,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
          * All tierlists
          */
         val GUILD = long("guild")
-        val POKEMON = varchar("pokemon", 30)
+        val POKEMON = varchar("pokemon", 64)
         val TIER = varchar("tier", 8)
         val TYPE = varchar("type", 10).nullable()
         val POINTS = integer("points").nullable()

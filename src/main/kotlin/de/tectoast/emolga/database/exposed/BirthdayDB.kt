@@ -2,11 +2,12 @@ package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.Constants
+import kotlinx.coroutines.flow.asFlow
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.r2dbc.selectAll
-import org.jetbrains.exposed.v1.r2dbc.upsert
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.upsert
 import java.util.*
 
 object BirthdayDB : Table("birthdays") {
@@ -43,7 +44,7 @@ object BirthdayDB : Table("birthdays") {
         dbTransaction {
             selectAll().where {
                 MONTH eq (cal[Calendar.MONTH] + 1) and (DAY eq cal[Calendar.DAY_OF_MONTH])
-            }.collect {
+            }.asFlow().collect {
                 val age = if (it[USERID] == Constants.M.TARIA) 17 else cal[Calendar.YEAR] - it[YEAR]
                 tc.sendMessage("Alles Gute zum $age. Geburtstag, <@${it[USERID]}>!").queue()
             }

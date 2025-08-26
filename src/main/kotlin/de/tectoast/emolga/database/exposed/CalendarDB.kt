@@ -5,14 +5,15 @@ package de.tectoast.emolga.database.exposed
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.various.CalendarSystem
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.dao.id.IntIdTable
 import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
 import org.jetbrains.exposed.v1.datetime.timestamp
-import org.jetbrains.exposed.v1.r2dbc.deleteWhere
-import org.jetbrains.exposed.v1.r2dbc.insertAndGetId
-import org.jetbrains.exposed.v1.r2dbc.select
-import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insertAndGetId
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.text.SimpleDateFormat
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -39,7 +40,8 @@ object CalendarDB : IntIdTable("calendar") {
 
     suspend fun init() {
         dbTransaction {
-            selectAll().collect { CalendarSystem.scheduleCalendarEntry(it[super.id].value, it[MESSAGE], it[EXPIRES]) }
+            selectAll().asFlow()
+                .collect { CalendarSystem.scheduleCalendarEntry(it[super.id].value, it[MESSAGE], it[EXPIRES]) }
         }
     }
 

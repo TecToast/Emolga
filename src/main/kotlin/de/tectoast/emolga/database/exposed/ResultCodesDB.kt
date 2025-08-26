@@ -4,13 +4,12 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.invoke
 import dev.minn.jda.ktx.coroutines.await
-import kotlinx.coroutines.flow.singleOrNull
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.r2dbc.deleteWhere
-import org.jetbrains.exposed.v1.r2dbc.insert
-import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.util.*
 
 object ResultCodesDB : Table("resultcodes") {

@@ -1,21 +1,24 @@
 package de.tectoast.emolga.database
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.features.flegmon.BirthdaySystem
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.Tokens
-import io.r2dbc.spi.ConnectionFactoryOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.Transaction
-import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
-import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
 
 class Database(private val host: String, private val username: String, private val password: String) {
-
+    val dataSource = HikariDataSource(HikariConfig().apply {
+        jdbcUrl =
+            "jdbc:mariadb://$host/emolga?user=${this@Database.username}&password=${this@Database.password}&minPoolSize=1&rewriteBatchedStatements=true"
+    })
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -29,21 +32,7 @@ class Database(private val host: String, private val username: String, private v
         suspend fun init(cred: Tokens.Database, withStartUp: Boolean = true): Database {
             logger.info("Creating DataSource...")
             instance = Database(cred.host, cred.username, cred.password)
-            R2dbcDatabase.connect {
-                connectionFactoryOptions {
-                    // TODO: Use pooling as soon as it is supported
-//                    option(ConnectionFactoryOptions.DRIVER, "pool")
-//                    option(ConnectionFactoryOptions.PROTOCOL, "mariadb")
-                    option(ConnectionFactoryOptions.DRIVER, "mariadb")
-                    option(ConnectionFactoryOptions.HOST, cred.host)
-                    option(ConnectionFactoryOptions.DATABASE, "emolga")
-                    option(ConnectionFactoryOptions.USER, cred.username)
-                    option(ConnectionFactoryOptions.PASSWORD, cred.password)
-
-//                    option(PoolingConnectionFactoryProvider.MAX_SIZE, 1)
-//                    option(PoolingConnectionFactoryProvider.INITIAL_SIZE, 1)
-                }
-            }
+            org.jetbrains.exposed.v1.jdbc.Database.connect(instance.dataSource)
             if (withStartUp) onStartUp()
             return instance
         }
@@ -68,5 +57,6 @@ fun <T> dbAsync(block: suspend CoroutineScope.() -> T) = Database.dbScope.async(
     block()
 }
 
+@Suppress("DEPRECATION") // Switch to R2DBC once it is stable with pooling
 suspend fun <T> dbTransaction(statement: suspend Transaction.() -> T) =
-    suspendTransaction(Database.dbScope.coroutineContext, statement = statement)
+    newSuspendedTransaction(Database.dbScope.coroutineContext, statement = statement)

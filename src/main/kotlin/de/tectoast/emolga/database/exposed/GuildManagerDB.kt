@@ -1,10 +1,8 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toSet
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.jdbc.select
 
 object GuildManagerDB : Table("guildmanager") {
     val GUILD = long("guild")

@@ -5,7 +5,7 @@ import net.dv8tion.jda.api.entities.Member
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.or
-import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.selectAll
 
 object DraftAdminsDB : Table("draftadmins") {
     val GUILD = long("guildid")

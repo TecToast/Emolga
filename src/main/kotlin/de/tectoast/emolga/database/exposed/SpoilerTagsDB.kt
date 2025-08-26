@@ -3,9 +3,9 @@ package de.tectoast.emolga.database.exposed
 import de.tectoast.emolga.database.dbTransaction
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.r2dbc.deleteWhere
-import org.jetbrains.exposed.v1.r2dbc.insert
-import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 
 object SpoilerTagsDB : Table("spoilertags") {
     val GUILDID = long("guildid")

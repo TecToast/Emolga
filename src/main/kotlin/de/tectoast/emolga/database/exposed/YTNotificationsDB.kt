@@ -1,12 +1,9 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toCollection
-import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.r2dbc.batchInsert
-import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.jdbc.batchInsert
+import org.jetbrains.exposed.v1.jdbc.select
 
 object YTNotificationsDB : Table("ytnotifications") {
     val DCCHANNEL = long("dcchannel")

@@ -2,7 +2,6 @@ package de.tectoast.emolga.utils.showdown
 
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.Database
-import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
@@ -11,7 +10,6 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
-import de.tectoast.emolga.utils.records.toCoord
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
@@ -21,8 +19,6 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
@@ -30,10 +26,6 @@ import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
-import org.jetbrains.exposed.v1.r2dbc.insertIgnore
-import org.jetbrains.exposed.v1.r2dbc.select
-import org.jetbrains.exposed.v1.r2dbc.selectAll
-import kotlin.math.absoluteValue
 import kotlin.time.Duration.Companion.seconds
 
 object Analysis {
@@ -203,32 +195,6 @@ object Analysis {
                 SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
             }
             logger.info("In Emolga Listener!")
-            Database.dbScope.launch {
-                dbTransaction {
-                    val replayChannelId = fromReplayCommand?.tc ?: replayChannel?.idLong ?: return@dbTransaction
-                    val endlessId =
-                        EndlessLeagueChannelsDB.selectAll().where { EndlessLeagueChannelsDB.CHANNEL eq replayChannelId }
-                            .firstOrNull()?.get(
-                                EndlessLeagueChannelsDB.ID
-                            ) ?: return@dbTransaction
-                    if (EndlessLeagueDataDB.insertIgnore {
-                            it[ID] = endlessId
-                            it[URL] = url
-                        }.insertedCount > 0) {
-                        val newSize = EndlessLeagueDataDB.select(EndlessLeagueDataDB.ID)
-                            .where { EndlessLeagueDataDB.ID eq endlessId }.count()
-                        // new replay for this id
-                        val info = EndlessLeagueInfoDB.selectAll().where { EndlessLeagueInfoDB.ID eq endlessId }.first()
-                        RequestBuilder(info[EndlessLeagueInfoDB.SID]).addRow(
-                            info[EndlessLeagueInfoDB.STARTCOORD].toCoord().plusY(newSize.toInt() - 1), listOf(
-                                url,
-                                *listOf(u1, u2).let { if (game[0].winnerOfGame) it else it.reversed() }.toTypedArray(),
-                                game[0].totalKDCount.let { it.first - it.second }.absoluteValue
-                            )
-                        ).execute()
-                    }
-                }
-            }
             val kd =
                 game.map { it.pokemon.associate { p -> p.draftname.official to (p.kills to if (p.isDead) 1 else 0) } }
             if (leaguedata != null) {

@@ -1,7 +1,7 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "2.2.0"
+val kVersion = "2.2.10"
 plugins {
     val kVersion = "2.2.0"
     kotlin("jvm") version kVersion
@@ -114,8 +114,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-migration:$exposedVersion")
     // MongoDB
-    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.2.1")
-    implementation("org.litote.kmongo:kmongo-id-serialization:5.2.1")
+    implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.5.1")
+    implementation("org.litote.kmongo:kmongo-id-serialization:5.5.1")
 
     // Ktor
     ktor()
@@ -124,8 +124,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.21.1")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.0.M10")
-    testImplementation("io.kotest:kotest-assertions-core:6.0.0.M10")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.1")
+    testImplementation("io.kotest:kotest-assertions-core:6.0.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
 }

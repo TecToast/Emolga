@@ -24,6 +24,7 @@ import mu.KotlinLogging
 import java.util.*
 import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -116,6 +117,17 @@ class RepeatTask(
         private val allTasks = mutableMapOf<String, MutableMap<RepeatTaskType, RepeatTask>>()
         fun getTask(leaguename: String, type: RepeatTaskType) = allTasks[leaguename]?.get(type)
         suspend fun setupRepeatTasks() {
+            RepeatTask("SILKSONG", Other("SILKSONG"), "04.09.2025 16:00", 4, 1.days) {
+                jda.getTextChannelById(1309566024747843715)!!.sendMessage(
+                    when (it) {
+                        1 -> "https://tenor.com/view/dawn-of-the-first-day-gif-23933500"
+                        2 -> "https://tenor.com/view/dawn-gif-23933434"
+                        3 -> "https://tenor.com/view/majoras-mask-majora-zelda-final-day-gif-26658556"
+                        4 -> "https://tenor.com/view/silksong-basketball-ice-dunk-hornet-gif-3999940650987546913"
+                        else -> "Flo hat was kaputt gemacht :^)"
+                    }
+                ).queue()
+            }
             db.league.find().toFlow().collect { l ->
                 val name = l.leaguename
                 l.setupRepeatTasks()

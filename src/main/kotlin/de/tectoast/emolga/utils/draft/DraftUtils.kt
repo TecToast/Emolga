@@ -65,7 +65,7 @@ data class PickInput(
                 ?: error("No TERA tierlist found for guild ${league.guild}")) else tierlist
             val (tlName, official, _) = pokemon
             logger.info("tlName: $tlName, official: $official")
-            val (specifiedTier, officialTier, points) = (tl.getTierOfCommand(tlName, tier)
+            val (specifiedTier, officialTier, points) = (tl.getTierOfCommand(pokemon, tier)
                 ?: return iData.reply("Dieses Pokemon ist nicht in der Tierliste!").let { false })
             checkUpdraft(specifiedTier, officialTier)?.let { return iData.reply(it).let { false } }
             if (isPicked(official, officialTier)) return iData.reply("Dieses Pokemon wurde bereits gepickt!")
@@ -84,7 +84,7 @@ data class PickInput(
             lastPickedMon = pokemon
             val pickData = PickData(
                 league = league,
-                pokemon = tlName,
+                pokemon = if (tierlist.isEnglish) pokemon.otherTl!! else pokemon.tlName, // TODO refactor this
                 pokemonofficial = official,
                 tier = saveTier,
                 idx = idx,
@@ -142,9 +142,9 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
             val oldDraftMon = draftPokemons.firstOrNull { it.name == oldmon.official }
                 ?: return iData.reply("${oldmon.tlName} befindet sich nicht in deinem Kader!").let { false }
             val newtier =
-                tierlist.getTierOfCommand(newmon.tlName, null)
+                tierlist.getTierOfCommand(newmon, null)
                     ?: return iData.reply("Das neue Pokemon ist nicht in der Tierliste!").let { false }
-            val oldtier = tierlist.getTierOfCommand(oldmon.tlName, null)!!.specified
+            val oldtier = tierlist.getTierOfCommand(oldmon, null)!!.specified
             checkUpdraft(oldDraftMon.tier, newtier.official)?.let { return iData.reply(it).let { false }; }
             if (isPicked(newmon.official, newtier.official)) {
                 return iData.reply("${newmon.tlName} wurde bereits gepickt!").let { false }
@@ -158,7 +158,7 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
             val oldIndex = draftPokemons.indexOfFirst { it.name == oldmon.official }
             val switchData = SwitchData(
                 league = league,
-                pokemon = newmon.tlName,
+                pokemon = if (tierlist.isEnglish) newmon.otherTl!! else newmon.tlName, // TODO refactor this
                 pokemonofficial = newmon.official,
                 tier = newtier.specified,
                 mem = mem,
@@ -208,7 +208,7 @@ data class BanInput(val pokemon: DraftName) : DraftInput {
                 .let { false }
             val banRoundConfig =
                 config.banRounds[round] ?: return iData.reply("Runde **$round** ist keine Ban-Runde!").let { false }
-            val tier = (tierlist.getTierOfCommand(pokemon.tlName, insertedTier = null)
+            val tier = (tierlist.getTierOfCommand(pokemon, insertedTier = null)
                 ?: return iData.reply("Dieses Pokemon ist nicht in der Tierliste!").let { false }).official
             banRoundConfig.checkBan(tier, getAlreadyBannedMonsInThisRound())?.let { reason ->
                 return iData.reply(reason).let { false }
@@ -218,7 +218,14 @@ data class BanInput(val pokemon: DraftName) : DraftInput {
                     tier
                 )
             ) return iData.reply("Dieses Pokemon wurde bereits gebannt/gepickt!").let { false }
-            val banData = BanData(league, pokemon.tlName, pokemon.official, tier, current, round)
+            val banData = BanData(
+                league,
+                if (tierlist.isEnglish) pokemon.otherTl!! else pokemon.tlName,
+                pokemon.official,
+                tier,
+                current,
+                round
+            )
             lastPickedMon = pokemon
             banData.saveBan()
             banData.reply(type)

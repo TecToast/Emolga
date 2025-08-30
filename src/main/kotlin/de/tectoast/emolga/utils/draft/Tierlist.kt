@@ -1,6 +1,7 @@
 package de.tectoast.emolga.utils.draft
 
 import de.tectoast.emolga.database.dbTransaction
+import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.TierData
@@ -92,9 +93,10 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
             selectAll().where { basePredicate and (POKEMON eq mon) }.map { it[TIER] }.firstOrNull()
         }
 
-    suspend fun getTierOfCommand(pokemon: String, insertedTier: String?): TierData? {
+    suspend fun getTierOfCommand(pokemon: DraftName, insertedTier: String?): TierData? {
         val (real, points) = dbTransaction {
-            selectAll().where { basePredicate and (POKEMON eq pokemon) }.map { it[TIER] to it[POINTS] }.firstOrNull()
+            selectAll().where { basePredicate and (POKEMON eq if (isEnglish) pokemon.otherTl!! else pokemon.tlName) }
+                .map { it[TIER] to it[POINTS] }.firstOrNull()
         } ?: return null
         return if (insertedTier != null && mode.withTiers) {
             TierData(order.firstOrNull {

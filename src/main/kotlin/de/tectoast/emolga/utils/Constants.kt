@@ -11,7 +11,8 @@ object Constants {
     const val TEST_CATID = 1171541834397401149
     const val MYTAG = "@tectoast"
 
-    val DRAFTADMINS = setOf(FLOID, M.HENNY, 689440028505538574)
+    //TODO: Move to DB
+    val DRAFTADMINS = setOf(FLOID, M.HENNY, 689440028505538574, 263729526436134934)
 
     object G {
         const val ADK = 883292170533077002

@@ -40,6 +40,7 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
+        // TODO: Add support for multiple tierlists via identifier
         val id = League.onlyChannel(iData.tc)?.guild ?: iData.gid
         val tierlist = Tierlist[id] ?: return iData.reply("Es gibt keine Tierlist für diesen Server!")
         val mon = e.mon.tlName

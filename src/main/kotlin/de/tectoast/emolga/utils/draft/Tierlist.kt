@@ -68,7 +68,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         }
     }
 
-    suspend fun addPokemon(mon: String, tier: String) = dbTransaction {
+    suspend fun addPokemon(mon: String, tier: String, identifier: String? = null) = dbTransaction {
         insert {
             it[GUILD] = guildid
             it[POKEMON] = mon
@@ -131,7 +131,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         selectAll().where { basePredicate }.map { DraftPokemon(it[POKEMON], it[TIER]) }.toList()
     }
 
-    suspend fun addOrUpdateTier(mon: String, tier: String) {
+    suspend fun addOrUpdateTier(mon: String, tier: String, identifier: String? = null) {
         val existing = getTierOf(mon)
         if (existing != null) {
             if (existing != tier) {
@@ -144,7 +144,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
                 }
             }
         } else {
-            addPokemon(mon, tier)
+            addPokemon(mon, tier, identifier)
         }
     }
 

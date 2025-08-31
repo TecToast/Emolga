@@ -138,11 +138,11 @@ fun Route.ytSubscriptions() {
                             channel?.sendMessage("https://youtu.be/$videoId")?.queue()
                         }
                     }
-                    ytScope.launch {
-                        db.config.only().ytLeagues.forEach { (short, gid) ->
-                            if (title.contains(short, ignoreCase = true)) {
-                                handleVideo(channelId, videoId, gid)
-                            }
+                }
+                ytScope.launch {
+                    db.config.only().ytLeagues.forEach { (short, gid) ->
+                        if (title.contains(short, ignoreCase = true)) {
+                            handleVideo(channelId, videoId, gid)
                         }
                     }
                 }

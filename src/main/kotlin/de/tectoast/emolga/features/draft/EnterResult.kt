@@ -175,7 +175,7 @@ object EnterResult {
         val gameday = league.getGamedayData(idx1, idx2, List(2) { DraftPlayer(0, false) }).gameday
         val uuid = ResultCodesDB.add(league.leaguename, gameday, idx1, idx2)
         iData.reply(
-            "Die Ergebniseingabe wurde umgebaut und findet nun für eine effizientere Nutzung auf meiner Website statt!\nhttps://emolga.tectoast.de/result/${uuid}",
+            "Bitte trage das Ergebnis auf meiner Website ein:\nhttps://emolga.tectoast.de/result/${uuid}",
             ephemeral = true
         )
         /*ResultEntry(user, league, t).process {

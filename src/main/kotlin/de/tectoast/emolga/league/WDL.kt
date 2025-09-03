@@ -22,9 +22,10 @@ class WDL : League() {
                 Coord("Spielplan_S+D", if (isDoubles) "I" else "C", gdi.y(7, 6 + index)),
                 listOf(numberOne, numberTwo)
             )
-            killProcessor = BasicStatProcessor {
-                Coord("Kills-${if (isDoubles) "D" else "S"}-Einzeln", plindex.x(3, 3), gdi.y(14, 23 + monindex))
-            }
+        }
+        killProcessor = BasicStatProcessor {
+            val isDoubles = "Doubles" in leaguename
+            Coord("Kills-${if (isDoubles) "D" else "S"}-Einzeln", plindex.x(3, 3), gdi.y(14, 23 + monindex))
         }
     }
 

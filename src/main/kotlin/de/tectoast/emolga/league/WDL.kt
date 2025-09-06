@@ -23,7 +23,7 @@ class WDL : League() {
                 listOf(numberOne, numberTwo)
             )
         }
-        killProcessor = BasicStatProcessor {
+        killProcessor = Bo3BasicStatProcessor {
             val isDoubles = "Doubles" in leaguename
             Coord("Kills-${if (isDoubles) "D" else "S"}-Einzeln", plindex.x(3, 3), gdi.y(14, 23 + monindex))
         }

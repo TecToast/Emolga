@@ -160,8 +160,7 @@ fun Route.emolgaAPI() {
         post {
             val resultId = call.parameters["resultid"] ?: return@post call.respond(HttpStatusCode.BadRequest)
             val resData = ResultCodesDB.getEntryByCode(resultId) ?: return@post call.respond(HttpStatusCode.NotFound)
-            val body = call.receive<List<Map<String, KD>>>()
-            if (body.size != 2) return@post call.respond(HttpStatusCode.BadRequest)
+            val body = call.receive<List<List<Map<String, KD>>>>()
             // TODO: Maybe combine with ResultEntry? and clean up
             val idx1 = resData[ResultCodesDB.P1]
             val idx2 = resData[ResultCodesDB.P2]
@@ -179,40 +178,40 @@ fun Route.emolgaAPI() {
                     )
                 } else {
                     channel.sendResultEntryMessage(
-                        gamedayData.gameday, ResultEntryDescription.Direct(generateFinalMessage(this, idxs, body))
+                        gamedayData.gameday,
+                        ResultEntryDescription.MultiDirect(body.map { game -> generateFinalMessage(this, idxs, game) })
                     )
-                }
-                val game = body.mapIndexed { index, d ->
-                    wifiPlayers[index].apply {
-                        val dead = d.count { it.value.d }
-                        alivePokemon = d.size - dead
-                        winner = d.size != dead
-                    }
                 }
                 val officialNameCache = mutableMapOf<String, String>()
-                docEntry?.analyse(
-                    listOf(
-                        ReplayData(
-                            game = game,
-                            uindices = idxs,
-                            kd = body.map { p ->
-                                p.map {
-                                    NameConventionsDB.getDiscordTranslation(
-                                        it.key,
-                                        guild
-                                    )!!.official.also { official ->
-                                        officialNameCache[it.key] = official
-                                    } to (it.value.k to if (it.value.d) 1 else 0)
-                                }.toMap()
-                            },
-                            mons = body.map { l -> l.map { officialNameCache[it.key]!! } },
-                            url = "WIFI",
-                            gamedayData = gamedayData.apply {
-                                numbers = game.map { it.alivePokemon }
-                                    .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
-                            })
-                    )
-                )
+                val replayDatas = body.map { singleGame ->
+                    val game = singleGame.mapIndexed { index, d ->
+                        wifiPlayers[index].apply {
+                            val dead = d.count { it.value.d }
+                            alivePokemon = d.size - dead
+                            winner = d.size != dead
+                        }
+                    }
+                    ReplayData(
+                        game = game,
+                        uindices = idxs,
+                        kd = singleGame.map { p ->
+                            p.map {
+                                NameConventionsDB.getDiscordTranslation(
+                                    it.key,
+                                    guild
+                                )!!.official.also { official ->
+                                    officialNameCache[it.key] = official
+                                } to (it.value.k to if (it.value.d) 1 else 0)
+                            }.toMap()
+                        },
+                        mons = singleGame.map { l -> l.map { officialNameCache[it.key]!! } },
+                        url = "WIFI",
+                        gamedayData = gamedayData.apply {
+                            numbers = game.map { it.alivePokemon }
+                                .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
+                        })
+                }
+                docEntry?.analyse(replayDatas)
             }
             call.respond(HttpStatusCode.NoContent)
         }

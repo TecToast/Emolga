@@ -4,7 +4,6 @@ package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
@@ -127,6 +126,19 @@ class DocEntry private constructor(val league: League) {
         realExecute: Boolean = true,
         overrideSid: String? = null
     ) {
+        if (replayDatas.isEmpty()) return
+        run {
+            val firstReplayData = replayDatas.first()
+            for (rd in replayDatas) {
+                if (firstReplayData.uindices.size != rd.uindices.size || !firstReplayData.uindices.containsAll(rd.uindices)) {
+                    logger.warn("ReplayDatas do not have the same players! Aborting processing...")
+                    return
+                }
+            }
+        }
+        val sortedUindices = replayDatas.first().uindices.sorted()
+        val totalMonStats: MutableMap<Int, MutableMap<Int, MonStats>> = mutableMapOf()
+
         val matchResultJobs = mutableSetOf<Job>()
         val sid = overrideSid ?: league.sid
         val b = RequestBuilder(sid)
@@ -135,13 +147,11 @@ class DocEntry private constructor(val league: League) {
         val winsSoFar = mutableMapOf<Int, Int>()
         val loosesSoFar = mutableMapOf<Int, Int>()
         for ((index, replayData) in replayDatas.withIndex()) {
-            league.onReplayAnalyse(replayData)
-            val (game, uindices, kd, _, url, gamedayData, otherForms, _) = replayData
+            val (game, uindices, kd, _, _, gamedayData, otherForms, _) = replayData
             val (gameday, battleindex, u1IsSecond, _) = gamedayData
             if (cancelIf(replayData, gameday)) return
             if (gameday == -1) return
-            val sorted = uindices.sorted()
-            val lookUpIndex = if (uindices[0] == sorted[0]) 0 else 1
+            val lookUpIndex = if (uindices[0] == sortedUindices[0]) 0 else 1
             var totalKills = 0
             var totalDeaths = 0
             kd[lookUpIndex].values.forEach {
@@ -153,7 +163,7 @@ class DocEntry private constructor(val league: League) {
                     db.matchresults.insertOne(
                         MatchResult(
                             data = listOf(totalKills, totalDeaths),
-                            indices = sorted,
+                            indices = sortedUindices,
                             leaguename = league.leaguename,
                             gameday = gameday,
                             matchNum = index,
@@ -197,9 +207,9 @@ class DocEntry private constructor(val league: League) {
                         }
                         if (monIndex == -1) {
                             logger.warn("Mon $mon not found in picks of $idx")
-                            SendFeatures.sendToMe("Mon $mon not found in picks of $idx\n$url\n${league.leaguename}")
                             continue
                         }
+                        totalMonStats.getOrPut(idx) { mutableMapOf() }.getOrPut(monIndex) { MonStats() }.add(data)
                         val (kills, deaths) = data
                         val statProcessorData = generalStatProcessorData.withMonIndex(monIndex, iterationIndex)
                         fun Set<StatProcessor>.check(data: Any) {
@@ -245,6 +255,44 @@ class DocEntry private constructor(val league: League) {
         val gamedayData = firstData.gamedayData
         val (gameday, battleindex, u1IsSecond, _) = gamedayData
         val bo3 = replayDatas.size > 1
+        if (killProcessors.any { it is Bo3BasicStatProcessor } || deathProcessors.any { it is Bo3BasicStatProcessor } || monNameProcessors.any { it is Bo3BasicStatProcessor }) {
+            for (idx in sortedUindices) {
+                // TODO: rework this whole statprocessordata thing
+                val statProcessorData = StatProcessorData(
+                    plindex = idx,
+                    gameday = gameday,
+                    battleindex = battleindex,
+                    u1IsSecond = u1IsSecond,
+                    fightIndex = 0,
+                    matchNum = 0,
+                    winCountSoFar = winsSoFar[idx] ?: 0,
+                    looseCountSoFar = loosesSoFar[idx] ?: 0
+                )
+                totalMonStats[idx]?.forEach { (monIndex, stats) ->
+                    val spd = statProcessorData.withMonIndex(monIndex, -1)
+                    killProcessors.forEach { p ->
+                        if (p is Bo3BasicStatProcessor) {
+                            with(p) {
+                                val k = spd.process()
+                                dataB.addSingle(
+                                    k.toString(), stats.kills
+                                )
+                            }
+                        }
+                    }
+                    deathProcessors.forEach { p ->
+                        if (p is Bo3BasicStatProcessor) {
+                            with(p) {
+                                val k = spd.process()
+                                dataB.addSingle(
+                                    k.toString(), stats.deaths
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
         val winningIndex: Int
         if (bo3) {
             val sdNamesOfFirstGame = firstData.game.map { it.sdPlayer?.nickname }
@@ -426,6 +474,12 @@ class DocEntry private constructor(val league: League) {
 }
 
 data class DirectCompareData(var points: Int, var kills: Int, var deaths: Int, val index: Int)
+private data class MonStats(var kills: Int = 0, var deaths: Int = 0) {
+    fun add(stats: Pair<Int, Int>) {
+        kills += stats.first
+        deaths += stats.second
+    }
+}
 
 data class StatProcessorData(
     val plindex: Int,
@@ -459,6 +513,10 @@ fun interface CombinedStatProcessor : StatProcessor {
     fun StatProcessorData.process(): Coord
 }
 
+fun interface Bo3BasicStatProcessor : StatProcessor {
+    fun StatProcessorData.process(): Coord
+}
+
 fun interface ResultStatProcessor {
     fun StatProcessorData.process(): Coord
 }
@@ -471,6 +529,7 @@ data class ReplayData(
     // TODO: is mons obsolete? because all mons are already in kd (rework the whole thing)
     val mons: List<List<String>>,
     val url: String,
+    // TODO: For Bo3, all gamedayData are the same, so we could also just have one
     val gamedayData: GamedayData,
     val otherForms: Map<String, List<String>> = emptyMap(),
     val ytVideoSaveData: YTVideoSaveData = YTVideoSaveData()

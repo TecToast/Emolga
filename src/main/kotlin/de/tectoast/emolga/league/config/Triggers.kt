@@ -8,4 +8,5 @@ data class Triggers(
     val allowPickDuringSwitch: Boolean = false,
     val alwaysSendTierOnPick: Boolean = false,
     val saveReplayData: Boolean = false,
+    val bo3: Boolean = false,
 )

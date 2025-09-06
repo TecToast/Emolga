@@ -71,8 +71,7 @@ sealed class StateStore {
 
         context(iData: InteractionData) suspend inline fun <reified T : StateStore> processIgnoreMissing(block: T.() -> Unit) =
             (db.statestore.findOne(
-                StateStore::uid eq iData.user,
-                Filters.eq<String?>("type", T::class.simpleName)
+                StateStore::uid eq iData.user, Filters.eq<String?>("type", T::class.simpleName)
             ) as T?)?.process(block)
 
     }
@@ -136,8 +135,7 @@ class ResultEntry : StateStore {
         gamedayData = l.getGamedayData(uidxs[0], uidxs[1], wifiPlayers)
         if (gamedayData.gameday == -1) {
             iData.reply(
-                "Im Spielplan ist kein Kampf zwischen dir und <@$opponent> geplant!",
-                ephemeral = true
+                "Im Spielplan ist kein Kampf zwischen dir und <@$opponent> geplant!", ephemeral = true
             )
             delete()
             return
@@ -291,10 +289,16 @@ class ResultEntry : StateStore {
 }
 
 fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEntryDescription) {
+    val embeds = if (input is ResultEntryDescription.MultiDirect) input.descriptions.mapIndexed { index, desc ->
+        Embed(
+            title = "Spieltag $gameday - Kampf ${index + 1}", description = desc, color = embedColor
+        )
+    }
+    else Embed(
+        title = "Spieltag $gameday", description = input.provideDescription(), color = embedColor
+    ).into()
     send(
-        embeds = Embed(
-            title = "Spieltag $gameday", description = input.provideDescription(), color = embedColor
-        ).into()
+        embeds = embeds
     ).queue()
 }
 
@@ -306,6 +310,11 @@ sealed interface ResultEntryDescription {
 
     data class FromUids(val uids: List<Long>) : ResultEntryDescription {
         override fun provideDescription() = uids.joinToString(" vs. ") { "<@${it}>" } + " ✅"
+    }
+
+    // TODO: clean up this
+    data class MultiDirect(val descriptions: List<String>) : ResultEntryDescription {
+        override fun provideDescription() = error("Implemented directly")
     }
 }
 

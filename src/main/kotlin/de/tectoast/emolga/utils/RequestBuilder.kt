@@ -429,7 +429,7 @@ class RequestBuilder
         logger.info("sid = $sid")
         for (i in userentered.indices) {
             val range = userentered[i]
-            logger.info("{}: {} -> {}", i, range.range, range.values)
+            logger.info("{}: {} -> {}", i, range.range, range.getValues())
         }
     }
 

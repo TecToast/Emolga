@@ -678,6 +678,8 @@ sealed class LeagueEvent {
     abstract val timestamp: Instant
     abstract val indices: List<Int>
 
+    abstract fun manipulate(map: MutableMap<Int, DirectCompareData>)
+
     sealed class Sanction : LeagueEvent() {
         abstract val reason: String
         abstract val issuer: Long
@@ -707,7 +709,6 @@ sealed class LeagueEvent {
         }
     }
 
-    abstract fun manipulate(map: MutableMap<Int, DirectCompareData>)
 
     @Serializable
     @SerialName("Zeroed")

@@ -5,9 +5,8 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
-import kotlinx.coroutines.flow.map
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.inList
-import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.jdbc.select
 import org.litote.kmongo.gt
 
 class NameConventionsDBTest : FunSpec({
@@ -16,7 +15,7 @@ class NameConventionsDBTest : FunSpec({
         dbTransaction {
             val notExistent = allMons - NameConventionsDB.select(NameConventionsDB.ENGLISH)
                 .where(NameConventionsDB.ENGLISH inList allMons)
-                .map { it[NameConventionsDB.ENGLISH] }
+                .map { it[NameConventionsDB.ENGLISH] }.toSet()
             notExistent.shouldBeEmpty()
         }
     }

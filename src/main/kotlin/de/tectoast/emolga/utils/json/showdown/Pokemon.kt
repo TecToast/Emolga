@@ -39,19 +39,21 @@ data class Pokemon(
     val isNonstandard: String? = null,
     val changesFrom: String? = null
 
-    ) {
+) {
 
     val speed: Int
         get() = baseStats["spe"]!!
 
-    fun getGen5Sprite(): String {
+    fun getGen5SpriteFormula(): String {
         return buildString {
             append("=IMAGE(\"https://play.pokemonshowdown.com/sprites/gen5/")
-            append(
-                (baseSpecies ?: name).toSDName().notNullAppend(forme?.toSDName()?.let { "-$it" })
-            )
+            append(calcSpriteName())
             append(".png\"; 1)")
         }
+    }
+
+    fun calcSpriteName(): String {
+        return (baseSpecies ?: name).toSDName().notNullAppend(forme?.toSDName()?.let { "-$it" })
     }
 
     fun getIcon(): String {

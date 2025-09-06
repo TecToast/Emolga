@@ -802,7 +802,6 @@ sealed class League {
             "Spieltag ${gdData.gameday.takeIf { it >= 0 } ?: "-"}: " + league.uindices.joinToString(" vs. ") { "<@${table[it]}>" }
     }
 
-    open suspend fun onReplayAnalyse(data: ReplayData) {}
 
     fun getGamedayData(idx1: Int, idx2: Int, game: List<DraftPlayer>): GamedayData {
         var u1IsSecond = false
@@ -1332,7 +1331,10 @@ enum class TimerSkipResult {
 
 @Serializable
 data class GamedayData(
-    val gameday: Int, val battleindex: Int, val u1IsSecond: Boolean, var numbers: List<Int> = emptyList()
+    val gameday: Int,
+    val battleindex: Int, /*TODO: Remove u1IsSecond*/
+    val u1IsSecond: Boolean,
+    var numbers: List<Int> = emptyList()
 )
 
 sealed interface VideoProvideStrategy {

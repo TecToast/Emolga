@@ -45,7 +45,7 @@ class ASL(
     override suspend fun AddToTierlistData.addMonToTierlist() {
         val poke = pkmn.await()
         builder().addRow(
-            "Data!B${index() + 600}", listOf(mon, tier, poke.getGen5Sprite(), poke.speed, englishTLName.await())
+            "Data!B${index() + 600}", listOf(mon, tier, poke.getGen5SpriteFormula(), poke.speed, englishTLName.await())
         ).execute()
     }
 

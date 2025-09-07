@@ -5,7 +5,7 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.showdown.Analysis
-import dev.minn.jda.ktx.coroutines.await
+import kotlinx.coroutines.future.await
 
 object RFileWithGuildCommand :
     CommandFeature<RFileWithGuildCommand.Args>(::Args, CommandSpec("rfilewithguild", "Replay-File with guild")) {

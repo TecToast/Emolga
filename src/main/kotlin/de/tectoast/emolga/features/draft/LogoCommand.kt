@@ -8,8 +8,8 @@ import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.json.LogoChecksum
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
-import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.future.await
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Message
@@ -68,7 +68,7 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
             logoData.checksum
         }
 
-    data class LogoInputData(val fileExtension: String, val bytes: ByteArray) {
+    class LogoInputData(val fileExtension: String, val bytes: ByteArray) {
         val checksum = hashBytes(bytes)
         val fileName = "$checksum.$fileExtension"
 

@@ -36,6 +36,7 @@ import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.future.await
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.UserSnowflake

@@ -97,11 +97,11 @@ dependencies {
 
     // JDA
     implementation("net.dv8tion:JDA:5.6.1")
-    implementation("club.minnced:jda-ktx:0.12.0")
+    implementation("club.minnced:jda-ktx:0.13.0")
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250616-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20250819-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20250829-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20250714-2.0.0")
 
     // Database
@@ -126,8 +126,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.21.2")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.1")
-    testImplementation("io.kotest:kotest-assertions-core:6.0.1")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.2")
+    testImplementation("io.kotest:kotest-assertions-core:6.0.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
 }

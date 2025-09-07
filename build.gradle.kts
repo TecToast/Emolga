@@ -97,7 +97,7 @@ dependencies {
 
     // JDA
     implementation("net.dv8tion:JDA:5.6.1")
-    implementation("club.minnced:jda-ktx:0.12.0")
+    implementation("club.minnced:jda-ktx:0.13.0")
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250616-2.0.0")

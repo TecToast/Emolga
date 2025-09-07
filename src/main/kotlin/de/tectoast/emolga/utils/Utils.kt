@@ -141,6 +141,8 @@ inline fun String.ifNotEmpty(block: (String) -> String): String {
 }
 
 fun String.surroundWith(surround: String) = surround + this + surround
+fun String.surroundWithIf(surround: String, condition: Boolean) =
+    if (condition) surroundWith(surround) else this
 
 inline fun <T> Collection<T>.randomWithCondition(condition: (T) -> Boolean) = this.filter(condition).randomOrNull()
 

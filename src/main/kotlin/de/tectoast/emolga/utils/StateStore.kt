@@ -11,6 +11,8 @@ import de.tectoast.emolga.features.draft.during.QueuePicks
 import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode.*
 import de.tectoast.emolga.features.draft.during.QueuePicks.isIllegal
 import de.tectoast.emolga.features.intoMultipleRows
+import de.tectoast.emolga.ktor.KD
+import de.tectoast.emolga.ktor.generateFinalMessage
 import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
@@ -29,6 +31,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import org.litote.kmongo.and
 import org.litote.kmongo.eq
+import java.awt.Color
 
 @Serializable
 sealed class StateStore {
@@ -277,7 +280,7 @@ class ResultEntry : StateStore {
     }
 
     private val List<MonData>.kills get() = sumOf { it.kills }
-    private val List<MonData>.dead get() = sumOf { (if (it.dead) 1 else 0).toInt() }
+    private val List<MonData>.dead get() = sumOf { (if (it.dead) 1 else 0) }
 
     @Serializable
     data class MonData(val pokemon: String, val official: String, val kills: Int, val dead: Boolean) {
@@ -288,13 +291,25 @@ class ResultEntry : StateStore {
 
 }
 
-fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEntryDescription) {
-    val embeds = if (input is ResultEntryDescription.MultiDirect) input.descriptions.mapIndexed { index, desc ->
-        Embed(
-            title = "Spieltag $gameday - Kampf ${index + 1}", description = desc, color = embedColor
-        )
-    }
-    else Embed(
+context(league: League)
+suspend fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEntryDescription) {
+    val embeds = if (input is ResultEntryDescription.Bo3) {
+        val spoiler = SpoilerTagsDB.contains(league.guild)
+        val descriptions = input.games.map { game -> generateFinalMessage(league, input.idxs, game) }
+        listOf(
+            Embed(
+                title = "Spieltag $gameday",
+                description = "<@${league[input.idxs[0]]}> ${
+                    input.numbers.joinToString(":").surroundWithIf("||", spoiler)
+                } <@${league[input.idxs[1]]}>",
+                color = Color.YELLOW.rgb
+            )
+        ) + descriptions.mapIndexed { index, desc ->
+            Embed(
+                title = "Spieltag $gameday - Kampf ${index + 1}", description = desc, color = embedColor
+            )
+        }
+    } else Embed(
         title = "Spieltag $gameday", description = input.provideDescription(), color = embedColor
     ).into()
     send(
@@ -313,7 +328,8 @@ sealed interface ResultEntryDescription {
     }
 
     // TODO: clean up this
-    data class MultiDirect(val descriptions: List<String>) : ResultEntryDescription {
+    data class Bo3(val games: List<List<Map<String, KD>>>, val idxs: List<Int>, val numbers: List<Int>) :
+        ResultEntryDescription {
         override fun provideDescription() = error("Implemented directly")
     }
 }

@@ -295,17 +295,14 @@ class DocEntry private constructor(val league: League) {
         }
         val winningIndex: Int
         if (bo3) {
-            val sdNamesOfFirstGame = firstData.game.map { it.sdPlayer?.nickname }
             val uindicesOfFirstGame = firstData.uindices
-            val groupBy = replayDatas.groupBy { it.game.first { g -> g.winner }.sdPlayer?.nickname }
-            winningIndex =
-                uindicesOfFirstGame[groupBy
-                    .maxByOrNull { it.value.size }?.key.indexedBy(sdNamesOfFirstGame)]
+            val groupBy = replayDatas.groupBy { it.game.indexOfFirst { g -> g.winner } }
+            winningIndex = uindicesOfFirstGame[groupBy.maxBy { it.value.size }.key]
             league.config.tipgame?.let { tg ->
                 TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winningIndex)
             }
             val numbers =
-                sdNamesOfFirstGame.map { groupBy[it]?.size ?: 0 }.let { if (u1IsSecond) it.reversed() else it }
+                (0..1).map { groupBy[it]?.size ?: 0 }.let { if (u1IsSecond) it.reversed() else it }
             resultCreator?.let {
                 AdvancedResult(
                     b = b,

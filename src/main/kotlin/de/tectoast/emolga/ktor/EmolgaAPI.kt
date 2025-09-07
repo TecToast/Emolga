@@ -170,18 +170,6 @@ fun Route.emolgaAPI() {
                 val channel = jda.getTextChannelById(resultChannel!!)!!
                 val wifiPlayers = (0..1).map { DraftPlayer(0, false) }
                 val gamedayData = getGamedayData(idx1, idx2, wifiPlayers)
-                if (config.replayDataStore != null) {
-                    channel.sendResultEntryMessage(
-                        resData[ResultCodesDB.GAMEDAY],
-                        ResultEntryDescription.FromUids(idxs.map { table[it] }
-                            .let { if (gamedayData.u1IsSecond) it.reversed() else it })
-                    )
-                } else {
-                    channel.sendResultEntryMessage(
-                        gamedayData.gameday,
-                        ResultEntryDescription.MultiDirect(body.map { game -> generateFinalMessage(this, idxs, game) })
-                    )
-                }
                 val officialNameCache = mutableMapOf<String, String>()
                 val replayDatas = body.map { singleGame ->
                     val game = singleGame.mapIndexed { index, d ->
@@ -210,6 +198,21 @@ fun Route.emolgaAPI() {
                             numbers = game.map { it.alivePokemon }
                                 .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
                         })
+                }
+                if (config.replayDataStore != null) {
+                    channel.sendResultEntryMessage(
+                        resData[ResultCodesDB.GAMEDAY],
+                        ResultEntryDescription.FromUids(idxs.map { table[it] }
+                            .let { if (gamedayData.u1IsSecond) it.reversed() else it })
+                    )
+                } else {
+                    channel.sendResultEntryMessage(
+                        gamedayData.gameday,
+                        ResultEntryDescription.Bo3(
+                            body,
+                            idxs,
+                            (0..1).map { replayDatas.count { rd -> rd.game[it].winner } })
+                    )
                 }
                 docEntry?.analyse(replayDatas)
             }
@@ -258,7 +261,7 @@ data class UsageDataTotal(val total: Int, val maxGameday: Int, val allLeagues: L
 @Serializable
 data class UsageData(val mon: String, val count: Int)
 
-private suspend fun generateFinalMessage(league: League, idxs: List<Int>, data: List<Map<String, KD>>): String {
+suspend fun generateFinalMessage(league: League, idxs: List<Int>, data: List<Map<String, KD>>): String {
     val spoiler = SpoilerTagsDB.contains(league.guild)
     return "${
         data.mapIndexed { index, sdPlayer ->

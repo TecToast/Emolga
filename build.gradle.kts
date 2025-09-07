@@ -126,8 +126,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.21.2")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.1")
-    testImplementation("io.kotest:kotest-assertions-core:6.0.1")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.2")
+    testImplementation("io.kotest:kotest-assertions-core:6.0.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
 }

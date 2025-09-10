@@ -212,7 +212,7 @@ class ResultEntry : StateStore {
                         )
                         channel.sendResultEntryMessage(
                             gamedayData.gameday,
-                            ResultEntryDescription.FromUids(uidxs.let { if (gamedayData.u1IsSecond) it.reversed() else it }
+                            ResultEntryDescription.MatchPresent(uidxs.let { if (gamedayData.u1IsSecond) it.reversed() else it }
                                 .map { league()[it] })
                         )
                     } else {
@@ -294,20 +294,27 @@ class ResultEntry : StateStore {
 context(league: League)
 suspend fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEntryDescription) {
     val embeds = if (input is ResultEntryDescription.Bo3) {
+        // TODO: Clean this up
         val spoiler = SpoilerTagsDB.contains(league.guild)
         val descriptions = input.games.map { game -> generateFinalMessage(league, input.idxs, game) }
-        listOf(
-            Embed(
+        buildList {
+            val actualBo3 = input.games.size > 1
+            if (actualBo3) add(
+                Embed(
                 title = "Spieltag $gameday",
                 description = "<@${league[input.idxs[0]]}> ${
                     input.numbers.joinToString(":").surroundWithIf("||", spoiler)
                 } <@${league[input.idxs[1]]}>",
                 color = Color.YELLOW.rgb
+                )
             )
-        ) + descriptions.mapIndexed { index, desc ->
-            Embed(
-                title = "Spieltag $gameday - Kampf ${index + 1}", description = desc, color = embedColor
-            )
+            addAll(descriptions.mapIndexed { index, desc ->
+                Embed(
+                    title = "Spieltag $gameday".condAppend(actualBo3, " - Kampf ${index + 1}"),
+                    description = desc,
+                    color = embedColor
+                )
+            })
         }
     } else Embed(
         title = "Spieltag $gameday", description = input.provideDescription(), color = embedColor
@@ -323,7 +330,7 @@ sealed interface ResultEntryDescription {
         override fun provideDescription() = description
     }
 
-    data class FromUids(val uids: List<Long>) : ResultEntryDescription {
+    data class MatchPresent(val uids: List<Long>) : ResultEntryDescription {
         override fun provideDescription() = uids.joinToString(" vs. ") { "<@${it}>" } + " ✅"
     }
 

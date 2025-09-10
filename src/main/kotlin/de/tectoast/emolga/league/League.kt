@@ -300,18 +300,19 @@ sealed class League {
     open fun handleTiers(
         specifiedTier: String, officialTier: String, fromSwitch: Boolean = false
     ): Boolean {
-        if (!tierlist.mode.withTiers || (tierlist.variableMegaPrice && "#" in officialTier)) return false
+        val tl = tierlist
+        if (!tl.mode.withTiers || (tl.variableMegaPrice && "#" in officialTier)) return false
         val map = getPossibleTiers()
         if (!map.containsKey(specifiedTier)) {
             iData.reply("Das Tier `$specifiedTier` existiert nicht!")
             return true
         }
-        if (tierlist.order.indexOf(officialTier) < tierlist.order.indexOf(specifiedTier) && (!fromSwitch || map[specifiedTier]!! <= 0)) {
+        if (tl.order.indexOf(officialTier) < tl.order.indexOf(specifiedTier) && (!fromSwitch || map[specifiedTier]!! <= 0)) {
             iData.reply("Du kannst ein $officialTier-Mon nicht ins $specifiedTier hochdraften!")
             return true
         }
         if (map[specifiedTier]!! <= 0) {
-            if (tierlist.prices[specifiedTier] == 0) {
+            if (tl.prices[specifiedTier] == 0) {
                 iData.reply("Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!")
                 return true
             }
@@ -637,7 +638,7 @@ sealed class League {
         return tierlist.prices.toMutableMap().let { possible ->
             cpicks?.forEach { pick ->
                 pick.takeUnless { it.name == "???" || it.free || it.quit }
-                    ?.let { possible[it.tier] = possible[it.tier]!! - 1 }
+                    ?.let { possible.add(it.tier, -1) }
             }
             possible
         }.also { possible ->

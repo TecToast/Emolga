@@ -135,6 +135,12 @@ class DocEntry private constructor(val league: League) {
                     return
                 }
             }
+            league.config.tipgame?.let { _ ->
+                league.executeTipGameLockButtonsIndividual(
+                    firstReplayData.gamedayData.gameday,
+                    firstReplayData.gamedayData.battleindex
+                )
+            }
         }
         val sortedUindices = replayDatas.first().uindices.sorted()
         val totalMonStats: MutableMap<Int, MutableMap<Int, MonStats>> = mutableMapOf()
@@ -298,7 +304,7 @@ class DocEntry private constructor(val league: League) {
             val uindicesOfFirstGame = firstData.uindices
             val groupBy = replayDatas.groupBy { it.game.indexOfFirst { g -> g.winner } }
             winningIndex = uindicesOfFirstGame[groupBy.maxBy { it.value.size }.key]
-            league.config.tipgame?.let { tg ->
+            league.config.tipgame?.let { _ ->
                 TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winningIndex)
             }
             val numbers =
@@ -320,7 +326,7 @@ class DocEntry private constructor(val league: League) {
             val game = firstData.game
             val uindices = firstData.uindices
             winningIndex = (if (game[0].winner) uindices[0] else uindices[1])
-            league.config.tipgame?.let { tg ->
+            league.config.tipgame?.let { _ ->
                 TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winningIndex)
             }
             val numbers = firstData.gamedayData.numbers

@@ -263,14 +263,8 @@ class RepeatTask(
         }
 
         suspend fun executeRegisterInDoc(league: League, gameday: Int, battle: Int) {
-            var shouldDelay = false
-            league.config.tipgame?.let { _ ->
-                league.executeTipGameLockButtonsIndividual(gameday, battle)
-                shouldDelay = true
-            }
             val dataStore = league.persistentData.replayDataStore
             dataStore.data[gameday]?.get(battle)?.let {
-                if (shouldDelay) delay(2000)
                 league.docEntry?.analyseWithoutCheck(listOf(it))
                 league.save("RepeatTaskYT")
             }

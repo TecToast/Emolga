@@ -16,17 +16,24 @@ class WDL : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
+        val isDoubles = "Doubles" in leaguename
         resultCreator = {
-            val isDoubles = "Doubles" in leaguename
             b.addRow(
                 Coord("Spielplan_S+D", if (isDoubles) "I" else "C", gdi.y(7, 6 + index)),
                 listOf(numberOne, numberTwo)
             )
         }
         killProcessor = Bo3BasicStatProcessor {
-            val isDoubles = "Doubles" in leaguename
             Coord("Kills-${if (isDoubles) "D" else "S"}-Einzeln", plindex.x(3, 3), gdi.y(14, 23 + monindex))
         }
+        /*sorterData = SorterData(if(isDoubles) "Tabelle-S+D!A5:D12" else "Tabelle-S+D!A19:D26", directCompare = listOf(), indexer = {
+            val coord = it.toCoord()
+            (coord.x - 2) / 2 + (coord.y - 3) / 18 * 2
+        },
+            includeAllLevels = false,
+            newMethod = false,
+            cols = listOf(1,2,-2,3,-1)
+        )*/
     }
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {

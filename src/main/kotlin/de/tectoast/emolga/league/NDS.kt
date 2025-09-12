@@ -41,7 +41,7 @@ class NDS(val rr: Boolean) : League() {
 
     override fun checkFinishedForbidden(idx: Int) = when {
         picks[idx]!!.filter { !it.quit }.size < 15 -> "Du hast noch keine 15 Pokemon!"
-        !getPossibleTiers().values.all { it == 0 } -> "Du musst noch deine Tiers ausgleichen!"
+        !getPossibleTiers().all { tiers -> tiers.values.all { it == 0 } } -> "Du musst noch deine Tiers ausgleichen!"
         else -> null
     }
 

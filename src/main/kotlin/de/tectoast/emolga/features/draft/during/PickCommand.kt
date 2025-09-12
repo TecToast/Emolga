@@ -19,7 +19,8 @@ object PickCommand :
             slashCommand { s, event ->
                 val league = League.onlyChannel(event.channel.idLong) ?: return@slashCommand null
                 val current = league.currentOrFromID(event.user.idLong) ?: return@slashCommand null
-                league.getPossibleTiers(forAutocomplete = true, idx = current).filter { it.value > 0 }.map { it.key }
+                league.getPossibleTiers(forAutocomplete = true, idx = current).flatMap { it.entries }
+                    .filter { it.value > 0 }.map { it.key }.distinct()
                     .filterStartsWithIgnoreCase(s)
             }
         }.nullable()

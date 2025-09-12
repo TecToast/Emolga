@@ -18,6 +18,7 @@ object QueuePicks {
             return true
         } else return false
     }
+
     object Command : CommandFeature<NoArgs>(
         NoArgs(), CommandSpec(
             "queuepicks", "Verwalte deine gequeueten Picks", *draftGuilds
@@ -48,7 +49,8 @@ object QueuePicks {
         object Add : CommandFeature<Add.Args>(::Args, CommandSpec("add", "Füge einen Pick hinzu")) {
             class Args : Arguments() {
                 var mon by draftPokemon("Pokemon", "Das Pokemon, das du hinzufügen möchtest")
-                var oldmon by draftPokemon("Altes Mon",
+                var oldmon by draftPokemon(
+                    "Altes Mon",
                     "Das Pokemon, was rausgeschmissen werden soll",
                     autocomplete = { s, event ->
                         val league = db.leagueByGuild(event.guild?.idLong ?: -1, event.user.idLong)
@@ -61,7 +63,8 @@ object QueuePicks {
             override suspend fun exec(e: Args) {
                 iData.ephemeralDefault()
                 iData.deferReply()
-                League.executeOnFreshLock({ db.leagueByCommand() },
+                League.executeOnFreshLock(
+                    { db.leagueByCommand() },
                     { return iData.reply("Du bist in keiner Liga auf diesem Server!") }) {
                     if (queueNotEnabled()) return
                     val oldmon = e.oldmon
@@ -105,7 +108,8 @@ object QueuePicks {
 
         context(iData: InteractionData)
         suspend fun changeActivation(enable: Boolean) {
-            League.executeOnFreshLock({ db.leagueByCommand() },
+            League.executeOnFreshLock(
+                { db.leagueByCommand() },
                 { return iData.reply("Du bist in keiner Liga auf diesem Server!") }) {
                 if (queueNotEnabled()) return
                 val idx = this(iData.user)
@@ -235,14 +239,24 @@ object QueuePicks {
 
             TierlistMode.TIERS -> {
                 val tiers = league.getPossibleTiers(idx)
-                currentState.forEach {
-                    tiers.add(league.tierlist.getTierOf(it.g.tlName)!!, -1)
-                    it.y?.let { y -> tiers.add(league.tierlist.getTierOf(y.tlName)!!, 1) }
+                for (map in tiers) {
+                    currentState.forEach {
+                        map.add(league.tierlist.getTierOf(it.g.tlName)!!, -1)
+                        it.y?.let { y -> map.add(league.tierlist.getTierOf(y.tlName)!!, 1) }
+                    }
                 }
-                tiers.entries.firstOrNull { it.value < 0 }?.let {
-                    iData.reply("Mit dieser Queue hättest du zu viele Pokemon im `${it.key}`-Tier!")
-                    true
-                } == true
+                val result = tiers.mapNotNull { map ->
+                    map.entries.firstOrNull { it.value < 0 }
+                }
+                val isIllegal = result.size == tiers.size
+                if (isIllegal) {
+                    iData.reply(
+                        "Mit dieser Queue hättest du zu viele Pokemon im `${
+                            result.distinct().joinToString("/")
+                        }`-Tier!"
+                    )
+                }
+                isIllegal
             }
 
             TierlistMode.TIERS_WITH_FREE -> {

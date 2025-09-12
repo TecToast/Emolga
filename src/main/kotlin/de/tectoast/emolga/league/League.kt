@@ -242,8 +242,7 @@ sealed class League {
         }
     }
 
-    context(iData: InteractionData)
-    open fun handlePoints(
+    context(iData: InteractionData) open fun handlePoints(
         free: Boolean, tier: String, tierOld: String? = null, mega: Boolean = false, extraCosts: Int? = null
     ): Boolean {
         if (!tierlist.mode.withPoints) return false
@@ -296,22 +295,22 @@ sealed class League {
     fun minimumNeededPointsForTeamCompletion(picksSizeAfterAdd: Int) =
         (min(totalRounds, tierlist.maxMonsToPay) - picksSizeAfterAdd) * tierlist.prices.values.min()
 
-    context(iData: InteractionData)
-    open fun handleTiers(
+    context(iData: InteractionData) open fun handleTiers(
         specifiedTier: String, officialTier: String, fromSwitch: Boolean = false
     ): Boolean {
         val tl = tierlist
         if (!tl.mode.withTiers || (tl.variableMegaPrice && "#" in officialTier)) return false
-        val map = getPossibleTiers()
-        if (!map.containsKey(specifiedTier)) {
+        val allMaps = getPossibleTiers()
+        if (!tierlist.order.contains(specifiedTier)) {
             iData.reply("Das Tier `$specifiedTier` existiert nicht!")
             return true
         }
-        if (tl.order.indexOf(officialTier) < tl.order.indexOf(specifiedTier) && (!fromSwitch || map[specifiedTier]!! <= 0)) {
+        if (tl.order.indexOf(officialTier) < tl.order.indexOf(specifiedTier) && (!fromSwitch || allMaps.all { map -> map[specifiedTier]!! <= 0 })) {
             iData.reply("Du kannst ein $officialTier-Mon nicht ins $specifiedTier hochdraften!")
             return true
         }
-        if (map[specifiedTier]!! <= 0) {
+        if (allMaps.all { map -> map[specifiedTier]!! <= 0 }) {
+            // TODO: Check if this is correct with tl.prices
             if (tl.prices[specifiedTier] == 0) {
                 iData.reply("Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!")
                 return true
@@ -633,32 +632,36 @@ sealed class League {
 
     open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
-    fun getPossibleTiers(idx: Int = current, forAutocomplete: Boolean = false): MutableMap<String, Int> {
+    fun getPossibleTiers(idx: Int = current, forAutocomplete: Boolean = false): List<MutableMap<String, Int>> {
         val cpicks = picks[idx]
-        return tierlist.prices.toMutableMap().let { possible ->
-            cpicks?.forEach { pick ->
-                pick.takeUnless { it.name == "???" || it.free || it.quit }
-                    ?.let { possible.add(it.tier, -1) }
+        return tierlist.allPrices.mapNotNull { prices ->
+            val result = prices.toMutableMap().let { possible ->
+                cpicks?.forEach { pick ->
+                    pick.takeUnless { it.name == "???" || it.free || it.quit }?.let { possible.add(it.tier, -1) }
+                }
+                possible
+            }.also { possible ->
+                if (tierlist.variableMegaPrice) {
+                    possible.keys.toList().forEach { if (it.startsWith("Mega#")) possible.remove(it) }
+                    if (!forAutocomplete) possible["Mega"] = if (cpicks?.none { it.name.isMega } != false) 1 else 0
+                }
+                manipulatePossibleTiers(cpicks, possible)
             }
-            possible
-        }.also { possible ->
-            if (tierlist.variableMegaPrice) {
-                possible.keys.toList().forEach { if (it.startsWith("Mega#")) possible.remove(it) }
-                if (!forAutocomplete) possible["Mega"] = if (cpicks?.none { it.name.isMega } != false) 1 else 0
-            }
-            manipulatePossibleTiers(cpicks, possible)
+            if (result.values.any { it < 0 }) null else result
         }
     }
 
     open fun manipulatePossibleTiers(picks: MutableList<DraftPokemon>?, possible: MutableMap<String, Int>) {}
 
     fun getPossibleTiersAsString(idx: Int = current) =
-        getPossibleTiers(idx).entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
-            .joinToString { "${it.value}x **".condAppend(it.key.toIntOrNull() != null, "Tier ") + "${it.key}**" }
-            .let { str ->
-                if (tierlist.mode.isTiersWithFree()) str + "; ${tierlist.freePicksAmount - picks[idx]!!.count { it.free }}x **Free Pick**"
-                else str
-            }
+        getPossibleTiers(idx).joinToString(" **--- oder ---** ") { tiers ->
+            tiers.entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
+                .joinToString { "${it.value}x **".condAppend(it.key.toIntOrNull() != null, "Tier ") + "${it.key}**" }
+                .let { str ->
+                    if (tierlist.mode.isTiersWithFree()) str + "; ${tierlist.freePicksAmount - picks[idx]!!.count { it.free }}x **Free Pick**"
+                    else str
+                }
+        }
 
 
     fun DraftData.getTierInsertIndex(takePicks: Int = picks.size): Int {
@@ -718,13 +721,12 @@ sealed class League {
         config.teraSelect?.let {
             tc.sendMessage("Bitte wähle deinen ${it.type}-User aus den folgenden Tiers aus: ${it.tiers.joinToString { "**$it**" }}")
                 .queue()
-            persistentData.teraSelect.mid =
-                tc.send(
-                    content = generateCompletedText(emptySet()),
-                    components = TeraZSelect.Begin(label = "${it.type}-User auswählen") {
-                        this.league = leaguename
-                    }.into()
-                ).await().id
+            persistentData.teraSelect.mid = tc.send(
+                content = generateCompletedText(emptySet()),
+                components = TeraZSelect.Begin(label = "${it.type}-User auswählen") {
+                    this.league = leaguename
+                }.into()
+            ).await().id
             save()
         }
     }
@@ -761,8 +763,7 @@ sealed class League {
 
     fun builder() = RequestBuilder(sid)
 
-    context(iData: InteractionData)
-    suspend fun replyGeneral(
+    context(iData: InteractionData) suspend fun replyGeneral(
         msg: String,
         components: Collection<LayoutComponent> = SendDefaults.components,
         ifTestUseTc: MessageChannel? = null
@@ -773,8 +774,7 @@ sealed class League {
     )
 
 
-    context(iData: InteractionData)
-    suspend fun replyWithTestInteractionCheck(
+    context(iData: InteractionData) suspend fun replyWithTestInteractionCheck(
         content: String,
         components: Collection<LayoutComponent> = SendDefaults.components,
         ifTestUseTc: MessageChannel? = null
@@ -783,8 +783,7 @@ sealed class League {
             content, components = components
         )
 
-    context (data: InteractionData)
-    suspend fun replySkip() {
+    context (data: InteractionData) suspend fun replySkip() {
         replyGeneral("den Pick übersprungen!")
     }
 
@@ -912,11 +911,7 @@ sealed class League {
     }
 
     suspend fun executeYoutubeSend(
-        ytTC: Long,
-        gameday: Int,
-        battle: Int,
-        strategy: VideoProvideStrategy,
-        overrideEnabled: Boolean = false
+        ytTC: Long, gameday: Int, battle: Int, strategy: VideoProvideStrategy, overrideEnabled: Boolean = false
     ) {
         val ytConfig = config.youtube ?: return
         val ytVideoSaveData = persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
@@ -970,8 +965,7 @@ sealed class League {
     fun generateCompletedText(completed: Set<Int>): String {
         return table.indices.joinToString("\n") {
             getTeamUserIds(it).joinToString(
-                separator = " & ",
-                postfix = ": ${if (it in completed) "✅" else "❌"}"
+                separator = " & ", postfix = ": ${if (it in completed) "✅" else "❌"}"
             ) { "<@${it}>" }
         }
     }
@@ -1041,8 +1035,7 @@ sealed class League {
             }
         }
 
-        context(iData: InteractionData)
-        suspend inline fun executePickLike(block: League.() -> Unit) {
+        context(iData: InteractionData) suspend inline fun executePickLike(block: League.() -> Unit) {
             executeOnFreshLock({ byCommand() }, { it.first }, {
                 if (!iData.replied) {
                     iData.reply(
@@ -1062,8 +1055,7 @@ sealed class League {
             }
         }
 
-        context (iData: InteractionData)
-        suspend fun byCommand(): Pair<League, BypassCurrentPlayerData>? {
+        context (iData: InteractionData) suspend fun byCommand(): Pair<League, BypassCurrentPlayerData>? {
             val onlyChannel = onlyChannel(iData.tc)
             logger.info("leaguename {}", onlyChannel?.leaguename)
             return onlyChannel?.run {
@@ -1092,8 +1084,10 @@ sealed class League {
         suspend fun onlyChannel(tc: Long) =
             db.league.find(League::draftState ne DraftState.OFF, League::tcid eq tc).first()
 
-        context(iData: InteractionData)
-        suspend inline fun executeAsNotCurrent(asParticipant: Boolean, block: League.() -> Unit) {
+        context(iData: InteractionData) suspend inline fun executeAsNotCurrent(
+            asParticipant: Boolean,
+            block: League.() -> Unit
+        ) {
             executeOnFreshLock({ onlyChannel(iData.tc)?.takeIf { !asParticipant || iData.user in it.table } }, {
                 iData.reply(
                     if (asParticipant) "In diesem Channel läuft kein Draft, an welchem du teilnimmst!" else "Es läuft zurzeit kein Draft in diesem Channel!",
@@ -1332,10 +1326,8 @@ enum class TimerSkipResult {
 
 @Serializable
 data class GamedayData(
-    val gameday: Int,
-    val battleindex: Int, /*TODO: Remove u1IsSecond*/
-    val u1IsSecond: Boolean,
-    var numbers: List<Int> = emptyList()
+    val gameday: Int, val battleindex: Int, /*TODO: Remove u1IsSecond*/
+    val u1IsSecond: Boolean, var numbers: List<Int> = emptyList()
 )
 
 sealed interface VideoProvideStrategy {

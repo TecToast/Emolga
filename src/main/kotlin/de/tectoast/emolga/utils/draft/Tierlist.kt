@@ -33,6 +33,8 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
      */
     val prices: MutableMap<String, Int> = mutableMapOf()
     val freepicks: MutableMap<String, Int> = mutableMapOf()
+    val additionalPrices: List<MutableMap<String, Int>> = mutableListOf()
+    val allPrices get() = buildList { add(prices); addAll(additionalPrices) }
 
     var mode: TierlistMode = TierlistMode.POINTS
     var points = 0

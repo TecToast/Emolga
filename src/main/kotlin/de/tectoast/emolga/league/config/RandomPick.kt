@@ -111,7 +111,7 @@ sealed interface RandomPickMode {
 
     context(league: League, iData: InteractionData)
     fun parseTier(tier: String?, config: RandomPickConfig): String? {
-        if (tier == null) return if (league.tierlist.mode.withTiers) league.getPossibleTiers()
+        if (tier == null) return if (league.tierlist.mode.withTiers) league.getPossibleTiers().random()
             .filter { it.value > 0 }.keys.random() else league.tierlist.order.last()
         val parsedTier = league.tierlist.order.firstOrNull { it.equals(tier, ignoreCase = true) }
         if (parsedTier == null) {

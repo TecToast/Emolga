@@ -25,7 +25,7 @@ import kotlin.time.Duration.Companion.days
 @SerialName("NDS")
 class NDS(val rr: Boolean) : League() {
 
-
+    override val duringTimerSkipMode = NEXT_PICK
     val nominations: Nominations = Nominations(1, mutableMapOf())
     val sheetids: Map<String, Int> = mapOf()
     val teamtable: List<String> = emptyList()

@@ -5,7 +5,6 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB.convertOfficialToTL
 import de.tectoast.emolga.features.PrivateCommands
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Language
-import de.tectoast.emolga.utils.MappedCache
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
@@ -173,7 +172,7 @@ object NameConventionsDB : Table("nameconventions") {
         return null
     }
 
-    private val possibleSpecs = MappedCache(emolgaDB.defaultNameConventions) { it.keys }
+    private val possibleSpecs = OneTimeCache { emolgaDB.defaultNameConventions().keys }
 
     /**
      * Gets a DraftName given the SD/Official variant of a name

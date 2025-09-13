@@ -122,7 +122,8 @@ class ASLCoachData(
             data.users.groupBy { it.conference!! }
         }
 
-        val participants = MappedCache(groupedParticipants) { groupBy ->
+        val participants = OneTimeCache {
+            val groupBy = groupedParticipants()
             val data = db.signups.get(Constants.G.ASL)!!
             buildMap {
                 for ((index, conference) in data.conferences.withIndex()) {

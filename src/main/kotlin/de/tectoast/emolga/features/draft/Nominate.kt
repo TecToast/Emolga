@@ -33,12 +33,14 @@ object Nominate {
 
         init {
             registerDMListener("!nominate") { e ->
+                val uid = e.author.idLong
                 League.executeOnFreshLock({ db.nds() }) {
                     val nds = this as NDS
+                    if (uid !in nds.table) return@executeOnFreshLock
                     val nom = nds.nominations
                     val nomUser =
-                        if (e.author.idLong == Constants.FLOID) WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toInt() else nds(
-                            e.author.idLong
+                        if (uid == Constants.FLOID) WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toInt() else nds(
+                            uid
                         )
                     if (nomUser in nom.nominated.getOrPut(nom.currentDay) { mutableMapOf() }) {
                         return@registerDMListener e.channel.sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!")
@@ -51,7 +53,7 @@ object Nominate {
                             )
                         }
                     val sortedList = list.sortedWith(tiercomparator)
-                    NominateState(e.author.idLong, nomUser, list, sortedList).process {
+                    NominateState(uid, nomUser, list, sortedList).process {
                         e.channel.sendMessage(
                             MessageCreate(
                                 embeds = Embed(

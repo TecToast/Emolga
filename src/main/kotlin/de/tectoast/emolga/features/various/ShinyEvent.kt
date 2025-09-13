@@ -24,7 +24,7 @@ import kotlin.time.ExperimentalTime
 object ShinyEvent {
 
     val guildToEvent = OneTimeCache {
-        db.shinyEventConfig.find().toList().associate { it.guild to it }
+        db.shinyEventConfig.find().toList().associateBy { it.guild }
     }
 
     object ShinyCommand : CommandFeature<ShinyCommand.Args>(

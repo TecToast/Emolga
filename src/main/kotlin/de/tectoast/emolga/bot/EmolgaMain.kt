@@ -3,6 +3,7 @@ package de.tectoast.emolga.bot
 import de.tectoast.emolga.bot.EmolgaMain.emolgajda
 import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.database.exposed.AnalysisStatistics
+import de.tectoast.emolga.database.exposed.CmdManager
 import de.tectoast.emolga.features.FeatureManager
 import de.tectoast.emolga.league.DraftState
 import de.tectoast.emolga.league.League
@@ -94,6 +95,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
     suspend fun startListeners() {
         launch {
             featureManager.updateCachedValue()
+            CmdManager.startupCheck()
         }
         db.config.only().maintenance?.let {
             maintenance = it

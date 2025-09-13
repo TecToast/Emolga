@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 object ControlButtonSetup {
-    private val CONTROLCENTRALGENERATION = ControlCentralData(false, 967890099029278740, 967890640065134602)
+    private val CONTROLCENTRALGENERATION = ControlCentralData(true, 967890099029278740, 967890640065134602)
     private val FLORIXCONTROLGENERATION = FlorixControlData(
         false, 964528154549055558, mapOf(
             PC.FLORIX_2 to 964571226964115496, PC.FLORIX_4 to 975076826588282962
@@ -27,9 +27,6 @@ object ControlButtonSetup {
             val tc = jda.getTextChannelById(it.tc)!!
             val embed = Embed(title = "Kontrollzentrale", color = embedColor).into()
             val components = listOf(
-                ControlCentralButton("Slash-Commands updaten", ButtonStyle.PRIMARY) {
-                    mode = ControlCentralButton.Mode.UPDATE_SLASH
-                },
                 ControlCentralButton("Tierlist updaten", ButtonStyle.PRIMARY) {
                     mode = ControlCentralButton.Mode.UPDATE_TIERLIST
                 },

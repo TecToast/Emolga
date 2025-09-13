@@ -3,14 +3,14 @@
 package de.tectoast.emolga.features
 
 import com.google.common.reflect.ClassPath
+import de.tectoast.emolga.bot.EmolgaMain
+import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.exposed.CmdManager
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.createCoroutineScope
-import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.only
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import mu.KotlinLogging
-import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
@@ -39,8 +39,11 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
     private val features: Map<KClass<*>, Map<String, Feature<*, *, Arguments>>>
     private val listeners: Map<KClass<out GenericEvent>, List<suspend (GenericEvent) -> Unit>>
 
+    val featureList get() = loadListeners.filterIsInstance<Feature<*, *, *>>()
+    val registeredFeatureList get() = featureList.filter { it.spec is RegisteredFeatureSpec }
+
     init {
-        val featuresSet = loadListeners.filterIsInstance<Feature<*, *, *>>()
+        val featuresSet = featureList
         eventToName = featuresSet.associate {
             @Suppress("USELESS_CAST") // compiler bug
             it.eventClass to (it.eventToName as (GenericInteractionCreateEvent) -> String)
@@ -152,37 +155,6 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         map.getOrPut(it) { mutableSetOf() }.add(func(it))
     }
 
-    suspend fun updateFeatures(jda: JDA, updateGuilds: List<Long>? = null) {
-        val guildFeatures: MutableMap<Long, MutableSet<CommandData>> = mutableMapOf()
-        with(guildFeatures) {
-            loadListeners.filterIsInstance<Feature<*, *, *>>().forEach { cmd ->
-                if (cmd.spec !is GuildedFeatureSpec || cmd.disabled) return@forEach
-                val gids = cmd.spec.guilds + Constants.G.MY
-                when (cmd) {
-                    is CommandFeature<*> -> {
-                        gids.addToFeatures { gid ->
-                            buildSlashCommandData(cmd, gid)
-                        }
-                    }
-
-                    is MessageContextFeature -> {
-                        gids.addToFeatures {
-                            Commands.message(cmd.spec.name)
-                        }
-                    }
-
-                    else -> {}
-                }
-            }
-        }
-
-        for (gid in updateGuilds ?: db.config.only().guildsToUpdate.ifEmpty { guildFeatures.keys }) {
-            val commands = guildFeatures[gid].orEmpty()
-            (if (gid == -1L) jda.updateCommands()
-            else jda.getGuildById(gid)!!.updateCommands()).addCommands(commands).queue()
-        }
-    }
-
     private suspend fun buildSlashCommandData(
         cmd: CommandFeature<*>,
         gid: Long
@@ -202,10 +174,27 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         } else addOptions(generateOptionData(cmd, gid))
     }
 
-    suspend fun updateSingleCommand(name: String, gid: Long, jda: JDA = de.tectoast.emolga.bot.jda) {
-        jda.getGuildById(gid)!!
-            .upsertCommand(buildSlashCommandData(loadListeners.first { it is CommandFeature<*> && it.spec.name == name } as CommandFeature<*>,
-                gid)).queue()
+    suspend fun updateCommandsForGuild(gid: Long) {
+        val guildFeatures: MutableSet<CommandData> = mutableSetOf()
+        val allFeatureNames = CmdManager.getFeaturesForGuild(gid)
+        with(guildFeatures) {
+            loadListeners.filterIsInstance<Feature<*, *, *>> { it.spec.name in allFeatureNames }.forEach { cmd ->
+                when (cmd) {
+                    is CommandFeature<*> -> {
+                        add(buildSlashCommandData(cmd, gid))
+                    }
+
+                    is MessageContextFeature -> {
+                        add(Commands.message(cmd.spec.name))
+                    }
+
+                    else -> {}
+                }
+            }
+        }
+        val usedJda = if (gid == Constants.G.PEPE) EmolgaMain.flegmonjda else jda
+        (if (gid == -1L) usedJda.updateCommands()
+        else usedJda.getGuildById(gid)!!.updateCommands()).addCommands(guildFeatures).queue()
     }
 
     private suspend fun generateOptionData(feature: CommandFeature<*>, gid: Long): List<OptionData> {
@@ -238,3 +227,8 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
     }
 }
 
+inline fun <reified T> Iterable<*>.filterIsInstance(filter: (T) -> Boolean): List<T> {
+    val result = ArrayList<T>()
+    for (element in this) if (element is T && filter(element)) result.add(element)
+    return result
+}

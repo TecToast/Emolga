@@ -550,11 +550,6 @@ object PrivateCommands {
         EmolgaMain.updatePresence()
     }
 
-    context(iData: InteractionData)
-    suspend fun updateFlegmonSlash() {
-        EmolgaMain.featureManager().updateFeatures(flegmonjda)
-    }
-
     // Order:
     // Announcechannel mit Button
     // Channel in dem die Anmeldungen reinkommen

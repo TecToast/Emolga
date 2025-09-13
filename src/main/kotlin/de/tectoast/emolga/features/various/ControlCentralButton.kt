@@ -1,6 +1,5 @@
 package de.tectoast.emolga.features.various
 
-import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
@@ -14,7 +13,6 @@ object ControlCentralButton : ButtonFeature<ControlCentralButton.Args>(::Args, B
     }
 
     enum class Mode {
-        UPDATE_SLASH,
         UPDATE_TIERLIST,
         BREAKPOINT,
         RELOAD_LOG_CONFIG
@@ -25,7 +23,6 @@ object ControlCentralButton : ButtonFeature<ControlCentralButton.Args>(::Args, B
         var breakpoint = false
         iData.deferReply(true)
         when (e.mode) {
-            Mode.UPDATE_SLASH -> EmolgaMain.featureManager().updateFeatures(iData.jda)
             Mode.UPDATE_TIERLIST -> Tierlist.setup()
             Mode.BREAKPOINT -> breakpoint = true
             Mode.RELOAD_LOG_CONFIG -> LogConfigReload.reloadConfiguration()

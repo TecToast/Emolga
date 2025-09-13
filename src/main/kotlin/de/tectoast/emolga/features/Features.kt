@@ -367,14 +367,15 @@ abstract class MessageContextFeature(spec: MessageContextSpec) :
 }
 
 sealed class FeatureSpec(open val name: String)
-sealed class GuildedFeatureSpec(name: String, vararg val guilds: Long) : FeatureSpec(name) {
+sealed class RegisteredFeatureSpec(name: String, vararg val guilds: Long) : FeatureSpec(name) {
     var inDM = false
 }
-class CommandSpec(name: String, val help: String, vararg guilds: Long) : GuildedFeatureSpec(name, *guilds)
+
+class CommandSpec(name: String, val help: String, vararg guilds: Long) : RegisteredFeatureSpec(name, *guilds)
 class ButtonSpec(name: String) : FeatureSpec(name)
 class ModalSpec(name: String) : FeatureSpec(name)
 class SelectMenuSpec(name: String) : FeatureSpec(name)
-class MessageContextSpec(name: String, vararg guilds: Long) : GuildedFeatureSpec(name, *guilds)
+class MessageContextSpec(name: String, vararg guilds: Long) : RegisteredFeatureSpec(name, *guilds)
 
 sealed interface ArgSpec
 data class CommandArgSpec(

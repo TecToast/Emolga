@@ -18,7 +18,7 @@ import javax.imageio.ImageIO
 import kotlin.time.TimeSource
 
 object RandomTeamGrafikCommand : CommandFeature<NoArgs>(
-    NoArgs(), CommandSpec("randomteamgrafik", "Du bekommst sensationelle und fancyge Teamgrafiken", Constants.G.FPL)
+    NoArgs(), CommandSpec("randomteamgrafik", "Du bekommst sensationelle und fancyge Teamgrafiken")
 ) {
     private val logger = KotlinLogging.logger {}
 

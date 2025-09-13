@@ -5,11 +5,10 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.Constants
 
 object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
     ::Args,
-    CommandSpec("draftsetup", "Startet das Draften der Liga in diesem Channel", *draftGuilds)
+    CommandSpec("draftsetup", "Startet das Draften der Liga in diesem Channel")
 ) {
     class Args : Arguments() {
         var name by string("Name", "Der Name der Liga")
@@ -20,7 +19,7 @@ object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
     }
 
     init {
-        restrict(members(Constants.M.HENNY, Constants.M.INK, 265917650490753025))
+        restrict(flo)
     }
 
     context(iData: InteractionData)

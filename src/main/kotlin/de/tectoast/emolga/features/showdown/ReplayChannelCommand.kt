@@ -5,7 +5,7 @@ import de.tectoast.emolga.features.*
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 
 object ReplayChannelCommand :
-    CommandFeature<NoArgs>(NoArgs(), CommandSpec("replaychannel", "Konfiguriert die Replay-Channel", -1)) {
+    CommandFeature<NoArgs>(NoArgs(), CommandSpec("replaychannel", "Konfiguriert die Replay-Channel")) {
 
     object Add : CommandFeature<Add.Args>(
         ::Args,

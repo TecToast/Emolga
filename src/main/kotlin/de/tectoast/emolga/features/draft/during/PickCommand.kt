@@ -10,7 +10,7 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 
 object PickCommand :
-    CommandFeature<PickCommand.Args>(PickCommand::Args, CommandSpec("pick", "Pickt ein Pokemon", *draftGuilds)) {
+    CommandFeature<PickCommand.Args>(PickCommand::Args, CommandSpec("pick", "Pickt ein Pokemon")) {
 
 
     class Args : Arguments() {

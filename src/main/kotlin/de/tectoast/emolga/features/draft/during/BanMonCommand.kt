@@ -5,14 +5,13 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.BanInput
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils
 
 object BanMonCommand : CommandFeature<BanMonCommand.Args>(
     ::Args,
-    CommandSpec("banmon", "Bannt ein Mon im Pick&Ban-System", Constants.G.FLP, Constants.G.EPP)
+    CommandSpec("banmon", "Bannt ein Mon im Pick&Ban-System")
 ) {
     class Args : Arguments() {
         var pokemon by draftPokemon("Pokemon", "Das Pokemon, welches du bannen möchtest")

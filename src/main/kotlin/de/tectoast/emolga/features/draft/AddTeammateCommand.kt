@@ -11,7 +11,6 @@ object AddTeammateCommand : CommandFeature<AddTeammateCommand.Args>(
     ::Args, CommandSpec(
         "addteammate",
         "Fügt einen Spieler zu deinem Team hinzu, falls du angemeldet bist",
-        *draftGuilds
     )
 ) {
     class Args : Arguments() {

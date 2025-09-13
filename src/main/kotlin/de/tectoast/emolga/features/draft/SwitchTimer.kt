@@ -2,8 +2,10 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.SwitchTimer
+import de.tectoast.emolga.utils.TimeUtils
+import de.tectoast.emolga.utils.TimerInfo
+import de.tectoast.emolga.utils.l
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 object SwitchTimer {
@@ -12,7 +14,6 @@ object SwitchTimer {
         CommandSpec(
             "switchtimercreate",
             "Konfiguriert den Switch-Timer für eine Liga und erstellt ein Control-Panel",
-            Constants.G.VIP, Constants.G.NPL
         )
     ) {
         class Args : Arguments() {

@@ -11,7 +11,6 @@ object SpoilerTagsCommand : CommandFeature<NoArgs>(
     CommandSpec(
         "spoilertags",
         "Aktiviert oder deaktiviert den Spoilerschutz bei Showdown-Ergebnissen. (Gilt serverweit)",
-        -1
     )
 ) {
     context(iData: InteractionData)

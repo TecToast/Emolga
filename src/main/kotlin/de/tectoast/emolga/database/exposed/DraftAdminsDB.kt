@@ -9,7 +9,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 
 object DraftAdminsDB : Table("draftadmins") {
     val GUILD = long("guildid")
-    private val ROLEID = long("roleid").nullable()
+    val ROLEID = long("roleid").nullable()
     val USERID = long("userid").nullable()
 
     /**
@@ -20,7 +20,7 @@ object DraftAdminsDB : Table("draftadmins") {
      */
     suspend fun isAdmin(gid: Long, mem: Member) = dbTransaction {
         selectAll().where {
-            (GUILD eq gid) and ((ROLEID inList mem.roles.map { it.idLong }) or (USERID eq mem.idLong))
+            (GUILD eq gid or (GUILD eq 0)) and ((ROLEID inList mem.roles.map { it.idLong }) or (USERID eq mem.idLong))
         }.count() > 0
     }
 }

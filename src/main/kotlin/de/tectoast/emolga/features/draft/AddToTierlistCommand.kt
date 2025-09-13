@@ -20,7 +20,7 @@ import java.sql.SQLIntegrityConstraintViolationException
 
 object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
     ::Args,
-    CommandSpec("addtotierlist", "Fügt ein Mon in die Tierliste ein", *draftGuilds)
+    CommandSpec("addtotierlist", "Fügt ein Mon in die Tierliste ein")
 ) {
     private val logger = KotlinLogging.logger {}
     class Args : Arguments() {

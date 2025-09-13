@@ -11,7 +11,7 @@ import de.tectoast.emolga.utils.draft.SwitchInput
 import mu.KotlinLogging
 
 object SwitchCommand :
-    CommandFeature<SwitchCommand.Args>(::Args, CommandSpec("switch", "Switcht ein Pokemon", *draftGuilds)) {
+    CommandFeature<SwitchCommand.Args>(::Args, CommandSpec("switch", "Switcht ein Pokemon")) {
 
     private val logger = KotlinLogging.logger {}
 

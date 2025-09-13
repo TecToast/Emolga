@@ -4,7 +4,10 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.httpClient
+import de.tectoast.emolga.utils.notNullAppend
+import de.tectoast.emolga.utils.otherJSON
+import de.tectoast.emolga.utils.toUsername
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.delay
@@ -16,8 +19,6 @@ object SearchReplaysCommand : CommandFeature<SearchReplaysCommand.Args>(
     CommandSpec(
         "searchreplays",
         "Sucht nach Replays der angegebenen Showdownbenutzernamen",
-        Constants.G.ASL,
-        Constants.G.FLP
     )
 ) {
     class Args : Arguments() {

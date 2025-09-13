@@ -408,9 +408,6 @@ class TierlistBuilderConfigurator(
                 }.joinToString("\n"))
             }
         }
-
-
-        val enabledGuilds = setOf<Long>()
     }
 }
 

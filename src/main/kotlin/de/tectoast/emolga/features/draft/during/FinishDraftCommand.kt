@@ -7,7 +7,7 @@ import de.tectoast.emolga.features.NoArgs
 import de.tectoast.emolga.league.League
 
 object FinishDraftCommand :
-    CommandFeature<NoArgs>(NoArgs(), CommandSpec("finishdraft", "Beendet für dich den Draft", *draftGuilds)) {
+    CommandFeature<NoArgs>(NoArgs(), CommandSpec("finishdraft", "Beendet für dich den Draft")) {
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
         League.executeAsNotCurrent(asParticipant = true) {

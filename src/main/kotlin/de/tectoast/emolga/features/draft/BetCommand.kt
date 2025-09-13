@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger
 object BetCommand :
     CommandFeature<BetCommand.Args>(
         ::Args,
-        CommandSpec("bet", "Beginne die Versteigerung eines Spielers", Constants.G.ASL)
+        CommandSpec("bet", "Beginne die Versteigerung eines Spielers")
     ) {
     class Args : Arguments() {
         var player by member("Spieler", "Der Spieler, der versteigert werden soll")

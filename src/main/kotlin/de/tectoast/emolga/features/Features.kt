@@ -108,37 +108,12 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
         member().hasPermission(Permission.ADMINISTRATOR)
     }
     val flo: BooleanCheck = { false } // flo may use any feature regardless of this configuration
-    val henny = user(Constants.M.HENNY)
 
     context (data: InteractionData)
     abstract suspend fun exec(e: A)
 
     context(iData: InteractionData)
     suspend fun exec(argsBuilder: ArgBuilder<@UnsafeVariance A> = {}) = exec(buildArgs(argsBuilder))
-
-    companion object {
-        val draftGuilds = longArrayOf(
-            Constants.G.FPL,
-            Constants.G.NDS,
-            Constants.G.ASL,
-            Constants.G.BLOCKI,
-            Constants.G.VIP,
-            Constants.G.FLP,
-            Constants.G.WARRIOR,
-            Constants.G.BSP,
-            Constants.G.PIKAS,
-            Constants.G.WFS,
-            Constants.G.ADK,
-            Constants.G.COMMUNITY,
-            Constants.G.HELBIN,
-            Constants.G.EPP,
-            Constants.G.LOEWE,
-            Constants.G.UDTA,
-            Constants.G.NPL,
-            Constants.G.GPC,
-            Constants.G.PC,
-        )
-    }
 }
 typealias ArgBuilder<A> = (@UnsafeVariance A).() -> Unit
 typealias BooleanCheck = suspend InteractionData.() -> Boolean
@@ -367,15 +342,15 @@ abstract class MessageContextFeature(spec: MessageContextSpec) :
 }
 
 sealed class FeatureSpec(open val name: String)
-sealed class RegisteredFeatureSpec(name: String, vararg val guilds: Long) : FeatureSpec(name) {
+sealed class RegisteredFeatureSpec(name: String) : FeatureSpec(name) {
     var inDM = false
 }
 
-class CommandSpec(name: String, val help: String, vararg guilds: Long) : RegisteredFeatureSpec(name, *guilds)
+class CommandSpec(name: String, val help: String) : RegisteredFeatureSpec(name)
 class ButtonSpec(name: String) : FeatureSpec(name)
 class ModalSpec(name: String) : FeatureSpec(name)
 class SelectMenuSpec(name: String) : FeatureSpec(name)
-class MessageContextSpec(name: String, vararg guilds: Long) : RegisteredFeatureSpec(name, *guilds)
+class MessageContextSpec(name: String) : RegisteredFeatureSpec(name)
 
 sealed interface ArgSpec
 data class CommandArgSpec(

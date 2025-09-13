@@ -8,16 +8,15 @@ import de.tectoast.emolga.features.NoArgs
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NextPlayerData
 import de.tectoast.emolga.league.SkipReason
-import de.tectoast.emolga.utils.Constants
 import net.dv8tion.jda.api.Permission
 
 object SkipPickCommand :
-    CommandFeature<NoArgs>(NoArgs(), CommandSpec("skippick", "Skippe eine Person beim Draft", *draftGuilds)) {
+    CommandFeature<NoArgs>(NoArgs(), CommandSpec("skippick", "Skippe eine Person beim Draft")) {
 
     init {
         restrict {
             val mem = member()
-            user in Constants.DRAFTADMINS || mem.hasPermission(Permission.ADMINISTRATOR) || DraftAdminsDB.isAdmin(
+            mem.hasPermission(Permission.ADMINISTRATOR) || DraftAdminsDB.isAdmin(
                 mem.guild.idLong,
                 mem
             )

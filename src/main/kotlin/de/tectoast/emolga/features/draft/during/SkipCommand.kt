@@ -8,7 +8,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NextPlayerData
 import de.tectoast.emolga.league.SkipReason
 
-object SkipCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("skip", "Überspringt deinen Zug", *draftGuilds)) {
+object SkipCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("skip", "Überspringt deinen Zug")) {
 
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {

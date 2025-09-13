@@ -2,7 +2,6 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import kotlinx.coroutines.flow.map
@@ -13,7 +12,7 @@ import org.litote.kmongo.`in`
 object LeagueManage {
     object LeagueManageCommand : CommandFeature<NoArgs>(
         NoArgs(),
-        CommandSpec("leaguemanage", "Möglichkeiten zur Verwaltung einer Liga", Constants.G.VIP, Constants.G.EPP)
+        CommandSpec("leaguemanage", "Möglichkeiten zur Verwaltung einer Liga")
     ) {
         init {
             slashPrivate()

@@ -2,7 +2,6 @@ package de.tectoast.emolga.features.draft.during
 
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.*
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.json.db
 
@@ -13,7 +12,7 @@ object TeraAndZ {
 
     object Command : CommandFeature<NoArgs>(
         NoArgs(),
-        CommandSpec("teraandz", "Stellt deinen Tera- und Z-User ein", Constants.G.NDS)
+        CommandSpec("teraandz", "Stellt deinen Tera- und Z-User ein")
     ) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {

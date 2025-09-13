@@ -3,7 +3,6 @@ package de.tectoast.emolga.features.various
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.features.various.SimpleLifeBarEventManager.AdminResetButton.ResetType
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.condAppend
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.SelectOption
@@ -232,7 +231,7 @@ object SimpleLifeBarEventManager {
     val events = mutableMapOf<Long, SimpleLifeBarEvent>()
 
     object Command :
-        CommandFeature<Command.Args>(::Args, CommandSpec("simplelifebar", "simplelifebar", Constants.G.COMMUNITY)) {
+        CommandFeature<Command.Args>(::Args, CommandSpec("simplelifebar", "simplelifebar")) {
 
         class Args : Arguments() {
             var hasVote by boolean(

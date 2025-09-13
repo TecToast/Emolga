@@ -12,7 +12,7 @@ import dev.minn.jda.ktx.messages.into
 
 object DraftStatusCommand : CommandFeature<DraftStatusCommand.Args>(
     ::Args,
-    CommandSpec("draftstatus", "Zeigt Informationen für den aktuellen Draft an", *draftGuilds)
+    CommandSpec("draftstatus", "Zeigt Informationen für den aktuellen Draft an")
 ) {
     class Args : Arguments() {
         var user by member("User", "Der User, dessen Status angezeigt werden soll").nullable()

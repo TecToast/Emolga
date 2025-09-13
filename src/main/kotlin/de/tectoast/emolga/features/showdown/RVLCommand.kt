@@ -5,13 +5,12 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.showdown.Analysis
 import dev.minn.jda.ktx.generics.getChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 
 object RVLCommand :
-    CommandFeature<RVLCommand.Args>(::Args, CommandSpec("rvl", "Replay-Command für die RVL", Constants.G.VIP)) {
+    CommandFeature<RVLCommand.Args>(::Args, CommandSpec("rvl", "Replay-Command für die RVL")) {
     class Args : Arguments() {
         var replay1 by string("Replay 1", "Das erste Replay")
         var replay2 by string("Replay 2", "Das zweite Replay")
@@ -32,7 +31,6 @@ object RVLCommand :
             urlsProvided = listOfNotNull(e.replay1, e.replay2, e.replay3),
             resultchannelParam = tc,
             fromReplayCommand = iData,
-            customGuild = Constants.G.VIP
         )
     }
 }

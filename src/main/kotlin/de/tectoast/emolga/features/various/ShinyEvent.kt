@@ -4,7 +4,6 @@ package de.tectoast.emolga.features.various
 
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.features.various.ShinyEvent.SingleGame.*
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.ShinyEventResult
@@ -28,7 +27,7 @@ object ShinyEvent {
     }
 
     object ShinyCommand : CommandFeature<ShinyCommand.Args>(
-        ::Args, CommandSpec("shiny", "Reicht ein Shiny für das Event ein", Constants.G.PEPE, Constants.G.COMMUNITY)
+        ::Args, CommandSpec("shiny", "Reicht ein Shiny für das Event ein")
     ) {
         class Args : Arguments() {
             var game by enumBasic<SingleGame>("spiel", "Das Spiel, in dem das Shiny gefangen wurde")

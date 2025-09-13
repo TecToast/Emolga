@@ -1,7 +1,6 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
-import de.tectoast.emolga.utils.Constants
 import kotlinx.coroutines.flow.asFlow
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.jetbrains.exposed.v1.core.Table
@@ -45,7 +44,7 @@ object BirthdayDB : Table("birthdays") {
             selectAll().where {
                 MONTH eq (cal[Calendar.MONTH] + 1) and (DAY eq cal[Calendar.DAY_OF_MONTH])
             }.asFlow().collect {
-                val age = if (it[USERID] == Constants.M.TARIA) 17 else cal[Calendar.YEAR] - it[YEAR]
+                val age = if (it[USERID] == 322755315953172485) 17 else cal[Calendar.YEAR] - it[YEAR]
                 tc.sendMessage("Alles Gute zum $age. Geburtstag, <@${it[USERID]}>!").queue()
             }
         }

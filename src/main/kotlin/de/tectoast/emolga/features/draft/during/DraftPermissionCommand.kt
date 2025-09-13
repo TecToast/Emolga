@@ -9,7 +9,7 @@ import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 
 object DraftPermissionCommand :
-    CommandFeature<NoArgs>(NoArgs(), CommandSpec("draftpermission", "Konfiguriert deine Ersatzdrafter", *draftGuilds)) {
+    CommandFeature<NoArgs>(NoArgs(), CommandSpec("draftpermission", "Konfiguriert deine Ersatzdrafter")) {
 
     object Allow : CommandFeature<Allow.Args>(::Args, CommandSpec("allow", "Erlaube einer Person das Ersatzdraften")) {
         class Args : Arguments() {

@@ -4,13 +4,12 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.db
 
 object TierlistSearchCommand : CommandFeature<TierlistSearchCommand.Args>(
     ::Args,
-    CommandSpec("tierlistsearch", "Zeigt dir alle Pokemon in einem Tier mit einem bestimmten Typ", Constants.G.ASL)
+    CommandSpec("tierlistsearch", "Zeigt dir alle Pokemon in einem Tier mit einem bestimmten Typ")
 ) {
     class Args : Arguments() {
         var tier by string("Tier", "Das Tier, in dem du suchen möchtest")

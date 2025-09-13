@@ -51,7 +51,6 @@ object SignupManager {
         NoArgs(), CommandSpec(
             "signupchange",
             "Ermöglicht es dir, deine Anmeldung anzupassen",
-            *draftGuilds
         )
     ) {
         context(iData: InteractionData)

@@ -17,8 +17,7 @@ object EnterResult {
 
     object ResultCommand : CommandFeature<ResultCommand.Args>(
         ::Args, CommandSpec(
-            "result", "Startet die interaktive Ergebniseingabe", Constants.G.VIP, Constants.G.COMMUNITY,
-            Constants.G.EPP, Constants.G.LOEWE, Constants.G.ADK, Constants.G.NPL, Constants.G.GPC, Constants.G.WARRIOR
+            "result", "Startet die interaktive Ergebniseingabe"
         )
     ) {
         private val nameCache = mutableMapOf<String, Map<Long, String>>() // guild -> uid -> name
@@ -52,7 +51,6 @@ object EnterResult {
     object ResultFor : CommandFeature<ResultFor.Args>(
         ::Args, CommandSpec(
             "resultfor", "Startet die interaktive Ergebniseingabe für jemand anderen",
-            Constants.G.NPL, Constants.G.VIP
         )
     ) {
         init {

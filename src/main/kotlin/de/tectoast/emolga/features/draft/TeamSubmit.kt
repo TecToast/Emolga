@@ -18,7 +18,7 @@ import org.litote.kmongo.eq
 
 object TeamSubmit {
     object Command : CommandFeature<Command.Args>(
-        ::Args, CommandSpec("addmon", "Fügt ein Pokemon zu deinem Team hinzu", -1).apply { inDM = true }) {
+        ::Args, CommandSpec("addmon", "Fügt ein Pokemon zu deinem Team hinzu").apply { inDM = true }) {
         class Args : Arguments() {
             var pokemon by createArg(
                 "pokemon", "Das Pokemon, das zum Team hinzugefügt werden soll", OptionType.STRING

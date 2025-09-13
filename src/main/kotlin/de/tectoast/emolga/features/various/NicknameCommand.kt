@@ -4,7 +4,6 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.TimeUtils
 import de.tectoast.emolga.utils.json.Cooldown
 import de.tectoast.emolga.utils.json.db
@@ -15,7 +14,7 @@ import org.litote.kmongo.upsert
 
 object NicknameCommand : CommandFeature<NicknameCommand.Args>(
     ::Args,
-    CommandSpec("nickname", "Ändert deinen Nickname (funktioniert nur 1x pro Woche)", Constants.G.ASL)
+    CommandSpec("nickname", "Ändert deinen Nickname (funktioniert nur 1x pro Woche)")
 ) {
     class Args : Arguments() {
         var nickname by string("Nickname", "Der neue Nickname")

@@ -6,7 +6,6 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
@@ -15,7 +14,6 @@ object AddConventionCommand : CommandFeature<AddConventionCommand.Args>(
     CommandSpec(
         "addconvention",
         "Fügt eine Naming Convention von einem Mon hinzu, nur im Kontext von /preparetierlist zu verwenden",
-        *TierlistBuilderConfigurator.enabledGuilds.toLongArray()
     )
 ) {
 

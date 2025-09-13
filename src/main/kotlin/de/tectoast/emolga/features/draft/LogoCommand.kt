@@ -21,7 +21,6 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
     ::Args, CommandSpec(
         "logo",
         "Reicht dein Logo ein",
-        *draftGuilds
     )
 ) {
     private val logger = KotlinLogging.logger {}

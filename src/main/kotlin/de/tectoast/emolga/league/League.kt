@@ -3,6 +3,7 @@
 package de.tectoast.emolga.league
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.exposed.DraftAdminsDB
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.TipGameMessagesDB
@@ -31,6 +32,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
@@ -205,13 +207,13 @@ sealed class League {
     open fun providePicksForGameday(gameday: Int): Map<Int, List<DraftPokemon>> = picks
 
 
-    suspend fun isCurrentCheck(user: Long): Boolean {
-        if (this[current] == user || user in Constants.DRAFTADMINS) return true
-        return isCurrent(user)
+    suspend fun isCurrentCheck(member: Member): Boolean {
+        if (this[current] == member.idLong || DraftAdminsDB.isAdmin(guild, member)) return true
+        return isCurrent(member)
     }
 
-    open suspend fun isCurrent(user: Long): Boolean {
-        return allowed[current]?.any { it.u == user } == true
+    open suspend fun isCurrent(member: Member): Boolean {
+        return allowed[current]?.any { it.u == member.idLong } == true
     }
 
     open suspend fun isPicked(mon: String, tier: String? = null) =
@@ -1049,7 +1051,7 @@ sealed class League {
                     // BypassCurrentPlayerData can only be Yes here
                     first.currentOverride = (second as BypassCurrentPlayerData.Yes).user
                 }
-                if (!first.isCurrentCheck(iData.user)) {
+                if (!first.isCurrentCheck(iData.member())) {
                     return@executeOnFreshLock iData.reply("Du warst etwas zu langsam!", ephemeral = true)
                 }
                 first.block()
@@ -1074,7 +1076,7 @@ sealed class League {
                         }
                     }
                 }
-                if (!isCurrentCheck(uid)) {
+                if (!isCurrentCheck(iData.member())) {
                     iData.reply("Du bist nicht dran!", ephemeral = true)
                     return null
                 }

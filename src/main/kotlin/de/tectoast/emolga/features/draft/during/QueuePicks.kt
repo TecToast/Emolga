@@ -21,7 +21,7 @@ object QueuePicks {
 
     object Command : CommandFeature<NoArgs>(
         NoArgs(), CommandSpec(
-            "queuepicks", "Verwalte deine gequeueten Picks", *draftGuilds
+            "queuepicks", "Verwalte deine gequeueten Picks"
         )
     ) {
 

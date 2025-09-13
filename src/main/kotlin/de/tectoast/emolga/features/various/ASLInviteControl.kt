@@ -11,7 +11,7 @@ import net.dv8tion.jda.api.events.role.RoleCreateEvent
 
 object ASLInviteControl : CommandFeature<NoArgs>(
     NoArgs(),
-    CommandSpec("invite", "Erstellt einen einmalig nutzbaren Invite", Constants.G.ASL)
+    CommandSpec("invite", "Erstellt einen einmalig nutzbaren Invite")
 ) {
     init {
         restrict(roles(702233714360582154))

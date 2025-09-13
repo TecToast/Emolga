@@ -148,7 +148,7 @@ object PrivateCommands {
         guildForMyStuff = args().toLong()
     }
 
-    var guildForUserIDGrabbing: Long? = Constants.G.WARRIOR
+    var guildForUserIDGrabbing: Long? = null
     val grabbedIDs = mutableListOf<Long>()
 
     context(iData: InteractionData)
@@ -425,20 +425,6 @@ object PrivateCommands {
     context(iData: InteractionData)
     suspend fun executeTipGameSending(args: PrivateData) {
         db.league(args[0]).executeTipGameSending(args[1].toInt(), args.getOrNull(2)?.toLong())
-    }
-
-    context(iData: InteractionData)
-    suspend fun speedLeague() {
-        iData.reply((0..<10).map { measureTime { db.league("IPLS4L1") }.inWholeMilliseconds }.average().toString())
-        iData.reply((0..<10).map {
-            measureTime {
-                db.leagueByGuild(
-                    Constants.G.VIP,
-                    297010892678234114
-                )
-            }.inWholeMilliseconds
-        }
-            .average().toString())
     }
 
     context(iData: InteractionData)

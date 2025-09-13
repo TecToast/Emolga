@@ -13,6 +13,9 @@ import mu.KotlinLogging
 
 class LeagueTest : FunSpec({
 
+    val u1 = Constants.FLOID
+    val u2 = 723829878755164202
+
     lateinit var defaultLeague: League
     val logger = KotlinLogging.logger {}
 
@@ -36,76 +39,76 @@ class LeagueTest : FunSpec({
                 apply(
                     GetCurrentMentionData(
                         0,
-                        mutableSetOf(AllowedData(Constants.FLOID, true), AllowedData(Constants.M.HENNY, false))
+                        mutableSetOf(AllowedData(u1, true), AllowedData(u2, false))
                     )
                 )
-                defaultLeague.getCurrentMention() shouldBe "<@${Constants.FLOID}>"
+                defaultLeague.getCurrentMention() shouldBe "<@${u1}>"
             }
             test("both mention") {
                 apply(
                     GetCurrentMentionData(
                         0,
-                        mutableSetOf(AllowedData(Constants.FLOID, true), AllowedData(Constants.M.HENNY, true))
+                        mutableSetOf(AllowedData(u1, true), AllowedData(u2, true))
                     )
                 )
-                defaultLeague.getCurrentMention() shouldBe "<@${Constants.FLOID}>, ||<@${Constants.M.HENNY}>||"
+                defaultLeague.getCurrentMention() shouldBe "<@${u1}>, ||<@${u2}>||"
             }
             test("only other mention") {
                 apply(
                     GetCurrentMentionData(
                         0,
-                        mutableSetOf(AllowedData(Constants.FLOID, false), AllowedData(Constants.M.HENNY, true))
+                        mutableSetOf(AllowedData(u1, false), AllowedData(u2, true))
                     )
                 )
-                defaultLeague.getCurrentMention() shouldBe "**Flo**, ||<@${Constants.M.HENNY}>||"
+                defaultLeague.getCurrentMention() shouldBe "**Flo**, ||<@${u2}>||"
             }
             test("with only teammate") {
                 apply(
                     GetCurrentMentionData(
                         0, mutableSetOf(
-                            AllowedData(Constants.FLOID, true), AllowedData(
-                                Constants.M.HENNY, true, teammate = true
+                            AllowedData(u1, true), AllowedData(
+                                u2, true, teammate = true
                             )
                         )
                     )
                 )
-                defaultLeague.getCurrentMention() shouldBe "<@${Constants.FLOID}>, <@${Constants.M.HENNY}>"
+                defaultLeague.getCurrentMention() shouldBe "<@${u1}>, <@${u2}>"
             }
             test("with teammate + other") {
                 apply(
                     GetCurrentMentionData(
                         0, mutableSetOf(
-                            AllowedData(Constants.FLOID, true), AllowedData(
-                                Constants.M.HENNY, true, teammate = true
+                            AllowedData(u1, true), AllowedData(
+                                u2, true, teammate = true
                             ), AllowedData(723829878755164202, true)
                         )
                     )
                 )
-                defaultLeague.getCurrentMention() shouldBe "<@${Constants.FLOID}>, <@${Constants.M.HENNY}>, ||<@723829878755164202>||"
+                defaultLeague.getCurrentMention() shouldBe "<@${u1}>, <@${u2}>, ||<@723829878755164202>||"
             }
             test("only teammate and other") {
                 apply(
                     GetCurrentMentionData(
                         0, mutableSetOf(
-                            AllowedData(Constants.FLOID, false), AllowedData(
-                                Constants.M.HENNY, true, teammate = true
+                            AllowedData(u1, false), AllowedData(
+                                u2, true, teammate = true
                             ), AllowedData(723829878755164202, true)
                         )
                     )
                 )
-                defaultLeague.getCurrentMention() shouldBe "**Flo**, <@${Constants.M.HENNY}>, ||<@723829878755164202>||"
+                defaultLeague.getCurrentMention() shouldBe "**Flo**, <@${u2}>, ||<@723829878755164202>||"
             }
             test("only teammate") {
                 apply(
                     GetCurrentMentionData(
                         0, mutableSetOf(
-                            AllowedData(Constants.FLOID, false), AllowedData(
-                                Constants.M.HENNY, true, teammate = true
+                            AllowedData(u1, false), AllowedData(
+                                u2, true, teammate = true
                             ), AllowedData(723829878755164202, false)
                         )
                     )
                 )
-                defaultLeague.getCurrentMention() shouldBe "**Flo**, <@${Constants.M.HENNY}>"
+                defaultLeague.getCurrentMention() shouldBe "**Flo**, <@${u2}>"
             }
         }
 
@@ -124,7 +127,7 @@ class LeagueTest : FunSpec({
                 name = "Test",
                 playerCount = 3,
                 rounds = 2,
-                hardcodedUserIds = mapOf(0 to Constants.FLOID),
+                hardcodedUserIds = mapOf(0 to u1),
                 originalorder = mapOf(1 to listOf(0, 1, 2), 2 to listOf(2, 0, 1))
             )
             startTestDraft("Test")
@@ -167,7 +170,7 @@ class LeagueTest : FunSpec({
             3,
             0,
             originalorder = emptyMap(),
-            hardcodedUserIds = mapOf(0 to Constants.FLOID, 1 to 694543579414134802, 2 to Constants.M.HENNY)
+            hardcodedUserIds = mapOf(0 to u1, 1 to 694543579414134802, 2 to u2)
         )
     }
 })

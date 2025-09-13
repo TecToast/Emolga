@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 
 object ReplayCommand : CommandFeature<ReplayCommand.Args>(
     ::Args,
-    CommandSpec("replay", "Analysiert ein Replay und schickt das Ergebnis in den konfigurierten Ergebnischannel", -1)
+    CommandSpec("replay", "Analysiert ein Replay und schickt das Ergebnis in den konfigurierten Ergebnischannel")
 ) {
     private val logger = KotlinLogging.logger {}
 

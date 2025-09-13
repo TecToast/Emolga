@@ -27,7 +27,7 @@ object RandomPick {
     }
 
     object Command :
-        CommandFeature<Command.Args>(::Args, CommandSpec("randompick", "Macht einen Random-Pick", *draftGuilds)) {
+        CommandFeature<Command.Args>(::Args, CommandSpec("randompick", "Macht einen Random-Pick")) {
         class Args : Arguments() {
             var tier by string("tier", "Das Tier, in dem gepickt werden soll") {
                 slashCommand(guildChecker = {

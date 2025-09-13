@@ -9,7 +9,6 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.PickData
 import de.tectoast.emolga.league.config.RandomPickUserInput
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.coordXMod
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
@@ -17,7 +16,7 @@ import de.tectoast.emolga.utils.y
 import dev.minn.jda.ktx.coroutines.await
 
 object NuzlockeCommand :
-    CommandFeature<NuzlockeCommand.Args>(::Args, CommandSpec("nuzlocke", "Rerollt ein Mon", Constants.G.HELBIN)) {
+    CommandFeature<NuzlockeCommand.Args>(::Args, CommandSpec("nuzlocke", "Rerollt ein Mon")) {
 
     init {
         restrict(admin)

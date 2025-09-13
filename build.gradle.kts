@@ -1,7 +1,7 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "2.2.10"
+val kVersion = "2.2.20"
 plugins {
     val kVersion = "2.2.0"
     kotlin("jvm") version kVersion
@@ -108,7 +108,7 @@ dependencies {
     // MySQL
 //    implementation("org.mariadb:r2dbc-mariadb:1.3.0")
 //    implementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.5")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.6")
     implementation("com.zaxxer:HikariCP:7.0.2")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
 //    implementation("org.jetbrains.exposed:exposed-r2dbc:$exposedVersion")
@@ -126,8 +126,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.21.2")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.2")
-    testImplementation("io.kotest:kotest-assertions-core:6.0.2")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.3")
+    testImplementation("io.kotest:kotest-assertions-core:6.0.3")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
 }

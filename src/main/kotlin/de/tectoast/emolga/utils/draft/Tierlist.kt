@@ -56,6 +56,8 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
     @Transient
     val tlToOfficialCache = SizeLimitedMap<String, String>(1000)
 
+    val tierorderingComparator by lazy { compareBy<DraftPokemon>({ order.indexOf(it.tier) }, { it.name }) }
+
     fun setup() {
         tierlists.getOrPut(guildid) { mutableMapOf() }[identifier ?: ""] = this
     }

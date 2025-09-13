@@ -4,6 +4,7 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.coordXMod
+import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.serialization.SerialName
@@ -24,6 +25,20 @@ class ASLO(
     override val pickBuffer = 18
     override val teamsize = 12
     override val gamedays = 11
+
+    override fun getTierlistFor(idx: Int): Tierlist {
+        return Tierlist[guild, when (idx) {
+            0 -> "KantoJohto"
+            1 -> "Hoenn"
+            2 -> "Sinnoh"
+            3 -> "Einall"
+            4 -> "Kalos"
+            5 -> "Alola"
+            6 -> "Galar"
+            7 -> "Paldea"
+            else -> error("Invalid index")
+        }]!!
+    }
 
     /*@Transient
     override val docEntry = DocEntry.create(this) {

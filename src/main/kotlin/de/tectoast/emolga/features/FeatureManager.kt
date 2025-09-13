@@ -188,7 +188,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         gid: Long
     ) = Commands.slash(cmd.spec.name, cmd.spec.help).apply {
         defaultPermissions = cmd.slashPermissions
-        setContexts(InteractionContextType.GUILD)
+        setContexts(if (cmd.spec.inDM) InteractionContextType.BOT_DM else InteractionContextType.GUILD)
         if (cmd.children.isNotEmpty()) {
             cmd.children.forEach {
                 addSubcommands(

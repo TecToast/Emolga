@@ -9,4 +9,5 @@ data class Triggers(
     val alwaysSendTierOnPick: Boolean = false,
     val saveReplayData: Boolean = false,
     val bo3: Boolean = false,
+    val teamSubmit: Boolean = false,
 )

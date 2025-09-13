@@ -63,7 +63,7 @@ data class PickInput(
             }
             val tl = if (teraConfig != null && tera) (Tierlist[league.guild, teraConfig.tlIdentifier]
                 ?: error("No TERA tierlist found for guild ${league.guild}")) else tierlist
-            val (tlName, official, _) = pokemon
+            val (tlName, official, _, _, _) = pokemon
             logger.info("tlName: $tlName, official: $official")
             val (specifiedTier, officialTier, points) = (tl.getTierOfCommand(pokemon, tier)
                 ?: return iData.reply("Dieses Pokemon ist nicht in der Tierliste!").let { false })

@@ -121,7 +121,7 @@ sealed class League {
 
     val table: List<@Contextual Long> = ArrayList()
 
-    val tierorderingComparator by lazy { compareBy<DraftPokemon>({ tierlist.order.indexOf(it.tier) }, { it.name }) }
+    val tierorderingComparator get() = tierlist.tierorderingComparator
 
 
     val newSystemGap get() = teamsize + pickBuffer + 3
@@ -150,6 +150,7 @@ sealed class League {
 
     val resultChannel: Long? = null
 
+    open fun getTierlistFor(idx: Int) = tierlist
 
     operator fun invoke(mem: Long) = table.indexOf(mem).takeIf { it >= 0 }!!
     operator fun get(index: Int) = table[index]

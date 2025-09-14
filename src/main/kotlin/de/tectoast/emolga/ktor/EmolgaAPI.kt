@@ -168,16 +168,13 @@ fun Route.emolgaAPI() {
             ResultCodesDB.delete(resData[ResultCodesDB.CODE])
             League.executeOnFreshLock(resData[ResultCodesDB.LEAGUENAME]) {
                 val channel = jda.getTextChannelById(resultChannel!!)!!
-                val wifiPlayers = (0..1).map { DraftPlayer(0, false) }
-                val gamedayData = getGamedayData(idx1, idx2, wifiPlayers)
+                // TODO: refactor DraftPlayer GamedayData etc
+                val gamedayData = getGamedayData(idx1, idx2, (0..1).map { DraftPlayer(0, false) })
                 val officialNameCache = mutableMapOf<String, String>()
                 val replayDatas = body.map { singleGame ->
                     val game = singleGame.mapIndexed { index, d ->
-                        wifiPlayers[index].apply {
-                            val dead = d.count { it.value.d }
-                            alivePokemon = d.size - dead
-                            winner = d.size != dead
-                        }
+                        val dead = d.count { it.value.d }
+                        DraftPlayer(alivePokemon = d.size - dead, winner = d.size != dead)
                     }
                     ReplayData(
                         game = game,

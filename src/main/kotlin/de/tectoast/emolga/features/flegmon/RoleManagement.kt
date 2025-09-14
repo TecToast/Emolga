@@ -2,8 +2,8 @@ package de.tectoast.emolga.features.flegmon
 
 import de.tectoast.emolga.features.*
 import dev.minn.jda.ktx.interactions.components.SelectOption
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 object RoleManagement {
     private const val ACCEPTED_RULES_ROLE = 605635673885507614

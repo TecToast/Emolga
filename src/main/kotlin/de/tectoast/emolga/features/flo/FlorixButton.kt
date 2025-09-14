@@ -9,8 +9,8 @@ import de.tectoast.emolga.utils.GPIOManager
 import de.tectoast.emolga.utils.PC
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle.DANGER
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle.SUCCESS
+import net.dv8tion.jda.api.components.buttons.ButtonStyle.DANGER
+import net.dv8tion.jda.api.components.buttons.ButtonStyle.SUCCESS
 import java.awt.Color
 
 object FlorixButton : ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("florix")) {

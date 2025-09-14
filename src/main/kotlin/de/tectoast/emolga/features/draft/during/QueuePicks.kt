@@ -7,8 +7,8 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.QueuePicks
 import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.db
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 object QueuePicks {
     context(iData: InteractionData)

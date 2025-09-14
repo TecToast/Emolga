@@ -9,8 +9,8 @@ import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.messages.Mentions
 import dev.minn.jda.ktx.messages.SendDefaults
 import dev.minn.jda.ktx.messages.send
+import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.entities.MessageEmbed
-import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import net.dv8tion.jda.api.utils.FileUpload
 
 object SendFeatures {
@@ -55,14 +55,21 @@ object SendFeatures {
         id: Long,
         content: String = SendDefaults.content,
         embeds: Collection<MessageEmbed> = SendDefaults.embeds,
-        components: Collection<LayoutComponent> = SendDefaults.components,
+        components: Collection<MessageTopLevelComponent> = SendDefaults.components,
         files: Collection<FileUpload> = emptyList(),
         tts: Boolean = false,
         mentions: Mentions = Mentions.default(),
     ) {
         val jda = jda
         jda.openPrivateChannelById(id).flatMap { pc ->
-            pc.send(content.take(2000), embeds, components, files, tts, mentions)
+            pc.send(
+                content = content.take(2000),
+                embeds = embeds,
+                components = components,
+                files = files,
+                tts = tts,
+                mentions = mentions
+            )
         }.queue()
     }
 }

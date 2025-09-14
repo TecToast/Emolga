@@ -6,7 +6,7 @@ import de.tectoast.emolga.utils.SwitchTimer
 import de.tectoast.emolga.utils.TimeUtils
 import de.tectoast.emolga.utils.TimerInfo
 import de.tectoast.emolga.utils.l
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 
 object SwitchTimer {
     object Create : CommandFeature<Create.Args>(

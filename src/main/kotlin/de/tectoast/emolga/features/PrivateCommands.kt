@@ -39,11 +39,12 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import net.dv8tion.jda.api.components.actionrow.ActionRow
+import net.dv8tion.jda.api.components.actionrow.ActionRowChildComponent
+import net.dv8tion.jda.api.components.attribute.IDisableable
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
-import net.dv8tion.jda.api.interactions.components.ActionComponent
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.Table
@@ -394,7 +395,7 @@ object PrivateCommands {
             val m = jda.getTextChannelById(args[0])!!.retrieveMessageById(mid).await()
             m.editMessageComponents(m.components.map {
                 if (it is ActionRow) ActionRow.of(it.components.map { b ->
-                    if (b is ActionComponent) b.withDisabled(true) else b
+                    (if (b is IDisableable) b.withDisabled(true) else b) as ActionRowChildComponent
                 }) else it
             }).queue()
         }
@@ -406,7 +407,7 @@ object PrivateCommands {
             val m = jda.getTextChannelById(args[0])!!.retrieveMessageById(mid).await()
             m.editMessageComponents(m.components.map {
                 if (it is ActionRow) ActionRow.of(it.components.map { b ->
-                    if (b is ActionComponent) b.withDisabled(false) else b
+                    (if (b is IDisableable) b.withDisabled(false) else b) as ActionRowChildComponent
                 }) else it
             }).queue()
         }
@@ -550,7 +551,8 @@ object PrivateCommands {
         val maxUsers = args[2].toInt()
         val text = args.drop(6).joinToString(" ").replace("\\n", "\n")
         val messageid =
-            tc.sendMessage(text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**").addActionRow(Button())
+            tc.sendMessage(text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**")
+                .addComponents(ActionRow.of(Button()))
                 .await().idLong
         db.signups.insertOne(
             LigaStartData(

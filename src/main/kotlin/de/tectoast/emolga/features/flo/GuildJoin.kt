@@ -8,9 +8,9 @@ import de.tectoast.emolga.utils.Constants
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 object GuildJoin : ButtonFeature<GuildJoin.Args>(::Args, ButtonSpec("guildinvite")) {
     override val buttonStyle = ButtonStyle.PRIMARY

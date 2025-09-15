@@ -10,7 +10,8 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
 import de.tectoast.emolga.utils.records.Coord
-import de.tectoast.emolga.utils.records.SorterData
+import de.tectoast.emolga.utils.records.TableSortOption
+import de.tectoast.emolga.utils.records.newSystemSorter
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import dev.minn.jda.ktx.util.SLF4J
@@ -140,11 +141,9 @@ class NDS(val rr: Boolean) : League() {
 
         }
         setStatIfEmpty = false
-        sorterData = SorterData(
-            formulaRange = listOf("$tableName!C3:K8", "$tableName!C12:K17"),
-            newMethod = true,
-            cols = listOf(2, 8, -1, 6)
-        )
+        val sortOptions = TableSortOption.fromCols(listOf(2, 8, -1, 6))
+        sorterDatas += newSystemSorter("$tableName!C3:K8", sortOptions)
+        sorterDatas += newSystemSorter("$tableName!C12:K17", sortOptions)
     }
 
     val rrSummand: Int

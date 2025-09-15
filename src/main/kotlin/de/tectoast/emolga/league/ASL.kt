@@ -3,7 +3,8 @@ package de.tectoast.emolga.league
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.records.SorterData
+import de.tectoast.emolga.utils.records.TableSortOption
+import de.tectoast.emolga.utils.records.newSystemSorter
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.serialization.SerialName
@@ -24,18 +25,18 @@ class ASL(
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        newSystem(SorterData(
-            formulaRange = listOf(
-                "Tabelle!C16:J19",
-                "Tabelle!C24:J27",
-            ), newMethod = true, cols = listOf(7, -1, 6, 4)
-        ), resultCreator = {
-            b.addSingle(
-                if (gdi in 2..7) gdi.minus(2).coordXMod("Spielplan", 3, 4, 3, 6, 10 + index)
-                else "Spielplan!" + getAsXCoord((gdi % 2) * 4 + 5) + ((gdi / 6) * 18 + 4 + index),
-                defaultGameplanString
-            )
-        })
+        val sortOptions = TableSortOption.fromCols(listOf(7, -1, 6, 4))
+        newSystem(
+            listOf(
+                newSystemSorter("Tabelle!C16:J19", sortOptions),
+                newSystemSorter("Tabelle!C24:J27", sortOptions)
+            ), resultCreator = {
+                b.addSingle(
+                    if (gdi in 2..7) gdi.minus(2).coordXMod("Spielplan", 3, 4, 3, 6, 10 + index)
+                    else "Spielplan!" + getAsXCoord((gdi % 2) * 4 + 5) + ((gdi / 6) * 18 + 4 + index),
+                    defaultGameplanString
+                )
+            })
         //cancelIf = { _, gd -> gd == 10 }
     }
 

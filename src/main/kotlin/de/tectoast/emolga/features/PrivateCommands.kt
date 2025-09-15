@@ -131,7 +131,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun sort(args: PrivateData) {
-        db.league(args()).docEntry!!.sort()
+        db.league(args[0]).docEntry!!.sort(!args.getOrNull(1).equals("test", ignoreCase = true))
     }
 
     context(iData: InteractionData)

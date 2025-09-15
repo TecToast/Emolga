@@ -2,7 +2,8 @@ package de.tectoast.emolga.league
 
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.records.CoordXMod
-import de.tectoast.emolga.utils.records.SorterData
+import de.tectoast.emolga.utils.records.TableSortOption
+import de.tectoast.emolga.utils.records.defaultSorter
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -23,11 +24,10 @@ class ADKL : League() {
         deathProcessor = CombinedStatProcessor {
             plindex.CoordXMod("Kader", 2, 'P' - 'B', 5 + gdi, 22, 22)
         }
-        sorterData = SorterData(
+        sorterData = defaultSorter(
             "Tabelle!C5:H12",
             indexer = { it.substringAfter("C").substringBefore(":").toInt() },
-            newMethod = false,
-            cols = listOf(5, -1, 4)
+            sortOptions = TableSortOption.fromCols(listOf(5, -1, 4))
         )
     }
 

@@ -3,7 +3,8 @@ package de.tectoast.emolga.league
 import de.tectoast.emolga.utils.DocEntry
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.records.CoordXMod
-import de.tectoast.emolga.utils.records.SorterData
+import de.tectoast.emolga.utils.records.TableSortOption
+import de.tectoast.emolga.utils.records.newSystemSorter
 import de.tectoast.emolga.utils.x
 import de.tectoast.emolga.utils.y
 import kotlinx.serialization.SerialName
@@ -24,18 +25,10 @@ class RIPL : League() {
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)
         addStrikethroughChange(
-            703540571,
-            data.roundIndex + 2,
-            cid.y(19 - 7, 7 + data.indexInRound),
-            strikethrough = true
+            703540571, data.roundIndex + 2, cid.y(19 - 7, 7 + data.indexInRound), strikethrough = true
         )
         val coord = data.idx.CoordXMod(
-            "Kader $conf",
-            4,
-            2,
-            3,
-            19,
-            data.changedOnTeamsiteIndex + 7
+            "Kader $conf", 4, 2, 3, 19, data.changedOnTeamsiteIndex + 7
         )
         addSingle(coord.toString(), data.pokemon)
     }
@@ -43,18 +36,10 @@ class RIPL : League() {
     override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
         newSystemSwitchDoc(data)
         addStrikethroughChange(
-            770133001,
-            data.roundIndex + 2,
-            cid.y(19 - 7, 7 + data.indexInRound),
-            strikethrough = true
+            770133001, data.roundIndex + 2, cid.y(19 - 7, 7 + data.indexInRound), strikethrough = true
         )
         val coord = data.idx.CoordXMod(
-            "Kader $conf",
-            4,
-            2,
-            3,
-            19,
-            data.changedOnTeamsiteIndex + 7
+            "Kader $conf", 4, 2, 3, 19, data.changedOnTeamsiteIndex + 7
         )
         addSingle(coord.toString(), data.pokemon)
     }
@@ -62,10 +47,8 @@ class RIPL : League() {
     @Transient
     override val docEntry = DocEntry.create(this) {
         newSystem(
-            SorterData(
-                if (cid == 0) "Tabellen!C5:J12" else "Tabellen!C19:J26",
-                newMethod = true,
-                cols = listOf(1, 7, 5)
+            newSystemSorter(
+                if (cid == 0) "Tabellen!C5:J12" else "Tabellen!C19:J26", TableSortOption.fromCols(listOf(1, 7, 5))
             )
         ) {
             b.addSingle("Spielplan!${cid.x('J' - 'B', 3)}${gdi.y(14 - 7, 8 + index)}", defaultGameplanStringWithoutUrl)

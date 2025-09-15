@@ -705,7 +705,7 @@ sealed class LeagueEvent {
                     it.deaths += d
                     it.points += if (k > d) 3 else 0
                     it.wins += if (k > d) 1 else 0
-                    it.loses += if (k < d) 1 else 0
+                    it.losses += if (k < d) 1 else 0
                 }
             }
         }

@@ -14,17 +14,13 @@ import de.tectoast.emolga.utils.json.LeagueEvent.MatchResult
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.Coord
-import de.tectoast.emolga.utils.records.DocRange
-import de.tectoast.emolga.utils.records.SorterData
+import de.tectoast.emolga.utils.records.TableSorter
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import org.bson.Document
-import org.litote.kmongo.eq
-import org.litote.kmongo.regex
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -56,12 +52,12 @@ class DocEntry private constructor(val league: League) {
     var winProcessor: ResultStatProcessor? = null
     var looseProcessor: ResultStatProcessor? = null
     var resultCreator: (suspend AdvancedResult.() -> Unit)? = null
-    var sorterData: SorterData?
-        get() = sorterDatas["default"]
+    var sorterData: TableSorter?
+        get() = sorterDatas.firstOrNull()
         set(value) {
-            sorterDatas["default"] = value!!
+            sorterDatas += value!!
         }
-    private val sorterDatas = mutableMapOf<String, SorterData>()
+    val sorterDatas = mutableSetOf<TableSorter>()
     var setStatIfEmpty = false
     var monsOrder: (List<DraftPokemon>) -> List<String> = { l -> l.map { it.name } }
     var cancelIf: (ReplayData, Int) -> Boolean = { _: ReplayData, _: Int -> false }
@@ -69,7 +65,16 @@ class DocEntry private constructor(val league: League) {
     private val gamedays get() = league.gamedays
 
     fun newSystem(
-        sorterData: SorterData?,
+        sorterData: TableSorter?,
+        memberMod: Int? = null,
+        dataSheetProvider: ((memidx: Int) -> String)? = null,
+        resultCreator: (suspend AdvancedResult.() -> Unit)
+    ) {
+        newSystem(listOfNotNull(sorterData), memberMod, dataSheetProvider, resultCreator)
+    }
+
+    fun newSystem(
+        sorterDatas: Collection<TableSorter>,
         memberMod: Int? = null,
         dataSheetProvider: ((memidx: Int) -> String)? = null,
         resultCreator: (suspend AdvancedResult.() -> Unit)
@@ -98,7 +103,7 @@ class DocEntry private constructor(val league: League) {
             )
         }
         this.resultCreator = resultCreator
-        this.sorterData = sorterData
+        this.sorterDatas += sorterDatas
     }
 
 
@@ -354,120 +359,17 @@ class DocEntry private constructor(val league: League) {
         }.execute(realExecute)
     }
 
-    private fun compareColumns(o1: List<Any>, o2: List<Any>, vararg columns: Int): Int {
-        for (column in columns) {
-            val i1 = o1.getOrNull(column).parseInt()
-            val i2 = o2.getOrNull(column).parseInt()
-            if (i1 != i2) {
-                return i1.compareTo(i2)
-            }
-        }
-        return 0
-    }
-
-    fun Any?.parseInt() = (this as? Int) ?: this?.toString()?.toIntOrNull() ?: 0
-
     suspend fun sort(realExecute: Boolean = true) {
-        (sorterDatas[league.leaguename] ?: sorterDatas["default"])?.run {
-            val sid = league.sid
-            val b = RequestBuilder(sid)
-            logger.info("Start sorting...")
-            for (num in formulaRangeParsed.indices) {
-                val formulaRange = formulaRangeParsed[num]
-                val finalFormula = getSortedData(sid, formulaRange)
-                b.addAll(formulaRange.firstHalf, finalFormula)
-            }
-            b.execute(realExecute)
+        if (sorterDatas.isEmpty()) return
+        val sid = league.sid
+        val b = RequestBuilder(sid)
+        logger.info("Start sorting...")
+        for (tableSorter in sorterDatas) {
+            val finalFormula = tableSorter.getSortedFormulas()
+            b.addAll(tableSorter.formulaRangeParsed.firstHalf, finalFormula)
         }
-    }
+        b.execute(realExecute)
 
-    fun SorterData.getIndexerToUse(): suspend (String) -> Int {
-        return if (newMethod) {
-            val new: suspend (String) -> Int = { str: String ->
-                rowNumToIndex(
-                    str.replace("$", "").substring(league.dataSheet.length + 4).substringBefore(":")
-                        .toInt()
-                )
-            }
-            new
-        } else indexer!!
-    }
-
-    suspend fun SorterData.getSortedData(
-        sid: String,
-        formulaRange: DocRange
-    ): MutableList<List<Any>> {
-        val formula =
-            Google.get(
-                sid,
-                formulaRange.run { if (newMethod) "$sheet!$xStart$yStart:$xStart$yEnd" else toString() },
-                true
-            )
-        val points = Google.get(sid, formulaRange.toString(), false)
-        val orig: List<List<Any>> = ArrayList(points)
-        val indexerToUse by lazy {
-            getIndexerToUse()
-        }
-        val leagueCheckToUse =
-            if (includeAllLevels)
-                MatchResult::leaguename regex "^${
-                    league.leaguename.dropLast(1)
-                }" else MatchResult::leaguename eq league.leaguename
-        val finalOrder = if (-1 !in cols) {
-            points.sortedWith(Comparator<List<Any>> { o1, o2 ->
-                compareColumns(o1, o2, *cols.toIntArray())
-            }.reversed())
-        } else {
-            val colsUntilDirectCompare = cols.takeWhile { it != -1 }
-            val colsAfterDirectCompare = cols.dropWhile { it != -1 }.drop(1)
-            val directCompare = points.groupBy {
-                colsUntilDirectCompare.map { col -> it.getOrNull(col).parseInt() }
-            }
-            val preSorted =
-                directCompare.entries.sortedWith(Comparator<Map.Entry<List<Int>, List<List<Any>>>> { o1, o2 ->
-                    for (index in o1.key.indices) {
-                        val compare = o1.key[index].compareTo(o2.key[index])
-                        if (compare != 0) return@Comparator compare
-                    }
-                    0
-                }.reversed())
-            preSorted.flatMap { pre ->
-                val toCompare = pre.value
-                if (toCompare.size == 1) toCompare else {
-                    val useridxs =
-                        toCompare.map { u -> indexerToUse(formula[orig.indexOf(u)][0].toString()) }
-                    val allRelevantEvents = db.matchresults.find(
-                        leagueCheckToUse, Document(
-                            $$"$expr", Document(
-                                $$"$setIsSubset", listOf(
-                                    $$"$indices", useridxs
-                                )
-                            )
-                        )
-                    ).toList()
-                    val data = UserTableData.createFromEvents(useridxs, allRelevantEvents)
-                    data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Int, UserTableData>> { o1, o2 ->
-                        val compare = o1.value.points.compareTo(o2.value.points)
-                        if (compare != 0) return@Comparator compare
-                        for (directCompareOption in this.directCompare) {
-                            val compare1 = directCompareOption.getFromData(o1.value)
-                                .compareTo(directCompareOption.getFromData(o2.value))
-                            if (compare1 != 0) return@Comparator compare1
-                        }
-                        compareColumns(
-                            toCompare[o1.value.index],
-                            toCompare[o2.value.index],
-                            *colsAfterDirectCompare.toIntArray()
-                        )
-                    }.reversed()).map { toCompare[it.value.index] }
-                }
-            }
-        }
-        val finalFormula = MutableList(finalOrder.size) { emptyList<Any>() }
-        for ((i, objects) in orig.withIndex()) {
-            finalFormula[finalOrder.indexOf(objects)] = formula[i]
-        }
-        return finalFormula
     }
 }
 
@@ -476,11 +378,11 @@ data class UserTableData(
     var kills: Int = 0,
     var deaths: Int = 0,
     var wins: Int = 0,
-    var loses: Int = 0,
+    var losses: Int = 0,
     val index: Int
 ) {
     val diff get() = kills - deaths
-    val wlRatio get() = if (loses == 0) Double.MAX_VALUE else wins.toDouble() / loses.toDouble()
+    val wlRatio get() = if (losses == 0) Double.MAX_VALUE else wins.toDouble() / losses.toDouble()
 
     companion object {
         fun createFromEvents(idxs: List<Int>, events: List<LeagueEvent>): MutableMap<Int, UserTableData> {

@@ -188,9 +188,8 @@ class NDS(val rr: Boolean) : League() {
                 for (index in 0..1) {
                     val u1 = users[index]
                     val oppoIndex = users[1 - index]
-                    val u2 = oppoIndex
                     val team = nds.getTeamname(u1)
-                    val oppo = nds.getTeamname(u2)
+                    val oppo = nds.getTeamname(oppoIndex)
                     tipgameStats += "='$team'!Y2"
                     // Speed values
                     b.addSingle("$team!B18", "={'$oppo'!B16:AE16}")

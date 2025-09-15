@@ -2,10 +2,8 @@ package de.tectoast.emolga.utils
 
 import com.mongodb.client.model.Filters
 import de.tectoast.emolga.database.exposed.DraftName
-import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.features.draft.EnterResult
 import de.tectoast.emolga.features.draft.Nominate
 import de.tectoast.emolga.features.draft.during.QueuePicks
 import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode.*
@@ -13,11 +11,13 @@ import de.tectoast.emolga.features.draft.during.QueuePicks.isIllegal
 import de.tectoast.emolga.features.intoMultipleRows
 import de.tectoast.emolga.ktor.KD
 import de.tectoast.emolga.ktor.generateFinalMessage
-import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.league.config.QueuePicksUserData
-import de.tectoast.emolga.utils.draft.*
+import de.tectoast.emolga.utils.draft.DraftInput
+import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.draft.PickInput
+import de.tectoast.emolga.utils.draft.SwitchInput
 import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.Embed
@@ -28,7 +28,6 @@ import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
-import net.dv8tion.jda.api.interactions.components.selections.SelectOption
 import org.litote.kmongo.and
 import org.litote.kmongo.eq
 import java.awt.Color
@@ -83,212 +82,6 @@ sealed class StateStore {
 suspend inline fun <T : StateStore> T.process(block: T.() -> Unit) {
     block()
     afterOperation()
-}
-
-@Serializable
-@SerialName("ResultEntry")
-class ResultEntry : StateStore {
-
-    var leaguename: String = ""
-    var channelToSend = -1L
-
-    val data: List<MutableList<MonData>> = listOf(mutableListOf(), mutableListOf())
-    private val uidxs = mutableListOf<Int>()
-
-    @Transient
-    val league = OneTimeCache { db.league(leaguename) }
-
-    constructor(uid: Long, league: League, tcid: Long) : super(uid) {
-        this.leaguename = league.leaguename
-        this.channelToSend = tcid
-    }
-
-
-    private suspend fun getPicksByUid(idx: Int) = league().providePicksForGameday(gamedayData.gameday)[idx]!!
-    private suspend fun getMonsByUid(idx: Int) = getPicksByUid(idx).sortedWith(league().tierorderingComparator).map {
-        (it.name to NameConventionsDB.convertOfficialToTL(
-            it.name, league().guild
-        )!!).let { (official, tl) -> SelectOption(tl, "$official#$tl") }
-    }
-
-    @Transient
-    val picks: Cache<Map<Int, List<SelectOption>>> = OneTimeCache { uidxs.associateWith { getMonsByUid(it) } }
-    private lateinit var gamedayData: GamedayData
-
-
-    private val wifiPlayers = (0..1).map { DraftPlayer(0, false) }
-
-    @Transient
-    private val defaultComponents: Cache<List<ActionRow>> = OneTimeCache {
-        uidxs.mapIndexed { index, idx ->
-            ActionRow.of(
-                EnterResult.ResultMenu(
-                    "${if (index == 0) "Deine" else "Gegnerische"} Pokemon",
-                    options = picks()[idx]!!,
-                ) { this.userindex = index })
-        } + listOf(ActionRow.of(EnterResult.ResultFinish("Ergebnis bestätigen", ButtonStyle.PRIMARY) {
-            mode = EnterResult.ResultFinish.Mode.CHECK
-        }))
-    }
-
-    context(iData: InteractionData) suspend fun init(opponent: Long, user: Long) {
-        val l = league()
-        uidxs += l(user)
-        uidxs += l(opponent)
-        gamedayData = l.getGamedayData(uidxs[0], uidxs[1], wifiPlayers)
-        if (gamedayData.gameday == -1) {
-            iData.reply(
-                "Im Spielplan ist kein Kampf zwischen dir und <@$opponent> geplant!", ephemeral = true
-            )
-            delete()
-            return
-        }
-        iData.reply(embeds = buildEmbed(), components = defaultComponents(), ephemeral = true)
-    }
-
-    private fun buildEmbed() = Embed {
-        title = "Interaktive Ergebnis-Eingabe"
-        description = "Wähle im Menü unten ein Pokemon aus!"
-        data.forEachIndexed { i, map ->
-            field {
-                name = "${if (i == 0) "Deine" else "Gegnerische"} Pokemon"
-                value = map.joinToString("\n")
-                inline = false
-            }
-        }
-    }.into()
-
-    context(iData: InteractionData) fun handleSelect(e: EnterResult.ResultMenu.Args) {
-        val selected = e.selected
-        val userindex = e.userindex
-        iData.replyModal(
-            EnterResult.ResultModal(
-                "Ergebnis für ${selected.substringAfterLast("#")}",
-                mapOf(EnterResult.Remove to data[userindex].any { it.official == selected.substringBefore("#") })
-            ) {
-                this.userindex = userindex
-                this.selected = selected
-            })
-    }
-
-    context(iData: InteractionData) fun handleModal(e: EnterResult.ResultModal.Args) {
-        val userindex = e.userindex
-        val (official, tl) = e.selected.split("#")
-        val list = data[userindex]
-        list.indexOfFirst { it.official == official }.let {
-            if (e.remove && it != -1) {
-                list.removeAt(it)
-                return@let
-            }
-            val monData = MonData(tl, official, e.kills, e.dead)
-            if (it == -1) list.add(monData)
-            else list[it] = monData
-        }
-        iData.edit(embeds = buildEmbed())
-    }
-
-    context(iData: InteractionData) suspend fun handleFinish(e: EnterResult.ResultFinish.Args) {
-        if (invalidConditionsForFinish()) return
-        when (e.mode) {
-            EnterResult.ResultFinish.Mode.CHECK -> {
-                val originalComponents = defaultComponents()
-                val buttons = ActionRow.of(EnterResult.ResultFinish("Wirklich bestätigen", ButtonStyle.SUCCESS) {
-                    mode = EnterResult.ResultFinish.Mode.YES
-                }, EnterResult.ResultFinish("Abbrechen", ButtonStyle.DANGER) {
-                    mode = EnterResult.ResultFinish.Mode.NO
-                })
-                val newComponents = originalComponents + listOf(buttons)
-                iData.edit(components = newComponents)
-            }
-
-            EnterResult.ResultFinish.Mode.YES -> {
-                League.executeOnFreshLock(leaguename) {
-                    delete()
-                    val channel = iData.jda.getTextChannelById(channelToSend)!!
-                    if (config.replayDataStore != null) {
-                        iData.reply(
-                            "Das Ergebnis des Kampfes wurde gespeichert! Du kannst nun die Eingabe-Nachricht verwerfen.",
-                            ephemeral = true
-                        )
-                        channel.sendResultEntryMessage(
-                            gamedayData.gameday,
-                            ResultEntryDescription.MatchPresent(uidxs.let { if (gamedayData.u1IsSecond) it.reversed() else it }
-                                .map { league()[it] })
-                        )
-                    } else {
-                        iData.reply(":)", ephemeral = true)
-                        channel.sendResultEntryMessage(
-                            gamedayData.gameday, ResultEntryDescription.Direct(generateFinalMessage())
-                        )
-                    }
-                    val game = data.mapIndexed { index, d ->
-                        wifiPlayers[index].apply {
-                            alivePokemon = d.size - d.dead
-                            winner = d.size != d.dead
-                        }
-                    }
-                    docEntry?.analyse(
-                        listOf(
-                            ReplayData(
-                                game = game,
-                                uindices = uidxs,
-                                kd = data.map { it.associate { p -> p.official to (p.kills to if (p.dead) 1 else 0) } },
-                                mons = data.map { l -> l.map { it.official } },
-                                url = "WIFI",
-                                gamedayData = gamedayData.apply {
-                                    numbers = game.map { it.alivePokemon }
-                                        .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
-                                })
-                        )
-                    )
-                }
-            }
-
-            EnterResult.ResultFinish.Mode.NO -> iData.edit(components = defaultComponents())
-        }
-    }
-
-    context(iData: InteractionData) private fun invalidConditionsForFinish(): Boolean {
-        if (data[0].isEmpty() || data[1].isEmpty()) return iData.reply(
-            "Du hast noch keine Daten eingeben!", ephemeral = true
-        ).let { true }
-        if ((0..1).any { data[it].kills != data[1 - it].dead }) return iData.reply(
-            "Die Kills und Tode müssen übereinstimmen!", ephemeral = true
-        ).let { true }
-        if (data[0].size != data[1].size) return iData.reply(
-            "Die Anzahl der Pokemon muss übereinstimmen!", ephemeral = true
-        ).let { true }
-        return false
-    }
-
-    private suspend fun generateFinalMessage(): String {
-        val l = league()
-        val spoiler = SpoilerTagsDB.contains(l.guild)
-        return "${
-            data.mapIndexed { index, sdPlayer ->
-                mutableListOf<Any>("<@${l[uidxs[index]]}>", sdPlayer.count { !it.dead }).apply {
-                    if (spoiler) add(
-                        1, "||"
-                    )
-                }.let { if (index % 2 > 0) it.asReversed() else it }
-            }.joinToString(":") { it.joinToString(" ") }
-        }\n\n${
-            data.mapIndexed { index, monData ->
-                "<@${l[uidxs[index]]}>:\n${monData.joinToString("\n").surroundWith(if (spoiler) "||" else "")}"
-            }.joinToString("\n\n")
-        }"
-    }
-
-    private val List<MonData>.kills get() = sumOf { it.kills }
-    private val List<MonData>.dead get() = sumOf { (if (it.dead) 1 else 0) }
-
-    @Serializable
-    data class MonData(val pokemon: String, val official: String, val kills: Int, val dead: Boolean) {
-        override fun toString(): String {
-            return "$pokemon $kills".condAppend(dead) { " X" }
-        }
-    }
-
 }
 
 context(league: League)

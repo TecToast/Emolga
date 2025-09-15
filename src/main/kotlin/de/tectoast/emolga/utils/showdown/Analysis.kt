@@ -298,7 +298,7 @@ object Analysis {
         val mode = modeByServer[mr.groupValues[1]] ?: throw InvalidReplayException()
         val url = mr.groupValues[0]
         val mappedURL = mode.mapURL(url)
-        @Suppress("unused") for (i in 0..1) {
+        for (i in 0..1) {
             var statusCode: HttpStatusCode? = null
             val retrieved = runCatching {
                 withContext(Dispatchers.IO) {

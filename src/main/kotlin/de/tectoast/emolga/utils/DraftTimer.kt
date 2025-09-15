@@ -10,7 +10,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import mu.KotlinLogging
 import java.util.*
 
 @Serializable
@@ -73,10 +72,6 @@ sealed class DraftTimer {
             regularTimestamp,
             now
         )
-    }
-
-    companion object {
-        private val logger = KotlinLogging.logger {}
     }
 
 }

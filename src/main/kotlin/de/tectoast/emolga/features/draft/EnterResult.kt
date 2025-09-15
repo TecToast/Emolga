@@ -2,11 +2,12 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.ResultCodesDB
-import de.tectoast.emolga.features.*
+import de.tectoast.emolga.features.Arguments
+import de.tectoast.emolga.features.CommandFeature
+import de.tectoast.emolga.features.CommandSpec
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.ResultEntry
-import de.tectoast.emolga.utils.StateStore
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.reverseGet
@@ -78,89 +79,16 @@ object EnterResult {
             var guild by long("guild", "guild")
             var user by long("user", "user")
             var opponent by long("opponent", "opponent")
-            var tc by long("tc", "tc").nullable()
         }
 
         context(_: InteractionData)
         override suspend fun exec(e: Args) {
-            handleStart(e.opponent, e.user, e.guild, e.tc)
+            handleStart(e.opponent, e.user, e.guild)
         }
     }
-
-    object ResultMenu : SelectMenuFeature<ResultMenu.Args>(::Args, SelectMenuSpec("result")) {
-        class Args : Arguments() {
-            var userindex by int("index", "index").compIdOnly()
-            var selected by singleOption()
-        }
-
-        context(_: InteractionData)
-        override suspend fun exec(e: Args) {
-            StateStore.process<ResultEntry> {
-                handleSelect(e)
-            }
-        }
-    }
-
-    object ResultFinish : ButtonFeature<ResultFinish.Args>(::Args, ButtonSpec("resultfinish")) {
-        class Args : Arguments() {
-            var mode by enumBasic<Mode>("check", "check")
-        }
-
-        enum class Mode {
-            CHECK, YES, NO
-        }
-
-        context(iData: InteractionData)
-        override suspend fun exec(e: Args) {
-            StateStore.process<ResultEntry> {
-                handleFinish(e)
-            }
-        }
-    }
-
-    object ResultModal : ModalFeature<ResultModal.Args>(::Args, ModalSpec("result")) {
-        class Args : Arguments() {
-            var userindex by int("index", "index").compIdOnly()
-            var selected by string("selected", "selected").compIdOnly()
-            var kills by string<Int>("kills", "kills") {
-                validate {
-                    it.toIntOrNull() ?: 0
-                }
-                modal {
-                    placeholder = "0"
-                }
-                default = 0
-            }
-            var dead by string<Boolean>("dead", "dead") {
-                validate { it.equals("X", ignoreCase = true) }
-                modal {
-                    placeholder = "X wenn gestorben, sonst leer lassen"
-                }
-                default = false
-            }
-            var remove by string<Boolean>("remove", "remove") {
-                modal(modalKey = Remove) {
-                    placeholder = "X wenn ja, sonst leer lassen"
-                }
-                validate {
-                    it.equals("X", ignoreCase = true)
-                }
-                default = false
-            }
-        }
-
-        context(iData: InteractionData)
-        override suspend fun exec(e: Args) {
-            StateStore.process<ResultEntry> {
-                handleModal(e)
-            }
-        }
-    }
-
-    object Remove : ModalKey
 
     context(iData: InteractionData)
-    suspend fun handleStart(opponent: Long, userArg: Long? = null, guild: Long? = null, customTc: Long? = null) {
+    suspend fun handleStart(opponent: Long, userArg: Long? = null, guild: Long? = null) {
         val u = userArg ?: iData.user
         val g = guild ?: iData.gid
 //        val t = customTc ?: tc
@@ -176,9 +104,6 @@ object EnterResult {
             "Bitte trage das Ergebnis auf meiner Website ein:\nhttps://emolga.tectoast.de/result/${uuid}",
             ephemeral = true
         )
-        /*ResultEntry(user, league, t).process {
-            init(opponent, u)
-        }*/
     }
 
 

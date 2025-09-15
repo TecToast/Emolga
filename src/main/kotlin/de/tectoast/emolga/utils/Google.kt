@@ -1,5 +1,3 @@
-@file:Suppress("UsePropertyAccessSyntax")
-
 package de.tectoast.emolga.utils
 
 import com.google.api.client.auth.oauth2.BearerToken

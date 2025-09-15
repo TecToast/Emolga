@@ -51,7 +51,7 @@ class Database(private val host: String, private val username: String, private v
 /**
  * Executes a given block as async in the [Database.dbScope]
  * @param block the block to execute
- * @return a Deferred of the result of the block
+ * @return Deferred of the result of the block
  */
 fun <T> dbAsync(block: suspend CoroutineScope.() -> T) = Database.dbScope.async(start = CoroutineStart.LAZY) {
     block()

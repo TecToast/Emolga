@@ -2,8 +2,6 @@ package de.tectoast.emolga.league
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import kotlinx.serialization.SerialName
@@ -66,11 +64,4 @@ class ASLCoach : League() {
         }
     }
 
-    companion object {
-        val TEAMS = OneTimeCache { db.aslcoach.only().table.map { it.uppercase() } }
-    }
-
 }
-
-
-// Dasor steht hier, weil er das so wollte

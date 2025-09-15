@@ -77,7 +77,6 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val league by lazy { db.getCollection<League>("league") }
     val cooldowns by lazy { db.getCollection<Cooldown>("cooldowns") }
     val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
-    val typeicons by lazy { db.getCollection<TypeIcon>("typeicons") }
     val pokedex by lazy { db.getCollection<Pokemon>("pokedex") }
     val pickedMons by lazy { db.getCollection<PickedMonsData>("pickedmons") }
     val tierlist by lazy { db.getCollection<Tierlist>("tierlist") }
@@ -695,7 +694,6 @@ sealed class LeagueEvent {
         val matchNum: Int = 0,
         val data: List<Int>
     ) : LeagueEvent() {
-        val winnerIndex get() = if (data[0] > data[1]) 0 else 1
         override fun manipulate(map: MutableMap<Int, UserTableData>) {
             for ((i, idx) in indices.withIndex()) {
                 map[idx]!!.let {

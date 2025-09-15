@@ -382,7 +382,6 @@ data class UserTableData(
     val index: Int
 ) {
     val diff get() = kills - deaths
-    val wlRatio get() = if (losses == 0) Double.MAX_VALUE else wins.toDouble() / losses.toDouble()
 
     companion object {
         fun createFromEvents(idxs: List<Int>, events: List<LeagueEvent>): MutableMap<Int, UserTableData> {

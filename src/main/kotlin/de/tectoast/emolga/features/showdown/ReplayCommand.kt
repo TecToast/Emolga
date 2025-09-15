@@ -19,7 +19,7 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
     init {
         registerDMListener { e ->
             val msg = e.message.contentDisplay
-            if (msg.contains("https://") || msg.contains("http://")) {
+            if (msg.contains("https://")) {
                 Analysis.regex.find(msg)?.run {
                     val url = groupValues[0]
                     logger.info(url)

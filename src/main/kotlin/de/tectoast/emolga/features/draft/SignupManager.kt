@@ -62,8 +62,10 @@ object SignupManager {
                 "Du bist derzeit nicht angemeldet!",
                 ephemeral = true
             )
-            val modal = ligaStartData.buildModal(signUpData)
-            if (modal == null) return iData.reply("Es gibt keine Daten, die du ändern kannst!", ephemeral = true)
+            val modal = ligaStartData.buildModal(signUpData) ?: return iData.reply(
+                "Es gibt keine Daten, die du ändern kannst!",
+                ephemeral = true
+            )
             iData.replyModal(modal)
         }
     }

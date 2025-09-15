@@ -8,7 +8,6 @@ import de.tectoast.emolga.utils.showdown.PokemonSaveKey.*
 import de.tectoast.emolga.utils.toUsername
 import mu.KotlinLogging
 import kotlin.properties.Delegates
-import kotlin.reflect.KClass
 
 private val otherThanNumbers = Regex("[^0-9]")
 private val logger = KotlinLogging.logger {}
@@ -593,8 +592,6 @@ sealed class SDEffect(vararg val types: String) {
 
 }
 
-private fun <T : Any> KClass<T>.dataobjects() = this.sealedSubclasses.mapNotNull { it.objectInstance }
-
 
 data class BattleContext(
     val url: String,
@@ -718,7 +715,6 @@ fun String.parsePlayer() = substringAfter('p').substringBefore(':').let {
     it[0].digitToInt() - 1
 }
 
-fun String.parsePlayerLocation() = substringAfter('p').substringBefore(':')[0].digitToInt() - 1
 fun String.parseHPPercentage() = split("/").let {
     val current = it[0].replace(otherThanNumbers, "").toInt()
     val max = it.getOrNull(1)?.replace(otherThanNumbers, "")?.toInt() ?: return@let 0

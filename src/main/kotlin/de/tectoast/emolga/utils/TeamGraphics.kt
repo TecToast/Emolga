@@ -50,7 +50,6 @@ class TeamGraphic {
     private val currentNumber: MutableMap<Int, Int> = mutableMapOf()
     val mons = mutableListOf<MutableList<DraftPokemon>>()
 
-    //private val shinyCount = AtomicInteger(0)
     private val randomTeamData = RandomTeamData()
 
     suspend fun create(mons: List<DraftPokemon>): Pair<BufferedImage, RandomTeamData> {
@@ -71,7 +70,6 @@ class TeamGraphic {
     }
 
     private suspend fun addMonsToList(monlist: List<DraftPokemon>) {
-        //mons.computeIfAbsent(tier) { ArrayList() } += pokemon
         mons.add(monlist.map {
             DraftPokemon(
                 getSpriteForTeamGraphic(it.name, randomTeamData, Constants.G.ASL),
@@ -114,7 +112,7 @@ class TeamGraphic {
                 val csize = row.size
                 (lastNum + (if (oldsize > csize) TeamGraphics.OFFSET else if (oldsize < csize) -TeamGraphics.OFFSET else TeamGraphics.OFFSET) + additionalOffset(
                     oldsize, csize
-                ) /*- 2 * offset * ((oldsize - csize) / 2)*/)
+                ))
             }
             lastNum = startX
             minOffset = min(minOffset, startX)
@@ -127,16 +125,12 @@ class TeamGraphic {
             }
             indexToStartX[index] = startX
         }
-        //logger.info("ja lol ey: $indexToStartX")
-        val img = BufferedImage(/*410 * mons.values.maxOf { it.size }*//* maxOffset*/ /*+ offset * mons.keys.size*/
-            //mons.maxOf { it.size } * 397 + 42,
-            //maxOffset,
+        val img = BufferedImage(
             mons.mapIndexed { index, list -> list.size * 397 + indexToStartX[index]!!.coerceAtLeast(20) /* - 210 + 31*/ }
                 .max(),
             360 * mons.size + 112,
             BufferedImage.TYPE_INT_ARGB
         )
-        //val img = BufferedImage(5000, 5000, BufferedImage.TYPE_INT_ARGB )
         val g = img.createGraphics()
         for (exec in toexecute) {
             exec(g, normal - minOffset)
@@ -154,42 +148,26 @@ class TeamGraphic {
     }
 
     private suspend fun executeSlot(g: Graphics2D, mon: DraftPokemon, rownum: Int, startX: Int) {
-        val (pokemon, tier, _, _) = mon
+        val (pokemon, tier, _, _, _) = mon
         g.stroke = BasicStroke(13.5f)
-        //g.color = Color(0x00CCCC)
         val x = currentNumber.getOrPut(rownum) { 0 }
         currentNumber[rownum] = currentNumber[rownum]!! + 1
         val xcoord = x.y(20 + 377, startX)
         val ycoord = rownum.y(360, 220)
         val ora = withContext(Dispatchers.IO) {
-            ImageIO.read(pokemon.file()/*.also { logger.info("Mon: ${it.absolutePath}") }*/)
+            ImageIO.read(pokemon.file())
         }
         val factor = 330f / 96f
         val width = (ora.width.toFloat() * factor).toInt()
         val height = (ora.height.toFloat() * factor).toInt()
         val cyanHexagon = hexagon(xcoord, ycoord, 210)
-        //val scaledOra = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
-        g.clip = cyanHexagon/*
-        graphics.drawImage(ora, 0, 0, width, height, null)
-        graphics.composite = AlphaComposite.getInstance(AlphaComposite.CLEAR)
-        graphics.color = Color(255, 255, 255, 255)
-        for (xc in xcoord - width / 2..xcoord + width / 2) {
-            for (yc in ycoord - height / 2..ycoord + height / 2) {
-                if (!cyanHexagon.contains(xc, yc)) {
-                    graphics.drawRect(xc, yc, 1, 1)
-                }
-            }
-        }
-        graphics.dispose()*/
+        g.clip = cyanHexagon
         g.drawImage(
             ora, xcoord - width / 2, ycoord - height / 2, width, height, null
-        )/*g.color = Color.RED
-        g.drawRect(xcoord - 165, ycoord - 150, 1, 1)*/
+        )
         g.clip = null
         g.color = Color.WHITE
-        //g.paint = GradientPaint(xcoord.toFloat() - 200, ycoord.toFloat() + 200, Color.WHITE, xcoord.toFloat() + 200, ycoord.toFloat() - 200, Color.BLACK)
         g.drawPolygon(hexagon(xcoord, ycoord, 200))
-        //g.color = Color(if (pokemon == "emolga") 0xFFD700 else 0x009999)
         val extend = 0
         val isSpecial = pokemon.substringAfterLast("/").substringBefore(".") in TeamGraphics.specialColors
         g.paint = GradientPaint(
@@ -207,7 +185,6 @@ class TeamGraphic {
         g.stroke = BasicStroke(8.5f)
         g.drawPolygon(hexagon(xcoord, ycoord + 200, 40))
         g.stroke = BasicStroke(8f)
-        //g.color = tiercolors[tier]
         val trimmedTier = tier.take(1)
         TeamGraphics.tiercolors.getValue(trimmedTier).let {
             g.paint = GradientPaint(
@@ -219,7 +196,6 @@ class TeamGraphic {
                 it.second
             )
         }
-        //g.color = Color(0x8e7cc3)
         g.drawPolygon(hexagon(xcoord, ycoord + 200, 45))
         g.color = Color.WHITE
         g.font = Font(Font.DIALOG, Font.PLAIN, 40)

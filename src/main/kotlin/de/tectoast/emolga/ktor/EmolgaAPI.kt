@@ -14,17 +14,12 @@ import de.tectoast.emolga.utils.json.LigaStartData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.sessions.*
 import io.ktor.util.*
-import io.ktor.util.pipeline.*
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.toSet
@@ -37,7 +32,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializerOrNull
 import mu.KotlinLogging
-import net.dv8tion.jda.api.Permission
 import org.litote.kmongo.eq
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -369,42 +363,3 @@ private suspend fun getGuildsForUser(userId: Long) =
     if (userId == Constants.FLOID) db.league.find().toFlow().map { it.guild }
         .toSet() + db.signups.find().toFlow().map { it.guild }
         .toSet() + Constants.G.MY else GuildManagerDB.getGuildsForUser(userId)
-
-/**
- * Should only be used in routes that are guarded by [apiGuard]
- */
-fun PipelineContext<*, ApplicationCall>.userId(): Long {
-    return call.sessions.get<UserSession>()!!.userId
-}
-
-private val userdataCache = SizeLimitedMap<String, DiscordUser>()
-suspend fun HttpClient.getUserData(accessToken: String): DiscordUser {
-    return userdataCache.getOrPut(accessToken) {
-        logger.info("Fetching user data for $accessToken")
-        getWithToken("https://discord.com/api/users/@me", accessToken)
-    }
-}
-
-suspend fun HttpClient.getGuilds(accessToken: String): List<DiscordGuildData> {
-    return getWithToken("https://discord.com/api/users/@me/guilds", accessToken)
-}
-
-suspend inline fun <reified T> HttpClient.getWithToken(url: String, accessToken: String): T {
-    return get(url) {
-        header("Authorization", "Bearer $accessToken")
-    }.body()
-}
-
-fun List<DiscordGuildData>.emolga(): List<GuildData> {
-    val emolgaguilds = jda.guilds.map { it.id }
-    return asSequence().filter {
-        it.permissions and Permission.MANAGE_SERVER.rawValue > 0
-    }.map { gd ->
-        GuildData(
-            gd.name,
-            gd.icon?.let { "https://cdn.discordapp.com/icons/${gd.id}/$it.png" }
-                ?: "assets/images/defaultservericon.png",
-            gd.id,
-            gd.id in emolgaguilds)
-    }.sortedBy { !it.joined }.toList()
-}

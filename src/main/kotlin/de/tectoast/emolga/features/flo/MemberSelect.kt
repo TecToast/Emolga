@@ -44,9 +44,12 @@ object MemberSelect {
                     }
                 } else {
                     db.db.getCollection<League>("league")
-                        .updateOne(League::leaguename eq league, set(League::table setTo members.map { it.idLong }))
+                        .updateOne(
+                            League::leaguename eq league,
+                            set(League::table setTo members.map { mem -> mem.idLong })
+                        )
                 }
-                it.reply("Updated Table $isForTeammate for $league: " + members.joinToString { it.asMention })
+                it.reply("Updated Table $isForTeammate for $league: " + members.joinToString { mem -> mem.asMention })
                     .setEphemeral(true)
                     .queue()
             }

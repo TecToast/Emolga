@@ -4,14 +4,12 @@ import de.tectoast.emolga.utils.condAppend
 import dev.minn.jda.ktx.interactions.components.danger
 import dev.minn.jda.ktx.interactions.components.primary
 import dev.minn.jda.ktx.interactions.components.success
-import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.GenericComponentInteractionCreateEvent
-import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
 import net.dv8tion.jda.api.interactions.modals.Modal
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction
@@ -76,7 +74,6 @@ abstract class DConfigurator(val name: String, private val userId: Long, private
     val nextModal get() = (steps[nextIndex] as ModalStep).modalBuilder(nextIndex)
 
 
-    fun InteractionHook.sendEmbedTitle(title: String) = sendMessageEmbeds(Embed(title = title))
     fun WebhookMessageCreateAction<Message>.yesNoButtons() = nextIndex.let {
         addActionRow(success("$it$name;yes", "Ja"), danger("$it$name;no", "Nein"))
     }

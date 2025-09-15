@@ -167,7 +167,7 @@ object ShinyEvent {
     class CombinedGame(override val games: Set<SingleGame>) : Game
 
 
-    val groupedGames = mutableMapOf<String, Game>(
+    val groupedGames = mutableMapOf(
         "GSK" to Gold + Silber + Kristall,
         "RSS" to Rubin + Saphir + Smaragd,
         "FRBG" to Feuerrot + Blattgrün,

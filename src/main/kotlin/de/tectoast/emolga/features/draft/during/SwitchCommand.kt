@@ -8,12 +8,9 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils
 import de.tectoast.emolga.utils.draft.SwitchInput
-import mu.KotlinLogging
 
 object SwitchCommand :
     CommandFeature<SwitchCommand.Args>(::Args, CommandSpec("switch", "Switcht ein Pokemon")) {
-
-    private val logger = KotlinLogging.logger {}
 
     class Args : Arguments() {
         var oldmon by draftPokemon(

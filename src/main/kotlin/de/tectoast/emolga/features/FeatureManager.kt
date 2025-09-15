@@ -150,11 +150,6 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         else -> this.toString()
     }
 
-    context(map: MutableMap<Long, MutableSet<CommandData>>)
-    private inline fun LongArray.addToFeatures(func: (Long) -> CommandData) = forEach {
-        map.getOrPut(it) { mutableSetOf() }.add(func(it))
-    }
-
     private suspend fun buildSlashCommandData(
         cmd: CommandFeature<*>,
         gid: Long

@@ -70,7 +70,7 @@ class ASLCoachData(
     private fun teamByIndex(index: Int) = table[index].let { it to data[it]!! }
 
     suspend fun isPlayer(mem: Member) = mem.idLong in participants()
-    fun isTaken(mem: Long) = data.values.any { datas -> (1..(config.teamSize - 1)).any { datas.members[it] == mem } }
+    fun isTaken(mem: Long) = data.values.any { datas -> (1..<config.teamSize).any { datas.members[it] == mem } }
 
     suspend fun getLevelByMember(mem: Member): Int = participants()[mem.idLong]!!
 

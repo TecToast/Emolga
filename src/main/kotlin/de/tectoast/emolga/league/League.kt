@@ -721,12 +721,12 @@ sealed class League {
     }
 
     suspend fun sendTeraSelectMessage() {
-        config.teraSelect?.let {
-            tc.sendMessage("Bitte wähle deinen ${it.type}-User aus den folgenden Tiers aus: ${it.tiers.joinToString { "**$it**" }}")
+        config.teraSelect?.let { ts ->
+            tc.sendMessage("Bitte wähle deinen ${ts.type}-User aus den folgenden Tiers aus: ${ts.tiers.joinToString { "**$it**" }}")
                 .queue()
             persistentData.teraSelect.mid = tc.send(
                 content = generateCompletedText(emptySet()),
-                components = TeraZSelect.Begin(label = "${it.type}-User auswählen") {
+                components = TeraZSelect.Begin(label = "${ts.type}-User auswählen") {
                     this.league = leaguename
                 }.into()
             ).await().id
@@ -900,7 +900,7 @@ sealed class League {
     }
 
     /**
-     * Gets the index of the user by their ID or a allowed player that only has permission for one user.
+     * Gets the index of the user by their ID or an allowed player that only has permission for one user.
      */
     fun getIdxByUserId(userId: Long): IdxByUserIdResult {
         val idx = table.indexOf(userId)
@@ -966,9 +966,9 @@ sealed class League {
     }
 
     fun generateCompletedText(completed: Set<Int>): String {
-        return table.indices.joinToString("\n") {
-            getTeamUserIds(it).joinToString(
-                separator = " & ", postfix = ": ${if (it in completed) "✅" else "❌"}"
+        return table.indices.joinToString("\n") { uid ->
+            getTeamUserIds(uid).joinToString(
+                separator = " & ", postfix = ": ${if (uid in completed) "✅" else "❌"}"
             ) { "<@${it}>" }
         }
     }

@@ -20,7 +20,6 @@ import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion
-import net.dv8tion.jda.api.entities.channel.unions.GuildMessageChannelUnion
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.GenericEvent
 import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
@@ -59,7 +58,6 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
         private set
 
     val defaultArgs by lazy { argsFun().args }
-    var disabled = false
     abstract suspend fun populateArgs(data: InteractionData, e: @UnsafeVariance E, args: A)
 
     fun createComponentId(argsBuilder: ArgBuilder<@UnsafeVariance A>, checkCompId: Boolean = false) =
@@ -559,10 +557,6 @@ open class Arguments {
         name: String = "", help: String = "", builder: Arg<GuildChannelUnion, GuildChannelUnion>.() -> Unit = {}
     ) = createArg(name, help, OptionType.CHANNEL, builder)
 
-    inline fun messageChannel(
-        name: String = "", help: String = "", builder: Arg<GuildChannelUnion, GuildMessageChannelUnion>.() -> Unit = {}
-    ) = createArg(name, help, OptionType.CHANNEL, builder)
-
     inline fun attachment(
         name: String = "", help: String = "", builder: Arg<Message.Attachment, Message.Attachment>.() -> Unit = {}
     ) = createArg(name, help, OptionType.ATTACHMENT, builder)
@@ -575,7 +569,7 @@ open class Arguments {
         validate(validator)
     }
 
-    @Suppress("MemberVisibilityCanBePrivate")
+
     fun <T> multiOption(range: IntRange, validator: suspend InteractionData.(String) -> T) =
         createArg<List<String>, List<T>>("", "", OptionType.STRING) {
             spec = SelectMenuArgSpec(range)
@@ -790,17 +784,6 @@ class Arg<DiscordType, ParsedType>(
         }
     }
 
-    fun defaultNotEnabled(key: ModalKey, required: Boolean? = null): Arg<DiscordType, ParsedType?> {
-        return Arg<DiscordType, ParsedType?>(name, help, optionType, args).also {
-            copyTo(it)
-            val oldSpec = it.spec as? ModalArgSpec
-            it.spec = ModalArgSpec(
-                oldSpec?.short != false, key, (required ?: oldSpec?.required) == true, oldSpec?.builder ?: {})
-            it.defaultValueSet = true
-            args.replaceLastArg(it)
-        }
-    }
-
     private fun copyTo(arg: Arg<DiscordType, ParsedType?>) {
         val oldDefaultValueSet = defaultValueSet
         arg.default = default
@@ -825,8 +808,6 @@ fun List<String>?.convertListToAutoCompleteReply() = when (this?.size) {
     in 1..25 -> this
     else -> listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
 }
-
-val GenericInteractionCreateEvent.button: ButtonInteractionEvent get() = this as ButtonInteractionEvent
 
 open class ArgumentException(override val message: String) : Exception(message)
 class MissingArgumentException(arg: Arg<*, *>) : ArgumentException("Du musst den Parameter `${arg.name}` angeben!")

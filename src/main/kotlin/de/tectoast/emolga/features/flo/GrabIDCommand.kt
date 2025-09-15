@@ -2,7 +2,6 @@ package de.tectoast.emolga.features.flo
 
 import de.tectoast.emolga.features.*
 import dev.minn.jda.ktx.coroutines.await
-import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Member
 
 object GrabIDCommand : CommandFeature<GrabIDCommand.Args>(::Args, CommandSpec("grabid", "grabid")) {
@@ -10,7 +9,6 @@ object GrabIDCommand : CommandFeature<GrabIDCommand.Args>(::Args, CommandSpec("g
         restrict(flo)
     }
 
-    private val logger = KotlinLogging.logger {}
     private val cachedMembers = mutableSetOf<Member>()
 
     class Args : Arguments() {

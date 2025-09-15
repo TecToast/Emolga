@@ -678,7 +678,7 @@ sealed class LeagueEvent {
     abstract val timestamp: Instant
     abstract val indices: List<Int>
 
-    abstract fun manipulate(map: MutableMap<Int, DirectCompareData>)
+    abstract fun manipulate(map: MutableMap<Int, UserTableData>)
 
     sealed class Sanction : LeagueEvent() {
         abstract val reason: String
@@ -696,7 +696,7 @@ sealed class LeagueEvent {
         val data: List<Int>
     ) : LeagueEvent() {
         val winnerIndex get() = if (data[0] > data[1]) 0 else 1
-        override fun manipulate(map: MutableMap<Int, DirectCompareData>) {
+        override fun manipulate(map: MutableMap<Int, UserTableData>) {
             for ((i, idx) in indices.withIndex()) {
                 map[idx]!!.let {
                     val k = data[i]
@@ -704,6 +704,8 @@ sealed class LeagueEvent {
                     it.kills += k
                     it.deaths += d
                     it.points += if (k > d) 3 else 0
+                    it.wins += if (k > d) 1 else 0
+                    it.loses += if (k < d) 1 else 0
                 }
             }
         }
@@ -720,7 +722,7 @@ sealed class LeagueEvent {
         override val issuer: Long,
         override val timestamp: Instant
     ) : Sanction() {
-        override fun manipulate(map: MutableMap<Int, DirectCompareData>) {
+        override fun manipulate(map: MutableMap<Int, UserTableData>) {
             indices.forEach { idx ->
                 map[idx]?.let { data ->
                     data.deaths += 6
@@ -740,7 +742,7 @@ sealed class LeagueEvent {
         override val issuer: Long,
         override val timestamp: Instant
     ) : Sanction() {
-        override fun manipulate(map: MutableMap<Int, DirectCompareData>) {
+        override fun manipulate(map: MutableMap<Int, UserTableData>) {
             indices.forEach { idx ->
                 map[idx]?.let { data ->
                     data.points -= amount

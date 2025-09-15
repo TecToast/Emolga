@@ -9,6 +9,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.json.LeagueEvent
 import de.tectoast.emolga.utils.json.LeagueEvent.MatchResult
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
@@ -444,14 +445,8 @@ class DocEntry private constructor(val league: League) {
                             )
                         )
                     ).toList()
-                    val data = mutableMapOf<Int, DirectCompareData>()
-                    useridxs.forEachIndexed { index, l ->
-                        data[l] = DirectCompareData(0, 0, 0, index)
-                    }
-                    allRelevantEvents.forEach {
-                        it.manipulate(data)
-                    }
-                    data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Int, DirectCompareData>> { o1, o2 ->
+                    val data = UserTableData.createFromEvents(useridxs, allRelevantEvents)
+                    data.entries.sortedWith(Comparator<MutableMap.MutableEntry<Int, UserTableData>> { o1, o2 ->
                         val compare = o1.value.points.compareTo(o2.value.points)
                         if (compare != 0) return@Comparator compare
                         for (directCompareOption in this.directCompare) {
@@ -476,7 +471,31 @@ class DocEntry private constructor(val league: League) {
     }
 }
 
-data class DirectCompareData(var points: Int, var kills: Int, var deaths: Int, val index: Int)
+data class UserTableData(
+    var points: Int = 0,
+    var kills: Int = 0,
+    var deaths: Int = 0,
+    var wins: Int = 0,
+    var loses: Int = 0,
+    val index: Int
+) {
+    val diff get() = kills - deaths
+    val wlRatio get() = if (loses == 0) Double.MAX_VALUE else wins.toDouble() / loses.toDouble()
+
+    companion object {
+        fun createFromEvents(idxs: List<Int>, events: List<LeagueEvent>): MutableMap<Int, UserTableData> {
+            val data = mutableMapOf<Int, UserTableData>()
+            idxs.forEachIndexed { index, l ->
+                data[l] = UserTableData(index = index)
+            }
+            events.forEach {
+                it.manipulate(data)
+            }
+            return data
+        }
+    }
+}
+
 private data class MonStats(var kills: Int = 0, var deaths: Int = 0) {
     fun add(stats: Pair<Int, Int>) {
         kills += stats.first

@@ -1,6 +1,6 @@
 package de.tectoast.emolga.utils.records
 
-import de.tectoast.emolga.utils.DirectCompareData
+import de.tectoast.emolga.utils.UserTableData
 
 class SorterData(
     val formulaRange: List<String>,
@@ -50,11 +50,11 @@ data class DocRange(val sheet: String, val xStart: String, val yStart: Int, val 
 
 enum class DirectCompareOption {
     DIFF {
-        override fun getFromData(data: DirectCompareData) = data.kills - data.deaths
+        override fun getFromData(data: UserTableData) = data.kills - data.deaths
     },
     KILLS {
-        override fun getFromData(data: DirectCompareData) = data.kills
+        override fun getFromData(data: UserTableData) = data.kills
     };
 
-    abstract fun getFromData(data: DirectCompareData): Int
+    abstract fun getFromData(data: UserTableData): Int
 }

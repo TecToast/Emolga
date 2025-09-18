@@ -178,7 +178,7 @@ suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
                 )] = videoId
                 logger.info("Saving video $videoId for $uid in $leaguename")
                 data.checkIfBothVideosArePresent(this)
-                save("YTSubSave")
+                save()
                 successful = true
             }
             if (successful) return

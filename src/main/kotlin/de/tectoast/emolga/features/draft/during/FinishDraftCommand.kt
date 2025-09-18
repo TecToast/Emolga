@@ -21,7 +21,7 @@ object FinishDraftCommand :
             if (current == idx)
                 afterPickOfficial()
             else
-                save("FinishDraft")
+                save()
         }
     }
 }

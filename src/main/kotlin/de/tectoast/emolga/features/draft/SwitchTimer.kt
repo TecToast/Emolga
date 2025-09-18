@@ -44,7 +44,7 @@ object SwitchTimer {
                 })
                 timer.stallSeconds = e.stallSeconds
                 config.timer = timer
-                save("SwitchTimer")
+                save()
                 val controlPanel = timer.createControlPanel(this)
                 iData.reply(ephemeral = false, embeds = controlPanel.first, components = controlPanel.second)
             }
@@ -64,7 +64,7 @@ object SwitchTimer {
             League.executeOnFreshLock(e.league) {
                 (config.timer as? SwitchTimer)?.let {
                     it.switchTo(e.switchTo)
-                    save("SwitchTimer")
+                    save()
                     iData.deferEdit()
                     val (messageEmbeds, actionRows) = it.createControlPanel(this)
                     iData.edit(embeds = messageEmbeds, components = actionRows)

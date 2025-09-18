@@ -112,7 +112,7 @@ class DocEntry private constructor(val league: League) {
         val store = config.replayDataStore
         if (store != null) {
             replayData.forEach(league::storeMatch)
-            league.save("DocEntry#Analyse")
+            league.save()
             spoilerDocSid?.let { analyseWithoutCheck(replayData, withSort, overrideSid = it) }
             val gameday = replayData.first().gamedayData.gameday
             val currentDay = RepeatTask.getTask(league.leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfWeek()
@@ -121,7 +121,7 @@ class DocEntry private constructor(val league: League) {
                 return
         } else if (config.triggers.saveReplayData) {
             replayData.forEach(league::storeMatch)
-            league.save("DocEntry#Analyse")
+            league.save()
         }
         analyseWithoutCheck(replayData, withSort)
     }

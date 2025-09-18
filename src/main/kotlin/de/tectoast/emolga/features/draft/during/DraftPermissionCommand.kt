@@ -40,7 +40,7 @@ object DraftPermissionCommand :
                         else 0
                     }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
                 }.into())
-                save("DraftPermission Allow")
+                save()
             }
         }
     }
@@ -88,7 +88,7 @@ object DraftPermissionCommand :
                         else 0
                     }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
                 }.into())
-                save("DraftPermission Deny")
+                save()
             }
         }
     }

@@ -399,7 +399,7 @@ sealed class League {
             restartTimer()
         }
         announcePlayer()
-        save("NEXT PLAYER SAFE")
+        save()
     }
 
     fun getAlreadyBannedMonsInThisRound(): Set<DraftPokemon> = draftData.draftBan.bannedMons[round].orEmpty()
@@ -494,7 +494,7 @@ sealed class League {
             if (tryQueuePick()) return
             restartTimer()
             announcePlayer()
-            save("StartDraft")
+            save()
         } else {
             val timerRelated = draftData.timer
             val delayData = if (timerRelated.cooldown > 0) DelayData(
@@ -511,7 +511,7 @@ sealed class League {
         order[round]!!.removeFirstOrNull()
     }
 
-    fun save(from: String = "") {
+    fun save() {
         shouldSave = true
     }
 
@@ -556,7 +556,7 @@ sealed class League {
                         delay(regularDelay)
                         executeOnFreshLock(leaguename) {
                             draftData.timer.lastStallSecondUsedMid = handleStallSecondUsed()
-                            save("StallSecondAnnounce")
+                            save()
                         }
                     }
                 }
@@ -717,7 +717,7 @@ sealed class League {
         tc.sendMessage(msg).queue()
         draftState = DraftState.OFF
         sendTeraSelectMessage()
-        save("END SAVE")
+        save()
     }
 
     suspend fun sendTeraSelectMessage() {
@@ -790,7 +790,7 @@ sealed class League {
         replyGeneral("den Pick übersprungen!")
     }
 
-    suspend fun getPickRoundOfficial() = currentTimerSkipMode.run { getPickRound().also { save("GET PICK ROUND") } }
+    suspend fun getPickRoundOfficial() = currentTimerSkipMode.run { getPickRound().also { save() } }
 
     open fun provideReplayChannel(jda: JDA): TextChannel? = null
     open fun provideResultChannel(jda: JDA): TextChannel? = null
@@ -922,7 +922,7 @@ sealed class League {
         ytVideoSaveData?.enabled = false
         jda.getTextChannelById(ytTC)!!.sendMessage(ytConfig.messageConfig.formatMessage(gameday, battle, strategy))
             .queue()
-        save("YTSubSave")
+        save()
     }
 
     fun buildStoreStatus(gameday: Int): String {

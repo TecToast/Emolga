@@ -96,7 +96,7 @@ object QueuePicks {
                     }
                     data.queued = newlist
                     data.enabled = false
-                    save("QueuePickAdd")
+                    save()
                     iData.reply(
                         "`${mon.tlName}` wurde zu deinen gequeueten Picks hinzugefügt! Außerdem wurde das System für dich deaktiviert, damit du das Pokemon noch an die richtige Stelle schieben kannst :)".notNullPrepend(
                             oldmon
@@ -116,7 +116,7 @@ object QueuePicks {
                 val data = persistentData.queuePicks.queuedPicks.getOrPut(idx) { QueuePicksUserData() }
                 if (isIllegal(idx, data.queued)) return
                 data.enabled = enable
-                save("QueuePickActivation")
+                save()
             }
             iData.reply("Das System wurde für dich ${if (enable) "" else "de"}aktiviert!", ephemeral = true)
         }

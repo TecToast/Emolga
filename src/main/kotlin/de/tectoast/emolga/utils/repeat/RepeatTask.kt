@@ -266,7 +266,7 @@ class RepeatTask(
             val dataStore = league.persistentData.replayDataStore
             dataStore.data[gameday]?.get(battle)?.let {
                 league.docEntry?.analyseWithoutCheck(listOf(it))
-                league.save("RepeatTaskYT")
+                league.save()
             }
                 ?: logger.warn("Register: No replay found for gameday $gameday and battle $battle in ${league.leaguename}")
         }

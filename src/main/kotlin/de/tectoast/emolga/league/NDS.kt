@@ -260,7 +260,7 @@ _written by Maxifcn_""".trimIndent()
                 }.execute()
                 logger.info("dbcallTime = $dbcallTime")
                 if (!prevDay) nom.currentDay++
-                nds.save("Nominate RepeatTask")
+                nds.save()
             }
         }
     }

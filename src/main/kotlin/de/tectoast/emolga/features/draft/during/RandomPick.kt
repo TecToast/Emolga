@@ -101,7 +101,7 @@ object RandomPick {
                     mapOf("type" to type),
                     history = history + draftname.official
                 )
-            save("RandomPick")
+            save()
             return true
         }
         return false

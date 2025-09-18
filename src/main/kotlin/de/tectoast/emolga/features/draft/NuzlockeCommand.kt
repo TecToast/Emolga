@@ -115,7 +115,7 @@ object NuzlockeCommand :
                     )?.tlName
                 }` rerollt!"
             )
-            save("NuzlockeCommand")
+            save()
         }
     }
 }

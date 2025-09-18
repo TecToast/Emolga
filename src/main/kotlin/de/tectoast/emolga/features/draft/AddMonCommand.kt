@@ -53,12 +53,13 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
             League::table contains iData.user
         ) ?: throw InvalidArgumentException("Du nimmst an keiner Liga teil, bei der man ein Team einreichen muss!")
         val idx = league(iData.user)
+        val tl = league.getTierlistFor(idx)
         league.currentOverride = idx
+        league.tierlistOverride = tl
         val picks = league.picks.getOrPut(idx) { mutableListOf() }
         if (picks.size >= league.teamsize) {
             return iData.reply("Dein Team ist bereits vollständig! Falls du einen Fehler bemerkst, melde dich bitte bei ${Constants.MYTAG}.")
         }
-        val tl = league.getTierlistFor(idx)
         val (tier, _, _) = (tl.getTierOfCommand(e.pokemon, null)
             ?: return iData.reply("Dieses Pokemon ist nicht in der Tierliste!"))
         if (league.handlePoints(false, tier)) return

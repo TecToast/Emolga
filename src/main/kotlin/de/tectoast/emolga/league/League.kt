@@ -103,9 +103,9 @@ sealed class League {
 
 
     @Transient
-    private var tlCompanion = Tierlist // workaround
+    var tierlistOverride: Tierlist? = null
 
-    val tierlist: Tierlist by tlCompanion
+    val tierlist: Tierlist get() = tierlistOverride ?: Tierlist.get(guild, config.customTierlist?.identifier)!!
 
     @Transient
     open val pickBuffer = 0

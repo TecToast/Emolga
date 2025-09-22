@@ -189,6 +189,8 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
                 ?: if (setupCalled) null
                 else runBlocking { db.tierlist.findOne(Tierlist::guildid eq guild) }?.apply { setup() }
         }
+
+        fun getAnyTierlist(guild: Long) = tierlists[guild]?.values?.firstOrNull()
     }
 }
 

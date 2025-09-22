@@ -462,6 +462,14 @@ sealed class League {
         lastPickedMon = null
     }
 
+    suspend fun generateNames(nameGuildId: Long? = null) {
+        names.clear()
+        val fetchedNames = jda.getGuildById(
+            nameGuildId ?: this.guild
+        )!!.retrieveMembersByIds(table.filter { it > 0 }).await().associateBy { it.idLong }
+        names.addAll(table.map { fetchedNames[it]?.effectiveName ?: "" })
+    }
+
 
     suspend fun startDraft(
         tc: GuildMessageChannel?, fromFile: Boolean, switchDraft: Boolean?, nameGuildId: Long? = null
@@ -470,11 +478,7 @@ sealed class League {
         logger.info("Starting draft $leaguename...")
         logger.info(tcid.toString())
         if (!fromFile) {
-            names.clear()
-            val fetchedNames = jda.getGuildById(
-                nameGuildId ?: this.guild
-            )!!.retrieveMembersByIds(table.filter { it > 0 }).await().associateBy { it.idLong }
-            names.addAll(table.map { fetchedNames[it]?.effectiveName ?: "" })
+            generateNames(nameGuildId)
         }
         logger.info(names.toString())
         tc?.let { this.tcid = it.idLong }
@@ -971,6 +975,16 @@ sealed class League {
                 separator = " & ", postfix = ": ${if (uid in completed) "✅" else "❌"}"
             ) { "<@${it}>" }
         }
+    }
+
+    open suspend fun revealPick(idx: Int, monIndex: Int) {
+        val y = idx.y(newSystemGap, monIndex + 3)
+        val b = builder()
+        val mon =
+            picks[idx]?.getOrNull(monIndex)?.let { NameConventionsDB.convertOfficialToTL(it.name, guild) ?: it.name }
+                ?: return
+        b.addSingle("$dataSheet!B$y", mon)
+        b.execute()
     }
 
     companion object : CoroutineScope {

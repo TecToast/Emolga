@@ -651,6 +651,21 @@ object PrivateCommands {
         iData.reply(NameConventionsDB.convertOfficialToTL(args[0], args[1].toLong()) ?: "NULL")
     }
 
+    context(iData: InteractionData)
+    suspend fun picksSort(args: PrivateData) {
+        League.executeOnFreshLock(args()) {
+            picks.entries.forEach { it.value.sortWith(Tierlist.getAnyTierlist(guild)!!.tierorderingComparator) }
+            save()
+        }
+    }
+
+    var teamSubmitOverride: Long? = null
+
+    context(iData: InteractionData)
+    fun teamSubmitOverride(args: PrivateData) {
+        teamSubmitOverride = args().toLong()
+    }
+
 }
 
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")

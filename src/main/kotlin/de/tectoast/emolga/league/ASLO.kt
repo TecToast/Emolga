@@ -21,8 +21,8 @@ class ASLO(
     val conf = leaguename.last()
     val confidx = conf - 'A'
 
-    override val dataSheet = "Data$confidx"
-    override val pickBuffer = 18
+    override val dataSheet = "Data${if (confidx == 0) "Verkehr" else "Leiter"}"
+    override val pickBuffer = 15
     override val teamsize = 12
     override val gamedays = 11
 

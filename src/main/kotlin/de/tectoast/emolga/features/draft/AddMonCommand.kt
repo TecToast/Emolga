@@ -24,6 +24,7 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
             "pokemon", "Das Pokemon, das zum Team hinzugefügt werden soll", OptionType.STRING
         ) {
             validate {
+                val user = PrivateCommands.teamSubmitOverride.takeIf { user == Constants.FLOID } ?: user
                 val league = db.league.findOne(
                     League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true, League::table contains user
                 )
@@ -34,11 +35,13 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
                 ) ?: throw InvalidArgumentException("Pokemon `$it` nicht gefunden!")
             }
             slashCommand(autocomplete = lambda@{ s, event ->
+                val user = PrivateCommands.teamSubmitOverride.takeIf { event.user.idLong == Constants.FLOID }
+                    ?: event.user.idLong
                 val league = db.league.findOne(
                     League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true,
-                    League::table contains event.user.idLong
+                    League::table contains user
                 ) ?: return@lambda listOf("Du nimmst an keiner Liga teil, bei der man ein Team einreichen muss!")
-                val tierlist = league.getTierlistFor(league(event.user.idLong))
+                val tierlist = league.getTierlistFor(league(user))
                 val strings = tierlist.autoComplete().filterContainsIgnoreCase(s)
                 if (strings.size > 25) return@lambda listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
                 strings.sortedWith(compareBy({ !it.startsWith(s) }, { it }))
@@ -47,13 +50,14 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
     }
 
     context(iData: InteractionData) override suspend fun exec(e: Args) {
+        val user = PrivateCommands.teamSubmitOverride.takeIf { iData.isFlo } ?: iData.user
         League.executeOnFreshLock({
             db.league.findOne(
                 League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true,
-                League::table contains iData.user
+                League::table contains user
             )
         }, { iData.reply("Du nimmst an keiner Liga teil, bei der man ein Team einreichen muss!") }) {
-            val idx = this(iData.user)
+            val idx = this(user)
             val tl = getTierlistFor(idx)
             currentOverride = idx
             tierlistOverride = tl

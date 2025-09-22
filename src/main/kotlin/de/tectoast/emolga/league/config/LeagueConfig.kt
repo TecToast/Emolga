@@ -38,4 +38,5 @@ data class PersistentLeagueData(
     val replayDataStore: ReplayDataStoreData = ReplayDataStoreData(),
     val queuePicks: QueuePicksData = QueuePicksData(),
     val teraSelect: TeraZSelectData = TeraZSelectData(),
+    val teamReveal: TeamRevealData = TeamRevealData(),
 )

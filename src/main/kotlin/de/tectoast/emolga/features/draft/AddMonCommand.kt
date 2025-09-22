@@ -25,8 +25,7 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
         ) {
             validate {
                 val league = db.league.findOne(
-                    League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true,
-                    League::table contains user
+                    League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true, League::table contains user
                 )
                     ?: throw InvalidArgumentException("Du nimmst an keiner Liga teil, bei der man ein Team einreichen muss!")
                 val guildId = league.guild
@@ -48,29 +47,40 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
     }
 
     context(iData: InteractionData) override suspend fun exec(e: Args) {
-        val league = db.league.findOne(
-            League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true,
-            League::table contains iData.user
-        ) ?: throw InvalidArgumentException("Du nimmst an keiner Liga teil, bei der man ein Team einreichen muss!")
-        val idx = league(iData.user)
-        val tl = league.getTierlistFor(idx)
-        league.currentOverride = idx
-        league.tierlistOverride = tl
-        val picks = league.picks.getOrPut(idx) { mutableListOf() }
-        if (picks.size >= league.teamsize) {
-            return iData.reply("Dein Team ist bereits vollständig! Falls du einen Fehler bemerkst, melde dich bitte bei ${Constants.MYTAG}.")
+        League.executeOnFreshLock({
+            db.league.findOne(
+                League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true,
+                League::table contains iData.user
+            )
+        }, { iData.reply("Du nimmst an keiner Liga teil, bei der man ein Team einreichen muss!") }) {
+            val idx = this(iData.user)
+            val tl = getTierlistFor(idx)
+            currentOverride = idx
+            tierlistOverride = tl
+            val official = e.pokemon.official
+            val picks = picks.getOrPut(idx) { mutableListOf() }
+            if (picks.any { it.name == official }) return iData.reply("Du hast das Pokemon bereits in deinem Team!")
+            if (picks.size >= teamsize) {
+                return iData.reply("Dein Team ist bereits vollständig! Falls du einen Fehler bemerkst, melde dich bitte bei ${Constants.MYTAG}.")
+            }
+            val (tier, _, _) = (tl.getTierOfCommand(e.pokemon, null)
+                ?: return iData.reply("Dieses Pokemon ist nicht in der Tierliste!"))
+            if (handlePoints(false, tier)) return
+            picks.add(DraftPokemon(official, tier))
+            val picksAsString = convertPicksToString(picks, tl)
+            if (picks.size >= teamsize) {
+                iData.reply("$picksAsString\n\n**Dein Team ist nun vollständig!** Falls du einen Fehler bemerkst, melde dich bitte bei ${Constants.MYTAG}.")
+            } else {
+                iData.reply(
+                    "${picksAsString}\n\nDu hast **${picks.size}/${teamsize}** Pokemon in deinem Team. ${
+                        announceData(
+                            withTimerAnnounce = false
+                        )
+                    }"
+                )
+            }
+            save()
         }
-        val (tier, _, _) = (tl.getTierOfCommand(e.pokemon, null)
-            ?: return iData.reply("Dieses Pokemon ist nicht in der Tierliste!"))
-        if (league.handlePoints(false, tier)) return
-        picks.add(DraftPokemon(e.pokemon.official, tier))
-        val picksAsString = convertPicksToString(picks, tl)
-        if (picks.size >= league.teamsize) {
-            iData.reply("$picksAsString\n\n**Dein Team ist nun vollständig!** Falls du einen Fehler bemerkst, melde dich bitte bei ${Constants.MYTAG}.")
-        } else {
-            iData.reply("${picksAsString}\n\nDu hast **${picks.size}/${league.teamsize}** Pokemon in deinem Team.")
-        }
-        league.save()
     }
 
     suspend fun convertPicksToString(picks: List<DraftPokemon>, tierlist: Tierlist): String {

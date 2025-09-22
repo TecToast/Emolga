@@ -296,7 +296,7 @@ sealed class League {
     }
 
     fun minimumNeededPointsForTeamCompletion(picksSizeAfterAdd: Int) =
-        (min(totalRounds, tierlist.maxMonsToPay) - picksSizeAfterAdd) * tierlist.prices.values.min()
+        (min(teamsize, tierlist.maxMonsToPay) - picksSizeAfterAdd) * tierlist.prices.values.min()
 
     context(iData: InteractionData) open fun handleTiers(
         specifiedTier: String, officialTier: String, fromSwitch: Boolean = false

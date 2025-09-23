@@ -204,9 +204,7 @@ class NDS(val rr: Boolean) : League() {
                         )
                     )
                     // Z & Tera
-                    b.addSingle("$team!AE8", "='$oppo'!AA8")
-                    b.addSingle("$team!AE10", "='$oppo'!AA10")
-                    b.addSingle("$team!AC11", "='$oppo'!Y11")
+                    b.addSingle("$team!AC8", "={'$oppo'!Y8:AB11}")
                     // Conditional formatting tiers
                     val y = oppoIndex * 2 + 500
                     b.addSingle("$team!B49", "={Data!B$y:AE$y}")

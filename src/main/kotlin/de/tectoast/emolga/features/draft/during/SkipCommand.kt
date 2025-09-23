@@ -12,10 +12,10 @@ object SkipCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("skip", "Über
 
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
-        League.executePickLike {
+        League.executePickLike l@{
             if (!isSwitchDraft) {
                 iData.reply("Dieser Draft ist kein Switch-Draft, daher wird /skip nicht unterstützt!")
-                return
+                return@l
             }
             replySkip()
             afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP, current))

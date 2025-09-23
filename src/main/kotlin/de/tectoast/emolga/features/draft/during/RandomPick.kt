@@ -46,11 +46,11 @@ object RandomPick {
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             iData.deferReply()
-            League.executePickLike {
+            League.executePickLike l@{
                 val config = config.randomPick
-                if (!config.enabled) return iData.reply("RandomPick ist in dieser Liga deaktiviert!")
+                if (!config.enabled) return@l iData.reply("RandomPick ist in dieser Liga deaktiviert!")
                 val hasJokers = config.hasJokers()
-                if (hasJokers && draftData.randomPick.currentMon?.disabled == false) return iData.reply(
+                if (hasJokers && draftData.randomPick.currentMon?.disabled == false) return@l iData.reply(
                     "Du hast bereits ein Mon gegambled!",
                     ephemeral = true
                 )
@@ -60,8 +60,8 @@ object RandomPick {
                         RandomPickUserInput(e.tier, e.type),
                         config
                     )
-                } ?: return
-                if (hasJokers && rerollOption(draftname, tier, type)) return
+                } ?: return@l
+                if (hasJokers && rerollOption(draftname, tier, type)) return@l
                 executeWithinLock(PickInput(draftname, tier, free = false), DraftMessageType.RANDOM)
             }
         }
@@ -116,13 +116,13 @@ object RandomPick {
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             iData.deferReply()
-            League.executePickLike {
+            League.executePickLike l@{
                 val (official, tlName, tier, map, history, disabled) = draftData.randomPick.currentMon
-                    ?: return iData.reply(
+                    ?: return@l iData.reply(
                     "Es gibt zurzeit keinen Pick!",
                     ephemeral = true
                 )
-                if (disabled) return iData.reply(
+                if (disabled) return@l iData.reply(
                     "Du musst erstmal selbst gamblen, bevor du diesen Button verwenden kannst!",
                     ephemeral = true
                 )
@@ -137,7 +137,7 @@ object RandomPick {
                     RandomPickAction.REROLL -> {
                         if ((draftData.randomPick.usedJokers[current]
                                 ?: 0) >= config.randomPick.jokers
-                        ) return iData.reply(
+                        ) return@l iData.reply(
                             "Du hast keine Joker mehr!",
                             ephemeral = true
                         )
@@ -146,8 +146,8 @@ object RandomPick {
                         val type = map["type"]
                         val (newdraftname, newtier) = with(config.mode) {
                             getRandomPick(RandomPickUserInput(tier, type, skipMons = history), config)
-                        } ?: return
-                        if (rerollOption(newdraftname, newtier, type)) return
+                        } ?: return@l
+                        if (rerollOption(newdraftname, newtier, type)) return@l
                         executeWithinLock(PickInput(newdraftname, newtier, false), DraftMessageType.REROLL)
                     }
                 }

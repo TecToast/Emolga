@@ -105,7 +105,7 @@ sealed class League {
     @Transient
     var tierlistOverride: Tierlist? = null
 
-    val tierlist: Tierlist get() = tierlistOverride ?: Tierlist.get(guild, config.customTierlist?.identifier)!!
+    val tierlist: Tierlist get() = tierlistOverride ?: Tierlist[guild, config.customTierlist?.identifier]!!
 
     @Transient
     open val pickBuffer = 0
@@ -1006,14 +1006,17 @@ sealed class League {
             allStallSecondTimers[leaguename]?.cancel(reason)
         }
 
-        suspend inline fun executeOnFreshLock(
-            leagueSupplier: () -> League?, onNotFound: () -> Unit = {}, block: League.() -> Unit
+        suspend fun executeOnFreshLock(
+            leagueSupplier: suspend () -> League?, onNotFound: suspend () -> Unit = {}, block: suspend League.() -> Unit
         ) {
             executeOnFreshLock(leagueSupplier, { it }, onNotFound, block)
         }
 
-        suspend inline fun <T> executeOnFreshLock(
-            supplier: () -> T?, leagueMapper: (T) -> League, onNotFound: () -> Unit = {}, block: T.() -> Unit
+        suspend fun <T> executeOnFreshLock(
+            supplier: suspend () -> T?,
+            leagueMapper: suspend (T) -> League,
+            onNotFound: suspend () -> Unit = {},
+            block: suspend T.() -> Unit
         ) {
             val locked = allMutexes.entries.mapNotNullTo(mutableSetOf()) { if (it.value.isLocked) it.key else null }
             val league = supplier() ?: return onNotFound()
@@ -1030,7 +1033,7 @@ sealed class League {
             }
         }
 
-        suspend inline fun executeOnFreshLock(name: String, block: League.() -> Unit) = getLock(name).withLock {
+        suspend fun executeOnFreshLock(name: String, block: suspend League.() -> Unit) = getLock(name).withLock {
             val league = db.getLeague(name) ?: return@withLock logger.error("ExecuteOnFreshLock failed for $name")
             league.block()
             league.lockCleanup()
@@ -1052,7 +1055,7 @@ sealed class League {
             }
         }
 
-        context(iData: InteractionData) suspend inline fun executePickLike(block: League.() -> Unit) {
+        context(iData: InteractionData) suspend fun executePickLike(block: suspend League.() -> Unit) {
             executeOnFreshLock({ byCommand() }, { it.first }, {
                 if (!iData.replied) {
                     iData.reply(
@@ -1101,9 +1104,9 @@ sealed class League {
         suspend fun onlyChannel(tc: Long) =
             db.league.find(League::draftState ne DraftState.OFF, League::tcid eq tc).first()
 
-        context(iData: InteractionData) suspend inline fun executeAsNotCurrent(
+        context(iData: InteractionData) suspend fun executeAsNotCurrent(
             asParticipant: Boolean,
-            block: League.() -> Unit
+            block: suspend League.() -> Unit
         ) {
             executeOnFreshLock({ onlyChannel(iData.tc)?.takeIf { !asParticipant || iData.user in it.table } }, {
                 iData.reply(
@@ -1111,7 +1114,6 @@ sealed class League {
                     ephemeral = true
                 )
             }, block)
-
         }
     }
 }

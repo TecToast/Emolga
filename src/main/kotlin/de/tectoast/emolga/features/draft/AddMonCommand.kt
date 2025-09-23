@@ -56,20 +56,20 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
                 League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true,
                 League::table contains user
             )
-        }, { iData.reply("Du nimmst an keiner Liga teil, bei der man ein Team einreichen muss!") }) {
+        }, { iData.reply("Du nimmst an keiner Liga teil, bei der man ein Team einreichen muss!") }) l@{
             val idx = this(user)
             val tl = getTierlistFor(idx)
             currentOverride = idx
             tierlistOverride = tl
             val official = e.pokemon.official
             val picks = picks.getOrPut(idx) { mutableListOf() }
-            if (picks.any { it.name == official }) return iData.reply("Du hast das Pokemon bereits in deinem Team!")
+            if (picks.any { it.name == official }) return@l iData.reply("Du hast das Pokemon bereits in deinem Team!")
             if (picks.size >= teamsize) {
-                return iData.reply("Dein Team ist bereits vollständig! Falls du einen Fehler bemerkst, melde dich bitte bei ${Constants.MYTAG}.")
+                return@l iData.reply("Dein Team ist bereits vollständig! Falls du einen Fehler bemerkst, melde dich bitte bei ${Constants.MYTAG}.")
             }
             val (tier, _, _) = (tl.getTierOfCommand(e.pokemon, null)
-                ?: return iData.reply("Dieses Pokemon ist nicht in der Tierliste!"))
-            if (handlePoints(false, tier)) return
+                ?: return@l iData.reply("Dieses Pokemon ist nicht in der Tierliste!"))
+            if (handlePoints(false, tier)) return@l
             picks.add(DraftPokemon(official, tier))
             val picksAsString = convertPicksToString(picks, tl)
             if (picks.size >= teamsize) {

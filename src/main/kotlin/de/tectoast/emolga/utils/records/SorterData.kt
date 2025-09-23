@@ -35,7 +35,7 @@ class DefaultSorter(
                 indices.insertionSortSuspending { a, b ->
                     for (option in sortOptions) {
                         val res = with(option) { getValue(a).compareTo(getValue(b)) }
-                        if (res != 0) return@insertionSortSuspending res
+                        if (res != 0) return@insertionSortSuspending -res
                     }
                     0
                 }

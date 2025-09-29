@@ -463,6 +463,24 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
+    suspend fun addTeammates(args: PrivateData) {
+        League.executeOnFreshLock(args[0]) {
+            val ids = args[1].split(",").map { it.ifBlank { null }?.toLong() }
+            if (ids.size != table.size) return@executeOnFreshLock iData.reply("ids.size != table.size")
+            ids.forEachIndexed { index, teammate ->
+                if (teammate == null) return@forEachIndexed
+                DraftPermissionCommand.performPermissionAdd(
+                    user = table[index],
+                    toadd = teammate,
+                    withMention = DraftPermissionCommand.Allow.Mention.BOTH,
+                    teammate = true
+                )
+            }
+            save()
+        }
+    }
+
+    context(iData: InteractionData)
     suspend fun tipgameAdditionals(args: PrivateData) {
         val leaguename = args[0]
         val topkiller = args[1]

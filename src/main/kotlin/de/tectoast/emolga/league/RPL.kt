@@ -15,6 +15,7 @@ class RPL : League() {
 
     override val teamsize = 11
     override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
+    override val duringTimerSkipMode = NEXT_PICK
 
     /*@Transient
     override var timer: DraftTimer? = SimpleTimer(

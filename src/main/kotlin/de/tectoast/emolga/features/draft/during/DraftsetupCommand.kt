@@ -5,6 +5,7 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
+import net.dv8tion.jda.api.Permission
 
 object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
     ::Args,
@@ -25,6 +26,17 @@ object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         League.executeOnFreshLock(e.name) {
+            if (!iData.guild().selfMember.hasPermission(
+                    iData.textChannel,
+                    Permission.VIEW_CHANNEL,
+                    Permission.MESSAGE_SEND
+                )
+            ) {
+                return@executeOnFreshLock iData.reply(
+                    "Ich habe keine Schreibrechte in diesem Channel!",
+                    ephemeral = true
+                )
+            }
             startDraft(iData.textChannel, fromFile = false, switchDraft = e.switchdraft, nameGuildId = e.nameguild)
             iData.reply("+1", ephemeral = true)
         }

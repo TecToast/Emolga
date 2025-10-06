@@ -84,7 +84,7 @@ class TeamGraphic {
         val o = db.getDataObject(str, guild)
         val odds = db.config.only().teamgraphicShinyOdds
         return buildString {
-            append("gen5_cropped")
+            append("/gen5_cropped")
             if (Random.nextInt(odds) == 0) {
                 append("_shiny")
                 data.shinyCount.incrementAndGet()

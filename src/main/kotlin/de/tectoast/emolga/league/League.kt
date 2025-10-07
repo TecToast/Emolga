@@ -14,16 +14,17 @@ import de.tectoast.emolga.features.draft.AddToTierlistData
 import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.features.draft.during.TeraZSelect
 import de.tectoast.emolga.features.flo.SendFeatures
-import de.tectoast.emolga.league.config.LeagueConfig
-import de.tectoast.emolga.league.config.PersistentLeagueData
-import de.tectoast.emolga.league.config.ResettableLeagueData
-import de.tectoast.emolga.league.config.TimerRelated
+import de.tectoast.emolga.league.config.*
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.json.Config
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.repeat.RepeatTask
+import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.enableYTForGame
+import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.executeRegisterInDoc
+import de.tectoast.emolga.utils.repeat.RepeatTaskType.*
 import de.tectoast.emolga.utils.showdown.AnalysisData
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.*
@@ -46,13 +47,15 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.math.min
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 
 enum class DraftState {
     OFF, ON, PSEUDOEND
 }
 
-@OptIn(ExperimentalSerializationApi::class)
+@OptIn(ExperimentalSerializationApi::class, ExperimentalTime::class)
 @Suppress("MemberVisibilityCanBePrivate")
 @Serializable
 sealed class League {
@@ -185,7 +188,7 @@ sealed class League {
 
     open suspend fun AddToTierlistData.addMonToTierlist() {}
 
-    open fun setupRepeatTasks() {}
+    open fun setupCustomRepeatTasks() {}
 
     open fun isFinishedForbidden() = !isSwitchDraft
 
@@ -1005,6 +1008,140 @@ sealed class League {
                 ?: return
         b.addSingle("$dataSheet!B$y", mon)
         b.execute()
+    }
+
+
+    fun setupRepeatTasks() {
+        setupCustomRepeatTasks()
+        setupTipGameRepeatTasks()
+        setupReplayDataStoreRepeatTasks()
+    }
+
+    fun setupTipGameRepeatTasks() {
+        config.tipgame?.let { tip ->
+            val duration = tip.interval
+            logger.debug { "Draft $leaguename has tipgame with interval ${tip.interval} and duration $duration" }
+            RepeatTask(
+                leaguename, TipGameSending, tip.lastSending, tip.amount, duration
+            ) {
+                executeOnFreshLock(leaguename) { executeTipGameSending(it) }
+            }
+            tip.lastLockButtons?.let { last ->
+                RepeatTask(
+                    leaguename, TipGameLockButtons, last, tip.amount, duration
+                ) {
+                    executeOnFreshLock(leaguename) { executeTipGameLockButtons(it) }
+                }
+            }
+        }
+    }
+
+    fun setupReplayDataStoreRepeatTasks() {
+        // TODO: restructure this
+        config.replayDataStore?.let { data ->
+            val size = battleorder[1]?.size ?: return@let
+            val ytConfig = data.ytEnableConfig
+            if (ytConfig is YTEnableConfig.Custom) {
+                repeat(size) { battle ->
+                    RepeatTask(
+                        leaguename,
+                        YTEnable,
+                        ytConfig.lastUploadStart + ytConfig.intervalBetweenMatches * battle,
+                        data.amount,
+                        data.intervalBetweenGD
+                    ) { gameday ->
+                        executeOnFreshLock(leaguename) {
+                            enableYTForGame(this, gameday, battle)
+                            save()
+                        }
+                    }
+                }
+            }
+            if (data.intervalBetweenMatches == Duration.ZERO) {
+                RepeatTask(
+                    leaguename, RegisterInDoc, data.lastUploadStart, data.amount, data.intervalBetweenGD
+                ) { gameday ->
+                    executeOnFreshLock(leaguename) {
+                        repeat(size) { battle ->
+                            logger.info("RegisterInDocSingle $leaguename $gameday $battle")
+                            if (ytConfig is YTEnableConfig.WithDocEntry) {
+                                enableYTForGame(this, gameday, battle)
+                            }
+                            executeRegisterInDoc(this, gameday, battle)
+                        }
+                    }
+                }
+            } else {
+                repeat(size) { battle ->
+                    RepeatTask(
+                        leaguename,
+                        RegisterInDoc,
+                        data.lastUploadStart + data.intervalBetweenMatches * battle,
+                        data.amount,
+                        data.intervalBetweenGD,
+                    ) { gameday ->
+                        executeOnFreshLock(leaguename) {
+                            logger.info("RegisterInDoc $leaguename $gameday $battle")
+                            if (ytConfig is YTEnableConfig.WithDocEntry) {
+                                enableYTForGame(this, gameday, battle)
+                            }
+                            executeRegisterInDoc(this, gameday, battle)
+                        }
+                    }
+                    RepeatTask(
+                        leaguename,
+                        SendReminderToParticipants,
+                        data.lastUploadStart + data.intervalBetweenMatches * battle,
+                        data.amount,
+                        data.intervalBetweenGD,
+                    ) { gameday ->
+                        logger.info("SendReminderToParticipants $leaguename $gameday $battle")
+                        executeOnFreshLock(leaguename) {
+                            if (persistentData.replayDataStore.data[gameday]?.get(battle) != null) return@executeOnFreshLock
+                            val toRemind = battleorder[gameday]?.get(battle) ?: return@executeOnFreshLock
+                            for ((index, idx) in toRemind.withIndex()) {
+                                val opponent = toRemind[1 - index]
+                                jda.openPrivateChannelById(table[idx]).await().send(
+                                    embeds = Embed(
+                                        title = "Reminder",
+                                        description = "Dein Kampf an Spieltag $gameday gegen <@${table[opponent]}> ist noch nicht eingetragen.\n" +
+                                                "Falls das vergessen wurde, kläre bitte ab, wer den Kampf noch eintragen wird.\n\n" +
+                                                "Falls der Kampf eigentlich schon eingetragen wurde, funktioniert dieses System nicht, bitte gib dann ${Constants.MYTAG} Bescheid :)",
+                                        color = embedColor
+                                    ).into()
+                                ).queue()
+                            }
+                        }
+                    }
+                    config.youtube?.sendChannel?.let { ytTC ->
+                        RepeatTask(
+                            leaguename,
+                            YTSendManual,
+                            ((data.ytEnableConfig as? YTEnableConfig.Custom)?.lastUploadStart
+                                ?: data.lastUploadStart) + data.intervalBetweenMatches * battle + data.gracePeriodForYT,
+                            data.amount,
+                            data.intervalBetweenGD,
+                        ) { gameday ->
+                            executeOnFreshLock(leaguename) {
+                                val ytData =
+                                    persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
+                                        ?: return@executeOnFreshLock
+                                executeYoutubeSend(
+                                    ytTC, gameday, battle, VideoProvideStrategy.Subscribe(ytData)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            data.lastGamesMadeReminder?.let { last ->
+                RepeatTask(leaguename, LastReminder, last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
+                    executeOnFreshLock(leaguename) {
+                        jda.getTextChannelById(last.channel)!!.sendMessage(buildStoreStatus(gameday)).queue()
+                    }
+                }
+            }
+        }
     }
 
     companion object : CoroutineScope {

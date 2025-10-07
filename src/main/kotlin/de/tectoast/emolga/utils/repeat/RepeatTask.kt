@@ -2,20 +2,11 @@
 
 package de.tectoast.emolga.utils.repeat
 
-import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.features.wrc.WRCManager
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.league.VideoProvideStrategy
-import de.tectoast.emolga.league.config.YTEnableConfig
-import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
-import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.repeat.RepeatTaskType.*
-import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.messages.Embed
-import dev.minn.jda.ktx.messages.into
-import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -24,7 +15,6 @@ import mu.KotlinLogging
 import java.util.*
 import kotlin.time.Clock
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -35,7 +25,7 @@ class RepeatTask(
     amount: Int,
     difference: Duration,
     printTimestamps: Boolean = false,
-    val consumer: suspend (Int) -> Unit,
+    val consumer: suspend RepeatTaskData.(Int) -> Unit,
 ) {
     private val scope = createCoroutineScope("RepeatTask")
     val taskTimestamps = TreeMap<Instant, Int>()
@@ -47,7 +37,7 @@ class RepeatTask(
         amount: Int,
         difference: Duration,
         printDelays: Boolean = false,
-        consumer: suspend (Int) -> Unit,
+        consumer: suspend RepeatTaskData.(Int) -> Unit,
     ) : this(
         leaguename,
         type,
@@ -75,7 +65,7 @@ class RepeatTask(
                 if (printTimestamps) logger.info("{} -> {}", currAmount, defaultTimeFormat.format(curTime))
                 scope.launch {
                     delay(delay)
-                    consumer(finalCurrAmount)
+                    RepeatTaskData(Instant.fromEpochMilliseconds(curTime)).consumer(finalCurrAmount)
                 }
                 currAmount--
                 last.add(Calendar.DAY_OF_YEAR, days)
@@ -117,141 +107,13 @@ class RepeatTask(
         private val allTasks = mutableMapOf<String, MutableMap<RepeatTaskType, RepeatTask>>()
         fun getTask(leaguename: String, type: RepeatTaskType) = allTasks[leaguename]?.get(type)
         suspend fun setupRepeatTasks() {
-            RepeatTask("SILKSONG", Other("SILKSONG"), "04.09.2025 16:00", 4, 1.days) {
-                jda.getTextChannelById(1309566024747843715)!!.sendMessage(
-                    when (it) {
-                        1 -> "https://tenor.com/view/dawn-of-the-first-day-gif-23933500"
-                        2 -> "https://tenor.com/view/dawn-gif-23933434"
-                        3 -> "https://tenor.com/view/majoras-mask-majora-zelda-final-day-gif-26658556"
-                        4 -> "https://tenor.com/view/silksong-basketball-ice-dunk-hornet-gif-3999940650987546913"
-                        else -> "Flo hat was kaputt gemacht :^)"
-                    }
-                ).queue()
-            }
+            setupLeagueRepeatTasks()
+            WRCManager.setupRepeatTasks()
+        }
+
+        suspend fun setupLeagueRepeatTasks() {
             db.league.find().toFlow().collect { l ->
-                val name = l.leaguename
                 l.setupRepeatTasks()
-                l.config.tipgame?.let { tip ->
-                    val duration = tip.interval
-                    logger.debug { "Draft $name has tipgame with interval ${tip.interval} and duration $duration" }
-                    RepeatTask(
-                        name, TipGameSending, tip.lastSending, tip.amount, duration
-                    ) {
-                        League.executeOnFreshLock(name) { executeTipGameSending(it) }
-                    }
-                    tip.lastLockButtons?.let { last ->
-                        RepeatTask(
-                            name, TipGameLockButtons, last, tip.amount, duration
-                        ) {
-                            League.executeOnFreshLock(name) { executeTipGameLockButtons(it) }
-                        }
-                    }
-                }
-                // TODO: restructure this
-                l.config.replayDataStore?.let { data ->
-                    val size = l.battleorder[1]?.size ?: return@let
-                    val ytConfig = data.ytEnableConfig
-                    if (ytConfig is YTEnableConfig.Custom) {
-                        repeat(size) { battle ->
-                            RepeatTask(
-                                name,
-                                YTEnable,
-                                ytConfig.lastUploadStart + ytConfig.intervalBetweenMatches * battle,
-                                data.amount,
-                                data.intervalBetweenGD
-                            ) { gameday ->
-                                League.executeOnFreshLock(name) {
-                                    enableYTForGame(this, gameday, battle)
-                                    save()
-                                }
-                            }
-                        }
-                    }
-                    if (data.intervalBetweenMatches == Duration.ZERO) {
-                        RepeatTask(
-                            name, RegisterInDoc, data.lastUploadStart, data.amount, data.intervalBetweenGD
-                        ) { gameday ->
-                            League.executeOnFreshLock(name) {
-                                repeat(size) { battle ->
-                                    logger.info("RegisterInDocSingle $name $gameday $battle")
-                                    if (ytConfig is YTEnableConfig.WithDocEntry) {
-                                        enableYTForGame(this, gameday, battle)
-                                    }
-                                    executeRegisterInDoc(this, gameday, battle)
-                                }
-                            }
-                        }
-                    } else {
-                        repeat(size) { battle ->
-                            RepeatTask(
-                                name,
-                                RegisterInDoc,
-                                data.lastUploadStart + data.intervalBetweenMatches * battle,
-                                data.amount,
-                                data.intervalBetweenGD,
-                            ) { gameday ->
-                                League.executeOnFreshLock(name) {
-                                    logger.info("RegisterInDoc $name $gameday $battle")
-                                    if (ytConfig is YTEnableConfig.WithDocEntry) {
-                                        enableYTForGame(this, gameday, battle)
-                                    }
-                                    executeRegisterInDoc(this, gameday, battle)
-                                }
-                            }
-                            RepeatTask(
-                                name,
-                                SendReminderToParticipants,
-                                data.lastUploadStart + data.intervalBetweenMatches * battle,
-                                data.amount,
-                                data.intervalBetweenGD,
-                            ) { gameday ->
-                                logger.info("SendReminderToParticipants $name $gameday $battle")
-                                League.executeOnFreshLock(name) {
-                                    if (persistentData.replayDataStore.data[gameday]?.get(battle) != null) return@executeOnFreshLock
-                                    val toRemind = battleorder[gameday]?.get(battle) ?: return@executeOnFreshLock
-                                    for ((index, idx) in toRemind.withIndex()) {
-                                        val opponent = toRemind[1 - index]
-                                        jda.openPrivateChannelById(this[idx]).await().send(
-                                            embeds = Embed(
-                                                title = "Reminder",
-                                                description = "Dein Kampf an Spieltag $gameday gegen <@${this[opponent]}> ist noch nicht eingetragen.\n" +
-                                                        "Falls das vergessen wurde, kläre bitte ab, wer den Kampf noch eintragen wird.\n\n" +
-                                                        "Falls der Kampf eigentlich schon eingetragen wurde, funktioniert dieses System nicht, bitte gib dann ${Constants.MYTAG} Bescheid :)",
-                                                color = embedColor
-                                            ).into()
-                                        ).queue()
-                                    }
-                                }
-                            }
-                            l.config.youtube?.sendChannel?.let { ytTC ->
-                                RepeatTask(
-                                    name,
-                                    YTSendManual,
-                                    ((data.ytEnableConfig as? YTEnableConfig.Custom)?.lastUploadStart
-                                        ?: data.lastUploadStart) + data.intervalBetweenMatches * battle + data.gracePeriodForYT,
-                                    data.amount,
-                                    data.intervalBetweenGD,
-                                ) { gameday ->
-                                    League.executeOnFreshLock(name) {
-                                        val ytData =
-                                            persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
-                                                ?: return@executeOnFreshLock
-                                        executeYoutubeSend(
-                                            ytTC, gameday, battle, VideoProvideStrategy.Subscribe(ytData)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    data.lastGamesMadeReminder?.let { last ->
-                        RepeatTask(name, LastReminder, last.lastSend, data.amount, data.intervalBetweenGD) { gameday ->
-                            League.executeOnFreshLock(name) {
-                                jda.getTextChannelById(last.channel)!!.sendMessage(buildStoreStatus(gameday)).queue()
-                            }
-                        }
-                    }
-                }
             }
         }
 
@@ -273,6 +135,8 @@ class RepeatTask(
         }
     }
 }
+
+data class RepeatTaskData(val executionTime: Instant)
 
 sealed interface RepeatTaskType {
     data object TipGameSending : RepeatTaskType

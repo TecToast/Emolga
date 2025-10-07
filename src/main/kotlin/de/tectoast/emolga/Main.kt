@@ -24,12 +24,13 @@ suspend fun main() {
     logger.info("Launching Bots...")
     EmolgaMain.launchBots()
     Tierlist.setup()
+    logger.info("Starting DB...")
+    Database.init(Credentials.tokens.database)
     defaultScope.launch {
         RepeatTask.setupRepeatTasks()
         IntervalTask.setupIntervalTasks()
+
     }
-    logger.info("Starting DB...")
-    Database.init(Credentials.tokens.database)
     logger.info("Starting KTor...")
     Ktor.start()
     logger.info("Starting EmolgaMain...")

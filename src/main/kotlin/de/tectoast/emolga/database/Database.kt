@@ -12,7 +12,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.Transaction
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
+import java.sql.SQLIntegrityConstraintViolationException
 
 class Database(private val host: String, private val username: String, private val password: String) {
     val dataSource = HikariDataSource(HikariConfig().apply {
@@ -60,3 +62,16 @@ fun <T> dbAsync(block: suspend CoroutineScope.() -> T) = Database.dbScope.async(
 @Suppress("DEPRECATION") // Switch to R2DBC once it is stable with pooling
 suspend fun <T> dbTransaction(statement: suspend Transaction.() -> T) =
     newSuspendedTransaction(Database.dbScope.coroutineContext, statement = statement)
+
+
+suspend fun dbTransactionWithUniqueHandler(
+    statement: suspend Transaction.() -> Unit,
+    uniqueHandler: suspend () -> Unit
+) {
+    try {
+        dbTransaction { statement() }
+    } catch (e: ExposedSQLException) {
+        if (e.cause !is SQLIntegrityConstraintViolationException) throw e
+        uniqueHandler()
+    }
+}

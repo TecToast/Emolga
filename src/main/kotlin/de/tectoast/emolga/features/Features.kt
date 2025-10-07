@@ -318,12 +318,13 @@ abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMe
         options: List<SelectOption>? = this.options,
         disabled: Boolean = false,
         menuBuilder: StringSelectMenu.Builder.() -> Unit = {},
+        valueRange: IntRange? = null,
         argsBuilder: ArgBuilder<A> = {},
     ) = StringSelectMenu(
         customId = createComponentId(argsBuilder, checkCompId = true),
         placeholder = placeholder,
         disabled = disabled,
-        valueRange = selectableOptions.let { if (it.isEmpty()) 1..(options?.size ?: 0) else it },
+        valueRange = valueRange ?: selectableOptions.let { if (it.isEmpty()) 1..(options?.size ?: 0) else it },
         options = options.orEmpty(),
         builder = menuBuilder
     )

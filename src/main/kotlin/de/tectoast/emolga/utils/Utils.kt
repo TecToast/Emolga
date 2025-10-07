@@ -16,6 +16,7 @@ import kotlinx.serialization.builtins.LongAsStringSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import mu.KotlinLogging
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.User
 import org.jetbrains.exposed.v1.core.Column
@@ -209,6 +210,9 @@ enum class Language(
 }
 
 val String.isMega get() = "-Mega" in this
+
+fun Member.hasRole(roleId: Long) = unsortedRoles.any { it.idLong == roleId }
+
 fun InlineModal.short(customId: String, label: String, required: Boolean, placeholder: String? = null) =
     label(
         label = label,

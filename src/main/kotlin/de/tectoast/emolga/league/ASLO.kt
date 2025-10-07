@@ -96,7 +96,7 @@ class ASLO(
         )
     }
 
-    override fun setupRepeatTasks() {
+    override fun setupCustomRepeatTasks() {
         if (confidx == 0) {
             RepeatTask(
                 "ASL", RepeatTaskType.Other("Announce"), "26.05.2025 00:00", 8, 7.days

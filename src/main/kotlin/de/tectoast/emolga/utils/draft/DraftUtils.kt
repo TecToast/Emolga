@@ -84,7 +84,7 @@ data class PickInput(
             lastPickedMon = pokemon
             val pickData = PickData(
                 league = league,
-                pokemon = if (tierlist.isEnglish) pokemon.otherTl!! else pokemon.tlName, // TODO refactor this
+                pokemon = pokemon.tlName, // TODO refactor this
                 pokemonofficial = official,
                 tier = saveTier,
                 idx = idx,

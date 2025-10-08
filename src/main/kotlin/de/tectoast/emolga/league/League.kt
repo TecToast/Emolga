@@ -98,6 +98,8 @@ sealed class League {
     val currentTimerSkipMode: TimerSkipMode
         get() = duringTimerSkipMode?.takeUnless { draftWouldEnd } ?: afterTimerSkipMode
 
+    val potentialBetweenPick get() = !pseudoEnd && duringTimerSkipMode == ALWAYS
+
     @Contextual
     var tcid: Long = -1
 
@@ -392,7 +394,8 @@ sealed class League {
             return
         }
 
-        if (tryQueuePick()) return
+        if (data !is NextPlayerData.InBetween)
+            if (tryQueuePick()) return
 
 
         if (result != TimerSkipResult.SAME) {
@@ -1064,8 +1067,9 @@ sealed class League {
                 }
             }) {
                 // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
-                if (first.pseudoEnd && first.afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
-                    // BypassCurrentPlayerData can only be Yes here
+                val isAfterDraftUnorderedPick = first.pseudoEnd && first.afterTimerSkipMode == AFTER_DRAFT_UNORDERED
+                val isBetweenPick = first.potentialBetweenPick && second is BypassCurrentPlayerData.Yes
+                if (isAfterDraftUnorderedPick || isBetweenPick) {
                     first.currentOverride = (second as BypassCurrentPlayerData.Yes).user
                 }
                 if (!first.isCurrentCheck(iData.member())) {
@@ -1092,6 +1096,11 @@ sealed class League {
                             return null
                         }
                     }
+                }
+                if (potentialBetweenPick && uid in table) {
+                    val idx = this(uid)
+                    if (hasMovedTurns(idx))
+                        return@run this to BypassCurrentPlayerData.Yes(idx)
                 }
                 if (!isCurrentCheck(iData.member())) {
                     iData.reply("Du bist nicht dran!", ephemeral = true)
@@ -1237,6 +1246,16 @@ data object NEXT_PICK : DuringTimerSkipMode {
 }
 
 @Serializable
+data object ALWAYS : DuringTimerSkipMode {
+    override suspend fun League.afterPick(data: NextPlayerData): TimerSkipResult {
+        if (data is NextPlayerData.InBetween) return TimerSkipResult.SAME
+        return TimerSkipResult.NEXT
+    }
+
+    override suspend fun League.getPickRound() = movedTurns().firstOrNull() ?: round
+}
+
+@Serializable
 data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
     override suspend fun League.afterPick(data: NextPlayerData): TimerSkipResult {
         if (pseudoEnd && data.isNormalPick()) {
@@ -1315,6 +1334,7 @@ data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
 data class AdditionalSet(val col: String, val existent: String, val yeeted: String)
 sealed interface NextPlayerData {
     data object Normal : NextPlayerData
+    data object InBetween : NextPlayerData
     data class Moved(val reason: SkipReason, val skippedUser: Int, val skippedBy: Long? = null) : NextPlayerData
 
 }

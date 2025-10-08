@@ -155,7 +155,7 @@ class NDS(val rr: Boolean) : League() {
     val tableName: String
         get() = if (rr) "Tabelle RR" else "Tabelle HR"
 
-    override fun setupRepeatTasks() {
+    override fun setupCustomRepeatTasks() {
         logger.info("Setting up matchups repeat tasks")
         RepeatTask(
             "NDS", RepeatTaskType.Other("Matchups"), "23.11.2025 20:00", 10, 7.days

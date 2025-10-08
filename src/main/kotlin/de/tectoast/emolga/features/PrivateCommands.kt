@@ -5,10 +5,7 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
-import de.tectoast.emolga.database.exposed.AnalysisStatistics
-import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.YTChannelsDB
-import de.tectoast.emolga.database.exposed.YTNotificationsDB
+import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.draft.SignupManager.Button
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
@@ -45,12 +42,9 @@ import net.dv8tion.jda.api.interactions.components.ActionComponent
 import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.or
-import org.jetbrains.exposed.v1.jdbc.batchInsert
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.migration.MigrationUtils
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
@@ -684,6 +678,19 @@ object PrivateCommands {
     context(iData: InteractionData)
     fun teamSubmitOverride(args: PrivateData) {
         teamSubmitOverride = args().toLong()
+    }
+
+    context(iData: InteractionData)
+    suspend fun queryTesting() {
+        dbTransaction {
+            iData.reply(listOf("S", "A", "B").map {
+                Tierlist.select(Tierlist.POKEMON)
+                    .where { (Tierlist.GUILD eq 444236285905993739) and (Tierlist.TIER eq it) }
+                    .except(
+                        WRCMonsPickedDB.select(WRCMonsPickedDB.MON).where { WRCMonsPickedDB.WRCNAME eq "WRCTest" })
+                    .orderBy(Random()).limit(10)
+            }.reduce { acc, r -> UnionAll(acc, r) }.prepareSQL(QueryBuilder(false)).surroundWith("```"))
+        }
     }
 
 }

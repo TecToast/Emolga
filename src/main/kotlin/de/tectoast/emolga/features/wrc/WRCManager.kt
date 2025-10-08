@@ -2,24 +2,25 @@ package de.tectoast.emolga.features.wrc
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
-import de.tectoast.emolga.database.exposed.WRCDataDB
+import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.database.exposed.WRCDataDB.GAMEDAYS
 import de.tectoast.emolga.database.exposed.WRCDataDB.INTERVALMINS
 import de.tectoast.emolga.database.exposed.WRCDataDB.LASTSIGNUP
 import de.tectoast.emolga.database.exposed.WRCDataDB.SIGNUPCHANNEL
 import de.tectoast.emolga.database.exposed.WRCDataDB.SIGNUPDURATIONMINS
 import de.tectoast.emolga.database.exposed.WRCDataDB.WRCNAME
-import de.tectoast.emolga.database.exposed.WRCMatchupsDB
-import de.tectoast.emolga.database.exposed.WRCSignupMessageDB
-import de.tectoast.emolga.database.exposed.WRCUserSignupDB
+import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
+import kotlinx.coroutines.delay
 import mu.KotlinLogging
+import org.jetbrains.exposed.v1.core.Random
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 
@@ -90,8 +91,7 @@ object WRCManager {
         val selectedWarrior = warriors.filter { it !in allRegisteredUsers }.randomOrNull() ?: warriors.randomOrNull()
         val (newChallengers, oldChallengers) = challengers.partition { it !in allRegisteredUsers }
         val selectedChallengers = (if (newChallengers.size >= 3) newChallengers.shuffled().take(3) else {
-            (newChallengers + oldChallengers.shuffled()
-                .take(3 - newChallengers.size)).shuffled().take(3)
+            (newChallengers + oldChallengers.shuffled().take(3 - newChallengers.size)).shuffled().take(3)
         }).toMutableList()
         val battlingUids = mutableListOf<Long>()
         tc.send(buildString {
@@ -131,12 +131,40 @@ object WRCManager {
             }
         }).queue()
         if (battlingUids.isNotEmpty()) {
-
+            val (msg, _) = drawMons(wrcName, gameday) ?: return
+            for (uid in battlingUids) {
+                jda.openPrivateChannelById(uid).await().send(msg).queue()
+                delay(2000)
+            }
         }
     }
 
-    suspend fun drawMons() {
+    suspend fun drawMons(wrcName: String, gameday: Int) = dbTransaction {
+        val wrc = WRCDataDB.getByName(wrcName) ?: return@dbTransaction null
+        val tl = Tierlist[wrc[WRCDataDB.GUILD], wrc[WRCDataDB.TLIDENTIFIER]]
+            ?: return@dbTransaction logger.warn("No tierlist found for wrc {} {}", wrcName, wrc[WRCDataDB.TLIDENTIFIER])
+                .let { null }
 
+        val allMons = tl.order.map {
+            Tierlist.select(Tierlist.POKEMON).where { tl.basePredicate and (Tierlist.TIER eq it) }.except(
+                WRCMonsPickedDB.select(WRCMonsPickedDB.MON).where { WRCMonsPickedDB.WRCNAME eq wrcName })
+                .orderBy(Random()).limit(10)
+        }.reduce { acc, r -> UnionAll(acc, r) }.map { it[Tierlist.POKEMON] }
+        val allMonsChunked = allMons.chunked(10)
+        return@dbTransaction buildString {
+            for ((tier, mons) in tl.order.zip(allMonsChunked)) {
+                append("**$tier:**\n")
+                for (mon in mons) {
+                    append("$mon\n")
+                }
+                append("\n")
+            }
+            WRCMonsOptionsDB.batchInsert(allMons) {
+                this[WRCMonsOptionsDB.WRCNAME] = wrcName
+                this[WRCMonsOptionsDB.GAMEDAY] = gameday
+                this[WRCMonsOptionsDB.MON] = it
+            }
+        } to allMonsChunked
     }
 
 

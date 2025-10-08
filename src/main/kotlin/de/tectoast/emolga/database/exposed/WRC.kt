@@ -46,10 +46,6 @@ object WRCUserSignupDB : Table("wrc_usersignup") {
 
     override val primaryKey = PrimaryKey(WRCNAME, GAMEDAY, USERID)
 
-    suspend fun getAllSignupsForGameday(wrcname: String, gameday: Int) = dbTransaction {
-        selectAll().where { (WRCNAME eq wrcname) and (GAMEDAY eq gameday) }.map { it[USERID] to it[WARRIOR] }
-    }
-
     suspend fun unsignupUser(wrcname: String, gameday: Int, userid: Long) = dbTransaction {
         deleteWhere { (WRCNAME eq wrcname) and (GAMEDAY eq gameday) and (USERID eq userid) } > 0
     }
@@ -64,11 +60,8 @@ object WRCUserSignupDB : Table("wrc_usersignup") {
     }
 
     suspend fun buildSignupEmbed(wrcname: String, gameday: Int) = dbTransaction {
-        val (warriors, challengers) = selectAll().where { (WRCNAME eq wrcname) and (GAMEDAY eq gameday) }
-            .map { it[USERID] to it[WARRIOR] }.partition { it.second }
-        val allRegisteredUsers =
-            select(USERID).withDistinct().where { (WRCNAME eq wrcname) and (REGISTERED eq true) }.map { it[USERID] }
-                .toSet()
+        val (warriors, challengers) = getAllSignupsForGameday(wrcname, gameday)
+        val allRegisteredUsers = getAllRegisteredUsers(wrcname)
         Embed {
             color = embedColor
             title = "$wrcname Anmeldung Spieltag $gameday"
@@ -77,25 +70,35 @@ object WRCUserSignupDB : Table("wrc_usersignup") {
         }
     }
 
-    fun buildSignupButton(wrcName: String, gameday: Int, disabled: Boolean) =
-        WRCSignupButton(
-            label = if (disabled) "Anmeldung geschlossen" else "An/abmelden",
-            emoji = Emoji.fromUnicode("✅").takeUnless { disabled },
-            disabled = disabled
-        ) {
-            this.wrcname = wrcName
-            this.gameday = gameday
-        }
+    suspend fun getAllSignupsForGameday(
+        wrcname: String, gameday: Int
+    ): Pair<List<Long>, List<Long>> = dbTransaction {
+        selectAll().where { (WRCNAME eq wrcname) and (GAMEDAY eq gameday) }.map { it[USERID] to it[WARRIOR] }
+            .partition { it.second }.let { it.first.map { i -> i.first } to it.second.map { i -> i.first } }
+    }
 
-    private fun List<Pair<Long, Boolean>>.toEmbedFieldValue(allRegisterdUsers: Set<Long>): String {
-        val (new, alreadyRegistered) = partition { it.first !in allRegisterdUsers }
+    suspend fun getAllRegisteredUsers(wrcname: String): Set<Long> = dbTransaction {
+        select(USERID).withDistinct().where { (WRCNAME eq wrcname) and (REGISTERED eq true) }.map { it[USERID] }.toSet()
+    }
+
+    fun buildSignupButton(wrcName: String, gameday: Int, disabled: Boolean) = WRCSignupButton(
+        label = if (disabled) "Anmeldung geschlossen" else "An/abmelden",
+        emoji = Emoji.fromUnicode("✅").takeUnless { disabled },
+        disabled = disabled
+    ) {
+        this.wrcname = wrcName
+        this.gameday = gameday
+    }
+
+    private fun List<Long>.toEmbedFieldValue(allRegisterdUsers: Set<Long>): String {
+        val (new, alreadyRegistered) = partition { it !in allRegisterdUsers }
         return buildString {
-            append(new.joinToString("\n") { "<@${it.first}>" })
+            append(new.joinToString("\n") { "<@${it}>" })
             if (alreadyRegistered.isNotEmpty()) {
                 appendLine()
                 append("**Bereits teilgenommen:**")
                 appendLine()
-                append(alreadyRegistered.joinToString("\n") { "<@${it.first}>" })
+                append(alreadyRegistered.joinToString("\n") { "<@${it}>" })
             }
         }.ifEmpty { "_keine_" }
     }

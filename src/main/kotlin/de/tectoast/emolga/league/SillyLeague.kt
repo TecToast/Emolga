@@ -10,6 +10,8 @@ import kotlinx.serialization.Serializable
 class SillyLeague : League() {
     override val teamsize = 11
 
+    override val duringTimerSkipMode = ALWAYS
+
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         addSingle(
             data.idx.CoordXMod("Draft", 8, 'K' - 'G', 7, 15, 8 + run {

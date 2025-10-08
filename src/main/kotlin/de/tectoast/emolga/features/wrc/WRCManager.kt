@@ -9,6 +9,7 @@ import de.tectoast.emolga.database.exposed.WRCDataDB.LASTSIGNUP
 import de.tectoast.emolga.database.exposed.WRCDataDB.SIGNUPCHANNEL
 import de.tectoast.emolga.database.exposed.WRCDataDB.SIGNUPDURATIONMINS
 import de.tectoast.emolga.database.exposed.WRCDataDB.WRCNAME
+import de.tectoast.emolga.database.exposed.WRCMatchupsDB
 import de.tectoast.emolga.database.exposed.WRCSignupMessageDB
 import de.tectoast.emolga.database.exposed.WRCUserSignupDB
 import de.tectoast.emolga.utils.repeat.RepeatTask
@@ -83,18 +84,59 @@ object WRCManager {
     }
 
     suspend fun drawParticipants(wrcName: String, gameday: Int, channel: Long) {
-        getChannel(channel, wrcName, "DrawParticipants")
+        val tc = getChannel(channel, wrcName, "DrawParticipants") ?: return
         val (warriors, challengers) = WRCUserSignupDB.getAllSignupsForGameday(wrcName, gameday)
         val allRegisteredUsers = WRCUserSignupDB.getAllRegisteredUsers(wrcName)
         val selectedWarrior = warriors.filter { it !in allRegisteredUsers }.randomOrNull() ?: warriors.randomOrNull()
         val (newChallengers, oldChallengers) = challengers.partition { it !in allRegisteredUsers }
-        if (newChallengers.size >= 3) newChallengers.shuffled().take(3) else {
+        val selectedChallengers = (if (newChallengers.size >= 3) newChallengers.shuffled().take(3) else {
             (newChallengers + oldChallengers.shuffled()
                 .take(3 - newChallengers.size)).shuffled().take(3)
-        }
-        if (selectedWarrior == null) {
+        }).toMutableList()
+        val battlingUids = mutableListOf<Long>()
+        tc.send(buildString {
+            when {
+                selectedWarrior != null && selectedChallengers.isNotEmpty() -> {
+                    val againstWarrior = selectedChallengers.random()
+                    selectedChallengers -= againstWarrior
+                    append("**Beat the Warrior:** <@${selectedWarrior}> vs <@${againstWarrior}\n")
+                    WRCMatchupsDB.insertMatchup(wrcName, gameday, 0, selectedWarrior, againstWarrior)
+                    battlingUids += selectedWarrior
+                    battlingUids += againstWarrior
+                    if (selectedChallengers.size == 2) {
+                        append("**Server-Challenge:** <@${selectedChallengers[0]}> vs <@${selectedChallengers[1]}>")
+                        WRCMatchupsDB.insertMatchup(wrcName, gameday, 1, selectedChallengers[0], selectedChallengers[1])
+                        battlingUids += selectedChallengers
+                    } else {
+                        append("**Server-Challenge:** _nicht genug Challenger vorhanden_")
+                    }
+                }
+
+                selectedWarrior != null -> {
+                    append("**Beat the Warrior:** _kein Challenger vorhanden_\n")
+                    append("**Server-Challenge:** _nicht genug Challenger vorhanden_")
+                }
+
+                selectedChallengers.size >= 2 -> {
+                    append("**Beat the Warrior:** _kein Warrior vorhanden_\n")
+                    append("**Server-Challenge:** <@${selectedChallengers[0]}> vs <@${selectedChallengers[1]}>")
+                    WRCMatchupsDB.insertMatchup(wrcName, gameday, 1, selectedChallengers[0], selectedChallengers[1])
+                    battlingUids += selectedChallengers
+                }
+
+                else -> {
+                    append("**Beat the Warrior:** _kein Warrior vorhanden_\n")
+                    append("**Server-Challenge:** _nicht genug Challenger vorhanden_")
+                }
+            }
+        }).queue()
+        if (battlingUids.isNotEmpty()) {
 
         }
+    }
+
+    suspend fun drawMons() {
+
     }
 
 

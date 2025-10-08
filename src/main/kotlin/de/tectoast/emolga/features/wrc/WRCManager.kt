@@ -78,14 +78,23 @@ object WRCManager {
         }
         val tc = getChannel(channel, wrcName, "LockSignup") ?: return
         tc.editMessageComponentsById(
-            mid,
-            WRCUserSignupDB.buildSignupButton(wrcName, gameday, disabled = true).into()
+            mid, WRCUserSignupDB.buildSignupButton(wrcName, gameday, disabled = true).into()
         ).await()
     }
 
     suspend fun drawParticipants(wrcName: String, gameday: Int, channel: Long) {
         getChannel(channel, wrcName, "DrawParticipants")
+        val (warriors, challengers) = WRCUserSignupDB.getAllSignupsForGameday(wrcName, gameday)
+        val allRegisteredUsers = WRCUserSignupDB.getAllRegisteredUsers(wrcName)
+        val selectedWarrior = warriors.filter { it !in allRegisteredUsers }.randomOrNull() ?: warriors.randomOrNull()
+        val (newChallengers, oldChallengers) = challengers.partition { it !in allRegisteredUsers }
+        if (newChallengers.size >= 3) newChallengers.shuffled().take(3) else {
+            (newChallengers + oldChallengers.shuffled()
+                .take(3 - newChallengers.size)).shuffled().take(3)
+        }
+        if (selectedWarrior == null) {
 
+        }
     }
 
 

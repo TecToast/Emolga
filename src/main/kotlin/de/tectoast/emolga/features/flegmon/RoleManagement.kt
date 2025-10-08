@@ -1,6 +1,7 @@
 package de.tectoast.emolga.features.flegmon
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.hasRole
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -16,7 +17,7 @@ object RoleManagement {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             val g = iData.guild()
-            if (iData.member().roles.any { it.idLong == ACCEPTED_RULES_ROLE }) return iData.reply(
+            if (iData.member().hasRole(ACCEPTED_RULES_ROLE)) return iData.reply(
                 "Du hast die Regeln bereits akzeptiert!",
                 ephemeral = true
             )

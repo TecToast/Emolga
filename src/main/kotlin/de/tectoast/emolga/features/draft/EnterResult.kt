@@ -9,6 +9,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftPlayer
+import de.tectoast.emolga.utils.hasRole
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.reverseGet
 import dev.minn.jda.ktx.coroutines.await
@@ -56,7 +57,7 @@ object EnterResult {
     ) {
         init {
             restrict {
-                member().hasPermission(Permission.ADMINISTRATOR) || member().unsortedRoles.any { it.idLong == 796787738559905842 }
+                member().hasPermission(Permission.ADMINISTRATOR) || member().hasRole(796787738559905842)
             }
         }
 

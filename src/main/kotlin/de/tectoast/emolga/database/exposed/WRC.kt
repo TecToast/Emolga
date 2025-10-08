@@ -129,3 +129,53 @@ object WRCSignupMessageDB : Table("wrc_signupmessage") {
         foreignKey(WRCNAME to WRCDataDB.WRCNAME, onDelete = CASCADE, onUpdate = CASCADE)
     }
 }
+
+object WRCMatchupsDB : Table("wrc_matchups") {
+
+    val WRCNAME = varchar("wrcname", 100)
+    val GAMEDAY = integer("gameday")
+    val INDEX = integer("index")
+    val U1 = long("u1")
+    val U2 = long("u2")
+
+    override val primaryKey = PrimaryKey(WRCNAME, GAMEDAY, INDEX)
+
+    suspend fun insertMatchup(wrcName: String, gameday: Int, index: Int, u1: Long, u2: Long) = dbTransaction {
+        insert {
+            it[WRCNAME] = wrcName
+            it[GAMEDAY] = gameday
+            it[INDEX] = index
+            it[U1] = u1
+            it[U2] = u2
+        }
+    }
+
+    init {
+        foreignKey(WRCNAME to WRCDataDB.WRCNAME, onDelete = CASCADE, onUpdate = CASCADE)
+    }
+}
+
+object WRCMonsOptionsDB : Table("wrc_monsoptions") {
+    val WRCNAME = varchar("wrcname", 100)
+    val GAMEDAY = integer("gameday")
+    val MON = varchar("mon", 100)
+
+    override val primaryKey = PrimaryKey(WRCNAME, GAMEDAY, MON)
+
+    init {
+        foreignKey(WRCNAME to WRCDataDB.WRCNAME, onDelete = CASCADE, onUpdate = CASCADE)
+    }
+}
+
+object WRCMonsPickedDB : Table("wrc_monspicked") {
+    val WRCNAME = varchar("wrcname", 100)
+    val GAMEDAY = integer("gameday")
+    val USERID = long("userid")
+    val MON = varchar("mon", 100)
+
+    override val primaryKey = PrimaryKey(WRCNAME, GAMEDAY, USERID, MON)
+
+    init {
+        foreignKey(WRCNAME to WRCDataDB.WRCNAME, onDelete = CASCADE, onUpdate = CASCADE)
+    }
+}

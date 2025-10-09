@@ -8,15 +8,18 @@ import de.tectoast.emolga.database.exposed.WRCDataDB.INTERVALMINS
 import de.tectoast.emolga.database.exposed.WRCDataDB.LASTSIGNUP
 import de.tectoast.emolga.database.exposed.WRCDataDB.SIGNUPCHANNEL
 import de.tectoast.emolga.database.exposed.WRCDataDB.SIGNUPDURATIONMINS
+import de.tectoast.emolga.database.exposed.WRCDataDB.TEAMSUBMITMINS
 import de.tectoast.emolga.database.exposed.WRCDataDB.WRCNAME
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.delay
 import mu.KotlinLogging
+import net.dv8tion.jda.api.components.actionrow.ActionRow
 import org.jetbrains.exposed.v1.core.Random
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
@@ -27,6 +30,9 @@ import kotlin.time.ExperimentalTime
 object WRCManager {
     private val logger = KotlinLogging.logger {}
 
+    const val TERA_AND_SUBMIT_BASE_MESSAGE =
+        "Hier kannst du deine Tera-User wählen und deine Auswahl später bestätigen. Die Optionen sind an einer separaten Nachricht, da Discord nur 5 Komponenten pro Nachricht zulässt :^)"
+
     @OptIn(ExperimentalTime::class)
     suspend fun setupRepeatTasks() {
         dbTransaction {
@@ -36,6 +42,8 @@ object WRCManager {
                 val interval = wrc[INTERVALMINS].minutes
                 val lastSignup = wrc[LASTSIGNUP]
                 val gamedays = wrc[GAMEDAYS]
+                val signupClose = lastSignup + wrc[SIGNUPDURATIONMINS].minutes
+                val teamsubmitClose = signupClose + wrc[TEAMSUBMITMINS].minutes
                 RepeatTask(
                     wrcName,
                     RepeatTaskType.Other("WRC Signup Open"),
@@ -49,13 +57,28 @@ object WRCManager {
                 RepeatTask(
                     wrcName,
                     RepeatTaskType.Other("WRC Signup Close"),
-                    lastSignup + wrc[SIGNUPDURATIONMINS].minutes,
+                    signupClose,
                     gamedays,
                     interval
                 ) { gameday ->
                     executeSignupClose(wrcName, gameday, channel)
                 }
+                RepeatTask(
+                    wrcName,
+                    RepeatTaskType.Other("WRC Team Submit Close"),
+                    teamsubmitClose,
+                    gamedays,
+                    interval
+                ) {
+                    executeTeamSubmitClose(wrcName, it)
+                }
             }
+        }
+    }
+
+    suspend fun executeTeamSubmitClose(wrcName: String, gameday: Int) {
+        dbTransaction {
+
         }
     }
 
@@ -74,11 +97,11 @@ object WRCManager {
     }
 
     suspend fun lockSignupMessage(wrcName: String, gameday: Int, channel: Long) {
-        val mid = WRCSignupMessageDB.getMessageIdForGameday(wrcName, gameday) ?: run {
+        val tc = getChannel(channel, wrcName, "LockSignup") ?: return
+        val mid = WRCSignupMessageDB.getAndDeleteMessageIdForGameday(wrcName, gameday) ?: run {
             logger.warn("No message id found for wrc signup close {} {}", wrcName, gameday)
             return
         }
-        val tc = getChannel(channel, wrcName, "LockSignup") ?: return
         tc.editMessageComponentsById(
             mid, WRCUserSignupDB.buildSignupButton(wrcName, gameday, disabled = true).into()
         ).await()
@@ -131,20 +154,62 @@ object WRCManager {
             }
         }).queue()
         if (battlingUids.isNotEmpty()) {
-            val (msg, _) = drawMons(wrcName, gameday) ?: return
+            val (msg, drawnMons) = drawMons(wrcName, gameday) ?: return
             for (uid in battlingUids) {
-                jda.openPrivateChannelById(uid).await().send(msg).queue()
+                val pc = jda.openPrivateChannelById(uid).await()
+                pc.send(msg).queue()
+                val teraMsgId = pc.send(
+                    TERA_AND_SUBMIT_BASE_MESSAGE,
+                    components = buildTeraAndSubmitComponents(
+                        wrcName,
+                        gameday,
+                        options = emptyList(),
+                        teraSelected = null
+                    )
+                ).await().idLong
+                WRCTeraDB.setMessageIdForUser(wrcName, gameday, uid, teraMsgId)
+                pc.send(
+                    "## Deine Mons\n_Bitte wähle für jedes Tier deine Mons aus_",
+                    components = getSelectMenus(wrcName, gameday, drawnMons)
+                ).queue()
                 delay(2000)
             }
         }
     }
 
-    suspend fun drawMons(wrcName: String, gameday: Int) = dbTransaction {
-        val wrc = WRCDataDB.getByName(wrcName) ?: return@dbTransaction null
-        val tl = Tierlist[wrc[WRCDataDB.GUILD], wrc[WRCDataDB.TLIDENTIFIER]]
-            ?: return@dbTransaction logger.warn("No tierlist found for wrc {} {}", wrcName, wrc[WRCDataDB.TLIDENTIFIER])
-                .let { null }
+    fun buildTeraAndSubmitComponents(
+        wrcName: String, gameday: Int, options: List<String>, teraSelected: String?
+    ): List<ActionRow> = listOf(
+        WRCTeraSelectMenu(
+            placeholder = if (options.isEmpty()) "Tera-Auswahl, wähle erst Mons aus :)" else "Tera-Auswahl",
+            disabled = options.isEmpty(),
+            options = options.ifEmpty { listOf("") }.map { SelectOption(it, it, default = it == teraSelected) }
+        ) {
+            this.wrcname = wrcName
+            this.gameday = gameday
+        }, WRCMonSubmitButton(disabled = teraSelected == null) {
+            this.wrcname = wrcName
+            this.gameday = gameday
+        }).into()
 
+    private suspend fun getSelectMenus(wrcName: String, gameday: Int, drawnMons: List<List<String>>): List<ActionRow> {
+        val tl = WRCDataDB.getTierlistOfWrcName(wrcName) ?: error("No tierlist found for wrc $wrcName")
+        return tl.prices.entries.zip(drawnMons).map { (tierData, mons) ->
+            ActionRow.of(
+                WRCMonSelect(
+                    placeholder = tierData.key,
+                    options = mons.map { SelectOption(label = it, value = it) },
+                    valueRange = tierData.value..tierData.value
+                ) {
+                    this.wrcname = wrcName
+                    this.gameday = gameday
+                    this.tier = tierData.key
+                })
+        }
+    }
+
+    suspend fun drawMons(wrcName: String, gameday: Int) = dbTransaction {
+        val tl = WRCDataDB.getTierlistOfWrcName(wrcName) ?: return@dbTransaction null
         val allMons = tl.order.map {
             Tierlist.select(Tierlist.POKEMON).where { tl.basePredicate and (Tierlist.TIER eq it) }.except(
                 WRCMonsPickedDB.select(WRCMonsPickedDB.MON).where { WRCMonsPickedDB.WRCNAME eq wrcName })
@@ -152,6 +217,7 @@ object WRCManager {
         }.reduce { acc, r -> UnionAll(acc, r) }.map { it[Tierlist.POKEMON] }
         val allMonsChunked = allMons.chunked(10)
         return@dbTransaction buildString {
+            append("# Pokemon-Wahl für $wrcName - Spieltag $gameday\n")
             for ((tier, mons) in tl.order.zip(allMonsChunked)) {
                 append("**$tier:**\n")
                 for (mon in mons) {
@@ -159,12 +225,27 @@ object WRCManager {
                 }
                 append("\n")
             }
-            WRCMonsOptionsDB.batchInsert(allMons) {
+            WRCMonsOptionsDB.batchInsert(allMons, shouldReturnGeneratedValues = false) {
                 this[WRCMonsOptionsDB.WRCNAME] = wrcName
                 this[WRCMonsOptionsDB.GAMEDAY] = gameday
                 this[WRCMonsOptionsDB.MON] = it
             }
         } to allMonsChunked
+    }
+
+    suspend fun checkIfAllSubmitted(wrcname: String, gameday: Int, user: Long) {
+        val wrc = WRCDataDB.getByName(wrcname) ?: return
+        val (users, index) = WRCMatchupsDB.getUsersIfSubmitted(wrcname, gameday, user) ?: return
+        val msg = buildString {
+            append("$wrcname - Spieltag $gameday - ")
+            if (index == 0) append("Beat the Warrior") else append("Server-Challenge")
+            append("\n\n")
+            append(users.map {
+                "Picks von <@$it>:\n" + WRCMonsPickedDB.buildPickedMonsMessage(wrcname, gameday, it)
+            }.joinToString("\n\n"))
+        }
+        val tc = getChannel(wrc[WRCDataDB.MATCHUPCHANNEL]) ?: return
+        tc.send(msg).queue()
     }
 
 

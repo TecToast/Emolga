@@ -18,10 +18,7 @@ import de.tectoast.emolga.league.DefaultLeague
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.league.VideoProvideStrategy
-import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.Google
-import de.tectoast.emolga.utils.TeamGraphics
-import de.tectoast.emolga.utils.createCoroutineScope
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist

@@ -1102,7 +1102,8 @@ sealed class League {
                         RepeatTask(
                             leaguename,
                             YTSendManual,
-                            data.lastUploadStart + data.intervalBetweenMatches * battle + data.gracePeriodForYT,
+                            ((data.ytEnableConfig as? YTEnableConfig.Custom)?.lastUploadStart
+                                ?: data.lastUploadStart) + data.intervalBetweenMatches * battle + data.gracePeriodForYT,
                             data.amount,
                             data.intervalBetweenGD,
                         ) { gameday ->

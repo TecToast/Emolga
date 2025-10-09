@@ -9,7 +9,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.hasRole
 import dev.minn.jda.ktx.messages.edit
 import dev.minn.jda.ktx.messages.into
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 
 object WRCSignupButton : ButtonFeature<WRCSignupButton.Args>(::Args, ButtonSpec("wrcsignup")) {
     override val buttonStyle = ButtonStyle.PRIMARY

@@ -40,6 +40,8 @@ abstract class InteractionData(
     var deferred = false
 
     val replied get() = responseDeferred.isCompleted
+    val channel get() = event?.channel ?: jda.getChannel(tc)!!
+    val messageChannel get() = channel as MessageChannel
     val textChannel by lazy { jda.getChannel<GuildMessageChannel>(tc)!! }
     val member = OneTimeCache(member) { guild().retrieveMemberById(user).await() }
     val userObj = OneTimeCache(member?.user) { jda.retrieveUserById(user).await() }

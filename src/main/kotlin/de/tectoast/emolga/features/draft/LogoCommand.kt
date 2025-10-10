@@ -1,5 +1,6 @@
 package de.tectoast.emolga.features.draft
 
+import de.tectoast.emolga.database.exposed.LogoChecksumDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
@@ -14,7 +15,6 @@ import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.utils.FileUpload
-import org.litote.kmongo.eq
 import java.security.MessageDigest
 
 object LogoCommand : CommandFeature<LogoCommand.Args>(
@@ -56,12 +56,12 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
         handler: (LogoChecksum) -> Unit = {},
     ) =
         withContext(Dispatchers.IO) {
-            val logoData = db.logochecksum.findOne(LogoChecksum::checksum eq data.checksum) ?: run {
+            val logoData = LogoChecksumDB.findByChecksum(data.checksum) ?: run {
                 val fileId = Google.uploadFileToDrive(
                     "1-weiL8SEMYPlyXX755qz1TeoaBOSiX0n", data.fileName,
                     "image/${data.fileExtension}", data.bytes
                 )
-                LogoChecksum(data.checksum, fileId).also { db.logochecksum.insertOne(it) }
+                LogoChecksum(data.checksum, fileId).also { LogoChecksumDB.insertData(it) }
             }
             handler(logoData)
             logoData.checksum

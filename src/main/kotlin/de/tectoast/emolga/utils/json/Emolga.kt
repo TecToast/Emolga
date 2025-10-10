@@ -84,7 +84,6 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val shinyEventResults by lazy { db.getCollection<ShinyEventResult>("shinyeventresults") }
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
     val matchresults by lazy { db.getCollection<LeagueEvent>("matchresults") }
-    val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
     val tipgameuserdata by lazy { db.getCollection<TipGameUserData>("tipgameuserdata") }
     val statestore by lazy { db.getCollection<StateStore>("statestore") }
     val intervaltaskdata by lazy { db.getCollection<IntervalTaskData>("intervaltaskdata") }
@@ -663,7 +662,7 @@ data class ShinyEventConfig(
     }
 }
 
-@Serializable
+
 data class LogoChecksum(
     val checksum: String, val fileId: String
 ) {

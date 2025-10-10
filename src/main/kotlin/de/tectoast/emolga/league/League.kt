@@ -401,6 +401,8 @@ sealed class League {
         if (result != TimerSkipResult.SAME) {
             restartTimer()
         }
+        if (data is NextPlayerData.InBetween)
+            currentOverride = null
         announcePlayer()
         save()
     }
@@ -1248,7 +1250,10 @@ data object NEXT_PICK : DuringTimerSkipMode {
 @Serializable
 data object ALWAYS : DuringTimerSkipMode {
     override suspend fun League.afterPick(data: NextPlayerData): TimerSkipResult {
-        if (data is NextPlayerData.InBetween) return TimerSkipResult.SAME
+        if (data is NextPlayerData.InBetween) {
+            movedTurns().removeFirstOrNull()
+            return TimerSkipResult.SAME
+        }
         return TimerSkipResult.NEXT
     }
 

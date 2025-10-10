@@ -128,7 +128,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         val matchMons = game.map { it.pokemon.map { mon -> mon.draftname } }
         val (leagueResult, duration) = measureTimedValue {
             val allOtherFormesGerman = ConcurrentHashMap<String, List<String>>()
-            val (dp1, dp2) = uids.mapIndexed { index, uid ->
+            val (dp1, dp2) = uids.indices.map { index ->
                 scanScope.async {
                     val mons = matchMons[index]
                     val otherFormesEngl = mutableMapOf<DraftName, List<String>>()

@@ -75,7 +75,6 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val config by lazy { db.getCollection<GeneralConfig>("config") }
     val signups by lazy { db.getCollection<LigaStartData>("signups") }
     val league by lazy { db.getCollection<League>("league") }
-    val cooldowns by lazy { db.getCollection<Cooldown>("cooldowns") }
     val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
     val pokedex by lazy { db.getCollection<Pokemon>("pokedex") }
     val pickedMons by lazy { db.getCollection<PickedMonsData>("pickedmons") }
@@ -243,18 +242,6 @@ data class GeneralConfig(
     val raikou: Boolean = false,
     val ytLeagues: Map<String, Long> = mapOf(),
     var maintenance: String? = null,
-)
-
-@Serializable
-data class Configuration(
-    val guild: Long,
-    @SerialName("_id") @Contextual val id: Id<Configuration> = newId(),
-    val data: MutableMap<String, MutableMap<String, Int>> = mutableMapOf()
-)
-
-@Serializable
-data class Cooldown(
-    val guild: Long, val user: Long, val timestamp: Long
 )
 
 @Serializable

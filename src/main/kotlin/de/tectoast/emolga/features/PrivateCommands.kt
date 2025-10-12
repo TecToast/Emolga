@@ -288,7 +288,7 @@ object PrivateCommands {
         TierlistBuilderConfigurator.checkTL(args[0].toLong(), args.getOrNull(1))
     }
 
-    private fun Flow<String>.mapIdentifierToChannelIDs() = mapNotNull {
+    private fun Flow<String>.mapIdentifierToChannelIDs() = map {
         val base = it.substringBefore("?")
         val result =
             if ("@" !in base) base.substringAfter("channel/") else Google.fetchChannelId(base.substringAfter("@"))
@@ -302,7 +302,7 @@ object PrivateCommands {
         YTChannelsDB.insertAll(
             league.table.asFlow().zip(
                 args.asFlow().drop(1).mapIdentifierToChannelIDs(), ::Pair
-            ).toList<Pair<@Contextual Long, String>>()
+            ).mapNotNull { it.second?.let { cid -> it.first to cid } }.toList<Pair<@Contextual Long, String>>()
         )
     }
 
@@ -316,7 +316,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun addSingleYTChannel(args: PrivateData) {
-        YTChannelsDB.insertAll(listOf(args[0].toLong() to flowOf(args[1]).mapIdentifierToChannelIDs().single()))
+        YTChannelsDB.insertAll(listOf(args[0].toLong() to flowOf(args[1]).mapIdentifierToChannelIDs().single()!!))
     }
 
     context(iData: InteractionData)
@@ -326,7 +326,8 @@ object PrivateCommands {
         YTNotificationsDB.addData(
             id,
             dm,
-            awaitMultilineInput().split("\n").asFlow().filter { it.isNotBlank() }.mapIdentifierToChannelIDs().toList()
+            awaitMultilineInput().split("\n").asFlow().filter { it.isNotBlank() }.mapIdentifierToChannelIDs()
+                .filterNotNull().toList()
         )
     }
 
@@ -525,7 +526,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun subscribeToYT(args: PrivateData) {
-        subscribeToYTChannel(flowOf(args()).mapIdentifierToChannelIDs().first())
+        subscribeToYTChannel(flowOf(args()).mapIdentifierToChannelIDs().first()!!)
     }
 
     context(iData: InteractionData)

@@ -18,7 +18,10 @@ import de.tectoast.emolga.league.DefaultLeague
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.league.VideoProvideStrategy
-import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.Google
+import de.tectoast.emolga.utils.TeamGraphics
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -219,14 +222,11 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun florixcontrol(args: PrivateData) {
+        db.remoteServerControl.get(args[2]) ?: return iData.reply("No data with id ${args[2]} found")
         (if (args[0].toBoolean()) jda.openPrivateChannelById(args[1])
             .await() else jda.getTextChannelById(args[1])!!).send(
             ":)", components = FlorixButton("Server starten", ButtonStyle.PRIMARY) {
-                this.pc = when (args[2]) {
-                    "2" -> PC.FLORIX_2
-                    "4" -> PC.FLORIX_4
-                    else -> throw IllegalArgumentException()
-                }
+                this.pc = args[2]
                 this.action = FlorixButton.Action.START
             }.into()
         ).queue()

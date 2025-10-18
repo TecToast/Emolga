@@ -1,5 +1,7 @@
-@file:OptIn(ExperimentalSerializationApi::class, ExperimentalTime::class)
-@file:UseSerializers(InstantAsDateSerializer::class)
+@file:OptIn(
+    ExperimentalSerializationApi::class,
+    ExperimentalTime::class
+) @file:UseSerializers(InstantAsDateSerializer::class)
 
 package de.tectoast.emolga.utils.json
 
@@ -29,6 +31,7 @@ import dev.minn.jda.ktx.interactions.components.TextInputDefaults
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.reply_
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.*
@@ -344,9 +347,11 @@ sealed interface LogoSettings {
     @SerialName("Channel")
     @Config("Logo-Channel", "Die Logos landen in einem bestimmten Channel.")
     data class Channel(
-        @Config("Channel", "Der Channel, in dem die Logos landen sollen", LongType.CHANNEL)
-        @Contextual
-        val channelId: Long = 0
+        @Config(
+            "Channel",
+            "Der Channel, in dem die Logos landen sollen",
+            LongType.CHANNEL
+        ) @Contextual val channelId: Long = 0
     ) : LogoSettings {
         override suspend fun handleLogo(
             lsData: LigaStartData, data: SignUpData, logoData: LogoCommand.LogoInputData
@@ -400,41 +405,34 @@ sealed interface LogoSettings {
 @Serializable
 @Config(name = "Anmeldungskonfiguration", "Hier kannst du die Anmeldung konfigurieren.")
 data class LigaStartData(
-    @Contextual
-    val guild: Long,
+    @Contextual val guild: Long,
     @Config(
         name = "Anmeldungschannel",
         "In welchem Channel sollen die Anmeldungen von Emolga gesendet werden?",
         longType = LongType.CHANNEL
-    ) @Contextual
-    val signupChannel: Long,
+    ) @Contextual val signupChannel: Long,
     @Config(
         name = "Anmeldungsnachricht", "Was soll in der Anmeldungsnachricht von Emolga stehen?"
-    )
-    val signupMessage: String,
+    ) val signupMessage: String,
     @Config(
         name = "Anmeldungschannel",
         "In welchem Channel soll die Anmeldungsnachricht stehen?",
         longType = LongType.CHANNEL
-    ) @Contextual
-    val announceChannel: Long,
+    ) @Contextual val announceChannel: Long,
     val announceMessageId: Long,
     @Config(
         "Logo-Einstellungen", "Hier kannst du einstellen, ob/wie Logos eingesendet werden."
-    )
-    val logoSettings: LogoSettings? = null,
+    ) val logoSettings: LogoSettings? = null,
     @Config(
         "Maximale Anzahl",
         "Hier kannst du einstellen, bei wie vielen Teilnehmenden die Anmeldung geschlossen werden soll. Bei 0 gibt es keine Begrenzung."
-    )
-    var maxUsers: Int,
+    ) var maxUsers: Int,
     @Config(
-        "Teilnehmerrolle", "Hier kannst du eine Rolle einstellen, die die Teilnehmer automatisch bekommen sollen.",
+        "Teilnehmerrolle",
+        "Hier kannst du eine Rolle einstellen, die die Teilnehmer automatisch bekommen sollen.",
         LongType.ROLE
-    ) @Contextual
-    val participantRole: Long? = null,
-    @EncodeDefault
-    var conferences: List<String> = listOf(),
+    ) @Contextual val participantRole: Long? = null,
+    @EncodeDefault var conferences: List<String> = listOf(),
     var conferenceRoleIds: Map<String, @Contextual Long> = mapOf(),
     @Config(
         "Anmeldungsstruktur", "Hier kannst du einstellen, was die Teilnehmer alles bei der Anmeldung angeben sollen."
@@ -596,9 +594,7 @@ data class ShinyEventResult(
 ) {
     @Serializable
     data class ShinyData(
-        val game: String,
-        val method: String,
-        val timestamp: Instant
+        val game: String, val method: String, val timestamp: Instant
     )
 }
 
@@ -790,6 +786,38 @@ sealed class RemoteServerControl {
             private const val TURN_OFF_TIME = 500
             private const val POWER_OFF = 5000
         }
+    }
+
+    @Serializable
+    @SerialName("HomeAssistant")
+    data class HomeAssistant(
+        val url: String, val webhookIdOn: String, val webhookIdOff: String, val entityId: String, val token: String
+    ) : RemoteServerControl() {
+        @Transient
+        override val features = setOf(
+            RemoteServerControlFeature.START, RemoteServerControlFeature.POWEROFF, RemoteServerControlFeature.STATUS
+        )
+
+        override suspend fun startServer(): Unit = withContext(Dispatchers.IO) {
+            println(httpClient.post("http://$url/api/webhook/$webhookIdOn").bodyAsText())
+        }
+
+        override suspend fun powerOff(): Unit = withContext(Dispatchers.IO) {
+            println(httpClient.post("http://$url/api/webhook/$webhookIdOff").bodyAsText())
+        }
+
+        override suspend fun isOn(): Boolean {
+            return when (val res = httpClient.get("http://$url/api/states/$entityId") {
+                bearerAuth(token)
+            }.body<HAResponseData>().state) {
+                "on" -> true
+                "off" -> false
+                else -> error("Unknown HA response $res")
+            }
+        }
+
+        @Serializable
+        data class HAResponseData(val state: String)
     }
 
     @Serializable

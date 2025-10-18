@@ -117,6 +117,7 @@ class DocEntry private constructor(val league: League) {
             val gameday = replayData.first().gamedayData.gameday
             val currentDay = RepeatTask.getTask(league.leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfWeek()
                 ?: Int.MAX_VALUE
+            logger.warn("Current day: $currentDay, Gameday: $gameday")
             if (currentDay <= gameday)
                 return
         } else if (config.triggers.saveReplayData) {

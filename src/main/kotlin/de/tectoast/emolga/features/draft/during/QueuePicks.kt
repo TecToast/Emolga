@@ -65,32 +65,33 @@ object QueuePicks {
                 iData.deferReply()
                 League.executeOnFreshLock(
                     { db.leagueByCommand() },
-                    { return iData.reply("Du bist in keiner Liga auf diesem Server!") }) {
-                    if (queueNotEnabled()) return
+                    { iData.reply("Du bist in keiner Liga auf diesem Server!") }) l@{
+                    if (queueNotEnabled()) return@l
                     val oldmon = e.oldmon
                     val idx = this(iData.user)
                     if (oldmon == null && !isRunning && picks.isNotEmpty() && !config.triggers.allowPickDuringSwitch) {
-                        return iData.reply("Im kommenden Draft können nur Switches gemacht werden, dementsprechend musst du ein altes Pokemon angeben!")
+                        return@l iData.reply("Im kommenden Draft können nur Switches gemacht werden, dementsprechend musst du ein altes Pokemon angeben!")
                     }
                     if (oldmon != null && picks[idx]?.any { it.name == oldmon.official } != true) {
-                        return iData.reply("Du besitzt `${oldmon.tlName}` nicht!")
+                        return@l iData.reply("Du besitzt `${oldmon.tlName}` nicht!")
                     }
                     if (isPicked(e.mon.official)) {
-                        return iData.reply("`${e.mon.tlName}` wurde bereits gepickt!")
+                        return@l iData.reply("`${e.mon.tlName}` wurde bereits gepickt!")
                     }
                     val data = persistentData.queuePicks.queuedPicks.getOrPut(idx) { QueuePicksUserData() }
                     val mon = e.mon
                     for (q in data.queued) {
-                        if (q.g == mon) return iData.reply("Du hast `${mon.tlName}` bereits in deiner Queue!")
-                        if (oldmon != null && q.y == oldmon) return iData.reply("Du planst bereits, `${oldmon.tlName}` rauszuwerfen!")
+                        if (q.g == mon) return@l iData.reply("Du hast `${mon.tlName}` bereits in deiner Queue!")
+                        if (oldmon != null && q.y == oldmon) return@l iData.reply("Du planst bereits, `${oldmon.tlName}` rauszuwerfen!")
                     }
-                    tierlist.getTierOf(mon.tlName) ?: return iData.reply("`${mon.tlName}` ist nicht in der Tierlist!")
+                    tierlist.getTierOf(mon.tlName) ?: return@l iData.reply("`${mon.tlName}` ist nicht in der Tierlist!")
                     oldmon?.let {
-                        tierlist.getTierOf(it.tlName) ?: return iData.reply("`${it.tlName}` ist nicht in der Tierlist!")
+                        tierlist.getTierOf(it.tlName)
+                            ?: return@l iData.reply("`${it.tlName}` ist nicht in der Tierlist!")
                     }
                     val queuedAction = QueuedAction(mon, oldmon)
                     val newlist = data.queued.toMutableList().apply { add(queuedAction) }
-                    if (isIllegal(idx, newlist)) return
+                    if (isIllegal(idx, newlist)) return@l
                     StateStore.processIgnoreMissing<QueuePicks> {
                         addNewMon(queuedAction)
                     }
@@ -110,11 +111,11 @@ object QueuePicks {
         suspend fun changeActivation(enable: Boolean) {
             League.executeOnFreshLock(
                 { db.leagueByCommand() },
-                { return iData.reply("Du bist in keiner Liga auf diesem Server!") }) {
-                if (queueNotEnabled()) return
+                { iData.reply("Du bist in keiner Liga auf diesem Server!") }) l@{
+                if (queueNotEnabled()) return@l
                 val idx = this(iData.user)
                 val data = persistentData.queuePicks.queuedPicks.getOrPut(idx) { QueuePicksUserData() }
-                if (isIllegal(idx, data.queued)) return
+                if (isIllegal(idx, data.queued)) return@l
                 data.enabled = enable
                 save()
             }

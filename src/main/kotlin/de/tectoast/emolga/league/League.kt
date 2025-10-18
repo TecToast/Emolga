@@ -98,6 +98,8 @@ sealed class League {
     val currentTimerSkipMode: TimerSkipMode
         get() = duringTimerSkipMode?.takeUnless { draftWouldEnd } ?: afterTimerSkipMode
 
+    val potentialBetweenPick get() = !pseudoEnd && duringTimerSkipMode == ALWAYS
+
     @Contextual
     var tcid: Long = -1
 
@@ -105,7 +107,7 @@ sealed class League {
     @Transient
     var tierlistOverride: Tierlist? = null
 
-    val tierlist: Tierlist get() = tierlistOverride ?: Tierlist.get(guild, config.customTierlist?.identifier)!!
+    val tierlist: Tierlist get() = tierlistOverride ?: Tierlist[guild, config.customTierlist?.identifier]!!
 
     @Transient
     open val pickBuffer = 0
@@ -296,7 +298,7 @@ sealed class League {
     }
 
     fun minimumNeededPointsForTeamCompletion(picksSizeAfterAdd: Int) =
-        (min(totalRounds, tierlist.maxMonsToPay) - picksSizeAfterAdd) * tierlist.prices.values.min()
+        (min(teamsize, tierlist.maxMonsToPay) - picksSizeAfterAdd) * tierlist.prices.values.min()
 
     context(iData: InteractionData) open fun handleTiers(
         specifiedTier: String, officialTier: String, fromSwitch: Boolean = false
@@ -392,12 +394,15 @@ sealed class League {
             return
         }
 
-        if (tryQueuePick()) return
+        if (data !is NextPlayerData.InBetween)
+            if (tryQueuePick()) return
 
 
         if (result != TimerSkipResult.SAME) {
             restartTimer()
         }
+        if (data is NextPlayerData.InBetween)
+            currentOverride = null
         announcePlayer()
         save()
     }
@@ -462,6 +467,14 @@ sealed class League {
         lastPickedMon = null
     }
 
+    suspend fun generateNames(nameGuildId: Long? = null) {
+        names.clear()
+        val fetchedNames = jda.getGuildById(
+            nameGuildId ?: this.guild
+        )!!.retrieveMembersByIds(table.filter { it > 0 }).await().associateBy { it.idLong }
+        names.addAll(table.map { fetchedNames[it]?.effectiveName ?: "" })
+    }
+
 
     suspend fun startDraft(
         tc: GuildMessageChannel?, fromFile: Boolean, switchDraft: Boolean?, nameGuildId: Long? = null
@@ -470,11 +483,7 @@ sealed class League {
         logger.info("Starting draft $leaguename...")
         logger.info(tcid.toString())
         if (!fromFile) {
-            names.clear()
-            val fetchedNames = jda.getGuildById(
-                nameGuildId ?: this.guild
-            )!!.retrieveMembersByIds(table.filter { it > 0 }).await().associateBy { it.idLong }
-            names.addAll(table.map { fetchedNames[it]?.effectiveName ?: "" })
+            generateNames(nameGuildId)
         }
         logger.info(names.toString())
         tc?.let { this.tcid = it.idLong }
@@ -973,6 +982,16 @@ sealed class League {
         }
     }
 
+    open suspend fun revealPick(idx: Int, monIndex: Int) {
+        val y = idx.y(newSystemGap, monIndex + 3)
+        val b = builder()
+        val mon =
+            picks[idx]?.getOrNull(monIndex)?.let { NameConventionsDB.convertOfficialToTL(it.name, guild) ?: it.name }
+                ?: return
+        b.addSingle("$dataSheet!B$y", mon)
+        b.execute()
+    }
+
     companion object : CoroutineScope {
         override val coroutineContext = createCoroutineContext("League", Dispatchers.IO)
         val logger = KotlinLogging.logger {}
@@ -992,14 +1011,17 @@ sealed class League {
             allStallSecondTimers[leaguename]?.cancel(reason)
         }
 
-        suspend inline fun executeOnFreshLock(
-            leagueSupplier: () -> League?, onNotFound: () -> Unit = {}, block: League.() -> Unit
+        suspend fun executeOnFreshLock(
+            leagueSupplier: suspend () -> League?, onNotFound: suspend () -> Unit = {}, block: suspend League.() -> Unit
         ) {
             executeOnFreshLock(leagueSupplier, { it }, onNotFound, block)
         }
 
-        suspend inline fun <T> executeOnFreshLock(
-            supplier: () -> T?, leagueMapper: (T) -> League, onNotFound: () -> Unit = {}, block: T.() -> Unit
+        suspend fun <T> executeOnFreshLock(
+            supplier: suspend () -> T?,
+            leagueMapper: suspend (T) -> League,
+            onNotFound: suspend () -> Unit = {},
+            block: suspend T.() -> Unit
         ) {
             val locked = allMutexes.entries.mapNotNullTo(mutableSetOf()) { if (it.value.isLocked) it.key else null }
             val league = supplier() ?: return onNotFound()
@@ -1016,7 +1038,7 @@ sealed class League {
             }
         }
 
-        suspend inline fun executeOnFreshLock(name: String, block: League.() -> Unit) = getLock(name).withLock {
+        suspend fun executeOnFreshLock(name: String, block: suspend League.() -> Unit) = getLock(name).withLock {
             val league = db.getLeague(name) ?: return@withLock logger.error("ExecuteOnFreshLock failed for $name")
             league.block()
             league.lockCleanup()
@@ -1038,7 +1060,7 @@ sealed class League {
             }
         }
 
-        context(iData: InteractionData) suspend inline fun executePickLike(block: League.() -> Unit) {
+        context(iData: InteractionData) suspend fun executePickLike(block: suspend League.() -> Unit) {
             executeOnFreshLock({ byCommand() }, { it.first }, {
                 if (!iData.replied) {
                     iData.reply(
@@ -1047,8 +1069,9 @@ sealed class League {
                 }
             }) {
                 // this is only needed when timerSkipMode is AFTER_DRAFT_UNORDERED
-                if (first.pseudoEnd && first.afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
-                    // BypassCurrentPlayerData can only be Yes here
+                val isAfterDraftUnorderedPick = first.pseudoEnd && first.afterTimerSkipMode == AFTER_DRAFT_UNORDERED
+                val isBetweenPick = first.potentialBetweenPick && second is BypassCurrentPlayerData.Yes
+                if (isAfterDraftUnorderedPick || isBetweenPick) {
                     first.currentOverride = (second as BypassCurrentPlayerData.Yes).user
                 }
                 if (!first.isCurrentCheck(iData.member())) {
@@ -1076,6 +1099,11 @@ sealed class League {
                         }
                     }
                 }
+                if (potentialBetweenPick && uid in table) {
+                    val idx = this(uid)
+                    if (hasMovedTurns(idx))
+                        return@run this to BypassCurrentPlayerData.Yes(idx)
+                }
                 if (!isCurrentCheck(iData.member())) {
                     iData.reply("Du bist nicht dran!", ephemeral = true)
                     return null
@@ -1087,9 +1115,9 @@ sealed class League {
         suspend fun onlyChannel(tc: Long) =
             db.league.find(League::draftState ne DraftState.OFF, League::tcid eq tc).first()
 
-        context(iData: InteractionData) suspend inline fun executeAsNotCurrent(
+        context(iData: InteractionData) suspend fun executeAsNotCurrent(
             asParticipant: Boolean,
-            block: League.() -> Unit
+            block: suspend League.() -> Unit
         ) {
             executeOnFreshLock({ onlyChannel(iData.tc)?.takeIf { !asParticipant || iData.user in it.table } }, {
                 iData.reply(
@@ -1097,7 +1125,6 @@ sealed class League {
                     ephemeral = true
                 )
             }, block)
-
         }
     }
 }
@@ -1221,6 +1248,19 @@ data object NEXT_PICK : DuringTimerSkipMode {
 }
 
 @Serializable
+data object ALWAYS : DuringTimerSkipMode {
+    override suspend fun League.afterPick(data: NextPlayerData): TimerSkipResult {
+        if (data is NextPlayerData.InBetween) {
+            movedTurns().removeFirstOrNull()
+            return TimerSkipResult.SAME
+        }
+        return TimerSkipResult.NEXT
+    }
+
+    override suspend fun League.getPickRound() = movedTurns().firstOrNull() ?: round
+}
+
+@Serializable
 data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
     override suspend fun League.afterPick(data: NextPlayerData): TimerSkipResult {
         if (pseudoEnd && data.isNormalPick()) {
@@ -1299,6 +1339,7 @@ data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
 data class AdditionalSet(val col: String, val existent: String, val yeeted: String)
 sealed interface NextPlayerData {
     data object Normal : NextPlayerData
+    data object InBetween : NextPlayerData
     data class Moved(val reason: SkipReason, val skippedUser: Int, val skippedBy: Long? = null) : NextPlayerData
 
 }

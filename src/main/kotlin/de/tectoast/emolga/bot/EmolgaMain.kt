@@ -115,7 +115,6 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         }
         updatePresence()
         logger.info("Discord Bots loaded!")
-        ControlButtonSetup.init()
         flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
     }
 

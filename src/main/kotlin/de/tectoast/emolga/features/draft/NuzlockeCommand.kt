@@ -54,13 +54,13 @@ object NuzlockeCommand :
                         iData.guild().retrieveMemberById(target).await().effectiveName
                     }` gefunden!"
                 )
-            }) {
+            }) l@{
             val idx = this(target)
             val picks = picks[idx]!!
             val index = picks.indexOfFirst { it.name == mon.official }
                 .let { if (it == -1) picks.indexOfFirst { p -> p.name in mon.official } else it }
             if (index < 0) {
-                return iData.reply("Das Pokemon `${mon.tlName}` befindet sich nicht im Kader von $mention!")
+                return@l iData.reply("Das Pokemon `${mon.tlName}` befindet sich nicht im Kader von $mention!")
             }
             val oldMon = picks[index]
             val (draftname, tier) = newMon?.let {
@@ -76,7 +76,7 @@ object NuzlockeCommand :
                             skipMons = setOf(mon.official)
                         ), config
                     )
-                } ?: return
+                } ?: return@l
             }
             picks[index] = DraftPokemon(draftname.official, tier)
             val b = builder()

@@ -2,13 +2,19 @@ package de.tectoast.emolga.league
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.draft.AddToTierlistData
+import de.tectoast.emolga.utils.DocEntry
 import de.tectoast.emolga.utils.RequestBuilder
 import de.tectoast.emolga.utils.coordXMod
 import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.records.TableSortOption
+import de.tectoast.emolga.utils.records.newSystemSorter
+import de.tectoast.emolga.utils.records.toCoord
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
+import de.tectoast.emolga.utils.y
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import net.dv8tion.jda.api.JDA
 import kotlin.time.Duration.Companion.days
 
@@ -21,8 +27,8 @@ class ASLO(
     val conf = leaguename.last()
     val confidx = conf - 'A'
 
-    override val dataSheet = "Data$confidx"
-    override val pickBuffer = 18
+    override val dataSheet = "Data${if (confidx == 0) "Verkehr" else "Leiter"}"
+    override val pickBuffer = 15
     override val teamsize = 12
     override val gamedays = 11
 
@@ -40,21 +46,28 @@ class ASLO(
         }]!!
     }
 
-    /*@Transient
+    @Transient
     override val docEntry = DocEntry.create(this) {
+        val yBase = confidx.y(11, 4)
         newSystem(
-            SorterData(
-                formulaRange = listOf(
-                    "Tabelle!C4:J19",
-                ), newMethod = true, cols = listOf(7, 6, 4)
-            ), memberMod = 8, dataSheetProvider = { "Data${it / 8}" }, resultCreator = {
+            newSystemSorter(
+                formulaRange = "Tabelle!C${yBase}:K${yBase + 7}",
+                sortOptions = TableSortOption.fromCols(listOf(8, -1, 7))
+            ), resultCreator = {
                 b.addSingle(
-                    if (gdi in 0..1) gdi.coordXMod("Spielplan", 2, 4, 5, 0, 4 + index)
-                    else gdi.minus(2).coordXMod("Spielplan", 3, 4, 3, 10, 14 + index),
+                    (if (gdi.mod(5) in 0..1) gdi.coordXMod(
+                        "Spielplan",
+                        2,
+                        4,
+                        5,
+                        0,
+                        (gdi / 5).y(12, confidx.y(20, 5 + index))
+                    )
+                    else gdi.minus(2).coordXMod("Spielplan", 3, 4, 3, 0, confidx.y(20, 11 + index))).toCoord(),
                     defaultGameplanString
                 )
             })
-    }*/
+    }
 
     override fun provideReplayChannel(jda: JDA) = jda.getTextChannelById(replayChannel)
     override fun provideResultChannel(jda: JDA) = jda.getTextChannelById(resultChannel!!)
@@ -74,6 +87,7 @@ class ASLO(
             data.roundIndex.coordXMod("Draft $conf", 6, 4, 3, 10, 4 + data.indexInRound), data.pokemon
         )
     }
+
     override suspend fun RequestBuilder.switchDoc(data: SwitchData) {
         newSystemSwitchDoc(data)
         addRow(

@@ -96,7 +96,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
 
     suspend fun getTierOfCommand(pokemon: DraftName, insertedTier: String?): TierData? {
         val (real, points) = dbTransaction {
-            selectAll().where { basePredicate and (POKEMON eq if (isEnglish) pokemon.otherTl!! else pokemon.tlName) }
+            selectAll().where { basePredicate and (POKEMON eq pokemon.tlName) }
                 .map { it[TIER] to it[POINTS] }.firstOrNull()
         } ?: return null
         return if (insertedTier != null && mode.withTiers) {
@@ -189,6 +189,8 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
                 ?: if (setupCalled) null
                 else runBlocking { db.tierlist.findOne(Tierlist::guildid eq guild) }?.apply { setup() }
         }
+
+        fun getAnyTierlist(guild: Long) = tierlists[guild]?.values?.firstOrNull()
     }
 }
 

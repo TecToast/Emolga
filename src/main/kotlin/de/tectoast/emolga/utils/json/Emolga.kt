@@ -29,9 +29,9 @@ import dev.minn.jda.ktx.interactions.components.TextInputDefaults
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.reply_
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.delay
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import kotlinx.coroutines.*
 import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
@@ -45,6 +45,9 @@ import org.litote.kmongo.*
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.reactivestreams.KMongo
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -75,7 +78,6 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val config by lazy { db.getCollection<GeneralConfig>("config") }
     val signups by lazy { db.getCollection<LigaStartData>("signups") }
     val league by lazy { db.getCollection<League>("league") }
-    val cooldowns by lazy { db.getCollection<Cooldown>("cooldowns") }
     val nameconventions by lazy { db.getCollection<NameConventions>("nameconventions") }
     val pokedex by lazy { db.getCollection<Pokemon>("pokedex") }
     val pickedMons by lazy { db.getCollection<PickedMonsData>("pickedmons") }
@@ -84,10 +86,10 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val shinyEventResults by lazy { db.getCollection<ShinyEventResult>("shinyeventresults") }
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
     val matchresults by lazy { db.getCollection<LeagueEvent>("matchresults") }
-    val logochecksum by lazy { db.getCollection<LogoChecksum>("logochecksum") }
     val tipgameuserdata by lazy { db.getCollection<TipGameUserData>("tipgameuserdata") }
     val statestore by lazy { db.getCollection<StateStore>("statestore") }
     val intervaltaskdata by lazy { db.getCollection<IntervalTaskData>("intervaltaskdata") }
+    val remoteServerControl by lazy { db.getCollection<RemoteServerControl>("remoteservercontrol") }
     val defaultNameConventions = OneTimeCache {
         nameconventions.find(NameConventions::guild eq 0).first()!!.data
     }
@@ -128,7 +130,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         val matchMons = game.map { it.pokemon.map { mon -> mon.draftname } }
         val (leagueResult, duration) = measureTimedValue {
             val allOtherFormesGerman = ConcurrentHashMap<String, List<String>>()
-            val (dp1, dp2) = uids.mapIndexed { index, uid ->
+            val (dp1, dp2) = uids.indices.map { index ->
                 scanScope.async {
                     val mons = matchMons[index]
                     val otherFormesEngl = mutableMapOf<DraftName, List<String>>()
@@ -244,18 +246,6 @@ data class GeneralConfig(
     val raikou: Boolean = false,
     val ytLeagues: Map<String, Long> = mapOf(),
     var maintenance: String? = null,
-)
-
-@Serializable
-data class Configuration(
-    val guild: Long,
-    @SerialName("_id") @Contextual val id: Id<Configuration> = newId(),
-    val data: MutableMap<String, MutableMap<String, Int>> = mutableMapOf()
-)
-
-@Serializable
-data class Cooldown(
-    val guild: Long, val user: Long, val timestamp: Long
 )
 
 @Serializable
@@ -663,7 +653,7 @@ data class ShinyEventConfig(
     }
 }
 
-@Serializable
+
 data class LogoChecksum(
     val checksum: String, val fileId: String
 ) {
@@ -750,6 +740,83 @@ sealed class LeagueEvent {
     }
 }
 
+enum class RemoteServerControlFeature {
+    START, STATUS, STOP, POWEROFF
+}
+
+@Serializable
+sealed class RemoteServerControl {
+    val name = "Name"
+
+    @Transient
+    open val features: Set<RemoteServerControlFeature> = setOf()
+
+    open suspend fun startServer() {}
+    open suspend fun isOn(): Boolean = false
+    open suspend fun stopServer() {}
+    open suspend fun powerOff() {}
+
+    @Serializable
+    @SerialName("Http")
+    data class Http(val url: String, val writePin: Int, val readPin: Int) : RemoteServerControl() {
+        @Transient
+        override val features = setOf(
+            RemoteServerControlFeature.START,
+            RemoteServerControlFeature.STOP,
+            RemoteServerControlFeature.STATUS,
+            RemoteServerControlFeature.POWEROFF
+        )
+
+        override suspend fun startServer() = push(TURN_ON_TIME)
+
+        override suspend fun stopServer() = push(TURN_OFF_TIME)
+
+        override suspend fun powerOff() = push(POWER_OFF)
+
+        private suspend fun push(delay: Int) {
+            withContext(Dispatchers.IO) {
+                httpClient.post("$url/push/$writePin") {
+                    setBody("$delay")
+                }
+            }
+        }
+
+        override suspend fun isOn() = withContext(Dispatchers.IO) {
+            httpClient.get("$url/status/$readPin").bodyAsText().contains("level=0")
+        }
+
+        companion object {
+            private const val TURN_ON_TIME = 500
+            private const val TURN_OFF_TIME = 500
+            private const val POWER_OFF = 5000
+        }
+    }
+
+    @Serializable
+    @SerialName("Ethernet")
+    data class Ethernet(val mac: String, val host: String, val serviceHost: String) : RemoteServerControl() {
+        @Transient
+        override val features = setOf(RemoteServerControlFeature.START, RemoteServerControlFeature.STATUS)
+
+        override suspend fun startServer(): Unit = withContext(Dispatchers.IO) {
+            println(httpClient.post("http://$serviceHost/wol/$mac").bodyAsText())
+        }
+
+        override suspend fun isOn(): Boolean = withContext(Dispatchers.IO) {
+            try {
+                Socket().use { socket ->
+                    val inetSocketAddress = InetSocketAddress(host, 22)
+                    socket.connect(inetSocketAddress, 500)
+                    true
+                }
+            } catch (e: IOException) {
+                false
+            }
+        }
+    }
+}
+
+
 suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!
 suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) =
     updateOne(BsonDocument(), update.also { logger.debug { it.json } })
@@ -770,3 +837,6 @@ suspend fun CoroutineCollection<Pokemon>.get(id: String) = find(Pokemon::id eq i
 @JvmName("getIntervalTaskData")
 suspend fun CoroutineCollection<IntervalTaskData>.get(name: IntervalTaskKey) =
     find(IntervalTaskData::name eq name).first()
+
+@JvmName("getRemoteServerControl")
+suspend fun CoroutineCollection<RemoteServerControl>.get(name: String) = find(RemoteServerControl::name eq name).first()

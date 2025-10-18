@@ -6,6 +6,7 @@ import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.UserTableData
 import de.tectoast.emolga.utils.json.LeagueEvent
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.emolga.reverseGet
 import org.bson.Document
 import org.litote.kmongo.eq
 
@@ -30,12 +31,12 @@ class DefaultSorter(
     override suspend fun getSortedFormulas(): List<List<Any>> {
         return with(TableSortDataStorage(this)) {
             val league = docEntry.league
-            val indices = league.table.indices.toMutableList()
+            val indices = idxToFormulaLoc().keys.toMutableList()
             val sortedIndices = if (sortOptions.none { it is DirectCompareSortOption }) {
                 indices.insertionSortSuspending { a, b ->
                     for (option in sortOptions) {
                         val res = with(option) { getValue(a).compareTo(getValue(b)) }
-                        if (res != 0) return@insertionSortSuspending res
+                        if (res != 0) return@insertionSortSuspending -res
                     }
                     0
                 }
@@ -92,7 +93,8 @@ class TableSortDataStorage(val sorter: TableSorter) {
         OneTimeCache { formula().withIndex().associate { sorter.indexer(it.value[0].toString()) to it.index } }
 
     val docData = OneTimeCache {
-        Google.get(league.sid, sorter.formulaRange, false).withIndex().associate { it.index to it.value }
+        Google.get(league.sid, sorter.formulaRange, false).withIndex()
+            .associate { idxToFormulaLoc().reverseGet(it.index) to it.value }
     }
     val matchResultData = OneTimeCache {
         UserTableData.createFromEvents(

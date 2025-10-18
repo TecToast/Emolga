@@ -27,9 +27,9 @@ object DraftPermissionCommand :
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock({ db.leagueByCommand() },
-                { iData.reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) {
+                { iData.reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) l@{
                 val mem = e.user
-                if (mem.user.isBot) return iData.reply("Du kannst keine Bots als Ersatzdrafter hinzufügen!")
+                if (mem.user.isBot) return@l iData.reply("Du kannst keine Bots als Ersatzdrafter hinzufügen!")
                 val withMention = e.withmention
                 val id = mem.idLong
                 val set = performPermissionAdd(iData.user, id, withMention)
@@ -76,9 +76,9 @@ object DraftPermissionCommand :
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock(
                 { db.leagueByCommand() },
-                { iData.reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) {
+                { iData.reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) l@{
                 val mem = e.user
-                if (mem.idLong == iData.user) return iData.reply("Du darfst tatsächlich immer picken :)")
+                if (mem.idLong == iData.user) return@l iData.reply("Du darfst tatsächlich immer picken :)")
                 val set = allowed.getOrPut(this(iData.user)) { mutableSetOf() }
                 set.removeIf { it.u == mem.idLong }
                 iData.reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {

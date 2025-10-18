@@ -21,7 +21,7 @@ object Nominate {
     object NominateButton : ButtonFeature<NominateButton.Args>(::Args, ButtonSpec("nominate")) {
 
         private val tiercomparator: Comparator<DraftPokemon> =
-            compareBy({ it.tier.indexedBy(listOf("S", "A", "B", "C", "D")) }, { it.name })
+            compareBy({ it.tier.indexedBy(listOf("S+", "S", "A", "B", "C", "D")) }, { it.name })
 
         init {
             restrict { user in db.nds().table }
@@ -34,16 +34,16 @@ object Nominate {
         init {
             registerDMListener("!nominate") { e ->
                 val uid = e.author.idLong
-                League.executeOnFreshLock({ db.nds() }) {
+                League.executeOnFreshLock({ db.nds() }) l@{
                     val nds = this as NDS
-                    if (uid !in nds.table) return@executeOnFreshLock
+                    if (uid != Constants.FLOID && uid !in nds.table) return@l
                     val nom = nds.nominations
                     val nomUser =
                         if (uid == Constants.FLOID) WHITESPACES_SPLITTER.split(e.message.contentDisplay)[1].toInt() else nds(
                             uid
                         )
                     if (nomUser in nom.nominated.getOrPut(nom.currentDay) { mutableMapOf() }) {
-                        return@registerDMListener e.channel.sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!")
+                        return@l e.channel.sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!")
                             .queue()
                     }
                     val list =

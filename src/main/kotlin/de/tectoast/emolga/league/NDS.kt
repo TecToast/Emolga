@@ -158,11 +158,11 @@ class NDS(val rr: Boolean) : League() {
     override fun setupRepeatTasks() {
         logger.info("Setting up matchups repeat tasks")
         RepeatTask(
-            "NDS", RepeatTaskType.Other("Matchups"), "11.08.2024 20:00", 10, 7.days
+            "NDS", RepeatTaskType.Other("Matchups"), "23.11.2025 20:00", 10, 7.days
         ) { doMatchUps(it, withAnnounce = true) }
         logger.info("Setting up nominations repeat tasks")
         RepeatTask(
-            "NDS", RepeatTaskType.Other("Nominate"), "14.08.2024 00:00", 10, 7.days
+            "NDS", RepeatTaskType.Other("Nominate"), "26.11.2025 00:00", 10, 7.days
         ) { doNDSNominate() }
     }
 
@@ -204,9 +204,7 @@ class NDS(val rr: Boolean) : League() {
                         )
                     )
                     // Z & Tera
-                    b.addSingle("$team!AE8", "='$oppo'!AA8")
-                    b.addSingle("$team!AE10", "='$oppo'!AA10")
-                    b.addSingle("$team!AC11", "='$oppo'!Y11")
+                    b.addSingle("$team!AC8", "={'$oppo'!Y8:AB11}")
                     // Conditional formatting tiers
                     val y = oppoIndex * 2 + 500
                     b.addSingle("$team!B49", "={Data!B$y:AE$y}")
@@ -215,7 +213,7 @@ class NDS(val rr: Boolean) : League() {
             if (withAnnounce) {
                 b.withRunnable {
                     jda.getTextChannelById(837425690844201000L)!!.sendMessage(
-                        "Jo, kurzer Reminder, die Matchups des nächsten Spieltages sind im Doc, vergesst das Nominieren nicht :)\n<@&1241849378675888200>"
+                        "Jo, kurzer Reminder, die Matchups des nächsten Spieltages sind im Doc, vergesst das Nominieren nicht :)\n<@&1415057603696001154>"
                     ).queue()
                 }
             }

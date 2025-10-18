@@ -36,11 +36,11 @@ object SwitchTimer {
 
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            League.executeOnFreshLock(e.league) {
+            League.executeOnFreshLock(e.league) l@{
                 val settings = e.settings
                 val timer = SwitchTimer(settings.associateWith {
                     TimerInfo((TimeUtils.parseShortTime(it).toInt().takeIf { n -> n >= 0 }
-                        ?: return iData.reply("`$it` ist keine valide Zeitangabe!")) / 60).set(e.from, e.to)
+                        ?: return@l iData.reply("`$it` ist keine valide Zeitangabe!")) / 60).set(e.from, e.to)
                 })
                 timer.stallSeconds = e.stallSeconds
                 config.timer = timer

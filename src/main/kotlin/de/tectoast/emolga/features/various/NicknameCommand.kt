@@ -1,27 +1,25 @@
 package de.tectoast.emolga.features.various
 
+import de.tectoast.emolga.database.exposed.NicknameCooldownsDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.TimeUtils
-import de.tectoast.emolga.utils.json.Cooldown
-import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.coroutines.await
-import org.litote.kmongo.and
-import org.litote.kmongo.eq
-import org.litote.kmongo.upsert
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.ExperimentalTime
 
 object NicknameCommand : CommandFeature<NicknameCommand.Args>(
-    ::Args,
-    CommandSpec("nickname", "Ändert deinen Nickname (funktioniert nur 1x pro Woche)")
+    ::Args, CommandSpec("nickname", "Ändert deinen Nickname (funktioniert nur 1x pro Woche)")
 ) {
     class Args : Arguments() {
         var nickname by string("Nickname", "Der neue Nickname")
     }
 
-    context(iData: InteractionData)
-    override suspend fun exec(e: Args) {
+    @OptIn(ExperimentalTime::class)
+    context(iData: InteractionData) override suspend fun exec(e: Args) {
         val member = iData.member()
         val nickname = e.nickname
         val g = iData.guild()
@@ -33,21 +31,15 @@ object NicknameCommand : CommandFeature<NicknameCommand.Args>(
         }
         val gid = g.idLong
         val uid = member.idLong
-        db.cooldowns.findOne(Cooldown::guild eq gid, Cooldown::user eq uid)?.run {
-            val expiresIn = this.timestamp - System.currentTimeMillis()
-            if (expiresIn <= 0) return@run
+        NicknameCooldownsDB.getCooldown(gid, uid)?.let {
             return iData.reply(
                 "${member.asMention} Du kannst deinen Namen noch nicht wieder ändern!\nCooldown: ${
-                    TimeUtils.secondsToTimePretty(expiresIn / 1000)
+                    TimeUtils.secondsToTimePretty((it - Clock.System.now()).inWholeSeconds)
                 }"
             )
         }
         member.modifyNickname(nickname).await()
         iData.reply(member.asMention + " Dein Nickname wurde erfolgreich geändert!")
-        db.cooldowns.updateOne(
-            and(Cooldown::guild eq gid, Cooldown::user eq uid),
-            Cooldown(gid, uid, System.currentTimeMillis() + 604800000),
-            upsert()
-        )
+        NicknameCooldownsDB.setCooldown(gid, uid, Clock.System.now() + 7.days)
     }
 }

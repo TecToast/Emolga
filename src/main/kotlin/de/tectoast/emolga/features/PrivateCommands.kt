@@ -18,7 +18,10 @@ import de.tectoast.emolga.league.DefaultLeague
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.league.VideoProvideStrategy
-import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.Google
+import de.tectoast.emolga.utils.TeamGraphics
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
@@ -131,7 +134,9 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun sort(args: PrivateData) {
+        iData.deferReply()
         db.league(args[0]).docEntry!!.sort(!args.getOrNull(1).equals("test", ignoreCase = true))
+        iData.done()
     }
 
     context(iData: InteractionData)
@@ -217,14 +222,11 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun florixcontrol(args: PrivateData) {
+        db.remoteServerControl.get(args[2]) ?: return iData.reply("No data with id ${args[2]} found")
         (if (args[0].toBoolean()) jda.openPrivateChannelById(args[1])
             .await() else jda.getTextChannelById(args[1])!!).send(
             ":)", components = FlorixButton("Server starten", ButtonStyle.PRIMARY) {
-                this.pc = when (args[2]) {
-                    "2" -> PC.FLORIX_2
-                    "4" -> PC.FLORIX_4
-                    else -> throw IllegalArgumentException()
-                }
+                this.pc = args[2]
                 this.action = FlorixButton.Action.START
             }.into()
         ).queue()
@@ -286,7 +288,7 @@ object PrivateCommands {
         TierlistBuilderConfigurator.checkTL(args[0].toLong(), args.getOrNull(1))
     }
 
-    private fun Flow<String>.mapIdentifierToChannelIDs() = mapNotNull {
+    private fun Flow<String>.mapIdentifierToChannelIDs() = map {
         val base = it.substringBefore("?")
         val result =
             if ("@" !in base) base.substringAfter("channel/") else Google.fetchChannelId(base.substringAfter("@"))
@@ -300,7 +302,7 @@ object PrivateCommands {
         YTChannelsDB.insertAll(
             league.table.asFlow().zip(
                 args.asFlow().drop(1).mapIdentifierToChannelIDs(), ::Pair
-            ).toList<Pair<@Contextual Long, String>>()
+            ).mapNotNull { it.second?.let { cid -> it.first to cid } }.toList<Pair<@Contextual Long, String>>()
         )
     }
 
@@ -314,7 +316,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun addSingleYTChannel(args: PrivateData) {
-        YTChannelsDB.insertAll(listOf(args[0].toLong() to flowOf(args[1]).mapIdentifierToChannelIDs().single()))
+        YTChannelsDB.insertAll(listOf(args[0].toLong() to flowOf(args[1]).mapIdentifierToChannelIDs().single()!!))
     }
 
     context(iData: InteractionData)
@@ -324,7 +326,8 @@ object PrivateCommands {
         YTNotificationsDB.addData(
             id,
             dm,
-            awaitMultilineInput().split("\n").asFlow().filter { it.isNotBlank() }.mapIdentifierToChannelIDs().toList()
+            awaitMultilineInput().split("\n").asFlow().filter { it.isNotBlank() }.mapIdentifierToChannelIDs()
+                .filterNotNull().toList()
         )
     }
 
@@ -461,6 +464,24 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
+    suspend fun addTeammates(args: PrivateData) {
+        League.executeOnFreshLock(args[0]) {
+            val ids = args[1].split(",").map { it.ifBlank { null }?.toLong() }
+            if (ids.size != table.size) return@executeOnFreshLock iData.reply("ids.size != table.size")
+            ids.forEachIndexed { index, teammate ->
+                if (teammate == null) return@forEachIndexed
+                DraftPermissionCommand.performPermissionAdd(
+                    user = table[index],
+                    toadd = teammate,
+                    withMention = DraftPermissionCommand.Allow.Mention.BOTH,
+                    teammate = true
+                )
+            }
+            save()
+        }
+    }
+
+    context(iData: InteractionData)
     suspend fun tipgameAdditionals(args: PrivateData) {
         val leaguename = args[0]
         val topkiller = args[1]
@@ -505,7 +526,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun subscribeToYT(args: PrivateData) {
-        subscribeToYTChannel(flowOf(args()).mapIdentifierToChannelIDs().first())
+        subscribeToYTChannel(flowOf(args()).mapIdentifierToChannelIDs().first()!!)
     }
 
     context(iData: InteractionData)
@@ -649,6 +670,21 @@ object PrivateCommands {
     context(iData: InteractionData)
     suspend fun convertOfficialToTL(args: PrivateData) {
         iData.reply(NameConventionsDB.convertOfficialToTL(args[0], args[1].toLong()) ?: "NULL")
+    }
+
+    context(iData: InteractionData)
+    suspend fun picksSort(args: PrivateData) {
+        League.executeOnFreshLock(args()) {
+            picks.entries.forEach { it.value.sortWith(Tierlist.getAnyTierlist(guild)!!.tierorderingComparator) }
+            save()
+        }
+    }
+
+    var teamSubmitOverride: Long? = null
+
+    context(iData: InteractionData)
+    fun teamSubmitOverride(args: PrivateData) {
+        teamSubmitOverride = args().toLong()
     }
 
 }

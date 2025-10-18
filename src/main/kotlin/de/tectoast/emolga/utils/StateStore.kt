@@ -219,14 +219,14 @@ class NominateState : StateStore {
 
     context(iData: InteractionData) suspend fun finish(now: Boolean) {
         if (now) {
-            League.executeOnFreshLock({ db.nds() }) {
+            return League.executeOnFreshLock({ db.nds() }) l@{
                 val nom = (this as NDS).nominations
                 val day = nom.current()
-                if (nomUser in day) return iData.reply("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!")
+                if (nomUser in day) return@l iData.reply("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!")
                 day[nomUser] = buildJSONList()
                 save()
                 delete()
-                return iData.reply("Deine Nominierung wurde gespeichert!")
+                return@l iData.reply("Deine Nominierung wurde gespeichert!")
             }
         }
         if (nominated.size != 11) {
@@ -379,8 +379,8 @@ class QueuePicks : StateStore {
     context(iData: InteractionData) suspend fun finish(enable: Boolean) {
         iData.ephemeralDefault()
         iData.deferEdit()
-        League.executeOnFreshLock(leaguename) {
-            if (isIllegal(this(uid), currentState)) return
+        League.executeOnFreshLock(leaguename) l@{
+            if (isIllegal(this(uid), currentState)) return@l
             val data = persistentData.queuePicks.queuedPicks.getOrPut(this(iData.user)) { QueuePicksUserData() }
             data.queued = currentState.toMutableList()
             data.enabled = enable

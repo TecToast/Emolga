@@ -124,6 +124,7 @@ abstract class InteractionData(
 
 
     val isNotFlo get() = user != Constants.FLOID
+    val isFlo get() = user == Constants.FLOID
 }
 
 var redirectTestCommandLogsToChannel: MessageChannel? = null

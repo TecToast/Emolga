@@ -92,7 +92,7 @@ dependencies {
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.17")
-    implementation("ch.qos.logback:logback-classic:1.5.18")
+    implementation("ch.qos.logback:logback-classic:1.5.19")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
@@ -126,8 +126,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.21.2")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.3")
-    testImplementation("io.kotest:kotest-assertions-core:6.0.3")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.4")
+    testImplementation("io.kotest:kotest-assertions-core:6.0.4")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
 }

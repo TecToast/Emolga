@@ -116,7 +116,7 @@ object Analysis {
                 }
                 return
             }
-            val (game, ctx) = data
+            val (game, ctx, dontTranslate) = data
             val url = ctx.url
             val g = resultchannelParam.guild
             val gid = customGuild ?: g.idLong
@@ -162,7 +162,7 @@ object Analysis {
             )
             replayChannel?.sendMessage(tosend)?.queue()
             fromReplayCommand?.reply(msgCreateData = tosend)
-            val description = generateDescription(game, spoiler, leaguedata, ctx)
+            val description = generateDescription(game, spoiler, leaguedata, ctx, dontTranslate)
             if (league != null) {
                 resultChannel.sendMessageEmbeds(Embed(description = description)).queue()
             } else {
@@ -222,11 +222,13 @@ object Analysis {
         game: List<SDPlayer>,
         spoiler: Boolean,
         leaguedata: LeagueResult?,
-        ctx: BattleContext
+        ctx: BattleContext,
+        dontTranslate: Boolean
     ): String {
         val monStrings = game.map { player ->
             player.pokemon.joinToString("\n") { mon ->
-                mon.draftname.displayName.condAppend(mon.kills > 0, " ${mon.kills}")
+                val pokemonName = if (dontTranslate) mon.pokemon else mon.draftname.displayName
+                pokemonName.condAppend(mon.kills > 0, " ${mon.kills}")
                     .condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
             }
         }
@@ -264,16 +266,21 @@ object Analysis {
     }
 
 
-    enum class ReplayServerMode {
-        LOG {
+    enum class ReplayServerMode(val dontTranslate: Boolean) {
+        LOG(false) {
             override fun getLogFromWebsiteText(text: String) = text
             override fun mapURL(url: String) = "$url.log"
         },
-        SCRAPE {
+        SCRAPE(false) {
             private val logRegex =
                 Regex("<script type=\"text/plain\" class=\"log\">(.*?)</script>", RegexOption.DOT_MATCHES_ALL)
 
             override fun getLogFromWebsiteText(text: String) = logRegex.find(text)?.groupValues[1] ?: ""
+        },
+        POKEATHLON(true) {
+            override fun getLogFromWebsiteText(text: String) = text
+
+            override fun mapURL(url: String) = "https://sim.pokeathlon.com/replays/${url.substringAfterLast("=")}.log"
         };
 
         abstract fun getLogFromWebsiteText(text: String): String
@@ -284,10 +291,11 @@ object Analysis {
         "replay.pokemonshowdown.com" to ReplayServerMode.LOG,
         "replays.tectoast.de" to ReplayServerMode.LOG,
         "replay.reshowdown.top" to ReplayServerMode.LOG,
-        "battling.p-insurgence.com/replays" to ReplayServerMode.SCRAPE
+        "battling.p-insurgence.com/replays" to ReplayServerMode.SCRAPE,
+        "replay.pokeathlon.com" to ReplayServerMode.POKEATHLON,
     )
     val regex =
-        Regex("https://(${modeByServer.keys.joinToString("|")})/(?:[a-z]+-)?[^-]+-\\d+[-a-z0-9]*")
+        Regex("https://(${modeByServer.keys.joinToString("|")}).*")
 
 
     suspend fun analyse(
@@ -320,11 +328,11 @@ object Analysis {
         }
         logger.info("Starting analyse!")
         val game = gameNullable ?: throw ShowdownDoesNotAnswerException()
-        return analyseFromLog(game, url, debugMode)
+        return analyseFromLog(game, url, debugMode, mode.dontTranslate)
     }
 
     fun analyseFromLog(
-        game: List<String>, url: String, debugMode: Boolean = false
+        game: List<String>, url: String, debugMode: Boolean = false, dontTranslate: Boolean = false,
     ): AnalysisData {
         var amount = 1
         val nicknames: MutableMap<Int, String> = mutableMapOf()
@@ -423,7 +431,7 @@ object Analysis {
                 }
             }
             logger.debug { "Total Dmg: $totalDmg, Calced: $calcedTotalDmg" }
-            AnalysisData(sdPlayers, this)
+            AnalysisData(sdPlayers, this, dontTranslate)
         }
     }
 
@@ -435,7 +443,7 @@ object Analysis {
 }
 
 data class AnalysisData(
-    val game: List<SDPlayer>, val ctx: BattleContext
+    val game: List<SDPlayer>, val ctx: BattleContext, val dontTranslate: Boolean
 )
 
 sealed class ShowdownException : Exception()

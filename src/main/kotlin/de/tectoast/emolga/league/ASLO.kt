@@ -30,7 +30,7 @@ class ASLO(
     override val dataSheet = "Data${if (confidx == 0) "Verkehr" else "Leiter"}"
     override val pickBuffer = 15
     override val teamsize = 12
-    override val gamedays = 11
+    override val gamedays = 7
 
     override fun getTierlistFor(idx: Int): Tierlist {
         return Tierlist[guild, when (idx) {

@@ -5,6 +5,8 @@ import ch.qos.logback.classic.filter.ThresholdFilter
 import ch.qos.logback.classic.pattern.ThrowableProxyConverter
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.UnsynchronizedAppenderBase
+import ch.qos.logback.core.filter.Filter
+import ch.qos.logback.core.spi.FilterReply
 import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.surroundWith
 import dev.minn.jda.ktx.messages.Embed
@@ -68,6 +70,7 @@ class DiscordAppender : UnsynchronizedAppenderBase<ILoggingEvent>() {
             setLevel(level)
             start()
         })
+        addFilter(UnknownInteractionFilter)
         scope = CoroutineScope(Dispatchers.IO + CoroutineName("DiscordAppender"))
         client = HttpClient(CIO)
         channel = Channel(Channel.BUFFERED)
@@ -84,5 +87,14 @@ class DiscordAppender : UnsynchronizedAppenderBase<ILoggingEvent>() {
                 delay(timeoutMillis)
             }
         }
+    }
+}
+
+private object UnknownInteractionFilter : Filter<ILoggingEvent>() {
+    override fun decide(e: ILoggingEvent): FilterReply {
+        if (e.formattedMessage.contains("[ErrorResponseException] 10062")) {
+            return FilterReply.DENY
+        }
+        return FilterReply.NEUTRAL
     }
 }

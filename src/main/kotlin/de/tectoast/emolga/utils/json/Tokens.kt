@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 data class Tokens(
     val google: Google,
     val discord: String,
-    val discordflegmon: String = "",
-    val discordraikou: String = "",
+    val discordflegmon: String? = null,
+    val discordraikou: String? = null,
     val subscriber: Subscriber,
     val database: Database,
     val mongoDB: String,

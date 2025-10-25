@@ -48,7 +48,7 @@ val jda: JDA by lazy { injectedJDA ?: emolgajda }
 
 object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
     lateinit var emolgajda: JDA
-    lateinit var flegmonjda: JDA
+    var flegmonjda: JDA? = null
     var raikoujda: JDA? = null
     private val logger = LoggerFactory.getLogger(EmolgaMain::class.java)
 
@@ -74,9 +74,11 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
                 }
             }
         }
-        flegmonjda = default(Credentials.tokens.discordflegmon) {
-            intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
-            setMemberCachePolicy(MemberCachePolicy.ALL)
+        Credentials.tokens.discordflegmon?.let { flegmon ->
+            flegmonjda = default(flegmon) {
+                intents += listOf(GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
+                setMemberCachePolicy(MemberCachePolicy.ALL)
+            }
         }
         defaultScope.launch {
             if (db.config.only().raikou) {
@@ -100,7 +102,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         db.config.only().maintenance?.let {
             maintenance = it
         }
-        for (jda in listOf(emolgajda, flegmonjda)) {
+        for (jda in listOfNotNull(emolgajda, flegmonjda)) {
             jda.listener<GenericEvent> {
                 if (it is IReplyCallback && it.user.idLong != Constants.FLOID) {
                     maintenance?.let { reason ->
@@ -115,7 +117,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         }
         updatePresence()
         logger.info("Discord Bots loaded!")
-        flegmonjda.presence.activity = Activity.playing("mit seiner Rute")
+        flegmonjda?.presence?.activity = Activity.playing("mit seiner Rute")
     }
 
     /**

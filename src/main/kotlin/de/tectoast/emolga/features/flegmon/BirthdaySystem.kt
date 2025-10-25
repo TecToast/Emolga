@@ -15,6 +15,7 @@ import java.util.*
 object BirthdaySystem : CoroutineScope {
     override val coroutineContext = createCoroutineContext("BirthdaySystem")
     fun startSystem() {
+        EmolgaMain.flegmonjda ?: return
         launch {
             while (true) {
                 val c = Calendar.getInstance()
@@ -24,7 +25,7 @@ object BirthdaySystem : CoroutineScope {
                 c[Calendar.SECOND] = 0
                 val tilnextday = c.timeInMillis - System.currentTimeMillis() + 1000
                 delay(tilnextday)
-                BirthdayDB.checkBirthdays(c, EmolgaMain.flegmonjda.getTextChannelById(605650587329232896L)!!)
+                BirthdayDB.checkBirthdays(c, EmolgaMain.flegmonjda!!.getTextChannelById(605650587329232896L)!!)
             }
         }
     }

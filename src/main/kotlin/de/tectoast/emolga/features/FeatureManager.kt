@@ -187,7 +187,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                 }
             }
         }
-        val usedJda = if (gid == Constants.G.PEPE) EmolgaMain.flegmonjda else jda
+        val usedJda = if (gid == Constants.G.PEPE) EmolgaMain.flegmonjda!! else jda
         (if (gid == -1L) usedJda.updateCommands()
         else usedJda.getGuildById(gid)!!.updateCommands()).addCommands(guildFeatures).queue()
     }

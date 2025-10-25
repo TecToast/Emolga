@@ -1,7 +1,7 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "2.2.20"
+val kVersion = "2.2.21"
 plugins {
     val kVersion = "2.2.0"
     kotlin("jvm") version kVersion

@@ -1,7 +1,7 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "2.2.20"
+val kVersion = "2.2.21"
 plugins {
     val kVersion = "2.2.0"
     kotlin("jvm") version kVersion
@@ -92,7 +92,7 @@ dependencies {
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.17")
-    implementation("ch.qos.logback:logback-classic:1.5.19")
+    implementation("ch.qos.logback:logback-classic:1.5.20")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
@@ -101,7 +101,7 @@ dependencies {
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250616-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20250829-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20251019-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20250714-2.0.0")
 
     // Database

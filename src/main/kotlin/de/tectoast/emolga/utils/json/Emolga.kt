@@ -26,9 +26,7 @@ import de.tectoast.emolga.utils.repeat.IntervalTaskKey
 import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.interactions.components.Modal
-import dev.minn.jda.ktx.interactions.components.TextInput
-import dev.minn.jda.ktx.interactions.components.TextInputDefaults
+import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.reply_
@@ -39,6 +37,7 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.components.Component
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.UserSnowflake
@@ -263,6 +262,7 @@ data class ModalInputOptions(
     val required: Boolean,
     val placeholder: String? = TextInputDefaults.placeholder,
     val requiredLength: IntRange? = TextInputDefaults.requiredLength,
+    val list: List<String>? = null
 )
 
 sealed interface SignUpValidateResult {
@@ -325,7 +325,7 @@ sealed class SignUpInput() {
         override val id = "oflist_$name"
 
         override fun getModalInputOptions(): ModalInputOptions {
-            return ModalInputOptions(label = name, required = true, placeholder = list.joinToString(" ODER "))
+            return ModalInputOptions(label = name, required = true, placeholder = null, list = list)
         }
 
         override fun validate(data: String) = SignUpValidateResult.wrapNullable(
@@ -451,7 +451,12 @@ data class LigaStartData(
                 val options = it.getModalInputOptions()
                 label(
                     label = options.label,
-                    child = TextInput(
+                    child = options.list?.let { list ->
+                        StringSelectMenu(
+                            customId = it.id,
+                            placeholder = options.placeholder,
+                            options = list.map { opt -> SelectOption(opt, opt) })
+                    } ?: TextInput(
                         customId = it.id,
                         style = TextInputStyle.SHORT,
                         required = options.required,
@@ -468,7 +473,13 @@ data class LigaStartData(
         val errors = mutableListOf<String>()
         val data = e.values.associate {
             val config = getInputConfig(it.customId) ?: error("Modal key ${it.customId} not found")
-            when (val result = config.validate(it.asString)) {
+            when (val result = config.validate(
+                when (it.type) {
+                    Component.Type.TEXT_INPUT -> it.asString
+                    Component.Type.STRING_SELECT -> it.asStringList.first()
+                    else -> error("Unsupported component type in signup modal")
+                }
+            )) {
                 is SignUpValidateResult.Error -> {
                     errors += "Fehler bei **${config.getModalInputOptions().label}**:\n${result.message}"
                     "" to ""

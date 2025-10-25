@@ -10,8 +10,8 @@ import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.interactions.components.menu
 import dev.minn.jda.ktx.messages.into
+import net.dv8tion.jda.api.components.selections.EntitySelectMenu
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
-import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu
 import org.litote.kmongo.eq
 import org.litote.kmongo.set
 import org.litote.kmongo.setTo

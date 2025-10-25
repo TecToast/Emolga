@@ -27,6 +27,7 @@ import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.Modal
+import dev.minn.jda.ktx.interactions.components.TextInput
 import dev.minn.jda.ktx.interactions.components.TextInputDefaults
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
@@ -38,10 +39,11 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
-import net.dv8tion.jda.api.interactions.modals.Modal
+import net.dv8tion.jda.api.modals.Modal
 import org.bson.BsonDocument
 import org.bson.conversions.Bson
 import org.litote.kmongo.*
@@ -447,12 +449,15 @@ data class LigaStartData(
         return Modal("signup;".notNullAppend(old?.let { "change" }), "Anmeldung") {
             signupStructure.forEach {
                 val options = it.getModalInputOptions()
-                short(
-                    id = it.id,
+                label(
                     label = options.label,
-                    required = options.required,
-                    placeholder = options.placeholder,
-                    value = old?.data?.get(it.id)
+                    child = TextInput(
+                        customId = it.id,
+                        style = TextInputStyle.SHORT,
+                        required = options.required,
+                        placeholder = options.placeholder,
+                        value = old?.data?.get(it.id)
+                    )
                 )
             }
         }
@@ -462,7 +467,7 @@ data class LigaStartData(
         val change = e.modalId.substringAfter(";").isNotBlank()
         val errors = mutableListOf<String>()
         val data = e.values.associate {
-            val config = getInputConfig(it.id) ?: error("Modal key ${it.id} not found")
+            val config = getInputConfig(it.customId) ?: error("Modal key ${it.customId} not found")
             when (val result = config.validate(it.asString)) {
                 is SignUpValidateResult.Error -> {
                     errors += "Fehler bei **${config.getModalInputOptions().label}**:\n${result.message}"
@@ -470,7 +475,7 @@ data class LigaStartData(
                 }
 
                 is SignUpValidateResult.Success -> {
-                    it.id to result.data
+                    it.customId to result.data
                 }
             }
         }

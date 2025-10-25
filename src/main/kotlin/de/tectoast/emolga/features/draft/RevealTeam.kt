@@ -5,8 +5,8 @@ import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.actionrow.ActionRow
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 
 object RevealTeam {
     object RevealButton : ButtonFeature<RevealButton.Args>(::Args, ButtonSpec("revealteam")) {

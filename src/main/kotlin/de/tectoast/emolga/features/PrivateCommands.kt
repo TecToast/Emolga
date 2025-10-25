@@ -35,6 +35,7 @@ import de.tectoast.emolga.utils.repeat.RepeatTask
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.interactions.components.Modal
+import dev.minn.jda.ktx.interactions.components.TextInput
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.*
@@ -42,11 +43,13 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import net.dv8tion.jda.api.components.ActionComponent
+import net.dv8tion.jda.api.components.actionrow.ActionRow
+import net.dv8tion.jda.api.components.actionrow.ActionRowChildComponent
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
-import net.dv8tion.jda.api.interactions.components.ActionComponent
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.utils.FileUpload
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.Table
@@ -396,9 +399,11 @@ object PrivateCommands {
         for (mid in args.drop(1)) {
             val m = jda.getTextChannelById(args[0])!!.retrieveMessageById(mid).await()
             m.editMessageComponents(m.components.map {
-                if (it is ActionRow) ActionRow.of(it.components.map { b ->
-                    if (b is ActionComponent) b.withDisabled(true) else b
-                }) else it
+                if (it is ActionRow) {
+                    ActionRow.of(it.components.map { b ->
+                        if (b is ActionComponent) b.withDisabled(true) as ActionRowChildComponent else b
+                    })
+                } else it
             }).queue()
         }
     }
@@ -409,7 +414,7 @@ object PrivateCommands {
             val m = jda.getTextChannelById(args[0])!!.retrieveMessageById(mid).await()
             m.editMessageComponents(m.components.map {
                 if (it is ActionRow) ActionRow.of(it.components.map { b ->
-                    if (b is ActionComponent) b.withDisabled(false) else b
+                    if (b is ActionComponent) b.withDisabled(false) as ActionRowChildComponent else b
                 }) else it
             }).queue()
         }
@@ -571,7 +576,8 @@ object PrivateCommands {
         val maxUsers = args[2].toInt()
         val text = args.drop(6).joinToString(" ").replace("\\n", "\n")
         val messageid =
-            tc.sendMessage(text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**").addActionRow(Button())
+            tc.sendMessage(text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**")
+                .addComponents(Button().into())
                 .await().idLong
         db.signups.insertOne(
             LigaStartData(
@@ -700,7 +706,7 @@ context(iData: InteractionData)
 private suspend fun awaitMultilineInput(): String {
     val id = "multiline-${System.currentTimeMillis()}"
     iData.replyModal(Modal(id, "Multiline Input") {
-        paragraph("input", "Input")
+        label("Input", child = TextInput("input", style = TextInputStyle.PARAGRAPH))
     })
     val event = jda.await<ModalInteractionEvent> { it.modalId == id }
     event.reply("Multiline received!").setEphemeral(true).queue()

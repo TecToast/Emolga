@@ -14,7 +14,7 @@ import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.draft.PickInput
 import dev.minn.jda.ktx.messages.into
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 
 
 object RandomPick {

@@ -11,10 +11,10 @@ import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.send
 import dev.minn.jda.ktx.util.ref
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.interactions.commands.OptionType
-import net.dv8tion.jda.api.interactions.components.ActionRow
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 

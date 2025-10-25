@@ -61,6 +61,7 @@ version = "3.0"
 repositories {
     mavenLocal()
     mavenCentral()
+    maven("https://jitpack.io")
 }
 
 val exposedVersion = "1.0.0-beta-5"
@@ -96,8 +97,8 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:5.6.1")
-    implementation("club.minnced:jda-ktx:0.13.0")
+    implementation("net.dv8tion:JDA:6.1.0")
+    implementation("io.github.freya022:jda-ktx:e7b0e50683")
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250616-2.0.0")

@@ -5,6 +5,8 @@ import com.mongodb.MongoWriteException
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.TypesDB
 import de.tectoast.emolga.utils.Constants.FLOID
+import dev.minn.jda.ktx.interactions.components.InlineModal
+import dev.minn.jda.ktx.interactions.components.TextInput
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -14,6 +16,7 @@ import kotlinx.serialization.builtins.LongAsStringSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import mu.KotlinLogging
+import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.User
 import org.jetbrains.exposed.v1.core.Column
 import org.slf4j.Marker
@@ -206,3 +209,13 @@ enum class Language(
 }
 
 val String.isMega get() = "-Mega" in this
+fun InlineModal.short(customId: String, label: String, required: Boolean, placeholder: String? = null) =
+    label(
+        label = label,
+        child = TextInput(
+            customId = customId,
+            style = TextInputStyle.SHORT,
+            required = required,
+            placeholder = placeholder
+        )
+    )

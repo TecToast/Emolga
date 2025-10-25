@@ -8,6 +8,7 @@ import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.TimeUtils
 import de.tectoast.emolga.utils.createCoroutineContext
+import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -31,7 +32,7 @@ object CalendarSystem : CoroutineScope {
                     return@launch
                 }
                 val calendarTc = jda.getTextChannelById(Constants.CALENDAR_TCID)!!
-                calendarTc.sendMessage("(<@${Constants.FLOID}>) $message").setActionRow(RemindButton()).queue()
+                calendarTc.sendMessage("(<@${Constants.FLOID}>) $message").addComponents(RemindButton().into()).queue()
                 CalendarDB.removeEntry(id)
                 calendarTc.updateCalendar()
             } catch (ex: Exception) {

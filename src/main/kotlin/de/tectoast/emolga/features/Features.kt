@@ -11,11 +11,15 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.db
-import dev.minn.jda.ktx.interactions.components.Modal
-import dev.minn.jda.ktx.interactions.components.StringSelectMenu
-import dev.minn.jda.ktx.interactions.components.button
+import dev.minn.jda.ktx.interactions.components.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.components.actionrow.ActionRow
+import net.dv8tion.jda.api.components.buttons.Button
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.selections.SelectOption
+import net.dv8tion.jda.api.components.selections.StringSelectMenu
+import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.ChannelType
@@ -34,12 +38,6 @@ import net.dv8tion.jda.api.interactions.commands.Command.Choice
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.OptionMapping
 import net.dv8tion.jda.api.interactions.commands.OptionType
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.Button
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
-import net.dv8tion.jda.api.interactions.components.selections.SelectOption
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
-import net.dv8tion.jda.api.interactions.components.text.TextInput
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
@@ -107,11 +105,10 @@ sealed class Feature<out T : FeatureSpec, out E : GenericInteractionCreateEvent,
     }
     val flo: BooleanCheck = { false } // flo may use any feature regardless of this configuration
 
-    context (data: InteractionData)
-    abstract suspend fun exec(e: A)
+    context (data: InteractionData) abstract suspend fun exec(e: A)
 
-    context(iData: InteractionData)
-    suspend fun exec(argsBuilder: ArgBuilder<@UnsafeVariance A> = {}) = exec(buildArgs(argsBuilder))
+    context(iData: InteractionData) suspend fun exec(argsBuilder: ArgBuilder<@UnsafeVariance A> = {}) =
+        exec(buildArgs(argsBuilder))
 }
 typealias ArgBuilder<A> = (@UnsafeVariance A).() -> Unit
 typealias BooleanCheck = suspend InteractionData.() -> Boolean
@@ -267,12 +264,24 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
             val value = arg.parsed?.toString()
             val argBuilder = spec?.builder ?: {}
             if (spec?.short != false) {
-                short(
-                    argId, argName, required = required, value = value, builder = argBuilder
+                label(
+                    label = argName, child = TextInput(
+                        customId = argId,
+                        style = TextInputStyle.SHORT,
+                        required = required,
+                        value = value,
+                        builder = argBuilder
+                    )
                 )
             } else {
-                paragraph(
-                    argId, argName, required = required, value = value, builder = argBuilder
+                label(
+                    label = argName, child = TextInput(
+                        customId = argId,
+                        style = TextInputStyle.PARAGRAPH,
+                        required = required,
+                        value = value,
+                        builder = argBuilder
+                    )
                 )
             }
         }
@@ -311,8 +320,8 @@ abstract class SelectMenuFeature<A : Arguments>(argsFun: () -> A, spec: SelectMe
         menuBuilder: StringSelectMenu.Builder.() -> Unit = {},
         argsBuilder: ArgBuilder<A> = {},
     ) = StringSelectMenu(
-        createComponentId(argsBuilder, checkCompId = true),
-        placeholder,
+        customId = createComponentId(argsBuilder, checkCompId = true),
+        placeholder = placeholder,
         disabled = disabled,
         valueRange = selectableOptions.let { if (it.isEmpty()) 1..(options?.size ?: 0) else it },
         options = options.orEmpty(),
@@ -358,7 +367,7 @@ data class CommandArgSpec(
 ) : ArgSpec
 
 data class ModalArgSpec(
-    val short: Boolean, val modalEnableKey: ModalKey?, val required: Boolean, val builder: TextInput.Builder.() -> Unit
+    val short: Boolean, val modalEnableKey: ModalKey?, val required: Boolean, val builder: InlineTextInput.() -> Unit
 ) : ArgSpec
 
 data class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
@@ -702,7 +711,7 @@ class Arg<DiscordType, ParsedType>(
         short: Boolean = true,
         modalKey: ModalKey? = null,
         required: Boolean = false,
-        builder: TextInput.Builder.() -> Unit = {}
+        builder: InlineTextInput.() -> Unit = {}
     ) {
         spec = (spec as? ModalArgSpec)?.let { oldSpec ->
             oldSpec.copy(

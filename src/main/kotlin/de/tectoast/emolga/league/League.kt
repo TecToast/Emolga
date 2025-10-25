@@ -32,12 +32,12 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.components.MessageTopLevelComponent
+import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.LayoutComponent
 import org.litote.kmongo.eq
 import org.litote.kmongo.ne
 import java.text.SimpleDateFormat
@@ -777,7 +777,7 @@ sealed class League {
 
     context(iData: InteractionData) suspend fun replyGeneral(
         msg: String,
-        components: Collection<LayoutComponent> = SendDefaults.components,
+        components: Collection<MessageTopLevelComponent> = SendDefaults.components,
         ifTestUseTc: MessageChannel? = null
     ) = replyWithTestInteractionCheck(
         "<@${iData.user}> hat${
@@ -788,7 +788,7 @@ sealed class League {
 
     context(iData: InteractionData) suspend fun replyWithTestInteractionCheck(
         content: String,
-        components: Collection<LayoutComponent> = SendDefaults.components,
+        components: Collection<MessageTopLevelComponent> = SendDefaults.components,
         ifTestUseTc: MessageChannel? = null
     ) = ifTestUseTc?.takeIf { iData is TestInteractionData }?.send(content, components = components)?.await()
         ?: iData.replyAwait(
@@ -904,7 +904,7 @@ sealed class League {
         val tipgame = config.tipgame ?: return
         val tipGameChannel = jda.getTextChannelById(tipgame.channel)!!
         val message = tipGameChannel.retrieveMessageById(messageId).await()
-        message.editMessageComponents(ActionRow.of(message.actionRows[0].buttons.map { button -> button.asDisabled() }))
+        message.editMessageComponents(ActionRow.of(message.components[0].asActionRow().buttons.map { button -> button.asDisabled() }))
             .queue()
     }
 

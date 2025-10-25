@@ -8,6 +8,7 @@ import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
@@ -20,8 +21,7 @@ import net.dv8tion.jda.api.interactions.callbacks.IDeferrableCallback
 import net.dv8tion.jda.api.interactions.callbacks.IMessageEditCallback
 import net.dv8tion.jda.api.interactions.callbacks.IModalCallback
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
-import net.dv8tion.jda.api.interactions.components.LayoutComponent
-import net.dv8tion.jda.api.interactions.modals.Modal
+import net.dv8tion.jda.api.modals.Modal
 import net.dv8tion.jda.api.utils.AttachedFile
 import net.dv8tion.jda.api.utils.FileUpload
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
@@ -73,44 +73,79 @@ abstract class InteractionData(
     fun reply(
         content: String = SendDefaults.content,
         embeds: Collection<MessageEmbed> = SendDefaults.embeds,
-        components: Collection<LayoutComponent> = SendDefaults.components,
+        components: Collection<MessageTopLevelComponent> = SendDefaults.components,
         files: Collection<FileUpload> = emptyList(),
         tts: Boolean = false,
         mentions: Mentions = Mentions.default(),
         ephemeral: Boolean = ephemeralDefault,
-    ) = reply(ephemeral, MessageCreate(content, embeds, files, components, tts, mentions))
+    ) = reply(
+        ephemeral, MessageCreate(
+            content = content,
+            embeds = embeds,
+            files = files,
+            components = components,
+            tts = tts,
+            mentions = mentions
+        )
+    )
 
     fun <T> replyNull(
         content: String = SendDefaults.content,
         embeds: Collection<MessageEmbed> = SendDefaults.embeds,
-        components: Collection<LayoutComponent> = SendDefaults.components,
+        components: Collection<MessageTopLevelComponent> = SendDefaults.components,
         files: Collection<FileUpload> = emptyList(),
         tts: Boolean = false,
         mentions: Mentions = Mentions.default(),
         ephemeral: Boolean = ephemeralDefault,
     ): T? {
-        reply(ephemeral, MessageCreate(content, embeds, files, components, tts, mentions))
+        reply(
+            ephemeral, MessageCreate(
+                content = content,
+                embeds = embeds,
+                files = files,
+                components = components,
+                tts = tts,
+                mentions = mentions
+            )
+        )
         return null
     }
 
     fun edit(
         content: String? = null,
         embeds: Collection<MessageEmbed>? = null,
-        components: Collection<LayoutComponent>? = null,
+        components: Collection<MessageTopLevelComponent>? = null,
         attachments: Collection<AttachedFile>? = null,
         replace: Boolean = MessageEditDefaults.replace,
-    ) = edit(MessageEdit(content, embeds, attachments, components, null, replace))
+    ) = edit(
+        MessageEdit(
+            content = content,
+            embeds = embeds,
+            files = attachments,
+            components = components,
+            replace = replace
+        )
+    )
 
 
     suspend fun replyAwait(
         content: String = SendDefaults.content,
         embeds: Collection<MessageEmbed> = SendDefaults.embeds,
-        components: Collection<LayoutComponent> = SendDefaults.components,
+        components: Collection<MessageTopLevelComponent> = SendDefaults.components,
         files: Collection<FileUpload> = emptyList(),
         tts: Boolean = false,
         mentions: Mentions = Mentions.default(),
         ephemeral: Boolean = ephemeralDefault
-    ) = replyAwait(ephemeral, MessageCreate(content, embeds, files, components, tts, mentions))
+    ) = replyAwait(
+        ephemeral, MessageCreate(
+            content = content,
+            embeds = embeds,
+            files = files,
+            components = components,
+            tts = tts,
+            mentions = mentions
+        )
+    )
 
     abstract fun deferReply(ephemeral: Boolean = ephemeralDefault)
     abstract fun deferEdit()

@@ -10,9 +10,9 @@ import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
+import net.dv8tion.jda.api.components.actionrow.ActionRow
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
-import net.dv8tion.jda.api.interactions.components.ActionRow
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 
 object Nominate {
     private val WHITESPACES_SPLITTER = Regex("\\s+")

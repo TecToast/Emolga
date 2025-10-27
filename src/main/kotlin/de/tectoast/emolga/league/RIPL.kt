@@ -18,8 +18,8 @@ class RIPL : League() {
 
     override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
     override val duringTimerSkipMode = NEXT_PICK
-    private val conf by lazy { leaguename.substringAfter("S3") }
-    private val cid by lazy { if (conf == "Ruby") 0 else 1 }
+    private val conf by lazy { leaguename.substringAfter("S4") }
+    private val cid by lazy { if (conf == "Zeit") 0 else 1 }
     override val dataSheet = "Data$conf"
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {

@@ -1,6 +1,7 @@
 package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.database.dbAsync
+import de.tectoast.emolga.database.exposed.DraftAdminsDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB.allNameConventions
 import de.tectoast.emolga.features.Arguments
@@ -35,7 +36,7 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
     }
 
     init {
-        restrict { roles(702233714360582154)() || admin(this) }
+        restrict { admin(this) || DraftAdminsDB.isAdmin(gid, member()) }
     }
 
     context(iData: InteractionData)

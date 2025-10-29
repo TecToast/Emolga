@@ -338,9 +338,10 @@ class RequestBuilder
         executed = false
     }
 
-    fun execute(realExecute: Boolean = true) {
+    fun execute(realExecute: Boolean = true, sync: Boolean = false) {
         this.realExecute = realExecute
-        scheduleForExecution(this)
+        if (sync) internalExecute()
+        else scheduleForExecution(this)
     }
 
     /**
@@ -419,8 +420,8 @@ class RequestBuilder
         }
     }
 
-    fun executeAndReset(realExecute: Boolean = true) {
-        execute(realExecute)
+    fun executeAndReset(realExecute: Boolean = true, sync: Boolean = false) {
+        execute(realExecute, sync)
         clear()
     }
 

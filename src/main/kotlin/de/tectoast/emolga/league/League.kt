@@ -306,7 +306,7 @@ sealed class League {
         val tl = tierlist
         if (!tl.mode.withTiers || (tl.variableMegaPrice && "#" in officialTier)) return false
         val allMaps = getPossibleTiers()
-        if (!tierlist.order.contains(specifiedTier)) {
+        if (!tl.order.contains(specifiedTier)) {
             iData.reply("Das Tier `$specifiedTier` existiert nicht!")
             return true
         }
@@ -316,7 +316,8 @@ sealed class League {
         }
         if (allMaps.all { map -> map[specifiedTier]!! <= 0 }) {
             // TODO: Check if this is correct with tl.prices
-            if (tl.prices[specifiedTier] == 0) {
+            val allPrices = getPossibleTiers(originalPrices = true)
+            if (allPrices.all { p -> p[specifiedTier] == 0 }) {
                 iData.reply("Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!")
                 return true
             }
@@ -644,7 +645,11 @@ sealed class League {
 
     open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
-    fun getPossibleTiers(idx: Int = current, forAutocomplete: Boolean = false): List<MutableMap<String, Int>> {
+    fun getPossibleTiers(
+        idx: Int = current,
+        forAutocomplete: Boolean = false,
+        originalPrices: Boolean = false
+    ): List<MutableMap<String, Int>> {
         val cpicks = picks[idx]
         return tierlist.allPrices.mapNotNull { prices ->
             val result = prices.toMutableMap().let { possible ->
@@ -659,7 +664,7 @@ sealed class League {
                 }
                 manipulatePossibleTiers(cpicks, possible)
             }
-            if (result.values.any { it < 0 }) null else result
+            if (result.values.any { it < 0 }) null else if (originalPrices) prices else result
         }
     }
 

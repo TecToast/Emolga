@@ -39,7 +39,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
     val variableMegaPrice = false
     val maxMonsToPay = Int.MAX_VALUE
 
-
+    // TODO: Support multiple prices
     val order get() = prices.keys.toList()
 
     val freePicksAmount get() = freepicks["#AMOUNT#"] ?: 0

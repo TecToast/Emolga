@@ -315,7 +315,6 @@ sealed class League {
             return true
         }
         if (allMaps.all { map -> map[specifiedTier]!! <= 0 }) {
-            // TODO: Check if this is correct with tl.prices
             val allPrices = getPossibleTiers(originalPrices = true)
             if (allPrices.all { p -> p[specifiedTier] == 0 }) {
                 iData.reply("Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!")

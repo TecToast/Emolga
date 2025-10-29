@@ -41,7 +41,7 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
         }
 
         suspend fun addDirectlyFromURL(url: String) {
-            val (game, ctx) = Analysis.analyse(url)
+            val (game, ctx, _) = Analysis.analyse(url)
             game.forEach { pl ->
                 pl.pokemon.forEach {
                     it.draftname = Analysis.getMonName(it.pokemon, Constants.G.MY)

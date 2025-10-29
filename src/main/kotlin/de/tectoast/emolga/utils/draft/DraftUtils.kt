@@ -49,6 +49,9 @@ data class PickInput(
             if (isSwitchDraft && !config.triggers.allowPickDuringSwitch) {
                 return iData.reply("Du kannst während des Switch-Drafts nicht picken!").let { false }
             }
+            if (tier != null && config.triggers.updraftDisabled) {
+                return iData.reply("Die Angabe eines Tiers ist in diesem Draft deaktiviert!").let { false }
+            }
             val idx = current
             val teraConfig = config.teraPick
             if (tera && draftData.teraPick.alreadyHasTeraUser.contains(idx)) {

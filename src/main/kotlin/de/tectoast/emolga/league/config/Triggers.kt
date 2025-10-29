@@ -10,4 +10,5 @@ data class Triggers(
     val saveReplayData: Boolean = false,
     val bo3: Boolean = false,
     val teamSubmit: Boolean = false,
+    val updraftDisabled: Boolean = false,
 )

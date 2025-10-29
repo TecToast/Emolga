@@ -2,12 +2,17 @@ package de.tectoast.emolga.features.draft.during
 
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.config.LeagueConfig
+import de.tectoast.emolga.league.config.Triggers
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils
 import de.tectoast.emolga.utils.draft.PickInput
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
+import de.tectoast.emolga.utils.json.db
+import org.litote.kmongo.div
+import org.litote.kmongo.eq
 
 object PickCommand :
     CommandFeature<PickCommand.Args>(PickCommand::Args, CommandSpec("pick", "Pickt ein Pokemon")) {
@@ -16,13 +21,22 @@ object PickCommand :
     class Args : Arguments() {
         var pokemon by draftPokemon("pokemon", "Das Pokemon, das gepickt werden soll")
         var tier by string("tier", "Das Tier, in dem das Pokemon gepickt werden soll") {
-            slashCommand { s, event ->
+            slashCommand(autocomplete = { s, event ->
                 val league = League.onlyChannel(event.channel.idLong) ?: return@slashCommand null
                 val current = league.currentOrFromID(event.user.idLong) ?: return@slashCommand null
                 league.getPossibleTiers(forAutocomplete = true, idx = current).flatMap { it.entries }
                     .filter { it.value > 0 }.map { it.key }.distinct()
                     .filterStartsWithIgnoreCase(s)
-            }
+            }, guildChecker = {
+                if (gid == Constants.G.MY) ArgumentPresence.OPTIONAL
+                else
+                    if (db.league.findOne(
+                            League::guild eq gid,
+                            League::config / LeagueConfig::triggers / Triggers::updraftDisabled eq true
+                        ) != null
+                    ) ArgumentPresence.NOT_PRESENT
+                    else ArgumentPresence.OPTIONAL
+            })
         }.nullable()
         var free by boolean("free", "Ob dieser Pick ein Freepick ist") {
             default = false

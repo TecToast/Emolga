@@ -5,6 +5,7 @@ import de.tectoast.emolga.utils.Language
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
 
 
 object TypesDB : Table("types") {
@@ -34,8 +35,8 @@ object TypesDB : Table("types") {
 
     suspend fun getOptions(input: String) = dbTransaction {
         val search = "%${input.lowercase()}%"
-        select(ENGLISHNAME).where { (ENGLISHID like search) }.union(select(GERMANNAME).where { (GERMANID like search) })
-            .map { it[ENGLISHNAME] }.toList()
+        selectAll().where { (ENGLISHID like search) }.union(selectAll().where { (GERMANID like search) })
+            .map { it[ENGLISHNAME] }.distinct()
     }
 
 }

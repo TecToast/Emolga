@@ -17,8 +17,8 @@ object FinishDraftCommand :
                 return@l iData.reply(it)
             }
             iData.replyAwait("<@${iData.user}> hat den Draft für sich beendet!")
-            addFinished(idx)
-            if (current == idx)
+            val wasCurrent = addFinished(idx)
+            if (wasCurrent)
                 afterPickOfficial()
             else
                 save()

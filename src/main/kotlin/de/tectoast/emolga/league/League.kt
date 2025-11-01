@@ -774,8 +774,13 @@ sealed class League {
 
     open suspend fun onAfterPick(data: NextPlayerData) {}
 
-    fun addFinished(idx: Int) {
-        order.values.forEach { it.remove(idx) }
+    /**
+     * Adds idx to finished players, removing it from the order (except for the current round if the user is the current user). Returns true if idx was the current player.
+     */
+    fun addFinished(idx: Int): Boolean {
+        val isCurrent = idx == current
+        order.entries.filter { !isCurrent || it.key > round }.forEach { it.value.remove(idx) }
+        return isCurrent
     }
 
     fun builder() = RequestBuilder(sid)

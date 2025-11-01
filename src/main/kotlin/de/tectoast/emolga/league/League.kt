@@ -642,6 +642,7 @@ sealed class League {
         return null
     }
 
+    // TODO: clean up
     open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
 
     fun getPossibleTiers(
@@ -1189,11 +1190,10 @@ class SwitchData(
     override val changedOnTeamsiteIndex by lazy { with(league) { getTierInsertIndex(oldIndex + 1) } }
 
     val oldDisplayName = OneTimeCache {
-        "${oldmon.tlName}/${
-            NameConventionsDB.getSDTranslation(
-                oldmon.official, league.guild, english = true
-            )!!.tlName
-        }"
+        val englishName = NameConventionsDB.getSDTranslation(
+            oldmon.official, league.guild, english = true
+        )!!.tlName
+        oldmon.tlName.condAppend(oldmon.tlName != englishName, "/$englishName")
     }
 }
 

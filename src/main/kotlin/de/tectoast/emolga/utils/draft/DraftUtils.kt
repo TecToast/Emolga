@@ -49,9 +49,6 @@ data class PickInput(
             if (isSwitchDraft && !config.triggers.allowPickDuringSwitch) {
                 return iData.reply("Du kannst während des Switch-Drafts nicht picken!").let { false }
             }
-            if (tier != null && config.triggers.updraftDisabled) {
-                return iData.reply("Die Angabe eines Tiers ist in diesem Draft deaktiviert!").let { false }
-            }
             val idx = current
             val teraConfig = config.teraPick
             if (tera && draftData.teraPick.alreadyHasTeraUser.contains(idx)) {
@@ -63,6 +60,9 @@ data class PickInput(
             logger.info("tlName: $tlName, official: $official")
             val (specifiedTier, officialTier, points) = (tl.getTierOfCommand(pokemon, tier)
                 ?: return iData.reply("Dieses Pokemon ist nicht in der Tierliste!").let { false })
+            if (tier != null && tier != officialTier && config.triggers.updraftDisabled) {
+                return iData.reply("Hochdraften in diesem Draft nicht erlaubt!").let { false }
+            }
             checkUpdraft(specifiedTier, officialTier)?.let { return iData.reply(it).let { false } }
             if (isPicked(official, officialTier)) return iData.reply("Dieses Pokemon wurde bereits gepickt!")
                 .let { false }

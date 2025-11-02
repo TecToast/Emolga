@@ -1,16 +1,34 @@
 package de.tectoast.emolga.league
 
+import de.tectoast.emolga.utils.DocEntry
 import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.records.Coord
-import de.tectoast.emolga.utils.records.CoordXMod
+import de.tectoast.emolga.utils.records.*
+import de.tectoast.emolga.utils.records.TableCompareOption.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
 @SerialName("Nichts")
 class Nichts(val sheetNames: List<String>) : League() {
     override val teamsize = 11
     override val pickBuffer = 6
+
+    @Transient
+    override val docEntry = DocEntry.create(this) {
+        newSystem(
+            newSystemSorter(
+                "Platzierungen!B2:H9", listOf(
+                    WINS, WINS / LOSSES, DIFF, KILLS, DirectCompareSortOption()
+                )
+            ),
+            bo3 = true
+        ) {
+            b.addRow(
+                gdi.CoordYMod("Spielplan", 4, 6, 4, 6, 6 + index), listOf(numberOne, numberTwo)
+            )
+        }
+    }
 
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         newSystemPickDoc(data)

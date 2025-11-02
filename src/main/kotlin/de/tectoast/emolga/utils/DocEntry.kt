@@ -68,40 +68,51 @@ class DocEntry private constructor(val league: League) {
         sorterData: TableSorter?,
         memberMod: Int? = null,
         dataSheetProvider: ((memidx: Int) -> String)? = null,
+        bo3: Boolean = false,
         resultCreator: (suspend AdvancedResult.() -> Unit)
     ) {
-        newSystem(listOfNotNull(sorterData), memberMod, dataSheetProvider, resultCreator)
+        newSystem(listOfNotNull(sorterData), memberMod, dataSheetProvider, bo3, resultCreator)
     }
 
     fun newSystem(
         sorterDatas: Collection<TableSorter>,
         memberMod: Int? = null,
         dataSheetProvider: ((memidx: Int) -> String)? = null,
+        bo3: Boolean = false,
         resultCreator: (suspend AdvancedResult.() -> Unit)
     ) {
         fun dataSheet(memidx: Int) = dataSheetProvider?.invoke(memidx) ?: league.dataSheet
         val gap = league.newSystemGap
         fun Int.mod() = memberMod?.let { this % it } ?: this
-        killProcessor = BasicStatProcessor {
+
+        val kProcessor: StatProcessorData.() -> Coord = {
             Coord(
                 sheet = dataSheet(plindex), gameday + 2, plindex.mod().y(gap, monindex + 3)
             )
         }
-        deathProcessor = BasicStatProcessor {
+        killProcessor = if (bo3) Bo3BasicStatProcessor(kProcessor) else BasicStatProcessor(kProcessor)
+
+        val dProcessor: StatProcessorData.() -> Coord = {
             Coord(
                 sheet = dataSheet(plindex), gameday + 4 + gamedays, plindex.mod().y(gap, monindex + 3)
             )
         }
-        winProcessor = ResultStatProcessor {
+        deathProcessor = if (bo3) Bo3BasicStatProcessor(dProcessor) else BasicStatProcessor(dProcessor)
+
+        val wProcessor: StatProcessorData.() -> Coord = {
             Coord(
                 sheet = dataSheet(plindex), gameday + 2, plindex.mod().y(gap, gap)
             )
         }
-        looseProcessor = ResultStatProcessor {
+        winProcessor = if (bo3) Bo3ResultStatProcessor(wProcessor) else ResultStatProcessor(wProcessor)
+
+        val lProcessor: StatProcessorData.() -> Coord = {
             Coord(
                 sheet = dataSheet(plindex), gameday + 4 + gamedays, plindex.mod().y(gap, gap)
             )
         }
+        looseProcessor = if (bo3) Bo3ResultStatProcessor(lProcessor) else ResultStatProcessor(lProcessor)
+
         this.resultCreator = resultCreator
         this.sorterDatas += sorterDatas
     }
@@ -117,8 +128,7 @@ class DocEntry private constructor(val league: League) {
             val gameday = replayData.first().gamedayData.gameday
             val currentDay = RepeatTask.getTask(league.leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfWeek()
                 ?: Int.MAX_VALUE
-            if (currentDay <= gameday)
-                return
+            if (currentDay <= gameday) return
         } else if (config.triggers.saveReplayData) {
             replayData.forEach(league::storeMatch)
             league.save()
@@ -143,8 +153,7 @@ class DocEntry private constructor(val league: League) {
             }
             league.config.tipgame?.let { _ ->
                 league.executeTipGameLockButtonsIndividual(
-                    firstReplayData.gamedayData.gameday,
-                    firstReplayData.gamedayData.battleindex
+                    firstReplayData.gamedayData.gameday, firstReplayData.gamedayData.battleindex
                 )
             }
         }
@@ -156,8 +165,8 @@ class DocEntry private constructor(val league: League) {
         val b = RequestBuilder(sid)
         val customB = customDataSid?.let(::RequestBuilder)
         val dataB = customB ?: b
-        val winsSoFar = mutableMapOf<Int, Int>()
-        val loosesSoFar = mutableMapOf<Int, Int>()
+        val winsSoFar = mutableMapOf<Int, Int>().withDefault { 0 }
+        val loosesSoFar = mutableMapOf<Int, Int>().withDefault { 0 }
         for ((index, replayData) in replayDatas.withIndex()) {
             val (game, uindices, kd, _, _, gamedayData, otherForms, _) = replayData
             val (gameday, battleindex, u1IsSecond, _) = gamedayData
@@ -194,8 +203,8 @@ class DocEntry private constructor(val league: League) {
                     u1IsSecond = u1IsSecond,
                     fightIndex = i,
                     matchNum = index,
-                    winsSoFar[idx] ?: 0,
-                    loosesSoFar[idx] ?: 0
+                    winsSoFar.getValue(idx),
+                    loosesSoFar.getValue(idx)
                 )
 
                 fun Set<StatProcessor>.checkTotal(total: Int) {
@@ -255,7 +264,7 @@ class DocEntry private constructor(val league: League) {
                 } else {
                     loosesSoFar.add(idx, 1)
                     looseProcessor
-                })?.let { p ->
+                })?.takeUnless { it is Bo3ResultStatProcessor }?.let { p ->
                     with(p) {
                         val k = generalStatProcessorData.process()
                         dataB.addSingle(k.toString(), 1)
@@ -263,11 +272,16 @@ class DocEntry private constructor(val league: League) {
                 }
             }
         }
+
         val firstData = replayDatas.first()
         val gamedayData = firstData.gamedayData
         val (gameday, battleindex, u1IsSecond, _) = gamedayData
         val bo3 = replayDatas.size > 1
-        if (killProcessors.any { it is Bo3BasicStatProcessor } || deathProcessors.any { it is Bo3BasicStatProcessor } || monNameProcessors.any { it is Bo3BasicStatProcessor }) {
+        if (killProcessors.any { it is Bo3BasicStatProcessor }
+            || deathProcessors.any { it is Bo3BasicStatProcessor }
+            || monNameProcessors.any { it is Bo3BasicStatProcessor }
+            || winProcessor is Bo3ResultStatProcessor
+            || looseProcessor is Bo3ResultStatProcessor) {
             for (idx in sortedUindices) {
                 // TODO: rework this whole statprocessordata thing
                 val statProcessorData = StatProcessorData(
@@ -277,9 +291,22 @@ class DocEntry private constructor(val league: League) {
                     u1IsSecond = u1IsSecond,
                     fightIndex = 0,
                     matchNum = 0,
-                    winCountSoFar = winsSoFar[idx] ?: 0,
-                    looseCountSoFar = loosesSoFar[idx] ?: 0
+                    winCountSoFar = winsSoFar.getValue(idx),
+                    looseCountSoFar = loosesSoFar.getValue(idx)
                 )
+                winProcessor.takeIf { it is Bo3ResultStatProcessor && statProcessorData.winCountSoFar > 0 }?.let { p ->
+                    with(p) {
+                        val k = statProcessorData.process()
+                        dataB.addSingle(k.toString(), statProcessorData.winCountSoFar)
+                    }
+                }
+                looseProcessor.takeIf { it is Bo3ResultStatProcessor && statProcessorData.looseCountSoFar > 0 }
+                    ?.let { p ->
+                        with(p) {
+                            val k = statProcessorData.process()
+                            dataB.addSingle(k.toString(), statProcessorData.looseCountSoFar)
+                        }
+                    }
                 totalMonStats[idx]?.forEach { (monIndex, stats) ->
                     val spd = statProcessorData.withMonIndex(monIndex, -1)
                     killProcessors.forEach { p ->
@@ -313,8 +340,7 @@ class DocEntry private constructor(val league: League) {
             league.config.tipgame?.let { _ ->
                 TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winningIndex)
             }
-            val numbers =
-                (0..1).map { groupBy[it]?.size ?: 0 }.let { if (u1IsSecond) it.reversed() else it }
+            val numbers = (0..1).map { groupBy[it]?.size ?: 0 }.let { if (u1IsSecond) it.reversed() else it }
             resultCreator?.let {
                 AdvancedResult(
                     b = b,
@@ -374,12 +400,7 @@ class DocEntry private constructor(val league: League) {
 }
 
 data class UserTableData(
-    var points: Int = 0,
-    var kills: Int = 0,
-    var deaths: Int = 0,
-    var wins: Int = 0,
-    var losses: Int = 0,
-    val index: Int
+    var points: Int = 0, var kills: Int = 0, var deaths: Int = 0, var wins: Int = 0, var losses: Int = 0, val index: Int
 ) {
     val diff get() = kills - deaths
 
@@ -444,6 +465,8 @@ fun interface ResultStatProcessor {
     fun StatProcessorData.process(): Coord
 }
 
+fun interface Bo3ResultStatProcessor : ResultStatProcessor
+
 @Serializable
 data class ReplayData(
     val game: List<DraftPlayer>,
@@ -463,10 +486,7 @@ data class ReplayData(
         val sendChannel = league.config.youtube?.sendChannel ?: return
         if (shouldExecute) {
             league.executeYoutubeSend(
-                sendChannel,
-                gamedayData.gameday,
-                gamedayData.battleindex,
-                VideoProvideStrategy.Subscribe(ytSave)
+                sendChannel, gamedayData.gameday, gamedayData.battleindex, VideoProvideStrategy.Subscribe(ytSave)
             )
         }
     }
@@ -474,8 +494,7 @@ data class ReplayData(
 
 @Serializable
 data class YTVideoSaveData(
-    var enabled: Boolean = false,
-    val vids: MutableMap<Int, String> = mutableMapOf()
+    var enabled: Boolean = false, val vids: MutableMap<Int, String> = mutableMapOf()
 )
 
 @Suppress("unused")

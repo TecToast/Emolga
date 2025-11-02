@@ -173,8 +173,10 @@ data class DirectCompareSortOption(
     )
 ) : TableSortOption {
     override suspend fun TableSortDataStorage.getValue(idx: Int): Int {
-        return 0
+        error("DirectCompareSortOption does not support getValue")
     }
+
+
 }
 
 data class DocRange(val sheet: String, val xStart: String, val yStart: Int, val xEnd: String, val yEnd: Int) {

@@ -58,6 +58,10 @@ fun String.toCoord() = this.replace("=", "").split("!").let {
 fun Int.CoordXMod(sheet: String, num: Int, xFactor: Int, xSummand: Int, yFactor: Int = 1, ySummand: Int) =
     Coord(sheet, this % num * xFactor + xSummand, this / num * yFactor + ySummand)
 
+@Suppress("FunctionName")
+fun Int.CoordYMod(sheet: String, num: Int, xFactor: Int, xSummand: Int, yFactor: Int = 1, ySummand: Int) =
+    Coord(sheet, this / num * xFactor + xSummand, this % num * yFactor + ySummand)
+
 infix fun String.x(x: Int) = Coord(this, x, 0)
 infix fun String.x(x: String) = Coord(this, x, 0)
 infix fun Coord.y(y: Int) = Coord(sheet, x, y)

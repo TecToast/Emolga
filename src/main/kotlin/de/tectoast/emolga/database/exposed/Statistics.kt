@@ -127,6 +127,16 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
                     this[Win.PLAYER] = it.first.player
                     this[Win.WON] = it.second
                 }
+                Time.batchInsert(events.time, ignore = true, shouldReturnGeneratedValues = false) {
+                    this[Time.REPLAYID] = replayId
+                    this[Time.ROW] = it.row
+                    this[Time.TIMESTAMP] = Instant.fromEpochMilliseconds(it.timestamp)
+                }
+                Turn.batchInsert(events.turn, ignore = true, shouldReturnGeneratedValues = false) {
+                    this[Turn.REPLAYID] = replayId
+                    this[Turn.ROW] = it.row
+                    this[Turn.TURN] = it.turn
+                }
             }
         }
     }
@@ -136,6 +146,15 @@ object Start : Table("st_start") {
     val REPLAYID = varchar("replayid", 128)
     val TIMESTAMP = timestamp("timestamp")
 }
+
+object Time : AnalysisStatistics("time") {
+    val TIMESTAMP = timestamp("timestamp")
+}
+
+object Turn : AnalysisStatistics("turn") {
+    val TURN = integer("turn")
+}
+
 
 object Move : AnalysisStatistics("move") {
     val SOURCE = varchar("source", 64)

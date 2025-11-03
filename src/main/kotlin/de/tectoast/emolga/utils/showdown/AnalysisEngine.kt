@@ -13,6 +13,7 @@ private val otherThanNumbers = Regex("[^0-9]")
 private val logger = KotlinLogging.logger {}
 context(context: BattleContext) fun SDPokemon.withZoroCheck(): SDPokemon =
     this.zoroLines.toList().firstOrNull { context.currentLineIndex in it.first }?.second ?: this
+
 data class SDPokemon(
     var pokemon: String, val player: Int, val pokemonSaves: MutableMap<PokemonSaveKey, SDPokemon> = mutableMapOf()
 ) {
@@ -161,6 +162,7 @@ sealed class SDEffect(vararg val types: String) {
     data object Turn : SDEffect("turn") {
         context(context: BattleContext) override fun execute(split: List<String>) {
             context.turn = split[1].toInt()
+            context.events.turn += AnalysisTurn(context.currentLineIndex, context.turn)
             context.sdPlayers.forEach { it.hittingFutureMove = null }
         }
     }
@@ -573,7 +575,10 @@ sealed class SDEffect(vararg val types: String) {
 
     data object Time : SDEffect("t:") {
         context(context: BattleContext) override fun execute(split: List<String>) {
-            context.events.start += AnalysisStart(context.currentLineIndex, split[1].toLong() * 1000)
+            val timestamp = split[1].toLong() * 1000
+            if (context.events.start.isEmpty())
+                context.events.start += AnalysisStart(context.currentLineIndex, timestamp)
+            context.events.time += AnalysisTime(context.currentLineIndex, timestamp)
         }
     }
 
@@ -639,6 +644,8 @@ data class AnalysisEvents(
     val heal: MutableList<AnalysisHeal> = mutableListOf(),
     val switch: MutableList<AnalysisSwitch> = mutableListOf(),
     val status: MutableList<AnalysisStatus> = mutableListOf(),
+    val turn: MutableList<AnalysisTurn> = mutableListOf(),
+    val time: MutableList<AnalysisTime> = mutableListOf()
 )
 
 interface AnalysisStatistic {
@@ -672,6 +679,9 @@ data class AnalysisStatus(
 
 data class AnalysisSwitch(override val row: Int, val pokemon: SDPokemon, val type: SwitchType, val from: String) :
     AnalysisStatistic
+
+data class AnalysisTurn(override val row: Int, val turn: Int) : AnalysisStatistic
+data class AnalysisTime(override val row: Int, val timestamp: Long) : AnalysisStatistic
 
 class SDPlayer(
     val nickname: String,
@@ -711,6 +721,7 @@ fun String.parsePokemonLocation() = substringAfter('p').substringBefore(':').let
     val p = it[0].digitToInt() - 1
     p to if (p > 1) 0 else it[1].cToI()
 }
+
 fun String.parsePlayer() = substringAfter('p').substringBefore(':').let {
     it[0].digitToInt() - 1
 }

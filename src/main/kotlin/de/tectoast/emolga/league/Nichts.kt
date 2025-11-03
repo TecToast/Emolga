@@ -25,7 +25,7 @@ class Nichts(val sheetNames: List<String>) : League() {
             bo3 = true
         ) {
             b.addRow(
-                gdi.CoordYMod("Spielplan", 4, 6, 4, 6, 6 + index), listOf(numberOne, numberTwo)
+                gdi.CoordYMod("Spielplan", 4, 6, 4, 6, 6 + index), listOf(numberOne, ":", numberTwo)
             )
         }
     }

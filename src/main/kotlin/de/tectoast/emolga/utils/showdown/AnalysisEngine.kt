@@ -595,6 +595,13 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
+    data object CustomRules : SDEffect("raw") {
+        context(context: BattleContext) override fun execute(split: List<String>) {
+            val raw = split[1]
+            if ("custom rule" in raw) context.customRules = raw
+        }
+    }
+
 }
 
 
@@ -615,6 +622,7 @@ data class BattleContext(
     var totalDmgAmount: Int = 0,
     val events: AnalysisEvents = AnalysisEvents(),
     val debugMode: Boolean,
+    var customRules: String = ""
 ) {
     inline fun <reified T : SDEffect> findResponsiblePokemonSlot(name: String, side: Int, slot: Int) =
         sdPlayers[side].slotConditions[slot]?.entries?.firstOrNull { (it.key as? T)?.name == name }?.value
@@ -624,7 +632,7 @@ data class BattleContext(
         globalConditions.entries.firstOrNull { (it.key as? T)?.name == name }?.value
 
 
-    val is4v4 by lazy { "VGC" in format || "4v4" in format }
+    val is4v4 by lazy { "VGC" in format || "4v4" in format || "Picked Team Size = 4" in customRules }
 
     fun getLastContentSplit(): List<String>? {
         for (i in currentLineIndex - 1 downTo 0) {

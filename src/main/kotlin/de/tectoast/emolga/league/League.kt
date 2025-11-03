@@ -310,7 +310,8 @@ sealed class League {
             iData.reply("Das Tier `$specifiedTier` existiert nicht!")
             return true
         }
-        if (tl.order.indexOf(officialTier) < tl.order.indexOf(specifiedTier) && (!fromSwitch || allMaps.all { map -> map[specifiedTier]!! <= 0 })) {
+        // TODO: fix this for multi price tierlist switches
+        if (tl.order.indexOf(officialTier) < tl.order.indexOf(specifiedTier) && !fromSwitch) {
             iData.reply("Du kannst ein $officialTier-Mon nicht ins $specifiedTier hochdraften!")
             return true
         }

@@ -27,6 +27,10 @@ class Nichts(val sheetNames: List<String>) : League() {
             b.addRow(
                 gdi.CoordYMod("Spielplan", 4, 6, 4, 6, 6 + index), listOf(numberOne, ":", numberTwo)
             )
+            for (idx in idxs) {
+                val sheet = sheetNames[idx]
+                b.addSingle(Coord(sheet, 4 + gdi, 10), if (idx == winnerIndex) "W" else "L")
+            }
         }
     }
 

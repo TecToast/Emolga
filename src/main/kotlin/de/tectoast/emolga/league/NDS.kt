@@ -157,12 +157,13 @@ class NDS(val rr: Boolean) : League() {
 
     override fun setupRepeatTasks() {
         logger.info("Setting up matchups repeat tasks")
+        // TODO: Move to DB
         RepeatTask(
-            "NDS", RepeatTaskType.Other("Matchups"), "23.11.2025 20:00", 10, 7.days
+            "NDS", RepeatTaskType.Other("Matchups"), "7.12.2025 20:00", 10, 7.days
         ) { doMatchUps(it, withAnnounce = true) }
         logger.info("Setting up nominations repeat tasks")
         RepeatTask(
-            "NDS", RepeatTaskType.Other("Nominate"), "26.11.2025 00:00", 10, 7.days
+            "NDS", RepeatTaskType.Other("Nominate"), "10.12.2025 00:00", 10, 7.days
         ) { doNDSNominate() }
     }
 

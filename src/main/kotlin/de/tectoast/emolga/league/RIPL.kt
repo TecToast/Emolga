@@ -15,6 +15,7 @@ import kotlinx.serialization.Transient
 @SerialName("RIPL")
 class RIPL : League() {
     override val teamsize = 12
+    override val pickBuffer = 5
 
     override val afterTimerSkipMode = AFTER_DRAFT_UNORDERED
     override val duringTimerSkipMode = NEXT_PICK

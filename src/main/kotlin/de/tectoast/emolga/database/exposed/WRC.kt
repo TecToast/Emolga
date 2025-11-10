@@ -32,6 +32,7 @@ object WRCDataDB : Table("wrc_running") {
     val GAMEDAYS = integer("gamedays")
     val MATCHUPCHANNEL = long("matchupchannel")
     val TEAMSUBMITMINS = integer("teamsubmitmins")
+    val FOLLOWUPMINS = integer("followupmins")
 
     suspend fun getByName(name: String) = dbTransaction {
         selectAll().where { WRCNAME eq name }.firstOrNull()

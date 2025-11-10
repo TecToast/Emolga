@@ -13,6 +13,7 @@ import de.tectoast.emolga.database.exposed.WRCDataDB.WRCNAME
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
+import de.tectoast.emolga.utils.repeat.ScheduledTask
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.into
@@ -254,4 +255,8 @@ object WRCManager {
             logger.warn("Channel {} not found for wrc {} {}", channelId, action, wrcName)
             null
         }
+
+    suspend fun handleFollowUpTimeout(data: ScheduledTask.WRCFollowUp) {
+
+    }
 }

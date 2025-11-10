@@ -24,6 +24,7 @@ import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
 import de.tectoast.emolga.utils.json.showdown.Pokemon
 import de.tectoast.emolga.utils.repeat.IntervalTaskKey
+import de.tectoast.emolga.utils.repeat.ScheduledTask
 import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
 import dev.minn.jda.ktx.coroutines.await
@@ -100,6 +101,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val tipgameuserdata by lazy { db.getCollection<TipGameUserData>("tipgameuserdata") }
     val statestore by lazy { db.getCollection<StateStore>("statestore") }
     val intervaltaskdata by lazy { db.getCollection<IntervalTaskData>("intervaltaskdata") }
+    val scheduledtask by lazy { db.getCollection<ScheduledTask>("scheduledtask") }
     val remoteServerControl by lazy { db.getCollection<RemoteServerControl>("remoteservercontrol") }
     val defaultNameConventions = OneTimeCache {
         nameconventions.find(NameConventions::guild eq 0).first()!!.data

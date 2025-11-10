@@ -29,6 +29,7 @@ suspend fun main() {
     defaultScope.launch {
         RepeatTask.setupRepeatTasks()
         IntervalTask.setupIntervalTasks()
+
     }
     logger.info("Starting KTor...")
     Ktor.start()

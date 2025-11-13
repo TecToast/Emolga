@@ -231,7 +231,9 @@ object NameConventionsDB : Table("nameconventions") {
                     return@dbTransaction DraftName(
                         it[if (english) SPECIFIEDENGLISH else SPECIFIED].let { s ->
                             if (spec != null) {
-                                (nc[spec] ?: emolgaDB.defaultNameConventions()[spec]!!).replace(
+                                val ncData = (nc[spec] ?: emolgaDB.defaultNameConventions()[spec]!!)
+                                if (s.matches(ncData.toRegex())) s
+                                else ncData.replace(
                                     "(.+)",
                                     s.substringBefore("-$spec")
                                 )

@@ -350,8 +350,9 @@ class DocEntry private constructor(val league: League) {
                     numberTwo = numbers[1],
                     swappedNumbers = u1IsSecond,
                     url = "",
-                    replayData = firstData,
-                    league = league
+                    replayDatas = replayDatas,
+                    league = league,
+                    winnerIndex = winningIndex,
                 ).it()
             }
         } else {
@@ -371,8 +372,9 @@ class DocEntry private constructor(val league: League) {
                     numberTwo = numbers[1],
                     swappedNumbers = u1IsSecond,
                     url = firstData.url,
-                    replayData = firstData,
-                    league = league
+                    replayDatas = replayDatas,
+                    league = league,
+                    winnerIndex = winningIndex
                 ).it()
             }
         }
@@ -506,21 +508,24 @@ data class AdvancedResult(
     val numberTwo: Int,
     val swappedNumbers: Boolean,
     val url: String,
-    val replayData: ReplayData,
-    val league: League
+    val replayDatas: List<ReplayData>,
+    val league: League,
+    val winnerIndex: Int
 ) {
+    val firstReplayData = replayDatas.first()
     val idxs by lazy {
-        replayData.uindices
+        firstReplayData.uindices
     }
     val deaths by lazy {
-        (0..1).map { replayData.kd[it].values.map { s -> s.second == 1 } }
+        if (replayDatas.size > 1) error("deaths in AdvancedResult are only available for single replays")
+        (0..1).map { firstReplayData.kd[it].values.map { s -> s.second == 1 } }
     }
     val kills by lazy {
+        if (replayDatas.size > 1) error("kills in AdvancedResult are only available for single replays")
         (0..1).map {
-            replayData.kd[it].values.map { p -> p.first }
+            firstReplayData.kd[it].values.map { p -> p.first }
         }
     }
-    val winnerIndex by lazy { replayData.game.indexOfFirst { it.winner } }
     val higherNumber by lazy { if (numberOne > numberTwo) numberOne else numberTwo }
     val lowerNumber by lazy { if (numberOne < numberTwo) numberOne else numberTwo }
     fun Int.swap() = if (swappedNumbers) 1 - this else this

@@ -9,7 +9,7 @@ import de.tectoast.emolga.database.exposed.AnalysisStatistics
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.YTChannelsDB
 import de.tectoast.emolga.database.exposed.YTNotificationsDB
-import de.tectoast.emolga.features.draft.SignupManager.Button
+import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
@@ -130,9 +130,7 @@ object PrivateCommands {
     suspend fun signupUpdate(args: PrivateData) {
         val (guild, user) = args.map { it.toLong() }
         val ligaStartData = db.signups.get(guild)!!
-        val data = ligaStartData.getDataByUser(user)!!
-        jda.getTextChannelById(ligaStartData.signupChannel)!!
-            .editMessageById(data.signupmid!!, data.toMessage(ligaStartData)).queue()
+        ligaStartData.updateUser(user)
     }
 
     context(iData: InteractionData)
@@ -575,31 +573,24 @@ object PrivateCommands {
         val tc = jda.getTextChannelById(args[0])!!
         val maxUsers = args[2].toInt()
         val text = args.drop(6).joinToString(" ").replace("\\n", "\n")
-        val messageid =
-            tc.sendMessage(text + "\n\n**Teilnehmer: 0/${maxUsers.takeIf { it > 0 } ?: "?"}**")
-                .addComponents(Button().into())
-                .await().idLong
-        db.signups.insertOne(
-            LigaStartData(
-                guild = tc.guild.idLong,
-                signupChannel = args[1].toLong(),
-                signupMessage = text,
-                announceChannel = tc.idLong,
-                announceMessageId = messageid,
-                maxUsers = maxUsers,
-                signupStructure = buildList {
-                    if (args[3].toBooleanStrict()) add(SignUpInput.SDName)
-                    if (args[4].toBooleanStrict()) add(SignUpInput.TeamName)
-                },
-                logoSettings = if (args[5].toBooleanStrict()) LogoSettings.WithSignupMessage else null,
-            )
+        val config = LigaStartConfig(
+            signupChannel = args[1].toLong(),
+            signupMessage = text,
+            announceChannel = tc.idLong,
+            maxUsers = maxUsers,
+            signupStructure = buildList {
+                if (args[3].toBooleanStrict()) add(SignUpInput.SDName)
+                if (args[4].toBooleanStrict()) add(SignUpInput.TeamName)
+            },
+            logoSettings = if (args[5].toBooleanStrict()) LogoSettings.WithSignupMessage else null,
         )
+        SignupManager.createSignup(gid = tc.guild.idLong, config = config)
     }
 
     context(iData: InteractionData)
     suspend fun fixLogos() {
         val lsData = db.signups.only()
-        val tc = jda.getTextChannelById(lsData.signupChannel)!!
+        val tc = jda.getTextChannelById(lsData.config.signupChannel)!!
         val messages = tc.iterableHistory.takeWhileAsync { it.author.idLong == jda.selfUser.idLong }.await()
         for (m in messages) {
             if (m.attachments.isEmpty()) continue

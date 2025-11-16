@@ -156,7 +156,8 @@ sealed class League {
 
     open fun getTierlistFor(idx: Int) = tierlist
 
-    operator fun invoke(mem: Long) = table.indexOf(mem).takeIf { it >= 0 }!!
+    fun indexOf(mem: Long) = table.indexOf(mem)
+    operator fun invoke(mem: Long) = indexOf(mem).takeIf { it >= 0 }!!
     operator fun get(index: Int) = table[index]
 
     suspend fun currentOrFromID(id: Long) = currentOverride ?: order[round]?.get(0)
@@ -446,7 +447,7 @@ sealed class League {
                 data.queued.removeIf { mon -> mon.g == newMon }
                 if (mem != current) {
                     SendFeatures.sendToUser(
-                        table[mem], embeds = Embed(
+                        this[mem], embeds = Embed(
                             title = "Queue-Pick-Warnung",
                             color = 0xff0000,
                             description = "`${newMon.tlName}` aus deiner Queue wurde von ${getCurrentName()} gepickt.\n${if (data.disableIfSniped) "Das System wurde für dich deaktiviert, damit du umplanen kannst." else "Das System läuft jedoch für dich weiter."}"
@@ -458,7 +459,7 @@ sealed class League {
                         val whenToManualPick = data.queued.size + 1
                         if (notification.wantsNotification(whenToManualPick)) {
                             SendFeatures.sendToUser(
-                                table[mem],
+                                this[mem],
                                 "Du hast `${newMon.tlName}` gepickt.\nRunden, bis wieder manuell gepickt werden muss: **$whenToManualPick**"
                             )
                         }
@@ -759,7 +760,7 @@ sealed class League {
     }
 
     fun getTeamUserIds(idx: Int): List<Long> {
-        val idOfOwner = table[idx]
+        val idOfOwner = this[idx]
         val data = allowed[idx] ?: return listOf(idOfOwner)
         return listOf(idOfOwner, *data.filter { it.teammate }.map { it.u }.toTypedArray())
     }
@@ -822,7 +823,7 @@ sealed class League {
         title = "${data.ctx.format} replay: $p1 vs. $p2"
         url = data.ctx.url.takeIf { it.length > 10 } ?: "https://example.org"
         description =
-            "Spieltag ${gdData.gameday.takeIf { it >= 0 } ?: "-"}: " + league.uindices.joinToString(" vs. ") { "<@${table[it]}>" }
+            "Spieltag ${gdData.gameday.takeIf { it >= 0 } ?: "-"}: " + league.uindices.joinToString(" vs. ") { "<@${this@League[it]}>" }
     }
 
 
@@ -923,7 +924,7 @@ sealed class League {
      * Gets the index of the user by their ID or an allowed player that only has permission for one user.
      */
     fun getIdxByUserId(userId: Long): IdxByUserIdResult {
-        val idx = table.indexOf(userId)
+        val idx = indexOf(userId)
         if (idx != -1) return IdxByUserIdResult.Success(idx)
         val allowedFor = allowed.entries.filter { it.value.any { data -> data.u == userId } }
         return when (allowedFor.size) {
@@ -950,7 +951,7 @@ sealed class League {
         val gamedayData = persistentData.replayDataStore.data[gameday].orEmpty()
         val gameplan = battleorder[gameday] ?: return "Spieltag $gameday: Keine Spiele"
         return "## Aktueller Stand von Spieltag $gameday [$leaguename]:\n" + gameplan.indices.joinToString("\n") {
-            "${gameplan[it].joinToString(" vs. ") { u -> "<@${table[u]}>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
+            "${gameplan[it].joinToString(" vs. ") { u -> "<@${this[u]}>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
         }
     }
 
@@ -1308,7 +1309,7 @@ data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
             if (!pseudoEnd) {
                 tc.sendMessage("Der Draft wäre jetzt vorbei, aber es gibt noch Spieler, die keinen vollständigen Kader haben! Diese können nun in beliebiger Reihenfolge ihre Picks nachholen. Dies sind:\n" + draftData.moved.entries.filter { it.value.isNotEmpty() }
                     .joinToString("\n") { (user, turns) ->
-                        "<@${table[user]}>: ${turns.size}${
+                        "<@${this[user]}>: ${turns.size}${
                             announceData(withTimerAnnounce = false, idx = user)
                         }"
                     }).queue()

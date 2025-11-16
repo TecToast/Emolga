@@ -96,7 +96,7 @@ object TimeUtils {
         val second = split.getOrNull(1)
         if ("." in first) {
             calendar.handleDay(first, now)
-            calendar.handleTime(second, now)
+            calendar.handleTime(second, now = null)
         } else {
             calendar.handleTime(first, now)
         }
@@ -108,17 +108,17 @@ object TimeUtils {
         this[Calendar.DAY_OF_MONTH] = date[0].toInt()
         date.getOrNull(1)?.toIntOrNull()?.let { this[Calendar.MONTH] = it - 1 }
         date.getOrNull(2)?.toIntOrNull()?.let { this[Calendar.YEAR] = it }
-        if (this.timeInMillis < now) {
+        if (this.timeInMillis < now && date.getOrNull(2) == null) {
             this.add(Calendar.YEAR, 1)
         }
     }
 
-    private fun Calendar.handleTime(strInput: String?, now: Long) {
+    private fun Calendar.handleTime(strInput: String?, now: Long?) {
         val str = strInput ?: "15:00"
         val time = str.split(":")
         this[Calendar.HOUR_OF_DAY] = time[0].toInt()
         this[Calendar.MINUTE] = time.getOrNull(1)?.toInt() ?: 0
-        if (this.timeInMillis < now) {
+        if (now != null && this.timeInMillis < now) {
             this.add(Calendar.DAY_OF_MONTH, 1)
         }
     }

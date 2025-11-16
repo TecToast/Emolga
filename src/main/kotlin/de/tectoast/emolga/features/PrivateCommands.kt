@@ -476,7 +476,7 @@ object PrivateCommands {
             ids.forEachIndexed { index, teammate ->
                 if (teammate == null) return@forEachIndexed
                 DraftPermissionCommand.performPermissionAdd(
-                    user = table[index],
+                    user = this[index],
                     toadd = teammate,
                     withMention = DraftPermissionCommand.Allow.Mention.BOTH,
                     teammate = true

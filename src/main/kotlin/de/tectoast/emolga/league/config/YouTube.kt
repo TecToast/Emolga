@@ -22,15 +22,15 @@ data class YouTubeMessageConfig(
             includeRolePing?.let { append("<@&$it>\n") }
             append("**Spieltag $gameday**\n_Kampf ${battle + 1}_\n\n")
             val muData = league.battleorder[gameday]!![battle]
-            append(muData.joinToString(" vs. ") { "<@${league.table[it]}>" })
+            append(muData.joinToString(" vs. ") { "<@${league[it]}>" })
             append("\n\n")
             val videoIds = muData.mapIndexed { index, uindex ->
                 strategy.run { league.provideVideoId(index, uindex) }
             }
-            val names = jda.getGuildById(league.guild)!!.retrieveMembersByIds(muData.map { league.table[it] }).await()
+            val names = jda.getGuildById(league.guild)!!.retrieveMembersByIds(muData.map { league[it] }).await()
                 .associate { it.idLong to it.user.effectiveName }
             videoIds.forEachIndexed { index, vid ->
-                val uid = league.table[muData[index]]
+                val uid = league[muData[index]]
                 append("${names[uid]}'s Sicht: ")
                 append(vid?.let { "https://www.youtube.com/watch?v=$it" } ?: "_noch nicht hochgeladen_")
                 append("\n")

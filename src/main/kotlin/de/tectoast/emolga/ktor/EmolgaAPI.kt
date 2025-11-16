@@ -193,7 +193,7 @@ fun Route.emolgaAPI() {
                 if (config.replayDataStore != null) {
                     channel.sendResultEntryMessage(
                         resData[ResultCodesDB.GAMEDAY],
-                        ResultEntryDescription.MatchPresent(idxs.map { table[it] }
+                        ResultEntryDescription.MatchPresent(idxs.map { this[it] }
                             .let { if (gamedayData.u1IsSecond) it.reversed() else it })
                     )
                 } else {

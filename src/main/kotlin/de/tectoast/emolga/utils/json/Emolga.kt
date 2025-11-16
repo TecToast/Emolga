@@ -235,7 +235,7 @@ data class IntervalTaskData(
 @Serializable
 data class PickedMonsData(val leaguename: String, val guild: Long, val idx: Int, val mons: List<String>)
 data class LeagueResult(val league: League, val uindices: List<Int>, val otherForms: Map<String, List<String>>) {
-    val mentions = uindices.map { "<@${league.table[it]}>" }
+    val mentions = uindices.map { "<@${league[it]}>" }
 }
 
 @Serializable

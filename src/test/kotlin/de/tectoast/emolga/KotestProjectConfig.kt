@@ -19,7 +19,7 @@ object KotestProjectConfig : AbstractProjectConfig() {
 
     override suspend fun beforeProject() {
         println("INITIALIZING")
-        initMongo()
+        initMongo(env("MONGODB_URL")!!)
         logger.info(db.league.deleteMany(League::leaguename regex Regex("^TEST")).deletedCount.toString())
         val username = env("DBUSER")!!
         val password = env("DBPASSWORD")!!

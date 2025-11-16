@@ -211,10 +211,10 @@ class RepeatTask(
                                     val toRemind = battleorder[gameday]?.get(battle) ?: return@executeOnFreshLock
                                     for ((index, idx) in toRemind.withIndex()) {
                                         val opponent = toRemind[1 - index]
-                                        jda.openPrivateChannelById(table[idx]).await().send(
+                                        jda.openPrivateChannelById(this[idx]).await().send(
                                             embeds = Embed(
                                                 title = "Reminder",
-                                                description = "Dein Kampf an Spieltag $gameday gegen <@${table[opponent]}> ist noch nicht eingetragen.\n" +
+                                                description = "Dein Kampf an Spieltag $gameday gegen <@${this[opponent]}> ist noch nicht eingetragen.\n" +
                                                         "Falls das vergessen wurde, kläre bitte ab, wer den Kampf noch eintragen wird.\n\n" +
                                                         "Falls der Kampf eigentlich schon eingetragen wurde, funktioniert dieses System nicht, bitte gib dann ${Constants.MYTAG} Bescheid :)",
                                                 color = embedColor

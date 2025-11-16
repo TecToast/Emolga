@@ -37,7 +37,7 @@ object ResultCodesDB : Table("resultcodes") {
         val gid = league.guild
         val guild = jda.getGuildById(gid) ?: return@dbTransaction null
         val idxes = listOf(entry[P1], entry[P2])
-        val memberData = guild.retrieveMembersByIds(idxes.map { league.table[it] }).await().associateBy { it.idLong }
+        val memberData = guild.retrieveMembersByIds(idxes.map { league[it] }).await().associateBy { it.idLong }
         val tlEnglish = league.tierlist.isEnglish
         val allMonsTranslations =
             NameConventionsDB.getAllData(
@@ -50,7 +50,7 @@ object ResultCodesDB : Table("resultcodes") {
             gameday = entry[GAMEDAY],
             data = idxes.map { idx ->
                 val picks = allPicks(idx)
-                val uid = league.table[idx]
+                val uid = league[idx]
                 val member = memberData[uid]!!
                 val avatarUrl = member.effectiveAvatarUrl
                 ResultUserData(

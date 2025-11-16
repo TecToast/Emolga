@@ -1,7 +1,7 @@
 package de.tectoast.emolga.utils
 
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.longs.shouldBeBetween
+import io.kotest.matchers.comparables.shouldBeBetween
 import io.kotest.matchers.shouldBe
 import java.util.*
 

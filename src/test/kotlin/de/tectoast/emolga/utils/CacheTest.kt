@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.delay
 import mu.KotlinLogging
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -41,7 +42,7 @@ class CacheTest : FunSpec({
             cacheTest = 0
         }
         test("WithOneTimeCache") {
-            val oneTime = OneTimeCache { ++x }
+            val oneTime = TimedCache(Duration.INFINITE) { ++x }
             val cache = MappedCache(oneTime) { it + 10 }
             x shouldBe 0
             cache() shouldBe 11

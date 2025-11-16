@@ -105,7 +105,7 @@ data class PickInput(
             }
 
             QUEUE -> {
-                league.tc.sendMessage("**<@${league.table[league.current]}>** hat ${displayName()} gepickt! [Queue]")
+                league.tc.sendMessage("**<@${league[league.current]}>** hat ${displayName()} gepickt! [Queue]")
                     .await()
                 checkEmolga()
             }
@@ -171,7 +171,7 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
             }
 
             QUEUE -> {
-                league.tc.sendMessage("**<@${league.table[league.current]}>** hat ${oldDisplayName()} gegen ${displayName()} getauscht! [Queue]")
+                league.tc.sendMessage("**<@${league[league.current]}>** hat ${oldDisplayName()} gegen ${displayName()} getauscht! [Queue]")
                     .queue()
                 checkEmolga()
             }
@@ -228,13 +228,13 @@ data class BanInput(val pokemon: DraftName) : DraftInput {
             }
 
             QUEUE -> {
-                league.tc.sendMessage("<@${league.table[league.current]}> hat ${displayName()} gebannt! [Queue]")
+                league.tc.sendMessage("<@${league[league.current]}> hat ${displayName()} gebannt! [Queue]")
                     .queue()
                 checkEmolga(happy = false)
             }
 
             RANDOM -> league.replyWithTestInteractionCheck(
-                "Timer ausgelaufen: Ich habe ${displayName()} ($tier) für <@${league.table[league.current]}> gebannt!",
+                "Timer ausgelaufen: Ich habe ${displayName()} ($tier) für <@${league[league.current]}> gebannt!",
                 ifTestUseTc = league.tc
             )
 

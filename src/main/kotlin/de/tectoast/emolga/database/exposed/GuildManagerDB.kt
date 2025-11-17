@@ -1,6 +1,10 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
+import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.json.db
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toSet
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.select
 
@@ -14,6 +18,9 @@ object GuildManagerDB : Table("guildmanager") {
      * @return the list containing the guild ids
      */
     suspend fun getGuildsForUser(user: Long): Set<Long> {
+        if (user == Constants.FLOID) {
+            return db.league.find().toFlow().map { it.guild }.toSet()
+        }
         return dbTransaction {
             select(GUILD).where { USER eq user }.map { it[GUILD] }.toSet()
         }
@@ -25,6 +32,7 @@ object GuildManagerDB : Table("guildmanager") {
      * @return *true* if the user is authorized for any guild, *false* otherwise
      */
     suspend fun isUserAuthorized(user: Long): Boolean {
+        if (user == Constants.FLOID) return true
         return dbTransaction {
             select(USER).where { USER eq user }.count() > 0
         }

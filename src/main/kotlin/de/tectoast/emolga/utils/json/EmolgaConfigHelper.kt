@@ -16,7 +16,7 @@ object EmolgaConfigHelper {
         return this.find { a -> a is Config } as Config?
     }
 
-    fun buildFromDescriptor(descriptor: SerialDescriptor, delta: Boolean): JsonObject {
+    fun buildFromDescriptor(descriptor: SerialDescriptor, delta: Boolean, submitString: String? = null): JsonObject {
         // TODO: Add caching?
         val config = descriptor.annotations.findConfig()
         return buildJsonObject {
@@ -26,6 +26,7 @@ object EmolgaConfigHelper {
             if (delta) {
                 put("delta", true)
             }
+            submitString?.let { put("submit", it) }
             if (descriptor.elementsCount > 0) put("value", buildJsonObject { build(this, descriptor) })
         }
     }

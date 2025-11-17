@@ -416,14 +416,14 @@ sealed interface LogoSettings {
 data class LigaStartConfig(
     @Config(
         name = "Anmeldungschannel",
-        "In welchem Channel sollen die Anmeldungen von Emolga gesendet werden?",
+        "In welchem Channel sollen die Anmeldungen von Emolga gesammelt werden?",
         longType = LongType.CHANNEL
     ) @Contextual val signupChannel: Long,
     @Config(
         name = "Anmeldungsnachricht", "Was soll in der Anmeldungsnachricht von Emolga stehen?"
     ) val signupMessage: String,
     @Config(
-        name = "Anmeldungschannel",
+        name = "Ankündingungschannel",
         "In welchem Channel soll die Anmeldungsnachricht stehen?",
         longType = LongType.CHANNEL
     ) @Contextual val announceChannel: Long,

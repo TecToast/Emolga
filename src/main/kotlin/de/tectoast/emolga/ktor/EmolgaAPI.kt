@@ -9,6 +9,7 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.ResultCodesDB
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 import de.tectoast.emolga.features.draft.SignupManager
+import de.tectoast.emolga.league.GPC
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPlayer
@@ -37,6 +38,7 @@ import mu.KotlinLogging
 import org.bson.conversions.Bson
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.eq
+import org.litote.kmongo.json
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KClass
 
@@ -131,7 +133,10 @@ fun Route.emolgaAPI() {
                         call.respond(HttpStatusCode.OK)
                     }
                 }
-                full<LigaStartConfig>("/config", dataHandler = { config, provider ->
+                full<LigaStartConfig>(
+                    "/config",
+                    submitString = "Anmeldung eröffnen",
+                    dataHandler = { config, provider ->
                     SignupManager.createSignup(provider.gid, config)
                 }, dataProvider = {
                     LigaStartConfig(
@@ -141,6 +146,16 @@ fun Route.emolgaAPI() {
                         maxUsers = 0
                     )
                 })
+            }
+            get("/leagues") {
+                val gid = call.requireGuild() ?: return@get
+                val leagues = db.league.find(League::guild eq gid).toFlow().map { it.leaguename }.toList()
+                call.respond(leagues)
+            }
+            route("/league/{leaguename}") {
+                delta("/delta", db.league, filter = {
+                    League::leaguename eq ctx.call.parameters["leaguename"]
+                }, descriptor = GPC::class.serializer().descriptor)
             }
         }
     }
@@ -277,8 +292,8 @@ inline fun <reified T : Any> Route.delta(
     collection: CoroutineCollection<T>,
     requiresGuild: Boolean = true,
     noinline filter: RouteDataProvider.() -> Bson,
+    descriptor: SerialDescriptor = T::class.serializer().descriptor,
 ) {
-    val descriptor = T::class.serializer().descriptor
     configOption<T>(
         path, descriptor,
         ConfigOptionHandler.Delta(
@@ -294,6 +309,7 @@ inline fun <reified T : Any> Route.delta(
 inline fun <reified T : Any> Route.full(
     path: String,
     requiresGuild: Boolean = true,
+    submitString: String? = null,
     noinline dataHandler: suspend (T, RouteDataProvider) -> Unit,
     crossinline dataProvider: suspend RouteDataProvider.() -> T
 ) {
@@ -301,14 +317,16 @@ inline fun <reified T : Any> Route.full(
     configOption<T>(
         path, descriptor,
         ConfigOptionHandler.Full(
-            descriptor, dataHandler, T::class
+            descriptor, dataHandler, T::class,
+            submitString = submitString
         ),
         requiresGuild = true,
-        dataProvider = dataProvider,
+        dataProvider = dataProvider
     )
 }
 
 sealed class ConfigOptionHandler(val delta: Boolean) {
+    open val submitString: String? = null
     class Delta<T : Any>(
         val descriptor: SerialDescriptor,
         val collection: CoroutineCollection<T>,
@@ -324,7 +342,8 @@ sealed class ConfigOptionHandler(val delta: Boolean) {
                 EmolgaConfigHelper.parseRemoteDelta(kClass.serializer().descriptor, resultJson) ?: return call.respond(
                     HttpStatusCode.BadRequest
                 )
-            collection.updateOne(provider.filter(), update)
+            logger.info("Updating with delta: ${update.json}")
+//            collection.updateOne(provider.filter(), update)
             call.respond(HttpStatusCode.Accepted)
         }
     }
@@ -333,6 +352,7 @@ sealed class ConfigOptionHandler(val delta: Boolean) {
         val descriptor: SerialDescriptor,
         val dataHandler: suspend (T, RouteDataProvider) -> Unit,
         val kClass: KClass<T>,
+        override val submitString: String? = null,
     ) : ConfigOptionHandler(delta = false) {
         override suspend fun RoutingContext.handle(provider: RouteDataProvider) {
             val result = runCatching {
@@ -343,6 +363,7 @@ sealed class ConfigOptionHandler(val delta: Boolean) {
                 HttpStatusCode.BadRequest
             )
             dataHandler(result, provider)
+            call.respond(HttpStatusCode.Accepted)
         }
     }
 
@@ -359,7 +380,13 @@ inline fun <reified T : Any> Route.configOption(
 ) {
     route(path) {
         get("/struct") {
-            call.respond(EmolgaConfigHelper.buildFromDescriptor(descriptor, configOptionHandler.delta))
+            call.respond(
+                EmolgaConfigHelper.buildFromDescriptor(
+                    descriptor,
+                    configOptionHandler.delta,
+                    configOptionHandler.submitString
+                )
+            )
         }
         get("/content") {
             val provider = buildProvider(requiresGuild) ?: return@get

@@ -64,7 +64,7 @@ sealed class League {
     val isRunning: Boolean get() = draftState != DraftState.OFF
     val pseudoEnd: Boolean get() = draftState == DraftState.PSEUDOEND
 
-    @Config("Picks", "Die gemachten Picks")
+    @Config("Picks", "Die gemachten Picks", keyIsDiscordUser = true)
     val picks: MutableMap<Int, MutableList<DraftPokemon>> = mutableMapOf()
     val battleorder: MutableMap<Int, List<List<Int>>> = mutableMapOf()
     val allowed: MutableMap<Int, MutableSet<AllowedData>> = mutableMapOf()

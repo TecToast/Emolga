@@ -60,6 +60,7 @@ object EmolgaConfigHelper {
                     put("name", config.name)
                     put("desc", config.desc)
                     if (config.prio != Int.MAX_VALUE) put("prio", config.prio)
+                    if (config.keyIsDiscordUser) put("keyIsDiscordUser", true)
                     config.longType.takeUnless { lt -> lt == LongType.NONE }?.let { lt -> put("longType", lt.name) }
                 }
                 if (desc.elementsCount > 0) put("value", buildJsonObject {
@@ -123,7 +124,7 @@ object EmolgaConfigHelper {
                             element.entries.forEach { (key, childElement) ->
                                 val childIndex = descriptor.getElementIndex(key)
                                 if (childIndex == -1) {
-                                    throw IllegalArgumentException("Ungültiger Pfad: '$currentPath.$key' existiert nicht in ${descriptor.serialName}.")
+                                    invalidDelta()
                                 }
                                 val childDesc = descriptor.getElementDescriptor(childIndex)
                                 recurse(
@@ -153,7 +154,7 @@ object EmolgaConfigHelper {
                             val listElementDesc = descriptor.getElementDescriptor(0) // Typ der Listenelemente
                             element.entries.forEach { (key, childElement) ->
                                 if (key.toIntOrNull() == null) {
-                                    throw IllegalArgumentException("Ungültiger Pfad: '$key' in '$currentPath' ist kein Array-Index.")
+                                    invalidDelta()
                                 }
                                 // Rekursion für das Element *innerhalb* der Liste
                                 recurse(
@@ -186,7 +187,7 @@ object EmolgaConfigHelper {
         jsonObj.entries.forEach { (key, element) ->
             val elementIndex = rootDescriptor.getElementIndex(key)
             if (elementIndex == -1) {
-                throw IllegalArgumentException("Ungültiger Pfad: '$key' existiert nicht im Root-Objekt.")
+                invalidDelta()
             }
             val elementDesc = rootDescriptor.getElementDescriptor(elementIndex)
             recurse(element, elementDesc, key, rootDescriptor.getElementAnnotations(elementIndex).findConfig())
@@ -276,7 +277,11 @@ object EmolgaConfigHelper {
 @SerialInfo
 @Target(AnnotationTarget.PROPERTY, AnnotationTarget.CLASS)
 annotation class Config(
-    val name: String, val desc: String, val longType: LongType = LongType.NONE, val prio: Int = Int.MAX_VALUE
+    val name: String,
+    val desc: String,
+    val longType: LongType = LongType.NONE,
+    val prio: Int = Int.MAX_VALUE,
+    val keyIsDiscordUser: Boolean = false,
 )
 
 enum class LongType {

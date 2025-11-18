@@ -44,6 +44,10 @@ import kotlin.reflect.KClass
 
 private val logger = KotlinLogging.logger {}
 private val defaultDataCache = SizeLimitedMap<String, String>(maxSize = 10)
+private val discordUserCache = SizeLimitedMap<Long, DiscordUserData>(maxSize = 1000)
+
+@Serializable
+data class DiscordUserData(val name: String, val avatar: String)
 
 @OptIn(InternalSerializationApi::class)
 fun Route.emolgaAPI() {
@@ -57,6 +61,7 @@ fun Route.emolgaAPI() {
                 handler(call)
             }
         }
+        @Suppress("UNCHECKED_CAST")
         get("/defaultdata") {
             val path = call.request.queryParameters["path"]?.replace("?", "")
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
@@ -137,15 +142,15 @@ fun Route.emolgaAPI() {
                     "/config",
                     submitString = "Anmeldung eröffnen",
                     dataHandler = { config, provider ->
-                    SignupManager.createSignup(provider.gid, config)
-                }, dataProvider = {
-                    LigaStartConfig(
-                        signupChannel = 0,
-                        announceChannel = 0,
-                        signupMessage = "Hier könnt ihr euch anmelden :)",
-                        maxUsers = 0
-                    )
-                })
+                        SignupManager.createSignup(provider.gid, config)
+                    }, dataProvider = {
+                        LigaStartConfig(
+                            signupChannel = 0,
+                            announceChannel = 0,
+                            signupMessage = "Hier könnt ihr euch anmelden :)",
+                            maxUsers = 0
+                        )
+                    })
             }
             get("/leagues") {
                 val gid = call.requireGuild() ?: return@get
@@ -156,6 +161,22 @@ fun Route.emolgaAPI() {
                 delta("/delta", db.league, filter = {
                     League::leaguename eq ctx.call.parameters["leaguename"]
                 }, descriptor = GPC::class.serializer().descriptor)
+                get("/users") {
+                    val gid = call.requireGuild() ?: return@get
+                    val leaguename = call.parameters["leaguename"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val league = db.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
+                    val userIds = league.table
+                    val toFetch = userIds.filter { !discordUserCache.containsKey(it) }
+                    if (toFetch.isNotEmpty()) {
+                        jda.getGuildById(gid)!!.retrieveMembersByIds(toFetch).await().forEach {
+                            discordUserCache[it.idLong] = DiscordUserData(
+                                name = it.user.effectiveName,
+                                avatar = it.effectiveAvatarUrl.replace(".gif", ".png")
+                            )
+                        }
+                    }
+                    call.respond(userIds.map { discordUserCache[it]!! })
+                }
             }
         }
     }
@@ -297,7 +318,7 @@ inline fun <reified T : Any> Route.delta(
     configOption<T>(
         path, descriptor,
         ConfigOptionHandler.Delta(
-            descriptor, collection, filter, T::class
+            descriptor, collection, filter,
         ),
         dataProvider = {
             collection.findOne(filter())!!
@@ -327,11 +348,11 @@ inline fun <reified T : Any> Route.full(
 
 sealed class ConfigOptionHandler(val delta: Boolean) {
     open val submitString: String? = null
+
     class Delta<T : Any>(
         val descriptor: SerialDescriptor,
         val collection: CoroutineCollection<T>,
         val filter: RouteDataProvider.() -> Bson,
-        val kClass: KClass<T>,
     ) : ConfigOptionHandler(delta = true) {
         override suspend fun RoutingContext.handle(provider: RouteDataProvider) {
             val asText = call.receiveText()
@@ -339,11 +360,11 @@ sealed class ConfigOptionHandler(val delta: Boolean) {
                 runCatching { secureWebJSON.decodeFromString<JsonObject>(asText) }.onFailure { it.printStackTrace() }
                     .getOrNull() ?: return call.respond(HttpStatusCode.BadRequest)
             val update =
-                EmolgaConfigHelper.parseRemoteDelta(kClass.serializer().descriptor, resultJson) ?: return call.respond(
+                EmolgaConfigHelper.parseRemoteDelta(descriptor, resultJson) ?: return call.respond(
                     HttpStatusCode.BadRequest
                 )
             logger.info("Updating with delta: ${update.json}")
-//            collection.updateOne(provider.filter(), update)
+            collection.updateOne(provider.filter(), update)
             call.respond(HttpStatusCode.Accepted)
         }
     }

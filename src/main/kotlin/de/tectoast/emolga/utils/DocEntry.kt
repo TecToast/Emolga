@@ -332,13 +332,15 @@ class DocEntry private constructor(val league: League) {
                 }
             }
         }
-        val winningIndex: Int
+        val winnerIdx: Int
+        val winnerIndex: Int
         if (bo3) {
             val uindicesOfFirstGame = firstData.uindices
             val groupBy = replayDatas.groupBy { it.game.indexOfFirst { g -> g.winner } }
-            winningIndex = uindicesOfFirstGame[groupBy.maxBy { it.value.size }.key]
+            winnerIndex = groupBy.maxBy { it.value.size }.key
+            winnerIdx = uindicesOfFirstGame[winnerIndex]
             league.config.tipgame?.let { _ ->
-                TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winningIndex)
+                TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winnerIdx)
             }
             val numbers = (0..1).map { groupBy[it]?.size ?: 0 }.let { if (u1IsSecond) it.reversed() else it }
             resultCreator?.let {
@@ -352,15 +354,17 @@ class DocEntry private constructor(val league: League) {
                     url = "",
                     replayDatas = replayDatas,
                     league = league,
-                    winnerIndex = winningIndex,
+                    winnerIdx = winnerIdx,
+                    winnerIndex = winnerIndex
                 ).it()
             }
         } else {
             val game = firstData.game
             val uindices = firstData.uindices
-            winningIndex = (if (game[0].winner) uindices[0] else uindices[1])
+            winnerIndex = (if (game[0].winner) uindices[0] else uindices[1])
+            winnerIdx = uindices[winnerIndex]
             league.config.tipgame?.let { _ ->
-                TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winningIndex)
+                TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winnerIdx)
             }
             val numbers = firstData.gamedayData.numbers
             resultCreator?.let {
@@ -374,7 +378,8 @@ class DocEntry private constructor(val league: League) {
                     url = firstData.url,
                     replayDatas = replayDatas,
                     league = league,
-                    winnerIndex = winningIndex
+                    winnerIdx = winnerIdx,
+                    winnerIndex = winnerIndex,
                 ).it()
             }
         }
@@ -510,7 +515,8 @@ data class AdvancedResult(
     val url: String,
     val replayDatas: List<ReplayData>,
     val league: League,
-    val winnerIndex: Int
+    val winnerIdx: Int,
+    val winnerIndex: Int,
 ) {
     val firstReplayData = replayDatas.first()
     val idxs by lazy {

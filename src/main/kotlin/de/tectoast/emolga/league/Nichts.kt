@@ -29,7 +29,7 @@ class Nichts(val sheetNames: List<String>) : League() {
             )
             for (idx in idxs) {
                 val sheet = sheetNames[idx]
-                b.addSingle(Coord(sheet, 4 + gdi, 10), if (idx == winnerIndex) "W" else "L")
+                b.addSingle(Coord(sheet, 4 + gdi, 10), if (idx == winnerIdx) "W" else "L")
             }
         }
     }

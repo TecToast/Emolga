@@ -7,7 +7,7 @@ plugins {
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("maven-publish")
-    id("com.google.cloud.tools.jib") version "3.4.5"
+    id("com.google.cloud.tools.jib") version "3.5.1"
     application
 }
 
@@ -102,7 +102,7 @@ dependencies {
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20250616-2.0.0")
-    implementation("com.google.apis:google-api-services-drive:v3-rev20251019-2.0.0")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20251114-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20250714-2.0.0")
 
     // Database
@@ -127,8 +127,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.21.2")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.4")
-    testImplementation("io.kotest:kotest-assertions-core:6.0.4")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.5")
+    testImplementation("io.kotest:kotest-assertions-core:6.0.5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("io.mockk:mockk:1.14.6")
 

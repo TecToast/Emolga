@@ -6,7 +6,6 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.database.exposed.YTChannelsDB
 import de.tectoast.emolga.database.exposed.YTNotificationsDB
-import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.league.config.YouTubeConfig
@@ -106,9 +105,7 @@ fun Route.ytSubscriptions() {
                     .let {
                         it.joinToString("") { b -> "%02x".format(b) }
                     }
-            ) return@post SendFeatures.sendToMe(
-                "Invalid Signature! ${call.request.headers["X-Hub-Signature"]} ```$receiveText```".take(2000)
-            )
+            ) return@post
 //            SendFeatures.sendToMe(receiveText.take(2000 - 6).surroundWith("```"))
             Jsoup.parse(receiveText).select("entry").forEach {
                 val title = it.select("title").text()

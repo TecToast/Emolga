@@ -5,10 +5,7 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
-import de.tectoast.emolga.database.exposed.AnalysisStatistics
-import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.YTChannelsDB
-import de.tectoast.emolga.database.exposed.YTNotificationsDB
+import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement

@@ -27,7 +27,6 @@ import io.ktor.server.routing.*
 import io.ktor.util.*
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.toSet
 import kotlinx.serialization.*
 import kotlinx.serialization.builtins.LongAsStringSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -341,7 +340,7 @@ inline fun <reified T : Any> Route.full(
             descriptor, dataHandler, T::class,
             submitString = submitString
         ),
-        requiresGuild = true,
+        requiresGuild = requiresGuild,
         dataProvider = dataProvider
     )
 }
@@ -401,6 +400,7 @@ inline fun <reified T : Any> Route.configOption(
 ) {
     route(path) {
         get("/struct") {
+            if (requiresGuild) call.requireGuild() ?: return@get
             call.respond(
                 EmolgaConfigHelper.buildFromDescriptor(
                     descriptor,
@@ -471,7 +471,3 @@ suspend fun ApplicationCall.requireGuild(): Long? {
     respond(HttpStatusCode.Forbidden)
     return null
 }
-
-private suspend fun getGuildsForUser(userId: Long) =
-    if (userId == Constants.FLOID) db.league.find().toFlow().map { it.guild }.toSet() + db.signups.find().toFlow()
-        .map { it.guild }.toSet() + Constants.G.MY else getGuildsForUser(userId)

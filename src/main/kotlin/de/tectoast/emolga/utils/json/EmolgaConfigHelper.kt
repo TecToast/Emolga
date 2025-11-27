@@ -3,6 +3,7 @@
 package de.tectoast.emolga.utils.json
 
 import com.mongodb.client.model.Updates
+import de.tectoast.emolga.utils.SizeLimitedMap
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialInfo
@@ -16,8 +17,10 @@ object EmolgaConfigHelper {
         return this.find { a -> a is Config } as Config?
     }
 
+    val structureCache = SizeLimitedMap<String, JsonObject>(maxSize = 10)
+
     fun buildFromDescriptor(descriptor: SerialDescriptor, delta: Boolean, submitString: String? = null): JsonObject {
-        // TODO: Add caching?
+        structureCache[descriptor.serialName]?.let { return it }
         val config = descriptor.annotations.findConfig()
         return buildJsonObject {
             put("name", config?.name ?: descriptor.serialName)
@@ -28,6 +31,8 @@ object EmolgaConfigHelper {
             }
             submitString?.let { put("submit", it) }
             if (descriptor.elementsCount > 0) put("value", buildJsonObject { build(this, descriptor) })
+        }.also {
+            structureCache[descriptor.serialName] = it
         }
     }
 

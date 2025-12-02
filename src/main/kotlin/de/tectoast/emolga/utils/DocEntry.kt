@@ -361,7 +361,7 @@ class DocEntry private constructor(val league: League) {
         } else {
             val game = firstData.game
             val uindices = firstData.uindices
-            winnerIndex = (if (game[0].winner) uindices[0] else uindices[1])
+            winnerIndex = if (game[0].winner) 0 else 1
             winnerIdx = uindices[winnerIndex]
             league.config.tipgame?.let { _ ->
                 TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winnerIdx)

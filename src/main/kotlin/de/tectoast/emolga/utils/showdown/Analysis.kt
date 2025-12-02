@@ -116,7 +116,7 @@ object Analysis {
                 }
                 return
             }
-            val (game, ctx, dontTranslate) = data
+            val (game, ctx, dontTranslateFromReplayServer) = data
             val url = ctx.url
             val g = resultchannelParam.guild
             val gid = customGuild ?: g.idLong
@@ -162,6 +162,7 @@ object Analysis {
             )
             replayChannel?.sendMessage(tosend)?.queue()
             fromReplayCommand?.reply(msgCreateData = tosend)
+            val dontTranslate = dontTranslateFromReplayServer || EnglishResultsDB.contains(gid)
             val description = generateDescription(game, spoiler, leaguedata, ctx, dontTranslate)
             if (league != null) {
                 resultChannel.sendMessageEmbeds(Embed(description = description)).queue()

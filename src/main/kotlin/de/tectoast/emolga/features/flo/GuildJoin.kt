@@ -59,6 +59,8 @@ object GuildJoin : ButtonFeature<GuildJoin.Args>(::Args, ButtonSpec("guildinvite
             Wenn die Channel eingerichtet worden sind, muss man einfach /replay mit dem Replay-Link in einen Replay-Channel schicken und ich erledige den Rest.
 
             Falls die Ergebnisse in ||Spoilertags|| geschickt werden sollen, schick irgendwo auf dem Server den Command `/spoilertags` rein. Dies gilt dann serverweit.
+            
+            Falls die Namen der Pokemon in den Ergebnissen auf **englisch** (statt deutsch) angezeigt werden sollen, schick irgendwo auf dem Server den Command `/englishresults` rein. Dies gilt dann serverweit.
 
             Falls du weitere Fragen oder Probleme hast, schreibe ${Constants.MYTAG} eine PN oder komme auf den Support-Server, dessen Link in meinem Profil steht :)
             

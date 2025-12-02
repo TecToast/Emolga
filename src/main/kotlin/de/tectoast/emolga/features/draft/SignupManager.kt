@@ -4,11 +4,9 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.createCoroutineScope
-import de.tectoast.emolga.utils.json.LigaStartData
-import de.tectoast.emolga.utils.json.SignUpData
-import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.*
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -81,6 +79,24 @@ object SignupManager {
         }
     }
 
+    suspend fun createSignup(
+        gid: Long,
+        config: LigaStartConfig
+    ) {
+        val tc = jda.getTextChannelById(config.announceChannel)!!
+        val messageid =
+            tc.sendMessage(config.signupMessage + "\n\n**Teilnehmer: 0/${config.maxUsers.takeIf { it > 0 } ?: "?"}**")
+                .addComponents(Button().into())
+                .await().idLong
+        db.signups.insertOne(
+            LigaStartData(
+                guild = tc.guild.idLong,
+                config = config,
+                announceMessageId = messageid,
+            )
+        )
+    }
+
 
     suspend fun signupUser(
         gid: Long,
@@ -123,7 +139,7 @@ object SignupManager {
                 val signUpData = SignUpData(
                     users = mutableSetOf(uid), data = data.toMutableMap()
                 ).apply {
-                    signupmid = jda.getTextChannelById(signupChannel)!!.sendMessage(
+                    signupmid = jda.getTextChannelById(config.signupChannel)!!.sendMessage(
                         toMessage(this@with)
                     ).await().idLong
                 }

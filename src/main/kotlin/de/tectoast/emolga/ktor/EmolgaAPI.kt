@@ -1,16 +1,21 @@
+@file:OptIn(InternalSerializationApi::class)
+
 package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.GuildManagerDB
+import de.tectoast.emolga.database.exposed.GuildManagerDB.getGuildsForUser
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.ResultCodesDB
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
+import de.tectoast.emolga.features.draft.SignupManager
+import de.tectoast.emolga.league.GPC
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.json.EmolgaConfigHelper
 import de.tectoast.emolga.utils.json.EmolgaConfigHelper.findConfig
-import de.tectoast.emolga.utils.json.LigaStartData
+import de.tectoast.emolga.utils.json.LigaStartConfig
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
@@ -22,21 +27,26 @@ import io.ktor.server.routing.*
 import io.ktor.util.*
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.toSet
-import kotlinx.serialization.InternalSerializationApi
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 import kotlinx.serialization.builtins.LongAsStringSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.serializerOrNull
 import mu.KotlinLogging
+import org.bson.conversions.Bson
+import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.eq
+import org.litote.kmongo.json
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.KClass
 
 private val logger = KotlinLogging.logger {}
 private val defaultDataCache = SizeLimitedMap<String, String>(maxSize = 10)
+private val discordUserCache = SizeLimitedMap<Long, DiscordUserData>(maxSize = 1000)
+
+@Serializable
+data class DiscordUserData(val name: String, val avatar: String)
 
 @OptIn(InternalSerializationApi::class)
 fun Route.emolgaAPI() {
@@ -50,6 +60,7 @@ fun Route.emolgaAPI() {
                 handler(call)
             }
         }
+        @Suppress("UNCHECKED_CAST")
         get("/defaultdata") {
             val path = call.request.queryParameters["path"]?.replace("?", "")
                 ?: return@get call.respond(HttpStatusCode.BadRequest)
@@ -59,8 +70,7 @@ fun Route.emolgaAPI() {
             var parentSerializer: KSerializer<Any>? = null
             val serializer = runCatching {
                 if (split.size == 2) Class.forName(split[0]).kotlin.also {
-                    parentSerializer =
-                        it.serializerOrNull() as KSerializer<Any>?
+                    parentSerializer = it.serializerOrNull() as KSerializer<Any>?
                 }.sealedSubclasses.mapNotNull { it.serializerOrNull() }
                     .sortedBy { it.descriptor.annotations.findConfig()?.prio ?: Int.MAX_VALUE }
                     .first { split[1] == "" || it.descriptor.serialName == split[1] } else Class.forName(path).kotlin.serializerOrNull()
@@ -110,9 +120,7 @@ fun Route.emolgaAPI() {
                                         members[u]?.effectiveAvatarUrl?.replace(".gif", ".png")
                                             ?: "https://cdn.discordapp.com/embed/avatars/0.png"
                                     )
-                                },
-                                it.data,
-                                it.conference
+                                }, it.data, it.conference
                             )
                         }
                         call.respond(ParticipantDataGet(lsData.conferences, result))
@@ -129,18 +137,45 @@ fun Route.emolgaAPI() {
                         call.respond(HttpStatusCode.OK)
                     }
                 }
-                configOption("/config", LigaStartData.serializer().descriptor, dataProvider = {
-                    db.signups.get(gid) ?: LigaStartData(
-                        guild = gid,
-                        signupChannel = 0,
-                        announceChannel = 0,
-                        signupMessage = "Hier könnt ihr euch anmelden :)",
-                        announceMessageId = -1,
-                        maxUsers = 0
-                    )
-                }, dataHandler = { text, _ ->
-                    println(text)
-                })
+                full<LigaStartConfig>(
+                    "/config",
+                    submitString = "Anmeldung eröffnen",
+                    dataHandler = { config, provider ->
+                        SignupManager.createSignup(provider.gid, config)
+                    }, dataProvider = {
+                        LigaStartConfig(
+                            signupChannel = 0,
+                            announceChannel = 0,
+                            signupMessage = "Hier könnt ihr euch anmelden :)",
+                            maxUsers = 0
+                        )
+                    })
+            }
+            get("/leagues") {
+                val gid = call.requireGuild() ?: return@get
+                val leagues = db.league.find(League::guild eq gid).toFlow().map { it.leaguename }.toList()
+                call.respond(leagues)
+            }
+            route("/league/{leaguename}") {
+                delta("/delta", db.league, filter = {
+                    League::leaguename eq ctx.call.parameters["leaguename"]
+                }, descriptor = GPC::class.serializer().descriptor)
+                get("/users") {
+                    val gid = call.requireGuild() ?: return@get
+                    val leaguename = call.parameters["leaguename"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val league = db.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
+                    val userIds = league.table
+                    val toFetch = userIds.filter { !discordUserCache.containsKey(it) }
+                    if (toFetch.isNotEmpty()) {
+                        jda.getGuildById(gid)!!.retrieveMembersByIds(toFetch).await().forEach {
+                            discordUserCache[it.idLong] = DiscordUserData(
+                                name = it.user.effectiveName,
+                                avatar = it.effectiveAvatarUrl.replace(".gif", ".png")
+                            )
+                        }
+                    }
+                    call.respond(userIds.map { discordUserCache[it]!! })
+                }
             }
         }
     }
@@ -176,8 +211,7 @@ fun Route.emolgaAPI() {
                         kd = singleGame.map { p ->
                             p.map {
                                 NameConventionsDB.getDiscordTranslation(
-                                    it.key,
-                                    guild
+                                    it.key, guild
                                 )!!.official.also { official ->
                                     officialNameCache[it.key] = official
                                 } to (it.value.k to if (it.value.d) 1 else 0)
@@ -198,11 +232,8 @@ fun Route.emolgaAPI() {
                     )
                 } else {
                     channel.sendResultEntryMessage(
-                        gamedayData.gameday,
-                        ResultEntryDescription.Bo3(
-                            body,
-                            idxs,
-                            (0..1).map { replayDatas.count { rd -> rd.game[it].winner } })
+                        gamedayData.gameday, ResultEntryDescription.Bo3(
+                            body, idxs, (0..1).map { replayDatas.count { rd -> rd.game[it].winner } })
                     )
                 }
                 docEntry?.analyse(replayDatas)
@@ -219,28 +250,16 @@ fun Route.emolgaAPI() {
         val entries = league.persistentData.replayDataStore.data.entries
         val maxGameday: Int = entries.maxOfOrNull { it.key } ?: 1
         val gameday = call.queryParameters["gameday"]?.toIntOrNull() ?: maxGameday
-        val data = entries
-            .asSequence()
-            .filter { it.key <= gameday }
-            .flatMap { it.value.values }
-            .onEach { totalCount.incrementAndGet() }
-            .flatMap { it.mons.flatten() }
-            .groupingBy { it }
-            .eachCount()
-            .entries
-            .map { (mon, count) ->
+        val data = entries.asSequence().filter { it.key <= gameday }.flatMap { it.value.values }
+            .onEach { totalCount.incrementAndGet() }.flatMap { it.mons.flatten() }.groupingBy { it }
+            .eachCount().entries.map { (mon, count) ->
                 UsageData(
-                    mon = NameConventionsDB.getDiscordTranslation(mon, league.guild)?.tlName ?: mon,
-                    count = count
+                    mon = NameConventionsDB.getDiscordTranslation(mon, league.guild)?.tlName ?: mon, count = count
                 )
-            }
-            .sortedWith(compareByDescending<UsageData> { it.count }.thenBy { it.mon })
+            }.sortedWith(compareByDescending<UsageData> { it.count }.thenBy { it.mon })
         call.respond(
             UsageDataTotal(
-                total = totalCount.get(),
-                maxGameday = maxGameday,
-                allLeagues = allLeagues,
-                data = data
+                total = totalCount.get(), maxGameday = maxGameday, allLeagues = allLeagues, data = data
             )
         )
     }
@@ -267,8 +286,7 @@ suspend fun generateFinalMessage(league: League, idxs: List<Int>, data: List<Map
             "<@${league[idxs[index]]}>:\n${
                 monData.entries.joinToString("\n") {
                     "${it.key} ${it.value.k}".condAppend(
-                        it.value.d,
-                        " X"
+                        it.value.d, " X"
                     )
                 }.surroundWith(if (spoiler) "||" else "")
             }"
@@ -287,33 +305,129 @@ val secureWebJSON = Json {
     }
 }
 
-data class RouteDataProvider(val user: Long, val gid: Long)
+data class RouteDataProvider(val user: Long, val gid: Long, val ctx: RoutingContext)
 
+inline fun <reified T : Any> Route.delta(
+    path: String,
+    collection: CoroutineCollection<T>,
+    requiresGuild: Boolean = true,
+    noinline filter: RouteDataProvider.() -> Bson,
+    descriptor: SerialDescriptor = T::class.serializer().descriptor,
+) {
+    configOption<T>(
+        path, descriptor,
+        ConfigOptionHandler.Delta(
+            descriptor, collection, filter,
+        ),
+        dataProvider = {
+            collection.findOne(filter())!!
+        },
+        requiresGuild = requiresGuild
+    )
+}
+
+inline fun <reified T : Any> Route.full(
+    path: String,
+    requiresGuild: Boolean = true,
+    submitString: String? = null,
+    noinline dataHandler: suspend (T, RouteDataProvider) -> Unit,
+    crossinline dataProvider: suspend RouteDataProvider.() -> T
+) {
+    val descriptor = T::class.serializer().descriptor
+    configOption<T>(
+        path, descriptor,
+        ConfigOptionHandler.Full(
+            descriptor, dataHandler, T::class,
+            submitString = submitString
+        ),
+        requiresGuild = requiresGuild,
+        dataProvider = dataProvider
+    )
+}
+
+sealed class ConfigOptionHandler(val delta: Boolean) {
+    open val submitString: String? = null
+
+    class Delta<T : Any>(
+        val descriptor: SerialDescriptor,
+        val collection: CoroutineCollection<T>,
+        val filter: RouteDataProvider.() -> Bson,
+    ) : ConfigOptionHandler(delta = true) {
+        override suspend fun RoutingContext.handle(provider: RouteDataProvider) {
+            val asText = call.receiveText()
+            val resultJson =
+                runCatching { secureWebJSON.decodeFromString<JsonObject>(asText) }.onFailure { it.printStackTrace() }
+                    .getOrNull() ?: return call.respond(HttpStatusCode.BadRequest)
+            val update =
+                EmolgaConfigHelper.parseRemoteDelta(descriptor, resultJson) ?: return call.respond(
+                    HttpStatusCode.BadRequest
+                )
+            logger.info("Updating with delta: ${update.json}")
+            collection.updateOne(provider.filter(), update)
+            call.respond(HttpStatusCode.Accepted)
+        }
+    }
+
+    class Full<T : Any>(
+        val descriptor: SerialDescriptor,
+        val dataHandler: suspend (T, RouteDataProvider) -> Unit,
+        val kClass: KClass<T>,
+        override val submitString: String? = null,
+    ) : ConfigOptionHandler(delta = false) {
+        override suspend fun RoutingContext.handle(provider: RouteDataProvider) {
+            val result = runCatching {
+                secureWebJSON.decodeFromString(
+                    kClass.serializer(), call.receiveText()
+                )
+            }.onFailure { it.printStackTrace() }.getOrNull() ?: return call.respond(
+                HttpStatusCode.BadRequest
+            )
+            dataHandler(result, provider)
+            call.respond(HttpStatusCode.Accepted)
+        }
+    }
+
+    abstract suspend fun RoutingContext.handle(provider: RouteDataProvider)
+}
+
+@OptIn(InternalSerializationApi::class)
 inline fun <reified T : Any> Route.configOption(
     path: String,
     descriptor: SerialDescriptor,
-    saveTotal: Boolean = false,
+    configOptionHandler: ConfigOptionHandler,
+    requiresGuild: Boolean = true,
     crossinline dataProvider: suspend RouteDataProvider.() -> T,
-    crossinline dataHandler: suspend (String, T) -> Unit
 ) {
     route(path) {
         get("/struct") {
-            call.respond(EmolgaConfigHelper.buildFromDescriptor(descriptor, saveTotal))
+            if (requiresGuild) call.requireGuild() ?: return@get
+            call.respond(
+                EmolgaConfigHelper.buildFromDescriptor(
+                    descriptor,
+                    configOptionHandler.delta,
+                    configOptionHandler.submitString
+                )
+            )
         }
         get("/content") {
-            val gid = call.requireGuild() ?: return@get
-            call.respond(dataProvider(RouteDataProvider(call.userId, gid)))
+            val provider = buildProvider(requiresGuild) ?: return@get
+            call.respond(dataProvider(provider))
         }
         post("/save") {
-            val asText = call.receiveText()
-            val result =
-                runCatching { secureWebJSON.decodeFromString<T>(asText) }.onFailure { it.printStackTrace() }.getOrNull()
-                    ?: return@post call.respond(
-                        HttpStatusCode.BadRequest
-                    )
-            dataHandler(asText, result)
-            call.respond(HttpStatusCode.Accepted)
+            with(configOptionHandler) {
+                val provider = buildProvider(requiresGuild) ?: return@post
+                handle(provider)
+            }
         }
+    }
+}
+
+suspend fun RoutingContext.buildProvider(requiresGuild: Boolean): RouteDataProvider? {
+    return if (requiresGuild) {
+        val gid = call.requireGuild() ?: return null
+        RouteDataProvider(call.userId, gid, this)
+    } else {
+        RouteDataProvider(call.userId, -1, this)
     }
 }
 
@@ -340,8 +454,7 @@ val userIdKey = AttributeKey<Long>("userId")
 val apiGuard = createRouteScopedPlugin("AuthGuard") {
     onCall { call ->
         val value = call.request.header("UserID") ?: return@onCall call.respondText(
-            "No UserID provided",
-            status = HttpStatusCode.Unauthorized
+            "No UserID provided", status = HttpStatusCode.Unauthorized
         )
         call.attributes.put(userIdKey, value.toLong())
     }
@@ -358,8 +471,3 @@ suspend fun ApplicationCall.requireGuild(): Long? {
     respond(HttpStatusCode.Forbidden)
     return null
 }
-
-private suspend fun getGuildsForUser(userId: Long) =
-    if (userId == Constants.FLOID) db.league.find().toFlow().map { it.guild }
-        .toSet() + db.signups.find().toFlow().map { it.guild }
-        .toSet() + Constants.G.MY else GuildManagerDB.getGuildsForUser(userId)

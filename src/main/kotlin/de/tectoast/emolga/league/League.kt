@@ -21,6 +21,7 @@ import de.tectoast.emolga.league.config.TimerRelated
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
+import de.tectoast.emolga.utils.json.Config
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.showdown.AnalysisData
@@ -62,6 +63,8 @@ sealed class League {
     var draftState: DraftState = DraftState.OFF
     val isRunning: Boolean get() = draftState != DraftState.OFF
     val pseudoEnd: Boolean get() = draftState == DraftState.PSEUDOEND
+
+    @Config("Picks", "Die gemachten Picks", keyIsDiscordUser = true)
     val picks: MutableMap<Int, MutableList<DraftPokemon>> = mutableMapOf()
     val battleorder: MutableMap<Int, List<List<Int>>> = mutableMapOf()
     val allowed: MutableMap<Int, MutableSet<AllowedData>> = mutableMapOf()

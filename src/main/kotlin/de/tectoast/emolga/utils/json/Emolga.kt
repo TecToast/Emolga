@@ -11,7 +11,8 @@ import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.RealInteractionData
-import de.tectoast.emolga.features.draft.LogoCommand
+import de.tectoast.emolga.features.draft.LogoCommand.allowedFileFormats
+import de.tectoast.emolga.features.draft.LogoCommand.uploadToCloud
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.various.ShinyEvent
 import de.tectoast.emolga.features.various.ShinyEvent.SingleGame
@@ -34,15 +35,18 @@ import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.future.await
 import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.components.Component
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.modals.Modal
+import net.dv8tion.jda.api.utils.FileUpload
 import org.bson.BsonDocument
 import org.bson.conversions.Bson
 import org.litote.kmongo.*
@@ -52,7 +56,10 @@ import org.litote.kmongo.reactivestreams.KMongo
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlin.time.measureTimedValue
@@ -356,7 +363,7 @@ sealed interface LogoSettings {
         ) @Contextual val channelId: Long = 0
     ) : LogoSettings {
         override suspend fun handleLogo(
-            lsData: LigaStartData, data: SignUpData, logoData: LogoCommand.LogoInputData
+            lsData: LigaStartData, data: SignUpData, logoData: LogoInputData
         ) {
             val tc = jda.getTextChannelById(channelId)
                 ?: return logger.warn { "Channel $channelId for LogoSettings not found" }
@@ -391,37 +398,35 @@ sealed interface LogoSettings {
     @Config("An der Anmeldung", "Die Logos werden an die Anmeldenachricht selbst drangehängt.")
     data object WithSignupMessage : LogoSettings {
         override suspend fun handleLogo(
-            lsData: LigaStartData, data: SignUpData, logoData: LogoCommand.LogoInputData
+            lsData: LigaStartData, data: SignUpData, logoData: LogoInputData
         ) {
-            val tc = jda.getTextChannelById(lsData.signupChannel)
+            val tc = jda.getTextChannelById(lsData.config.signupChannel)
                 ?: return logger.warn { "SignupChannel for LogoSettings not found" }
             tc.editMessageAttachmentsById(data.signupmid!!, logoData.toFileUpload()).queue()
         }
     }
 
-    suspend fun handleLogo(lsData: LigaStartData, data: SignUpData, logoData: LogoCommand.LogoInputData)
+    suspend fun handleLogo(lsData: LigaStartData, data: SignUpData, logoData: LogoInputData)
     fun handleSignupChange(data: SignUpData) {}
     fun handleSignupRemoved(data: SignUpData) {}
 }
 
 @Serializable
-@Config(name = "Anmeldungskonfiguration", "Hier kannst du die Anmeldung konfigurieren.")
-data class LigaStartData(
-    @Contextual val guild: Long,
+@Config(name = "Initiale Anmeldungskonfiguration", "Die initiale Konfiguration einer Liga-Anmeldung")
+data class LigaStartConfig(
     @Config(
         name = "Anmeldungschannel",
-        "In welchem Channel sollen die Anmeldungen von Emolga gesendet werden?",
+        "In welchem Channel sollen die Anmeldungen von Emolga gesammelt werden?",
         longType = LongType.CHANNEL
     ) @Contextual val signupChannel: Long,
     @Config(
         name = "Anmeldungsnachricht", "Was soll in der Anmeldungsnachricht von Emolga stehen?"
     ) val signupMessage: String,
     @Config(
-        name = "Anmeldungschannel",
+        name = "Ankündingungschannel",
         "In welchem Channel soll die Anmeldungsnachricht stehen?",
         longType = LongType.CHANNEL
     ) @Contextual val announceChannel: Long,
-    val announceMessageId: Long,
     @Config(
         "Logo-Einstellungen", "Hier kannst du einstellen, ob/wie Logos eingesendet werden."
     ) val logoSettings: LogoSettings? = null,
@@ -434,20 +439,31 @@ data class LigaStartData(
         "Hier kannst du eine Rolle einstellen, die die Teilnehmer automatisch bekommen sollen.",
         LongType.ROLE
     ) @Contextual val participantRole: Long? = null,
-    @EncodeDefault var conferences: List<String> = listOf(),
-    var conferenceRoleIds: Map<String, @Contextual Long> = mapOf(),
     @Config(
         "Anmeldungsstruktur", "Hier kannst du einstellen, was die Teilnehmer alles bei der Anmeldung angeben sollen."
     ) val signupStructure: List<SignUpInput> = listOf(),
+)
+
+@Serializable
+@Config(name = "Anmeldung", "Alle Daten einer Anmeldung (Konfiguration und Teilnehmer)")
+data class LigaStartData(
+    @Contextual val guild: Long,
+    @Config(name = "Konfiguration", desc = "Die Konfiguration dieser Anmeldung")
+    val config: LigaStartConfig,
+
+    val announceMessageId: Long,
+    @EncodeDefault var conferences: List<String> = listOf(),
+    var conferenceRoleIds: Map<String, @Contextual Long> = mapOf(),
+
     val users: MutableList<SignUpData> = mutableListOf(),
 ) {
     val maxUsersAsString
-        get() = (maxUsers.takeIf { it > 0 } ?: "?").toString()
+        get() = (config.maxUsers.takeIf { it > 0 } ?: "?").toString()
 
     fun buildModal(old: SignUpData?): Modal? {
-        if (signupStructure.isEmpty()) return null
+        if (config.signupStructure.isEmpty()) return null
         return Modal("signup;".notNullAppend(old?.let { "change" }), "Anmeldung") {
-            signupStructure.forEach {
+            config.signupStructure.forEach {
                 val options = it.getModalInputOptions()
                 label(
                     label = options.label,
@@ -497,14 +513,14 @@ data class LigaStartData(
         SignupManager.signupUser(guild, e.user.idLong, data, change, RealInteractionData(e))
     }
 
-    inline fun <reified T : SignUpInput> getInputConfig() = signupStructure.firstOrNull { it is T } as T?
-    fun getInputConfig(id: String) = signupStructure.firstOrNull { it.id == id }
+    inline fun <reified T : SignUpInput> getInputConfig() = config.signupStructure.firstOrNull { it is T } as T?
+    fun getInputConfig(id: String) = config.signupStructure.firstOrNull { it.id == id }
 
     fun getDataByUser(uid: Long) = users.firstOrNull { it.users.contains(uid) }
 
     suspend fun save() = db.signups.updateOne(LigaStartData::guild eq guild, this)
     inline fun giveParticipantRole(memberfun: () -> Member) {
-        participantRole?.let {
+        config.participantRole?.let {
             val member = memberfun()
             member.guild.addRoleToMember(member, member.guild.getRoleById(it)!!).queue()
         }
@@ -512,7 +528,7 @@ data class LigaStartData(
 
     suspend fun giveParticipantRoleToAll() {
         val g = jda.getGuildById(guild)!!
-        val r = g.getRoleById(participantRole!!)!!
+        val r = g.getRoleById(config.participantRole!!)!!
         users.flatMap { it.users }.forEach {
             g.addRoleToMember(UserSnowflake.fromId(it), r).await()
             delay(2000)
@@ -523,28 +539,29 @@ data class LigaStartData(
 
 
     fun updateSignupMessage(setMaxUsersToCurrentUsers: Boolean = false) {
-        jda.getTextChannelById(announceChannel)!!.editMessageById(
+        jda.getTextChannelById(config.announceChannel)!!.editMessageById(
             announceMessageId,
-            "$signupMessage\n\n**Teilnehmer: ${users.size}/${if (setMaxUsersToCurrentUsers) users.size else maxUsersAsString}**"
+            "${config.signupMessage}\n\n**Teilnehmer: ${users.size}/${if (setMaxUsersToCurrentUsers) users.size else maxUsersAsString}**"
         ).queue()
     }
 
     fun closeSignup(forced: Boolean = false) {
-        val channel = jda.getTextChannelById(announceChannel)!!
+        val channel = jda.getTextChannelById(config.announceChannel)!!
         channel.editMessageComponentsById(
             announceMessageId, SignupManager.Button("Anmeldung geschlossen", disabled = true).into()
         ).queue()
         val msg = "_----------- Anmeldung geschlossen -----------_"
         channel.sendMessage(msg).queue()
-        if (announceChannel != signupChannel) jda.getTextChannelById(signupChannel)!!.sendMessage(msg).queue()
+        if (config.announceChannel != config.signupChannel) jda.getTextChannelById(config.signupChannel)!!
+            .sendMessage(msg).queue()
         if (forced) updateSignupMessage(true)
     }
 
     suspend fun setNewMaxUsers(newMaxUsers: Int) {
         val wasClosed = full
-        maxUsers = newMaxUsers
+        config.maxUsers = newMaxUsers
         if (wasClosed) {
-            jda.getTextChannelById(announceChannel)!!.editMessageComponentsById(
+            jda.getTextChannelById(config.announceChannel)!!.editMessageComponentsById(
                 announceMessageId, SignupManager.Button().into()
             ).queue()
         }
@@ -559,8 +576,8 @@ data class LigaStartData(
     }
 
     suspend fun handleSignupChange(data: SignUpData) {
-        jda.getTextChannelById(signupChannel)!!.editMessageById(data.signupmid!!, data.toMessage(this)).queue()
-        logoSettings?.handleSignupChange(data)
+        jda.getTextChannelById(config.signupChannel)!!.editMessageById(data.signupmid!!, data.toMessage(this)).queue()
+        config.logoSettings?.handleSignupChange(data)
         save()
     }
 
@@ -572,8 +589,8 @@ data class LigaStartData(
         val data = users.firstOrNull { it.users.contains(uid) } ?: return
         data.users.remove(uid)
         if (data.users.isEmpty()) {
-            data.signupmid?.let { jda.getTextChannelById(signupChannel)!!.deleteMessageById(it).queue() }
-            logoSettings?.handleSignupRemoved(data)
+            data.signupmid?.let { jda.getTextChannelById(config.signupChannel)!!.deleteMessageById(it).queue() }
+            config.logoSettings?.handleSignupRemoved(data)
             users.remove(data)
             save()
         } else {
@@ -582,9 +599,87 @@ data class LigaStartData(
         updateSignupMessage()
     }
 
-    val full get() = maxUsers > 0 && users.size >= maxUsers
+    fun updateUser(user: Long) {
+        val data = getDataByUser(user)!!
+        jda.getTextChannelById(config.signupChannel)!!
+            .editMessageById(data.signupmid!!, data.toMessage(this)).queue()
+    }
+
+    suspend fun insertLogo(uid: Long, logo: Message.Attachment): String {
+        if (config.logoSettings == null) {
+            return "In dieser Liga gibt es keine eigenen Logos!"
+        }
+        val signUpData = getDataByUser(uid) ?: return "Du bist nicht angemeldet!"
+        val logoData = LogoInputData.fromAttachment(logo)
+        if (logoData.isError()) {
+            return logoData.message
+        }
+        config.logoSettings.handleLogo(this, signUpData, logoData.value)
+        val checksum = uploadToCloud(logoData.value)
+        signUpData.logoChecksum = checksum
+        save()
+        return "Das Logo wurde erfolgreich hochgeladen!"
+    }
+
+    val full get() = config.maxUsers > 0 && users.size >= config.maxUsers
 
 }
+
+class LogoInputData(val fileExtension: String, val bytes: ByteArray) {
+    val checksum = hashBytes(bytes)
+    val fileName = "$checksum.$fileExtension"
+
+    fun toFileUpload() = FileUpload.fromData(bytes, fileName)
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
+
+        suspend fun fromAttachment(
+            attachment: Message.Attachment,
+            ignoreRequirements: Boolean = false
+        ): CalcResult<LogoInputData> = withContext(Dispatchers.IO) {
+            val fileExtension =
+                attachment.fileExtension?.lowercase()?.takeIf { ignoreRequirements || it in allowedFileFormats }
+                    ?: return@withContext CalcResult.Error("Das Logo muss eine Bilddatei sein!")
+            val bytes = try {
+                attachment.proxy.download().await().readAllBytes()
+            } catch (ex: Exception) {
+                logger.error("Couldnt download logo", ex)
+                return@withContext CalcResult.Error("Das Logo konnte nicht heruntergeladen werden!")
+            }
+            if (!ignoreRequirements && bytes.size > 1024 * 1024 * 10) {
+                return@withContext CalcResult.Error("Das Logo darf nicht größer als 10MB sein!")
+            }
+            CalcResult.Success(LogoInputData(fileExtension, bytes))
+        }
+    }
+}
+
+sealed interface CalcResult<T> {
+    data class Success<T>(val value: T) : CalcResult<T>
+    data class Error<T>(val message: String) : CalcResult<T>
+}
+
+@OptIn(ExperimentalContracts::class)
+fun <T> CalcResult<T>.isError(): Boolean {
+    contract {
+        returns(true) implies (this@isError is CalcResult.Error<T>)
+        returns(false) implies (this@isError is CalcResult.Success<T>)
+    }
+    return this is CalcResult.Error<T>
+}
+
+fun <T> CalcResult<T>.unwrap(): T {
+    return when (this) {
+        is CalcResult.Success -> this.value
+        is CalcResult.Error -> error("Tried to unwrap an error CalcResult: $message")
+    }
+}
+
+
+private fun hashBytes(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).fold("") { str, it ->
+    str + "%02x".format(it)
+}.take(15)
 
 @Serializable
 data class SignUpData(

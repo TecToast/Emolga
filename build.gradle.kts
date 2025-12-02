@@ -97,11 +97,11 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:6.1.1")
+    implementation("net.dv8tion:JDA:6.1.2")
     implementation("io.github.freya022:jda-ktx:e7b0e50683")
 
     // Google
-    implementation("com.google.apis:google-api-services-sheets:v4-rev20250616-2.0.0")
+    implementation("com.google.apis:google-api-services-sheets:v4-rev20251110-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20251114-2.0.0")
     implementation("com.google.apis:google-api-services-youtube:v3-rev20250714-2.0.0")
 
@@ -127,8 +127,8 @@ dependencies {
     implementation("org.jsoup:jsoup:1.21.2")
 
     // Testing
-    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.5")
-    testImplementation("io.kotest:kotest-assertions-core:6.0.5")
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.7")
+    testImplementation("io.kotest:kotest-assertions-core:6.0.7")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("io.mockk:mockk:1.14.6")
 

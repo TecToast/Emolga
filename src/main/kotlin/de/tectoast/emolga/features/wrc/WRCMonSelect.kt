@@ -81,7 +81,7 @@ object WRCMonSubmitButton : ButtonFeature<WRCMonSubmitButton.Args>(::Args, Butto
     }
 }
 
-object WRCTeraSelectMenu : SelectMenuFeature<WRCTeraSelectMenu.Args>(::Args, SelectMenuSpec("wrcmonselect")) {
+object WRCTeraSelectMenu : SelectMenuFeature<WRCTeraSelectMenu.Args>(::Args, SelectMenuSpec("wrcteraselect")) {
     class Args : Arguments() {
         var wrcname by string().compIdOnly()
         var gameday by int().compIdOnly()

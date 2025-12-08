@@ -130,7 +130,7 @@ dependencies {
     testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.7")
     testImplementation("io.kotest:kotest-assertions-core:6.0.7")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
-    testImplementation("io.mockk:mockk:1.14.6")
+    testImplementation("io.mockk:mockk:1.14.7")
 
 }
 

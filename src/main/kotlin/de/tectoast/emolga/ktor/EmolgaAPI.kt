@@ -34,6 +34,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.modules.SerializersModule
 import mu.KotlinLogging
+import net.dv8tion.jda.api.entities.User
 import org.bson.conversions.Bson
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.eq
@@ -174,7 +175,12 @@ fun Route.emolgaAPI() {
                             )
                         }
                     }
-                    call.respond(userIds.map { discordUserCache[it]!! })
+                    call.respond(userIds.map {
+                        discordUserCache[it] ?: DiscordUserData(
+                            it.toString(),
+                            User.DEFAULT_AVATAR_URL.format(0)
+                        )
+                    })
                 }
             }
         }

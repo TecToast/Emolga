@@ -29,11 +29,11 @@ abstract class Cache<T> {
     abstract suspend fun update(): T
 }
 
-abstract class RefreshableCache<T> : Cache<T>() {
+abstract class RefreshableCache<T>(val clock: Clock = Clock.System) : Cache<T>() {
     var lastUpdate = Instant.DISTANT_PAST
     override suspend operator fun invoke(): T {
         lock.withLock {
-            val now = Clock.System.now()
+            val now = clock.now()
             if (cached == null || shouldUpdate(now)) {
                 lastUpdate = now
                 updateCachedValue()
@@ -53,7 +53,8 @@ class OneTimeCache<T>(initial: T? = null, val function: suspend () -> T) : Cache
     override suspend fun update() = function()
 }
 
-class TimedCache<T>(val time: Duration, val function: suspend () -> T) : RefreshableCache<T>() {
+class TimedCache<T>(val time: Duration, clock: Clock = Clock.System, val function: suspend () -> T) :
+    RefreshableCache<T>(clock) {
     override fun shouldUpdate(now: Instant): Boolean = lastUpdate + time < now
     override suspend fun update() = function()
 }

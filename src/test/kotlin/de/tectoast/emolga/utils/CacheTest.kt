@@ -2,13 +2,16 @@ package de.tectoast.emolga.utils
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import kotlinx.coroutines.delay
 import mu.KotlinLogging
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 private val logger = KotlinLogging.logger {}
+
+@OptIn(ExperimentalTime::class)
 class CacheTest : FunSpec({
     var x = 0
     beforeTest {
@@ -25,14 +28,20 @@ class CacheTest : FunSpec({
             cache() shouldBe 1
         }
         test("TimedCache") {
-            val cache = TimedCache(1000.milliseconds) {
+            var currentTime = 0L
+            val testClock = object : Clock {
+                override fun now(): kotlin.time.Instant {
+                    return kotlin.time.Instant.fromEpochMilliseconds(currentTime)
+                }
+            }
+            val cache = TimedCache(1000.milliseconds, testClock) {
                 ++x
             }
             x shouldBe 0
             cache() shouldBe 1
             x shouldBe 1
             cache() shouldBe 1
-            delay(1000)
+            currentTime += 1200
             cache() shouldBe 2
             x shouldBe 2
         }
@@ -50,49 +59,67 @@ class CacheTest : FunSpec({
             oneTime() shouldBe 1
         }
         test("WithTimedCache") {
-            val timed = TimedCache(1000.milliseconds) { ++x }
+            var currentTime = 0L
+            val testClock = object : Clock {
+                override fun now(): kotlin.time.Instant {
+                    return kotlin.time.Instant.fromEpochMilliseconds(currentTime)
+                }
+            }
+            val timed = TimedCache(1000.milliseconds, testClock) { ++x }
             val cache = MappedCache(timed) { it + 10 }
             x shouldBe 0
             cache() shouldBe 11
             x shouldBe 1
             timed() shouldBe 1
-            delay(1000)
+            currentTime += 1200
             cache() shouldBe 12
             x shouldBe 2
             timed() shouldBe 2
-            delay(500)
+            currentTime += 500
             cache() shouldBe 12
             x shouldBe 2
             timed() shouldBe 2
-            delay(1500)
+            currentTime += 1500
             cache() shouldBe 13
             x shouldBe 3
             timed() shouldBe 3
         }
         test("WithTimedCache2") {
-            val timed = TimedCache(5.seconds) { cacheFun() }
+            var currentTime = 0L
+            val testClock = object : Clock {
+                override fun now(): kotlin.time.Instant {
+                    return kotlin.time.Instant.fromEpochMilliseconds(currentTime)
+                }
+            }
+            val timed = TimedCache(5.seconds, testClock) { cacheFun() }
             val cache = MappedCache(timed) { "$it :D" }
 
             cache() shouldBe "1 :D"
-            delay(1000)
+            currentTime += 1100
             cache() shouldBe "1 :D"
-            delay(1000)
+            currentTime += 1100
             cache() shouldBe "1 :D"
-            delay(4000)
+            currentTime += 4100
             cache() shouldBe "2 :D"
-            delay(1000)
+            currentTime += 1100
             cache() shouldBe "2 :D"
-            delay(4000)
+            currentTime += 4100
             cache() shouldBe "3 :D"
         }
         test("WithTimedCache3") {
-            val timed = TimedCache(2.seconds) { cacheFun() }
+            var currentTime = 0L
+            val testClock = object : Clock {
+                override fun now(): kotlin.time.Instant {
+                    return kotlin.time.Instant.fromEpochMilliseconds(currentTime)
+                }
+            }
+            val timed = TimedCache(2.seconds, testClock) { cacheFun() }
             var mapCounter = 0
             val cache = MappedCache(timed) { "$it ${++mapCounter} :D" }
             cache() shouldBe "1 1 :D"
-            delay(3000)
+            currentTime += 3000
             timed()
-            delay(500)
+            currentTime += 500
             cache() shouldBe "2 2 :D"
         }
     }

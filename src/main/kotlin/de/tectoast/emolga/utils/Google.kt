@@ -16,6 +16,7 @@ import de.tectoast.emolga.utils.Google.setCredentials
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.ExperimentalTime
 
 
 object Google {
@@ -24,6 +25,7 @@ object Google {
     private var CLIENTSECRET: String? = null
     private val googleContext = createCoroutineContext("Google", Dispatchers.IO)
 
+    @OptIn(ExperimentalTime::class)
     private val accesstoken: TimedCache<String> = TimedCache(45.minutes) { generateAccessToken() }
     private val sheetsService = MappedCache(accesstoken) {
         Sheets.Builder(

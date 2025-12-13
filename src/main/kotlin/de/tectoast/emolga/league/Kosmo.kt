@@ -1,7 +1,8 @@
 package de.tectoast.emolga.league
 
-import de.tectoast.emolga.utils.BasicStatProcessor
+import de.tectoast.emolga.utils.DataTypeForMon
 import de.tectoast.emolga.utils.DocEntry
+import de.tectoast.emolga.utils.StatProcessor
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
 import de.tectoast.emolga.utils.y
@@ -16,11 +17,11 @@ class Kosmo : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        killProcessor = BasicStatProcessor {
-            Coord("Teamstatistik", gdi.y(3, 12), plindex.y(21, monindex + 4))
+        +StatProcessor {
+            Coord("Teamstatistik", gdi.y(3, 12), memIdx.y(21, monindex + 4)) to DataTypeForMon.KILLS
         }
-        deathProcessor = BasicStatProcessor {
-            Coord("Teamstatistik", gdi.y(3, 13), plindex.y(21, monindex + 4))
+        +StatProcessor {
+            Coord("Teamstatistik", gdi.y(3, 13), memIdx.y(21, monindex + 4)) to DataTypeForMon.DEATHS
         }
 
         resultCreator = {

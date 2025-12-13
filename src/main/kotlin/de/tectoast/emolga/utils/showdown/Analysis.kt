@@ -5,6 +5,7 @@ import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.SendFeatures
+import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.LeagueResult
@@ -80,7 +81,9 @@ object Analysis {
             return
         }
         var league: League? = null
-        val replayDatas = mutableListOf<ReplayData>()
+        var uindicesInOrder: List<Int>? = null
+        var gamedayData: GamedayData? = null
+        val games = mutableListOf<ReplayData>()
         for (urlProvided in urlsProvided) {
 
             val data = try {
@@ -129,8 +132,7 @@ object Analysis {
             game.forEach { player ->
                 player.pokemon.addAll(List((player.teamSize - player.pokemon.size).coerceAtLeast(0)) {
                     SDPokemon(
-                        "_unbekannt_",
-                        -1
+                        "_unbekannt_", -1
                     )
                 })
                 // TODO: Refactor this
@@ -143,7 +145,6 @@ object Analysis {
             )
             league = leaguedata?.league
             val uindices = leaguedata?.uindices
-            val draftPlayerList = game.map(SDPlayer::toDraftPlayer)
             val jda = resultchannelParam.jda
             val replayChannel =
                 league?.provideReplayChannel(jda).takeIf { useReplayResultChannelAnyways || customGuild == null }
@@ -155,10 +156,10 @@ object Analysis {
             logger.info("u1 = $u1")
             logger.info("u2 = $u2")
             // TODO: Refactor this
-            val gamedayData = league?.getGamedayData(uindices!![0], uindices[1], draftPlayerList)
+            val gamedayDataPair = league?.getGamedayData(uindices!![0], uindices[1])
             val tosend = MessageCreate(
                 content = url,
-                embeds = league?.appendedEmbed(data, leaguedata, gamedayData!!)?.build()?.into().orEmpty()
+                embeds = league?.appendedEmbed(data, leaguedata, gamedayDataPair!!.first)?.build()?.into().orEmpty()
             )
             replayChannel?.sendMessage(tosend)?.queue()
             fromReplayCommand?.reply(msgCreateData = tosend)
@@ -196,35 +197,36 @@ object Analysis {
                 SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
             }
             logger.info("In Emolga Listener!")
-            val kd =
-                game.map { it.pokemon.associate { p -> p.draftname.official to (p.kills to if (p.isDead) 1 else 0) } }
             if (leaguedata != null) {
-                replayDatas += ReplayData(
-                    game = draftPlayerList,
-                    uindices = uindices!!,
-                    kd = kd,
-                    mons = game.map { it.pokemon.map { mon -> mon.draftname.official } },
-                    url = url,
-                    gamedayData = gamedayData!!,
-                    otherForms = leaguedata.otherForms,
+                val gameInGameplanOrder = game.reversedIf(gamedayDataPair!!.second)
+                gamedayData = gamedayDataPair.first
+                if (uindicesInOrder == null) {
+                    uindicesInOrder = uindices.reversedIf(gamedayDataPair.second)
+                }
+                val kd = gameInGameplanOrder.map {
+                    it.pokemon.associate { p ->
+                        p.draftname.official to KD(
+                            p.kills, if (p.isDead) 1 else 0
+                        )
+                    }
+                }
+                games += ReplayData(
+                    kd = kd, url = url, winnerIndex = game.indexOfFirst { it.winnerOfGame }
                 )
             }
         }
-        if (replayDatas.isNotEmpty() && league != null) {
+        if (games.isNotEmpty() && league != null) {
             League.executeOnFreshLock(league.leaguename) {
                 docEntry?.analyse(
-                    replayDatas, withSort = withSort
+                    FullGameData(uindices = uindicesInOrder!!, gamedayData = gamedayData!!, games = games),
+                    withSort = withSort
                 )
             }
         }
     }
 
     private fun generateDescription(
-        game: List<SDPlayer>,
-        spoiler: Boolean,
-        leaguedata: LeagueResult?,
-        ctx: BattleContext,
-        dontTranslate: Boolean
+        game: List<SDPlayer>, spoiler: Boolean, leaguedata: LeagueResult?, ctx: BattleContext, dontTranslate: Boolean
     ): String {
         val monStrings = game.map { player ->
             player.pokemon.joinToString("\n") { mon ->
@@ -295,8 +297,7 @@ object Analysis {
         "battling.p-insurgence.com/replays" to ReplayServerMode.SCRAPE,
         "replay.pokeathlon.com" to ReplayServerMode.POKEATHLON,
     )
-    val regex =
-        Regex("https://(${modeByServer.keys.joinToString("|")}).*")
+    val regex = Regex("https://(${modeByServer.keys.joinToString("|")}).*")
 
 
     suspend fun analyse(

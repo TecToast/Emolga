@@ -9,7 +9,6 @@ import de.tectoast.emolga.features.draft.during.QueuePicks
 import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode.*
 import de.tectoast.emolga.features.draft.during.QueuePicks.isIllegal
 import de.tectoast.emolga.features.intoMultipleRows
-import de.tectoast.emolga.ktor.KD
 import de.tectoast.emolga.ktor.generateFinalMessage
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
@@ -89,15 +88,18 @@ suspend fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEnt
     val embeds = if (input is ResultEntryDescription.Bo3) {
         // TODO: Clean this up
         val spoiler = SpoilerTagsDB.contains(league.guild)
-        val descriptions = input.games.map { game -> generateFinalMessage(league, input.idxs, game) }
+        val fullGameData = input.fullGameData
+        val descriptions =
+            fullGameData.games.map { game -> generateFinalMessage(league, fullGameData.uindices, game.kd) }
         buildList {
-            val actualBo3 = input.games.size > 1
+            val actualBo3 = fullGameData.games.size > 1
             if (actualBo3) add(
                 Embed(
                 title = "Spieltag $gameday",
-                description = "<@${league[input.idxs[0]]}> ${
-                    input.numbers.joinToString(":").surroundWithIf("||", spoiler)
-                } <@${league[input.idxs[1]]}>",
+                    description = "<@${league[fullGameData.uindices[0]]}> ${
+                        (0..1).map { i -> fullGameData.games.count { replayData -> replayData.winnerIndex == i } }
+                            .joinToString(":").surroundWithIf("||", spoiler)
+                    } <@${league[fullGameData.uindices[1]]}>",
                 color = Color.YELLOW.rgb
                 )
             )
@@ -128,7 +130,7 @@ sealed interface ResultEntryDescription {
     }
 
     // TODO: clean up this
-    data class Bo3(val games: List<List<Map<String, KD>>>, val idxs: List<Int>, val numbers: List<Int>) :
+    data class Bo3(val fullGameData: FullGameData) :
         ResultEntryDescription {
         override fun provideDescription() = error("Implemented directly")
     }

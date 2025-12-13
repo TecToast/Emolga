@@ -90,25 +90,23 @@ class NDS(val rr: Boolean) : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        killProcessor = BasicStatProcessor {
+        +StatProcessor {
             Coord(
-                "Data", gameday + 6, plindex * 30 + 3 + monindex
-            )
+                "Data", gdi + 7, memIdx * 30 + 3 + monindex
+            ) to DataTypeForMon.KILLS
         }
-        deathProcessor = BasicStatProcessor {
+        +StatProcessor {
             Coord(
-                "Data", gameday + 18, plindex * 30 + 3 + monindex
-            )
+                "Data", gdi + 19, memIdx * 30 + 3 + monindex
+            ) to DataTypeForMon.DEATHS
         }
-        winProcessor = ResultStatProcessor {
-            Coord(
-                "Data", gameday + 6, plindex * 30 + 30
-            )
+        +StatProcessor {
+            Coord("Data", gdi + 7, memIdx * 30 + 30) to DataTypeForMon.WINS
         }
-        looseProcessor = ResultStatProcessor {
+        +StatProcessor {
             Coord(
-                "Data", gameday + 18, plindex * 30 + 30
-            )
+                "Data", gdi + 19, memIdx * 30 + 30
+            ) to DataTypeForMon.LOSSES
         }
         resultCreator = {
             val y = index.y(10, 6)
@@ -120,22 +118,21 @@ class NDS(val rr: Boolean) : League() {
             b.addSingle(coord(gameplanName, normedGdi.x(9, 6), index.y(10, 3)), numberTwo)
             for (i in 0..1) {
                 val x = normedGdi.x(9, i.y(8, 1))
-                val dataI = i.swap()
                 logger.info("i: $i")
-                logger.info("dataI: $dataI")
+                logger.info("dataI: $i")
                 b.addColumn(
                     coord(gameplanName, x, y),
-                    this.firstReplayData.mons[dataI].map { NameConventionsDB.convertOfficialToTL(it, guild)!! })
-                b.addColumn(coord(gameplanName, normedGdi.x(9, i.y(4, 3)), y), kills[dataI])
-                this.deaths[dataI].forEachIndexed { index, dead ->
+                    this.firstReplayData.kd[i].keys.map { NameConventionsDB.convertOfficialToTL(it, guild)!! })
+                b.addColumn(coord(gameplanName, normedGdi.x(9, i.y(4, 3)), y), kills[i])
+                this.deaths[i].forEachIndexed { index, dead ->
                     if (dead) b.addCellFormatChange(
                         gameplanSheet, "$x${y + index}", deathFormat, "textFormat(foregroundColorStyle,strikethrough)"
                     )
                 }
                 if (winnerIndex == i) {
                     val s = "!${(gdi * 2 + 4).xc()}10"
-                    b.addSingle(getTeamname(firstReplayData.uindices[i]) + s, "$higherNumber:0")
-                    b.addSingle(getTeamname(firstReplayData.uindices[1 - i]) + s, "0:$higherNumber")
+                    b.addSingle(getTeamname(fullGameData.uindices[i]) + s, "$higherNumber:0")
+                    b.addSingle(getTeamname(fullGameData.uindices[1 - i]) + s, "0:$higherNumber")
                 }
             }
 

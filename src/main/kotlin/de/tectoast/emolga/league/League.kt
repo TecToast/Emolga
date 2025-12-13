@@ -833,7 +833,7 @@ sealed class League {
     }
 
 
-    fun getGamedayData(idx1: Int, idx2: Int, game: List<DraftPlayer>): GamedayData {
+    fun getGamedayData(idx1: Int, idx2: Int): Pair<GamedayData, Boolean> {
         var u1IsSecond = false
         val gameday = battleorder.asIterable().reversed().firstNotNullOfOrNull {
             if (it.value.any { l ->
@@ -842,19 +842,18 @@ sealed class League {
                     }
                 }) it.key else null
         } ?: -1
-        val numbers = (0..1).reversedIf(u1IsSecond).map { game[it].alivePokemon }
         val battleindex = battleorder[gameday]?.let { battleorder ->
             (battleorder.indices.firstOrNull { battleorder[it].contains(idx1) } ?: -1)
         } ?: -1
 
         return GamedayData(
-            gameday, battleindex, u1IsSecond, numbers
-        )
+            gameday, battleindex
+        ) to u1IsSecond
     }
 
-    fun storeMatch(replayData: ReplayData) {
-        persistentData.replayDataStore.data.getOrPut(replayData.gamedayData.gameday) { mutableMapOf() }[replayData.gamedayData.battleindex] =
-            replayData
+    fun storeFullGameData(fullGameData: FullGameData) {
+        persistentData.replayDataStore.data.getOrPut(fullGameData.gamedayData.gameday) { mutableMapOf() }[fullGameData.gamedayData.battleindex] =
+            fullGameData
     }
 
     fun getMatchupsIndices(gameday: Int) = battleorder[gameday]!!
@@ -1521,8 +1520,7 @@ enum class TimerSkipResult {
 
 @Serializable
 data class GamedayData(
-    val gameday: Int, val battleindex: Int, /*TODO: Remove u1IsSecond*/
-    val u1IsSecond: Boolean, var numbers: List<Int> = emptyList()
+    val gameday: Int, val battleindex: Int,
 )
 
 sealed interface VideoProvideStrategy {

@@ -9,10 +9,9 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.ResultCodesDB
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 import de.tectoast.emolga.features.draft.SignupManager
-import de.tectoast.emolga.league.GPC
 import de.tectoast.emolga.league.League
+import de.tectoast.emolga.league.RPL
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.json.EmolgaConfigHelper
 import de.tectoast.emolga.utils.json.EmolgaConfigHelper.findConfig
 import de.tectoast.emolga.utils.json.LigaStartConfig
@@ -160,7 +159,7 @@ fun Route.emolgaAPI() {
             route("/league/{leaguename}") {
                 delta("/delta", db.league, filter = {
                     League::leaguename eq ctx.call.parameters["leaguename"]
-                }, descriptor = GPC::class.serializer().descriptor)
+                }, descriptor = RPL::class.serializer().descriptor) // TODO: make dynamic
                 get("/users") {
                     val gid = call.requireGuild() ?: return@get
                     val leaguename = call.parameters["leaguename"] ?: return@get call.respond(HttpStatusCode.BadRequest)
@@ -204,45 +203,37 @@ fun Route.emolgaAPI() {
             League.executeOnFreshLock(resData[ResultCodesDB.LEAGUENAME]) {
                 val channel = jda.getTextChannelById(resultChannel!!)!!
                 // TODO: refactor DraftPlayer GamedayData etc
-                val gamedayData = getGamedayData(idx1, idx2, (0..1).map { DraftPlayer(0, false) })
+                val (gamedayData, u1IsSecond) = getGamedayData(idx1, idx2)
                 val officialNameCache = mutableMapOf<String, String>()
-                val replayDatas = body.map { singleGame ->
-                    val game = singleGame.mapIndexed { index, d ->
-                        val dead = d.count { it.value.d }
-                        DraftPlayer(alivePokemon = d.size - dead, winner = d.size != dead)
-                    }
+                val games = body.map { singleGame ->
                     ReplayData(
-                        game = game,
-                        uindices = idxs,
-                        kd = singleGame.map { p ->
+                        kd = singleGame.reversedIf(u1IsSecond).map { p ->
                             p.map {
                                 NameConventionsDB.getDiscordTranslation(
                                     it.key, guild
                                 )!!.official.also { official ->
                                     officialNameCache[it.key] = official
-                                } to (it.value.k to if (it.value.d) 1 else 0)
+                                } to it.value
                             }.toMap()
                         },
-                        mons = singleGame.map { l -> l.map { officialNameCache[it.key]!! } },
                         url = "WIFI",
-                        gamedayData = gamedayData.apply {
-                            numbers = game.map { it.alivePokemon }
-                                .let { l -> if (gamedayData.u1IsSecond) l.reversed() else l }
-                        })
+                        winnerIndex = singleGame.reversedIf(u1IsSecond)
+                            .indexOfFirst { p -> p.values.sumOf { it.deaths } < p.size }
+                        // TODO: implement UI element to select winner on "draws"
+                    )
                 }
+                val fullGameData = FullGameData(idxs.reversedIf(u1IsSecond), gamedayData, games)
                 if (config.replayDataStore != null) {
                     channel.sendResultEntryMessage(
                         resData[ResultCodesDB.GAMEDAY],
-                        ResultEntryDescription.MatchPresent(idxs.map { this[it] }
-                            .let { if (gamedayData.u1IsSecond) it.reversed() else it })
+                        ResultEntryDescription.MatchPresent(fullGameData.uindices.map { this[it] })
                     )
                 } else {
                     channel.sendResultEntryMessage(
-                        gamedayData.gameday, ResultEntryDescription.Bo3(
-                            body, idxs, (0..1).map { replayDatas.count { rd -> rd.game[it].winner } })
+                        gamedayData.gameday, ResultEntryDescription.Bo3(fullGameData)
                     )
                 }
-                docEntry?.analyse(replayDatas)
+                docEntry?.analyse(fullGameData)
             }
             call.respond(HttpStatusCode.NoContent)
         }
@@ -257,7 +248,8 @@ fun Route.emolgaAPI() {
         val maxGameday: Int = entries.maxOfOrNull { it.key } ?: 1
         val gameday = call.queryParameters["gameday"]?.toIntOrNull() ?: maxGameday
         val data = entries.asSequence().filter { it.key <= gameday }.flatMap { it.value.values }
-            .onEach { totalCount.incrementAndGet() }.flatMap { it.mons.flatten() }.groupingBy { it }
+            .onEach { totalCount.incrementAndGet() }
+            .flatMap { it.games.flatMap { g -> g.kd.flatMap { kd -> kd.keys } } }.groupingBy { it }
             .eachCount().entries.map { (mon, count) ->
                 UsageData(
                     mon = NameConventionsDB.getDiscordTranslation(mon, league.guild)?.tlName ?: mon, count = count
@@ -281,7 +273,7 @@ suspend fun generateFinalMessage(league: League, idxs: List<Int>, data: List<Map
     val spoiler = SpoilerTagsDB.contains(league.guild)
     return "${
         data.mapIndexed { index, sdPlayer ->
-            mutableListOf<Any>("<@${league[idxs[index]]}>", sdPlayer.count { !it.value.d }).apply {
+            mutableListOf<Any>("<@${league[idxs[index]]}>", sdPlayer.count { it.value.deaths == 0 }).apply {
                 if (spoiler) add(
                     1, "||"
                 )
@@ -291,17 +283,14 @@ suspend fun generateFinalMessage(league: League, idxs: List<Int>, data: List<Map
         data.mapIndexed { index, monData ->
             "<@${league[idxs[index]]}>:\n${
                 monData.entries.joinToString("\n") {
-                    "${it.key} ${it.value.k}".condAppend(
-                        it.value.d, " X"
+                    "${it.key} ${it.value.kills}".condAppend(
+                        it.value.deaths > 0, " X"
                     )
                 }.surroundWith(if (spoiler) "||" else "")
             }"
         }.joinToString("\n\n")
     }"
 }
-
-@Serializable
-data class KD(val k: Int, val d: Boolean)
 
 val secureWebJSON = Json {
     ignoreUnknownKeys = false

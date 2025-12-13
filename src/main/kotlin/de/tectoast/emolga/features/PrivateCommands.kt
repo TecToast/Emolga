@@ -414,7 +414,7 @@ object PrivateCommands {
         val league = db.league(args[0])
         league.persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
             league.docEntry!!.analyseWithoutCheck(
-                listOf(replay), withSort = false, realExecute = args[2].toBooleanStrict()
+                replay, withSort = false, realExecute = args[2].toBooleanStrict()
             )
         }
     }

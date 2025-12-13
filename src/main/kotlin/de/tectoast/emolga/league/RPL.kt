@@ -1,9 +1,6 @@
 package de.tectoast.emolga.league
 
-import de.tectoast.emolga.utils.BasicStatProcessor
-import de.tectoast.emolga.utils.DocEntry
-import de.tectoast.emolga.utils.RequestBuilder
-import de.tectoast.emolga.utils.indexedBy
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.records.CoordXMod
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -27,8 +24,8 @@ class RPL : League() {
     @Transient
     override val docEntry = DocEntry.create(this) {
         monsOrder = { list -> list.sortedBy { it.tier.indexedBy(tierlist.order) }.map { it.name } }
-        killProcessor = BasicStatProcessor {
-            plindex.CoordXMod("Kader", 2, 'R' - 'B', 5 + gdi, 19, monindex + 9)
+        +StatProcessor {
+            memIdx.CoordXMod("Kader", 2, 'R' - 'B', 5 + gdi, 19, monindex + 9) to DataTypeForMon.KILLS
         }
     }
 

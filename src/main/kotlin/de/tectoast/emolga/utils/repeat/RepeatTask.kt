@@ -128,7 +128,7 @@ class RepeatTask(
         suspend fun executeRegisterInDoc(league: League, gameday: Int, battle: Int) {
             val dataStore = league.persistentData.replayDataStore
             dataStore.data[gameday]?.get(battle)?.let {
-                league.docEntry?.analyseWithoutCheck(listOf(it))
+                league.docEntry?.analyseWithoutCheck(it)
                 league.save()
             }
                 ?: logger.warn("Register: No replay found for gameday $gameday and battle $battle in ${league.leaguename}")

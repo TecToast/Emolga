@@ -8,7 +8,6 @@ import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.hasRole
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.reverseGet
@@ -99,7 +98,7 @@ object EnterResult {
         )
         val idx1 = league(u)
         val idx2 = league(opponent)
-        val gameday = league.getGamedayData(idx1, idx2, List(2) { DraftPlayer(0, false) }).gameday
+        val gameday = league.getGamedayData(idx1, idx2).first.gameday
         val uuid = ResultCodesDB.add(league.leaguename, gameday, idx1, idx2)
         iData.reply(
             "Bitte trage das Ergebnis auf meiner Website ein:\nhttps://emolga.tectoast.de/result/${uuid}",

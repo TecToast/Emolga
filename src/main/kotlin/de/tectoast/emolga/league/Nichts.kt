@@ -21,8 +21,7 @@ class Nichts(val sheetNames: List<String>) : League() {
                 "Platzierungen!B2:H9", listOf(
                     WINS, WINS / LOSSES, DIFF, KILLS, DirectCompareSortOption()
                 )
-            ),
-            bo3 = true
+            )
         ) {
             b.addRow(
                 gdi.CoordYMod("Spielplan", 4, 6, 4, 6, 6 + index), listOf(numberOne, ":", numberTwo)

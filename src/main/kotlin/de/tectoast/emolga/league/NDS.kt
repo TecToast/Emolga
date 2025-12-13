@@ -92,12 +92,12 @@ class NDS(val rr: Boolean) : League() {
     override val docEntry = DocEntry.create(this) {
         +StatProcessor {
             Coord(
-                "Data", gdi + 7, memIdx * 30 + 3 + monindex
+                "Data", gdi + 7, memIdx * 30 + 3 + monIndex()
             ) to DataTypeForMon.KILLS
         }
         +StatProcessor {
             Coord(
-                "Data", gdi + 19, memIdx * 30 + 3 + monindex
+                "Data", gdi + 19, memIdx * 30 + 3 + monIndex()
             ) to DataTypeForMon.DEATHS
         }
         +StatProcessor {

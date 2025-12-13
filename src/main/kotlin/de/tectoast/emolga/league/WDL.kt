@@ -25,7 +25,7 @@ class WDL : League() {
             Coord(
                 "Kills-${if (isDoubles) "D" else "S"}-Einzeln",
                 memIdx.x(3, 3),
-                gdi.y(14, 23 + monindex)
+                gdi.y(14, 23 + monIndex())
             ) to DataTypeForMon.KILLS
         }
         sorterData = defaultSorter(

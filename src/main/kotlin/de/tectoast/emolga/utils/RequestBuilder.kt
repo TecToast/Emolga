@@ -11,13 +11,16 @@ import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.util.regex.Pattern
 
+interface SimpleRequestBuilder {
+    fun addSingle(range: Coord, body: Any, raw: Boolean = false): SimpleRequestBuilder
+}
 @Suppress("unused")
 class RequestBuilder
 /**
  * Creates a RequestBuilder
  *
  * @param sid The ID of the sheet where the values should be written
- */(val sid: String) {
+ */(val sid: String) : SimpleRequestBuilder {
     private val requests: MutableList<MyRequest> = ArrayList()
     private var executed = false
     private var runnable: (suspend () -> Unit)? = null
@@ -64,7 +67,7 @@ class RequestBuilder
         return addRow(range, listOf(body), raw)
     }
 
-    fun addSingle(range: Coord, body: Any, raw: Boolean = false): RequestBuilder {
+    override fun addSingle(range: Coord, body: Any, raw: Boolean): RequestBuilder {
         return addSingle(range.toString(), body, raw)
     }
 

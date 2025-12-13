@@ -25,7 +25,7 @@ class RPL : League() {
     override val docEntry = DocEntry.create(this) {
         monsOrder = { list -> list.sortedBy { it.tier.indexedBy(tierlist.order) }.map { it.name } }
         +StatProcessor {
-            memIdx.CoordXMod("Kader", 2, 'R' - 'B', 5 + gdi, 19, monindex + 9) to DataTypeForMon.KILLS
+            memIdx.CoordXMod("Kader", 2, 'R' - 'B', 5 + gdi, 19, monIndex() + 9) to DataTypeForMon.KILLS
         }
     }
 

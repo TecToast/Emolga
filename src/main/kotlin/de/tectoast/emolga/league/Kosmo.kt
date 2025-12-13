@@ -18,10 +18,10 @@ class Kosmo : League() {
     @Transient
     override val docEntry = DocEntry.create(this) {
         +StatProcessor {
-            Coord("Teamstatistik", gdi.y(3, 12), memIdx.y(21, monindex + 4)) to DataTypeForMon.KILLS
+            Coord("Teamstatistik", gdi.y(3, 12), memIdx.y(21, monIndex() + 4)) to DataTypeForMon.KILLS
         }
         +StatProcessor {
-            Coord("Teamstatistik", gdi.y(3, 13), memIdx.y(21, monindex + 4)) to DataTypeForMon.DEATHS
+            Coord("Teamstatistik", gdi.y(3, 13), memIdx.y(21, monIndex() + 4)) to DataTypeForMon.DEATHS
         }
 
         resultCreator = {

@@ -2,27 +2,22 @@
 
 package de.tectoast.emolga.utils
 
-import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.LeagueEvent
-import de.tectoast.emolga.utils.json.LeagueEvent.MatchResult
 import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.TableSorter
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 
@@ -72,22 +67,22 @@ class DocEntry private constructor(val league: League) {
         val gap = league.newSystemGap
         +StatProcessor {
             Coord(
-                sheet = dataSheet(memIdx), gdi + 3, memIdx.y(gap, monindex + 3)
+                sheet = dataSheet(memIdx), gdi + 3, memIdx.y(gap, monIndex() + 3)
             ) to DataTypeForMon.KILLS
         }
         +StatProcessor {
             Coord(
-                sheet = dataSheet(memIdx), gdi + 5 + gamedays, memIdx.y(gap, monindex + 3)
+                sheet = dataSheet(memIdx), gdi + 5 + gamedays, memIdx.y(gap, monIndex() + 3)
             ) to DataTypeForMon.DEATHS
         }
         +StatProcessor {
             Coord(
-                sheet = dataSheet(memIdx), gdi + 3, memIdx.y(gap, monindex + 3)
+                sheet = dataSheet(memIdx), gdi + 3, memIdx.y(gap, monIndex() + 3)
             ) to DataTypeForMon.WINS
         }
         +StatProcessor {
             Coord(
-                sheet = dataSheet(memIdx), gdi + 5 + gamedays, memIdx.y(gap, monindex + 3)
+                sheet = dataSheet(memIdx), gdi + 5 + gamedays, memIdx.y(gap, monIndex() + 3)
             ) to DataTypeForMon.LOSSES
         }
         this.resultCreator = resultCreator
@@ -123,111 +118,21 @@ class DocEntry private constructor(val league: League) {
                 gamedayData.gameday, gamedayData.battleindex
             )
         }
-        val uindices = fullGameData.uindices
-        val sortedUindices = uindices.sorted()
-        val matchResultJobs = mutableSetOf<Job>()
         val sid = overrideSid ?: league.sid
         val b = RequestBuilder(sid)
         val customB = customDataSid?.let(::RequestBuilder)
-        val dataB = customB ?: b
-        val monDataProviderCache = MonDataProviderCache(league.guild)
-        val groupedData = mutableMapOf<StatProcessorRetainData, MutableMap<Coord, MonDataProvider>>()
-        val dataEntriesPerUser: List<MutableList<SingleMonData>> = uindices.map { mutableListOf() }
-        for ((matchNum, replayData) in fullGameData.games.withIndex()) {
-            val kd = replayData.kd
-            val (gameday, battleindex) = gamedayData
-            if (cancelIf(fullGameData, gameday)) return
-            if (gameday == -1) return
-            val lookUpIndex = if (uindices[0] == sortedUindices[0]) 0 else 1
-            var totalKills = 0
-            var totalDeaths = 0
-            kd[lookUpIndex].values.forEach {
-                totalKills += it.kills
-                totalDeaths += it.deaths
-            }
-            matchResultJobs += Database.dbScope.launch {
-                ignoreDuplicatesMongo {
-                    db.matchresults.insertOne(
-                        MatchResult(
-                            data = listOf(totalKills, totalDeaths),
-                            indices = sortedUindices,
-                            leaguename = league.leaguename,
-                            gameday = gameday,
-                            matchNum = matchNum,
-                            timestamp = Clock.System.now()
-                        )
-                    )
-                }
-            }
-
-            val picks = league.providePicksForGameday(gameday)
-            for ((i, idx) in uindices.withIndex()) {
-                if (idx in picks) {
-                    val monsInOrder = monsOrder(picks[idx]!!)
-                    for ((iterationIndex, tuple) in kd[i].entries.withIndex()) {
-                        val (mon, _) = tuple
-                        val monIndex = monsInOrder.indexOfFirst {
-                            it == mon
-                        }
-                        if (monIndex == -1) {
-                            logger.warn("Mon $mon not found in picks of $idx")
-                            continue
-                        }
-                        val monData = buildMap {
-                            for (processor in statProcessors) {
-                                val statProcessorData = StatProcessorData(
-                                    memIdx = idx,
-                                    gdi = gameday - 1,
-                                    battleindex = battleindex,
-                                    indexInBattle = i,
-                                    matchNum = matchNum,
-                                    monindex = monIndex,
-                                    monIterationIndex = iterationIndex
-                                )
-                                with(processor) {
-                                    val (coord, provider) = statProcessorData.process()
-                                    if (provider !in this@buildMap) {
-                                        val value = provider.provideData(
-                                            fullGameData, statProcessorData, monDataProviderCache
-                                        )
-                                        this@buildMap[provider] = value
-                                    }
-                                    groupedData.getOrPut(statProcessorData.retainData) { mutableMapOf() }[coord] =
-                                        provider
-                                }
-                            }
-                        }
-                        dataEntriesPerUser[i] += SingleMonData(
-                            official = mon, matchNum = matchNum, monIndex = monIndex, data = monData
-                        )
-                    }
-                }
-            }
-        }
-        for (dataEntries in dataEntriesPerUser) {
-            for ((retainData, coordMap) in groupedData) {
-                val monGroupedData = dataEntries.groupBy { entry ->
-                    listOf(
-                        if (retainData.game) entry.matchNum else -1, if (retainData.pokemon) entry.monIndex else -1
-                    )
-                }
-                for ((_, relevantEntries) in monGroupedData) {
-                    val result = if (relevantEntries.size > 1) {
-                        val accumulator = mutableMapOf<MonDataProvider, Int>()
-                        for (provider in coordMap.values.toSet()) {
-                            if (provider.accumulatePerGame) {
-                                accumulator[provider] =
-                                    relevantEntries.groupBy { it.matchNum }.values.sumOf { entriesPerGame -> entriesPerGame.first().data[provider] as Int }
-                            } else {
-                                accumulator[provider] = relevantEntries.sumOf { it.data[provider] as Int }
-                            }
-                        }
-                        accumulator
-                    } else relevantEntries.first().data
-                    for ((coord, provider) in coordMap) {
-                        dataB.addSingle(coord, result[provider]!!)
-                    }
-                }
+        val uindices = fullGameData.uindices
+        val matchResultJobs = StatProcessorService.execute(
+            NameConventionsProviderCache(league.guild),
+            customB ?: b,
+            fullGameData,
+            league.leaguename,
+            league.providePicksForGameday(gamedayData.gameday),
+            monsOrder,
+            statProcessors
+        ) {
+            ignoreDuplicatesMongo {
+                db.matchresults.insertOne(it)
             }
         }
         val (gameday, battleindex) = gamedayData
@@ -335,11 +240,12 @@ class StatProcessorData {
     val battleindex: Int
     val indexInBattle: Int
     val matchNum: Int
-        get() = field.also { retainData.game = true }
-    val monindex: Int
-        get() = field.also { retainData.pokemon = true }
+    val monIndex: Int
     val monIterationIndex: Int
-        get() = field.also { retainData.pokemon = true }
+
+    fun matchNum() = matchNum.also { retainData.game = true }
+    fun monIndex() = monIndex.also { retainData.pokemon = true }
+    fun monIterationIndex() = monIterationIndex.also { retainData.pokemon = true }
 
     val retainData = StatProcessorRetainData()
 
@@ -357,7 +263,7 @@ class StatProcessorData {
         this.battleindex = battleindex
         this.indexInBattle = indexInBattle
         this.matchNum = matchNum
-        this.monindex = monindex
+        this.monIndex = monindex
         this.monIterationIndex = monIterationIndex
     }
 }
@@ -374,8 +280,15 @@ interface MonDataProvider {
     val accumulatePerGame: Boolean get() = false
 }
 
-data class MonDataProviderCache(val gid: Long, val officialTlCache: MutableMap<String, String> = mutableMapOf()) {
-    suspend fun getTLName(official: String): String {
+interface MonDataProviderCache {
+    suspend fun getTLName(official: String): String
+}
+
+data class NameConventionsProviderCache(
+    val gid: Long,
+    val officialTlCache: MutableMap<String, String> = mutableMapOf()
+) : MonDataProviderCache {
+    override suspend fun getTLName(official: String): String {
         return officialTlCache.getOrPut(official) {
             NameConventionsDB.convertOfficialToTL(official, gid)
                 ?: error("No TL name found for $official in guild $gid") // TODO: better error handling

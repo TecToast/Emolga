@@ -12,17 +12,17 @@ object RWithGuild {
 
         class Args : Arguments() {
             var guild by long("gid", "gid")
-            var url by string("url", "url")
+            var urls by list("url", "url", numOfArgs = 3, requiredNum = 1)
         }
 
         context(iData: InteractionData) override suspend fun exec(e: Args) {
-            val url = e.url
+            val url = e.urls.first()
             if (url == "-") {
                 return iData.replyModal(Modal())
             }
             iData.deferReply()
             Analysis.analyseReplay(
-                url,
+                e.urls,
                 resultchannelParam = iData.textChannel,
                 customGuild = e.guild,
                 fromReplayCommand = iData

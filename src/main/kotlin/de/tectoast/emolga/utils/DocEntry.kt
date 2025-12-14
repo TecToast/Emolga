@@ -234,13 +234,23 @@ fun interface StatProcessor {
 
 data class StatProcessorRetainData(var pokemon: Boolean = false, var game: Boolean = false)
 
+@RequiresOptIn
+annotation class DocEntryInternal
+
+@OptIn(DocEntryInternal::class)
 class StatProcessorData {
     val memIdx: Int
     val gdi: Int
     val battleindex: Int
     val indexInBattle: Int
+
+    @DocEntryInternal
     val matchNum: Int
+
+    @DocEntryInternal
     val monIndex: Int
+
+    @DocEntryInternal
     val monIterationIndex: Int
 
     fun matchNum() = matchNum.also { retainData.game = true }
@@ -296,6 +306,7 @@ data class NameConventionsProviderCache(
     }
 }
 
+@OptIn(DocEntryInternal::class)
 enum class DataTypeForMon : MonDataProvider {
     KILLS {
         override suspend fun provideData(
@@ -368,7 +379,6 @@ enum class DataTypeForMon : MonDataProvider {
             looses++
         }
         return wins to looses
-
     }
 }
 

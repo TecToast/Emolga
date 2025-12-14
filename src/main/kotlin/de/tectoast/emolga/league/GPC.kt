@@ -15,13 +15,13 @@ class GPC(val teams: List<String>) : League() {
     @Transient
     override val docEntry = DocEntry.create(this) {
         +StatProcessor {
-            gdi.CoordXMod(teams[memIdx], 3, 4, 17, 9, 4 + monIterationIndex) to DataTypeForMon.MONNAME
+            gdi.CoordXMod(teams[memIdx], 3, 4, 17, 9, 4 + monIterationIndex()) to DataTypeForMon.MONNAME
         }
         +StatProcessor {
-            gdi.CoordXMod(teams[memIdx], 3, 4, 18, 9, 4 + monIterationIndex) to DataTypeForMon.KILLS
+            gdi.CoordXMod(teams[memIdx], 3, 4, 18, 9, 4 + monIterationIndex()) to DataTypeForMon.KILLS
         }
         +StatProcessor {
-            gdi.CoordXMod(teams[memIdx], 3, 4, 19, 9, 4 + monIterationIndex) to DataTypeForMon.DEATHS
+            gdi.CoordXMod(teams[memIdx], 3, 4, 19, 9, 4 + monIterationIndex()) to DataTypeForMon.DEATHS
         }
         resultCreator = {
             b.addSingle(gdi.coordXMod("Gruppen-Spielplan", 3, 5, 3, 9, 4 + index), defaultGameplanStringWithoutUrl)

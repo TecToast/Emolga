@@ -2,15 +2,18 @@
 
 package de.tectoast.emolga.database.exposed
 
+import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.httpClient
 import de.tectoast.emolga.utils.showdown.Analysis
+import de.tectoast.emolga.utils.showdown.AnalysisEvents
 import de.tectoast.emolga.utils.showdown.BattleContext
-import de.tectoast.emolga.utils.showdown.SDPlayer
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.ReferenceOption
@@ -36,6 +39,8 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
 
     companion object {
 
+        val lastEventsCache = SizeLimitedMap<String, AnalysisEvents>(10)
+
         suspend fun getCurrentAmountOfReplays() = dbTransaction {
             Start.selectAll().count()
         }
@@ -47,10 +52,17 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
                     it.draftname = Analysis.getMonName(it.pokemon, Constants.G.MY)
                 }
             }
-            addToStatistics(game, ctx)
+            addToStatisticsSync(ctx)
         }
 
-        suspend fun addToStatistics(game: List<SDPlayer>, ctx: BattleContext) {
+        fun addToStatisticsSync(ctx: BattleContext) {
+            lastEventsCache[ctx.url] = ctx.events
+            Database.dbScope.launch {
+                addToStatistics(ctx)
+            }
+        }
+
+        suspend fun addToStatistics(ctx: BattleContext) {
             dbTransaction {
                 val events = ctx.events
                 val replayId = ctx.url.substringAfterLast("/")
@@ -115,9 +127,9 @@ abstract class AnalysisStatistics(type: String) : Table("st_$type") {
                     this[Status.TARGETPLAYER] = it.target.player
                     this[Status.STATUS] = it.status
                 }
-                Win.batchInsert(game.flatMap { p ->
-                    val isWinner = p.winnerOfGame
-                    p.pokemon.mapNotNull { mon ->
+                Win.batchInsert(events.winLoss.flatMap { data ->
+                    val isWinner = data.win
+                    data.mons.mapNotNull { mon ->
                         if (mon.draftname.otherOfficial == null) return@mapNotNull null
                         mon to isWinner
                     }

@@ -171,8 +171,8 @@ object Analysis {
                 resultChannel.sendMessage(description).queue()
             }
 
+            AnalysisStatistics.addToStatisticsSync(ctx)
             Database.dbScope.launch {
-                AnalysisStatistics.addToStatistics(game, ctx)
                 EmolgaMain.updatePresence()
             }
             var shouldSendZoro = false

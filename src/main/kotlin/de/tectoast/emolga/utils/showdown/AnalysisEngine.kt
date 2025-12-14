@@ -3,7 +3,6 @@ package de.tectoast.emolga.utils.showdown
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.SwitchType
-import de.tectoast.emolga.utils.draft.DraftPlayer
 import de.tectoast.emolga.utils.showdown.PokemonSaveKey.*
 import de.tectoast.emolga.utils.toUsername
 import mu.KotlinLogging
@@ -56,7 +55,7 @@ data class SDPokemon(
     }
 
     context(context: BattleContext) fun claimDamage(
-        damagedMonArg: SDPokemon, fainted: Boolean, amount: Int, by: String, activeKill: Boolean = false
+        damagedMonArg: SDPokemon, fainted: Boolean, amount: Int, by: String, activeDamage: Boolean = false
     ) {
         val claimer = this.withZoroCheck()
         val damagedMon = damagedMonArg.withZoroCheck()
@@ -67,7 +66,7 @@ data class SDPokemon(
                     field.getOrElse(1 - idx) { field[idx] }
                 })
             } else claimer
-            killGetter?.addKill(activeKill)
+            killGetter?.addKill(activeDamage)
         }
         if (damagedMon.player != claimer.player) damagedMon[LAST_DAMAGE_BY] = claimer
         damagedMon.hp -= amount
@@ -79,7 +78,8 @@ data class SDPokemon(
             target = damagedMon,
             by = by.substringAfter(":").trim(),
             percent = amount,
-            faint = fainted
+            faint = fainted,
+            active = activeDamage
         )
     }
 
@@ -334,7 +334,7 @@ sealed class SDEffect(vararg val types: String) {
                 }
                 // TODO: Future Moves work in FFA
                 context.lastMoveUser.value.parsePokemon()
-                    .claimDamage(damagedMon, fainted, amount, context.lastMoveUsed.value, activeKill = true)
+                    .claimDamage(damagedMon, fainted, amount, context.lastMoveUsed.value, activeDamage = true)
             }
         }
     }
@@ -569,7 +569,11 @@ sealed class SDEffect(vararg val types: String) {
 
     data object Win : SDEffect("win") {
         context(context: BattleContext) override fun execute(split: List<String>) {
-            context.sdPlayers.first { it.nickname.toUsername() == split[1].toUsername() }.winnerOfGame = true
+            val indexOfWinner = context.sdPlayers.indexOfFirst { it.nickname.toUsername() == split[1].toUsername() }
+            context.sdPlayers[indexOfWinner].winnerOfGame = true
+            for (i in context.sdPlayers.indices) {
+                context.events.winLoss += AnalysisWinLoss(i, i == indexOfWinner, context.sdPlayers[i].pokemon)
+            }
         }
     }
 
@@ -653,7 +657,8 @@ data class AnalysisEvents(
     val switch: MutableList<AnalysisSwitch> = mutableListOf(),
     val status: MutableList<AnalysisStatus> = mutableListOf(),
     val turn: MutableList<AnalysisTurn> = mutableListOf(),
-    val time: MutableList<AnalysisTime> = mutableListOf()
+    val time: MutableList<AnalysisTime> = mutableListOf(),
+    val winLoss: MutableList<AnalysisWinLoss> = mutableListOf()
 )
 
 interface AnalysisStatistic {
@@ -670,7 +675,8 @@ data class AnalysisDamage(
     val target: SDPokemon,
     val by: String,
     val percent: Int,
-    val faint: Boolean
+    val faint: Boolean,
+    val active: Boolean,
 ) : AnalysisStatistic
 
 data class AnalysisHeal(
@@ -690,6 +696,7 @@ data class AnalysisSwitch(override val row: Int, val pokemon: SDPokemon, val typ
 
 data class AnalysisTurn(override val row: Int, val turn: Int) : AnalysisStatistic
 data class AnalysisTime(override val row: Int, val timestamp: Long) : AnalysisStatistic
+data class AnalysisWinLoss(val indexInBattle: Int, val win: Boolean, val mons: List<SDPokemon>)
 
 class SDPlayer(
     val nickname: String,

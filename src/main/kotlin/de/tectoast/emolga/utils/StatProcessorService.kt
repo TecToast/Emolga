@@ -15,7 +15,7 @@ private val logger = KotlinLogging.logger {}
 object StatProcessorService {
     @OptIn(ExperimentalTime::class)
     suspend fun execute(
-        monDataProviderCache: MonDataProviderCache,
+        additionalDataProvider: AdditionalDataProvider,
         b: SimpleRequestBuilder,
         fullGameData: FullGameData,
         leaguename: String,
@@ -82,7 +82,7 @@ object StatProcessorService {
                                     val (coord, provider) = statProcessorData.process()
                                     if (provider !in this@buildMap) {
                                         val value = provider.provideData(
-                                            fullGameData, statProcessorData, monDataProviderCache
+                                            fullGameData, statProcessorData, additionalDataProvider
                                         )
                                         this@buildMap[provider] = value
                                     }

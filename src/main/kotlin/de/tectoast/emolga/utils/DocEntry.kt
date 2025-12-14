@@ -2,7 +2,9 @@
 
 package de.tectoast.emolga.utils
 
+import de.tectoast.emolga.database.exposed.AnalysisStatistics
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.SwitchType
 import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
@@ -14,10 +16,12 @@ import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.TableSorter
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
+import de.tectoast.emolga.utils.showdown.AnalysisEvents
 import kotlinx.coroutines.joinAll
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
+import java.util.*
 import kotlin.time.ExperimentalTime
 
 
@@ -127,7 +131,7 @@ class DocEntry private constructor(val league: League) {
         val customB = customDataSid?.let(::RequestBuilder)
         val uindices = fullGameData.uindices
         val matchResultJobs = StatProcessorService.execute(
-            NameConventionsProviderCache(league.guild),
+            AdditionalDataProvider(NameConventionsProviderCache(league.guild), BuiltInAnalysisProvider),
             customB ?: b,
             fullGameData,
             league.leaguename,
@@ -288,24 +292,49 @@ data class SingleMonData(
 
 interface MonDataProvider {
     suspend fun provideData(
-        fullGameData: FullGameData, statProcessorData: StatProcessorData, cache: MonDataProviderCache
+        fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
     ): Any
 
     val accumulatePerGame: Boolean get() = false
 }
 
+data class AdditionalDataProvider(
+    val monDataProviderCache: MonDataProviderCache,
+    val analysisProvider: AnalysisProvider,
+)
+
 interface MonDataProviderCache {
     suspend fun getTLName(official: String): String
+    suspend fun getOfficialEnglishName(official: String): String
+}
+
+interface AnalysisProvider {
+    fun getEvents(replayData: ReplayData): AnalysisEvents
+}
+
+object BuiltInAnalysisProvider : AnalysisProvider {
+    override fun getEvents(replayData: ReplayData): AnalysisEvents {
+        return AnalysisStatistics.lastEventsCache[replayData.url]
+            ?: error("No analysis events found for replay ${replayData.url}") // TODO: better error handling
+    }
 }
 
 data class NameConventionsProviderCache(
     val gid: Long,
-    val officialTlCache: MutableMap<String, String> = mutableMapOf()
+    val officialTlCache: MutableMap<String, String> = mutableMapOf(),
+    val officialEnCache: MutableMap<String, String> = mutableMapOf(),
 ) : MonDataProviderCache {
     override suspend fun getTLName(official: String): String {
         return officialTlCache.getOrPut(official) {
             NameConventionsDB.convertOfficialToTL(official, gid)
                 ?: error("No TL name found for $official in guild $gid") // TODO: better error handling
+        }
+    }
+
+    override suspend fun getOfficialEnglishName(official: String): String {
+        return officialEnCache.getOrPut(official) {
+            NameConventionsDB.getSDTranslation(official, gid, english = true)?.official
+                ?: error("No English name found for $official in guild $gid") // TODO: better error handling
         }
     }
 }
@@ -314,56 +343,118 @@ data class NameConventionsProviderCache(
 enum class DataTypeForMon : MonDataProvider {
     KILLS {
         override suspend fun provideData(
-            fullGameData: FullGameData, statProcessorData: StatProcessorData, cache: MonDataProviderCache
+            fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
         ) = fullGameData.getKD(statProcessorData).kills
     },
     DEATHS {
         override suspend fun provideData(
-            fullGameData: FullGameData, statProcessorData: StatProcessorData, cache: MonDataProviderCache
+            fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
         ) = fullGameData.getKD(statProcessorData).deaths
     },
     WINS {
         override suspend fun provideData(
-            fullGameData: FullGameData, statProcessorData: StatProcessorData, cache: MonDataProviderCache
+            fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
         ) = fullGameData.getWinsLosses(statProcessorData).first
 
         override val accumulatePerGame = true
     },
     LOSSES {
         override suspend fun provideData(
-            fullGameData: FullGameData, statProcessorData: StatProcessorData, cache: MonDataProviderCache
+            fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
         ) = fullGameData.getWinsLosses(statProcessorData).second
 
         override val accumulatePerGame = true
     },
     MONNAME {
         override suspend fun provideData(
-            fullGameData: FullGameData, statProcessorData: StatProcessorData, cache: MonDataProviderCache
-        ) = cache.getTLName(
+            fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
+        ) = provider.monDataProviderCache.getTLName(
             fullGameData.getNameKDEntry(statProcessorData).key
         )
     },
     DAMAGE_DIRECT {
         override suspend fun provideData(
-            fullGameData: FullGameData, statProcessorData: StatProcessorData, cache: MonDataProviderCache
-        ): Any {
-            TODO("Not yet implemented")
-        }
+            fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
+        ) = fullGameData.getDamageDealt(statProcessorData, provider, active = true)
     },
     DAMAGE_INDIRECT {
         override suspend fun provideData(
-            fullGameData: FullGameData, statProcessorData: StatProcessorData, cache: MonDataProviderCache
-        ): Any {
-            TODO("Not yet implemented")
-        }
+            fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
+        ) = fullGameData.getDamageDealt(statProcessorData, provider, active = false)
+    },
+    DAMAGE_TAKEN {
+        override suspend fun provideData(
+            fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
+        ) = fullGameData.getDamageTaken(statProcessorData, provider)
     },
     TURNS {
         override suspend fun provideData(
-            fullGameData: FullGameData, statProcessorData: StatProcessorData, cache: MonDataProviderCache
-        ): Any {
-            TODO("Not yet implemented")
-        }
+            fullGameData: FullGameData, statProcessorData: StatProcessorData, provider: AdditionalDataProvider
+        ) = fullGameData.getActiveTurns(statProcessorData, provider)
     };
+
+    private data class StatisticSource(val events: AnalysisEvents, val englishOfficial: String, val indexInData: Int)
+
+    private suspend fun FullGameData.getStatisticSource(
+        data: StatProcessorData, provider: AdditionalDataProvider
+    ): StatisticSource {
+        val replayData = games[data.matchNum]
+        val events = provider.analysisProvider.getEvents(replayData)
+        val winnerInSDBattle = events.winLoss.first { it.win }.indexInBattle
+        val winnerInReplayData = replayData.winnerIndex
+        val indexInData = if (winnerInSDBattle == winnerInReplayData) {
+            data.indexInBattle
+        } else {
+            1 - data.indexInBattle
+        }
+        val englishOfficial = provider.monDataProviderCache.getOfficialEnglishName(getNameKDEntry(data).key)
+        return StatisticSource(events, englishOfficial, indexInData)
+    }
+
+    suspend fun FullGameData.getActiveTurns(data: StatProcessorData, provider: AdditionalDataProvider): Int {
+        val (events, englishOfficial, indexInData) = getStatisticSource(data, provider)
+        val allSwitchOutRowsOfPlayer =
+            events.switch.filter { it.pokemon.player == indexInData && it.type == SwitchType.OUT }
+                .mapTo(mutableSetOf()) { it.row }
+        val allSwitches =
+            events.switch.filter { it.pokemon.player == indexInData && it.pokemon.draftname.otherOfficial == englishOfficial }
+        val (switchIns, switchOuts) = allSwitches.partition { it.type == SwitchType.IN }
+        val faint = events.damage.firstOrNull {
+            it.target.player == indexInData && it.target.draftname.otherOfficial == englishOfficial && it.faint
+        }?.row ?: Int.MAX_VALUE
+        val turns = events.turn.associateTo(TreeMap()) { it.row to it.turn }
+        var turnCount = 0
+        for (switch in switchIns) {
+            var startTurn = turns.floorEntry(switch.row)?.value ?: 0
+            if (switch.row !in allSwitchOutRowsOfPlayer) {
+                startTurn++
+            }
+            val matchingSwitchOut = switchOuts.firstOrNull { it.row > switch.row }
+            val endRow = matchingSwitchOut?.row ?: faint
+            var endTurn = turns.floorEntry(endRow)?.value ?: 1
+            if (matchingSwitchOut?.from != "Switch") {
+                endTurn++
+            }
+            turnCount += (endTurn - startTurn).coerceAtLeast(0)
+        }
+        return turnCount
+    }
+
+    suspend fun FullGameData.getDamageDealt(
+        data: StatProcessorData,
+        provider: AdditionalDataProvider,
+        active: Boolean
+    ): Int {
+        val (events, englishOfficial, indexInData) = getStatisticSource(data, provider)
+        return events.damage.filter { it.source.player == indexInData && it.target.player != indexInData && it.source.draftname.otherOfficial == englishOfficial && it.active == active }
+            .sumOf { it.percent }
+    }
+
+    suspend fun FullGameData.getDamageTaken(data: StatProcessorData, provider: AdditionalDataProvider): Int {
+        val (events, englishOfficial, indexInData) = getStatisticSource(data, provider)
+        return events.damage.filter { it.target.player == indexInData && it.target.draftname.otherOfficial == englishOfficial }
+            .sumOf { it.percent }
+    }
 
     fun FullGameData.getKD(data: StatProcessorData): KD {
         return getNameKDEntry(data).value

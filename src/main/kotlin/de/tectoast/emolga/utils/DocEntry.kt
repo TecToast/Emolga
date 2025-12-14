@@ -85,12 +85,12 @@ class DocEntry private constructor(val league: League) {
         }
         +StatProcessor {
             Coord(
-                sheet = dataSheet(memIdx), gdi + 3, memIdx.y(gap, monIndex() + 3)
+                sheet = dataSheet(memIdx), gdi + 3, memIdx.y(gap, gap)
             ) to DataTypeForMon.WINS
         }
         +StatProcessor {
             Coord(
-                sheet = dataSheet(memIdx), gdi + 5 + gamedays, memIdx.y(gap, monIndex() + 3)
+                sheet = dataSheet(memIdx), gdi + 5 + gamedays, memIdx.y(gap, gap)
             ) to DataTypeForMon.LOSSES
         }
         this.resultCreator = resultCreator

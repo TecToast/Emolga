@@ -112,6 +112,13 @@ class TierlistBuilderConfigurator(
                 selectAll().where(GERMAN eq name).firstOrNull()
             }
         } ?: throw InvalidArgumentException("Dieser Name entspricht nicht meinen Konventionen!")
+        dbTransaction {
+            NameConventionsDB.run {
+                selectAll().where(GUILD eq guildId and (GERMAN eq name)).firstOrNull()
+            }
+        }?.let {
+            throw InvalidArgumentException("${it[NameConventionsDB.SPECIFIED]} steht bereits für ${name}!")
+        }
         NameConventionsDB.addName(mons[index], name, guildId, language)
         deferReply().queue()
         test(this, options)

@@ -2,6 +2,7 @@
 
 package de.tectoast.emolga.utils
 
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.AnalysisStatistics
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.SwitchType
@@ -17,6 +18,9 @@ import de.tectoast.emolga.utils.records.TableSorter
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
 import de.tectoast.emolga.utils.showdown.AnalysisEvents
+import dev.minn.jda.ktx.messages.MessageCreate
+import dev.minn.jda.ktx.messages.into
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.joinAll
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -97,14 +101,31 @@ class DocEntry private constructor(val league: League) {
     suspend fun analyse(fullGameData: FullGameData, withSort: Boolean = true) {
         val config = league.config
         val store = config.replayDataStore
-        if (store != null) {
+        if (store != null || config.hideGames != null) {
             league.storeFullGameData(fullGameData)
             league.save()
             spoilerDocSid?.let { analyseWithoutCheck(fullGameData, withSort, overrideSid = it) }
             val gameday = fullGameData.gamedayData.gameday
-            val currentDay = RepeatTask.getTask(league.leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfWeek()
-                ?: Int.MAX_VALUE
-            if (currentDay <= gameday) return
+            if (store != null) {
+                val currentDay =
+                    RepeatTask.getTask(league.leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfWeek()
+                        ?: Int.MAX_VALUE
+                if (currentDay <= gameday) return
+            } else {
+                val hideGames = config.hideGames!!
+                if (gameday in hideGames.gamedays) {
+                    val dataForGameday = league.persistentData.replayDataStore.data[gameday]!!
+                    if (dataForGameday.size == league.battleorder[gameday]!!.size) {
+                        dataForGameday.entries.sortedBy { entry -> entry.key }.forEach { (_, fullGameData) ->
+                            analyseWithoutCheck(fullGameData, withSort = false)
+                            fullGameData.sendInto(hideGames.replayChannel, hideGames.resultChannel, league)
+                        }
+                        delay(3000)
+                        sort(true)
+                    }
+                    return
+                }
+            }
         } else if (config.triggers.saveReplayData) {
             league.storeFullGameData(fullGameData)
             league.save()
@@ -492,6 +513,25 @@ data class FullGameData(
             league.executeYoutubeSend(
                 sendChannel, gamedayData.gameday, gamedayData.battleindex, VideoProvideStrategy.Subscribe(ytSave)
             )
+        }
+    }
+
+    suspend fun sendInto(replayChannel: Long, resultChannel: Long, league: League) {
+        val replay by lazy { jda.getTextChannelById(replayChannel)!! }
+        val result = jda.getTextChannelById(resultChannel)!!
+        val gameday = gamedayData.gameday
+        val fullGameData = this
+        for (game in games) {
+            if (game.url.startsWith("https")) {
+                val tosend = MessageCreate(
+                    content = game.url,
+                    embeds = league.appendedEmbed(null, uindices, gameday).build().into()
+                )
+                replay.sendMessage(tosend).queue()
+            }
+            with(league) {
+                result.sendResultEntryMessage(gameday, ResultEntryDescription.Bo3(fullGameData))
+            }
         }
     }
 }

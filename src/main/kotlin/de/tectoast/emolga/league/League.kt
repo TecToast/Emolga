@@ -19,7 +19,6 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.json.Config
-import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.enableYTForGame
@@ -822,14 +821,16 @@ sealed class League {
     open fun provideReplayChannel(jda: JDA): TextChannel? = null
     open fun provideResultChannel(jda: JDA): TextChannel? = null
 
-    open fun appendedEmbed(data: AnalysisData, league: LeagueResult, gdData: GamedayData) = EmbedBuilder {
-        val game = data.game
-        val p1 = game[0].nickname
-        val p2 = game[1].nickname
-        title = "${data.ctx.format} replay: $p1 vs. $p2"
-        url = data.ctx.url.takeIf { it.length > 10 } ?: "https://example.org"
+    open fun appendedEmbed(data: AnalysisData?, uindices: List<Int>, gameday: Int) = EmbedBuilder {
+        data?.let {
+            val game = it.game
+            val p1 = game[0].nickname
+            val p2 = game[1].nickname
+            title = "${it.ctx.format} replay: $p1 vs. $p2"
+            url = it.ctx.url.takeIf { it.length > 10 } ?: "https://example.org"
+        }
         description =
-            "Spieltag ${gdData.gameday.takeIf { it >= 0 } ?: "-"}: " + league.uindices.joinToString(" vs. ") { "<@${this@League[it]}>" }
+            "Spieltag ${gameday.takeIf { it >= 0 } ?: "-"}: " + uindices.joinToString(" vs. ") { "<@${this@League[it]}>" }
     }
 
 

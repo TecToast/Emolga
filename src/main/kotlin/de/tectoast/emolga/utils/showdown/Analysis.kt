@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
+import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.seconds
 
 object Analysis {
@@ -159,43 +160,59 @@ object Analysis {
             val gamedayDataPair = league?.getGamedayData(uindices!![0], uindices[1])
             val tosend = MessageCreate(
                 content = url,
-                embeds = league?.appendedEmbed(data, leaguedata, gamedayDataPair!!.first)?.build()?.into().orEmpty()
+                embeds = league?.appendedEmbed(data, leaguedata.uindices, gamedayDataPair!!.first.gameday)?.build()
+                    ?.into().orEmpty()
             )
-            replayChannel?.sendMessage(tosend)?.queue()
-            fromReplayCommand?.reply(msgCreateData = tosend)
-            val dontTranslate = dontTranslateFromReplayServer || EnglishResultsDB.contains(gid)
-            val description = generateDescription(game, spoiler, leaguedata, ctx, dontTranslate)
-            if (league != null) {
-                resultChannel.sendMessageEmbeds(Embed(description = description)).queue()
+            val gameday = gamedayDataPair?.first?.gameday
+            val shouldntSend = gameday != null && league.config.hideGames?.gamedays?.contains(gameday) == true
+            if (shouldntSend) {
+                send("Kampf wurde gespeichert :)")
+                fromReplayCommand?.hook?.deleteOriginal()?.queueAfter(3, TimeUnit.SECONDS)
+                with(league) {
+                    (fromReplayCommand?.messageChannel ?: replayChannel)!!.sendResultEntryMessage(
+                        gameday,
+                        ResultEntryDescription.MatchPresent(
+                            uindices.reversedIf(gamedayDataPair.second).map { this[it] })
+                    )
+                }
             } else {
-                resultChannel.sendMessage(description).queue()
+                replayChannel?.sendMessage(tosend)?.queue()
+                fromReplayCommand?.reply(msgCreateData = tosend)
+                val dontTranslate = dontTranslateFromReplayServer || EnglishResultsDB.contains(gid)
+                val description = generateDescription(game, spoiler, leaguedata, ctx, dontTranslate)
+                if (league != null) {
+                    resultChannel.sendMessageEmbeds(Embed(description = description)).queue()
+                } else {
+                    resultChannel.sendMessage(description).queue()
+                }
+                var shouldSendZoro = false
+                for (ga in game) {
+                    if (ga.containsZoro()) {
+                        resultchannelParam.sendMessage(
+                            "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
+                        ).queue()
+                        shouldSendZoro = true
+                    }
+                }
+                if (shouldSendZoro) {
+                    jda.getTextChannelById(1016636599305515018)!!.sendMessage(url).queue()
+                }
+                if (gid != Constants.G.MY && game.indices.fold(0 to 0) { old, i ->
+                        val (kills, deaths) = game[i].totalKDCount
+                        (old.first + kills) to (old.second + deaths)
+                    }.let { it.first != it.second }) {
+                    resultchannelParam.send(
+                        "Die Kills und Tode stimmen nicht überein." + (if (shouldSendZoro) " Dies liegt wahrscheinlich an Zoroark." else " Dies liegt sehr wahrscheinlich an einem Bug in meiner Analyse.") + " Bitte überprüfe selbst, wo der Fehler liegt. Mein Programmierer wurde benachrichtigt."
+                    ).queue()
+                    SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
+                }
             }
 
             AnalysisStatistics.addToStatisticsSync(ctx)
             Database.dbScope.launch {
                 EmolgaMain.updatePresence()
             }
-            var shouldSendZoro = false
-            for (ga in game) {
-                if (ga.containsZoro()) {
-                    resultchannelParam.sendMessage(
-                        "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
-                    ).queue()
-                    shouldSendZoro = true
-                }
-            }
-            if (shouldSendZoro) {
-                jda.getTextChannelById(1016636599305515018)!!.sendMessage(url).queue()
-            }
-            if (gid != Constants.G.MY && game.indices.fold(0 to 0) { old, i ->
-                    val (kills, deaths) = game[i].totalKDCount
-                    (old.first + kills) to (old.second + deaths)
-                }.let { it.first != it.second }) {
-                resultchannelParam.send(
-                    "Die Kills und Tode stimmen nicht überein." + (if (shouldSendZoro) " Dies liegt wahrscheinlich an Zoroark." else " Dies liegt sehr wahrscheinlich an einem Bug in meiner Analyse.") + " Bitte überprüfe selbst, wo der Fehler liegt. Mein Programmierer wurde benachrichtigt."
-                ).queue()
-                SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
-            }
+
             logger.info("In Emolga Listener!")
             if (leaguedata != null) {
                 val gameInGameplanOrder = game.reversedIf(gamedayDataPair!!.second)

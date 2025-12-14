@@ -112,6 +112,10 @@ class DocEntry private constructor(val league: League) {
         fullGameData: FullGameData, withSort: Boolean = true, realExecute: Boolean = true, overrideSid: String? = null
     ) {
         if (fullGameData.games.isEmpty()) return
+        if (fullGameData.games.any { game -> game.kd.size != 2 }) {
+            logger.warn("Skipping analysis for league ${league.leaguename} gameday ${fullGameData.gamedayData.gameday} battle ${fullGameData.gamedayData.battleindex} due to invalid game data. (Not 1v1 games)")
+            return
+        }
         val gamedayData = fullGameData.gamedayData
         league.config.tipgame?.let { _ ->
             league.executeTipGameLockButtonsIndividual(

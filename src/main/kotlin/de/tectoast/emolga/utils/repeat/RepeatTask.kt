@@ -122,7 +122,7 @@ class RepeatTask(
             val dataStore = league.persistentData.replayDataStore
             dataStore.data[gameday]?.get(battle)?.let {
                 if (league.config.youtube != null) it.ytVideoSaveData.enabled = true
-            } ?: logger.warn("YT: No replay found for gameday $gameday and battle $battle in ${league.leaguename}")
+            } ?: logger.info("YT: No replay found for gameday $gameday and battle $battle in ${league.leaguename}")
         }
 
         suspend fun executeRegisterInDoc(league: League, gameday: Int, battle: Int) {
@@ -131,7 +131,7 @@ class RepeatTask(
                 league.docEntry?.analyseWithoutCheck(it)
                 league.save()
             }
-                ?: logger.warn("Register: No replay found for gameday $gameday and battle $battle in ${league.leaguename}")
+                ?: logger.info("Register: No replay found for gameday $gameday and battle $battle in ${league.leaguename}")
         }
     }
 }

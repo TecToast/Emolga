@@ -29,7 +29,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
         var tierlistsheet by string("Tierlist-Sheet", "Der Name des Tierlist-Sheets")
         var ranges by list("Bereich %s", "Der %s. Bereich", 10, 1)
         var complexSign by string("Komplexsymbol", "Das Symbol für Komplexbanns").nullable()
-        var tlIdentifier by string("TL-Identifier", "Der Identifier für die Tierlist").nullable()
+        var tlIdentifier by string("TL-Identifier", "Der Identifier für die Tierlist").default("")
         var shiftMode by enumBasic<ShiftMode>("Shift-Mode", "Der Shift-Mode").nullable()
         var shiftData by string("Shift-Data", "Die Shift-Data").nullable()
         var dataMapper by enumBasic<DataMapper>("DataMapper", "Der potenzielle DataMapper").nullable()

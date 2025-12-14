@@ -23,7 +23,7 @@ import org.litote.kmongo.eq
 
 @Suppress("unused")
 @Serializable
-class Tierlist(val guildid: Long, val identifier: String? = null) {
+class Tierlist(val guildid: Long, val identifier: String = "") {
 
     /**
      * The price for each tier
@@ -56,7 +56,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
     val tierorderingComparator by lazy { compareBy<DraftPokemon>({ order.indexOf(it.tier) }, { it.name }) }
 
     fun setup() {
-        tierlists.getOrPut(guildid) { mutableMapOf() }[identifier ?: ""] = this
+        tierlists.getOrPut(guildid) { mutableMapOf() }[identifier] = this
     }
 
 
@@ -69,7 +69,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         }
     }
 
-    suspend fun addPokemon(mon: String, tier: String, identifier: String? = null) = dbTransaction {
+    suspend fun addPokemon(mon: String, tier: String, identifier: String = "") = dbTransaction {
         insert {
             it[GUILD] = guildid
             it[POKEMON] = mon
@@ -132,7 +132,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         selectAll().where { basePredicate }.map { DraftPokemon(it[POKEMON], it[TIER]) }.toList()
     }
 
-    suspend fun addOrUpdateTier(mon: String, tier: String, identifier: String? = null) {
+    suspend fun addOrUpdateTier(mon: String, tier: String, identifier: String = "") {
         val existing = getTierOf(mon)
         if (existing != null) {
             if (existing != tier) {
@@ -166,7 +166,7 @@ class Tierlist(val guildid: Long, val identifier: String? = null) {
         val TIER = varchar("tier", 8)
         val TYPE = varchar("type", 10).nullable()
         val POINTS = integer("points").nullable()
-        val IDENTIFIER = varchar("identifier", 30).nullable()
+        val IDENTIFIER = varchar("identifier", 30)
 
         init {
             index(isUnique = false, GUILD, IDENTIFIER, POKEMON)

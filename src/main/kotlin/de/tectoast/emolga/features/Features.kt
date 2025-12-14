@@ -686,7 +686,11 @@ class Arg<DiscordType, ParsedType>(
     var customErrorMessage: String? = null
     val optional get() = defaultValueSet || defaultFunction != null || nullable
 
-    fun default(defaultfun: () -> ParsedType) {
+    fun default(value: ParsedType) = apply {
+        default = value
+    }
+
+    fun default(defaultfun: () -> ParsedType) = apply {
         defaultFunction = defaultfun
     }
 

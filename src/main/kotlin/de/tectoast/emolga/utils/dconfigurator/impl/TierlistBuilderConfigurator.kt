@@ -42,7 +42,7 @@ class TierlistBuilderConfigurator(
     val mons: List<String>,
     val tierlistcols: List<List<String>>,
     val shiftedMons: List<DraftPokemon>?,
-    val tlIdentifier: String?,
+    val tlIdentifier: String,
     private val tierMapper: (suspend (String) -> ExternalTierlistData?)?,
     val language: Language
 ) : DGuildConfigurator("tierlistbuilder", userId, channelId, guildId) {

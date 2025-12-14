@@ -715,8 +715,6 @@ class SDPlayer(
             return kills to deaths
         }
 
-    fun toDraftPlayer() = DraftPlayer(pokemon.count { !it.isDead }, winnerOfGame, this)
-
     fun containsZoro() = pokemon.any { "Zoroark" in it.pokemon || "Zorua" in it.pokemon }
 }
 

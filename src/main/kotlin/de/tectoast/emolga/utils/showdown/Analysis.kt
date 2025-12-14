@@ -228,7 +228,7 @@ object Analysis {
                     }
                 }
                 games += ReplayData(
-                    kd = kd, url = url, winnerIndex = game.indexOfFirst { it.winnerOfGame }
+                    kd = kd, url = url, winnerIndex = gameInGameplanOrder.indexOfFirst { it.winnerOfGame }
                 )
             }
         }

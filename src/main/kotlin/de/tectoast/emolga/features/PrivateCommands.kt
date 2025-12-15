@@ -688,6 +688,14 @@ object PrivateCommands {
         }
     }
 
+    context(iData: InteractionData)
+    suspend fun executeHideGamesDocInsertion(args: PrivateData) {
+        val league = db.league(args[0])
+        league.docEntry!!.executeHideGamesDocInsertion(
+            league.persistentData.replayDataStore.data[args[1].toInt()]!!, args[2].toLong(), args[3].toLong()
+        )
+    }
+
 }
 
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")

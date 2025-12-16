@@ -109,7 +109,7 @@ dependencies {
     // MySQL
 //    implementation("org.mariadb:r2dbc-mariadb:1.3.0")
 //    implementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.6")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.7")
     implementation("com.zaxxer:HikariCP:7.0.2")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
 //    implementation("org.jetbrains.exposed:exposed-r2dbc:$exposedVersion")

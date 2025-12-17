@@ -38,6 +38,7 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
         iData.deferReply(ephemeral = true)
         val lsData = db.signups.get(iData.gid)!!
         lsData.insertLogo(uid, logo)
+        iData.reply("Dein Logo wurde erfolgreich hochgeladen!")
     }
 
     suspend fun uploadToCloud(

@@ -697,6 +697,18 @@ object PrivateCommands {
         )
     }
 
+    context(iData: InteractionData)
+    suspend fun fillCropAuxiliary(args: PrivateData) {
+        val gid = args().toLong()
+        dbTransaction {
+            CropAuxiliaryDB.batchInsert(Tierlist[gid]!!.retrieveAll().map {
+                NameConventionsDB.getDiscordTranslation(it.name, gid, english = true)!!.official
+            }, shouldReturnGeneratedValues = false) {
+                this[CropAuxiliaryDB.GUILD] = gid
+                this[CropAuxiliaryDB.POKEMON] = it
+            }
+        }
+    }
 }
 
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")

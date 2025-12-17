@@ -1,12 +1,12 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
-import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.toSDName
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
+import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.jdbc.select
@@ -29,61 +29,40 @@ object PokemonCropDB : Table("pokemon_crop") {
     override val primaryKey = PrimaryKey(GUILD, OFFICIAL)
 }
 
+object CropAuxiliaryDB : Table("pokemon_crop_auxiliary") {
+    val GUILD = long("guild")
+    val POKEMON = varchar("official", 50)
+
+    override val primaryKey = PrimaryKey(GUILD, POKEMON)
+}
+
 @OptIn(ExperimentalTime::class)
 object PokemonCropService {
     val mutex = Mutex()
+    private val logger = KotlinLogging.logger {}
     suspend fun getNewPokemonToCrop(guild: Long): PokemonToCropData? {
         return mutex.withLock {
             dbTransaction {
-                val ncSpecific = NameConventionsDB.alias("nc_specific")
-                val ncDefault = NameConventionsDB.alias("nc_default")
-                val displayNameExpression = Coalesce(
-                    ncSpecific[NameConventionsDB.ENGLISH],
-                    ncDefault[NameConventionsDB.ENGLISH],
-                    Tierlist.POKEMON
-                )
-                val aliasedDisplayNameExpression = displayNameExpression.alias("display_name")
-                val result = Tierlist
-                    .join(
-                        ncSpecific,
-                        JoinType.LEFT,
-                        additionalConstraint = {
-                            (Tierlist.POKEMON eq ncSpecific[NameConventionsDB.SPECIFIED]) and
-                                    (ncSpecific[NameConventionsDB.GUILD] eq Tierlist.GUILD)
-                        }
-                    )
-                    .join(
-                        ncDefault,
-                        JoinType.LEFT,
-                        additionalConstraint = {
-                            (Tierlist.POKEMON eq ncDefault[NameConventionsDB.SPECIFIED]) and
-                                    (ncDefault[NameConventionsDB.GUILD] eq 0L)
-                        }
-                    )
-                    .join(PokemonCropDB, JoinType.LEFT, additionalConstraint = {
-                        (PokemonCropDB.GUILD eq Tierlist.GUILD) and
-                                (PokemonCropDB.OFFICIAL eq displayNameExpression)
-                    })
+                val result = CropAuxiliaryDB.leftJoin(PokemonCropDB, { POKEMON }, { OFFICIAL })
                     .select(
-                        Tierlist.POKEMON,
-                        Tierlist.GUILD,
-                        aliasedDisplayNameExpression,
+                        CropAuxiliaryDB.POKEMON,
                         PokemonCropDB.GUILD,
-                        PokemonCropDB.WIP_SINCE
+                        PokemonCropDB.WIP_SINCE,
                     )
                     .where {
-                        Tierlist.GUILD eq guild and (PokemonCropDB.GUILD.isNull() or (PokemonCropDB.WIP_SINCE less Clock.System.now()
+                        CropAuxiliaryDB.GUILD eq guild and (PokemonCropDB.GUILD.isNull() or (PokemonCropDB.WIP_SINCE less Clock.System.now()
                             .minus(10.minutes)))
                     }
                     .orderBy(Random())
                     .limit(1)
-                    .firstOrNull()?.let { row ->
-                        val official = row[aliasedDisplayNameExpression]
-                        val spriteName =
-                            de.tectoast.emolga.utils.json.db.pokedex.get(official.toSDName())!!.calcSpriteName()
-                        val tlName = row[Tierlist.POKEMON]
+                    .firstOrNull()
+                    ?.let { row ->
+                        val official = row[CropAuxiliaryDB.POKEMON]
+                        val sdName = official.toSDName()
+                        val pokemon = de.tectoast.emolga.utils.json.db.pokedex.get(sdName)!!
+                        val spriteName = pokemon.calcSpriteName()
                         val path = "/api/emolga/${guild}/teamgraphics/img/$spriteName.png"
-                        PokemonToCropData(tlName, official, path)
+                        PokemonToCropData(official, official, path)
                     }
                 if (result != null) {
                     PokemonCropDB.upsert {

@@ -18,12 +18,13 @@ object GuildManagerDB : Table("guildmanager") {
      * @return the list containing the guild ids
      */
     suspend fun getGuildsForUser(user: Long): Set<Long> {
-        if (user == Constants.FLOID) {
-            return db.league.find().toFlow().map { it.guild }.toSet() + Constants.G.MY
-        }
-        return dbTransaction {
+        val result = dbTransaction {
             select(GUILD).where { USER eq user }.map { it[GUILD] }.toSet()
         }
+        if (user == Constants.FLOID) {
+            return result + db.league.find().toFlow().map { it.guild }.toSet() + Constants.G.MY
+        }
+        return result
     }
 
     /**

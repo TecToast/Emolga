@@ -19,7 +19,7 @@ object GuildManagerDB : Table("guildmanager") {
      */
     suspend fun getGuildsForUser(user: Long): Set<Long> {
         if (user == Constants.FLOID) {
-            return db.league.find().toFlow().map { it.guild }.toSet()
+            return db.league.find().toFlow().map { it.guild }.toSet() + Constants.G.MY
         }
         return dbTransaction {
             select(GUILD).where { USER eq user }.map { it[GUILD] }.toSet()

@@ -91,6 +91,10 @@ object ResultCodesDB : Table("resultcodes") {
         deleteWhere { CODE eq code }
     }
 
+    suspend fun deleteFromLeague(league: String) = dbTransaction {
+        deleteWhere { LEAGUENAME eq league }
+    }
+
 }
 
 @Serializable

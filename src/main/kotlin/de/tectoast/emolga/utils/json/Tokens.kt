@@ -11,7 +11,8 @@ data class Tokens(
     val subscriber: Subscriber,
     val database: Database,
     val mongoDB: String,
-    val oauth2: Oauth2
+    val oauth2: Oauth2,
+    val artworkPath: String
 ) {
     @Serializable
     data class Google(

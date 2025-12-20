@@ -3,11 +3,8 @@
 package de.tectoast.emolga.ktor
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.exposed.GuildManagerDB
+import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.database.exposed.GuildManagerDB.getGuildsForUser
-import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.ResultCodesDB
-import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.RPL
@@ -20,6 +17,7 @@ import de.tectoast.emolga.utils.json.get
 import dev.minn.jda.ktx.coroutines.await
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -38,6 +36,7 @@ import org.bson.conversions.Bson
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.eq
 import org.litote.kmongo.json
+import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KClass
 
@@ -91,6 +90,21 @@ fun Route.emolgaAPI() {
             })
         }
         route("{guild}") {
+            route("/teamgraphics") {
+                get("/new") {
+                    val gid = call.requireGuild() ?: return@get
+                    PokemonCropService.getNewPokemonToCrop(gid)?.let {
+                        call.respond(it)
+                    } ?: call.respond(HttpStatusCode.NotFound)
+                }
+                post("/data") {
+                    val gid = call.requireGuild() ?: return@post
+                    val data = call.receive<PokemonCropData>()
+                    PokemonCropService.insertPokemonCropData(gid, data, call.userId)
+                    call.respond(HttpStatusCode.Accepted)
+                }
+                staticFiles("/img", File(Ktor.artworkPath!!), index = null)
+            }
             get("channels") {
                 val gid = call.requireGuild() ?: return@get
                 val guild = jda.getGuildById(gid)!!

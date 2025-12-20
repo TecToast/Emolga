@@ -510,6 +510,7 @@ object PrivateCommands {
                 archiveMR.insertMany(matchResults)
                 currentMR.deleteMany(LeagueEvent::leaguename eq it)
             }
+            ResultCodesDB.deleteFromLeague(it)
         }
     }
 
@@ -688,6 +689,26 @@ object PrivateCommands {
         }
     }
 
+    context(iData: InteractionData)
+    suspend fun executeHideGamesDocInsertion(args: PrivateData) {
+        val league = db.league(args[0])
+        league.docEntry!!.executeHideGamesDocInsertion(
+            league.persistentData.replayDataStore.data[args[1].toInt()]!!, args[2].toLong(), args[3].toLong()
+        )
+    }
+
+    context(iData: InteractionData)
+    suspend fun fillCropAuxiliary(args: PrivateData) {
+        val gid = args().toLong()
+        dbTransaction {
+            CropAuxiliaryDB.batchInsert(Tierlist[gid]!!.retrieveAll().map {
+                NameConventionsDB.getDiscordTranslation(it.name, gid, english = true)!!.official
+            }, shouldReturnGeneratedValues = false) {
+                this[CropAuxiliaryDB.GUILD] = gid
+                this[CropAuxiliaryDB.POKEMON] = it
+            }
+        }
+    }
 }
 
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")

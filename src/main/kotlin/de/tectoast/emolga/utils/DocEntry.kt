@@ -116,12 +116,7 @@ class DocEntry private constructor(val league: League) {
                 if (gameday in hideGames.gamedays) {
                     val dataForGameday = league.persistentData.replayDataStore.data[gameday]!!
                     if (dataForGameday.size == league.battleorder[gameday]!!.size) {
-                        dataForGameday.entries.sortedBy { entry -> entry.key }.forEach { (_, fullGameData) ->
-                            analyseWithoutCheck(fullGameData, withSort = false)
-                            fullGameData.sendInto(hideGames.replayChannel, hideGames.resultChannel, league)
-                        }
-                        delay(3000)
-                        sort(true)
+                        executeHideGamesDocInsertion(dataForGameday, hideGames.replayChannel, hideGames.resultChannel)
                     }
                     return
                 }
@@ -131,6 +126,19 @@ class DocEntry private constructor(val league: League) {
             league.save()
         }
         analyseWithoutCheck(fullGameData, withSort)
+    }
+
+    suspend fun executeHideGamesDocInsertion(
+        dataForGameday: Map<Int, FullGameData>,
+        replayChannel: Long,
+        resultChannel: Long
+    ) {
+        dataForGameday.entries.sortedBy { entry -> entry.key }.forEach { (_, fullGameData) ->
+            analyseWithoutCheck(fullGameData, withSort = false)
+            fullGameData.sendInto(replayChannel, resultChannel, league)
+        }
+        delay(3000)
+        sort(true)
     }
 
     suspend fun analyseWithoutCheck(

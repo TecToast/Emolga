@@ -58,7 +58,6 @@ import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.security.MessageDigest
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.time.ExperimentalTime
@@ -142,8 +141,8 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         }
         val matchMons = game.map { it.pokemon.map { mon -> mon.draftname } }
         val (leagueResult, duration) = measureTimedValue {
-            val allOtherFormesGerman = ConcurrentHashMap<String, List<String>>()
-            val (dp1, dp2) = uids.indices.map { index ->
+            val allOtherFormesGerman: Array<Map<String, List<String>>> = Array(2) { mutableMapOf() }
+            val dps = uids.indices.map { index ->
                 scanScope.async {
                     val mons = matchMons[index]
                     val otherFormesEngl = mutableMapOf<DraftName, List<String>>()
@@ -158,7 +157,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                     val otherFormesGerman = otherFormesEngl.map { (k, v) ->
                         k.official to v.map { allSDTranslations[it] ?: it }
                     }.toMap()
-                    allOtherFormesGerman.putAll(otherFormesGerman)
+                    allOtherFormesGerman[index] = otherFormesGerman
                     val filters = possibleOtherForm.map {
                         or(
                             PickedMonsData::mons contains it.official,
@@ -172,6 +171,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                     pickedMons.find(finalQuery).toList()
                 }
             }.awaitAll()
+            val (dp1, dp2) = dps
             var resultList: List<PickedMonsData>? = null
             outer@ for (d1 in dp1) {
                 for (d2 in dp2) {
@@ -182,8 +182,20 @@ class MongoEmolga(dbUrl: String, dbName: String) {
                 }
             }
             if (resultList == null) return@measureTimedValue null
+            for (i in 0..<2) {
+                val pickedMons = resultList[i].mons
+                val formes = allOtherFormesGerman[i]
+                for (sdMon in game[i].pokemon) {
+                    if (sdMon.draftname.official !in pickedMons) {
+                        sdMon.draftname = NameConventionsDB.getSDTranslation(
+                            formes[sdMon.draftname.official]!!.first { it in pickedMons },
+                            gid
+                        )!!
+                    }
+                }
+            }
             val league = prefetchedLeague ?: league(resultList[0].leaguename)
-            LeagueResult(league, resultList.map { it.idx }, allOtherFormesGerman.filter { it.value.isNotEmpty() })
+            LeagueResult(league, resultList.map { it.idx })
         }
         logger.debug { "DURATION: ${duration.inWholeMilliseconds}" }
         return leagueResult ?: getLeagueResultWithoutPicks(gid, uids)
@@ -191,7 +203,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
 
     private suspend fun getLeagueResultWithoutPicks(gid: Long, uids: LongArray): LeagueResult? {
         val league = leagueByGuild(gid, *uids) ?: return null
-        return LeagueResult(league, uids.map { league.table.indexOf(it) }, emptyMap())
+        return LeagueResult(league, uids.map { league.table.indexOf(it) })
     }
 }
 
@@ -243,7 +255,7 @@ data class IntervalTaskData(
 
 @Serializable
 data class PickedMonsData(val leaguename: String, val guild: Long, val idx: Int, val mons: List<String>)
-data class LeagueResult(val league: League, val uindices: List<Int>, val otherForms: Map<String, List<String>>) {
+data class LeagueResult(val league: League, val uindices: List<Int>) {
     val mentions = uindices.map { "<@${league[it]}>" }
 }
 
@@ -285,7 +297,7 @@ sealed interface SignUpValidateResult {
 
 @Serializable
 @Config("Anmeldungseingabe", "Eine Option, die bei der Anmeldung angegeben werden muss")
-sealed class SignUpInput() {
+sealed class SignUpInput {
     abstract val id: String
 
     @Serializable

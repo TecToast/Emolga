@@ -873,6 +873,7 @@ sealed class League {
                 ).into()
             ).queue()
             for ((index, matchup) in matchups.withIndex()) {
+                delay(2000)
                 val u1 = matchup[0]
                 val u2 = matchup[1]
                 val base: ArgBuilder<TipGameManager.VoteButton.Args> = {

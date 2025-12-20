@@ -29,10 +29,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.litote.kmongo.eq
-import org.litote.kmongo.keyProjection
-import org.litote.kmongo.set
-import org.litote.kmongo.setTo
+import org.litote.kmongo.*
 import org.litote.kmongo.and as mongoAnd
 
 class TierlistBuilderConfigurator(
@@ -331,7 +328,12 @@ class TierlistBuilderConfigurator(
 
     private suspend fun saveToFile(fromPrevious: Boolean = false) {
         if (!fromPrevious) {
-            db.tierlist.deleteOne(mongoAnd(Tierlist::guildid eq guildId, (Tierlist::identifier eq tlIdentifier)))
+            db.tierlist.deleteOne(
+                mongoAnd(
+                    Tierlist::guildid eq guildId,
+                    if (tlIdentifier.isEmpty()) (Tierlist::identifier exists false) else (Tierlist::identifier eq tlIdentifier)
+                )
+            )
             db.tierlist.insertOne(Tierlist(guildId, tlIdentifier).apply {
                 this.prices += this@TierlistBuilderConfigurator.prices!!
                 this@TierlistBuilderConfigurator.freepicks?.let { this.freepicks += it }

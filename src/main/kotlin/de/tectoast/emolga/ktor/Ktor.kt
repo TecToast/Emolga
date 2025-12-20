@@ -16,6 +16,7 @@ object Ktor {
     var devMode = false
     val injectedRouteHandlers: MutableMap<String, suspend ApplicationCall.() -> Unit> = mutableMapOf()
     var oauth2Secret: String? = null
+    var artworkPath: String? = null
     var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
 
     fun start(withYT: Boolean = true) {

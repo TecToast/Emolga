@@ -22,5 +22,6 @@ object Credentials {
             Google.setCredentials(refreshtoken, clientid, clientsecret)
         }
         Ktor.oauth2Secret = tokens.oauth2.clientsecret
+        Ktor.artworkPath = tokens.artworkPath
     }
 }

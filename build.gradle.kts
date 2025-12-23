@@ -1,13 +1,13 @@
 
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kVersion = "2.2.21"
+val kVersion = "2.3.0"
 plugins {
     val kVersion = "2.2.0"
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("maven-publish")
-    id("com.google.cloud.tools.jib") version "3.5.1"
+    id("com.google.cloud.tools.jib") version "3.5.2"
     application
 }
 
@@ -97,19 +97,19 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:6.1.3")
+    implementation("net.dv8tion:JDA:6.2.0")
     implementation("io.github.freya022:jda-ktx:e7b0e50683")
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20251110-2.0.0")
     implementation("com.google.apis:google-api-services-drive:v3-rev20251210-2.0.0")
-    implementation("com.google.apis:google-api-services-youtube:v3-rev20251125-2.0.0")
+    implementation("com.google.apis:google-api-services-youtube:v3-rev20251217-2.0.0")
 
     // Database
     // MySQL
 //    implementation("org.mariadb:r2dbc-mariadb:1.3.0")
 //    implementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.6")
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.7")
     implementation("com.zaxxer:HikariCP:7.0.2")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
 //    implementation("org.jetbrains.exposed:exposed-r2dbc:$exposedVersion")

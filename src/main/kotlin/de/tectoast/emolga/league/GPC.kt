@@ -24,11 +24,11 @@ class GPC(val teams: List<String>) : League() {
             gdi.CoordXMod(teams[memIdx], 3, 4, 19, 9, 4 + monIterationIndex()) to DataTypeForMon.DEATHS
         }
         resultCreator = {
-            b.addSingle(gdi.coordXMod("Gruppen-Spielplan", 3, 5, 3, 9, 4 + index), defaultGameplanStringWithoutUrl)
+            b.addSingle(gdi.coordXMod("Gruppen-Spielplan", 3, 5, 3, 8, 4 + index), defaultGameplanStringWithoutUrl)
             idxs.forEachIndexed { index, idx ->
                 val baseString = "$higherNumber:$lowerNumber"
                 b.addSingle(
-                    gdi.CoordXMod(teams[idx], 3, 4, 19, 8, 2),
+                    gdi.CoordXMod(teams[idx], 3, 4, 19, 9, 2),
                     if (idx == winnerIdx) "S" else "N"
                 )
             }

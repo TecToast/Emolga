@@ -429,15 +429,9 @@ sealed interface LogoSettings {
     @Serializable
     @SerialName("NotInDiscord")
     @Config("Nicht im Discord", "Die Logos werden nicht im Discord gespeichert.")
-    data object NotInDiscord : LogoSettings {
-        override suspend fun handleLogo(
-            lsData: LigaStartData, data: SignUpData, logoData: LogoInputData
-        ) {
-            // Nothing to do
-        }
-    }
+    data object NotInDiscord : LogoSettings
 
-    suspend fun handleLogo(lsData: LigaStartData, data: SignUpData, logoData: LogoInputData)
+    suspend fun handleLogo(lsData: LigaStartData, data: SignUpData, logoData: LogoInputData) {}
     fun handleSignupChange(data: SignUpData) {}
     fun handleSignupRemoved(data: SignUpData) {}
 }

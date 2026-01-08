@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val kVersion = "2.3.0"
 plugins {
-    val kVersion = "2.2.0"
+    val kVersion = "2.3.0"
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("maven-publish")
@@ -98,7 +98,7 @@ dependencies {
 
     // JDA
     implementation("net.dv8tion:JDA:6.2.1")
-    implementation("io.github.freya022:jda-ktx:e7b0e50683")
+    implementation("io.github.MinnDevelopment:jda-ktx:7695f84e10")
 
     // Google
     implementation("com.google.apis:google-api-services-sheets:v4-rev20251110-2.0.0")

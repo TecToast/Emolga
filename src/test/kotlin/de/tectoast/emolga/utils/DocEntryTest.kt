@@ -10,7 +10,7 @@ import io.mockk.verify
 
 class DocEntryTest : FunSpec({
     test("SingleGame") {
-        val monDataProviderCache = mockk<MonDataProviderCache>()
+        val additionalDataProvider = AdditionalDataProvider(mockk(), mockk())
         val b = mockk<SimpleRequestBuilder>(relaxed = true)
         val fullGameData = FullGameData(
             listOf(2, 5),
@@ -33,7 +33,7 @@ class DocEntryTest : FunSpec({
             )
         )
         StatProcessorService.execute(
-            monDataProviderCache,
+            additionalDataProvider,
             b,
             fullGameData,
             "",
@@ -84,7 +84,7 @@ class DocEntryTest : FunSpec({
         }
     }
     test("Bo3") {
-        val monDataProviderCache = mockk<MonDataProviderCache>()
+        val additionalDataProvider = AdditionalDataProvider(mockk(), mockk())
         val b = mockk<SimpleRequestBuilder>(relaxed = true)
         val fullGameData = FullGameData(
             listOf(2, 5),
@@ -121,7 +121,7 @@ class DocEntryTest : FunSpec({
             )
         )
         StatProcessorService.execute(
-            monDataProviderCache,
+            additionalDataProvider,
             b,
             fullGameData,
             "",
@@ -149,6 +149,7 @@ class DocEntryTest : FunSpec({
         coEvery { monDataProviderCache.getTLName("Bisasam") } returns "Bisasam"
         coEvery { monDataProviderCache.getTLName("Glumanda") } returns "Glumanda"
         coEvery { monDataProviderCache.getTLName("Schiggy") } returns "Schiggy"
+        val additionalDataProvider = AdditionalDataProvider(monDataProviderCache, mockk())
         val b = mockk<SimpleRequestBuilder>(relaxed = true)
         val fullGameData = FullGameData(
             listOf(2, 5),
@@ -171,7 +172,7 @@ class DocEntryTest : FunSpec({
             )
         )
         StatProcessorService.execute(
-            monDataProviderCache,
+            additionalDataProvider,
             b,
             fullGameData,
             "",

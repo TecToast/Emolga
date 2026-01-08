@@ -460,6 +460,11 @@ data class LigaStartConfig(
         "Hier kannst du einstellen, bei wie vielen Teilnehmenden die Anmeldung geschlossen werden soll. Bei 0 gibt es keine Begrenzung."
     ) var maxUsers: Int,
     @Config(
+        "Versteckte Spieleranzahl",
+        "Hier kannst du einstellen, ob die aktuelle Teilnehmeranzahl in der Anmeldungsnachricht angezeigt werden soll."
+    )
+    var hideUserCount: Boolean = false,
+    @Config(
         "Teilnehmerrolle",
         "Hier kannst du eine Rolle einstellen, die die Teilnehmer automatisch bekommen sollen.",
         LongType.ROLE
@@ -597,7 +602,9 @@ data class LigaStartData(
     fun updateSignupMessage(setMaxUsersToCurrentUsers: Boolean = false) {
         jda.getTextChannelById(config.announceChannel)!!.editMessageById(
             announceMessageId,
-            "${config.signupMessage}\n\n**Teilnehmer: ${users.size}/${if (setMaxUsersToCurrentUsers) users.size else maxUsersAsString}**"
+            config.signupMessage.condAppend(!config.hideUserCount) {
+                "\n\n**Teilnehmer: ${users.size}/${if (setMaxUsersToCurrentUsers) users.size else maxUsersAsString}**"
+            }
         ).queue()
     }
 

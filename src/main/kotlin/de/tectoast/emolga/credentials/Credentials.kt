@@ -19,7 +19,7 @@ object Credentials {
 
     private fun injectTokens() {
         with(tokens.google) {
-            Google.setCredentials(refreshtoken, clientid, clientsecret)
+            Google.setCredentials(refreshtoken, clientid, clientsecret, logoParentId)
         }
         Ktor.oauth2Secret = tokens.oauth2.clientsecret
         Ktor.artworkPath = tokens.artworkPath

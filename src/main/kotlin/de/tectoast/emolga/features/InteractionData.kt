@@ -217,7 +217,7 @@ class TestInteractionData(
 }
 
 class RealInteractionData(
-    val e: GenericInteractionCreateEvent
+    val e: GenericInteractionCreateEvent,
 ) : InteractionData(e.user.idLong, e.channel!!.idLong, e.guild?.idLong ?: -1, e.member, e) {
 
     override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {
@@ -248,6 +248,7 @@ class RealInteractionData(
     }
 
     override fun deferReply(ephemeral: Boolean) {
+        if (deferred) return
         e as IReplyCallback
         deferred = true
         markAcknowledged()
@@ -255,6 +256,7 @@ class RealInteractionData(
     }
 
     override fun deferEdit() {
+        if (deferred) return
         e as IMessageEditCallback
         deferred = true
         markAcknowledged()

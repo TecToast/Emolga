@@ -12,7 +12,6 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.RealInteractionData
 import de.tectoast.emolga.features.draft.LogoCommand.allowedFileFormats
-import de.tectoast.emolga.features.draft.LogoCommand.uploadToCloud
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.various.ShinyEvent
 import de.tectoast.emolga.features.various.ShinyEvent.SingleGame
@@ -31,7 +30,6 @@ import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
-import dev.minn.jda.ktx.messages.reply_
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -41,6 +39,7 @@ import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.components.Component
+import net.dv8tion.jda.api.components.attachmentupload.AttachmentUpload
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Message
@@ -124,7 +123,8 @@ class MongoEmolga(dbUrl: String, dbName: String) {
         league.find(or(League::tcid eq tc, and(League::guild eq gid, League::table contains user))).toList()
             .maxByOrNull { it.tcid == tc }
 
-    context(iData: InteractionData) suspend fun leagueByCommand() = leagueByGuild(iData.gid, iData.user)
+    context(iData: InteractionData)
+    suspend fun leagueByCommand() = leagueByGuild(iData.gid, iData.user)
 
     suspend fun getDataObject(mon: String, guild: Long = 0): Pokemon {
         return pokedex.get(NameConventionsDB.getDiscordTranslation(mon, guild, true)!!.official.toSDName())!!
@@ -304,7 +304,7 @@ sealed class SignUpInput {
     @SerialName("SDName")
     @Config("Showdown-Name", "Selbsterklärend", prio = 2)
     data object SDName : SignUpInput() {
-        override val id = "sdname"
+        override val id = SDNAME_ID
 
         override fun getModalInputOptions(): ModalInputOptions {
             return ModalInputOptions(label = "Showdown-Name", required = true, requiredLength = 1..18)
@@ -321,7 +321,7 @@ sealed class SignUpInput {
     @SerialName("TeamName")
     @Config("Team-Name", "Selbsterklärend", prio = 1)
     data object TeamName : SignUpInput() {
-        override val id = "teamname"
+        override val id = TEAMNAME_ID
 
         override fun getModalInputOptions(): ModalInputOptions {
             return ModalInputOptions(label = "Teamname", required = true, requiredLength = 1..100)
@@ -343,7 +343,7 @@ sealed class SignUpInput {
             "Sichtbar für alle", "Ob die Auswahl in der Anmeldungsnachricht des Teilnehmenden erscheinen soll"
         ) val visibleForAll: Boolean = true
     ) : SignUpInput() {
-        override val id = "oflist_$name"
+        override val id = "$OFLIST_PREFIX_ID$name"
 
         override fun getModalInputOptions(): ModalInputOptions {
             return ModalInputOptions(label = name, required = true, placeholder = null, list = list)
@@ -361,6 +361,12 @@ sealed class SignUpInput {
     open fun validate(data: String): SignUpValidateResult = SignUpValidateResult.Success(data)
     open fun getDisplayTitle(): String? = null
 
+    companion object {
+        const val SDNAME_ID = "sdname"
+        const val TEAMNAME_ID = "teamname"
+        const val OFLIST_PREFIX_ID = "oflist_"
+        const val LOGO_ID = "logo"
+    }
 }
 
 @Serializable
@@ -495,19 +501,38 @@ data class LigaStartData(
                     )
                 )
             }
+            config.logoSettings?.let { _ ->
+                label(
+                    label = "Logo",
+                    description = "Dein Logo, kann auch nachgereicht werden",
+                    child = AttachmentUpload.create(
+                        SignUpInput.LOGO_ID
+                    )
+                        .setRequiredRange(0, 1)
+                        .setRequired(false)
+                        .build()
+                )
+            }
         }
     }
 
     suspend fun handleModal(e: ModalInteractionEvent) {
+        val iData = RealInteractionData(e)
         val change = e.modalId.substringAfter(";").isNotBlank()
         val errors = mutableListOf<String>()
+        var logoAttachment: Message.Attachment? = null
         val data = e.values.associate {
-            val config = getInputConfig(it.customId) ?: error("Modal key ${it.customId} not found")
+            val id = it.customId
+            if (id == SignUpInput.LOGO_ID) {
+                logoAttachment = it.asAttachmentList.firstOrNull()
+                return@associate "" to ""
+            }
+            val config = getInputConfig(id) ?: error("Modal key $id not found")
             when (val result = config.validate(
                 when (it.type) {
                     Component.Type.TEXT_INPUT -> it.asString
                     Component.Type.STRING_SELECT -> it.asStringList.first()
-                    else -> error("Unsupported component type in signup modal")
+                    else -> error("Unsupported component type in signup modal ${it.type}")
                 }
             )) {
                 is SignUpValidateResult.Error -> {
@@ -516,20 +541,32 @@ data class LigaStartData(
                 }
 
                 is SignUpValidateResult.Success -> {
-                    it.customId to result.data
+                    id to result.data
                 }
             }
         }
         if (errors.isNotEmpty()) {
-            e.reply_("❌ Anmeldung nicht erfolgreich:\n\n${errors.joinToString("\n\n")}", ephemeral = true).queue()
+            iData.sendSignupErrors(errors)
             return
         }
-        SignupManager.signupUser(guild, e.user.idLong, data, change, RealInteractionData(e))
+        SignupManager.signupUser(
+            gid = guild,
+            uid = e.user.idLong,
+            data = data.filterKeys { it.isNotEmpty() },
+            logoAttachment = logoAttachment,
+            isChange = change,
+            iData = iData
+        )
+    }
+
+    private fun InteractionData.sendSignupErrors(errors: List<String>) {
+        reply("❌ Anmeldung nicht erfolgreich:\n\n${errors.joinToString("\n\n")}", ephemeral = true)
     }
 
     inline fun <reified T : SignUpInput> getInputConfig() = config.signupStructure.firstOrNull { it is T } as T?
     fun getInputConfig(id: String) = config.signupStructure.firstOrNull { it.id == id }
 
+    fun getIndexOfUser(uid: Long) = users.indexOfFirst { it.users.contains(uid) }.takeIf { it >= 0 }
     fun getDataByUser(uid: Long) = users.firstOrNull { it.users.contains(uid) }
 
     suspend fun save() = db.signups.updateOne(LigaStartData::guild eq guild, this)
@@ -619,20 +656,23 @@ data class LigaStartData(
             .editMessageById(data.signupmid!!, data.toMessage(this)).queue()
     }
 
-    suspend fun insertLogo(uid: Long, logo: Message.Attachment): String {
+    suspend fun insertLogo(uid: Long, logo: Message.Attachment): String? {
         if (config.logoSettings == null) {
             return "In dieser Liga gibt es keine eigenen Logos!"
         }
-        val signUpData = getDataByUser(uid) ?: return "Du bist nicht angemeldet!"
+        val signUpIndex = getIndexOfUser(uid) ?: return "Du bist nicht angemeldet!"
+        val signUpData = users[signUpIndex]
         val logoData = LogoInputData.fromAttachment(logo)
         if (logoData.isError()) {
             return logoData.message
         }
         config.logoSettings.handleLogo(this, signUpData, logoData.value)
-        val checksum = uploadToCloud(logoData.value)
-        signUpData.logoChecksum = checksum
-        save()
-        return "Das Logo wurde erfolgreich hochgeladen!"
+        val checksum = Google.uploadLogoToCloud(logoData.value)
+        db.signups.updateOne(
+            LigaStartData::guild eq guild,
+            set(LigaStartData::users.pos(signUpIndex) / SignUpData::logoChecksum setTo checksum)
+        )
+        return null
     }
 
     val full get() = config.maxUsers > 0 && users.size >= config.maxUsers

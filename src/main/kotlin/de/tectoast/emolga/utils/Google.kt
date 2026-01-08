@@ -12,7 +12,10 @@ import com.google.api.services.drive.model.Permission
 import com.google.api.services.sheets.v4.Sheets
 import com.google.api.services.sheets.v4.model.*
 import com.google.api.services.youtube.YouTube
+import de.tectoast.emolga.database.exposed.LogoChecksumDB
 import de.tectoast.emolga.utils.Google.setCredentials
+import de.tectoast.emolga.utils.json.LogoChecksum
+import de.tectoast.emolga.utils.json.LogoInputData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.minutes
@@ -23,6 +26,7 @@ object Google {
     private var REFRESHTOKEN: String? = null
     private var CLIENTID: String? = null
     private var CLIENTSECRET: String? = null
+    private var LOGO_PARENT_ID: String? = null
     private val googleContext = createCoroutineContext("Google", Dispatchers.IO)
 
     @OptIn(ExperimentalTime::class)
@@ -55,10 +59,11 @@ object Google {
      * @param clientID The client ID
      * @param clientSecret The client secret
      */
-    fun setCredentials(refreshToken: String, clientID: String, clientSecret: String) {
+    fun setCredentials(refreshToken: String, clientID: String, clientSecret: String, logoParentId: String) {
         REFRESHTOKEN = refreshToken
         CLIENTID = clientID
         CLIENTSECRET = clientSecret
+        LOGO_PARENT_ID = logoParentId
     }
 
     /**
@@ -177,6 +182,22 @@ object Google {
             forHandle = channelHandle
         }.execute()?.items?.firstOrNull()?.id
     }
+
+    suspend fun uploadLogoToCloud(
+        data: LogoInputData,
+        handler: (LogoChecksum) -> Unit = {},
+    ) =
+        withContext(Dispatchers.IO) {
+            val logoData = LogoChecksumDB.findByChecksum(data.checksum) ?: run {
+                val fileId = uploadFileToDrive(
+                    LOGO_PARENT_ID!!, data.fileName,
+                    "image/${data.fileExtension}", data.bytes
+                )
+                LogoChecksum(data.checksum, fileId).also { LogoChecksumDB.insertData(it) }
+            }
+            handler(logoData)
+            logoData.checksum
+        }
 
     /**
      * Generates an access token with the stored credentials

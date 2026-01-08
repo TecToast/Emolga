@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
@@ -38,7 +39,7 @@ object SignupManager {
             }
             val modal = lsData.buildModal(old = null)
             if (modal == null) {
-                signupUser(iData.gid, iData.user, emptyMap(), e = iData)
+                signupUser(gid = iData.gid, uid = iData.user, data = emptyMap(), iData = iData)
                 return
             }
             iData.replyModal(modal)
@@ -102,11 +103,12 @@ object SignupManager {
         gid: Long,
         uid: Long,
         data: Map<String, String>,
+        logoAttachment: Message.Attachment? = null,
         isChange: Boolean = false,
-        e: InteractionData? = null
+        iData: InteractionData? = null
     ): Unit? {
-        e?.ephemeralDefault()
-        e?.deferReply(true)
+        iData?.ephemeralDefault()
+        iData?.deferReply(true)
         val (signupMutex, channel) = persistentSignupData.getOrPut(gid) {
             val c = Channel<LigaStartData>(Channel.CONFLATED)
             signupScope.launch {
@@ -119,22 +121,23 @@ object SignupManager {
         }
         signupMutex.withLock {
             with(db.signups.get(gid)!!) {
-                if (!isChange && full) return e?.reply("❌ Die Anmeldung ist bereits voll!")
+                if (!isChange && full) return iData?.reply("❌ Die Anmeldung ist bereits voll!")
                 @Suppress("DeferredResultUnused")
-                data["sdname"]?.let {
+                data[SignUpInput.SDNAME_ID]?.let {
                     SDNamesDB.addIfAbsent(it, uid)
                 }
-                val jda = e?.jda ?: jda
+                val jda = iData?.jda ?: jda
                 if (isChange) {
-                    val oldData = getDataByUser(uid) ?: return e?.reply("Du bist derzeit nicht angemeldet!")
+                    val oldData = getDataByUser(uid) ?: return iData?.reply("Du bist derzeit nicht angemeldet!")
                     oldData.data.putAll(data)
                     handleSignupChange(oldData)
-                    e?.reply("Deine Daten wurden erfolgreich geändert!")
+                    iData?.reply("Deine Daten wurden erfolgreich geändert!")
                     return null
                 }
-                e?.reply("✅ Du wurdest erfolgreich angemeldet!")
+                iData?.reply("✅ Du wurdest erfolgreich angemeldet!")
                 giveParticipantRole {
-                    (e?.member?.invoke()) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!.await()
+                    (iData?.member?.invoke()) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!
+                        .await()
                 }
                 val signUpData = SignUpData(
                     users = mutableSetOf(uid), data = data.toMutableMap()
@@ -143,12 +146,20 @@ object SignupManager {
                         toMessage(this@with)
                     ).await().idLong
                 }
+                users.size
                 users += signUpData
                 channel.send(this)
                 if (full) {
                     closeSignup()
                 }
                 save()
+                logoAttachment?.let { attachment ->
+                    signupScope.launch {
+                        insertLogo(uid, attachment)?.let { errorStr ->
+                            iData?.reply("⚠️ Dein Logo konnte nicht hochgeladen werden: $errorStr")
+                        }
+                    }
+                }
             }
         }
         return null

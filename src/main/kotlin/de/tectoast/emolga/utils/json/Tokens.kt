@@ -18,7 +18,8 @@ data class Tokens(
     data class Google(
         val refreshtoken: String,
         val clientid: String,
-        val clientsecret: String
+        val clientsecret: String,
+        val logoParentId: String,
     )
 
     @Serializable

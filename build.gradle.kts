@@ -93,11 +93,11 @@ dependencies {
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.17")
-    implementation("ch.qos.logback:logback-classic:1.5.22")
+    implementation("ch.qos.logback:logback-classic:1.5.24")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:6.2.0")
+    implementation("net.dv8tion:JDA:6.2.1")
     implementation("io.github.freya022:jda-ktx:e7b0e50683")
 
     // Google
@@ -124,7 +124,7 @@ dependencies {
     ktor()
 
     // Utils
-    implementation("org.jsoup:jsoup:1.21.2")
+    implementation("org.jsoup:jsoup:1.22.1")
 
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.7")

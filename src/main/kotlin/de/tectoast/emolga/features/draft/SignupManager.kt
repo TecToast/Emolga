@@ -3,6 +3,7 @@ package de.tectoast.emolga.features.draft
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.*
 import dev.minn.jda.ktx.coroutines.await
@@ -86,7 +87,7 @@ object SignupManager {
     ) {
         val tc = jda.getTextChannelById(config.announceChannel)!!
         val messageid =
-            tc.sendMessage(config.signupMessage + "\n\n**Teilnehmer: 0/${config.maxUsers.takeIf { it > 0 } ?: "?"}**")
+            tc.sendMessage(config.signupMessage.condAppend(!config.hideUserCount) { "\n\n**Teilnehmer: 0/${config.maxUsers.takeIf { it > 0 } ?: "?"}**" })
                 .addComponents(Button().into())
                 .await().idLong
         db.signups.insertOne(

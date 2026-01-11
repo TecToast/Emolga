@@ -35,6 +35,8 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
@@ -57,6 +59,7 @@ import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.time.ExperimentalTime
@@ -668,7 +671,8 @@ data class LigaStartData(
             .editMessageById(data.signupmid!!, data.toMessage(this)).queue()
     }
 
-    suspend fun insertLogo(uid: Long, logo: Message.Attachment): String? {
+    suspend fun insertLogo(uid: Long, logo: Message.Attachment): String? =
+        logoUploadMutex.getOrPut(guild) { Mutex() }.withLock {
         if (config.logoSettings == null) {
             return "In dieser Liga gibt es keine eigenen Logos!"
         }
@@ -679,15 +683,25 @@ data class LigaStartData(
             return logoData.message
         }
         config.logoSettings.handleLogo(this, signUpData, logoData.value)
+            val timeSinceLastUpload = System.currentTimeMillis() - lastLogoUploadTime
+            if (timeSinceLastUpload < 5000) {
+                delay(5000 - timeSinceLastUpload)
+            }
         val checksum = Google.uploadLogoToCloud(logoData.value)
         db.signups.updateOne(
             LigaStartData::guild eq guild,
             set(LigaStartData::users.pos(signUpIndex) / SignUpData::logoChecksum setTo checksum)
         )
+            lastLogoUploadTime = System.currentTimeMillis()
         return null
     }
 
     val full get() = config.maxUsers > 0 && users.size >= config.maxUsers
+
+    companion object {
+        private val logoUploadMutex = ConcurrentHashMap<Long, Mutex>()
+        private var lastLogoUploadTime: Long = 0
+    }
 
 }
 

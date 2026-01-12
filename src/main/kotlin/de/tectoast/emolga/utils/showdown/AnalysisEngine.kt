@@ -10,7 +10,9 @@ import kotlin.properties.Delegates
 
 private val otherThanNumbers = Regex("[^0-9]")
 private val logger = KotlinLogging.logger {}
-context(context: BattleContext) fun SDPokemon.withZoroCheck(): SDPokemon =
+
+context(context: BattleContext)
+fun SDPokemon.withZoroCheck(): SDPokemon =
     this.zoroLines.toList().firstOrNull { context.currentLineIndex in it.first }?.second ?: this
 
 data class SDPokemon(
@@ -37,11 +39,13 @@ data class SDPokemon(
     val deadCount get() = revivedAmount + (if (isDead) 1 else 0)
     val isDummy get() = player == -1
 
-    context(context: BattleContext) fun addEffect(type: SDEffect, pokemon: SDPokemon) {
+    context(context: BattleContext)
+    fun addEffect(type: SDEffect, pokemon: SDPokemon) {
         effects[type] = pokemon.withZoroCheck()
     }
 
-    context(context: BattleContext) fun addVolatileEffect(name: String, pokemon: SDPokemon) {
+    context(context: BattleContext)
+    fun addVolatileEffect(name: String, pokemon: SDPokemon) {
         volatileEffects[name] = pokemon.withZoroCheck()
     }
 
@@ -54,7 +58,8 @@ data class SDPokemon(
         if (active) activeKills++
     }
 
-    context(context: BattleContext) fun claimDamage(
+    context(context: BattleContext)
+    fun claimDamage(
         damagedMonArg: SDPokemon, fainted: Boolean, amount: Int, by: String, activeDamage: Boolean = false
     ) {
         val claimer = this.withZoroCheck()
@@ -83,7 +88,8 @@ data class SDPokemon(
         )
     }
 
-    context(context: BattleContext) fun setNewHPAndHeal(newhp: Int, by: String, healer: SDPokemon? = null) {
+    context(context: BattleContext)
+    fun setNewHPAndHeal(newhp: Int, by: String, healer: SDPokemon? = null) {
         val mon = withZoroCheck()
         val currentHp = mon.hp
         mon.hp = newhp
@@ -95,7 +101,8 @@ data class SDPokemon(
         }
     }
 
-    context(context: BattleContext) fun setNickname(nickname: String) {
+    context(context: BattleContext)
+    fun setNickname(nickname: String) {
         val mon = withZoroCheck()
         mon.nickname = nickname
     }
@@ -139,9 +146,11 @@ sealed class SDEffect(vararg val types: String) {
     fun BattleContext.reportUsage() = jda.getTextChannelById(1099651412742389820)!!
         .sendMessage("Effect ${this@SDEffect::class.simpleName} was used! $url").queue()
 
-    context(context: BattleContext) abstract fun execute(split: List<String>)
+    context(context: BattleContext)
+    abstract fun execute(split: List<String>)
 
-    context(context: BattleContext) fun List<String>.getSource(): SDPokemon? {
+    context(context: BattleContext)
+    fun List<String>.getSource(): SDPokemon? {
         val inlined = this.dropWhile { !it.startsWith("[from]") }
         if (inlined.isNotEmpty()) return inlined.getOrNull(1)?.parsePokemon() ?: this[1].parsePokemon().let {
             it[ITEM_OBTAINED_FROM].takeIf { "item:" in inlined[0] } ?: it
@@ -160,7 +169,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Turn : SDEffect("turn") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             context.turn = split[1].toInt()
             context.events.turn += AnalysisTurn(context.currentLineIndex, context.turn)
             context.sdPlayers.forEach { it.hittingFutureMove = null }
@@ -168,7 +178,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Replace : SDEffect("replace") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val (pl, i) = split[1].parsePokemonLocation()
             val oldMon = context.monsOnField[pl][i]
             val newMon = context.sdPlayers[pl].pokemon.first { it.hasName(split[2].substringBefore(",")) && !it.isDead }
@@ -179,13 +190,15 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Format : SDEffect("tier") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             context.format = split[1]
         }
     }
 
     data object Switch : SDEffect("switch", "drag") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val (pl, idx) = split[1].parsePokemonLocation()
             val nickname = split[1].substringAfter(": ")
             val playerSide = context.sdPlayers[pl]
@@ -236,7 +249,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object CourtChange : SDEffect("-activate") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             if ("move: Court Change" !in split) return
             val players = context.sdPlayers
             val (usingPlayer, loc) = split[1].parsePokemonLocation()
@@ -251,7 +265,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Heal : SDEffect("-heal") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val healedTo = split[2].parseHPPercentage()
             val (side, num) = split[1].substringAfter('p').substringBefore(':').let {
                 val p = it[0].digitToInt() - 1
@@ -278,7 +293,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Damage : SDEffect("-damage") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val damagedMonLocation = split[1].parsePokemonLocation()
             val damagedMon = context.monsOnField[damagedMonLocation.first][damagedMonLocation.second]
             val fainted = "fnt" in split[2]
@@ -340,7 +356,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object PerishSong : SDEffect("-start", "move") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val pkmn = split[1].parsePokemon()
             if (split[0] == "move") {
                 if (split[2] == "Perish Song") {
@@ -356,7 +373,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Faint : SDEffect("faint") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val fainted = split[1].parsePokemon()
             fainted.isDead = true
             context.sdPlayers[fainted.player].putIfAbsent(PlayerSaveKey.FIRST_FAINTED, fainted)
@@ -375,7 +393,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Swap : SDEffect("swap") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val (pl, idx) = split[1].parsePokemonLocation()
             val newlocation = split[2].toInt()
             context.monsOnField[pl].let {
@@ -387,7 +406,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object DetailsChanged : SDEffect("detailschange") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val mon = runCatching { split[1].parsePokemon() }.getOrNull() ?: return
             mon.otherNames += mon.pokemon
             mon.pokemon = split[2].substringBefore(",")
@@ -395,7 +415,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Explosion : SDEffect("move") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             if (split[2] in explosionMoves) {
                 val (pl, idx) = split[1].parsePokemonLocation()
                 run {
@@ -431,7 +452,8 @@ sealed class SDEffect(vararg val types: String) {
 
         private val moves = listOf("Trick", "Switcheroo")
 
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             when (split[0]) {
                 "-activate" -> if (moves.any { it == split.getOrNull(2)?.substringAfter(": ") }) {
                     val p1 = split[1].parsePokemon()
@@ -452,7 +474,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     sealed class Weather(override val name: String) : SDEffect("-weather") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             if (split[1] != name) return
             if (split.getOrNull(2) != "[upkeep]") context.globalConditions[this] =
                 (split.getOrNull(3)?.parsePokemon() ?: context.lastMoveUser.value.parsePokemon())
@@ -468,7 +491,8 @@ sealed class SDEffect(vararg val types: String) {
 
 
     data object Status : SDEffect("-status") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             split[1].parsePokemon().run {
                 val tspikes = context.sdPlayers[player].sideConditions["Toxic Spikes"]
                 (split.getSource() ?: tspikes)?.let {
@@ -485,7 +509,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Volatile : SDEffect("-start", "-activate") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             split[1].parsePokemon().run {
                 split.getSource()?.let {
                     addVolatileEffect(split[2].substringAfter(": "), it)
@@ -500,7 +525,8 @@ sealed class SDEffect(vararg val types: String) {
         data object FutureSight : FutureMoves("Future Sight")
         data object DoomDesire : FutureMoves("Doom Desire")
 
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             if (split[0] == "-start") {
                 if (split.getOrNull(2)?.contains(name) == true) {
                     val (pl, idx) = context.lastLine.value.cleanSplit()[3].parsePokemonLocation()
@@ -518,7 +544,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     sealed class RemoteHeal(override val name: String) : SDEffect("move") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val usedMove = split[2]
             if (usedMove == name) {
                 val (side, num) = split[1].parsePokemonLocation()
@@ -534,7 +561,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object SideCondition : SDEffect("-sidestart") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val pokemon = context.lastMoveUser.value.parsePokemon()
             val type = split[2].substringAfter(": ")
             context.sdPlayers[split[1][1].digitToInt() - 1].sideConditions[type] = pokemon
@@ -542,14 +570,16 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Teamsize : SDEffect("teamsize") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             context.sdPlayers[split[1][1].digitToInt() - 1].teamSize = split[2].toInt()
         }
 
     }
 
     data object SetHP : SDEffect("-sethp") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val (side, num) = split[1].parsePokemonLocation()
             val hp = split[2].parseHPPercentage()
             val isPainSplit = split.getOrNull(3)?.contains("Pain Split") == true
@@ -568,7 +598,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Win : SDEffect("win") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val indexOfWinner = context.sdPlayers.indexOfFirst { it.nickname.toUsername() == split[1].toUsername() }
             context.sdPlayers[indexOfWinner].winnerOfGame = true
             for (i in context.sdPlayers.indices) {
@@ -578,7 +609,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Time : SDEffect("t:") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val timestamp = split[1].toLong() * 1000
             if (context.events.start.isEmpty())
                 context.events.start += AnalysisStart(context.currentLineIndex, timestamp)
@@ -587,7 +619,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object Move : SDEffect("move") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val target = if (split[3].isEmpty()) {
                 context.game.getOrNull(context.currentLineIndex + 2)?.cleanSplit()?.takeIf { it[0] == "-anim" }
                     ?.getOrNull(3)
@@ -600,7 +633,8 @@ sealed class SDEffect(vararg val types: String) {
     }
 
     data object CustomRules : SDEffect("raw") {
-        context(context: BattleContext) override fun execute(split: List<String>) {
+        context(context: BattleContext)
+        override fun execute(split: List<String>) {
             val raw = split[1]
             if ("custom rule" in raw) context.customRules = raw
         }
@@ -727,7 +761,8 @@ class SDPlayer(
 
 fun String.cleanSplit() = this.split("|").drop(1)
 
-context(context: BattleContext) fun String.parsePokemon() =
+context(context: BattleContext)
+fun String.parsePokemon() =
     parsePokemonLocation().let { context.monsOnField[it.first][it.second] }
 
 fun String.parsePokemonLocation() = substringAfter('p').substringBefore(':').let {

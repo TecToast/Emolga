@@ -26,7 +26,8 @@ object SendFeatures {
             restrict(flo)
         }
 
-        context(iData: InteractionData) override suspend fun exec(e: Args) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
             jda.openPrivateChannelById(e.id).flatMap { it.sendMessage(e.msg.convertForSend()) }.queue()
             iData.done(true)
         }
@@ -38,7 +39,8 @@ object SendFeatures {
             restrict(flo)
         }
 
-        context(iData: InteractionData) override suspend fun exec(e: Args) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
             jda.getTextChannelById(e.id)!!.sendMessage(e.msg.convertForSend()).queue()
             iData.done(true)
         }

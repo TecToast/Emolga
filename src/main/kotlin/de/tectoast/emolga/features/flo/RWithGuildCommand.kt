@@ -15,7 +15,8 @@ object RWithGuild {
             var urls by list("url", "url", numOfArgs = 3, requiredNum = 1)
         }
 
-        context(iData: InteractionData) override suspend fun exec(e: Args) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
             val url = e.urls.first()
             if (url == "-") {
                 return iData.replyModal(Modal())
@@ -40,7 +41,8 @@ object RWithGuild {
             }
         }
 
-        context(iData: InteractionData) override suspend fun exec(e: Args) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
             val id = e.id
             val urls = e.urls
             urls.split("\n").forEach {

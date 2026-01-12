@@ -32,6 +32,7 @@ data class Coord(val sheet: String, val x: Int, val y: Int) {
     fun setX(x: Int) = Coord(sheet, x, y)
     fun setX(x: String) =
         Coord(sheet, convert(x), y)
+
     fun setY(y: Int) = Coord(sheet, x, y)
     operator fun plus(xy: Pair<Int, Int>) = Coord(sheet, x + xy.first, y + xy.second)
 

@@ -19,7 +19,8 @@ object WRCSignupButton : ButtonFeature<WRCSignupButton.Args>(::Args, ButtonSpec(
         var gameday by int()
     }
 
-    context(iData: InteractionData) override suspend fun exec(e: Args) {
+    context(iData: InteractionData)
+    override suspend fun exec(e: Args) {
         iData.ephemeralDefault()
         val name = e.wrcname
         val gameday = e.gameday

@@ -15,15 +15,16 @@ class SillyLeague : League() {
     override suspend fun RequestBuilder.pickDoc(data: PickData) {
         addSingle(
             data.idx.CoordXMod("Draft", 8, 'K' - 'G', 7, 15, 8 + run {
-                if(data.tier == "C") {
-                    if(data.picks.count { it.tier == "C" } > 1) 9 else 8
-                } else if(data.tier == "D") {
-                    if(data.picks.count { it.tier == "D" } > 1) 9 else 10
+                if (data.tier == "C") {
+                    if (data.picks.count { it.tier == "C" } > 1) 9 else 8
+                } else if (data.tier == "D") {
+                    if (data.picks.count { it.tier == "D" } > 1) 9 else 10
                 } else {
                     data.getTierInsertIndex()
                 }
             }),
-            data.pokemon)
+            data.pokemon
+        )
         // TODO: Support for C/D tiers
     }
 }

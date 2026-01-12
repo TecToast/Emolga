@@ -26,7 +26,8 @@ object DraftPermissionCommand :
 
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            League.executeOnFreshLock({ db.leagueByCommand() },
+            League.executeOnFreshLock(
+                { db.leagueByCommand() },
                 { iData.reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) l@{
                 val mem = e.user
                 if (mem.user.isBot) return@l iData.reply("Du kannst keine Bots als Ersatzdrafter hinzufügen!")

@@ -286,12 +286,13 @@ class TierlistBuilderConfigurator(
                     regForm ?: mon, guildId, language
                 ) && (regForm == null || !NameConventionsDB.checkIfExists(mon, guildId, language))
             ) {
-                e.hook.send("`$mon` wurde nicht gefunden, bitte gib den Namen in meinem Format über /addconvention an.".condAppend(
-                    sendRegionalInfo
-                ) {
-                    sendRegionalInfo = false
-                    " (Falls es sich um ein normales Alola/Galar/Mega-Pokemon handeln sollte [Glurak-Mega-X/Y sind davon ausgenommen], musst du das am Anfang bei /preparetierlist angeben, damit ich das richtig erkenne. Um das jetzt noch zu ändern, gib einfach nochmal /preparetierlist mit den richtigen Namen ein)"
-                }).queue()
+                e.hook.send(
+                    "`$mon` wurde nicht gefunden, bitte gib den Namen in meinem Format über /addconvention an.".condAppend(
+                        sendRegionalInfo
+                    ) {
+                        sendRegionalInfo = false
+                        " (Falls es sich um ein normales Alola/Galar/Mega-Pokemon handeln sollte [Glurak-Mega-X/Y sind davon ausgenommen], musst du das am Anfang bei /preparetierlist angeben, damit ich das richtig erkenne. Um das jetzt noch zu ändern, gib einfach nochmal /preparetierlist mit den richtigen Namen ein)"
+                    }).queue()
                 if (e is SlashCommandInteractionEvent) options.dontSkip()
                 return false
             }

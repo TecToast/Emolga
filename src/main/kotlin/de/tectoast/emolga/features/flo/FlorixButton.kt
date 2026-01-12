@@ -18,7 +18,8 @@ object FlorixButton : ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("flori
         START, STOP, STATUS, POWEROFF;
     }
 
-    context(iData: InteractionData) override suspend fun exec(e: Args) {
+    context(iData: InteractionData)
+    override suspend fun exec(e: Args) {
         val data = db.remoteServerControl.get(e.pc) ?: return iData.reply("Ungültiger PC! (${e.pc})")
         val on = data.isOn()
         iData.ephemeralDefault()

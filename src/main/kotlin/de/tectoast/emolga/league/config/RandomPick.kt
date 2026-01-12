@@ -51,7 +51,8 @@ sealed interface RandomPickMode {
             }
         }
 
-        context(iData: InteractionData) override suspend fun League.getRandomPick(
+        context(iData: InteractionData)
+        override suspend fun League.getRandomPick(
             input: RandomPickUserInput, config: RandomPickConfig
         ): Pair<DraftName, String>? {
             if (tierRequired && input.tier == null) return iData.replyNull("Du musst ein Tier angeben!")
@@ -75,7 +76,8 @@ sealed interface RandomPickMode {
             return mapOf(RandomPickArgument.TYPE to ArgumentPresence.REQUIRED)
         }
 
-        context(iData: InteractionData) override suspend fun League.getRandomPick(
+        context(iData: InteractionData)
+        override suspend fun League.getRandomPick(
             input: RandomPickUserInput, config: RandomPickConfig
         ): Pair<DraftName, String>? {
             val type = input.type ?: return iData.replyNull("Du musst einen Typen angeben!")

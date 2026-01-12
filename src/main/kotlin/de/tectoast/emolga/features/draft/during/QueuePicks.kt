@@ -123,13 +123,15 @@ object QueuePicks {
         }
 
         object Enable : CommandFeature<NoArgs>(NoArgs(), CommandSpec("enable", "Aktiviert das System für dich")) {
-            context(iData: InteractionData) override suspend fun exec(e: NoArgs) {
+            context(iData: InteractionData)
+            override suspend fun exec(e: NoArgs) {
                 changeActivation(true)
             }
         }
 
         object Disable : CommandFeature<NoArgs>(NoArgs(), CommandSpec("disable", "Deaktiviert das System für dich")) {
-            context(iData: InteractionData) override suspend fun exec(e: NoArgs) {
+            context(iData: InteractionData)
+            override suspend fun exec(e: NoArgs) {
                 changeActivation(false)
             }
         }

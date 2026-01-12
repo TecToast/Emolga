@@ -18,7 +18,8 @@ object RFileWithGuildCommand :
         var file by attachment("file", "file")
     }
 
-    context(iData: InteractionData) override suspend fun exec(e: Args) {
+    context(iData: InteractionData)
+    override suspend fun exec(e: Args) {
         iData.deferReply()
         val replayData =
             e.file.proxy.download().await().bufferedReader().use { it.readText() }

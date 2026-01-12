@@ -80,7 +80,8 @@ object LeagueManage {
         }
 
 
-        context(iData: InteractionData) override suspend fun exec(e: NoArgs) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: NoArgs) {
             // do nothing
         }
     }

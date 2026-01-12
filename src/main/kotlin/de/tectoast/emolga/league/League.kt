@@ -253,7 +253,8 @@ sealed class League {
         }
     }
 
-    context(iData: InteractionData) open fun handlePoints(
+    context(iData: InteractionData)
+    open fun handlePoints(
         free: Boolean, tier: String, tierOld: String? = null, mega: Boolean = false, extraCosts: Int? = null
     ): Boolean {
         if (!tierlist.mode.withPoints) return false
@@ -306,7 +307,8 @@ sealed class League {
     fun minimumNeededPointsForTeamCompletion(picksSizeAfterAdd: Int) =
         (min(teamsize, tierlist.maxMonsToPay) - picksSizeAfterAdd) * tierlist.prices.values.min()
 
-    context(iData: InteractionData) open fun handleTiers(
+    context(iData: InteractionData)
+    open fun handleTiers(
         specifiedTier: String, officialTier: String, fromSwitch: Boolean = false
     ): Boolean {
         val tl = tierlist
@@ -792,7 +794,8 @@ sealed class League {
 
     fun builder() = RequestBuilder(sid)
 
-    context(iData: InteractionData) suspend fun replyGeneral(
+    context(iData: InteractionData)
+    suspend fun replyGeneral(
         msg: String,
         components: Collection<MessageTopLevelComponent> = SendDefaults.components,
         ifTestUseTc: MessageChannel? = null
@@ -803,7 +806,8 @@ sealed class League {
     )
 
 
-    context(iData: InteractionData) suspend fun replyWithTestInteractionCheck(
+    context(iData: InteractionData)
+    suspend fun replyWithTestInteractionCheck(
         content: String,
         components: Collection<MessageTopLevelComponent> = SendDefaults.components,
         ifTestUseTc: MessageChannel? = null
@@ -812,7 +816,8 @@ sealed class League {
             content, components = components
         )
 
-    context (data: InteractionData) suspend fun replySkip() {
+    context (data: InteractionData)
+    suspend fun replySkip() {
         replyGeneral("den Pick übersprungen!")
     }
 
@@ -1213,7 +1218,8 @@ sealed class League {
             }
         }
 
-        context(iData: InteractionData) suspend fun executePickLike(block: suspend League.() -> Unit) {
+        context(iData: InteractionData)
+        suspend fun executePickLike(block: suspend League.() -> Unit) {
             executeOnFreshLock({ byCommand() }, { it.first }, {
                 if (!iData.replied) {
                     iData.reply(
@@ -1234,7 +1240,8 @@ sealed class League {
             }
         }
 
-        context (iData: InteractionData) suspend fun byCommand(): Pair<League, BypassCurrentPlayerData>? {
+        context (iData: InteractionData)
+        suspend fun byCommand(): Pair<League, BypassCurrentPlayerData>? {
             val onlyChannel = onlyChannel(iData.tc)
             logger.info("leaguename {}", onlyChannel?.leaguename)
             return onlyChannel?.run {
@@ -1268,7 +1275,8 @@ sealed class League {
         suspend fun onlyChannel(tc: Long) =
             db.league.find(League::draftState ne DraftState.OFF, League::tcid eq tc).first()
 
-        context(iData: InteractionData) suspend fun executeAsNotCurrent(
+        context(iData: InteractionData)
+        suspend fun executeAsNotCurrent(
             asParticipant: Boolean,
             block: suspend League.() -> Unit
         ) {

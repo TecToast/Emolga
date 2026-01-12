@@ -24,7 +24,8 @@ object ControlButtonSetupCommand :
         CONTROLCENTRAL, FLORIX;
     }
 
-    context(iData: InteractionData) override suspend fun exec(e: Args) {
+    context(iData: InteractionData)
+    override suspend fun exec(e: Args) {
         iData.done(true)
         when (e.type) {
             ControlButtonType.CONTROLCENTRAL -> {

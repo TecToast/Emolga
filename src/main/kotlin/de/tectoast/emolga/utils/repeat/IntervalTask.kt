@@ -77,6 +77,7 @@ class IntervalTask(
             intervalTasks[name]?.job?.cancel()
             intervalTasks[name]?.start()
         }
+
         fun setupIntervalTasks() {
             IntervalTask(YTSubscriptions, 4.days) {
                 setupYTSuscribtions()

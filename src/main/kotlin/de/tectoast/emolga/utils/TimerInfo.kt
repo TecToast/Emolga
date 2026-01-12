@@ -17,6 +17,7 @@ class TimerInfo {
         if (delaysAfterSkips.isEmpty()) throw IllegalArgumentException("delaysAfterSkips must not be empty")
         delayData = TreeMap(delaysAfterSkips)
     }
+
     constructor(delayInMins: Int) : this(mapOf(0 to delayInMins))
     constructor(from: Int, to: Int, delayInMins: Int = 120) : this(delayInMins) {
         set(from, to)

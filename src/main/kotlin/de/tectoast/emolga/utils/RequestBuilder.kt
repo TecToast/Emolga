@@ -14,6 +14,7 @@ import java.util.regex.Pattern
 interface SimpleRequestBuilder {
     fun addSingle(range: Coord, body: Any, raw: Boolean = false): SimpleRequestBuilder
 }
+
 @Suppress("unused")
 class RequestBuilder
 /**

@@ -23,7 +23,8 @@ object WRCMonSelect : SelectMenuFeature<WRCMonSelect.Args>(::Args, SelectMenuSpe
 
     val teraTiers = setOf("A", "B")
 
-    context(iData: InteractionData) override suspend fun exec(e: Args) {
+    context(iData: InteractionData)
+    override suspend fun exec(e: Args) {
         iData.deferEdit()
         if (WRCMatchupsDB.hasSubmittedTeam(
                 e.wrcname, e.gameday, iData.user
@@ -62,7 +63,8 @@ object WRCMonSubmitButton : ButtonFeature<WRCMonSubmitButton.Args>(::Args, Butto
         var gameday by int().compIdOnly()
     }
 
-    context(iData: InteractionData) override suspend fun exec(e: Args) {
+    context(iData: InteractionData)
+    override suspend fun exec(e: Args) {
         val tl = WRCDataDB.getTierlistOfWrcName(e.wrcname) ?: return
         val prices = tl.prices.toMutableMap()
         WRCMonsPickedDB.getUnorderedPickedMons(e.wrcname, e.gameday, iData.user).forEach { dp ->
@@ -88,7 +90,8 @@ object WRCTeraSelectMenu : SelectMenuFeature<WRCTeraSelectMenu.Args>(::Args, Sel
         var selection by singleOption()
     }
 
-    context(iData: InteractionData) override suspend fun exec(e: Args) {
+    context(iData: InteractionData)
+    override suspend fun exec(e: Args) {
         if (WRCMatchupsDB.hasSubmittedTeam(
                 e.wrcname, e.gameday, iData.user
             )

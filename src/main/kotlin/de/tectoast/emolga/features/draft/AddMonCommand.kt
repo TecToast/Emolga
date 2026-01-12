@@ -49,7 +49,8 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
         }
     }
 
-    context(iData: InteractionData) override suspend fun exec(e: Args) {
+    context(iData: InteractionData)
+    override suspend fun exec(e: Args) {
         val user = PrivateCommands.teamSubmitOverride.takeIf { iData.isFlo } ?: iData.user
         League.executeOnFreshLock({
             db.league.findOne(

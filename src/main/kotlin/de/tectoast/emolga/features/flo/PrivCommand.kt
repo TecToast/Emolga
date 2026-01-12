@@ -20,7 +20,8 @@ object PrivCommand : CommandFeature<PrivCommand.Args>(::Args, CommandSpec("priv"
             .associateBy { it.name }
     }
 
-    context(iData: InteractionData) override suspend fun exec(e: Args) {
+    context(iData: InteractionData)
+    override suspend fun exec(e: Args) {
         privCommands[e.cmd]?.let { method ->
             if (method.parameters.run { size <= 2 }) method.callSuspend(PrivateCommands, iData)
             else method.callSuspend(

@@ -15,7 +15,8 @@ object RevealTeam {
             var idx by int("index")
         }
 
-        context(iData: InteractionData) override suspend fun exec(e: Args) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
             League.executeOnFreshLock(e.league) {
                 val state = persistentData.teamReveal.revealState
                 val picks = picks[e.idx] ?: return@executeOnFreshLock iData.reply("Dieses Team hat keine Picks!")

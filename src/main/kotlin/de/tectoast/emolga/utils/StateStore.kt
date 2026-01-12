@@ -64,13 +64,15 @@ sealed class StateStore {
     private fun createFilter() = and(Filters.eq("type", this::class.simpleName!!), StateStore::uid eq uid)
 
     companion object {
-        context(iData: InteractionData) suspend inline fun <reified T : StateStore> process(block: T.() -> Unit) {
+        context(iData: InteractionData)
+        suspend inline fun <reified T : StateStore> process(block: T.() -> Unit) {
             processIgnoreMissing<T>(block) ?: iData.reply(
                 "Diese Interaktion ist nicht mehr gültig! Starte sie wenn nötig erneut!", ephemeral = true
             )
         }
 
-        context(iData: InteractionData) suspend inline fun <reified T : StateStore> processIgnoreMissing(block: T.() -> Unit) =
+        context(iData: InteractionData)
+        suspend inline fun <reified T : StateStore> processIgnoreMissing(block: T.() -> Unit) =
             (db.statestore.findOne(
                 StateStore::uid eq iData.user, Filters.eq<String?>("type", T::class.simpleName)
             ) as T?)?.process(block)
@@ -95,12 +97,12 @@ suspend fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEnt
             val actualBo3 = fullGameData.games.size > 1
             if (actualBo3) add(
                 Embed(
-                title = "Spieltag $gameday",
+                    title = "Spieltag $gameday",
                     description = "<@${league[fullGameData.uindices[0]]}> ${
                         (0..1).map { i -> fullGameData.games.count { replayData -> replayData.winnerIndex == i } }
                             .joinToString(":").surroundWithIf("||", spoiler)
                     } <@${league[fullGameData.uindices[1]]}>",
-                color = Color.YELLOW.rgb
+                    color = Color.YELLOW.rgb
                 )
             )
             addAll(descriptions.mapIndexed { index, desc ->
@@ -192,7 +194,8 @@ class NominateState : StateStore {
         }
     }
 
-    context(iData: InteractionData) fun render() {
+    context(iData: InteractionData)
+    fun render() {
         iData.edit(
             embeds = Embed(
                 title = "Nominierungen", color = embedColor, description = generateDescription()
@@ -219,7 +222,8 @@ class NominateState : StateStore {
         return nominated.toJSON() + notNominated.toJSON()
     }
 
-    context(iData: InteractionData) suspend fun finish(now: Boolean) {
+    context(iData: InteractionData)
+    suspend fun finish(now: Boolean) {
         if (now) {
             return League.executeOnFreshLock({ db.nds() }) l@{
                 val nom = (this as NDS).nominations
@@ -323,15 +327,18 @@ class QueuePicks : StateStore {
         )
     }
 
-    context(iData: InteractionData) fun init() {
+    context(iData: InteractionData)
+    fun init() {
         iData.reply(embeds = buildStateEmbed(null), components = buildSelectMenu(), ephemeral = true)
     }
 
-    context(iData: InteractionData) fun handleSelect(tlName: String) {
+    context(iData: InteractionData)
+    fun handleSelect(tlName: String) {
         iData.edit(embeds = buildStateEmbed(tlName), components = buildButtons(tlName))
     }
 
-    context(iData: InteractionData) fun handleButton(e: QueuePicks.ControlButton.Args) {
+    context(iData: InteractionData)
+    fun handleButton(e: QueuePicks.ControlButton.Args) {
         val index by lazy { currentState.indexOfFirst { it.g.tlName == e.mon } }
         val currentMon = when (e.controlMode) {
             UP -> {
@@ -368,7 +375,8 @@ class QueuePicks : StateStore {
             components = currentMon?.let { buildButtons(it) } ?: buildSelectMenu())
     }
 
-    context(iData: InteractionData) fun setLocation(tlName: String, location: Int) {
+    context(iData: InteractionData)
+    fun setLocation(tlName: String, location: Int) {
         val index = currentState.indexOfFirst { it.g.tlName == tlName }
         val range = currentState.indices
         val mon = currentState.removeAt(index)
@@ -378,7 +386,8 @@ class QueuePicks : StateStore {
         )
     }
 
-    context(iData: InteractionData) suspend fun finish(enable: Boolean) {
+    context(iData: InteractionData)
+    suspend fun finish(enable: Boolean) {
         iData.ephemeralDefault()
         iData.deferEdit()
         League.executeOnFreshLock(leaguename) l@{
@@ -394,7 +403,8 @@ class QueuePicks : StateStore {
         }
     }
 
-    context(iData: InteractionData) fun reload() {
+    context(iData: InteractionData)
+    fun reload() {
         currentState += addedMeanwhile
         addedMeanwhile.clear()
         iData.edit(embeds = buildStateEmbed(null), components = buildSelectMenu())

@@ -56,7 +56,8 @@ object ShinyEvent {
             iData.jda.getTextChannelById(config.checkChannel)!!
                 .send(
                     "<@${iData.user}> (${iData.member().effectiveName}) hat ein Shiny für das Event eingereicht!\n" + "Spiel: ${e.game}\n" + "Methode: ${e.method}\n" + "(Punkte: ${configuration.points})\n" + "Bild: ${e.image.url}",
-                    components = listOf(ShinyAdminButton(
+                    components = listOf(
+                        ShinyAdminButton(
                         "Bestätigen", ButtonStyle.SUCCESS, emoji = Emoji.fromUnicode("✅")
                     ) {
                         this.eventName = config.name

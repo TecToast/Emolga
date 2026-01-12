@@ -69,7 +69,7 @@ object Nominate {
                                                 buttonStyle = ButtonStyle.SUCCESS,
                                                 emoji = Emoji.fromUnicode("✅"),
                                                 disabled = true
-                                            ) { mode = Mode.FINISH;data = "NOTNOW" })
+                                            ) { mode = Mode.FINISH; data = "NOTNOW" })
                                     )
                                 })
                         ).queue()

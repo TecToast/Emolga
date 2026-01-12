@@ -38,7 +38,8 @@ object NuzlockeCommand :
         ).nullable()
     }
 
-    context(iData: InteractionData) override suspend fun exec(e: Args) {
+    context(iData: InteractionData)
+    override suspend fun exec(e: Args) {
         iData.deferReply()
         executeMonSwitch(e.user.idLong, e.mon, e.newMon)
     }

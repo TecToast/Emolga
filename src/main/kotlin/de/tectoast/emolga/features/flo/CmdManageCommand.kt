@@ -19,7 +19,8 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
             }
         }
 
-        context(iData: InteractionData) override suspend fun exec(e: Args) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
             iData.deferReply(true)
             CmdManager.modifyGuildGroup(e.guildId, e.group, e.action)
             iData.done()
@@ -36,7 +37,8 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
             }
         }
 
-        context(iData: InteractionData) override suspend fun exec(e: Args) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
             iData.deferReply(true)
             CmdManager.modifyGuildCommand(e.guildId, e.command, e.action)
             iData.done()
@@ -53,7 +55,8 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
             }
         }
 
-        context(iData: InteractionData) override suspend fun exec(e: Args) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
             iData.deferReply(true)
             CmdManager.modifyGroupCommand(e.group, e.command, e.action)
             iData.done()
@@ -69,7 +72,8 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
     }
 
 
-    context(data: InteractionData) override suspend fun exec(e: NoArgs) {
+    context(data: InteractionData)
+    override suspend fun exec(e: NoArgs) {
 
     }
 }

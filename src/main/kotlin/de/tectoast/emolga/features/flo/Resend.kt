@@ -8,7 +8,8 @@ object Resend {
     val messageCache = mutableMapOf<Long, Message>()
 
     object MessageContext : MessageContextFeature(MessageContextSpec("Resend")) {
-        context(iData: InteractionData) override suspend fun exec(e: MessageContextArgs) {
+        context(iData: InteractionData)
+        override suspend fun exec(e: MessageContextArgs) {
             messageCache[iData.user] = e.message
             iData.replyModal(Modal())
         }

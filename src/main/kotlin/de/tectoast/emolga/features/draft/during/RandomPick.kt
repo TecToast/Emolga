@@ -119,9 +119,9 @@ object RandomPick {
             League.executePickLike l@{
                 val (official, tlName, tier, map, history, disabled) = draftData.randomPick.currentMon
                     ?: return@l iData.reply(
-                    "Es gibt zurzeit keinen Pick!",
-                    ephemeral = true
-                )
+                        "Es gibt zurzeit keinen Pick!",
+                        ephemeral = true
+                    )
                 if (disabled) return@l iData.reply(
                     "Du musst erstmal selbst gamblen, bevor du diesen Button verwenden kannst!",
                     ephemeral = true

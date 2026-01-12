@@ -12,7 +12,8 @@ import mu.KotlinLogging
 private val logger = KotlinLogging.logger {}
 
 object DraftUtils {
-    context(league: League, iData: InteractionData) suspend fun executeWithinLock(
+    context(league: League, iData: InteractionData)
+    suspend fun executeWithinLock(
         input: DraftInput, type: DraftMessageType
     ) {
         league.checkLegalDraftInput(input, type)?.let { return iData.reply(it) }
@@ -26,9 +27,11 @@ object DraftUtils {
 
 
 interface DraftInput {
-    context(iData: InteractionData, league: League) suspend fun execute(type: DraftMessageType): Boolean
+    context(iData: InteractionData, league: League)
+    suspend fun execute(type: DraftMessageType): Boolean
 
-    context(data: DraftData, interactionData: InteractionData) fun checkEmolga(happy: Boolean = true) {
+    context(data: DraftData, interactionData: InteractionData)
+    fun checkEmolga(happy: Boolean = true) {
         if (data.pokemonofficial == "Emolga") {
             if (happy) {
                 interactionData.sendMessage("<:Happy:967390966153609226> ".repeat(5))
@@ -44,7 +47,8 @@ interface DraftInput {
 data class PickInput(
     val pokemon: DraftName, val tier: String?, val free: Boolean, val tera: Boolean = false, val noCost: Boolean = false
 ) : DraftInput {
-    context(iData: InteractionData, league: League) override suspend fun execute(type: DraftMessageType): Boolean {
+    context(iData: InteractionData, league: League)
+    override suspend fun execute(type: DraftMessageType): Boolean {
         with(league) {
             if (isSwitchDraft && !config.triggers.allowPickDuringSwitch) {
                 return iData.reply("Du kannst während des Switch-Drafts nicht picken!").let { false }
@@ -94,7 +98,8 @@ data class PickInput(
         }
     }
 
-    context(iData: InteractionData, league: League) suspend fun PickData.reply(type: DraftMessageType) {
+    context(iData: InteractionData, league: League)
+    suspend fun PickData.reply(type: DraftMessageType) {
         when (type) {
             REGULAR -> {
                 league.replyGeneral("${displayName()} ".condAppend(league.config.triggers.alwaysSendTierOnPick || updrafted) { "im $tier " } + (if (tera) "als Tera-User " else "") + "gepickt!".condAppend(
@@ -121,7 +126,8 @@ data class PickInput(
 }
 
 data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInput {
-    context(iData: InteractionData, league: League) override suspend fun execute(type: DraftMessageType): Boolean {
+    context(iData: InteractionData, league: League)
+    override suspend fun execute(type: DraftMessageType): Boolean {
         with(league) {
             if (!isSwitchDraft) {
                 return iData.reply("Dieser Draft ist kein Switch-Draft, daher wird /switch nicht unterstützt!")
@@ -163,7 +169,8 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
         }
     }
 
-    context(iData: InteractionData, league: League) suspend fun SwitchData.reply(type: DraftMessageType) {
+    context(iData: InteractionData, league: League)
+    suspend fun SwitchData.reply(type: DraftMessageType) {
         when (type) {
             REGULAR -> {
                 league.replyGeneral("${oldDisplayName()} gegen ${displayName()} getauscht!")
@@ -187,7 +194,8 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
 }
 
 data class BanInput(val pokemon: DraftName) : DraftInput {
-    context(iData: InteractionData, league: League) override suspend fun execute(type: DraftMessageType): Boolean {
+    context(iData: InteractionData, league: League)
+    override suspend fun execute(type: DraftMessageType): Boolean {
         with(league) {
             val config =
                 config.draftBan ?: return iData.reply("In diesem Draft sind keine Bans vorgesehen!").let { false }
@@ -220,7 +228,8 @@ data class BanInput(val pokemon: DraftName) : DraftInput {
         }
     }
 
-    context(data: InteractionData, league: League) suspend fun BanData.reply(type: DraftMessageType) {
+    context(data: InteractionData, league: League)
+    suspend fun BanData.reply(type: DraftMessageType) {
         when (type) {
             REGULAR -> {
                 league.replyGeneral("${displayName()} ($tier) gebannt!")

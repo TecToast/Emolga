@@ -24,6 +24,7 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
     CommandSpec("addtotierlist", "Fügt ein Mon in die Tierliste ein")
 ) {
     private val logger = KotlinLogging.logger {}
+
     class Args : Arguments() {
         var mon by draftPokemon("Mon", "Das Mon") { s, _ ->
             allNameConventions().filterStartsWithIgnoreCase(s).takeIf { it.size <= 25 }?.sorted()

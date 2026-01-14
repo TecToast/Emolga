@@ -131,7 +131,7 @@ fun Route.emolgaAPI() {
                                     UserData(
                                         u.toString(),
                                         members[u]?.user?.effectiveName ?: "UNKNOWN",
-                                        members[u]?.effectiveAvatarUrl?.replace(".gif", ".png")
+                                        members[u]?.user?.effectiveAvatarUrl?.replace(".gif", ".png")
                                             ?: "https://cdn.discordapp.com/embed/avatars/0.png"
                                     )
                                 }, it.data, it.conference

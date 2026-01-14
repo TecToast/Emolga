@@ -85,6 +85,7 @@ object SignupManager {
         gid: Long,
         config: LigaStartConfig
     ) {
+        if (db.signups.get(gid) != null) return
         val tc = jda.getTextChannelById(config.announceChannel)!!
         val messageid =
             tc.sendMessage(config.signupMessage.condAppend(!config.hideUserCount) { "\n\n**Teilnehmer: 0/${config.maxUsers.takeIf { it > 0 } ?: "?"}**" })

@@ -86,7 +86,7 @@ fun Route.emolgaAPI() {
             val guilds = getGuildsForUser(call.userId)
             call.respond(guilds.mapNotNull {
                 val g = jda.getGuildById(it) ?: return@mapNotNull null
-                GuildMeta(id = g.id, name = g.name, icon = g.iconUrl ?: "")
+                GuildMeta(id = g.id, name = g.name, icon = g.iconUrl ?: "", db.signups.get(it) != null)
             })
         }
         route("{guild}") {
@@ -457,7 +457,7 @@ data class ParticipantData(
 data class UserData(val id: String, val name: String, val avatar: String)
 
 @Serializable
-data class GuildMeta(val id: String, val name: String, val icon: String)
+data class GuildMeta(val id: String, val name: String, val icon: String, val runningSignup: Boolean)
 
 val userIdKey = AttributeKey<Long>("userId")
 val apiGuard = createRouteScopedPlugin("AuthGuard") {

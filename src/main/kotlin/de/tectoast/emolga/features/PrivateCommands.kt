@@ -10,6 +10,7 @@ import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
 import de.tectoast.emolga.features.flo.FlorixButton
+import de.tectoast.emolga.features.various.GuildAuthorizeButton
 import de.tectoast.emolga.ktor.subscribeToYTChannel
 import de.tectoast.emolga.league.DefaultLeague
 import de.tectoast.emolga.league.League
@@ -708,6 +709,14 @@ object PrivateCommands {
                 this[CropAuxiliaryDB.POKEMON] = it
             }
         }
+    }
+
+    context(iData: InteractionData)
+    fun guildAuthorizeButton(args: PrivateData) {
+        iData.jda.getTextChannelById(args())!!.send(
+            "Hier könnt ihr euch Rechte für die Website holen :)",
+            components = GuildAuthorizeButton(label = "Klick mich :3", buttonStyle = ButtonStyle.SUCCESS).into()
+        ).queue()
     }
 }
 

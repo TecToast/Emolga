@@ -6,6 +6,7 @@ import de.tectoast.emolga.utils.json.db
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toSet
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.jdbc.insertIgnore
 import org.jetbrains.exposed.v1.jdbc.select
 
 object GuildManagerDB : Table("guildmanager") {
@@ -36,6 +37,15 @@ object GuildManagerDB : Table("guildmanager") {
         if (user == Constants.FLOID) return true
         return dbTransaction {
             select(USER).where { USER eq user }.count() > 0
+        }
+    }
+
+    suspend fun authorizeUser(guild: Long, user: Long) {
+        dbTransaction {
+            insertIgnore {
+                it[GUILD] = guild
+                it[USER] = user
+            }
         }
     }
 }

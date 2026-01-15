@@ -718,6 +718,12 @@ object PrivateCommands {
             components = GuildAuthorizeButton(label = "Klick mich :3", buttonStyle = ButtonStyle.SUCCESS).into()
         ).queue()
     }
+
+    context(iData: InteractionData)
+    suspend fun updateSignupMessage(args: PrivateData) {
+        val gid = args().toLong()
+        db.signups.get(gid)!!.updateSignupMessage()
+    }
 }
 
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")

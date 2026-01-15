@@ -134,7 +134,8 @@ fun Route.emolgaAPI() {
                                         members[u]?.user?.effectiveAvatarUrl?.replace(".gif", ".png")
                                             ?: "https://cdn.discordapp.com/embed/avatars/0.png"
                                     )
-                                }, it.data, it.conference
+                                },
+                                it.data, it.logoChecksum != null, it.conference,
                             )
                         }
                         call.respond(ParticipantDataGet(lsData.conferences, result))
@@ -450,6 +451,7 @@ data class ParticipantDataGet(val conferences: List<String>, val data: List<Part
 data class ParticipantData(
     val users: List<UserData>,
     val data: Map<String, String>,
+    val hasLogo: Boolean,
     val conference: String? = null,
 )
 

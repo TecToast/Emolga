@@ -32,7 +32,7 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
         iData.deferReply(ephemeral = true)
         val lsData = db.signups.get(iData.gid)!!
         val error = lsData.insertLogo(uid, logo)
-        iData.reply(error ?: "Dein Logo wurde erfolgreich hochgeladen!")
+        iData.reply(error ?: "Dein Logo wurde erfolgreich hochgeladen!", ephemeral = true)
     }
 
 

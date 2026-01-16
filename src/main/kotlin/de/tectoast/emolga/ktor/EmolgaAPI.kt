@@ -43,6 +43,7 @@ import kotlin.reflect.KClass
 private val logger = KotlinLogging.logger {}
 private val defaultDataCache = SizeLimitedMap<String, String>(maxSize = 10)
 private val discordUserCache = SizeLimitedMap<Long, DiscordUserData>(maxSize = 1000)
+private val participantDataCache = mutableMapOf<Long, Pair<String, String>>()
 
 @Serializable
 data class DiscordUserData(val name: String, val avatar: String)
@@ -122,16 +123,24 @@ fun Route.emolgaAPI() {
                     get {
                         val gid = call.requireGuild() ?: return@get
                         val lsData = db.signups.get(gid) ?: return@get call.respond(HttpStatusCode.NotFound)
-                        val members =
-                            jda.getGuildById(gid)!!.retrieveMembersByIds(lsData.users.flatMap { it.users }).await()
-                                .associateBy { it.idLong }
+                        val allUsers = lsData.users.flatMap { it.users }
+                        if (allUsers.any { !participantDataCache.containsKey(it) }) {
+                            participantDataCache.putAll(
+                                jda.getGuildById(gid)!!.retrieveMembersByIds(allUsers).await()
+                                .associateBy { it.idLong }.mapValues { (_, mem) ->
+                                    mem.user.effectiveName to mem.user.effectiveAvatarUrl.replace(
+                                        ".gif",
+                                        ".png"
+                                    )
+                                })
+                        }
                         val result = lsData.users.map {
                             ParticipantData(
                                 it.users.map { u ->
                                     UserData(
                                         u.toString(),
-                                        members[u]?.user?.effectiveName ?: "UNKNOWN",
-                                        members[u]?.user?.effectiveAvatarUrl?.replace(".gif", ".png")
+                                        participantDataCache[u]?.first ?: "UNKNOWN",
+                                        participantDataCache[u]?.second
                                             ?: "https://cdn.discordapp.com/embed/avatars/0.png"
                                     )
                                 },

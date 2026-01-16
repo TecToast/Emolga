@@ -47,6 +47,20 @@ object SignupManager {
         }
     }
 
+    object UnsignupCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("unsignup", "Ziehe deine Anmeldung zurück")) {
+
+        context(iData: InteractionData)
+        override suspend fun exec(e: NoArgs) {
+            val ligaStartData = db.signups.get(iData.gid) ?: return iData.reply(
+                "Es läuft derzeit keine Anmeldung auf diesem Server!", ephemeral = true
+            )
+            iData.reply(
+                if (ligaStartData.deleteUser(iData.user)) "✅ Deine Anmeldung wurde erfolgreich zurückgezogen!" else "❌ Du bist derzeit nicht angemeldet!",
+                ephemeral = true
+            )
+        }
+    }
+
     object SignupChangeCommand : CommandFeature<NoArgs>(
         NoArgs(), CommandSpec(
             "signupchange",

@@ -650,8 +650,8 @@ data class LigaStartData(
         users.firstOrNull { it.users.contains(uid) }?.let { handleSignupChange(it) }
     }
 
-    suspend fun deleteUser(uid: Long) {
-        val data = users.firstOrNull { it.users.contains(uid) } ?: return
+    suspend fun deleteUser(uid: Long): Boolean {
+        val data = users.firstOrNull { it.users.contains(uid) } ?: return false
         data.users.remove(uid)
         if (data.users.isEmpty()) {
             data.signupmid?.let { jda.getTextChannelById(config.signupChannel)!!.deleteMessageById(it).queue() }
@@ -662,6 +662,7 @@ data class LigaStartData(
             handleSignupChange(data)
         }
         updateSignupMessage()
+        return true
     }
 
     fun updateUser(user: Long) {

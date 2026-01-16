@@ -683,9 +683,7 @@ data class LigaStartData(
             }
             config.logoSettings.handleLogo(this, signUpData, logoData.value)
             val timeSinceLastUpload = System.currentTimeMillis() - lastLogoUploadTime
-            if (timeSinceLastUpload < GOOGLE_UPLOAD_DELAY_MS) {
-                delay(GOOGLE_UPLOAD_DELAY_MS - timeSinceLastUpload)
-            }
+            delay(GOOGLE_UPLOAD_DELAY_MS - timeSinceLastUpload)
             val checksum = Google.uploadLogoToCloud(logoData.value)
             db.signups.updateOne(
                 LigaStartData::guild eq guild,

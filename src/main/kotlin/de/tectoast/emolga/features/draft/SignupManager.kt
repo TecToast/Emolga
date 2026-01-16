@@ -115,7 +115,10 @@ object SignupManager {
             val c = Channel<LigaStartData>(Channel.CONFLATED)
             signupScope.launch {
                 while (true) {
-                    c.receive().updateSignupMessage()
+                    val receive = c.receive()
+                    if (!receive.config.hideUserCount) {
+                        receive.updateSignupMessage()
+                    }
                     delay(10000)
                 }
             }

@@ -311,7 +311,8 @@ object WRCManager {
 
     private suspend fun getSelectMenus(wrcName: String, gameday: Int, drawnMons: List<List<String>>): List<ActionRow> {
         val tl = WRCDataDB.getTierlistOfWrcName(wrcName) ?: error("No tierlist found for wrc $wrcName")
-        return tl.prices.entries.zip(drawnMons).map { (tierData, mons) ->
+        val tierMap = tl.withTierBasedPriceManager { it.getSingleMap() } ?: error("Tierlist has no single map $wrcName")
+        return tierMap.entries.zip(drawnMons).map { (tierData, mons) ->
             ActionRow.of(
                 WRCMonSelect(
                     placeholder = tierData.key,

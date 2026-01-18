@@ -671,7 +671,7 @@ data class LigaStartData(
             .editMessageById(data.signupmid!!, data.toMessage(this)).queue()
     }
 
-    suspend fun insertLogo(uid: Long, logo: Message.Attachment): String? =
+    suspend fun insertLogo(uid: Long, logo: Message.Attachment): ErrorOrNull =
         logoUploadMutex.withLock {
             if (config.logoSettings == null) {
                 return "In dieser Liga gibt es keine eigenen Logos!"
@@ -1058,3 +1058,5 @@ suspend fun CoroutineCollection<IntervalTaskData>.get(name: IntervalTaskKey) =
 
 @JvmName("getRemoteServerControl")
 suspend fun CoroutineCollection<RemoteServerControl>.get(name: String) = find(RemoteServerControl::name eq name).first()
+
+typealias ErrorOrNull = String?

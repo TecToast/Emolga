@@ -137,10 +137,7 @@ class TierlistBuilderConfigurator(
             ).queue()
         } else if (this is ButtonInteractionEvent) {
             val oldTL = Tierlist[guildId, tlIdentifier]!!
-            tierlistMode = oldTL.mode
-            prices = oldTL.prices
-            freepicks = oldTL.freepicks
-            points = oldTL.points
+            // TODO
             val tiers = prices!!.keys.toList()
             val lastTier = tiers.lastIndex
             for (i in 0..<lastTier) {
@@ -335,13 +332,7 @@ class TierlistBuilderConfigurator(
                     if (tlIdentifier.isEmpty()) (Tierlist::identifier exists false) else (Tierlist::identifier eq tlIdentifier)
                 )
             )
-            db.tierlist.insertOne(Tierlist(guildId, tlIdentifier).apply {
-                this.prices += this@TierlistBuilderConfigurator.prices!!
-                this@TierlistBuilderConfigurator.freepicks?.let { this.freepicks += it }
-                this@TierlistBuilderConfigurator.points?.let { this.points = it }
-                this.mode = this@TierlistBuilderConfigurator.tierlistMode!!
-                this.language = this@TierlistBuilderConfigurator.language
-            })
+            // TODO
         }
         val shiftMap = shiftedMons?.associate { it.name to it.tier }
         dbTransaction {

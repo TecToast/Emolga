@@ -129,9 +129,9 @@ val String.marker: Marker get() = MarkerFactory.getMarker(this)
 fun String.condAppend(check: Boolean, value: String) = if (check) this + value else this
 inline fun String.condAppend(check: Boolean, value: () -> String) = if (check) this + value() else this
 
-fun String.notNullAppend(value: String?) = notNullAppend(value) { it }
-inline fun <T> String.notNullAppend(value: T?, mapper: (T) -> String) =
-    if (value != null) this + mapper(value) else this
+fun String.notNullAppend(value: String?, prefix: String = "") = notNullAppend(value) { it }
+inline fun <T> String.notNullAppend(value: T?, prefix: String = "", mapper: (T) -> String) =
+    if (value != null) this + prefix + mapper(value) else this
 
 inline fun <T> String.notNullPrepend(value: T?, mapper: (T) -> String) =
     if (value != null) mapper(value) + this else this

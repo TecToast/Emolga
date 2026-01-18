@@ -6,6 +6,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.league.config.Triggers
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.draft.DraftAction
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
@@ -38,8 +39,7 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
                 val user = PrivateCommands.teamSubmitOverride.takeIf { event.user.idLong == Constants.FLOID }
                     ?: event.user.idLong
                 val league = db.league.findOne(
-                    League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true,
-                    League::table contains user
+                    League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true, League::table contains user
                 ) ?: return@lambda listOf("Du nimmst an keiner Liga teil, bei der man ein Team einreichen muss!")
                 val tierlist = league.getTierlistFor(league(user))
                 val strings = tierlist.autoComplete().filterContainsIgnoreCase(s)
@@ -54,8 +54,7 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
         val user = PrivateCommands.teamSubmitOverride.takeIf { iData.isFlo } ?: iData.user
         League.executeOnFreshLock({
             db.league.findOne(
-                League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true,
-                League::table contains user
+                League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true, League::table contains user
             )
         }, { iData.reply("Du nimmst an keiner Liga teil, bei der man ein Team einreichen muss!") }) l@{
             val idx = this(user)
@@ -70,7 +69,18 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
             }
             val (tier, _, _) = (tl.getTierOfCommand(e.pokemon, null)
                 ?: return@l iData.reply("Dieses Pokemon ist nicht in der Tierliste!"))
-            if (handlePoints(false, tier)) return@l
+            tl.withTL {
+                it.handleDraftAction(
+                    DraftAction(
+                        specifiedTier = tier,
+                        officialTier = tier,
+                        official = official,
+                        free = false,
+                        tera = false,
+                        switch = null
+                    )
+                )
+            }?.let { return@l iData.reply(it) }
             picks.add(DraftPokemon(official, tier))
             val picksAsString = convertPicksToString(picks, tl)
             if (picks.size >= teamsize) {

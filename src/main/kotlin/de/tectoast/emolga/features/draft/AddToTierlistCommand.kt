@@ -31,7 +31,7 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
         }
         var tier by string("Tier", "Das Tier, sonst das unterste") {
             slashCommand { s, event ->
-                Tierlist[event.guild!!.idLong]?.prices?.keys?.filter { it.startsWith(s) }
+                Tierlist[event.guild!!.idLong]?.withTL { it.getTiers() }?.filter { it.startsWith(s) }
             }
         }.nullable()
     }
@@ -46,8 +46,9 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
         val id = League.onlyChannel(iData.tc)?.guild ?: iData.gid
         val tierlist = Tierlist[id] ?: return iData.reply("Es gibt keine Tierlist für diesen Server!")
         val mon = e.mon.tlName
-        val tier = e.tier ?: tierlist.prices.keys.last()
-        if (tier !in tierlist.prices) {
+        val allTiers = tierlist.withTL { it.getTiers() }
+        val tier = e.tier ?: allTiers.last()
+        if (tier !in allTiers) {
             return iData.reply("Das Tier `$tier` existiert nicht!")
         }
         try {

@@ -391,7 +391,7 @@ class QueuePicks : StateStore {
         iData.ephemeralDefault()
         iData.deferEdit()
         League.executeOnFreshLock(leaguename) l@{
-            if (isIllegal(this(uid), currentState)) return@l
+            isIllegal(this(uid), currentState)?.let { return@l iData.reply(it) }
             val data = persistentData.queuePicks.queuedPicks.getOrPut(this(iData.user)) { QueuePicksUserData() }
             data.queued = currentState.toMutableList()
             data.enabled = enable

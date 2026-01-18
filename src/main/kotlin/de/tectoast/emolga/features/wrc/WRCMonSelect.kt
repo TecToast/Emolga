@@ -66,7 +66,9 @@ object WRCMonSubmitButton : ButtonFeature<WRCMonSubmitButton.Args>(::Args, Butto
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val tl = WRCDataDB.getTierlistOfWrcName(e.wrcname) ?: return
-        val prices = tl.prices.toMutableMap()
+        val tierMap =
+            tl.withTierBasedPriceManager { it.getSingleMap() } ?: error("Tierlist has no single map ${e.wrcname}")
+        val prices = tierMap.toMutableMap()
         WRCMonsPickedDB.getUnorderedPickedMons(e.wrcname, e.gameday, iData.user).forEach { dp ->
             prices.add(dp.tier, -1)
         }

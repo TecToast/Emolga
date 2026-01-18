@@ -5,7 +5,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.*
 import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.draft.DraftMessageType.*
-import de.tectoast.emolga.utils.isMega
+import de.tectoast.emolga.utils.notNullAppend
 import dev.minn.jda.ktx.coroutines.await
 import mu.KotlinLogging
 
@@ -62,22 +62,27 @@ data class PickInput(
                 ?: error("No TERA tierlist found for guild ${league.guild}")) else tierlist
             val (tlName, official, _, _, _) = pokemon
             logger.info("tlName: $tlName, official: $official")
-            val (specifiedTier, officialTier, points) = (tl.getTierOfCommand(pokemon, tier)
+            val (specifiedTier, officialTier, _) = (tl.getTierOfCommand(pokemon, tier)
                 ?: return iData.reply("Dieses Pokemon ist nicht in der Tierliste!").let { false })
             if (tier != null && tier != officialTier && config.triggers.updraftDisabled) {
                 return iData.reply("Hochdraften in diesem Draft nicht erlaubt!").let { false }
             }
-            checkUpdraft(specifiedTier, officialTier)?.let { return iData.reply(it).let { false } }
             if (isPicked(official, officialTier)) return iData.reply("Dieses Pokemon wurde bereits gepickt!")
                 .let { false }
-            val tlMode = tl.mode
-            val freepick =
-                free.takeIf { tlMode.isTiersWithFree() && !(tl.variableMegaPrice && official.isMega) } == true
-            if (!freepick && handleTiers(specifiedTier, officialTier)) return false
-            if (!noCost && handlePoints(
-                    free = freepick, tier = officialTier, mega = official.isMega, extraCosts = points.takeIf { tera })
-            ) return false
-            val saveTier = if (freepick) officialTier else specifiedTier
+            val context = DraftActionContext()
+            tl.withTL {
+                it.handleDraftAction(
+                    DraftAction(
+                        specifiedTier = specifiedTier,
+                        officialTier = officialTier,
+                        official = official,
+                        free = free,
+                        tera = tera,
+                        switch = null
+                    ), context
+                )
+            }?.let { return iData.reply(it).let { false } }
+            val saveTier = if (context.isValidFreePick) officialTier else specifiedTier
             if (tera) draftData.teraPick.alreadyHasTeraUser.add(idx)
             lastPickedMon = pokemon
             val pickData = PickData(
@@ -87,7 +92,7 @@ data class PickInput(
                 tier = saveTier,
                 idx = idx,
                 round = getPickRoundOfficial(),
-                freePick = freepick,
+                freePick = context.isValidFreePick,
                 updrafted = saveTier != officialTier,
                 tera = tera
             )
@@ -104,8 +109,8 @@ data class PickInput(
             REGULAR -> {
                 league.replyGeneral("${displayName()} ".condAppend(league.config.triggers.alwaysSendTierOnPick || updrafted) { "im $tier " } + (if (tera) "als Tera-User " else "") + "gepickt!".condAppend(
                     updrafted
-                ) { " (Hochgedraftet)" }.condAppend(freePick) { " (Free-Pick)" }
-                    .condAppend(freePick) { " [Neue Punktzahl: ${league.points[league.current]}]" })
+                ) { " (Hochgedraftet)" }
+                    .notNullAppend(league.tierlist.withTL { it.getPickMessageSuffix(this@reply, type) }, prefix = " "))
                 checkEmolga()
             }
 
@@ -140,16 +145,22 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
                 ?: return iData.reply("${oldmon.tlName} befindet sich nicht in deinem Kader!").let { false }
             val newtier = tierlist.getTierOfCommand(newmon, null)
                 ?: return iData.reply("Das neue Pokemon ist nicht in der Tierliste!").let { false }
-            val oldtier = tierlist.getTierOfCommand(oldmon, null)!!.specified
-            checkUpdraft(oldDraftMon.tier, newtier.official)?.let { return iData.reply(it).let { false }; }
+            tierlist.getTierOfCommand(oldmon, null)!!.specified
             if (isPicked(newmon.official, newtier.official)) {
                 return iData.reply("${newmon.tlName} wurde bereits gepickt!").let { false }
             }
-            if (handleTiers(oldtier, newtier.official, fromSwitch = true)) return false
-            if (handlePoints(
-                    free = false, tier = newtier.official, tierOld = oldtier
+            tierlist.withTL {
+                it.handleDraftAction(
+                    DraftAction(
+                        specifiedTier = newtier.specified,
+                        officialTier = newtier.official,
+                        official = newmon.official,
+                        free = false,
+                        tera = false,
+                        switch = oldDraftMon
+                    )
                 )
-            ) return false
+            }?.let { return iData.reply(it).let { false } }
             lastPickedMon = newmon
             val oldIndex = draftPokemons.indexOfFirst { it.name == oldmon.official }
             val switchData = SwitchData(
@@ -203,7 +214,7 @@ data class BanInput(val pokemon: DraftName) : DraftInput {
                 .let { false }
             val banRoundConfig =
                 config.banRounds[round] ?: return iData.reply("Runde **$round** ist keine Ban-Runde!").let { false }
-            val tier = (tierlist.getTierOfCommand(pokemon, insertedTier = null)
+            val tier = (tierlist.getTierOfCommand(pokemon, requestedTier = null)
                 ?: return iData.reply("Dieses Pokemon ist nicht in der Tierliste!").let { false }).official
             banRoundConfig.checkBan(tier, getAlreadyBannedMonsInThisRound())?.let { reason ->
                 return iData.reply(reason).let { false }

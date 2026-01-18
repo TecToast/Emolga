@@ -379,7 +379,7 @@ sealed interface TierlistPriceManager {
         val tiers: Map<String, Int>,
         override val updraftHandler: UpdraftHandler = UpdraftHandler.Default
     ) :
-        TierBasedPriceManager {
+        TierlistPriceManager, TierBasedPriceManager {
         context(league: League, tl: Tierlist)
         override fun handleDraftActionAfterGeneralTierCheck(action: DraftAction): ErrorOrNull {
             val options = getPossibleTiers()
@@ -455,7 +455,8 @@ sealed interface TierlistPriceManager {
 
     @Serializable
     @SerialName("SimplePointBased")
-    data class SimplePointBased(val prices: Map<String, Int>, override val globalPoints: Int) : PointBasedPriceManager {
+    data class SimplePointBased(val prices: Map<String, Int>, override val globalPoints: Int) : TierlistPriceManager,
+        PointBasedPriceManager {
 
         context(league: League, tl: Tierlist)
         override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): String? {
@@ -534,7 +535,7 @@ sealed interface TierlistPriceManager {
         val genericTiers: Map<String, Int>,
         val options: List<List<Map<String, Int>>>,
         override val updraftHandler: UpdraftHandler = UpdraftHandler.Default
-    ) : CombinedOptionsPriceManager {
+    ) : TierlistPriceManager, CombinedOptionsPriceManager {
 
         override val combinedOptions by lazy {
             buildList {
@@ -622,7 +623,7 @@ sealed interface TierlistPriceManager {
     data class ChoiceTierBased(
         override val tierOrder: List<String>, val genericTiers: Map<String, Int>, val choices: List<ChoiceTierOption>,
         override val updraftHandler: UpdraftHandler = UpdraftHandler.Default
-    ) : CombinedOptionsPriceManager {
+    ) : TierlistPriceManager, CombinedOptionsPriceManager {
 
         override val combinedOptions by lazy {
             generateAllOptions(choices, genericTiers)

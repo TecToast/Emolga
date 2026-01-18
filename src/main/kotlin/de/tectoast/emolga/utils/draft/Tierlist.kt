@@ -814,6 +814,7 @@ sealed interface UpdraftHandler {
     fun handleUpdraft(action: DraftAction): ErrorOrNull
 
     @Serializable
+    @SerialName("Default")
     data object Default : UpdraftHandler {
         context(league: League, tl: Tierlist, priceManager: TierlistPriceManager)
         override fun handleUpdraft(action: DraftAction): ErrorOrNull {
@@ -827,6 +828,7 @@ sealed interface UpdraftHandler {
     }
 
     @Serializable
+    @SerialName("OnlyWithGap")
     data class OnlyWithGap(val gap: Int) : UpdraftHandler {
         context(league: League, tl: Tierlist, priceManager: TierlistPriceManager)
         override fun handleUpdraft(action: DraftAction): ErrorOrNull {
@@ -836,6 +838,20 @@ sealed interface UpdraftHandler {
                 if (-diff > gap) {
                     return "Du kannst ein ${action.officialTier}-Mon nur bis zu $gap Tiers hochdraften!"
                 }
+            }
+            return null
+        }
+    }
+
+    @Serializable
+    @SerialName("Disabled")
+    data object Disabled : UpdraftHandler {
+        context(league: League, tl: Tierlist, priceManager: TierlistPriceManager)
+        override fun handleUpdraft(action: DraftAction): ErrorOrNull {
+            val compareResult = priceManager.compareTiers(action.specifiedTier, action.officialTier)
+                ?: return "Das Tier `${action.specifiedTier}` existiert nicht!"
+            if (compareResult != 0) {
+                return "Updrafts sind in diesem Draft deaktiviert!"
             }
             return null
         }

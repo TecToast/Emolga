@@ -9,7 +9,6 @@ import de.tectoast.emolga.league.PickData
 import de.tectoast.emolga.league.TierData
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.PointBasedPriceManager.Companion.pointManager
-import de.tectoast.emolga.utils.draft.TierBasedPriceManager.Companion.handleFromPossibleTiers
 import de.tectoast.emolga.utils.draft.TierBasedPriceManager.Companion.tierAmountToString
 import de.tectoast.emolga.utils.draft.TierlistPriceManager.Companion.currentPicks
 import de.tectoast.emolga.utils.draft.TierlistPriceManager.Companion.deductPicks
@@ -252,18 +251,6 @@ interface TierBasedPriceManager : TierlistPriceManager {
     companion object {
         fun tierAmountToString(tier: String, amount: Int) =
             "${amount}x **".condAppend(tier.toIntOrNull() != null, "Tier ") + "${tier}**"
-
-        fun handleFromPossibleTiers(allMaps: List<Map<String, Int>>, action: DraftAction): ErrorOrNull {
-            val specifiedTier = action.specifiedTier
-            if (allMaps.all { map -> map.getOrDefault(specifiedTier, 0) <= 0 }) {
-                if (allMaps.all { p -> p[specifiedTier] == 0 }) {
-                    return "Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!"
-                }
-                if (action.switch != null) return null
-                return "Du kannst dir kein $specifiedTier-Pokemon mehr picken!"
-            }
-            return null
-        }
     }
 }
 
@@ -273,7 +260,16 @@ interface CombinedOptionsPriceManager : TierBasedPriceManager {
 
     context(league: League, tl: Tierlist)
     override fun handleDraftActionAfterGeneralTierCheck(action: DraftAction): ErrorOrNull {
-        return handleFromPossibleTiers(combinedOptions, action)
+        val specifiedTier = action.specifiedTier
+        val allTiers = getAllPossibleTiers()
+        if (allTiers.all { map -> map.getOrDefault(specifiedTier, 0) <= 0 }) {
+            if (combinedOptions.all { p -> p[specifiedTier] == 0 }) {
+                return "Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!"
+            }
+            if (action.switch != null) return null
+            return "Du kannst dir kein $specifiedTier-Pokemon mehr picken!"
+        }
+        return null
     }
 
     context(league: League, tl: Tierlist)

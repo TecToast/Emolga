@@ -678,11 +678,17 @@ sealed interface TierlistPriceManager {
                 val result = singularOptions.removeOne { tier in it.tiers }
                 if (result == null) error("Couldn't find tier $tier in choices")
             }
-            val availableOptions = singularOptions.groupingBy { it.tiers }.eachCount()
+            val availableOptions = singularOptions.groupingBy { it.tiers }.eachCount().toMutableMap()
             val str = buildString {
-                val baseData = fromGeneric.entries.filter { it.value > 0 }.joinToString(", ") {
-                    tierAmountToString(it.key, it.value)
-                }
+                val baseData = fromGeneric.entries.filter { it.value > 0 }.flatMap {
+                    buildList {
+                        add(tierAmountToString(it.key, it.value))
+                        availableOptions.entries.firstOrNull { en -> it.key in en.key }?.let { entry ->
+                            availableOptions.remove(entry.key)
+                            add(tierAmountToString(entry.key.joinToString("/"), entry.value))
+                        }
+                    }
+                }.joinToString(", ")
                 val additionalData = availableOptions.entries.joinToString { (tiers, amount) ->
                     tierAmountToString(tiers.joinToString("/"), amount)
                 }

@@ -124,7 +124,6 @@ sealed interface RandomPickMode {
         if (config.tierRestrictions.isNotEmpty() && parsedTier !in config.tierRestrictions) {
             return iData.replyNull("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: ${config.tierRestrictions.joinToString()}")
         }
-        // TODO
         return parsedTier
     }
 }

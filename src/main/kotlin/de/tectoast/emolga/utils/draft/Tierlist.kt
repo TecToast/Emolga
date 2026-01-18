@@ -9,6 +9,10 @@ import de.tectoast.emolga.league.PickData
 import de.tectoast.emolga.league.TierData
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.PointBasedPriceManager.Companion.pointManager
+import de.tectoast.emolga.utils.draft.TierBasedPriceManager.Companion.handleFromPossibleTiers
+import de.tectoast.emolga.utils.draft.TierBasedPriceManager.Companion.tierAmountToString
+import de.tectoast.emolga.utils.draft.TierlistPriceManager.Companion.currentPicks
+import de.tectoast.emolga.utils.draft.TierlistPriceManager.Companion.deductPicks
 import de.tectoast.emolga.utils.json.ErrorOrNull
 import de.tectoast.emolga.utils.json.db
 import kotlinx.coroutines.runBlocking
@@ -242,8 +246,72 @@ interface TierBasedPriceManager : TierlistPriceManager {
     context(league: League, tl: Tierlist)
     fun getCurrentAvailableTiers(): List<String>
 
-    context(league: League, tl: Tierlist, draftData: DraftData)
+    context(draftData: DraftData)
     fun getTierInsertIndex(takePicks: Int = draftData.picks.size): Int
+
+    companion object {
+        fun tierAmountToString(tier: String, amount: Int) =
+            "${amount}x **".condAppend(tier.toIntOrNull() != null, "Tier ") + "${tier}**"
+
+        fun handleFromPossibleTiers(allMaps: List<Map<String, Int>>, action: DraftAction): ErrorOrNull {
+            val specifiedTier = action.specifiedTier
+            if (allMaps.all { map -> map.getOrDefault(specifiedTier, 0) <= 0 }) {
+                if (allMaps.all { p -> p[specifiedTier] == 0 }) {
+                    return "Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!"
+                }
+                if (action.switch != null) return null
+                return "Du kannst dir kein $specifiedTier-Pokemon mehr picken!"
+            }
+            return null
+        }
+    }
+}
+
+interface CombinedOptionsPriceManager : TierBasedPriceManager {
+    val combinedOptions: List<Map<String, Int>>
+    val tierOrder: List<String>
+
+    context(league: League, tl: Tierlist)
+    override fun handleDraftActionAfterGeneralTierCheck(action: DraftAction): ErrorOrNull {
+        return handleFromPossibleTiers(combinedOptions, action)
+    }
+
+    context(league: League, tl: Tierlist)
+    override fun getCurrentAvailableTiers(): List<String> {
+        val cpicks = league.currentPicks()
+        return combinedOptions.flatMap { opt ->
+            val deducted = opt.deductPicks(cpicks)
+            if (deducted.any { it.value < 0 }) emptyList() else deducted.entries.filter { it.value > 0 }
+                .map { it.key }
+        }
+    }
+
+    override fun getTiers() = tierOrder
+
+    context(league: League, tl: Tierlist)
+    fun getAllPossibleTiers(idx: Int = league.current): List<Map<String, Int>> =
+        combinedOptions.map { it.deductPicks(league.currentPicks(idx)) }
+
+    context(league: League, tl: Tierlist)
+    override suspend fun checkLegalityOfQueue(
+        idx: Int,
+        currentState: List<QueuedAction>
+    ): ErrorOrNull {
+        val res = getAllPossibleTiers(idx)
+        val finalMaps = res.map { map ->
+            val tempMap = map.toMutableMap()
+            currentState.forEach {
+                tempMap.add(league.tierlist.getTierOf(it.g.tlName)!!, -1)
+                it.y?.let { y -> tempMap.add(league.tierlist.getTierOf(y.tlName)!!, 1) }
+            }
+            tempMap
+        }
+        val isIllegal = finalMaps.all { map -> map.any { it.value < 0 } }
+        if (isIllegal) {
+            return "Mit dieser Queue hättest du zu viele Pokemon in einem oder mehreren Tiers!"
+        }
+        return null
+    }
 }
 
 interface FreePickPriceManager : TierlistPriceManager
@@ -288,13 +356,14 @@ interface PointBasedPriceManager : TierlistPriceManager {
 @Serializable
 sealed interface TierlistPriceManager {
     context(tl: Tierlist)
-    fun compareTiers(tierA: String, tierB: String): Int?
+    fun compareTiers(tierA: String, tierB: String): Int? =
+        getTiers().compareTiersFromOrder(tierA, tierB)
 
     context(league: League, tl: Tierlist)
     fun handleDraftAction(action: DraftAction, context: DraftActionContext? = null): ErrorOrNull
 
     context(league: League, tl: Tierlist)
-    fun buildAnnounceData(idx: Int = league.current): ErrorOrNull
+    fun buildAnnounceData(idx: Int = league.current): String?
 
     fun getTiers(): List<String>
 
@@ -306,7 +375,10 @@ sealed interface TierlistPriceManager {
 
     @Serializable
     @SerialName("SimpleTierBased")
-    data class SimpleTierBased(val tiers: Map<String, Int>, override val updraftHandler: UpdraftHandler) :
+    data class SimpleTierBased(
+        val tiers: Map<String, Int>,
+        override val updraftHandler: UpdraftHandler = UpdraftHandler.Default
+    ) :
         TierBasedPriceManager {
         context(league: League, tl: Tierlist)
         override fun handleDraftActionAfterGeneralTierCheck(action: DraftAction): ErrorOrNull {
@@ -321,14 +393,12 @@ sealed interface TierlistPriceManager {
             return null
         }
 
-        context(tl: Tierlist)
-        override fun compareTiers(tierA: String, tierB: String) =
-            getTiers().compareTiersFromOrder(tierA, tierB)
-
         context(league: League, tl: Tierlist)
-        override fun buildAnnounceData(idx: Int): String {
+        override fun buildAnnounceData(idx: Int): String? {
             return getPossibleTiers(idx).entries.filterNot { it.value == 0 }
-                .joinToString { "${it.value}x **".condAppend(it.key.toIntOrNull() != null, "Tier ") + "${it.key}**" }
+                .joinToString { tierAmountToString(it.key, it.value) }.let {
+                    if (it.isEmpty()) null else "Mögliche Tiers: $it"
+                }
         }
 
         override fun getTiers() = tiers.keys.toList()
@@ -344,7 +414,7 @@ sealed interface TierlistPriceManager {
             return getPossibleTiers().filter { it.value > 0 }.keys.toList()
         }
 
-        context(league: League, tl: Tierlist, draftData: DraftData)
+        context(draftData: DraftData)
         override fun getTierInsertIndex(takePicks: Int): Int {
             var index = 0
             val picksToUse = draftData.picks.take(takePicks)
@@ -354,7 +424,7 @@ sealed interface TierlistPriceManager {
                 }
                 index += entry.value
             }
-            error("Tier ${draftData.tier} not found by user ${league.current}")
+            error("Tier ${draftData.tier} not found by user ${draftData.idx}")
         }
 
         context(league: League, tl: Tierlist)
@@ -363,10 +433,10 @@ sealed interface TierlistPriceManager {
             currentState: List<QueuedAction>
         ): ErrorOrNull {
             val map = getPossibleTiers(idx).toMutableMap()
-
+            val tl = league.tierlist
             currentState.forEach {
-                map.add(league.tierlist.getTierOf(it.g.tlName)!!, -1)
-                it.y?.let { y -> map.add(league.tierlist.getTierOf(y.tlName)!!, 1) }
+                map.add(tl.getTierOf(it.g.tlName)!!, -1)
+                it.y?.let { y -> map.add(tl.getTierOf(y.tlName)!!, 1) }
             }
             val result = map.entries.firstOrNull { it.value < 0 }
             val isIllegal = result != null
@@ -386,9 +456,6 @@ sealed interface TierlistPriceManager {
     @Serializable
     @SerialName("SimplePointBased")
     data class SimplePointBased(val prices: Map<String, Int>, override val globalPoints: Int) : PointBasedPriceManager {
-        context(tl: Tierlist)
-        override fun compareTiers(tierA: String, tierB: String) =
-            prices.keys.toList().compareTiersFromOrder(tierA, tierB)
 
         context(league: League, tl: Tierlist)
         override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): String? {
@@ -460,15 +527,213 @@ sealed interface TierlistPriceManager {
         }
     }
 
-    data object Empty : TierlistPriceManager {
+    @Serializable
+    @SerialName("OptionsTierBased")
+    data class OptionsTierBased(
+        override val tierOrder: List<String>,
+        val genericTiers: Map<String, Int>,
+        val options: List<List<Map<String, Int>>>,
+        override val updraftHandler: UpdraftHandler = UpdraftHandler.Default
+    ) : CombinedOptionsPriceManager {
+
+        override val combinedOptions by lazy {
+            buildList {
+                for (set in options) {
+                    for (option in set) {
+                        add(genericTiers.addFrom(option))
+                    }
+                }
+            }
+        }
+
         context(tl: Tierlist)
-        override fun compareTiers(tierA: String, tierB: String): Int? = null
+        override fun getSingleMap(): Map<String, Int> {
+            return genericTiers.toMutableMap().apply {
+                options.forEach { optionList ->
+                    this.addFromMutable(optionList.firstOrNull().orEmpty())
+                }
+            }
+        }
+
+        context(draftData: DraftData)
+        override fun getTierInsertIndex(takePicks: Int): Int {
+            error("Can't get tier insert index for option based tierlist")
+        }
+
+        context(league: League, tl: Tierlist)
+        override fun buildAnnounceData(idx: Int): String? {
+            val res = getAllPossibleTiers(idx)
+            val allTiers = res.flatMapTo(mutableSetOf()) { it.keys }.sortedBy {
+                tierOrder.indexOf(it)
+            }
+            val minValues = allTiers.associateWith { tier ->
+                res.minOf { it[tier] ?: 0 }
+            }
+            val str = buildString {
+                val baseData = allTiers.filter { minValues[it]!! > 0 }.joinToString(", ") {
+                    tierAmountToString(it, minValues[it]!!)
+                }
+                val additionalData = res.mapNotNull { map ->
+                    val reduced = map.subtractFrom(minValues)
+                    if (reduced.all { it.value <= 0 }) null else allTiers.filter { reduced[it]!! > 0 }
+                        .joinToString(", ") {
+                            tierAmountToString(it, reduced[it]!!)
+                        }
+                }.joinToString(" **--- oder ---** ")
+                append(baseData)
+                if (additionalData.isNotEmpty()) {
+                    append(" + [")
+                    append(additionalData)
+                    append("]")
+                }
+            }
+            return if (str.isEmpty()) null else "Mögliche Tiers: $str"
+        }
+
+        context(league: League, tl: Tierlist)
+        override fun getPickMessageSuffix(
+            pickData: PickData,
+            type: DraftMessageType
+        ): String? = null
+
+        private fun MutableMap<String, Int>.addFromMutable(other: Map<String, Int>) {
+            for ((key, value) in other) {
+                this.add(key, value)
+            }
+        }
+
+        private fun Map<String, Int>.addFrom(other: Map<String, Int>): Map<String, Int> {
+            val result = this.toMutableMap()
+            result.addFromMutable(other)
+            return result
+        }
+
+        private fun Map<String, Int>.subtractFrom(other: Map<String, Int>): Map<String, Int> {
+            val result = this.toMutableMap()
+            for ((key, value) in other) {
+                result.add(key, -value)
+            }
+            return result
+        }
+    }
+
+    @Serializable
+    @SerialName("ChoiceTierBased")
+    data class ChoiceTierBased(
+        override val tierOrder: List<String>, val genericTiers: Map<String, Int>, val choices: List<ChoiceTierOption>,
+        override val updraftHandler: UpdraftHandler = UpdraftHandler.Default
+    ) : CombinedOptionsPriceManager {
+
+        override val combinedOptions by lazy {
+            generateAllOptions(choices, genericTiers)
+        }
+
+        context(tl: Tierlist)
+        override fun getSingleMap(): Map<String, Int> {
+            return genericTiers.toMutableMap().apply {
+                for (choice in choices) {
+                    val firstOption = choice.tiers.first()
+                    this.add(firstOption, choice.amount)
+                }
+            }
+        }
+
+        context(draftData: DraftData)
+        override fun getTierInsertIndex(takePicks: Int): Int {
+            return getTierInsertIndex(draftData.picks.take(takePicks), draftData.tier)
+        }
+
+        fun getTierInsertIndex(picksToUse: List<DraftPokemon>, tierToInsert: String): Int {
+            var index = 0
+            var tierBefore: String? = null
+            for (entry in genericTiers.entries) {
+                val sumOfChoiceSlots =
+                    choices.filter { entry.key in it.tiers && (tierBefore == null || tierBefore in it.tiers) }
+                        .sumOf { it.amount }
+                index += sumOfChoiceSlots
+                if (entry.key == tierToInsert) {
+                    val picksAmountInTier = picksToUse.count { !it.free && !it.quit && it.tier == tierToInsert }
+                    val monsInChoiceSlots = picksAmountInTier - entry.value
+                    return if (monsInChoiceSlots > 0) {
+                        if (sumOfChoiceSlots > 0) index - monsInChoiceSlots else index + monsInChoiceSlots
+                    } else
+                        picksAmountInTier + index - 1
+                }
+                index += entry.value
+                tierBefore = entry.key
+            }
+            error("Tier $tierToInsert not found")
+        }
+
+        context(league: League, tl: Tierlist)
+        override fun buildAnnounceData(idx: Int): String? {
+            val cpicks = league.currentPicks(idx)
+            val fromGeneric = genericTiers.deductPicks(cpicks)
+            val singularOptions = getSingularChoiceList()
+            for (tier in fromGeneric.flatMap { genericEntry ->
+                if (genericEntry.value >= 0) emptyList()
+                else List(-genericEntry.value) { genericEntry.key }
+            }) {
+                val result = singularOptions.removeOne { tier in it.tiers }
+                if (result == null) error("Couldn't find tier $tier in choices")
+            }
+            val availableOptions = singularOptions.groupingBy { it.tiers }.eachCount()
+            val str = buildString {
+                val baseData = fromGeneric.entries.filter { it.value > 0 }.joinToString(", ") {
+                    tierAmountToString(it.key, it.value)
+                }
+                val additionalData = availableOptions.entries.joinToString { (tiers, amount) ->
+                    tierAmountToString(tiers.joinToString("/"), amount)
+                }
+                append(baseData)
+                if (additionalData.isNotEmpty()) {
+                    append(", ")
+                    append(additionalData)
+                }
+            }
+            return if (str.isEmpty()) null else "Mögliche Tiers: $str"
+        }
+
+        context(league: League, tl: Tierlist)
+        override fun getPickMessageSuffix(
+            pickData: PickData,
+            type: DraftMessageType
+        ) = null
+
+        fun getSingularChoiceList() = ChoiceTierOption.createSingularList(choices)
+
+        companion object {
+            fun generateAllOptions(
+                choices: List<ChoiceTierOption>,
+                genericTiers: Map<String, Int>
+            ): List<Map<String, Int>> = buildList {
+                fun recursiveBuild(remainingChoices: List<SingularChoiceTierOption>, map: Map<String, Int>) {
+                    if (remainingChoices.isEmpty()) {
+                        add(map)
+                        return
+                    }
+                    val first = remainingChoices.first()
+                    val rest = remainingChoices.drop(1)
+                    for (tier in first.tiers) {
+                        val copy = map.toMutableMap()
+                        copy.add(tier, 1)
+                        recursiveBuild(rest, copy)
+                    }
+                }
+                recursiveBuild(ChoiceTierOption.createSingularList(choices), genericTiers)
+            }.distinct()
+        }
+    }
+
+    @Serializable
+    @SerialName("Empty")
+    data object Empty : TierlistPriceManager {
 
         context(league: League, tl: Tierlist)
         override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): ErrorOrNull = null
 
         context(league: League, tl: Tierlist)
-        override fun buildAnnounceData(idx: Int): ErrorOrNull = null
+        override fun buildAnnounceData(idx: Int) = null
 
         override fun getTiers(): List<String> = emptyList()
 
@@ -503,17 +768,6 @@ sealed interface TierlistPriceManager {
         }
     }
 
-
-    /*
-    var index = 0
-    for (entry in tierlist.prices.entries) {
-        if (entry.key == this.tier) {
-            return picksToUse.count { !it.free && !it.quit && it.tier == this.tier } + index - 1
-        }
-        index += entry.value
-    }
-    error("Tier ${this.tier} not found by user $current")*/
-
 }
 
 data class DraftAction(
@@ -527,6 +781,25 @@ data class DraftAction(
 
 data class DraftActionContext(
     var isValidFreePick: Boolean = false
+)
+
+@Serializable
+data class ChoiceTierOption(
+    val tiers: Set<String>,
+    val amount: Int
+) {
+    companion object {
+        fun createSingularList(list: List<ChoiceTierOption>) = list.flatMapTo(mutableListOf()) { option ->
+            List(option.amount) {
+                SingularChoiceTierOption(option.tiers)
+            }
+        }
+    }
+}
+
+
+data class SingularChoiceTierOption(
+    val tiers: Set<String>
 )
 
 data class SwitchedMon(

@@ -167,6 +167,11 @@ inline fun <T> Collection<T>.filterContainsIgnoreCase(other: String, tostring: (
         if (str.contains(other, ignoreCase = true)) str else null
     }
 
+inline fun <T> MutableCollection<T>.removeOne(predicate: (T) -> Boolean): T? {
+    val item = this.firstOrNull(predicate) ?: return null
+    this.remove(item)
+    return item
+}
 
 fun Double.roundToDigits(digits: Int) = "%.${digits}f".format(this)
 

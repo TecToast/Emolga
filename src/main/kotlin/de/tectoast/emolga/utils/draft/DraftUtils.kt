@@ -145,7 +145,6 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
                 ?: return iData.reply("${oldmon.tlName} befindet sich nicht in deinem Kader!").let { false }
             val newtier = tierlist.getTierOfCommand(newmon, null)
                 ?: return iData.reply("Das neue Pokemon ist nicht in der Tierliste!").let { false }
-            tierlist.getTierOfCommand(oldmon, null)!!.specified
             if (isPicked(newmon.official, newtier.official)) {
                 return iData.reply("${newmon.tlName} wurde bereits gepickt!").let { false }
             }

@@ -25,6 +25,5 @@ class SillyLeague : League() {
             }),
             data.pokemon
         )
-        // TODO: Support for C/D tiers
     }
 }

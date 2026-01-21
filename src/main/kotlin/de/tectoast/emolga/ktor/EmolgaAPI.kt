@@ -124,15 +124,19 @@ fun Route.emolgaAPI() {
                         val gid = call.requireGuild() ?: return@get
                         val lsData = db.signups.get(gid) ?: return@get call.respond(HttpStatusCode.NotFound)
                         val allUsers = lsData.users.flatMap { it.users }
-                        if (allUsers.any { !participantDataCache.containsKey(it) }) {
-                            participantDataCache.putAll(
-                                jda.getGuildById(gid)!!.retrieveMembersByIds(allUsers).await()
+                        var newUsers = allUsers.filter { !participantDataCache.containsKey(it) }
+                        while (newUsers.isNotEmpty()) {
+                            val newVals = jda.getGuildById(gid)!!.retrieveMembersByIds(newUsers.take(100)).await()
                                 .associateBy { it.idLong }.mapValues { (_, mem) ->
                                     mem.user.effectiveName to mem.user.effectiveAvatarUrl.replace(
                                         ".gif",
                                         ".png"
                                     )
-                                })
+                                }
+                            participantDataCache.putAll(
+                                newVals
+                            )
+                            newUsers = newUsers.drop(100)
                         }
                         val result = lsData.users.map {
                             ParticipantData(

@@ -754,7 +754,7 @@ sealed interface TierlistPriceManager {
     }
 
     companion object {
-        fun League.currentPicks(idx: Int = current) = picks[idx]!!
+        fun League.currentPicks(idx: Int = current) = picks[idx].orEmpty()
         fun Map<String, Int>.deductPicks(list: List<DraftPokemon>): Map<String, Int> {
             val map = toMutableMap()
             for (pick in list) {

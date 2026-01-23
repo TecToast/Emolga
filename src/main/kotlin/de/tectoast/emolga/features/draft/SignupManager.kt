@@ -150,6 +150,7 @@ object SignupManager {
                     val oldData = getDataByUser(uid) ?: return iData?.reply("Du bist derzeit nicht angemeldet!")
                     oldData.data.putAll(data)
                     handleSignupChange(oldData)
+                    logoAttachment?.handleLogo(uid, iData)
                     iData?.reply("Deine Daten wurden erfolgreich geändert!")
                     return null
                 }
@@ -172,15 +173,18 @@ object SignupManager {
                     closeSignup()
                 }
                 save()
-                logoAttachment?.let { attachment ->
-                    signupScope.launch {
-                        insertLogo(uid, attachment)?.let { errorStr ->
-                            iData?.reply("⚠️ Dein Logo konnte nicht hochgeladen werden: $errorStr")
-                        }
-                    }
-                }
+                logoAttachment?.handleLogo(uid, iData)
             }
         }
         return null
+    }
+
+    context(lsData: LigaStartData)
+    private fun Message.Attachment.handleLogo(uid: Long, iData: InteractionData?) {
+        signupScope.launch {
+            lsData.insertLogo(uid, this@handleLogo)?.let { errorStr ->
+                iData?.reply("⚠️ Dein Logo konnte nicht hochgeladen werden: $errorStr")
+            }
+        }
     }
 }

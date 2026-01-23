@@ -6,6 +6,7 @@ import com.google.api.services.sheets.v4.model.TextFormat
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.draft.CombinedOptionsPriceManager
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
@@ -42,7 +43,10 @@ class NDS(val rr: Boolean) : League() {
 
     override fun checkFinishedForbidden(idx: Int) = when {
         picks[idx]!!.filter { !it.quit }.size < 15 -> "Du hast noch keine 15 Pokemon!"
-        !getPossibleTiers().all { tiers -> tiers.values.all { it == 0 } } -> "Du musst noch deine Tiers ausgleichen!"
+        tierlist.withPriceManager<CombinedOptionsPriceManager, List<Map<String, Int>>> {
+            it.getAllPossibleTiers().filter { map -> map.values.all { v -> v >= 0 } }
+        }?.all { tiers -> tiers.values.all { it == 0 } } == false -> "Du musst noch deine Tiers ausgleichen!"
+
         else -> null
     }
 

@@ -5,10 +5,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.league.config.Triggers
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.draft.DraftMessageType
-import de.tectoast.emolga.utils.draft.DraftUtils
-import de.tectoast.emolga.utils.draft.PickInput
-import de.tectoast.emolga.utils.draft.Tierlist
+import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.db
 import org.litote.kmongo.div
@@ -24,9 +21,8 @@ object PickCommand :
             slashCommand(autocomplete = { s, event ->
                 val league = League.onlyChannel(event.channel.idLong) ?: return@slashCommand null
                 val current = league.currentOrFromID(event.user.idLong) ?: return@slashCommand null
-                league.getPossibleTiers(forAutocomplete = true, idx = current).flatMap { it.entries }
-                    .filter { it.value > 0 }.map { it.key }.distinct()
-                    .filterStartsWithIgnoreCase(s)
+                league.tierlist.withTierBasedPriceManager(league) { it.getCurrentAvailableTiers() }
+                    ?.filterStartsWithIgnoreCase(s) ?: listOf("Keine Tiers verfügbar")
             }, guildChecker = {
                 if (gid == Constants.G.MY) ArgumentPresence.OPTIONAL
                 else
@@ -43,7 +39,7 @@ object PickCommand :
             slashCommand(guildChecker = {
                 if (gid == Constants.G.MY) ArgumentPresence.OPTIONAL
                 else
-                    when (Tierlist[gid]?.mode?.isTiersWithFree()) {
+                    when (Tierlist[gid]?.has<FreePickPriceManager>()) {
                         true -> ArgumentPresence.OPTIONAL
                         else -> ArgumentPresence.NOT_PRESENT
                     }

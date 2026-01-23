@@ -5,7 +5,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.QueuePicksUserData
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.QueuePicks
-import de.tectoast.emolga.utils.draft.TierlistMode
+import de.tectoast.emolga.utils.json.ErrorOrNull
 import de.tectoast.emolga.utils.json.db
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -91,7 +91,7 @@ object QueuePicks {
                     }
                     val queuedAction = QueuedAction(mon, oldmon)
                     val newlist = data.queued.toMutableList().apply { add(queuedAction) }
-                    if (isIllegal(idx, newlist)) return@l
+                    isIllegal(idx, newlist)?.let { return@l iData.reply(it) }
                     StateStore.processIgnoreMissing<QueuePicks> {
                         addNewMon(queuedAction)
                     }
@@ -115,7 +115,7 @@ object QueuePicks {
                 if (queueNotEnabled()) return@l
                 val idx = this(iData.user)
                 val data = persistentData.queuePicks.queuedPicks.getOrPut(idx) { QueuePicksUserData() }
-                if (isIllegal(idx, data.queued)) return@l
+                isIllegal(idx, data.queued)?.let { return@l iData.reply(it) }
                 data.enabled = enable
                 save()
             }
@@ -223,50 +223,7 @@ object QueuePicks {
     }
 
     context(league: League, iData: InteractionData)
-    suspend fun isIllegal(idx: Int, currentState: List<QueuedAction>): Boolean {
-        return when (league.tierlist.mode) {
-            TierlistMode.POINTS -> {
-                var gPoints = 0
-                var yPoints = 0
-                for (data in currentState) {
-                    gPoints += league.tierlist.getPointsNeeded(league.tierlist.getTierOf(data.g.tlName)!!)
-                    yPoints += data.y?.let { league.tierlist.getPointsNeeded(league.tierlist.getTierOf(it.tlName)!!) }
-                        ?: 0
-                }
-                val result = league.points[idx] - gPoints + yPoints < league.minimumNeededPointsForTeamCompletion(
-                    (league.picks[idx]?.size ?: 0) + currentState.size
-                )
-                if (result) iData.reply("Mit dieser Queue könnte dein Team nicht mehr vervollständigt werden!")
-                result
-            }
-
-            TierlistMode.TIERS -> {
-                val tiers = league.getPossibleTiers(idx)
-                for (map in tiers) {
-                    currentState.forEach {
-                        map.add(league.tierlist.getTierOf(it.g.tlName)!!, -1)
-                        it.y?.let { y -> map.add(league.tierlist.getTierOf(y.tlName)!!, 1) }
-                    }
-                }
-                val result = tiers.mapNotNull { map ->
-                    map.entries.firstOrNull { it.value < 0 }
-                }
-                val isIllegal = result.size == tiers.size
-                if (isIllegal) {
-                    iData.reply(
-                        "Mit dieser Queue hättest du zu viele Pokemon im `${
-                            result.distinct().joinToString("/")
-                        }`-Tier!"
-                    )
-                }
-                isIllegal
-            }
-
-            TierlistMode.TIERS_WITH_FREE -> {
-                iData.reply("Das Queuen von Picks ist in Drafts mit Freepicks derzeit noch nicht möglich.")
-                true
-            }
-        }
-
+    suspend fun isIllegal(idx: Int, currentState: List<QueuedAction>): ErrorOrNull {
+        return league.tierlist.withTL { it.checkLegalityOfQueue(idx, currentState) }
     }
 }

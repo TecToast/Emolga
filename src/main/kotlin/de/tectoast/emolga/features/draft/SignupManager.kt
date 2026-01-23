@@ -47,6 +47,20 @@ object SignupManager {
         }
     }
 
+    object UnsignupCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("unsignup", "Ziehe deine Anmeldung zurück")) {
+
+        context(iData: InteractionData)
+        override suspend fun exec(e: NoArgs) {
+            val ligaStartData = db.signups.get(iData.gid) ?: return iData.reply(
+                "Es läuft derzeit keine Anmeldung auf diesem Server!", ephemeral = true
+            )
+            iData.reply(
+                if (ligaStartData.deleteUser(iData.user)) "✅ Deine Anmeldung wurde erfolgreich zurückgezogen!" else "❌ Du bist derzeit nicht angemeldet!",
+                ephemeral = true
+            )
+        }
+    }
+
     object SignupChangeCommand : CommandFeature<NoArgs>(
         NoArgs(), CommandSpec(
             "signupchange",
@@ -85,6 +99,7 @@ object SignupManager {
         gid: Long,
         config: LigaStartConfig
     ) {
+        if (db.signups.get(gid) != null) return
         val tc = jda.getTextChannelById(config.announceChannel)!!
         val messageid =
             tc.sendMessage(config.signupMessage.condAppend(!config.hideUserCount) { "\n\n**Teilnehmer: 0/${config.maxUsers.takeIf { it > 0 } ?: "?"}**" })
@@ -114,7 +129,10 @@ object SignupManager {
             val c = Channel<LigaStartData>(Channel.CONFLATED)
             signupScope.launch {
                 while (true) {
-                    c.receive().updateSignupMessage()
+                    val receive = c.receive()
+                    if (!receive.config.hideUserCount) {
+                        receive.updateSignupMessage()
+                    }
                     delay(10000)
                 }
             }

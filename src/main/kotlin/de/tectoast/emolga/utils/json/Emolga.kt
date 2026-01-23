@@ -59,7 +59,6 @@ import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.security.MessageDigest
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.time.ExperimentalTime
@@ -651,8 +650,8 @@ data class LigaStartData(
         users.firstOrNull { it.users.contains(uid) }?.let { handleSignupChange(it) }
     }
 
-    suspend fun deleteUser(uid: Long) {
-        val data = users.firstOrNull { it.users.contains(uid) } ?: return
+    suspend fun deleteUser(uid: Long): Boolean {
+        val data = users.firstOrNull { it.users.contains(uid) } ?: return false
         data.users.remove(uid)
         if (data.users.isEmpty()) {
             data.signupmid?.let { jda.getTextChannelById(config.signupChannel)!!.deleteMessageById(it).queue() }
@@ -663,6 +662,7 @@ data class LigaStartData(
             handleSignupChange(data)
         }
         updateSignupMessage()
+        return true
     }
 
     fun updateUser(user: Long) {
@@ -671,8 +671,8 @@ data class LigaStartData(
             .editMessageById(data.signupmid!!, data.toMessage(this)).queue()
     }
 
-    suspend fun insertLogo(uid: Long, logo: Message.Attachment): String? =
-        logoUploadMutex.getOrPut(guild) { Mutex() }.withLock {
+    suspend fun insertLogo(uid: Long, logo: Message.Attachment): ErrorOrNull =
+        logoUploadMutex.withLock {
             if (config.logoSettings == null) {
                 return "In dieser Liga gibt es keine eigenen Logos!"
             }
@@ -684,9 +684,7 @@ data class LigaStartData(
             }
             config.logoSettings.handleLogo(this, signUpData, logoData.value)
             val timeSinceLastUpload = System.currentTimeMillis() - lastLogoUploadTime
-            if (timeSinceLastUpload < 5000) {
-                delay(5000 - timeSinceLastUpload)
-            }
+            delay(GOOGLE_UPLOAD_DELAY_MS - timeSinceLastUpload)
             val checksum = Google.uploadLogoToCloud(logoData.value)
             db.signups.updateOne(
                 LigaStartData::guild eq guild,
@@ -699,8 +697,9 @@ data class LigaStartData(
     val full get() = config.maxUsers > 0 && users.size >= config.maxUsers
 
     companion object {
-        private val logoUploadMutex = ConcurrentHashMap<Long, Mutex>()
+        private val logoUploadMutex = Mutex()
         private var lastLogoUploadTime: Long = 0
+        private const val GOOGLE_UPLOAD_DELAY_MS = 5000
     }
 
 }
@@ -1059,3 +1058,5 @@ suspend fun CoroutineCollection<IntervalTaskData>.get(name: IntervalTaskKey) =
 
 @JvmName("getRemoteServerControl")
 suspend fun CoroutineCollection<RemoteServerControl>.get(name: String) = find(RemoteServerControl::name eq name).first()
+
+typealias ErrorOrNull = String?

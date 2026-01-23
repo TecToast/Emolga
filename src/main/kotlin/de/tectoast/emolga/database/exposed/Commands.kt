@@ -115,9 +115,9 @@ object CmdManager {
         }
         if (removedFeatures.isNotEmpty()) {
             dbTransaction {
-                val affectedGuilds = (GuildCommandsDB.select(GuildCommandsDB.GUILD).where {
+                val affectedGuilds = GuildCommandsDB.select(GuildCommandsDB.GUILD).where {
                     (GuildCommandsDB.COMMAND inList removedFeatures)
-                } union GroupCommandsDB.select(GroupCommandsDB.GROUP).where {
+                }.union(GroupCommandsDB.select(GroupCommandsDB.GROUP).where {
                     (GroupCommandsDB.COMMAND inList removedFeatures)
                 }).map { it[GuildCommandsDB.GUILD] }.toSet()
 

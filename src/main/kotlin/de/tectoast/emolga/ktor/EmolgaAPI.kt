@@ -43,6 +43,7 @@ import kotlin.reflect.KClass
 private val logger = KotlinLogging.logger {}
 private val defaultDataCache = SizeLimitedMap<String, String>(maxSize = 10)
 private val discordUserCache = SizeLimitedMap<Long, DiscordUserData>(maxSize = 1000)
+private val participantDataCache = mutableMapOf<Long, Pair<String, String>>()
 
 @Serializable
 data class DiscordUserData(val name: String, val avatar: String)
@@ -86,7 +87,7 @@ fun Route.emolgaAPI() {
             val guilds = getGuildsForUser(call.userId)
             call.respond(guilds.mapNotNull {
                 val g = jda.getGuildById(it) ?: return@mapNotNull null
-                GuildMeta(id = g.id, name = g.name, icon = g.iconUrl ?: "")
+                GuildMeta(id = g.id, name = g.name, icon = g.iconUrl ?: "", db.signups.get(it) != null)
             })
         }
         route("{guild}") {
@@ -122,19 +123,28 @@ fun Route.emolgaAPI() {
                     get {
                         val gid = call.requireGuild() ?: return@get
                         val lsData = db.signups.get(gid) ?: return@get call.respond(HttpStatusCode.NotFound)
-                        val members =
-                            jda.getGuildById(gid)!!.retrieveMembersByIds(lsData.users.flatMap { it.users }).await()
-                                .associateBy { it.idLong }
+                        val allUsers = lsData.users.flatMap { it.users }
+                        if (allUsers.any { !participantDataCache.containsKey(it) }) {
+                            participantDataCache.putAll(
+                                jda.getGuildById(gid)!!.retrieveMembersByIds(allUsers).await()
+                                .associateBy { it.idLong }.mapValues { (_, mem) ->
+                                    mem.user.effectiveName to mem.user.effectiveAvatarUrl.replace(
+                                        ".gif",
+                                        ".png"
+                                    )
+                                })
+                        }
                         val result = lsData.users.map {
                             ParticipantData(
                                 it.users.map { u ->
                                     UserData(
                                         u.toString(),
-                                        members[u]?.user?.effectiveName ?: "UNKNOWN",
-                                        members[u]?.effectiveAvatarUrl?.replace(".gif", ".png")
+                                        participantDataCache[u]?.first ?: "UNKNOWN",
+                                        participantDataCache[u]?.second
                                             ?: "https://cdn.discordapp.com/embed/avatars/0.png"
                                     )
-                                }, it.data, it.conference
+                                },
+                                it.data, it.logoChecksum != null, it.conference,
                             )
                         }
                         call.respond(ParticipantDataGet(lsData.conferences, result))
@@ -450,6 +460,7 @@ data class ParticipantDataGet(val conferences: List<String>, val data: List<Part
 data class ParticipantData(
     val users: List<UserData>,
     val data: Map<String, String>,
+    val hasLogo: Boolean,
     val conference: String? = null,
 )
 
@@ -457,7 +468,7 @@ data class ParticipantData(
 data class UserData(val id: String, val name: String, val avatar: String)
 
 @Serializable
-data class GuildMeta(val id: String, val name: String, val icon: String)
+data class GuildMeta(val id: String, val name: String, val icon: String, val runningSignup: Boolean)
 
 val userIdKey = AttributeKey<Long>("userId")
 val apiGuard = createRouteScopedPlugin("AuthGuard") {

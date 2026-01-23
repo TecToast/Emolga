@@ -86,7 +86,8 @@ sealed interface RandomPickMode {
             var tier: String? = null
             val usedTiers = mutableSetOf<String>()
             val skipMega = config.onlyOneMega && picks.any { it.name.isMega }
-            val prices = tierlist.prices
+            val prices = tierlist.withTierBasedPriceManager { it.getSingleMap() }
+                ?: return iData.replyNull("Die Tierlist unterstützt kein Randompick mit TypeTierlist-Modus!")
             run {
                 repeat(prices.size) {
                     val temptier =
@@ -113,8 +114,9 @@ sealed interface RandomPickMode {
 
     context(league: League, iData: InteractionData)
     fun parseTier(tier: String?, config: RandomPickConfig): String? {
-        if (tier == null) return if (league.tierlist.mode.withTiers) league.getPossibleTiers().random()
-            .filter { it.value > 0 }.keys.random() else league.tierlist.order.last()
+        val tl = league.tierlist
+        if (tier == null) return tl.withTierBasedPriceManager { it.getCurrentAvailableTiers().random() }
+            ?: tl.withTL { it.getTiers().last() }
         val parsedTier = league.tierlist.order.firstOrNull { it.equals(tier, ignoreCase = true) }
         if (parsedTier == null) {
             return iData.replyNull("Das Tier `$tier` existiert nicht!")
@@ -122,8 +124,6 @@ sealed interface RandomPickMode {
         if (config.tierRestrictions.isNotEmpty() && parsedTier !in config.tierRestrictions) {
             return iData.replyNull("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: ${config.tierRestrictions.joinToString()}")
         }
-        if (league.handleTiers(parsedTier, parsedTier)) return null
-        if (league.handlePoints(false, parsedTier)) return null
         return parsedTier
     }
 }

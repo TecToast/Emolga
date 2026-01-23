@@ -45,7 +45,6 @@ import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
-import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
@@ -82,9 +81,6 @@ sealed class League {
 
     abstract val teamsize: Int
     open val gamedays: Int by lazy { battleorder.let { if (it.isEmpty()) table.size - 1 else it.size } }
-
-    @Transient
-    val points: PointsManager = PointsManager()
 
     @Transient
     open val afterTimerSkipMode: AfterTimerSkipMode = AFTER_DRAFT_UNORDERED
@@ -253,88 +249,7 @@ sealed class League {
         }
     }
 
-    context(iData: InteractionData)
-    open fun handlePoints(
-        free: Boolean, tier: String, tierOld: String? = null, mega: Boolean = false, extraCosts: Int? = null
-    ): Boolean {
-        if (!tierlist.mode.withPoints) return false
-        if (tierlist.mode.isTiersWithFree() && !(tierlist.variableMegaPrice && mega) && !free && extraCosts == null) return false
-        val cpicks = picks[current]!!
-        val currentPicksHasMega by lazy { cpicks.any { it.name.isMega } }
-        if (tierlist.variableMegaPrice && currentPicksHasMega && mega) {
-            iData.reply("Du kannst nur ein Mega draften!")
-            return true
-        }
-        val variableMegaPrice = (if (tierlist.variableMegaPrice) (if (!currentPicksHasMega) tierlist.order.mapNotNull {
-            it.substringAfter("#", "").takeUnless { t -> t.isEmpty() }?.toInt()
-        }.minOrNull() ?: 0 else 0) else 0).let {
-            if (mega) 0 else it
-        }
-        val needed = tierlist.getPointsNeeded(tier) + (extraCosts ?: 0) + variableMegaPrice
-        val pointsBack = tierOld?.let { tierlist.getPointsNeeded(it) } ?: 0
-        val newPoints = points[current] - needed + pointsBack
-        if (newPoints < 0) {
-            iData.reply("Dafür hast du nicht genug Punkte! (`${points[current]} - $needed${if (pointsBack == 0) "" else " + $pointsBack"} = $newPoints < 0`)")
-            return true
-        }
-        if (pointsBack == 0) {
-            val minimumRequired = when (tierlist.mode) {
-                TierlistMode.POINTS -> {
-                    minimumNeededPointsForTeamCompletion(cpicks.count { !it.noCost } + 1)
-                }
 
-                TierlistMode.TIERS_WITH_FREE -> {
-                    val amountLeft = tierlist.freePicksAmount - (cpicks.count { it.free } + (if (free) 1 else 0))
-                    val minimumPrice = tierlist.freepicks.entries.filter { it.key != "#AMOUNT#" && "Mega#" !in it.key }
-                        .minOf { it.value }
-
-                    amountLeft * minimumPrice
-                }
-
-                else -> {
-                    0
-                }
-            }
-            if (newPoints < minimumRequired) {
-                iData.reply("Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden! (Du musst nach diesem Pick noch mindestens $minimumRequired Punkte haben, hättest aber nur noch $newPoints)")
-                return true
-            }
-        }
-        points[current] = newPoints
-        return false
-    }
-
-    fun minimumNeededPointsForTeamCompletion(picksSizeAfterAdd: Int) =
-        (min(teamsize, tierlist.maxMonsToPay) - picksSizeAfterAdd) * tierlist.prices.values.min()
-
-    context(iData: InteractionData)
-    open fun handleTiers(
-        specifiedTier: String, officialTier: String, fromSwitch: Boolean = false
-    ): Boolean {
-        val tl = tierlist
-        if (!tl.mode.withTiers || (tl.variableMegaPrice && "#" in officialTier)) return false
-        val allMaps = getPossibleTiers()
-        if (!tl.order.contains(specifiedTier)) {
-            iData.reply("Das Tier `$specifiedTier` existiert nicht!")
-            return true
-        }
-        // TODO: fix this for multi price tierlist switches
-        if (tl.order.indexOf(officialTier) < tl.order.indexOf(specifiedTier) && !fromSwitch) {
-            iData.reply("Du kannst ein $officialTier-Mon nicht ins $specifiedTier hochdraften!")
-            return true
-        }
-        if (allMaps.all { map -> map[specifiedTier]!! <= 0 }) {
-            val allPrices = tl.allPrices
-            if (allPrices.all { p -> p[specifiedTier] == 0 }) {
-                iData.reply("Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!")
-                return true
-            }
-            if (fromSwitch) return false
-            iData.reply("Du kannst dir kein $specifiedTier-Pokemon mehr picken!")
-            return true
-        }
-        return false
-    }
 
     suspend fun afterPickOfficial(data: NextPlayerData = NextPlayerData.Normal) {
         if (!isRunning) return
@@ -616,17 +531,8 @@ sealed class League {
                 return@buildList
             }
         }
-        with(tierlist.mode) {
-            if (withTiers) {
-                getPossibleTiersAsString(idx).let { if (it.isNotEmpty()) add("Mögliche Tiers: $it") }
-            }
-            if (withPoints) add(
-                "${points[idx]} mögliche Punkte".condAppend(
-                    isTiersWithFree(), " für Free-Picks"
-                )
-            )
-        }
-    }.joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
+        add(tierlist.withTL { it.buildAnnounceData(idx) })
+    }.filterNotNull().joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
         .condAppend(withTimerAnnounce && newTimerForAnnounce) {
             " — Zeit bis: **${
                 formatTimeFormatBasedOnDistance(draftData.timer.regularCooldown)
@@ -651,55 +557,10 @@ sealed class League {
         return null
     }
 
-    // TODO: clean up
-    open fun checkUpdraft(specifiedTier: String, officialTier: String): String? = null
-
-    fun getPossibleTiers(
-        idx: Int = current,
-        forAutocomplete: Boolean = false,
-        originalPrices: Boolean = false
-    ): List<MutableMap<String, Int>> {
-        val cpicks = picks[idx]
-        return tierlist.allPrices.mapNotNull { prices ->
-            val result = prices.toMutableMap().let { possible ->
-                cpicks?.forEach { pick ->
-                    pick.takeUnless { it.name == "???" || it.free || it.quit }?.let { possible.add(it.tier, -1) }
-                }
-                possible
-            }.also { possible ->
-                if (tierlist.variableMegaPrice) {
-                    possible.keys.toList().forEach { if (it.startsWith("Mega#")) possible.remove(it) }
-                    if (!forAutocomplete) possible["Mega"] = if (cpicks?.none { it.name.isMega } != false) 1 else 0
-                }
-                manipulatePossibleTiers(cpicks, possible)
-            }
-            if (result.values.any { it < 0 }) null else if (originalPrices) prices else result
-        }
-    }
-
-    open fun manipulatePossibleTiers(picks: MutableList<DraftPokemon>?, possible: MutableMap<String, Int>) {}
-
-    fun getPossibleTiersAsString(idx: Int = current) =
-        getPossibleTiers(idx).joinToString(" **--- oder ---** ") { tiers ->
-            tiers.entries.sortedBy { it.key.indexedBy(tierlist.order) }.filterNot { it.value == 0 }
-                .joinToString { "${it.value}x **".condAppend(it.key.toIntOrNull() != null, "Tier ") + "${it.key}**" }
-                .let { str ->
-                    if (tierlist.mode.isTiersWithFree()) str + "; ${tierlist.freePicksAmount - picks[idx]!!.count { it.free }}x **Free Pick**"
-                    else str
-                }
-        }
-
 
     fun DraftData.getTierInsertIndex(takePicks: Int = picks.size): Int {
-        var index = 0
-        val picksToUse = this.picks.take(takePicks)
-        for (entry in tierlist.prices.entries) {
-            if (entry.key == this.tier) {
-                return picksToUse.count { !it.free && !it.quit && it.tier == this.tier } + index - 1
-            }
-            index += entry.value
-        }
-        error("Tier ${this.tier} not found by user $current")
+        return tierlist.withTierBasedPriceManager { it.getTierInsertIndex(takePicks) }
+            ?: error("No tier-based price manager found!")
     }
 
     fun addToMoved() {
@@ -964,27 +825,6 @@ sealed class League {
         val gameplan = battleorder[gameday] ?: return "Spieltag $gameday: Keine Spiele"
         return "## Aktueller Stand von Spieltag $gameday [$leaguename]:\n" + gameplan.indices.joinToString("\n") {
             "${gameplan[it].joinToString(" vs. ") { u -> "<@${this[u]}>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
-        }
-    }
-
-    inner class PointsManager {
-        private val points = mutableMapOf<Int, Int>()
-
-        operator fun get(idx: Int) = points.getOrPut(idx) {
-            val isPoints = tierlist.mode.isPoints()
-            tierlist.points - picks[idx].orEmpty().filterNot { it.quit || it.noCost }.sumOf {
-                if (it.free) tierlist.freepicks[it.tier]!! else if (isPoints) tierlist.prices.getValue(
-                    it.tier
-                ) else if (tierlist.variableMegaPrice && it.name.isMega) it.tier.substringAfter("#").toInt() else 0
-            }
-        }
-
-        operator fun set(idx: Int, points: Int) {
-            this.points[idx] = points
-        }
-
-        fun add(idx: Int, points: Int) {
-            this.points[idx] = this[idx] + points
         }
     }
 

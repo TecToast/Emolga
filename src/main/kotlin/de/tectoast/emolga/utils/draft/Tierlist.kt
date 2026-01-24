@@ -373,10 +373,8 @@ sealed interface GeneralCheck {
     data object SpeciesClause : GeneralCheck {
         context(league: League, tl: Tierlist, pm: TierlistPriceManager)
         override suspend fun check(action: DraftAction): ErrorOrNull {
-            val existingDexNumbers = mutableSetOf<Int>()
-            for (draftPokemon in league.currentPicks()) {
-                val dexNumber = getDexNumber(draftPokemon.name)
-                existingDexNumbers.add(dexNumber)
+            val existingDexNumbers = league.currentPicks().mapTo(mutableSetOf()) {
+                getDexNumber(it.name)
             }
             val actionDexNumber = getDexNumber(action.official)
             if (actionDexNumber in existingDexNumbers) {

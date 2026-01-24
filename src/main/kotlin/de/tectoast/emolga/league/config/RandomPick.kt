@@ -5,7 +5,7 @@ import de.tectoast.emolga.features.ArgumentPresence
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.isMega
+import de.tectoast.emolga.utils.draft.DraftAction
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.toSDName
@@ -18,7 +18,6 @@ data class RandomPickConfig(
     val enabled: Boolean = true,
     val mode: RandomPickMode = RandomPickMode.Default(),
     val jokers: Int = 0,
-    val onlyOneMega: Boolean = false,
     val tierRestrictions: Set<String> = emptySet()
 ) {
     fun hasJokers() = jokers > 0
@@ -58,9 +57,16 @@ sealed interface RandomPickMode {
             if (tierRequired && input.tier == null) return iData.replyNull("Du musst ein Tier angeben!")
             val tier = if (input.ignoreRestrictions) input.tier!! else parseTier(input.tier, config) ?: return null
             val list = tierlist.getByTier(tier)!!.shuffled()
-            val skipMega = config.onlyOneMega && picks[current]!!.any { it.name.isMega }
             return firstAvailableMon(list) { german, english ->
-                if (german in input.skipMons || (skipMega && english.isMega)) return@firstAvailableMon false
+                if (german in input.skipMons) return@firstAvailableMon false
+                tierlist.withTL {
+                    it.checkGeneralChecks(
+                        DraftAction(
+                            officialTier = tier,
+                            official = german,
+                        )
+                    )
+                }?.let { return@firstAvailableMon false }
                 if (input.type != null) input.type in db.pokedex.get(english.toSDName())!!.types else true
             }?.let { it to tier }
                 ?: return iData.replyNull("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")
@@ -85,7 +91,6 @@ sealed interface RandomPickMode {
             var mon: DraftName? = null
             var tier: String? = null
             val usedTiers = mutableSetOf<String>()
-            val skipMega = config.onlyOneMega && picks.any { it.name.isMega }
             val prices = tierlist.withTierBasedPriceManager { it.getSingleMap() }
                 ?: return iData.replyNull("Die Tierlist unterstützt kein Randompick mit TypeTierlist-Modus!")
             run {
@@ -95,7 +100,18 @@ sealed interface RandomPickMode {
                             ?: return iData.replyNull("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
                     val tempmon = firstAvailableMon(
                         tierlist.getWithTierAndType(temptier, type).shuffled()
-                    ) { german, _ -> german in input.skipMons && !(german.isMega && skipMega) }
+                    ) { german, _ ->
+                        if (german in input.skipMons) return@firstAvailableMon false
+                        tierlist.withTL {
+                            it.checkGeneralChecks(
+                                DraftAction(
+                                    officialTier = temptier,
+                                    official = german,
+                                )
+                            )
+                        }?.let { return@firstAvailableMon false }
+                        true
+                    }
                     if (tempmon != null) {
                         mon = tempmon
                         tier = temptier

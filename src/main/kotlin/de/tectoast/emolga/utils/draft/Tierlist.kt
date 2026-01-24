@@ -350,10 +350,45 @@ interface PointBasedPriceManager : TierlistPriceManager {
 }
 
 @Serializable
+sealed interface GeneralCheck {
+    context(league: League, tl: Tierlist, pm: TierlistPriceManager)
+    fun check(action: DraftAction): ErrorOrNull
+
+    @Serializable
+    @SerialName("OnlyOneMega")
+    data object OnlyOneMega : GeneralCheck {
+        context(league: League, tl: Tierlist, pm: TierlistPriceManager)
+        override fun check(action: DraftAction): ErrorOrNull {
+            val isMega = action.official.isMega
+            if (isMega && league.currentPicks().any { it.name.isMega }) {
+                return "Du kannst nur ein Mega-Pokemon in deinem Team haben!"
+            }
+            return null
+        }
+    }
+}
+
+@Serializable
 sealed interface TierlistPriceManager {
+    val generalChecks: List<GeneralCheck>
+
     context(tl: Tierlist)
     fun compareTiers(tierA: String, tierB: String): Int? =
         getTiers().compareTiersFromOrder(tierA, tierB)
+
+    context(league: League, tl: Tierlist)
+    fun handleDraftActionWithGeneralChecks(action: DraftAction, context: DraftActionContext? = null): ErrorOrNull {
+        checkGeneralChecks(action)?.let { return it }
+        return handleDraftAction(action, context)
+    }
+
+    context(league: League, tl: Tierlist)
+    fun checkGeneralChecks(action: DraftAction): ErrorOrNull {
+        for (check in generalChecks) {
+            check.check(action)?.let { return it }
+        }
+        return null
+    }
 
     context(league: League, tl: Tierlist)
     fun handleDraftAction(action: DraftAction, context: DraftActionContext? = null): ErrorOrNull
@@ -373,7 +408,8 @@ sealed interface TierlistPriceManager {
     @SerialName("SimpleTierBased")
     data class SimpleTierBased(
         val tiers: Map<String, Int>,
-        override val updraftHandler: UpdraftHandler = UpdraftHandler.Default
+        override val updraftHandler: UpdraftHandler = UpdraftHandler.Default,
+        override val generalChecks: List<GeneralCheck> = emptyList()
     ) :
         TierlistPriceManager, TierBasedPriceManager {
         context(league: League, tl: Tierlist)
@@ -451,7 +487,10 @@ sealed interface TierlistPriceManager {
 
     @Serializable
     @SerialName("SimplePointBased")
-    data class SimplePointBased(val prices: Map<String, Int>, override val globalPoints: Int) : TierlistPriceManager,
+    data class SimplePointBased(
+        val prices: Map<String, Int>, override val globalPoints: Int,
+        override val generalChecks: List<GeneralCheck> = emptyList()
+    ) : TierlistPriceManager,
         PointBasedPriceManager {
 
         context(league: League, tl: Tierlist)
@@ -530,7 +569,8 @@ sealed interface TierlistPriceManager {
         override val tierOrder: List<String>,
         val genericTiers: Map<String, Int>,
         val options: List<List<Map<String, Int>>>,
-        override val updraftHandler: UpdraftHandler = UpdraftHandler.Default
+        override val updraftHandler: UpdraftHandler = UpdraftHandler.Default,
+        override val generalChecks: List<GeneralCheck> = emptyList()
     ) : TierlistPriceManager, CombinedOptionsPriceManager {
 
         override val combinedOptions by lazy {
@@ -618,7 +658,8 @@ sealed interface TierlistPriceManager {
     @SerialName("ChoiceTierBased")
     data class ChoiceTierBased(
         override val tierOrder: List<String>, val genericTiers: Map<String, Int>, val choices: List<ChoiceTierOption>,
-        override val updraftHandler: UpdraftHandler = UpdraftHandler.Default
+        override val updraftHandler: UpdraftHandler = UpdraftHandler.Default,
+        override val generalChecks: List<GeneralCheck> = emptyList()
     ) : TierlistPriceManager, CombinedOptionsPriceManager {
 
         override val combinedOptions by lazy {
@@ -731,6 +772,7 @@ sealed interface TierlistPriceManager {
     @Serializable
     @SerialName("Empty")
     data object Empty : TierlistPriceManager {
+        override val generalChecks: List<GeneralCheck> = emptyList()
 
         context(league: League, tl: Tierlist)
         override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): ErrorOrNull = null
@@ -774,12 +816,12 @@ sealed interface TierlistPriceManager {
 }
 
 data class DraftAction(
-    val specifiedTier: String,
     val officialTier: String,
     val official: String,
-    val free: Boolean,
-    val tera: Boolean,
-    val switch: DraftPokemon?
+    val specifiedTier: String = officialTier,
+    val free: Boolean = false,
+    val tera: Boolean = false,
+    val switch: DraftPokemon? = null
 )
 
 data class DraftActionContext(
@@ -803,11 +845,6 @@ data class ChoiceTierOption(
 
 data class SingularChoiceTierOption(
     val tiers: Set<String>
-)
-
-data class SwitchedMon(
-    val name: String,
-    val tier: String
 )
 
 @Serializable

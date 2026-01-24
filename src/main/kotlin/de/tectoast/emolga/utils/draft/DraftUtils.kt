@@ -71,7 +71,7 @@ data class PickInput(
                 .let { false }
             val context = DraftActionContext()
             tl.withTL {
-                it.handleDraftAction(
+                it.handleDraftActionWithGeneralChecks(
                     DraftAction(
                         specifiedTier = specifiedTier,
                         officialTier = officialTier,
@@ -149,7 +149,7 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
                 return iData.reply("${newmon.tlName} wurde bereits gepickt!").let { false }
             }
             tierlist.withTL {
-                it.handleDraftAction(
+                it.handleDraftActionWithGeneralChecks(
                     DraftAction(
                         specifiedTier = newtier.specified,
                         officialTier = newtier.official,

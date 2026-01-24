@@ -14,6 +14,7 @@ import de.tectoast.emolga.utils.draft.TierlistPriceManager.Companion.currentPick
 import de.tectoast.emolga.utils.draft.TierlistPriceManager.Companion.deductPicks
 import de.tectoast.emolga.utils.json.ErrorOrNull
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -352,19 +353,51 @@ interface PointBasedPriceManager : TierlistPriceManager {
 @Serializable
 sealed interface GeneralCheck {
     context(league: League, tl: Tierlist, pm: TierlistPriceManager)
-    fun check(action: DraftAction): ErrorOrNull
+    suspend fun check(action: DraftAction): ErrorOrNull
 
     @Serializable
     @SerialName("OnlyOneMega")
     data object OnlyOneMega : GeneralCheck {
         context(league: League, tl: Tierlist, pm: TierlistPriceManager)
-        override fun check(action: DraftAction): ErrorOrNull {
+        override suspend fun check(action: DraftAction): ErrorOrNull {
             val isMega = action.official.isMega
             if (isMega && league.currentPicks().any { it.name.isMega }) {
                 return "Du kannst nur ein Mega-Pokemon in deinem Team haben!"
             }
             return null
         }
+    }
+
+    @Serializable
+    @SerialName("SpeciesClause")
+    data object SpeciesClause : GeneralCheck {
+        context(league: League, tl: Tierlist, pm: TierlistPriceManager)
+        override suspend fun check(action: DraftAction): ErrorOrNull {
+            val existingDexNumbers = mutableSetOf<Int>()
+            for (draftPokemon in league.currentPicks()) {
+                val dexNumber = getDexNumber(draftPokemon.name)
+                existingDexNumbers.add(dexNumber)
+            }
+            val actionDexNumber = getDexNumber(action.official)
+            if (actionDexNumber in existingDexNumbers) {
+                return "Du kannst nur ein Pokemon pro Dex-Nummer in deinem Team haben!"
+            }
+            return null
+        }
+
+        context(league: League)
+        private suspend fun getDexNumber(official: String): Int = officialToDexNumberCache.getOrPut(official) {
+            db.pokedex.get(
+                NameConventionsDB.getSDTranslation(
+                    official,
+                    league.guild,
+                    english = true
+                )!!.official.toSDName()
+            )!!.num
+        }
+
+
+        private val officialToDexNumberCache = SizeLimitedMap<String, Int>(1000)
     }
 }
 
@@ -377,13 +410,16 @@ sealed interface TierlistPriceManager {
         getTiers().compareTiersFromOrder(tierA, tierB)
 
     context(league: League, tl: Tierlist)
-    fun handleDraftActionWithGeneralChecks(action: DraftAction, context: DraftActionContext? = null): ErrorOrNull {
+    suspend fun handleDraftActionWithGeneralChecks(
+        action: DraftAction,
+        context: DraftActionContext? = null
+    ): ErrorOrNull {
         checkGeneralChecks(action)?.let { return it }
         return handleDraftAction(action, context)
     }
 
     context(league: League, tl: Tierlist)
-    fun checkGeneralChecks(action: DraftAction): ErrorOrNull {
+    suspend fun checkGeneralChecks(action: DraftAction): ErrorOrNull {
         for (check in generalChecks) {
             check.check(action)?.let { return it }
         }

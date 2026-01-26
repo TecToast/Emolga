@@ -145,8 +145,8 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
 
     private fun GenericInteractionCreateEvent.stringify() = when (this) {
         is SlashCommandInteractionEvent -> this.commandString
-        is GenericComponentInteractionCreateEvent -> this.componentId
-        is ModalInteractionEvent -> this.modalId
+        is ModalInteractionEvent -> "M:${this.modalId}"
+        is GenericComponentInteractionCreateEvent -> "C:${this.componentId}"
         else -> this.toString()
     }
 

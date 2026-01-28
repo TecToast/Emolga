@@ -3,7 +3,6 @@ package de.tectoast.emolga.database.exposed
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.draft.isEnglish
-import de.tectoast.emolga.utils.invoke
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.toSDName
 import dev.minn.jda.ktx.coroutines.await
@@ -33,7 +32,6 @@ object ResultCodesDB : Table("resultcodes") {
         val uuid = runCatching { UUID.fromString(resultid) }.getOrNull() ?: return@dbTransaction null
         val entry = selectAll().where { CODE eq uuid }.singleOrNull() ?: return@dbTransaction null
         val league = de.tectoast.emolga.utils.json.db.league(entry[LEAGUENAME])
-        val allPicks = league.picks
         val gid = league.guild
         val guild = jda.getGuildById(gid) ?: return@dbTransaction null
         val idxes = listOf(entry[P1], entry[P2])
@@ -41,7 +39,7 @@ object ResultCodesDB : Table("resultcodes") {
         val tlEnglish = league.tierlist.isEnglish
         val allMonsTranslations =
             NameConventionsDB.getAllData(
-                idxes.flatMap { allPicks(it) }.map { it.name }, NameConventionsDB.GERMAN, gid
+                idxes.flatMap { league.picks(it) }.map { it.name }, NameConventionsDB.GERMAN, gid
             ).associateBy { it.official }
         ResultCodeResponse(
             guildName = guild.name,
@@ -49,7 +47,7 @@ object ResultCodesDB : Table("resultcodes") {
             bo3 = league.config.triggers.bo3,
             gameday = entry[GAMEDAY],
             data = idxes.map { idx ->
-                val picks = allPicks(idx)
+                val picks = league.picks(idx)
                 val uid = league[idx]
                 val member = memberData[uid]!!
                 val avatarUrl = member.effectiveAvatarUrl

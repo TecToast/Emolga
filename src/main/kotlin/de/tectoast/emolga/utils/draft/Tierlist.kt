@@ -10,7 +10,6 @@ import de.tectoast.emolga.league.TierData
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.PointBasedPriceManager.Companion.pointManager
 import de.tectoast.emolga.utils.draft.TierBasedPriceManager.Companion.tierAmountToString
-import de.tectoast.emolga.utils.draft.TierlistPriceManager.Companion.currentPicks
 import de.tectoast.emolga.utils.draft.TierlistPriceManager.Companion.deductPicks
 import de.tectoast.emolga.utils.json.ErrorOrNull
 import de.tectoast.emolga.utils.json.db
@@ -275,7 +274,7 @@ interface CombinedOptionsPriceManager : TierBasedPriceManager {
 
     context(league: League, tl: Tierlist)
     override fun getCurrentAvailableTiers(): List<String> {
-        val cpicks = league.currentPicks()
+        val cpicks = league.picks()
         return combinedOptions.flatMap { opt ->
             val deducted = opt.deductPicks(cpicks)
             if (deducted.any { it.value < 0 }) emptyList() else deducted.entries.filter { it.value > 0 }
@@ -287,7 +286,7 @@ interface CombinedOptionsPriceManager : TierBasedPriceManager {
 
     context(league: League, tl: Tierlist)
     fun getAllPossibleTiers(idx: Int = league.current): List<Map<String, Int>> =
-        combinedOptions.map { it.deductPicks(league.currentPicks(idx)) }
+        combinedOptions.map { it.deductPicks(league.picks(idx)) }
 
     context(league: League, tl: Tierlist)
     override suspend fun checkLegalityOfQueue(
@@ -361,7 +360,7 @@ sealed interface GeneralCheck {
         context(league: League, tl: Tierlist, pm: TierlistPriceManager)
         override suspend fun check(action: DraftAction): ErrorOrNull {
             val isMega = action.official.isMega
-            if (isMega && league.currentPicks().any { it.name.isMega }) {
+            if (isMega && league.picks().any { it.name.isMega }) {
                 return "Du kannst nur ein Mega-Pokemon in deinem Team haben!"
             }
             return null
@@ -373,7 +372,7 @@ sealed interface GeneralCheck {
     data object SpeciesClause : GeneralCheck {
         context(league: League, tl: Tierlist, pm: TierlistPriceManager)
         override suspend fun check(action: DraftAction): ErrorOrNull {
-            val existingDexNumbers = league.currentPicks().mapTo(mutableSetOf()) {
+            val existingDexNumbers = league.picks().mapTo(mutableSetOf()) {
                 getDexNumber(it.name)
             }
             val actionDexNumber = getDexNumber(action.official)
@@ -473,7 +472,7 @@ sealed interface TierlistPriceManager {
         override fun getSingleMap() = tiers
 
         context(league: League, tl: Tierlist)
-        private fun getPossibleTiers(idx: Int = league.current) = tiers.deductPicks(league.currentPicks(idx))
+        private fun getPossibleTiers(idx: Int = league.current) = tiers.deductPicks(league.picks(idx))
 
         context(league: League, tl: Tierlist)
         override fun getCurrentAvailableTiers(): List<String> {
@@ -538,7 +537,7 @@ sealed interface TierlistPriceManager {
             if (newPoints < 0) {
                 return "Dafür hast du nicht genug Punkte! (`$currentPoints - $cost${if (pointsBack == 0) "" else " + $pointsBack"} = $newPoints < 0`)"
             }
-            val cpicks = league.currentPicks()
+            val cpicks = league.picks()
             if (action.switch != null) {
                 val minimumRequired =
                     minimumNeededPointsForTeamCompletion(cpicks.count { !it.noCost } + 1)
@@ -739,7 +738,7 @@ sealed interface TierlistPriceManager {
 
         context(league: League, tl: Tierlist)
         override fun buildAnnounceData(idx: Int): String? {
-            val cpicks = league.currentPicks(idx)
+            val cpicks = league.picks(idx)
             val fromGeneric = genericTiers.deductPicks(cpicks)
             val singularOptions = getSingularChoiceList()
             for (tier in fromGeneric.flatMap { genericEntry ->
@@ -830,7 +829,6 @@ sealed interface TierlistPriceManager {
     }
 
     companion object {
-        fun League.currentPicks(idx: Int = current) = picks[idx].orEmpty()
         fun Map<String, Int>.deductPicks(list: List<DraftPokemon>): Map<String, Int> {
             val map = toMutableMap()
             for (pick in list) {

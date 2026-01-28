@@ -52,7 +52,7 @@ object TipGameManager : CoroutineScope {
                 iData.message.editMessageEmbeds(
                     Embed(
                         title = iData.message.embeds[0].title,
-                        description = "Bisherige Votes: " + league.battleorder(e.gameday)[e.index].map {
+                        description = "Bisherige Votes: " + league.battleorder.getValue(e.gameday)[e.index].map {
                             db.tipgameuserdata.countDocuments(
                                 and(
                                     TipGameUserData::league eq e.leaguename,

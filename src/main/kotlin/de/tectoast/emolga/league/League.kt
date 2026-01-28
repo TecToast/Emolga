@@ -332,6 +332,7 @@ sealed class League {
     }
 
     fun getAlreadyBannedMonsInThisRound(): Set<DraftPokemon> = draftData.draftBan.bannedMons[round].orEmpty()
+    fun picks(idx: Int = current) = picks[idx].orEmpty()
 
     private fun TimerRelated.handleStallSecondPunishment(ctm: Long) {
         config.timer?.stallSeconds?.takeIf { it > 0 }?.let {

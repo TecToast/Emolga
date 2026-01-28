@@ -154,7 +154,6 @@ fun <K> MutableMap<K, Int>.add(key: K, value: Int) = compute(key) { _, v ->
     v?.plus(value) ?: value
 }
 
-operator fun <K, V> Map<K, V>.invoke(key: K) = getValue(key)
 inline fun <T> Collection<T>.filterStartsWithIgnoreCase(other: String, tostring: (T) -> String = { it.toString() }) =
     mapNotNull {
         val str = tostring(it)

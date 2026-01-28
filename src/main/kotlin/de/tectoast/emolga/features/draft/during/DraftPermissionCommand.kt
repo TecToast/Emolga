@@ -35,12 +35,8 @@ object DraftPermissionCommand :
                 val id = mem.idLong
                 val set = performPermissionAdd(iData.user, id, withMention)
                 iData.reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {
-                    description = set.sortedWith { o1, o2 ->
-                        if (o1.u == iData.user) -1
-                        else if (o2.u == iData.user) 1
-                        else 0
-                    }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
-                }.into())
+                    description = set.toDescription(iData.user)
+                }.into(), ephemeral = true)
                 save()
             }
         }
@@ -83,16 +79,18 @@ object DraftPermissionCommand :
                 val set = allowed.getOrPut(this(iData.user)) { mutableSetOf() }
                 set.removeIf { it.u == mem.idLong }
                 iData.reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {
-                    description = set.sortedWith { o1, o2 ->
-                        if (o1.u == iData.user) -1
-                        else if (o2.u == iData.user) 1
-                        else 0
-                    }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
-                }.into())
+                    description = set.toDescription(iData.user)
+                }.into(), ephemeral = true)
                 save()
             }
         }
     }
+
+    fun Set<AllowedData>.toDescription(user: Long) = sortedWith { o1, o2 ->
+        if (o1.u == user) -1
+        else if (o2.u == user) 1
+        else 0
+    }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
 
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {

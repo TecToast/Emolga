@@ -138,7 +138,8 @@ class TierlistBuilderConfigurator(
         } else if (this is ButtonInteractionEvent) {
             val oldTL = Tierlist[guildId, tlIdentifier]!!
             // TODO
-            val tiers = prices!!.keys.toList()
+            val tiers = oldTL.withTL { it.getTiers() }
+            temporaryTierOrder = tiers
             val lastTier = tiers.lastIndex
             for (i in 0..<lastTier) {
                 tiermapping[i] = tiers.elementAt(i)
@@ -261,6 +262,7 @@ class TierlistBuilderConfigurator(
     private var index: Int = 0
     private var sendRegionalInfo = true
     private var tierlistMode: TierlistMode? = null
+    private var temporaryTierOrder: List<String>? = null
     private var prices: Map<String, Int>? = null
     private var freepicks: Map<String, Int>? = null
     private var points: Int? = null
@@ -348,9 +350,9 @@ class TierlistBuilderConfigurator(
                         )
                     }
                 } + shiftedMons.orEmpty().map { ProcessedDraftPokemon(it, null) }).asSequence()
-                    .filter { it.tier in prices!! }
+                    .filter { it.tier in temporaryTierOrder!! }
                     .distinctBy { it.name }
-                    .sortedWith(compareBy({ it.tier.indexedBy(prices!!.keys.toList()) }, { it.name })),
+                    .sortedWith(compareBy({ it.tier.indexedBy(temporaryTierOrder!!) }, { it.name })),
                 shouldReturnGeneratedValues = false
             ) {
                 this[Tierlist.GUILD] = guildId

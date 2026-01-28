@@ -355,12 +355,16 @@ sealed class SDEffect(vararg val types: String) {
         }
     }
 
-    data object PerishSong : SDEffect("-start", "move") {
+    data object PerishSong : SDEffect("-start", "-ability", "move") {
         context(context: BattleContext)
         override fun execute(split: List<String>) {
             val pkmn = split[1].parsePokemon()
             if (split[0] == "move") {
                 if (split[2] == "Perish Song") {
+                    context.globalConditions[PerishSong] = pkmn
+                }
+            } else if (split[0] == "-ability") {
+                if (split[2] == "Perish Body") {
                     context.globalConditions[PerishSong] = pkmn
                 }
             } else {

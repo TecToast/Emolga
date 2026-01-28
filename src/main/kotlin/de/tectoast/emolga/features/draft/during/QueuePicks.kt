@@ -222,7 +222,7 @@ object QueuePicks {
         }
     }
 
-    context(league: League, iData: InteractionData)
+    context(league: League)
     suspend fun isIllegal(idx: Int, currentState: List<QueuedAction>): ErrorOrNull {
         return league.tierlist.withTL { it.checkLegalityOfQueue(idx, currentState) }
     }

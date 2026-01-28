@@ -70,14 +70,10 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
             val (tier, _, _) = (tl.getTierOfCommand(e.pokemon, null)
                 ?: return@l iData.reply("Dieses Pokemon ist nicht in der Tierliste!"))
             tl.withTL {
-                it.handleDraftAction(
+                it.handleDraftActionWithGeneralChecks(
                     DraftAction(
-                        specifiedTier = tier,
                         officialTier = tier,
                         official = official,
-                        free = false,
-                        tera = false,
-                        switch = null
                     )
                 )
             }?.let { return@l iData.reply(it) }

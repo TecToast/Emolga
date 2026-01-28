@@ -210,6 +210,13 @@ fun Route.emolgaAPI() {
                     })
                 }
             }
+            get("/picked") {
+                val gid = call.requireGuild() ?: return@get
+                val allLeagues = db.league.find(League::guild eq gid).toList()
+                val pickedAmount = allLeagues.flatMap { it.picks.values.flatten() }.map { it.name }.groupingBy { it }
+                    .eachCount().entries.sortedByDescending { it.value }
+                call.respond(pickedAmount)
+            }
         }
     }
     route("/result/{resultid}") {

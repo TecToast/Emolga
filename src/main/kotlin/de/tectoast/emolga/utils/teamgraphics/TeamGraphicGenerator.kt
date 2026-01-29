@@ -1,8 +1,11 @@
 package de.tectoast.emolga.utils.teamgraphics
 
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.PokemonCropDB
+import de.tectoast.emolga.database.exposed.TeamGraphicChannelDB
+import de.tectoast.emolga.database.exposed.TeamGraphicMessageDB
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.json.SignUpInput
@@ -10,9 +13,12 @@ import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.toSDName
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import net.dv8tion.jda.api.JDA
@@ -42,9 +48,26 @@ object TeamGraphicGenerator {
     }
 
     suspend fun generateAndSendForLeague(league: League, style: TeamGraphicStyle, channel: MessageChannel) {
-        for ((idx, image) in generateForLeague(league, style).withIndex()) {
-            channel.send("<@${league.table[idx]}>", files = image.toFileUpload().into()).queue()
+        coroutineScope {
+            TeamGraphicChannelDB.set(league.leaguename, channel.idLong)
+            for ((idx, image) in generateForLeague(league, style).withIndex()) {
+                launch {
+                    val id = channel.send("<@${league.table[idx]}>", files = image.toFileUpload().into()).await().idLong
+                    TeamGraphicMessageDB.set(league.leaguename, idx, id)
+                }
+            }
         }
+    }
+
+    suspend fun editTeamGraphicForLeague(league: League, idx: Int) {
+        val style = TeamGraphicStyle.fromLeagueName(league.leaguename)
+        val teamData = TeamData.singleFromLeague(league, idx)
+        val tcid = TeamGraphicChannelDB.getChannelId(league.leaguename) ?: return
+        val msgid = TeamGraphicMessageDB.getMessageId(league.leaguename, idx) ?: return
+        jda.getTextChannelById(tcid)!!.editMessage(
+            id = msgid.toString(),
+            attachments = generate(teamData, style).toFileUpload().into()
+        ).queue()
     }
 
     suspend fun generate(

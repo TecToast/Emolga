@@ -6,14 +6,10 @@ import de.tectoast.emolga.features.MessageContextFeature
 import de.tectoast.emolga.features.MessageContextSpec
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.db
-import de.tectoast.emolga.utils.teamgraphics.GDLStyle
 import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
-import de.tectoast.emolga.utils.teamgraphics.toFileUpload
-import dev.minn.jda.ktx.messages.editMessage
-import dev.minn.jda.ktx.messages.into
 import org.litote.kmongo.eq
 
-object UpdateLogoContext : MessageContextFeature(MessageContextSpec("Update Logo (DEV ONLY)")) {
+object UpdateTeamGraphic : MessageContextFeature(MessageContextSpec("Update Teamgraphic (DEV ONLY)")) {
     init {
         restrict(flo)
     }
@@ -22,7 +18,7 @@ object UpdateLogoContext : MessageContextFeature(MessageContextSpec("Update Logo
 
     context(iData: InteractionData)
     override suspend fun exec(e: MessageContextArgs) {
-        iData.reply("Updating logo...", ephemeral = true)
+        iData.reply("Updating teamgraphic...", ephemeral = true)
         val uid = userRegex.find(e.message.contentRaw)?.groupValues?.getOrNull(1)?.toLongOrNull() ?: return iData.reply(
             "No user found",
             ephemeral = true
@@ -32,11 +28,6 @@ object UpdateLogoContext : MessageContextFeature(MessageContextSpec("Update Logo
             ephemeral = true
         )
         val idx = league(uid)
-        val style = GDLStyle(league.leaguename.removePrefix("GDLS12"))
-        val teamData = TeamGraphicGenerator.TeamData.singleFromLeague(league, idx)
-        league.tc.editMessage(
-            id = e.message.id,
-            attachments = TeamGraphicGenerator.generate(teamData, style).toFileUpload().into()
-        ).queue()
+        TeamGraphicGenerator.editTeamGraphicForLeague(league, idx)
     }
 }

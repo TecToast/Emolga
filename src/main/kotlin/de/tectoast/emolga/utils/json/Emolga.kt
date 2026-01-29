@@ -28,6 +28,7 @@ import de.tectoast.emolga.utils.repeat.ScheduledTask
 import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
 import de.tectoast.emolga.utils.teamgraphics.ImageUtils
+import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.editMessage
@@ -677,7 +678,7 @@ data class LigaStartData(
             .editMessageById(data.signupmid!!, data.toMessage(this)).queue()
     }
 
-    suspend fun insertLogo(uid: Long, logo: Message.Attachment): ErrorOrNull =
+    suspend fun insertLogo(uid: Long, logo: Message.Attachment): ErrorOrNull {
         logoUploadMutex.withLock {
             if (config.logoSettings == null) {
                 return "In dieser Liga gibt es keine eigenen Logos!"
@@ -697,8 +698,16 @@ data class LigaStartData(
                 set(LigaStartData::users.pos(signUpIndex) / SignUpData::logoChecksum setTo checksum)
             )
             lastLogoUploadTime = System.currentTimeMillis()
-            return null
         }
+        updateTeamgraphicForUser(uid)
+        return null
+    }
+
+    private suspend fun updateTeamgraphicForUser(uid: Long) {
+        val league = db.leagueByGuild(guild, uid) ?: return
+        val idx = league(uid)
+        TeamGraphicGenerator.editTeamGraphicForLeague(league, idx)
+    }
 
     val full get() = config.maxUsers > 0 && users.size >= config.maxUsers
 

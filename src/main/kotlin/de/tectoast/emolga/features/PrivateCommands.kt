@@ -29,14 +29,12 @@ import de.tectoast.emolga.utils.repeat.IntervalTask
 import de.tectoast.emolga.utils.repeat.IntervalTaskKey
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.surroundWith
-import de.tectoast.emolga.utils.teamgraphics.GDLStyle
 import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
-import de.tectoast.emolga.utils.teamgraphics.toFileUpload
+import de.tectoast.emolga.utils.teamgraphics.TeamGraphicStyle
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.TextInput
-import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.Dispatchers
@@ -187,48 +185,12 @@ object PrivateCommands {
     private val teamGraphicScope = createCoroutineScope("TeamGraphics", Dispatchers.IO)
 
     context(iData: InteractionData)
-    suspend fun gdls12graphic(args: PrivateData) {
-        iData.deferReply()
-        val (conference, idxStr) = args.split
-        val idx = idxStr.toInt()
-        val teamData = TeamGraphicGenerator.TeamData.singleFromLeague(db.league("GDLS12$conference"), idx)
-        iData.reply(files = TeamGraphicGenerator.generate(teamData, GDLStyle(conference)).toFileUpload().into())
-    }
-
-    context(iData: InteractionData)
-    suspend fun gdls12graphicall(args: PrivateData) {
+    suspend fun generateAllTeamGraphics(args: PrivateData) {
         iData.done()
-        val (conference, tcid) = args.split
-        val league = db.league("GDLS12$conference")
-        val style = GDLStyle(conference)
-        TeamGraphicGenerator.generateAndSendForLeague(league, style, jda.getTextChannelById(tcid)!!)
-    }
-
-    context(iData: InteractionData)
-    suspend fun gdls12graphicallall(args: PrivateData) {
-        iData.done()
-        val regex = Regex("GDLS\\d+(.*)")
-        for (league in db.leaguesByGuild(716942575852060682)) {
-            val conference = regex.matchEntire(league.leaguename)!!.groupValues[1]
-            val style = GDLStyle(conference)
+        for (league in db.leaguesByGuild(args().toLong())) {
+            val style = TeamGraphicStyle.fromLeagueName(league.leaguename)
             TeamGraphicGenerator.generateAndSendForLeague(league, style, league.tc)
         }
-    }
-
-    context(iData: InteractionData)
-    suspend fun updateGDLGraphic(args: PrivateData) {
-        iData.done()
-        val (leagueName, teamIdxStr) = args.split
-        val teamIdx = teamIdxStr.toInt()
-        val league = db.league(leagueName)
-        val style = GDLStyle(leagueName.removePrefix("GDLS12"))
-        val teamData = TeamGraphicGenerator.TeamData.singleFromLeague(league, teamIdx)
-        val uid = league.table[teamIdx]
-        val mid = league.tc.iterableHistory.takeAsync(20).await().first { it.contentRaw.contains(uid.toString()) }.id
-        league.tc.editMessage(
-            id = mid,
-            attachments = TeamGraphicGenerator.generate(teamData, style).toFileUpload().into()
-        ).queue()
     }
 
     context(iData: InteractionData)

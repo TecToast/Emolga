@@ -85,6 +85,16 @@ interface TeamGraphicStyle {
 
         abstract fun calculateTextCoordinates(g2d: Graphics2D, text: String, baseX: Int, baseY: Int): Pair<Int, Int>
     }
+
+    companion object {
+        fun fromLeagueName(leagueName: String): TeamGraphicStyle {
+            if (leagueName.startsWith("GDL")) {
+                val conference = Regex("GDLS\\d+(.*)").matchEntire(leagueName)!!.groupValues[1]
+                return GDLStyle(conference)
+            }
+            error("No TeamGraphicStyle found for league name: $leagueName")
+        }
+    }
 }
 
 data class IndexDataStyle(val xInFinal: Int, val yInFinal: Int, val shape: Shape)

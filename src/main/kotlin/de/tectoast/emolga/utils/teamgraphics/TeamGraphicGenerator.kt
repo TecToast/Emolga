@@ -1,0 +1,265 @@
+package de.tectoast.emolga.utils.teamgraphics
+
+import de.tectoast.emolga.database.dbTransaction
+import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.database.exposed.PokemonCropDB
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.utils.OneTimeCache
+import de.tectoast.emolga.utils.json.SignUpInput
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.toSDName
+import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import mu.KotlinLogging
+import net.dv8tion.jda.api.JDA
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
+import net.dv8tion.jda.api.utils.FileUpload
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import java.awt.Graphics2D
+import java.awt.RenderingHints
+import java.awt.Shape
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import java.io.File
+import javax.imageio.ImageIO
+import kotlin.math.min
+
+object TeamGraphicGenerator {
+    suspend fun generateForLeague(
+        league: League, style: TeamGraphicStyle
+    ): List<BufferedImage> {
+        val teamDataList = TeamData.allFromLeague(league)
+        return teamDataList.map { teamData ->
+            logger.info { "Generating team graphic for ${teamData.teamOwner ?: "Unknown Owner"}" }
+            generate(teamData, style)
+        }
+    }
+
+    suspend fun generateAndSendForLeague(league: League, style: TeamGraphicStyle, channel: MessageChannel) {
+        for ((idx, image) in generateForLeague(league, style).withIndex()) {
+            channel.send("<@${league.table[idx]}>", files = image.toFileUpload().into()).queue()
+        }
+    }
+
+    suspend fun generate(
+        teamData: TeamData, style: TeamGraphicStyle
+    ): BufferedImage {
+        val monData = dbTransaction {
+            PokemonCropDB.selectAll()
+                .where { PokemonCropDB.GUILD eq style.guild and (PokemonCropDB.OFFICIAL.inList(teamData.englishNames)) }
+                .associate { it[PokemonCropDB.OFFICIAL] to it.toDrawData() }
+        }
+        return createOneTeamGraphic(
+            teamData.teamOwner,
+            teamData.teamName,
+            teamData.logo,
+            teamData.englishNames.map { monData[it] ?: error("MonData for $it not found") },
+            style
+        )
+    }
+
+    private fun ResultRow.toDrawData(): DrawData {
+        return DrawData(
+            name = this[PokemonCropDB.OFFICIAL],
+            x = this[PokemonCropDB.X],
+            y = this[PokemonCropDB.Y],
+            size = this[PokemonCropDB.SIZE]
+        )
+    }
+
+    private suspend fun createOneTeamGraphic(
+        teamOwner: String?, teamName: String?, logo: BufferedImage?, monData: List<DrawData>, style: TeamGraphicStyle
+    ): BufferedImage {
+        val image = withContext(Dispatchers.IO) {
+            ImageIO.read(File(style.backgroundPath))
+        }
+        val g2d = image.createGraphics()
+        g2d.setRenderingHints()
+        g2d.drawOptionalText(teamOwner?.let(style::transformUsername), style.playerText)
+        g2d.drawOptionalText(teamName, style.teamnameText)
+        g2d.drawMons(monData, style)
+        style.overlayPath?.let {
+            g2d.drawImage(withContext(Dispatchers.IO) {
+                ImageIO.read(File(it))
+            }, 0, 0, null)
+        }
+        g2d.drawLogo(
+            logo ?: style.logoProperties?.defaultLogoPath?.let { ImageIO.read(File(it)) },
+            style.logoProperties
+        )
+        g2d.dispose()
+        return image
+    }
+
+    private fun Graphics2D.drawLogo(logo: BufferedImage?, settings: TeamGraphicStyle.LogoProperties?) {
+        if (logo == null || settings == null) return
+        val imgWidth = logo.width
+        val imgHeight = logo.height
+        val scaleX = settings.width.toDouble() / imgWidth
+        val scaleY = settings.height.toDouble() / imgHeight
+        val scale = min(scaleX, scaleY)
+        val newWidth = (imgWidth * scale).toInt()
+        val newHeight = (imgHeight * scale).toInt()
+        val x = settings.startX + (settings.width - newWidth) / 2
+        val y = settings.startY + (settings.height - newHeight) / 2
+        this.drawImage(logo, x, y, newWidth, newHeight, null)
+    }
+
+    private fun Graphics2D.drawOptionalText(
+        text: String?, settings: TeamGraphicStyle.TextProperties?
+    ) {
+        if (text != null && settings != null) {
+            drawText(text, settings)
+        }
+    }
+
+    private fun Graphics2D.drawText(text: String, settings: TeamGraphicStyle.TextProperties) {
+        this.font = settings.font
+        while (this.fontMetrics.stringWidth(text) > (settings.maxSize ?: Int.MAX_VALUE)) {
+            val newSize = this.font.size2D - 1f
+            this.font = this.font.deriveFont(newSize)
+        }
+        this.color = settings.fontColor
+        val (x, y) = settings.orientation.calculateTextCoordinates(
+            this, text, settings.xCoord, settings.yCoord
+        )
+        settings.shadow?.let { shadow ->
+            val blurredShadow =
+                ImageUtils.createBlurredShadowImage(text, this.font, shadow.color, shadow.blurRadius)
+            val padding = shadow.blurRadius * 2
+            val shadowX = x + shadow.offset - padding
+            val shadowY = y + shadow.offset - padding - this.font.size
+            drawImage(blurredShadow, shadowX, shadowY, null)
+        }
+
+        this.drawString(text, x, y)
+    }
+
+    private suspend fun Graphics2D.drawMons(monData: List<DrawData>, style: TeamGraphicStyle) {
+        for ((i, data) in monData.withIndex()) {
+            val path = db.pokedex.get(data.name.toSDName())!!.calcSpriteName()
+            val image = withContext(Dispatchers.IO) {
+                ImageIO.read(File("teamgraphics/sugimori_final/$path.png"))
+            }
+            val dataForIndex = style.getDataForIndex(i, data)
+            val size = style.sizeOfShape
+            drawImage(
+                image.cropShape(
+                    data.x, data.y, dataForIndex.shape
+                ), dataForIndex.xInFinal, dataForIndex.yInFinal, size, size, null
+            )
+        }
+    }
+
+    private fun BufferedImage.cropShape(x: Int, y: Int, shape: Shape): BufferedImage {
+        val size = maxOf(
+            shape.bounds.width, shape.bounds.height
+        )
+        // 1. Create a new BufferedImage with support for transparency (ARGB)
+        val output = BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB)
+
+        // 2. Create the Graphics2D object to draw on the new image
+        val g2 = output.createGraphics()
+
+        // 3. Enable Anti-aliasing for smooth circle edges
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+
+        // 5. Set the clip. Anything drawn after this is restricted to the inside of the circle
+        g2.clip(shape)
+
+        // 6. Draw the original image
+        // We shift the image by -x and -y so the desired region aligns with the new image's (0,0)
+        g2.drawImage(this, -x, -y, null)
+
+        // 7. Clean up resources
+        g2.dispose()
+
+        return output
+    }
+
+    private fun Graphics2D.setRenderingHints() {
+        setRenderingHint(
+            RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON
+        )
+        setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY)
+        setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY)
+        setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_ENABLE)
+        setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
+        setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+        setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+        setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
+        setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+    }
+
+    data class TeamData(
+        val teamOwner: String?, val teamName: String?, val logo: BufferedImage?, val englishNames: List<String>
+    ) {
+        companion object {
+            suspend fun allFromLeague(league: League): List<TeamData> {
+                val userNameProvider = JDALeagueUserNameProvider(league = league)
+                return (league.table.indices).map {
+                    logger.info { "Generating TeamData for team index $it" }
+                    singleFromLeague(league, it, userNameProvider)
+                }
+            }
+
+            suspend fun singleFromLeague(
+                league: League, idx: Int, userNameProvider: UserNameProvider = JDADirectUserNameProvider()
+            ): TeamData {
+                val picks = league.picks(idx)
+                val englishNames =
+                    picks.sortedWith(league.tierorderingComparator)
+                        .map { NameConventionsDB.getSDTranslation(it.name, league.guild, english = true)!!.official }
+                val lsData = db.signups.get(league.guild)!!
+                val uid = league.table[idx]
+                val userData = lsData.getDataByUser(uid)!!
+                val teamOwner = userNameProvider.getUserName(uid)
+                val teamName = userData.data[SignUpInput.TEAMNAME_ID]
+                val logo = userData.downloadLogo()?.let { ImageUtils.cropToContent(it) }
+                return TeamData(
+                    teamOwner = teamOwner, teamName = teamName, logo = logo, englishNames = englishNames
+                )
+            }
+        }
+    }
+
+
+    private val logger = KotlinLogging.logger {}
+
+}
+
+fun BufferedImage.toFileUpload(fileName: String = "teamgraphic") = FileUpload.fromData(ByteArrayOutputStream().also {
+    ImageIO.write(
+        this, "png", it
+    )
+}.toByteArray(), "$fileName.png")
+
+interface UserNameProvider {
+    suspend fun getUserName(userId: Long): String
+}
+
+data class JDADirectUserNameProvider(val jda: JDA = de.tectoast.emolga.bot.jda) : UserNameProvider {
+    override suspend fun getUserName(userId: Long): String {
+        val user = jda.retrieveUserById(userId).await()
+        return user.effectiveName
+    }
+}
+
+data class JDALeagueUserNameProvider(val jda: JDA = de.tectoast.emolga.bot.jda, val league: League) : UserNameProvider {
+    private val cache = OneTimeCache {
+        val guild = jda.getGuildById(league.guild)!!
+        val members = guild.retrieveMembersByIds(league.table).await()
+        members.associate { it.idLong to it.user.effectiveName }
+    }
+
+    override suspend fun getUserName(userId: Long): String {
+        return cache()[userId] ?: "Unknown User"
+    }
+}

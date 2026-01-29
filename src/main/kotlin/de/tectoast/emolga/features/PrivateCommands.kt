@@ -16,9 +16,10 @@ import de.tectoast.emolga.league.DefaultLeague
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.league.VideoProvideStrategy
-import de.tectoast.emolga.utils.*
+import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.Google
+import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
-import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.*
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
@@ -27,13 +28,18 @@ import de.tectoast.emolga.utils.json.emolga.TeamData
 import de.tectoast.emolga.utils.repeat.IntervalTask
 import de.tectoast.emolga.utils.repeat.IntervalTaskKey
 import de.tectoast.emolga.utils.repeat.RepeatTask
+import de.tectoast.emolga.utils.surroundWith
+import de.tectoast.emolga.utils.teamgraphics.GDLStyle
+import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
+import de.tectoast.emolga.utils.teamgraphics.toFileUpload
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.TextInput
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.future.await
 import kotlinx.serialization.Contextual
@@ -45,17 +51,14 @@ import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
-import net.dv8tion.jda.api.utils.FileUpload
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.migration.MigrationUtils
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
-import java.io.ByteArrayOutputStream
 import java.security.SecureRandom
 import java.util.regex.Pattern
-import javax.imageio.ImageIO
 import kotlin.reflect.full.isSubclassOf
 import kotlin.time.measureTime
 
@@ -183,34 +186,21 @@ object PrivateCommands {
     private val teamGraphicScope = createCoroutineScope("TeamGraphics", Dispatchers.IO)
 
     context(iData: InteractionData)
-    fun teamgraphics(args: PrivateData) {
-        suspend fun List<DraftPokemon>.toTeamGraphics() = FileUpload.fromData(ByteArrayOutputStream().also {
-            ImageIO.write(
-                TeamGraphics.fromDraftPokemon(this).first, "png", it
-            )
-        }.toByteArray(), "yay.png")
-        iData.done(true)
-        teamGraphicScope.launch {
-            val league = db.league(args[0])
-            val user = args[1].toLong()
-            val tc = args.getOrNull(2)?.let { jda.getTextChannelById(it)!! } ?: iData.textChannel
-            if (user > -1) {
-                tc.sendMessage("Kader von <@${user}>:").addFiles(league.picks[league(user)]!!.toTeamGraphics()).queue()
-                return@launch
-            }
-            league.picks.entries.map { (u, l) ->
-                async {
-                    val (bufferedImage, _) = TeamGraphics.fromDraftPokemon(l)
-                    u to FileUpload.fromData(ByteArrayOutputStream().also {
-                        ImageIO.write(
-                            bufferedImage, "png", it
-                        )
-                    }.toByteArray(), "yay.png")
+    suspend fun gdls12graphic(args: PrivateData) {
+        iData.deferReply()
+        val (conference, idxStr) = args.split
+        val idx = idxStr.toInt()
+        val teamData = TeamGraphicGenerator.TeamData.singleFromLeague(db.league("GDLS12$conference"), idx)
+        iData.reply(files = TeamGraphicGenerator.generate(teamData, GDLStyle(conference)).toFileUpload().into())
+    }
 
-                }
-            }.awaitAll().forEach { tc.sendMessage("Kader von <@${it.first}>:").addFiles(it.second).queue() }
-        }
-
+    context(iData: InteractionData)
+    suspend fun gdls12graphicall(args: PrivateData) {
+        iData.done()
+        val (conference, tcid) = args.split
+        val league = db.league("GDLS12$conference")
+        val style = GDLStyle(conference)
+        TeamGraphicGenerator.generateAndSendForLeague(league, style, jda.getTextChannelById(tcid)!!)
     }
 
     context(iData: InteractionData)
@@ -700,11 +690,12 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun fillCropAuxiliary(args: PrivateData) {
+        iData.done()
         val gid = args().toLong()
         dbTransaction {
             CropAuxiliaryDB.batchInsert(Tierlist[gid]!!.retrieveAll().map {
                 NameConventionsDB.getDiscordTranslation(it.name, gid, english = true)!!.official
-            }, shouldReturnGeneratedValues = false) {
+            }, shouldReturnGeneratedValues = false, ignore = true) {
                 this[CropAuxiliaryDB.GUILD] = gid
                 this[CropAuxiliaryDB.POKEMON] = it
             }

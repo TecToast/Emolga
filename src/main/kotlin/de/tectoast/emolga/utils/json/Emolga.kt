@@ -8,6 +8,7 @@ package de.tectoast.emolga.utils.json
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.database.exposed.DraftName
+import de.tectoast.emolga.database.exposed.LogoChecksumDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.RealInteractionData
@@ -26,6 +27,7 @@ import de.tectoast.emolga.utils.repeat.IntervalTaskKey
 import de.tectoast.emolga.utils.repeat.ScheduledTask
 import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
+import de.tectoast.emolga.utils.teamgraphics.ImageUtils
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.editMessage
@@ -55,10 +57,14 @@ import org.litote.kmongo.*
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.reactivestreams.KMongo
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.net.URI
 import java.security.MessageDigest
+import javax.imageio.ImageIO
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.time.ExperimentalTime
@@ -717,9 +723,8 @@ class LogoInputData(val fileExtension: String, val bytes: ByteArray) {
             attachment: Message.Attachment,
             ignoreRequirements: Boolean = false
         ): CalcResult<LogoInputData> = withContext(Dispatchers.IO) {
-            val fileExtension =
-                attachment.fileExtension?.lowercase()?.takeIf { ignoreRequirements || it in allowedFileFormats }
-                    ?: return@withContext CalcResult.Error("Das Logo muss eine Bilddatei sein!")
+            attachment.fileExtension?.lowercase()?.takeIf { ignoreRequirements || it in allowedFileFormats }
+                ?: return@withContext CalcResult.Error("Das Logo muss eine Bilddatei sein!")
             val bytes = try {
                 attachment.proxy.download().await().readAllBytes()
             } catch (ex: Exception) {
@@ -729,7 +734,13 @@ class LogoInputData(val fileExtension: String, val bytes: ByteArray) {
             if (!ignoreRequirements && bytes.size > 1024 * 1024 * 10) {
                 return@withContext CalcResult.Error("Das Logo darf nicht größer als 10MB sein!")
             }
-            CalcResult.Success(LogoInputData(fileExtension, bytes))
+            val image = ImageIO.read(bytes.inputStream())
+                ?: return@withContext CalcResult.Error("Die Datei ist kein gültiges Bild!")
+            val croppedImage = ImageUtils.cropToContent(image)
+            val baos = ByteArrayOutputStream()
+            ImageIO.write(croppedImage, "png", baos)
+            val finalBytes = baos.toByteArray()
+            CalcResult.Success(LogoInputData("png", finalBytes))
         }
     }
 }
@@ -775,6 +786,14 @@ data class SignUpData(
     }.joinToString("\n")
 
     fun formatName() = users.joinToString(" & ") { "<@$it>" }
+
+    suspend fun downloadLogo(): BufferedImage? {
+        val checksum = logoChecksum ?: return null
+        val data = LogoChecksumDB.findByChecksum(checksum) ?: return null
+        return withContext(Dispatchers.IO) {
+            ImageIO.read(URI(data.url).toURL())
+        }
+    }
 
 }
 
@@ -843,7 +862,11 @@ data class ShinyEventConfig(
 data class LogoChecksum(
     val checksum: String, val fileId: String
 ) {
-    val url get() = "https://drive.google.com/uc?export=download&id=${fileId}"
+    val url get() = "$DOWNLOAD_URL_PREFIX${fileId}"
+
+    companion object {
+        const val DOWNLOAD_URL_PREFIX = "https://drive.google.com/uc?export=download&id="
+    }
 }
 
 @Serializable

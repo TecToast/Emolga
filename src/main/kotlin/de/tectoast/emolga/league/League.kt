@@ -161,7 +161,7 @@ sealed class League {
     operator fun invoke(mem: Long) = indexOf(mem).takeIf { it >= 0 }!!
     operator fun get(index: Int) = table[index]
 
-    suspend fun currentOrFromID(id: Long) = currentOverride ?: order[round]?.get(0)
+    suspend fun currentOrFromID(id: Long) = currentOverride ?: order[round]?.getOrNull(0)
     ?: with(afterTimerSkipMode) { bypassCurrentPlayerCheck(id) as? BypassCurrentPlayerData.Yes }?.user
 
     fun RequestBuilder.newSystemPickDoc(data: DraftData, insertionIndex: Int = data.picks.size - 1): Int {

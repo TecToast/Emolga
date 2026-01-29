@@ -560,7 +560,7 @@ sealed class League {
 
 
     fun DraftData.getTierInsertIndex(takePicks: Int = picks.size): Int {
-        return tierlist.withTierBasedPriceManager { it.getTierInsertIndex(takePicks) }
+        return tierlist.withTierBasedPriceManager { it.getTierInsertIndex(picks.take(takePicks)) }
             ?: error("No tier-based price manager found!")
     }
 

@@ -590,7 +590,9 @@ data class AdvancedResult(
     val lowerNumber by lazy { if (numberOne < numberTwo) numberOne else numberTwo }
     val defaultGameplanString get() = """=HYPERLINK("$url"; "$numberOne:$numberTwo")"""
     val defaultGameplanStringWithoutUrl get() = "$numberOne:$numberTwo"
-    val defaultSplitGameplanString get() = listOf("$numberOne", """=HYPERLINK("$url"; ":")""", "$numberTwo")
+    val defaultSplitGameplanString get() = buildDefaultSplitGameplanString(":")
     val defaultSplitGameplanStringWithoutUrl get() = listOf("$numberOne", ":", "$numberTwo")
+    fun buildDefaultSplitGameplanString(middleString: String) =
+        listOf("$numberOne", """=HYPERLINK("$url"; "$middleString")""", "$numberTwo")
 }
 

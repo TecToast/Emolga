@@ -3,7 +3,6 @@ package de.tectoast.emolga.utils.draft
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.league.DraftData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.PickData
 import de.tectoast.emolga.league.TierData
@@ -51,6 +50,7 @@ class Tierlist(
     val tlToOfficialCache = SizeLimitedMap<String, String>(1000)
 
     val tierorderingComparator by lazy { compareBy<DraftPokemon>({ order.indexOf(it.tier) }, { it.name }) }
+    val tierorderingComparatorWithoutName by lazy { compareBy<DraftPokemon> { order.indexOf(it.tier) } }
 
     inline fun <reified T : TierlistPriceManager> has() = priceManager is T
 
@@ -245,8 +245,17 @@ interface TierBasedPriceManager : TierlistPriceManager {
     context(league: League, tl: Tierlist)
     fun getCurrentAvailableTiers(): List<String>
 
-    context(draftData: DraftData)
-    fun getTierInsertIndex(takePicks: Int = draftData.picks.size): Int
+    fun getTierInsertIndex(picks: List<DraftPokemon>): Int
+
+    fun getPicksInDocOrder(league: League, picks: List<DraftPokemon>): List<DraftPokemon> {
+        val indexMap = mutableMapOf<Int, Int>()
+        for (i in picks.indices) {
+            val subList = picks.subList(0, i + 1)
+            val index = getTierInsertIndex(subList)
+            indexMap[index] = i
+        }
+        return picks.indices.sortedBy { indexMap[it]!! }.map { picks[it] }
+    }
 
     companion object {
         fun tierAmountToString(tier: String, amount: Int) =
@@ -479,17 +488,20 @@ sealed interface TierlistPriceManager {
             return getPossibleTiers().filter { it.value > 0 }.keys.toList()
         }
 
-        context(draftData: DraftData)
-        override fun getTierInsertIndex(takePicks: Int): Int {
+        override fun getTierInsertIndex(picks: List<DraftPokemon>): Int {
+            val tier = picks.lastOrNull()?.tier ?: error("No picks to determine tier for index")
             var index = 0
-            val picksToUse = draftData.picks.take(takePicks)
             for (entry in tiers.entries) {
-                if (entry.key == draftData.tier) {
-                    return picksToUse.count { !it.free && !it.quit && it.tier == draftData.tier } + index - 1
+                if (entry.key == tier) {
+                    return picks.count { !it.free && !it.quit && it.tier == tier } + index - 1
                 }
                 index += entry.value
             }
-            error("Tier ${draftData.tier} not found by user ${draftData.idx}")
+            error("Tier $tier not found by")
+        }
+
+        override fun getPicksInDocOrder(league: League, picks: List<DraftPokemon>): List<DraftPokemon> {
+            return picks.sortedWith(league.tierlist.tierorderingComparatorWithoutName)
         }
 
         context(league: League, tl: Tierlist)
@@ -625,8 +637,7 @@ sealed interface TierlistPriceManager {
             }
         }
 
-        context(draftData: DraftData)
-        override fun getTierInsertIndex(takePicks: Int): Int {
+        override fun getTierInsertIndex(picks: List<DraftPokemon>): Int {
             error("Can't get tier insert index for option based tierlist")
         }
 
@@ -709,12 +720,10 @@ sealed interface TierlistPriceManager {
             }
         }
 
-        context(draftData: DraftData)
-        override fun getTierInsertIndex(takePicks: Int): Int {
-            return getTierInsertIndex(draftData.picks.take(takePicks), draftData.tier)
-        }
 
-        fun getTierInsertIndex(picksToUse: List<DraftPokemon>, tierToInsert: String): Int {
+        override fun getTierInsertIndex(picks: List<DraftPokemon>): Int {
+            val tierToInsert = picks.lastOrNull()?.tier
+                ?: error("No tier found in picks to use")
             var index = 0
             var tierBefore: String? = null
             for (entry in genericTiers.entries) {
@@ -723,7 +732,7 @@ sealed interface TierlistPriceManager {
                         .sumOf { it.amount }
                 index += sumOfChoiceSlots
                 if (entry.key == tierToInsert) {
-                    val picksAmountInTier = picksToUse.count { !it.free && !it.quit && it.tier == tierToInsert }
+                    val picksAmountInTier = picks.count { !it.free && !it.quit && it.tier == tierToInsert }
                     val monsInChoiceSlots = picksAmountInTier - entry.value
                     return if (monsInChoiceSlots > 0) {
                         if (sumOfChoiceSlots > 0) index - monsInChoiceSlots else index + monsInChoiceSlots

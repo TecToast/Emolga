@@ -43,7 +43,9 @@ object PokemonCropService {
     suspend fun getNewPokemonToCrop(guild: Long): PokemonToCropData? {
         return mutex.withLock {
             dbTransaction {
-                val result = CropAuxiliaryDB.leftJoin(PokemonCropDB, { POKEMON }, { OFFICIAL })
+                val result = CropAuxiliaryDB.leftJoin(PokemonCropDB, additionalConstraint = {
+                    (CropAuxiliaryDB.GUILD eq PokemonCropDB.GUILD) and (CropAuxiliaryDB.POKEMON eq PokemonCropDB.OFFICIAL)
+                })
                     .select(
                         CropAuxiliaryDB.POKEMON,
                         PokemonCropDB.GUILD,

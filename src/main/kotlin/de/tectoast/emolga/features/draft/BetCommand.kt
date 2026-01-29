@@ -29,7 +29,7 @@ object BetCommand :
 
     private val logger = KotlinLogging.logger {}
 
-    val scope = createCoroutineScope("ASLCoach")
+    private val scope = createCoroutineScope("ASLCoach")
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {

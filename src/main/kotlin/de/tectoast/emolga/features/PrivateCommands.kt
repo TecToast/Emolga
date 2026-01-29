@@ -36,6 +36,7 @@ import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.interactions.components.Modal
 import dev.minn.jda.ktx.interactions.components.TextInput
+import dev.minn.jda.ktx.messages.editMessage
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.Dispatchers
@@ -201,6 +202,33 @@ object PrivateCommands {
         val league = db.league("GDLS12$conference")
         val style = GDLStyle(conference)
         TeamGraphicGenerator.generateAndSendForLeague(league, style, jda.getTextChannelById(tcid)!!)
+    }
+
+    context(iData: InteractionData)
+    suspend fun gdls12graphicallall(args: PrivateData) {
+        iData.done()
+        val regex = Regex("GDLS\\d+(.*)")
+        for (league in db.leaguesByGuild(716942575852060682)) {
+            val conference = regex.matchEntire(league.leaguename)!!.groupValues[1]
+            val style = GDLStyle(conference)
+            TeamGraphicGenerator.generateAndSendForLeague(league, style, league.tc)
+        }
+    }
+
+    context(iData: InteractionData)
+    suspend fun updateGDLGraphic(args: PrivateData) {
+        iData.done()
+        val (leagueName, teamIdxStr) = args.split
+        val teamIdx = teamIdxStr.toInt()
+        val league = db.league(leagueName)
+        val style = GDLStyle(leagueName.removePrefix("GDLS12"))
+        val teamData = TeamGraphicGenerator.TeamData.singleFromLeague(league, teamIdx)
+        val uid = league.table[teamIdx]
+        val mid = league.tc.iterableHistory.takeAsync(20).await().first { it.contentRaw.contains(uid.toString()) }.id
+        league.tc.editMessage(
+            id = mid,
+            attachments = TeamGraphicGenerator.generate(teamData, style).toFileUpload().into()
+        ).queue()
     }
 
     context(iData: InteractionData)

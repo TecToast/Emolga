@@ -128,7 +128,7 @@ class GDLStyle(conference: String) : TeamGraphicStyle {
     override val guild = 716942575852060682
 
     override fun transformUsername(username: String): String {
-        return username.replace(Regex("\\d"), "").replace("|", "I").replace("/", "I")
+        return username.replace(Regex("\\d+$"), "").replace("0", "O").replace("|", "I").replace("/", "I")
     }
 
     companion object {

@@ -763,6 +763,9 @@ sealed class League {
                 ).await().idLong
                 TipGameMessagesDB.set(leaguename, num, index, messageId)
             }
+            tip.roleToPing?.let { roleId ->
+                channel.sendMessage("<@&$roleId>").queue()
+            }
         }
     }
 

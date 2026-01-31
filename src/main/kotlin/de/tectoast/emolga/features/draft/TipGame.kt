@@ -81,6 +81,7 @@ data class TipGame(
     val amount: Int,
     val channel: Long,
     val colorConfig: TipGameColorConfig = TipGameColorConfig.Default,
+    val roleToPing: Long? = null,
     val withCurrentState: Boolean = false
 )
 

@@ -21,9 +21,6 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import org.litote.kmongo.and
-import org.litote.kmongo.eq
-import org.litote.kmongo.keyProjection
 import java.awt.Color
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
@@ -48,18 +45,11 @@ object TipGameManager : CoroutineScope {
             val tipgame = league.config.tipgame ?: return reportMissing()
             TipGameUserData.addVote(iData.user, e.leaguename, e.gameday, e.index, e.userindex)
             iData.reply("Dein Tipp wurde gespeichert!")
-            if (tipgame.withCurrentState) {
+            if (tipgame.currentState == TipGameCurrentStateConfig.Always) {
                 iData.message.editMessageEmbeds(
                     Embed(
                         title = iData.message.embeds[0].title,
-                        description = "Bisherige Votes: " + league.battleorder.getValue(e.gameday)[e.index].map {
-                            db.tipgameuserdata.countDocuments(
-                                and(
-                                    TipGameUserData::league eq e.leaguename,
-                                    TipGameUserData::tips.keyProjection(e.gameday).keyProjection(e.index) eq it
-                                )
-                            ).toString()
-                        }.joinToString(":"),
+                        description = league.buildCurrentState(e.gameday, e.index),
                         color = embedColor
                     )
                 ).queue()
@@ -82,8 +72,20 @@ data class TipGame(
     val channel: Long,
     val colorConfig: TipGameColorConfig = TipGameColorConfig.Default,
     val roleToPing: Long? = null,
-    val withCurrentState: Boolean = false
+    val withName: String? = null,
+    val currentState: TipGameCurrentStateConfig? = null
 )
+
+@Serializable
+sealed interface TipGameCurrentStateConfig {
+    @Serializable
+    @SerialName("Always")
+    data object Always : TipGameCurrentStateConfig
+
+    @Serializable
+    @SerialName("OnLock")
+    data object OnLock : TipGameCurrentStateConfig
+}
 
 @Serializable
 sealed interface TipGameColorConfig {

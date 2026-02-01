@@ -11,6 +11,7 @@ import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.TestInteractionData
 import de.tectoast.emolga.features.draft.AddToTierlistData
+import de.tectoast.emolga.features.draft.TipGameCurrentStateConfig
 import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.features.draft.during.TeraZSelect
 import de.tectoast.emolga.features.flo.SendFeatures
@@ -19,6 +20,7 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.json.Config
+import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.enableYTForGame
@@ -39,7 +41,9 @@ import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
+import org.litote.kmongo.and
 import org.litote.kmongo.eq
+import org.litote.kmongo.keyProjection
 import org.litote.kmongo.ne
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
@@ -248,7 +252,6 @@ sealed class League {
             else null
         }
     }
-
 
 
     suspend fun afterPickOfficial(data: NextPlayerData = NextPlayerData.Normal) {
@@ -736,7 +739,8 @@ sealed class League {
                     .map { it.user.effectiveName }
             channel.send(
                 embeds = Embed(
-                    title = "Spieltag $num", color = tip.colorConfig.provideEmbedColor(this@League)
+                    title = "Spieltag $num".notNullAppend(tip.withName, prefix = " - "),
+                    color = tip.colorConfig.provideEmbedColor(this@League)
                 ).into()
             ).queue()
             for ((index, matchup) in matchups.withIndex()) {
@@ -752,7 +756,7 @@ sealed class League {
                     embeds = Embed(
                         title = "${names[u1]} vs. ${names[u2]}",
                         color = embedColor,
-                        description = if (tip.withCurrentState) "Bisherige Votes: 0:0" else null
+                        description = if (tip.currentState == TipGameCurrentStateConfig.Always) "Bisherige Votes: 0:0" else null
                     ).into(), components = ActionRow.of(TipGameManager.VoteButton(names[u1]) {
                         base()
                         this.userindex = u1
@@ -771,8 +775,8 @@ sealed class League {
 
     fun executeTipGameLockButtons(gameday: Int) {
         launch {
-            TipGameMessagesDB.get(leaguename, gameday).forEach {
-                lockButtonsOnMessage(it)
+            TipGameMessagesDB.get(leaguename, gameday).forEachIndexed { mu, mid ->
+                lockButtonsOnMessage(messageId = mid, gameday = gameday, mu = mu)
                 delay(2000)
             }
         }
@@ -782,20 +786,43 @@ sealed class League {
     fun executeTipGameLockButtonsIndividual(gameday: Int, mu: Int) {
         launch {
             TipGameMessagesDB.get(leaguename, gameday, mu).forEach {
-                lockButtonsOnMessage(it)
+                lockButtonsOnMessage(messageId = it, gameday = gameday, mu = mu)
             }
         }
     }
 
     private suspend fun lockButtonsOnMessage(
-        messageId: Long
+        messageId: Long,
+        gameday: Int,
+        mu: Int
     ) {
         val tipgame = config.tipgame ?: return
         val tipGameChannel = jda.getTextChannelById(tipgame.channel)!!
         val message = tipGameChannel.retrieveMessageById(messageId).await()
-        message.editMessageComponents(ActionRow.of(message.components[0].asActionRow().buttons.map { button -> button.asDisabled() }))
-            .queue()
+        val components = ActionRow.of(message.components[0].asActionRow().buttons.map { button -> button.asDisabled() })
+        val editData = MessageEdit(components = components.into()) {
+            if (tipgame.currentState == TipGameCurrentStateConfig.OnLock) {
+                embeds += Embed(
+                    title = message.embeds[0].title,
+                    description = buildCurrentState(gameday, mu),
+                    color = embedColor
+                )
+            }
+        }
+        message.editMessage(editData).queue()
     }
+
+    suspend fun buildCurrentState(
+        gameday: Int,
+        battleIndex: Int
+    ): String = "Bisherige Votes: " + battleorder.getValue(gameday)[battleIndex].map {
+        db.tipgameuserdata.countDocuments(
+            and(
+                TipGameUserData::league eq leaguename,
+                TipGameUserData::tips.keyProjection(gameday).keyProjection(battleIndex) eq it
+            )
+        ).toString()
+    }.joinToString(":")
 
     /**
      * Gets the index of the user by their ID or an allowed player that only has permission for one user.

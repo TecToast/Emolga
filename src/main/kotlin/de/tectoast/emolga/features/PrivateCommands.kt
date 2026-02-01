@@ -16,9 +16,7 @@ import de.tectoast.emolga.league.DefaultLeague
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.league.VideoProvideStrategy
-import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.Google
-import de.tectoast.emolga.utils.createCoroutineScope
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.*
@@ -28,7 +26,6 @@ import de.tectoast.emolga.utils.json.emolga.TeamData
 import de.tectoast.emolga.utils.repeat.IntervalTask
 import de.tectoast.emolga.utils.repeat.IntervalTaskKey
 import de.tectoast.emolga.utils.repeat.RepeatTask
-import de.tectoast.emolga.utils.surroundWith
 import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
 import de.tectoast.emolga.utils.teamgraphics.TeamGraphicStyle
 import dev.minn.jda.ktx.coroutines.await
@@ -87,11 +84,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun printTipGame(args: PrivateData) {
-        iData.reply(
-            db.tipgameuserdata.find(TipGameUserData::league eq args()).toList().asSequence()
-                .map { it.user to it.correctGuesses.values.sumOf { l -> l.size } }.sortedByDescending { it.second }
-                .mapIndexed { index, pair -> "${index + 1}. <@${pair.first}>: ${pair.second}" }
-                .joinToString("\n", prefix = "```", postfix = "```"))
+        iData.reply(TipGameAnalyseService.getFullTipGameResultsSummary(args()))
     }
 
     context(iData: InteractionData)
@@ -453,24 +446,6 @@ object PrivateCommands {
                 )
             }
             save()
-        }
-    }
-
-    context(iData: InteractionData)
-    suspend fun tipgameAdditionals(args: PrivateData) {
-        val leaguename = args[0]
-        val topkiller = args[1]
-        val top3 = args.drop(2).map { it.toInt() } // don't access 0
-        db.tipgameuserdata.find(TipGameUserData::league eq leaguename).toFlow().collect {
-            val filter = and(TipGameUserData::user eq it.user, TipGameUserData::league eq leaguename)
-            if (it.topkiller == topkiller) db.tipgameuserdata.updateOne(
-                filter, set(TipGameUserData::correctTopkiller setTo true)
-            )
-            for (i in 1..3) {
-                if (it.orderGuesses[i] == top3[i - 1]) db.tipgameuserdata.updateOne(
-                    filter, addToSet(TipGameUserData::correctOrderGuesses, i)
-                )
-            }
         }
     }
 

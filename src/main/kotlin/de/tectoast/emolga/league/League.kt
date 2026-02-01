@@ -3,10 +3,7 @@
 package de.tectoast.emolga.league
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.exposed.DraftAdminsDB
-import de.tectoast.emolga.database.exposed.DraftName
-import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.TipGameMessagesDB
+import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.TestInteractionData
@@ -20,7 +17,6 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.json.Config
-import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.enableYTForGame
@@ -41,9 +37,7 @@ import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
-import org.litote.kmongo.and
 import org.litote.kmongo.eq
-import org.litote.kmongo.keyProjection
 import org.litote.kmongo.ne
 import java.text.SimpleDateFormat
 import java.util.concurrent.ConcurrentHashMap
@@ -74,6 +68,7 @@ sealed class League {
     val battleorder: MutableMap<Int, List<List<Int>>> = mutableMapOf()
     val allowed: MutableMap<Int, MutableSet<AllowedData>> = mutableMapOf()
     val guild = -1L
+    val num = -1
 
     val current get() = currentOverride ?: order[round]!![0]
 
@@ -815,14 +810,12 @@ sealed class League {
     suspend fun buildCurrentState(
         gameday: Int,
         battleIndex: Int
-    ): String = "Bisherige Votes: " + battleorder.getValue(gameday)[battleIndex].map {
-        db.tipgameuserdata.countDocuments(
-            and(
-                TipGameUserData::league eq leaguename,
-                TipGameUserData::tips.keyProjection(gameday).keyProjection(battleIndex) eq it
-            )
-        ).toString()
-    }.joinToString(":")
+    ): String {
+        val stateMap = TipGameVotesDB.getCurrentState(leaguename, gameday, battleIndex)
+        return "Bisherige Votes: " + battleorder.getValue(gameday)[battleIndex].joinToString(":") {
+            stateMap.getOrDefault(it, 0).toString()
+        }
+    }
 
     /**
      * Gets the index of the user by their ID or an allowed player that only has permission for one user.

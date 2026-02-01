@@ -105,7 +105,6 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val shinyEventResults by lazy { db.getCollection<ShinyEventResult>("shinyeventresults") }
     val aslcoach by lazy { db.getCollection<ASLCoachData>("aslcoachdata") }
     val matchresults by lazy { db.getCollection<LeagueEvent>("matchresults") }
-    val tipgameuserdata by lazy { db.getCollection<TipGameUserData>("tipgameuserdata") }
     val statestore by lazy { db.getCollection<StateStore>("statestore") }
     val intervaltaskdata by lazy { db.getCollection<IntervalTaskData>("intervaltaskdata") }
     val scheduledtask by lazy { db.getCollection<ScheduledTask>("scheduledtask") }
@@ -213,45 +212,6 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     private suspend fun getLeagueResultWithoutPicks(gid: Long, uids: LongArray): LeagueResult? {
         val league = leagueByGuild(gid, *uids) ?: return null
         return LeagueResult(league, uids.map { league.table.indexOf(it) })
-    }
-}
-
-@Serializable
-data class TipGameUserData(
-    val user: Long,
-    val league: String,
-    val orderGuesses: MutableMap<Int, Int> = mutableMapOf(),
-    val correctGuesses: MutableMap<Int, MutableSet<Int>> = mutableMapOf(),
-    val topkiller: String? = null,
-    val correctTopkiller: Boolean = false,
-    val correctOrderGuesses: Set<Int> = setOf(),
-    val tips: MutableMap<Int, MutableMap<Int, Int>> = mutableMapOf()
-) {
-    companion object {
-        suspend fun updateCorrectBattles(league: String, gameday: Int, battle: Int, winningIndex: Int) {
-            db.tipgameuserdata.updateMany(
-                and(
-                    TipGameUserData::league eq league,
-                    TipGameUserData::tips.keyProjection(gameday).keyProjection(battle) eq winningIndex
-                ), addToSet(TipGameUserData::correctGuesses.keyProjection(gameday), battle)
-            )
-        }
-
-        suspend fun setOrderGuess(user: Long, league: String, rank: Int, userindex: Int) {
-            update(user, league, set(TipGameUserData::orderGuesses.keyProjection(rank) setTo userindex))
-        }
-
-        suspend fun addVote(user: Long, league: String, gameday: Int, battle: Int, userIndex: Int) {
-            update(
-                user, league, set(TipGameUserData::tips.keyProjection(gameday).keyProjection(battle) setTo userIndex)
-            )
-        }
-
-        private suspend fun update(user: Long, league: String, update: Bson) = db.tipgameuserdata.updateOne(
-            and(TipGameUserData::user eq user, TipGameUserData::league eq league), update, upsert()
-        )
-
-
     }
 }
 

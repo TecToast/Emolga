@@ -11,7 +11,7 @@ import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.TestInteractionData
 import de.tectoast.emolga.features.draft.AddToTierlistData
-import de.tectoast.emolga.features.draft.TipGameCurrentStateConfig
+import de.tectoast.emolga.features.draft.TipGameCurrentStateType
 import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.features.draft.during.TeraZSelect
 import de.tectoast.emolga.features.flo.SendFeatures
@@ -756,7 +756,7 @@ sealed class League {
                     embeds = Embed(
                         title = "${names[u1]} vs. ${names[u2]}",
                         color = embedColor,
-                        description = if (tip.currentState == TipGameCurrentStateConfig.Always) "Bisherige Votes: 0:0" else null
+                        description = if (tip.currentState == TipGameCurrentStateType.ALWAYS) "Bisherige Votes: 0:0" else null
                     ).into(), components = ActionRow.of(TipGameManager.VoteButton(names[u1]) {
                         base()
                         this.userindex = u1
@@ -801,7 +801,7 @@ sealed class League {
         val message = tipGameChannel.retrieveMessageById(messageId).await()
         val components = ActionRow.of(message.components[0].asActionRow().buttons.map { button -> button.asDisabled() })
         val editData = MessageEdit(components = components.into()) {
-            if (tipgame.currentState == TipGameCurrentStateConfig.OnLock) {
+            if (tipgame.currentState == TipGameCurrentStateType.ON_LOCK) {
                 embeds += Embed(
                     title = message.embeds[0].title,
                     description = buildCurrentState(gameday, mu),

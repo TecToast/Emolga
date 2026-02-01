@@ -45,7 +45,7 @@ object TipGameManager : CoroutineScope {
             val tipgame = league.config.tipgame ?: return reportMissing()
             TipGameUserData.addVote(iData.user, e.leaguename, e.gameday, e.index, e.userindex)
             iData.reply("Dein Tipp wurde gespeichert!")
-            if (tipgame.currentState == TipGameCurrentStateConfig.Always) {
+            if (tipgame.currentState == TipGameCurrentStateType.ALWAYS) {
                 iData.message.editMessageEmbeds(
                     Embed(
                         title = iData.message.embeds[0].title,
@@ -73,18 +73,13 @@ data class TipGame(
     val colorConfig: TipGameColorConfig = TipGameColorConfig.Default,
     val roleToPing: Long? = null,
     val withName: String? = null,
-    val currentState: TipGameCurrentStateConfig? = null
+    val currentState: TipGameCurrentStateType? = null
 )
 
 @Serializable
-sealed interface TipGameCurrentStateConfig {
-    @Serializable
-    @SerialName("Always")
-    data object Always : TipGameCurrentStateConfig
-
-    @Serializable
-    @SerialName("OnLock")
-    data object OnLock : TipGameCurrentStateConfig
+enum class TipGameCurrentStateType {
+    ALWAYS,
+    ON_LOCK
 }
 
 @Serializable

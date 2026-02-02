@@ -1,9 +1,6 @@
 package de.tectoast.emolga.features.draft
 
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.features.NoArgs
+import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.TipGameAnalyseService
 
 object TipGameCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("tipgame", "Siehe die Tippspiel-Ergebnisse ein")) {
@@ -32,6 +29,25 @@ object TipGameCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("tipgame", 
             )
             iData.reply(
                 "# Du im Vergleich\n$aboveAndBelow\n# Deine Statistik pro Liga\n$resultsPerLeague", ephemeral = true
+            )
+        }
+    }
+
+    object CheckMissing : CommandFeature<CheckMissing.Args>(
+        ::Args,
+        CommandSpec("checkmissing", "Prüfe auf fehlende Tipps an einem Spieltag")
+    ) {
+        class Args : Arguments() {
+            val gameday by int("Spieltag", "Der Spieltag, der geprüft werden soll")
+        }
+
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
+            iData.deferReply(true)
+            val gid = iData.gid
+            val uid = iData.user
+            iData.reply(
+                TipGameAnalyseService.getMissingVotesForGameday(gid, e.gameday, uid), ephemeral = true
             )
         }
     }

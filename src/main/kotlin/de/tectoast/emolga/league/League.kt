@@ -57,6 +57,7 @@ enum class DraftState {
 sealed class League {
     val sid: String = "yay"
     val leaguename: String = "ERROR"
+    val displayName get() = config.tipgame?.withName ?: leaguename
 
     @EncodeDefault
     var draftState: DraftState = DraftState.OFF

@@ -2,6 +2,8 @@ package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.TipGameVotesDB
+import de.tectoast.emolga.league.League
+import de.tectoast.emolga.utils.json.db
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.statements.UpsertSqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.statements.UpsertSqlExpressionBuilder.inList
@@ -66,22 +68,26 @@ object TipGameAnalyseService {
             leaderboardAlias
                 .select(rankCol, userCol, correctCol, totalCol)
                 .where { rankCol.between(targetRank - ABOVE_BELOW, targetRank + ABOVE_BELOW) }
-                .orderBy(rankCol, SortOrder.ASC)
-                .joinToString("\n") { row ->
-                    val rank = row[rankCol]
-                    val user = row[userCol]
-                    val correct = row[correctCol] ?: 0
-                    val total = row[totalCol]
-                    val percentage = if (total > 0) (correct.toDouble() / total.toDouble()) * 100 else 0.0
-                    val isTarget = (user == userId)
-                    "#$rank: <@${user}> ($correct/$total, ${"%.2f".format(percentage)}%) ${if (isTarget) "<-- DU" else ""}"
+                .orderBy(rankCol to SortOrder.ASC, (userCol eq userId) to SortOrder.DESC)
+                .groupBy { it[rankCol] }
+                .flatMap { (_, rows) ->
+                    rows.take(4).map { row ->
+                        val rank = row[rankCol]
+                        val user = row[userCol]
+                        val correct = row[correctCol] ?: 0
+                        val total = row[totalCol]
+                        val percentage = if (total > 0) (correct.toDouble() / total.toDouble()) * 100 else 0.0
+                        val isTarget = (user == userId)
+                        "#$rank: <@${user}> ($correct/$total, ${"%.2f".format(percentage)}%) ${if (isTarget) "<-- DU" else ""}"
+                    }
                 }
+                .joinToString("\n")
         }
     }
 
     suspend fun getUserTipGameStatsPerLeague(gid: Long, userId: Long) = dbTransaction {
         with(TipGameVotesDB) {
-            val leaguesInOrder = de.tectoast.emolga.utils.json.db.leaguesByGuild(gid).sortedBy { it.num }
+            val leaguesInOrder = allLeagues(gid)
             val leaguePredicate =
                 LEAGUENAME.inList(leaguesInOrder.map { it.leaguename })
             val correctVotes = getCorrectExpression()
@@ -99,11 +105,39 @@ object TipGameAnalyseService {
                 }
             leaguesInOrder.joinToString("\n") { league ->
                 val stats = dataMap[league.leaguename] ?: "0/0 (0.00%)"
-                val displayName = league.config.tipgame?.withName ?: league.leaguename
-                "**$displayName**: $stats"
+                "**${league.displayName}**: $stats"
             }
         }
     }
+
+    suspend fun getMissingVotesForGameday(gid: Long, gameday: Int, user: Long) = dbTransaction {
+        with(TipGameVotesDB) {
+            val allLeagues = allLeagues(gid)
+            val leaguePredicate = leaguePredicate(allLeagues.map { it.leaguename })
+            val presentData = select(LEAGUENAME, BATTLE)
+                .where { (leaguePredicate) and (GAMEDAY eq gameday) and (USERID eq user) }
+                .groupBy { it[LEAGUENAME] }
+            var amount = 0
+            val str = allLeagues.mapNotNull { league ->
+                val battleorder = league.battleorder[gameday] ?: return@mapNotNull null
+                val present = presentData[league.leaguename]
+                val missingBattles = battleorder.indices.toList() - present?.map { it[BATTLE] }.orEmpty().toSet()
+                amount += missingBattles.size
+                if (missingBattles.isEmpty()) return@mapNotNull null
+                "## ${league.displayName}\n" +
+                        battleorder.filterIndexed { index, _ -> missingBattles.contains(index) }.joinToString("\n") {
+                            "<@${league[it[0]]}> vs <@${league[it[1]]}>"
+                        }
+            }.joinToString("\n")
+            if (str.isEmpty()) "Du hast alle Tipps für Spieltag $gameday abgegeben!"
+            else {
+                if (str.length > 1900) "Die Liste der fehlenden Tipps ist zu lang, um sie hier anzuzeigen. Es fehlen insgesamt $amount Tipps."
+                else
+                    "# Fehlende Tipps für Spieltag $gameday\n$str"
+            }
+        }
+    }
+
 
     private fun TipGameVotesDB.getTotalExpression(): Count = Count(CORRECT)
 
@@ -116,5 +150,13 @@ object TipGameAnalyseService {
 
     private suspend fun TipGameVotesDB.leaguePredicate(
         gid: Long
-    ) = LEAGUENAME.inList(de.tectoast.emolga.utils.json.db.leaguesByGuild(gid).map { it.leaguename })
+    ) = leaguePredicate(allLeagueNames(gid))
+
+    private fun TipGameVotesDB.leaguePredicate(
+        names: List<String>
+    ) = LEAGUENAME.inList(names)
+
+
+    private suspend fun allLeagues(gid: Long): List<League> = db.leaguesByGuild(gid).sortedBy { it.num }
+    private suspend fun allLeagueNames(gid: Long): List<String> = allLeagues(gid).map { it.leaguename }
 }

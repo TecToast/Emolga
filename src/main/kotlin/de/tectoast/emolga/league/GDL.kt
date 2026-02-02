@@ -15,11 +15,7 @@ class GDL : League() {
 
     @Transient
     override val docEntry = DocEntry.create(this) {
-        monsOrder = { userPicks ->
-            tierlist.withTierBasedPriceManager { pm ->
-                pm.getPicksInDocOrder(this@GDL, userPicks).map { it.name }
-            }!!
-        }
+        monsOrderFromTierlist()
         +StatProcessor {
             Coord("Kills Übersicht", 9 + gdi, memIdx.y(11, 3 + monIndex())) to DataTypeForMon.KILLS
         }

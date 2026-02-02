@@ -97,6 +97,13 @@ class DocEntry private constructor(val league: League) {
         this.sorterDatas += sorterDatas
     }
 
+    fun monsOrderFromTierlist() {
+        monsOrder = { userPicks ->
+            league.tierlist.withTierBasedPriceManager { pm ->
+                pm.getPicksInDocOrder(league, userPicks).map { it.name }
+            }!!
+        }
+    }
 
     suspend fun analyse(fullGameData: FullGameData, withSort: Boolean = true) {
         val config = league.config

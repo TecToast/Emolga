@@ -30,6 +30,8 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.Shape
+import java.awt.geom.AffineTransform
+import java.awt.image.AffineTransformOp
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -92,7 +94,8 @@ object TeamGraphicGenerator {
             name = this[PokemonCropDB.OFFICIAL],
             x = this[PokemonCropDB.X],
             y = this[PokemonCropDB.Y],
-            size = this[PokemonCropDB.SIZE]
+            size = this[PokemonCropDB.SIZE],
+            flipped = this[PokemonCropDB.FLIPPED]
         )
     }
 
@@ -173,11 +176,27 @@ object TeamGraphicGenerator {
             val dataForIndex = style.getDataForIndex(i, data)
             val size = style.sizeOfShape
             drawImage(
-                image.cropShape(
+                image.flipIf(data.flipped).cropShape(
                     data.x, data.y, dataForIndex.shape
                 ), dataForIndex.xInFinal, dataForIndex.yInFinal, size, size, null
             )
         }
+    }
+
+    private fun BufferedImage.flipIf(doFlip: Boolean): BufferedImage {
+        if (!doFlip) return this
+        val tx = AffineTransform.getScaleInstance(
+            -1.0,
+            1.0
+        )
+
+        // Move the image back into the viewport
+        val translateX = -width.toDouble()
+        val translateY = 0.0
+        tx.translate(translateX, translateY)
+
+        val op = AffineTransformOp(tx, AffineTransformOp.TYPE_BILINEAR)
+        return op.filter(this, null)
     }
 
     private fun BufferedImage.cropShape(x: Int, y: Int, shape: Shape): BufferedImage {

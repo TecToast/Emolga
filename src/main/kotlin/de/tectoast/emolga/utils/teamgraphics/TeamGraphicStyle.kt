@@ -163,7 +163,7 @@ class GDLStyle(conference: String) : TeamGraphicStyle {
     }
 }
 
-data class DrawData(val name: String, val x: Int, val y: Int, val size: Int)
+data class DrawData(val name: String, val x: Int, val y: Int, val size: Int, val flipped: Boolean)
 
 data object ABLStyle : TeamGraphicStyle {
     override fun getDataForIndex(

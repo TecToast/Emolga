@@ -21,7 +21,7 @@ private val logger = KotlinLogging.logger {}
 class ASLCoachData(
     @SerialName("_id") @Contextual val id: Id<ASLCoachData>,
     val table: List<String> = emptyList(),
-    val data: Map<String, TeamData> = mutableMapOf(),
+    val data: Map<String, CoachTeamData> = mutableMapOf(),
     private val sid: String,
     @EncodeDefault
     val order: MutableList<Int> = mutableListOf(),
@@ -32,7 +32,7 @@ class ASLCoachData(
     @EncodeDefault
     var round: Int = 1
 ) {
-    fun teamByCoach(mem: Long): TeamData? = data.values.firstOrNull { it.members[0]!! == mem }
+    fun teamByCoach(mem: Long): CoachTeamData? = data.values.firstOrNull { it.members[0]!! == mem }
 
     fun teamnameByCoach(mem: Long): String = data.entries.first { it.value.members[0]!! == mem }.key
     suspend fun addUserToTeam(member: Member, coach: Long, prize: Int) {
@@ -138,7 +138,7 @@ class ASLCoachData(
 
 
 @Serializable
-class TeamData(
+class CoachTeamData(
     val members: MutableMap<Int, Long> = mutableMapOf(),
     var points: Int = 6000,
     val role: Long,

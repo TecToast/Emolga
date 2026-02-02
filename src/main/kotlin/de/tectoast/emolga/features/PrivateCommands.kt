@@ -21,8 +21,8 @@ import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.*
 import de.tectoast.emolga.utils.json.emolga.ASLCoachData
+import de.tectoast.emolga.utils.json.emolga.CoachTeamData
 import de.tectoast.emolga.utils.json.emolga.Config
-import de.tectoast.emolga.utils.json.emolga.TeamData
 import de.tectoast.emolga.utils.repeat.IntervalTask
 import de.tectoast.emolga.utils.repeat.IntervalTaskKey
 import de.tectoast.emolga.utils.repeat.RepeatTask
@@ -221,7 +221,7 @@ object PrivateCommands {
             table = teams.keys.toList(),
             data = teams.mapValues {
                 val data = it.value
-                TeamData(
+                CoachTeamData(
                     members = mutableMapOf(0 to data.coachId), points = 6000, role = data.roleId, prefix = data.prefix
                 )
             },

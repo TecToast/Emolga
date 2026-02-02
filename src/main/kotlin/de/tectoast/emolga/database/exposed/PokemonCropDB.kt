@@ -24,6 +24,7 @@ object PokemonCropDB : Table("pokemon_crop") {
     val Y = integer("y").default(0)
     val USER = long("user").default(0)
     val SIZE = integer("size").default(0)
+    val FLIPPED = bool("flipped").default(false)
     val WIP_SINCE = timestamp("wip_since").nullable()
 
     override val primaryKey = PrimaryKey(GUILD, OFFICIAL)
@@ -41,6 +42,7 @@ object PokemonCropService {
     val mutex = Mutex()
     private val logger = KotlinLogging.logger {}
     suspend fun getNewPokemonToCrop(guild: Long): PokemonToCropData? {
+//        if(true) return PokemonToCropData("Umbreon", "Umbreon", "/api/emolga/${guild}/teamgraphics/img/umbreon.png")
         return mutex.withLock {
             dbTransaction {
                 val result = CropAuxiliaryDB.leftJoin(PokemonCropDB, additionalConstraint = {
@@ -90,6 +92,7 @@ object PokemonCropService {
             it[Y] = data.y
             it[SIZE] = data.size
             it[USER] = user
+            it[FLIPPED] = data.flipped
             it[WIP_SINCE] = null
         }
     }
@@ -99,4 +102,4 @@ object PokemonCropService {
 data class PokemonToCropData(val tlName: String, val official: String, val path: String)
 
 @Serializable
-data class PokemonCropData(val official: String, val x: Int, val y: Int, val size: Int)
+data class PokemonCropData(val official: String, val x: Int, val y: Int, val size: Int, val flipped: Boolean)

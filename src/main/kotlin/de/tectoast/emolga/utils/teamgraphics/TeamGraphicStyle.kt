@@ -1,9 +1,6 @@
 package de.tectoast.emolga.utils.teamgraphics
 
-import java.awt.Color
-import java.awt.Font
-import java.awt.Graphics2D
-import java.awt.Shape
+import java.awt.*
 import java.awt.geom.Ellipse2D
 import java.io.File
 import javax.imageio.ImageIO
@@ -43,7 +40,7 @@ interface TeamGraphicStyle {
             val fontFile = File(fontPath)
             val rawFont = Font.createFont(Font.TRUETYPE_FONT, fontFile)
             val sizedFont = rawFont.deriveFont(fontSize)
-            val ge = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
+            val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
             ge.registerFont(sizedFont)
             sizedFont
         }
@@ -80,6 +77,20 @@ interface TeamGraphicStyle {
                 val metrics = g2d.fontMetrics
                 val y = baseY + ((metrics.ascent - metrics.descent) / 2)
                 return baseX to y
+            }
+        },
+        RIGHT {
+            override fun calculateTextCoordinates(
+                g2d: Graphics2D,
+                text: String,
+                baseX: Int,
+                baseY: Int
+            ): Pair<Int, Int> {
+                val metrics = g2d.fontMetrics
+                val textWidth = metrics.stringWidth(text)
+                val x = baseX - textWidth
+                val y = baseY + ((metrics.ascent - metrics.descent) / 2)
+                return x to y
             }
         };
 
@@ -153,3 +164,116 @@ class GDLStyle(conference: String) : TeamGraphicStyle {
 }
 
 data class DrawData(val name: String, val x: Int, val y: Int, val size: Int)
+
+data object ABLStyle : TeamGraphicStyle {
+    override fun getDataForIndex(
+        index: Int,
+        data: DrawData
+    ): IndexDataStyle {
+        var x: Int
+        var y: Int
+        when {
+            index % 8 in 1..2 -> {
+                val modX = index % 8 - 1
+                val modY = index / 8
+                x = 1159 + modX * 217
+                y = 118 + modY * 670
+                if (index == 9) {
+                    x += 2
+                    y += 1
+                }
+                if (index == 10) {
+                    x += 6
+                    y += 1
+                }
+            }
+
+            setOf(0, 3, 8, 11).contains(index) -> {
+                val modX = index % 8 / 3
+                val modY = index / 8
+                x = 938 + modX * 658
+                y = 169 + modY * 600
+                if (index == 3) {
+                    x -= 1
+                    y -= 2
+                }
+                if (index == 8) {
+                    x += 2
+                    y -= 2
+                }
+                if (index == 11) {
+                    x += 3
+                    y -= 7
+                }
+            }
+
+            else -> {
+                val modX = index % 2
+                val modY = (index - 4) / 2
+                x = 1101 + modX * 342
+                y = 352 + modY * 220
+                if (index in 4..5) {
+                    y -= 1
+                }
+                if (index == 6) {
+                    x -= 3
+                    y -= 2
+                }
+                if (index == 7) {
+                    x += 1
+                    y -= 3
+                }
+            }
+        }
+        val scaled = shape.scaled(data.size.toDouble() / sizeOfShape)
+        return IndexDataStyle(x, y, scaled)
+    }
+
+    val shape by lazy {
+        val shape = Polygon()
+        shape.addPoint(94, 0)
+        shape.addPoint(0, 67)
+        shape.addPoint(36, 172)
+        shape.addPoint(153, 172)
+        shape.addPoint(190, 67)
+        shape
+    }
+
+    override val backgroundPath = "teamgraphics/layers/ABL_Grafiken.png"
+    override val overlayPath = null
+    override val playerText =
+        TeamGraphicStyle.TextProperties(
+            fontPath = "BasementGrotesque-Black_v1.202.otf",
+            fontColor = Color.WHITE,
+            fontSize = 32f,
+            xCoord = 1480,
+            yCoord = 31,
+            orientation = TeamGraphicStyle.TextAlignment.RIGHT,
+            maxSize = null,
+            shadow = null
+        )
+    override val teamnameText =
+        TeamGraphicStyle.TextProperties(
+            fontPath = "BasementGrotesque-Black_v1.202.otf",
+            fontColor = Color.WHITE,
+            fontSize = 32f,
+            xCoord = 425,
+            yCoord = 1057,
+            orientation = TeamGraphicStyle.TextAlignment.LEFT,
+            maxSize = null,
+            shadow = null
+        )
+    override val sizeOfShape: Int = 192
+    override val logoProperties =
+        TeamGraphicStyle.LogoProperties(192, 217, 580, 580, "/home/florian/Pictures/sans.png")
+    override val guild: Long = 977969587448602654
+
+    fun Shape.scaled(scale: Double): Shape {
+        val bounds = this.bounds2D
+        val scaleX = scale * bounds.width / this.bounds.width
+        val scaleY = scale * bounds.height / this.bounds.height
+
+        val transform = java.awt.geom.AffineTransform.getScaleInstance(scaleX, scaleY)
+        return transform.createTransformedShape(this)
+    }
+}

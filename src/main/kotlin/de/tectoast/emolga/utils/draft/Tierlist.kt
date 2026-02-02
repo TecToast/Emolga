@@ -248,13 +248,13 @@ interface TierBasedPriceManager : TierlistPriceManager {
     fun getTierInsertIndex(picks: List<DraftPokemon>): Int
 
     fun getPicksInDocOrder(league: League, picks: List<DraftPokemon>): List<DraftPokemon> {
-        val indexMap = mutableMapOf<Int, Int>()
+        val indexMap = mutableMapOf<Int, DraftPokemon>()
         for (i in picks.indices) {
             val subList = picks.subList(0, i + 1)
             val index = getTierInsertIndex(subList)
-            indexMap[index] = i
+            indexMap[index] = picks[i]
         }
-        return picks.indices.sortedBy { indexMap[it]!! }.map { picks[it] }
+        return picks.indices.map { indexMap[it]!! }
     }
 
     companion object {

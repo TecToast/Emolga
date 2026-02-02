@@ -234,11 +234,13 @@ object TeamGraphicGenerator {
             }
 
             suspend fun singleFromLeague(
-                league: League, idx: Int, userNameProvider: UserNameProvider = JDADirectUserNameProvider()
+                league: League,
+                idx: Int,
+                userNameProvider: UserNameProvider = JDADirectUserNameProvider(),
+                overridePicks: List<String>? = null
             ): TeamData {
-                val picks = league.picks(idx)
                 val englishNames =
-                    picks.sortedWith(league.tierorderingComparator)
+                    overridePicks ?: league.picks(idx).sortedWith(league.tierorderingComparator)
                         .map { NameConventionsDB.getSDTranslation(it.name, league.guild, english = true)!!.official }
                 val lsData = db.signups.get(league.guild)!!
                 val uid = league.table[idx]

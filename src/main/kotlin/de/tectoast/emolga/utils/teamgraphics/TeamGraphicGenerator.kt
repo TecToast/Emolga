@@ -8,6 +8,7 @@ import de.tectoast.emolga.database.exposed.TeamGraphicChannelDB
 import de.tectoast.emolga.database.exposed.TeamGraphicMessageDB
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.OneTimeCache
+import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.SignUpInput
 import de.tectoast.emolga.utils.json.db
@@ -63,7 +64,7 @@ object TeamGraphicGenerator {
     }
 
     suspend fun editTeamGraphicForLeague(league: League, idx: Int) {
-        val style = league.config.teamgraphics ?: return
+        val style = league.config.teamgraphics?.style ?: return
         val teamData = TeamData.singleFromLeague(league, idx)
         val tcid = TeamGraphicChannelDB.getChannelId(league.leaguename) ?: return
         val msgid = TeamGraphicMessageDB.getMessageId(league.leaguename, idx) ?: return
@@ -262,7 +263,7 @@ object TeamGraphicGenerator {
             suspend fun singleFromLeague(
                 league: League,
                 idx: Int,
-                userNameProvider: UserNameProvider = JDADirectUserNameProvider(),
+                userNameProvider: UserNameProvider = JDADirectUserNameProvider.default,
                 overridePicks: Map<Int, String>? = null
             ): TeamData {
                 val englishNames =
@@ -308,9 +309,13 @@ interface UserNameProvider {
 }
 
 data class JDADirectUserNameProvider(val jda: JDA = de.tectoast.emolga.bot.jda) : UserNameProvider {
+    val cache = SizeLimitedMap<Long, String>()
     override suspend fun getUserName(userId: Long): String {
-        val user = jda.retrieveUserById(userId).await()
-        return user.effectiveName
+        return cache.getOrPut(userId) { jda.retrieveUserById(userId).await().effectiveName }
+    }
+
+    companion object {
+        val default = JDADirectUserNameProvider()
     }
 }
 

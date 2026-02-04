@@ -200,11 +200,11 @@ data object ABLStyle : TeamGraphicStyle {
         shape
     }
 
-    override val backgroundPath = "teamgraphics/layers/ABL_Grafiken.png"
+    override val backgroundPath = "/teamgraphics/ABL/ABL_Grafiken.png"
     override val overlayPath = null
     override val playerText =
         TeamGraphicStyle.TextProperties(
-            fontPath = "BasementGrotesque-Black_v1.202.otf",
+            fontPath = "/teamgraphics/ABL/BasementGrotesque-Black_v1.202.otf",
             fontColor = Color.WHITE,
             fontSize = 32f,
             xCoord = 1480,
@@ -215,7 +215,7 @@ data object ABLStyle : TeamGraphicStyle {
         )
     override val teamnameText =
         TeamGraphicStyle.TextProperties(
-            fontPath = "BasementGrotesque-Black_v1.202.otf",
+            fontPath = "/teamgraphics/ABL/BasementGrotesque-Black_v1.202.otf",
             fontColor = Color.WHITE,
             fontSize = 32f,
             xCoord = 425,

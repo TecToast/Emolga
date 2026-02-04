@@ -23,6 +23,8 @@ import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.enableYTForGame
 import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.executeRegisterInDoc
 import de.tectoast.emolga.utils.repeat.RepeatTaskType.*
 import de.tectoast.emolga.utils.showdown.AnalysisData
+import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
+import de.tectoast.emolga.utils.teamgraphics.toFileUpload
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.*
@@ -815,6 +817,21 @@ sealed class League {
         val stateMap = TipGameVotesDB.getCurrentState(leaguename, gameday, battleIndex)
         return "Bisherige Votes: " + battleorder.getValue(gameday)[battleIndex].joinToString(":") {
             stateMap.getOrDefault(it, 0).toString()
+        }
+    }
+
+    fun sendTeamgraphicAfterPick(idx: Int) {
+        config.teamgraphics?.let { tgConfig ->
+            val channel = tgConfig.channel ?: return
+            launch {
+                val channel = jda.getTextChannelById(channel)!!
+                val graphic =
+                    TeamGraphicGenerator.generate(
+                        TeamGraphicGenerator.TeamData.singleFromLeague(this@League, idx),
+                        tgConfig.style
+                    )
+                channel.send("<@${table[idx]}>", files = graphic.toFileUpload().into()).queue()
+            }
         }
     }
 

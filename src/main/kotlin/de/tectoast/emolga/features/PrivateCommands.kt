@@ -180,7 +180,7 @@ object PrivateCommands {
     suspend fun generateAllTeamGraphics(args: PrivateData) {
         iData.done()
         for (league in db.leaguesByGuild(args().toLong())) {
-            val style = league.config.teamgraphics ?: continue
+            val style = league.config.teamgraphics?.style ?: continue
             TeamGraphicGenerator.generateAndSendForLeague(league, style, league.tc)
         }
     }

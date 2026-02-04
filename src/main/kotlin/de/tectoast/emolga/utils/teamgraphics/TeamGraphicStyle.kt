@@ -1,11 +1,15 @@
 package de.tectoast.emolga.utils.teamgraphics
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import java.awt.*
 import java.awt.geom.Ellipse2D
 import java.io.File
 import javax.imageio.ImageIO
 
-interface TeamGraphicStyle {
+@Serializable
+sealed interface TeamGraphicStyle {
     fun getDataForIndex(index: Int, data: DrawData): IndexDataStyle
     val backgroundPath: String
     val overlayPath: String?
@@ -96,21 +100,13 @@ interface TeamGraphicStyle {
 
         abstract fun calculateTextCoordinates(g2d: Graphics2D, text: String, baseX: Int, baseY: Int): Pair<Int, Int>
     }
-
-    companion object {
-        fun fromLeagueName(leagueName: String): TeamGraphicStyle {
-            if (leagueName.startsWith("GDL")) {
-                val conference = Regex("GDLS\\d+(.*)").matchEntire(leagueName)!!.groupValues[1]
-                return GDLStyle(conference)
-            }
-            error("No TeamGraphicStyle found for league name: $leagueName")
-        }
-    }
 }
 
 data class IndexDataStyle(val xInFinal: Int, val yInFinal: Int, val shape: Shape)
 
-class GDLStyle(conference: String) : TeamGraphicStyle {
+@Serializable
+@SerialName("GDL")
+data class GDLStyle(val conference: String) : TeamGraphicStyle {
     override fun getDataForIndex(
         index: Int,
         data: DrawData
@@ -130,6 +126,8 @@ class GDLStyle(conference: String) : TeamGraphicStyle {
     override val overlayPath = "/teamgraphics/GDL/$conference.png"
     override val backgroundPath = "/teamgraphics/GDL/Universe.png"
     override val sizeOfShape = SIZE_OF_CIRCLE
+
+    @Transient
     override val playerText = TeamGraphicStyle.TextProperties(
         fontPath = "/teamgraphics/GDL/MASQUE.ttf",
         fontColor = run {
@@ -144,6 +142,8 @@ class GDLStyle(conference: String) : TeamGraphicStyle {
         shadow = TeamGraphicStyle.TextShadowProperties(Color(0, 0, 0, 255), 5, 5)
     )
     override val teamnameText = null
+
+    @Transient
     override val logoProperties =
         TeamGraphicStyle.LogoProperties(10, 106, 580, 580, "/teamgraphics/GDL/defaultlogo.png")
     override val guild = 716942575852060682
@@ -165,66 +165,27 @@ class GDLStyle(conference: String) : TeamGraphicStyle {
 
 data class DrawData(val name: String, val x: Int, val y: Int, val size: Int, val flipped: Boolean)
 
+@Serializable
+@SerialName("ABL")
 data object ABLStyle : TeamGraphicStyle {
+    private val coordMap = mapOf(
+        0 to Pair(938, 169),
+        1 to Pair(1159, 118),
+        2 to Pair(1376, 118),
+        3 to Pair(1595, 168),
+        4 to Pair(1101, 352),
+        5 to Pair(1443, 351),
+        6 to Pair(1098, 570),
+        7 to Pair(1444, 570),
+        8 to Pair(938, 791),
+        9 to Pair(1270, 781),
+        10 to Pair(1601, 793)
+    )
     override fun getDataForIndex(
         index: Int,
         data: DrawData
     ): IndexDataStyle {
-        var x: Int
-        var y: Int
-        when {
-            index % 8 in 1..2 -> {
-                val modX = index % 8 - 1
-                val modY = index / 8
-                x = 1159 + modX * 217
-                y = 118 + modY * 670
-                if (index == 9) {
-                    x += 2
-                    y += 1
-                }
-                if (index == 10) {
-                    x += 6
-                    y += 1
-                }
-            }
-
-            setOf(0, 3, 8, 11).contains(index) -> {
-                val modX = index % 8 / 3
-                val modY = index / 8
-                x = 938 + modX * 658
-                y = 169 + modY * 600
-                if (index == 3) {
-                    x -= 1
-                    y -= 2
-                }
-                if (index == 8) {
-                    x += 2
-                    y -= 2
-                }
-                if (index == 11) {
-                    x += 3
-                    y -= 7
-                }
-            }
-
-            else -> {
-                val modX = index % 2
-                val modY = (index - 4) / 2
-                x = 1101 + modX * 342
-                y = 352 + modY * 220
-                if (index in 4..5) {
-                    y -= 1
-                }
-                if (index == 6) {
-                    x -= 3
-                    y -= 2
-                }
-                if (index == 7) {
-                    x += 1
-                    y -= 3
-                }
-            }
-        }
+        val (x, y) = coordMap[index] ?: error("No coordinates for index $index")
         val scaled = shape.scaled(data.size.toDouble() / sizeOfShape)
         return IndexDataStyle(x, y, scaled)
     }

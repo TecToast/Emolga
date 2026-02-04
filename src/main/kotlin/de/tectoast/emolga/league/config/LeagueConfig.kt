@@ -2,6 +2,7 @@ package de.tectoast.emolga.league.config
 
 import de.tectoast.emolga.features.draft.TipGame
 import de.tectoast.emolga.utils.DraftTimer
+import de.tectoast.emolga.utils.teamgraphics.TeamGraphicStyle
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -19,6 +20,7 @@ data class LeagueConfig(
     val triggers: Triggers = Triggers(),
     val teraSelect: TeraZSelectConfig? = null,
     val hideGames: HideGamesConfig? = null,
+    val teamgraphics: TeamGraphicStyle? = null
 )
 
 

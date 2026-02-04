@@ -8,6 +8,7 @@ import de.tectoast.emolga.database.exposed.TeamGraphicChannelDB
 import de.tectoast.emolga.database.exposed.TeamGraphicMessageDB
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.OneTimeCache
+import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.SignUpInput
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -62,7 +63,7 @@ object TeamGraphicGenerator {
     }
 
     suspend fun editTeamGraphicForLeague(league: League, idx: Int) {
-        val style = TeamGraphicStyle.fromLeagueName(league.leaguename)
+        val style = league.config.teamgraphics ?: return
         val teamData = TeamData.singleFromLeague(league, idx)
         val tcid = TeamGraphicChannelDB.getChannelId(league.leaguename) ?: return
         val msgid = TeamGraphicMessageDB.getMessageId(league.leaguename, idx) ?: return
@@ -77,14 +78,16 @@ object TeamGraphicGenerator {
     ): BufferedImage {
         val monData = dbTransaction {
             PokemonCropDB.selectAll()
-                .where { PokemonCropDB.GUILD eq style.guild and (PokemonCropDB.OFFICIAL.inList(teamData.englishNames)) }
+                .where { PokemonCropDB.GUILD eq style.guild and (PokemonCropDB.OFFICIAL.inList(teamData.englishNames.values)) }
                 .associate { it[PokemonCropDB.OFFICIAL] to it.toDrawData() }
         }
         return createOneTeamGraphic(
             teamData.teamOwner,
             teamData.teamName,
             teamData.logo,
-            teamData.englishNames.map { monData[it] ?: error("MonData for $it not found") },
+            teamData.englishNames.mapValues { (_, name) ->
+                (monData[name] ?: error("MonData for $name not found"))
+            }.toMap(),
             style
         )
     }
@@ -100,7 +103,11 @@ object TeamGraphicGenerator {
     }
 
     private suspend fun createOneTeamGraphic(
-        teamOwner: String?, teamName: String?, logo: BufferedImage?, monData: List<DrawData>, style: TeamGraphicStyle
+        teamOwner: String?,
+        teamName: String?,
+        logo: BufferedImage?,
+        monData: Map<Int, DrawData>,
+        style: TeamGraphicStyle
     ): BufferedImage {
         val image = withContext(Dispatchers.IO) {
             ImageIO.read(File(style.backgroundPath))
@@ -167,8 +174,8 @@ object TeamGraphicGenerator {
         this.drawString(text, x, y)
     }
 
-    private suspend fun Graphics2D.drawMons(monData: List<DrawData>, style: TeamGraphicStyle) {
-        for ((i, data) in monData.withIndex()) {
+    private suspend fun Graphics2D.drawMons(monData: Map<Int, DrawData>, style: TeamGraphicStyle) {
+        for ((i, data) in monData) {
             val path = db.pokedex.get(data.name.toSDName())!!.calcSpriteName()
             val image = withContext(Dispatchers.IO) {
                 ImageIO.read(File("teamgraphics/sugimori_final/$path.png"))
@@ -241,7 +248,7 @@ object TeamGraphicGenerator {
     }
 
     data class TeamData(
-        val teamOwner: String?, val teamName: String?, val logo: BufferedImage?, val englishNames: List<String>
+        val teamOwner: String?, val teamName: String?, val logo: BufferedImage?, val englishNames: Map<Int, String>
     ) {
         companion object {
             suspend fun allFromLeague(league: League): List<TeamData> {
@@ -256,11 +263,17 @@ object TeamGraphicGenerator {
                 league: League,
                 idx: Int,
                 userNameProvider: UserNameProvider = JDADirectUserNameProvider(),
-                overridePicks: List<String>? = null
+                overridePicks: Map<Int, String>? = null
             ): TeamData {
                 val englishNames =
-                    overridePicks ?: league.picks(idx).sortedWith(league.tierorderingComparator)
-                        .map { NameConventionsDB.getSDTranslation(it.name, league.guild, english = true)!!.official }
+                    overridePicks ?: league.picks(idx).inDocOrder(league)
+                        .mapValues {
+                            NameConventionsDB.getSDTranslation(
+                                it.value.name,
+                                league.guild,
+                                english = true
+                            )!!.official
+                        }
                 val lsData = db.signups.get(league.guild)!!
                 val uid = league.table[idx]
                 val userData = lsData.getDataByUser(uid)!!
@@ -273,6 +286,11 @@ object TeamGraphicGenerator {
             }
         }
     }
+
+    private fun List<DraftPokemon>.inDocOrder(league: League) =
+        league.tierlist.withTierBasedPriceManager { it.getPicksWithInsertOrder(league, this@inDocOrder) } ?: sortedWith(
+            league.tierorderingComparator
+        ).mapIndexed { index, pokemon -> index to pokemon }.toMap()
 
 
     private val logger = KotlinLogging.logger {}

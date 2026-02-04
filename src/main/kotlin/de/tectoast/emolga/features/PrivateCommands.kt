@@ -27,7 +27,6 @@ import de.tectoast.emolga.utils.repeat.IntervalTask
 import de.tectoast.emolga.utils.repeat.IntervalTaskKey
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
-import de.tectoast.emolga.utils.teamgraphics.TeamGraphicStyle
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.await
 import dev.minn.jda.ktx.interactions.components.Modal
@@ -181,7 +180,7 @@ object PrivateCommands {
     suspend fun generateAllTeamGraphics(args: PrivateData) {
         iData.done()
         for (league in db.leaguesByGuild(args().toLong())) {
-            val style = TeamGraphicStyle.fromLeagueName(league.leaguename)
+            val style = league.config.teamgraphics ?: continue
             TeamGraphicGenerator.generateAndSendForLeague(league, style, league.tc)
         }
     }

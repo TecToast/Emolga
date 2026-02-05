@@ -264,10 +264,12 @@ object TeamGraphicGenerator {
                 league: League,
                 idx: Int,
                 userNameProvider: UserNameProvider = JDADirectUserNameProvider.default,
-                overridePicks: Map<Int, String>? = null
+                overridePicks: Map<Int, String>? = null,
+                takePickCount: Int? = null // TODO: Refactor
             ): TeamData {
                 val englishNames =
-                    overridePicks ?: league.picks(idx).inDocOrder(league)
+                    overridePicks ?: league.picks(idx).let { if (takePickCount != null) it.take(takePickCount) else it }
+                        .inDocOrder(league)
                         .mapValues {
                             NameConventionsDB.getSDTranslation(
                                 it.value.name,

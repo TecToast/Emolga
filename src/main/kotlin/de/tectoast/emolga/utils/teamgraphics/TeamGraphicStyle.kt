@@ -200,7 +200,7 @@ data object ABLStyle : TeamGraphicStyle {
         shape
     }
 
-    override val backgroundPath = "/teamgraphics/ABL/ABL_Grafiken.png"
+    override val backgroundPath = "/teamgraphics/ABL/ABL_Grafiken_woBG.png"
     override val overlayPath = null
     override val playerText =
         TeamGraphicStyle.TextProperties(
@@ -226,7 +226,7 @@ data object ABLStyle : TeamGraphicStyle {
         )
     override val sizeOfShape: Int = 192
     override val logoProperties =
-        TeamGraphicStyle.LogoProperties(192, 217, 580, 580, "/home/florian/Pictures/sans.png")
+        TeamGraphicStyle.LogoProperties(173, 250, 580, 580, null)
     override val guild: Long = 977969587448602654
 
     fun Shape.scaled(scale: Double): Shape {

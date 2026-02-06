@@ -6,15 +6,18 @@ import de.tectoast.emolga.features.wrc.WRCManager
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
+import de.tectoast.emolga.utils.json.LadderTournament
 import de.tectoast.emolga.utils.json.db
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.daysUntil
 import mu.KotlinLogging
+import org.litote.kmongo.gt
 import java.util.*
 import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -108,12 +111,28 @@ class RepeatTask(
         fun getTask(leaguename: String, type: RepeatTaskType) = allTasks[leaguename]?.get(type)
         suspend fun setupRepeatTasks() {
             setupLeagueRepeatTasks()
+            setupLadderTournamentRepeatTasks()
             WRCManager.setupRepeatTasks()
         }
 
         suspend fun setupLeagueRepeatTasks() {
             db.league.find().toFlow().collect { l ->
                 l.setupRepeatTasks()
+            }
+        }
+
+        suspend fun setupLadderTournamentRepeatTasks() {
+            db.ladderTournament.find(LadderTournament::lastExecution gt Clock.System.now()).toFlow().collect {
+                val gid = it.guild
+                RepeatTask(
+                    "LadderTournament $gid",
+                    RepeatTaskType.Other("Table"),
+                    it.lastExecution,
+                    it.amount,
+                    it.durationInHours.hours,
+                ) {
+                    LadderTournament.executeForGuild(gid)
+                }
             }
         }
 

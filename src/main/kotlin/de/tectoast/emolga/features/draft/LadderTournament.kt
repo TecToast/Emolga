@@ -1,0 +1,88 @@
+package de.tectoast.emolga.features.draft
+
+import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.json.LadderTournamentUserData
+import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.get
+import dev.minn.jda.ktx.interactions.components.SelectOption
+import dev.minn.jda.ktx.messages.into
+import dev.minn.jda.ktx.messages.send
+
+object LadderTournament {
+    object SignupButton : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("laddertournamentsignup")) {
+        override val label = "Anmelden"
+
+        context(iData: InteractionData)
+        override suspend fun exec(e: NoArgs) {
+            iData.ephemeralDefault()
+            val lt = db.ladderTournament.get(iData.gid)
+                ?: return iData.reply("Auf diesem Server gibt es kein laufendes Ladder-Turnier!")
+            if (lt.users[iData.user]?.verified == true) return iData.reply("Du bist bereits angemeldet!")
+            iData.replyModal(Modal())
+        }
+    }
+
+    object Modal : ModalFeature<Modal.Args>(::Args, ModalSpec("laddertournamentmodal")) {
+        override val title = "Anmeldung"
+
+        class Args : Arguments() {
+            val sdname by string("SD-Name", "Der SD-Name (wie im Doc beschrieben)")
+            val formats by fromListModal(
+                "Formate",
+                "Die Formate, die du spielen möchtest",
+                placeholder = "Formate",
+                valueRange = null,
+                optionsProvider = {
+                    val lt = db.ladderTournament.get(it.gid) ?: return@fromListModal listOf(
+                        SelectOption(
+                            "No options",
+                            "nooptions"
+                        )
+                    )
+                    lt.formats.keys.map { f -> SelectOption(f, f) }
+                })
+        }
+
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
+            val lt = db.ladderTournament.get(iData.gid) ?: return
+            val uid = iData.user
+            if (lt.users[uid]?.verified == true) return iData.reply("Du bist bereits angemeldet!", ephemeral = true)
+            if (!e.sdname.startsWith(lt.sdNamePrefix)) return iData.reply(
+                "Dein Showdown-Name muss mit `${lt.sdNamePrefix}` beginnen!",
+                ephemeral = true
+            )
+            lt.users[uid] = LadderTournamentUserData(e.sdname, e.formats, verified = false)
+            lt.save()
+            iData.reply("Deine Anmeldung ist angekommen und wird nun vom Komitee verifiziert!", ephemeral = true)
+            iData.jda.getTextChannelById(lt.adminChannel)!!
+                .send("Anmeldungsanfrage:\nUser: <@${uid}>\nSD-Name: `${e.sdname}`", components = ApproveButton {
+                    this.user = uid
+                }.into()).queue()
+        }
+    }
+
+    object ApproveButton : ButtonFeature<ApproveButton.Args>(::Args, ButtonSpec("laddertournamentapprove")) {
+        override val label = "Approve"
+
+        class Args : Arguments() {
+            var user by long()
+        }
+
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
+            val lt = db.ladderTournament.get(iData.gid)
+                ?: return iData.reply("Auf diesem Server gibt es kein laufendes Ladder-Turnier!", ephemeral = true)
+            val data = lt.users[e.user] ?: return iData.reply(
+                "Dieser User hat keine Anmeldung zum Ladder-Turnier!",
+                ephemeral = true
+            )
+            iData.edit(components = emptyList())
+            data.verified = true
+            lt.save()
+            iData.reply("Verifiziert!", ephemeral = true)
+            iData.jda.getTextChannelById(lt.signupChannel)!!.send("<@${e.user}>: ${data.formats.joinToString()}")
+                .queue()
+        }
+    }
+}

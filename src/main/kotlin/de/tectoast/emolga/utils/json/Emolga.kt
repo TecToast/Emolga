@@ -68,6 +68,8 @@ import java.security.MessageDigest
 import javax.imageio.ImageIO
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import kotlin.math.roundToInt
+import kotlin.reflect.KProperty1
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlin.time.measureTimedValue
@@ -109,6 +111,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     val intervaltaskdata by lazy { db.getCollection<IntervalTaskData>("intervaltaskdata") }
     val scheduledtask by lazy { db.getCollection<ScheduledTask>("scheduledtask") }
     val remoteServerControl by lazy { db.getCollection<RemoteServerControl>("remoteservercontrol") }
+    val ladderTournament by lazy { db.getCollection<LadderTournament>("laddertournament") }
     val defaultNameConventions = OneTimeCache {
         nameconventions.find(NameConventions::guild eq 0).first()!!.data
     }
@@ -1026,6 +1029,99 @@ sealed class RemoteServerControl {
     }
 }
 
+@Serializable
+data class LadderTournament(
+    val guild: Long,
+    val adminChannel: Long,
+    val signupChannel: Long,
+    val formats: Map<String, String>,
+    val sid: String,
+    val cols: List<LadderTournamentCol>,
+    val sortCols: List<LadderTournamentCol>,
+    val lastExecution: Instant,
+    val durationInHours: Int,
+    val amount: Int,
+    val sdNamePrefix: String,
+    val users: MutableMap<Long, LadderTournamentUserData> = mutableMapOf(),
+) {
+    suspend fun execute() {
+        val usersPerFormat =
+            users.filter { it.value.verified }.flatMap { (uid, data) -> data.formats.map { it to uid } }
+                .groupBy { it.first }
+                .mapValues { it.value.map { v -> v.second } }
+        val userData = fetchDataForUsers()
+        val b = RequestBuilder(sid)
+        for ((format, targetRange) in formats) {
+            val formatId = format.toSDName()
+            val usersInFormat = usersPerFormat[format] ?: continue
+            val tableData = usersInFormat.map { userData[it]!! }.sortedWith { a, b ->
+                val dataA = a.ratings[formatId] ?: return@sortedWith 1
+                val dataB = b.ratings[formatId] ?: return@sortedWith -1
+                for (sortCol in sortCols) {
+                    val numA = sortCol[dataA].toDouble().roundToInt()
+                    val numB = sortCol[dataB].toDouble().roundToInt()
+                    if (numA != numB) return@sortedWith numB - numA
+                }
+                0
+            }.map {
+                val rankData = it.ratings[formatId]
+                buildList {
+                    add(it.username.removePrefix(sdNamePrefix))
+                    cols.forEach { col ->
+                        add(col[rankData].toDouble().roundToInt().toString())
+                    }
+                }
+            }
+            b.addAll(targetRange, tableData)
+        }
+        b.execute()
+    }
+
+    private suspend fun fetchDataForUsers(): Map<Long, SDUserResponse> {
+        return users.filter { it.value.verified }.mapValues {
+            httpClient.get("https://pokemonshowdown.com/users/${it.value.sdName.toUsername()}.json")
+                .body<SDUserResponse>()
+        }
+    }
+
+    suspend fun save() = db.ladderTournament.updateOne(LadderTournament::guild eq guild, this)
+
+    companion object {
+        suspend fun executeForGuild(gid: Long) {
+            db.ladderTournament.findOne(LadderTournament::guild eq gid)?.execute()
+        }
+
+    }
+}
+
+@Serializable
+enum class LadderTournamentCol(val property: KProperty1<SDRankData, Number>) {
+    WINS(SDRankData::wins),
+    LOSSES(SDRankData::losses),
+    TIES(SDRankData::ties),
+    GXE(SDRankData::gxe),
+    ELO(SDRankData::elo);
+
+    operator fun get(data: SDRankData?) = data?.let { property.get(it) } ?: 0
+}
+
+@Serializable
+data class LadderTournamentUserData(val sdName: String, val formats: List<String>, var verified: Boolean = true)
+
+@Serializable
+data class SDUserResponse(
+    val username: String,
+    val ratings: Map<String, SDRankData>
+)
+
+@Serializable
+data class SDRankData(
+    @SerialName("w") val wins: Int = 0,
+    @SerialName("l") val losses: Int = 0,
+    @SerialName("t") val ties: Int = 0,
+    val gxe: Int,
+    val elo: Double
+)
 
 suspend fun <T : Any> CoroutineCollection<T>.only() = find().first()!!
 suspend fun <T : Any> CoroutineCollection<T>.updateOnly(update: Bson) =
@@ -1050,5 +1146,8 @@ suspend fun CoroutineCollection<IntervalTaskData>.get(name: IntervalTaskKey) =
 
 @JvmName("getRemoteServerControl")
 suspend fun CoroutineCollection<RemoteServerControl>.get(name: String) = find(RemoteServerControl::name eq name).first()
+
+@JvmName("getLadderTournament")
+suspend fun CoroutineCollection<LadderTournament>.get(guild: Long) = find(LadderTournament::guild eq guild).first()
 
 typealias ErrorOrNull = String?

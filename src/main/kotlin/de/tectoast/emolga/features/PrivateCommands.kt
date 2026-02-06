@@ -6,6 +6,7 @@ import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
+import de.tectoast.emolga.features.draft.LadderTournament
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
@@ -672,6 +673,11 @@ object PrivateCommands {
             "Hier könnt ihr euch Rechte für die Website holen :)",
             components = GuildAuthorizeButton(label = "Klick mich :3", buttonStyle = ButtonStyle.SUCCESS).into()
         ).queue()
+    }
+
+    context(iData: InteractionData)
+    fun createLadderTournamentButton(args: PrivateData) {
+        iData.jda.getTextChannelById(args())!!.send(":)", components = LadderTournament.SignupButton().into()).queue()
     }
 
     context(iData: InteractionData)

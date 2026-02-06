@@ -17,6 +17,7 @@ import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.label.LabelChildComponent
 import net.dv8tion.jda.api.components.selections.SelectOption
 import net.dv8tion.jda.api.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
@@ -38,6 +39,7 @@ import net.dv8tion.jda.api.interactions.commands.Command.Choice
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.OptionMapping
 import net.dv8tion.jda.api.interactions.commands.OptionType
+import net.dv8tion.jda.api.modals.Modal
 import java.util.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KClass
@@ -249,43 +251,30 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
         }
     }
 
-    operator fun invoke(
+    context(iData: InteractionData)
+    suspend operator fun invoke(
         title: String = this.title,
         specificallyEnabledArgs: Map<ModalKey, Boolean> = emptyMap(),
         argsBuilder: ArgBuilder<A> = {}
-    ) = Modal(createComponentId(argsBuilder, checkCompId = true), title) {
-        argsFun().apply(argsBuilder).args.forEach { arg ->
-            if (arg.compIdOnly) return@forEach
+    ): Modal {
+        val modalEntries = argsFun().apply(argsBuilder).args.mapNotNull { arg ->
+            if (arg.compIdOnly) return@mapNotNull null
             val spec = arg.spec as? ModalArgSpec
             spec?.modalEnableKey?.let { key ->
-                if (specificallyEnabledArgs[key] != true) return@forEach
+                if (specificallyEnabledArgs[key] != true) return@mapNotNull null
             }
             val argName = arg.name
             val argId = argName.nameToDiscordOption()
             val required = spec?.required == true || !arg.optional
             val value = arg.parsed?.toString()
-            val argBuilder = spec?.builder ?: {}
-            if (spec?.short != false) {
-                label(
-                    label = argName, child = TextInput(
-                        customId = argId,
-                        style = TextInputStyle.SHORT,
-                        required = required,
-                        value = value,
-                        builder = argBuilder
-                    )
+            Triple(
+                argName, arg.help, (spec?.argOption ?: ModalArgOption.Text()).buildChildComponent(
+                    iData, argId, required, value
                 )
-            } else {
-                label(
-                    label = argName, child = TextInput(
-                        customId = argId,
-                        style = TextInputStyle.PARAGRAPH,
-                        required = required,
-                        value = value,
-                        builder = argBuilder
-                    )
-                )
-            }
+            )
+        }
+        return Modal(createComponentId(argsBuilder, checkCompId = true), title) {
+            modalEntries.forEach { (name, help, child) -> label(label = name, description = help, child = child) }
         }
     }
 
@@ -370,8 +359,61 @@ data class CommandArgSpec(
 ) : ArgSpec
 
 data class ModalArgSpec(
-    val short: Boolean, val modalEnableKey: ModalKey?, val required: Boolean, val builder: InlineTextInput.() -> Unit
+    val argOption: ModalArgOption = ModalArgOption.Text(), val modalEnableKey: ModalKey?, val required: Boolean,
 ) : ArgSpec
+
+interface ModalArgOption {
+    suspend fun buildChildComponent(
+        iData: InteractionData,
+        argId: String,
+        required: Boolean,
+        value: String?
+    ): LabelChildComponent
+
+    data class Text(
+        val short: Boolean = true,
+        val placeholder: String? = null,
+        val builder: InlineTextInput.() -> Unit = {}
+    ) : ModalArgOption {
+        override suspend fun buildChildComponent(
+            iData: InteractionData,
+            argId: String,
+            required: Boolean,
+            value: String?
+        ): LabelChildComponent {
+            return TextInput(
+                customId = argId,
+                style = if (short) TextInputStyle.SHORT else TextInputStyle.PARAGRAPH,
+                required = required,
+                placeholder = placeholder,
+                value = value,
+                builder = builder
+            )
+        }
+    }
+
+    data class Select(
+        val placeholder: String? = null,
+        val valueRange: IntRange = 1..1,
+        val optionsProvider: suspend (InteractionData) -> List<SelectOption>,
+        val builder: StringSelectMenu.Builder.() -> Unit = {}
+    ) : ModalArgOption {
+        override suspend fun buildChildComponent(
+            iData: InteractionData,
+            argId: String,
+            required: Boolean,
+            value: String?
+        ): LabelChildComponent {
+            return StringSelectMenu(
+                customId = argId,
+                placeholder = placeholder,
+                valueRange = valueRange,
+                options = optionsProvider(iData),
+                builder = builder,
+            )
+        }
+    }
+}
 
 data class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
 open class Arguments {
@@ -445,7 +487,7 @@ open class Arguments {
         builder()
     }
 
-    inline fun fromList(
+    inline fun fromListCommand(
         name: String = "",
         help: String = "",
         collection: Collection<String>,
@@ -464,7 +506,7 @@ open class Arguments {
         builder()
     }
 
-    inline fun fromList(
+    inline fun fromListCommand(
         name: String = "",
         help: String = "",
         crossinline collSupplier: suspend (CommandAutoCompleteInteractionEvent) -> Collection<String>,
@@ -473,6 +515,18 @@ open class Arguments {
         slashCommand { s, event ->
             collSupplier(event).filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
         }
+        builder()
+    }
+
+    inline fun fromListModal(
+        name: String = "",
+        help: String = "",
+        placeholder: String? = null,
+        valueRange: IntRange = 1..1,
+        noinline optionsProvider: suspend (InteractionData) -> List<SelectOption>,
+        builder: Arg<List<String>, List<String>>.() -> Unit = {}
+    ) = createArg(name, help, OptionType.STRING) {
+        modal(ModalArgOption.Select(placeholder, valueRange, optionsProvider))
         builder()
     }
 
@@ -718,16 +772,24 @@ class Arg<DiscordType, ParsedType>(
         short: Boolean = true,
         modalKey: ModalKey? = null,
         required: Boolean = false,
+        placeholder: String? = null,
         builder: InlineTextInput.() -> Unit = {}
+    ) {
+        modal(ModalArgOption.Text(short, placeholder, builder), modalKey, required)
+    }
+
+    fun modal(
+        argOption: ModalArgOption = ModalArgOption.Text(),
+        modalKey: ModalKey? = null,
+        required: Boolean = false,
     ) {
         spec = (spec as? ModalArgSpec)?.let { oldSpec ->
             oldSpec.copy(
-                short = short,
+                argOption = argOption,
                 modalEnableKey = modalKey ?: oldSpec.modalEnableKey,
                 required = required || oldSpec.required,
-                builder = builder
             )
-        } ?: ModalArgSpec(short, modalKey, required, builder)
+        } ?: ModalArgSpec(argOption, modalKey, required)
     }
 
     override fun getValue(thisRef: Arguments, property: KProperty<*>): ParsedType {

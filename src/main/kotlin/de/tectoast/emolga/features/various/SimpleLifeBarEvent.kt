@@ -194,7 +194,7 @@ class SimpleLifeBarEvent(
     }
 
     context(iData: InteractionData)
-    fun replyWithAnswerModal() {
+    suspend fun replyWithAnswerModal() {
         iData.replyModal(SimpleLifeBarEventManager.AnswerModal {
             this.host = gameHost
         })

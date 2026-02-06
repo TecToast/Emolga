@@ -208,9 +208,7 @@ object QueuePicks {
             var mon by string().compIdOnly()
             var location by string<Int>("Position") {
                 validate { it.toIntOrNull() }
-                modal {
-                    placeholder = "Die Position, an die das Pokemon verschoben werden soll"
-                }
+                modal(placeholder = "Die Position, an die das Pokemon verschoben werden soll")
             }
         }
 

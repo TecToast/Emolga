@@ -338,7 +338,7 @@ class QueuePicks : StateStore {
     }
 
     context(iData: InteractionData)
-    fun handleButton(e: QueuePicks.ControlButton.Args) {
+    suspend fun handleButton(e: QueuePicks.ControlButton.Args) {
         val index by lazy { currentState.indexOfFirst { it.g.tlName == e.mon } }
         val currentMon = when (e.controlMode) {
             UP -> {

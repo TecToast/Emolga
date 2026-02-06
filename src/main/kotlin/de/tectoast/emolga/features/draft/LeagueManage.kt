@@ -15,7 +15,7 @@ object LeagueManage {
 //            restrict(flo)
         }
 
-        fun Arguments.leagueName() = fromList(
+        fun Arguments.leagueName() = fromListCommand(
             "Liganame",
             "Der Name der Liga, die du überprüfen willst.",
             { event -> db.league.find(League::guild eq event.guild?.idLong).toList().map { it.leaguename } }) {

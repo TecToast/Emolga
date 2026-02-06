@@ -25,7 +25,7 @@ object EnterResult {
         private val leagueCache = mutableMapOf<Long, String>()
 
         class Args : Arguments() {
-            var opponent by fromList("Gegner", "Dein Gegner", {
+            var opponent by fromListCommand("Gegner", "Dein Gegner", {
                 db.leagueByGuild(it.guild?.idLong ?: -1, it.user.idLong).handle(it.user.idLong)
             })
         }

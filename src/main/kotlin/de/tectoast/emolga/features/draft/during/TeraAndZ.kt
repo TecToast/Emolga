@@ -40,20 +40,16 @@ object TeraAndZ {
         class Args : Arguments() {
             var tera by string<DraftName>("tera", "Dein Tera-User") {
                 validateDraftPokemon()
-                modal(modalKey = Tera) {
-                    placeholder = "Tera-User oder sonst leer lassen"
+                modal(modalKey = Tera, placeholder = "Tera-User oder sonst leer lassen") {
+
                 }
             }.nullable()
             var type by pokemontype("type", "Dein Tera-Typ", Language.ENGLISH) {
-                modal(modalKey = Tera) {
-                    placeholder = "Tera-Typ oder leer lassen"
-                }
+                modal(modalKey = Tera, placeholder = "Tera-Typ oder leer lassen")
             }.nullable()
             var z by string<DraftName>("z", "Dein Z-User") {
                 validateDraftPokemon()
-                modal(modalKey = Z) {
-                    placeholder = "Z-User oder leer lassen"
-                }
+                modal(modalKey = Z, placeholder = "Z-User oder leer lassen")
             }.nullable()
         }
 

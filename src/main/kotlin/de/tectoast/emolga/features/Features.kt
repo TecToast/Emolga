@@ -14,6 +14,7 @@ import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.interactions.components.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.components.Component
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
@@ -247,7 +248,13 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
             argsFromEvent.getOrNull(index)?.takeIf { it.isNotBlank() }
         }
         populateArgs(data, regular) { name, _ ->
-            e.getValue(name)?.asString?.takeIf { it.isNotBlank() }
+            val value = e.getValue(name) ?: return@populateArgs null
+            when (value.type) {
+                Component.Type.STRING_SELECT -> value.asStringList
+                Component.Type.USER_SELECT -> value.asLongList
+                Component.Type.TEXT_INPUT -> value.asString.takeIf { it.isNotBlank() }
+                else -> null
+            }
         }
     }
 
@@ -394,7 +401,7 @@ interface ModalArgOption {
 
     data class Select(
         val placeholder: String? = null,
-        val valueRange: IntRange = 1..1,
+        val valueRange: IntRange? = 1..1,
         val optionsProvider: suspend (InteractionData) -> List<SelectOption>,
         val builder: StringSelectMenu.Builder.() -> Unit = {}
     ) : ModalArgOption {
@@ -404,11 +411,12 @@ interface ModalArgOption {
             required: Boolean,
             value: String?
         ): LabelChildComponent {
+            val options = optionsProvider(iData)
             return StringSelectMenu(
                 customId = argId,
                 placeholder = placeholder,
-                valueRange = valueRange,
-                options = optionsProvider(iData),
+                valueRange = valueRange ?: 1..options.size,
+                options = options,
                 builder = builder,
             )
         }
@@ -522,7 +530,7 @@ open class Arguments {
         name: String = "",
         help: String = "",
         placeholder: String? = null,
-        valueRange: IntRange = 1..1,
+        valueRange: IntRange? = 1..1,
         noinline optionsProvider: suspend (InteractionData) -> List<SelectOption>,
         builder: Arg<List<String>, List<String>>.() -> Unit = {}
     ) = createArg(name, help, OptionType.STRING) {

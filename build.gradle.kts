@@ -9,6 +9,7 @@ plugins {
     id("maven-publish")
     id("com.google.cloud.tools.jib") version "3.5.2"
     application
+    id("de.tectoast.k18n") version "2.0"
 }
 
 jib {
@@ -133,6 +134,14 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("io.mockk:mockk:1.14.9")
 
+}
+
+kotlin {
+    sourceSets {
+        main {
+            kotlin.srcDir(project.layout.buildDirectory.dir("generated/k18n"))
+        }
+    }
 }
 
 tasks.withType<Test>().configureEach {

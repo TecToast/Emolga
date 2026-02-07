@@ -1119,7 +1119,7 @@ data class SDRankData(
     @SerialName("w") val wins: Int = 0,
     @SerialName("l") val losses: Int = 0,
     @SerialName("t") val ties: Int = 0,
-    val gxe: Int,
+    val gxe: Double,
     val elo: Double
 )
 

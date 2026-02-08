@@ -41,6 +41,7 @@ import javax.imageio.ImageIO
 import kotlin.math.min
 
 object TeamGraphicGenerator {
+    data class Options(val blankBackground: Boolean = false)
     suspend fun generateForLeague(
         league: League, style: TeamGraphicStyle
     ): List<BufferedImage> {
@@ -75,7 +76,7 @@ object TeamGraphicGenerator {
     }
 
     suspend fun generate(
-        teamData: TeamData, style: TeamGraphicStyle
+        teamData: TeamData, style: TeamGraphicStyle, options: Options = Options()
     ): BufferedImage {
         val monData = dbTransaction {
             PokemonCropDB.selectAll()
@@ -89,7 +90,8 @@ object TeamGraphicGenerator {
             teamData.englishNames.mapValues { (_, name) ->
                 (monData[name] ?: error("MonData for $name not found"))
             }.toMap(),
-            style
+            style,
+            options
         )
     }
 
@@ -108,10 +110,16 @@ object TeamGraphicGenerator {
         teamName: String?,
         logo: BufferedImage?,
         monData: Map<Int, DrawData>,
-        style: TeamGraphicStyle
+        style: TeamGraphicStyle,
+        options: Options
     ): BufferedImage {
-        val image = withContext(Dispatchers.IO) {
+        val backgroundImage = withContext(Dispatchers.IO) {
             ImageIO.read(File(style.backgroundPath))
+        }
+        val image = if (options.blankBackground) {
+            BufferedImage(backgroundImage.width, backgroundImage.height, BufferedImage.TYPE_INT_ARGB)
+        } else {
+            backgroundImage
         }
         val g2d = image.createGraphics()
         g2d.setRenderingHints()

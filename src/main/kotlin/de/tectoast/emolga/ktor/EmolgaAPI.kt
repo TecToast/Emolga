@@ -41,9 +41,11 @@ import org.litote.kmongo.eq
 import org.litote.kmongo.json
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import javax.imageio.ImageIO
+import kotlin.io.path.Path
 import kotlin.reflect.KClass
 
 private val logger = KotlinLogging.logger {}
@@ -309,12 +311,21 @@ fun Route.emolgaAPI() {
         val leaguename = LiveTeamDB.getByCode(uuid) ?: return@get call.respond(HttpStatusCode.NotFound)
         val numRaw =
             call.request.queryParameters["num"]?.toIntOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
-        val num = numRaw / 2
-        val withMons = numRaw % 2
         val league = db.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
         val style = league.config.teamgraphics?.style ?: return@get call.respond(
             HttpStatusCode.NotFound
         )
+        if (numRaw == -1) {
+            call.caching = CachingOptions(
+                CacheControl.MaxAge(60 * 60 * 5)
+            )
+            return@get call.respondBytes(
+                Files.readAllBytes(Path(style.backgroundPath)),
+                contentType = ContentType.Image.PNG
+            )
+        }
+        val num = numRaw / 2
+        val withMons = numRaw % 2
         val tableSize = league.table.size
         val roundIndex = (num / tableSize)
         val takePicks = roundIndex + withMons
@@ -322,16 +333,22 @@ fun Route.emolgaAPI() {
         val idx =
             league.originalorder[roundIndex + 1]?.getOrNull(indexInRound)
                 ?: return@get call.respond(HttpStatusCode.NotFound)
-        call.caching = CachingOptions(
+        val actualPickSize = league.picks(idx).size
+        val actualTakePicks = takePicks.coerceAtMost(actualPickSize)
+        val invalidTakePicks = actualTakePicks != takePicks
+        call.caching = if (invalidTakePicks) CachingOptions(CacheControl.NoCache(null)) else CachingOptions(
             CacheControl.MaxAge(60 * 60 * 5)
         )
-        call.respondBytes(teamGraphicCache.getOrPut("$leaguename#$idx#$takePicks") {
+        if (invalidTakePicks) {
+            return@get call.respond(HttpStatusCode.NotFound)
+        }
+        call.respondBytes(teamGraphicCache.getOrPut("$leaguename#$idx#$actualTakePicks") {
             val img = TeamGraphicGenerator.generate(
                 TeamGraphicGenerator.TeamData.singleFromLeague(
                     league,
                     idx,
-                    takePickCount = takePicks
-                ), style
+                    takePickCount = actualTakePicks
+                ), style, TeamGraphicGenerator.Options(blankBackground = true)
             )
             ByteArrayOutputStream().use {
                 ImageIO.write(img, "png", it)

@@ -178,12 +178,21 @@ object PrivateCommands {
     private val teamGraphicScope = createCoroutineScope("TeamGraphics", Dispatchers.IO)
 
     context(iData: InteractionData)
-    suspend fun generateAllTeamGraphics(args: PrivateData) {
+    suspend fun generateAllTeamGraphicsInDraftChannels(args: PrivateData) {
         iData.done()
         for (league in db.leaguesByGuild(args().toLong())) {
             val style = league.config.teamgraphics?.style ?: continue
             TeamGraphicGenerator.generateAndSendForLeague(league, style, league.tc)
         }
+    }
+
+    context(iData: InteractionData)
+    suspend fun generateTeamGraphicsForLeague(args: PrivateData) {
+        iData.done()
+        val league = db.league(args[0])
+        val style = league.config.teamgraphics!!.style
+        val channel = iData.jda.getTextChannelById(args[1])!!
+        TeamGraphicGenerator.generateAndSendForLeague(league, style, channel)
     }
 
     context(iData: InteractionData)

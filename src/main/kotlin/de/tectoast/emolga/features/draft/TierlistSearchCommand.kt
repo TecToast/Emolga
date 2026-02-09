@@ -4,16 +4,18 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.draft.during.generic.K18n_NoTierlist
+import de.tectoast.emolga.features.draft.during.generic.K18n_TierNotFound
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.json.db
 
 object TierlistSearchCommand : CommandFeature<TierlistSearchCommand.Args>(
     ::Args,
-    CommandSpec("tierlistsearch", "Zeigt dir alle Pokemon in einem Tier mit einem bestimmten Typ")
+    CommandSpec("tierlistsearch", K18n_TierlistSearch.Help)
 ) {
     class Args : Arguments() {
-        var tier by string("Tier", "Das Tier, in dem du suchen möchtest")
-        var type by pokemontype("Typ", "Der Typ, den du suchen möchtest")
+        var tier by string("Tier", K18n_TierlistSearch.ArgTier)
+        var type by pokemontype("Typ", K18n_TierlistSearch.ArgType)
     }
 
     private val dataCache = mutableMapOf<Long, MutableMap<String, List<String>>>()
@@ -21,11 +23,11 @@ object TierlistSearchCommand : CommandFeature<TierlistSearchCommand.Args>(
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         val tierlist = Tierlist[iData.gid] ?: run {
-            return iData.reply("Es wurde keine Tierliste für diesen Server hinterlegt!")
+            return iData.reply(K18n_NoTierlist, ephemeral = true)
         }
         val tier = e.tier
         val mons = tierlist.getByTier(tier) ?: run {
-            iData.reply("Das Tier existiert auf diesem Server nicht!")
+            iData.reply(K18n_TierNotFound(tier), ephemeral = true)
             return
         }
         iData.deferReply(ephemeral = true)
@@ -36,11 +38,7 @@ object TierlistSearchCommand : CommandFeature<TierlistSearchCommand.Args>(
                 .getOrPut(it) { db.getDataObject(it, iData.gid).types }
         }
         iData.reply(
-            "All diese Mons aus dem ${tier}-Tier besitzen den Typen ${searchType.german}:\n${
-                filteredList.joinToString(
-                    "\n"
-                )
-            }", ephemeral = true
+            K18n_TierlistSearch.Success(tier, searchType.german, filteredList.joinToString("\n")), ephemeral = true
         )
     }
 }

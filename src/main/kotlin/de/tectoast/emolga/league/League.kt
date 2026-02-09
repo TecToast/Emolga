@@ -8,9 +8,10 @@ import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.TestInteractionData
 import de.tectoast.emolga.features.draft.AddToTierlistData
+import de.tectoast.emolga.features.draft.K18n_TipGame
 import de.tectoast.emolga.features.draft.TipGameCurrentStateType
 import de.tectoast.emolga.features.draft.TipGameManager
-import de.tectoast.emolga.features.draft.during.TeraZSelect
+import de.tectoast.emolga.features.draft.during.K18n_QueuePicks
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.config.*
 import de.tectoast.emolga.utils.*
@@ -25,6 +26,8 @@ import de.tectoast.emolga.utils.repeat.RepeatTaskType.*
 import de.tectoast.emolga.utils.showdown.AnalysisData
 import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
 import de.tectoast.emolga.utils.teamgraphics.toFileUpload
+import de.tectoast.generic.K18n_Gameday
+import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.*
@@ -298,12 +301,13 @@ sealed class League {
         if (result == TimerSkipResult.NEXT) {
             draftData.timer.lastStallSecondUsedMid?.takeIf { it > 0 }?.let {
                 tc.editMessageById(
-                    it, "${getCurrentMention()} Dein Timer-Zuschlag ${
-                        if (data.isNormalPick()) "beträgt noch ${
-                            TimeUtils.secondsToTimePretty((draftData.timer.cooldown - System.currentTimeMillis()) / 1000)
-                        }!"
-                        else "wurde vollständig aufgebraucht!"
-                    }"
+                    it, (if (data.isNormalPick()) K18n_League.StallSecondsRemaining(
+                        getCurrentMention(),
+                        TimeUtils.secondsToTimePretty(
+                            (draftData.timer.cooldown - System.currentTimeMillis()) / 1000,
+                            GuildLanguageDB.getLanguage(guild)
+                        )
+                    ) else K18n_League.StallSecondsUsedUp(getCurrentMention())).translateToLeague()
                 ).queue()
             }
             nextUser()
@@ -319,15 +323,13 @@ sealed class League {
             return
         }
 
-        if (data !is NextPlayerData.InBetween)
-            if (tryQueuePick()) return
+        if (data !is NextPlayerData.InBetween) if (tryQueuePick()) return
 
 
         if (result != TimerSkipResult.SAME) {
             restartTimer()
         }
-        if (data is NextPlayerData.InBetween)
-            currentOverride = null
+        if (data is NextPlayerData.InBetween) currentOverride = null
         announcePlayer()
         save()
     }
@@ -364,7 +366,7 @@ sealed class League {
         return true
     }
 
-    private fun checkForQueuedPicksChanges() {
+    private suspend fun checkForQueuedPicksChanges() {
         val newMon = lastPickedMon ?: return
         persistentData.queuePicks.queuedPicks.entries.filter { it.value.queued.any { mon -> mon.g == newMon } }
             .forEach { (mem, data) ->
@@ -374,7 +376,11 @@ sealed class League {
                         this[mem], embeds = Embed(
                             title = "Queue-Pick-Warnung",
                             color = 0xff0000,
-                            description = "`${newMon.tlName}` aus deiner Queue wurde von ${getCurrentName()} gepickt.\n${if (data.disableIfSniped) "Das System wurde für dich deaktiviert, damit du umplanen kannst." else "Das System läuft jedoch für dich weiter."}"
+                            description = (if (data.disableIfSniped) K18n_QueuePicks.SnipeWarningDisabled(
+                                newMon.tlName, getCurrentName()
+                            ) else K18n_QueuePicks.SnipeWarningEnabled(
+                                newMon.tlName, getCurrentName()
+                            )).translateToLeague()
                         ).into()
                     )
                     data.enabled = data.enabled && !data.disableIfSniped
@@ -384,7 +390,7 @@ sealed class League {
                         if (notification.wantsNotification(whenToManualPick)) {
                             SendFeatures.sendToUser(
                                 this[mem],
-                                "Du hast `${newMon.tlName}` gepickt.\nRunden, bis wieder manuell gepickt werden muss: **$whenToManualPick**"
+                                K18n_QueuePicks.PickNotification(newMon.tlName, whenToManualPick).translateToLeague()
                             )
                         }
                     }
@@ -403,13 +409,13 @@ sealed class League {
 
 
     suspend fun startDraft(
-        tc: GuildMessageChannel?, fromFile: Boolean, switchDraft: Boolean?, nameGuildId: Long? = null
+        tc: GuildMessageChannel?, fromFile: Boolean, switchDraft: Boolean?
     ) {
         switchDraft?.let { this.isSwitchDraft = it }
         logger.info("Starting draft $leaguename...")
         logger.info(tcid.toString())
         if (!fromFile) {
-            generateNames(nameGuildId)
+            generateNames()
         }
         logger.info(names.toString())
         tc?.let { this.tcid = it.idLong }
@@ -499,63 +505,61 @@ sealed class League {
         }
     }
 
-    open suspend fun handleStallSecondUsed(): Long? {
-        return tc.sendMessage(
-            "${getCurrentMention()} Dein Timer-Zuschlag läuft! Du wirst <t:${draftData.timer.cooldown / 1000}:R> geskippt!"
-        ).await().idLong
-    }
+    open suspend fun handleStallSecondUsed(): Long? = tc.sendMessage(
+        K18n_League.StallSecondsRunning(getCurrentMention(), draftData.timer.cooldown / 1000).translateToLeague()
+    ).await().idLong
 
-    protected open fun sendRound() {
-        tc.sendMessage("## === Runde $round ===").queue()
+    protected open suspend fun sendRound() {
+        tc.sendMessage(K18n_League.SendRound(round).translateToLeague()).queue()
     }
 
     open suspend fun announcePlayer() {
         val currentMention = getCurrentMention()
         val announceData = announceData()
-        tc.sendMessage("$currentMention ist dran!$announceData").queue()
+        tc.sendMessage(K18n_League.AnnouncePlayer(currentMention, announceData).translateToLeague()).queue()
     }
 
-    open fun NextPlayerData.Moved.sendSkipMessage() {
+    open suspend fun NextPlayerData.Moved.sendSkipMessage() {
         val skippedUserName = getCurrentName(skippedUser)
-        val msg = if (reason == SkipReason.REALTIMER) "**$skippedUserName** war zu langsam!"
-        else if (skippedBy != null) "Der Pick von $skippedUserName wurde von <@$skippedBy> ${if (isSwitchDraft) "geskippt" else "verschoben"}!"
+        val msg = if (reason == SkipReason.REALTIMER) K18n_League.SkipRealTimer(skippedUserName)
+        else if (skippedBy != null) (if (isSwitchDraft) K18n_League.SkippedByTimerSwitch(
+            skippedUserName, skippedBy
+        ) else K18n_League.SkippedByTimerNormal(skippedUserName, skippedBy))
         else null
-        msg?.let { tc.sendMessage(it).queue() }
+        msg?.let { tc.sendMessage(it.translateToLeague()).queue() }
     }
 
-    fun announceData(withTimerAnnounce: Boolean = true, idx: Int = current) = buildList {
+    suspend fun announceData(withTimerAnnounce: Boolean = true, idx: Int = current) = buildList {
         config.draftBan?.let { config ->
             config.banRounds[round]?.let {
                 add(
-                    "Mögliche Tiers zum Bannen: ${
-                        it.getPossibleBanTiers(getAlreadyBannedMonsInThisRound()).joinToString { s -> "**$s**" }
-                    }")
+                    K18n_League.PossibleTiersToBan(
+                        it.getPossibleBanTiers(getAlreadyBannedMonsInThisRound()).joinToString { s -> "**$s**" })
+                )
                 return@buildList
             }
         }
         add(tierlist.withTL { it.buildAnnounceData(idx) })
     }.filterNotNull().joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
         .condAppend(withTimerAnnounce && newTimerForAnnounce) {
-            " — Zeit bis: **${
-                formatTimeFormatBasedOnDistance(draftData.timer.regularCooldown)
-            }**".condAppend(draftData.timer.regularCooldown != draftData.timer.cooldown) {
-                " (mit ausgereiztem Timer-Zuschlag bis ${
-                    formatTimeFormatBasedOnDistance(
-                        draftData.timer.cooldown
-                    )
-                })"
-            }
+            " — " + K18n_League.TimeUntil(formatTimeFormatBasedOnDistance(draftData.timer.regularCooldown))
+                .translateToLeague().condAppend(draftData.timer.regularCooldown != draftData.timer.cooldown) {
+                    K18n_League.TimeUntilStallSeconds(
+                        formatTimeFormatBasedOnDistance(
+                            draftData.timer.cooldown
+                        )
+                    ).translateToLeague()
+                }
         }.also { newTimerForAnnounce = false }
 
-    open fun checkLegalDraftInput(input: DraftInput, type: DraftMessageType): String? {
-        if (input is PickInput && type != DraftMessageType.RANDOM && config.randomPick.hasJokers()) return "In diesem Draft sind keine regulären Picks möglich!"
+    open fun checkLegalDraftInput(input: DraftInput, type: DraftMessageType): K18nMessage? {
+        if (input is PickInput && type != DraftMessageType.RANDOM && config.randomPick.hasJokers()) return K18n_League.LegalRandomPickObligatory
         config.draftBan?.let {
             it.banRounds[round]?.let {
-                if (input !is BanInput) return "Die aktuelle Runde (**$round**) ist eine Ban-Runde, dementsprechend kann man nichts picken!"
-            }
-                ?: if (input is BanInput) return "Die aktuelle Runde (**$round**) ist **keine** Ban-Runde, dementsprechend kann man nichts bannen!" else Unit
+                if (input !is BanInput) return K18n_League.LegalActionIsNotBan(round)
+            } ?: if (input is BanInput) return K18n_League.LegalActionIsBan(round) else Unit
         }
-        if (input is PickInput && picks(current).count { !it.quit } >= teamsize) return "Dein Kader ist bereits voll!"
+        if (input is PickInput && picks(current).count { !it.quit } >= teamsize) return K18n_League.TeamFull
         return null
     }
 
@@ -583,13 +587,13 @@ sealed class League {
         if (order[round]!!.isEmpty()) {
             logger.debug("No more players")
             if (round == totalRounds) {
-                finishDraft(msg = "Der Draft ist vorbei!")
+                finishDraft(msg = K18n_League.DraftFinished)
                 return true
             }
             round++
             onRoundSwitch()
             if (order[round]?.isEmpty() != false) {
-                finishDraft(msg = "Da alle bereits ihre Drafts beendet haben, ist der Draft vorbei!")
+                finishDraft(msg = K18n_League.DraftFinishedBecauseAllFinished)
                 return true
             }
             sendRound()
@@ -599,25 +603,10 @@ sealed class League {
 
     open suspend fun onRoundSwitch() {}
 
-    suspend fun finishDraft(msg: String) {
-        tc.sendMessage(msg).queue()
+    suspend fun finishDraft(msg: K18nMessage) {
+        tc.sendMessage(msg.translateToLeague()).queue()
         draftState = DraftState.OFF
-        sendTeraSelectMessage()
         save()
-    }
-
-    suspend fun sendTeraSelectMessage() {
-        config.teraSelect?.let { ts ->
-            tc.sendMessage("Bitte wähle deinen ${ts.type}-User aus den folgenden Tiers aus: ${ts.tiers.joinToString { "**$it**" }}")
-                .queue()
-            persistentData.teraSelect.mid = tc.send(
-                content = generateCompletedText(emptySet()),
-                components = TeraZSelect.Begin(label = "${ts.type}-User auswählen") {
-                    this.league = leaguename
-                }.into()
-            ).await().id
-            save()
-        }
     }
 
     internal open suspend fun getCurrentMention(): String {
@@ -659,37 +648,38 @@ sealed class League {
 
     context(iData: InteractionData)
     suspend fun replyGeneral(
-        msg: String,
+        msg: K18nMessage,
         components: Collection<MessageTopLevelComponent> = SendDefaults.components,
         ifTestUseTc: MessageChannel? = null
-    ) = replyWithTestInteractionCheck(
-        "<@${iData.user}> hat${
-            if (iData.user != this[current]) " für **${getCurrentName()}**" else ""
-        } $msg", components, ifTestUseTc
-    )
+    ): Any {
+        return replyWithTestInteractionCheck(
+            b {
+                val prefix =
+                    (if (iData.user == this[current]) K18n_League.ReplyGeneralSelf(iData.user) else K18n_League.ReplyGeneralOther(
+                        iData.user, getCurrentName()
+                    ))
+                "${prefix()} ${msg()}"
+            }, components, ifTestUseTc
+        )
+    }
 
 
     context(iData: InteractionData)
     suspend fun replyWithTestInteractionCheck(
-        content: String,
+        content: K18nMessage,
         components: Collection<MessageTopLevelComponent> = SendDefaults.components,
         ifTestUseTc: MessageChannel? = null
-    ) = ifTestUseTc?.takeIf { iData is TestInteractionData }?.send(content, components = components)?.await()
+    ) = ifTestUseTc?.takeIf { iData is TestInteractionData }?.send(content.t(), components = components)?.await()
         ?: iData.replyAwait(
             content, components = components
         )
-
-    context (data: InteractionData)
-    suspend fun replySkip() {
-        replyGeneral("den Pick übersprungen!")
-    }
 
     suspend fun getPickRoundOfficial() = currentTimerSkipMode.run { getPickRound().also { save() } }
 
     open fun provideReplayChannel(jda: JDA): TextChannel? = null
     open fun provideResultChannel(jda: JDA): TextChannel? = null
 
-    open fun appendedEmbed(data: AnalysisData?, uindices: List<Int>, gameday: Int) = EmbedBuilder {
+    open suspend fun appendedEmbed(data: AnalysisData?, uindices: List<Int>, gameday: Int) = EmbedBuilder {
         data?.let {
             val game = it.game
             val p1 = game[0].nickname
@@ -698,7 +688,7 @@ sealed class League {
             url = it.ctx.url.takeIf { it.length > 10 } ?: "https://example.org"
         }
         description =
-            "Spieltag ${gameday.takeIf { it >= 0 } ?: "-"}: " + uindices.joinToString(" vs. ") { "<@${this@League[it]}>" }
+            "${K18n_Gameday.translateToLeague()} ${gameday.takeIf { it >= 0 } ?: "-"}: " + uindices.joinToString(" vs. ") { "<@${this@League[it]}>" }
     }
 
 
@@ -737,7 +727,7 @@ sealed class League {
                     .map { it.user.effectiveName }
             channel.send(
                 embeds = Embed(
-                    title = "Spieltag $num".notNullAppend(tip.withName, prefix = " - "),
+                    title = "${K18n_Gameday.translateToLeague()} $num".notNullAppend(tip.withName, prefix = " - "),
                     color = tip.colorConfig.provideEmbedColor(this@League)
                 ).into()
             ).queue()
@@ -754,11 +744,13 @@ sealed class League {
                     embeds = Embed(
                         title = "${names[u1]} vs. ${names[u2]}",
                         color = embedColor,
-                        description = if (tip.currentState == TipGameCurrentStateType.ALWAYS) "Bisherige Votes: 0:0" else null
-                    ).into(), components = ActionRow.of(TipGameManager.VoteButton(names[u1]) {
+                        description = if (tip.currentState == TipGameCurrentStateType.ALWAYS) K18n_TipGame.VotesUntilNow(
+                            "0:0"
+                        ).translateToLeague() else null
+                    ).into(), components = ActionRow.of(TipGameManager.VoteButton.withoutIData(label = names[u1].k18n) {
                         base()
                         this.userindex = u1
-                    }, TipGameManager.VoteButton(names[u2]) {
+                    }, TipGameManager.VoteButton.withoutIData(label = names[u2].k18n) {
                         base()
                         this.userindex = u2
                     }).into()
@@ -790,9 +782,7 @@ sealed class League {
     }
 
     private suspend fun lockButtonsOnMessage(
-        messageId: Long,
-        gameday: Int,
-        mu: Int
+        messageId: Long, gameday: Int, mu: Int
     ) {
         val tipgame = config.tipgame ?: return
         val tipGameChannel = jda.getTextChannelById(tipgame.channel)!!
@@ -802,7 +792,7 @@ sealed class League {
             if (tipgame.currentState == TipGameCurrentStateType.ON_LOCK) {
                 embeds += Embed(
                     title = message.embeds[0].title,
-                    description = buildCurrentState(gameday, mu),
+                    description = buildCurrentTipGameState(gameday, mu),
                     color = embedColor
                 )
             }
@@ -810,14 +800,13 @@ sealed class League {
         message.editMessage(editData).queue()
     }
 
-    suspend fun buildCurrentState(
-        gameday: Int,
-        battleIndex: Int
+    suspend fun buildCurrentTipGameState(
+        gameday: Int, battleIndex: Int
     ): String {
         val stateMap = TipGameVotesDB.getCurrentState(leaguename, gameday, battleIndex)
-        return "Bisherige Votes: " + battleorder.getValue(gameday)[battleIndex].joinToString(":") {
+        return K18n_TipGame.VotesUntilNow(battleorder.getValue(gameday)[battleIndex].joinToString(":") {
             stateMap.getOrDefault(it, 0).toString()
-        }
+        }).translateToLeague()
     }
 
     fun sendTeamgraphicAfterPick(idx: Int) {
@@ -825,11 +814,9 @@ sealed class League {
             val channel = tgConfig.channel ?: return
             launch {
                 val channel = jda.getTextChannelById(channel)!!
-                val graphic =
-                    TeamGraphicGenerator.generate(
-                        TeamGraphicGenerator.TeamData.singleFromLeague(this@League, idx),
-                        tgConfig.style
-                    )
+                val graphic = TeamGraphicGenerator.generate(
+                    TeamGraphicGenerator.TeamData.singleFromLeague(this@League, idx), tgConfig.style
+                )
                 channel.send("<@${table[idx]}>", files = graphic.toFileUpload().into()).queue()
             }
         }
@@ -861,13 +848,13 @@ sealed class League {
         save()
     }
 
-    fun buildStoreStatus(gameday: Int): String {
+    suspend fun buildStoreStatus(gameday: Int): String {
         config.replayDataStore ?: return "ReplayDataStore not enabled"
         val gamedayData = persistentData.replayDataStore.data[gameday].orEmpty()
-        val gameplan = battleorder[gameday] ?: return "Spieltag $gameday: Keine Spiele"
-        return "## Aktueller Stand von Spieltag $gameday [$leaguename]:\n" + gameplan.indices.joinToString("\n") {
+        val gameplan = battleorder[gameday] ?: return "${K18n_Gameday.translateToLeague()} $gameday: -"
+        return K18n_League.StoreStatus(gameday, leaguename, gameplan.indices.joinToString("\n") {
             "${gameplan[it].joinToString(" vs. ") { u -> "<@${this[u]}>" }}: ${if (gamedayData[it] != null) "✅" else "❌"}"
-        }
+        }).translateToLeague()
     }
 
     fun formatTimeFormatBasedOnDistance(cooldown: Long) = buildString {
@@ -991,11 +978,9 @@ sealed class League {
                                 val opponent = toRemind[1 - index]
                                 jda.openPrivateChannelById(table[idx]).await().send(
                                     embeds = Embed(
-                                        title = "Reminder",
-                                        description = "Dein Kampf an Spieltag $gameday gegen <@${table[opponent]}> ist noch nicht eingetragen.\n" +
-                                                "Falls das vergessen wurde, kläre bitte ab, wer den Kampf noch eintragen wird.\n\n" +
-                                                "Falls der Kampf eigentlich schon eingetragen wurde, funktioniert dieses System nicht, bitte gib dann ${Constants.MYTAG} Bescheid :)",
-                                        color = embedColor
+                                        title = "Reminder", description = K18n_League.ReminderToParticipant(
+                                            gameday, table[opponent], Constants.MYTAG
+                                        ).translateToLeague(), color = embedColor
                                     ).into()
                                 ).queue()
                             }
@@ -1011,9 +996,8 @@ sealed class League {
                             data.intervalBetweenGD,
                         ) { gameday ->
                             executeOnFreshLock(leaguename) {
-                                val ytData =
-                                    persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
-                                        ?: return@executeOnFreshLock
+                                val ytData = persistentData.replayDataStore.data[gameday]?.get(battle)?.ytVideoSaveData
+                                    ?: return@executeOnFreshLock
                                 executeYoutubeSend(
                                     ytTC, gameday, battle, VideoProvideStrategy.Subscribe(ytData)
                                 )
@@ -1031,6 +1015,8 @@ sealed class League {
             }
         }
     }
+
+    suspend fun K18nMessage.translateToLeague() = translateToGuildLanguage(guild)
 
     companion object : CoroutineScope {
         override val coroutineContext = createCoroutineContext("League", Dispatchers.IO)
@@ -1105,7 +1091,7 @@ sealed class League {
             executeOnFreshLock({ byCommand() }, { it.first }, {
                 if (!iData.replied) {
                     iData.reply(
-                        "Es läuft zurzeit kein Draft in diesem Channel!", ephemeral = true
+                        K18n_League.NoDraftInChannel, ephemeral = true
                     )
                 }
             }) {
@@ -1116,7 +1102,7 @@ sealed class League {
                     first.currentOverride = (second as BypassCurrentPlayerData.Yes).user
                 }
                 if (!first.isCurrentCheck(iData.member())) {
-                    return@executeOnFreshLock iData.reply("Du warst etwas zu langsam!", ephemeral = true)
+                    return@executeOnFreshLock iData.reply(K18n_League.SlightlyTooSlow, ephemeral = true)
                 }
                 first.block()
             }
@@ -1136,18 +1122,17 @@ sealed class League {
                         }
 
                         BypassCurrentPlayerData.No -> {
-                            iData.reply("Du hast keine offenen Picks mehr!")
+                            iData.reply(K18n_League.NoOpenPicks)
                             return null
                         }
                     }
                 }
                 if (potentialBetweenPick && uid in table) {
                     val idx = this(uid)
-                    if (hasMovedTurns(idx))
-                        return@run this to BypassCurrentPlayerData.Yes(idx)
+                    if (hasMovedTurns(idx)) return@run this to BypassCurrentPlayerData.Yes(idx)
                 }
                 if (!isCurrentCheck(iData.member())) {
-                    iData.reply("Du bist nicht dran!", ephemeral = true)
+                    iData.reply(K18n_League.NotYourTurn, ephemeral = true)
                     return null
                 }
                 this to BypassCurrentPlayerData.No
@@ -1159,12 +1144,11 @@ sealed class League {
 
         context(iData: InteractionData)
         suspend fun executeAsNotCurrent(
-            asParticipant: Boolean,
-            block: suspend League.() -> Unit
+            asParticipant: Boolean, block: suspend League.() -> Unit
         ) {
             executeOnFreshLock({ onlyChannel(iData.tc)?.takeIf { !asParticipant || iData.user in it.table } }, {
                 iData.reply(
-                    if (asParticipant) "In diesem Channel läuft kein Draft, an welchem du teilnimmst!" else "Es läuft zurzeit kein Draft in diesem Channel!",
+                    if (asParticipant) K18n_League.NoDraftForYou else K18n_League.NoDraftInChannel,
                     ephemeral = true
                 )
             }, block)
@@ -1190,10 +1174,14 @@ sealed class DraftData(
     abstract val changedOnTeamsiteIndex: Int
 
     val displayName = OneTimeCache {
-        val englishName = NameConventionsDB.getSDTranslation(
-            pokemonofficial, league.guild, english = true
-        )!!.tlName
-        pokemon.condAppend(pokemon != englishName, "/$englishName")
+        if (league.tierlist.isEnglish) {
+            pokemon
+        } else {
+            val englishName = NameConventionsDB.getSDTranslation(
+                pokemonofficial, league.guild, english = true
+            )!!.tlName
+            pokemon.condAppend(pokemon != englishName, "/$englishName")
+        }
     }
 }
 
@@ -1228,10 +1216,14 @@ class SwitchData(
     override val changedOnTeamsiteIndex by lazy { with(league) { getTierInsertIndex(oldIndex + 1) } }
 
     val oldDisplayName = OneTimeCache {
-        val englishName = NameConventionsDB.getSDTranslation(
-            oldmon.official, league.guild, english = true
-        )!!.tlName
-        oldmon.tlName.condAppend(oldmon.tlName != englishName, "/$englishName")
+        if (league.tierlist.isEnglish) {
+            oldmon.official
+        } else {
+            val englishName = NameConventionsDB.getSDTranslation(
+                oldmon.official, league.guild, english = true
+            )!!.tlName
+            oldmon.tlName.condAppend(oldmon.tlName != englishName, "/$englishName")
+        }
     }
 }
 
@@ -1316,7 +1308,7 @@ data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
     override suspend fun League.getPickRound() = if (pseudoEnd) movedTurns().firstOrNull() ?: round
     else round
 
-    private fun League.populateAfterDraft() {
+    private suspend fun League.populateAfterDraft() {
         val order = order[totalRounds]!!
         val coll: MutableCollection<Int> = if (duringTimerSkipMode == NEXT_PICK) mutableSetOf() else mutableListOf()
         for (i in 1..totalRounds) {
@@ -1327,8 +1319,7 @@ data object AFTER_DRAFT_ORDERED : AfterTimerSkipMode {
         order += coll
         if (coll.isNotEmpty() && draftState != DraftState.PSEUDOEND) {
             draftState = DraftState.PSEUDOEND
-            tc.sendMessage("Die regulären Picks sind nun vorbei, nun werden die fehlenden Picks (in der Reihenfolge wie sie übersprungen wurden) nachgeholt.")
-                .queue()
+            tc.sendMessage(K18n_League.AfterDraftOrdered.translateToLeague()).queue()
         }
     }
 }
@@ -1338,12 +1329,12 @@ data object AFTER_DRAFT_UNORDERED : AfterTimerSkipMode {
     override suspend fun League.afterPick(data: NextPlayerData): TimerSkipResult =
         if (draftData.moved.values.any { it.isNotEmpty() }) {
             if (!pseudoEnd) {
-                tc.sendMessage("Der Draft wäre jetzt vorbei, aber es gibt noch Spieler, die keinen vollständigen Kader haben! Diese können nun in beliebiger Reihenfolge ihre Picks nachholen. Dies sind:\n" + draftData.moved.entries.filter { it.value.isNotEmpty() }
-                    .joinToString("\n") { (user, turns) ->
+                tc.sendMessage(K18n_League.AfterDraftUnordered(draftData.moved.entries.filter { it.value.isNotEmpty() }
+                    .map { (user, turns) ->
                         "<@${this[user]}>: ${turns.size}${
                             announceData(withTimerAnnounce = false, idx = user)
                         }"
-                    }).queue()
+                    }.joinToString("\n")).translateToLeague()).queue()
                 cancelCurrentTimer()
                 draftState = DraftState.PSEUDOEND
             }
@@ -1429,7 +1420,7 @@ sealed interface VideoProvideStrategy {
 @Serializable
 sealed interface BanRoundConfig {
 
-    fun checkBan(tier: String, alreadyBanned: Set<DraftPokemon>): String?
+    fun checkBan(tier: String, alreadyBanned: Set<DraftPokemon>): K18nMessage?
     fun getPossibleBanTiers(alreadyBanned: Set<DraftPokemon>): List<String>
 
 
@@ -1437,7 +1428,7 @@ sealed interface BanRoundConfig {
     @SerialName("FixedTier")
     data class FixedTier(val tier: String) : BanRoundConfig {
         override fun checkBan(tier: String, alreadyBanned: Set<DraftPokemon>) =
-            if (this.tier != tier) "In dieser Runde können nur Pokemon aus dem `${this.tier}`-Tier gebannt werden!" else null
+            if (this.tier != tier) K18n_BanRoundConfig.FixedTierError(this.tier) else null
 
         override fun getPossibleBanTiers(alreadyBanned: Set<DraftPokemon>) = listOf(tier)
     }
@@ -1447,10 +1438,12 @@ sealed interface BanRoundConfig {
     data class FixedTierSet(val tierSet: Map<String, Int>) : BanRoundConfig {
         override fun checkBan(
             tier: String, alreadyBanned: Set<DraftPokemon>
-        ): String? {
-            val originalBanAmount = tierSet[tier] ?: return "Man kann keine Pokemon aus dem `$tier`-Tier bannen!"
+        ): K18nMessage? {
+            val originalBanAmount = tierSet[tier] ?: return K18n_BanRoundConfig.FixedTierSetTierNotBannable(tier)
             val alreadyBannedAmount = alreadyBanned.count { it.tier == tier }
-            return if (originalBanAmount - alreadyBannedAmount <= 0) "Du kannst aus dem $tier-Tier keine Pokemon mehr bannen!" else null
+            return if (originalBanAmount - alreadyBannedAmount <= 0) K18n_BanRoundConfig.FixedTierSetCantBanFromThatTier(
+                tier
+            ) else null
         }
 
         override fun getPossibleBanTiers(alreadyBanned: Set<DraftPokemon>): List<String> {

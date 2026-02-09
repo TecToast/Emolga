@@ -2,9 +2,14 @@ package de.tectoast.emolga.utils
 
 import com.google.api.services.sheets.v4.model.Color
 import com.mongodb.MongoWriteException
+import de.tectoast.emolga.database.exposed.GuildLanguageDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.TypesDB
+import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Constants.FLOID
+import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
+import de.tectoast.k18n.generated.K18nLanguage
+import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.interactions.components.InlineModal
 import dev.minn.jda.ktx.interactions.components.TextInput
 import io.ktor.client.*
@@ -19,6 +24,7 @@ import mu.KotlinLogging
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.interactions.DiscordLocale
 import org.jetbrains.exposed.v1.core.Column
 import org.slf4j.Marker
 import org.slf4j.MarkerFactory
@@ -227,3 +233,39 @@ fun InlineModal.short(customId: String, label: String, required: Boolean, placeh
             placeholder = placeholder
         )
     )
+
+suspend fun K18nMessage.translateToGuildLanguage(guildId: Long?) = translateTo(GuildLanguageDB.getLanguage(guildId))
+fun K18nMessage.default() = translateTo(K18N_DEFAULT_LANGUAGE)
+
+context(iData: InteractionData)
+fun K18nMessage.t() = translateTo(iData.language)
+fun K18nLanguage.toDiscordLocale() = when (this) {
+    K18nLanguage.DE -> DiscordLocale.GERMAN
+    K18nLanguage.EN -> DiscordLocale.ENGLISH_US
+}
+
+fun K18nMessage.toDiscordLocaleMap() = K18nLanguage.entries.associate { lang ->
+    lang.toDiscordLocale() to translateTo(lang)
+}
+
+data class SimpleK18nMessage(val msg: String) : K18nMessage {
+    override fun translateTo(language: K18nLanguage): String = msg
+}
+
+val String.k18n: K18nMessage get() = SimpleK18nMessage(this)
+
+data object EmptyMessage : K18nMessage {
+    override fun translateTo(language: K18nLanguage): String = ""
+}
+
+data class MappedMessage(val original: K18nMessage, val transformer: (String) -> String) : K18nMessage {
+    override fun translateTo(language: K18nLanguage): String = transformer(original.translateTo(language))
+}
+
+context(language: K18nLanguage)
+operator fun K18nMessage.invoke() = translateTo(language)
+inline fun b(crossinline builder: context(K18nLanguage) () -> String) = object : K18nMessage {
+    override fun translateTo(language: K18nLanguage): String = with(language) { builder() }
+}
+
+inline fun Boolean.ifTrueOrEmpty(builder: () -> String) = if (this) builder() else ""

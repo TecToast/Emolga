@@ -2,6 +2,7 @@ package de.tectoast.emolga.features.flegmon
 
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.hasRole
+import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -10,11 +11,13 @@ object RoleManagement {
     private const val ACCEPTED_RULES_ROLE = 605635673885507614
 
     object RuleAcceptButton : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("ruleaccept")) {
-        override val label = "Regeln akzeptieren"
+        override val label = "Regeln akzeptieren".k18n
+
         override val buttonStyle = ButtonStyle.PRIMARY
+
         override val emoji = Emoji.fromUnicode("✅")
 
-        context(iData: InteractionData)
+        context (iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             val g = iData.guild()
             if (iData.member().hasRole(ACCEPTED_RULES_ROLE)) return iData.reply(

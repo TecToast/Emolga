@@ -44,12 +44,12 @@ object TipGameManager : CoroutineScope {
             val league = db.getLeague(e.leaguename) ?: return reportMissing()
             val tipgame = league.config.tipgame ?: return reportMissing()
             TipGameVotesDB.addVote(iData.user, e.leaguename, e.gameday, e.index, e.userindex)
-            iData.reply("Dein Tipp wurde gespeichert!")
+            iData.reply(K18n_TipGame.TipSaved)
             if (tipgame.currentState == TipGameCurrentStateType.ALWAYS) {
                 iData.message.editMessageEmbeds(
                     Embed(
                         title = iData.message.embeds[0].title,
-                        description = league.buildCurrentState(e.gameday, e.index),
+                        description = league.buildCurrentTipGameState(e.gameday, e.index),
                         color = embedColor
                     )
                 ).queue()
@@ -58,7 +58,7 @@ object TipGameManager : CoroutineScope {
 
         context(iData: InteractionData)
         private fun reportMissing() {
-            iData.reply("Dieses Tippspiel existiert nicht mehr!")
+            iData.reply(K18n_TipGame.TipgameMissing)
         }
     }
 }

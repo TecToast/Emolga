@@ -8,6 +8,7 @@ import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.TimeUtils
 import de.tectoast.emolga.utils.createCoroutineContext
+import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +33,8 @@ object CalendarSystem : CoroutineScope {
                     return@launch
                 }
                 val calendarTc = jda.getTextChannelById(Constants.CALENDAR_TCID)!!
-                calendarTc.sendMessage("(<@${Constants.FLOID}>) $message").addComponents(RemindButton().into()).queue()
+                calendarTc.sendMessage("(<@${Constants.FLOID}>) $message")
+                    .addComponents(RemindButton.withoutIData().into()).queue()
                 CalendarDB.removeEntry(id)
                 calendarTc.updateCalendar()
             } catch (ex: Exception) {
@@ -46,10 +48,10 @@ object CalendarSystem : CoroutineScope {
     }
 
 
-    object RemindCommand : CommandFeature<RemindCommand.Args>(::Args, CommandSpec("remind", "remind")) {
+    object RemindCommand : CommandFeature<RemindCommand.Args>(::Args, CommandSpec("remind", "remind".k18n)) {
         class Args : Arguments() {
-            var date by string("Datum", "Das Datum")
-            var text by string("Text", "Der Text")
+            var date by string("Datum", "Das Datum".k18n)
+            var text by string("Text", "Der Text".k18n)
         }
 
         context(iData: InteractionData)
@@ -63,7 +65,7 @@ object CalendarSystem : CoroutineScope {
     }
 
     object RemindButton : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("remind")) {
-        override val label = "Löschen"
+        override val label = "Löschen".k18n
 
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {

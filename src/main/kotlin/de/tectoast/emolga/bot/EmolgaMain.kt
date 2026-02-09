@@ -11,6 +11,7 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.only
+import de.tectoast.generic.K18n_RoutineMaintenance
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.jdabuilder.cache
 import dev.minn.jda.ktx.jdabuilder.default
@@ -53,6 +54,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
     private val logger = LoggerFactory.getLogger(EmolgaMain::class.java)
 
     val featureManager = OneTimeCache { FeatureManager("de.tectoast.emolga.features") }
+    const val ROUTINE_MAINTENANCE_KEY = "ROUTINE"
     var maintenance: String? = null
 
     /**
@@ -106,7 +108,11 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
             jda.listener<GenericEvent> {
                 if (it is IReplyCallback && it.user.idLong != Constants.FLOID) {
                     maintenance?.let { reason ->
-                        it.reply(reason).setEphemeral(true).queue()
+                        it.reply(
+                            if (reason == ROUTINE_MAINTENANCE_KEY) K18n_RoutineMaintenance.translateToGuildLanguage(
+                                it.guild?.idLong
+                            ) else reason
+                        ).setEphemeral(true).queue()
                         return@listener
                     }
                 }

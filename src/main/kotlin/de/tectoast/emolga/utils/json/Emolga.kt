@@ -8,10 +8,12 @@ package de.tectoast.emolga.utils.json
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.credentials.Credentials
 import de.tectoast.emolga.database.exposed.DraftName
+import de.tectoast.emolga.database.exposed.GuildLanguageDB
 import de.tectoast.emolga.database.exposed.LogoChecksumDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.RealInteractionData
+import de.tectoast.emolga.features.draft.K18n_Signup
 import de.tectoast.emolga.features.draft.LogoCommand.allowedFileFormats
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.various.ShinyEvent
@@ -29,6 +31,8 @@ import de.tectoast.emolga.utils.showdown.BattleContext
 import de.tectoast.emolga.utils.showdown.SDPlayer
 import de.tectoast.emolga.utils.teamgraphics.ImageUtils
 import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
+import de.tectoast.generic.K18n_SignupNoun
+import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.editMessage
@@ -251,19 +255,19 @@ data class NameConventions(
 )
 
 data class ModalInputOptions(
-    val label: String,
+    val label: K18nMessage,
     val required: Boolean,
-    val placeholder: String? = TextInputDefaults.placeholder,
+    val placeholder: K18nMessage? = null,
     val requiredLength: IntRange? = TextInputDefaults.requiredLength,
     val list: List<String>? = null
 )
 
 sealed interface SignUpValidateResult {
     data class Success(val data: String) : SignUpValidateResult
-    data class Error(val message: String) : SignUpValidateResult
+    data class Error(val message: K18nMessage) : SignUpValidateResult
 
     companion object {
-        fun wrapNullable(msg: String?, errorMsg: String) = msg?.let { Success(it) } ?: Error(errorMsg)
+        fun wrapNullable(msg: String?, errorMsg: K18nMessage) = msg?.let { Success(it) } ?: Error(errorMsg)
     }
 }
 
@@ -279,14 +283,14 @@ sealed class SignUpInput {
         override val id = SDNAME_ID
 
         override fun getModalInputOptions(): ModalInputOptions {
-            return ModalInputOptions(label = "Showdown-Name", required = true, requiredLength = 1..18)
+            return ModalInputOptions(label = K18n_SignupInput.SDNAME, required = true, requiredLength = 1..18)
         }
 
         override fun validate(data: String) = SignUpValidateResult.wrapNullable(
-            data.takeIf { data.toUsername().length in 1..18 }, "Das ist kein gültiger Showdown-Name!"
+            data.takeIf { data.toUsername().length in 1..18 }, K18n_SignupInput.SDNAMEInvalid
         )
 
-        override fun getDisplayTitle() = "Showdown-Name"
+        override fun getDisplayTitle() = K18n_SignupInput.SDNAME
     }
 
     @Serializable
@@ -296,10 +300,10 @@ sealed class SignUpInput {
         override val id = TEAMNAME_ID
 
         override fun getModalInputOptions(): ModalInputOptions {
-            return ModalInputOptions(label = "Teamname", required = true, requiredLength = 1..100)
+            return ModalInputOptions(label = K18n_SignupInput.TEAMNAME, required = true, requiredLength = 1..100)
         }
 
-        override fun getDisplayTitle() = "Teamname"
+        override fun getDisplayTitle() = K18n_SignupInput.TEAMNAME
     }
 
     @Serializable
@@ -318,20 +322,20 @@ sealed class SignUpInput {
         override val id = "$OFLIST_PREFIX_ID$name"
 
         override fun getModalInputOptions(): ModalInputOptions {
-            return ModalInputOptions(label = name, required = true, placeholder = null, list = list)
+            return ModalInputOptions(label = name.k18n, required = true, placeholder = null, list = list)
         }
 
         override fun validate(data: String) = SignUpValidateResult.wrapNullable(
             list.firstOrNull { it.equals(data, ignoreCase = true) },
-            "Erlaubte Werte: ${list.joinToString(", ") { opt -> "`$opt`" }}"
+            K18n_SignupInput.OF_LIST_Allowed(list.joinToString(", ") { opt -> "`$opt`" })
         )
 
-        override fun getDisplayTitle() = name.takeIf { visibleForAll }
+        override fun getDisplayTitle() = name.takeIf { visibleForAll }?.k18n
     }
 
     abstract fun getModalInputOptions(): ModalInputOptions
     open fun validate(data: String): SignUpValidateResult = SignUpValidateResult.Success(data)
-    open fun getDisplayTitle(): String? = null
+    open fun getDisplayTitle(): K18nMessage? = null
 
     companion object {
         const val SDNAME_ID = "sdname"
@@ -360,25 +364,27 @@ sealed interface LogoSettings {
             val tc = jda.getTextChannelById(channelId)
                 ?: return logger.warn { "Channel $channelId for LogoSettings not found" }
             data.logomid?.let { mid -> tc.deleteMessageById(mid).queue(null, null) }
-            val logoMid = tc.sendMessage(getMsgTitle(data)).addFiles(logoData.toFileUpload()).await().idLong
+            val logoMid = tc.sendMessage(getMsgTitle(data).translateToGuildLanguage(lsData.guild))
+                .addFiles(logoData.toFileUpload()).await().idLong
             data.logomid = logoMid
             lsData.save()
         }
 
-        private fun getMsgTitle(data: SignUpData): String =
-            "**Logo von ${data.formatName()}${data.data["teamname"]?.let { " ($it)" }}:**"
+        private fun getMsgTitle(data: SignUpData): K18nMessage =
+            K18n_SignupInput.LogoMsg(data.formatName(), data.data["teamname"]?.let { " ($it)" }.orEmpty())
 
-        override fun handleSignupChange(
+        override suspend fun handleSignupChange(
+            lsData: LigaStartData,
             data: SignUpData
         ) {
             val tc = jda.getTextChannelById(channelId)
                 ?: return logger.warn { "Channel $channelId for LogoSettings not found" }
             data.logomid?.let { mid ->
-                tc.editMessage(mid.toString(), getMsgTitle(data)).queue()
+                tc.editMessage(mid.toString(), getMsgTitle(data).translateToGuildLanguage(lsData.guild)).queue()
             }
         }
 
-        override fun handleSignupRemoved(data: SignUpData) {
+        override suspend fun handleSignupRemoved(lsData: LigaStartData, data: SignUpData) {
             val tc = jda.getTextChannelById(channelId)
                 ?: return logger.warn { "Channel $channelId for LogoSettings not found" }
             data.logomid?.let { mid -> tc.deleteMessageById(mid).queue() }
@@ -404,8 +410,8 @@ sealed interface LogoSettings {
     data object NotInDiscord : LogoSettings
 
     suspend fun handleLogo(lsData: LigaStartData, data: SignUpData, logoData: LogoInputData) {}
-    fun handleSignupChange(data: SignUpData) {}
-    fun handleSignupRemoved(data: SignUpData) {}
+    suspend fun handleSignupChange(lsData: LigaStartData, data: SignUpData) {}
+    suspend fun handleSignupRemoved(lsData: LigaStartData, data: SignUpData) {}
 }
 
 @Serializable
@@ -462,31 +468,37 @@ data class LigaStartData(
     val maxUsersAsString
         get() = (config.maxUsers.takeIf { it > 0 } ?: "?").toString()
 
-    fun buildModal(old: SignUpData?): Modal? {
+    @Transient
+    val language = OneTimeCache {
+        GuildLanguageDB.getLanguage(guild)
+    }
+
+    suspend fun buildModal(old: SignUpData?): Modal? {
         if (config.signupStructure.isEmpty()) return null
-        return Modal("signup;".notNullAppend(old?.let { "change" }), "Anmeldung") {
+        val lang = language()
+        return Modal("signup;".notNullAppend(old?.let { "change" }), K18n_SignupNoun.translateToGuildLanguage(guild)) {
             config.signupStructure.forEach {
                 val options = it.getModalInputOptions()
                 label(
-                    label = options.label,
+                    label = options.label.translateTo(lang),
                     child = options.list?.let { list ->
                         StringSelectMenu(
                             customId = it.id,
-                            placeholder = options.placeholder,
+                            placeholder = options.placeholder?.translateTo(lang),
                             options = list.map { opt -> SelectOption(opt, opt) })
                     } ?: TextInput(
                         customId = it.id,
                         style = TextInputStyle.SHORT,
                         required = options.required,
-                        placeholder = options.placeholder,
+                        placeholder = options.placeholder?.translateTo(lang),
                         value = old?.data?.get(it.id)
                     )
                 )
             }
             config.logoSettings?.let { _ ->
                 label(
-                    label = "Logo",
-                    description = "Dein Logo, kann auch nachgereicht werden",
+                    label = K18n_SignupInput.LogoLabel.translateTo(lang),
+                    description = K18n_SignupInput.LogoDescription.translateTo(lang),
                     child = AttachmentUpload.create(
                         SignUpInput.LOGO_ID
                     )
@@ -499,50 +511,53 @@ data class LigaStartData(
     }
 
     suspend fun handleModal(e: ModalInteractionEvent) {
-        val iData = RealInteractionData(e)
-        val change = e.modalId.substringAfter(";").isNotBlank()
-        val errors = mutableListOf<String>()
-        var logoAttachment: Message.Attachment? = null
-        val data = e.values.associate {
-            val id = it.customId
-            if (id == SignUpInput.LOGO_ID) {
-                logoAttachment = it.asAttachmentList.firstOrNull()
-                return@associate "" to ""
-            }
-            val config = getInputConfig(id) ?: error("Modal key $id not found")
-            when (val result = config.validate(
-                when (it.type) {
-                    Component.Type.TEXT_INPUT -> it.asString
-                    Component.Type.STRING_SELECT -> it.asStringList.first()
-                    else -> error("Unsupported component type in signup modal ${it.type}")
+        val iData = RealInteractionData(e, language())
+        with(iData) {
+            val change = e.modalId.substringAfter(";").isNotBlank()
+            val errors = mutableListOf<String>()
+            var logoAttachment: Message.Attachment? = null
+            val data = e.values.associate {
+                val id = it.customId
+                if (id == SignUpInput.LOGO_ID) {
+                    logoAttachment = it.asAttachmentList.firstOrNull()
+                    return@associate "" to ""
                 }
-            )) {
-                is SignUpValidateResult.Error -> {
-                    errors += "Fehler bei **${config.getModalInputOptions().label}**:\n${result.message}"
-                    "" to ""
-                }
+                val config = getInputConfig(id) ?: error("Modal key $id not found")
+                when (val result = config.validate(
+                    when (it.type) {
+                        Component.Type.TEXT_INPUT -> it.asString
+                        Component.Type.STRING_SELECT -> it.asStringList.first()
+                        else -> error("Unsupported component type in signup modal ${it.type}")
+                    }
+                )) {
+                    is SignUpValidateResult.Error -> {
+                        errors += K18n_SignupInput.Error(config.getModalInputOptions().label.t(), result.message.t())
+                            .t()
+                        "" to ""
+                    }
 
-                is SignUpValidateResult.Success -> {
-                    id to result.data
+                    is SignUpValidateResult.Success -> {
+                        id to result.data
+                    }
                 }
             }
+            if (errors.isNotEmpty()) {
+                iData.sendSignupErrors(errors)
+                return
+            }
+            SignupManager.signupUser(
+                gid = gid,
+                uid = e.user.idLong,
+                data = data.filterKeys { it.isNotEmpty() },
+                logoAttachment = logoAttachment,
+                isChange = change,
+                iData = iData
+            )
         }
-        if (errors.isNotEmpty()) {
-            iData.sendSignupErrors(errors)
-            return
-        }
-        SignupManager.signupUser(
-            gid = guild,
-            uid = e.user.idLong,
-            data = data.filterKeys { it.isNotEmpty() },
-            logoAttachment = logoAttachment,
-            isChange = change,
-            iData = iData
-        )
     }
 
     private fun InteractionData.sendSignupErrors(errors: List<String>) {
-        reply("❌ Anmeldung nicht erfolgreich:\n\n${errors.joinToString("\n\n")}", ephemeral = true)
+        reply(K18n_Signup.SignupFailure(errors.joinToString("\n\n")), ephemeral = true)
     }
 
     inline fun <reified T : SignUpInput> getInputConfig() = config.signupStructure.firstOrNull { it is T } as T?
@@ -571,21 +586,30 @@ data class LigaStartData(
     fun giveParticipantRole(member: Member) = giveParticipantRole { member }
 
 
-    fun updateSignupMessage(setMaxUsersToCurrentUsers: Boolean = false) {
+    suspend fun updateSignupMessage(setMaxUsersToCurrentUsers: Boolean = false) {
         jda.getTextChannelById(config.announceChannel)!!.editMessageById(
             announceMessageId,
             config.signupMessage.condAppend(!config.hideUserCount) {
-                "\n\n**Teilnehmer: ${users.size}/${if (setMaxUsersToCurrentUsers) users.size else maxUsersAsString}**"
+                K18n_Signup.SignupMessageData(
+                    users.size.toString(),
+                    if (setMaxUsersToCurrentUsers) users.size.toString() else maxUsersAsString
+                ).translateTo(language())
             }
         ).queue()
     }
 
-    fun closeSignup(forced: Boolean = false) {
+    suspend fun closeSignup(forced: Boolean = false) {
         val channel = jda.getTextChannelById(config.announceChannel)!!
+        val lang = language()
         channel.editMessageComponentsById(
-            announceMessageId, SignupManager.Button("Anmeldung geschlossen", disabled = true).into()
+            announceMessageId,
+            SignupManager.Button.withoutIData(
+                lang,
+                K18n_Signup.SignupClosed,
+                disabled = true
+            ).into()
         ).queue()
-        val msg = "_----------- Anmeldung geschlossen -----------_"
+        val msg = "_----------- ${K18n_Signup.SignupClosed.translateTo(lang)} -----------_"
         channel.sendMessage(msg).queue()
         if (config.announceChannel != config.signupChannel) jda.getTextChannelById(config.signupChannel)!!
             .sendMessage(msg).queue()
@@ -597,7 +621,7 @@ data class LigaStartData(
         config.maxUsers = newMaxUsers
         if (wasClosed) {
             jda.getTextChannelById(config.announceChannel)!!.editMessageComponentsById(
-                announceMessageId, SignupManager.Button().into()
+                announceMessageId, SignupManager.Button.withoutIData(language()).into()
             ).queue()
         }
         updateSignupMessage()
@@ -612,7 +636,7 @@ data class LigaStartData(
 
     suspend fun handleSignupChange(data: SignUpData) {
         jda.getTextChannelById(config.signupChannel)!!.editMessageById(data.signupmid!!, data.toMessage(this)).queue()
-        config.logoSettings?.handleSignupChange(data)
+        config.logoSettings?.handleSignupChange(this, data)
         save()
     }
 
@@ -625,7 +649,7 @@ data class LigaStartData(
         data.users.remove(uid)
         if (data.users.isEmpty()) {
             data.signupmid?.let { jda.getTextChannelById(config.signupChannel)!!.deleteMessageById(it).queue() }
-            config.logoSettings?.handleSignupRemoved(data)
+            config.logoSettings?.handleSignupRemoved(this, data)
             users.remove(data)
             save()
         } else {
@@ -635,7 +659,7 @@ data class LigaStartData(
         return true
     }
 
-    fun updateUser(user: Long) {
+    suspend fun updateUser(user: Long) {
         val data = getDataByUser(user)!!
         jda.getTextChannelById(config.signupChannel)!!
             .editMessageById(data.signupmid!!, data.toMessage(this)).queue()
@@ -644,9 +668,9 @@ data class LigaStartData(
     suspend fun insertLogo(uid: Long, logo: Message.Attachment): ErrorOrNull {
         logoUploadMutex.withLock {
             if (config.logoSettings == null) {
-                return "In dieser Liga gibt es keine eigenen Logos!"
+                return K18n_Signup.NoOwnLogos
             }
-            val signUpIndex = getIndexOfUser(uid) ?: return "Du bist nicht angemeldet!"
+            val signUpIndex = getIndexOfUser(uid) ?: return K18n_Signup.NotSignedUp
             val signUpData = users[signUpIndex]
             val logoData = LogoInputData.fromAttachment(logo)
             if (logoData.isError()) {
@@ -690,24 +714,25 @@ class LogoInputData(val fileExtension: String, val bytes: ByteArray) {
 
     companion object {
         private val logger = KotlinLogging.logger {}
+        private const val MAX_SIZE = 10
 
         suspend fun fromAttachment(
             attachment: Message.Attachment,
             ignoreRequirements: Boolean = false
         ): CalcResult<LogoInputData> = withContext(Dispatchers.IO) {
             attachment.fileExtension?.lowercase()?.takeIf { ignoreRequirements || it in allowedFileFormats }
-                ?: return@withContext CalcResult.Error("Das Logo muss eine Bilddatei sein!")
+                ?: return@withContext CalcResult.Error(K18n_SignupInput.LogoMustBeImage)
             val bytes = try {
                 attachment.proxy.download().await().readAllBytes()
             } catch (ex: Exception) {
                 logger.error("Couldnt download logo", ex)
-                return@withContext CalcResult.Error("Das Logo konnte nicht heruntergeladen werden!")
+                return@withContext CalcResult.Error(K18n_SignupInput.LogoDownloadError)
             }
-            if (!ignoreRequirements && bytes.size > 1024 * 1024 * 10) {
-                return@withContext CalcResult.Error("Das Logo darf nicht größer als 10MB sein!")
+            if (!ignoreRequirements && bytes.size > 1024 * 1024 * MAX_SIZE) {
+                return@withContext CalcResult.Error(K18n_SignupInput.LogoTooBig(MAX_SIZE))
             }
             val image = ImageIO.read(bytes.inputStream())
-                ?: return@withContext CalcResult.Error("Die Datei ist kein gültiges Bild!")
+                ?: return@withContext CalcResult.Error(K18n_SignupInput.LogoNoValidImage)
             val croppedImage = ImageUtils.cropToContent(image)
             val baos = ByteArrayOutputStream()
             ImageIO.write(croppedImage, "png", baos)
@@ -719,7 +744,7 @@ class LogoInputData(val fileExtension: String, val bytes: ByteArray) {
 
 sealed interface CalcResult<T> {
     data class Success<T>(val value: T) : CalcResult<T>
-    data class Error<T>(val message: String) : CalcResult<T>
+    data class Error<T>(val message: K18nMessage) : CalcResult<T>
 }
 
 @OptIn(ExperimentalContracts::class)
@@ -752,10 +777,12 @@ data class SignUpData(
     var logoChecksum: String? = null,
     var conference: String? = null,
 ) {
-    fun toMessage(lsData: LigaStartData) = "Anmeldung von ${formatName()}" + ":\n" + data.entries.mapNotNull { (k, v) ->
-        val displayTitle = lsData.getInputConfig(k)?.getDisplayTitle() ?: return@mapNotNull null
-        "${displayTitle}: **$v**"
-    }.joinToString("\n")
+    suspend fun toMessage(lsData: LigaStartData): String {
+        return K18n_Signup.SignupConfirmMessage(formatName(), data.entries.mapNotNull { (k, v) ->
+            val displayTitle = lsData.getInputConfig(k)?.getDisplayTitle() ?: return@mapNotNull null
+            "${displayTitle}: **$v**"
+        }.joinToString("\n")).translateTo(lsData.language())
+    }
 
     fun formatName() = users.joinToString(" & ") { "<@$it>" }
 
@@ -1150,4 +1177,4 @@ suspend fun CoroutineCollection<RemoteServerControl>.get(name: String) = find(Re
 @JvmName("getLadderTournament")
 suspend fun CoroutineCollection<LadderTournament>.get(guild: Long) = find(LadderTournament::guild eq guild).first()
 
-typealias ErrorOrNull = String?
+typealias ErrorOrNull = K18nMessage?

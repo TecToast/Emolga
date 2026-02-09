@@ -3,9 +3,11 @@ package de.tectoast.emolga.utils.draft
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.*
-import de.tectoast.emolga.utils.condAppend
+import de.tectoast.emolga.utils.b
 import de.tectoast.emolga.utils.draft.DraftMessageType.*
-import de.tectoast.emolga.utils.notNullAppend
+import de.tectoast.emolga.utils.ifTrueOrEmpty
+import de.tectoast.emolga.utils.invoke
+import de.tectoast.emolga.utils.translateToGuildLanguage
 import dev.minn.jda.ktx.coroutines.await
 import mu.KotlinLogging
 
@@ -17,8 +19,7 @@ object DraftUtils {
         input: DraftInput, type: DraftMessageType
     ) {
         league.checkLegalDraftInput(input, type)?.let { return iData.reply(it) }
-        val isInBetween =
-            league.potentialBetweenPick && league.currentOverride != null
+        val isInBetween = league.potentialBetweenPick && league.currentOverride != null
         val success = input.execute(type)
         if (success) league.afterPickOfficial(if (isInBetween) NextPlayerData.InBetween else NextPlayerData.Normal)
     }
@@ -51,24 +52,21 @@ data class PickInput(
     override suspend fun execute(type: DraftMessageType): Boolean {
         with(league) {
             if (isSwitchDraft && !config.triggers.allowPickDuringSwitch) {
-                return iData.reply("Du kannst während des Switch-Drafts nicht picken!").let { false }
+                return iData.reply(K18n_DraftUtils.NoPickDuringSwitch).let { false }
             }
             val idx = current
             val teraConfig = config.teraPick
             if (tera && draftData.teraPick.alreadyHasTeraUser.contains(idx)) {
-                return iData.reply("Du hast bereits einen Tera-User gepickt!").let { false }
+                return iData.reply(K18n_DraftUtils.TeraUserAlreadyPicked).let { false }
             }
             val tl = if (teraConfig != null && tera) (Tierlist[league.guild, teraConfig.tlIdentifier]
                 ?: error("No TERA tierlist found for guild ${league.guild}")) else tierlist
             val (tlName, official, _, _, _) = pokemon
             logger.info("tlName: $tlName, official: $official")
-            val (specifiedTier, officialTier, _) = (tl.getTierOfCommand(pokemon, tier)
-                ?: return iData.reply("Dieses Pokemon ist nicht in der Tierliste!").let { false })
-            if (tier != null && tier != officialTier && config.triggers.updraftDisabled) {
-                return iData.reply("Hochdraften in diesem Draft nicht erlaubt!").let { false }
-            }
-            if (isPicked(official, officialTier)) return iData.reply("Dieses Pokemon wurde bereits gepickt!")
-                .let { false }
+            val (specifiedTier, officialTier, _) = (tl.getTierOfCommand(pokemon, tier) ?: return iData.reply(
+                K18n_DraftUtils.PokemonNotInTierlist
+            ).let { false })
+            if (isPicked(official, officialTier)) return iData.reply(K18n_DraftUtils.PokemonAlreadyPicked).let { false }
             val context = DraftActionContext()
             tl.withTL {
                 it.handleDraftActionWithGeneralChecks(
@@ -106,27 +104,34 @@ data class PickInput(
 
     context(iData: InteractionData, league: League)
     suspend fun PickData.reply(type: DraftMessageType) {
+        val pokemonName = displayName()
         when (type) {
             REGULAR -> {
-                league.replyGeneral("${displayName()} ".condAppend(league.config.triggers.alwaysSendTierOnPick || updrafted) { "im $tier " } + (if (tera) "als Tera-User " else "") + "gepickt!".condAppend(
-                    updrafted
-                ) { " (Hochgedraftet)" }
-                    .notNullAppend(league.tierlist.withTL { it.getPickMessageSuffix(this@reply, type) }, prefix = " "))
+                league.replyGeneral(b {
+                    val infoTier = (league.config.triggers.alwaysSendTierOnPick || updrafted).ifTrueOrEmpty {
+                        K18n_DraftUtils.InfoTier(tier)()
+                    }
+                    val infoTeraUser = tera.ifTrueOrEmpty { K18n_DraftUtils.InfoTeraUser() }
+                    val infoUpdrafted = updrafted.ifTrueOrEmpty { K18n_DraftUtils.InfoUpdrafted() }
+                    K18n_DraftUtils.PickRegular(pokemon, infoTier, infoTeraUser, infoUpdrafted)()
+                })
                 checkEmolga()
             }
 
             QUEUE -> {
-                league.tc.sendMessage("**<@${league[league.current]}>** hat ${displayName()} gepickt! [Queue]")
-                    .await()
+                league.tc.sendMessage(
+                    K18n_DraftUtils.PickQueue(league[league.current], pokemonName)
+                        .translateToGuildLanguage(league.guild)
+                ).await()
                 checkEmolga()
             }
 
             RANDOM -> league.replyGeneral(
-                "einen Random-Pick im $tier gemacht und **${displayName()}** bekommen!", ifTestUseTc = league.tc
+                K18n_DraftUtils.PickRandom(tier, pokemonName), ifTestUseTc = league.tc
             )
 
-            ACCEPT -> iData.replyAwait("Akzeptiert: **${displayName()} (${tier})**!")
-            REROLL -> iData.replyAwait("Reroll: **${displayName()} (${tier})**!")
+            ACCEPT -> iData.replyAwait(K18n_DraftUtils.PickAccept(pokemonName, tier))
+            REROLL -> iData.replyAwait(K18n_DraftUtils.PickReroll(pokemonName, tier))
         }
     }
 }
@@ -136,18 +141,19 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
     override suspend fun execute(type: DraftMessageType): Boolean {
         with(league) {
             if (!isSwitchDraft) {
-                return iData.reply("Dieser Draft ist kein Switch-Draft, daher wird /switch nicht unterstützt!")
-                    .let { false }
+                return iData.reply(K18n_DraftUtils.NoSwitchAvailable).let { false }
             }
             val mem = current
             logger.info("Switching $oldmon to $newmon")
             val draftPokemons = picks[mem]!!
-            val oldDraftMon = draftPokemons.firstOrNull { it.name == oldmon.official }
-                ?: return iData.reply("${oldmon.tlName} befindet sich nicht in deinem Kader!").let { false }
-            val newtier = tierlist.getTierOfCommand(newmon, null)
-                ?: return iData.reply("Das neue Pokemon ist nicht in der Tierliste!").let { false }
+            val oldDraftMon = draftPokemons.firstOrNull { it.name == oldmon.official } ?: return iData.reply(
+                K18n_DraftUtils.PokemonNotInYourTeam(oldmon.tlName)
+            ).let { false }
+            val newtier =
+                tierlist.getTierOfCommand(newmon, null) ?: return iData.reply(K18n_DraftUtils.PokemonNotInTierlist)
+                    .let { false }
             if (isPicked(newmon.official, newtier.official)) {
-                return iData.reply("${newmon.tlName} wurde bereits gepickt!").let { false }
+                return iData.reply(K18n_DraftUtils.PokemonAlreadyPicked).let { false }
             }
             tierlist.withTL {
                 it.handleDraftActionWithGeneralChecks(
@@ -184,22 +190,27 @@ data class SwitchInput(val oldmon: DraftName, val newmon: DraftName) : DraftInpu
     suspend fun SwitchData.reply(type: DraftMessageType) {
         when (type) {
             REGULAR -> {
-                league.replyGeneral("${oldDisplayName()} gegen ${displayName()} getauscht!")
+                league.replyGeneral(K18n_DraftUtils.SwitchRegular(oldDisplayName(), displayName()))
                 checkEmolga()
             }
 
             QUEUE -> {
-                league.tc.sendMessage("**<@${league[league.current]}>** hat ${oldDisplayName()} gegen ${displayName()} getauscht! [Queue]")
-                    .queue()
+                league.tc.sendMessage(
+                    K18n_DraftUtils.SwitchQueue(
+                        league[league.current], oldDisplayName(), displayName()
+                    ).translateToGuildLanguage(league.guild)
+                ).queue()
                 checkEmolga()
             }
 
             RANDOM -> league.replyGeneral(
-                "Random-Switch: ${oldDisplayName()} gegen ${displayName()} getauscht!", ifTestUseTc = league.tc
+                K18n_DraftUtils.SwitchRandom(
+                    oldDisplayName(), displayName()
+                ), ifTestUseTc = league.tc
             )
 
-            ACCEPT -> iData.replyAwait("Akzeptiert: ${oldDisplayName()} gegen ${displayName()} getauscht!")
-            REROLL -> iData.replyAwait("Reroll: ${oldDisplayName()} gegen ${displayName()} getauscht!")
+            ACCEPT -> iData.replyAwait(K18n_DraftUtils.SwitchAccept(oldDisplayName(), displayName()))
+            REROLL -> iData.replyAwait(K18n_DraftUtils.SwitchReroll(oldDisplayName(), displayName()))
         }
     }
 }
@@ -243,19 +254,20 @@ data class BanInput(val pokemon: DraftName) : DraftInput {
     suspend fun BanData.reply(type: DraftMessageType) {
         when (type) {
             REGULAR -> {
-                league.replyGeneral("${displayName()} ($tier) gebannt!")
+                league.replyGeneral(K18n_DraftUtils.BanRegular(displayName(), tier))
                 checkEmolga(happy = false)
             }
 
             QUEUE -> {
-                league.tc.sendMessage("<@${league[league.current]}> hat ${displayName()} gebannt! [Queue]")
-                    .queue()
+                league.tc.sendMessage(
+                    K18n_DraftUtils.BanQueue(league[league.current], displayName(), tier)
+                        .translateToGuildLanguage(league.guild)
+                ).queue()
                 checkEmolga(happy = false)
             }
 
             RANDOM -> league.replyWithTestInteractionCheck(
-                "Timer ausgelaufen: Ich habe ${displayName()} ($tier) für <@${league[league.current]}> gebannt!",
-                ifTestUseTc = league.tc
+                K18n_DraftUtils.BanRandom(displayName(), tier, league[league.current]), ifTestUseTc = league.tc
             )
 
             ACCEPT, REROLL -> {}

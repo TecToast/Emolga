@@ -9,7 +9,7 @@ object LogoForCommand :
     CommandFeature<LogoForCommand.Args>(
         ::Args,
         CommandSpec(
-            "logofor", "Reicht ein Logo für jemanden ein"
+            "logofor", K18n_LogoFor.Help
         )
     ) {
 
@@ -18,8 +18,8 @@ object LogoForCommand :
     }
 
     class Args : Arguments() {
-        var user by member("User", "Der User")
-        var logo by attachment("Logo", "Das Logo")
+        var user by member("User", K18n_LogoFor.ArgUser)
+        var logo by attachment("Logo", K18n_LogoFor.ArgLogo)
     }
 
     context(iData: InteractionData)

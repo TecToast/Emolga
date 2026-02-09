@@ -5,13 +5,14 @@ import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.NoArgs
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.k18n
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent
 import net.dv8tion.jda.api.events.role.RoleCreateEvent
 
 object ASLInviteControl : CommandFeature<NoArgs>(
     NoArgs(),
-    CommandSpec("invite", "Erstellt einen einmalig nutzbaren Invite")
+    CommandSpec("invite", "Erstellt einen einmalig nutzbaren Invite".k18n)
 ) {
     init {
         restrict(roles(702233714360582154))

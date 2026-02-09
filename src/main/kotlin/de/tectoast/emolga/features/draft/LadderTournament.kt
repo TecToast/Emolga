@@ -4,33 +4,36 @@ import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.json.LadderTournamentUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.generic.K18n_AlreadySignedUp
+import de.tectoast.generic.K18n_Approve
+import de.tectoast.generic.K18n_SignupNoun
+import de.tectoast.generic.K18n_SignupVerb
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 
 object LadderTournament {
     object SignupButton : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("laddertournamentsignup")) {
-        override val label = "Anmelden"
+        override val label = K18n_SignupVerb
 
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             iData.ephemeralDefault()
             val lt = db.ladderTournament.get(iData.gid)
-                ?: return iData.reply("Auf diesem Server gibt es kein laufendes Ladder-Turnier!")
-            if (lt.users[iData.user]?.verified == true) return iData.reply("Du bist bereits angemeldet!")
+                ?: return iData.reply(K18n_LadderTournament.NoTournamentHere)
+            if (lt.users[iData.user]?.verified == true) return iData.reply(K18n_AlreadySignedUp)
             iData.replyModal(Modal())
         }
     }
 
     object Modal : ModalFeature<Modal.Args>(::Args, ModalSpec("laddertournamentmodal")) {
-        override val title = "Anmeldung"
+        override val title = K18n_SignupNoun
 
         class Args : Arguments() {
-            val sdname by string("SD-Name", "Der SD-Name (wie im Doc beschrieben)")
+            val sdname by string("SD-Name", K18n_LadderTournament.ModalArgSdName)
             val formats by fromListModal(
                 "Formate",
-                "Die Formate, die du spielen möchtest",
-                placeholder = "Formate",
+                K18n_LadderTournament.ModalArgFormats,
                 valueRange = null,
                 optionsProvider = {
                     val lt = db.ladderTournament.get(it.gid) ?: return@fromListModal listOf(
@@ -63,7 +66,7 @@ object LadderTournament {
     }
 
     object ApproveButton : ButtonFeature<ApproveButton.Args>(::Args, ButtonSpec("laddertournamentapprove")) {
-        override val label = "Approve"
+        override val label = K18n_Approve
 
         class Args : Arguments() {
             var user by long()
@@ -77,10 +80,11 @@ object LadderTournament {
                 "Dieser User hat keine Anmeldung zum Ladder-Turnier!",
                 ephemeral = true
             )
-            iData.edit(components = emptyList())
+
+            iData.edit(contentK18n = null, components = emptyList())
             data.verified = true
             lt.save()
-            iData.reply("Verifiziert!", ephemeral = true)
+            iData.reply(K18n_LadderTournament.Verified, ephemeral = true)
             iData.jda.getTextChannelById(lt.signupChannel)!!.send("<@${e.user}>: ${data.formats.joinToString()}")
                 .queue()
         }

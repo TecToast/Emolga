@@ -1,6 +1,8 @@
 package de.tectoast.emolga.features.draft.during
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.features.draft.during.generic.K18n_NoLeagueForGuildFound
+import de.tectoast.emolga.features.draft.during.generic.K18n_NotInTierlist
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.config.QueuePicksUserData
 import de.tectoast.emolga.utils.*
@@ -14,28 +16,28 @@ object QueuePicks {
     context(iData: InteractionData)
     fun League.queueNotEnabled(): Boolean {
         if (!config.triggers.queuePicks) {
-            iData.reply("Das Queuen von Picks ist in dieser Liga deaktiviert!")
+            iData.reply(K18n_QueuePicks.Disabled)
             return true
         } else return false
     }
 
     object Command : CommandFeature<NoArgs>(
         NoArgs(), CommandSpec(
-            "queuepicks", "Verwalte deine gequeueten Picks"
+            "queuepicks", K18n_QueuePicks.Help
         )
     ) {
 
-        object Manage : CommandFeature<NoArgs>(NoArgs(), CommandSpec("manage", "Verwalte deine gequeueten Picks")) {
+        object Manage : CommandFeature<NoArgs>(NoArgs(), CommandSpec("manage", K18n_QueuePicks.Help)) {
             context(iData: InteractionData)
             override suspend fun exec(e: NoArgs) {
                 iData.ephemeralDefault()
-                val league = db.leagueByCommand() ?: return iData.reply("Du bist in keiner Liga auf diesem Server!")
+                val league = db.leagueByCommand() ?: return iData.reply(K18n_NoLeagueForGuildFound)
                 if (league.queueNotEnabled()) return
                 val currentData =
                     league.persistentData.queuePicks.queuedPicks.getOrPut(league(iData.user)) { QueuePicksUserData() }
                 val currentState = currentData.queued
                 if (currentState.isEmpty()) return iData.reply(
-                    "Du hast zurzeit keine Picks in der Queue! Füge welche über /queuepicks add hinzu!",
+                    K18n_QueuePicks.NoPicksInQueue,
                     ephemeral = true
                 )
                 QueuePicks(
@@ -46,15 +48,16 @@ object QueuePicks {
             }
         }
 
-        object Add : CommandFeature<Add.Args>(::Args, CommandSpec("add", "Füge einen Pick hinzu")) {
+        object Add : CommandFeature<Add.Args>(::Args, CommandSpec("add", K18n_QueuePicks.AddHelp)) {
             class Args : Arguments() {
-                var mon by draftPokemon("Pokemon", "Das Pokemon, das du hinzufügen möchtest")
+                var mon by draftPokemon("Pokemon", K18n_QueuePicks.AddArgPokemon)
                 var oldmon by draftPokemon(
-                    "Altes Mon",
-                    "Das Pokemon, was rausgeschmissen werden soll",
+                    "Old Mon",
+                    K18n_QueuePicks.AddArgOldMon,
                     autocomplete = { s, event ->
-                        val league = db.leagueByGuild(event.guild?.idLong ?: -1, event.user.idLong)
-                            ?: return@draftPokemon listOf("Du nimmt an keiner Liga auf diesem Server teil!")
+                        val gid = event.guild?.idLong
+                        val league = db.leagueByGuild(gid ?: -1, event.user.idLong)
+                            ?: return@draftPokemon listOf(K18n_NoLeagueForGuildFound.translateToGuildLanguage(gid))
                         monOfTeam(s, league, league(event.user.idLong))
                     }).nullable()
             }
@@ -65,29 +68,33 @@ object QueuePicks {
                 iData.deferReply()
                 League.executeOnFreshLock(
                     { db.leagueByCommand() },
-                    { iData.reply("Du bist in keiner Liga auf diesem Server!") }) l@{
+                    { iData.reply(K18n_NoLeagueForGuildFound) }) l@{
                     if (queueNotEnabled()) return@l
                     val oldmon = e.oldmon
                     val idx = this(iData.user)
                     if (oldmon == null && !isRunning && picks.isNotEmpty() && !config.triggers.allowPickDuringSwitch) {
-                        return@l iData.reply("Im kommenden Draft können nur Switches gemacht werden, dementsprechend musst du ein altes Pokemon angeben!")
+                        return@l iData.reply(K18n_QueuePicks.OnlyWithSwitchAllowed)
                     }
                     if (oldmon != null && picks[idx]?.any { it.name == oldmon.official } != true) {
-                        return@l iData.reply("Du besitzt `${oldmon.tlName}` nicht!")
+                        return@l iData.reply(K18n_QueuePicks.PokemonNotInTeam(oldmon.tlName))
                     }
                     if (isPicked(e.mon.official)) {
-                        return@l iData.reply("`${e.mon.tlName}` wurde bereits gepickt!")
+                        return@l iData.reply(K18n_QueuePicks.PokemonAlreadyPicked(e.mon.tlName))
                     }
                     val data = persistentData.queuePicks.queuedPicks.getOrPut(idx) { QueuePicksUserData() }
                     val mon = e.mon
                     for (q in data.queued) {
-                        if (q.g == mon) return@l iData.reply("Du hast `${mon.tlName}` bereits in deiner Queue!")
-                        if (oldmon != null && q.y == oldmon) return@l iData.reply("Du planst bereits, `${oldmon.tlName}` rauszuwerfen!")
+                        if (q.g == mon) return@l iData.reply(K18n_QueuePicks.PokemonInYourQueue(mon.tlName))
+                        if (oldmon != null && q.y == oldmon) return@l iData.reply(
+                            K18n_QueuePicks.OldMonInYourQueue(
+                                oldmon.tlName
+                            )
+                        )
                     }
-                    tierlist.getTierOf(mon.tlName) ?: return@l iData.reply("`${mon.tlName}` ist nicht in der Tierlist!")
+                    tierlist.getTierOf(mon.tlName) ?: return@l iData.reply(K18n_NotInTierlist(mon.tlName))
                     oldmon?.let {
                         tierlist.getTierOf(it.tlName)
-                            ?: return@l iData.reply("`${it.tlName}` ist nicht in der Tierlist!")
+                            ?: return@l iData.reply(K18n_NotInTierlist(it.tlName))
                     }
                     val queuedAction = QueuedAction(mon, oldmon)
                     val newlist = data.queued.toMutableList().apply { add(queuedAction) }
@@ -99,9 +106,8 @@ object QueuePicks {
                     data.enabled = false
                     save()
                     iData.reply(
-                        "`${mon.tlName}` wurde zu deinen gequeueten Picks hinzugefügt! Außerdem wurde das System für dich deaktiviert, damit du das Pokemon noch an die richtige Stelle schieben kannst :)".notNullPrepend(
-                            oldmon
-                        ) { "`${it.tlName}` -> " })
+                        K18n_QueuePicks.AddSuccess("`${mon.tlName}`".notNullPrepend(oldmon) { "`${it.tlName}` -> " })
+                    )
                 }
 
             }
@@ -111,7 +117,7 @@ object QueuePicks {
         suspend fun changeActivation(enable: Boolean) {
             League.executeOnFreshLock(
                 { db.leagueByCommand() },
-                { iData.reply("Du bist in keiner Liga auf diesem Server!") }) l@{
+                { iData.reply(K18n_NoLeagueForGuildFound) }) l@{
                 if (queueNotEnabled()) return@l
                 val idx = this(iData.user)
                 val data = persistentData.queuePicks.queuedPicks.getOrPut(idx) { QueuePicksUserData() }
@@ -119,17 +125,17 @@ object QueuePicks {
                 data.enabled = enable
                 save()
             }
-            iData.reply("Das System wurde für dich ${if (enable) "" else "de"}aktiviert!", ephemeral = true)
+            iData.reply(if (enable) K18n_QueuePicks.QueueEnabled else K18n_QueuePicks.QueueDisabled, ephemeral = true)
         }
 
-        object Enable : CommandFeature<NoArgs>(NoArgs(), CommandSpec("enable", "Aktiviert das System für dich")) {
+        object Enable : CommandFeature<NoArgs>(NoArgs(), CommandSpec("enable", K18n_QueuePicks.EnableHelp)) {
             context(iData: InteractionData)
             override suspend fun exec(e: NoArgs) {
                 changeActivation(true)
             }
         }
 
-        object Disable : CommandFeature<NoArgs>(NoArgs(), CommandSpec("disable", "Deaktiviert das System für dich")) {
+        object Disable : CommandFeature<NoArgs>(NoArgs(), CommandSpec("disable", K18n_QueuePicks.DisableHelp)) {
             context(iData: InteractionData)
             override suspend fun exec(e: NoArgs) {
                 changeActivation(false)
@@ -190,7 +196,7 @@ object QueuePicks {
 
     object ReloadButton : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("queuepicksreload")) {
         override val buttonStyle = ButtonStyle.PRIMARY
-        override val label = "Neue Pokemon laden"
+        override val label = K18n_QueuePicks.ReloadLabel
         override val emoji = Emoji.fromUnicode("\uD83D\uDD04")
 
         context(iData: InteractionData)
@@ -202,13 +208,13 @@ object QueuePicks {
     }
 
     object SetLocationModal : ModalFeature<SetLocationModal.Args>(::Args, ModalSpec("queuepickslocation")) {
-        override val title = "Pokemon verschieben"
+        override val title = K18n_QueuePicks.SetLocationModalTitle
 
         class Args : Arguments() {
             var mon by string().compIdOnly()
             var location by string<Int>("Position") {
                 validate { it.toIntOrNull() }
-                modal(placeholder = "Die Position, an die das Pokemon verschoben werden soll")
+                modal(placeholder = K18n_QueuePicks.SetLocationModalArgLocation)
             }
         }
 

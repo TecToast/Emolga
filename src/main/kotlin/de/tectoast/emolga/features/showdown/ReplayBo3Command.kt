@@ -10,23 +10,20 @@ import dev.minn.jda.ktx.generics.getChannel
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 
 object ReplayBo3Command :
-    CommandFeature<ReplayBo3Command.Args>(::Args, CommandSpec("replaybo3", "Replay-Command für Bo3 Spiele")) {
+    CommandFeature<ReplayBo3Command.Args>(::Args, CommandSpec("replaybo3", K18n_ReplayBo3.Help)) {
     class Args : Arguments() {
-        var replay1 by string("Replay 1", "Das erste Replay")
-        var replay2 by string("Replay 2", "Das zweite Replay")
-        var replay3 by string("Replay 3", "Das dritte Replay, falls es existiert").nullable()
+        var replay1 by string("Replay 1", K18n_ReplayBo3.ArgReplay1)
+        var replay2 by string("Replay 2", K18n_ReplayBo3.ArgReplay2)
+        var replay3 by string("Replay 3", K18n_ReplayBo3.ArgReplay3).nullable()
     }
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
         iData.deferReply()
         val channel = AnalysisDB.getResultChannel(iData.tc)
-            ?: return iData.reply("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
+            ?: return iData.reply(K18n_ReplayGeneric.NoReplayChannel)
         val tc = iData.jda.getChannel<GuildMessageChannel>(channel)
-        if (tc == null) {
-            iData.reply("Ich habe keinen Zugriff auf den Ergebnischannel!")
-            return
-        }
+            ?: return iData.reply(K18n_ReplayGeneric.NoAccessToResultChannel(channel))
         Analysis.analyseReplay(
             urlsProvided = listOfNotNull(e.replay1, e.replay2, e.replay3),
             resultchannelParam = tc,

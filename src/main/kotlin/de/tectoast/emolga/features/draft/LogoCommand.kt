@@ -12,14 +12,14 @@ import net.dv8tion.jda.api.entities.Message
 object LogoCommand : CommandFeature<LogoCommand.Args>(
     ::Args, CommandSpec(
         "logo",
-        "Reicht dein Logo ein",
+        K18n_Logo.Help,
     )
 ) {
     private val logger = KotlinLogging.logger {}
     val allowedFileFormats = setOf("png", "jpg", "jpeg", "webp")
 
     class Args : Arguments() {
-        var logo by attachment("Logo", "Das Logo")
+        var logo by attachment("Logo", K18n_Logo.ArgLogo)
     }
 
     context(iData: InteractionData)
@@ -32,7 +32,7 @@ object LogoCommand : CommandFeature<LogoCommand.Args>(
         iData.deferReply(ephemeral = true)
         val lsData = db.signups.get(iData.gid)!!
         val error = lsData.insertLogo(uid, logo)
-        iData.reply(error ?: "Dein Logo wurde erfolgreich hochgeladen!", ephemeral = true)
+        iData.reply(error ?: K18n_Logo.Success, ephemeral = true)
     }
 
 

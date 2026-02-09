@@ -1,11 +1,16 @@
 package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
+import de.tectoast.emolga.database.exposed.GuildLanguageDB
 import de.tectoast.emolga.database.exposed.SDNamesDB
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.features.draft.during.generic.K18n_NoSignupInGuild
 import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.*
+import de.tectoast.emolga.utils.translateToGuildLanguage
+import de.tectoast.generic.K18n_AlreadySignedUp
+import de.tectoast.generic.K18n_SignupVerb
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
 import kotlinx.coroutines.Dispatchers
@@ -28,15 +33,15 @@ object SignupManager {
 
     object Button : ButtonFeature<NoArgs>(NoArgs(), ButtonSpec("signup")) {
         override val buttonStyle = ButtonStyle.PRIMARY
-        override val label = "Anmelden"
+        override val label = K18n_SignupVerb
         override val emoji = Emoji.fromUnicode("✅")
 
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             val lsData = db.signups.get(iData.gid)
-                ?: return iData.reply("Diese Anmeldung ist bereits geschlossen!", ephemeral = true)
+                ?: return iData.reply(K18n_Signup.SignUpClosedError, ephemeral = true)
             if (lsData.getDataByUser(iData.user) != null) {
-                return iData.reply("Du bist bereits angemeldet!", ephemeral = true)
+                return iData.reply(K18n_AlreadySignedUp, ephemeral = true)
             }
             val modal = lsData.buildModal(old = null)
             if (modal == null) {
@@ -47,15 +52,15 @@ object SignupManager {
         }
     }
 
-    object UnsignupCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("unsignup", "Ziehe deine Anmeldung zurück")) {
+    object UnsignupCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("unsignup", K18n_Signup.UnsignupHelp)) {
 
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             val ligaStartData = db.signups.get(iData.gid) ?: return iData.reply(
-                "Es läuft derzeit keine Anmeldung auf diesem Server!", ephemeral = true
+                K18n_NoSignupInGuild, ephemeral = true
             )
             iData.reply(
-                if (ligaStartData.deleteUser(iData.user)) "✅ Deine Anmeldung wurde erfolgreich zurückgezogen!" else "❌ Du bist derzeit nicht angemeldet!",
+                if (ligaStartData.deleteUser(iData.user)) K18n_Signup.UnsignupSuccess else K18n_Signup.NotSignedUp,
                 ephemeral = true
             )
         }
@@ -64,20 +69,20 @@ object SignupManager {
     object SignupChangeCommand : CommandFeature<NoArgs>(
         NoArgs(), CommandSpec(
             "signupchange",
-            "Ermöglicht es dir, deine Anmeldung anzupassen",
+            K18n_Signup.SignupChangeHelp,
         )
     ) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             val ligaStartData = db.signups.get(iData.gid) ?: return iData.reply(
-                "Es läuft derzeit keine Anmeldung auf diesem Server!", ephemeral = true
+                K18n_NoSignupInGuild, ephemeral = true
             )
             val signUpData = ligaStartData.getDataByUser(iData.user) ?: return iData.reply(
-                "Du bist derzeit nicht angemeldet!",
+                K18n_Signup.NotSignedUp,
                 ephemeral = true
             )
             val modal = ligaStartData.buildModal(signUpData) ?: return iData.reply(
-                "Es gibt keine Daten, die du ändern kannst!",
+                K18n_Signup.SignupChangeNoData,
                 ephemeral = true
             )
             iData.replyModal(modal)
@@ -101,9 +106,15 @@ object SignupManager {
     ) {
         if (db.signups.get(gid) != null) return
         val tc = jda.getTextChannelById(config.announceChannel)!!
+
         val messageid =
-            tc.sendMessage(config.signupMessage.condAppend(!config.hideUserCount) { "\n\n**Teilnehmer: 0/${config.maxUsers.takeIf { it > 0 } ?: "?"}**" })
-                .addComponents(Button().into())
+            tc.sendMessage(config.signupMessage.condAppend(!config.hideUserCount) {
+                K18n_Signup.SignupMessageData(
+                    "0",
+                    config.maxUsers.takeIf { it > 0 }?.toString() ?: "?"
+                ).translateToGuildLanguage(gid)
+            })
+                .addComponents(Button.withoutIData(language = GuildLanguageDB.getLanguage(gid)).into())
                 .await().idLong
         db.signups.insertOne(
             LigaStartData(
@@ -140,21 +151,21 @@ object SignupManager {
         }
         signupMutex.withLock {
             with(db.signups.get(gid)!!) {
-                if (!isChange && full) return iData?.reply("❌ Die Anmeldung ist bereits voll!")
+                if (!isChange && full) return iData?.reply(K18n_Signup.SignupFull)
                 @Suppress("DeferredResultUnused")
                 data[SignUpInput.SDNAME_ID]?.let {
                     SDNamesDB.addIfAbsent(it, uid)
                 }
                 val jda = iData?.jda ?: jda
                 if (isChange) {
-                    val oldData = getDataByUser(uid) ?: return iData?.reply("Du bist derzeit nicht angemeldet!")
+                    val oldData = getDataByUser(uid) ?: return iData?.reply(K18n_Signup.NotSignedUp)
                     oldData.data.putAll(data)
                     handleSignupChange(oldData)
                     logoAttachment?.handleLogo(uid, iData)
-                    iData?.reply("Deine Daten wurden erfolgreich geändert!")
+                    iData?.reply(K18n_Signup.DataChangeSuccessful)
                     return null
                 }
-                iData?.reply("✅ Du wurdest erfolgreich angemeldet!")
+                iData?.reply(K18n_Signup.SignupSuccess)
                 giveParticipantRole {
                     (iData?.member?.invoke()) ?: jda.getGuildById(gid)?.retrieveMember(UserSnowflake.fromId(uid))!!
                         .await()
@@ -183,7 +194,7 @@ object SignupManager {
     private fun Message.Attachment.handleLogo(uid: Long, iData: InteractionData?) {
         signupScope.launch {
             lsData.insertLogo(uid, this@handleLogo)?.let { errorStr ->
-                iData?.reply("⚠️ Dein Logo konnte nicht hochgeladen werden: $errorStr")
+                iData?.reply(K18n_Signup.LogoError(errorStr.translateTo(iData.language)), ephemeral = true)
             }
         }
     }

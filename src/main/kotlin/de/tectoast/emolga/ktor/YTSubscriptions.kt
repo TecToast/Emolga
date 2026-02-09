@@ -72,9 +72,7 @@ fun setupYTSuscribtions() {
 private val mac: Mac by lazy {
     val algorithm = "HmacSHA1"
     Mac.getInstance(algorithm).apply {
-        init(
-            SecretKeySpec(Credentials.tokens.subscriber.secret.toByteArray(), algorithm)
-        )
+        init(SecretKeySpec(Credentials.tokens.subscriber.secret.toByteArray(), algorithm))
     }
 }
 

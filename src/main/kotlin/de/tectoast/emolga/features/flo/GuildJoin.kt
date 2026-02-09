@@ -5,6 +5,7 @@ import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
@@ -14,7 +15,7 @@ import net.dv8tion.jda.api.events.guild.GuildJoinEvent
 
 object GuildJoin : ButtonFeature<GuildJoin.Args>(::Args, ButtonSpec("guildinvite")) {
     override val buttonStyle = ButtonStyle.PRIMARY
-    override val label = "Invite"
+    override val label = "Invite".k18n
     override val emoji = Emoji.fromUnicode("✉️")
 
     class Args : Arguments() {
@@ -32,7 +33,7 @@ object GuildJoin : ButtonFeature<GuildJoin.Args>(::Args, ButtonSpec("guildinvite
             e.jda.openPrivateChannelById(Constants.FLOID).flatMap {
                 it.send(
                     "${e.guild.name} (${e.guild.id})",
-                    components = GuildJoin { gid = e.guild.idLong }.into()
+                    components = withoutIData { gid = e.guild.idLong }.into()
                 )
             }.queue()
         }

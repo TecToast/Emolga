@@ -3,8 +3,10 @@ package de.tectoast.emolga.utils.draft
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.NameConventionsDB
+import de.tectoast.emolga.features.draft.during.K18n_QueuePicks
+import de.tectoast.emolga.features.draft.during.generic.K18n_TierNotFound
+import de.tectoast.emolga.league.K18n_League
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.league.PickData
 import de.tectoast.emolga.league.TierData
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.PointBasedPriceManager.Companion.pointManager
@@ -13,6 +15,8 @@ import de.tectoast.emolga.utils.draft.TierlistPriceManager.Companion.deductPicks
 import de.tectoast.emolga.utils.json.ErrorOrNull
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.generic.K18n_Or
+import de.tectoast.k18n.generated.K18nMessage
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -231,7 +235,7 @@ interface TierBasedPriceManager : TierlistPriceManager {
     val updraftHandler: UpdraftHandler
 
     context(league: League, tl: Tierlist)
-    override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): String? {
+    override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): ErrorOrNull {
         updraftHandler.handleUpdraft(action)?.let { return it }
         return handleDraftActionAfterGeneralTierCheck(action)
     }
@@ -278,10 +282,10 @@ interface CombinedOptionsPriceManager : TierBasedPriceManager {
         val allTiers = getAllPossibleTiers()
         if (allTiers.all { map -> map.getOrDefault(specifiedTier, 0) <= 0 }) {
             if (combinedOptions.all { p -> p[specifiedTier] == 0 }) {
-                return "Ein Pokemon aus dem $specifiedTier-Tier musst du in ein anderes Tier hochdraften!"
+                return K18n_Tierlist.MustUpdraft(specifiedTier)
             }
             if (action.switch != null) return null
-            return "Du kannst dir kein $specifiedTier-Pokemon mehr picken!"
+            return K18n_Tierlist.CantPickTier(specifiedTier)
         }
         return null
     }
@@ -318,7 +322,7 @@ interface CombinedOptionsPriceManager : TierBasedPriceManager {
         }
         val isIllegal = finalMaps.all { map -> map.any { it.value < 0 } }
         if (isIllegal) {
-            return "Mit dieser Queue hättest du zu viele Pokemon in einem oder mehreren Tiers!"
+            return K18n_QueuePicks.LegalTooManyInTier
         }
         return null
     }
@@ -375,7 +379,7 @@ sealed interface GeneralCheck {
         override suspend fun check(action: DraftAction): ErrorOrNull {
             val isMega = action.official.isMega
             if (isMega && league.picks().any { it.name.isMega }) {
-                return "Du kannst nur ein Mega-Pokemon in deinem Team haben!"
+                return K18n_Tierlist.OnlyOneMega
             }
             return null
         }
@@ -391,7 +395,7 @@ sealed interface GeneralCheck {
             }
             val actionDexNumber = getDexNumber(action.official)
             if (actionDexNumber in existingDexNumbers) {
-                return "Du kannst nur ein Pokemon pro Dex-Nummer in deinem Team haben!"
+                return K18n_Tierlist.SpeciesClause
             }
             return null
         }
@@ -441,15 +445,12 @@ sealed interface TierlistPriceManager {
     fun handleDraftAction(action: DraftAction, context: DraftActionContext? = null): ErrorOrNull
 
     context(league: League, tl: Tierlist)
-    fun buildAnnounceData(idx: Int = league.current): String?
+    suspend fun buildAnnounceData(idx: Int = league.current): K18nMessage?
 
     fun getTiers(): List<String>
 
     context(league: League, tl: Tierlist)
     suspend fun checkLegalityOfQueue(idx: Int, currentState: List<QueuedAction>): ErrorOrNull
-
-    context(league: League, tl: Tierlist)
-    fun getPickMessageSuffix(pickData: PickData, type: DraftMessageType): String?
 
     @Serializable
     @SerialName("SimpleTierBased")
@@ -464,19 +465,19 @@ sealed interface TierlistPriceManager {
             val options = getPossibleTiers()
             if (options[action.specifiedTier]!! <= 0) {
                 if (tiers[action.specifiedTier] == 0) {
-                    return "Ein Pokemon aus dem ${action.specifiedTier}-Tier musst du in ein anderes Tier hochdraften!"
+                    return K18n_Tierlist.MustUpdraft(action.specifiedTier)
                 }
                 if (action.switch != null) return null
-                return "Du kannst dir kein ${action.specifiedTier}-Pokemon mehr picken!"
+                return K18n_Tierlist.CantPickTier(action.specifiedTier)
             }
             return null
         }
 
         context(league: League, tl: Tierlist)
-        override fun buildAnnounceData(idx: Int): String? {
+        override suspend fun buildAnnounceData(idx: Int): K18nMessage? {
             return getPossibleTiers(idx).entries.filterNot { it.value == 0 }
                 .joinToString { tierAmountToString(it.key, it.value) }.let {
-                    if (it.isEmpty()) null else "Mögliche Tiers: $it"
+                    if (it.isEmpty()) null else K18n_League.PossibleTiers(it)
                 }
         }
 
@@ -523,16 +524,10 @@ sealed interface TierlistPriceManager {
             val result = map.entries.firstOrNull { it.value < 0 }
             val isIllegal = result != null
             if (isIllegal) {
-                return "Mit dieser Queue hättest du zu viele Pokemon im `${result.key}`-Tier!"
+                return K18n_QueuePicks.LegalTooManyInSingleTier(result.key)
             }
             return null
         }
-
-        context(league: League, tl: Tierlist)
-        override fun getPickMessageSuffix(
-            pickData: PickData,
-            type: DraftMessageType
-        ) = null
     }
 
     @Serializable
@@ -544,22 +539,22 @@ sealed interface TierlistPriceManager {
         PointBasedPriceManager {
 
         context(league: League, tl: Tierlist)
-        override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): String? {
+        override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): ErrorOrNull {
             val pointManager = pointManager()
             val currentPoints = pointManager[league.current]
             val cost = prices[action.specifiedTier]
-                ?: return "Das Tier `${action.specifiedTier}` existiert nicht!"
+                ?: return K18n_TierNotFound(action.specifiedTier)
             val pointsBack = action.switch?.let { switched -> prices[switched.tier]!! } ?: 0
             val newPoints = currentPoints - cost + pointsBack
             if (newPoints < 0) {
-                return "Dafür hast du nicht genug Punkte! (`$currentPoints - $cost${if (pointsBack == 0) "" else " + $pointsBack"} = $newPoints < 0`)"
+                return K18n_Tierlist.NotEnoughPoints("$currentPoints - $cost${if (pointsBack == 0) "" else " + $pointsBack"} = $newPoints < 0")
             }
             val cpicks = league.picks()
             if (action.switch != null) {
                 val minimumRequired =
                     minimumNeededPointsForTeamCompletion(cpicks.count { !it.noCost } + 1)
                 if (newPoints < minimumRequired) {
-                    return "Wenn du dir dieses Pokemon holen würdest, kann dein Kader nicht mehr vervollständigt werden! (Du musst nach diesem Pick noch mindestens $minimumRequired Punkte haben, hättest aber nur noch $newPoints)"
+                    return K18n_Tierlist.MinimumNeededError(minimumRequired, newPoints)
                 }
             }
             pointManager[league.current] = newPoints
@@ -571,8 +566,8 @@ sealed interface TierlistPriceManager {
             (league.teamsize - picksSizeAfter) * prices.values.min()
 
         context(league: League, tl: Tierlist)
-        override fun buildAnnounceData(idx: Int): String {
-            return "${pointManager()[idx]} mögliche Punkte"
+        override suspend fun buildAnnounceData(idx: Int): K18nMessage {
+            return K18n_League.PossiblePoints(pointManager()[idx])
         }
 
         override fun getTiers(): List<String> {
@@ -599,17 +594,8 @@ sealed interface TierlistPriceManager {
             if (pointManager()[idx] - gPoints + yPoints < minimumNeededPointsForTeamCompletion(
                     (league.picks[idx]?.size ?: 0) + currentState.size
                 )
-            ) return "Mit dieser Queue könnte dein Team nicht mehr vervollständigt werden!"
+            ) return K18n_QueuePicks.LegalTeamCompletion
             return null
-        }
-
-        context(league: League, tl: Tierlist)
-        override fun getPickMessageSuffix(
-            pickData: PickData,
-            type: DraftMessageType
-        ): String? {
-            if (!pickData.freePick) return null
-            return "(Free-Pick) [Neue Punktzahl: ${getPointsOfUser(league.current)}]"
         }
     }
 
@@ -647,7 +633,7 @@ sealed interface TierlistPriceManager {
         }
 
         context(league: League, tl: Tierlist)
-        override fun buildAnnounceData(idx: Int): String? {
+        override suspend fun buildAnnounceData(idx: Int): K18nMessage? {
             val res = getAllPossibleTiers(idx)
             val allTiers = res.flatMapTo(mutableSetOf()) { it.keys }.sortedBy {
                 tierOrder.indexOf(it)
@@ -665,7 +651,7 @@ sealed interface TierlistPriceManager {
                         .joinToString(", ") {
                             tierAmountToString(it, reduced[it]!!)
                         }
-                }.joinToString(" **--- oder ---** ")
+                }.joinToString(" **--- ${K18n_Or.translateToGuildLanguage(league.guild)} ---** ")
                 append(baseData)
                 if (additionalData.isNotEmpty()) {
                     append(" + [")
@@ -673,14 +659,8 @@ sealed interface TierlistPriceManager {
                     append("]")
                 }
             }
-            return if (str.isEmpty()) null else "Mögliche Tiers: $str"
+            return if (str.isEmpty()) null else K18n_League.PossibleTiers(str)
         }
-
-        context(league: League, tl: Tierlist)
-        override fun getPickMessageSuffix(
-            pickData: PickData,
-            type: DraftMessageType
-        ): String? = null
 
         private fun MutableMap<String, Int>.addFromMutable(other: Map<String, Int>) {
             for ((key, value) in other) {
@@ -751,7 +731,7 @@ sealed interface TierlistPriceManager {
         }
 
         context(league: League, tl: Tierlist)
-        override fun buildAnnounceData(idx: Int): String? {
+        override suspend fun buildAnnounceData(idx: Int): K18nMessage? {
             val cpicks = league.picks(idx)
             val fromGeneric = genericTiers.deductPicks(cpicks)
             val singularOptions = getSingularChoiceList()
@@ -782,14 +762,8 @@ sealed interface TierlistPriceManager {
                     append(additionalData)
                 }
             }
-            return if (str.isEmpty()) null else "Mögliche Tiers: $str"
+            return if (str.isEmpty()) null else K18n_League.PossibleTiers(str)
         }
-
-        context(league: League, tl: Tierlist)
-        override fun getPickMessageSuffix(
-            pickData: PickData,
-            type: DraftMessageType
-        ) = null
 
         fun getSingularChoiceList() = ChoiceTierOption.createSingularList(choices)
 
@@ -825,7 +799,7 @@ sealed interface TierlistPriceManager {
         override fun handleDraftAction(action: DraftAction, context: DraftActionContext?): ErrorOrNull = null
 
         context(league: League, tl: Tierlist)
-        override fun buildAnnounceData(idx: Int) = null
+        override suspend fun buildAnnounceData(idx: Int) = null
 
         override fun getTiers(): List<String> = emptyList()
 
@@ -833,12 +807,6 @@ sealed interface TierlistPriceManager {
         override suspend fun checkLegalityOfQueue(
             idx: Int,
             currentState: List<QueuedAction>
-        ) = null
-
-        context(league: League, tl: Tierlist)
-        override fun getPickMessageSuffix(
-            pickData: PickData,
-            type: DraftMessageType
         ) = null
     }
 
@@ -904,9 +872,9 @@ sealed interface UpdraftHandler {
         context(league: League, tl: Tierlist, priceManager: TierlistPriceManager)
         override fun handleUpdraft(action: DraftAction): ErrorOrNull {
             val compareResult = priceManager.compareTiers(action.specifiedTier, action.officialTier)
-                ?: return "Das Tier `${action.specifiedTier}` existiert nicht!"
+                ?: return K18n_TierNotFound(action.specifiedTier)
             if (compareResult < 0 && action.switch == null) {
-                return "Du kannst ein ${action.officialTier}-Mon nicht ins ${action.specifiedTier} hochdraften!"
+                return K18n_Tierlist.CantUpdraft(action.official, action.specifiedTier)
             }
             return null
         }
@@ -918,10 +886,10 @@ sealed interface UpdraftHandler {
         context(league: League, tl: Tierlist, priceManager: TierlistPriceManager)
         override fun handleUpdraft(action: DraftAction): ErrorOrNull {
             val diff = priceManager.compareTiers(action.specifiedTier, action.officialTier)
-                ?: return "Das Tier `${action.specifiedTier}` existiert nicht!"
+                ?: return K18n_TierNotFound(action.specifiedTier)
             if (diff < 0 && action.switch == null) {
                 if (-diff > gap) {
-                    return "Du kannst ein ${action.officialTier}-Mon nur bis zu $gap Tiers hochdraften!"
+                    return K18n_Tierlist.GapError(action.official, gap)
                 }
             }
             return null
@@ -934,9 +902,9 @@ sealed interface UpdraftHandler {
         context(league: League, tl: Tierlist, priceManager: TierlistPriceManager)
         override fun handleUpdraft(action: DraftAction): ErrorOrNull {
             val compareResult = priceManager.compareTiers(action.specifiedTier, action.officialTier)
-                ?: return "Das Tier `${action.specifiedTier}` existiert nicht!"
+                ?: return K18n_TierNotFound(action.specifiedTier)
             if (compareResult != 0) {
-                return "Updrafts sind in diesem Draft deaktiviert!"
+                return K18n_Tierlist.UpdraftDisabled
             }
             return null
         }

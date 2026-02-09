@@ -6,6 +6,7 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Constants
+import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.messages.Mentions
 import dev.minn.jda.ktx.messages.SendDefaults
 import dev.minn.jda.ktx.messages.send
@@ -15,13 +16,13 @@ import net.dv8tion.jda.api.utils.FileUpload
 
 object SendFeatures {
     class Args : Arguments() {
-        var id by long("id", "id")
-        var msg by string("msg", "msg")
+        var id by long("id", "id".k18n)
+        var msg by string("msg", "msg".k18n)
     }
 
     private fun String.convertForSend() = this.replace("\\n", "\n")
 
-    object SendPNCommand : CommandFeature<Args>(::Args, CommandSpec("sendpn", "Sendet eine PN an einen User")) {
+    object SendPNCommand : CommandFeature<Args>(::Args, CommandSpec("sendpn", "Sendet eine PN an einen User".k18n)) {
         init {
             restrict(flo)
         }
@@ -34,7 +35,8 @@ object SendFeatures {
 
     }
 
-    object SendTCCommand : CommandFeature<Args>(::Args, CommandSpec("sendtc", "Sendet eine Nachricht in einen TC")) {
+    object SendTCCommand :
+        CommandFeature<Args>(::Args, CommandSpec("sendtc", "Sendet eine Nachricht in einen TC".k18n)) {
         init {
             restrict(flo)
         }

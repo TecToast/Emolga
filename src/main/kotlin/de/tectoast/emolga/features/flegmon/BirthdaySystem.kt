@@ -7,6 +7,7 @@ import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.createCoroutineContext
+import de.tectoast.emolga.utils.k18n
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -32,12 +33,12 @@ object BirthdaySystem : CoroutineScope {
 
     object SetBirthdayCommand : CommandFeature<SetBirthdayCommand.Args>(
         ::Args,
-        CommandSpec("setbirthday", "Setzt einen Geburtstag, damit ich dir gratulieren kann :)")
+        CommandSpec("setbirthday", "Setzt einen Geburtstag, damit ich dir gratulieren kann :)".k18n)
     ) {
         class Args : Arguments() {
-            var day by int("day", "Der Tag des Geburtstags")
-            var month by int("month", "Der Monat des Geburtstags")
-            var year by int("year", "Das Jahr des Geburtstags")
+            var day by int("day", "Der Tag des Geburtstags".k18n)
+            var month by int("month", "Der Monat des Geburtstags".k18n)
+            var year by int("year", "Das Jahr des Geburtstags".k18n)
         }
 
         context(iData: InteractionData)

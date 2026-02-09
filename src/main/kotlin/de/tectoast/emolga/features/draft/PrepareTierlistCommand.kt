@@ -9,6 +9,7 @@ import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
+import de.tectoast.emolga.utils.k18n
 import de.tectoast.emolga.utils.records.CoordXMod
 import de.tectoast.emolga.utils.records.DocRange
 
@@ -16,7 +17,7 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
     ::Args,
     CommandSpec(
         "preparetierlist",
-        "Richtet die Tierliste ein",
+        K18n_PrepareTierlist.Help,
     )
 ) {
     init {
@@ -24,16 +25,19 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
     }
 
     class Args : Arguments() {
-        var gid by long("Guild-ID", "Die ID der Guild")
-        var docurl by string("Doc-URL", "Die URL des Dokuments, in dem die Namen stehen")
-        var tierlistsheet by string("Tierlist-Sheet", "Der Name des Tierlist-Sheets")
-        var ranges by list("Bereich %s", "Der %s. Bereich", 10, 1)
-        var complexSign by string("Komplexsymbol", "Das Symbol für Komplexbanns").nullable()
-        var tlIdentifier by string("TL-Identifier", "Der Identifier für die Tierlist").default("")
-        var shiftMode by enumBasic<ShiftMode>("Shift-Mode", "Der Shift-Mode").nullable()
-        var shiftData by string("Shift-Data", "Die Shift-Data").nullable()
-        var dataMapper by enumBasic<DataMapper>("DataMapper", "Der potenzielle DataMapper").nullable()
-        var language by enumBasic<Language>("Sprache", "Die Sprache der Tierliste") {
+        var gid by long("Guild-ID", "Die ID der Guild".k18n)
+        var docurl by string("Doc-URL", "Die URL des Dokuments, in dem die Namen stehen".k18n)
+        var tierlistsheet by string("Tierlist-Sheet", "Der Name des Tierlist-Sheets".k18n)
+        var ranges by list("Bereich %s", "Der %s. Bereich".k18n, 10, 1)
+        var complexSign by string("Komplexsymbol", "Das Symbol für Komplexbanns".k18n).nullable()
+        var tlIdentifier by string("TL-Identifier", "Der Identifier für die Tierlist".k18n).default("")
+        var shiftMode by enumBasic<ShiftMode>("Shift-Mode", "Der Shift-Mode".k18n).nullable()
+        var shiftData by string("Shift-Data", "Die Shift-Data".k18n).nullable()
+        var dataMapper by enumBasic<DataMapper>(
+            "DataMapper",
+            "Der potenzielle DataMapper".k18n
+        ).nullable()
+        var language by enumBasic<Language>("Sprache", "Die Sprache der Tierliste".k18n) {
             default = Language.GERMAN
         }
     }
@@ -167,12 +171,9 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                 language = e.language
             )
         } catch (ex: DuplicatesFoundException) {
+            val duplicates = ex.duplicates.joinToString(", ")
             iData.reply(
-                "Es wurden Pokemon doppelt in der Tierliste gefunden! Bitte überprüfe die folgenden Pokemon: ${
-                    ex.duplicates.joinToString(
-                        ", "
-                    )
-                }"
+                K18n_PrepareTierlist.DuplicatePokemon(duplicates)
             )
         }
     }

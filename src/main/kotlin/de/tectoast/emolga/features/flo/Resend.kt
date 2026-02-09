@@ -1,6 +1,7 @@
 package de.tectoast.emolga.features.flo
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.k18n
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder
 
@@ -16,10 +17,10 @@ object Resend {
     }
 
     object Modal : ModalFeature<Modal.Args>(::Args, ModalSpec("resend")) {
-        override val title = "Resend"
+        override val title = "Resend".k18n
 
         class Args : Arguments() {
-            var tc by long("Channel", "Der Channel")
+            var tc by long("Channel", "Der Channel".k18n)
         }
 
 

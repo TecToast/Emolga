@@ -8,16 +8,16 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NextPlayerData
 import de.tectoast.emolga.league.SkipReason
 
-object SkipCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("skip", "Überspringt deinen Zug")) {
+object SkipCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("skip", K18n_Skip.Help)) {
 
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
         League.executePickLike l@{
             if (!isSwitchDraft) {
-                iData.reply("Dieser Draft ist kein Switch-Draft, daher wird /skip nicht unterstützt!")
+                iData.reply(K18n_Skip.IsNoSwitchDraft)
                 return@l
             }
-            replySkip()
+            this.replyGeneral(K18n_Skip.Success)
             afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP, current))
         }
     }

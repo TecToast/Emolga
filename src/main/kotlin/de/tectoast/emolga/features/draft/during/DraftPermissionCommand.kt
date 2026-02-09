@@ -1,40 +1,43 @@
 package de.tectoast.emolga.features.draft.during
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.features.draft.during.generic.K18n_NoLeagueForGuildFound
 import de.tectoast.emolga.league.AllowedData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.t
+import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 
 object DraftPermissionCommand :
-    CommandFeature<NoArgs>(NoArgs(), CommandSpec("draftpermission", "Konfiguriert deine Ersatzdrafter")) {
+    CommandFeature<NoArgs>(NoArgs(), CommandSpec("draftpermission", K18n_DraftPermission.Help)) {
 
-    object Allow : CommandFeature<Allow.Args>(::Args, CommandSpec("allow", "Erlaube einer Person das Ersatzdraften")) {
+    object Allow : CommandFeature<Allow.Args>(::Args, CommandSpec("allow", K18n_DraftPermission.AllowHelp)) {
         class Args : Arguments() {
-            var user by member("User", "Der User, der für dich picken darf")
-            var withmention by enumAdvanced<Mention>("Ping", "Wer soll gepingt werden?")
+            var user by member("User", K18n_DraftPermission.AllowArgUser)
+            var withmention by enumAdvanced<Mention>("Ping", K18n_DraftPermission.AllowArgMention)
         }
 
-        enum class Mention(override val prettyName: String, val selfmention: Boolean, val othermention: Boolean) :
+        enum class Mention(override val prettyName: K18nMessage, val selfmention: Boolean, val othermention: Boolean) :
             Nameable {
-            ME("Nur ich", selfmention = true, othermention = false),
-            OTHER("Nur andere Person", selfmention = false, othermention = true),
-            BOTH("Beide", selfmention = true, othermention = true)
+            ME(K18n_DraftPermission.AllowMentionMe, selfmention = true, othermention = false),
+            OTHER(K18n_DraftPermission.AllowMentionOther, selfmention = false, othermention = true),
+            BOTH(K18n_DraftPermission.AllowMentionBoth, selfmention = true, othermention = true)
         }
 
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock(
                 { db.leagueByCommand() },
-                { iData.reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) l@{
+                { iData.reply(K18n_NoLeagueForGuildFound) }) l@{
                 val mem = e.user
-                if (mem.user.isBot) return@l iData.reply("Du kannst keine Bots als Ersatzdrafter hinzufügen!")
+                if (mem.user.isBot) return@l iData.reply(K18n_DraftPermission.NoBotsAllowed)
                 val withMention = e.withmention
                 val id = mem.idLong
                 val set = performPermissionAdd(iData.user, id, withMention)
-                iData.reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {
+                iData.reply(embeds = Embed(title = K18n_DraftPermission.EmbedTitle.t(), color = embedColor) {
                     description = set.toDescription(iData.user)
                 }.into(), ephemeral = true)
                 save()
@@ -64,21 +67,21 @@ object DraftPermissionCommand :
         return set
     }
 
-    object Deny : CommandFeature<Deny.Args>(::Args, CommandSpec("deny", "Verbiete einer Person das Ersatzdraften")) {
+    object Deny : CommandFeature<Deny.Args>(::Args, CommandSpec("deny", K18n_DraftPermission.DenyHelp)) {
         class Args : Arguments() {
-            var user by member("User", "Der User, der für dich picken darf")
+            var user by member("User", K18n_DraftPermission.DenyArgUser)
         }
 
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock(
                 { db.leagueByCommand() },
-                { iData.reply("Du nimmst nicht an einer Liga auf diesem Server teil!") }) l@{
+                { iData.reply(K18n_NoLeagueForGuildFound) }) l@{
                 val mem = e.user
-                if (mem.idLong == iData.user) return@l iData.reply("Du darfst tatsächlich immer picken :)")
+                if (mem.idLong == iData.user) return@l iData.reply(K18n_DraftPermission.DenyYourself)
                 val set = allowed.getOrPut(this(iData.user)) { mutableSetOf() }
                 set.removeIf { it.u == mem.idLong }
-                iData.reply(embeds = Embed(title = "Deine Draftberechtigungen", color = embedColor) {
+                iData.reply(embeds = Embed(title = K18n_DraftPermission.EmbedTitle.t(), color = embedColor) {
                     description = set.toDescription(iData.user)
                 }.into(), ephemeral = true)
                 save()
@@ -86,11 +89,12 @@ object DraftPermissionCommand :
         }
     }
 
+    context(iData: InteractionData)
     fun Set<AllowedData>.toDescription(user: Long) = sortedWith { o1, o2 ->
         if (o1.u == user) -1
         else if (o2.u == user) 1
         else 0
-    }.joinToString("\n") { "<@${it.u}> (Mit Ping: ${if (it.mention) "ja" else "nein"})" }
+    }.joinToString("\n") { (if (it.mention) K18n_DraftPermission.EmbedYes(it.u) else K18n_DraftPermission.EmbedNo(it.u)).t() }
 
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {

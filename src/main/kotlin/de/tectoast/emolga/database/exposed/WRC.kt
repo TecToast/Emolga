@@ -6,6 +6,7 @@ import de.tectoast.emolga.utils.condAppend
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.embedColor
+import de.tectoast.emolga.utils.k18n
 import de.tectoast.emolga.utils.universalLogger
 import dev.minn.jda.ktx.messages.Embed
 import net.dv8tion.jda.api.entities.emoji.Emoji
@@ -127,8 +128,8 @@ object WRCUserSignupDB : Table("wrc_usersignup") {
             .map { it[USERID] }.firstOrNull()
     }
 
-    fun buildSignupButton(wrcName: String, gameday: Int, disabled: Boolean) = WRCSignupButton(
-        label = if (disabled) "Anmeldung geschlossen" else "An/abmelden",
+    fun buildSignupButton(wrcName: String, gameday: Int, disabled: Boolean) = WRCSignupButton.withoutIData(
+        label = (if (disabled) "Anmeldung geschlossen" else "An/abmelden").k18n,
         emoji = Emoji.fromUnicode("✅").takeUnless { disabled },
         disabled = disabled
     ) {

@@ -2,6 +2,10 @@ package de.tectoast.emolga.features
 
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.OneTimeCache
+import de.tectoast.emolga.utils.t
+import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
+import de.tectoast.k18n.generated.K18nLanguage
+import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.generics.getChannel
 import dev.minn.jda.ktx.messages.*
@@ -32,7 +36,8 @@ abstract class InteractionData(
     open var tc: Long,
     open val gid: Long,
     member: Member? = null,
-    open val event: GenericInteractionCreateEvent? = null
+    open val event: GenericInteractionCreateEvent? = null,
+    open val language: K18nLanguage = K18N_DEFAULT_LANGUAGE
 ) {
 
     val acknowledged: CompletableDeferred<Unit> = CompletableDeferred()
@@ -52,6 +57,7 @@ abstract class InteractionData(
     val hook by lazy { (event as IDeferrableCallback).hook }
     private var ephemeralDefault = false
     val jda: JDA by lazy { member?.jda ?: de.tectoast.emolga.bot.jda }
+
 
     suspend fun awaitResponse() = responseDeferred.await()
     abstract fun reply(
@@ -91,6 +97,25 @@ abstract class InteractionData(
         )
     )
 
+    fun reply(
+        content: K18nMessage,
+        embeds: Collection<MessageEmbed> = SendDefaults.embeds,
+        components: Collection<MessageTopLevelComponent> = SendDefaults.components,
+        files: Collection<FileUpload> = emptyList(),
+        tts: Boolean = false,
+        mentions: Mentions = Mentions.default(),
+        ephemeral: Boolean = ephemeralDefault,
+    ) = reply(
+        ephemeral, MessageCreate(
+            content = content.t(),
+            embeds = embeds,
+            files = files,
+            components = components,
+            tts = tts,
+            mentions = mentions
+        )
+    )
+
     fun <T> replyNull(
         content: String = SendDefaults.content,
         embeds: Collection<MessageEmbed> = SendDefaults.embeds,
@@ -103,6 +128,27 @@ abstract class InteractionData(
         reply(
             ephemeral, MessageCreate(
                 content = content,
+                embeds = embeds,
+                files = files,
+                components = components,
+                tts = tts,
+                mentions = mentions
+            )
+        )
+        return null
+    }
+    fun <T> replyNull(
+        content: K18nMessage,
+        embeds: Collection<MessageEmbed> = SendDefaults.embeds,
+        components: Collection<MessageTopLevelComponent> = SendDefaults.components,
+        files: Collection<FileUpload> = emptyList(),
+        tts: Boolean = false,
+        mentions: Mentions = Mentions.default(),
+        ephemeral: Boolean = ephemeralDefault,
+    ): T? {
+        reply(
+            ephemeral, MessageCreate(
+                content = content.t(),
                 embeds = embeds,
                 files = files,
                 components = components,
@@ -128,6 +174,22 @@ abstract class InteractionData(
             replace = replace
         )
     )
+    fun edit(
+        contentK18n: K18nMessage? = null,
+        embeds: Collection<MessageEmbed>? = null,
+        components: Collection<MessageTopLevelComponent>? = null,
+        attachments: Collection<AttachedFile>? = null,
+        replace: Boolean = MessageEditDefaults.replace,
+    ) = edit(
+        MessageEdit(
+            content = contentK18n?.t(),
+            embeds = embeds,
+            files = attachments,
+            components = components,
+            replace = replace
+        )
+    )
+
 
 
     suspend fun replyAwait(
@@ -141,6 +203,24 @@ abstract class InteractionData(
     ) = replyAwait(
         ephemeral, MessageCreate(
             content = content,
+            embeds = embeds,
+            files = files,
+            components = components,
+            tts = tts,
+            mentions = mentions
+        )
+    )
+    suspend fun replyAwait(
+        content: K18nMessage,
+        embeds: Collection<MessageEmbed> = SendDefaults.embeds,
+        components: Collection<MessageTopLevelComponent> = SendDefaults.components,
+        files: Collection<FileUpload> = emptyList(),
+        tts: Boolean = false,
+        mentions: Mentions = Mentions.default(),
+        ephemeral: Boolean = ephemeralDefault
+    ) = replyAwait(
+        ephemeral, MessageCreate(
+            content = content.t(),
             embeds = embeds,
             files = files,
             components = components,
@@ -171,9 +251,10 @@ class TestInteractionData(
     user: Long = Constants.FLOID,
     tc: Long = Constants.TEST_TCID,
     gid: Long = Constants.G.MY,
+    language: K18nLanguage = K18N_DEFAULT_LANGUAGE,
     val sendReplyInTc: Boolean = true
 ) :
-    InteractionData(user, tc, gid) {
+    InteractionData(user, tc, gid, language = language) {
 
     init {
         redirectTestCommandLogsToChannel?.let { logsChannel ->
@@ -217,7 +298,7 @@ class TestInteractionData(
 }
 
 class RealInteractionData(
-    val e: GenericInteractionCreateEvent,
+    val e: GenericInteractionCreateEvent, override val language: K18nLanguage = K18N_DEFAULT_LANGUAGE
 ) : InteractionData(e.user.idLong, e.channel!!.idLong, e.guild?.idLong ?: -1, e.member, e) {
 
     override fun reply(ephemeral: Boolean, msgCreateData: MessageCreateData) {

@@ -3,11 +3,12 @@
 package de.tectoast.emolga.features
 
 import com.google.common.reflect.ClassPath
+import de.tectoast.emolga.K18n_FeatureManager
 import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.CmdManager
-import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.createCoroutineScope
+import de.tectoast.emolga.database.exposed.GuildLanguageDB
+import de.tectoast.emolga.utils.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import mu.KotlinLogging
@@ -83,7 +84,8 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
         feature: Feature<*, GenericInteractionCreateEvent, Arguments>,
         e: GenericInteractionCreateEvent,
     ) {
-        val data = RealInteractionData(e)
+        val language = GuildLanguageDB.getLanguage(e.guild?.idLong)
+        val data = RealInteractionData(e, language)
         surveillanceScope.launch {
             val executionStart = TimeSource.Monotonic.markNow()
             withTimeoutOrNull(10000) {
@@ -105,7 +107,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                             feature.populateArgs(data, e, args)
                         } catch (ex: ArgumentException) {
                             data.reply(
-                                ex.message + "\nWenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}.",
+                                ex.msg.t() + "\n" + K18n_FeatureManager.IfErrorContact(Constants.MYTAG),
                                 ephemeral = true
                             )
                             return
@@ -119,7 +121,7 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                 }
             } catch (ex: Exception) {
                 reply(
-                    "Es ist ein Fehler beim Ausführen der Interaktion aufgetreten!\nDieser wurde bereits gemeldet und sollte zeitnah behoben werden.",
+                    K18n_FeatureManager.InteractionError,
                     ephemeral = true
                 )
                 logger.error(
@@ -153,13 +155,17 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
     private suspend fun buildSlashCommandData(
         cmd: CommandFeature<*>,
         gid: Long
-    ) = Commands.slash(cmd.spec.name, cmd.spec.help).apply {
+    ) = Commands.slash(cmd.spec.name, cmd.spec.help.default()).apply {
         defaultPermissions = cmd.slashPermissions
+        setDescriptionLocalizations(cmd.spec.help.toDiscordLocaleMap())
         setContexts(if (cmd.spec.inDM) InteractionContextType.BOT_DM else InteractionContextType.GUILD)
         if (cmd.children.isNotEmpty()) {
             cmd.children.forEach {
                 addSubcommands(
-                    SubcommandData(it.spec.name, it.spec.help).addOptions(
+                    SubcommandData(
+                        it.spec.name,
+                        it.spec.help.default()
+                    ).setDescriptionLocalizations(it.spec.help.toDiscordLocaleMap()).addOptions(
                         generateOptionData(
                             it, gid
                         )
@@ -204,7 +210,13 @@ class FeatureManager(private val loadListeners: Set<ListenerProvider>) {
                     ArgumentPresence.OPTIONAL -> false
                 }
             } ?: !a.optional
-            OptionData(a.optionType, a.name.nameToDiscordOption(), a.help, required, spec?.autocomplete != null).apply {
+            OptionData(
+                a.optionType,
+                a.name.nameToDiscordOption(),
+                a.help.translateToGuildLanguage(gid),
+                required,
+                spec?.autocomplete != null
+            ).apply {
                 if (spec?.choices != null) addChoices(spec.choices)
             }
         }

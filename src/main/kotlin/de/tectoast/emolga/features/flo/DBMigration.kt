@@ -3,6 +3,7 @@ package de.tectoast.emolga.features.flo
 import com.google.common.reflect.ClassPath
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
@@ -18,7 +19,7 @@ object DBMigration {
 
     object Button : ButtonFeature<Button.Args>(::Args, ButtonSpec("dbmigration")) {
         override val buttonStyle = ButtonStyle.PRIMARY
-        override val label = "Execute"
+        override val label = "Execute".k18n
 
         class Args : Arguments() {
             var id: String by string()
@@ -38,11 +39,11 @@ object DBMigration {
                 }
                 statementsById.remove(e.id)
             }
-            iData.edit(components = Button(disabled = true) { this.id = "" }.into())
+            iData.edit(contentK18n = null, components = Button(disabled = true) { this.id = "" }.into())
         }
     }
 
-    object Command : CommandFeature<NoArgs>(NoArgs(), CommandSpec("dbmigration", "DB Migration")) {
+    object Command : CommandFeature<NoArgs>(NoArgs(), CommandSpec("dbmigration", "DB Migration".k18n)) {
 
         init {
             registerListener<ReadyEvent> {
@@ -71,7 +72,7 @@ object DBMigration {
             statementsById[id] = statements
             channel.send(
                 statements.joinToString(separator = "\n", prefix = "```sql\n", postfix = "\n```") { "$it;" },
-                components = Button {
+                components = Button.withoutIData {
                     this.id = id
                 }.into()
             ).queue()

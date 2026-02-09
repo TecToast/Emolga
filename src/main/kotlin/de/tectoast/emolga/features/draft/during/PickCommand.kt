@@ -12,12 +12,12 @@ import org.litote.kmongo.div
 import org.litote.kmongo.eq
 
 object PickCommand :
-    CommandFeature<PickCommand.Args>(PickCommand::Args, CommandSpec("pick", "Pickt ein Pokemon")) {
+    CommandFeature<PickCommand.Args>(PickCommand::Args, CommandSpec("pick", K18n_Pick.Help)) {
 
 
     class Args : Arguments() {
-        var pokemon by draftPokemon("pokemon", "Das Pokemon, das gepickt werden soll")
-        var tier by string("tier", "Das Tier, in dem das Pokemon gepickt werden soll") {
+        var pokemon by draftPokemon("pokemon", K18n_Pick.ArgPokemon)
+        var tier by string("tier", K18n_Pick.ArgTier) {
             slashCommand(autocomplete = { s, event ->
                 val league = League.onlyChannel(event.channel.idLong) ?: return@slashCommand null
                 val current = league.currentOrFromID(event.user.idLong) ?: return@slashCommand null
@@ -34,7 +34,7 @@ object PickCommand :
                     else ArgumentPresence.OPTIONAL
             })
         }.nullable()
-        var free by boolean("free", "Ob dieser Pick ein Freepick ist") {
+        var free by boolean("free", K18n_Pick.ArgFree) {
             default = false
             slashCommand(guildChecker = {
                 if (gid == Constants.G.MY) ArgumentPresence.OPTIONAL
@@ -45,7 +45,7 @@ object PickCommand :
                     }
             })
         }
-        var tera by boolean("tera", "Ob dieser Pick dein Tera-User sein soll") {
+        var tera by boolean("tera", K18n_Pick.ArgTera) {
             default = false
             slashCommand(guildChecker = {
                 if (gid == Constants.G.MY || league()?.config?.teraPick != null) ArgumentPresence.OPTIONAL

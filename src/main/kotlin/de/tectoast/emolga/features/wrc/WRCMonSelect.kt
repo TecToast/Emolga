@@ -6,6 +6,7 @@ import de.tectoast.emolga.database.exposed.WRCMonsPickedDB
 import de.tectoast.emolga.database.exposed.WRCTeraDB
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.add
+import de.tectoast.emolga.utils.k18n
 import de.tectoast.emolga.utils.universalLogger
 import dev.minn.jda.ktx.messages.edit
 import dev.minn.jda.ktx.messages.editMessage
@@ -55,7 +56,7 @@ object WRCMonSelect : SelectMenuFeature<WRCMonSelect.Args>(::Args, SelectMenuSpe
 object WRCMonSubmitButton : ButtonFeature<WRCMonSubmitButton.Args>(::Args, ButtonSpec("wrcmonsubmit")) {
 
     override val buttonStyle = ButtonStyle.SUCCESS
-    override val label = "Team draften"
+    override val label = "Team draften".k18n
     override val emoji = Emoji.fromUnicode("✅")
 
     class Args : Arguments() {

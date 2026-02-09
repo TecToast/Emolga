@@ -10,15 +10,15 @@ object EnglishResultsCommand : CommandFeature<NoArgs>(
     NoArgs(),
     CommandSpec(
         "englishresults",
-        "Stellt ein, ob die Pokemon in Ergebnissen auf deutsch oder englisch angezeigt werden (serverweit)",
+        K18n_EnglishResults.Help,
     )
 ) {
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
         if (EnglishResultsDB.delete(iData.gid)) {
-            return iData.reply("Auf diesem Server werden die Pokemon bei Showdown-Ergebnissen nun **auf Deutsch angezeigt**!")
+            return iData.reply(K18n_EnglishResults.German)
         }
         EnglishResultsDB.insert(iData.gid)
-        iData.reply("Auf diesem Server werden die Pokemon bei Showdown-Ergebnissen nun **auf Englisch angezeigt**!")
+        iData.reply(K18n_EnglishResults.English)
     }
 }

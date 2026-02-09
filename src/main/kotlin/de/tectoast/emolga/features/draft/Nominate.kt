@@ -7,6 +7,7 @@ import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
@@ -28,12 +29,12 @@ object Nominate {
         }
 
 
-        override val label = ""
-        override val buttonStyle = ButtonStyle.PRIMARY
+        override val label = EmptyMessage
 
         init {
             registerDMListener("!nominate") { e ->
                 val uid = e.author.idLong
+                val language = K18N_DEFAULT_LANGUAGE
                 League.executeOnFreshLock({ db.nds() }) l@{
                     val nds = this as NDS
                     if (uid != Constants.FLOID && uid !in nds.table) return@l
@@ -43,7 +44,9 @@ object Nominate {
                             uid
                         )
                     if (nomUser in nom.nominated.getOrPut(nom.currentDay) { mutableMapOf() }) {
-                        return@l e.channel.sendMessage("Du hast für diesen Spieltag dein Team bereits nominiert!")
+                        return@l e.channel.sendMessage(
+                            K18n_Nominate.AlreadyNominated(nom.currentDay).translateTo(language)
+                        )
                             .queue()
                     }
                     val list =
@@ -57,15 +60,19 @@ object Nominate {
                         e.channel.sendMessage(
                             MessageCreate(
                                 embeds = Embed(
-                                    title = "Nominierungen", color = embedColor, description = generateDescription()
+                                    title = K18n_Nominate.EmbedTitle.translateTo(language),
+                                    color = embedColor,
+                                    description = generateDescription()
                                 ).into(), components = sortedList.map {
-                                    NominateButton(
-                                        label = it.name, buttonStyle = ButtonStyle.PRIMARY
+                                    withoutIData(
+                                        language = language,
+                                        label = it.name.k18n, buttonStyle = ButtonStyle.PRIMARY
                                     ) { data = it.name; mode = Mode.UNNOMINATE }
                                 }.intoMultipleRows().toMutableList().apply {
                                     add(
                                         ActionRow.of(
-                                            NominateButton(
+                                            withoutIData(
+                                                language = language,
                                                 buttonStyle = ButtonStyle.SUCCESS,
                                                 emoji = Emoji.fromUnicode("✅"),
                                                 disabled = true
@@ -84,8 +91,8 @@ object Nominate {
         }
 
         class Args : Arguments() {
-            var mode by enumBasic<Mode>("mode", "mode")
-            var data by string("data", "data")
+            var mode by enumBasic<Mode>()
+            var data by string()
         }
 
         context(iData: InteractionData)

@@ -4,6 +4,7 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.features.various.SimpleLifeBarEventManager.AdminResetButton.ResetType
 import de.tectoast.emolga.utils.condAppend
+import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.MessageEdit
@@ -43,7 +44,7 @@ class SimpleLifeBarEvent(
             if (hasAnswer) {
                 add(
                     ActionRow.of(
-                        SimpleLifeBarEventManager.AnswerButton {
+                        SimpleLifeBarEventManager.AnswerButton.withoutIData {
                             this.host = gameHost
                         }
                     )
@@ -63,7 +64,7 @@ class SimpleLifeBarEvent(
     private val adminStatusComponents
         get() = buildList {
             if (hasVote) add(
-                ActionRow.of(SimpleLifeBarEventManager.AcceptVotesButton {
+                ActionRow.of(SimpleLifeBarEventManager.AcceptVotesButton.withoutIData {
                     this.host = gameHost
                 })
             )
@@ -77,11 +78,11 @@ class SimpleLifeBarEvent(
                     })
             )
             val resetButtons = buildList {
-                if (hasVote) add(SimpleLifeBarEventManager.AdminResetButton("Reset Votes") {
+                if (hasVote) add(SimpleLifeBarEventManager.AdminResetButton.withoutIData(label = "Reset Votes".k18n) {
                     this.host = gameHost
                     this.type = ResetType.VOTES
                 })
-                if (hasAnswer) add(SimpleLifeBarEventManager.AdminResetButton("Reset Answers") {
+                if (hasAnswer) add(SimpleLifeBarEventManager.AdminResetButton.withoutIData(label = "Reset Answers".k18n) {
                     this.host = gameHost
                     this.type = ResetType.ANSWERS
                 })
@@ -231,17 +232,18 @@ object SimpleLifeBarEventManager {
     val events = mutableMapOf<Long, SimpleLifeBarEvent>()
 
     object Command :
-        CommandFeature<Command.Args>(::Args, CommandSpec("simplelifebar", "simplelifebar")) {
+        CommandFeature<Command.Args>(::Args, CommandSpec("simplelifebar", "simplelifebar".k18n)) {
 
         class Args : Arguments() {
             var hasVote by boolean(
-                "hasVote", "Ob die Teilmehmer abstimmen können sollen, wer ein Leben verliert (Der Dümmste fliegt)"
+                "hasVote", "Ob die Teilmehmer abstimmen können sollen, wer ein Leben verliert (Der Dümmste fliegt)".k18n
             )
             var hasInput by boolean(
-                "hasInput", "Ob die Teilnehmer eine Text-Eingabe machen können sollen, die der Moderator sehen kann"
+                "hasInput",
+                "Ob die Teilnehmer eine Text-Eingabe machen können sollen, die der Moderator sehen kann".k18n
             )
-            var startLifes by int("Startleben", "Wie viele Leben die Teilnehmer zu Beginn haben sollen")
-            var users by genericList<Member, Member>("user", "Teilnehmer", 10, 1, OptionType.USER)
+            var startLifes by int("Startleben", "Wie viele Leben die Teilnehmer zu Beginn haben sollen".k18n)
+            var users by genericList<Member, Member>("user", "Teilnehmer".k18n, 10, 1, OptionType.USER)
         }
 
         context(iData: InteractionData)
@@ -275,7 +277,7 @@ object SimpleLifeBarEventManager {
     }
 
     object AnswerButton : ButtonFeature<AnswerButton.Args>(::Args, ButtonSpec("simplelifebaranswer")) {
-        override val label = "Antwort abgeben"
+        override val label = "Antwort abgeben".k18n
 
         class Args : Arguments() {
             var host by long().compIdOnly()
@@ -289,11 +291,11 @@ object SimpleLifeBarEventManager {
     }
 
     object AnswerModal : ModalFeature<AnswerModal.Args>(::Args, ModalSpec("simplelifebarmodal")) {
-        override val title = "Antwort eingeben"
+        override val title = "Antwort eingeben".k18n
 
         class Args : Arguments() {
             var host by long().compIdOnly()
-            var answer by string("Antwort", "Deine Antwort")
+            var answer by string("Antwort", "Deine Antwort".k18n)
         }
 
         context(iData: InteractionData)
@@ -320,7 +322,7 @@ object SimpleLifeBarEventManager {
     }
 
     object AcceptVotesButton : ButtonFeature<AcceptVotesButton.Args>(::Args, ButtonSpec("simplelifebaracceptvotes")) {
-        override val label = "Votes akzeptieren / Neue Runde"
+        override val label = "Votes akzeptieren / Neue Runde".k18n
 
         class Args : Arguments() {
             var host by long().compIdOnly()

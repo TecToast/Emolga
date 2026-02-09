@@ -4,7 +4,9 @@ import com.mongodb.client.model.Filters
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.database.exposed.SpoilerTagsDB
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.draft.K18n_Nominate
 import de.tectoast.emolga.features.draft.Nominate
+import de.tectoast.emolga.features.draft.during.K18n_QueuePicks
 import de.tectoast.emolga.features.draft.during.QueuePicks
 import de.tectoast.emolga.features.draft.during.QueuePicks.ControlButton.ControlMode.*
 import de.tectoast.emolga.features.draft.during.QueuePicks.isIllegal
@@ -18,6 +20,8 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.PickInput
 import de.tectoast.emolga.utils.draft.SwitchInput
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.generic.*
+import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
@@ -67,7 +71,7 @@ sealed class StateStore {
         context(iData: InteractionData)
         suspend inline fun <reified T : StateStore> process(block: T.() -> Unit) {
             processIgnoreMissing<T>(block) ?: iData.reply(
-                "Diese Interaktion ist nicht mehr gültig! Starte sie wenn nötig erneut!", ephemeral = true
+                K18n_StateStore.InteractionNotValid, ephemeral = true
             )
         }
 
@@ -87,6 +91,7 @@ suspend inline fun <T : StateStore> T.process(block: T.() -> Unit) {
 
 context(league: League)
 suspend fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEntryDescription) {
+    val gamedayString = K18n_Gameday.translateToGuildLanguage(league.guild)
     val embeds = if (input is ResultEntryDescription.Bo3) {
         // TODO: Clean this up
         val spoiler = SpoilerTagsDB.contains(league.guild)
@@ -97,7 +102,7 @@ suspend fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEnt
             val actualBo3 = fullGameData.games.size > 1
             if (actualBo3) add(
                 Embed(
-                    title = "Spieltag $gameday",
+                    title = "$gamedayString $gameday",
                     description = "<@${league[fullGameData.uindices[0]]}> ${
                         (0..1).map { i -> fullGameData.games.count { replayData -> replayData.winnerIndex == i } }
                             .joinToString(":").surroundWithIf("||", spoiler)
@@ -107,14 +112,17 @@ suspend fun MessageChannel.sendResultEntryMessage(gameday: Int, input: ResultEnt
             )
             addAll(descriptions.mapIndexed { index, desc ->
                 Embed(
-                    title = "Spieltag $gameday".condAppend(actualBo3, " - Kampf ${index + 1}"),
+                    title = "$gamedayString $gameday".condAppend(
+                        actualBo3,
+                        " - ${K18n_Battle.translateToGuildLanguage(league.guild)} ${index + 1}"
+                    ),
                     description = desc,
                     color = embedColor
                 )
             })
         }
     } else Embed(
-        title = "Spieltag $gameday", description = input.provideDescription(), color = embedColor
+        title = "$gamedayString $gameday", description = input.provideDescription(), color = embedColor
     ).into()
     send(
         embeds = embeds
@@ -173,6 +181,7 @@ class NominateState : StateStore {
     companion object {
         private val tiers = listOf("S", "A", "B")
         val comparator = compareBy<DraftPokemon>({ it.tier.indexedBy(tiers) }, { it.name })
+        const val MON_AMOUNT = 11
     }
 
     private fun List<DraftPokemon>.toMessage(): String {
@@ -186,23 +195,27 @@ class NominateState : StateStore {
     }
 
     fun generateDescription(): String {
-        return buildString {
-            append("**Nominiert: (${nominated.size})**\n")
-            append(nominated.toMessage())
-            append("\n**Nicht nominiert: (").append(notNominated.size).append(")**\n")
-            append(notNominated.toMessage())
-        }
+        return K18n_Nominate.Description(
+            nominated.size,
+            nominated.toMessage(),
+            notNominated.size,
+            notNominated.toMessage()
+        ).translateTo(K18N_DEFAULT_LANGUAGE)
     }
 
     context(iData: InteractionData)
     fun render() {
         iData.edit(
+            contentK18n = null,
             embeds = Embed(
-                title = "Nominierungen", color = embedColor, description = generateDescription()
+                title = K18n_Nominate.EmbedTitle.t(), color = embedColor, description = generateDescription()
             ).into(), components = mons.map {
                 val s = it.name
                 val isNom = isNominated(s)
-                Nominate.NominateButton(s, if (isNom) ButtonStyle.PRIMARY else ButtonStyle.SECONDARY) {
+                Nominate.NominateButton(
+                    s.k18n,
+                    if (isNom) ButtonStyle.PRIMARY else ButtonStyle.SECONDARY
+                ) {
                     data = s; this.mode =
                     if (isNom) Nominate.NominateButton.Mode.UNNOMINATE else Nominate.NominateButton.Mode.NOMINATE
                 }
@@ -212,7 +225,7 @@ class NominateState : StateStore {
                         Nominate.NominateButton(
                             buttonStyle = ButtonStyle.SUCCESS,
                             emoji = Emoji.fromUnicode("✅"),
-                            disabled = nominated.size != 11
+                            disabled = nominated.size != MON_AMOUNT
                         ) { mode = Nominate.NominateButton.Mode.FINISH; data = "NOTNOW" })
                 )
             })
@@ -228,25 +241,27 @@ class NominateState : StateStore {
             return League.executeOnFreshLock({ db.nds() }) l@{
                 val nom = (this as NDS).nominations
                 val day = nom.current()
-                if (nomUser in day) return@l iData.reply("Du hast dein Team bereits für Spieltag ${nom.currentDay} nominiert!")
+                val currentDay = nom.currentDay
+                if (nomUser in day) return@l iData.reply(K18n_Nominate.AlreadyNominated(currentDay))
                 day[nomUser] = buildJSONList()
                 save()
                 delete()
-                return@l iData.reply("Deine Nominierung wurde gespeichert!")
+                return@l iData.reply(K18n_Nominate.NominationSaved(currentDay))
             }
         }
-        if (nominated.size != 11) {
-            iData.reply(content = "Du musst exakt 11 Pokemon nominieren!", ephemeral = true)
+        if (nominated.size != MON_AMOUNT) {
+            iData.reply(content = K18n_Nominate.AmountIncorrect(MON_AMOUNT), ephemeral = true)
         } else {
             iData.edit(
+                contentK18n = null,
                 embeds = Embed(
-                    title = "Bist du dir wirklich sicher? Die Nominierung kann nicht rückgängig gemacht werden!",
+                    title = K18n_Nominate.ConfirmationQuestion.t(),
                     color = embedColor,
                     description = generateDescription()
-                ).into(), components = listOf(Nominate.NominateButton("Ja", ButtonStyle.SUCCESS) {
+                ).into(), components = listOf(Nominate.NominateButton(K18n_Yes, ButtonStyle.SUCCESS) {
                     mode = Nominate.NominateButton.Mode.FINISH
                     data = "FINISHNOW"
-                }, Nominate.NominateButton("Nein", ButtonStyle.DANGER) {
+                }, Nominate.NominateButton(K18n_No, ButtonStyle.DANGER) {
                     mode = Nominate.NominateButton.Mode.CANCEL
                 }).into()
             )
@@ -278,50 +293,63 @@ class QueuePicks : StateStore {
         addedMeanwhile.add(mon)
     }
 
+    context(iData: InteractionData)
     private fun buildStateEmbed(currentMon: String?) = Embed {
         color = embedColor
-        title = "Deine gequeueten Picks"
-        description =
-            "Hier kannst du die Pokemon verschieben oder entfernen.\n" + "Allgemein ist die hier aufgezeigte Liste eine Kopie deiner echten Liste, die erst nach dem Klick auf `Speichern` oder `Speichern und aktivieren` aktualisiert wird.\n" + "Da über den `/queuepicks add` Befehl das Pokemon direkt in die echte Liste hinzugefügt wird, muss man danach hier `Neue Pokemon laden` klicken, um die Liste zu aktualisieren.\n" + "Alternativ kann man auch ein neues Verwaltungsfenster über `/queuepicks manage` öffnen."
+        title = K18n_QueuePicks.ManageEmbedTitle.t()
+        description = K18n_QueuePicks.ManageEmbedDescription.t()
         field(
-            "Aktuelle Reihenfolge",
+            K18n_QueuePicks.ManageCurrentOrder.t(),
             currentState.mapIndexed { index, draftName -> "${index + 1}. ".notNullAppend(draftName.y) { it.tlName + " -> " } + draftName.g.tlName }
                 .joinToString("\n"),
             false)
-        field("Status", if (currentlyEnabled) "Aktiv" else "Inaktiv", false)
+        field(K18n_Status.t(), (if (currentlyEnabled) K18n_Active else K18n_Inactive).t(), false)
         currentMon?.let {
-            field("Aktuelles Pokemon", it, false)
+            field(K18n_QueuePicks.ManageCurrentPokemon.t(), it, false)
         }
     }.into()
 
+    context(iData: InteractionData)
     private fun buildSelectMenu() = listOf(
-        if (currentState.isEmpty()) ActionRow.of(
-            QueuePicks.Menu(
-                placeholder = "Keine Picks mehr",
-                disabled = true,
-                options = listOf(SelectOption("Keine Picks", "Keine Picks"))
+        if (currentState.isEmpty()) {
+            val noPicks = K18n_QueuePicks.ManageNoPicks.t()
+            ActionRow.of(
+                QueuePicks.Menu(
+                    placeholder = noPicks,
+                    disabled = true,
+                    options = listOf(SelectOption(noPicks, noPicks))
+                )
             )
-        ) else ActionRow.of(QueuePicks.Menu(options = currentState.map { SelectOption(it.toString(), it.g.tlName) }))
-    ) + controlButtons
+        } else ActionRow.of(QueuePicks.Menu(options = currentState.map { SelectOption(it.toString(), it.g.tlName) }))
+    ) + controlButtons()
 
+    context(iData: InteractionData)
     private fun buildButtons(tlName: String): List<ActionRow> {
         val first = currentState.firstOrNull()?.g?.tlName == tlName
         val last = currentState.lastOrNull()?.g?.tlName == tlName
         return listOf(
             ActionRow.of(
                 QueuePicks.ControlButton(
-                    "Hoch", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬆"), disabled = first
+                    K18n_QueuePicks.ManageUp, ButtonStyle.PRIMARY, Emoji.fromUnicode("⬆"), disabled = first
                 ) {
                     mon = tlName; controlMode = UP
-                }, QueuePicks.ControlButton("Runter", ButtonStyle.PRIMARY, Emoji.fromUnicode("⬇"), disabled = last) {
+                },
+                QueuePicks.ControlButton(
+                    K18n_QueuePicks.ManageDown,
+                    ButtonStyle.PRIMARY,
+                    Emoji.fromUnicode("⬇"),
+                    disabled = last
+                ) {
                     mon = tlName; controlMode = DOWN
-                }, QueuePicks.ControlButton(
-                    "Neuen Platz auswählen", ButtonStyle.SECONDARY, Emoji.fromUnicode("1\uFE0F⃣")
+                },
+                QueuePicks.ControlButton(
+                    K18n_QueuePicks.ManageNewLocation, ButtonStyle.SECONDARY, Emoji.fromUnicode("1\uFE0F⃣")
                 ) {
                     mon = tlName; controlMode = MODAL
-                }, QueuePicks.ControlButton("Entfernen", ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
+                },
+                QueuePicks.ControlButton(K18n_QueuePicks.ManageRemove, ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
                     mon = tlName; controlMode = REMOVE
-                }), ActionRow.of(QueuePicks.ControlButton("Bestätigen", ButtonStyle.SUCCESS) {
+                }), ActionRow.of(QueuePicks.ControlButton(K18n_QueuePicks.ManageConfirm, ButtonStyle.SUCCESS) {
                 controlMode = CANCEL
             })
         )
@@ -334,7 +362,7 @@ class QueuePicks : StateStore {
 
     context(iData: InteractionData)
     fun handleSelect(tlName: String) {
-        iData.edit(embeds = buildStateEmbed(tlName), components = buildButtons(tlName))
+        iData.edit(contentK18n = null, embeds = buildStateEmbed(tlName), components = buildButtons(tlName))
     }
 
     context(iData: InteractionData)
@@ -342,7 +370,7 @@ class QueuePicks : StateStore {
         val index by lazy { currentState.indexOfFirst { it.g.tlName == e.mon } }
         val currentMon = when (e.controlMode) {
             UP -> {
-                if (index == 0) return iData.reply("Das Pokemon ist bereits an erster Stelle!", ephemeral = true)
+                if (index == 0) return iData.reply(K18n_QueuePicks.ManagePokemonAlreadyAtTop, ephemeral = true)
                 val mon = currentState.removeAt(index)
                 currentState.add(index - 1, mon)
                 mon.g.tlName
@@ -350,7 +378,7 @@ class QueuePicks : StateStore {
 
             DOWN -> {
                 if (index == currentState.lastIndex) return iData.reply(
-                    "Das Pokemon ist bereits an letzter Stelle!", ephemeral = true
+                    K18n_QueuePicks.ManagePokemonAlreadyAtBottom, ephemeral = true
                 )
                 val mon = currentState.removeAt(index)
                 currentState.add(index + 1, mon)
@@ -371,6 +399,7 @@ class QueuePicks : StateStore {
             })
         }
         iData.edit(
+            contentK18n = null,
             embeds = buildStateEmbed(currentMon),
             components = currentMon?.let { buildButtons(it) } ?: buildSelectMenu())
     }
@@ -382,6 +411,7 @@ class QueuePicks : StateStore {
         val mon = currentState.removeAt(index)
         currentState.add(location.minus(1).coerceIn(range), mon)
         iData.edit(
+            contentK18n = null,
             embeds = buildStateEmbed(tlName), components = buildButtons(tlName)
         )
     }
@@ -396,10 +426,10 @@ class QueuePicks : StateStore {
             data.queued = currentState.toMutableList()
             data.enabled = enable
             currentlyEnabled = enable
-            iData.edit(embeds = buildStateEmbed(null), components = emptyList())
+            iData.edit(contentK18n = null, embeds = buildStateEmbed(null), components = emptyList())
             save()
             delete()
-            iData.reply("Deine neue Queue-Pick-Reihenfolge wurde gespeichert!\nDas System ist für dich zurzeit **${if (enable) "" else "de"}aktiviert**.")
+            iData.reply(if (enable) K18n_QueuePicks.ManageFinishEnabled else K18n_QueuePicks.ManageFinishDisabled)
         }
     }
 
@@ -407,18 +437,19 @@ class QueuePicks : StateStore {
     fun reload() {
         currentState += addedMeanwhile
         addedMeanwhile.clear()
-        iData.edit(embeds = buildStateEmbed(null), components = buildSelectMenu())
+        iData.edit(contentK18n = null, embeds = buildStateEmbed(null), components = buildSelectMenu())
     }
 
 
     companion object {
-        val controlButtons = listOf(
+        context(iData: InteractionData)
+        fun controlButtons() = listOf(
             ActionRow.of(QueuePicks.ReloadButton()), ActionRow.of(
                 QueuePicks.FinishButton(
-                    "Speichern und deaktivieren", buttonStyle = ButtonStyle.SECONDARY
+                    K18n_QueuePicks.ManageSaveAndDisable, buttonStyle = ButtonStyle.SECONDARY
                 ) {
                     enable = false
-                }, QueuePicks.FinishButton("Speichern und aktivieren", buttonStyle = ButtonStyle.SUCCESS) {
+                }, QueuePicks.FinishButton(K18n_QueuePicks.ManageSaveAndEnable, buttonStyle = ButtonStyle.SUCCESS) {
                     enable = true
                 })
         )

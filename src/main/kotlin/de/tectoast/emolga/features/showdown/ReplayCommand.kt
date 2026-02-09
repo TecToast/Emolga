@@ -12,7 +12,7 @@ import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 
 object ReplayCommand : CommandFeature<ReplayCommand.Args>(
     ::Args,
-    CommandSpec("replay", "Analysiert ein Replay und schickt das Ergebnis in den konfigurierten Ergebnischannel")
+    CommandSpec("replay", K18n_Replay.Help)
 ) {
     private val logger = KotlinLogging.logger {}
 
@@ -34,7 +34,7 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
     }
 
     class Args : Arguments() {
-        var url by string("Replay-Link", "Der Replay-Link")
+        var url by string("Replay-Link", K18n_Replay.ArgReplay)
     }
 
 
@@ -42,10 +42,10 @@ object ReplayCommand : CommandFeature<ReplayCommand.Args>(
     override suspend fun exec(e: Args) {
         iData.deferReply()
         val channel = AnalysisDB.getResultChannel(iData.tc)
-            ?: return iData.reply("Dieser Channel ist kein Replaychannel! Mit `/replaychannel add` kannst du diesen Channel zu einem Replaychannel machen!")
+            ?: return iData.reply(K18n_ReplayGeneric.NoReplayChannel)
         val tc = iData.jda.getChannel<GuildMessageChannel>(channel)
         if (tc == null) {
-            iData.reply("Ich habe keinen Zugriff auf den Ergebnischannel!")
+            iData.reply(K18n_ReplayGeneric.NoAccessToResultChannel(channel))
             return
         }
         Analysis.analyseReplay(urlProvided = e.url, resultchannelParam = tc, fromReplayCommand = iData)

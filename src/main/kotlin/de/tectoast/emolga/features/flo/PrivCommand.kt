@@ -2,17 +2,19 @@ package de.tectoast.emolga.features.flo
 
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.k18n
 import kotlin.reflect.full.callSuspend
 import kotlin.reflect.full.declaredMemberFunctions
 
-object PrivCommand : CommandFeature<PrivCommand.Args>(::Args, CommandSpec("priv", "Führt einen privaten Command aus")) {
+object PrivCommand :
+    CommandFeature<PrivCommand.Args>(::Args, CommandSpec("priv", "Führt einen privaten Command aus".k18n)) {
     init {
         restrict(flo)
     }
 
     class Args : Arguments() {
-        var cmd by fromListCommand("cmd", "cmd", privCommands.keys, useContainsAutoComplete = true)
-        var arguments by list("args", "args", 20, 0, startAt = 0)
+        var cmd by fromListCommand("cmd", "cmd".k18n, privCommands.keys, useContainsAutoComplete = true)
+        var arguments by list("args", "args".k18n, 20, 0, startAt = 0)
     }
 
     private val privCommands by lazy {

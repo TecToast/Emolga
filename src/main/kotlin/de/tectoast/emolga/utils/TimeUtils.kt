@@ -1,5 +1,7 @@
 package de.tectoast.emolga.utils
 
+import de.tectoast.k18n.generated.K18nLanguage
+import de.tectoast.k18n.generated.K18nMessage
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
@@ -33,12 +35,12 @@ object TimeUtils {
         map
     }
     private val shortToPretty = mapOf(
-        "y" to ("Jahr" to "Jahre"),
-        "w" to ("Woche" to "Wochen"),
-        "d" to ("Tag" to "Tage"),
-        "h" to ("Stunde" to "Stunden"),
-        "m" to ("Minute" to "Minuten"),
-        "s" to ("Sekunde " to "Sekunden")
+        "y" to (K18n_TimeUtils.YearSingular to K18n_TimeUtils.YearPlural),
+        "w" to (K18n_TimeUtils.WeekSingular to K18n_TimeUtils.WeekPlural),
+        "d" to (K18n_TimeUtils.DaySingular to K18n_TimeUtils.DayPlural),
+        "h" to (K18n_TimeUtils.HourSingular to K18n_TimeUtils.HourPlural),
+        "m" to (K18n_TimeUtils.MinuteSingular to K18n_TimeUtils.MinutePlural),
+        "s" to (K18n_TimeUtils.SecondSingular to K18n_TimeUtils.SecondPlural)
     )
     private val DURATION_PATTERN = Regex("(\\d{1,8})([${STRING_TO_SECONDS.keys.joinToString("")}])")
     private val DURATION_SPLITTER = Regex("[.|:]")
@@ -66,13 +68,14 @@ object TimeUtils {
         return map
     }
 
-    fun secondsToTimePretty(timesec: Long) = secondsToTimeBase(timesec).entries.joinToString { (k, v) ->
+    fun secondsToTimePretty(timesec: Long, language: K18nLanguage) =
+        secondsToTimeBase(timesec).entries.joinToString { (k, v) ->
         "**$v** ${
             pluralise(
                 v.toLong(), shortToPretty[k]!!
-            )
+            ).translateTo(language)
         }"
-    }.ifEmpty { "**0** Sekunden" }
+        }.ifEmpty { "**0** ${K18n_TimeUtils.SecondPlural.translateTo(language)}" }
 
     fun secondsToTimeShort(timesec: Long): String {
         val base = secondsToTimeBase(timesec)
@@ -123,8 +126,8 @@ object TimeUtils {
         }
     }
 
-    private fun pluralise(x: Long, singular: String, plural: String) = if (x == 1L) singular else plural
-    private fun pluralise(x: Long, pair: Pair<String, String>) = pluralise(x, pair.first, pair.second)
+    private fun pluralise(x: Long, singular: K18nMessage, plural: K18nMessage) = if (x == 1L) singular else plural
+    private fun pluralise(x: Long, pair: Pair<K18nMessage, K18nMessage>) = pluralise(x, pair.first, pair.second)
 }
 
 

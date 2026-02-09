@@ -2,8 +2,13 @@ package de.tectoast.emolga.features.draft.during
 
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.features.draft.during.generic.K18n_NoLeagueForGuildFound
 import de.tectoast.emolga.utils.Language
+import de.tectoast.emolga.utils.b
+import de.tectoast.emolga.utils.invoke
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.t
+import de.tectoast.generic.K18n_CommandNotAvailable
 
 object TeraAndZ {
 
@@ -12,21 +17,21 @@ object TeraAndZ {
 
     object Command : CommandFeature<NoArgs>(
         NoArgs(),
-        CommandSpec("teraandz", "Stellt deinen Tera- und Z-User ein")
+        CommandSpec("teraandz", K18n_TeraAndZ.Help)
     ) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             val league = db.leagueByCommand() ?: return iData.reply(
-                "Du nimmst nicht an einer Liga auf diesem Server teil!",
+                K18n_NoLeagueForGuildFound,
                 ephemeral = true
             )
             val config = league.config.teraAndZ ?: return iData.reply(
-                "Dieser Command ist hier nicht verfügbar!",
+                K18n_CommandNotAvailable,
                 ephemeral = true
             )
             iData.replyModal(
                 Modal(
-                    title = "Änderungswünsche für Tera- und Z-User",
+                    title = K18n_TeraAndZ.ModalTitle,
                     specificallyEnabledArgs = mapOf(
                         Z to (config.z != null),
                         Tera to (config.tera != null)
@@ -38,44 +43,43 @@ object TeraAndZ {
 
     object Modal : ModalFeature<Modal.Args>(::Args, ModalSpec("teraandz")) {
         class Args : Arguments() {
-            var tera by string<DraftName>("tera", "Dein Tera-User") {
+            var tera by string<DraftName>("tera", K18n_TeraAndZ.ArgTeraUser) {
                 validateDraftPokemon()
-                modal(modalKey = Tera, placeholder = "Tera-User oder sonst leer lassen") {
-
-                }
+                modal(modalKey = Tera)
             }.nullable()
-            var type by pokemontype("type", "Dein Tera-Typ", Language.ENGLISH) {
-                modal(modalKey = Tera, placeholder = "Tera-Typ oder leer lassen")
+            var type by pokemontype("type", K18n_TeraAndZ.ArgTeraType, Language.ENGLISH) {
+                modal(modalKey = Tera)
             }.nullable()
-            var z by string<DraftName>("z", "Dein Z-User") {
+            var z by string<DraftName>("z", K18n_TeraAndZ.ArgZUser) {
                 validateDraftPokemon()
-                modal(modalKey = Z, placeholder = "Z-User oder leer lassen")
+                modal(modalKey = Z)
             }.nullable()
         }
 
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             val league =
-                db.leagueByCommand() ?: return iData.reply("Dieser Command ist hier nicht verfügbar!", ephemeral = true)
-            val idx = league(iData.user)
-            val picks = league.picks[idx]!!
+                db.leagueByCommand() ?: return iData.reply(K18n_CommandNotAvailable, ephemeral = true)
             val config =
                 league.config.teraAndZ ?: return iData.reply(
-                    "Dieser Command ist hier nicht verfügbar!",
+                    K18n_CommandNotAvailable,
                     ephemeral = true
                 )
+            val idx = league(iData.user)
+            val picks = league.picks[idx]!!
             val b = league.builder()
             val str = StringBuilder()
             config.z?.let { zconf ->
                 e.z?.let {
                     val selected = picks.firstOrNull { p -> p.name == it.official } ?: return iData.reply(
-                        "Das Pokemon `${it.tlName}` befindet sich nicht in deinem Kader!",
+                        K18n_TeraAndZ.PokemonNotInTeam(it.tlName),
                         ephemeral = true
                     )
                     zconf.firstTierAllowed?.let { tier ->
                         val order = league.tierlist.order
+
                         if (order.indexOf(selected.tier) < order.indexOf(tier)) return iData.reply(
-                            "Z-User dürfen maximal im ${tier}-Tier sein, `${it.tlName}` befindet sich im ${selected.tier}-Tier!",
+                            b { "Z-User " + K18n_TeraAndZ.TierInvalid(tier, it.tlName, selected.tier)() },
                             ephemeral = true
                         )
                     }
@@ -89,13 +93,13 @@ object TeraAndZ {
             config.tera?.let { tconf ->
                 e.tera?.let {
                     val selected = picks.firstOrNull { p -> p.name == it.official } ?: return iData.reply(
-                        "Das Pokemon `${it.tlName}` befindet sich nicht in deinem Kader!",
+                        K18n_TeraAndZ.PokemonNotInTeam(it.tlName),
                         ephemeral = true
                     )
                     tconf.mon.firstTierAllowed?.let { tier ->
                         val order = league.tierlist.order
                         if (order.indexOf(selected.tier) < order.indexOf(tier)) return iData.reply(
-                            "Tera-User dürfen maximal im ${tier}-Tier sein, `${it.tlName}` befindet sich im ${selected.tier}-Tier!",
+                            b { "Tera-User " + K18n_TeraAndZ.TierInvalid(tier, it.tlName, selected.tier)() },
                             ephemeral = true
                         )
                     }
@@ -112,12 +116,12 @@ object TeraAndZ {
                         type.coord(idx),
                         "=WENNFEHLER(SVERWEIS(\"${it}\";${type.searchRange};${type.searchColumn};0))"
                     )
-                    str.append("Tera-Typ: `${it}`")
+                    str.append("Tera-Type: `${it}`")
                 }
             }
             b.execute()
-            if (str.isEmpty()) str.append("_Keine Änderung vorgenommen_")
-            iData.reply("Änderungen von <@${iData.user}>:\n" + str.toString())
+            if (str.isEmpty()) str.append(K18n_TeraAndZ.NoChanges.t())
+            iData.reply(K18n_TeraAndZ.ChangesText(iData.user, str.toString()))
         }
     }
 }

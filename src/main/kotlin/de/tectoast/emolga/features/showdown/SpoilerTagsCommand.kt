@@ -10,15 +10,15 @@ object SpoilerTagsCommand : CommandFeature<NoArgs>(
     NoArgs(),
     CommandSpec(
         "spoilertags",
-        "Aktiviert oder deaktiviert den Spoilerschutz bei Showdown-Ergebnissen. (Gilt serverweit)",
+        K18n_SpoilerTags.Help,
     )
 ) {
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
         if (SpoilerTagsDB.delete(iData.gid)) {
-            return iData.reply("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **deaktiviert**!")
+            return iData.reply(K18n_SpoilerTags.Disabled)
         }
         SpoilerTagsDB.insert(iData.gid)
-        iData.reply("Auf diesem Server sind Spoiler-Tags bei Showdown-Ergebnissen nun **aktiviert**!")
+        iData.reply(K18n_SpoilerTags.Enabled)
     }
 }

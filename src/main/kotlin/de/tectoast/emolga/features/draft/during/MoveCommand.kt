@@ -9,17 +9,17 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NextPlayerData
 import de.tectoast.emolga.league.SkipReason
 
-object MoveCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("move", "Verschiebt deinen Pick")) {
+object MoveCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("move", K18n_Move.Help)) {
     context(iData: InteractionData)
     override suspend fun exec(e: NoArgs) {
         League.executePickLike l@{
             if (isSwitchDraft) {
-                return@l iData.reply("Dieser Draft ist ein Switch-Draft, daher wird /move nicht unterstützt!")
+                return@l iData.reply(K18n_Move.IsSwitchDraft)
             }
             if (pseudoEnd && afterTimerSkipMode == AFTER_DRAFT_UNORDERED) {
-                return@l iData.reply("Der Draft ist quasi schon vorbei, du kannst jetzt nicht mehr moven!")
+                return@l iData.reply(K18n_Move.InPseudoEnd)
             }
-            replyGeneral("den Pick verschoben!")
+            replyGeneral(K18n_Move.Success)
             afterPickOfficial(NextPlayerData.Moved(SkipReason.SKIP, skippedUser = current))
         }
     }

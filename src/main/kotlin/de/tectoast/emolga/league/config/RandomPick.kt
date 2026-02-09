@@ -3,6 +3,8 @@ package de.tectoast.emolga.league.config
 import de.tectoast.emolga.database.exposed.DraftName
 import de.tectoast.emolga.features.ArgumentPresence
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.draft.during.K18n_RandomPick
+import de.tectoast.emolga.features.draft.during.generic.K18n_TierNotFound
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftAction
@@ -54,7 +56,7 @@ sealed interface RandomPickMode {
         override suspend fun League.getRandomPick(
             input: RandomPickUserInput, config: RandomPickConfig
         ): Pair<DraftName, String>? {
-            if (tierRequired && input.tier == null) return iData.replyNull("Du musst ein Tier angeben!")
+            if (tierRequired && input.tier == null) return iData.replyNull(K18n_RandomPick.TierRequired)
             val tier = if (input.ignoreRestrictions) input.tier!! else parseTier(input.tier, config) ?: return null
             val list = tierlist.getByTier(tier)!!.shuffled()
             return firstAvailableMon(list) { german, english ->
@@ -69,7 +71,7 @@ sealed interface RandomPickMode {
                 }?.let { return@firstAvailableMon false }
                 if (input.type != null) input.type in db.pokedex.get(english.toSDName())!!.types else true
             }?.let { it to tier }
-                ?: return iData.replyNull("In diesem Tier gibt es kein Pokemon mit dem angegebenen Typen mehr!")
+                ?: return iData.replyNull(K18n_RandomPick.NoPokemonWithTypeAvailable)
         }
     }
 
@@ -86,18 +88,18 @@ sealed interface RandomPickMode {
         override suspend fun League.getRandomPick(
             input: RandomPickUserInput, config: RandomPickConfig
         ): Pair<DraftName, String>? {
-            val type = input.type ?: return iData.replyNull("Du musst einen Typen angeben!")
+            val type = input.type ?: return iData.replyNull(K18n_RandomPick.TypeRequired)
             val picks = picks[current]!!
             var mon: DraftName? = null
             var tier: String? = null
             val usedTiers = mutableSetOf<String>()
             val prices = tierlist.withTierBasedPriceManager { it.getSingleMap() }
-                ?: return iData.replyNull("Die Tierlist unterstützt kein Randompick mit TypeTierlist-Modus!")
+                ?: return iData.replyNull(K18n_RandomPick.TypeTierlistNotSupported)
             run {
                 repeat(prices.size) {
                     val temptier =
                         prices.filter { (tier, amount) -> tier !in usedTiers && picks.count { mon -> mon.tier == tier } < amount }.keys.randomOrNull()
-                            ?: return iData.replyNull("Es gibt kein $type-Pokemon mehr, welches in deinen Kader passt!")
+                            ?: return iData.replyNull(K18n_RandomPick.TypeDoesntMatch(type))
                     val tempmon = firstAvailableMon(
                         tierlist.getWithTierAndType(temptier, type).shuffled()
                     ) { german, _ ->
@@ -122,7 +124,7 @@ sealed interface RandomPickMode {
             }
             if (mon == null) {
                 logger.error("No pokemon found without error message: $current $type")
-                return iData.replyNull("Es ist konnte kein passendes Pokemon gefunden werden! (<@${Constants.FLOID}>)")
+                return iData.replyNull(K18n_RandomPick.NoPokemonFound(Constants.FLOID))
             }
             return mon to tier!!
         }
@@ -135,10 +137,10 @@ sealed interface RandomPickMode {
             ?: tl.withTL { it.getTiers().last() }
         val parsedTier = league.tierlist.order.firstOrNull { it.equals(tier, ignoreCase = true) }
         if (parsedTier == null) {
-            return iData.replyNull("Das Tier `$tier` existiert nicht!")
+            return iData.replyNull(K18n_TierNotFound(tier))
         }
         if (config.tierRestrictions.isNotEmpty() && parsedTier !in config.tierRestrictions) {
-            return iData.replyNull("In dieser Liga darf nur in folgenden Tiers gerandompickt werden: ${config.tierRestrictions.joinToString()}")
+            return iData.replyNull(K18n_RandomPick.OnlyAllowedInTiers(config.tierRestrictions.joinToString()))
         }
         return parsedTier
     }

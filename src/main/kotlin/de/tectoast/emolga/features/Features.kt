@@ -4,13 +4,19 @@ package de.tectoast.emolga.features
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.DraftName
+import de.tectoast.emolga.database.exposed.GuildLanguageDB
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.TypesDB
+import de.tectoast.emolga.features.draft.during.generic.K18n_PokemonNotFound
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.generic.*
+import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
+import de.tectoast.k18n.generated.K18nLanguage
+import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.interactions.components.*
 import mu.KotlinLogging
 import net.dv8tion.jda.api.Permission
@@ -126,8 +132,8 @@ sealed class AllowedResult {
 }
 
 data object Allowed : AllowedResult()
-open class NotAllowed(val reason: String) : AllowedResult() {
-    companion object : NotAllowed("Du bist nicht berechtigt, diese Interaktion auszuführen!")
+open class NotAllowed(val reason: K18nMessage) : AllowedResult() {
+    companion object : NotAllowed(K18n_NoPermission)
 }
 
 /**
@@ -179,14 +185,16 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
             if (it.name != spec.name && it.name != it.subcommandName) return@registerListener
             permissionCheck(RealInteractionData(it)).let { result ->
                 if (result is NotAllowed) {
-                    return@registerListener it.replyChoiceStrings(result.reason).queue()
+                    return@registerListener it.replyChoiceStrings(result.reason.translateToGuildLanguage(it.guild?.idLong))
+                        .queue()
                 }
             }
             val focusedOption = it.focusedOption
             val options = childCommands[it.subcommandName]?.autoCompletableOptions ?: autoCompletableOptions
             options[focusedOption.name]?.let { ac ->
                 val list = ac(focusedOption.value, it)?.takeIf { l -> l.size <= 25 }
-                it.replyChoiceStrings(list ?: listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")).queue()
+                it.replyChoiceStrings(list ?: listOf(K18n_TooManyResults.translateToGuildLanguage(it.guild?.idLong)))
+                    .queue()
             }
         }
     }
@@ -209,7 +217,7 @@ abstract class CommandFeature<A : Arguments>(argsFun: () -> A, spec: CommandSpec
 abstract class ButtonFeature<A : Arguments>(argsFun: () -> A, spec: ButtonSpec) :
     Feature<ButtonSpec, ButtonInteractionEvent, A>(argsFun, spec, ButtonInteractionEvent::class, eventToName) {
     open val buttonStyle = ButtonStyle.PRIMARY
-    open val label = spec.name
+    open val label: K18nMessage = spec.name.k18n
     open val emoji: Emoji? = null
     override suspend fun populateArgs(data: InteractionData, e: ButtonInteractionEvent, args: A) {
         val argsFromEvent = e.componentId.substringAfter(";").split(";")
@@ -219,13 +227,29 @@ abstract class ButtonFeature<A : Arguments>(argsFun: () -> A, spec: ButtonSpec) 
         }
     }
 
+    context(iData: InteractionData)
     operator fun invoke(
-        label: String = this.label,
+        label: K18nMessage = this.label,
         buttonStyle: ButtonStyle = this.buttonStyle,
         emoji: Emoji? = this.emoji,
         disabled: Boolean = false,
         argsBuilder: ArgBuilder<A> = {}
-    ) = button(createComponentId(argsBuilder), label, style = buttonStyle, emoji = emoji, disabled = disabled)
+    ) = button(createComponentId(argsBuilder), label.t(), style = buttonStyle, emoji = emoji, disabled = disabled)
+
+    fun withoutIData(
+        language: K18nLanguage = K18N_DEFAULT_LANGUAGE,
+        label: K18nMessage = this.label,
+        buttonStyle: ButtonStyle = this.buttonStyle,
+        emoji: Emoji? = this.emoji,
+        disabled: Boolean = false,
+        argsBuilder: ArgBuilder<A> = {}
+    ) = button(
+        createComponentId(argsBuilder),
+        label.translateTo(language),
+        style = buttonStyle,
+        emoji = emoji,
+        disabled = disabled
+    )
 
 
     companion object {
@@ -238,7 +262,7 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
         argsFun, spec, ModalInteractionEvent::class, eventToName
     ) {
 
-    open val title: String
+    open val title: K18nMessage
         get() = throw NotImplementedError("Title not implemented for modal ${this.spec.name}")
 
     override suspend fun populateArgs(data: InteractionData, e: ModalInteractionEvent, args: A) {
@@ -260,7 +284,7 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
 
     context(iData: InteractionData)
     suspend operator fun invoke(
-        title: String = this.title,
+        title: K18nMessage = this.title,
         specificallyEnabledArgs: Map<ModalKey, Boolean> = emptyMap(),
         argsBuilder: ArgBuilder<A> = {}
     ): Modal {
@@ -275,13 +299,21 @@ abstract class ModalFeature<A : Arguments>(argsFun: () -> A, spec: ModalSpec) :
             val required = spec?.required == true || !arg.optional
             val value = arg.parsed?.toString()
             Triple(
-                argName, arg.help, (spec?.argOption ?: ModalArgOption.Text()).buildChildComponent(
+                spec?.label?.translateTo(iData.language) ?: argName,
+                arg.help,
+                (spec?.argOption ?: ModalArgOption.Text()).buildChildComponent(
                     iData, argId, required, value
                 )
             )
         }
-        return Modal(createComponentId(argsBuilder, checkCompId = true), title) {
-            modalEntries.forEach { (name, help, child) -> label(label = name, description = help, child = child) }
+        return Modal(createComponentId(argsBuilder, checkCompId = true), title.t()) {
+            modalEntries.forEach { (name, help, child) ->
+                label(
+                    label = name,
+                    description = help.t(),
+                    child = child
+                )
+            }
         }
     }
 
@@ -352,7 +384,7 @@ sealed class RegisteredFeatureSpec(name: String) : FeatureSpec(name) {
     var inDM = false
 }
 
-class CommandSpec(name: String, val help: String) : RegisteredFeatureSpec(name)
+class CommandSpec(name: String, val help: K18nMessage) : RegisteredFeatureSpec(name)
 class ButtonSpec(name: String) : FeatureSpec(name)
 class ModalSpec(name: String) : FeatureSpec(name)
 class SelectMenuSpec(name: String) : FeatureSpec(name)
@@ -366,7 +398,10 @@ data class CommandArgSpec(
 ) : ArgSpec
 
 data class ModalArgSpec(
-    val argOption: ModalArgOption = ModalArgOption.Text(), val modalEnableKey: ModalKey?, val required: Boolean,
+    val argOption: ModalArgOption = ModalArgOption.Text(),
+    val modalEnableKey: ModalKey?,
+    val required: Boolean,
+    val label: K18nMessage?
 ) : ArgSpec
 
 interface ModalArgOption {
@@ -379,7 +414,7 @@ interface ModalArgOption {
 
     data class Text(
         val short: Boolean = true,
-        val placeholder: String? = null,
+        val placeholder: K18nMessage? = null,
         val builder: InlineTextInput.() -> Unit = {}
     ) : ModalArgOption {
         override suspend fun buildChildComponent(
@@ -392,7 +427,7 @@ interface ModalArgOption {
                 customId = argId,
                 style = if (short) TextInputStyle.SHORT else TextInputStyle.PARAGRAPH,
                 required = required,
-                placeholder = placeholder,
+                placeholder = placeholder?.translateTo(iData.language),
                 value = value,
                 builder = builder
             )
@@ -400,7 +435,7 @@ interface ModalArgOption {
     }
 
     data class Select(
-        val placeholder: String? = null,
+        val placeholder: K18nMessage? = null,
         val valueRange: IntRange? = 1..1,
         val optionsProvider: suspend (InteractionData) -> List<SelectOption>,
         val builder: StringSelectMenu.Builder.() -> Unit = {}
@@ -414,7 +449,7 @@ interface ModalArgOption {
             val options = optionsProvider(iData)
             return StringSelectMenu(
                 customId = argId,
-                placeholder = placeholder,
+                placeholder = placeholder?.translateTo(iData.language),
                 valueRange = valueRange ?: 1..options.size,
                 options = options,
                 builder = builder,
@@ -427,20 +462,28 @@ data class SelectMenuArgSpec(val selectableOptions: IntRange) : ArgSpec
 open class Arguments {
     private val _args = mutableListOf<Arg<*, *>>()
     val args: List<Arg<*, *>> = Collections.unmodifiableList(_args)
-    inline fun string(name: String = "", help: String = "", builder: Arg<String, String>.() -> Unit = {}) =
+    inline fun string(
+        name: String = "",
+        help: K18nMessage = EmptyMessage,
+        builder: Arg<String, String>.() -> Unit = {}
+    ) =
         createArg(name, help, OptionType.STRING, builder)
 
     @JvmName("stringGeneric")
-    inline fun <T> string(name: String = "", help: String = "", builder: Arg<String, T>.() -> Unit = {}) =
+    inline fun <T> string(
+        name: String = "",
+        help: K18nMessage = EmptyMessage,
+        builder: Arg<String, T>.() -> Unit = {}
+    ) =
         createArg(name, help, OptionType.STRING, builder)
 
-    inline fun long(name: String = "", help: String = "", builder: Arg<String, Long>.() -> Unit = {}) =
+    inline fun long(name: String = "", help: K18nMessage = EmptyMessage, builder: Arg<String, Long>.() -> Unit = {}) =
         createArg<String, Long>(name, help, OptionType.STRING) {
             validate { it.toLongOrNull() }
             builder()
         }
 
-    inline fun int(name: String = "", help: String = "", builder: Arg<Long, Int>.() -> Unit = {}) =
+    inline fun int(name: String = "", help: K18nMessage = EmptyMessage, builder: Arg<Long, Int>.() -> Unit = {}) =
         createArg<Long, Int>(name, help, OptionType.INTEGER) {
             validate { it.toInt() }
             builder()
@@ -448,7 +491,7 @@ open class Arguments {
 
     fun draftPokemon(
         name: String = "",
-        help: String = "",
+        help: K18nMessage = EmptyMessage,
         builder: Arg<String, DraftName>.() -> Unit = {},
         autocomplete: (suspend (String, CommandAutoCompleteInteractionEvent) -> List<String>?)? = null
     ) = createArg(name, help, OptionType.STRING) {
@@ -459,7 +502,7 @@ open class Arguments {
             val tierlist = league?.tierlist ?: Tierlist[gid]
             val strings =
                 (tierlist?.autoComplete() ?: NameConventionsDB.allNameConventions()).filterContainsIgnoreCase(s)
-            if (strings.size > 25) return@lambda listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
+            if (strings.size > 25) return@lambda listOf(K18n_TooManyResults.translateToGuildLanguage(gid))
             (if (league == null || tierlist == null) strings
             else strings.map {
                 val officialName = tierlist.tlToOfficialCache.getOrPut(it) {
@@ -471,11 +514,15 @@ open class Arguments {
         builder()
     }
 
-    inline fun boolean(name: String = "", help: String = "", builder: Arg<Boolean, Boolean>.() -> Unit = {}) =
+    inline fun boolean(
+        name: String = "",
+        help: K18nMessage = EmptyMessage,
+        builder: Arg<Boolean, Boolean>.() -> Unit = {}
+    ) =
         createArg(name, help, OptionType.BOOLEAN, builder)
 
     inline fun <reified T : Enum<T>> enumBasic(
-        name: String = "", help: String = "", builder: Arg<String, T>.() -> Unit = {}
+        name: String = "", help: K18nMessage = EmptyMessage, builder: Arg<String, T>.() -> Unit = {}
     ) = createArg(name, help, OptionType.STRING) {
         val enumValues = enumValues<T>()
         validate {
@@ -483,53 +530,58 @@ open class Arguments {
                 enumValueOf<T>(it)
             } catch (e: IllegalArgumentException) {
                 throw InvalidArgumentException(
-                    "Ungültiger Wert für $name! Mögliche Werte: ${enumValues.joinToString(", ")}"
+                    K18n_Arguments.InvalidEnum(name, enumValues.joinToString())
                 )
             }
         }
         if (enumValues.size <= 25) slashCommand(enumValues.map { Choice(it.name, it.name) })
-        else slashCommand { s, _ ->
+        else slashCommand { s, event ->
             val nameMatching = enumValues.toSet().filterStartsWithIgnoreCase(s) { it.name }
-            nameMatching.convertListToAutoCompleteReply()
+            nameMatching.convertListToAutoCompleteReply(GuildLanguageDB.getLanguage(event.guild?.idLong))
         }
         builder()
     }
 
     inline fun fromListCommand(
         name: String = "",
-        help: String = "",
+        help: K18nMessage = EmptyMessage,
         collection: Collection<String>,
         useContainsAutoComplete: Boolean = false,
         builder: Arg<String, String>.() -> Unit = {}
     ) = createArg<String, String>(name, help) {
         validate { s ->
             s.takeIf { it in collection }
-                ?: throw InvalidArgumentException("Keine valide Angabe! Halte dich an die Autovervollständigung!")
+                ?: throw InvalidArgumentException(K18n_Arguments.NotAutocompleteConform)
         }
         if (collection.size <= 25) slashCommand(collection.map { Choice(it, it) })
-        else slashCommand { s, _ ->
+        else slashCommand { s, event ->
             (if (useContainsAutoComplete) collection.filterContainsIgnoreCase(s)
-            else collection.filterStartsWithIgnoreCase(s)).convertListToAutoCompleteReply()
+            else collection.filterStartsWithIgnoreCase(s)).convertListToAutoCompleteReply(
+                GuildLanguageDB.getLanguage(
+                    event.guild?.idLong
+                )
+            )
         }
         builder()
     }
 
     inline fun fromListCommand(
         name: String = "",
-        help: String = "",
+        help: K18nMessage = EmptyMessage,
         crossinline collSupplier: suspend (CommandAutoCompleteInteractionEvent) -> Collection<String>,
         builder: Arg<String, String>.() -> Unit = {}
     ) = createArg(name, help) {
         slashCommand { s, event ->
-            collSupplier(event).filterStartsWithIgnoreCase(s).convertListToAutoCompleteReply()
+            collSupplier(event).filterStartsWithIgnoreCase(s)
+                .convertListToAutoCompleteReply(GuildLanguageDB.getLanguage(event.guild?.idLong))
         }
         builder()
     }
 
     inline fun fromListModal(
         name: String = "",
-        help: String = "",
-        placeholder: String? = null,
+        help: K18nMessage = EmptyMessage,
+        placeholder: K18nMessage? = null,
         valueRange: IntRange? = 1..1,
         noinline optionsProvider: suspend (InteractionData) -> List<SelectOption>,
         builder: Arg<List<String>, List<String>>.() -> Unit = {}
@@ -539,23 +591,28 @@ open class Arguments {
     }
 
     inline fun <reified T> enumAdvanced(
-        name: String = "", help: String = "", builder: Arg<String, T>.() -> Unit = {}
+        name: String = "", help: K18nMessage = EmptyMessage, builder: Arg<String, T>.() -> Unit = {}
     ) where T : Enum<T>, T : Nameable = createArg(name, help, OptionType.STRING) {
         validate {
             try {
                 enumValueOf<T>(it)
             } catch (e: IllegalArgumentException) {
                 throw InvalidArgumentException(
-                    "Ungültiger Wert für $name! Mögliche Werte: ${enumValues<T>().joinToString(", ")}"
+                    b { K18n_Arguments.InvalidEnum(name, enumValues<T>().joinToString { en -> en.prettyName() })() }
                 )
             }
         }
-        slashCommand(enumValues<T>().map { Choice(it.prettyName, it.name) })
+        slashCommand(enumValues<T>().map {
+            Choice(it.prettyName.default(), it.name).setNameLocalizations(it.prettyName.toDiscordLocaleMap())
+        })
         builder()
     }
 
     fun pokemontype(
-        name: String = "", help: String = "", language: Language, builder: Arg<String, String>.() -> Unit = {}
+        name: String = "",
+        help: K18nMessage = EmptyMessage,
+        language: Language,
+        builder: Arg<String, String>.() -> Unit = {}
     ) = createArg(name, help) {
         validate {
             TypesDB.getType(it, language)
@@ -566,7 +623,7 @@ open class Arguments {
         builder()
     }
 
-    fun pokemontype(name: String = "", help: String = "") = createArg(name, help, OptionType.STRING) {
+    fun pokemontype(name: String = "", help: K18nMessage = EmptyMessage) = createArg(name, help, OptionType.STRING) {
         validate { str ->
             TypesDB.getTypeInBothLanguages(str)
         }
@@ -576,10 +633,14 @@ open class Arguments {
     }
 
     fun <DiscordType, ParsedType> genericList(
-        name: String, help: String, numOfArgs: Int, requiredNum: Int, type: OptionType, startAt: Int = 1
+        name: String, help: K18nMessage, numOfArgs: Int, requiredNum: Int, type: OptionType, startAt: Int = 1
     ) = object : ReadWriteProperty<Arguments, List<ParsedType>> {
         private val argList: List<Arg<DiscordType, out ParsedType?>> = List(numOfArgs) { i ->
-            createArg<DiscordType, ParsedType>(name.embedI(i, startAt), help.embedI(i, startAt), type) {}.run {
+            createArg<DiscordType, ParsedType>(
+                name.embedI(i, startAt),
+                MappedMessage(help) { it.embedI(i, startAt) },
+                type
+            ) {}.run {
                 if (i >= requiredNum) nullable() else this
             }
         }
@@ -601,11 +662,15 @@ open class Arguments {
         }
     }
 
-    private fun String.embedI(i: Int, startAt: Int) = if ("%s" in this) format(i + startAt) else plus(i + startAt)
-    fun list(name: String = "", help: String = "", numOfArgs: Int, requiredNum: Int, startAt: Int = 1) =
+    private fun String.embedI(i: Int, startAt: Int) = if ("&s" in this) format(i + startAt) else plus(i + startAt)
+    fun list(name: String = "", help: K18nMessage = EmptyMessage, numOfArgs: Int, requiredNum: Int, startAt: Int = 1) =
         object : ReadWriteProperty<Arguments, List<String>> {
             private val argList: List<Arg<String, out String?>> = List(numOfArgs) { i ->
-                createArg<String, String>(name.embedI(i, startAt), help.embedI(i, startAt), OptionType.STRING) {}.run {
+                createArg<String, String>(
+                    name.embedI(i, startAt),
+                    MappedMessage(help) { it.embedI(i, startAt) },
+                    OptionType.STRING
+                ) {}.run {
                     if (i >= requiredNum) nullable() else this
                 }
             }
@@ -624,39 +689,47 @@ open class Arguments {
             }
         }
 
-    inline fun member(name: String = "", help: String = "", builder: Arg<Member, Member>.() -> Unit = {}) =
+    inline fun member(
+        name: String = "",
+        help: K18nMessage = EmptyMessage,
+        builder: Arg<Member, Member>.() -> Unit = {}
+    ) =
         createArg(name, help, OptionType.USER, builder)
 
     inline fun channel(
-        name: String = "", help: String = "", builder: Arg<GuildChannelUnion, GuildChannelUnion>.() -> Unit = {}
+        name: String = "",
+        help: K18nMessage = EmptyMessage,
+        builder: Arg<GuildChannelUnion, GuildChannelUnion>.() -> Unit = {}
     ) = createArg(name, help, OptionType.CHANNEL, builder)
 
     inline fun attachment(
-        name: String = "", help: String = "", builder: Arg<Message.Attachment, Message.Attachment>.() -> Unit = {}
+        name: String = "",
+        help: K18nMessage = EmptyMessage,
+        builder: Arg<Message.Attachment, Message.Attachment>.() -> Unit = {}
     ) = createArg(name, help, OptionType.ATTACHMENT, builder)
 
-    fun singleOption() = createArg<String, String>("", "", OptionType.STRING) {
+    fun singleOption() = createArg<String, String>("", EmptyMessage, OptionType.STRING) {
         spec = SelectMenuArgSpec(1..1)
     }
 
-    fun <T> singleOption(validator: suspend InteractionData.(String) -> T) = createArg("", "") {
+    fun <T> singleOption(validator: suspend InteractionData.(String) -> T) = createArg("", EmptyMessage) {
         validate(validator)
     }
 
 
     fun <T> multiOption(range: IntRange, validator: suspend InteractionData.(String) -> T) =
-        createArg<List<String>, List<T>>("", "", OptionType.STRING) {
+        createArg<List<String>, List<T>>("", EmptyMessage, OptionType.STRING) {
             spec = SelectMenuArgSpec(range)
             validate { list -> list.map { validator(it) } }
         }
 
-    fun multiOption(range: IntRange) = createArg<List<String>, List<String>>("", "", OptionType.STRING) {
+    fun multiOption(range: IntRange) = createArg<List<String>, List<String>>("", EmptyMessage, OptionType.STRING) {
         spec = SelectMenuArgSpec(range)
     }
 
     inline fun <DiscordType, ParsedType> createArg(
         name: String = "",
-        help: String = "",
+        help: K18nMessage = EmptyMessage,
         optionType: OptionType = OptionType.STRING,
         builder: Arg<DiscordType, ParsedType>.() -> Unit
     ) = Arg<DiscordType, ParsedType>(name, help, optionType, this).also {
@@ -682,7 +755,7 @@ open class Arguments {
             return dbTransaction {
                 val tl = league.tierlist
                 val picks = league.picks[idx] ?: return@dbTransaction null
-                picks.filter { p -> p.name != "???" && !p.quit }.sortedWith(
+                picks.filter { p -> !p.quit }.sortedWith(
                     compareBy({ mon -> tl.order.indexOf(mon.tier) }, { mon -> mon.name })
                 ).map { mon ->
                     logger.debug(mon.name)
@@ -699,7 +772,7 @@ open class Arguments {
                 val guildId = League.onlyChannel(tc)?.guild ?: gid
                 NameConventionsDB.getDiscordTranslation(
                     it, guildId, english = Tierlist[guildId].isEnglish
-                ) ?: throw InvalidArgumentException("Pokemon `$it` nicht gefunden!")
+                ) ?: throw InvalidArgumentException(K18n_PokemonNotFound(it))
             }
         }
 
@@ -717,7 +790,7 @@ class CommandProviderData(val gid: Long) {
 }
 
 interface Nameable {
-    val prettyName: String
+    val prettyName: K18nMessage
 }
 
 object NoArgs : Arguments() {
@@ -730,7 +803,7 @@ class MessageContextArgs : Arguments() {
 }
 
 class Arg<DiscordType, ParsedType>(
-    val name: String, val help: String, val optionType: OptionType, internal val args: Arguments
+    val name: String, val help: K18nMessage, val optionType: OptionType, internal val args: Arguments
 ) : ReadWriteProperty<Arguments, ParsedType> {
     var parsed: ParsedType? = null
         private set
@@ -747,7 +820,7 @@ class Arg<DiscordType, ParsedType>(
     var spec: ArgSpec? = null
     var compIdOnly = false
     var onlyInCode = false
-    var customErrorMessage: String? = null
+    var customErrorMessage: K18nMessage? = null
     val optional get() = defaultValueSet || defaultFunction != null || nullable
 
     fun default(value: ParsedType) = apply {
@@ -780,16 +853,18 @@ class Arg<DiscordType, ParsedType>(
         short: Boolean = true,
         modalKey: ModalKey? = null,
         required: Boolean = false,
-        placeholder: String? = null,
+        placeholder: K18nMessage? = null,
+        label: K18nMessage? = null,
         builder: InlineTextInput.() -> Unit = {}
     ) {
-        modal(ModalArgOption.Text(short, placeholder, builder), modalKey, required)
+        modal(ModalArgOption.Text(short, placeholder, builder), modalKey, required, label)
     }
 
     fun modal(
         argOption: ModalArgOption = ModalArgOption.Text(),
         modalKey: ModalKey? = null,
         required: Boolean = false,
+        label: K18nMessage? = null,
     ) {
         spec = (spec as? ModalArgSpec)?.let { oldSpec ->
             oldSpec.copy(
@@ -797,7 +872,7 @@ class Arg<DiscordType, ParsedType>(
                 modalEnableKey = modalKey ?: oldSpec.modalEnableKey,
                 required = required || oldSpec.required,
             )
-        } ?: ModalArgSpec(argOption, modalKey, required)
+        } ?: ModalArgSpec(argOption, modalKey, required, label)
     }
 
     override fun getValue(thisRef: Arguments, property: KProperty<*>): ParsedType {
@@ -851,7 +926,7 @@ class Arg<DiscordType, ParsedType>(
         )
 
         parsed = validatorResult ?: throw InvalidArgumentException(
-            customErrorMessage ?: "Das Argument `$name` konnte nicht erkannt werden!"
+            customErrorMessage ?: K18n_InvalidArgument(name)
         )
         success = true
     }
@@ -889,13 +964,13 @@ fun String.nameToDiscordOption(): String {
 
 fun List<Button>.intoMultipleRows() = chunked(5).map { ActionRow.of(it) }
 
-fun List<String>?.convertListToAutoCompleteReply() = when (this?.size) {
-    0, null -> listOf("Keine Ergebnisse!")
+fun List<String>?.convertListToAutoCompleteReply(language: K18nLanguage) = when (this?.size) {
+    0, null -> listOf(K18n_NoResults.translateTo(language))
     in 1..25 -> this
-    else -> listOf("Zu viele Ergebnisse, bitte spezifiziere deine Suche!")
+    else -> listOf(K18n_TooManyResults.translateTo(language))
 }
 
-open class ArgumentException(override val message: String) : Exception(message)
-class MissingArgumentException(arg: Arg<*, *>) : ArgumentException("Du musst den Parameter `${arg.name}` angeben!")
+open class ArgumentException(open val msg: K18nMessage) : Exception(msg.default())
+class MissingArgumentException(arg: Arg<*, *>) : ArgumentException(K18n_MissingArgument(arg.name))
 
-class InvalidArgumentException(override val message: String) : ArgumentException(message)
+class InvalidArgumentException(msg: K18nMessage) : ArgumentException(msg)

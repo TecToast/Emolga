@@ -5,16 +5,17 @@ import de.tectoast.emolga.database.exposed.CmdManager
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.filterContainsIgnoreCase
+import de.tectoast.emolga.utils.k18n
 
-object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanage", "CmdManage")) {
+object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanage", "CmdManage".k18n)) {
 
     object GuildGroup : CommandFeature<GuildGroup.Args>(
-        ::Args, CommandSpec("guildgroup", "GuildGroup verwalten")
+        ::Args, CommandSpec("guildgroup", "GuildGroup verwalten".k18n)
     ) {
         class Args : Arguments() {
-            var guildId by long("guildid", "Die ID des Servers")
-            var group by string("group", "Der Name der Gruppe")
-            var action by enumBasic<AddRemove>("action", "Hinzufügen oder Entfernen") {
+            var guildId by long("guildid", "Die ID des Servers".k18n)
+            var group by string("group", "Der Name der Gruppe".k18n)
+            var action by enumBasic<AddRemove>("action", "Hinzufügen oder Entfernen".k18n) {
                 default = AddRemove.ADD
             }
         }
@@ -28,11 +29,11 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
     }
 
     object GuildCommand :
-        CommandFeature<GuildCommand.Args>(::Args, CommandSpec("guildcommand", "GuildCommand verwalten")) {
+        CommandFeature<GuildCommand.Args>(::Args, CommandSpec("guildcommand", "GuildCommand verwalten".k18n)) {
         class Args : Arguments() {
-            var guildId by long("guildid", "Die ID des Servers")
+            var guildId by long("guildid", "Die ID des Servers".k18n)
             var command by commandArg()
-            var action by enumBasic<AddRemove>("action", "Hinzufügen oder Entfernen") {
+            var action by enumBasic<AddRemove>("action", "Hinzufügen oder Entfernen".k18n) {
                 default = AddRemove.ADD
             }
         }
@@ -46,11 +47,11 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
     }
 
     object GroupCommand :
-        CommandFeature<GroupCommand.Args>(::Args, CommandSpec("groupcommand", "GroupCommand verwalten")) {
+        CommandFeature<GroupCommand.Args>(::Args, CommandSpec("groupcommand", "GroupCommand verwalten".k18n)) {
         class Args : Arguments() {
-            var group by string("group", "Der Name der Gruppe")
+            var group by string("group", "Der Name der Gruppe".k18n)
             var command by commandArg()
-            var action by enumBasic<AddRemove>("action", "Hinzufügen oder Entfernen") {
+            var action by enumBasic<AddRemove>("action", "Hinzufügen oder Entfernen".k18n) {
                 default = AddRemove.ADD
             }
         }
@@ -67,7 +68,7 @@ object CmdManageCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("cmdmanag
         EmolgaMain.featureManager().registeredFeatureList.map { it.spec.name }
     }
 
-    private fun Arguments.commandArg() = string("command", "Der Name des Commands") {
+    private fun Arguments.commandArg() = string("command", "Der Name des Commands".k18n) {
         slashCommand { string, _ -> featureNames().filterContainsIgnoreCase(string) }
     }
 

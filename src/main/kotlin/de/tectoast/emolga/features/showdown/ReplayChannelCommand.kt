@@ -5,15 +5,15 @@ import de.tectoast.emolga.features.*
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 
 object ReplayChannelCommand :
-    CommandFeature<NoArgs>(NoArgs(), CommandSpec("replaychannel", "Konfiguriert die Replay-Channel")) {
+    CommandFeature<NoArgs>(NoArgs(), CommandSpec("replaychannel", K18n_ReplayChannel.Help)) {
 
     object Add : CommandFeature<Add.Args>(
         ::Args,
-        CommandSpec("add", "Fügt einen Replaychannel hinzu, standardmäßig ist dieser Channel der Ergebnis-Channel")
+        CommandSpec("add", K18n_ReplayChannel.AddHelp)
     ) {
         class Args : Arguments() {
-            var channel by channel("Channel", "Der Channel, wo die Ergebnisse reingeschickt werden sollen (optional)") {
-                validate { if (it is MessageChannel) it else throw InvalidArgumentException("Der Channel muss ein Text-Channel sein!") }
+            var channel by channel("Channel", K18n_ReplayChannel.AddArgChannel) {
+                validate { if (it is MessageChannel) it else throw InvalidArgumentException(K18n_ReplayChannel.ErrorChannelNotMessage) }
             }.nullable()
         }
 
@@ -24,25 +24,26 @@ object ReplayChannelCommand :
             iData.reply(
                 when (result) {
                     AnalysisDB.AnalysisResult.CREATED -> {
-                        if (iData.tc == resultChannel) "Dieser Channel ist nun ein Replaychannel, somit werden alle Replay-Ergebnisse automatisch hier reingeschickt!"
-                        else "Alle Ergebnisse der Replays aus <#${iData.tc}> werden von nun an in den Channel <#${resultChannel}> geschickt!"
+                        if (iData.tc == resultChannel) K18n_ReplayChannel.CreatedSameChannel
+                        else K18n_ReplayChannel.CreatedOtherChannel(iData.tc, resultChannel)
                     }
 
                     is AnalysisDB.AnalysisResult.Existed -> {
-                        "Die Replays aus diesem Channel werden ${if (result.channel == resultChannel) "bereits" else "zurzeit"} in den Channel <#${result.channel}> geschickt! Mit /replaychannel remove kannst du dies ändern."
+                        if (result.channel == resultChannel) K18n_ReplayChannel.ExistedSameChannel(result.channel)
+                        else K18n_ReplayChannel.ExistedOtherChannel(result.channel)
                     }
                 }
             )
         }
     }
 
-    object Remove : CommandFeature<NoArgs>(NoArgs(), CommandSpec("remove", "Entfernt einen Replaychannel")) {
+    object Remove : CommandFeature<NoArgs>(NoArgs(), CommandSpec("remove", K18n_ReplayChannel.RemoveHelp)) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             if (AnalysisDB.deleteChannel(iData.tc)) {
-                iData.reply("Dieser Channel ist kein Replaychannel mehr!")
+                iData.reply(K18n_ReplayChannel.RemoveSuccess)
             } else {
-                iData.reply("Dieser Channel ist zurzeit kein Replaychannel!")
+                iData.reply(K18n_ReplayChannel.RemoveNotExist)
             }
         }
     }

@@ -11,7 +11,7 @@ import de.tectoast.emolga.league.SkipReason
 import net.dv8tion.jda.api.Permission
 
 object SkipPickCommand :
-    CommandFeature<NoArgs>(NoArgs(), CommandSpec("skippick", "Skippe eine Person beim Draft")) {
+    CommandFeature<NoArgs>(NoArgs(), CommandSpec("skippick", K18n_SkipPickHelp)) {
 
     init {
         restrict {

@@ -4,6 +4,7 @@ import de.tectoast.emolga.bot.EmolgaMain
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.draft.during.generic.K18n_NoWritePermissionInChannel
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
@@ -11,6 +12,8 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.LeagueResult
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.k18n.generated.K18nLanguage
+import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
 import dev.minn.jda.ktx.messages.into
@@ -67,8 +70,11 @@ object Analysis {
     ) {
 
         logger.info("REPLAY! Channel: {}", message?.channel?.id ?: resultchannelParam.id)
-        fun send(msg: String) {
-            fromReplayCommand?.reply(msg) ?: resultchannelParam.sendMessage(msg).queue()
+        val g = resultchannelParam.guild
+        val gid = customGuild ?: g.idLong
+        val lang = GuildLanguageDB.getLanguage(gid)
+        suspend fun send(msg: K18nMessage) {
+            fromReplayCommand?.reply(msg) ?: resultchannelParam.sendMessage(msg.translateTo(lang)).queue()
         }
 
         val selfMember = resultchannelParam.guild.selfMember
@@ -78,7 +84,7 @@ object Analysis {
                 resultchannelParam, Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND_IN_THREADS
             )))
         ) {
-            send("Ich habe keine Berechtigung, im konfigurierten Channel ${resultchannelParam.asMention} zu schreiben!")
+            send(K18n_NoWritePermissionInChannel(resultchannelParam.idLong))
             return
         }
         var league: League? = null
@@ -93,27 +99,25 @@ object Analysis {
             } catch (ex: Exception) {
                 when (ex) {
                     is ShowdownDoesNotAnswerException -> {
-                        send("Showdown antwortet nicht. Versuche es später nochmal.")
+                        send(K18n_Analysis.ErrorShowdownDoesNotAnswer)
                     }
 
                     is ShowdownDoesntExistException -> {
-                        send("Das Replay existiert nicht (mehr)! Sicher, dass der Link korrekt ist?")
+                        send(K18n_Analysis.ErrorShowdownDoesntExist)
                     }
 
                     is ShowdownParseException -> {
-                        send("Das Replay konnte nicht analysiert werden! Sicher, dass es ein valides Replay ist? Wenn ja, melde dich bitte auf meinem im Profil verlinkten Support-Server.")
+                        send(K18n_Analysis.ErrorShowdownParse)
                     }
 
                     is InvalidReplayException -> {
-                        send("Das ist kein gültiges Replay!")
+                        send(K18n_Analysis.ErrorInvalidReplay)
                     }
 
                     else -> {
-                        val msg =
-                            "Beim Auswerten des Replays ist ein Fehler aufgetreten! Sehr wahrscheinlich liegt es an einem Bug in der neuen Engine, mein Programmierer wurde benachrichtigt."
-                        send(msg)
+                        send(K18n_Analysis.ErrorGeneric)
                         logger.error(
-                            "Fehler beim Auswerten des Replays: $urlProvided ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}",
+                            "Error on replay analysis: $urlProvided ${resultchannelParam.guild.name} ${resultchannelParam.asMention} ChannelID: ${resultchannelParam.id}",
                             ex
                         )
                     }
@@ -122,8 +126,6 @@ object Analysis {
             }
             val (game, ctx, dontTranslateFromReplayServer) = data
             val url = ctx.url
-            val g = resultchannelParam.guild
-            val gid = customGuild ?: g.idLong
             val u1 = game[0].nickname
             val u2 = game[1].nickname
             val uid1db = SDNamesDB.getIDByName(u1)
@@ -166,7 +168,7 @@ object Analysis {
             val gameday = gamedayDataPair?.first?.gameday
             val shouldntSend = gameday != null && league.config.hideGames?.gamedays?.contains(gameday) == true
             if (shouldntSend) {
-                send("Kampf wurde gespeichert :)")
+                send(K18n_Analysis.BattleSaved)
                 fromReplayCommand?.hook?.deleteOriginal()?.queueAfter(3, TimeUnit.SECONDS)
                 with(league) {
                     (fromReplayCommand?.messageChannel ?: replayChannel)!!.sendResultEntryMessage(
@@ -179,7 +181,7 @@ object Analysis {
                 replayChannel?.sendMessage(tosend)?.queue()
                 fromReplayCommand?.reply(msgCreateData = tosend)
                 val dontTranslate = dontTranslateFromReplayServer || EnglishResultsDB.contains(gid)
-                val description = generateDescription(game, spoiler, leaguedata, ctx, dontTranslate)
+                val description = generateDescription(game, spoiler, leaguedata, ctx, dontTranslate, lang)
                 if (league != null) {
                     resultChannel.sendMessageEmbeds(Embed(description = description)).queue()
                 } else {
@@ -189,7 +191,7 @@ object Analysis {
                 for (ga in game) {
                     if (ga.containsZoro()) {
                         resultchannelParam.sendMessage(
-                            "Im Team von ${ga.nickname} befindet sich ein Pokemon mit Illusion! Bitte noch einmal die Kills überprüfen!"
+                            K18n_Analysis.IllusionWarning(ga.nickname).translateTo(lang)
                         ).queue()
                         shouldSendZoro = true
                     }
@@ -202,7 +204,11 @@ object Analysis {
                         (old.first + kills) to (old.second + deaths)
                     }.let { it.first != it.second }) {
                     resultchannelParam.send(
-                        "Die Kills und Tode stimmen nicht überein." + (if (shouldSendZoro) " Dies liegt wahrscheinlich an Zoroark." else " Dies liegt sehr wahrscheinlich an einem Bug in meiner Analyse.") + " Bitte überprüfe selbst, wo der Fehler liegt. Mein Programmierer wurde benachrichtigt."
+                        K18n_Analysis.KillsDeathsNotMatching(
+                            (if (shouldSendZoro) K18n_Analysis.PotentialZoroark else K18n_Analysis.OtherIssue).translateTo(
+                                lang
+                            )
+                        ).translateTo(lang)
                     ).queue()
                     SendFeatures.sendToMe((if (shouldSendZoro) "Zoroark... " else "") + "ACHTUNG ACHTUNG! KILLS SIND UNGLEICH DEATHS :o\n$url\n${resultchannelParam.asMention}")
                 }
@@ -243,7 +249,12 @@ object Analysis {
     }
 
     private fun generateDescription(
-        game: List<SDPlayer>, spoiler: Boolean, leaguedata: LeagueResult?, ctx: BattleContext, dontTranslate: Boolean
+        game: List<SDPlayer>,
+        spoiler: Boolean,
+        leaguedata: LeagueResult?,
+        ctx: BattleContext,
+        dontTranslate: Boolean,
+        lang: K18nLanguage
     ): String {
         val monStrings = game.map { player ->
             player.pokemon.joinToString("\n") { mon ->
@@ -252,6 +263,7 @@ object Analysis {
                     .condAppend((!player.allMonsDead || spoiler) && mon.isDead, " X")
             }
         }
+        val allDead = K18n_Analysis.AllDead.translateTo(lang)
         val description = game.mapIndexed { index, sdPlayer ->
             mutableListOf<Any>(
                 leaguedata?.mentions[index] ?: sdPlayer.nickname,
@@ -260,7 +272,7 @@ object Analysis {
         }.joinToString(":") { it.joinToString(" ") }
             .condAppend(ctx.is4v4, "\n(4v4)") + "\n\n" + game.mapIndexed { index, player ->
             "${leaguedata?.mentions[index] ?: player.nickname}:".condAppend(
-                player.allMonsDead && !spoiler, " (alle tot)"
+                player.allMonsDead && !spoiler, allDead
             ) + "\n".condAppend(spoiler, "||") + monStrings[index].condAppend(spoiler, "||")
         }.joinToString("\n\n")
         return description
@@ -271,7 +283,7 @@ object Analysis {
         val split = s.split("-")
         val withoutLast = split.dropLast(1).joinToString("-")
         if (split.last() == "*") return getMonName(withoutLast, guildId, withDebug)
-        return if (s == "_unbekannt_") DraftName("_unbekannt_", "UNKNOWN")
+        return if (s == "_unbekannt_") DraftName("_unknown_", "UNKNOWN")
         else {
             var pkdata = db.pokedex.get(s.toSDName())
             (NameConventionsDB.getSDTranslation(pkdata?.takeIf { it.requiredAbility != null }?.baseSpecies?.also {
@@ -318,7 +330,7 @@ object Analysis {
 
 
     suspend fun analyse(
-        urlProvided: String, answer: ((String) -> Unit)? = null, debugMode: Boolean = false
+        urlProvided: String, answer: (suspend (K18nMessage) -> Unit)? = null, debugMode: Boolean = false
     ): AnalysisData {
         var gameNullable: List<String>? = null
         val mr = regex.find(urlProvided) ?: throw InvalidReplayException()
@@ -341,7 +353,7 @@ object Analysis {
                     throw ShowdownDoesntExistException()
                 }
                 logger.info("Showdown antwortet nicht")
-                answer?.invoke("Der Showdown-Server antwortet nicht, ich versuche es in 10 Sekunden erneut...")
+                answer?.invoke(K18n_Analysis.ShowdownDoesntAnswer)
                 delay(10.seconds)
             } else break
         }

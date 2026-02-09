@@ -1,0 +1,18 @@
+{
+  "languages": [
+    "de",
+    "en"
+  ],
+  "defaultLanguage": "de",
+  "withBasePackage": false,
+  "customClasses": {
+    "Mention": {
+      "kClassName": "Long",
+      "formatStringTemplate": "<@{var}>"
+    },
+    "ChannelMention": {
+      "kClassName": "Long",
+      "formatStringTemplate": "<#{var}>"
+    }
+  }
+}

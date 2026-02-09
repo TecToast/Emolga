@@ -1,6 +1,7 @@
 package de.tectoast.emolga.features.flegmon
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.messages.into
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.UserSnowflake
@@ -9,9 +10,14 @@ object SleepKick {
     private val activeVotings = mutableMapOf<Long, SleepKickVote>()
 
     object Command :
-        CommandFeature<Command.Args>(::Args, CommandSpec("sleepkick", "Startet einen Sleep-Kick-Vorgang")) {
+        CommandFeature<Command.Args>(
+            ::Args, CommandSpec(
+                "sleepkick",
+                "Startet einen Sleep-Kick-Vorgang".k18n
+            )
+        ) {
         class Args : Arguments() {
-            val target by member("Target", "CALLING AN AIRSTRIKE")
+            val target by member("Target", "CALLING AN AIRSTRIKE".k18n)
         }
 
         context(iData: InteractionData)
@@ -42,7 +48,7 @@ object SleepKick {
 
     object Button : ButtonFeature<Button.Args>(::Args, ButtonSpec("sleepkick_vote")) {
         override val buttonStyle = ButtonStyle.PRIMARY
-        override val label = "Für Sleep-Kick stimmen"
+        override val label = "Für Sleep-Kick stimmen".k18n
 
         class Args : Arguments() {
             var id by long().compIdOnly()

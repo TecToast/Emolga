@@ -13,12 +13,12 @@ object AddConventionCommand : CommandFeature<AddConventionCommand.Args>(
     ::Args,
     CommandSpec(
         "addconvention",
-        "Fügt eine Naming Convention von einem Mon hinzu, nur im Kontext von /preparetierlist zu verwenden",
+        K18n_AddConvention.Help,
     )
 ) {
 
     class Args : Arguments() {
-        var name by string("Name", "Der Name des Pokemons") {
+        var name by string("Name", K18n_AddConvention.ArgPokemon) {
             slashCommand { s, _ ->
                 dbTransaction {
                     NameConventionsDB.run {

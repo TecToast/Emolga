@@ -4,19 +4,19 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.draft.during.generic.K18n_NoWritePermission
 import de.tectoast.emolga.league.League
 import net.dv8tion.jda.api.Permission
 
 object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
     ::Args,
-    CommandSpec("draftsetup", "Startet das Draften der Liga in diesem Channel")
+    CommandSpec("draftsetup", K18n_Draftsetup.Help)
 ) {
     class Args : Arguments() {
-        var name by string("Name", "Der Name der Liga")
-        var switchdraft by boolean("switchdraft", "Ob es ein Switchdraft sein soll") {
+        var name by string("Name", K18n_Draftsetup.ArgName)
+        var switchdraft by boolean("switchdraft", K18n_Draftsetup.ArgSwitchDraft) {
             default = false
         }
-        var nameguild by long("NameGuild", "Der Server, von dem die Namen geholt werden sollen").nullable()
     }
 
     init {
@@ -33,11 +33,11 @@ object DraftsetupCommand : CommandFeature<DraftsetupCommand.Args>(
                 )
             ) {
                 return@executeOnFreshLock iData.reply(
-                    "Ich habe keine Schreibrechte in diesem Channel!",
+                    K18n_NoWritePermission,
                     ephemeral = true
                 )
             }
-            startDraft(iData.textChannel, fromFile = false, switchDraft = e.switchdraft, nameGuildId = e.nameguild)
+            startDraft(iData.textChannel, fromFile = false, switchDraft = e.switchdraft)
             iData.reply("+1", ephemeral = true)
         }
     }

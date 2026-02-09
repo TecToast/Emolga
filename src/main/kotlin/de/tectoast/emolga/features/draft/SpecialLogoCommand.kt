@@ -7,6 +7,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.json.LogoInputData
 import de.tectoast.emolga.utils.json.unwrap
+import de.tectoast.emolga.utils.k18n
 import kotlinx.coroutines.delay
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.interactions.commands.OptionType
@@ -14,7 +15,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType
 object SpecialLogoCommand :
     CommandFeature<SpecialLogoCommand.Args>(
         ::Args,
-        CommandSpec("speciallogo", "Speichert ein Logo in der Cloud")
+        CommandSpec("speciallogo", "Speichert ein Logo in der Cloud".k18n)
     ) {
 
     init {
@@ -24,7 +25,7 @@ object SpecialLogoCommand :
     class Args : Arguments() {
         var logos by genericList<Message.Attachment, Message.Attachment>(
             "Logo %s",
-            "Das Logo %s",
+            "Das Logo %s".k18n,
             12,
             0,
             OptionType.ATTACHMENT

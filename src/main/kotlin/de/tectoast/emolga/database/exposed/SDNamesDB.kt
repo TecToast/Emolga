@@ -5,6 +5,8 @@ import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.flo.SDNamesApprovalButton
 import de.tectoast.emolga.utils.toUsername
+import de.tectoast.generic.K18n_No
+import de.tectoast.generic.K18n_Yes
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
@@ -61,10 +63,13 @@ object SDNamesDB : Table("sdnames") {
                                     jda.retrieveUserById(currentOwner).await().effectiveName
                                 }`) belegt! Akzeptieren?",
                         components = listOf(
-                            SDNamesApprovalButton("Ja", ButtonStyle.SUCCESS) {
+                            SDNamesApprovalButton.withoutIData(label = K18n_Yes, buttonStyle = ButtonStyle.SUCCESS) {
                                 accept = true; this.id = id; this.username = username
                             },
-                            SDNamesApprovalButton("Nein", ButtonStyle.DANGER) { accept = false }
+                            SDNamesApprovalButton.withoutIData(
+                                label = K18n_No,
+                                buttonStyle = ButtonStyle.DANGER
+                            ) { accept = false }
                         ).into()
                     ).queue()
                     SDInsertStatus.ALREADY_OWNED_BY_OTHER

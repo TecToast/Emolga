@@ -4,18 +4,19 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.utils.k18n
 import de.tectoast.emolga.utils.showdown.Analysis
 import kotlinx.coroutines.future.await
 
 object RFileWithGuildCommand :
-    CommandFeature<RFileWithGuildCommand.Args>(::Args, CommandSpec("rfilewithguild", "Replay-File with guild")) {
+    CommandFeature<RFileWithGuildCommand.Args>(::Args, CommandSpec("rfilewithguild", "Replay-File with guild".k18n)) {
     init {
         restrict(flo)
     }
 
     class Args : Arguments() {
-        var guild by long("gid", "gid")
-        var file by attachment("file", "file")
+        var guild by long("gid", "gid".k18n)
+        var file by attachment("file", "file".k18n)
     }
 
     context(iData: InteractionData)

@@ -9,7 +9,7 @@ plugins {
     id("maven-publish")
     id("com.google.cloud.tools.jib") version "3.5.2"
     application
-    id("de.tectoast.k18n") version "2.0"
+    id("de.tectoast.k18n") version "2.2.1"
 }
 
 jib {

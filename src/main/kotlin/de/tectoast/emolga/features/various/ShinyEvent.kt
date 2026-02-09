@@ -8,6 +8,8 @@ import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.ShinyEventResult
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.k18n
+import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.Dispatchers
@@ -27,19 +29,19 @@ object ShinyEvent {
     }
 
     object ShinyCommand : CommandFeature<ShinyCommand.Args>(
-        ::Args, CommandSpec("shiny", "Reicht ein Shiny für das Event ein")
+        ::Args, CommandSpec("shiny", "Reicht ein Shiny für das Event ein".k18n)
     ) {
         class Args : Arguments() {
-            var game by enumBasic<SingleGame>("spiel", "Das Spiel, in dem das Shiny gefangen wurde")
-            var method by string("methode", "Die Methode, mit der das Shiny gefangen wurde") {
+            var game by enumBasic<SingleGame>("spiel", "Das Spiel, in dem das Shiny gefangen wurde".k18n)
+            var method by string("methode", "Die Methode, mit der das Shiny gefangen wurde".k18n) {
                 slashCommand { s, event ->
                     val config =
                         guildToEvent()[event.guild?.idLong] ?: return@slashCommand listOf("Derzeit kein Event aktiv!")
                     config.groupedByGame[event.getOption("spiel")?.asString]?.filterStartsWithIgnoreCase(s) { it.first }
-                        .convertListToAutoCompleteReply()
+                        .convertListToAutoCompleteReply(K18N_DEFAULT_LANGUAGE)
                 }
             }
-            var image by attachment("bild", "Das Bild des Shinys")
+            var image by attachment("bild", "Das Bild des Shinys".k18n)
         }
 
         context(iData: InteractionData)
@@ -58,7 +60,7 @@ object ShinyEvent {
                     "<@${iData.user}> (${iData.member().effectiveName}) hat ein Shiny für das Event eingereicht!\n" + "Spiel: ${e.game}\n" + "Methode: ${e.method}\n" + "(Punkte: ${configuration.points})\n" + "Bild: ${e.image.url}",
                     components = listOf(
                         ShinyAdminButton(
-                        "Bestätigen", ButtonStyle.SUCCESS, emoji = Emoji.fromUnicode("✅")
+                            "Bestätigen".k18n, ButtonStyle.SUCCESS, emoji = Emoji.fromUnicode("✅")
                     ) {
                         this.eventName = config.name
                         this.mode = ShinyAdminButton.Mode.APPROVE
@@ -66,7 +68,7 @@ object ShinyEvent {
                         game = e.game
                         method = e.method
                         points = configuration.points
-                    }, ShinyAdminButton("Ablehnen", ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
+                        }, ShinyAdminButton("Ablehnen".k18n, ButtonStyle.DANGER, Emoji.fromUnicode("❌")) {
                         this.mode = ShinyAdminButton.Mode.REJECT
                         this.user = iData.user
                     }).into()
@@ -137,7 +139,7 @@ object ShinyEvent {
             }
         }
 
-        override val title = "Grund eingeben"
+        override val title = "Grund eingeben".k18n
 
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {

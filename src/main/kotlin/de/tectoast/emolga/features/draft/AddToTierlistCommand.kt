@@ -8,6 +8,8 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.draft.during.generic.K18n_NoTierlist
+import de.tectoast.emolga.features.draft.during.generic.K18n_TierNotFound
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
@@ -21,15 +23,15 @@ import java.sql.SQLIntegrityConstraintViolationException
 
 object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
     ::Args,
-    CommandSpec("addtotierlist", "Fügt ein Mon in die Tierliste ein")
+    CommandSpec("addtotierlist", K18n_AddToTierlist.Help)
 ) {
     private val logger = KotlinLogging.logger {}
 
     class Args : Arguments() {
-        var mon by draftPokemon("Mon", "Das Mon") { s, _ ->
+        var mon by draftPokemon("Mon", K18n_AddToTierlist.ArgPokemon) { s, _ ->
             allNameConventions().filterStartsWithIgnoreCase(s).takeIf { it.size <= 25 }?.sorted()
         }
-        var tier by string("Tier", "Das Tier, sonst das unterste") {
+        var tier by string("Tier", K18n_AddToTierlist.ArgTier) {
             slashCommand { s, event ->
                 Tierlist[event.guild!!.idLong]?.withTL { it.getTiers() }?.filter { it.startsWith(s) }
             }
@@ -44,24 +46,22 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
     override suspend fun exec(e: Args) {
         // TODO: Add support for multiple tierlists via identifier
         val id = League.onlyChannel(iData.tc)?.guild ?: iData.gid
-        val tierlist = Tierlist[id] ?: return iData.reply("Es gibt keine Tierlist für diesen Server!")
+        val tierlist = Tierlist[id] ?: return iData.reply(K18n_NoTierlist)
         val mon = e.mon.tlName
         val allTiers = tierlist.withTL { it.getTiers() }
         val tier = e.tier ?: allTiers.last()
         if (tier !in allTiers) {
-            return iData.reply("Das Tier `$tier` existiert nicht!")
+            return iData.reply(K18n_TierNotFound(tier))
         }
         try {
             tierlist.addPokemon(mon, tier)
         } catch (ex: ExposedSQLException) {
             if (ex.cause is SQLIntegrityConstraintViolationException) {
-                return iData.reply("Das Pokemon `$mon` existiert bereits!")
+                return iData.reply(K18n_AddToTierlist.PokemonAlreadyInTierlist(mon))
             }
-            iData.reply("Es ist ein unbekannter Fehler aufgetreten!")
-            logger.error("Error in AddToTierlistCommand", ex)
-            return
+            throw ex
         }
-        iData.reply("`$mon` ist nun im $tier-Tier!")
+        iData.reply(K18n_AddToTierlist.Success(mon, tier))
         val data = AddToTierlistData(mon, tier, tierlist, id).apply { addToTierlistAutocompletion() }
         val leagues = db.league.find(League::guild eq id).toList()
         if (leagues.isNotEmpty()) {

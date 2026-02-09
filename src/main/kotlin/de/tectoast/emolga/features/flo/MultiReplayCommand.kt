@@ -1,16 +1,17 @@
 package de.tectoast.emolga.features.flo
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.k18n
 import de.tectoast.emolga.utils.showdown.Analysis
 
 object MultiReplay {
     object Command : CommandFeature<Command.Args>(
         ::Args,
-        CommandSpec("multireplay", "Sendet mehrere Replays auf einmal!")
+        CommandSpec("multireplay", "Sendet mehrere Replays auf einmal!".k18n)
     ) {
         class Args : Arguments() {
-            var replay by long("Replaychannel", "Replaychannel")
-            var result by long("Resultchannel", "Resultchannel")
+            var replay by long("Replaychannel", "Replaychannel".k18n)
+            var result by long("Resultchannel", "Resultchannel".k18n)
         }
 
         context(iData: InteractionData)
@@ -23,12 +24,12 @@ object MultiReplay {
     }
 
     object Modal : ModalFeature<Modal.Args>(::Args, ModalSpec("multireplay")) {
-        override val title = "Multi-Replay"
+        override val title = "Multi-Replay".k18n
 
         class Args : Arguments() {
-            var replay by long("Replaychannel", "Replaychannel").compIdOnly()
-            var result by long("Resultchannel", "Resultchannel").compIdOnly()
-            var replayLinks by string("ReplayLinks", "ReplayLinks") {
+            var replay by long("Replaychannel", "Replaychannel".k18n).compIdOnly()
+            var result by long("Resultchannel", "Resultchannel".k18n).compIdOnly()
+            var replayLinks by string("ReplayLinks", "ReplayLinks".k18n) {
                 modal(short = false)
             }
         }

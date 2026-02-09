@@ -200,7 +200,7 @@ object PrivateCommands {
         db.remoteServerControl.get(args[2]) ?: return iData.reply("No data with id ${args[2]} found")
         (if (args[0].toBoolean()) jda.openPrivateChannelById(args[1])
             .await() else jda.getTextChannelById(args[1])!!).send(
-            ":)", components = FlorixButton("Server starten", ButtonStyle.PRIMARY) {
+            ":)", components = FlorixButton("Server starten".k18n, ButtonStyle.PRIMARY) {
                 this.pc = args[2]
                 this.action = FlorixButton.Action.START
             }.into()
@@ -501,7 +501,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun enableMaintenanceRoutine(args: PrivateData) {
-        enableMaintenanceWithReason("Es werden routinemäßige Wartungsarbeiten durchgeführt, ich sollte in wenigen Minuten wieder erreichbar sein.")
+        enableMaintenanceWithReason(EmolgaMain.ROUTINE_MAINTENANCE_KEY)
     }
 
     suspend fun enableMaintenanceWithReason(reason: String) {
@@ -576,11 +576,6 @@ object PrivateCommands {
         League.executeOnFreshLock(args()) {
             save()
         }
-    }
-
-    context(iData: InteractionData)
-    suspend fun sendTeraSelectMessage(args: PrivateData) {
-        League.executeOnFreshLock(args()) { sendTeraSelectMessage() }
     }
 
     context(iData: InteractionData)
@@ -677,10 +672,12 @@ object PrivateCommands {
     }
 
     context(iData: InteractionData)
-    fun guildAuthorizeButton(args: PrivateData) {
-        iData.jda.getTextChannelById(args())!!.send(
+    suspend fun guildAuthorizeButton(args: PrivateData) {
+        val tc = iData.jda.getTextChannelById(args())!!
+        tc.send(
             "Hier könnt ihr euch Rechte für die Website holen :)",
-            components = GuildAuthorizeButton(label = "Klick mich :3", buttonStyle = ButtonStyle.SUCCESS).into()
+            components = GuildAuthorizeButton.withoutIData(language = GuildLanguageDB.getLanguage(tc.guild.idLong))
+                .into()
         ).queue()
     }
 

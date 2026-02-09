@@ -2,15 +2,15 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.ResultCodesDB
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.CommandFeature
-import de.tectoast.emolga.features.CommandSpec
-import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.*
+import de.tectoast.emolga.features.draft.during.generic.K18n_NoLeagueForGuildFound
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.hasRole
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.reverseGet
+import de.tectoast.emolga.utils.k18n
+import de.tectoast.emolga.utils.translateToGuildLanguage
 import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.Permission
 
@@ -18,20 +18,21 @@ object EnterResult {
 
     object ResultCommand : CommandFeature<ResultCommand.Args>(
         ::Args, CommandSpec(
-            "result", "Startet die interaktive Ergebniseingabe"
+            "result", K18n_EnterResult.ResultHelp
         )
     ) {
         private val nameCache = mutableMapOf<String, Map<Long, String>>() // guild -> uid -> name
         private val leagueCache = mutableMapOf<Long, String>()
 
         class Args : Arguments() {
-            var opponent by fromListCommand("Gegner", "Dein Gegner", {
-                db.leagueByGuild(it.guild?.idLong ?: -1, it.user.idLong).handle(it.user.idLong)
+            var opponent by fromListCommand("Opponent", K18n_EnterResult.ResultArgOpponent, {
+                val gid = it.guild?.idLong
+                db.leagueByGuild(gid ?: -1, it.user.idLong).handle(it.user.idLong, gid)
             })
         }
 
-        private suspend fun League?.handle(user: Long): Collection<String> {
-            this ?: return listOf("Du bist in keiner Liga auf diesem Server!")
+        private suspend fun League?.handle(user: Long, gid: Long?): Collection<String> {
+            this ?: return listOf(K18n_NoLeagueForGuildFound.translateToGuildLanguage(gid))
             leagueCache[user] = leaguename
             return nameCache.getOrPut(leaguename) {
                 jda.getGuildById(guild)!!.retrieveMembersByIds(table).await()
@@ -42,7 +43,7 @@ object EnterResult {
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             val oppo = nameCache[leagueCache[iData.user]]?.reverseGet(e.opponent) ?: return iData.reply(
-                "Gegner wurde nicht gefunden, hast du dich an die Autovervollständigung gehalten?", ephemeral = true
+                K18n_Arguments.NotAutocompleteConform, ephemeral = true
             )
             iData.deferReply(true)
             handleStart(oppo)
@@ -51,7 +52,7 @@ object EnterResult {
 
     object ResultFor : CommandFeature<ResultFor.Args>(
         ::Args, CommandSpec(
-            "resultfor", "Startet die interaktive Ergebniseingabe für jemand anderen",
+            "resultfor", K18n_EnterResult.ResultForHelp,
         )
     ) {
         init {
@@ -61,8 +62,8 @@ object EnterResult {
         }
 
         class Args : Arguments() {
-            var user by member("Spieler 1", "Spieler 1")
-            var opponent by member("Spieler 2", "Spieler 2")
+            var user by member("Spieler 1", K18n_EnterResult.ResultForArgUser)
+            var opponent by member("Spieler 2", K18n_EnterResult.ResultForArgOpponent)
         }
 
         context(iData: InteractionData)
@@ -73,12 +74,12 @@ object EnterResult {
     }
 
     object ResWithGuild : CommandFeature<ResWithGuild.Args>(
-        ::Args, CommandSpec("reswithguild", "Startet die interaktive Ergebniseingabe")
+        ::Args, CommandSpec("reswithguild", K18n_EnterResult.ResultHelp)
     ) {
         class Args : Arguments() {
-            var guild by long("guild", "guild")
-            var user by long("user", "user")
-            var opponent by long("opponent", "opponent")
+            var guild by long("guild", "guild".k18n)
+            var user by long("user", "user".k18n)
+            var opponent by long("opponent", "opponent".k18n)
         }
 
         context(_: InteractionData)
@@ -93,15 +94,16 @@ object EnterResult {
         val g = guild ?: iData.gid
 //        val t = customTc ?: tc
         val league = db.leagueByGuild(g, u, opponent) ?: return iData.reply(
-            "Du bist in keiner Liga mit diesem User! Wenn du denkst, dass dies ein Fehler ist, melde dich bitte bei ${Constants.MYTAG}!",
+            K18n_EnterResult.NoLeagueWithOpponent(Constants.MYTAG),
             ephemeral = true
         )
         val idx1 = league(u)
         val idx2 = league(opponent)
         val gameday = league.getGamedayData(idx1, idx2).first.gameday
         val uuid = ResultCodesDB.add(league.leaguename, gameday, idx1, idx2)
+        val url = "https://emolga.tectoast.de/result/${uuid}"
         iData.reply(
-            "Bitte trage das Ergebnis auf meiner Website ein:\nhttps://emolga.tectoast.de/result/${uuid}",
+            K18n_EnterResult.Success(url),
             ephemeral = true
         )
     }

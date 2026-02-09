@@ -11,10 +11,10 @@ import de.tectoast.emolga.utils.draft.DraftUtils
 
 object BanMonCommand : CommandFeature<BanMonCommand.Args>(
     ::Args,
-    CommandSpec("banmon", "Bannt ein Mon im Pick&Ban-System")
+    CommandSpec("banmon", K18n_BanMon.Help)
 ) {
     class Args : Arguments() {
-        var pokemon by draftPokemon("Pokemon", "Das Pokemon, welches du bannen möchtest")
+        var pokemon by draftPokemon("Pokemon", K18n_BanMon.ArgPokemon)
     }
 
     context(iData: InteractionData)

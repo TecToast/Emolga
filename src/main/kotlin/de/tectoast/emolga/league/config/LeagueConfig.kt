@@ -17,7 +17,6 @@ data class LeagueConfig(
     val customTierlist: CustomTierlistConfig? = null,
     val teraPick: TeraPickConfig? = null,
     val triggers: Triggers = Triggers(),
-    val teraSelect: TeraZSelectConfig? = null,
     val hideGames: HideGamesConfig? = null,
     val teamgraphics: TeamGraphicsLeagueConfig? = null
 )
@@ -39,6 +38,5 @@ data class ResettableLeagueData(
 data class PersistentLeagueData(
     val replayDataStore: ReplayDataStoreData = ReplayDataStoreData(),
     val queuePicks: QueuePicksData = QueuePicksData(),
-    val teraSelect: TeraZSelectData = TeraZSelectData(),
     val teamReveal: TeamRevealData = TeamRevealData(),
 )

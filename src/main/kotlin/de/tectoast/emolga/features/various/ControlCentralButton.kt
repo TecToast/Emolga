@@ -9,7 +9,7 @@ import de.tectoast.emolga.utils.draft.Tierlist
 
 object ControlCentralButton : ButtonFeature<ControlCentralButton.Args>(::Args, ButtonSpec("controlcentral")) {
     class Args : Arguments() {
-        var mode by enumBasic<Mode>("mode", "mode")
+        var mode by enumBasic<Mode>()
     }
 
     enum class Mode {

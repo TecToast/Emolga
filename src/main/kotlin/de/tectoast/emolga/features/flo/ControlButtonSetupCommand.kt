@@ -8,6 +8,7 @@ import de.tectoast.emolga.features.various.ControlCentralButton
 import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.RemoteServerControlFeature
 import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
@@ -15,9 +16,9 @@ import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
 
 object ControlButtonSetupCommand :
-    CommandFeature<ControlButtonSetupCommand.Args>(::Args, CommandSpec("controlbuttonsetup", "lol")) {
+    CommandFeature<ControlButtonSetupCommand.Args>(::Args, CommandSpec("controlbuttonsetup", "lol".k18n)) {
     class Args : Arguments() {
-        var type by enumBasic<ControlButtonType>("type", "type")
+        var type by enumBasic<ControlButtonType>("type", "type".k18n)
     }
 
     enum class ControlButtonType {
@@ -31,13 +32,13 @@ object ControlButtonSetupCommand :
             ControlButtonType.CONTROLCENTRAL -> {
                 val embed = Embed(title = "Kontrollzentrale", color = embedColor).into()
                 val components = listOf(
-                    ControlCentralButton("Tierlist updaten", ButtonStyle.PRIMARY) {
+                    ControlCentralButton("Tierlist updaten".k18n, ButtonStyle.PRIMARY) {
                         mode = ControlCentralButton.Mode.UPDATE_TIERLIST
                     },
-                    ControlCentralButton("Breakpoint", ButtonStyle.SUCCESS) {
+                    ControlCentralButton("Breakpoint".k18n, ButtonStyle.SUCCESS) {
                         mode = ControlCentralButton.Mode.BREAKPOINT
                     },
-                    ControlCentralButton("Log-Config reloaden", ButtonStyle.PRIMARY) {
+                    ControlCentralButton("Log-Config reloaden".k18n, ButtonStyle.PRIMARY) {
                         mode = ControlCentralButton.Mode.RELOAD_LOG_CONFIG
                     },
                 ).into()
@@ -51,26 +52,26 @@ object ControlButtonSetupCommand :
                         val features = control.features
                         if (RemoteServerControlFeature.START in features) add(
                             FlorixButton(
-                                "Server starten",
+                                "Server starten".k18n,
                                 ButtonStyle.SUCCESS,
                                 emoji = Emoji.fromCustom("stonks", 964570148692443196, false)
                             ) { this.pc = control.name; this.action = FlorixButton.Action.START })
 
                         if (RemoteServerControlFeature.STATUS in features) add(
                             FlorixButton(
-                                "Status", ButtonStyle.PRIMARY, emoji = Emoji.fromUnicode("ℹ")
+                                "Status".k18n, ButtonStyle.PRIMARY, emoji = Emoji.fromUnicode("ℹ")
                             ) { this.pc = control.name; this.action = FlorixButton.Action.STATUS })
 
                         if (RemoteServerControlFeature.STOP in features) add(
                             FlorixButton(
-                                "Server stoppen",
+                                "Server stoppen".k18n,
                                 ButtonStyle.SECONDARY,
                                 emoji = Emoji.fromCustom("notstonks", 964570147220254810, false)
                             ) { this.pc = control.name; this.action = FlorixButton.Action.STOP })
 
                         if (RemoteServerControlFeature.POWEROFF in features) add(
                             FlorixButton(
-                                "PowerOff", ButtonStyle.DANGER, emoji = Emoji.fromUnicode("⚠")
+                                "PowerOff".k18n, ButtonStyle.DANGER, emoji = Emoji.fromUnicode("⚠")
                             ) { this.pc = control.name; this.action = FlorixButton.Action.POWEROFF })
                     }.into()
                     iData.textChannel.send(embeds = embed, components = components).queue()

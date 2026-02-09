@@ -5,6 +5,7 @@ import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
+import de.tectoast.emolga.utils.k18n
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 
@@ -19,12 +20,12 @@ object RevealTeam {
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock(e.league) {
                 val state = persistentData.teamReveal.revealState
-                val picks = picks[e.idx] ?: return@executeOnFreshLock iData.reply("Dieses Team hat keine Picks!")
+                val picks = picks[e.idx] ?: return@executeOnFreshLock iData.reply(K18n_RevealTeam.NoPicksInTeam)
                 val ustate = state[e.idx] ?: 0
-                if (ustate >= picks.size) return@executeOnFreshLock iData.reply("Alle Picks dieses Teams wurden bereits aufgedeckt!")
+                if (ustate >= picks.size) return@executeOnFreshLock iData.reply(K18n_RevealTeam.AllPicksRevealed)
                 revealPick(e.idx, ustate)
                 state[e.idx] = ustate + 1
-                iData.edit(components = getButtons(this))
+                iData.edit(contentK18n = null, components = getButtons(this))
                 save()
             }
         }
@@ -37,8 +38,8 @@ object RevealTeam {
             val upicks = picks[it]
             val hasPicks = upicks != null
             val ustate = state[it] ?: 0
-            RevealButton(
-                label = names[it], buttonStyle = if (hasPicks) {
+            RevealButton.withoutIData(
+                label = names[it].k18n, buttonStyle = if (hasPicks) {
                     if (ustate >= upicks.size) ButtonStyle.SECONDARY
                     else ButtonStyle.PRIMARY
                 } else ButtonStyle.DANGER,

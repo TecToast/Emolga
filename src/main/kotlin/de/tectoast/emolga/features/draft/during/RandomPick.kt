@@ -13,6 +13,8 @@ import de.tectoast.emolga.utils.add
 import de.tectoast.emolga.utils.draft.DraftMessageType
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.draft.PickInput
+import de.tectoast.generic.K18n_Accept
+import de.tectoast.k18n.generated.K18nLanguage
 import dev.minn.jda.ktx.messages.into
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 
@@ -24,16 +26,16 @@ object RandomPick {
     }
 
     object Command :
-        CommandFeature<Command.Args>(::Args, CommandSpec("randompick", "Macht einen Random-Pick")) {
+        CommandFeature<Command.Args>(::Args, CommandSpec("randompick", K18n_RandomPick.Help)) {
         class Args : Arguments() {
-            var tier by string("tier", "Das Tier, in dem gepickt werden soll") {
+            var tier by string("tier", K18n_RandomPick.ArgTier) {
                 slashCommand(guildChecker = {
                     val league = league() ?: return@slashCommand ArgumentPresence.OPTIONAL
                     league.config.randomPick.mode.provideCommandOptions()[RandomPickArgument.TIER]
                         ?: ArgumentPresence.NOT_PRESENT
                 })
             }.nullable()
-            var type by pokemontype("Typ", "Der Typ, den du haben willst", Language.ENGLISH) {
+            var type by pokemontype("Typ", K18n_RandomPick.ArgType, Language.ENGLISH) {
                 slashCommand(guildChecker = {
                     val league = league() ?: return@slashCommand ArgumentPresence.OPTIONAL
                     league.config.randomPick.mode.provideCommandOptions()[RandomPickArgument.TYPE]
@@ -76,18 +78,19 @@ object RandomPick {
     ): Boolean {
         val jokerAmount = config.randomPick.jokers - (draftData.randomPick.usedJokers[current] ?: 0)
         if (jokerAmount > 0) {
+            val pokemon = if (iData.language == K18nLanguage.EN) draftname.tlName else "${draftname.tlName}/${
+                NameConventionsDB.getSDTranslation(
+                    draftname.official, guild, english = true
+                )!!.tlName
+            }"
             replyGeneral(
-                "gegambled: **${draftname.tlName}/${
-                    NameConventionsDB.getSDTranslation(
-                        draftname.official, guild, english = true
-                    )!!.tlName
-                } ($tier)**!",
+                K18n_RandomPick.Gambled(pokemon, tier),
                 components = listOf(
-                    Button("Akzeptieren", ButtonStyle.SUCCESS) {
+                    Button(K18n_Accept, ButtonStyle.SUCCESS) {
                         action = RandomPickAction.ACCEPT
                     },
                     Button(
-                        "Joker einlösen (noch $jokerAmount übrig)",
+                        K18n_RandomPick.JokerLabel(jokerAmount),
                         ButtonStyle.DANGER
                     ) {
                         action = RandomPickAction.REROLL
@@ -109,7 +112,7 @@ object RandomPick {
 
     object Button : ButtonFeature<Button.Args>(::Args, ButtonSpec("randompick")) {
         class Args : Arguments() {
-            var action by enumBasic<RandomPickAction>("action", "Die Aktion, die ausgeführt werden soll")
+            var action by enumBasic<RandomPickAction>()
         }
 
 
@@ -119,11 +122,11 @@ object RandomPick {
             League.executePickLike l@{
                 val (official, tlName, tier, map, history, disabled) = draftData.randomPick.currentMon
                     ?: return@l iData.reply(
-                        "Es gibt zurzeit keinen Pick!",
+                        K18n_RandomPick.NoPickAvailable,
                         ephemeral = true
                     )
                 if (disabled) return@l iData.reply(
-                    "Du musst erstmal selbst gamblen, bevor du diesen Button verwenden kannst!",
+                    K18n_RandomPick.YouMustGamble,
                     ephemeral = true
                 )
                 when (e.action) {
@@ -138,7 +141,7 @@ object RandomPick {
                         if ((draftData.randomPick.usedJokers[current]
                                 ?: 0) >= config.randomPick.jokers
                         ) return@l iData.reply(
-                            "Du hast keine Joker mehr!",
+                            K18n_RandomPick.NoJokers,
                             ephemeral = true
                         )
                         draftData.randomPick.usedJokers.add(current, 1)

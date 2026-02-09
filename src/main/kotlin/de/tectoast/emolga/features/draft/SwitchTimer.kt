@@ -5,7 +5,6 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.SwitchTimer
 import de.tectoast.emolga.utils.TimeUtils
 import de.tectoast.emolga.utils.TimerInfo
-import de.tectoast.emolga.utils.l
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 
 object SwitchTimer {
@@ -13,19 +12,19 @@ object SwitchTimer {
         ::Args,
         CommandSpec(
             "switchtimercreate",
-            "Konfiguriert den Switch-Timer für eine Liga und erstellt ein Control-Panel",
+            K18n_SwitchTimer.Help,
         )
     ) {
         class Args : Arguments() {
-            var league by string("Liga", "Der Name der Liga, für die der Timer erstellt werden soll.")
-            var settings by list("Timer %s", "Die %s. Einstellung", 5, 1)
-            var stallSeconds by int("Stall-Sekunden", "Die Anzahl an Sekunden, die Spieler überziehen dürfen.") {
+            var league by string("Liga", K18n_SwitchTimer.ArgLeague)
+            var settings by list("Timer %s", K18n_SwitchTimer.ArgSettings, 5, 1)
+            var stallSeconds by int("Stall-Sekunden", K18n_SwitchTimer.ArgStallSeconds) {
                 default = 0
             }
-            var from by int("Startstunde", "Die Stunde, zu der der Timer startet.") {
+            var from by int("Startstunde", K18n_SwitchTimer.ArgFrom) {
                 default = 0
             }
-            var to by int("Endstunde", "Die Stunde, zu der der Timer endet.") {
+            var to by int("Endstunde", K18n_SwitchTimer.ArgTo) {
                 default = 24
             }
         }
@@ -40,7 +39,7 @@ object SwitchTimer {
                 val settings = e.settings
                 val timer = SwitchTimer(settings.associateWith {
                     TimerInfo((TimeUtils.parseShortTime(it).toInt().takeIf { n -> n >= 0 }
-                        ?: return@l iData.reply("`$it` ist keine valide Zeitangabe!")) / 60).set(e.from, e.to)
+                        ?: return@l iData.reply(K18n_SwitchTimer.InvalidTime(it))) / 60).set(e.from, e.to)
                 })
                 timer.stallSeconds = e.stallSeconds
                 config.timer = timer
@@ -67,9 +66,9 @@ object SwitchTimer {
                     save()
                     iData.deferEdit()
                     val (messageEmbeds, actionRows) = it.createControlPanel(this)
-                    iData.edit(embeds = messageEmbeds, components = actionRows)
-                    iData.reply("Timer auf `${e.switchTo}` umgestellt!", ephemeral = true)
-                } ?: iData.reply("Der Timer von `$l` ist kein Switch-Timer!", ephemeral = true)
+                    iData.edit(contentK18n = null, embeds = messageEmbeds, components = actionRows)
+                    iData.reply(K18n_SwitchTimer.Success(e.switchTo), ephemeral = true)
+                } ?: iData.reply(K18n_SwitchTimer.NoSwitchTimer(leaguename), ephemeral = true)
             }
         }
     }

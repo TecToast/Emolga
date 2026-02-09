@@ -1,0 +1,508 @@
+{
+  "de": {
+    "tectoast": {
+      "emolga": {
+        "database": {
+          "exposed": {
+            "BirthdayGratulation": "Happy {age:Int}th birthday, {user:Mention}!"
+          }
+        },
+        "features": {
+          "draft": {
+            "during": {
+              "generic": {
+                "NoLeagueForGuildFound": "You are not participating in a league on this server!",
+                "NoWritePermission": "I don’t have write permissions in this channel!",
+                "NoWritePermissionInChannel": "I don’t have write permissions in the channel {channel:ChannelMention}!",
+                "NotInTierlist": "`{pokemon}` is not in the tierlist!",
+                "PokemonNotFound": "Pokemon `{pokemon}` not found!",
+                "NoSignupInGuild": "There is currently no signup running on this server!",
+                "NotSignedUp": "You are not signed up!",
+                "NoTierlist": "There is no tierlist on this server!",
+                "TierNotFound": "The tier `{tier}` does not exist!",
+                "LeagueNotFound": "League not found!"
+              },
+              "BanMon_nested": {
+                "Help": "Bans a mon in the Pick & Ban system",
+                "ArgPokemon": "The Pokemon you want to ban"
+              },
+              "DraftPermission_nested": {
+                "Help": "Configures your backup drafters",
+                "AllowHelp": "Allow a person to draft for you",
+                "AllowArgUser": "The person who may draft for you",
+                "AllowArgMention": "Who should be pinged?",
+                "AllowMentionMe": "Only me",
+                "AllowMentionOther": "Only other person",
+                "AllowMentionBoth": "Both",
+                "NoBotsAllowed": "You cannot add bots as backup drafters!",
+                "EmbedTitle": "Your draft permissions",
+                "EmbedYes": "{user:Mention} (With ping: yes)",
+                "EmbedNo": "{user:Mention} (With ping: no)",
+                "DenyHelp": "Revoke someone’s backup drafting permissions",
+                "DenyArgUser": "The person whose backup drafting you want to revoke",
+                "DenyYourself": "You’re actually always allowed to pick :)"
+              },
+              "Draftsetup_nested": {
+                "Help": "Starts the draft of the league in this channel",
+                "ArgName": "The name of the league",
+                "ArgSwitchDraft": "Whether it should be a switch draft"
+              },
+              "FinishDraft_nested": {
+                "Help": "Finishes the draft for you",
+                "NoSupport": "This draft doesn’t support /finishdraft!",
+                "Success": "{user:Mention} has finished the draft for themselves!"
+              },
+              "Move_nested": {
+                "Help": "Moves your pick",
+                "IsSwitchDraft": "This draft is a switch draft, so /move is not supported!",
+                "InPseudoEnd": "The draft is basically already over, you can’t move anymore!",
+                "Success": "moved the pick!"
+              },
+              "Pick_nested": {
+                "Help": "Picks a Pokemon",
+                "ArgPokemon": "The Pokemon to be picked",
+                "ArgTier": "The tier in which the Pokemon should be picked",
+                "ArgFree": "Whether this pick is a free pick",
+                "ArgTera": "Whether this pick should be your Tera user"
+              },
+              "QueuePicks_nested": {
+                "Help": "Manage your queued picks",
+                "Disabled": "Queuing picks is disabled in this league!",
+                "NoPicksInQueue": "You currently have no picks in the queue! Add some via /queuepicks add!",
+                "AddHelp": "Add a pick",
+                "AddArgPokemon": "The Pokemon you want to add",
+                "AddArgOldMon": "The Pokemon you want to replace",
+                "OnlyWithSwitchAllowed": "In the upcoming draft only switches can be made, therefore you must specify an old Pokemon!",
+                "PokemonNotInTeam": "You don’t own `{pokemon}`!",
+                "PokemonAlreadyPicked": "`{pokemon}` has already been picked!",
+                "PokemonInYourQueue": "`{pokemon}` is already in your queue!",
+                "OldMonInYourQueue": "You already plan to replace `{pokemon}`!",
+                "AddSuccess": "{action} was added to your queued picks! The system was also disabled for you so you can move the Pokemon to the correct location :)",
+                "QueueEnabled": "The system has been enabled for you!",
+                "QueueDisabled": "The system has been disabled for you!",
+                "EnableHelp": "Enable the system for you",
+                "DisableHelp": "Disable the system for you",
+                "ReloadLabel": "Load new Pokemon",
+                "SetLocationModalTitle": "Move Pokemon",
+                "SetLocationModalArgLocation": "The position to move the Pokemon to",
+                "ManageEmbedTitle": "Your queued picks",
+                "ManageEmbedDescription": "Here you can move or remove Pokemon.\nIn general, the list shown here is a copy of your real list and is only updated after clicking `Save` or `Save and enable`.\nSince the `/queuepicks add` command adds the Pokemon directly to the real list, you must click `Load new Pokemon` here afterwards to update the list. Alternatively, you can open a new management window via `/queuepicks manage`.",
+                "ManageCurrentOrder": "Current order",
+                "ManageCurrentPokemon": "Current Pokemon",
+                "ManageNoPicks": "No more picks",
+                "ManageUp": "Up",
+                "ManageDown": "Down",
+                "ManageNewLocation": "Select new position",
+                "ManageRemove": "Remove",
+                "ManageConfirm": "Confirm",
+                "ManagePokemonAlreadyAtTop": "The Pokemon is already at the top!",
+                "ManagePokemonAlreadyAtBottom": "The Pokemon is already at the bottom!",
+                "ManageFinishDisabled": "Your new queue pick order has been saved!\nThe system is currently **disabled** for you.",
+                "ManageFinishEnabled": "Your new queue pick order has been saved!\nThe system is currently **enabled** for you.",
+                "ManageSaveAndDisable": "Save and disable",
+                "ManageSaveAndEnable": "Save and enable",
+                "SnipeWarningEnabled": "`{pokemon}` from your queue was picked by {sniper}.\nHowever, the system continues to run for you.",
+                "SnipeWarningDisabled": "`{pokemon}` from your queue was picked by {sniper}.\nThe system was disabled for you so you can replan.",
+                "PickNotification": "You picked `{pokemon}`.\nRounds until you need to pick manually again: **{roundsLeft:Int}**",
+                "LegalTooManyInTier": "With this queue you would have too many Pokemon in one or more tiers!",
+                "LegalTooManyInSingleTier": "With this queue you would have too many Pokemon in the {tier} tier!",
+                "LegalTeamCompletion": "With this queue your team could no longer be completed!"
+              },
+              "RandomPick_nested": {
+                "Help": "Makes a random pick",
+                "ArgTier": "The tier to pick in",
+                "ArgType": "The type you want",
+                "Disabled": "RandomPick is disabled in this league!",
+                "AlreadyGambled": "You already gambled a mon!",
+                "Gambled": "gambled: **{pokemon} ({tier})**!",
+                "JokerLabel": "Use joker ({jokerAmount:Int} left)",
+                "NoPickAvailable": "There is currently no pick available!",
+                "YouMustGamble": "You must gamble yourself first before you can use this button!",
+                "NoJokers": "You have no jokers left!",
+                "NoPokemonWithTypeAvailable": "There is no Pokemon with the specified type left in this tier!",
+                "TierRequired": "You must specify a tier!",
+                "TypeRequired": "You must specify a type!",
+                "TypeTierlistNotSupported": "This tier ist does not support random pick with TypeTierlist mode!",
+                "TypeDoesntMatch": "There is no {type} Pokemon left that fits your team!",
+                "NoPokemonFound": "No suitable Pokemon could be found! ({flo:Mention})",
+                "OnlyAllowedInTiers": "In this league random picks are only allowed in the following tiers: {tiers}"
+              },
+              "Skip_nested": {
+                "Help": "Skips your switch",
+                "IsNoSwitchDraft": "This draft is a switch draft, so /skip is not supported!",
+                "Success": "skipped the switch!"
+              },
+              "SkipPickHelp": "Skip a person during the draft",
+              "Switch_nested": {
+                "Help": "Switches a Pokemon",
+                "ArgOldMon": "The Pokemon you want to switch out",
+                "ArgNewMon": "The Pokemon you want to pick instead"
+              },
+              "TeraAndZ_nested": {
+                "Help": "Sets your Tera and Z user",
+                "ModalTitle": "Change requests for Tera and Z user",
+                "ArgTeraUser": "Your Tera user",
+                "ArgTeraType": "Your Tera type",
+                "ArgZUser": "Your Z user",
+                "PokemonNotInTeam": "The Pokemon `{pokemon}` is not in your roster!",
+                "TierInvalid": "may be at most in the {tier} tier, but `{pokemon}` is in the {pokemonTier} tier!",
+                "ChangesText": "Changes by {user:Mention}:\n{changes}",
+                "NoChanges": "_No changes made_"
+              }
+            },
+            "AddConvention_nested": {
+              "Help": "Adds a naming convention for a mon, only to be used in the context of /preparetierlist",
+              "ArgPokemon": "The name of the Pokemon"
+            },
+            "AddMon_nested": {
+              "Help": "Adds a Pokemon to your team",
+              "ArgPokemon": "The Pokemon to be added to the team",
+              "NotAvailable": "You are not participating in a league where you need to submit a team!",
+              "PokemonAlreadyInTeam": "You already have this Pokemon in your team!",
+              "TeamAlreadyComplete": "Your team is already complete! If you notice an error, please contact {mytag}.",
+              "TeamComplete": "{picksStr}\n\n**Your team is now complete!** If you notice an error, please contact {mytag}.",
+              "TeamInProgress": "{picksStr}\n\nYou have **{amount:Int}/{max:Int}** Pokemon in your team. {announceData}"
+            },
+            "AddTeammate_nested": {
+              "Help": "Adds a person to your team if you are signed up",
+              "ArgUser": "The person you want to add to your team",
+              "PartnerAlreadySignedUp": "{user:Mention} is already signed up!",
+              "Success": "You have added {user:Mention} to your team!"
+            },
+            "AddToTierlist_nested": {
+              "Help": "Adds a mon to the tierlist",
+              "ArgPokemon": "The Pokemon you want to add",
+              "ArgTier": "The tier, otherwise the lowest",
+              "PokemonAlreadyInTierlist": "`{pokemon}` is already in the tierlist!",
+              "Success": "`{pokemon}` is now in the {tier} tier!"
+            },
+            "EnterResult_nested": {
+              "ResultHelp": "Starts interactive result input",
+              "ResultArgOpponent": "Your opponent",
+              "ResultForHelp": "Starts interactive result input for someone else",
+              "ResultForArgUser": "The person for whom you want to enter the result",
+              "ResultForArgOpponent": "The opponent of the person for whom you want to enter the result",
+              "NoLeagueWithOpponent": "You are not in a league with this user! If you think this is an error, please contact {mytag}!",
+              "Success": "Please enter the result on my website:\n{url}"
+            },
+            "LadderTournament_nested": {
+              "NoTournamentHere": "There is no ongoing ladder tournament on this server!",
+              "ModalArgSdName": "The SD name (as described in the doc)",
+              "ModalArgFormats": "The formats you want to play",
+              "PrefixNotMatching": "Your Showdown name must start with `{prefix}`!",
+              "Success": "Your signup has been received and will now be verified by the committee!",
+              "CommiteeNotification": "Signup request:\nUser: {user:Mention}\nSD name: {sdName}",
+              "UserNotSignedUp": "This user has no signup for the ladder tournament!",
+              "Verified": "Verified!"
+            },
+            "LeagueManage_nested": {
+              "Help": "Options to manage a league",
+              "ArgLeague": "The name of the league you want to manage",
+              "ResultCheckHelp": "Outputs which battles are already finished and which are not",
+              "ResultCheckArgGameday": "The matchday you want to check",
+              "ResultCheckArgPublic": "Whether the output should be public"
+            },
+            "Logo_nested": {
+              "Help": "Submits your logo",
+              "ArgLogo": "The logo",
+              "Success": "Your logo was uploaded successfully!"
+            },
+            "LogoFor_nested": {
+              "Help": "Submits a logo for someone",
+              "ArgUser": "The person for whom you want to submit a logo",
+              "ArgLogo": "The logo"
+            },
+            "Nominate_nested": {
+              "AlreadyNominated": "You have already nominated your team for this matchday ({num:Int})!",
+              "EmbedTitle": "Nominations",
+              "Description": "**Nominated: ({nominatedSize:Int})**\n{nominated}\n**Not nominated: ({notNominatedSize:Int})**\n{notNominated}",
+              "NominationSaved": "Your nomination for matchday {num:Int} has been saved!",
+              "AmountIncorrect": "You must nominate exactly {amount:Int} Pokemon!",
+              "ConfirmationQuestion": "Are you really sure? The nomination cannot be undone!"
+            },
+            "PrepareTierlist_nested": {
+              "Help": "Sets up the tierlist",
+              "DuplicatePokemon": "Duplicate Pokemon were found in the tierlist! Please check the following Pokemon: {pokemon}"
+            },
+            "RevealTeam_nested": {
+              "NoPicksInTeam": "This team has no picks!",
+              "AllPicksRevealed": "All picks in this team are already revealed!"
+            },
+            "Signup_nested": {
+              "SignUpClosedError": "This signup is already closed!",
+              "UnsignupHelp": "Withdraw your signup",
+              "UnsignupSuccess": "✅ Your signup was successfully withdrawn!",
+              "NotSignedUp": "❌ You are not currently signed up!",
+              "SignupChangeHelp": "Allows you to modify your signup",
+              "SignupChangeNoData": "There is no data you can change!",
+              "SignupMessageData": "\n\n**Participants: {current}/{max}**",
+              "SignupFull": "❌ The signup is already full!",
+              "DataChangeSuccessful": "Your data was changed successfully!",
+              "SignupSuccess": "✅ You were signed up successfully!",
+              "SignupFailure": "❌ Signup not successful:\n\n{errors}",
+              "SignupClosed": "Signup closed",
+              "LogoError": "⚠️ Your logo could not be uploaded: {error}",
+              "NoOwnLogos": "In this league there are no custom logos!",
+              "SignupConfirmMessage": "Signup by {name}:\n{data}"
+            },
+            "SwitchTimer_nested": {
+              "Help": "Configures the switch timer for a league and creates a control panel",
+              "ArgLeague": "The league for which you want to configure the switch timer",
+              "ArgSettings": "The &sth setting",
+              "ArgStallSeconds": "The number of seconds players may overrun in total",
+              "ArgFrom": "The hour at which the timer starts",
+              "ArgTo": "The hour at which the timer ends",
+              "InvalidTime": "`{time}` is not a valid time specification!",
+              "Success": "Timer switched to `{timer}`!",
+              "NoSwitchTimer": "The timer of `{league}` is not a switch timer!"
+            },
+            "TierlistSearch_nested": {
+              "Help": "Shows you all Pokemon in a tier with a specific type",
+              "ArgTier": "The tier you want to search in",
+              "ArgType": "The type you want to search for",
+              "Success": "All these mons from the {tier} tier have the type {type}:\n{list}"
+            },
+            "TipGame_nested": {
+              "TipSaved": "Your tip has been saved!",
+              "TipgameMissing": "This prediction game no longer exists!",
+              "VotesUntilNow": "Votes so far: {votes}"
+            },
+            "TipGameCommand_nested": {
+              "Help": "View the prediction game results",
+              "Top10Help": "Show the top 10",
+              "Top10NoTips": "_No tips have been submitted yet._",
+              "Top10Success": "# Server top 10\n{list}",
+              "SelfHelp": "View your own prediction game results",
+              "SelfNoTips": "You haven’t submitted any tips yet!",
+              "SelfSuccess": "# You in comparison\n{aboveAndBelow}\n# Your stats per league\n{resultsPerLeague}",
+              "CheckMissingHelp": "Check for missing tips on a matchday",
+              "CheckMissingArgGameday": "The matchday you want to check",
+              "CheckMissingAllTipsGiven": "You have submitted all tips for matchday {gameday:Int}!",
+              "CheckMissingTooLong": "The list of missing tips is too long to display here. A total of {amount:Int} tips are missing.",
+              "CheckMissingSuccess": "# Missing tips for matchday {num:Int}\n{list}"
+            }
+          },
+          "showdown": {
+            "EnglishResults_nested": {
+              "Help": "Sets whether Pokemon in results are displayed in German or English (server-wide)",
+              "German": "On this server, Pokemon in Showdown results are now **displayed in German**!",
+              "English": "On this server, Pokemon in Showdown results are now **displayed in English**!"
+            },
+            "ReplayBo3_nested": {
+              "Help": "Replay command for Bo3 games",
+              "ArgReplay1": "The first replay",
+              "ArgReplay2": "The second replay",
+              "ArgReplay3": "The third replay (if it exists)"
+            },
+            "ReplayChannel_nested": {
+              "Help": "Configures the replay channels",
+              "AddHelp": "Adds a replay channel; by default this channel is the result channel",
+              "AddArgChannel": "The channel where results should be sent (optional)",
+              "ErrorChannelNotMessage": "The channel must be a text channel!",
+              "CreatedSameChannel": "This channel is now a replay channel, so all replay results will be sent here automatically!",
+              "CreatedOtherChannel": "All results of replays from {replay:ChannelMention} will now be sent to the channel {result:ChannelMention}!",
+              "ExistedSameChannel": "Replays from this channel are already being sent to the channel {result:ChannelMention}! You can change this with /replaychannel remove.",
+              "ExistedOtherChannel": "Replays from this channel are currently being sent to the channel {result:ChannelMention}! You can change this with /replaychannel remove.",
+              "RemoveHelp": "Removes a replay channel",
+              "RemoveSuccess": "This channel is no longer a replay channel!",
+              "RemoveNotExist": "This channel is currently not a replay channel!"
+            },
+            "Replay_nested": {
+              "Help": "Analyzes a replay and sends the result to the configured results channel",
+              "ArgReplay": "The replay link"
+            },
+            "SpoilerTags_nested": {
+              "Help": "Enables or disables spoiler protection for Showdown results (server-wide)",
+              "Enabled": "On this server, spoiler tags for Showdown results are now **enabled**!",
+              "Disabled": "On this server, spoiler tags for Showdown results are now **disabled**!"
+            },
+            "ReplayGeneric_nested": {
+              "NoReplayChannel": "This channel is not a replay channel! Use `/replaychannel add` to make this channel a replay channel!",
+              "NoAccessToResultChannel": "I don’t have access to the results channel {channel:ChannelMention}!"
+            }
+          },
+          "various": {
+            "GuildAuthorizeSuccess": "You have been authorized for this server on the website!",
+            "GuildAuthorizeMessage": "Here you can get permissions for the website :)",
+            "Nickname_nested": {
+              "Help": "Changes your nickname (works only once per week)",
+              "ArgNickname": "The new nickname",
+              "NotInteractable": "I can’t modify your nickname!",
+              "NicknameTooLong": "This nickname is too long! (It may be at most {max:Int} characters long)",
+              "TooSoon": "{user:Mention} You cannot change your name yet!\nCooldown: {cooldown}",
+              "Success": "{user:Mention} Your nickname was successfully changed to `{nickname}`!"
+            }
+          },
+          "Arguments_nested": {
+            "InvalidEnum": "Invalid value for `{arg}`! Possible values: {values}",
+            "NotAutocompleteConform": "No valid input! Please follow the autocompletion!"
+          }
+        },
+        "FeatureManager_nested": {
+          "IfErrorContact": "If you think this is an error, please contact {mytag}.",
+          "InteractionError": "An error occurred while executing the interaction!\nIt has already been reported and should be fixed soon."
+        },
+        "league": {
+          "YouTube_nested": {
+            "GamedayAndBattle": "**Matchday ${gameday:Int}**\n_Battle {battle:Int}_",
+            "ViewOfPlayer": "{player}'s view: {url}",
+            "NotUploaded": "_not uploaded yet_"
+          },
+          "League_nested": {
+            "ReplyGeneralSelf": "{user:Mention} has ",
+            "ReplyGeneralOther": "{user:Mention} has for **{current}** ",
+            "StallSecondsRemaining": "{currentMention} Your timer allowance is still {timeStr}!",
+            "StallSecondsUsedUp": "{currentMention} Your timer allowance has been fully used up!",
+            "StallSecondsRunning": "{currentMention} Your timer allowance is running! You will be skipped <t:{endTime:Long}:R>!",
+            "SendRound": "## === Round {round:Int} ===",
+            "AnnouncePlayer": "{currentMention} is up!{announceData}",
+            "SkipRealTimer": "**{skippedUserName}** was too slow!",
+            "SkippedByTimerNormal": "The pick of {skippedUserName} was moved by {skippedBy:Mention}!",
+            "SkippedByTimerSwitch": "The pick of {skippedUserName} was skipped by {skippedBy:Mention}!",
+            "PossibleTiersToBan": "Possible tiers to ban: {data}",
+            "PossibleTiers": "Possible tiers: {data}",
+            "PossiblePoints": "Possible points: {data:Int}",
+            "TimeUntil": "Time until: **{time}**",
+            "TimeUntilStallSeconds": " (with maxed timer allowance until {time})",
+            "LegalRandomPickObligatory": "Only random picks are allowed in this draft!",
+            "LegalActionIsNotBan": "The current round (**{round:Int}**) is a ban round, therefore you cannot pick!",
+            "LegalActionIsBan": "The current round (**{round:Int}**) is **not** a ban round, therefore you cannot ban!",
+            "TeamFull": "Your roster is already full!",
+            "DraftFinished": "The draft is over!",
+            "DraftFinishedBecauseAllFinished": "Since everyone has already finished their drafts, the draft is over!",
+            "StoreStatus": "## Current status of matchday {gameday:Int} [{leaguename}]:\n{status}",
+            "ReminderToParticipant": "Your battle on matchday {gameday:Int} against {opponent:Mention} has not yet been recorded.\nIf this was forgotten, please clarify who will enter the battle.\n\nIf the battle has already been entered, this system isn’t working; please inform {mytag} :)",
+            "NoDraftInChannel": "There is currently no draft running in this channel!",
+            "SlightlyTooSlow": "You were a bit too slow!",
+            "NoOpenPicks": "You have no open picks left!",
+            "NotYourTurn": "It’s not your turn!",
+            "NoDraftForYou": "There is no draft running in this channel that you are participating in!",
+            "AfterDraftOrdered": "The regular picks are now over; the missing picks (in the order they were skipped) will be made up.",
+            "AfterDraftUnordered": "The draft would now be over, but there are still players who don’t have a complete roster! They can now make up their picks in any order. These are:\n{users}"
+          },
+          "BanRoundConfig_nested": {
+            "FixedTierError": "In this round only Pokemon from the `{tier}` tier can be banned!",
+            "FixedTierSetTierNotBannable": "You cannot ban Pokemon from the `{tier}` tier!",
+            "FixedTierSetCantBanFromThatTier": "You can no longer ban Pokemon from the `{tier}` tier!"
+          }
+        },
+        "utils": {
+          "draft": {
+            "Tierlist_nested": {
+              "MustUpdraft": "A Pokemon from the {tier} tier must be updrafted to another tier!",
+              "CantPickTier": "You can’t pick a {tier} Pokemon anymore!",
+              "OnlyOneMega": "You can only have one Mega Pokemon on your team!",
+              "SpeciesClause": "You can only have one Pokemon per dex number on your team!",
+              "NotEnoughPoints": "You don’t have enough points for that! (`{calculation}`)",
+              "MinimumNeededError": "If you were to take this Pokemon, your roster could no longer be completed! (After this pick you must still have at least {minimumRequired:Int} points, but you would only have {newPoints:Int})",
+              "CantUpdraft": "You can’t updraft an {officialTier} mon to {specifiedTier}!",
+              "GapError": "You can only updraft an {officialTier} mon by up to {gap:Int} tiers!",
+              "UpdraftDisabled": "Updrafting is not allowed in this league!"
+            },
+            "DraftUtils_nested": {
+              "NoPickDuringSwitch": "You cannot pick during a switch draft!",
+              "TeraUserAlreadyPicked": "You have already picked a Tera user!",
+              "PokemonNotInTierlist": "This Pokemon is not in the tierlist!",
+              "PokemonAlreadyPicked": "This Pokemon has already been picked!",
+              "PickRegular": "{pokemonName} {infoTier}{infoTeraUser}picked!{infoUpdrafted}",
+              "PickQueue": "{user:Mention} picked {pokemonName}! [Queue]",
+              "PickRandom": "made a random pick in {tier} and got **{pokemonName}**!",
+              "PickAccept": "Accepted: **{pokemonName} ({tier})**!",
+              "PickReroll": "Reroll: **{pokemonName} ({tier})**!",
+              "InfoTier": "in {tier} ",
+              "InfoTeraUser": "as Tera user ",
+              "InfoUpdrafted": " (Updrafted)",
+              "NoSwitchAvailable": "This draft is not a switch draft, so /switch is not supported!",
+              "PokemonNotInYourTeam": "{pokemon} is not in your roster!",
+              "SwitchRegular": "Swapped {oldPokemon} for {newPokemon}!",
+              "SwitchQueue": "{user:Mention} swapped {oldPokemon} for {newPokemon}! [Queue]",
+              "SwitchRandom": "made a random switch and swapped {oldPokemon} for {newPokemon}!",
+              "SwitchAccept": "Accepted: swapped {oldPokemonName} for {newPokemonName}!",
+              "SwitchReroll": "Reroll: swapped {oldPokemonName} for {newPokemonName}!",
+              "BanNotEnabled": "Bans are not planned in this draft!",
+              "BanNotPossibleForMon": "`{pokemon}` cannot be banned!",
+              "NoBanRound": "Round **{round:Int}** is not a ban round!",
+              "PokemonAlreadyPickedOrBanned": "`{pokemon}` has already been picked or banned!",
+              "BanRegular": "{pokemonName} ({tier}) banned!",
+              "BanQueue": "{user:Mention} banned {pokemonName} ({tier})! [Queue]",
+              "BanRandom": "Timer expired: I banned {pokemonName} ({tier}) for {user:Mention}!"
+            }
+          },
+          "json": {
+            "SignupInput_nested": {
+              "SDNAME": "Showdown name",
+              "SDNAMEInvalid": "That is not a valid Showdown name!",
+              "TEAMNAME": "Team name",
+              "OF_LIST_Allowed": "Allowed values: {values}",
+              "LogoMsg": "**Logo by {name}{teamname}:**",
+              "LogoLabel": "Logo",
+              "LogoDescription": "Your logo, can also be submitted later",
+              "Error": "Error in **{label}**:\n{message}",
+              "LogoMustBeImage": "The logo must be an image file!",
+              "LogoDownloadError": "The logo could not be downloaded!",
+              "LogoTooBig": "The logo must not be larger than {maxSize:Int}MB!",
+              "LogoNoValidImage": "The file is not a valid image! (Ideally it should be a PNG)"
+            }
+          },
+          "showdown": {
+            "Analysis_nested": {
+              "ErrorShowdownDoesNotAnswer": "Showdown is not responding. Please try again later.",
+              "ErrorShowdownDoesntExist": "The replay does not (no longer) exist! Are you sure the link is correct?",
+              "ErrorShowdownParse": "The replay could not be analyzed! Are you sure it is a valid replay? If yes, please contact my support server linked in my profile.",
+              "ErrorInvalidReplay": "This is not a valid Showdown replay link!",
+              "ErrorGeneric": "An error occurred while evaluating the replay! Most likely due to a bug in the engine; my developer has been notified.",
+              "ShowdownDoesntAnswer": "The Showdown server is not responding; I will try again in 10 seconds...",
+              "BattleSaved": "The battle was saved! :)",
+              "IllusionWarning": "There is a Pokemon with Illusion on {player}'s team! Please double-check the kills!",
+              "KillsDeathsNotMatching": "Kills and deaths do not match! {potentialZoroark} Please check yourself where the error lies. My developer has been notified.",
+              "PotentialZoroark": "This is likely due to Illusion.",
+              "OtherIssue": "This is most likely due to a bug in my analysis.",
+              "AllDead": " (all dead)"
+            }
+          },
+          "StateStore_nested": {
+            "InteractionNotValid": "This interaction is no longer valid! Restart it if necessary!"
+          },
+          "TimeUtils_nested": {
+            "YearSingular": "year",
+            "YearPlural": "years",
+            "WeekSingular": "week",
+            "WeekPlural": "weeks",
+            "DaySingular": "day",
+            "DayPlural": "days",
+            "HourSingular": "hour",
+            "HourPlural": "hours",
+            "MinuteSingular": "minute",
+            "MinutePlural": "minutes",
+            "SecondSingular": "second",
+            "SecondPlural": "seconds"
+          }
+        }
+      },
+      "generic": {
+        "Accept": "Accept",
+        "SignupVerb": "Sign up",
+        "SignupNoun": "Signup",
+        "Approve": "Approve",
+        "AlreadySignedUp": "You are already signed up!",
+        "CommandNotAvailable": "This command is not available here!",
+        "TooManyResults": "Too many results, please specify your search!",
+        "NoResults": "No results!",
+        "MissingArgument": "You must provide the parameter `{arg}`!",
+        "InvalidArgument": "The argument `{arg}` could not be recognized!",
+        "Yes": "Yes",
+        "No": "No",
+        "Active": "Active",
+        "Inactive": "Inactive",
+        "Status": "Status",
+        "You": "You",
+        "NoPermission": "You are not authorized to execute this interaction!",
+        "RoutineMaintenance": "Routine maintenance is being performed; I should be reachable again in a few minutes.",
+        "ClickMe": "Click me!",
+        "Gameday": "Matchday",
+        "Battle": "Battle",
+        "Or": "or"
+      }
+    }
+  }
+}

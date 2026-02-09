@@ -304,7 +304,7 @@ object WRCManager {
         ) {
             this.wrcname = wrcName
             this.gameday = gameday
-        }, WRCMonSubmitButton(disabled = teraSelected == null) {
+        }, WRCMonSubmitButton.withoutIData(disabled = teraSelected == null) {
             this.wrcname = wrcName
             this.gameday = gameday
         }).into()

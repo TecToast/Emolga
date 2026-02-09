@@ -691,6 +691,11 @@ object PrivateCommands {
         val gid = args().toLong()
         db.signups.get(gid)!!.updateSignupMessage()
     }
+
+    context(iData: InteractionData)
+    suspend fun liveteam(args: PrivateData) {
+        iData.reply(LiveTeamDB.generateForLeague(args()).toString())
+    }
 }
 
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")

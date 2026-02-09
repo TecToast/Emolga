@@ -1,6 +1,7 @@
 package de.tectoast.emolga.features.flo
 
 import com.google.common.reflect.ClassPath
+import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.k18n
@@ -47,6 +48,7 @@ object DBMigration {
 
         init {
             registerListener<ReadyEvent> {
+                if (it.jda.selfUser.idLong != jda.selfUser.idLong) return@registerListener
                 sendMigrationStatements(it.jda.getTextChannelById(447357526997073932)!!)
             }
         }

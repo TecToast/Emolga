@@ -1,11 +1,13 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
+import de.tectoast.k18n.generated.K18nLanguage
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.union
 
 object EnglishResultsDB : Table("english_results") {
     val GUILDID = long("guildid")
@@ -17,7 +19,10 @@ object EnglishResultsDB : Table("english_results") {
      * @return true if english results should be used, false otherwise
      */
     suspend fun contains(guildid: Long) = dbTransaction {
-        select(GUILDID).where { GUILDID eq guildid }.count() > 0
+        (select(GUILDID).where { GUILDID eq guildid }
+            .union(
+                GuildLanguageDB.select(GuildLanguageDB.GUILD)
+                    .where { GuildLanguageDB.LANGUAGE eq K18nLanguage.EN })).count() > 0
     }
 
     /**

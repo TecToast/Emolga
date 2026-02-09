@@ -284,7 +284,7 @@
           },
           "showdown": {
             "EnglishResults_nested": {
-              "Help": "Sets whether Pokemon in results are displayed in German or English (server-wide)",
+              "Help": "Has no effect if the global language of the server is English",
               "German": "On this server, Pokemon in Showdown results are now **displayed in German**!",
               "English": "On this server, Pokemon in Showdown results are now **displayed in English**!"
             },
@@ -331,6 +331,11 @@
               "NicknameTooLong": "This nickname is too long! (It may be at most {max:Int} characters long)",
               "TooSoon": "{user:Mention} You cannot change your name yet!\nCooldown: {cooldown}",
               "Success": "{user:Mention} Your nickname was successfully changed to `{nickname}`!"
+            },
+            "SetLanguage_nested": {
+              "Help": "Changes the language that I'm using in this server",
+              "ArgLanguage": "The language to switch to",
+              "Success": "The language in this server has been changed to {language}!"
             }
           },
           "Arguments_nested": {

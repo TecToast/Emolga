@@ -6,11 +6,13 @@ import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import de.tectoast.k18n.generated.K18nLanguage
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.upsert
 
 object GuildLanguageDB : Table("guild_language") {
     val GUILD = long("guild")
     val LANGUAGE = enumerationByName<K18nLanguage>("language", 2)
 
+    override val primaryKey = PrimaryKey(GUILD)
     val cache = SizeLimitedMap<Long, K18nLanguage>(1000)
 
     suspend fun getLanguage(guild: Long?): K18nLanguage {
@@ -21,5 +23,15 @@ object GuildLanguageDB : Table("guild_language") {
         }
         cache[guild] = lang
         return lang
+    }
+
+    suspend fun setLanguage(gid: Long, language: K18nLanguage) {
+        cache[gid] = language
+        dbTransaction {
+            upsert {
+                it[GUILD] = gid
+                it[LANGUAGE] = language
+            }
+        }
     }
 }

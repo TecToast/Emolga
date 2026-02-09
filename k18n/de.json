@@ -331,6 +331,11 @@
               "NicknameTooLong": "Dieser Nickname ist zu lang! (Er darf maximal {max:Int} Zeichen lang sein)",
               "TooSoon": "{user:Mention} Du kannst deinen Namen noch nicht wieder ändern!\nCooldown: {cooldown}",
               "Success": "{user:Mention} Dein Nickname wurde erfolgreich zu `{nickname}` geändert!"
+            },
+            "SetLanguage_nested": {
+              "Help": "Ändert die Sprache, die ich auf diesem Server verwende",
+              "ArgLanguage": "Die Sprache, die du einstellen möchtest",
+              "Success": "Die Sprache dieses Servers wurde erfolgreich zu {language} geändert!"
             }
           },
           "Arguments_nested": {

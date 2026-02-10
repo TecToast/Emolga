@@ -159,10 +159,10 @@ object NameConventionsDB : Table("nameconventions") {
         }
 
         val defaultNameConventions = emolgaDB.defaultNameConventions()
+        list += input to null
         (nc?.check() ?: defaultNameConventions.check())?.also { (mr, key) ->
             list += mr.groupValues[1] + "-" + key to key
         }
-        list += input to null
         list.forEach {
             getDBTranslation(
                 it.first, guildId, it.second, nc ?: defaultNameConventions, english

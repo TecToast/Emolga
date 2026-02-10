@@ -1065,7 +1065,7 @@ data class LadderTournament(
     val sid: String,
     val cols: List<LadderTournamentCol>,
     val sortCols: List<LadderTournamentCol>,
-    val lastExecution: Instant,
+    val lastExecution: Long,
     val durationInHours: Int,
     val amount: Int,
     val sdNamePrefix: String,

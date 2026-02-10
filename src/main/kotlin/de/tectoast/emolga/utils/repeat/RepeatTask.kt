@@ -122,12 +122,12 @@ class RepeatTask(
         }
 
         suspend fun setupLadderTournamentRepeatTasks() {
-            db.ladderTournament.find(LadderTournament::lastExecution gt Clock.System.now()).toFlow().collect {
+            db.ladderTournament.find(LadderTournament::lastExecution gt System.currentTimeMillis()).toFlow().collect {
                 val gid = it.guild
                 RepeatTask(
                     "LadderTournament $gid",
                     RepeatTaskType.Other("Table"),
-                    it.lastExecution,
+                    Instant.fromEpochMilliseconds(it.lastExecution),
                     it.amount,
                     it.durationInHours.hours,
                 ) {

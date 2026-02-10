@@ -485,6 +485,7 @@
         }
       },
       "generic": {
+        "WelcomeMessage": "Hallo **{user:Mention}** und vielen Dank, dass du mich auf deinen Server **{guildname}** geholt hast!\nVermutlich möchtest du für deinen Server hauptsächlich, dass die Ergebnisse von Showdown Replays in einen Channel geschickt werden.\nUm mich zu konfigurieren gibt es folgende Möglichkeiten:\n\n**1. Die Ergebnisse sollen in den gleichen Channel geschickt werden:**\nEinfach `/replaychannel add` in den jeweiligen Channel schreiben\n\n**2. Die Ergebnisse sollen in einen anderen Channel geschickt werden:**\n`/replaychannel add #Ergebnischannel` in den Channel schicken, wo später die Replays reingeschickt werden sollen (Der #Ergebnischannel ist logischerweise der Channel, wo später die Ergebnisse reingeschickt werden sollen\n\nWenn die Channel eingerichtet worden sind, muss man einfach /replay mit dem Replay-Link in einen Replay-Channel schicken und ich erledige den Rest.\n\nFalls die Ergebnisse in ||Spoilertags|| geschickt werden sollen, schick irgendwo auf dem Server den Command `/spoilertags` rein. Dies gilt dann serverweit.\n\nFalls die Namen der Pokemon in den Ergebnissen auf **englisch** (statt deutsch) angezeigt werden sollen, schick irgendwo auf dem Server den Command `/englishresults` rein. Dies gilt dann serverweit.\n\nFalls du weitere Fragen oder Probleme hast, schreibe {mytag} eine PN oder komme auf den Support-Server, dessen Link in meinem Profil steht :)",
         "Accept": "Akzeptieren",
         "SignupVerb": "Anmelden",
         "SignupNoun": "Anmeldung",
@@ -506,7 +507,10 @@
         "ClickMe": "Klick mich!",
         "Gameday": "Spieltag",
         "Battle": "Kampf",
-        "Or": "oder"
+        "Or": "oder",
+        "German": "Deutsch",
+        "English": "Englisch",
+        "SelectLanguage": "Sprache auswählen"
       }
     }
   }

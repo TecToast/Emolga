@@ -1,70 +1,81 @@
 package de.tectoast.emolga.features.flo
 
-import de.tectoast.emolga.features.Arguments
-import de.tectoast.emolga.features.ButtonFeature
-import de.tectoast.emolga.features.ButtonSpec
-import de.tectoast.emolga.features.InteractionData
+import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.k18n
+import de.tectoast.emolga.utils.toK18nLanguage
+import de.tectoast.emolga.utils.translateTo
+import de.tectoast.generic.K18n_SelectLanguage
+import de.tectoast.generic.K18n_WelcomeMessage
+import de.tectoast.k18n.generated.K18nLanguage
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent
 
-object GuildJoin : ButtonFeature<GuildJoin.Args>(::Args, ButtonSpec("guildinvite")) {
-    override val buttonStyle = ButtonStyle.PRIMARY
-    override val label = "Invite".k18n
-    override val emoji = Emoji.fromUnicode("✉️")
+object GuildJoin {
 
-    class Args : Arguments() {
-        var gid by long()
-    }
+    object Button : ButtonFeature<Button.Args>(::Args, ButtonSpec("guildinvite")) {
+        override val buttonStyle = ButtonStyle.PRIMARY
+        override val label = "Invite".k18n
+        override val emoji = Emoji.fromUnicode("✉️")
 
-    init {
-        registerListener<GuildJoinEvent> { e ->
-            val g = e.guild
-            e.jda.openPrivateChannelById(g.ownerIdLong).flatMap {
-                it.sendMessage(
-                    WELCOMEMESSAGE.replace("{USERNAME}", "<@${g.ownerIdLong}>").replace("{SERVERNAME}", g.name)
-                )
-            }.queue()
-            e.jda.openPrivateChannelById(Constants.FLOID).flatMap {
-                it.send(
-                    "${e.guild.name} (${e.guild.id})",
-                    components = withoutIData { gid = e.guild.idLong }.into()
-                )
-            }.queue()
+        class Args : Arguments() {
+            var gid by long()
+        }
+
+        init {
+            registerListener<GuildJoinEvent> { e ->
+                val g = e.guild
+                val lang = g.locale.toK18nLanguage()
+                val owner = g.ownerIdLong
+                e.jda.openPrivateChannelById(owner).flatMap {
+                    val (msg, menu) = buildWelcomeMessage(lang, owner, g.name, g.idLong)
+                    it.send(
+                        content = msg, components = menu
+                    )
+                }.queue()
+                e.jda.openPrivateChannelById(Constants.FLOID).flatMap {
+                    it.send(
+                        "${e.guild.name} (${e.guild.id})",
+                        components = withoutIData { gid = e.guild.idLong }.into()
+                    )
+                }.queue()
+            }
+        }
+
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
+            iData.jda.getGuildById(e.gid)?.let { g ->
+                iData.reply(g.defaultChannel!!.createInvite().setMaxUses(1).await().url)
+            } ?: iData.reply("Invite failed, server not found")
         }
     }
 
-    context(iData: InteractionData)
-    override suspend fun exec(e: Args) {
-        iData.jda.getGuildById(e.gid)?.let { g ->
-            iData.reply(g.defaultChannel!!.createInvite().setMaxUses(1).await().url)
-        } ?: iData.reply("Invite failed, server not found")
+    private fun buildWelcomeMessage(lang: K18nLanguage, owner: Long, guildName: String, gid: Long) =
+        K18n_WelcomeMessage(owner, guildName, Constants.MYTAG).translateTo(lang) to LanguageMenu(
+            placeholder = K18n_SelectLanguage.translateTo(lang),
+            options = K18nLanguage.entries.map { en -> SelectOption(en.translateTo(lang), en.name) }
+        ) {
+            this.guild = gid
+        }.into()
+
+    object LanguageMenu : SelectMenuFeature<LanguageMenu.Args>(::Args, SelectMenuSpec("languagemenu")) {
+
+        class Args : Arguments() {
+            var selection by singleOption()
+            var guild by long().compIdOnly()
+        }
+
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
+            val lang = enumValueOf<K18nLanguage>(e.selection)
+            val guild = iData.jda.getGuildById(e.guild) ?: return
+            val (msg, menu) = buildWelcomeMessage(lang, iData.user, guild.name, guild.idLong)
+            iData.edit(content = msg, components = menu)
+        }
     }
-
-    private val WELCOMEMESSAGE: String = """
-            Hallo **{USERNAME}** und vielen Dank, dass du mich auf deinen Server **{SERVERNAME}** geholt hast!
-            Vermutlich möchtest du für deinen Server hauptsächlich, dass die Ergebnisse von Showdown Replays in einen Channel geschickt werden.
-            Um mich zu konfigurieren gibt es folgende Möglichkeiten:
-
-            **1. Die Ergebnisse sollen in den gleichen Channel geschickt werden:**
-            Einfach `/replaychannel add` in den jeweiligen Channel schreiben
-
-            **2. Die Ergebnisse sollen in einen anderen Channel geschickt werden:**
-            `/replaychannel add #Ergebnischannel` in den Channel schicken, wo später die Replays reingeschickt werden sollen (Der #Ergebnischannel ist logischerweise der Channel, wo später die Ergebnisse reingeschickt werden sollen)       
-            
-            Wenn die Channel eingerichtet worden sind, muss man einfach /replay mit dem Replay-Link in einen Replay-Channel schicken und ich erledige den Rest.
-
-            Falls die Ergebnisse in ||Spoilertags|| geschickt werden sollen, schick irgendwo auf dem Server den Command `/spoilertags` rein. Dies gilt dann serverweit.
-            
-            Falls die Namen der Pokemon in den Ergebnissen auf **englisch** (statt deutsch) angezeigt werden sollen, schick irgendwo auf dem Server den Command `/englishresults` rein. Dies gilt dann serverweit.
-
-            Falls du weitere Fragen oder Probleme hast, schreibe ${Constants.MYTAG} eine PN oder komme auf den Support-Server, dessen Link in meinem Profil steht :)
-            
-            _This message is written in German, because that is the only language I support at the moment. In the future, Emolga may be expanded to other languages._
-        """.trimIndent()
 }

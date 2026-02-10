@@ -7,6 +7,8 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.TypesDB
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.utils.Constants.FLOID
+import de.tectoast.generic.K18n_English
+import de.tectoast.generic.K18n_German
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import de.tectoast.k18n.generated.K18nLanguage
 import de.tectoast.k18n.generated.K18nMessage
@@ -242,6 +244,15 @@ fun K18nMessage.t() = translateTo(iData.language)
 fun K18nLanguage.toDiscordLocale() = when (this) {
     K18nLanguage.DE -> DiscordLocale.GERMAN
     K18nLanguage.EN -> DiscordLocale.ENGLISH_US
+}
+fun K18nLanguage.translateTo(language: K18nLanguage) = when (this) {
+    K18nLanguage.DE -> K18n_German
+    K18nLanguage.EN -> K18n_English
+}.translateTo(language)
+
+fun DiscordLocale.toK18nLanguage() = when (this) {
+    DiscordLocale.GERMAN -> K18nLanguage.DE
+    else -> K18nLanguage.EN
 }
 
 fun K18nMessage.toDiscordLocaleMap() = K18nLanguage.entries.associate { lang ->

@@ -6,12 +6,12 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.exposed.AnalysisStatistics
 import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.database.exposed.SwitchType
+import de.tectoast.emolga.database.exposed.TipGameVotesDB
 import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.LeagueEvent
-import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.TableSorter
@@ -97,6 +97,13 @@ class DocEntry private constructor(val league: League) {
         this.sorterDatas += sorterDatas
     }
 
+    fun monsOrderFromTierlist() {
+        monsOrder = { userPicks ->
+            league.tierlist.withTierBasedPriceManager { pm ->
+                pm.getPicksInDocOrder(league, userPicks).map { it.name }
+            }!!
+        }
+    }
 
     suspend fun analyse(fullGameData: FullGameData, withSort: Boolean = true) {
         val config = league.config
@@ -181,7 +188,7 @@ class DocEntry private constructor(val league: League) {
             winnerIndex = groupBy.maxBy { it.value.size }.key
             winnerIdx = uindices[winnerIndex]
             league.config.tipgame?.let { _ ->
-                TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winnerIdx)
+                TipGameVotesDB.updateCorrectBattles(league.leaguename, gameday, battleindex, winnerIdx)
             }
             val numbers = (0..1).map { groupBy[it]?.size ?: 0 }
             resultCreator?.let {
@@ -203,7 +210,7 @@ class DocEntry private constructor(val league: League) {
             winnerIndex = replayData.winnerIndex
             winnerIdx = uindices[winnerIndex]
             league.config.tipgame?.let { _ ->
-                TipGameUserData.updateCorrectBattles(league.leaguename, gameday, battleindex, winnerIdx)
+                TipGameVotesDB.updateCorrectBattles(league.leaguename, gameday, battleindex, winnerIdx)
             }
             val numbers = replayData.kd.map { kdMap ->
                 kdMap.values.count { it.deaths == 0 }

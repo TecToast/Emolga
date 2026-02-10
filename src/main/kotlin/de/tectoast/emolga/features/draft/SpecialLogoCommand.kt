@@ -36,7 +36,7 @@ object SpecialLogoCommand :
         for (logoData in e.logos) {
             val logo = LogoInputData.fromAttachment(logoData, ignoreRequirements = true).unwrap()
             Google.uploadLogoToCloud(logo) {
-                iData.jda.getTextChannelById(447357526997073932)!!.sendMessage(it.url).queue()
+                iData.jda.getTextChannelById(447357526997073932)!!.sendMessage("${it.checksum}\n${it.url}").queue()
             }
             delay(3000)
         }

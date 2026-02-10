@@ -2,13 +2,13 @@
 
 package de.tectoast.emolga.features.draft
 
+import de.tectoast.emolga.database.exposed.TipGameVotesDB
 import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.json.TipGameUserData
 import de.tectoast.emolga.utils.json.db
 import dev.minn.jda.ktx.messages.Embed
 import kotlinx.coroutines.CoroutineScope
@@ -21,9 +21,6 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import org.litote.kmongo.and
-import org.litote.kmongo.eq
-import org.litote.kmongo.keyProjection
 import java.awt.Color
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
@@ -46,20 +43,13 @@ object TipGameManager : CoroutineScope {
             iData.deferReply()
             val league = db.getLeague(e.leaguename) ?: return reportMissing()
             val tipgame = league.config.tipgame ?: return reportMissing()
-            TipGameUserData.addVote(iData.user, e.leaguename, e.gameday, e.index, e.userindex)
+            TipGameVotesDB.addVote(iData.user, e.leaguename, e.gameday, e.index, e.userindex)
             iData.reply("Dein Tipp wurde gespeichert!")
-            if (tipgame.withCurrentState) {
+            if (tipgame.currentState == TipGameCurrentStateType.ALWAYS) {
                 iData.message.editMessageEmbeds(
                     Embed(
                         title = iData.message.embeds[0].title,
-                        description = "Bisherige Votes: " + league.battleorder.getValue(e.gameday)[e.index].map {
-                            db.tipgameuserdata.countDocuments(
-                                and(
-                                    TipGameUserData::league eq e.leaguename,
-                                    TipGameUserData::tips.keyProjection(e.gameday).keyProjection(e.index) eq it
-                                )
-                            ).toString()
-                        }.joinToString(":"),
+                        description = league.buildCurrentState(e.gameday, e.index),
                         color = embedColor
                     )
                 ).queue()
@@ -81,8 +71,16 @@ data class TipGame(
     val amount: Int,
     val channel: Long,
     val colorConfig: TipGameColorConfig = TipGameColorConfig.Default,
-    val withCurrentState: Boolean = false
+    val roleToPing: Long? = null,
+    val withName: String? = null,
+    val currentState: TipGameCurrentStateType? = null
 )
+
+@Serializable
+enum class TipGameCurrentStateType {
+    ALWAYS,
+    ON_LOCK
+}
 
 @Serializable
 sealed interface TipGameColorConfig {

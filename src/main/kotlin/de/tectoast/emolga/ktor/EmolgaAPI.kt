@@ -14,10 +14,13 @@ import de.tectoast.emolga.utils.json.EmolgaConfigHelper.findConfig
 import de.tectoast.emolga.utils.json.LigaStartConfig
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
 import dev.minn.jda.ktx.coroutines.await
 import io.ktor.http.*
+import io.ktor.http.content.*
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
+import io.ktor.server.plugins.cachingheaders.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -36,8 +39,11 @@ import org.bson.conversions.Bson
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.eq
 import org.litote.kmongo.json
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
+import javax.imageio.ImageIO
 import kotlin.reflect.KClass
 
 private val logger = KotlinLogging.logger {}
@@ -296,7 +302,47 @@ fun Route.emolgaAPI() {
             )
         )
     }
+    get("/liveteam") {
+        val token = call.request.queryParameters["token"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val uuid = runCatching { UUID.fromString(token) }.getOrNull()
+            ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val leaguename = LiveTeamDB.getByCode(uuid) ?: return@get call.respond(HttpStatusCode.NotFound)
+        val numRaw =
+            call.request.queryParameters["num"]?.toIntOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val num = numRaw / 2
+        val withMons = numRaw % 2
+        val league = db.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
+        val style = league.config.teamgraphics?.style ?: return@get call.respond(
+            HttpStatusCode.NotFound
+        )
+        val tableSize = league.table.size
+        val roundIndex = (num / tableSize)
+        val takePicks = roundIndex + withMons
+        val indexInRound = num % tableSize
+        val idx =
+            league.originalorder[roundIndex + 1]?.getOrNull(indexInRound)
+                ?: return@get call.respond(HttpStatusCode.NotFound)
+        call.caching = CachingOptions(
+            CacheControl.MaxAge(60 * 60 * 5)
+        )
+        call.respondBytes(teamGraphicCache.getOrPut("$leaguename#$idx#$takePicks") {
+            val img = TeamGraphicGenerator.generate(
+                TeamGraphicGenerator.TeamData.singleFromLeague(
+                    league,
+                    idx,
+                    takePickCount = takePicks
+                ), style
+            )
+            ByteArrayOutputStream().use {
+                ImageIO.write(img, "png", it)
+                it.toByteArray()
+            }
+        }, contentType = ContentType.Image.PNG)
+
+    }
 }
+
+private val teamGraphicCache = SizeLimitedMap<String, ByteArray>(maxSize = 100)
 
 @Serializable
 data class UsageDataTotal(val total: Int, val maxGameday: Int, val allLeagues: List<String>, val data: List<UsageData>)

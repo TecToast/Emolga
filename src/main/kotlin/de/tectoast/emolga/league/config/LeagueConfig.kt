@@ -19,6 +19,7 @@ data class LeagueConfig(
     val triggers: Triggers = Triggers(),
     val teraSelect: TeraZSelectConfig? = null,
     val hideGames: HideGamesConfig? = null,
+    val teamgraphics: TeamGraphicsLeagueConfig? = null
 )
 
 

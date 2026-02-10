@@ -3,14 +3,12 @@
 package de.tectoast.emolga.league
 
 import de.tectoast.emolga.bot.jda
-import de.tectoast.emolga.database.exposed.DraftAdminsDB
-import de.tectoast.emolga.database.exposed.DraftName
-import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.TipGameMessagesDB
+import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.features.ArgBuilder
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.TestInteractionData
 import de.tectoast.emolga.features.draft.AddToTierlistData
+import de.tectoast.emolga.features.draft.TipGameCurrentStateType
 import de.tectoast.emolga.features.draft.TipGameManager
 import de.tectoast.emolga.features.draft.during.TeraZSelect
 import de.tectoast.emolga.features.flo.SendFeatures
@@ -25,6 +23,8 @@ import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.enableYTForGame
 import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.executeRegisterInDoc
 import de.tectoast.emolga.utils.repeat.RepeatTaskType.*
 import de.tectoast.emolga.utils.showdown.AnalysisData
+import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
+import de.tectoast.emolga.utils.teamgraphics.toFileUpload
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.*
 import kotlinx.coroutines.*
@@ -59,6 +59,7 @@ enum class DraftState {
 sealed class League {
     val sid: String = "yay"
     val leaguename: String = "ERROR"
+    val displayName get() = config.tipgame?.withName ?: leaguename
 
     @EncodeDefault
     var draftState: DraftState = DraftState.OFF
@@ -70,6 +71,7 @@ sealed class League {
     val battleorder: MutableMap<Int, List<List<Int>>> = mutableMapOf()
     val allowed: MutableMap<Int, MutableSet<AllowedData>> = mutableMapOf()
     val guild = -1L
+    val num = -1
 
     val current get() = currentOverride ?: order[round]!![0]
 
@@ -248,7 +250,6 @@ sealed class League {
             else null
         }
     }
-
 
 
     suspend fun afterPickOfficial(data: NextPlayerData = NextPlayerData.Normal) {
@@ -736,7 +737,8 @@ sealed class League {
                     .map { it.user.effectiveName }
             channel.send(
                 embeds = Embed(
-                    title = "Spieltag $num", color = tip.colorConfig.provideEmbedColor(this@League)
+                    title = "Spieltag $num".notNullAppend(tip.withName, prefix = " - "),
+                    color = tip.colorConfig.provideEmbedColor(this@League)
                 ).into()
             ).queue()
             for ((index, matchup) in matchups.withIndex()) {
@@ -752,7 +754,7 @@ sealed class League {
                     embeds = Embed(
                         title = "${names[u1]} vs. ${names[u2]}",
                         color = embedColor,
-                        description = if (tip.withCurrentState) "Bisherige Votes: 0:0" else null
+                        description = if (tip.currentState == TipGameCurrentStateType.ALWAYS) "Bisherige Votes: 0:0" else null
                     ).into(), components = ActionRow.of(TipGameManager.VoteButton(names[u1]) {
                         base()
                         this.userindex = u1
@@ -763,13 +765,16 @@ sealed class League {
                 ).await().idLong
                 TipGameMessagesDB.set(leaguename, num, index, messageId)
             }
+            tip.roleToPing?.let { roleId ->
+                channel.sendMessage("<@&$roleId>").queue()
+            }
         }
     }
 
     fun executeTipGameLockButtons(gameday: Int) {
         launch {
-            TipGameMessagesDB.get(leaguename, gameday).forEach {
-                lockButtonsOnMessage(it)
+            TipGameMessagesDB.get(leaguename, gameday).forEachIndexed { mu, mid ->
+                lockButtonsOnMessage(messageId = mid, gameday = gameday, mu = mu)
                 delay(2000)
             }
         }
@@ -779,19 +784,55 @@ sealed class League {
     fun executeTipGameLockButtonsIndividual(gameday: Int, mu: Int) {
         launch {
             TipGameMessagesDB.get(leaguename, gameday, mu).forEach {
-                lockButtonsOnMessage(it)
+                lockButtonsOnMessage(messageId = it, gameday = gameday, mu = mu)
             }
         }
     }
 
     private suspend fun lockButtonsOnMessage(
-        messageId: Long
+        messageId: Long,
+        gameday: Int,
+        mu: Int
     ) {
         val tipgame = config.tipgame ?: return
         val tipGameChannel = jda.getTextChannelById(tipgame.channel)!!
         val message = tipGameChannel.retrieveMessageById(messageId).await()
-        message.editMessageComponents(ActionRow.of(message.components[0].asActionRow().buttons.map { button -> button.asDisabled() }))
-            .queue()
+        val components = ActionRow.of(message.components[0].asActionRow().buttons.map { button -> button.asDisabled() })
+        val editData = MessageEdit(components = components.into()) {
+            if (tipgame.currentState == TipGameCurrentStateType.ON_LOCK) {
+                embeds += Embed(
+                    title = message.embeds[0].title,
+                    description = buildCurrentState(gameday, mu),
+                    color = embedColor
+                )
+            }
+        }
+        message.editMessage(editData).queue()
+    }
+
+    suspend fun buildCurrentState(
+        gameday: Int,
+        battleIndex: Int
+    ): String {
+        val stateMap = TipGameVotesDB.getCurrentState(leaguename, gameday, battleIndex)
+        return "Bisherige Votes: " + battleorder.getValue(gameday)[battleIndex].joinToString(":") {
+            stateMap.getOrDefault(it, 0).toString()
+        }
+    }
+
+    fun sendTeamgraphicAfterPick(idx: Int) {
+        config.teamgraphics?.let { tgConfig ->
+            val channel = tgConfig.channel ?: return
+            launch {
+                val channel = jda.getTextChannelById(channel)!!
+                val graphic =
+                    TeamGraphicGenerator.generate(
+                        TeamGraphicGenerator.TeamData.singleFromLeague(this@League, idx),
+                        tgConfig.style
+                    )
+                channel.send("<@${table[idx]}>", files = graphic.toFileUpload().into()).queue()
+            }
+        }
     }
 
     /**

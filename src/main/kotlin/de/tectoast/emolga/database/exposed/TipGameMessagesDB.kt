@@ -26,7 +26,7 @@ object TipGameMessagesDB : Table("tipgamemessages") {
             val op = (LEAGUENAME eq leagueName) and (GAMEDAY eq gameday)
             if (battle == null) op
             else op and (BATTLE eq battle)
-        }.map { it[MESSAGEID] }.toList()
+        }.orderBy(BATTLE).map { it[MESSAGEID] }.toList()
     }
 
     /**

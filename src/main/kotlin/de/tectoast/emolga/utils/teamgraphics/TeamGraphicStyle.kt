@@ -1,14 +1,15 @@
 package de.tectoast.emolga.utils.teamgraphics
 
-import java.awt.Color
-import java.awt.Font
-import java.awt.Graphics2D
-import java.awt.Shape
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import java.awt.*
 import java.awt.geom.Ellipse2D
 import java.io.File
 import javax.imageio.ImageIO
 
-interface TeamGraphicStyle {
+@Serializable
+sealed interface TeamGraphicStyle {
     fun getDataForIndex(index: Int, data: DrawData): IndexDataStyle
     val backgroundPath: String
     val overlayPath: String?
@@ -43,7 +44,7 @@ interface TeamGraphicStyle {
             val fontFile = File(fontPath)
             val rawFont = Font.createFont(Font.TRUETYPE_FONT, fontFile)
             val sizedFont = rawFont.deriveFont(fontSize)
-            val ge = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
+            val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
             ge.registerFont(sizedFont)
             sizedFont
         }
@@ -81,25 +82,31 @@ interface TeamGraphicStyle {
                 val y = baseY + ((metrics.ascent - metrics.descent) / 2)
                 return baseX to y
             }
+        },
+        RIGHT {
+            override fun calculateTextCoordinates(
+                g2d: Graphics2D,
+                text: String,
+                baseX: Int,
+                baseY: Int
+            ): Pair<Int, Int> {
+                val metrics = g2d.fontMetrics
+                val textWidth = metrics.stringWidth(text)
+                val x = baseX - textWidth
+                val y = baseY + ((metrics.ascent - metrics.descent) / 2)
+                return x to y
+            }
         };
 
         abstract fun calculateTextCoordinates(g2d: Graphics2D, text: String, baseX: Int, baseY: Int): Pair<Int, Int>
-    }
-
-    companion object {
-        fun fromLeagueName(leagueName: String): TeamGraphicStyle {
-            if (leagueName.startsWith("GDL")) {
-                val conference = Regex("GDLS\\d+(.*)").matchEntire(leagueName)!!.groupValues[1]
-                return GDLStyle(conference)
-            }
-            error("No TeamGraphicStyle found for league name: $leagueName")
-        }
     }
 }
 
 data class IndexDataStyle(val xInFinal: Int, val yInFinal: Int, val shape: Shape)
 
-class GDLStyle(conference: String) : TeamGraphicStyle {
+@Serializable
+@SerialName("GDL")
+data class GDLStyle(val conference: String) : TeamGraphicStyle {
     override fun getDataForIndex(
         index: Int,
         data: DrawData
@@ -119,6 +126,8 @@ class GDLStyle(conference: String) : TeamGraphicStyle {
     override val overlayPath = "/teamgraphics/GDL/$conference.png"
     override val backgroundPath = "/teamgraphics/GDL/Universe.png"
     override val sizeOfShape = SIZE_OF_CIRCLE
+
+    @Transient
     override val playerText = TeamGraphicStyle.TextProperties(
         fontPath = "/teamgraphics/GDL/MASQUE.ttf",
         fontColor = run {
@@ -133,6 +142,8 @@ class GDLStyle(conference: String) : TeamGraphicStyle {
         shadow = TeamGraphicStyle.TextShadowProperties(Color(0, 0, 0, 255), 5, 5)
     )
     override val teamnameText = null
+
+    @Transient
     override val logoProperties =
         TeamGraphicStyle.LogoProperties(10, 106, 580, 580, "/teamgraphics/GDL/defaultlogo.png")
     override val guild = 716942575852060682
@@ -152,4 +163,78 @@ class GDLStyle(conference: String) : TeamGraphicStyle {
     }
 }
 
-data class DrawData(val name: String, val x: Int, val y: Int, val size: Int)
+data class DrawData(val name: String, val x: Int, val y: Int, val size: Int, val flipped: Boolean)
+
+@Serializable
+@SerialName("ABL")
+data object ABLStyle : TeamGraphicStyle {
+    private val coordMap = mapOf(
+        0 to Pair(938, 169),
+        1 to Pair(1159, 118),
+        2 to Pair(1376, 118),
+        3 to Pair(1595, 168),
+        4 to Pair(1101, 352),
+        5 to Pair(1443, 351),
+        6 to Pair(1098, 570),
+        7 to Pair(1444, 570),
+        8 to Pair(938, 791),
+        9 to Pair(1270, 781),
+        10 to Pair(1601, 793)
+    )
+    override fun getDataForIndex(
+        index: Int,
+        data: DrawData
+    ): IndexDataStyle {
+        val (x, y) = coordMap[index] ?: error("No coordinates for index $index")
+        val scaled = shape.scaled(data.size.toDouble() / sizeOfShape)
+        return IndexDataStyle(x, y, scaled)
+    }
+
+    val shape by lazy {
+        val shape = Polygon()
+        shape.addPoint(94, 0)
+        shape.addPoint(0, 67)
+        shape.addPoint(36, 172)
+        shape.addPoint(153, 172)
+        shape.addPoint(190, 67)
+        shape
+    }
+
+    override val backgroundPath = "/teamgraphics/ABL/ABL_Grafiken_woBG.png"
+    override val overlayPath = null
+    override val playerText =
+        TeamGraphicStyle.TextProperties(
+            fontPath = "/teamgraphics/ABL/BasementGrotesque-Black_v1.202.otf",
+            fontColor = Color.WHITE,
+            fontSize = 32f,
+            xCoord = 1480,
+            yCoord = 31,
+            orientation = TeamGraphicStyle.TextAlignment.RIGHT,
+            maxSize = null,
+            shadow = null
+        )
+    override val teamnameText =
+        TeamGraphicStyle.TextProperties(
+            fontPath = "/teamgraphics/ABL/BasementGrotesque-Black_v1.202.otf",
+            fontColor = Color.WHITE,
+            fontSize = 32f,
+            xCoord = 425,
+            yCoord = 1057,
+            orientation = TeamGraphicStyle.TextAlignment.LEFT,
+            maxSize = null,
+            shadow = null
+        )
+    override val sizeOfShape: Int = 192
+    override val logoProperties =
+        TeamGraphicStyle.LogoProperties(173, 250, 580, 580, null)
+    override val guild: Long = 977969587448602654
+
+    fun Shape.scaled(scale: Double): Shape {
+        val bounds = this.bounds2D
+        val scaleX = scale * bounds.width / this.bounds.width
+        val scaleY = scale * bounds.height / this.bounds.height
+
+        val transform = java.awt.geom.AffineTransform.getScaleInstance(scaleX, scaleY)
+        return transform.createTransformedShape(this)
+    }
+}

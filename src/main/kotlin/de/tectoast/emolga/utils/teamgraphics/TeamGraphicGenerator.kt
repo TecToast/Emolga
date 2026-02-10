@@ -8,6 +8,8 @@ import de.tectoast.emolga.database.exposed.TeamGraphicChannelDB
 import de.tectoast.emolga.database.exposed.TeamGraphicMessageDB
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.OneTimeCache
+import de.tectoast.emolga.utils.SizeLimitedMap
+import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.SignUpInput
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
@@ -30,6 +32,8 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.Shape
+import java.awt.geom.AffineTransform
+import java.awt.image.AffineTransformOp
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -60,7 +64,7 @@ object TeamGraphicGenerator {
     }
 
     suspend fun editTeamGraphicForLeague(league: League, idx: Int) {
-        val style = TeamGraphicStyle.fromLeagueName(league.leaguename)
+        val style = league.config.teamgraphics?.style ?: return
         val teamData = TeamData.singleFromLeague(league, idx)
         val tcid = TeamGraphicChannelDB.getChannelId(league.leaguename) ?: return
         val msgid = TeamGraphicMessageDB.getMessageId(league.leaguename, idx) ?: return
@@ -75,14 +79,16 @@ object TeamGraphicGenerator {
     ): BufferedImage {
         val monData = dbTransaction {
             PokemonCropDB.selectAll()
-                .where { PokemonCropDB.GUILD eq style.guild and (PokemonCropDB.OFFICIAL.inList(teamData.englishNames)) }
+                .where { PokemonCropDB.GUILD eq style.guild and (PokemonCropDB.OFFICIAL.inList(teamData.englishNames.values)) }
                 .associate { it[PokemonCropDB.OFFICIAL] to it.toDrawData() }
         }
         return createOneTeamGraphic(
             teamData.teamOwner,
             teamData.teamName,
             teamData.logo,
-            teamData.englishNames.map { monData[it] ?: error("MonData for $it not found") },
+            teamData.englishNames.mapValues { (_, name) ->
+                (monData[name] ?: error("MonData for $name not found"))
+            }.toMap(),
             style
         )
     }
@@ -92,12 +98,17 @@ object TeamGraphicGenerator {
             name = this[PokemonCropDB.OFFICIAL],
             x = this[PokemonCropDB.X],
             y = this[PokemonCropDB.Y],
-            size = this[PokemonCropDB.SIZE]
+            size = this[PokemonCropDB.SIZE],
+            flipped = this[PokemonCropDB.FLIPPED]
         )
     }
 
     private suspend fun createOneTeamGraphic(
-        teamOwner: String?, teamName: String?, logo: BufferedImage?, monData: List<DrawData>, style: TeamGraphicStyle
+        teamOwner: String?,
+        teamName: String?,
+        logo: BufferedImage?,
+        monData: Map<Int, DrawData>,
+        style: TeamGraphicStyle
     ): BufferedImage {
         val image = withContext(Dispatchers.IO) {
             ImageIO.read(File(style.backgroundPath))
@@ -164,8 +175,8 @@ object TeamGraphicGenerator {
         this.drawString(text, x, y)
     }
 
-    private suspend fun Graphics2D.drawMons(monData: List<DrawData>, style: TeamGraphicStyle) {
-        for ((i, data) in monData.withIndex()) {
+    private suspend fun Graphics2D.drawMons(monData: Map<Int, DrawData>, style: TeamGraphicStyle) {
+        for ((i, data) in monData) {
             val path = db.pokedex.get(data.name.toSDName())!!.calcSpriteName()
             val image = withContext(Dispatchers.IO) {
                 ImageIO.read(File("teamgraphics/sugimori_final/$path.png"))
@@ -173,11 +184,27 @@ object TeamGraphicGenerator {
             val dataForIndex = style.getDataForIndex(i, data)
             val size = style.sizeOfShape
             drawImage(
-                image.cropShape(
+                image.flipIf(data.flipped).cropShape(
                     data.x, data.y, dataForIndex.shape
                 ), dataForIndex.xInFinal, dataForIndex.yInFinal, size, size, null
             )
         }
+    }
+
+    private fun BufferedImage.flipIf(doFlip: Boolean): BufferedImage {
+        if (!doFlip) return this
+        val tx = AffineTransform.getScaleInstance(
+            -1.0,
+            1.0
+        )
+
+        // Move the image back into the viewport
+        val translateX = -width.toDouble()
+        val translateY = 0.0
+        tx.translate(translateX, translateY)
+
+        val op = AffineTransformOp(tx, AffineTransformOp.TYPE_BILINEAR)
+        return op.filter(this, null)
     }
 
     private fun BufferedImage.cropShape(x: Int, y: Int, shape: Shape): BufferedImage {
@@ -222,7 +249,7 @@ object TeamGraphicGenerator {
     }
 
     data class TeamData(
-        val teamOwner: String?, val teamName: String?, val logo: BufferedImage?, val englishNames: List<String>
+        val teamOwner: String?, val teamName: String?, val logo: BufferedImage?, val englishNames: Map<Int, String>
     ) {
         companion object {
             suspend fun allFromLeague(league: League): List<TeamData> {
@@ -234,12 +261,22 @@ object TeamGraphicGenerator {
             }
 
             suspend fun singleFromLeague(
-                league: League, idx: Int, userNameProvider: UserNameProvider = JDADirectUserNameProvider()
+                league: League,
+                idx: Int,
+                userNameProvider: UserNameProvider = JDADirectUserNameProvider.default,
+                overridePicks: Map<Int, String>? = null,
+                takePickCount: Int? = null // TODO: Refactor
             ): TeamData {
-                val picks = league.picks(idx)
                 val englishNames =
-                    picks.sortedWith(league.tierorderingComparator)
-                        .map { NameConventionsDB.getSDTranslation(it.name, league.guild, english = true)!!.official }
+                    overridePicks ?: league.picks(idx).let { if (takePickCount != null) it.take(takePickCount) else it }
+                        .inDocOrder(league)
+                        .mapValues {
+                            NameConventionsDB.getSDTranslation(
+                                it.value.name,
+                                league.guild,
+                                english = true
+                            )!!.official
+                        }
                 val lsData = db.signups.get(league.guild)!!
                 val uid = league.table[idx]
                 val userData = lsData.getDataByUser(uid)!!
@@ -252,6 +289,11 @@ object TeamGraphicGenerator {
             }
         }
     }
+
+    private fun List<DraftPokemon>.inDocOrder(league: League) =
+        league.tierlist.withTierBasedPriceManager { it.getPicksWithInsertOrder(league, this@inDocOrder) } ?: sortedWith(
+            league.tierorderingComparator
+        ).mapIndexed { index, pokemon -> index to pokemon }.toMap()
 
 
     private val logger = KotlinLogging.logger {}
@@ -269,9 +311,13 @@ interface UserNameProvider {
 }
 
 data class JDADirectUserNameProvider(val jda: JDA = de.tectoast.emolga.bot.jda) : UserNameProvider {
+    val cache = SizeLimitedMap<Long, String>()
     override suspend fun getUserName(userId: Long): String {
-        val user = jda.retrieveUserById(userId).await()
-        return user.effectiveName
+        return cache.getOrPut(userId) { jda.retrieveUserById(userId).await().effectiveName }
+    }
+
+    companion object {
+        val default = JDADirectUserNameProvider()
     }
 }
 

@@ -135,4 +135,9 @@ object CmdManager {
             delay(2000) // avoid rate limits
         }
     }
+
+    suspend fun getAllGuildTargets() = dbTransaction {
+        GuildGroupsDB.select(GuildGroupsDB.GUILD).union(GuildCommandsDB.select(GuildCommandsDB.GUILD))
+            .map { it[GuildGroupsDB.GUILD] }.toSet()
+    }
 }

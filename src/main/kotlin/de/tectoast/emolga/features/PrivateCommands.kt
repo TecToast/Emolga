@@ -696,6 +696,16 @@ object PrivateCommands {
     suspend fun liveteam(args: PrivateData) {
         iData.reply(LiveTeamDB.generateForLeague(args()).toString())
     }
+
+    context(iData: InteractionData)
+    suspend fun updateCommandsInAllGuilds() {
+        val allTargets = CmdManager.getAllGuildTargets() + -1
+        val featureManager = EmolgaMain.featureManager()
+        for (gid in allTargets) {
+            featureManager.updateCommandsForGuild(gid)
+            delay(5000)
+        }
+    }
 }
 
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")

@@ -19,12 +19,16 @@ import dev.minn.jda.ktx.interactions.components.SelectOption
 import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import mu.KotlinLogging
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import org.jetbrains.exposed.v1.core.Random
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
-import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.r2dbc.*
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 
@@ -37,7 +41,7 @@ object WRCManager {
     @OptIn(ExperimentalTime::class)
     suspend fun setupRepeatTasks() {
         dbTransaction {
-            for (wrc in WRCDataDB.selectAll().where { LASTSIGNUP greaterEq CurrentTimestamp }) {
+            WRCDataDB.selectAll().where { LASTSIGNUP greaterEq CurrentTimestamp }.collect { wrc ->
                 val channel = wrc[SIGNUPCHANNEL]
                 val wrcName = wrc[WRCNAME]
                 val interval = wrc[INTERVALMINS].minutes
@@ -332,7 +336,7 @@ object WRCManager {
             Tierlist.select(Tierlist.POKEMON).where { tl.basePredicate and (Tierlist.TIER eq it) }.except(
                 WRCMonsPickedDB.select(WRCMonsPickedDB.MON).where { WRCMonsPickedDB.WRCNAME eq wrcName })
                 .orderBy(Random()).limit(10)
-        }.reduce { acc, r -> UnionAll(acc, r) }.map { it[Tierlist.POKEMON] }
+        }.reduce { acc, r -> UnionAll(acc, r) }.map { it[Tierlist.POKEMON] }.toList()
         val allMonsChunked = allMons.chunked(10)
         return@dbTransaction buildString {
             append("# Pokemon-Wahl für $wrcName - Spieltag $gameday\n")

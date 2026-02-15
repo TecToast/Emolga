@@ -9,13 +9,12 @@ import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.k18n
 import de.tectoast.emolga.utils.universalLogger
 import dev.minn.jda.ktx.messages.Embed
+import kotlinx.coroutines.flow.*
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.ReferenceOption.CASCADE
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.notInList
 import org.jetbrains.exposed.v1.datetime.timestamp
-import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.r2dbc.*
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -246,6 +245,7 @@ object WRCMatchupsDB : Table("wrc_matchups") {
         select(USER, BATTLEINDEX, USERINDEX, SUBMIT).where { (WRCNAME eq wrcName) and (GAMEDAY eq gameday) }
             .orderBy(BATTLEINDEX to SortOrder.ASC, USERINDEX to SortOrder.ASC)
             .map { WRCUserSubmitData(userData = it.toWRCUserBattleData(), submitted = it[SUBMIT]) }
+            .toList()
     }
 
     suspend fun findChallengersWithoutSubmit(wrcName: String, gameday: Int) = dbTransaction {
@@ -393,7 +393,7 @@ object WRCMonsPickedDB : Table("wrc_monspicked") {
     suspend fun getUnorderedPickedMons(wrcname: String, gameday: Int, user: Long) = dbTransaction {
         select(MON, TIER).where { (WRCNAME eq wrcname) and (GAMEDAY eq gameday) and (USERID eq user) }.map {
             DraftPokemon(it[MON], it[TIER])
-        }
+        }.toList()
     }
 
     suspend fun getOrderedPickedMons(wrcname: String, gameday: Int, user: Long) = dbTransaction {
@@ -401,4 +401,14 @@ object WRCMonsPickedDB : Table("wrc_monspicked") {
         getUnorderedPickedMons(wrcname, gameday, user).sortedWith(tl.tierorderingComparator)
     }
 
+}
+
+suspend fun <T> Flow<T>.partition(predicate: (T) -> Boolean): Pair<List<T>, List<T>> {
+    val first = mutableListOf<T>()
+    val second = mutableListOf<T>()
+    collect { item ->
+        if (predicate(item)) first.add(item)
+        else second.add(item)
+    }
+    return first to second
 }

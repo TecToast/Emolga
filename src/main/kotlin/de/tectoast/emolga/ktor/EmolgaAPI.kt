@@ -42,11 +42,12 @@ import org.litote.kmongo.json
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
-import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import javax.imageio.ImageIO
 import kotlin.io.path.Path
 import kotlin.reflect.KClass
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 private val logger = KotlinLogging.logger {}
 private val defaultDataCache = SizeLimitedMap<String, String>(maxSize = 10)
@@ -56,7 +57,7 @@ private val participantDataCache = mutableMapOf<Long, Pair<String, String>>()
 @Serializable
 data class DiscordUserData(val name: String, val avatar: String)
 
-@OptIn(InternalSerializationApi::class)
+@OptIn(InternalSerializationApi::class, ExperimentalUuidApi::class)
 fun Route.emolgaAPI() {
     route("/") {
         install(apiGuard)
@@ -306,7 +307,7 @@ fun Route.emolgaAPI() {
     }
     get("/liveteam") {
         val token = call.request.queryParameters["token"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-        val uuid = runCatching { UUID.fromString(token) }.getOrNull()
+        val uuid = Uuid.parseHexDashOrNull(token)
             ?: return@get call.respond(HttpStatusCode.BadRequest)
         val leaguename = LiveTeamDB.getByCode(uuid) ?: return@get call.respond(HttpStatusCode.NotFound)
         val numRaw =

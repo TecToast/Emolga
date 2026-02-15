@@ -12,12 +12,13 @@ import dev.minn.jda.ktx.messages.into
 import dev.minn.jda.ktx.messages.send
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.firstOrNull
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.insert
+import org.jetbrains.exposed.v1.r2dbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.upsert
 
 object SDNamesDB : Table("sdnames") {
     val NAME = varchar("name", 18)
@@ -85,8 +86,7 @@ object SDNamesDB : Table("sdnames") {
      */
     suspend fun setOwnerOfName(username: String, id: Long) {
         dbTransaction {
-            deleteWhere { NAME eq username }
-            insert {
+            upsert {
                 it[NAME] = username
                 it[ID] = id
             }

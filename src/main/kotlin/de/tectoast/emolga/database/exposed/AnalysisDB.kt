@@ -3,11 +3,16 @@ package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
+import org.jetbrains.exposed.v1.r2dbc.insert
+import org.jetbrains.exposed.v1.r2dbc.selectAll
 
 object AnalysisDB : Table("analysis") {
     val REPLAY = long("replay")
@@ -50,7 +55,7 @@ object AnalysisDB : Table("analysis") {
      */
     suspend fun removeUnused() = dbTransaction {
         val unused = selectAll().filter { jda.getTextChannelById(it[REPLAY]) == null }.map { it[REPLAY] }.toList()
-        deleteWhere { with(it) { GUILD inList unused } }
+        deleteWhere { GUILD inList unused }
         unused.size
     }
 

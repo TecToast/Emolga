@@ -5,11 +5,10 @@ import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.features.flo.AddRemove
 import de.tectoast.emolga.utils.Constants
 import kotlinx.coroutines.delay
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.inList
-import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.jdbc.*
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toSet
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.r2dbc.*
 
 object GuildGroupsDB : Table("cmd_guild_groups") {
     val GUILD = long("guild")
@@ -38,11 +37,11 @@ object CmdManager {
         dbTransaction {
             if (action.add()) {
                 GuildGroupsDB.insertIgnore {
-                    it[GUILD] = guildId
+                    it[GuildGroupsDB.GUILD] = guildId
                     it[GuildGroupsDB.GROUP] = group
                 }
             } else {
-                GuildGroupsDB.deleteWhere { (GUILD eq guildId) and (GuildGroupsDB.GROUP eq group) }
+                GuildGroupsDB.deleteWhere { (GuildGroupsDB.GUILD eq guildId) and (GuildGroupsDB.GROUP eq group) }
             }
         }
         EmolgaMain.featureManager().updateCommandsForGuild(guildId)
@@ -79,7 +78,7 @@ object CmdManager {
 
     private suspend fun updateAllGuildsInGroup(group: String) {
         dbTransaction {
-            GuildGroupsDB.select(GuildGroupsDB.GUILD).where { GuildGroupsDB.GROUP eq group }.forEach {
+            GuildGroupsDB.select(GuildGroupsDB.GUILD).where { GuildGroupsDB.GROUP eq group }.collect {
                 EmolgaMain.featureManager().updateCommandsForGuild(it[GuildGroupsDB.GUILD])
                 delay(2000) // avoid rate limits
             }

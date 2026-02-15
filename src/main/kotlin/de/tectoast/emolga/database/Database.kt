@@ -1,11 +1,10 @@
 package de.tectoast.emolga.database
 
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
 import de.tectoast.emolga.database.exposed.CalendarDB
 import de.tectoast.emolga.features.flegmon.BirthdaySystem
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.json.Tokens
+import io.r2dbc.spi.ConnectionFactoryOptions.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -13,18 +12,31 @@ import kotlinx.coroutines.async
 import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.Transaction
 import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
-import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.r2dbc.R2dbcDatabase
+import org.jetbrains.exposed.v1.r2dbc.transactions.suspendTransaction
 import java.sql.SQLIntegrityConstraintViolationException
 
-class Database(private val host: String, private val username: String, private val password: String) {
-    val dataSource = HikariDataSource(HikariConfig().apply {
-        jdbcUrl =
-            "jdbc:mariadb://$host/emolga?user=${this@Database.username}&password=${this@Database.password}&minPoolSize=1&rewriteBatchedStatements=true"
-    })
+class Database(
+    private val cred: Tokens.Database
+) {
+    val db = R2dbcDatabase.connect {
+        connectionFactoryOptions {
+            option(DRIVER, "pool")
+            option(
+                PROTOCOL,
+                "postgresql"
+            ) // driver identifier, PROTOCOL is delegated as DRIVER by the pool.
+            option(HOST, cred.host)
+            option(PORT, cred.port)
+            option(USER, cred.username)
+            option(PASSWORD, cred.password)
+            option(DATABASE, "emolga")
+        }
+    }
 
     companion object {
         private val logger = KotlinLogging.logger {}
-        private lateinit var instance: Database
+        lateinit var instance: Database
         val dbScope = createCoroutineScope("Database", Dispatchers.IO)
 
 
@@ -33,8 +45,7 @@ class Database(private val host: String, private val username: String, private v
          */
         suspend fun init(cred: Tokens.Database, withStartUp: Boolean = true): Database {
             logger.info("Creating DataSource...")
-            instance = Database(cred.host, cred.username, cred.password)
-            org.jetbrains.exposed.v1.jdbc.Database.connect(instance.dataSource)
+            instance = Database(cred)
             if (withStartUp) onStartUp()
             return instance
         }
@@ -59,9 +70,8 @@ fun <T> dbAsync(block: suspend CoroutineScope.() -> T) = Database.dbScope.async(
     block()
 }
 
-@Suppress("DEPRECATION") // Switch to R2DBC once it is stable with pooling
 suspend fun <T> dbTransaction(statement: suspend Transaction.() -> T) =
-    newSuspendedTransaction(Database.dbScope.coroutineContext, statement = statement)
+    suspendTransaction { statement() }
 
 
 suspend fun dbTransactionWithUniqueHandler(

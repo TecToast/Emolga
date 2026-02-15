@@ -1,11 +1,11 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
+import org.jetbrains.exposed.v1.r2dbc.insert
+import org.jetbrains.exposed.v1.r2dbc.select
 
 object SpoilerTagsDB : Table("spoilertags") {
     val GUILDID = long("guildid")
@@ -18,7 +18,7 @@ object SpoilerTagsDB : Table("spoilertags") {
      * @return true if spoilertags should be used, false otherwise
      */
     suspend fun contains(guildid: Long) = dbTransaction {
-        SpoilerTagsDB.select(GUILDID).where { GUILDID eq guildid }.count() > 0
+        select(GUILDID).where { GUILDID eq guildid }.count() > 0
     }
 
     /**
@@ -26,7 +26,7 @@ object SpoilerTagsDB : Table("spoilertags") {
      * @param guildid the guild id
      */
     suspend fun insert(guildid: Long) = dbTransaction {
-        SpoilerTagsDB.insert {
+        insert {
             it[GUILDID] = guildid
         }
     }

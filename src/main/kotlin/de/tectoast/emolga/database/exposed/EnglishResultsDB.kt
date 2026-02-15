@@ -2,12 +2,12 @@ package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.k18n.generated.K18nLanguage
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.union
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
+import org.jetbrains.exposed.v1.r2dbc.insert
+import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.union
 
 object EnglishResultsDB : Table("english_results") {
     val GUILDID = long("guildid")

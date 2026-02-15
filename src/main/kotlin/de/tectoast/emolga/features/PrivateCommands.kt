@@ -48,15 +48,15 @@ import net.dv8tion.jda.api.components.textinput.TextInputStyle
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.jdbc.*
-import org.jetbrains.exposed.v1.migration.MigrationUtils
+import org.jetbrains.exposed.v1.migration.r2dbc.MigrationUtils
+import org.jetbrains.exposed.v1.r2dbc.*
 import org.litote.kmongo.*
 import org.slf4j.LoggerFactory
 import java.security.SecureRandom
 import java.util.regex.Pattern
 import kotlin.reflect.full.isSubclassOf
 import kotlin.time.measureTime
+import kotlin.uuid.ExperimentalUuidApi
 
 @Suppress("unused")
 object PrivateCommands {
@@ -692,6 +692,7 @@ object PrivateCommands {
         db.signups.get(gid)!!.updateSignupMessage()
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     context(iData: InteractionData)
     suspend fun liveteam(args: PrivateData) {
         iData.reply(LiveTeamDB.generateForLeague(args()).toString())

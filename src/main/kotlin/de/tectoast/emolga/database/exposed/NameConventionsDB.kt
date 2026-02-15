@@ -11,19 +11,14 @@ import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.NameConventions
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.json.showdown.Pokemon
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.toSet
-import kotlinx.coroutines.flow.transform
+import kotlinx.coroutines.flow.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import mu.KotlinLogging
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.inList
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.r2dbc.insert
+import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.selectAll
 import org.litote.kmongo.eq
 import de.tectoast.emolga.utils.json.db as emolgaDB
 
@@ -73,7 +68,7 @@ object NameConventionsDB : Table("nameconventions") {
 
 
     private suspend fun getAll() = dbTransaction {
-        select(GERMAN, ENGLISH).asFlow().transform {
+        select(GERMAN, ENGLISH).transform {
             emit(it[GERMAN])
             emit(it[ENGLISH])
         }.toSet()
@@ -196,7 +191,7 @@ object NameConventionsDB : Table("nameconventions") {
      */
     suspend fun getAllSDTranslationOnlyOfficialGerman(list: List<String>): Map<String, String> {
         return dbTransaction {
-            select(ENGLISH, GERMAN).where(ENGLISH inList list).asFlow().toMap { it[ENGLISH] to it[GERMAN] }
+            select(ENGLISH, GERMAN).where(ENGLISH inList list).toMap { it[ENGLISH] to it[GERMAN] }
         }
     }
 
@@ -204,7 +199,7 @@ object NameConventionsDB : Table("nameconventions") {
     // TODO: Check for multi lang, may be merged with [getAllSDTranslationOnlyOfficialGerman]
     suspend fun getAllSDTranslationOnlyOfficialEnglish(list: List<String>): Map<String, String> {
         return dbTransaction {
-            select(ENGLISH, GERMAN).where(GERMAN inList list).asFlow().toMap { it[GERMAN] to it[ENGLISH] }
+            select(ENGLISH, GERMAN).where(GERMAN inList list).toMap { it[GERMAN] to it[ENGLISH] }
         }
     }
 

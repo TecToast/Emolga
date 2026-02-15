@@ -354,8 +354,8 @@
             "NotUploaded": "_not uploaded yet_"
           },
           "League_nested": {
-            "ReplyGeneralSelf": "{user:Mention} has ",
-            "ReplyGeneralOther": "{user:Mention} has for **{current}** ",
+            "ReplyGeneralSelf": "{user:Mention} has",
+            "ReplyGeneralOther": "{user:Mention} has for **{current}**",
             "StallSecondsRemaining": "{currentMention} Your timer allowance is still {timeStr}!",
             "StallSecondsUsedUp": "{currentMention} Your timer allowance has been fully used up!",
             "StallSecondsRunning": "{currentMention} Your timer allowance is running! You will be skipped <t:{endTime:Long}:R>!",

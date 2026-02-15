@@ -354,8 +354,8 @@
             "NotUploaded": "_noch nicht hochgeladen_"
           },
           "League_nested": {
-            "ReplyGeneralSelf": "{user:Mention} hat ",
-            "ReplyGeneralOther": "{user:Mention} hat für **{current}** ",
+            "ReplyGeneralSelf": "{user:Mention} hat",
+            "ReplyGeneralOther": "{user:Mention} hat für **{current}**",
             "StallSecondsRemaining": "{currentMention} Dein Timer-Zuschlag beträgt noch {timeStr}!",
             "StallSecondsUsedUp": "{currentMention} Dein Timer-Zuschlag wurde vollständig aufgebraucht!",
             "StallSecondsRunning": "{currentMention} Dein Timer-Zuschlag läuft! Du wirst <t:{endTime:Long}:R> geskippt!",

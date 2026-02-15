@@ -2,14 +2,18 @@ package de.tectoast.emolga.utils
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.TipGameVotesDB
+import de.tectoast.emolga.database.exposed.joinToString
+import de.tectoast.emolga.database.exposed.toMap
 import de.tectoast.emolga.features.draft.K18n_TipGameCommand
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.db
 import de.tectoast.k18n.generated.K18nLanguage
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.singleOrNull
+import kotlinx.coroutines.flow.toList
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.core.statements.UpsertSqlExpressionBuilder.eq
-import org.jetbrains.exposed.v1.core.statements.UpsertSqlExpressionBuilder.inList
-import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.r2dbc.select
 
 object TipGameAnalyseService {
     suspend fun getFullTipGameResultsSummary(leaguename: String) = dbTransaction {
@@ -71,6 +75,7 @@ object TipGameAnalyseService {
                 .select(rankCol, userCol, correctCol, totalCol)
                 .where { rankCol.between(targetRank - ABOVE_BELOW, targetRank + ABOVE_BELOW) }
                 .orderBy(rankCol to SortOrder.ASC, (userCol eq userId) to SortOrder.DESC)
+                .toList()
                 .groupBy { it[rankCol] }
                 .flatMap { (_, rows) ->
                     rows.take(4).map { row ->
@@ -98,7 +103,7 @@ object TipGameAnalyseService {
             val dataMap = select(LEAGUENAME, correctVotes, totalVotes)
                 .where { (leaguePredicate) and (USERID eq userId) }
                 .groupBy(LEAGUENAME)
-                .associate { row ->
+                .toMap { row ->
                     val leagueName = row[LEAGUENAME]
                     val correct = row[correctVotes] ?: 0
                     val total = row[totalVotes]
@@ -118,6 +123,7 @@ object TipGameAnalyseService {
             val leaguePredicate = leaguePredicate(allLeagues.map { it.leaguename })
             val presentData = select(LEAGUENAME, BATTLE)
                 .where { (leaguePredicate) and (GAMEDAY eq gameday) and (USERID eq user) }
+                .toList()
                 .groupBy { it[LEAGUENAME] }
             var amount = 0
             val str = allLeagues.mapNotNull { league ->
@@ -189,4 +195,9 @@ object TipGameAnalyseService {
 
     private suspend fun allLeagues(gid: Long): List<League> = db.leaguesByGuild(gid).sortedBy { it.num }
     private suspend fun allLeagueNames(gid: Long): List<String> = allLeagues(gid).map { it.leaguename }
+}
+
+fun <T, R> Flow<T>.mapIndexed(transform: suspend (Int, T) -> R) = flow {
+    var index = 0
+    collect { emit(transform(index++, it)) }
 }

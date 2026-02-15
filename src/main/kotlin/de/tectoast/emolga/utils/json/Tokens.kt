@@ -32,7 +32,8 @@ data class Tokens(
     data class Database(
         val username: String,
         val password: String,
-        val host: String
+        val host: String,
+        val port: Int,
     )
 
     @Serializable

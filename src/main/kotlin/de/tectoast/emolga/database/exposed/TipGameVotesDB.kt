@@ -1,13 +1,13 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.count
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.update
-import org.jetbrains.exposed.v1.jdbc.upsert
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.update
+import org.jetbrains.exposed.v1.r2dbc.upsert
 
 object TipGameVotesDB : Table("tipgamevotes") {
     val LEAGUENAME = varchar("leaguename", 31)
@@ -38,6 +38,6 @@ object TipGameVotesDB : Table("tipgamevotes") {
     suspend fun getCurrentState(league: String, gameday: Int, battle: Int) = dbTransaction {
         val count = USERID.count()
         select(IDX, count).where { (LEAGUENAME eq league) and (GAMEDAY eq gameday) and (BATTLE eq battle) }
-            .groupBy(IDX).associate { it[IDX] to it[count] }
+            .groupBy(IDX).toMap { it[IDX] to it[count] }
     }
 }

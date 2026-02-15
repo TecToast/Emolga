@@ -11,8 +11,8 @@ import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.session.ReadyEvent
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
-import org.jetbrains.exposed.v1.migration.MigrationUtils
+import org.jetbrains.exposed.v1.migration.r2dbc.MigrationUtils
+import org.jetbrains.exposed.v1.r2dbc.transactions.TransactionManager
 import kotlin.reflect.full.isSubclassOf
 
 object DBMigration {

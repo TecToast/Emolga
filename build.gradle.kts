@@ -63,7 +63,7 @@ repositories {
     maven("https://jitpack.io")
 }
 
-val exposedVersion = "1.0.0-beta-5"
+val exposedVersion = "1.0.0"
 val ktorVersion = "3.2.2"
 val ktorDependencies = listOf(
     // Client
@@ -107,15 +107,12 @@ dependencies {
 
     // Database
     // MySQL
-//    implementation("org.mariadb:r2dbc-mariadb:1.3.0")
-//    implementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
-    implementation("org.mariadb.jdbc:mariadb-java-client:3.5.7")
-    implementation("com.zaxxer:HikariCP:7.0.2")
+    implementation("org.postgresql:r2dbc-postgresql:1.1.1.RELEASE")
+    implementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
-//    implementation("org.jetbrains.exposed:exposed-r2dbc:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-r2dbc:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-migration:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-migration-r2dbc:$exposedVersion")
     // MongoDB
     implementation("org.litote.kmongo:kmongo-coroutine-serialization:5.5.1")
     implementation("org.litote.kmongo:kmongo-id-serialization:5.5.1")

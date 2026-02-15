@@ -2,10 +2,7 @@ package de.tectoast.emolga.utils.teamgraphics
 
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
-import de.tectoast.emolga.database.exposed.NameConventionsDB
-import de.tectoast.emolga.database.exposed.PokemonCropDB
-import de.tectoast.emolga.database.exposed.TeamGraphicChannelDB
-import de.tectoast.emolga.database.exposed.TeamGraphicMessageDB
+import de.tectoast.emolga.database.exposed.*
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.SizeLimitedMap
@@ -28,7 +25,9 @@ import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.utils.FileUpload
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.r2dbc.selectAll
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.Shape
@@ -83,7 +82,7 @@ object TeamGraphicGenerator {
         val monData = dbTransaction {
             PokemonCropDB.selectAll()
                 .where { PokemonCropDB.GUILD eq style.guild and (PokemonCropDB.OFFICIAL.inList(teamData.englishNames.values)) }
-                .associate { it[PokemonCropDB.OFFICIAL] to it.toDrawData() }
+                .toMap { it[PokemonCropDB.OFFICIAL] to it.toDrawData() }
         }
         return createOneTeamGraphic(
             teamData.teamOwner,

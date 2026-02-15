@@ -6,14 +6,17 @@ import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.get
 import de.tectoast.emolga.utils.toSDName
 import dev.minn.jda.ktx.coroutines.await
+import kotlinx.coroutines.flow.singleOrNull
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.selectAll
-import java.util.*
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.deleteWhere
+import org.jetbrains.exposed.v1.r2dbc.insert
+import org.jetbrains.exposed.v1.r2dbc.selectAll
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 object ResultCodesDB : Table("resultcodes") {
     val CODE = uuid("code")
     val LEAGUENAME = varchar("leaguename", 32)
@@ -24,12 +27,12 @@ object ResultCodesDB : Table("resultcodes") {
     override val primaryKey = PrimaryKey(CODE)
 
     suspend fun getEntryByCode(resultid: String) = dbTransaction {
-        val uuid = runCatching { UUID.fromString(resultid) }.getOrNull() ?: return@dbTransaction null
+        val uuid = Uuid.parseHexDashOrNull(resultid) ?: return@dbTransaction null
         selectAll().where { CODE eq uuid }.singleOrNull()
     }
 
     suspend fun getResultDataForUser(resultid: String) = dbTransaction {
-        val uuid = runCatching { UUID.fromString(resultid) }.getOrNull() ?: return@dbTransaction null
+        val uuid = Uuid.parseHexDashOrNull(resultid) ?: return@dbTransaction null
         val entry = selectAll().where { CODE eq uuid }.singleOrNull() ?: return@dbTransaction null
         val league = de.tectoast.emolga.utils.json.db.league(entry[LEAGUENAME])
         val gid = league.guild
@@ -67,10 +70,10 @@ object ResultCodesDB : Table("resultcodes") {
             })
     }
 
-    suspend fun add(leaguename: String, gameday: Int, p1: Int, p2: Int): UUID {
-        var code: UUID
+    suspend fun add(leaguename: String, gameday: Int, p1: Int, p2: Int): Uuid {
+        var code: Uuid
         while (true) {
-            code = UUID.randomUUID()
+            code = Uuid.random()
             dbTransaction {
                 insert {
                     it[CODE] = code
@@ -85,7 +88,7 @@ object ResultCodesDB : Table("resultcodes") {
         return code
     }
 
-    suspend fun delete(code: UUID) = dbTransaction {
+    suspend fun delete(code: Uuid) = dbTransaction {
         deleteWhere { CODE eq code }
     }
 

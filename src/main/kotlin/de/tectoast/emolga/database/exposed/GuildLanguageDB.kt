@@ -4,9 +4,11 @@ import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import de.tectoast.k18n.generated.K18nLanguage
+import kotlinx.coroutines.flow.firstOrNull
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.upsert
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.upsert
 
 object GuildLanguageDB : Table("guild_language") {
     val GUILD = long("guild")

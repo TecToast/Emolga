@@ -1,12 +1,15 @@
 package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
+import kotlinx.coroutines.flow.firstOrNull
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
 import org.jetbrains.exposed.v1.datetime.timestamp
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.upsert
+import org.jetbrains.exposed.v1.r2dbc.select
+import org.jetbrains.exposed.v1.r2dbc.upsert
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 

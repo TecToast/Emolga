@@ -13,7 +13,9 @@ import de.tectoast.emolga.utils.k18n
 import de.tectoast.emolga.utils.translateToGuildLanguage
 import dev.minn.jda.ktx.coroutines.await
 import net.dv8tion.jda.api.Permission
+import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalUuidApi::class)
 object EnterResult {
 
     object ResultCommand : CommandFeature<ResultCommand.Args>(

@@ -42,6 +42,7 @@ import kotlin.math.min
 
 object TeamGraphicGenerator {
     data class Options(val blankBackground: Boolean = false)
+
     suspend fun generateForLeague(
         league: League, style: TeamGraphicStyle
     ): List<BufferedImage> {
@@ -105,6 +106,30 @@ object TeamGraphicGenerator {
         )
     }
 
+    val diskImageCache = SizeLimitedMap<String, BufferedImage>(1000)
+    private suspend fun loadImageForBase(path: String): BufferedImage {
+        val base = fromCacheOrLoad(path)
+        val copy = BufferedImage(base.width, base.height, BufferedImage.TYPE_INT_ARGB)
+        copy.createGraphics().apply {
+            drawImage(base, 0, 0, null)
+            dispose()
+        }
+        return copy
+    }
+
+    private suspend fun fromCacheOrLoad(key: String) = fromCacheOrLoad(key) { key }
+
+    private suspend inline fun fromCacheOrLoad(
+        key: String,
+        crossinline keyToPath: suspend (String) -> String
+    ): BufferedImage {
+        return diskImageCache.getOrPut(key) {
+            withContext(Dispatchers.IO) {
+                ImageIO.read(File(keyToPath(key)))
+            }
+        }
+    }
+
     private suspend fun createOneTeamGraphic(
         teamOwner: String?,
         teamName: String?,
@@ -113,9 +138,7 @@ object TeamGraphicGenerator {
         style: TeamGraphicStyle,
         options: Options
     ): BufferedImage {
-        val backgroundImage = withContext(Dispatchers.IO) {
-            ImageIO.read(File(style.backgroundPath))
-        }
+        val backgroundImage = loadImageForBase(style.backgroundPath)
         val image = if (options.blankBackground) {
             BufferedImage(backgroundImage.width, backgroundImage.height, BufferedImage.TYPE_INT_ARGB)
         } else {
@@ -127,12 +150,10 @@ object TeamGraphicGenerator {
         g2d.drawOptionalText(teamName, style.teamnameText)
         g2d.drawMons(monData, style)
         style.overlayPath?.let {
-            g2d.drawImage(withContext(Dispatchers.IO) {
-                ImageIO.read(File(it))
-            }, 0, 0, null)
+            g2d.drawImage(fromCacheOrLoad(it), 0, 0, null)
         }
         g2d.drawLogo(
-            logo ?: style.logoProperties?.defaultLogoPath?.let { ImageIO.read(File(it)) },
+            logo ?: style.logoProperties?.defaultLogoPath?.let { fromCacheOrLoad(it) },
             style.logoProperties
         )
         g2d.dispose()
@@ -183,11 +204,12 @@ object TeamGraphicGenerator {
         this.drawString(text, x, y)
     }
 
+
     private suspend fun Graphics2D.drawMons(monData: Map<Int, DrawData>, style: TeamGraphicStyle) {
         for ((i, data) in monData) {
-            val path = db.pokedex.get(data.name.toSDName())!!.calcSpriteName()
-            val image = withContext(Dispatchers.IO) {
-                ImageIO.read(File("teamgraphics/sugimori_final/$path.png"))
+            val sdName = data.name.toSDName()
+            val image = fromCacheOrLoad(sdName) {
+                "teamgraphics/sugimori_final/${db.pokedex.get(sdName)!!.calcSpriteName()}.png"
             }
             val dataForIndex = style.getDataForIndex(i, data)
             val size = style.sizeOfShape
@@ -275,6 +297,7 @@ object TeamGraphicGenerator {
                 overridePicks: Map<Int, String>? = null,
                 takePickCount: Int? = null // TODO: Refactor
             ): TeamData {
+                // TODO: Optimize (dont fetch every mon single)
                 val englishNames =
                     overridePicks ?: league.picks(idx).let { if (takePickCount != null) it.take(takePickCount) else it }
                         .inDocOrder(league)

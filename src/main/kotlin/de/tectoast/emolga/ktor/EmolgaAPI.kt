@@ -338,7 +338,7 @@ fun Route.emolgaAPI() {
     }
     get("/teamgraphic") {
         val token = call.request.queryParameters["token"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-        val uuid = UUID.fromString(token)
+        val uuid = Uuid.parseHexDashOrNull(token)
             ?: return@get call.respond(HttpStatusCode.BadRequest)
         val leaguename = LiveTeamDB.getByCode(uuid) ?: return@get call.respond(HttpStatusCode.NotFound)
         val idx =

@@ -23,7 +23,7 @@ jib {
         }
     }
     to {
-        image = "tectoast/emolga"
+        image = "localhost:5000/tectoast/emolga"
     }
     container {
         mainClass = "de.tectoast.emolga.MainKt"

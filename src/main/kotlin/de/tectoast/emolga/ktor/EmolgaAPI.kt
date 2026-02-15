@@ -333,30 +333,44 @@ fun Route.emolgaAPI() {
         val idx =
             league.originalorder[roundIndex + 1]?.getOrNull(indexInRound)
                 ?: return@get call.respond(HttpStatusCode.NotFound)
-        val actualPickSize = league.picks(idx).size
-        val actualTakePicks = takePicks.coerceAtMost(actualPickSize)
-        val invalidTakePicks = actualTakePicks != takePicks
-        call.caching = if (invalidTakePicks) CachingOptions(CacheControl.NoCache(null)) else CachingOptions(
-            CacheControl.MaxAge(60 * 60 * 5)
-        )
-        if (invalidTakePicks) {
-            return@get call.respond(HttpStatusCode.NotFound)
-        }
-        call.respondBytes(teamGraphicCache.getOrPut("$leaguename#$idx#$actualTakePicks") {
-            val img = TeamGraphicGenerator.generate(
-                TeamGraphicGenerator.TeamData.singleFromLeague(
-                    league,
-                    idx,
-                    takePickCount = actualTakePicks
-                ), style, TeamGraphicGenerator.Options(blankBackground = true)
-            )
-            ByteArrayOutputStream().use {
-                ImageIO.write(img, "png", it)
-                it.toByteArray()
-            }
-        }, contentType = ContentType.Image.PNG)
-
+        call.respondTeamGraphic(league, idx, takePicks)
     }
+    get("/teamgraphic") {
+        val token = call.request.queryParameters["token"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val uuid = UUID.fromString(token)
+            ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val leaguename = LiveTeamDB.getByCode(uuid) ?: return@get call.respond(HttpStatusCode.NotFound)
+        val idx =
+            call.request.queryParameters["idx"]?.toIntOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val mons = call.request.queryParameters["mons"]?.toIntOrNull()
+        val league = db.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
+        call.respondTeamGraphic(league, idx, mons)
+    }
+}
+
+suspend fun RoutingCall.respondTeamGraphic(league: League, idx: Int, takePicks: Int?) {
+    val actualPickSize = league.picks(idx).size
+    if (takePicks != null && takePicks > actualPickSize) {
+        this.caching = CachingOptions(CacheControl.NoCache(null))
+        return this.respond(HttpStatusCode.NotFound)
+    }
+    val actualTakePicks = takePicks ?: actualPickSize
+    this.caching = CachingOptions(
+        CacheControl.MaxAge(60 * 60 * 5)
+    )
+    respondBytes(teamGraphicCache.getOrPut("${league.leaguename}#$idx#$actualTakePicks") {
+        val img = TeamGraphicGenerator.generate(
+            TeamGraphicGenerator.TeamData.singleFromLeague(
+                league,
+                idx,
+                takePickCount = actualTakePicks
+            ), league.config.teamgraphics!!.style, TeamGraphicGenerator.Options(blankBackground = true)
+        )
+        ByteArrayOutputStream().use {
+            ImageIO.write(img, "png", it)
+            it.toByteArray()
+        }
+    }, contentType = ContentType.Image.PNG)
 }
 
 private val teamGraphicCache = SizeLimitedMap<String, ByteArray>(maxSize = 100)

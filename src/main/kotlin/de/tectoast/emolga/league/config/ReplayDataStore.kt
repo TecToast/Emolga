@@ -21,7 +21,7 @@ data class ReplayDataStoreConfig(
     @Serializable(with = DurationSerializer::class) val gracePeriodForYT: Duration = Duration.ZERO,
     @Serializable(with = DurationSerializer::class) val intervalBetweenGD: Duration = 7.days,
     @Serializable(with = DurationSerializer::class) val intervalBetweenMatches: Duration = 1.hours,
-    val ytEnableConfig: YTEnableConfig = YTEnableConfig.WithDocEntry,
+    val ytEnableConfig: YTEnableConfig? = YTEnableConfig.WithDocEntry,
     val amount: Int,
 )
 

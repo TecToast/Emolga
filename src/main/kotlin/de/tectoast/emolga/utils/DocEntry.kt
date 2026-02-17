@@ -108,11 +108,17 @@ class DocEntry private constructor(val league: League) {
     suspend fun analyse(fullGameData: FullGameData, withSort: Boolean = true) {
         val config = league.config
         val store = config.replayDataStore
+        val gamedayData = fullGameData.gamedayData
+        league.config.tipgame?.let { _ ->
+            league.executeTipGameLockButtonsIndividual(
+                gamedayData.gameday, gamedayData.battleindex
+            )
+        }
         if (store != null || config.hideGames != null) {
             league.storeFullGameData(fullGameData)
             league.save()
             spoilerDocSid?.let { analyseWithoutCheck(fullGameData, withSort, overrideSid = it) }
-            val gameday = fullGameData.gamedayData.gameday
+            val gameday = gamedayData.gameday
             if (store != null) {
                 val currentDay =
                     RepeatTask.getTask(league.leaguename, RepeatTaskType.RegisterInDoc)?.findGamedayOfWeek()
@@ -157,11 +163,6 @@ class DocEntry private constructor(val league: League) {
             return
         }
         val gamedayData = fullGameData.gamedayData
-        league.config.tipgame?.let { _ ->
-            league.executeTipGameLockButtonsIndividual(
-                gamedayData.gameday, gamedayData.battleindex
-            )
-        }
         val sid = overrideSid ?: league.sid
         val b = RequestBuilder(sid)
         val customB = customDataSid?.let(::RequestBuilder)

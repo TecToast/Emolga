@@ -22,9 +22,7 @@ jib {
             }
         }
     }
-    to {
-        image = "localhost:5000/tectoast/emolga"
-    }
+    setAllowInsecureRegistries(true) // used for pushing to local registry
     container {
         mainClass = "de.tectoast.emolga.MainKt"
         jvmFlags = listOf(

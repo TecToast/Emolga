@@ -6,7 +6,6 @@ import de.tectoast.emolga.bot.EmolgaMain.flegmonjda
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.database.exposed.*
-import de.tectoast.emolga.features.draft.LadderTournament
 import de.tectoast.emolga.features.draft.SignupManager
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.features.flegmon.RoleManagement
@@ -57,6 +56,7 @@ import java.security.SecureRandom
 import java.util.regex.Pattern
 import kotlin.reflect.full.isSubclassOf
 import kotlin.time.measureTime
+import de.tectoast.emolga.features.draft.LadderTournament as LadderTournamentFeature
 
 @Suppress("unused")
 object PrivateCommands {
@@ -683,7 +683,8 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     fun createLadderTournamentButton(args: PrivateData) {
-        iData.jda.getTextChannelById(args())!!.send(":)", components = LadderTournament.SignupButton().into()).queue()
+        iData.jda.getTextChannelById(args())!!.send(":)", components = LadderTournamentFeature.SignupButton().into())
+            .queue()
     }
 
     context(iData: InteractionData)
@@ -705,6 +706,11 @@ object PrivateCommands {
             featureManager.updateCommandsForGuild(gid)
             delay(5000)
         }
+    }
+
+    context(iData: InteractionData)
+    suspend fun executeLadderTournament(args: PrivateData) {
+        LadderTournament.executeForGuild(args().toLong())
     }
 }
 

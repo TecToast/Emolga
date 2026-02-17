@@ -12,4 +12,5 @@ data class Triggers(
     val teamSubmit: Boolean = false,
     // TODO remove
     val updraftDisabled: Boolean = false,
+    val randomBattle: Boolean = false,
 )

@@ -217,7 +217,7 @@ class MongoEmolga(dbUrl: String, dbName: String) {
     }
 
     private suspend fun getLeagueResultWithoutPicks(gid: Long, uids: LongArray): LeagueResult? {
-        val league = leagueByGuild(gid, *uids) ?: return null
+        val league = leagueByGuild(gid, *uids)?.takeIf { it.config.triggers.randomBattle } ?: return null
         return LeagueResult(league, uids.map { league.table.indexOf(it) })
     }
 }

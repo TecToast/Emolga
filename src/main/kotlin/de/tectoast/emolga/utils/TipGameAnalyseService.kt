@@ -140,6 +140,34 @@ object TipGameAnalyseService {
         }
     }
 
+    suspend fun getOwnVotesForLeagueAndGameday(
+        gid: Long,
+        leagueName: String,
+        gameday: Int,
+        userId: Long,
+        language: K18nLanguage
+    ): String {
+        val league =
+            db.leagueByDisplayName(gid, leagueName) ?: return K18n_TipGameCommand.OwnVotesLeagueNotFound(leagueName)
+                .translateTo(language)
+        val games = league.battleorder[gameday] ?: return K18n_TipGameCommand.OwnVotesGamedayNotFound(gameday)
+            .translateTo(language)
+        return dbTransaction {
+            with(TipGameVotesDB) {
+                select(BATTLE, IDX, CORRECT)
+                    .where { (LEAGUENAME eq league.leaguename) and (GAMEDAY eq gameday) and (USERID eq userId) }
+                    .orderBy(BATTLE to SortOrder.ASC).joinToString("\n") { row ->
+                        val battle = row[BATTLE]
+                        val correct = row[CORRECT]
+                        val idx = row[IDX]
+                        "<@${league[games[battle][0]]}> vs <@${league[games[battle][1]]}>: <@${league[idx]}>".notNullAppend(
+                            correct
+                        ) { if (it) " ✅" else " ❌" }
+                    }.ifEmpty { K18n_TipGameCommand.OwnVotesNoVotes(leagueName, gameday).translateTo(language) }
+            }
+        }
+    }
+
 
     private fun TipGameVotesDB.getTotalExpression(): Count = Count(CORRECT)
 

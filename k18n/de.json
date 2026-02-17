@@ -279,7 +279,14 @@
               "CheckMissingArgGameday": "Der Spieltag, den du überprüfen möchtest",
               "CheckMissingAllTipsGiven": "Du hast alle Tipps für Spieltag {gameday:Int} abgegeben!",
               "CheckMissingTooLong": "Die Liste der fehlenden Tipps ist zu lang, um sie hier anzuzeigen. Es fehlen insgesamt {amount:Int} Tipps.",
-              "CheckMissingSuccess": "# Fehlende Tipps für Spieltag {num:Int}\n{list}"
+              "CheckMissingSuccess": "# Fehlende Tipps für Spieltag {num:Int}\n{list}",
+              "OwnVotesHelp": "Zeigt deine abgegebenen Tipps an",
+              "OwnVotesArgLeague": "Die Liga",
+              "OwnVotesArgGameday": "Der Spieltag, für den du deine Tipps sehen möchtest",
+              "OwnVotesLeagueNotFound": "Keine Liga unter dem Namen `{league}` gefunden!",
+              "OwnVotesGamedayNotFound": "Diese Liga hat keinen Spieltag mit der Nummer {gameday:Int}!",
+              "OwnVotesNoVotes": "Du hast noch keine Tipps für {league} an Spieltag {gameday:Int} abgegeben!",
+              "OwnVotesSuccess": "# Deine Tipps für {league} an Spieltag {gameday}\n{tips}"
             }
           },
           "showdown": {

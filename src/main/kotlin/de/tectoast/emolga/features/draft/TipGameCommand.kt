@@ -1,7 +1,9 @@
 package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.features.*
+import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.TipGameAnalyseService
+import de.tectoast.emolga.utils.json.db
 
 object TipGameCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("tipgame", K18n_TipGameCommand.Help)) {
 
@@ -56,6 +58,34 @@ object TipGameCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("tipgame", 
             val uid = iData.user
             iData.reply(
                 TipGameAnalyseService.getMissingVotesForGameday(gid, e.gameday, uid, iData.language), ephemeral = true
+            )
+        }
+    }
+
+    object OwnVotes : CommandFeature<OwnVotes.Args>(::Args, CommandSpec("ownvotes", K18n_TipGameCommand.OwnVotesHelp)) {
+        val leagueNameCache = SizeLimitedMap<Long, List<String>>(100)
+
+        class Args : Arguments() {
+            val leaguename by string("Liga", K18n_TipGameCommand.OwnVotesArgLeague) {
+                slashCommand { string, event ->
+                    val gid = event.guild!!.idLong
+                    val names = leagueNameCache.getOrPut(gid) {
+                        db.leaguesByGuild(event.guild!!.idLong).map { it.displayName }
+                    }
+                    names.filter { it.contains(string, true) }
+                }
+            }
+            val gameday by int("Spieltag", K18n_TipGameCommand.OwnVotesArgGameday)
+        }
+
+        context(iData: InteractionData)
+        override suspend fun exec(e: Args) {
+            iData.deferReply(true)
+            val gid = iData.gid
+            val uid = iData.user
+            iData.reply(
+                TipGameAnalyseService.getOwnVotesForLeagueAndGameday(gid, e.leaguename, e.gameday, uid, iData.language),
+                ephemeral = true
             )
         }
     }

@@ -24,4 +24,8 @@ object TeamGraphicMessageDB : Table("teamgraphicmessage") {
     suspend fun getMessageId(league: String, idx: Int): Long? = dbTransaction {
         select(MESSAGEID).where { (LEAGUE eq league) and (IDX eq idx) }.firstOrNull()?.get(MESSAGEID)
     }
+
+    suspend fun getByMessageId(messageId: Long): Pair<String, Int>? = dbTransaction {
+        select(LEAGUE, IDX).where { MESSAGEID eq messageId }.firstOrNull()?.let { it[LEAGUE] to it[IDX] }
+    }
 }

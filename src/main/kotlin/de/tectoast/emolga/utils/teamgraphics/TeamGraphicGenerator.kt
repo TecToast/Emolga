@@ -72,6 +72,7 @@ object TeamGraphicGenerator {
         val msgid = TeamGraphicMessageDB.getMessageId(league.leaguename, idx) ?: return
         jda.getTextChannelById(tcid)!!.editMessage(
             id = msgid.toString(),
+            content = "<@${league[idx]}>",
             attachments = generate(teamData, style).toFileUpload().into()
         ).queue()
     }

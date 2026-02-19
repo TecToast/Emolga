@@ -1113,7 +1113,7 @@ data class LadderTournament(
 
     private suspend fun fetchDataForUsers(): Map<Long, SDUserResponse> {
         return users.filter { it.value.verified }.mapValues {
-            delay(2000)
+            delay(5000)
             httpClient.get("https://pokemonshowdown.com/users/${it.value.sdName.toUsername()}.json")
                 .body<SDUserResponse>()
         }

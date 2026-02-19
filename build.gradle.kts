@@ -7,7 +7,7 @@ plugins {
     kotlin("jvm") version kVersion
     kotlin("plugin.serialization") version kVersion
     id("maven-publish")
-    id("com.google.cloud.tools.jib") version "3.5.2"
+    id("com.google.cloud.tools.jib") version "3.5.3"
     application
     id("de.tectoast.k18n") version "2.2.1"
 }
@@ -93,11 +93,11 @@ dependencies {
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.17")
-    implementation("ch.qos.logback:logback-classic:1.5.27")
+    implementation("ch.qos.logback:logback-classic:1.5.32")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 
     // JDA
-    implementation("net.dv8tion:JDA:6.3.0")
+    implementation("net.dv8tion:JDA:6.3.1")
     implementation("io.github.MinnDevelopment:jda-ktx:7695f84e10")
 
     // Google

@@ -343,7 +343,7 @@ sealed class SignUpInput {
     @Serializable
     @SerialName("YTChannel")
     @Config(
-        "YT-CHannel",
+        "YT-Channel",
         "Wenn dies eine YouTube-Liga ist, können die Teilnehmenden hier ihren Kanal angeben, damit später die Automatisierungen funktionieren"
     )
     data object YTChannel : SignUpInput() {

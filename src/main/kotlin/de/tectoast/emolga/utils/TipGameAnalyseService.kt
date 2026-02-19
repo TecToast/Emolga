@@ -156,7 +156,8 @@ object TipGameAnalyseService {
         val league =
             mdb.leagueByDisplayName(gid, leagueName) ?: return K18n_TipGameCommand.OwnVotesLeagueNotFound(leagueName)
                 .translateTo(language)
-        val games = league.battleorder[gameday] ?: return K18n_TipGameCommand.OwnVotesGamedayNotFound(gameday)
+        val games =
+            league.battleorder[gameday] ?: return K18n_TipGameCommand.OwnVotesGamedayNotFound(leagueName, gameday)
             .translateTo(language)
         return dbTransaction {
             with(TipGameVotesDB) {

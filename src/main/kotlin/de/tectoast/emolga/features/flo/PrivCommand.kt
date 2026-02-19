@@ -4,6 +4,7 @@ package de.tectoast.emolga.features.flo
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.k18n
 import kotlin.reflect.full.callSuspend
+import kotlin.reflect.full.contextParameters
 import kotlin.reflect.full.declaredMemberFunctions
 
 object PrivCommand :
@@ -17,8 +18,9 @@ object PrivCommand :
         var arguments by list("args", "args".k18n, 20, 0, startAt = 0)
     }
 
+    @OptIn(ExperimentalContextParameters::class)
     private val privCommands by lazy {
-        PrivateCommands::class.declaredMemberFunctions.filter { it.returnType.classifier == Unit::class }
+        PrivateCommands::class.declaredMemberFunctions.filter { it.returnType.classifier == Unit::class && it.contextParameters.isNotEmpty() }
             .associateBy { it.name }
     }
 

@@ -218,7 +218,7 @@ class TierlistBuilderConfigurator(
         }
         if (tiers.size != points.size) throw InvalidArgumentException("Die Anzahl der Tiers und der Punkte/Mon-Anzahl stimmt nicht überein!")
         if (freePrices != null && tiers.size != freePrices.size) throw InvalidArgumentException("Die Anzahl der Tiers und der Free-Preise stimmt nicht überein!")
-
+        temporaryTierOrder = tiers
         this@TierlistBuilderConfigurator.prices = tiers.zip(points).toMap()
         this@TierlistBuilderConfigurator.freepicks =
             freePrices?.let { tiers.zip(it).toMap().toMutableMap().apply { put("#AMOUNT#", freeAmount!!) } }

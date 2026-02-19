@@ -4,12 +4,10 @@ import de.tectoast.emolga.features.Arguments
 import de.tectoast.emolga.features.CommandFeature
 import de.tectoast.emolga.features.CommandSpec
 import de.tectoast.emolga.features.InteractionData
-import de.tectoast.emolga.utils.Google
-import de.tectoast.emolga.utils.Language
-import de.tectoast.emolga.utils.OneTimeCache
+import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.k18n
+import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.CoordXMod
 import de.tectoast.emolga.utils.records.DocRange
 
@@ -116,6 +114,28 @@ object PrepareTierlistCommand : CommandFeature<PrepareTierlistCommand.Args>(
                             row[0].toString(),
                             ExternalTierlistData(points = row[1].let {
                                 if (it == "BANN") Int.MAX_VALUE else it.toString().toInt()
+                            })
+                        )
+                    }
+                }
+            }
+
+            override suspend fun dataOf(mon: String): ExternalTierlistData {
+                return data()[mon] ?: error("No Data found for $mon")
+            }
+        },
+        ADL {
+            val data = OneTimeCache {
+                val get = Google.batchGet(
+                    "1Dt6j9UZy89_TWJ96g9hWxWUpz89Hn5Mxok6UUgv51rM",
+                    (0..<20).map { Coord("TIERS (MAIN)", it.y(3, 19), 10).spreadTo(x = 2, y = 440) }, false
+                )
+                buildMap {
+                    for (row in get.flatten()) {
+                        put(
+                            row[0].toString(),
+                            ExternalTierlistData(points = row[1].let {
+                                it.toString().toIntOrNull() ?: Int.MAX_VALUE
                             })
                         )
                     }

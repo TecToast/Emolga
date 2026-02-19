@@ -540,7 +540,8 @@ sealed class League {
             }
         }
         add(tierlist.withTL { it.buildAnnounceData(idx) })
-    }.filterNotNull().joinToString(prefix = " (", postfix = ")").let { if (it.length == 3) "" else it }
+    }.mapNotNull { it?.translateToLeague() }.joinToString(prefix = " (", postfix = ")")
+        .let { if (it.length == 3) "" else it }
         .condAppend(withTimerAnnounce && newTimerForAnnounce) {
             " — " + K18n_League.TimeUntil(formatTimeFormatBasedOnDistance(draftData.timer.regularCooldown))
                 .translateToLeague().condAppend(draftData.timer.regularCooldown != draftData.timer.cooldown) {

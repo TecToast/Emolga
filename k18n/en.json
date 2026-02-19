@@ -354,8 +354,8 @@
             "NotUploaded": "_not uploaded yet_"
           },
           "League_nested": {
-            "ReplyGeneralSelf": "{user:Mention} has ",
-            "ReplyGeneralOther": "{user:Mention} has for **{current}** ",
+            "ReplyGeneralSelf": "{user:Mention} has",
+            "ReplyGeneralOther": "{user:Mention} has for **{current}**",
             "StallSecondsRemaining": "{currentMention} Your timer allowance is still {timeStr}!",
             "StallSecondsUsedUp": "{currentMention} Your timer allowance has been fully used up!",
             "StallSecondsRunning": "{currentMention} Your timer allowance is running! You will be skipped <t:{endTime:Long}:R>!",
@@ -485,7 +485,7 @@
         }
       },
       "generic": {
-        "WelcomeMessage": "Hello **{user:Mention}** and thank you for inviting me to your server **{guildname}**!\nYou probably want the results from Showdown replays to be sent to a channel on your server.\nTo configure me, you have the following options:\n\n**1. Results should be sent to the same channel:**\nSimply type `/replaychannel add` in the respective channel\n\n**2. Results should be sent to a different channel:**\nSend `/replaychannel add #results-channel` in the channel where the replays will be posted later (The #results-channel is, of course, the channel where the results will be sent later)\n\nOnce the channels have been set up, just send /replay with the replay link in a replay channel and I’ll take care of the rest.\n\nIf the results should be sent in ||spoiler tags||, run the command `/spoilertags` somewhere on the server. This then applies server-wide.\n\nIf you have further questions or problems, send a DM to {mytag} or join the support server; the link is in my profile :)",
+        "WelcomeMessage": "Hello **{user:Mention}** and thank you for inviting me to your server **{guildname}**!\nFirst: I can speak German and English (defaults to German since there is the main community), you can change the language by using the **/setlanguage** command on your server.\nYou probably want the results from Showdown replays to be sent to a channel on your server.\nTo configure me, you have the following options:\n\n**1. Results should be sent to the same channel:**\nSimply type `/replaychannel add` in the respective channel\n\n**2. Results should be sent to a different channel:**\nSend `/replaychannel add #results-channel` in the channel where the replays will be posted later (The #results-channel is, of course, the channel where the results will be sent later)\n\nOnce the channels have been set up, just send /replay with the replay link in a replay channel and I’ll take care of the rest.\n\nIf the results should be sent in ||spoiler tags||, run the command `/spoilertags` somewhere on the server. This then applies server-wide.\n\nIf you have further questions or problems, send a DM to {mytag} or join the support server; the link is in my profile :)",
         "Accept": "Accept",
         "SignupVerb": "Sign up",
         "SignupNoun": "Signup",

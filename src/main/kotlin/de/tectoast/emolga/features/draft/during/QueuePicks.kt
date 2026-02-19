@@ -8,7 +8,7 @@ import de.tectoast.emolga.league.config.QueuePicksUserData
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.QueuePicks
 import de.tectoast.emolga.utils.json.ErrorOrNull
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import net.dv8tion.jda.api.components.buttons.ButtonStyle
 import net.dv8tion.jda.api.entities.emoji.Emoji
 
@@ -31,7 +31,7 @@ object QueuePicks {
             context(iData: InteractionData)
             override suspend fun exec(e: NoArgs) {
                 iData.ephemeralDefault()
-                val league = db.leagueByCommand() ?: return iData.reply(K18n_NoLeagueForGuildFound)
+                val league = mdb.leagueByCommand() ?: return iData.reply(K18n_NoLeagueForGuildFound)
                 if (league.queueNotEnabled()) return
                 val currentData =
                     league.persistentData.queuePicks.queuedPicks.getOrPut(league(iData.user)) { QueuePicksUserData() }
@@ -56,7 +56,7 @@ object QueuePicks {
                     K18n_QueuePicks.AddArgOldMon,
                     autocomplete = { s, event ->
                         val gid = event.guild?.idLong
-                        val league = db.leagueByGuild(gid ?: -1, event.user.idLong)
+                        val league = mdb.leagueByGuild(gid ?: -1, event.user.idLong)
                             ?: return@draftPokemon listOf(K18n_NoLeagueForGuildFound.translateToGuildLanguage(gid))
                         monOfTeam(s, league, league(event.user.idLong))
                     }).nullable()
@@ -67,7 +67,7 @@ object QueuePicks {
                 iData.ephemeralDefault()
                 iData.deferReply()
                 League.executeOnFreshLock(
-                    { db.leagueByCommand() },
+                    { mdb.leagueByCommand() },
                     { iData.reply(K18n_NoLeagueForGuildFound) }) l@{
                     if (queueNotEnabled()) return@l
                     val oldmon = e.oldmon
@@ -116,7 +116,7 @@ object QueuePicks {
         context(iData: InteractionData)
         suspend fun changeActivation(enable: Boolean) {
             League.executeOnFreshLock(
-                { db.leagueByCommand() },
+                { mdb.leagueByCommand() },
                 { iData.reply(K18n_NoLeagueForGuildFound) }) l@{
                 if (queueNotEnabled()) return@l
                 val idx = this(iData.user)

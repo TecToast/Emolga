@@ -9,7 +9,7 @@ import de.tectoast.emolga.league.DraftState
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.dconfigurator.DConfiguratorManager
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.json.only
 import de.tectoast.generic.K18n_RoutineMaintenance
 import dev.minn.jda.ktx.events.listener
@@ -69,7 +69,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
         }
         emolgajda.listener<ReadyEvent> {
             logger.info("important".marker, "Emolga is now online!")
-            db.league.find(League::draftState ne DraftState.OFF).toFlow().collect {
+            mdb.league.find(League::draftState ne DraftState.OFF).toFlow().collect {
                 logger.info("important".marker, "Starting draft ${it.leaguename}...")
                 League.executeOnFreshLock({ it }) {
                     startDraft(null, true, null)
@@ -83,7 +83,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
             }
         }
         defaultScope.launch {
-            if (db.config.only().raikou) {
+            if (mdb.config.only().raikou) {
                 Credentials.tokens.discordraikou.takeIf { it != "" }?.let {
                     raikoujda = default(it) {
                         intents += GatewayIntent.MESSAGE_CONTENT
@@ -101,7 +101,7 @@ object EmolgaMain : CoroutineScope by createCoroutineScope("EmolgaMain") {
             featureManager.updateCachedValue()
             CmdManager.startupCheck()
         }
-        db.config.only().maintenance?.let {
+        mdb.config.only().maintenance?.let {
             maintenance = it
         }
         for (jda in listOfNotNull(emolgajda, flegmonjda)) {

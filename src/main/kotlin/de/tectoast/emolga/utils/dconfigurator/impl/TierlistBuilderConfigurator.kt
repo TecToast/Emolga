@@ -10,8 +10,8 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.TierlistMode
 import de.tectoast.emolga.utils.json.NameConventions
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import dev.minn.jda.ktx.interactions.components.*
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.send
@@ -45,9 +45,9 @@ class TierlistBuilderConfigurator(
     val language: Language
 ) : DGuildConfigurator("tierlistbuilder", userId, channelId, guildId) {
     override val steps: List<Step<*>> = listOf(step<SlashCommandInteractionEvent> {
-        val nc = db.nameconventions.findOne(NameConventions::guild eq guildId)?.data ?: run {
+        val nc = mdb.nameconventions.findOne(NameConventions::guild eq guildId)?.data ?: run {
             val tmp = NameConventions(guildId)
-            db.nameconventions.insertOne(tmp)
+            mdb.nameconventions.insertOne(tmp)
             tmp.data
         }
 
@@ -95,7 +95,7 @@ class TierlistBuilderConfigurator(
             getValue(form.replaceFirstChar { c -> c.lowercase() })?.asString?.takeUnless { it.isBlank() }?.also {
                 if ("POKEMON" !in it) throw InvalidArgumentException("Das Format muss `POKEMON` enthalten!")
             }?.let {
-                db.nameconventions.updateOne(
+                mdb.nameconventions.updateOne(
                     NameConventions::guild eq guildId,
                     set(NameConventions::data.keyProjection(form) setTo it.replace("POKEMON", "(.+)"))
                 )
@@ -273,7 +273,7 @@ class TierlistBuilderConfigurator(
 
 
     private suspend fun test(e: IDeferrableCallback, options: StepOptions): Boolean {
-        val regional = db.nameconventions.get(guildId)
+        val regional = mdb.nameconventions.get(guildId)
         while (index < mons.size) {
             val mon = mons[index]
             val regForm = regional.entries.firstNotNullOfOrNull {
@@ -329,7 +329,7 @@ class TierlistBuilderConfigurator(
 
     private suspend fun saveToFile(fromPrevious: Boolean = false) {
         if (!fromPrevious) {
-            db.tierlist.deleteOne(
+            mdb.tierlist.deleteOne(
                 mongoAnd(
                     Tierlist::guildid eq guildId,
                     if (tlIdentifier.isEmpty()) (Tierlist::identifier exists false) else (Tierlist::identifier eq tlIdentifier)

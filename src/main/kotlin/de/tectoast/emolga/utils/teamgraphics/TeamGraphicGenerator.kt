@@ -8,8 +8,8 @@ import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.SignUpInput
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.toSDName
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.editMessage
@@ -209,7 +209,7 @@ object TeamGraphicGenerator {
         for ((i, data) in monData) {
             val sdName = data.name.toSDName()
             val image = fromCacheOrLoad(sdName) {
-                "teamgraphics/sugimori_final/${db.pokedex.get(sdName)!!.calcSpriteName()}.png"
+                "teamgraphics/sugimori_final/${mdb.pokedex.get(sdName)!!.calcSpriteName()}.png"
             }
             val dataForIndex = style.getDataForIndex(i, data)
             val size = style.sizeOfShape
@@ -308,7 +308,7 @@ object TeamGraphicGenerator {
                                 english = true
                             )!!.official
                         }
-                val lsData = db.signups.get(league.guild)!!
+                val lsData = mdb.signups.get(league.guild)!!
                 val uid = league.table[idx]
                 val userData = lsData.getDataByUser(uid)!!
                 val teamOwner = userNameProvider.getUserName(uid)

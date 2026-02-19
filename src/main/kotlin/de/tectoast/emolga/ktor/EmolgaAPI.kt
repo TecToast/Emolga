@@ -12,8 +12,8 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.EmolgaConfigHelper
 import de.tectoast.emolga.utils.json.EmolgaConfigHelper.findConfig
 import de.tectoast.emolga.utils.json.LigaStartConfig
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
 import dev.minn.jda.ktx.coroutines.await
 import io.ktor.http.*
@@ -34,7 +34,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.modules.SerializersModule
 import mu.KotlinLogging
-import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.utils.DiscordAssets
+import net.dv8tion.jda.api.utils.ImageFormat
 import org.bson.conversions.Bson
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.eq
@@ -96,7 +97,7 @@ fun Route.emolgaAPI() {
             val guilds = getGuildsForUser(call.userId)
             call.respond(guilds.mapNotNull {
                 val g = jda.getGuildById(it) ?: return@mapNotNull null
-                GuildMeta(id = g.id, name = g.name, icon = g.iconUrl ?: "", db.signups.get(it) != null)
+                GuildMeta(id = g.id, name = g.name, icon = g.iconUrl ?: "", mdb.signups.get(it) != null)
             })
         }
         route("{guild}") {
@@ -131,7 +132,7 @@ fun Route.emolgaAPI() {
                 route("/participants") {
                     get {
                         val gid = call.requireGuild() ?: return@get
-                        val lsData = db.signups.get(gid) ?: return@get call.respond(HttpStatusCode.NotFound)
+                        val lsData = mdb.signups.get(gid) ?: return@get call.respond(HttpStatusCode.NotFound)
                         val allUsers = lsData.users.flatMap { it.users }
                         var newUsers = allUsers.filter { !participantDataCache.containsKey(it) }
                         while (newUsers.isNotEmpty()) {
@@ -165,7 +166,7 @@ fun Route.emolgaAPI() {
                     post {
                         val gid = call.requireGuild() ?: return@post
                         val (conferences, data) = call.receive<ParticipantDataSet>()
-                        val lsData = db.signups.get(gid) ?: return@post call.respond(HttpStatusCode.NotFound)
+                        val lsData = mdb.signups.get(gid) ?: return@post call.respond(HttpStatusCode.NotFound)
                         lsData.conferences = conferences
                         data.forEach { (uid, conf) ->
                             lsData.getDataByUser(uid)?.conference = conf
@@ -190,17 +191,17 @@ fun Route.emolgaAPI() {
             }
             get("/leagues") {
                 val gid = call.requireGuild() ?: return@get
-                val leagues = db.league.find(League::guild eq gid).toFlow().map { it.leaguename }.toList()
+                val leagues = mdb.league.find(League::guild eq gid).toFlow().map { it.leaguename }.toList()
                 call.respond(leagues)
             }
             route("/league/{leaguename}") {
-                delta("/delta", db.league, filter = {
+                delta("/delta", mdb.league, filter = {
                     League::leaguename eq ctx.call.parameters["leaguename"]
                 }, descriptor = RPL::class.serializer().descriptor) // TODO: make dynamic
                 get("/users") {
                     val gid = call.requireGuild() ?: return@get
                     val leaguename = call.parameters["leaguename"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-                    val league = db.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
+                    val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
                     val userIds = league.table
                     val toFetch = userIds.filter { !discordUserCache.containsKey(it) }
                     if (toFetch.isNotEmpty()) {
@@ -214,14 +215,14 @@ fun Route.emolgaAPI() {
                     call.respond(userIds.map {
                         discordUserCache[it] ?: DiscordUserData(
                             it.toString(),
-                            User.DEFAULT_AVATAR_URL.format(0)
+                            DiscordAssets.userDefaultAvatar(ImageFormat.PNG, "0").url
                         )
                     })
                 }
             }
             get("/picked") {
                 val gid = call.requireGuild() ?: return@get
-                val allLeagues = db.league.find(League::guild eq gid).toList()
+                val allLeagues = mdb.league.find(League::guild eq gid).toList()
                 val pickedAmount = allLeagues.flatMap { it.picks.values.flatten() }.map { it.name }.groupingBy { it }
                     .eachCount().entries.sortedByDescending { it.value }
                 call.respond(pickedAmount)
@@ -283,10 +284,10 @@ fun Route.emolgaAPI() {
         }
     }
     get("/usage/{league}") {
-        val league = call.parameters["league"]?.let { db.getLeague(it) } ?: return@get call.respond(
+        val league = call.parameters["league"]?.let { mdb.getLeague(it) } ?: return@get call.respond(
             HttpStatusCode.BadRequest
         )
-        val allLeagues = db.league.find(League::guild eq league.guild).toFlow().map { it.leaguename }.toList()
+        val allLeagues = mdb.league.find(League::guild eq league.guild).toFlow().map { it.leaguename }.toList()
         val totalCount = AtomicInteger(0)
         val entries = league.persistentData.replayDataStore.data.entries
         val maxGameday: Int = entries.maxOfOrNull { it.key } ?: 1
@@ -312,7 +313,7 @@ fun Route.emolgaAPI() {
         val leaguename = LiveTeamDB.getByCode(uuid) ?: return@get call.respond(HttpStatusCode.NotFound)
         val numRaw =
             call.request.queryParameters["num"]?.toIntOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
-        val league = db.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
+        val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
         val style = league.config.teamgraphics?.style ?: return@get call.respond(
             HttpStatusCode.NotFound
         )
@@ -344,7 +345,7 @@ fun Route.emolgaAPI() {
         val idx =
             call.request.queryParameters["idx"]?.toIntOrNull() ?: return@get call.respond(HttpStatusCode.BadRequest)
         val mons = call.request.queryParameters["mons"]?.toIntOrNull()
-        val league = db.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
+        val league = mdb.getLeague(leaguename) ?: return@get call.respond(HttpStatusCode.NotFound)
         call.respondTeamGraphic(league, idx, mons)
     }
 }

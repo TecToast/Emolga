@@ -4,6 +4,7 @@ import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.toSDName
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.flow.singleOrNull
@@ -34,7 +35,7 @@ object ResultCodesDB : Table("resultcodes") {
     suspend fun getResultDataForUser(resultid: String) = dbTransaction {
         val uuid = Uuid.parseHexDashOrNull(resultid) ?: return@dbTransaction null
         val entry = selectAll().where { CODE eq uuid }.singleOrNull() ?: return@dbTransaction null
-        val league = de.tectoast.emolga.utils.json.db.league(entry[LEAGUENAME])
+        val league = mdb.league(entry[LEAGUENAME])
         val gid = league.guild
         val guild = jda.getGuildById(gid) ?: return@dbTransaction null
         val idxes = listOf(entry[P1], entry[P2])
@@ -62,7 +63,7 @@ object ResultCodesDB : Table("resultcodes") {
                         val englishOfficial = nameData.otherOfficial!!
                         ResultCodePokemon(
                             if (tlEnglish) nameData.otherTl!! else nameData.tlName, if ("-" in englishOfficial) {
-                                de.tectoast.emolga.utils.json.db.pokedex.get(englishOfficial.toSDName())!!
+                                mdb.pokedex.get(englishOfficial.toSDName())!!
                                     .calcSpriteName()
                             } else englishOfficial.toSDName()
                         )

@@ -81,7 +81,7 @@ import kotlin.time.Instant
 import kotlin.time.measureTimedValue
 import org.litote.kmongo.serialization.configuration as mongoConfiguration
 
-val db: MongoEmolga get() = delegateDb ?: error("MongoDB not initialized!")
+val mdb: MongoEmolga get() = delegateDb ?: error("MongoDB not initialized!")
 
 private const val DEFAULT_DB_NAME = "emolga"
 private var delegateDb: MongoEmolga? = null
@@ -573,7 +573,7 @@ data class LigaStartData(
     fun getIndexOfUser(uid: Long) = users.indexOfFirst { it.users.contains(uid) }.takeIf { it >= 0 }
     fun getDataByUser(uid: Long) = users.firstOrNull { it.users.contains(uid) }
 
-    suspend fun save() = db.signups.updateOne(LigaStartData::guild eq guild, this)
+    suspend fun save() = mdb.signups.updateOne(LigaStartData::guild eq guild, this)
     inline fun giveParticipantRole(memberfun: () -> Member) {
         config.participantRole?.let {
             val member = memberfun()
@@ -687,7 +687,7 @@ data class LigaStartData(
             val timeSinceLastUpload = System.currentTimeMillis() - lastLogoUploadTime
             delay(GOOGLE_UPLOAD_DELAY_MS - timeSinceLastUpload)
             val checksum = Google.uploadLogoToCloud(logoData.value)
-            db.signups.updateOne(
+            mdb.signups.updateOne(
                 LigaStartData::guild eq guild,
                 set(LigaStartData::users.pos(signUpIndex) / SignUpData::logoChecksum setTo checksum)
             )
@@ -698,7 +698,7 @@ data class LigaStartData(
     }
 
     private suspend fun updateTeamgraphicForUser(uid: Long) {
-        val league = db.leagueByGuild(guild, uid) ?: return
+        val league = mdb.leagueByGuild(guild, uid) ?: return
         val idx = league(uid)
         TeamGraphicGenerator.editTeamGraphicForLeague(league, idx)
     }
@@ -850,12 +850,12 @@ data class ShinyEventConfig(
     suspend fun updateDiscord(jda: JDA) {
         val filter = and(ShinyEventResult::eventName eq name)
         val msg =
-            "## Punktestand\n" + db.shinyEventResults.find(filter).sort(descending(ShinyEventResult::points)).toList()
+            "## Punktestand\n" + mdb.shinyEventResults.find(filter).sort(descending(ShinyEventResult::points)).toList()
                 .mapIndexed { index, res -> "${index + 1}. <@${res.user}>: ${res.points}" }.joinToString("\n")
         val channel = jda.getTextChannelById(pointChannel)!!
         if (pointMessageId == null) {
             val pid = channel.sendMessage(msg).await().idLong
-            db.shinyEventConfig.updateOne(
+            mdb.shinyEventConfig.updateOne(
                 ShinyEventConfig::name eq name, set(ShinyEventConfig::pointMessageId setTo pid)
             )
         } else {
@@ -1119,11 +1119,11 @@ data class LadderTournament(
         }
     }
 
-    suspend fun save() = db.ladderTournament.updateOne(LadderTournament::guild eq guild, this)
+    suspend fun save() = mdb.ladderTournament.updateOne(LadderTournament::guild eq guild, this)
 
     companion object {
         suspend fun executeForGuild(gid: Long) {
-            db.ladderTournament.findOne(LadderTournament::guild eq gid)?.execute()
+            mdb.ladderTournament.findOne(LadderTournament::guild eq gid)?.execute()
         }
 
     }
@@ -1170,7 +1170,7 @@ suspend fun CoroutineCollection<LigaStartData>.get(guild: Long) = find(LigaStart
 
 @JvmName("getNameConventions")
 suspend fun CoroutineCollection<NameConventions>.get(guild: Long) =
-    find(NameConventions::guild eq guild).first()?.data ?: db.defaultNameConventions()
+    find(NameConventions::guild eq guild).first()?.data ?: mdb.defaultNameConventions()
 
 @JvmName("getPokedex")
 suspend fun CoroutineCollection<Pokemon>.get(id: String) = find(Pokemon::id eq id).first()

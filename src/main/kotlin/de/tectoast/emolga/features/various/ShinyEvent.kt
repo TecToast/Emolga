@@ -7,7 +7,7 @@ import de.tectoast.emolga.features.various.ShinyEvent.SingleGame.*
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
 import de.tectoast.emolga.utils.json.ShinyEventResult
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.k18n
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import dev.minn.jda.ktx.messages.into
@@ -25,7 +25,7 @@ import kotlin.time.ExperimentalTime
 object ShinyEvent {
 
     val guildToEvent = OneTimeCache {
-        db.shinyEventConfig.find().toList().associateBy { it.guild }
+        mdb.shinyEventConfig.find().toList().associateBy { it.guild }
     }
 
     object ShinyCommand : CommandFeature<ShinyCommand.Args>(
@@ -105,7 +105,7 @@ object ShinyEvent {
                     ).addFiles(FileUpload.fromData(withContext(Dispatchers.IO) {
                         URI(iData.message.contentRaw.substringAfterLast(": ")).toURL().openStream()
                     }, "shiny.png")).queue()
-                    db.shinyEventResults.updateOne(
+                    mdb.shinyEventResults.updateOne(
                         filter = and(ShinyEventResult::eventName eq e.eventName, ShinyEventResult::user eq uid),
                         update = combine(
                             push(
@@ -161,6 +161,7 @@ object ShinyEvent {
         operator fun plus(other: Game): Game = CombinedGame(games + other.games)
     }
 
+    @Suppress("EnumEntryName", "NonAsciiCharacters")
     enum class SingleGame : Game {
         Gold, Silber, Kristall, Rubin, Saphir, Smaragd, Feuerrot, Blattgrün, Diamant, Perl, Platin, Heartgold, Soulsilver, Schwarz, Weiß, Schwarz2, Weiß2, X, Y, OmegaRubin, AlphaSaphir, Sonne, Mond, Ultrasonne, Ultramond, LetsGoPikachu, LetsGoEvoli, Schwert, Schild, StrahlenderDiamant, LeuchtendePerl, LegendenArceus, Karmesin, Purpur, ;
 

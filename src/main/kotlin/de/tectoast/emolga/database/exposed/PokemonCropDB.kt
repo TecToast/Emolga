@@ -2,6 +2,7 @@ package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.toSDName
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.sync.Mutex
@@ -64,7 +65,7 @@ object PokemonCropService {
                     ?.let { row ->
                         val official = row[CropAuxiliaryDB.POKEMON]
                         val sdName = official.toSDName()
-                        val pokemon = de.tectoast.emolga.utils.json.db.pokedex.get(sdName)!!
+                        val pokemon = mdb.pokedex.get(sdName)!!
                         val spriteName = pokemon.calcSpriteName()
                         val path = "/api/emolga/${guild}/teamgraphics/img/$spriteName.png"
                         PokemonToCropData(official, official, path)

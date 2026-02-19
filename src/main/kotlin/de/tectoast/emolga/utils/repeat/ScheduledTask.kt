@@ -3,7 +3,7 @@ package de.tectoast.emolga.utils.repeat
 import de.tectoast.emolga.features.wrc.WRCManager
 import de.tectoast.emolga.ktor.InstantAsDateSerializer
 import de.tectoast.emolga.utils.createCoroutineScope
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
@@ -31,13 +31,13 @@ sealed class ScheduledTask {
     companion object {
         private val scope = createCoroutineScope("ScheduledTask")
         suspend fun setup() {
-            db.scheduledtask.find().toFlow().collect {
+            mdb.scheduledtask.find().toFlow().collect {
                 launchTask(it)
             }
         }
 
         suspend fun addTask(task: ScheduledTask) {
-            db.scheduledtask.insertOne(task)
+            mdb.scheduledtask.insertOne(task)
             launchTask(task)
         }
 

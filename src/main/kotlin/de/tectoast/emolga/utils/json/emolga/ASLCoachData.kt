@@ -5,8 +5,8 @@ package de.tectoast.emolga.utils.json.emolga
 import de.tectoast.emolga.bot.jda
 import de.tectoast.emolga.features.flo.SendFeatures
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.*
 import mu.KotlinLogging
@@ -97,7 +97,7 @@ class ASLCoachData(
 
     private fun textChannel() = jda.getTextChannelById(textChannel)!!
 
-    suspend fun save() = db.aslcoach.updateOne(this)
+    suspend fun save() = mdb.aslcoach.updateOne(this)
     private suspend fun insertIntoDoc(
         user: Member, coach: Long, level: Int, prize: Int
     ) {
@@ -118,13 +118,13 @@ class ASLCoachData(
     companion object {
 
         val groupedParticipants = OneTimeCache {
-            val data = db.signups.get(Constants.G.ASL)!!
+            val data = mdb.signups.get(Constants.G.ASL)!!
             data.users.groupBy { it.conference!! }
         }
 
         val participants = OneTimeCache {
             val groupBy = groupedParticipants()
-            val data = db.signups.get(Constants.G.ASL)!!
+            val data = mdb.signups.get(Constants.G.ASL)!!
             buildMap {
                 for ((index, conference) in data.conferences.withIndex()) {
                     val confnum = conference.toIntOrNull() ?: continue

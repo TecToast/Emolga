@@ -5,8 +5,8 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.add
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.randomWithCondition
 import de.tectoast.emolga.utils.toSDName
 import kotlinx.serialization.Serializable
@@ -24,7 +24,7 @@ data class RandomPickRoundConfig(
         val list = tierlist.getByTier(tier)!!.shuffled()
         val typesSoFar = picks[current].orEmpty().flatMap {
             typeCache.getOrPut(it.name) {
-                db.pokedex.get(
+                mdb.pokedex.get(
                     NameConventionsDB.getSDTranslation(
                         it.name, guild, english = true
                     )!!.official.toSDName()
@@ -34,7 +34,7 @@ data class RandomPickRoundConfig(
         var bestSoFar: Pair<Int, DraftName>? = null
         firstAvailableMon(list) { german, english ->
             if (optOut) return this
-            val types = typeCache.getOrPut(german) { db.pokedex.get(english.toSDName())!!.types }
+            val types = typeCache.getOrPut(german) { mdb.pokedex.get(english.toSDName())!!.types }
             val count = types.groupingBy { it }.eachCount()
             val score = count.entries.sumOf { (type, amount) ->
                 (typesSoFar[type] ?: 0) * amount

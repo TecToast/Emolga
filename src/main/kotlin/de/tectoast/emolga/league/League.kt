@@ -18,7 +18,7 @@ import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.draft.DraftUtils.executeWithinLock
 import de.tectoast.emolga.utils.json.Config
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.enableYTForGame
 import de.tectoast.emolga.utils.repeat.RepeatTask.Companion.executeRegisterInDoc
@@ -1066,14 +1066,14 @@ sealed class League {
         }
 
         suspend fun executeOnFreshLock(name: String, block: suspend League.() -> Unit) = getLock(name).withLock {
-            val league = db.getLeague(name) ?: return@withLock logger.error("ExecuteOnFreshLock failed for $name")
+            val league = mdb.getLeague(name) ?: return@withLock logger.error("ExecuteOnFreshLock failed for $name")
             league.block()
             league.lockCleanup()
         }
 
         suspend fun League.lockCleanup() {
             if (shouldSave) {
-                db.league.updateOne(League::leaguename eq leaguename, this)
+                mdb.league.updateOne(League::leaguename eq leaguename, this)
             }
         }
 
@@ -1141,7 +1141,7 @@ sealed class League {
         }
 
         suspend fun onlyChannel(tc: Long) =
-            db.league.find(League::draftState ne DraftState.OFF, League::tcid eq tc).first()
+            mdb.league.find(League::draftState ne DraftState.OFF, League::tcid eq tc).first()
 
         context(iData: InteractionData)
         suspend fun executeAsNotCurrent(

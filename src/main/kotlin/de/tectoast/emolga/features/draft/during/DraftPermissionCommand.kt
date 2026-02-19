@@ -5,7 +5,7 @@ import de.tectoast.emolga.features.draft.during.generic.K18n_NoLeagueForGuildFou
 import de.tectoast.emolga.league.AllowedData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.embedColor
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.t
 import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.messages.Embed
@@ -30,7 +30,7 @@ object DraftPermissionCommand :
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock(
-                { db.leagueByCommand() },
+                { mdb.leagueByCommand() },
                 { iData.reply(K18n_NoLeagueForGuildFound) }) l@{
                 val mem = e.user
                 if (mem.user.isBot) return@l iData.reply(K18n_DraftPermission.NoBotsAllowed)
@@ -75,7 +75,7 @@ object DraftPermissionCommand :
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             League.executeOnFreshLock(
-                { db.leagueByCommand() },
+                { mdb.leagueByCommand() },
                 { iData.reply(K18n_NoLeagueForGuildFound) }) l@{
                 val mem = e.user
                 if (mem.idLong == iData.user) return@l iData.reply(K18n_DraftPermission.DenyYourself)

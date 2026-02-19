@@ -6,7 +6,7 @@ import de.tectoast.emolga.database.exposed.joinToString
 import de.tectoast.emolga.database.exposed.toMap
 import de.tectoast.emolga.features.draft.K18n_TipGameCommand
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.k18n.generated.K18nLanguage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -154,7 +154,7 @@ object TipGameAnalyseService {
         language: K18nLanguage
     ): String {
         val league =
-            db.leagueByDisplayName(gid, leagueName) ?: return K18n_TipGameCommand.OwnVotesLeagueNotFound(leagueName)
+            mdb.leagueByDisplayName(gid, leagueName) ?: return K18n_TipGameCommand.OwnVotesLeagueNotFound(leagueName)
                 .translateTo(language)
         val games = league.battleorder[gameday] ?: return K18n_TipGameCommand.OwnVotesGamedayNotFound(gameday)
             .translateTo(language)
@@ -193,7 +193,7 @@ object TipGameAnalyseService {
     ) = LEAGUENAME.inList(names)
 
 
-    private suspend fun allLeagues(gid: Long): List<League> = db.leaguesByGuild(gid).sortedBy { it.num }
+    private suspend fun allLeagues(gid: Long): List<League> = mdb.leaguesByGuild(gid).sortedBy { it.num }
     private suspend fun allLeagueNames(gid: Long): List<String> = allLeagues(gid).map { it.leaguename }
 }
 

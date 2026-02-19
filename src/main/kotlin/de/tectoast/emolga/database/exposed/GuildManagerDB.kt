@@ -2,7 +2,7 @@ package de.tectoast.emolga.database.exposed
 
 import de.tectoast.emolga.database.dbTransaction
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toSet
 import org.jetbrains.exposed.v1.core.Table
@@ -24,7 +24,7 @@ object GuildManagerDB : Table("guildmanager") {
             select(GUILD).where { USER eq user }.map { it[GUILD] }.toSet()
         }
         if (user == Constants.FLOID) {
-            return result + db.league.find().toFlow().map { it.guild }.toSet() + Constants.G.MY
+            return result + mdb.league.find().toFlow().map { it.guild }.toSet() + Constants.G.MY
         }
         return result
     }

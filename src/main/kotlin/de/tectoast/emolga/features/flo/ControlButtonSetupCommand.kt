@@ -7,7 +7,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.various.ControlCentralButton
 import de.tectoast.emolga.utils.embedColor
 import de.tectoast.emolga.utils.json.RemoteServerControlFeature
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.into
@@ -46,7 +46,7 @@ object ControlButtonSetupCommand :
             }
 
             ControlButtonType.FLORIX -> {
-                for (control in db.remoteServerControl.find().toList()) {
+                for (control in mdb.remoteServerControl.find().toList()) {
                     val embed = Embed(title = "${control.name} Control", color = embedColor).into()
                     val components = buildList {
                         val features = control.features

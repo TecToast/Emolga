@@ -7,7 +7,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.draft.during.generic.K18n_NoTierlist
 import de.tectoast.emolga.features.draft.during.generic.K18n_TierNotFound
 import de.tectoast.emolga.utils.draft.Tierlist
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 
 object TierlistSearchCommand : CommandFeature<TierlistSearchCommand.Args>(
     ::Args,
@@ -35,7 +35,7 @@ object TierlistSearchCommand : CommandFeature<TierlistSearchCommand.Args>(
         val searchTypeEnglish = searchType.english
         val filteredList = mons.filter {
             searchTypeEnglish in dataCache.getOrPut(iData.gid) { mutableMapOf() }
-                .getOrPut(it) { db.getDataObject(it, iData.gid).types }
+                .getOrPut(it) { mdb.getDataObject(it, iData.gid).types }
         }
         iData.reply(
             K18n_TierlistSearch.Success(tier, searchType.german, filteredList.joinToString("\n")), ephemeral = true

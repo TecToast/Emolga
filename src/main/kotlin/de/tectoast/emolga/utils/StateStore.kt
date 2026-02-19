@@ -19,7 +19,7 @@ import de.tectoast.emolga.utils.draft.DraftInput
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.PickInput
 import de.tectoast.emolga.utils.draft.SwitchInput
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.generic.*
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import dev.minn.jda.ktx.interactions.components.SelectOption
@@ -53,12 +53,12 @@ sealed class StateStore {
 
     private suspend fun save() {
         val filter = createFilter()
-        if (db.statestore.findOne(filter) == null) db.statestore.insertOne(this)
-        else db.statestore.updateOne(filter, this)
+        if (mdb.statestore.findOne(filter) == null) mdb.statestore.insertOne(this)
+        else mdb.statestore.updateOne(filter, this)
     }
 
     private suspend fun deleteFromDB() {
-        db.statestore.deleteOne(createFilter())
+        mdb.statestore.deleteOne(createFilter())
     }
 
     fun delete() {
@@ -77,7 +77,7 @@ sealed class StateStore {
 
         context(iData: InteractionData)
         suspend inline fun <reified T : StateStore> processIgnoreMissing(block: T.() -> Unit) =
-            (db.statestore.findOne(
+            (mdb.statestore.findOne(
                 StateStore::uid eq iData.user, Filters.eq<String?>("type", T::class.simpleName)
             ) as T?)?.process(block)
 
@@ -238,7 +238,7 @@ class NominateState : StateStore {
     context(iData: InteractionData)
     suspend fun finish(now: Boolean) {
         if (now) {
-            return League.executeOnFreshLock({ db.nds() }) l@{
+            return League.executeOnFreshLock({ mdb.nds() }) l@{
                 val nom = (this as NDS).nominations
                 val day = nom.current()
                 val currentDay = nom.currentDay

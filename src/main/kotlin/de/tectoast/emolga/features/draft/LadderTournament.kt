@@ -2,8 +2,8 @@ package de.tectoast.emolga.features.draft
 
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.json.LadderTournamentUserData
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.generic.K18n_AlreadySignedUp
 import de.tectoast.generic.K18n_Approve
 import de.tectoast.generic.K18n_SignupNoun
@@ -19,7 +19,7 @@ object LadderTournament {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
             iData.ephemeralDefault()
-            val lt = db.ladderTournament.get(iData.gid)
+            val lt = mdb.ladderTournament.get(iData.gid)
                 ?: return iData.reply(K18n_LadderTournament.NoTournamentHere)
             if (lt.users[iData.user]?.verified == true) return iData.reply(K18n_AlreadySignedUp)
             iData.replyModal(Modal())
@@ -36,7 +36,7 @@ object LadderTournament {
                 K18n_LadderTournament.ModalArgFormats,
                 valueRange = null,
                 optionsProvider = {
-                    val lt = db.ladderTournament.get(it.gid) ?: return@fromListModal listOf(
+                    val lt = mdb.ladderTournament.get(it.gid) ?: return@fromListModal listOf(
                         SelectOption(
                             "No options",
                             "nooptions"
@@ -48,7 +48,7 @@ object LadderTournament {
 
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val lt = db.ladderTournament.get(iData.gid) ?: return
+            val lt = mdb.ladderTournament.get(iData.gid) ?: return
             val uid = iData.user
             if (lt.users[uid]?.verified == true) return iData.reply("Du bist bereits angemeldet!", ephemeral = true)
             if (!e.sdname.startsWith(lt.sdNamePrefix)) return iData.reply(
@@ -74,7 +74,7 @@ object LadderTournament {
 
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
-            val lt = db.ladderTournament.get(iData.gid)
+            val lt = mdb.ladderTournament.get(iData.gid)
                 ?: return iData.reply("Auf diesem Server gibt es kein laufendes Ladder-Turnier!", ephemeral = true)
             val data = lt.users[e.user] ?: return iData.reply(
                 "Dieser User hat keine Anmeldung zum Ladder-Turnier!",

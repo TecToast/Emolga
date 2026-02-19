@@ -20,7 +20,7 @@ import org.jetbrains.exposed.v1.r2dbc.insert
 import org.jetbrains.exposed.v1.r2dbc.select
 import org.jetbrains.exposed.v1.r2dbc.selectAll
 import org.litote.kmongo.eq
-import de.tectoast.emolga.utils.json.db as emolgaDB
+import de.tectoast.emolga.utils.json.mdb as emolgaDB
 
 object NameConventionsDB : Table("nameconventions") {
     val GUILD = long("guild")

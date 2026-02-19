@@ -6,7 +6,7 @@ import de.tectoast.emolga.features.draft.during.generic.K18n_NoLeagueForGuildFou
 import de.tectoast.emolga.utils.Language
 import de.tectoast.emolga.utils.b
 import de.tectoast.emolga.utils.invoke
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.t
 import de.tectoast.generic.K18n_CommandNotAvailable
 
@@ -21,7 +21,7 @@ object TeraAndZ {
     ) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            val league = db.leagueByCommand() ?: return iData.reply(
+            val league = mdb.leagueByCommand() ?: return iData.reply(
                 K18n_NoLeagueForGuildFound,
                 ephemeral = true
             )
@@ -59,7 +59,7 @@ object TeraAndZ {
         context(iData: InteractionData)
         override suspend fun exec(e: Args) {
             val league =
-                db.leagueByCommand() ?: return iData.reply(K18n_CommandNotAvailable, ephemeral = true)
+                mdb.leagueByCommand() ?: return iData.reply(K18n_CommandNotAvailable, ephemeral = true)
             val config =
                 league.config.teraAndZ ?: return iData.reply(
                     K18n_CommandNotAvailable,

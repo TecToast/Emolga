@@ -13,8 +13,8 @@ import de.tectoast.emolga.utils.draft.PointBasedPriceManager.Companion.pointMana
 import de.tectoast.emolga.utils.draft.TierBasedPriceManager.Companion.tierAmountToString
 import de.tectoast.emolga.utils.draft.TierlistPriceManager.Companion.deductPicks
 import de.tectoast.emolga.utils.json.ErrorOrNull
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.generic.K18n_Or
 import de.tectoast.k18n.generated.K18nMessage
 import kotlinx.coroutines.flow.firstOrNull
@@ -202,7 +202,7 @@ class Tierlist(
         suspend fun setup() {
             tierlists.clear()
             setupCalled = true
-            db.tierlist.find().toFlow().collect { it.setup() }
+            mdb.tierlist.find().toFlow().collect { it.setup() }
         }
 
         /**
@@ -211,7 +211,7 @@ class Tierlist(
         operator fun get(guild: Long, identifier: String? = null): Tierlist? {
             return tierlists[guild]?.get(identifier ?: "")
                 ?: if (setupCalled) null
-                else runBlocking { db.tierlist.findOne(Tierlist::guildid eq guild) }?.apply { setup() }
+                else runBlocking { mdb.tierlist.findOne(Tierlist::guildid eq guild) }?.apply { setup() }
         }
 
         fun getAnyTierlist(guild: Long) = tierlists[guild]?.values?.firstOrNull()
@@ -403,7 +403,7 @@ sealed interface GeneralCheck {
 
         context(league: League)
         private suspend fun getDexNumber(official: String): Int = officialToDexNumberCache.getOrPut(official) {
-            db.pokedex.get(
+            mdb.pokedex.get(
                 NameConventionsDB.getSDTranslation(
                     official,
                     league.guild,

@@ -5,8 +5,8 @@ import de.tectoast.emolga.features.ButtonFeature
 import de.tectoast.emolga.features.ButtonSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.flo.FlorixButton.Action.*
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 
 object FlorixButton : ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("florix")) {
     class Args : Arguments() {
@@ -20,7 +20,7 @@ object FlorixButton : ButtonFeature<FlorixButton.Args>(::Args, ButtonSpec("flori
 
     context(iData: InteractionData)
     override suspend fun exec(e: Args) {
-        val data = db.remoteServerControl.get(e.pc) ?: return iData.reply("Ungültiger PC! (${e.pc})")
+        val data = mdb.remoteServerControl.get(e.pc) ?: return iData.reply("Ungültiger PC! (${e.pc})")
         val on = data.isOn()
         iData.ephemeralDefault()
         when (e.action) {

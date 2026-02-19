@@ -7,7 +7,7 @@ import de.tectoast.emolga.league.config.Triggers
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.*
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import org.litote.kmongo.div
 import org.litote.kmongo.eq
 
@@ -26,7 +26,7 @@ object PickCommand :
             }, guildChecker = {
                 if (gid == Constants.G.MY) ArgumentPresence.OPTIONAL
                 else
-                    if (db.league.findOne(
+                    if (mdb.league.findOne(
                             League::guild eq gid,
                             League::config / LeagueConfig::triggers / Triggers::updraftDisabled eq true
                         ) != null

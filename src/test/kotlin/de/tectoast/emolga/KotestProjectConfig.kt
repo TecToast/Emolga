@@ -4,8 +4,8 @@ import de.tectoast.emolga.bot.usedJDA
 import de.tectoast.emolga.database.Database
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.json.Tokens
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.initMongo
+import de.tectoast.emolga.utils.json.mdb
 import io.kotest.common.env
 import io.kotest.core.config.AbstractProjectConfig
 import kotlinx.coroutines.delay
@@ -20,11 +20,12 @@ object KotestProjectConfig : AbstractProjectConfig() {
     override suspend fun beforeProject() {
         println("INITIALIZING")
         initMongo(env("MONGODB_URL")!!)
-        logger.info(db.league.deleteMany(League::leaguename regex Regex("^TEST")).deletedCount.toString())
+        logger.info(mdb.league.deleteMany(League::leaguename regex Regex("^TEST")).deletedCount.toString())
         val username = env("DBUSER")!!
         val password = env("DBPASSWORD")!!
         val host = env("DBHOST")!!
-        Database.init(Tokens.Database(username, password, host), withStartUp = false)
+        val port = env("DBPORT")!!.toInt()
+        Database.init(Tokens.Database(username, password, host, port), withStartUp = false)
     }
 
     override suspend fun afterProject() {

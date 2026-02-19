@@ -9,7 +9,7 @@ import de.tectoast.emolga.features.ButtonSpec
 import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import dev.minn.jda.ktx.messages.Embed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +41,7 @@ object TipGameManager : CoroutineScope {
         override suspend fun exec(e: Args) {
             iData.ephemeralDefault()
             iData.deferReply()
-            val league = db.getLeague(e.leaguename) ?: return reportMissing()
+            val league = mdb.getLeague(e.leaguename) ?: return reportMissing()
             val tipgame = league.config.tipgame ?: return reportMissing()
             TipGameVotesDB.addVote(iData.user, e.leaguename, e.gameday, e.index, e.userindex)
             iData.reply(K18n_TipGame.TipSaved)

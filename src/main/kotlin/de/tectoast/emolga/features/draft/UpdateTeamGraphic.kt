@@ -5,7 +5,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.MessageContextArgs
 import de.tectoast.emolga.features.MessageContextFeature
 import de.tectoast.emolga.features.MessageContextSpec
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.teamgraphics.TeamGraphicGenerator
 
 object UpdateTeamGraphic : MessageContextFeature(MessageContextSpec("Update Teamgraphic (DEV ONLY)")) {
@@ -21,6 +21,6 @@ object UpdateTeamGraphic : MessageContextFeature(MessageContextSpec("Update Team
             ?: return iData.reply("No teamgraphic found for this message.", ephemeral = true)
         val (leagueName, idx) = result
         iData.reply("Updating teamgraphic...", ephemeral = true)
-        TeamGraphicGenerator.editTeamGraphicForLeague(db.league(leagueName), idx)
+        TeamGraphicGenerator.editTeamGraphicForLeague(mdb.league(leagueName), idx)
     }
 }

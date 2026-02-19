@@ -10,8 +10,8 @@ import de.tectoast.emolga.league.GamedayData
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.json.LeagueResult
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.k18n.generated.K18nLanguage
 import de.tectoast.k18n.generated.K18nMessage
 import dev.minn.jda.ktx.messages.Embed
@@ -143,7 +143,7 @@ object Analysis {
                     mon.draftname = getMonName(mon.pokemon, gid)
                 }
             }
-            val leaguedata = db.leagueByGuildAdvanced(
+            val leaguedata = mdb.leagueByGuildAdvanced(
                 gid, game, ctx, null, uid1db, uid2db
             )
             league = leaguedata?.league
@@ -285,9 +285,9 @@ object Analysis {
         if (split.last() == "*") return getMonName(withoutLast, guildId, withDebug)
         return if (s == "_unbekannt_") DraftName("_unknown_", "UNKNOWN")
         else {
-            var pkdata = db.pokedex.get(s.toSDName())
+            var pkdata = mdb.pokedex.get(s.toSDName())
             (NameConventionsDB.getSDTranslation(pkdata?.takeIf { it.requiredAbility != null }?.baseSpecies?.also {
-                pkdata = db.pokedex.get(
+                pkdata = mdb.pokedex.get(
                     it.toSDName()
                 )
             } ?: s, guildId) ?: DraftName(

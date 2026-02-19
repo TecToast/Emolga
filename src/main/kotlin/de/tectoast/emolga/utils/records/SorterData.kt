@@ -5,8 +5,8 @@ import de.tectoast.emolga.utils.Google
 import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.UserTableData
 import de.tectoast.emolga.utils.json.LeagueEvent
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.reverseGet
+import de.tectoast.emolga.utils.json.mdb
 import org.bson.Document
 import org.litote.kmongo.eq
 
@@ -57,7 +57,7 @@ class DefaultSorter(
                 preSorted.flatMap { pre ->
                     val toCompare = pre.value
                     if (toCompare.size == 1) return@flatMap toCompare
-                    val allRelevantEvents = db.matchresults.find(
+                    val allRelevantEvents = mdb.matchresults.find(
                         LeagueEvent::leaguename eq league.leaguename, Document(
                             $$"$expr", Document(
                                 $$"$setIsSubset", listOf(
@@ -98,7 +98,7 @@ class TableSortDataStorage(val sorter: TableSorter) {
     }
     val matchResultData = OneTimeCache {
         UserTableData.createFromEvents(
-            league.table.indices.toList(), db.matchresults.find(LeagueEvent::leaguename eq league.leaguename).toList()
+            league.table.indices.toList(), mdb.matchresults.find(LeagueEvent::leaguename eq league.leaguename).toList()
         )
     }/* maybe for next ASL coach season
     val matchResultDataAllLevels = OneTimeCache {

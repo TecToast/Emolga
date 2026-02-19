@@ -12,7 +12,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.VideoProvideStrategy
 import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.json.LeagueEvent
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.TableSorter
 import de.tectoast.emolga.utils.repeat.RepeatTask
@@ -177,7 +177,7 @@ class DocEntry private constructor(val league: League) {
             statProcessors
         ) {
             ignoreDuplicatesMongo {
-                db.matchresults.insertOne(it)
+                mdb.matchresults.insertOne(it)
             }
         }
         val (gameday, battleindex) = gamedayData

@@ -7,8 +7,8 @@ import de.tectoast.emolga.features.draft.during.generic.K18n_NoLeagueForGuildFou
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.hasRole
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.reverseGet
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.k18n
 import de.tectoast.emolga.utils.translateToGuildLanguage
 import dev.minn.jda.ktx.coroutines.await
@@ -29,7 +29,7 @@ object EnterResult {
         class Args : Arguments() {
             var opponent by fromListCommand("Opponent", K18n_EnterResult.ResultArgOpponent, {
                 val gid = it.guild?.idLong
-                db.leagueByGuild(gid ?: -1, it.user.idLong).handle(it.user.idLong, gid)
+                mdb.leagueByGuild(gid ?: -1, it.user.idLong).handle(it.user.idLong, gid)
             })
         }
 
@@ -95,7 +95,7 @@ object EnterResult {
         val u = userArg ?: iData.user
         val g = guild ?: iData.gid
 //        val t = customTc ?: tc
-        val league = db.leagueByGuild(g, u, opponent) ?: return iData.reply(
+        val league = mdb.leagueByGuild(g, u, opponent) ?: return iData.reply(
             K18n_EnterResult.NoLeagueWithOpponent(Constants.MYTAG),
             ephemeral = true
         )

@@ -5,8 +5,8 @@ package de.tectoast.emolga.utils.repeat
 import de.tectoast.emolga.ktor.setupYTSuscribtions
 import de.tectoast.emolga.utils.createCoroutineContext
 import de.tectoast.emolga.utils.json.IntervalTaskData
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.repeat.IntervalTaskKey.YTSubscriptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -40,7 +40,7 @@ class IntervalTask(
 
     fun start() {
         job = launch {
-            val startData = db.intervaltaskdata.get(name)
+            val startData = mdb.intervaltaskdata.get(name)
             startData?.notAfter?.let {
                 if (Clock.System.now() > it) return@launch
             }
@@ -53,12 +53,12 @@ class IntervalTask(
                     name = name,
                     nextExecution = nextLastExecution,
                 )
-                db.intervaltaskdata.updateOne(
+                mdb.intervaltaskdata.updateOne(
                     IntervalTaskData::name eq name,
                     newIntervalTaskData,
                     upsert()
                 )
-                if (nextLastExecution > db.intervaltaskdata.get(name)!!.notAfter) break
+                if (nextLastExecution > mdb.intervaltaskdata.get(name)!!.notAfter) break
                 delay(nextLastExecution - Clock.System.now())
                 consumer()
             }
@@ -68,7 +68,7 @@ class IntervalTask(
     companion object : CoroutineScope {
         private val intervalTasks = mutableMapOf<IntervalTaskKey, IntervalTask>()
         suspend fun restartTask(name: IntervalTaskKey) {
-            db.intervaltaskdata.deleteOne(IntervalTaskData::name eq name)
+            mdb.intervaltaskdata.deleteOne(IntervalTaskData::name eq name)
             intervalTasks[name]?.job?.cancel()
             intervalTasks[name]?.start()
         }

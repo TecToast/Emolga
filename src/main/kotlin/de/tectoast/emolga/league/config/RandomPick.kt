@@ -8,8 +8,8 @@ import de.tectoast.emolga.features.draft.during.generic.K18n_TierNotFound
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.DraftAction
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.get
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.toSDName
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -69,7 +69,7 @@ sealed interface RandomPickMode {
                         )
                     )
                 }?.let { return@firstAvailableMon false }
-                if (input.type != null) input.type in db.pokedex.get(english.toSDName())!!.types else true
+                if (input.type != null) input.type in mdb.pokedex.get(english.toSDName())!!.types else true
             }?.let { it to tier }
                 ?: return iData.replyNull(K18n_RandomPick.NoPokemonWithTypeAvailable)
         }

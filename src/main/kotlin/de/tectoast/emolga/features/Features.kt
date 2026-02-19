@@ -12,7 +12,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.generic.*
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import de.tectoast.k18n.generated.K18nLanguage
@@ -498,7 +498,7 @@ open class Arguments {
         validateDraftPokemon()
         slashCommand(autocomplete = autocomplete ?: lambda@{ s, event ->
             val gid = event.guild!!.idLong
-            val league = db.leagueForAutocomplete(event.channel.idLong, gid, event.user.idLong)
+            val league = mdb.leagueForAutocomplete(event.channel.idLong, gid, event.user.idLong)
             val tierlist = league?.tierlist ?: Tierlist[gid]
             val strings =
                 (tierlist?.autoComplete() ?: NameConventionsDB.allNameConventions()).filterContainsIgnoreCase(s)
@@ -786,7 +786,7 @@ enum class ArgumentPresence {
 }
 
 class CommandProviderData(val gid: Long) {
-    val league = OneTimeCache { db.leagueByGuild(gid) }
+    val league = OneTimeCache { mdb.leagueByGuild(gid) }
 }
 
 interface Nameable {

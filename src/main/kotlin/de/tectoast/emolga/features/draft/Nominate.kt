@@ -6,7 +6,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.league.NDS
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.k18n.generated.K18N_DEFAULT_LANGUAGE
 import dev.minn.jda.ktx.messages.Embed
 import dev.minn.jda.ktx.messages.MessageCreate
@@ -25,7 +25,7 @@ object Nominate {
             compareBy({ it.tier.indexedBy(listOf("S+", "S", "A", "B", "C", "D")) }, { it.name })
 
         init {
-            restrict { user in db.nds().table }
+            restrict { user in mdb.nds().table }
         }
 
 
@@ -35,7 +35,7 @@ object Nominate {
             registerDMListener("!nominate") { e ->
                 val uid = e.author.idLong
                 val language = K18N_DEFAULT_LANGUAGE
-                League.executeOnFreshLock({ db.nds() }) l@{
+                League.executeOnFreshLock({ mdb.nds() }) l@{
                     val nds = this as NDS
                     if (uid != Constants.FLOID && uid !in nds.table) return@l
                     val nom = nds.nominations

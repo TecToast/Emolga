@@ -3,7 +3,7 @@ package de.tectoast.emolga.features.draft
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.utils.SizeLimitedMap
 import de.tectoast.emolga.utils.TipGameAnalyseService
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 
 object TipGameCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("tipgame", K18n_TipGameCommand.Help)) {
 
@@ -70,7 +70,7 @@ object TipGameCommand : CommandFeature<NoArgs>(NoArgs(), CommandSpec("tipgame", 
                 slashCommand { string, event ->
                     val gid = event.guild!!.idLong
                     val names = leagueNameCache.getOrPut(gid) {
-                        db.leaguesByGuild(event.guild!!.idLong).map { it.displayName }
+                        mdb.leaguesByGuild(event.guild!!.idLong).map { it.displayName }
                     }
                     names.filter { it.contains(string, true) }
                 }

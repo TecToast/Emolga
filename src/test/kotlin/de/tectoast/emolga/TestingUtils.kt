@@ -11,16 +11,16 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.myJSON
 import dev.minn.jda.ktx.coroutines.await
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import org.litote.kmongo.coroutine.insertOne
-import kotlin.coroutines.suspendCoroutine
 
 val defaultGuild by lazy { jda.getGuildById(Constants.G.MY)!! }
 val defaultChannel by lazy { jda.getTextChannelById(Constants.TEST_TCID)!! }
@@ -53,7 +53,7 @@ suspend fun createTestDraft(
     guild: Long = Constants.G.ASL,
     hardcodedUserIds: Map<Int, Long> = emptyMap()
 ): suspend () -> League {
-    db.league.insertOne(
+    mdb.league.insertOne(
         myJSON.encodeToString(
             DemoLeague(
                 type = "Default",
@@ -64,7 +64,7 @@ suspend fun createTestDraft(
             )
         )
     )
-    return { db.league("TEST$name") }
+    return { mdb.league("TEST$name") }
 }
 
 @Suppress("unused")
@@ -113,4 +113,4 @@ suspend fun movePick() {
     }
 }
 
-suspend fun keepAlive() = suspendCoroutine<Unit> { }
+suspend fun keepAlive() = suspendCancellableCoroutine<Unit> { }

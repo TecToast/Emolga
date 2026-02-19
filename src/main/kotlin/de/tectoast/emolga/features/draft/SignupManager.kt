@@ -38,7 +38,7 @@ object SignupManager {
 
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            val lsData = db.signups.get(iData.gid)
+            val lsData = mdb.signups.get(iData.gid)
                 ?: return iData.reply(K18n_Signup.SignUpClosedError, ephemeral = true)
             if (lsData.getDataByUser(iData.user) != null) {
                 return iData.reply(K18n_AlreadySignedUp, ephemeral = true)
@@ -56,7 +56,7 @@ object SignupManager {
 
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            val ligaStartData = db.signups.get(iData.gid) ?: return iData.reply(
+            val ligaStartData = mdb.signups.get(iData.gid) ?: return iData.reply(
                 K18n_NoSignupInGuild, ephemeral = true
             )
             iData.reply(
@@ -74,7 +74,7 @@ object SignupManager {
     ) {
         context(iData: InteractionData)
         override suspend fun exec(e: NoArgs) {
-            val ligaStartData = db.signups.get(iData.gid) ?: return iData.reply(
+            val ligaStartData = mdb.signups.get(iData.gid) ?: return iData.reply(
                 K18n_NoSignupInGuild, ephemeral = true
             )
             val signUpData = ligaStartData.getDataByUser(iData.user) ?: return iData.reply(
@@ -94,7 +94,7 @@ object SignupManager {
             registerListener<ModalInteractionEvent> {
                 if (!it.modalId.startsWith("signup;")) return@registerListener
                 val gid = it.guild?.idLong ?: return@registerListener
-                val ligaStartData = db.signups.get(gid) ?: return@registerListener
+                val ligaStartData = mdb.signups.get(gid) ?: return@registerListener
                 ligaStartData.handleModal(it)
             }
         }
@@ -104,7 +104,7 @@ object SignupManager {
         gid: Long,
         config: LigaStartConfig
     ) {
-        if (db.signups.get(gid) != null) return
+        if (mdb.signups.get(gid) != null) return
         val tc = jda.getTextChannelById(config.announceChannel)!!
 
         val messageid =
@@ -116,7 +116,7 @@ object SignupManager {
             })
                 .addComponents(Button.withoutIData(language = GuildLanguageDB.getLanguage(gid)).into())
                 .await().idLong
-        db.signups.insertOne(
+        mdb.signups.insertOne(
             LigaStartData(
                 guild = tc.guild.idLong,
                 config = config,
@@ -150,7 +150,7 @@ object SignupManager {
             Mutex() to c
         }
         signupMutex.withLock {
-            with(db.signups.get(gid)!!) {
+            with(mdb.signups.get(gid)!!) {
                 if (!isChange && full) return iData?.reply(K18n_Signup.SignupFull)
                 @Suppress("DeferredResultUnused")
                 data[SignUpInput.SDNAME_ID]?.let {

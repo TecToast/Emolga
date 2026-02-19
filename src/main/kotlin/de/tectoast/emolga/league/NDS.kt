@@ -8,8 +8,8 @@ import de.tectoast.emolga.database.exposed.NameConventionsDB
 import de.tectoast.emolga.utils.*
 import de.tectoast.emolga.utils.draft.CombinedOptionsPriceManager
 import de.tectoast.emolga.utils.draft.DraftPokemon
-import de.tectoast.emolga.utils.json.db
 import de.tectoast.emolga.utils.json.emolga.Nominations
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.records.Coord
 import de.tectoast.emolga.utils.records.TableSortOption
 import de.tectoast.emolga.utils.records.newSystemSorter
@@ -181,7 +181,7 @@ class NDS(val rr: Boolean) : League() {
         }
 
         suspend fun doMatchUps(gameday: Int, withAnnounce: Boolean = false) {
-            val nds = db.nds()
+            val nds = mdb.nds()
             nds.table
             val battleorder = nds.battleorder[gameday]!!
             val b = RequestBuilder(nds.sid)
@@ -224,7 +224,7 @@ class NDS(val rr: Boolean) : League() {
 
 
         suspend fun doNDSNominate(prevDay: Boolean = false, withSend: Boolean = true, vararg onlySpecifiedUsers: Int) {
-            executeOnFreshLock({ db.nds() }) {
+            executeOnFreshLock({ mdb.nds() }) {
                 val nds = this as NDS
                 val nom = nds.nominations
                 var cday = nom.currentDay

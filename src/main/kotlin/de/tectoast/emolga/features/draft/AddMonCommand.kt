@@ -13,7 +13,7 @@ import de.tectoast.emolga.utils.draft.DraftPokemon
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.draft.isEnglish
 import de.tectoast.emolga.utils.filterContainsIgnoreCase
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.translateToGuildLanguage
 import de.tectoast.generic.K18n_TooManyResults
 import net.dv8tion.jda.api.interactions.commands.OptionType
@@ -30,7 +30,7 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
         ) {
             validate {
                 val user = PrivateCommands.teamSubmitOverride.takeIf { user == Constants.FLOID } ?: user
-                val league = db.league.findOne(
+                val league = mdb.league.findOne(
                     League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true, League::table contains user
                 )
                     ?: throw InvalidArgumentException(K18n_AddMon.NotAvailable)
@@ -42,7 +42,7 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
             slashCommand(autocomplete = lambda@{ s, event ->
                 val user = PrivateCommands.teamSubmitOverride.takeIf { event.user.idLong == Constants.FLOID }
                     ?: event.user.idLong
-                val league = db.league.findOne(
+                val league = mdb.league.findOne(
                     League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true, League::table contains user
                 ) ?: return@lambda listOf(K18n_AddMon.NotAvailable.translateToGuildLanguage(event.guild?.idLong))
                 val tierlist = league.getTierlistFor(league(user))
@@ -57,7 +57,7 @@ object AddMonCommand : CommandFeature<AddMonCommand.Args>(
     override suspend fun exec(e: Args) {
         val user = PrivateCommands.teamSubmitOverride.takeIf { iData.isFlo } ?: iData.user
         League.executeOnFreshLock({
-            db.league.findOne(
+            mdb.league.findOne(
                 League::config / LeagueConfig::triggers / Triggers::teamSubmit eq true, League::table contains user
             )
         }, { iData.reply(K18n_AddMon.NotAvailable) }) l@{

@@ -79,7 +79,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun tipGameLockButtons(args: PrivateData) {
-        db.league(args[0]).executeTipGameLockButtons(args[1].toInt())
+        mdb.league(args[0]).executeTipGameLockButtons(args[1].toInt())
     }
 
     context(iData: InteractionData)
@@ -89,12 +89,12 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun closeSignup(args: PrivateData) {
-        db.signups.get(args().toLong())!!.closeSignup(forced = true)
+        mdb.signups.get(args().toLong())!!.closeSignup(forced = true)
     }
 
     context(iData: InteractionData)
     suspend fun setNewMaxUsers(args: PrivateData) {
-        db.signups.get(args[0].toLong())!!.setNewMaxUsers(args[1].toInt())
+        mdb.signups.get(args[0].toLong())!!.setNewMaxUsers(args[1].toInt())
     }
 
     context(iData: InteractionData)
@@ -102,7 +102,7 @@ object PrivateCommands {
         iData.done()
         val gid = args().toLong()
         val guild = jda.getGuildById(gid)!!
-        val data = db.signups.get(gid)!!
+        val data = mdb.signups.get(gid)!!
         val roleMap = data.conferenceRoleIds.mapValues { guild.getRoleById(it.value) }
         data.users.forEach {
             val role = roleMap[it.conference] ?: return@forEach
@@ -116,21 +116,21 @@ object PrivateCommands {
     context(iData: InteractionData)
     suspend fun signupUpdate(args: PrivateData) {
         val (guild, user) = args.map { it.toLong() }
-        val ligaStartData = db.signups.get(guild)!!
+        val ligaStartData = mdb.signups.get(guild)!!
         ligaStartData.updateUser(user)
     }
 
     context(iData: InteractionData)
     suspend fun sort(args: PrivateData) {
         iData.deferReply()
-        db.league(args[0]).docEntry!!.sort(!args.getOrNull(1).equals("test", ignoreCase = true))
+        mdb.league(args[0]).docEntry!!.sort(!args.getOrNull(1).equals("test", ignoreCase = true))
         iData.done()
     }
 
     context(iData: InteractionData)
     suspend fun unsignupUser(args: PrivateData) {
         val (guild, user) = args.map { it.toLong() }
-        val signup = db.signups.get(guild)!!
+        val signup = mdb.signups.get(guild)!!
         signup.deleteUser(user)
     }
 
@@ -152,7 +152,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun setTableFromGrabUserIDS(args: PrivateData) {
-        db.db.getCollection<League>(args[0])
+        mdb.db.getCollection<League>(args[0])
             .updateOne(League::leaguename eq args[1], set(League::table setTo grabbedIDs))
     }
 
@@ -170,7 +170,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun ndsPrintMissingNominations() {
-        val nds = db.nds()
+        val nds = mdb.nds()
         iData.reply("```" + nds.run { table.indices - nominations.current().keys }
             .joinToString { "<@${nds[it]}>" } + "```")
     }
@@ -180,7 +180,7 @@ object PrivateCommands {
     context(iData: InteractionData)
     suspend fun generateAllTeamGraphicsInDraftChannels(args: PrivateData) {
         iData.done()
-        for (league in db.leaguesByGuild(args().toLong())) {
+        for (league in mdb.leaguesByGuild(args().toLong())) {
             val style = league.config.teamgraphics?.style ?: continue
             TeamGraphicGenerator.generateAndSendForLeague(league, style, league.tc)
         }
@@ -189,7 +189,7 @@ object PrivateCommands {
     context(iData: InteractionData)
     suspend fun generateTeamGraphicsForLeague(args: PrivateData) {
         iData.done()
-        val league = db.league(args[0])
+        val league = mdb.league(args[0])
         val style = league.config.teamgraphics!!.style
         val channel = iData.jda.getTextChannelById(args[1])!!
         TeamGraphicGenerator.generateAndSendForLeague(league, style, channel)
@@ -197,7 +197,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun florixcontrol(args: PrivateData) {
-        db.remoteServerControl.get(args[2]) ?: return iData.reply("No data with id ${args[2]} found")
+        mdb.remoteServerControl.get(args[2]) ?: return iData.reply("No data with id ${args[2]} found")
         (if (args[0].toBoolean()) jda.openPrivateChannelById(args[1])
             .await() else jda.getTextChannelById(args[1])!!).send(
             ":)", components = FlorixButton("Server starten".k18n, ButtonStyle.PRIMARY) {
@@ -238,7 +238,7 @@ object PrivateCommands {
             originalorder = List(12) { it }.shuffled(SecureRandom()).toMutableList(),
             config = Config(),
         )
-        db.aslcoach.insertOne(aslCoachData)
+        mdb.aslcoach.insertOne(aslCoachData)
     }
 
     context(iData: InteractionData)
@@ -273,7 +273,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun fetchYTChannelsForLeague(args: PrivateData) {
-        val league = db.league(args[0])
+        val league = mdb.league(args[0])
         YTChannelsDB.insertAll(
             league.table.asFlow().zip(
                 args.asFlow().drop(1).mapIdentifierToChannelIDs(), ::Pair
@@ -283,7 +283,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun printYTChannelsOfLeague(args: PrivateData) {
-        iData.reply(db.league(args()).table.map { it to YTChannelsDB.getChannelsOfUser(it) }
+        iData.reply(mdb.league(args()).table.map { it to YTChannelsDB.getChannelsOfUser(it) }
             .joinToString("\n") { (uid, it) ->
                 "<@${uid}>: " + if (it.isEmpty()) "Keine" else it.joinToString(prefix = "[", postfix = "]")
             })
@@ -329,7 +329,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun dbSpeedLetsGo() {
-        val col = db.db.getCollection<NameCon>("customnamecon")
+        val col = mdb.db.getCollection<NameCon>("customnamecon")
         val test = "Emolga"
         val guildId = 0L
         logger.info(measureTime {
@@ -394,7 +394,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun analyseMatchresults(args: PrivateData) {
-        val league = db.league(args[0])
+        val league = mdb.league(args[0])
         league.persistentData.replayDataStore.data[args[1].toInt()]!!.forEach { (_, replay) ->
             league.docEntry!!.analyseWithoutCheck(
                 replay, withSort = false, realExecute = args[2].toBooleanStrict()
@@ -404,7 +404,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun executeTipGameSending(args: PrivateData) {
-        db.league(args[0]).executeTipGameSending(args[1].toInt(), args.getOrNull(2)?.toLong())
+        mdb.league(args[0]).executeTipGameSending(args[1].toInt(), args.getOrNull(2)?.toLong())
     }
 
     context(iData: InteractionData)
@@ -460,13 +460,13 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun moveLeaguesToArchive(args: PrivateData) {
-        val archiveLeague = db.db.getCollection<League>("oldleague")
-        val currentLeague = db.league
-        val archiveMR = db.db.getCollection<LeagueEvent>("oldmatchresults")
-        val currentMR = db.db.getCollection<LeagueEvent>("matchresults")
+        val archiveLeague = mdb.db.getCollection<League>("oldleague")
+        val currentLeague = mdb.league
+        val archiveMR = mdb.db.getCollection<LeagueEvent>("oldmatchresults")
+        val currentMR = mdb.db.getCollection<LeagueEvent>("matchresults")
         args.forEach {
             if (!it.matches(Regex("^NDSS\\d+$"))) {
-                val league = db.league(it)
+                val league = mdb.league(it)
                 archiveLeague.insertOne(league)
                 currentLeague.deleteOne(League::leaguename eq it)
             }
@@ -481,7 +481,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun startGroupedPoints() {
-        db.shinyEventConfig.only().updateDiscord(jda)
+        mdb.shinyEventConfig.only().updateDiscord(jda)
     }
 
     context(iData: InteractionData)
@@ -505,14 +505,14 @@ object PrivateCommands {
     }
 
     suspend fun enableMaintenanceWithReason(reason: String) {
-        db.config.updateOnly(set(GeneralConfig::maintenance setTo reason))
+        mdb.config.updateOnly(set(GeneralConfig::maintenance setTo reason))
         EmolgaMain.maintenance = reason
         EmolgaMain.updatePresence()
     }
 
     context(iData: InteractionData)
     suspend fun disableMaintenance() {
-        db.config.updateOnly(set(GeneralConfig::maintenance setTo null))
+        mdb.config.updateOnly(set(GeneralConfig::maintenance setTo null))
         EmolgaMain.maintenance = null
         EmolgaMain.updatePresence()
     }
@@ -546,7 +546,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun fixLogos() {
-        val lsData = db.signups.only()
+        val lsData = mdb.signups.only()
         val tc = jda.getTextChannelById(lsData.config.signupChannel)!!
         val messages = tc.iterableHistory.takeWhileAsync { it.author.idLong == jda.selfUser.idLong }.await()
         for (m in messages) {
@@ -560,7 +560,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun printTables(args: PrivateData) {
-        iData.reply(db.league.find(League::guild eq args().toLong()).toList().joinToString("\n") {
+        iData.reply(mdb.league.find(League::guild eq args().toLong()).toList().joinToString("\n") {
             it.leaguename + " " + it.table.joinToString { m -> "<@$m>" }
         })
     }
@@ -613,7 +613,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun createDefaultLeague() {
-        db.league.insertOne(DefaultLeague())
+        mdb.league.insertOne(DefaultLeague())
     }
 
     context(iData: InteractionData)
@@ -651,7 +651,7 @@ object PrivateCommands {
 
     context(iData: InteractionData)
     suspend fun executeHideGamesDocInsertion(args: PrivateData) {
-        val league = db.league(args[0])
+        val league = mdb.league(args[0])
         league.docEntry!!.executeHideGamesDocInsertion(
             league.persistentData.replayDataStore.data[args[1].toInt()]!!, args[2].toLong(), args[3].toLong()
         )
@@ -690,7 +690,7 @@ object PrivateCommands {
     context(iData: InteractionData)
     suspend fun updateSignupMessage(args: PrivateData) {
         val gid = args().toLong()
-        db.signups.get(gid)!!.updateSignupMessage()
+        mdb.signups.get(gid)!!.updateSignupMessage()
     }
 
     @OptIn(ExperimentalUuidApi::class)

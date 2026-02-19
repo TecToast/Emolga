@@ -7,7 +7,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultTimeFormat
 import de.tectoast.emolga.utils.json.LadderTournament
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -116,13 +116,13 @@ class RepeatTask(
         }
 
         suspend fun setupLeagueRepeatTasks() {
-            db.league.find().toFlow().collect { l ->
+            mdb.league.find().toFlow().collect { l ->
                 l.setupRepeatTasks()
             }
         }
 
         suspend fun setupLadderTournamentRepeatTasks() {
-            db.ladderTournament.find(LadderTournament::lastExecution gt System.currentTimeMillis()).toFlow().collect {
+            mdb.ladderTournament.find(LadderTournament::lastExecution gt System.currentTimeMillis()).toFlow().collect {
                 val gid = it.guild
                 RepeatTask(
                     "LadderTournament $gid",

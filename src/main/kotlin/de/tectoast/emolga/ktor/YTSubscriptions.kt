@@ -11,7 +11,7 @@ import de.tectoast.emolga.league.config.LeagueConfig
 import de.tectoast.emolga.league.config.YouTubeConfig
 import de.tectoast.emolga.utils.createCoroutineScope
 import de.tectoast.emolga.utils.defaultScope
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.json.only
 import de.tectoast.emolga.utils.repeat.RepeatTask
 import de.tectoast.emolga.utils.repeat.RepeatTaskType
@@ -56,7 +56,7 @@ fun setupYTSuscribtions() {
     defaultScope.launch {
         val allChannels = YTNotificationsDB.getAllYTChannels()
         val fromLeagueUsers =
-            db.league.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
+            mdb.league.find(League::config / LeagueConfig::youtube / YouTubeConfig::sendChannel exists true).toFlow()
                 .flatMapConcat { it.table.asFlow() }.toSet()
         YTChannelsDB.addAllChannelIdsToSet(allChannels, fromLeagueUsers)
         logger.info("Subscribing to ${allChannels.size} channels...")
@@ -135,7 +135,7 @@ fun Route.ytSubscriptions() {
                     }
                 }
                 ytScope.launch {
-                    db.config.only().ytLeagues.forEach { (short, gid) ->
+                    mdb.config.only().ytLeagues.forEach { (short, gid) ->
                         if (title.contains(short, ignoreCase = true)) {
                             handleVideo(channelId, videoId, gid)
                         } else {
@@ -154,7 +154,7 @@ suspend fun handleVideo(channelId: String, videoId: String, gid: Long) {
     var successful = false
     for (uid in uids) {
         logger.info("Uid found: $uid")
-        val leagues = db.leaguesByGuild(gid, uid)
+        val leagues = mdb.leaguesByGuild(gid, uid)
         for (league in leagues.map { it.leaguename }) {
             logger.info("Checking league: $league")
             League.executeOnFreshLock(league) {

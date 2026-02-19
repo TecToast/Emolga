@@ -3,7 +3,7 @@ package de.tectoast.emolga.features.draft
 import de.tectoast.emolga.features.*
 import de.tectoast.emolga.features.draft.during.generic.K18n_LeagueNotFound
 import de.tectoast.emolga.league.League
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import org.litote.kmongo.eq
 
 object LeagueManage {
@@ -19,7 +19,7 @@ object LeagueManage {
         fun Arguments.leagueName() = fromListCommand(
             "Liganame",
             K18n_LeagueManage.ArgLeague,
-            { event -> db.league.find(League::guild eq event.guild?.idLong).toList().map { it.leaguename } }) {
+            { event -> mdb.league.find(League::guild eq event.guild?.idLong).toList().map { it.leaguename } }) {
         }
 
         object ResultCheckCommand : CommandFeature<ResultCheckCommand.Args>(
@@ -37,7 +37,7 @@ object LeagueManage {
             context(iData: InteractionData)
             override suspend fun exec(e: Args) {
                 League.executeOnFreshLock(
-                    { db.getLeague(e.league) },
+                    { mdb.getLeague(e.league) },
                     { iData.reply(K18n_LeagueNotFound, ephemeral = true) }) {
                     iData.reply(buildStoreStatus(e.gameday), ephemeral = !e.public)
                 }

@@ -7,7 +7,7 @@ import de.tectoast.emolga.features.InteractionData
 import de.tectoast.emolga.features.draft.during.DraftPermissionCommand
 import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.Constants
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.k18n
 import dev.minn.jda.ktx.interactions.components.menu
 import dev.minn.jda.ktx.messages.into
@@ -44,7 +44,7 @@ object MemberSelect {
                         save()
                     }
                 } else {
-                    db.db.getCollection<League>("league")
+                    mdb.db.getCollection<League>("league")
                         .updateOne(
                             League::leaguename eq league,
                             set(League::table setTo members.map { mem -> mem.idLong })

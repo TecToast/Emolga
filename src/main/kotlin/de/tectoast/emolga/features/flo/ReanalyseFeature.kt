@@ -9,7 +9,7 @@ import de.tectoast.emolga.league.League
 import de.tectoast.emolga.utils.FullGameData
 import de.tectoast.emolga.utils.KD
 import de.tectoast.emolga.utils.ReplayData
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import de.tectoast.emolga.utils.reversedIf
 
 object ReanalyseFeature : MessageContextFeature(MessageContextSpec("Reanalyse (DEV ONLY)")) {
@@ -23,7 +23,7 @@ object ReanalyseFeature : MessageContextFeature(MessageContextSpec("Reanalyse (D
         val message = e.message.embeds.first().description!!
         val userRegex = Regex("<@(\\d+)>.*?<@(\\d+)")
         val uids = userRegex.find(message)!!.groupValues.drop(1).map { it.toLong() }
-        val league = db.leaguesByGuild(iData.gid, *uids.toLongArray()).single()
+        val league = mdb.leaguesByGuild(iData.gid, *uids.toLongArray()).single()
         val idxs = uids.map { league(it) }
         val lines = message.split("\n")
         val singleGame = listOf(lines.subList(3, 9), lines.subList(11, 17)).map { playerLines ->

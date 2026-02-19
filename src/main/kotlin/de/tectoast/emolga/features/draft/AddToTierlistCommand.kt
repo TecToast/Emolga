@@ -15,7 +15,7 @@ import de.tectoast.emolga.utils.OneTimeCache
 import de.tectoast.emolga.utils.dconfigurator.impl.TierlistBuilderConfigurator
 import de.tectoast.emolga.utils.draft.Tierlist
 import de.tectoast.emolga.utils.filterStartsWithIgnoreCase
-import de.tectoast.emolga.utils.json.db
+import de.tectoast.emolga.utils.json.mdb
 import mu.KotlinLogging
 import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 import org.litote.kmongo.eq
@@ -63,7 +63,7 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
         }
         iData.reply(K18n_AddToTierlist.Success(mon, tier))
         val data = AddToTierlistData(mon, tier, tierlist, id).apply { addToTierlistAutocompletion() }
-        val leagues = db.league.find(League::guild eq id).toList()
+        val leagues = mdb.league.find(League::guild eq id).toList()
         if (leagues.isNotEmpty()) {
             leagues.forEach {
                 with(it) {
@@ -76,7 +76,7 @@ object AddToTierlistCommand : CommandFeature<AddToTierlistCommand.Args>(
 
 data class AddToTierlistData(val mon: String, val tier: String, val tierlist: Tierlist, val gid: Long) {
 
-    val pkmn = dbAsync { db.getDataObject(mon, gid) }
+    val pkmn = dbAsync { mdb.getDataObject(mon, gid) }
     val englishTLName = dbAsync {
         NameConventionsDB.getDiscordTranslation(
             mon,
